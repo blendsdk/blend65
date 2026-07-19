@@ -177,11 +177,7 @@ Game_sum:
 Game_sum_L0:
     LDA __frame_Game_sum_i
     CMP __frame_Game_sum_len
-    LDA #$01
-    BCC _cmp0
-    LDA #$00
-_cmp0:
-    BNE Game_sum_L1
+    BCC Game_sum_L1
     JMP Game_sum_L2
 Game_sum_L1:
     LDY __frame_Game_sum_i

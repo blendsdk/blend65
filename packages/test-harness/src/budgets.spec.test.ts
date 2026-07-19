@@ -63,25 +63,27 @@ const MEASURE_TIMEOUT = 60000;
  * the TEXTUAL sum of every instruction between the poll-loop head and its
  * exit label, transcribed from the committed `rasterpoll.asm.golden` + the
  * documented NMOS timings (all branches stay in one page, max = taken):
- *   LDA $D012 (4) + CMP #$FB (2) + BNE _cmp0 (3) + LDA #$00 (2)
- *   + JMP _cmp1 (3) + LDA #$01 (2) + BNE L4 (3) + JMP L5 (3) + JMP L3 (3)
- *   = 25.
+ *   LDA $D012 (4) + CMP #$FB (2) + BNE L4 (3) + JMP L5 (3) + JMP L3 (3)
+ *   = 15.
+ * The compare's own flags carry the branch, so nothing stands between the
+ * `CMP` and the `BNE`. The path actually walked while the raster has not
+ * arrived — load, compare, branch taken, and the body block's jump back — is
+ * 12 of those cycles; the remaining `JMP L5` is the exit, walked once.
  */
-const EXPECTED_POLL_ITERATION_MAX_CYCLES = 25;
+const EXPECTED_POLL_ITERATION_MAX_CYCLES = 15;
 
 /**
  * The hand-computed static max-sum of one guards compound-guard evaluation —
  * the TEXTUAL sum of both clause blocks, from the lower-bound test to the
- * join, transcribed from the committed `guards.asm.golden` + the documented
- * NMOS timings (all branches stay in one page, max = taken):
- *   lower clause: LDA probe (4) + CMP #$08 (2) + LDA #$01 (2) + BCS (3)
- *     + LDA #$00 (2) + STA 0sc0 (4) + BNE L9 (3) + JMP L10 (3)      = 23
- *   upper clause: LDA probe (4) + CMP #$28 (2) + LDA #$01 (2) + BCC (3)
- *     + LDA #$00 (2) + STA 0sc0 (4) + JMP L10 (3)                   = 20
- *   = 43, of which 16 (each clause's `LDA #$01` + `LDA #$00` + `STA`) do
- * nothing but build a 0/1 that the branch at the join then reads back.
+ * block the guard admits to, transcribed from the committed
+ * `guards.asm.golden` + the documented NMOS timings (all branches stay in one
+ * page, max = taken):
+ *   lower clause: LDA probe (4) + CMP #$08 (2) + BCS (3) + JMP (3)  = 12
+ *   upper clause: LDA probe (4) + CMP #$28 (2) + BCC (3) + JMP (3)  = 12
+ *   = 24, every cycle of which is either the compare or the branch it
+ * decides — nothing builds a 0/1 for the next test to read back.
  */
-const EXPECTED_COMPOUND_GUARD_MAX_CYCLES = 43;
+const EXPECTED_COMPOUND_GUARD_MAX_CYCLES = 24;
 
 /** A built corpus program: the compiler build result + scratch cleanup. */
 interface BuiltProgram {

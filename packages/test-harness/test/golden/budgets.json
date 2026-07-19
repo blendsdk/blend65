@@ -3,60 +3,60 @@
     "gate": { "bytes": 30, "windows": [] },
     "slice3a": { "bytes": 36, "windows": [] },
     "slice3b": { "bytes": 233, "windows": [] },
-    "slice4a": { "bytes": 212, "windows": [] },
-    "slice4b": { "bytes": 221, "windows": [] },
+    "slice4a": { "bytes": 176, "windows": [] },
+    "slice4b": { "bytes": 176, "windows": [] },
     "slice5a": { "bytes": 235, "windows": [] },
     "slice5b": { "bytes": 151, "windows": [] },
     "slice6": { "bytes": 535, "windows": [] },
-    "slice7": { "bytes": 352, "windows": [] },
-    "slice7b": { "bytes": 367, "windows": [] },
-    "slice8": { "bytes": 176, "windows": [] },
+    "slice7": { "bytes": 328, "windows": [] },
+    "slice7b": { "bytes": 361, "windows": [] },
+    "slice8": { "bytes": 166, "windows": [] },
     "slice8b": {
-      "bytes": 417,
+      "bytes": 402,
       "windows": [
         {
           "name": "copyLoop",
           "fromLabel": "Main_copyBytes_L0",
           "toLabel": "Main_copyBytes_L3",
           "kind": "span",
-          "staticMaxCycles": 67
+          "staticMaxCycles": 60
         }
       ]
     },
     "guards": {
-      "bytes": 347,
+      "bytes": 263,
       "windows": [
         {
           "name": "compoundGuard",
           "fromLabel": "Main_main_L7",
-          "toLabel": "Main_main_L10",
+          "toLabel": "Main_main_L9",
           "kind": "perIteration",
-          "staticCyclesPerIteration": 43
+          "staticCyclesPerIteration": 24
         }
       ]
     },
     "rasterpoll": {
-      "bytes": 88,
+      "bytes": 75,
       "windows": [
         {
           "name": "pollIter",
           "fromLabel": "Main_main_L3",
           "toLabel": "Main_main_L5",
           "kind": "perIteration",
-          "staticCyclesPerIteration": 25
+          "staticCyclesPerIteration": 15
         }
       ]
     },
     "balloon": {
-      "bytes": 772,
+      "bytes": 729,
       "windows": [
         {
           "name": "frameUpdate",
           "fromLabel": "Main_main_L5",
           "toLabel": "Main_main_L0",
           "kind": "span",
-          "staticMaxCycles": 269,
-          "measuredMaxCycles": 162
+          "staticMaxCycles": 235,
+          "measuredMaxCycles": 133
         }
       ]
     }

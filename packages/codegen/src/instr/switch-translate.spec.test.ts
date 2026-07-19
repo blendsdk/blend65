@@ -1,16 +1,16 @@
 /**
  * Specification test for switch IL→Instr translation.
  *
- * A lowered `switch` (a `brcond` compare-chain over the multi-block CFG
- * keystone) must translate through the EXISTING `translate.ts` with **zero** new
- * terminator kinds and **zero** new translate work: `br`→`JMP`,
- * `brcond`→`BNE`/`JMP`, and each `eq` compare uses the corrected form
- * (branch on the fresh `CMP` flag before materialising 0/1).
+ * A lowered `switch` is a fused compare-chain over the multi-block CFG
+ * keystone: each dispatch test loads the discriminant, compares it against its
+ * case value, and branches on that compare's own flags — `BEQ` to the case
+ * body, `JMP` to the next test. A dispatch test asks a question, so nothing
+ * anywhere in the chain builds a 0/1 match flag to re-test.
  *
  * Derived exclusively from the switch/case/default/fallthrough semantics —
  * never from reading the implementation under test (immutable oracle).
  * Lowered end-to-end through the REAL frontend, then `lowerToIL → generateInstr →
- * printInstr`. Spec-tests-first: `SwitchStmt` ICEs today — RED first, then GREEN.
+ * printInstr`.
  */
 
 import { describe, expect, it } from "vitest";
@@ -43,7 +43,7 @@ function asmRealSource(source: string): { text: string; hasErrors: boolean } {
 }
 
 describe("Specification: RD-18 Slice 4b switch translate (ST-17, AR-1/AR-13)", () => {
-  it("translates a switch dispatch chain with no new terminator, DEF-1 eq form", () => {
+  it("translates a switch dispatch chain as fused compare-and-branch tests", () => {
     const { text, hasErrors } = asmRealSource(
       "module Main;\nfunction main(): void {\n" +
         "  let x: byte = 2;\n" +
@@ -54,16 +54,13 @@ describe("Specification: RD-18 Slice 4b switch translate (ST-17, AR-1/AR-13)", (
         "  }\n" +
         "}\n",
     );
-    // No ICE — the existing terminator set (br/brcond) suffices.
     expect(hasErrors).toBe(false);
     // Function-unique, ASM-safe dispatch/body block labels.
     expect((text.match(/^Main_main_L\d+:/gm) ?? []).length).toBeGreaterThanOrEqual(2);
-    // The discriminant is compared per case value.
-    expect(text).toContain("CMP");
-    // eq's corrected form: branch on the fresh compare flag (BEQ) before materialising.
-    expect(text).toContain("BEQ");
-    // brcond → BNE (true target) + JMP (false target / br).
-    expect(text).toContain("BNE");
-    expect(text).toContain("JMP");
+    // Each dispatch test compares the discriminant against its case value and
+    // branches on the flags that compare just set — nothing stands between the
+    // CMP and the branch, so no 0/1 match flag is built, stored or re-tested.
+    expect(text).toMatch(/CMP #\$01\n\s+BEQ Main_main_L\d+\n\s+JMP Main_main_L\d+/);
+    expect(text).toMatch(/CMP #\$02\n\s+BEQ Main_main_L\d+\n\s+JMP Main_main_L\d+/);
   });
 });

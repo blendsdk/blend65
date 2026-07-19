@@ -335,13 +335,8 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 50,
-            "note": "every guard materializes 0/1 and re-tests it (BNE 10 vs 2, BMI/BPL polarity round-trip)"
-          },
-          {
-            "disposition": "structural",
             "issue": 51,
-            "note": "JMP 29 vs 1 - jump threading / fall-through elision"
+            "note": "JMP 23 vs 1 - jump threading / fall-through elision; the leftover branch-polarity spread (BMI 1 vs 0, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through, the generated one branches to the true arm and jumps to the false one"
           },
           {
             "disposition": "structural",
@@ -380,13 +375,8 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 50,
-            "note": "poll compare/branch not fused (BNE 3 vs 1)"
-          },
-          {
-            "disposition": "structural",
             "issue": 51,
-            "note": "JMP 8 vs 1 - jump threading / fall-through elision"
+            "note": "JMP 7 vs 1 - jump threading / fall-through elision"
           },
           {
             "disposition": "peephole",
@@ -416,18 +406,13 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 50,
-            "note": "bounce compares: BNE 11 vs 3 - compare-and-branch fusion"
-          },
-          {
-            "disposition": "structural",
             "issue": 51,
-            "note": "JMP 24 vs 3 - jump threading / fall-through elision"
+            "note": "JMP 21 vs 3 - jump threading / fall-through elision; the leftover branch-polarity spread (BEQ 0 vs 2, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through"
           },
           {
             "disposition": "peephole",
             "issue": 52,
-            "note": "LDA 107 vs 27, STA 87 vs 21 - redundant load/store elimination"
+            "note": "LDA 96 vs 27, STA 87 vs 21 - redundant load/store elimination"
           },
           {
             "disposition": "data/placement",

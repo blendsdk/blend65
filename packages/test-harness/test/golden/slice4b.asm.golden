@@ -38,46 +38,22 @@ _main:
     STA __frame_Main_main_acc
     LDA __frame_Main_main_sel
     CMP #$01
-    BEQ _cmp0
-    LDA #$00
-    JMP _cmp1
-_cmp0:
-    LDA #$01
-_cmp1:
-    BNE Main_main_L1
+    BEQ Main_main_L1
     JMP Main_main_L5
 Main_main_L5:
     LDA __frame_Main_main_sel
     CMP #$02
-    BEQ _cmp2
-    LDA #$00
-    JMP _cmp3
-_cmp2:
-    LDA #$01
-_cmp3:
-    BNE Main_main_L2
+    BEQ Main_main_L2
     JMP Main_main_L6
 Main_main_L6:
     LDA __frame_Main_main_sel
     CMP #$03
-    BEQ _cmp4
-    LDA #$00
-    JMP _cmp5
-_cmp4:
-    LDA #$01
-_cmp5:
-    BNE Main_main_L2
+    BEQ Main_main_L2
     JMP Main_main_L7
 Main_main_L7:
     LDA __frame_Main_main_sel
     CMP #$04
-    BEQ _cmp6
-    LDA #$00
-    JMP _cmp7
-_cmp6:
-    LDA #$01
-_cmp7:
-    BNE Main_main_L3
+    BEQ Main_main_L3
     JMP Main_main_L8
 Main_main_L8:
     JMP Main_main_L4
@@ -110,13 +86,7 @@ Main_main_L0:
     STA __frame_Main_main_sel2
     LDA __frame_Main_main_sel2
     CMP #$01
-    BEQ _cmp8
-    LDA #$00
-    JMP _cmp9
-_cmp8:
-    LDA #$01
-_cmp9:
-    BNE Main_main_L10
+    BEQ Main_main_L10
     JMP Main_main_L12
 Main_main_L12:
     JMP Main_main_L11

@@ -70,11 +70,7 @@ Main_onNMI:
 Main_bump:
     LDA __zp_Main_frameCount
     CMP #$64
-    LDA #$01
-    BCC _cmp0
-    LDA #$00
-_cmp0:
-    BNE Main_bump_L0
+    BCC Main_bump_L0
     JMP Main_bump_L1
 Main_bump_L0:
     LDA $D020
@@ -117,9 +113,7 @@ _main:
     CLI
     JMP Main_main_L0
 Main_main_L0:
-    LDA #$01
-    BNE Main_main_L1
-    JMP Main_main_L2
+    JMP Main_main_L1
 Main_main_L1:
     LDA __zp_Main_frameCount
     STA __var_Main_mirror

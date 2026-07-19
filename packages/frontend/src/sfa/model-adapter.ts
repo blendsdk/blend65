@@ -21,9 +21,11 @@ import type {
   AstVisitor,
   BinaryExprNode,
   CallExprNode,
+  DoWhileStmtNode,
   ExprNode,
   FrameVar,
   FunctionInfo,
+  IfStmtNode,
   LetDeclNode,
   ModuleDeclNode,
   Scope,
@@ -31,6 +33,7 @@ import type {
   Symbol,
   Type,
   UnaryExprNode,
+  WhileStmtNode,
   ZeropageFieldNode,
 } from "@blend65/core";
 import type { ModuleVarInput } from "./zp-allocator.js";
@@ -98,6 +101,15 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
  * indices align; a drift on either side is a loud frame-miss/size-mismatch
  * rejection there, never a silent mis-address.
  *
+ * Whether a site claims can depend on WHERE it sits (see {@link isSlotSite}),
+ * so the walk threads a condition-position flag down the two edges that carry
+ * it: the condition child of `if`/`while`/`do-while`, and the operands of a
+ * `!`/`&&`/`||` that is itself in condition position. Those parents enumerate
+ * their children here, in the same order the generic walk uses; every other
+ * edge lands in the default case and is value position again — including a
+ * conditional's arms, a call's arguments, and a comparison's operands, even
+ * when they sit inside a condition.
+ *
  * The slot name's leading digit (`0sc<N>`) is illegal in source identifiers,
  * so no user local can ever collide; the digit is legal mid-symbol in the
  * assembler's `__frame_*` namespace. A poisoned site still appends a slot
@@ -105,8 +117,8 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
  * stays consistent — such programs never reach codegen anyway.
  */
 function collectSyntheticSlots(root: AstNode, model: SemanticModel, slots: FrameVar[]): void {
-  const visit = (node: AstNode): void => {
-    if (isSlotSite(node)) {
+  const visit = (node: AstNode, inCondition: boolean): void => {
+    if (isSlotSite(node, inCondition)) {
       const t = model.typeOf(node);
       slots.push({
         name: `0sc${slots.length}`,
@@ -114,28 +126,73 @@ function collectSyntheticSlots(root: AstNode, model: SemanticModel, slots: Frame
         byRef: false,
       });
     }
-    walkChildren(node, visitor);
+    switch (node.kind) {
+      case "IfStmt": {
+        const n = node as IfStmtNode;
+        visit(n.condition, true);
+        visit(n.thenBlock, false);
+        if (n.elseClause !== null) visit(n.elseClause, false);
+        return;
+      }
+      case "WhileStmt": {
+        const n = node as WhileStmtNode;
+        visit(n.condition, true);
+        visit(n.body, false);
+        return;
+      }
+      case "DoWhileStmt": {
+        // Body first: the loop runs it before it ever asks the question, and
+        // the lowering claims slots in that same order.
+        const n = node as DoWhileStmtNode;
+        visit(n.body, false);
+        visit(n.condition, true);
+        return;
+      }
+      case "UnaryExpr": {
+        const n = node as UnaryExprNode;
+        visit(n.operand, inCondition && n.op === "!");
+        return;
+      }
+      case "BinaryExpr": {
+        const n = node as BinaryExprNode;
+        const carries = inCondition && (n.op === "&&" || n.op === "||");
+        visit(n.left, carries);
+        visit(n.right, carries);
+        return;
+      }
+      default:
+        walkChildren(node, valueVisitor);
+    }
   };
-  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
-  walkNode(root, visitor);
+  const valueVisitor = new Proxy({} as AstVisitor<void>, {
+    get: () => (child: AstNode) => visit(child, false),
+  });
+  walkNode(root, valueVisitor);
 }
 
 /**
- * Whether `node` is an expression site that needs a synthetic result slot.
+ * Whether `node` is an expression site that needs a synthetic result slot,
+ * given whether it sits in condition position.
  *
- * Short-circuit/conditional results cross basic blocks through their slot.
+ * Short-circuit/conditional results cross basic blocks through their slot —
+ * unless the short-circuit never produces a result at all. In condition
+ * position `&&`/`||` lower to branches straight to the enclosing statement's
+ * targets, so there is no value to carry across a block and nothing to claim.
+ * Everywhere else they still produce one, and a conditional produces one in
+ * every position (only its arms cross blocks, never the choice itself).
+ *
  * An address-of site homes its link-time address through a word slot so the
  * value can feed ALU and byte-extraction consumers (address operands are
  * legal only as store sources and ALU right operands). Every `&` site claims
  * a slot — including plain-store sites that end up not writing theirs — so
- * the counter stays position-independent and always aligned with lowering.
+ * the counter never depends on how the site is used.
  */
-function isSlotSite(node: AstNode): node is ExprNode {
+function isSlotSite(node: AstNode, inCondition: boolean): node is ExprNode {
   if (node.kind === "ConditionalExpr") return true;
   if (node.kind === "UnaryExpr") return (node as UnaryExprNode).op === "&";
   if (node.kind !== "BinaryExpr") return false;
   const op = (node as BinaryExprNode).op;
-  return op === "&&" || op === "||";
+  return (op === "&&" || op === "||") && !inCondition;
 }
 
 /**

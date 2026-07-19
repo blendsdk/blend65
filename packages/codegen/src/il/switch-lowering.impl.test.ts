@@ -71,8 +71,8 @@ describe("Impl: RD-18 Slice 4b lowering edge cases", () => {
         "}\n",
     );
     expect(hasErrors).toBe(false);
-    const brcondCount = fn!.blocks.filter((b) => b.terminator.kind === "brcond").length;
-    expect(brcondCount).toBe(1); // exactly one case value → one dispatch test
+    const testCount = fn!.blocks.filter((b) => b.terminator.kind === "brcmp").length;
+    expect(testCount).toBe(1); // exactly one case value → one fused dispatch test
   });
 
   it("falls through from the last case straight into the default body", () => {

@@ -52,15 +52,22 @@ function brconds(fn: ILFunction): Array<Extract<BasicBlock["terminator"], { kind
     .filter((t): t is Extract<BasicBlock["terminator"], { kind: "brcond" }> => t.kind === "brcond");
 }
 
+/** Every `brcmp` terminator across the function, in block order. */
+function brcmps(fn: ILFunction): Array<Extract<BasicBlock["terminator"], { kind: "brcmp" }>> {
+  return fn.blocks
+    .map((b) => b.terminator)
+    .filter((t): t is Extract<BasicBlock["terminator"], { kind: "brcmp" }> => t.kind === "brcmp");
+}
+
 /** The join block: the (void main) fall-through block terminated with `ret`. */
 function retBlock(fn: ILFunction): BasicBlock | undefined {
   return fn.blocks.find((b) => b.terminator.kind === "ret");
 }
 
 describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () => {
-  // A 2-case + default switch lowers to a multi-block CFG: ≥2 `brcond`
-  // dispatch tests (one per case value), `eq` compares, and a join (`ret`) block.
-  it("should lower a 2-case switch to a brcond dispatch chain + join (ST-12)", () => {
+  // A 2-case + default switch lowers to a multi-block CFG: ≥2 fused `eq`
+  // dispatch tests (one per case value) and a join (`ret`) block.
+  it("should lower a 2-case switch to a fused dispatch chain + join (ST-12)", () => {
     const { fn, hasErrors } = lowerMain(
       "module Main;\nfunction main(): void {\n" +
         "  let x: byte = 1;\n" +
@@ -69,12 +76,13 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     );
     expect(hasErrors).toBe(false);
     expect(fn).toBeDefined();
-    expect(brconds(fn!).length).toBeGreaterThanOrEqual(2); // one dispatch test per case value
-    expect(fn!.blocks.some((b) => b.instructions.some((i) => i.op === "eq"))).toBe(true);
+    const tests = brcmps(fn!);
+    expect(tests.length).toBeGreaterThanOrEqual(2); // one dispatch test per case value
+    expect(tests.every((t) => t.op === "eq")).toBe(true); // each asks "is it this value?"
     expect(retBlock(fn!)).toBeDefined(); // the join
   });
 
-  // A multi-value `case 2, 3:` emits two `eq`+`brcond` tests whose true
+  // A multi-value `case 2, 3:` emits two fused `eq` tests whose true
   // edges point at the same shared body block.
   it("should point both multi-value tests at one shared body block (ST-13)", () => {
     const { fn, hasErrors } = lowerMain(
@@ -84,7 +92,7 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
         "}\n",
     );
     expect(hasErrors).toBe(false);
-    const bc = brconds(fn!);
+    const bc = brcmps(fn!);
     expect(bc.length).toBeGreaterThanOrEqual(2);
     expect(bc[0].trueTarget).toBe(bc[1].trueTarget); // value 2 and value 3 share one body
   });
@@ -142,13 +150,6 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     ).toBe(true);
   });
 });
-
-/** Every `brcmp` terminator across the function, in block order. */
-function brcmps(fn: ILFunction): Array<Extract<BasicBlock["terminator"], { kind: "brcmp" }>> {
-  return fn.blocks
-    .map((b) => b.terminator)
-    .filter((t): t is Extract<BasicBlock["terminator"], { kind: "brcmp" }> => t.kind === "brcmp");
-}
 
 // Pins the fused dispatch contract: a switch dispatch test is condition position, so
 // each test block re-lowers the discriminant and terminates in a `brcmp eq` against its

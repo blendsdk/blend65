@@ -33,20 +33,12 @@ __init:
 _main:
     JMP Main_main_L0
 Main_main_L0:
-    LDA #$01
-    BNE Main_main_L1
-    JMP Main_main_L2
+    JMP Main_main_L1
 Main_main_L1:
     JMP Main_main_L3
 Main_main_L3:
     LDA $D012
     CMP #$FB
-    BNE _cmp0
-    LDA #$00
-    JMP _cmp1
-_cmp0:
-    LDA #$01
-_cmp1:
     BNE Main_main_L4
     JMP Main_main_L5
 Main_main_L4:

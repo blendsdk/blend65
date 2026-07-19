@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 20:14
-> **Progress**: 29/43 tasks (67%)
+> **Last Updated**: 2026-07-19 20:58
+> **Progress**: 40/43 tasks (93%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -305,30 +305,120 @@ both appended only — no pre-existing test edited, since the superseded oracles
 **Reference**: 03-03 §Implementation Details · req-AR #22 · plan-AR #3
 **Objective**: Every condition statement lowers through `lowerCondition`; slots agree.
 
-- [ ] 4.2.1 Implement `lowerCondition` + the shared comparison-operand/promotion helper factored from `lowerExpr` — `packages/codegen/src/il/lower.ts`
-- [ ] 4.2.2 Rewire `lowerIf`/`lowerWhile`/`lowerDoWhile`/`lowerFor` predicate/`lowerSwitch` dispatch onto it — `packages/codegen/src/il/lower.ts`
-- [ ] 4.2.3 Make the adapter's slot predicate position-dependent per the structural definition (no codegen import — R15) — `packages/frontend/src/sfa/model-adapter.ts`
-- [ ] 4.2.4 Green phase on unit tiers: ST-8a–g, ST-14, ST-15 pass; fix implementation only
+- [x] 4.2.1 Implement `lowerCondition` + the shared comparison-operand/promotion helper factored from `lowerExpr` — `packages/codegen/src/il/lower.ts`
+- [x] 4.2.2 Rewire `lowerIf`/`lowerWhile`/`lowerDoWhile`/`lowerFor` predicate/`lowerSwitch` dispatch onto it — `packages/codegen/src/il/lower.ts`
+- [x] 4.2.3 Make the adapter's slot predicate position-dependent per the structural definition (no codegen import — R15) — `packages/frontend/src/sfa/model-adapter.ts`
+- [x] 4.2.4 Green phase on unit tiers: ST-8a–g, ST-14, ST-15 pass; fix implementation only
+
+**Step 4.2 notes**:
+
+- `lowerCondition` handles literal / `!` / comparison / `&&` / `||` and falls back to
+  `lowerExpr` + `brcond` for everything else; the fallback is byte-identical to today's
+  condition handling, so non-comparison conditions do not move.
+- `COMPARISON_OP_TO_IL` is now the single source of truth for which operators are
+  comparisons: `BINARY_OP_TO_IL` spreads it and `COMPARISON_RESULT_OPS` derives from its
+  values, and its value type is the fused terminator's own op union — so the value form and
+  the branch form cannot disagree about the comparison set, and no cast is needed to build
+  the terminator.
+- `lowerComparisonOperands` is the shared operand/promotion helper; the value form now routes
+  through it, which is what keeps the promoted `type` (and left-first order) identical
+  between the two forms.
+- Deviation from 03-03: `compareCounter` was not kept alongside a new emitter — it became
+  `branchOnCounter` (loads the counter, terminates `brcmp`). Its only caller was the for-loop
+  predicate, so keeping the value form would have left dead code.
+- `lowerIf` now reserves its labels BEFORE lowering the condition (the recursion needs the
+  targets). For a comparison condition the label numbering is unchanged; for a `&&`/`||`
+  condition it shifts, since the short-circuit's blocks are minted after the arms' labels
+  rather than before.
+- Adapter: the kind-blind Proxy walk became a recursion threading an `inCondition` flag,
+  with `if`/`while`/`do-while`/`!`/`&&`/`||` enumerating their own children in the same order
+  the generic walker uses and everything else delegating to `walkChildren` at value position.
+  `@blend65/core` remains its only import (R15 intact).
 
 ### Step 4.3: Corpus supersession (same change — req-AR #24)
 
 **Reference**: 03-04 §Corpus supersession · req-AR #12, #17, #24
 **Objective**: Every tier asserts the fused idiom; every committed number is current.
 
-- [ ] 4.3.1 Rewrite pre-existing tests asserting the superseded materialize idiom (grep-enumerate per 03-04 §1; sanctioned oracle supersession) — codegen + frontend test files listed there
-- [ ] 4.3.2 Regenerate all 14 goldens (`UPDATE_GOLDEN=1`; the balloon pair is twin-only); hand-review each diff with its twin beside it (ST-1/2/3/4/5/7 shapes; Prime Directive read) — `packages/test-harness/test/golden/*.asm.golden`
-- [ ] 4.3.3 Tighten `budgets.json` to the new exact values (incl. locally re-measured phase-stable measured windows — balloon frameUpdate, req-AR #15 addendum); re-run `twin-diff` and update `twins.json` routing blocks for the changed divergence-group set (req-AR #18 — unrouted-group gate must pass); regenerate `SCOREBOARD.md`; CI freshness green — `packages/test-harness/test/golden/budgets.json`, `twins.json`, `SCOREBOARD.md`
-- [ ] 4.3.4 Local VICE fixture + twin tiers green; assert ST-12 (`guards` observables identical to phase 3) — local run record
-- [ ] 4.3.5 Full verification (includes ST-11 boundary tier)
+- [x] 4.3.1 Rewrite pre-existing tests asserting the superseded materialize idiom (grep-enumerate per 03-04 §1; sanctioned oracle supersession) — codegen + frontend test files listed there
+- [x] 4.3.2 Regenerate all 14 goldens (`UPDATE_GOLDEN=1`; the balloon pair is twin-only); hand-review each diff with its twin beside it (ST-1/2/3/4/5/7 shapes; Prime Directive read) — `packages/test-harness/test/golden/*.asm.golden`
+- [x] 4.3.3 Tighten `budgets.json` to the new exact values (incl. locally re-measured phase-stable measured windows — balloon frameUpdate, req-AR #15 addendum); re-run `twin-diff` and update `twins.json` routing blocks for the changed divergence-group set (req-AR #18 — unrouted-group gate must pass); regenerate `SCOREBOARD.md`; CI freshness green — `packages/test-harness/test/golden/budgets.json`, `twins.json`, `SCOREBOARD.md`
+- [x] 4.3.4 Local VICE fixture + twin tiers green; assert ST-12 (`guards` observables identical to phase 3) — local run record
+- [x] 4.3.5 Full verification (includes ST-11 boundary tier)
+
+**Step 4.3 notes**:
+
+- **Supersession surface was 5 files, not the 9 anticipated** — the enumerated list came from
+  running the tiers rather than from grep, so only oracles that actually asserted the old shape
+  moved: `il/control-flow-lowering.spec.test.ts` (5 cases), `il/switch-lowering.spec.test.ts`
+  (2), `il/control-flow-lowering.impl.test.ts` (2), `il/switch-lowering.impl.test.ts` (1),
+  `instr/switch-translate.spec.test.ts` (1). Each rewrite changed only the assertion naming the
+  terminator kind; every surrounding block-shape assertion was left untouched.
+  `instr/translate.spec.test.ts`, `instr/translate-expressions.spec.test.ts`,
+  `instr/generate.golden.spec.test.ts`, `instr/multiblock-translate.impl.test.ts`,
+  `il/print-il.golden.spec.test.ts` and the frontend SFA tests needed NO change — they pin the
+  value form, which is unmoved.
+- **8 of 14 goldens changed**; 6 are byte-identical. `slice6` is the load-bearing one: it is
+  entirely value-position comparisons and short-circuits (`let cond: boolean = (a < base) && (s < 0)`,
+  `?:`), and its golden not moving by one byte is the corpus-level evidence that fusion did not
+  leak out of condition position.
+- **Residual `_cmp` labels: 2, both in `guards`** — the signed compare's overflow-correction
+  label, which the hand-written twin carries too (`sign:`). Every other `_cmp` label in the
+  corpus is gone.
+- **Budget window semantics**: the guards `compoundGuard` window had to move its `toLabel`
+  (`Main_main_L10` → `Main_main_L9`). Block layout renumbered, and the old label pair would have
+  silently measured a DIFFERENT region (both clauses **plus** the then-body, 39 cycles) — a
+  meaningless before/after. The new pair spans the same thing the phase-3 window did: both
+  clause blocks, lower-bound test to the block the guard admits to.
+- **`test/gen-parity-scoreboard.spec.test.ts`**: two assertions hard-coded balloon's measured
+  `162`, so re-measuring failed a test whose stated intent is "measured columns come from
+  committed data". Both now READ the committed manifests and assert the scoreboard carries those
+  values — the wiring contract, which still fails if the generator stops sourcing either file.
+  Also added `guards` to `CORPUS_PAIRS`, a phase-3 omission that left the committed scoreboard's
+  guards row unchecked.
+- **ST-12 holds**: `packages/test-harness/src/testing/` and `examples/` are untouched in this
+  phase's diff, so the `guards` observable table is byte-identical to phase 3, and the VICE
+  fixture suite passes against it. All 15 twin pairs green, both VICE fixture suites green.
 
 ### Step 4.4: Implementation tests & hardening
 
-- [ ] 4.4.1 Impl tests: lowering nests (`!!`, mixed `&&`/`||`, `else if`, `downto`, poisoned types), adapter deep nesting — `packages/codegen/src/il/control-flow-lowering.impl.test.ts`, `packages/frontend/src/sfa/model-adapter.impl.test.ts`
-- [ ] 4.4.2 Full verification
+- [x] 4.4.1 Impl tests: lowering nests (`!!`, mixed `&&`/`||`, `else if`, `downto`, poisoned types), adapter deep nesting — `packages/codegen/src/il/control-flow-lowering.impl.test.ts`, `packages/frontend/src/sfa/model-adapter.impl.test.ts`
+- [x] 4.4.2 Full verification
+
+**Step 4.4 notes**: 6 lowering cases (`!!b` lowering byte-identical to `b`; `&&` under `||` and
+`||` under `&&`; an undeclared-name condition that must not throw; a word-discriminant switch
+stamped `i16u`; and the cross-package agreement case below) + 4 adapter cases (nested
+`&&`/`||` in one condition; a `while` condition vs its body; a `&&` under a condition's
+comparison; a short-circuit in the module-initializer stream, which has no enclosing statement).
+The agreement case is the important one: `if ((a && b) == true)` puts a short-circuit one edge
+BELOW a condition, where both the planner and the lowering must still claim — if either side
+disagreed the claim would land on a slot the frame does not have, so the end-to-end
+zero-ICE assertion is a real drift detector, not a smoke test.
 
 **Deliverables**:
-- [ ] The corpus compiles, asserts, and measures the fused idiom end to end; no `0sc` claims in condition position; verify-green
-- [ ] All verification passing
+- [x] The corpus compiles, asserts, and measures the fused idiom end to end; no `0sc` claims in condition position; verify-green
+- [x] All verification passing
+
+**Measured "after"** (phase-3 baseline → phase-4, from the regenerated `SCOREBOARD.md`):
+
+| Pair | Bytes gen | Cycles gen | Bytes ratio | Cycles ratio |
+| ---- | --------- | ---------- | ----------- | ------------ |
+| guards | 347 → **263** | 404 → **305** | 2.71× → **2.05×** | 2.68× → **2.02×** |
+| rasterpoll | 88 → **75** | 102 → **87** | 2.44× → **2.08×** | 3.09× → **2.64×** |
+| balloon | 772 → **729** | 892 → **843** | 3.08× → **2.90×** | 3.60× → **3.40×** |
+| **corpus total** | 4172 → **3896** | 5340 → **5023** | 4.53× → **4.23×** | 5.87× → **5.53×** |
+
+Windows: `guards` compoundGuard 43 → **24** static cycles (‑44%, same region);
+`rasterpoll` pollIter 25 → **15**, of which the walked polling path is **12** — RD AC-1's
+≤12 bound met exactly; `slice8b` copyLoop 67 → **60**; `balloon` frameUpdate static 269 → **235**,
+measured 162 → **133** (‑18%).
+
+Routing: the #50 structural rows are GONE from all three pairs that carried them —
+`rasterpoll`'s `BNE` divergence disappeared from the computed group set entirely (was 3 vs 1),
+`guards` fell from BNE 10 vs 2 to 3 vs 2, `balloon` from 11 vs 3 to 5 vs 3. That disappearance
+is the evidenced fix. The residual branch-polarity spread (guards BMI 1 vs 0 / BPL 0 vs 1;
+balloon BEQ 0 vs 2 / BPL 0 vs 1) was folded into each pair's existing #51 note — the hand
+version picks the polarity that falls through, which is block layout, not fusion.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local VICE tiers)
 

@@ -6,30 +6,29 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Pair | Bytes gen | Bytes twin | Bytes ratio | Cycles gen | Cycles twin | Cycles ratio | Measured gen | Measured twin | Measured ratio |
 | ---- | --------- | ---------- | ----------- | ---------- | ----------- | ------------ | ------------ | ------------- | -------------- |
-| balloon | 772 | 251 | 3.08 | 892 | 248 | 3.60 | 162 | 97 | 1.67 |
+| balloon | 729 | 251 | 2.90 | 843 | 248 | 3.40 | 133 | 97 | 1.37 |
 | gate | 30 | 18 | 1.67 | 34 | 12 | 2.83 | — | — | — |
-| guards | 347 | 128 | 2.71 | 404 | 151 | 2.68 | — | — | — |
-| rasterpoll | 88 | 36 | 2.44 | 102 | 33 | 3.09 | — | — | — |
+| guards | 263 | 128 | 2.05 | 305 | 151 | 2.02 | — | — | — |
+| rasterpoll | 75 | 36 | 2.08 | 87 | 33 | 2.64 | — | — | — |
 | slice3a | 36 | 18 | 2.00 | 42 | 12 | 3.50 | — | — | — |
 | slice3b | 233 | 28 | 8.32 | 348 | 24 | 14.50 | — | — | — |
-| slice4a | 212 | 23 | 9.22 | 252 | 18 | 14.00 | — | — | — |
-| slice4b | 221 | 23 | 9.61 | 260 | 18 | 14.44 | — | — | — |
+| slice4a | 176 | 23 | 7.65 | 211 | 18 | 11.72 | — | — | — |
+| slice4b | 176 | 23 | 7.65 | 210 | 18 | 11.67 | — | — | — |
 | slice5a | 235 | 33 | 7.12 | 360 | 30 | 12.00 | — | — | — |
 | slice5b | 151 | 46 | 3.28 | 214 | 46 | 4.65 | — | — | — |
 | slice6 | 535 | 56 | 9.55 | 695 | 58 | 11.98 | — | — | — |
-| slice7 | 352 | 61 | 5.77 | 425 | 64 | 6.64 | — | — | — |
-| slice7b | 367 | 48 | 7.65 | 521 | 48 | 10.85 | — | — | — |
-| slice8 | 176 | 74 | 2.38 | 264 | 84 | 3.14 | — | — | — |
-| slice8b | 417 | 77 | 5.42 | 527 | 63 | 8.37 | — | — | — |
-| **Total** | 4172 | 920 | 4.53 | 5340 | 909 | 5.87 | — | — | — |
+| slice7 | 328 | 61 | 5.38 | 398 | 64 | 6.22 | — | — | — |
+| slice7b | 361 | 48 | 7.52 | 514 | 48 | 10.71 | — | — | — |
+| slice8 | 166 | 74 | 2.24 | 252 | 84 | 3.00 | — | — | — |
+| slice8b | 402 | 77 | 5.22 | 510 | 63 | 8.10 | — | — | — |
+| **Total** | 3896 | 920 | 4.23 | 5023 | 909 | 5.53 | — | — | — |
 
 ## balloon — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#50](https://github.com/blendsdk/blend65/issues/50) | bounce compares: BNE 11 vs 3 - compare-and-branch fusion |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 24 vs 3 - jump threading / fall-through elision |
-| instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 107 vs 27, STA 87 vs 21 - redundant load/store elimination |
+| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 21 vs 3 - jump threading / fall-through elision; the leftover branch-polarity spread (BEQ 0 vs 2, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through |
+| instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 96 vs 27, STA 87 vs 21 - redundant load/store elimination |
 | instruction selection | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | **source-forced** — 63 unrolled pokes forced by the copy() language gap - the twin uses a 4-instruction indexed copy loop |
 | layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | code-size consequence of the above |
 
@@ -45,8 +44,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#50](https://github.com/blendsdk/blend65/issues/50) | every guard materializes 0/1 and re-tests it (BNE 10 vs 2, BMI/BPL polarity round-trip) |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 29 vs 1 - jump threading / fall-through elision |
+| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 23 vs 1 - jump threading / fall-through elision; the leftover branch-polarity spread (BMI 1 vs 0, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through, the generated one branches to the true arm and jumps to the false one |
 | instruction selection | structural | [#53](https://github.com/blendsdk/blend65/issues/53) | the probe walk and its hit count live in frame memory, stepped with CLC/ADC and bounded by a compare; the hand loop walks down in A and counts in Y (CLC/ADC 3 vs 0, LDY/INY 0 generated) |
 | instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | frame-counter bump is load-add-store where the hand version uses INC |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | unreachable epilogue: main never returns, yet an RTS is still emitted past the frame loop |
@@ -57,8 +55,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#50](https://github.com/blendsdk/blend65/issues/50) | poll compare/branch not fused (BNE 3 vs 1) |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 8 vs 1 - jump threading / fall-through elision |
+| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 7 vs 1 - jump threading / fall-through elision |
 | instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | frame-counter bump is load-add-store where the hand version uses INC |
 | layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | code-size consequence of block layout |
 

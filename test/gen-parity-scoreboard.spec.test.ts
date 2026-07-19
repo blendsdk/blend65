@@ -42,6 +42,7 @@ const CORPUS_PAIRS = [
   "slice7b",
   "slice8",
   "slice8b",
+  "guards",
   "rasterpoll",
   "balloon",
 ];
@@ -143,9 +144,19 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: parity-scoreboard gen
         const scoreboard = readFileSync(outPath, "utf8");
         expect(scoreboard).toContain("balloon");
         expect(scoreboard).toMatch(/\d+\.\d{2}/);
-        // Measured columns: generated from budgets.json, twin from the manifest.
-        expect(scoreboard).toContain("162");
-        expect(scoreboard).toContain("97");
+        // Measured columns are carried through from committed data, never
+        // re-measured here — the generated side from budgets.json, the twin
+        // side from the manifest. Both are read rather than written out as
+        // literals so a legitimate re-measurement does not fail this wiring
+        // check; a generator that ignored either file still would.
+        const budgets = JSON.parse(readFileSync(COMMITTED_BUDGETS, "utf8"));
+        const twins = JSON.parse(readFileSync(COMMITTED_MANIFEST, "utf8"));
+        const measuredGen = budgets.programs.balloon.windows[0].measuredMaxCycles;
+        const measuredTwin = twins.pairs.balloon.measured.cycles;
+        expect(measuredGen).toBeGreaterThan(0);
+        expect(measuredTwin).toBeGreaterThan(0);
+        expect(scoreboard).toContain(String(measuredGen));
+        expect(scoreboard).toContain(String(measuredTwin));
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }
@@ -182,8 +193,19 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: parity-scoreboard gen
         }
         expect(first).toContain("| **Total** |");
         expect(first).toMatch(/\d+\.\d{2}/);
-        // Balloon measured columns come from committed data only.
-        expect(first).toMatch(/\| balloon \|.*\| 162 \| 97 \| 1\.67 \|/);
+        // Balloon measured columns come from committed data only — read from
+        // the two manifests rather than pinned as literals, so re-measuring
+        // does not fail this row while a generator that stopped sourcing
+        // either file still would.
+        const budgets = JSON.parse(readFileSync(COMMITTED_BUDGETS, "utf8"));
+        const twins = JSON.parse(readFileSync(COMMITTED_MANIFEST, "utf8"));
+        const measuredGen: number = budgets.programs.balloon.windows[0].measuredMaxCycles;
+        const measuredTwin: number = twins.pairs.balloon.measured.cycles;
+        const ratio = (measuredGen / measuredTwin).toFixed(2);
+        expect(first).toContain(`| balloon |`);
+        expect(first).toMatch(
+          new RegExp(`\\| balloon \\|.*\\| ${measuredGen} \\| ${measuredTwin} \\| ${ratio} \\|`),
+        );
         // Routing sections carry issue links and the source-forced annotation.
         expect(first).toContain("[#49](https://github.com/blendsdk/blend65/issues/49)");
         expect(first).toContain("**source-forced**");

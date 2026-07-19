@@ -57,11 +57,7 @@ _main:
 Main_main_L0:
     LDA #$04
     CMP __frame_Main_main_i
-    LDA #$01
-    BCS _cmp0
-    LDA #$00
-_cmp0:
-    BNE Main_main_L1
+    BCS Main_main_L1
     JMP Main_main_L3
 Main_main_L1:
     LDX __frame_Main_main_i
@@ -113,24 +109,12 @@ Main_main_L3:
     STA __frame_Main_main_dispatch
     LDA __frame_Main_main_d
     CMP #$00
-    BEQ _cmp1
-    LDA #$00
-    JMP _cmp2
-_cmp1:
-    LDA #$01
-_cmp2:
-    BNE Main_main_L5
+    BEQ Main_main_L5
     JMP Main_main_L8
 Main_main_L8:
     LDA __frame_Main_main_d
     CMP #$03
-    BEQ _cmp3
-    LDA #$00
-    JMP _cmp4
-_cmp3:
-    LDA #$01
-_cmp4:
-    BNE Main_main_L6
+    BEQ Main_main_L6
     JMP Main_main_L9
 Main_main_L9:
     JMP Main_main_L7

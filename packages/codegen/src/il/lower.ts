@@ -72,7 +72,7 @@ import { IL_BYTE, IL_WORD, ilTypeOfType } from "./il-type.js";
 import type { ILType } from "./il-type.js";
 import { addrOf, imm, isTemp, loc } from "./operand.js";
 import type { ILOperand } from "./operand.js";
-import type { ILInstruction } from "./instruction.js";
+import type { ILInstruction, ILTerminator } from "./instruction.js";
 import type { BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
 import { IlFunctionBuilder } from "./builder.js";
 
@@ -94,6 +94,24 @@ export interface LowerInput {
   readonly registry?: IntrinsicRegistry;
 }
 
+/** The comparison opcodes the fused compare-and-branch terminator accepts. */
+type CompareOp = Extract<ILTerminator, { kind: "brcmp" }>["op"];
+
+/**
+ * AST comparison operators mapped to their IL comparison opcode. The value
+ * type is the fused terminator's own op union, so a comparison recognized here
+ * is always one the branch form has a framing for — the value form and the
+ * branch form can never disagree about which operators are comparisons.
+ */
+const COMPARISON_OP_TO_IL: Partial<Record<BinaryOp, CompareOp>> = {
+  "==": "eq",
+  "!=": "ne",
+  "<": "lt",
+  "<=": "le",
+  ">": "gt",
+  ">=": "ge",
+};
+
 /** AST binary operators that lower to a same-width IL binary instruction. */
 const BINARY_OP_TO_IL: Partial<Record<BinaryOp, ILInstruction["op"]>> = {
   "+": "add",
@@ -106,12 +124,7 @@ const BINARY_OP_TO_IL: Partial<Record<BinaryOp, ILInstruction["op"]>> = {
   "^": "xor",
   "<<": "shl",
   ">>": "shr",
-  "==": "eq",
-  "!=": "ne",
-  "<": "lt",
-  "<=": "le",
-  ">": "gt",
-  ">=": "ge",
+  ...COMPARISON_OP_TO_IL,
 };
 
 /**
@@ -120,7 +133,7 @@ const BINARY_OP_TO_IL: Partial<Record<BinaryOp, ILInstruction["op"]>> = {
  * field carries the (promoted) OPERAND type — the translator dispatches its
  * byte/word × unsigned/signed comparison framing on it.
  */
-const COMPARISON_RESULT_OPS = new Set(["eq", "ne", "lt", "le", "gt", "ge"]);
+const COMPARISON_RESULT_OPS = new Set<string>(Object.values(COMPARISON_OP_TO_IL));
 
 /** Compound-assignment operators mapped to their expansion's binary operator. */
 const COMPOUND_BASE_OP: Partial<Record<AssignExprNode["op"], BinaryOp>> = {
@@ -488,18 +501,90 @@ function lowerReturn(stmt: ReturnStmtNode, ctx: LowerCtx): void {
 // ── Control-flow lowering — the multi-block CFG keystone ─────
 
 /**
- * Lower `if (cond) then [else]` into a multi-block CFG. The condition
- * lowers to a boolean operand; a `brcond` selects the `then`/`else` (or `end`)
- * block; each arm falls through to a shared `end` block via `br` unless it already
- * terminated (a `return`/`break`/`continue`). `else if` chains nest the same shape.
+ * Lower `expr` in condition position: terminate the current block — possibly
+ * after opening short-circuit blocks — branching to `trueL` when the condition
+ * holds and `falseL` when it does not.
+ *
+ * A condition is asked a question, not for a value, and this is where that
+ * distinction is cashed in. A comparison becomes a fused compare-and-branch:
+ * the flags the compare sets feed the branch directly, so no 0/1 result is
+ * built, stored, reloaded and re-tested to reach the same branch. `!` costs
+ * nothing at all — it swaps the two labels. `&&`/`||` become control flow:
+ * their short-circuit is the CFG shape, so unlike the value form they claim no
+ * synthetic frame slot, and the right clause's block is reachable ONLY through
+ * the left clause's undecided edge — which is what makes short-circuit a
+ * guarantee rather than an optimization, and what keeps a hardware read in a
+ * right clause from happening when the left clause already decided. A boolean
+ * literal folds to a plain branch. Anything else — a boolean variable, a call
+ * result, a conditional expression — has no flags of its own to branch on, so
+ * it falls back to evaluating the value and branching on it.
+ */
+function lowerCondition(expr: ExprNode, trueL: string, falseL: string, ctx: LowerCtx): void {
+  switch (expr.kind) {
+    case "BoolLitExpr":
+      // A constant condition is decided here; neither the test nor the code to
+      // build it is worth emitting.
+      ctx.builder.terminate({ kind: "br", target: expr.value ? trueL : falseL });
+      return;
+
+    case "UnaryExpr":
+      if (expr.op === "!") {
+        lowerCondition(expr.operand, falseL, trueL, ctx); // negation IS the swap
+        return;
+      }
+      break;
+
+    case "BinaryExpr": {
+      const cmp = COMPARISON_OP_TO_IL[expr.op];
+      if (cmp !== undefined) {
+        const { left, right, type } = lowerComparisonOperands(expr, ctx);
+        ctx.builder.terminate({
+          kind: "brcmp",
+          op: cmp,
+          left,
+          right,
+          type,
+          trueTarget: trueL,
+          falseTarget: falseL,
+        });
+        return;
+      }
+      if (expr.op === "&&" || expr.op === "||") {
+        // The left clause decides on one edge and defers to the right clause on
+        // the other; `&&` defers when it holds, `||` when it does not.
+        const rightL = ctx.builder.reserveLabel();
+        if (expr.op === "&&") {
+          lowerCondition(expr.left, rightL, falseL, ctx);
+        } else {
+          lowerCondition(expr.left, trueL, rightL, ctx);
+        }
+        ctx.builder.openBlock(rightL);
+        lowerCondition(expr.right, trueL, falseL, ctx);
+        return;
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  const cond = lowerExpr(expr, ctx);
+  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: trueL, falseTarget: falseL });
+}
+
+/**
+ * Lower `if (cond) then [else]` into a multi-block CFG. The condition branches
+ * straight to the `then`/`else` (or `end`) block; each arm falls through to a
+ * shared `end` block via `br` unless it already terminated (a
+ * `return`/`break`/`continue`). `else if` chains nest the same shape.
  */
 function lowerIf(stmt: IfStmtNode, ctx: LowerCtx): void {
-  const cond = lowerExpr(stmt.condition, ctx);
   const thenL = ctx.builder.reserveLabel();
   const endL = ctx.builder.reserveLabel();
   const elseL = stmt.elseClause !== null ? ctx.builder.reserveLabel() : endL;
 
-  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: thenL, falseTarget: elseL });
+  lowerCondition(stmt.condition, thenL, elseL, ctx);
 
   ctx.builder.openBlock(thenL);
   lowerBlock(stmt.thenBlock, ctx);
@@ -529,8 +614,7 @@ function lowerWhile(stmt: WhileStmtNode, ctx: LowerCtx): void {
 
   ctx.builder.terminate({ kind: "br", target: condL });
   ctx.builder.openBlock(condL);
-  const cond = lowerExpr(stmt.condition, ctx);
-  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: bodyL, falseTarget: endL });
+  lowerCondition(stmt.condition, bodyL, endL, ctx);
 
   ctx.loopStack.push({ breakTarget: endL, continueTarget: condL });
   ctx.builder.openBlock(bodyL);
@@ -559,8 +643,7 @@ function lowerDoWhile(stmt: DoWhileStmtNode, ctx: LowerCtx): void {
   ctx.loopStack.pop();
 
   ctx.builder.openBlock(condL);
-  const cond = lowerExpr(stmt.condition, ctx);
-  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: bodyL, falseTarget: endL });
+  lowerCondition(stmt.condition, bodyL, endL, ctx);
 
   ctx.builder.openBlock(endL);
 }
@@ -604,8 +687,7 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
     iceUnsupported(stmt, ctx, "for-loop full-range 'to <type-max>' (Pattern B deferred)");
   }
   const boundValue = lowerExpr(stmt.bound, ctx);
-  const cmp = compareCounter(counterLoc, counterType, stmt.direction, boundValue, ctx);
-  ctx.builder.terminate({ kind: "brcond", cond: cmp, trueTarget: bodyL, falseTarget: endL });
+  branchOnCounter(counterLoc, counterType, stmt.direction, boundValue, bodyL, endL, ctx);
 
   ctx.loopStack.push({ breakTarget: endL, continueTarget: incrL });
   ctx.builder.openBlock(bodyL);
@@ -622,13 +704,15 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
 }
 
 /**
- * Lower `switch (D) { case v...: B ... default: Bd }` into a `brcond` compare-chain
- * over the multi-block CFG keystone. No jump table, no new IL terminator (a
- * jump-table lowering is deferred to a later pass).
+ * Lower `switch (D) { case v...: B ... default: Bd }` into a fused compare-chain
+ * over the multi-block CFG keystone. No jump table (a jump-table lowering is
+ * deferred to a later pass).
  *
- * Shape: one dispatch **test block** per case value emits `eq(disc, value)` +
- * `brcond(→ shared body, else next test)`; multi-value cases point every true-edge
- * at the same body block. After the last test the unmatched discriminant
+ * Shape: one dispatch **test block** per case value, each terminating in a fused
+ * `eq` compare-and-branch (→ shared body, else next test) — a dispatch test is a
+ * question, so it never builds a 0/1 match flag to re-test; multi-value cases
+ * point every true-edge at the same body block. After the last test the unmatched
+ * discriminant
  * falls unconditionally to the (always-present) `default` body. Each clause
  * body is its own block: without a trailing `fallthrough` it ends `br(join)`
  * (auto-break); with one it ends `br(<next clause body>)`. `break`/`continue`
@@ -655,18 +739,13 @@ function lowerSwitch(stmt: SwitchStmtNode, ctx: LowerCtx): void {
   for (let i = 0; i < stmt.cases.length; i++) {
     for (const value of stmt.cases[i].values) {
       const disc = lowerExpr(stmt.discriminant, ctx); // fresh, single-use in this block
-      const match = ctx.builder.newTemp(IL_BYTE);
-      ctx.builder.emit({
+      const nextTest = ctx.builder.reserveLabel();
+      ctx.builder.terminate({
+        kind: "brcmp",
         op: "eq",
-        dest: match,
         left: disc,
         right: lowerExpr(value, ctx),
         type: discType,
-      } as ILInstruction);
-      const nextTest = ctx.builder.reserveLabel();
-      ctx.builder.terminate({
-        kind: "brcond",
-        cond: match,
         trueTarget: bodyLabels[i],
         falseTarget: nextTest,
       });
@@ -712,24 +791,35 @@ function lowerClauseBody(
 }
 
 /**
- * Emit the Pattern-A continue predicate: load the counter and compare it to the
- * bound (`le` for `to`, `ge` for `downto`). Returns the boolean result operand.
+ * Terminate the for-loop's condition block on the Pattern-A continue predicate:
+ * load the counter and branch to the body while it is still within the bound
+ * (`le` for `to`, `ge` for `downto`), else to the loop end.
+ *
+ * The counter is reloaded here on every iteration rather than kept live across
+ * the back-edge because a temp cannot cross a basic-block boundary. The
+ * comparison is stamped with the COUNTER's type — a word counter must compare
+ * at word width, not low-bytes-only.
  */
-function compareCounter(
+function branchOnCounter(
   counterLoc: ILOperand,
   counterType: ILType,
   direction: "to" | "downto",
   bound: ILOperand,
+  bodyL: string,
+  endL: string,
   ctx: LowerCtx,
-): ILOperand {
+): void {
   const current = ctx.builder.newTemp(counterType);
   ctx.builder.emit({ op: "load", a: current, b: counterLoc });
-  const result = ctx.builder.newTemp(IL_BYTE);
-  const op: ILInstruction["op"] = direction === "to" ? "le" : "ge";
-  // The result is the i8u 0/1 flag, but the instruction's `type` carries the
-  // OPERAND type — a word counter must compare at word width, not low-bytes-only.
-  ctx.builder.emit({ op, dest: result, left: current, right: bound, type: counterType } as ILInstruction);
-  return result;
+  ctx.builder.terminate({
+    kind: "brcmp",
+    op: direction === "to" ? "le" : "ge",
+    left: current,
+    right: bound,
+    type: counterType,
+    trueTarget: bodyL,
+    falseTarget: endL,
+  });
 }
 
 /** Emit `counter = counter ± step` into the counter slot (the for-loop increment). */
@@ -1148,15 +1238,17 @@ function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
     return iceUnsupported(expr, ctx, `binary operator '${expr.op}'`);
   }
 
+  if (COMPARISON_RESULT_OPS.has(op)) {
+    const { left, right, type } = lowerComparisonOperands(expr, ctx);
+    const dest = ctx.builder.newTemp(IL_BYTE); // the 0/1 flag, whatever the operands' width
+    ctx.builder.emit({ op, dest, left, right, type } as ILInstruction);
+    return dest;
+  }
+
   const leftType = ctx.model.typeOf(expr.left);
   const rightType = ctx.model.typeOf(expr.right);
-  const isComparison = COMPARISON_RESULT_OPS.has(op);
   const isShift = op === "shl" || op === "shr";
-
-  // The operation type the operands must reach.
-  const operationType: Type = isComparison
-    ? (commonType(leftType, rightType) ?? primitive("byte"))
-    : ctx.model.typeOf(expr);
+  const operationType: Type = ctx.model.typeOf(expr);
 
   if ((op === "div" || op === "mod") && isSignedInteger(operationType)) {
     return iceUnsupported(expr, ctx, "signed division/modulo (unsigned runtime routines only)");
@@ -1168,11 +1260,43 @@ function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
   if (!isShift) right = coerce(right, rightType, operationType, ctx); // the amount keeps its width
 
   const type: ILType = ilTypeOfType(operationType);
-  const dest = ctx.builder.newTemp(isComparison ? IL_BYTE : type);
-  // The opcode is one of the binary arithmetic/bitwise/comparison families, all
-  // of which share the `{dest,left,right,type}` shape.
+  const dest = ctx.builder.newTemp(type);
+  // The opcode is one of the binary arithmetic/bitwise families, all of which
+  // share the `{dest,left,right,type}` shape.
   ctx.builder.emit({ op, dest, left, right, type } as ILInstruction);
   return dest;
+}
+
+/** A comparison's promoted operands and the operand type that frames it. */
+interface ComparisonOperands {
+  readonly left: ILOperand;
+  readonly right: ILOperand;
+  readonly type: ILType;
+}
+
+/**
+ * Lower a comparison's two operands and promote both to their common type —
+ * the one step the value form and the branch form must perform identically.
+ *
+ * A comparison can appear as a value (`let c = x > y`) or as the thing a branch
+ * decides on (`if (x > y)`). Both need the same left-first evaluation order and
+ * the same promotion, and both stamp the result with the PROMOTED OPERAND type
+ * rather than the node's own boolean type: that type is what selects the
+ * translator's byte/word × unsigned/signed framing, so a word compare stamped
+ * as a byte compare would silently compare low bytes only. Sharing this helper
+ * is what keeps the two forms from ever drifting apart on either point.
+ */
+function lowerComparisonOperands(expr: BinaryExprNode, ctx: LowerCtx): ComparisonOperands {
+  const leftType = ctx.model.typeOf(expr.left);
+  const rightType = ctx.model.typeOf(expr.right);
+  const operationType: Type = commonType(leftType, rightType) ?? primitive("byte");
+
+  let left = lowerExpr(expr.left, ctx); // left-first (FN-10)
+  let right = lowerExpr(expr.right, ctx);
+  left = coerce(left, leftType, operationType, ctx);
+  right = coerce(right, rightType, operationType, ctx);
+
+  return { left, right, type: ilTypeOfType(operationType) };
 }
 
 /** Whether `t` is a signed integer primitive (poison and non-primitives are not). */

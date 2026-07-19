@@ -43,56 +43,56 @@ function countBrToLabel(text: string): number {
 }
 
 describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
-  // if/else lowers to ≥3 blocks, a brcond, and two br to the join label.
-  it("should lower if/else to blocks + brcond + two joins (ST-11, §2.1)", () => {
+  // if/else lowers to ≥3 blocks, a conditional terminator, and two br to the join label.
+  it("should lower if/else to blocks + a conditional terminator + two joins (ST-11, §2.1)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
         " if (n > 0) { poke(0xC000, 1); } else { poke(0xC000, 2); } }\n",
     );
     expect(hasErrors).toBe(false);
-    expect(text).toContain("brcond");
+    expect(text).toContain("brcmp"); // the comparison decides the branch directly
     // then-arm and else-arm each branch to the shared join label.
     expect(countBrToLabel(text)).toBeGreaterThanOrEqual(2);
     // ≥3 non-entry blocks (then, else, join).
     expect((text.match(/^_L\d+:/gm) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 
-  // while lowers a cond block with a brcond and a body back-edge to cond.
-  it("should lower while to a cond brcond + a body back-edge (ST-12, §2.2)", () => {
+  // while lowers a cond block with a conditional terminator and a body back-edge to cond.
+  it("should lower while to a cond test + a body back-edge (ST-12, §2.2)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
         " while (n > 0) { n = n - 1; } }\n",
     );
     expect(hasErrors).toBe(false);
-    expect(text).toContain("brcond");
+    expect(text).toContain("brcmp"); // the comparison decides the branch directly
     // The entry unconditionally branches to the cond block; the body ends with a
     // back-edge br to that same cond label (≥2 `br _Ln`).
     expect(countBrToLabel(text)).toBeGreaterThanOrEqual(2);
   });
 
-  // do-while lowers the body block before the cond block; cond ends brcond.
+  // do-while lowers the body block before the cond block; cond ends in the test.
   it("should lower do-while with the body preceding the cond (ST-13, §2.3)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
         " do { n = n - 1; } while (n > 0); }\n",
     );
     expect(hasErrors).toBe(false);
-    expect(text).toContain("brcond");
-    // The body block (first _L) is emitted before the cond block that owns brcond.
+    expect(text).toContain("brcmp"); // the comparison decides the branch directly
+    // The body block (first _L) is emitted before the cond block that owns the test.
     const bodyIdx = text.search(/^_L\d+:/m);
-    const brcondIdx = text.indexOf("brcond");
+    const testIdx = text.indexOf("brcmp");
     expect(bodyIdx).toBeGreaterThanOrEqual(0);
-    expect(brcondIdx).toBeGreaterThan(bodyIdx);
+    expect(testIdx).toBeGreaterThan(bodyIdx);
   });
 
-  // for (Pattern A): init store, cond compare (le) via brcond, incr add, br to cond.
+  // for (Pattern A): init store, fused cond compare (le), incr add, br to cond.
   it("should lower for(to) with Pattern-A compare + increment (ST-14, §2.4)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nlet sum: byte;\nfunction main(): void {" +
         " for (let i: byte = 1 to 5) { sum = sum + i; } }\n",
     );
     expect(hasErrors).toBe(false);
-    expect(text).toContain("brcond");
+    expect(text).toContain("brcmp"); // the continue predicate decides the branch directly
     // Pattern A: the continue predicate compares the counter with `le` (i <= bound).
     expect(text).toContain("le i8u");
     // The increment adds the step into the counter slot.
@@ -109,7 +109,7 @@ describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
         " while (n > 0) { if (n > 5) { break; } else { continue; } } }\n",
     );
     expect(hasErrors).toBe(false);
-    expect(text).toContain("brcond");
+    expect(text).toContain("brcmp"); // the comparison decides the branch directly
     // break + continue are both unconditional br to loop labels; combined with the
     // cond back-edge and the if join there are several `br _Ln`.
     expect(countBrToLabel(text)).toBeGreaterThanOrEqual(3);
