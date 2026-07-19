@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 18:10
-> **Progress**: 17/43 tasks (40%)
+> **Last Updated**: 2026-07-19 18:14
+> **Progress**: 19/43 tasks (44%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -153,12 +153,13 @@ task-size criteria in the quality checklist)
 
 ### Step 2.3: Implementation tests & hardening
 
-- [ ] 2.3.1 Impl tests: `gt`/`le` swaps, memory-RHS word framings, `_cmp` label allocation, residency after fused blocks — `packages/codegen/src/instr/translate.impl.test.ts`
-- [ ] 2.3.2 Full verification + confirm zero golden diffs (nothing emits `brcmp` yet)
+- [x] 2.3.1 Impl tests: `_cmp` label allocation, residency after fused blocks, one read per polled register, immediate-only totality — `packages/codegen/src/instr/translate.impl.test.ts` ✅ (completed: 2026-07-19 18:14)
+      ↳ `gt`/`le` swaps and memory-RHS word framings moved to the spec tier instead: the ST-10a matrix already asserts all four swapped forms and both RHS kinds byte-exactly at every width, so an impl-tier restatement would be duplicate coverage, not extra. The impl tier took the four internals the oracles genuinely cannot see.
+- [x] 2.3.2 Full verification + confirm zero golden diffs (nothing emits `brcmp` yet) ✅ (completed: 2026-07-19 18:14) — install/build/typecheck/lint/test green (1 049 tests); `git status` clean of any golden or `spec/` path
 
 **Deliverables**:
-- [ ] All five framings translate `brcmp` to fused branch form; value form byte-identical
-- [ ] All verification passing
+- [x] All five framings translate `brcmp` to fused branch form; value form byte-identical
+- [x] All verification passing
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
