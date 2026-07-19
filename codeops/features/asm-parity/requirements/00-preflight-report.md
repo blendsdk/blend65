@@ -299,3 +299,84 @@ Confidence: High · Hardening: finding originated by the independent challenger 
 **Codebase Evidence:** `twin-diff.mjs:176-197` builds generated sides from `examples/<fixture>/` dirs; fixture and budget tiers build the inlined sources in `testing/<fixture>.ts`; only `balloon.ts` reads from disk; no sync test exists (gate verified currently in sync by hand).
 **Recommendation:** Single viable path — sync spec test asserting each inlined source equals its `examples/<fixture>/main.blend`. (Routing the generator through the TS helpers rejected: couples an `.mjs` script to test-internal modules.)
 **User Decision:** Resolved — User accepted. Fixes applied: F3, AC-1, Scope Decisions row.
+
+---
+
+# Preflight Report: RD-04 — Compare-and-Branch Fusion
+
+> **Status**: ✅ PREFLIGHT PASSED — all 4 findings resolved (0 critical, 2 major, 1 minor, 1 observation); fixes applied to the RD same-session at the user's direction
+> **Iteration**: 1 (first scan of RD-04; numbering continues from the RD-02 scan → PF-014…PF-017)
+> **Artifact**: Requirements document at `requirements/RD-04-compare-and-branch-fusion.md`
+> **Codebase Grounded**: 9 source files deep-read (translate.ts, lower.ts, instruction.ts, model-adapter.ts, optimize-il.ts, peephole.ts, termination.ts survey, rasterpoll golden + twin) + spec/02-type-system.md + harness manifests; 23 references mapped — 21 verified, 2 failed (PF-014, PF-015)
+> **Last Updated**: 2026-07-19
+>
+> ⚠️ **SAME-SESSION REVIEW**: this RD was authored earlier in the same session. Same-agent
+> bias risk is elevated; the independent hardening challenger (one spawn, MAJOR batch per
+> protocol) was run to counteract it — it CONFIRMED both MAJORs, sharpened PF-014 (found the
+> `termination.ts:56` silent dangling-label path), and strengthened PF-015 (execution-tier
+> coverage hole for the new short-circuit path).
+
+## Codebase Context Summary
+
+**Tech Stack:** TypeScript ESM monorepo (Yarn v1 + Turbo, Vitest, Node 22); `@blend65/codegen` IL → 6502 instr pipeline; ACME + VICE local tiers.
+**Key observations:**
+- Comparisons materialize 0/1 via four framings (`translate.ts:1022-1193`); `brcond` reloads/retests (`translate.ts:555-558`); the fusion seam is named in code comment `translate.ts:526-529`.
+- `&&`/`||` are SFA-slot value diamonds (`lower.ts:1261-1285`); slot preorder counted position-independently in `frontend/src/sfa/model-adapter.ts:107-139` with loud drift verification.
+- No IL-level validator exists (only `instr/validate.ts` stream legality + `termination.ts` analyses; dangling labels deliberately ignored at `termination.ts:56`) → PF-014.
+- Corpus `&&`/`!`/signed-compare usage is value-context only (slice6); no condition-position compound/negated/signed shapes anywhere → PF-015.
+- `peek` lowers to one constant-address `load` (`lower.ts:2303-2305`) — the RD's MMIO count/order claim verified.
+- `spec/02-type-system.md:36` confirms N⊕V signed-comparison framing (RD citation valid).
+
+## Summary by Dimension
+
+| # | Dimension | Findings | Highest Severity |
+|---|-----------|----------|-----------------|
+| 7 | Testability | 1 (PF-015, w/ Completeness edge) | 🟠 |
+| 12 | Consistency | 1 (PF-016) | 🟡 |
+| 13 | Codebase Alignment | 2 (PF-014 phantom reference; PF-017 counted here) | 🟠 |
+| others | 1–6, 8–11 | 0 | — |
+
+**Ambiguity Register respected (not re-litigated):** AR #20–#25 all honored. PF-014 operates inside AR #23's chosen mechanism (the terminator's *verification* story was never decided); PF-015 extends AR #24's supersession with named test homes + one new pair (existing twins still never change); PF-016/PF-017 are wording-precision fixes.
+
+## Summary by Severity
+
+| Severity | Count | Status |
+|----------|-------|--------|
+| CRITICAL | 0 | — |
+| MAJOR | 2 | all resolved, fixes applied |
+| MINOR | 1 | resolved, fix applied |
+| OBSERVATION | 1 | resolved, fix applied |
+
+---
+
+### PF-014: "IL validator" is a phantom component 🟠 MAJOR
+
+**Dimension:** 13 (Codebase Alignment — Phantom Reference)
+**Location:** RD-04 Technical Requirements (IL terminator touch set) + AC-10 + Security section
+**Codebase Evidence:** no validator under `packages/codegen/src/il/`; `instr/validate.ts` checks opcode/mode legality post-translation only; AC-10's malformations are unrepresentable in the discriminated unions (`il/instruction.ts:102-109, 159-168`); the one representable hazard — a branch target resolving to no block — is silently ignored today (`termination.ts:56`) and surfaces only as an ACME symbol error.
+**The Problem:** AC-10 asserted a mitigation that does not exist; the touch set sent the planner hunting for a component to invent or silently drop.
+**Recommendation:** reword to the real mechanisms (type-level unrepresentability + translator ICE + framing×polarity spec tests) plus one targeted new requirement: translation-time ICE on a dangling terminator target — the tripwire the new branch-context recursion actually needs.
+**User Decision:** Resolved — User accepted recommendation. Fix applied (touch set, Security section, AC-10 reworded; dangling-target ICE added).
+`Confidence: High · Challenger: converged — and contributed the dangling-label finding`
+
+### PF-015: AC-3/4/5/7 assert program shapes with no test home 🟠 MAJOR
+
+**Dimension:** 7 (Testability) + 4 (Completeness Gaps)
+**Location:** RD-04 Acceptance Criteria 3, 4, 5, 7
+**Codebase Evidence:** no corpus program contains condition-position `&&`/`!`/signed compares — slice6's are all value-context (`testing/slice6.ts:51-60`); RD-01's ACs name their homes, RD-04's did not. After this RD, slice6's VICE evidence exercises only the old value-diamond path, leaving the new slot-free short-circuit path with zero execution-tier coverage — and no scoreboard row would evidence the "worst divergence" fix.
+**Recommendation:** name the unit-tier homes (`il/control-flow-lowering.spec.test.ts`, `instr/translate.spec.test.ts`, `instr/generate.golden.spec.test.ts`) AND add one small corpus fixture (compound guard + `!` + signed compare + peek-in-right-clause) with golden, twin, observables, routing, and scoreboard row. (Lean alternative — unit homes only, fixture routed to RD-05 closeout — presented and not chosen.)
+**User Decision:** Resolved — User accepted recommendation. Fix applied (new Must-Have "Acceptance shapes have named homes"; AC-8 and the RD-02 integration point amended).
+`Confidence: Med-High · Challenger: converged on severity; pushed fixture inclusion`
+
+### PF-016: Instruction-count inconsistency (11 vs 9) 🟡 MINOR
+
+**Dimension:** 12 (Consistency)
+**Location:** RD-04 Feature Overview vs AC-1
+**Codebase Evidence:** `rasterpoll.asm.golden` loop blocks = 9 static instructions; executed poll path = 6 instructions ≈ 17 cycles (issue #50's "11" is a session-era count).
+**User Decision:** Resolved — User accepted recommendation. Fix applied (overview grounded to 9 static / ≈17 cycles executed vs the twin's 3 / 9).
+
+### PF-017: Rationale for the narrow condition-position definition 🔵 OBSERVATION
+
+**Dimension:** 13 (Codebase Alignment — clarity guard)
+**Location:** RD-04 "SFA slot preorder updated in step" Must Have
+**User Decision:** Resolved — User accepted recommendation. Fix applied (one sentence: for-bounds are numeric; switch discriminants are value-position — the definition deliberately names only the three condition statements).

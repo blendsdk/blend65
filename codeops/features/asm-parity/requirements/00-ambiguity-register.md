@@ -1,8 +1,8 @@
 # Ambiguity Register: asm-parity requirements
 
-> **Status**: ✅ GATE PASSED — all 19 items resolved (RD-01 items 1–14: passed 2026-07-17 · RD-02 items 15–19: passed 2026-07-18)
-> **Last Updated**: 2026-07-18 08:04
-> **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61))
+> **Status**: ✅ GATE PASSED — all 25 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19)
+> **Last Updated**: 2026-07-19 09:50
+> **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61)) · Items 20–25: RD-04 ([#50](https://github.com/blendsdk/blend65/issues/50))
 > **CodeOps Skills Version**: 3.9.0
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -101,3 +101,76 @@ strings are display-only, never keys; a group may carry several dispositions, ea
 one linking an issue). The scoreboard generator exits non-zero naming any unrouted group,
 before writing output — AC-5's "zero unclassified" is thereby a permanently enforced
 mechanism via the CI freshness step, not an audit-day state.
+
+---
+
+## RD-04 — Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50))
+
+Imported pre-resolved (RD-01/RD-02 gates; per shared-gate rule 3, not re-confirmed): exact-ratchet
+budget policy — optimizations tighten `budgets.json` in the same change (AR #12); committed
+scoreboard with CI freshness regeneration (AR #17); divergence-routing dispositions live in
+`twins.json` (AR #18).
+
+Grounding for the items below: comparisons always materialize a 0/1 byte via four
+width×signedness framings (`packages/codegen/src/instr/translate.ts:1022-1193`); `brcond`
+reloads and retests that byte (`translate.ts:555-558`); single-use loads are already deferred
+and folded at their consumer (`translate.ts:587-589`); `&&`/`||` lower as value-producing
+frame-slot diamonds with SFA-precounted synthetic slots and a loud name/size verification
+(`packages/codegen/src/il/lower.ts:1261-1285`, `lower.ts:1230-1248`); no constant folding
+exists anywhere (`optimize-il.ts` identity passthrough, `peephole.ts` zero rules).
+
+| # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
+|---|----------|-----------------|-------------------|---------------|--------|
+| 20 | Scope | Issue #50's acceptance ("raster-poll golden emits the 3-instruction idiom, byte-comparable to the twin") is unreachable by fusion alone — fusion yields a 4-instruction condition block (`LDA $D012 · CMP #$FB · BNE body · JMP end`, ≈12 cyc/iter vs hand 9); the 3-instruction idiom additionally needs RD-05's jump threading + fall-through elision | (a) RD-04 acceptance = the exact fused branch-over-jump form; the twin-byte-comparable criterion moves to RD-05 (#51), which B1 ships anyway / (b) RD-04 additionally special-cases empty-body loops (thread `BNE body; body: JMP cond` → `BNE cond`) to hit the 3-instruction idiom now | ✅ Resolved — User accepted recommendation: (a) RD-04 acceptance = the exact fused branch-over-jump form; the twin-byte-comparable criterion moves to RD-05 (#51) in writing | ✅ Resolved |
+| 21 | Behavioral / Scope | Constant conditions (`while (true)`, `if (false)`) — no folding exists; `while (true)` re-evaluates `LDA #$01` every iteration. Who owns the fix? | (a) RD-04 folds boolean-*literal* conditions at lowering (`brcond` on a literal → `br`; no condition code emitted); computed-constant conditions + unreachable-block elimination stay with the B1 conservative const-fold pass and RD-05 / (b) no lowering change — route all constant-condition folding to the B1 const-fold pass (adds an intra-B1 ordering dependency; `while (true)` stays degenerate until that pass lands) | ✅ Resolved — User accepted recommendation: (a) fold boolean-literal conditions at lowering (`brcond` on a literal → `br`); computed constants + unreachable-block removal stay with the const-fold pass / RD-05 | ✅ Resolved |
+| 22 | Technical / Scope (complex) | Compound/negated conditions in condition position: `&&`/`||` currently claim an SFA-precounted synthetic frame slot and join through memory even when the result only feeds a branch; `!` materializes | (a) full condition-position branch lowering — comparisons, boolean reads, `!` (target swap), `&&`/`||` (recursive short-circuit into CFG edges); no synthetic-slot claim in condition position, SFA slot-preorder updated in step (drift is a loud ICE, `lower.ts:1230-1248`) / (b) fuse only simple comparisons, boolean reads, and `!`; `&&`/`||` keep the slot diamond, deferred to a follow-up item | ✅ Resolved — User accepted recommendation: (a) full condition-position branch lowering incl. `&&`/`||`/`!`; no slot claim in condition position, SFA preorder updated in step (counter-advancing claims recorded as the staging fallback) | ✅ Resolved |
+| 23 | Technical (complex) | Fusion mechanism — where the compare-branch fusion lives (golden-output-neutral either way) | (a) translator-local: defer a single-use comparison whose sole consumer is the same block's `brcond` (mirrors the deferred-load fold, `translate.ts:587-589`); framing emitters branch to the real targets instead of materializing / (b) IL vocabulary change: a fused compare-and-branch terminator emitted by lowering, translated per framing / (c) named deferral of the mechanism to make_plan | ✅ Resolved — User accepted recommendation: (b) fused compare-and-branch IL terminator emitted by lowering (challenger-reconciled pick; see note) | ✅ Resolved |
+| 24 | Data / Testing | Existing spec tests and all goldens assert the materialized `_cmp` byte pattern this RD removes (`translate.spec.test.ts:415-420`, `generate.golden.spec.test.ts:76-81`) — requirements change supersedes them | Single viable path: rewrite the affected spec-test expectations to the fused idiom, regenerate + hand-review all goldens, tighten `budgets.json` in the same change (AR #12), regenerate the scoreboard (AR #17). Rejected: keeping the old byte-pattern assertions — they assert the defect this RD removes | ✅ Resolved — User confirmed supersession: affected spec tests rewritten to the fused idiom, goldens regenerated + hand-reviewed, budgets tightened same-change, scoreboard regenerated | ✅ Resolved |
+| 25 | Scope | Pre-existing relative-branch range exposure — `brcond` emits `BNE <block label>` to arbitrary targets (`translate.ts:557`); a do-while backedge or switch dispatch spanning >127 bytes fails at ACME assembly today. Fusion is range-neutral (same branch geometry) | (a) out of scope for RD-04 — file it as a defect issue routed to #51 (RD-05 owns branch geometry/layout) / (b) include branch relaxation (`B?? *+5 · JMP far`) in RD-04 | ✅ Resolved — User accepted recommendation: (a) out of scope; defect issue filed before RD-04 merges, routed to #51; RD-04's Won't-Have records the widened exposure | ✅ Resolved |
+
+### Resolution Notes (RD-04)
+
+**AR-20:** The gap between the fused form and the twin idiom is exactly the two transforms
+RD-05 (#51) already owns (jump threading + fall-through elision); duplicating them as an
+empty-body special case inside RD-04 would be dead logic one item later. VICE-observable
+behavior is identical (both forms sample `$D012` several times per raster line) — only
+bytes/cycles differ. Condition of the handoff: RD-05's acceptance gains the
+twin-byte-comparable criterion in writing (recorded in its issue/roadmap row until its RD is
+authored).
+
+**AR-21:** The fold is a few lines at the `brcond` terminate sites (`lower.ts:502/533/563`)
+and satisfies issue #50's own `while (true)` acceptance without depending on the unlanded
+const-fold pass. The overlap is harmless — the pass still needs brcond-on-const folding for
+*propagated* constants; lowering handles the syntactic-literal case eagerly.
+
+**AR-22:** Compound guards are the *worst* divergence today (`lowerShortCircuit` joins
+through a frame slot and the outer `brcond` re-tests the reloaded byte), and short-circuit
+branching is a stated issue #50 case — deferring it would be partial implementation, not
+scoping. Making condition-position sites slot-free turns the deliberately
+position-independent SFA predicate (`packages/frontend/src/sfa/model-adapter.ts:107-139`)
+position-dependent; both walks must derive "condition position" identically (drift ICEs
+loudly via the name/size verification). Staging fallback recorded: condition-position sites
+keep claiming (and discarding) their slot to advance the counter, deferring the adapter
+change.
+
+**AR-23:** Challenger diverged from the initial translator-local lean and its case was
+adopted: with AR #22(a), lowering already holds the comparison node in condition position —
+materializing a temp only for the translator to re-discover fusion via a use-count heuristic
+discards that knowledge, and the heuristic can silently stop firing under future lowering
+changes (goldens/budgets as the only guard). A fused terminator makes fusion true by
+construction, keeps printed IL honest, and composes with the B1 const-fold pass (folds to
+`br` on constant operands) and RD-05's threading (threads like `brcond`). Named blast
+radius: `instruction.ts`, `termination.ts`, `print-il.ts`, `lower.ts`, `translate.ts` +
+IL-text tests. Hardening disclosure: Confidence Med→High on convergence of items 20/21/22/25;
+Challenger: diverged on 23, reconciled as recorded.
+
+**AR-24:** The testing standard's spec-test immutability yields to a requirements change —
+the old expectations assert the exact byte pattern this RD is chartered to remove. Value-
+context materialization tests remain valid and untouched.
+
+**AR-25:** Relaxation is a function of final block geometry, which RD-05 is about to change
+(threading + fall-through elision move blocks and shorten distances) — relaxing first means
+measuring distances that are about to be wrong. The failure mode is a loud ACME range error,
+never silent corruption. Conditional resolution honored: the defect is filed before RD-04
+merges, and fusion's widening of the surface (framing-internal branches now target real
+block labels) is named in the issue and in RD-04's Won't-Have.

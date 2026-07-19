@@ -39,9 +39,10 @@ authored here only when its item is picked up, following
 |---|----------|-------------|------------|
 | **AR** | [Ambiguity Register](00-ambiguity-register.md) | Zero-Ambiguity Gate decisions (audit trail; grows per RD) | — |
 | **RD-01** | [Parity measurement infrastructure](RD-01-parity-measurement-infrastructure.md) | measureCycles, timing table, budgets, twin-diff, size gate, annotator, report integration ([#64](https://github.com/blendsdk/blend65/issues/64)) — ✅ done 2026-07-18 | — |
-| **PF** | [Preflight Report](00-preflight-report.md) | RD-01 audit (8 findings) + RD-02 audit (5 findings, PF-009…PF-013) — all resolved, fixes applied | RD-01, RD-02 |
+| **PF** | [Preflight Report](00-preflight-report.md) | RD-01 audit (8 findings) + RD-02 audit (5, PF-009…PF-013) + RD-04 audit (4, PF-014…PF-017) — all resolved, fixes applied | RD-01, RD-02, RD-04 |
 | **RD-02** | [Golden-corpus twin audit + scoreboard](RD-02-golden-corpus-twin-audit.md) | 13 new twins, permanent VICE twin tier, committed SCOREBOARD.md + CI freshness gate, routed divergence inventory ([#61](https://github.com/blendsdk/blend65/issues/61)) — 🔎 preflighted 2026-07-18 | RD-01 |
-| RD-03…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
+| **RD-04** | [Compare-and-branch fusion](RD-04-compare-and-branch-fusion.md) | Fused compare-and-branch IL terminator + condition-position lowering (`&&`/`||`/`!` slot-free, literal folds); twin-idiom acceptance transferred to #51 ([#50](https://github.com/blendsdk/blend65/issues/50)) — 🔎 preflighted 2026-07-19 | RD-01, RD-02 |
+| RD-03, RD-05…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
 
 ## Dependency Graph
 
@@ -87,6 +88,7 @@ tiny fixed startup shim. So sequence by *representative* impact × risk, not raw
 | Constant-materialization | One lever (#58 + #60), two passes | Conservative pure-IL const-fold ships early (fills `optimize-il` seam, safe); whole-loop const-*evaluation* + SFA slot-elision is the design-laden pass that closes the 7–9× fixtures. Correctness hazard = type-conformance (byte-wrap/cast), not MMIO |
 | Placement ≠ copy() | Split RD-03 (#49) | Placement (grammar-free) serves in-place const tables ($0801+). The balloon's $0340 staging is below the PRG load base — a single-load PRG can't place there (the twin copies), so it needs `copy()`, gated on v3.1 + the Language Guard |
 | Calling convention | In scope now (not "if hot") | #59's per-call ABI is a hot cycle lever (balloon ≈13 instr/call), distinct from the fixture-inflated one-time startup; scoped as a structural pass |
+| Condition lowering | Fused compare-and-branch IL terminator + slot-free condition-position lowering | Fusion true by construction (no unfiring heuristic); composes with the const-fold pass and #51 threading; materialization stays for value contexts; branch-range relaxation routed to #51 via [#65](https://github.com/blendsdk/blend65/issues/65) (AR #20–#25) |
 
 ## Non-Functional Requirements
 
