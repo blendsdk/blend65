@@ -540,7 +540,6 @@ describe("Specification: translator — div/mod (ST-T18, ST-T19)", () => {
   });
 });
 
-
 describe("Specification: translator — terminator target validation", () => {
   /** A two-block function whose entry terminator names a block that is absent. */
   function fnWithDanglingTarget(terminator: ILTerminator): ILFunction {

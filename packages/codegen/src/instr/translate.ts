@@ -585,6 +585,19 @@ class FunctionTranslator {
         return;
       case "unreachable":
         return; // provably unreachable — no code, no ICE
+      case "brcmp":
+        // The fused form has no branch-form framings behind it yet. Emitting
+        // nothing would leave the block with no control transfer at all, so
+        // this refuses loudly instead.
+        this.iceNoTranslation("brcmp terminator");
+        return;
+      default: {
+        // Exhaustiveness guard: a new terminator kind without a case here is a
+        // compile error, never a block that silently falls through.
+        const _exhaustive: never = term;
+        this.iceNoTranslation(String((_exhaustive as ILTerminator).kind));
+        return;
+      }
     }
   }
 
@@ -1929,6 +1942,15 @@ class FunctionTranslator {
   }
 
   /**
+   * Raise the ICE for a construct the translator has no encoding for yet.
+   * Distinct from {@link iceUnsupported}, whose message names a specific
+   * deferred instruction-level work item.
+   */
+  private iceNoTranslation(what: string): void {
+    this.bag.addICE(IceCode.Unexpected, null, `IL→Instr: no translation for '${what}'`);
+  }
+
+  /**
    * Raise the dangling-branch-target ICE. Recorded rather than thrown, like
    * every translator ICE, so one malformed function does not hide the
    * diagnostics of the rest of the program.
@@ -1980,10 +2002,29 @@ function destTempId(ins: ILInstruction): number | null {
   }
 }
 
-/** The temp-read operands of a block terminator (`ret.value` / `brcond.cond`). */
+/**
+ * The operands a block terminator reads. These count toward the use tally that
+ * gates the single-use load fold, so a terminator whose reads are missed here
+ * would let a fold fire on a value that is in fact read twice.
+ */
 function terminatorReads(term: ILTerminator): readonly ILOperand[] {
-  const read = term.kind === "ret" ? term.value : term.kind === "brcond" ? term.cond : undefined;
-  return read !== undefined ? [read] : [];
+  switch (term.kind) {
+    case "ret":
+      return term.value !== undefined ? [term.value] : [];
+    case "brcond":
+      return [term.cond];
+    case "brcmp":
+      return [term.left, term.right];
+    case "br":
+    case "unreachable":
+      return [];
+    default: {
+      // Exhaustiveness guard: a new terminator kind without a case here is a
+      // compile error, never a silently under-counted read.
+      const _exhaustive: never = term;
+      return _exhaustive;
+    }
+  }
 }
 
 /** A `symbolRef` for a location operand at the given byte offset (lo=0/hi=1). */

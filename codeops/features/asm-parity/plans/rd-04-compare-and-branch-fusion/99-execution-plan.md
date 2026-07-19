@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 17:09
+> **Last Updated**: 2026-07-19 17:16
 > **Progress**: 10/43 tasks (23%)
 > **CodeOps Skills Version**: 3.9.0
 
@@ -91,6 +91,19 @@ task-size criteria in the quality checklist)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
+**Post-phase quality review** (phase-reviewer, lenses: correctness/maintainability/standards + api-surface):
+1 major, 2 minor. All accepted and fixed in a follow-up commit; re-review clean.
+- **RV-001 (major, accepted):** `translateTerminator` had no `brcmp` arm and no never-guard, so a
+  well-formed fused terminator would emit no control transfer at all with an empty diagnostic bag.
+  Scheduled for 2.2.1, but pulled forward so phase 1 is safe standalone and the never-guard makes
+  the phase-2 work compiler-forced. Added a `brcmp` arm raising a new `iceNoTranslation` ICE plus
+  the `default:` never-guard.
+- **RV-002 (minor, accepted):** `terminatorReads` returned `[]` for `brcmp` through a ternary
+  chain — the same private per-consumer enumeration this phase removed elsewhere. Converted to an
+  exhaustive never-guarded switch returning `[left, right]`, completing 2.2.1's first clause early.
+- **RV-003 (minor, accepted):** a diff-added double blank line in `translate.spec.test.ts`; fixed
+  without touching the file's pre-existing formatting drift.
+
 ---
 
 ## Phase 2: Translator branch-form framings
@@ -102,7 +115,7 @@ task-size criteria in the quality checklist)
 
 - [ ] 2.1.1 Write ST-10a matrix cases (constructed IL with `brcmp` terminators) — `packages/codegen/src/instr/translate.spec.test.ts`
 - [ ] 2.1.2 Write ST-10b (signed sequence), ST-10c (deferred-load fold), ST-6 (value form byte-identical) — `packages/codegen/src/instr/translate.spec.test.ts`, `packages/codegen/src/instr/translate-expressions.spec.test.ts`
-- [ ] 2.1.3 Red phase: `brcmp` inputs currently translate to NO output (`translateTerminator`'s switch has no `default` and falls through silently on an unhandled kind) — the byte-sequence expectations fail red on missing instructions; verify and document
+- [ ] 2.1.3 Red phase: `brcmp` inputs currently translate to NO instructions — since the phase-1 review, `translateTerminator` records a `no translation for 'brcmp terminator'` ICE and its switch carries the never-guard, so the failure is loud rather than silent; the byte-sequence expectations still fail red on missing instructions; verify and document
 
 ### Step 2.2: Implementation
 
@@ -110,6 +123,7 @@ task-size criteria in the quality checklist)
 **Objective**: Shared flag-producing cores, two tails; `brcmp` dispatch; use-count plumbing.
 
 - [ ] 2.2.1 Extend `terminatorReads` with `brcmp` `[left, right]`; add the `translateTerminator` dispatch case and close its switch with the repo's `default:` never-guard (unhandled kind = compile error, not silent no-emission) — `packages/codegen/src/instr/translate.ts`
+      ↳ *Partly landed in phase 1* (review finding RV-001/RV-002): `terminatorReads` and both never-guards are done; what remains here is replacing the placeholder `brcmp` ICE arm with the real branch-form dispatch.
 - [ ] 2.2.2 Refactor the 8-bit framings (unsigned/equality inline, `byteSignedOrdered`) into core + value/branch tails — `packages/codegen/src/instr/translate.ts`
 - [ ] 2.2.3 Refactor the three word framings (`wordEquality`, `wordUnsignedOrdered` — internal labels become real targets, `wordSignedOrdered`) into core + tails — `packages/codegen/src/instr/translate.ts`
 - [ ] 2.2.4 Green phase: ST-10a–c, ST-6 pass; fix implementation only
