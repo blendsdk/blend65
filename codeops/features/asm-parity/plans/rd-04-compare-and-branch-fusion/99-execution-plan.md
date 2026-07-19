@@ -164,7 +164,10 @@ task-size criteria in the quality checklist)
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
 **Post-phase quality review** (phase-reviewer, lenses: correctness/maintainability/standards + api-surface):
-0 critical, 0 major, 2 minor. Both accepted and fixed in a follow-up commit.
+0 critical, 0 major, 2 minor. Both accepted and fixed in a follow-up commit; re-review clean
+("no findings" — it re-derived the new equality edges by hand, checked the cycle claims against
+real 6502 timings, and confirmed the four rewritten oracle rows were derived from semantics
+rather than copied from the implementation, with all six ST-6 rows untouched).
 The reviewer independently re-derived the 6502 semantics for all five framings in both senses
 (including the swapped `gt`/`le` forms) and confirmed polarity, value-form byte identity —
 `_cmpN` allocation order AND count — the hoisted `clearRegs()`, the `flag` argument at every
