@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 20:58
-> **Progress**: 40/43 tasks (93%)
+> **Last Updated**: 2026-07-19 21:14
+> **Progress**: 43/43 tasks (100%) — COMPLETE
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -459,13 +459,29 @@ all three new functions are module-private).
 **Reference**: RD AC-1…AC-10 · 03-04 §Closeout delta record · plan-AR #7
 **Objective**: Evidence recorded where the initiative tracks it.
 
-- [ ] 5.1.1 Produce the delta record (phase-3 vs phase-4 scoreboard diff + `rasterpoll`/`guards` windows) and post the area report on issue #50 (tick its checklist) — GitHub #50
-- [ ] 5.1.2 Walk RD-04 AC-1…AC-10 against the landed state; record the walk in the RD's checkboxes — `codeops/features/asm-parity/requirements/RD-04-compare-and-branch-fusion.md`
-- [ ] 5.1.3 Roadmap sync (RD-04 row → Done per lifecycle) + final full verification — `codeops/features/asm-parity/00-roadmap.md`
+- [x] 5.1.1 Produce the delta record (phase-3 vs phase-4 scoreboard diff + `rasterpoll`/`guards` windows) and post the area report on issue #50 (tick its checklist) — GitHub #50
+- [x] 5.1.2 Walk RD-04 AC-1…AC-10 against the landed state; record the walk in the RD's checkboxes — `codeops/features/asm-parity/requirements/RD-04-compare-and-branch-fusion.md`
+- [x] 5.1.3 Roadmap sync (RD-04 row → Done per lifecycle) + final full verification — `codeops/features/asm-parity/00-roadmap.md`
+
+**Step 5.1 notes**:
+
+- Area report posted as [issue #50 comment](https://github.com/blendsdk/blend65/issues/50#issuecomment-5017028398):
+  the per-fixture before/after table, all five measured windows, the twin-diff group
+  disappearance, and an explicit account of what is still divergent and which issue owns it
+  (#51 layout — the dominant remainder — plus #52, #53, #49).
+- Deviation: the task says "tick its checklist", but #50's Acceptance section is plain
+  bullets, not checkboxes — there was nothing to tick in place. The four acceptance items are
+  instead answered as a ticked list inside the posted comment.
+- **#50 left OPEN deliberately.** Its acceptance is met, but closing an issue is not in this
+  plan's scope and is the user's call; the report says the work landed and links the evidence.
+- The AC walk (RD §Acceptance walk) cites committed artifacts per criterion — golden regions,
+  byte/cycle arithmetic, spec-test homes — rather than asserting compliance. All 10 ticked.
+- The known limitation (#66) is recorded in the RD alongside the walk so it travels with the
+  requirement rather than living only in this plan.
 
 **Deliverables**:
-- [ ] Area report posted; ACs walked; roadmap current
-- [ ] All verification passing
+- [x] Area report posted; ACs walked; roadmap current
+- [x] All verification passing
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

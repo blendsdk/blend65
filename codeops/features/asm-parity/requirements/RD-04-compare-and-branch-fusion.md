@@ -210,35 +210,57 @@ boundary tier (`test/boundary.spec.test.ts`) must stay green.
 
 ## Acceptance Criteria
 
-1. [ ] **Raster-poll fused form**: the regenerated raster-poll golden's condition block is
+1. [x] **Raster-poll fused form**: the regenerated raster-poll golden's condition block is
    exactly `LDA $D012 · CMP #$FB · <conditional branch to body> · JMP <end>` — 4
    instructions, 10 bytes, ≤12 static cycles on the polling path (was 9 instructions /
    ~17 cycles) — with zero `_cmp`-style materialization labels in the function. *(AR #20)*
-2. [ ] **`while (true)` emits zero condition code**: its condition block contains no loads,
+2. [x] **`while (true)` emits zero condition code**: its condition block contains no loads,
    compares, or conditional branches — only an unconditional `JMP`. *(AR #21)*
-3. [ ] **Compound guard**: `if (x >= 8 && x < 40)` (unsigned bytes) compiles to exactly two
+3. [x] **Compound guard**: `if (x >= 8 && x < 40)` (unsigned bytes) compiles to exactly two
    `CMP`-based fused sequences with no synthetic-slot store/load (no `0sc` frame traffic)
    and no 0/1 materialization; the second clause's code is reachable only via the first
    clause's true edge. *(AR #22)*
-4. [ ] **Negation is free**: `if (!b)` emits the same instruction count as `if (b)` (targets
+4. [x] **Negation is free**: `if (!b)` emits the same instruction count as `if (b)` (targets
    swapped; no `not` materialization).
-5. [ ] **Signed framing fuses**: `if (sx < sy)` (signed bytes) emits
+5. [x] **Signed framing fuses**: `if (sx < sy)` (signed bytes) emits
    `SEC · SBC · BVC skip · EOR #$80 · skip:` followed directly by `BMI <true>` + `JMP
    <false>` (per `spec/02-type-system.md` N⊕V), with no materialization; the three 16-bit
    framings likewise branch to real targets.
-6. [ ] **Value context unchanged**: the golden for `let b: boolean = x > y;` (comparison
+6. [x] **Value context unchanged**: the golden for `let b: boolean = x > y;` (comparison
    consumed as data) is byte-identical to today's output.
-7. [ ] **MMIO discipline**: the raster-poll loop performs exactly one `LDA $D012` per
+7. [x] **MMIO discipline**: the raster-poll loop performs exactly one `LDA $D012` per
    iteration (assertable from the golden); in `if (a && peek(addr) == v)`, the `peek` load
    sits in the right-clause block only.
-8. [ ] **Corpus health**: all goldens regenerated and hand-reviewed; the new acceptance
+8. [x] **Corpus health**: all goldens regenerated and hand-reviewed; the new acceptance
    fixture's golden/twin/observables land with `twins.json` routing and budget entries;
    local VICE fixture and twin tiers green; `budgets.json` tightened to the new exact values
    in the same change; `SCOREBOARD.md` regenerated and the CI freshness gate passes.
    *(AR #24, AR #12, AR #17)*
-9. [ ] **Boundary intact**: `test/boundary.spec.test.ts` green — no `@blend65/codegen`
+9. [x] **Boundary intact**: `test/boundary.spec.test.ts` green — no `@blend65/codegen`
    import appears in `frontend`/`language-server`.
-10. [ ] **Security requirements verified**: a terminator target that resolves to no block
+10. [x] **Security requirements verified**: a terminator target that resolves to no block
     ICEs at translation (never a silent ACME symbol error downstream); malformed terminator
     shapes are unrepresentable in the IL type; framing × polarity spec tests cover both
     branch senses so no inversion can land unnoticed.
+
+### Acceptance walk (2026-07-19, against the landed state)
+
+Every criterion checked against committed artifacts, not against intent.
+
+| AC | Evidence |
+| -- | -------- |
+| 1 | `rasterpoll.asm.golden` condition block is `LDA $D012 · CMP #$FB · BNE <body> · JMP <end>` — 4 instructions, 10 bytes (3+2+2+3); the walked polling path is LDA 4 + CMP 2 + BNE taken 3 + the body block's JMP back 3 = **12 cycles**, meeting the ≤12 bound exactly. `_cmp` labels in the file: **0**. |
+| 2 | The same golden's `while (true)` head is `Main_main_L0: JMP Main_main_L1` — one unconditional jump, no load, no compare. |
+| 3 | `guards.asm.golden` compound guard is two `CMP`-based fused blocks (`CMP #$08 · BCS`, `CMP #$28 · BCC`); the frame no longer declares `0sc0`/`0sc1` at all, and the upper-bound block is entered only from the lower-bound block's true edge. |
+| 4 | `if (!active)` is `LDA active · BNE <else> · JMP <then>` — identical instruction count to an un-negated boolean test with the targets swapped, and the `CMP #$00` residue is gone. Pinned by a spec case that lowers `if (b)` and `if (!b)`, swaps the printed targets of the first, and asserts full-text equality. |
+| 5 | `guards.asm.golden` signed compare is `LDA dx · SEC · SBC dy · BVC _cmp0 · EOR #$80 · _cmp0: · BMI <true> · JMP <false>` — the twin's own sequence. The 16-bit framings are covered by the framing × polarity suite in `instr/translate-brcmp.spec.test.ts`. |
+| 6 | `slice6` is entirely value-position comparisons and short-circuits; its golden is **byte-identical** across the phase diff, as are `gate`, `slice3a`, `slice3b`, `slice5a`, `slice5b`. |
+| 7 | Exactly one `LDA $D012` in each of the rasterpoll and guards goldens. The `LDA $DC00` sits inside the right-clause block, reachable only via `BNE` from the `armed` test — so the port is not read when the left clause already decided. |
+| 8 | 8 goldens regenerated and hand-reviewed with their twins; `guards` registered end to end since phase 3; `budgets.json` at exact current values (incl. re-measured balloon 133); `SCOREBOARD.md` regenerated with the freshness gate green; local VICE fixture + all 15 twin pairs green. |
+| 9 | Root boundary tier green (33 tests). The adapter change imports `@blend65/core` only. |
+| 10 | Dangling-target ICE pinned in `instr/translate.spec.test.ts` ("terminator target '_LX' resolves to no block"); the terminator union makes malformed shapes unrepresentable; `instr/translate-brcmp.spec.test.ts` covers all five framings and asserts BOTH branch senses per framing, so a polarity inversion cannot land unnoticed. |
+
+Known limitation, filed not fixed: a `switch` whose discriminant is itself a slot-claiming
+expression (a `?:`) ICEs — the planner counts the site once, the dispatch chain re-lowers it
+per case value. Pre-existing (reproduced at the pre-phase commit), tracked as
+[#66](https://github.com/blendsdk/blend65/issues/66).
