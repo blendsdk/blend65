@@ -1142,6 +1142,10 @@ class FunctionTranslator {
     if (tail.kind === "branch") {
       this.emit(branch, "Relative", labelRef(this.blockLabel(tail.trueTarget)));
       this.emit("JMP", "Absolute", labelRef(this.blockLabel(tail.falseTarget)));
+      // No result exists to bind, and the framings that reach here have left a
+      // compare residue in A. The block ends at a terminator either way, but
+      // clearing here keeps the mirror honest without relying on that.
+      this.clearRegs();
       return;
     }
     if (flag === "carry") {
@@ -1195,17 +1199,30 @@ class FunctionTranslator {
     this.emitCmpTail(tail, wantLess ? "BMI" : "BPL", "zn");
   }
 
-  /** 16-bit equality: low bytes decide fast, high bytes break the tie (Z-based). */
+  /**
+   * 16-bit equality: low bytes decide fast, high bytes break the tie (Z-based).
+   *
+   * A differing low byte already settles the answer, so where that early-out
+   * goes is what separates the two tails. A value context has to rejoin — the
+   * 0/1 tail reads Z, and both paths must reach it — but a fused branch sends
+   * it straight to the edge it decided, saving the second branch on what is
+   * the common outcome when comparing 16-bit positions or counters.
+   */
   private wordEquality(op: "eq" | "ne", tail: CmpTail, lhs: ILOperand, rhs: ILOperand): void {
-    const diffL = this.nextCmpLabel();
+    const lowDiffers =
+      tail.kind === "branch"
+        ? this.blockLabel(op === "eq" ? tail.falseTarget : tail.trueTarget)
+        : this.nextCmpLabel();
     this.wordLeftByteIntoA(lhs, 0);
     const rLo = this.rightSource(rhs, 0);
     this.emit("CMP", rLo.mode, rLo.operand);
-    this.emit("BNE", "Relative", labelRef(diffL)); // low differs → not equal (Z=0)
+    this.emit("BNE", "Relative", labelRef(lowDiffers)); // low differs → not equal
     this.wordLeftByteIntoA(lhs, 1);
     const rHi = this.rightSource(rhs, 1);
     this.emit("CMP", rHi.mode, rHi.operand);
-    this.out.push(label(diffL)); // Z now holds the full 16-bit equality
+    if (tail.kind === "value") {
+      this.out.push(label(lowDiffers)); // Z now holds the full 16-bit equality
+    }
     // The framing leaves A holding a compare residue, never the result: drop
     // the residency mirror before any tail rebinds it.
     this.clearRegs();

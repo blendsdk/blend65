@@ -295,17 +295,12 @@ describe("Specification: brcmp — 8-bit signed ordered framing (ST-10a, ST-10b)
 });
 
 describe("Specification: brcmp — 16-bit equality framing (ST-10a)", () => {
-  // A differing low byte short-circuits to the shared join, where Z already
-  // holds the full 16-bit answer; equal low bytes let the high byte set it.
+  // A differing low byte already settles equality, so the fused form sends it
+  // straight to the edge it decided — `eq` to false, `ne` to true — instead of
+  // rejoining to re-test Z. Equal low bytes let the high byte decide.
   const memory: Row[] = [
-    [
-      "eq",
-      ["LDA L", "CMP R", "BNE _cmp0", "LDA L+1", "CMP R+1", "_cmp0:", "BEQ M_f_L1", "JMP M_f_L2"],
-    ],
-    [
-      "ne",
-      ["LDA L", "CMP R", "BNE _cmp0", "LDA L+1", "CMP R+1", "_cmp0:", "BNE M_f_L1", "JMP M_f_L2"],
-    ],
+    ["eq", ["LDA L", "CMP R", "BNE M_f_L2", "LDA L+1", "CMP R+1", "BEQ M_f_L1", "JMP M_f_L2"]],
+    ["ne", ["LDA L", "CMP R", "BNE M_f_L1", "LDA L+1", "CMP R+1", "BNE M_f_L1", "JMP M_f_L2"]],
   ];
 
   it.each(memory)("fuses word %s against a memory operand", (op, expected) => {
@@ -313,32 +308,8 @@ describe("Specification: brcmp — 16-bit equality framing (ST-10a)", () => {
   });
 
   const immediate: Row[] = [
-    [
-      "eq",
-      [
-        "LDA L",
-        "CMP #$34",
-        "BNE _cmp0",
-        "LDA L+1",
-        "CMP #$12",
-        "_cmp0:",
-        "BEQ M_f_L1",
-        "JMP M_f_L2",
-      ],
-    ],
-    [
-      "ne",
-      [
-        "LDA L",
-        "CMP #$34",
-        "BNE _cmp0",
-        "LDA L+1",
-        "CMP #$12",
-        "_cmp0:",
-        "BNE M_f_L1",
-        "JMP M_f_L2",
-      ],
-    ],
+    ["eq", ["LDA L", "CMP #$34", "BNE M_f_L2", "LDA L+1", "CMP #$12", "BEQ M_f_L1", "JMP M_f_L2"]],
+    ["ne", ["LDA L", "CMP #$34", "BNE M_f_L1", "LDA L+1", "CMP #$12", "BNE M_f_L1", "JMP M_f_L2"]],
   ];
 
   it.each(immediate)("fuses word %s against an immediate operand", (op, expected) => {

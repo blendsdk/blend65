@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-04 Compare-and-Branch Fusion (plan)
 
-> **Status**: ✅ GATE PASSED — all 9 items resolved (7 planning + 2 runtime)
-> **Last Updated**: 2026-07-19 16:31
+> **Status**: ✅ GATE PASSED — all 10 items resolved (7 planning + 3 runtime)
+> **Last Updated**: 2026-07-19 18:20
 > **Scope**: Implementation plan for asm-parity/RD-04 (`../../requirements/RD-04-compare-and-branch-fusion.md`)
 > **CodeOps Skills Version**: 3.9.0
 >
@@ -105,3 +105,27 @@ function name plan-AR #2's resolution note asks for and 03-01's template omits.
 fused framings' internal true/false labels becoming real block targets IS the simplification
 (their `LDA #$01/#$00` tails disappear). The closeout delta record is one cheap task, and
 plan-AR #1 makes its numbers measured rather than reconstructed.
+
+**plan-AR #10 (fused 16-bit equality join — specialise to the edges, runtime):** Raised by the
+phase-2 quality review (RV-001). 03-02's framing table said the equality framing's internal `diff`
+join "stays" in both forms, and the ST-10a oracle faithfully encoded that: `BNE _cmp0 … _cmp0:
+BEQ true / JMP false`. That is a branch-to-branch on the differing-low-byte path — the answer is
+already known there, and a developer hand-writing the routine would send it straight to the edge
+(`BNE false` for `eq`, `BNE true` for `ne`). Same byte count, one fewer generated label, and 5
+cycles cheaper on that path for `eq` (3 for `ne`), never slower on any path; low-bytes-differ is
+the common early-out when comparing 16-bit positions or counters. Under the project's output-parity
+directive this is a defect in the specified design, not an acceptable trade — and it is the same
+join specialisation 03-02 already grants `wordUnsignedOrdered`, so keeping it would have left two
+sibling word framings inconsistent for no reason.
+
+Options presented: (A) fix now, before the guards fixture is authored; (B) file an issue and carry
+the gap into phase 3. **Decision: A.** Two grounds beyond the parity directive itself. Nothing
+emits `brcmp` yet, so this is the last moment the change touches no golden — after the phase-4 flip
+the same edit moves goldens and can no longer be reviewed in isolation. And phase 3 measures the
+`guards` fixture against a hand-written twin: leaving the divergence would bake a known 5-cycle gap
+into the parity baseline the feature ratchets against for the rest of its life.
+
+03-02's framing-table row and the four ST-10a word-equality oracle rows were corrected together;
+the corrected text is the immutable oracle. The value form is untouched — its join must survive,
+because the 0/1 tail reads Z and both paths have to reach it — and its ST-6 byte-exact case is
+unchanged, so no golden can move.

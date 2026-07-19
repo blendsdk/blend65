@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 18:14
+> **Last Updated**: 2026-07-19 18:28
 > **Progress**: 19/43 tasks (44%)
 > **CodeOps Skills Version**: 3.9.0
 
@@ -162,6 +162,27 @@ task-size criteria in the quality checklist)
 - [x] All verification passing
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
+
+**Post-phase quality review** (phase-reviewer, lenses: correctness/maintainability/standards + api-surface):
+0 critical, 0 major, 2 minor. Both accepted and fixed in a follow-up commit.
+The reviewer independently re-derived the 6502 semantics for all five framings in both senses
+(including the swapped `gt`/`le` forms) and confirmed polarity, value-form byte identity —
+`_cmpN` allocation order AND count — the hoisted `clearRegs()`, the `flag` argument at every
+call site, `iceNoTranslation` still reachable, and that no pre-existing spec test was touched.
+- **RV-001 (minor, output parity — accepted, fixed):** the fused 16-bit equality framing emitted a
+  branch-to-branch on the differing-low-byte path (`BNE _cmp0 … _cmp0: BEQ true / JMP false`) where
+  a hand-writing 6502 developer branches straight to the decided edge. Same bytes, one fewer
+  generated label, 5 cycles cheaper for `eq` (3 for `ne`) on that path, never slower on any path —
+  and low-bytes-differ is the common early-out for 16-bit positions and counters. 03-02 had
+  specified the join to stay in both forms, so the design doc and four ST-10a oracle rows were
+  corrected together under plan-AR #10; the value form keeps its join (its 0/1 tail reads Z) and
+  its ST-6 byte-exact case is unchanged. Fixed now rather than filed because nothing emits `brcmp`
+  yet — the last moment the change is golden-invisible — and because phase 3's twin would otherwise
+  bake the gap into the parity baseline.
+- **RV-002 (minor, maintainability — accepted, fixed):** the fused branch tail left the A-residency
+  mirror claiming a temp was in A after `SBC`/`EOR` had destroyed it — inert only because
+  `resetBlockState()` clears at the next block. Added `clearRegs()` to `emitCmpTail`'s branch arm,
+  which the value form never reaches, so the fix is provably emission-neutral.
 
 ---
 

@@ -57,7 +57,7 @@ idiom the instruction switch already uses at `translate.ts:430`).
 | ------------------------ | ---------------------------------------------------------- |
 | 8-bit unsigned / equality (`:1050-1073`) | `BEQ`/`BNE`/`BCC`(lt)/`BCS`(ge) → true · `JMP` false |
 | 8-bit signed (`byteSignedOrdered` `:1093`) | after `SEC·SBC·BVC skip·EOR #$80·skip:` — `BMI`(less)/`BPL` → true · `JMP` false (RD AC-5) |
-| 16-bit equality (`wordEquality` `:1113`) | internal `diff` label stays (Z holds full equality there); `BEQ`/`BNE` → true · `JMP` false |
+| 16-bit equality (`wordEquality` `:1113`) | internal `diff` label **becomes a real target** in branch form — a differing low byte already settles equality, so `BNE` goes straight to false (`eq`) or true (`ne`); the high-byte compare then `BEQ`/`BNE` → true · `JMP` false. Same bytes, one fewer label, 5 cycles cheaper on the differing-low path (3 for `ne`). The value form keeps the join — its 0/1 tail reads Z and both paths must reach it. *(Amended at execution: the original row kept the join in both forms, which emitted a branch-to-branch a hand-writing developer would not — plan-AR #10.)* |
 | 16-bit unsigned (`wordUnsignedOrdered` `:1133`) | internal `trueL`/`falseL`/`endL` labels **become the real targets**: hi-CMP decides via `BCC`/`BNE` straight to true/false, lo-CMP `BCC`/`BCS` → true, fall into `JMP` false — the `LDA #$01/#$00` tails disappear (the Should-Have simplification, plan-AR #7) |
 | 16-bit signed (`wordSignedOrdered` `:1173`) | after the `CMP lo · SBC hi · BVC/EOR` correction — `BMI`/`BPL` → true · `JMP` false |
 
