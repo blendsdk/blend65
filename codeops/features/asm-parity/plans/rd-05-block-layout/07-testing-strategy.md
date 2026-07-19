@@ -4,7 +4,8 @@ Specification tests derive from RD-05 and 6502 semantics **only** — never from
 implementation. A failing spec test means the implementation is wrong.
 
 `ST-B*` is a fresh prefix; no `ST-B` id exists in the tree, so nothing collides. Ids run
-ST-B1…ST-B45; ST-B41…ST-B45 were added at preflight (AR #40–#47).
+ST-B1…ST-B47; ST-B41…ST-B45 were added at preflight (AR #40–#47), and ST-B46/ST-B47 at
+execution (AR #60, AR #62).
 
 ## Suites
 
@@ -41,6 +42,7 @@ CI, so it is the one place the whole of AC-7 can be proven through the real pipe
 | **ST-B7** | the entry block is itself a trampoline | it is not removed and keeps index 0 |
 | **ST-B8** | run the pass twice | idempotent — second run returns an equal program |
 | **ST-B9** | `initCode` block list containing a trampoline | threaded identically to a function |
+| **ST-B47** | a trampoline chain that dead-ends in a label no block defines (AR #62) | the rewrite is abandoned — the incoming branch still targets the trampoline, which is not repaired either. Following the chain would copy one broken edge onto every branch that reached it, and removal would then drop the block that carried the mistake. Distinct from ST-B46, where the branch's *own* target is missing |
 
 ### Unreachable-block removal
 
@@ -54,6 +56,7 @@ CI, so it is the one place the whole of AC-7 can be proven through the real pipe
 | **ST-B15** | `initCode` with an unreachable block | dropped, rooted at `initCode[0]` |
 | **ST-B41** | a function with `blocks.length === 0` | both passes are the identity and neither crashes — a zero-block function is a tolerated shape (`instr-program.ts:110-114` skips it), so a bare `blocks[0].label` root read would be a compiler crash on every error-tolerant compile |
 | **ST-B42** | an **empty** `initCode` block list (the normal case) | both passes are the identity and neither crashes |
+| **ST-B46** | a terminator targeting a label no block defines (AR #60) | both passes are total: removal does not throw, keeps the reachable blocks and *still* drops an unreferenced one; threading does not throw and leaves the target alone. The translator's `validateTerminatorTargets` stays the authority that reports the malformed function — crashing here would destroy that diagnostic |
 
 ### Branch tail (pure decision)
 

@@ -19,6 +19,29 @@
 
 import type { ILFunction } from "./cfg.js";
 import { terminatorTargets } from "./cfg.js";
+import type { ILTerminator } from "./instruction.js";
+import { reachableBlocks } from "./reachability.js";
+
+/**
+ * The edges this analysis follows: every outgoing edge, except that a
+ * value-conditional branch on a literal follows only the edge it will actually
+ * take.
+ *
+ * That one refinement is what makes the `while (true)` idiom — lowered as a
+ * back-edge behind a constant-true branch — analyze as non-returning. A fused
+ * compare-and-branch carries no such literal (its comparison is evaluated at
+ * runtime), so both of its edges stay live, which can only over-approximate
+ * reachability and therefore errs toward the harmless terminating shim.
+ *
+ * It belongs to this analysis alone. A pass that *removes* blocks must stay
+ * conservative about what is live, so it walks the unrefined edge set.
+ */
+function takenEdges(t: ILTerminator): readonly string[] {
+  if (t.kind === "brcond" && t.cond.kind === "immediate") {
+    return [t.cond.value !== 0 ? t.trueTarget : t.falseTarget];
+  }
+  return terminatorTargets(t);
+}
 
 /**
  * Whether `fn` can reach a `ret` terminator from its entry block.
@@ -28,39 +51,8 @@ import { terminatorTargets } from "./cfg.js";
  *   blocks at all (the conservative direction).
  */
 export function functionCanReturn(fn: ILFunction): boolean {
-  const entry = fn.blocks[0];
-  if (entry === undefined) return true; // nothing to analyze — stay safe
-  const byLabel = new Map(fn.blocks.map((b) => [b.label, b]));
-
-  const seen = new Set<string>([entry.label]);
-  const work = [entry];
-  while (work.length > 0) {
-    const block = work.pop();
-    if (block === undefined) break;
-    const t = block.terminator;
-    if (t.kind === "ret") return true;
-
-    // One special case sits on top of the shared edge set: a value-conditional
-    // branch on a literal follows only the edge it will actually take. A fused
-    // compare-and-branch carries no such literal — its comparison is evaluated
-    // at runtime — so both of its edges stay live, which can only
-    // over-approximate reachability and therefore errs toward the harmless
-    // terminating shim.
-    const next =
-      t.kind === "brcond" && t.cond.kind === "immediate"
-        ? [t.cond.value !== 0 ? t.trueTarget : t.falseTarget]
-        : terminatorTargets(t);
-
-    for (const target of next) {
-      if (seen.has(target)) continue;
-      const targetBlock = byLabel.get(target);
-      // Dangling label — skipped so the analysis stays total. Translation
-      // rejects these up front, so reaching one here means a malformed
-      // function is already being reported elsewhere.
-      if (targetBlock === undefined) continue;
-      seen.add(target);
-      work.push(targetBlock);
-    }
-  }
-  return false;
+  // Nothing to analyze — stay safe. The walk below would report "no ret
+  // reachable" for an empty function, which is the dangerous answer.
+  if (fn.blocks[0] === undefined) return true;
+  return reachableBlocks(fn.blocks, takenEdges).some((b) => b.terminator.kind === "ret");
 }

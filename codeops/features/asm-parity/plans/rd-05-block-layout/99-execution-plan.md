@@ -1,7 +1,7 @@
 # Execution Plan — Block Layout (RD-05)
 
 > **Implements**: asm-parity/RD-05 · [#51](https://github.com/blendsdk/blend65/issues/51), [#65](https://github.com/blendsdk/blend65/issues/65)
-> **Progress**: 11/58 tasks (19%) — Phase 1 complete
+> **Progress**: 20/58 tasks (34%) — Phases 1–2 complete
 > **Last Updated**: 2026-07-20
 > **CodeOps Skills Version**: 3.10.0
 
@@ -93,26 +93,48 @@ against real lowered fixtures. Nothing is **registered**, so the corpus cannot m
 emit path. The one production touch is 2.4's refactor of `il/termination.ts`, which is guarded
 explicitly below.
 
-- [ ] 2.1 Write `codegen/src/il/optimizer/thread-jumps.spec.test.ts` — ST-B1…ST-B9
-- [ ] 2.2 Write `codegen/src/il/optimizer/remove-unreachable-blocks.spec.test.ts` —
-      ST-B10…ST-B15, ST-B41, ST-B42
-- [ ] 2.3 Verify **red**
-- [ ] 2.4 Factor the shared successor walk out of `il/termination.ts:30-66` so the two walks
+- [x] 2.1 Write `codegen/src/il/optimizer/thread-jumps.spec.test.ts` — ST-B1…ST-B9
+      — *done 2026-07-20 (implementation-blind author)*
+- [x] 2.2 Write `codegen/src/il/optimizer/remove-unreachable-blocks.spec.test.ts` —
+      ST-B10…ST-B15, ST-B41, ST-B42 — *done 2026-07-20. The author flagged that `03-01`'s
+      dangling-target tolerance had no `ST-B` id and correctly declined to invent one; it is now
+      **ST-B46** (AR #60)*
+- [x] 2.3 Verify **red** — *done 2026-07-20: both suites fail to resolve `./thread-jumps.js` and
+      `./remove-unreachable-blocks.js`; 75 files / 644 tests still green*
+- [x] 2.4 Factor the shared successor walk out of `il/termination.ts:30-66` so the two walks
       cannot drift; the constant-`brcond` edge refinement stays with termination and is
       deliberately **not** inherited. **This is production code** — `functionCanReturn` selects the
       startup shim variant via `instr-program.ts:224-226`. Guard: `termination.spec.test.ts` and
       `termination.impl.test.ts` stay green and all 14 goldens stay byte-identical
-- [ ] 2.5 Implement `thread-jumps.ts` — trampoline predicate, cycle-safe chain-following (a cyclic
+      — *done 2026-07-20. New `il/reachability.ts` (AR #61) — `cfg.ts`'s own header rules out
+      putting behaviour there. Survivors come back in input order, so order preservation is a
+      property of the shared walk. The refinement stays private to `termination.ts` as
+      `takenEdges`. Guard held: 18/18 termination tests green, zero golden drift*
+- [x] 2.5 Implement `thread-jumps.ts` — trampoline predicate, cycle-safe chain-following (a cyclic
       chain leaves the original target **unchanged**), all terminator kinds via the shared edge
-      enumeration, `initCode` too
-- [ ] 2.6 Implement `remove-unreachable-blocks.ts` — roots, order-preserving, dangling-target
+      enumeration, `initCode` too — *done 2026-07-20*
+- [x] 2.6 Implement `remove-unreachable-blocks.ts` — roots, order-preserving, dangling-target
       tolerant, self-loop carve-out falling out of reachability, total on a zero-block function and
-      an empty `initCode`
-- [ ] 2.7 Verify **green**
-- [ ] 2.8 Confirm the 2.4 guard held: termination suites green, corpus byte-identical. No
+      an empty `initCode` — *done 2026-07-20*
+- [x] 2.7 Verify **green** — *done 2026-07-20: 662 codegen tests, the 18 new ones included*
+- [x] 2.8 Confirm the 2.4 guard held: termination suites green, corpus byte-identical. No
       `*.impl.test.ts` is added — ST-B8/B9/B14/B15 already pin idempotence, `initCode` rooting and
-      order at spec tier (AR #47)
-- [ ] 2.9 Full verify + prettier check
+      order at spec tier (AR #47) — *done 2026-07-20. Neither pass is on the package barrel yet:
+      exporting them is part of 4.7's registration, so nothing outside their spec suites can reach
+      them and the corpus provably cannot move*
+- [x] 2.9 Full verify + prettier check — *done 2026-07-20. Verify exit 0; `spec/` clean; goldens
+      byte-identical; all six touched files Prettier-clean*
+
+**Post-phase review.** No critical or major findings. One minor **correctness** defect found and
+fixed: a trampoline chain dead-ending in a missing label was *followed*, rewriting a valid target
+to the dangling one — one broken edge became two, and removal then dropped the block that carried
+the mistake, moving the translator's eventual error off its cause. Now abandoned like a cyclic
+chain, pinned by **ST-B47** (AR #62), authored by the same blind author and green on the first run.
+The reviewer separately confirmed the `functionCanReturn` refactor is behaviour-preserving on
+every input — including the `entry === undefined` guard whose loss would have selected the
+crashing startup shim — and that order preservation in `reachableBlocks` is guaranteed by
+construction rather than by traversal order. The second minor (a now-stale "no v1 pass exists"
+claim in `pass.ts`) is already assigned to task 4.7.
 
 ---
 

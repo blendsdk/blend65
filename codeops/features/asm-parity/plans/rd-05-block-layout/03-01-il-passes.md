@@ -31,6 +31,13 @@ is cyclic (`L: JMP L` and longer rings are legal programs — `while (true) {}` 
 terminator kind is rewritten through the same enumeration (`terminatorTargets`,
 `il/cfg.ts:55-72`) so a terminator kind cannot be forgotten.
 
+The same abandonment applies when the chain runs off into a label **no block defines** (AR #62,
+ST-B47). Following it would copy one broken edge onto every branch that reached the chain, and
+removal would then drop the block that actually carried the mistake — moving the eventual
+translator error off the block that caused it. The malformed function stays the translator's to
+reject; the pass only has to avoid making it harder to describe. This is distinct from ST-B46's
+*direct* dangling target, which the walk refuses on its first step.
+
 The cyclic rule is stated as "leave it unchanged" rather than "return the label where the cycle was
 detected" because the latter has more than one reading — the revisited label, or the label under
 examination when the revisit happened — and two conforming implementations would then emit
