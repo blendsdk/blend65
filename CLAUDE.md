@@ -162,7 +162,7 @@ would judge it:
 - Tag each task trivial|standard|complex|sensitive (default complex) in make_plan — tags signal review depth, not model choice.
 - Build lane → Opus @ xhigh. exec_plan runs phases inline on Opus; dispatch plan-task-executor-opus when a phase warrants its own context. Both executors are pinned to Opus, so no tag can route work to a weaker model.
 - Critique lane → Fable @ xhigh: phase-reviewer, preflight-auditor, perf-auditor, security-auditor, design-challenger, spec-test-author. A different model family reviewing Opus's output is the point — don't collapse the two lanes onto one model.
-- Every agent runs xhigh except codebase-scout (opus @ low — facts-only retrieval, no reasoning). This deliberately overrides the CodeOps default of capping executors at high: a 6502 compiler earns the extra thinking.
+- Agents run xhigh except codebase-scout (opus @ low — facts-only retrieval) and spec-test-author (fable @ high — it transcribes an already-enumerated case list, where extra reasoning mostly risks inventing expectations the spec never stated). Executors at xhigh deliberately overrides the CodeOps default cap of high: a 6502 compiler earns the extra thinking.
 - Interactive skills: make_plan and exec_plan on Opus; grill_me and preflight on Fable. Sonnet is not used on this project. /compact after each phase; /clear on project switch.
 <!-- CODEOPS-ROUTING:END -->
 
