@@ -239,3 +239,87 @@ describe("translator — constant-fold multiply edge values", () => {
     expect(printInstr(stream)).toBe(["M_f:", "    LDA #$90", "    STA r", "    RTS"].join("\n"));
   });
 });
+
+describe("translator — terminator target validation internals", () => {
+  /** Two blocks, both terminators supplied by the caller. */
+  function twoBlockFn(entry: ILTerminator, second: ILTerminator): ILFunction {
+    return {
+      name: "M.f",
+      params: [],
+      returnType: "void",
+      blocks: [
+        { label: "_entry", instructions: [], terminator: entry },
+        { label: "_real", instructions: [], terminator: second },
+      ],
+      tempCount: 8,
+      isInterrupt: false,
+    };
+  }
+
+  it("reports the first dangling target it meets, in block then declaration order", () => {
+    // Span-less ICEs share one dedup key, so a compile surfaces one of them;
+    // the pass walks blocks in order and targets true-before-false, which makes
+    // which one deterministic.
+    const bag = createDiagnosticBag();
+    translateFunction(
+      twoBlockFn(
+        { kind: "brcond", cond: temp(0, IL_BYTE), trueTarget: "_gone_a", falseTarget: "_gone_b" },
+        { kind: "br", target: "_gone_c" },
+      ),
+      makePlan(),
+      "nmos6502",
+      bag,
+    );
+    const messages = bag.getErrors().map((d) => d.message);
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toContain("'_gone_a'");
+  });
+
+  it("names the function, the originating block, and the terminator kind", () => {
+    const bag = createDiagnosticBag();
+    translateFunction(
+      twoBlockFn({ kind: "br", target: "_real" }, { kind: "br", target: "_gone" }),
+      makePlan(),
+      "nmos6502",
+      bag,
+    );
+    const message = bag.getErrors()[0].message;
+    expect(message).toContain("'M.f'");
+    expect(message).toContain("'_real'");
+    expect(message).toContain("br");
+  });
+
+  it("surfaces the dangling target ahead of an unsupported op in the same function", () => {
+    // Validation runs before any instruction is translated, so the
+    // control-flow defect — the more fundamental of the two — is the one that
+    // wins the shared dedup key.
+    const bag = createDiagnosticBag();
+    translateFunction(
+      {
+        name: "M.f",
+        params: [],
+        returnType: "void",
+        blocks: [
+          {
+            label: "_entry",
+            instructions: [
+              {
+                op: "load_indirect",
+                value: temp(0, IL_BYTE),
+                ptr: loc("__zp_p", IL_WORD),
+                offset: temp(1, IL_BYTE),
+              },
+            ],
+            terminator: { kind: "br", target: "_gone" },
+          },
+        ],
+        tempCount: 8,
+        isInterrupt: false,
+      },
+      makePlan(),
+      "nmos6502",
+      bag,
+    );
+    expect(bag.getErrors()[0].message).toContain("resolves to no block");
+  });
+});

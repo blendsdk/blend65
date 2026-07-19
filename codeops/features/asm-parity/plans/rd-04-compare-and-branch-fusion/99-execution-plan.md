@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 17:06
-> **Progress**: 8/43 tasks (19%)
+> **Last Updated**: 2026-07-19 17:09
+> **Progress**: 10/43 tasks (23%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -81,12 +81,13 @@ task-size criteria in the quality checklist)
 
 ### Step 1.3: Implementation tests & hardening
 
-- [ ] 1.3.1 Impl tests: helper edge cases (`ret`/`unreachable` empty, order stable), pre-pass on ICE-degraded functions — `packages/codegen/src/il/termination.impl.test.ts`, `packages/codegen/src/instr/translate.impl.test.ts`
-- [ ] 1.3.2 Full verification
+- [x] 1.3.1 Impl tests: helper edge cases (`ret`/`unreachable` empty, order stable), pre-pass on ICE-degraded functions — `packages/codegen/src/il/termination.impl.test.ts`, `packages/codegen/src/instr/translate.impl.test.ts` ✅ (completed: 2026-07-19 17:09)
+      ↳ *Behavioral note:* the diagnostic bag dedups on `(code, span)` and translator ICEs are span-less, so a compile surfaces ONE `Unexpected` ICE regardless of how many dangling targets exist — pre-existing, repo-wide (`iceUnsupported` already behaves this way). The pre-pass runs before emission, so a dangling target now wins that key over a later unsupported-op ICE. Both are compiler bugs and both fail the build; the impl tests pin the actual order rather than assuming per-miss reporting.
+- [x] 1.3.2 Full verification ✅ (completed: 2026-07-19 17:09) — install/build/typecheck/lint/test all green; goldens unchanged
 
 **Deliverables**:
-- [ ] `brcmp` exists, printable, terminable, validated; nothing emits it; zero golden diffs
-- [ ] All verification passing
+- [x] `brcmp` exists, printable, terminable, validated; nothing emits it; zero golden diffs
+- [x] All verification passing
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
