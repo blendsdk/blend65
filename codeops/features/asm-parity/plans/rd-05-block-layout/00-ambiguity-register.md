@@ -1,6 +1,6 @@
 # Ambiguity Register — RD-05 Block Layout (plan)
 
-> **Status**: ✅ GATE PASSED — all 24 items resolved (6 at the plan gate, 18 at preflight)
+> **Status**: ✅ GATE PASSED — all 26 items resolved (6 at the plan gate, 18 at preflight, 2 at execution)
 > **Feature**: asm-parity · **Implements**: asm-parity/RD-05
 > **Created**: 2026-07-19 · **Extended**: 2026-07-20 (preflight)
 > **CodeOps Skills Version**: 3.10.0
@@ -58,6 +58,22 @@ failed it) and the citation/count fixes in `02-current-state.md` and `03-04` (PF
 PF-023). Presentational clarifications: the ST-B39/ST-B40 segmentation convention plus a
 non-vacuity check (PF-017, PF-022), and the Kind column in `07`'s AC table separating committed
 tests from hand-reviewed artifacts.
+
+## Execution-time resolutions (AR #58–)
+
+Raised while executing the plan. Tagged `(runtime)`.
+
+| # | Category | Decision | Task |
+|---|----------|----------|------|
+| 58 | Testing / Oracle granularity *(runtime)* | ST-B38's "no blanket branch-over-jump" is asserted **per program on the `switch` probe and corpus-wide across both probes**, not per program on both. The `do…while` probe's *entire* program contains exactly one conditional branch — the out-of-range back edge itself — so a per-program strict inequality there would demand its sole branch stay short, contradicting ST-B36. `03-03`'s wording is "in-range branches are untouched"; that fixture has none, so the clause is vacuous for it by the spec's own terms. The corpus-wide inequality is what actually rules out a wrap-everything implementation (it scores 4/4 wrapped and fails), so the load-bearing property is fully preserved | 1.4 |
+| 59 | Testing / Non-vacuity *(runtime)* | ST-B38 also asserts the **positive**: each probe must still contain at least one branch-over-jump, i.e. at least one branch that genuinely cannot be encoded short. Without it, trimming a fixture body until its span fits back inside the relative reach would leave ST-B36/ST-B37 green while they proved nothing — the same vacuity hazard ST-B44 addresses for the corpus scan. The probes also gained `$C0xx` settle sentinels and an arm tag so the VICE execution leg has a deterministic stopping point and can name *which* arm the dispatch reached | 1.4, 1.10 |
+
+**AR-58.** Rejected: adding an in-range conditional (an `if`) to the `do…while` source so the
+per-program inequality binds there too. It is strictly stronger, but it muddies a probe whose value
+is being a single unambiguous out-of-range back edge, and the extra block would also become an input
+to Phase 4's elision — turning a range probe into a second layout fixture. The planning-time premise
+that "both fixtures contain many in-range branches" was simply wrong on the `do…while` side; that is
+a measurement correction, not a design change.
 
 ## Resolution Notes
 

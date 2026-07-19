@@ -144,3 +144,18 @@ error rather than a silent miscompile, but that no fixture has ever exercised it
 is an untested prediction. These fixtures are what establish it. **Before** the fix is wired,
 the plan compiles one of them and records ACME's actual behavior. If it turns out to truncate
 silently rather than error, that raises #65's severity and is reported, not absorbed.
+
+**Measured, before any code changed** (Phase 1 task 1.1, on `b06b09d`). Both probe shapes were
+compiled through `blendc build --platform c64`:
+
+| Probe | ACME | Compiler | Artifact |
+|---|---|---|---|
+| `do…while`, 40-poke body — back-edge `BCC Main_main_L0` | `Target out of range (-219; 91 too far)` | `E90001`, exit 3 | `.asm` and `.lbl` written, **no `.prg`** |
+| `switch`, two 40-poke arms — dispatch `BEQ Main_main_L2` / `BEQ Main_main_L3` | `Target out of range (219; 92 too far)` *and* `(412; 285 too far)` | same | same |
+
+So the prediction holds: the failure is **loud**, at assembly time, and no binary is produced.
+#65's severity stands as recorded — it is a compile-time refusal, not a silent miscompile, and
+nothing about it is escalated. Two incidental confirmations came with it: the forward (switch)
+and backward (`do…while`) directions both occur, and the switch probe emits *two* out-of-range
+branches from one program, so the fixpoint's multi-branch path is exercised by a real fixture
+rather than only by a synthetic one.

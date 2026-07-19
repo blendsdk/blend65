@@ -4,9 +4,10 @@
  * `emitIl` runs the frontend → IL lowering → IL optimizer (always runs) →
  * `printIL`. `emitAsm` continues into `assembleProgram` (with overrides
  * threading the effective `outName` and `startup`), the peephole optimizer
- * (only when `config.optimize`), runtime-section embedding, and
- * `serializeToAcme`. Neither invokes ACME nor writes files — the CLI writes
- * the artifact.
+ * (only when `config.optimize`), branch relaxation (always — an unreachable
+ * branch target is a broken program, not a missed optimization), runtime-section
+ * embedding, and `serializeToAcme`. Neither invokes ACME nor writes files — the
+ * CLI writes the artifact.
  */
 
 import { RT_ROUTINES, type CompilerHost } from "@blend65/core";
@@ -19,6 +20,7 @@ import {
   optimizeIL,
   optimizeInstr,
   printIL,
+  relaxBranches,
   serializeToAcme,
   type ILProgram,
   type InstrProgram,
@@ -112,7 +114,11 @@ function lowerProgram(run: FrontendRun): ILProgram | undefined {
 export interface AssembledAsm {
   /** The serialized ACME source. */
   readonly text: string;
-  /** The assembled (and possibly optimized) program the text was rendered from. */
+  /**
+   * The assembled program the text was rendered from — post-peephole (when
+   * enabled) and post-relaxation, so a cost report counts relaxed branches at
+   * the size they were actually emitted rather than under-reporting them.
+   */
   readonly program: InstrProgram;
 }
 
@@ -139,13 +145,17 @@ export function assembleAsmText(run: FrontendRun): AssembledAsm | undefined {
   const optimized = run.config.optimize
     ? optimizeInstr(program, plugin.profile.cpu, run.bag)
     : program;
+  // Relaxation runs on both paths, and after the peephole so it measures the
+  // geometry actually emitted. A program that assembles with optimization on
+  // and fails with it off would be a trap.
+  const relaxed = relaxBranches(optimized, plugin.profile.cpu, run.bag);
   const referenced = collectReferencedRoutines(
-    optimized,
+    relaxed,
     [...RT_ROUTINES, ...plugin.intrinsics],
     plugin.runtimeModules,
   );
   const section = buildRuntimeSection(referenced, RT_ROUTINES, plugin.runtimeModules);
-  return { text: serializeToAcme(optimized, { runtimeSection: section ?? "" }), program: optimized };
+  return { text: serializeToAcme(relaxed, { runtimeSection: section ?? "" }), program: relaxed };
 }
 
 /** Attach `text` to the base result only when defined (exactOptionalPropertyTypes). */

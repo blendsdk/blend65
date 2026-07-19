@@ -64,3 +64,5 @@ export { summarizeFunctionCosts, NO_TIMING_DATA_LABEL } from "./function-costs.j
 export type { PeepholeRule, PeepholeOptions, InstrEntry } from "./peephole.js";
 export { optimizeInstr, validateProgramStructure, V1_RULES } from "./peephole.js";
 
+// Branch relaxation — the unconditional post-translation range fix.
+export { relaxBranches } from "./relax-branches.js";

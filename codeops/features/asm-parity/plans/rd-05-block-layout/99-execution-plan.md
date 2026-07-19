@@ -1,7 +1,7 @@
 # Execution Plan — Block Layout (RD-05)
 
 > **Implements**: asm-parity/RD-05 · [#51](https://github.com/blendsdk/blend65/issues/51), [#65](https://github.com/blendsdk/blend65/issues/65)
-> **Progress**: 0/58 tasks (0%)
+> **Progress**: 11/58 tasks (19%) — Phase 1 complete
 > **Last Updated**: 2026-07-20
 > **CodeOps Skills Version**: 3.10.0
 
@@ -24,34 +24,65 @@ Spec → red → implement → green → impl/hardening. Ends with **all 14 gold
 that is the phase's real assertion, and it is mechanized: `assertGolden` is byte-exact and all 14
 golden suites run in CI with no `skipIf`.
 
-- [ ] 1.1 Compile an out-of-range branch on today's compiler and **record ACME's actual
+- [x] 1.1 Compile an out-of-range branch on today's compiler and **record ACME's actual
       behavior**. The claim that #65 fails loudly rather than truncating silently is an untested
       prediction; if it truncates, that raises #65's severity and is reported, not absorbed
-- [ ] 1.2 Write `codegen/src/instr/branch-tail.spec.test.ts` — **ST-B20, ST-B21 only** (the
+      — *done 2026-07-20: it fails **loudly**. `do…while` back-edge → `Target out of range
+      (-219; 91 too far)`; `switch` dispatch → `(219; 92 too far)` + `(412; 285 too far)`. Both
+      surface as `E90001`, exit 3, with no `.prg` written. Severity unchanged; recorded in
+      [03-03](03-03-relax-branches.md)*
+- [x] 1.2 Write `codegen/src/instr/branch-tail.spec.test.ts` — **ST-B20, ST-B21 only** (the
       polarity table). Phase 1 wires `invertBranch` into production through relaxation, so its
       oracle is authored here, not in Phase 3; the tail-decision cases extend this same file at 3.1
-- [ ] 1.3 Write `codegen/src/instr/relax-branches.spec.test.ts` — ST-B28…ST-B35. ST-B32 is the
+      — *done 2026-07-20 (implementation-blind author)*
+- [x] 1.3 Write `codegen/src/instr/relax-branches.spec.test.ts` — ST-B28…ST-B35. ST-B32 is the
       **cascade** construction: the second branch must sit at exactly +127 *and* span the first
-      branch's rewrite site, so the +3 bytes push it to +130
-- [ ] 1.4 Write `test-harness/src/range-branches.spec.test.ts` — ST-B36…ST-B38, ACME tier,
+      branch's rewrite site, so the +3 bytes push it to +130 — *done 2026-07-20; the fixture
+      self-asserts both cascade properties before the pass runs*
+- [x] 1.4 Write `test-harness/src/range-branches.spec.test.ts` — ST-B36…ST-B38, ACME tier,
       `skipIf(!hasAcme())`, runs in CI. The two range sources are inlined `*_SRC` constants in
       `test-harness/src/testing/range-branches.ts` with **no** `examples/` counterparts and **not**
       added to `examples-sync`'s `INLINED_MODULES` — they are unit-tier range probes, not corpus
-      fixtures (AR #32, AR #48)
-- [ ] 1.5 Verify **red**
-- [ ] 1.6 Implement `invertBranch` + the polarity table in `codegen/src/instr/branch-tail.ts`
+      fixtures (AR #32, AR #48) — *done 2026-07-20; ST-B38's granularity resolved as AR #58*
+- [x] 1.5 Verify **red** — *done 2026-07-20. Codegen: 2 files fail to resolve `./branch-tail.js`
+      and `./relax-branches.js`, 73 passed / 634 tests green. Harness: ST-B36 fails with
+      `Target out of range (-219; 91 too far)`, ST-B37 with `(219; 92 too far)` + `(412; 285 too
+      far)` — the real defect, not a scaffolding error*
+- [x] 1.6 Implement `invertBranch` + the polarity table in `codegen/src/instr/branch-tail.ts`
       (relaxation needs it first; the tail decision joins it in Phase 3 — one table, one place)
-- [ ] 1.7 Implement `codegen/src/instr/relax-branches.ts` — offset walk, out-of-range rewrite,
+      — *done 2026-07-20*
+- [x] 1.7 Implement `codegen/src/instr/relax-branches.ts` — offset walk, out-of-range rewrite,
       monotone fixpoint, minted-label uniqueness against the stream + preamble label set, internal
       compiler error on an unresolvable target, and an internal error if a directive is ever
       encountered inside a code-segment stream (the offset walk's standing assumption). The CPU
       parameter is `_cpu` — unused today and marked with the repo's canonical `_` prefix
-- [ ] 1.8 Wire into `compiler/src/api/emit.ts` after `optimizeInstr`; the relaxed program becomes
+      — *done 2026-07-20. One guard added beyond the spec: an out-of-reach branch with no
+      inverse is reported and left alone, and the fixpoint breaks on no-progress rather than
+      spinning on a candidate it cannot rewrite*
+- [x] 1.8 Wire into `compiler/src/api/emit.ts` after `optimizeInstr`; the relaxed program becomes
       **both** the serialized text and `AssembledAsm.program`, preserving `preamble`,
-      `allocationPlan` and `preambleOptions`
-- [ ] 1.9 Verify **green**, and assert every golden is byte-identical to its committed form
-- [ ] 1.10 Local VICE execution case for both range fixtures
-- [ ] 1.11 Full verify + `npx prettier --check` on touched files
+      `allocationPlan` and `preambleOptions` — *done 2026-07-20*
+- [x] 1.9 Verify **green**, and assert every golden is byte-identical to its committed form
+      — *done 2026-07-20. All 16 golden suites / 31 tests pass and `git status --porcelain`
+      shows **zero** drift under `*.asm.golden` and `test/golden/` — the corpus-wide proof that
+      relaxation is the identity on in-range code*
+- [x] 1.10 Local VICE execution case for both range fixtures — *done 2026-07-20. Both probes
+      gained a `$C0xx` settle sentinel (and the switch an arm tag) so the run has a deterministic
+      stopping point; the `do…while` counter reads exactly 3 and the switch tag names case 2.
+      Both green on VICE 3.10 (AR #59)*
+- [x] 1.11 Full verify + `npx prettier --check` on touched files — *done 2026-07-20. Verify
+      exit 0: 2452 tests across 10 packages plus the root boundary tier (33/8). `spec/` clean.
+      All eight touched files Prettier-clean*
+
+**Post-phase review.** Independent reviewer on a different model family, over the phase diff, on
+the always-on lenses plus `api-surface`. No critical or major findings. Two minor, both applied:
+the termination comment miscounted the rewrite's growth (one entry becomes three — *two* net
+entries, three bytes), and ST-B38 sat behind an ACME gate although it only reads emitted text, so
+the load-bearing negative would silently skip on a machine without ACME; it now has its own
+ungated suite. The reviewer independently confirmed the fixpoint terminates (a rewritten branch
+sits at +3 forever and can never re-enter the candidate set), the boundary arithmetic at ±127/−128,
+the same-reference contract on a mixed program, and that `programByteSize` has no live caller that
+could bypass relaxation.
 
 ---
 

@@ -116,9 +116,9 @@ Phase 5 suite imports it — not the other way round (AR #41).
 
 | ID | Input | Expected |
 |---|---|---|
-| **ST-B36** | a `do…while` whose body exceeds the relative reach | assembles under ACME (CI); runs correctly on local VICE |
-| **ST-B37** | a `switch` whose dispatch-to-body distance exceeds it | same |
-| **ST-B38** | both fixtures' output | in-range branches untouched — no blanket branch-over-jump |
+| **ST-B36** | a `do…while` whose body exceeds the relative reach | assembles under ACME (CI); on local VICE the surviving loop counter reads exactly 3 — the observable a mis-encoded back edge would change |
+| **ST-B37** | a `switch` whose dispatch-to-body distance exceeds it | assembles under ACME (CI); on local VICE the arm tag names the arm the dispatch reached, and that arm's body writes are present |
+| **ST-B38** | both fixtures' output | in-range branches untouched — no blanket branch-over-jump. Asserted **per program on the `switch` probe and corpus-wide across both** (AR #58): the `do…while` probe's only conditional branch *is* the out-of-range back edge, so a per-program inequality there would contradict ST-B36. The corpus-wide form is what rules out a wrap-everything implementation. Also asserts the **positive** (AR #59): each probe still contains at least one branch that cannot be encoded short, so trimming a fixture body back inside the reach fails here instead of quietly making ST-B36/ST-B37 vacuous |
 
 ### Permanent corpus invariants (AC-13)
 
