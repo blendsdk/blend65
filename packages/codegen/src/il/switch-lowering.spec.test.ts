@@ -142,3 +142,46 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     ).toBe(true);
   });
 });
+
+/** Every `brcmp` terminator across the function, in block order. */
+function brcmps(fn: ILFunction): Array<Extract<BasicBlock["terminator"], { kind: "brcmp" }>> {
+  return fn.blocks
+    .map((b) => b.terminator)
+    .filter((t): t is Extract<BasicBlock["terminator"], { kind: "brcmp" }> => t.kind === "brcmp");
+}
+
+// Pins the fused dispatch contract: a switch dispatch test is condition position, so
+// each test block re-lowers the discriminant and terminates in a `brcmp eq` against its
+// case value — no 0/1 compare result is materialised, no `eq` instruction remains, and
+// no `brcond` drives the dispatch chain.
+describe("Specification: fused switch dispatch (compare-and-branch)", () => {
+  it("should end each dispatch test block in a fused brcmp eq (ST-8b)", () => {
+    const { fn, hasErrors } = lowerMain(
+      "module Main;\nfunction main(): void {\n" +
+        "  let d: byte = 3;\n" +
+        "  switch (d) { case 3: d = 10; case 5: d = 20; default: d = 0; }\n" +
+        "}\n",
+    );
+    expect(hasErrors).toBe(false);
+    expect(fn).toBeDefined();
+    const bc = brcmps(fn!);
+    expect(bc).toHaveLength(2); // one fused test per case value
+    expect(bc[0].op).toBe("eq");
+    expect(bc[1].op).toBe("eq");
+    // each test compares against its case immediate.
+    expect(isImmediate(bc[0].right) && bc[0].right.value === 3).toBe(true);
+    expect(isImmediate(bc[1].right) && bc[1].right.value === 5).toBe(true);
+    // the discriminant is still lowered fresh inside every test block.
+    for (const b of fn!.blocks.filter((x) => x.terminator.kind === "brcmp")) {
+      expect(b.instructions.length).toBeGreaterThanOrEqual(1);
+    }
+    // true edges hit the case bodies; the first false edge chains to the next test.
+    expect(bc[0].trueTarget).toBe(blockWithConst(fn!, 10)!.label);
+    expect(bc[1].trueTarget).toBe(blockWithConst(fn!, 20)!.label);
+    const chain = fn!.blocks.find((b) => b.label === bc[0].falseTarget);
+    expect(chain?.terminator.kind).toBe("brcmp");
+    // the 0/1 idiom is gone: no eq instruction, no brcond anywhere in the dispatch.
+    expect(fn!.blocks.some((b) => b.instructions.some((i) => i.op === "eq"))).toBe(false);
+    expect(brconds(fn!)).toHaveLength(0);
+  });
+});

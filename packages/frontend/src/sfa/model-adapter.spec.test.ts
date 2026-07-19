@@ -19,11 +19,18 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createEmptyModel, createScope, primitive } from "@blend65/core";
+import {
+  createDiagnosticBag,
+  createEmptyModel,
+  createScope,
+  DEFAULT_PROFILE,
+  primitive,
+} from "@blend65/core";
 import { ERROR_TYPE } from "@blend65/core";
 import type {
   AstNode,
   CallGraph,
+  DiagnosticBag,
   FunctionDeclNode,
   LetDeclNode,
   ModuleDeclNode,
@@ -33,6 +40,7 @@ import type {
   SourceSpan,
   Symbol,
 } from "@blend65/core";
+import { analyze, lex, parse } from "../index.js";
 import { modelToFunctionInfo, modelToModuleVars } from "./model-adapter.js";
 
 /** A zero-width span for the synthetic decl nodes in these fixtures. */
@@ -231,5 +239,87 @@ describe("Specification: modelToModuleVars (RD-18 Slice 3b, FR-4/AR-9)", () => {
   // The empty passthrough model yields [] (no module scopes).
   it("should return [] for the empty passthrough model (ST-11d)", () => {
     expect(modelToModuleVars(createEmptyModel())).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Position-dependent synthetic short-circuit slots.
+//
+// Short-circuit `&&`/`||` and the conditional `?:` normally lower to
+// multi-block diamonds whose result crosses a basic-block boundary, so each
+// such site claims a planner-owned synthetic frame slot, named `0sc0`,
+// `0sc1`, ... in preorder and surfaced in the projected locals after the user
+// locals. The one exception: `&&`/`||` in CONDITION position — the condition
+// child of `if`/`while`/`do-while`, or an operand of a condition-position
+// `!`/`&&`/`||` — claim NO slot, because their short-circuit becomes CFG
+// edges instead of a value that has to cross blocks. Every other child edge
+// is value position (including `?:` arms, call arguments, and comparison
+// operands, even inside a condition), and `?:` and address-of claim in every
+// position, unchanged.
+//
+// These fixtures need real `if` statements with real expression types, so
+// they go through the real pipeline (lex -> parse -> analyze) instead of the
+// hand-built models used above.
+// ---------------------------------------------------------------------------
+
+/** Lexes + parses + analyzes `source`; expects an ERROR-free model (warnings ok). */
+function analyzeClean(source: string): SemanticModel {
+  const bag: DiagnosticBag = createDiagnosticBag();
+  const { tokens } = lex(1, source, bag);
+  const { ast } = parse({ tokens, source, sourceId: 1, bag });
+  const model = analyze({ programs: [ast], bag, profile: DEFAULT_PROFILE });
+  expect(bag.getErrors()).toEqual([]);
+  return model;
+}
+
+/** The synthetic short-circuit slot names in `Main.main`'s projected locals, in order. */
+function mainSyntheticSlots(model: SemanticModel): readonly string[] {
+  const main = modelToFunctionInfo(model).find((fn) => fn.name === "Main.main");
+  expect(main).toBeDefined();
+  return (main?.locals ?? []).filter((l) => l.name.startsWith("0sc")).map((l) => l.name);
+}
+
+describe("Specification: condition-position short-circuit slot claims", () => {
+  // An `&&` used as a call ARGUMENT is value position even when the call
+  // itself is an if-condition: its result must materialize as a value, so the
+  // site claims a synthetic slot. GREEN-GUARD — pins the half of the rule
+  // that must survive the condition-position change.
+  it("should claim a slot for an && inside a call argument of an if condition (ST-14)", () => {
+    const model = analyzeClean(
+      [
+        "module Main;",
+        "function check(x: boolean): boolean { return x; }",
+        "function main(): void {",
+        "  let a: boolean = true;",
+        "  let b: boolean = false;",
+        "  if (check(a && b)) { poke($D020, 1); }",
+        "}",
+      ].join("\n"),
+    );
+    // Exactly one synthetic slot: the argument's `&&`. Asserting the full
+    // list (not just membership) rejects any extra `0sc*` entry.
+    expect(mainSyntheticSlots(model)).toEqual(["0sc0"]);
+  });
+
+  // An `&&` that IS the if condition claims nothing — its short-circuit is
+  // control flow, not a value. Its `?:` operand is not `!`/`&&`/`||`, so it
+  // is value position and still claims. That leaves exactly one synthetic
+  // slot, named 0sc0 because it is the only claim in preorder.
+  it("should claim no slot for a condition-position && while its ?: operand still claims (ST-15)", () => {
+    const model = analyzeClean(
+      [
+        "module Main;",
+        "function main(): void {",
+        "  let p: boolean = true;",
+        "  let q: boolean = true;",
+        "  let r: boolean = false;",
+        "  let s: boolean = true;",
+        "  if (p && (q ? r : s)) { poke($D020, 1); }",
+        "}",
+      ].join("\n"),
+    );
+    // Exactly one synthetic slot — the conditional's. A second entry would
+    // mean the condition-position `&&` still claimed one.
+    expect(mainSyntheticSlots(model)).toEqual(["0sc0"]);
   });
 });

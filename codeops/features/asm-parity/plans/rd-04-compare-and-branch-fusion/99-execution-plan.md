@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 19:12
-> **Progress**: 26/43 tasks (60%)
+> **Last Updated**: 2026-07-19 20:14
+> **Progress**: 29/43 tasks (67%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -272,14 +272,33 @@ and checked that each golden-suite landmark survives the fused shape phase 4 wil
 
 ## Phase 4: The flip — condition lowering + SFA + corpus supersession (atomic)
 
+> **Phase ref**: a0065443c030f42baeb7ab99879fe854e18b9249
+
 ### Step 4.1: Specification tests
 
 **Reference**: 07 ST-8a–g, ST-14, ST-15 · 03-03
 **Objective**: The condition-position contract pinned on both packages before the flip.
 
-- [ ] 4.1.1 Write lowering spec cases ST-8a–g + ST-14 — `packages/codegen/src/il/control-flow-lowering.spec.test.ts`, `packages/codegen/src/il/switch-lowering.spec.test.ts`
-- [ ] 4.1.2 Write SFA adapter spec cases ST-14/ST-15 (position-dependent counts, structural definition) — `packages/frontend/src/sfa/model-adapter.spec.test.ts`
-- [ ] 4.1.3 Red phase: verify the new cases fail against today's materializing lowering
+- [x] 4.1.1 Write lowering spec cases ST-8a–g + ST-14 — `packages/codegen/src/il/control-flow-lowering.spec.test.ts`, `packages/codegen/src/il/switch-lowering.spec.test.ts`
+- [x] 4.1.2 Write SFA adapter spec cases ST-14/ST-15 (position-dependent counts, structural definition) — `packages/frontend/src/sfa/model-adapter.spec.test.ts`
+- [x] 4.1.3 Red phase: verify the new cases fail against today's materializing lowering
+
+**Step 4.1 notes** (authored implementation-blind by two spec-test authors, one per package;
+both appended only — no pre-existing test edited, since the superseded oracles are 4.3.1's job):
+
+- 12 cases in `control-flow-lowering.spec.test.ts` + 1 in `switch-lowering.spec.test.ts`
+  (ST-8a, ST-8b × 4 statement kinds, ST-8c, ST-8d, ST-8e, ST-8f × 2, ST-8g, ST-14) and 2 in
+  `model-adapter.spec.test.ts` (ST-14, ST-15).
+- **Red**: 10 codegen + 1 frontend (ST-15: today's adapter claims `0sc0` for the
+  condition-position `&&`, pushing the `?:` to `0sc1`). All 618 pre-existing codegen and 890
+  pre-existing frontend tests still pass.
+- **Green by design, not weakened**: ST-8g and codegen ST-14 pin the boundary of the change —
+  value position must keep today's compare-plus-store and its slot — so they pass now and turn
+  red only if fusion leaks out of condition position. Frontend ST-14 is the same guard on the
+  adapter side. Both assert the FULL synthetic-slot list, so an extra or missing slot fails.
+- Deviation: the frontend author placed its new imports mid-file next to the appended block;
+  moved to the file's top import group (imports-at-top standard) and re-wrapped to the
+  configured 100-column width.
 
 ### Step 4.2: Implementation (lowering + adapter, in step)
 
