@@ -29,6 +29,7 @@ import { assembleTwin } from "./testing/twin-assemble.js";
 import { assertObservables, type ProgramObservables } from "./testing/observables.js";
 import { BALLOON_OBSERVABLES } from "./testing/balloon.js";
 import { GATE_OBSERVABLES } from "./testing/gate.js";
+import { GUARDS_OBSERVABLES } from "./testing/guards.js";
 import { SLICE3A_OBSERVABLES } from "./testing/slice3a.js";
 import { SLICE3B_OBSERVABLES } from "./testing/slice3b.js";
 import { SLICE4A_OBSERVABLES } from "./testing/slice4a.js";
@@ -81,6 +82,7 @@ const PAIR_TABLES: Readonly<Record<string, PairTable>> = {
   slice7b: { observables: SLICE7B_OBSERVABLES },
   slice8: { observables: SLICE8_OBSERVABLES },
   slice8b: { observables: SLICE8B_OBSERVABLES },
+  guards: { observables: GUARDS_OBSERVABLES, twinLoopHead: "update" },
   rasterpoll: { observables: RASTERPOLL_OBSERVABLES, twinLoopHead: "update" },
   balloon: { observables: BALLOON_OBSERVABLES, twinLoopHead: "update" },
 };

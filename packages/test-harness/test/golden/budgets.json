@@ -23,6 +23,18 @@
         }
       ]
     },
+    "guards": {
+      "bytes": 347,
+      "windows": [
+        {
+          "name": "compoundGuard",
+          "fromLabel": "Main_main_L7",
+          "toLabel": "Main_main_L10",
+          "kind": "perIteration",
+          "staticCyclesPerIteration": 43
+        }
+      ]
+    },
     "rasterpoll": {
       "bytes": 88,
       "windows": [

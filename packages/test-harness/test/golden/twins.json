@@ -328,6 +328,53 @@
         ]
       }
     },
+    "guards": {
+      "source": "examples/guards",
+      "twin": "packages/test-harness/test/golden/guards.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 50,
+            "note": "every guard materializes 0/1 and re-tests it (BNE 10 vs 2, CMP 6 vs 2, BMI/BPL polarity round-trip)"
+          },
+          {
+            "disposition": "structural",
+            "issue": 51,
+            "note": "JMP 29 vs 1 - jump threading / fall-through elision"
+          },
+          {
+            "disposition": "structural",
+            "issue": 53,
+            "note": "the probe walk and its hit count live in frame memory; the hand loop keeps them in X and Y (LDX/LDY/INY/CPX/TAX/TXA 0 generated)"
+          },
+          {
+            "disposition": "peephole",
+            "issue": 52,
+            "note": "frame-counter bump is load-add-store where the hand version uses INC"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "unreachable epilogue: main never returns, yet an RTS is still emitted past the frame loop"
+          }
+        ],
+        "addressing modes": [
+          {
+            "disposition": "data/placement",
+            "issue": 49,
+            "note": "the signed compare reads its operand from the absolute frame (SBC Absolute) where the hand version keeps velocities in zero page"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 51,
+            "note": "code-size consequence of block layout"
+          }
+        ]
+      }
+    },
     "rasterpoll": {
       "source": "examples/rasterpoll",
       "twin": "packages/test-harness/test/golden/rasterpoll.twin.asm",

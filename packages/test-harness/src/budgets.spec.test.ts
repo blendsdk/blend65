@@ -30,6 +30,7 @@ import {
   type BudgetWindow,
 } from "./budget-loader.js";
 import { buildGate } from "./testing/gate.js";
+import { buildGuards } from "./testing/guards.js";
 import { buildSlice3a } from "./testing/slice3a.js";
 import { buildSlice3b } from "./testing/slice3b.js";
 import { buildSlice4a } from "./testing/slice4a.js";
@@ -68,6 +69,20 @@ const MEASURE_TIMEOUT = 60000;
  */
 const EXPECTED_POLL_ITERATION_MAX_CYCLES = 25;
 
+/**
+ * The hand-computed static max-sum of one guards compound-guard evaluation —
+ * the TEXTUAL sum of both clause blocks, from the lower-bound test to the
+ * join, transcribed from the committed `guards.asm.golden` + the documented
+ * NMOS timings (all branches stay in one page, max = taken):
+ *   lower clause: LDA probe (4) + CMP #$08 (2) + LDA #$01 (2) + BCS (3)
+ *     + LDA #$00 (2) + STA 0sc0 (4) + BNE L9 (3) + JMP L10 (3)      = 23
+ *   upper clause: LDA probe (4) + CMP #$28 (2) + LDA #$01 (2) + BCC (3)
+ *     + LDA #$00 (2) + STA 0sc0 (4) + JMP L10 (3)                   = 20
+ *   = 43, of which 16 (each clause's `LDA #$01` + `LDA #$00` + `STA`) do
+ * nothing but build a 0/1 that the branch at the join then reads back.
+ */
+const EXPECTED_COMPOUND_GUARD_MAX_CYCLES = 43;
+
 /** A built corpus program: the compiler build result + scratch cleanup. */
 interface BuiltProgram {
   readonly result: BuildResult;
@@ -88,6 +103,7 @@ const BUILDERS: Record<string, () => Promise<BuiltProgram>> = {
   slice7b: buildSlice7b,
   slice8: buildSlice8,
   slice8b: buildSlice8b,
+  guards: buildGuards,
   rasterpoll: buildRasterpoll,
   balloon: buildBalloon,
 };
@@ -252,6 +268,26 @@ describe.skipIf(!hasAcme())("Specification: budget tier — bytes + static windo
         expect(() =>
           checkCostWithinBudget("slice8b", "window 'copyLoop' static max cycles", max, max - 1),
         ).toThrowError(/slice8b.*copyLoop/s);
+      } finally {
+        built.cleanup();
+      }
+    },
+    LOCAL_TEST_TIMEOUT,
+  );
+
+  it(
+    "guards compoundGuard: per-iteration static cycles equal the hand-computed clause sum",
+    async () => {
+      const window = budgets.programs.guards.windows.find((w) => w.name === "compoundGuard")!;
+      const built = await buildGuards();
+      try {
+        const { max } = sliceCycleSum(
+          instructionsOf(built),
+          built.result.symbolMap!,
+          "guards",
+          window,
+        );
+        expect(max).toBe(EXPECTED_COMPOUND_GUARD_MAX_CYCLES);
       } finally {
         built.cleanup();
       }
