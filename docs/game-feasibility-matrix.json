@@ -1,13 +1,13 @@
 {
-  "_readme": "SOURCE OF TRUTH for the C64 game feasibility matrix. Edit this file, then run `node scripts/gen-capability-matrix.mjs` (or `yarn gen:matrix`) to regenerate docs/game-feasibility-matrix.html. Each game lists the capabilities it `needs` (ids from `capabilities`); a game with an empty `needs` is buildable Now. The Buildable verdict (Now/Soon/Blocked), the summary tallies, and the per-capability unlock counts are all DERIVED by the generator from `needs` + each capability `tier` — never stored here. Confidence keys: known|inferred|low. Diff: S|M|L|XL.",
+  "_readme": "SOURCE OF TRUTH for the C64 game feasibility matrix. Edit this file, then run `node scripts/gen-capability-matrix.mjs` (or `yarn gen:matrix`) to regenerate docs/game-feasibility-matrix.html. Each game lists the capabilities it `needs` (ids from `capabilities`); a game with an empty `needs` is buildable Now. The Buildable verdict (Now/Soon/Blocked), the summary tallies, and the per-capability unlock counts are all DERIVED by the generator from `needs` + each capability `tier` — never stored here. Confidence keys: known|inferred|low. Diff: S|M|L|XL. `software` is an optional second list of non-game entries — same row shape (plus an optional `note`), same rubric, numbered from 1 independently, and deliberately EXCLUDED from the game tallies and unlock counts.",
   "meta": {
     "title": "Blend65 — C64 Game Feasibility Matrix",
-    "lastUpdated": "2026-07-17",
+    "lastUpdated": "2026-07-19",
     "refreshWith": "/update_capability"
   },
   "intro": {
     "purpose": [
-      "A capability-grounded assessment of whether 100 well-known Commodore 64 games could be built **faithfully** with the Blend65 toolchain. Every game is judged by the **capabilities it needs** — compiler, an optimizer for speed, sound, input, graphics loading, math — and which of those exist today. A game is buildable **Now** when every capability it needs already ships, **Soon** when it only waits on a *planned* capability, and **Blocked** when it needs one that *isn’t planned*.",
+      "A capability-grounded assessment of whether 100 well-known Commodore 64 games could be built **faithfully** with the Blend65 toolchain. Every game is judged by the **capabilities it needs** — compiler, an optimizer for speed, sound, input, disk access, math — and which of those exist today. A game is buildable **Now** when every capability it needs already ships, **Soon** when it only waits on a *planned* capability, and **Blocked** when it needs one that *isn’t planned*.",
       "**No sugarcoating.** A game is only **Now** if it can be built as the original *played* — right engine, right controls, clean in-language audio, no missing essentials, and no dropping to hand-poked machine-code bytes. A reduced-scope demake is not \"Now\"."
     ]
   },
@@ -43,10 +43,16 @@
       "blurb": "Reading the joysticks and keyboard via the CIA ports with `peek`."
     },
     {
-      "id": "graphics-loading",
-      "name": "Graphics / data loading",
+      "id": "disk-io",
+      "name": "Disk file I/O",
       "tier": "unplanned",
-      "blurb": "Disk multi-load, streaming, and data sets larger than 64 KB. No loader / KERNAL story exists yet."
+      "blurb": "Reading and writing files through the KERNAL — open/read/write/close, sequential and relative records. The mundane half of disk access: what any application needs to save a document. No KERNAL-call story exists yet."
+    },
+    {
+      "id": "disk-streaming",
+      "name": "Disk streaming / multi-load",
+      "tier": "unplanned",
+      "blurb": "Multi-load, overlays, and data sets larger than 64 KB — levels, rooms and world maps pulled in as the program runs. The expensive half of disk access, and what the disk-era game catalogue is blocked on."
     },
     {
       "id": "math",
@@ -65,6 +71,12 @@
       "name": "Indirect calls / dispatch",
       "tier": "unplanned",
       "blurb": "Function pointers, jump tables, VM-style dispatch (SCUMM engines, calling a ripped `.sid` player). Deferred, unscheduled."
+    },
+    {
+      "id": "firmware",
+      "name": "Firmware / foreign-CPU code",
+      "tier": "unplanned",
+      "blurb": "Building something other than a plain RAM program: cartridge and KERNAL ROM images, and 6502 code assembled to run on the disk drive's own CPU. Needed by fastloaders, freezer cartridges, copiers and any ROM replacement."
     }
   ],
   "tiers": [
@@ -145,7 +157,7 @@
   "notes": [
     "**Original-soundtrack footnote.** In-language SID music and effects are clean (*Sound — music & SFX*, available now). Reproducing a *ripped* `.sid` tune byte-for-byte means calling its own machine-code player routine, which needs **Indirect calls** — so a byte-faithful ripped soundtrack carries an implicit indirect-calls dependency. It is not added to every row."
   ],
-  "summaryNote": "The **Blocked** titles all need a capability that isn’t planned — **graphics loading** (the disk RPGs, SCUMM adventures, Cinemaware, Epyx multi-event sports, the streamed Last Ninjas), **hand-tuned asm** (real-time 3D and the 50 fps showcases: Elite, Out Run, Mayhem in Monsterland), or **indirect calls** (SCUMM dispatch). No optimizer reaches them — they need a new capability, not faster code. See the unlock table at the bottom.",
+  "summaryNote": "The **Blocked** titles all need a capability that isn’t planned — **disk streaming** (the disk RPGs, SCUMM adventures, Cinemaware, Epyx multi-event sports, the streamed Last Ninjas), **hand-tuned asm** (real-time 3D and the 50 fps showcases: Elite, Out Run, Mayhem in Monsterland), or **indirect calls** (SCUMM dispatch). No optimizer reaches them — they need a new capability, not faster code. See the unlock table at the bottom.",
   "games": [
     {
       "n": 1,
@@ -651,7 +663,7 @@
       "category": "Adventure",
       "archetype": "iso flip-screen (multiload)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "known"
@@ -664,7 +676,7 @@
       "category": "Adventure",
       "archetype": "iso flip-screen (multiload)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "known"
@@ -955,7 +967,7 @@
       "category": "Sports",
       "archetype": "multi-event (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "L",
       "conf": "known"
@@ -968,7 +980,7 @@
       "category": "Sports",
       "archetype": "multi-event (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "L",
       "conf": "known"
@@ -982,7 +994,7 @@
       "archetype": "multi-event (disk)",
       "needs": [
         "math",
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "L",
       "conf": "known"
@@ -995,7 +1007,7 @@
       "category": "Sports",
       "archetype": "multi-event (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "L",
       "conf": "inferred"
@@ -1203,7 +1215,7 @@
       "category": "Adventure",
       "archetype": "SCUMM point-click (disk)",
       "needs": [
-        "graphics-loading",
+        "disk-streaming",
         "indirect-calls"
       ],
       "diff": "XL",
@@ -1217,7 +1229,7 @@
       "category": "Adventure",
       "archetype": "SCUMM point-click (disk)",
       "needs": [
-        "graphics-loading",
+        "disk-streaming",
         "indirect-calls"
       ],
       "diff": "XL",
@@ -1231,7 +1243,7 @@
       "category": "Adventure",
       "archetype": "bitmap + minigames (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "L",
       "conf": "known"
@@ -1244,7 +1256,7 @@
       "category": "RPG",
       "archetype": "tile RPG (disk world)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1257,7 +1269,7 @@
       "category": "RPG",
       "archetype": "tile RPG (disk world)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1270,7 +1282,7 @@
       "category": "RPG",
       "archetype": "dungeon RPG (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1283,7 +1295,7 @@
       "category": "RPG",
       "archetype": "tactical RPG (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "inferred"
@@ -1297,7 +1309,7 @@
       "archetype": "action-RPG scroll (disk)",
       "needs": [
         "optimizer",
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "inferred"
@@ -1310,7 +1322,7 @@
       "category": "Adventure",
       "archetype": "multi-mode sim (disk)",
       "needs": [
-        "graphics-loading"
+        "disk-streaming"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1384,7 +1396,7 @@
       "category": "Sim",
       "archetype": "city simulation",
       "needs": [
-        "graphics-loading"
+        "disk-io"
       ],
       "diff": "L",
       "conf": "inferred"
@@ -1397,7 +1409,7 @@
       "category": "Strategy",
       "archetype": "strategy + vector views",
       "needs": [
-        "graphics-loading"
+        "disk-io"
       ],
       "diff": "L",
       "conf": "inferred"
@@ -1414,6 +1426,613 @@
       "conf": "inferred"
     }
   ],
+  "softwareIntro": {
+    "title": "Non-game software",
+    "blurb": [
+      "The same capability model applied to 40 pieces of C64 software that aren’t games — operating systems, development tools, terminals, office software, art packages and firmware. Same rubric, same capability tiers, but these rows are **kept out of the 100-title tallies, the summary bars, and the unlock counts above**: those numbers are about the game list and stay that way.",
+      "**What this section is really for.** Read down the Needs column and one capability appears again and again — *Disk file I/O*. Not streaming, not overlays; just opening a file and writing it back. It is the difference between a word processor and a text editor you can’t save from, and it is why almost everything here is Blocked. The game list can’t show you that, because a game that fits in RAM simply loads once and never asks again.",
+      "Desktop environments and operating systems are the sharpest cases, because they lean on the two capabilities the game catalogue is most often blocked on — **loading things off disk** and **calling through a pointer** — for the same underlying reason: an operating system is a thing that runs code it didn’t know about when it was built."
+    ]
+  },
+  "software": [
+    {
+      "n": 1,
+      "title": "GEOS 1.3 / 2.0",
+      "year": 1986,
+      "publisher": "Berkeley Softworks",
+      "category": "OS / desktop",
+      "archetype": "vectored WIMP OS, disk-loaded apps, turbo loader",
+      "note": "The desktop the C64 actually had. Its kernal is reached through a jump table and an application *is* a set of function pointers — icon tables, menu trees and the event vectors the main loop dispatches through — so indirect dispatch is the programming model, not an implementation detail. Applications, fonts and desk accessories stream off disk through GEOS's own VLIR file system. Its turbo loader uploads 6502 code into the 1541's own CPU and then bit-bangs the serial lines on cycle-exact timing: **foreign-CPU code and hand-tuned asm, in one feature**.",
+      "needs": [
+        "disk-streaming",
+        "indirect-calls",
+        "asm",
+        "firmware",
+        "optimizer"
+      ],
+      "diff": "XL",
+      "conf": "known"
+    },
+    {
+      "n": 2,
+      "title": "Contiki 1.x (C64 port)",
+      "year": 2003,
+      "publisher": "Adam Dunkels",
+      "category": "OS / desktop",
+      "archetype": "event-driven multitasking GUI + TCP/IP stack",
+      "note": "A windowed multitasking desktop with a TCP/IP stack, web browser, telnet and VNC client — on a stock C64. Open source, so the needs here are read rather than guessed: every process is a struct holding a function pointer, applications load from disk as separate binaries, and the whole thing is a lesson in how far the machine goes when the software is good.",
+      "needs": [
+        "indirect-calls",
+        "disk-streaming",
+        "optimizer"
+      ],
+      "diff": "XL",
+      "conf": "known"
+    },
+    {
+      "n": 3,
+      "title": "C64 OS",
+      "year": 2022,
+      "publisher": "Greg Nacu",
+      "category": "OS / desktop",
+      "archetype": "event-driven OS, disk-based apps, REU-aware",
+      "note": "A modern, still-maintained C64 operating system — proof the category didn't die in 1986. Same shape as GEOS underneath: a disk-resident application model dispatched through pointers.",
+      "needs": [
+        "indirect-calls",
+        "disk-streaming",
+        "optimizer"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 4,
+      "title": "LUnix / LNG",
+      "year": 1993,
+      "publisher": "Daniel Dallmann",
+      "category": "OS / desktop",
+      "archetype": "preemptive multitasking kernel, virtual consoles",
+      "note": "Preemptive multitasking on a 6510. Its context switch saves and restores the stack pointer itself to give each task its own slice of the single 256-byte hardware stack — **a manoeuvre no high-level language can express**, and the sharpest example on this list of something that isn't a missing library but a missing level of access.",
+      "needs": [
+        "indirect-calls",
+        "asm",
+        "disk-io",
+        "optimizer"
+      ],
+      "diff": "XL",
+      "conf": "known"
+    },
+    {
+      "n": 5,
+      "title": "A GEM-style desktop, built fresh",
+      "category": "OS / desktop",
+      "archetype": "WIMP shell — overlapping windows, menus, pointer; built-in apps, one binary",
+      "note": "The floor of the question: no disk app-launching, no plugin ABI, a fixed widget set dispatched by a switch on widget type rather than through a pointer. That sidesteps every hard blocker, and what's left is redrawing a hires bitmap with window clipping and tracking a pointer inside the frame budget — a speed problem, not a language gap. **This is the only entry on this list that is merely Soon**, and it's worth knowing the shell itself was never the hard part.",
+      "needs": [
+        "optimizer"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 6,
+      "title": "GEM (Digital Research)",
+      "year": 1985,
+      "publisher": "Digital Research",
+      "category": "OS / desktop",
+      "archetype": "VDI + AES two-layer GUI, resource files, separate app binaries",
+      "note": "**GEM never shipped on the C64** — it was a 16-bit product (Atari ST, DOS, Apple), so this row scores what a faithful 6502 retarget would demand rather than a port that exists; the C64's own desktop was GEOS, above. The AES dispatches by function number into separately loaded application binaries, those binaries and their `.RSC` resources live on disk, and the VDI is a clipping raster library doing signed 16-bit coordinate maths with arcs, polygons and scaling.",
+      "needs": [
+        "disk-streaming",
+        "indirect-calls",
+        "asm",
+        "optimizer",
+        "math"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 7,
+      "title": "Turbo Macro Pro",
+      "year": 1994,
+      "publisher": "Style",
+      "category": "Dev tool",
+      "archetype": "full-screen macro assembler, RAM-resident source",
+      "note": "The demoscene's standard assembler, and the most encouraging row here: editor, macro expansion, symbol table and code generation all fit in RAM, so the *only* thing it wants that Blend65 can't give it is opening a source file. A 6502 assembler hosted on the C64 is one capability away.",
+      "needs": [
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "known"
+    },
+    {
+      "n": 8,
+      "title": "Power C",
+      "year": 1987,
+      "publisher": "Abacus",
+      "category": "Dev tool",
+      "archetype": "multi-pass C compiler with disk overlays",
+      "note": "A C compiler that runs on the machine it targets. Each pass overlays the last from disk and hands the next one an intermediate file — it needs both halves of the disk split at once, which is what a compiler on a 64 KB machine has always meant.",
+      "needs": [
+        "disk-streaming",
+        "disk-io",
+        "optimizer"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 9,
+      "title": "Kyan Pascal",
+      "year": 1986,
+      "publisher": "Kyan Software",
+      "category": "Dev tool",
+      "archetype": "P-code Pascal compiler + editor",
+      "note": "Compiles to P-code and interprets it, which means the hot loop is a dispatch table indexed by opcode — the textbook case for indirect calls, and slow for exactly that reason.",
+      "needs": [
+        "disk-streaming",
+        "disk-io",
+        "indirect-calls"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 10,
+      "title": "Simons' BASIC",
+      "year": 1983,
+      "publisher": "Commodore",
+      "category": "Dev tool",
+      "archetype": "16 KB cartridge BASIC extension, 114 new keywords",
+      "note": "Ships as a cartridge ROM and works by hooking the interpreter's own vectors, so it needs the toolchain to emit a ROM image rather than a program — a build-output question, not a language one.",
+      "needs": [
+        "firmware",
+        "indirect-calls"
+      ],
+      "diff": "M",
+      "conf": "known"
+    },
+    {
+      "n": 11,
+      "title": "COMAL 80",
+      "year": 1984,
+      "publisher": "Commodore",
+      "category": "Dev tool",
+      "archetype": "cartridge language + structured interpreter",
+      "needs": [
+        "firmware",
+        "indirect-calls",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 12,
+      "title": "Final Cartridge III",
+      "year": 1987,
+      "publisher": "Riska",
+      "category": "Dev tool",
+      "archetype": "freezer cartridge — monitor, fastload, windowed desktop",
+      "note": "A ROM image that has to take over a running machine, and shipped a windowed desktop of its own in 64 KB of cartridge space.",
+      "needs": [
+        "firmware",
+        "asm",
+        "disk-io",
+        "indirect-calls"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 13,
+      "title": "Action Replay VI",
+      "year": 1988,
+      "publisher": "Datel",
+      "category": "Dev tool",
+      "archetype": "freezer cartridge, memory snapshot, fastload",
+      "needs": [
+        "firmware",
+        "asm",
+        "disk-streaming"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 14,
+      "title": "CCGMS Terminal",
+      "year": 1986,
+      "publisher": "Craig Smith",
+      "category": "Comms",
+      "archetype": "software RS-232 terminal, bit-banged user port",
+      "note": "The C64 has no real UART, so the terminal *is* the serial port: the bit timing is generated in software against the raster and every cycle is spoken for. Nothing about that survives a compiler that reserves the right to schedule instructions differently.",
+      "needs": [
+        "asm",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "known"
+    },
+    {
+      "n": 15,
+      "title": "Novaterm 9.6",
+      "year": 1998,
+      "publisher": "Nick Rossi",
+      "category": "Comms",
+      "archetype": "SwiftLink terminal, Z-modem, scripting engine",
+      "needs": [
+        "asm",
+        "disk-streaming",
+        "indirect-calls"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 16,
+      "title": "Color 64 BBS",
+      "year": 1986,
+      "publisher": "Greg Pfountz",
+      "category": "Comms",
+      "archetype": "modular BBS host, disk-resident message base",
+      "needs": [
+        "disk-streaming",
+        "indirect-calls",
+        "asm"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 17,
+      "title": "IP65 TCP/IP stack",
+      "year": 2009,
+      "publisher": "Jonno Downes",
+      "category": "Comms",
+      "archetype": "6502 TCP/IP library, pluggable Ethernet drivers",
+      "note": "A library rather than an application, and notable for needing **no disk at all** — it is pure protocol code. What it does need is a driver table of function pointers, because the whole point is supporting several different Ethernet cartridges from one binary.",
+      "needs": [
+        "indirect-calls",
+        "asm"
+      ],
+      "diff": "L",
+      "conf": "known"
+    },
+    {
+      "n": 18,
+      "title": "SpeedScript 3.2",
+      "year": 1985,
+      "publisher": "COMPUTE! Publications",
+      "category": "Word processor",
+      "archetype": "5 KB machine-language editor, RAM-resident text",
+      "note": "A type-in magazine listing that turned into the most widely used word processor on the machine. Five kilobytes, everything in RAM, and the single thing it asks for is saving your document — the cleanest illustration on this page of how much of the application catalogue is one capability away.",
+      "needs": [
+        "disk-io"
+      ],
+      "diff": "S",
+      "conf": "known"
+    },
+    {
+      "n": 19,
+      "title": "PaperClip",
+      "year": 1983,
+      "publisher": "Batteries Included",
+      "category": "Word processor",
+      "archetype": "disk-based WP, external printer drivers",
+      "needs": [
+        "disk-io",
+        "indirect-calls"
+      ],
+      "diff": "M",
+      "conf": "inferred"
+    },
+    {
+      "n": 20,
+      "title": "Easy Script 64",
+      "year": 1983,
+      "publisher": "Commodore",
+      "category": "Word processor",
+      "archetype": "disk-based WP, 80-column virtual line",
+      "needs": [
+        "disk-io"
+      ],
+      "diff": "M",
+      "conf": "inferred"
+    },
+    {
+      "n": 21,
+      "title": "The Write Stuff",
+      "year": 1988,
+      "publisher": "Busy Bee Software",
+      "category": "Word processor",
+      "archetype": "disk-based WP with macro language",
+      "needs": [
+        "disk-io"
+      ],
+      "diff": "M",
+      "conf": "inferred"
+    },
+    {
+      "n": 22,
+      "title": "Fleet System 4",
+      "year": 1987,
+      "publisher": "Professional Software",
+      "category": "Word processor",
+      "archetype": "WP + 90,000-word disk-resident spell check",
+      "note": "The dictionary is the interesting part: 90,000 words cannot live in 64 KB alongside the editor, so the spell check streams it off disk. A word processor that needs the *expensive* half of disk access.",
+      "needs": [
+        "disk-streaming",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 23,
+      "title": "Vizawrite 64",
+      "year": 1984,
+      "publisher": "Viza Software",
+      "category": "Word processor",
+      "archetype": "cartridge WP, WYSIWYG-leaning display",
+      "needs": [
+        "firmware",
+        "disk-io"
+      ],
+      "diff": "M",
+      "conf": "inferred"
+    },
+    {
+      "n": 24,
+      "title": "Multiplan",
+      "year": 1983,
+      "publisher": "Microsoft",
+      "category": "Spreadsheet",
+      "archetype": "cell grid with formula recalculation",
+      "note": "The row that genuinely needs fractional maths. A spreadsheet is a recalculation engine over numbers users expect to behave like money and measurements, which is a different problem from a game's fixed-point velocity.",
+      "needs": [
+        "math",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 25,
+      "title": "Calc Result Advanced",
+      "year": 1983,
+      "publisher": "Handic",
+      "category": "Spreadsheet",
+      "archetype": "cartridge sheet, 32 linked pages",
+      "needs": [
+        "math",
+        "firmware",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 26,
+      "title": "Vizastar 64",
+      "year": 1985,
+      "publisher": "Viza Software",
+      "category": "Spreadsheet",
+      "archetype": "integrated sheet + database + graphics, cartridge",
+      "needs": [
+        "math",
+        "firmware",
+        "disk-streaming"
+      ],
+      "diff": "XL",
+      "conf": "inferred"
+    },
+    {
+      "n": 27,
+      "title": "SuperBase 64",
+      "year": 1984,
+      "publisher": "Precision Software",
+      "category": "Database",
+      "archetype": "relative-file database, programmable",
+      "note": "A database is disk access wearing a user interface: the records never all fit in RAM, which is the definition of the streaming half.",
+      "needs": [
+        "disk-streaming",
+        "disk-io",
+        "indirect-calls"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 28,
+      "title": "Koala Painter",
+      "year": 1983,
+      "publisher": "Koala Technologies",
+      "category": "Art",
+      "archetype": "multicolor bitmap paint, tablet input",
+      "needs": [
+        "optimizer",
+        "disk-io"
+      ],
+      "diff": "M",
+      "conf": "known"
+    },
+    {
+      "n": 29,
+      "title": "Doodle!",
+      "year": 1984,
+      "publisher": "City Software",
+      "category": "Art",
+      "archetype": "hires bitmap paint",
+      "needs": [
+        "optimizer",
+        "disk-io"
+      ],
+      "diff": "M",
+      "conf": "inferred"
+    },
+    {
+      "n": 30,
+      "title": "Advanced Art Studio",
+      "year": 1986,
+      "publisher": "OCP",
+      "category": "Art",
+      "archetype": "paint package with windows and pull-down menus",
+      "needs": [
+        "optimizer",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 31,
+      "title": "The Print Shop",
+      "year": 1984,
+      "publisher": "Brøderbund",
+      "category": "DTP / print",
+      "archetype": "card and banner composer, disk graphic libraries",
+      "note": "Graphics and fonts live in disk libraries you swap between, and every supported printer is a driver selected at runtime — two different reasons to need a pointer you can call.",
+      "needs": [
+        "disk-streaming",
+        "indirect-calls"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 32,
+      "title": "The Newsroom",
+      "year": 1984,
+      "publisher": "Springboard",
+      "category": "DTP / print",
+      "archetype": "page layout with disk clip-art",
+      "needs": [
+        "disk-streaming",
+        "optimizer"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 33,
+      "title": "Music Construction Set",
+      "year": 1984,
+      "publisher": "Electronic Arts",
+      "category": "Music",
+      "archetype": "notation editor + interrupt-driven player",
+      "note": "Worth noting what is *not* in this row: the sound itself. In-language SID music already ships, so a music editor is blocked on saving your song, not on making noise.",
+      "needs": [
+        "disk-io",
+        "optimizer"
+      ],
+      "diff": "M",
+      "conf": "inferred"
+    },
+    {
+      "n": 34,
+      "title": "DMC (Demo Music Creator)",
+      "year": 1993,
+      "publisher": "Graffity",
+      "category": "Music",
+      "archetype": "pattern tracker + IRQ playback routine",
+      "needs": [
+        "disk-io",
+        "optimizer"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 35,
+      "title": "Sidplayer",
+      "year": 1985,
+      "publisher": "COMPUTE! Publications",
+      "category": "Music",
+      "archetype": "plays .mus score files from disk",
+      "needs": [
+        "disk-io"
+      ],
+      "diff": "S",
+      "conf": "inferred"
+    },
+    {
+      "n": 36,
+      "title": "JiffyDOS",
+      "year": 1989,
+      "publisher": "CMD",
+      "category": "Firmware",
+      "archetype": "KERNAL + drive DOS ROM replacement, fast serial protocol",
+      "note": "Replaces the ROM at both ends of the serial cable and re-times the protocol between them. You are not building a program here, you are building two ROM images that have to agree with each other cycle by cycle — the clearest case for a firmware capability the matrix previously had no way to express.",
+      "needs": [
+        "firmware",
+        "asm"
+      ],
+      "diff": "L",
+      "conf": "known"
+    },
+    {
+      "n": 37,
+      "title": "Epyx Fast Load",
+      "year": 1984,
+      "publisher": "Epyx",
+      "category": "Firmware",
+      "archetype": "cartridge fastloader",
+      "needs": [
+        "firmware",
+        "asm"
+      ],
+      "diff": "M",
+      "conf": "known"
+    },
+    {
+      "n": 38,
+      "title": "Fast Hack'em",
+      "year": 1985,
+      "publisher": "Basement Boys Software",
+      "category": "Disk utility",
+      "archetype": "nibble copier, GCR routines run on the drive CPU",
+      "note": "Copies disks by shipping 6502 code *into the drive* and reading raw GCR bit patterns the DOS refuses to interpret. The target CPU isn't even the one the compiler is aiming at.",
+      "needs": [
+        "firmware",
+        "asm",
+        "disk-streaming"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 39,
+      "title": "Sky Travel",
+      "year": 1984,
+      "publisher": "Commodore",
+      "category": "Education",
+      "archetype": "planetarium — star catalogue + spherical trigonometry",
+      "note": "Spherical trigonometry over a star catalogue that doesn't fit in memory — the two planned-and-unplanned gaps meeting in one unusually ambitious piece of consumer software.",
+      "needs": [
+        "math",
+        "disk-streaming"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    },
+    {
+      "n": 40,
+      "title": "Cadpak 64",
+      "year": 1984,
+      "publisher": "Abacus",
+      "category": "CAD",
+      "archetype": "2D drafting with scaled and dimensioned output",
+      "needs": [
+        "math",
+        "optimizer",
+        "disk-io"
+      ],
+      "diff": "L",
+      "conf": "inferred"
+    }
+  ],
   "inversion": {
     "intro": "What shipping each capability unlocks — the number of the 100 titles that list it in their **Needs**. Read this to decide what to build next.",
     "rows": [
@@ -1422,8 +2041,12 @@
         "impact": "**The single biggest unlock.** Moves nearly every perf-bound scroller, shmup and brawler from Blocked/Soon toward Now. Already planned."
       },
       {
-        "id": "graphics-loading",
-        "impact": "**The biggest hard-gap unlock.** Frees the entire disk catalogue — the RPGs (Ultima, Bard’s Tale, Pool of Radiance), SCUMM adventures, Cinemaware, Epyx multi-event sports, and the streamed Last Ninjas. No story exists today."
+        "id": "disk-streaming",
+        "impact": "**The biggest hard-gap unlock in the game list.** Frees the entire disk catalogue — the RPGs (Ultima, Bard’s Tale, Pool of Radiance), SCUMM adventures, Cinemaware, Epyx multi-event sports, and the streamed Last Ninjas. No story exists today."
+      },
+      {
+        "id": "disk-io",
+        "impact": "**Looks trivial on the game numbers and isn’t.** Only two games want it — but it is the single missing piece for most of the non-game software below, from a 5 KB word processor to a self-hosted assembler. Opening and saving a file is the cheapest large unlock on this page, and the game tallies hide that completely."
       },
       {
         "id": "asm",
@@ -1440,15 +2063,19 @@
       {
         "id": "indirect-calls",
         "impact": "True VM / dispatch-table engines (SCUMM). Also the clean way to call a ripped `.sid` player and any jump-table dispatch — a broad quality-of-life unlock beyond the raw count."
+      },
+      {
+        "id": "firmware",
+        "impact": "Cartridge and KERNAL ROM images, plus 6502 code targeted at the drive’s own CPU. Narrow, and no game needs it — but it is the difference between building programs and building the fastloaders, freezer cartridges and DOS replacements the platform actually ran on."
       }
     ],
-    "bottomLine": "**Sequencing:** the **optimizer** first (planned; unlocks the most and the flashiest arcade action), then a **graphics-loading / disk** story (frees the entire \"epic\" catalogue the optimizer can never touch), then **hand-tuned asm** + a **fixed-point math** library for the 3D / showcase tier."
+    "bottomLine": "**Sequencing:** the **optimizer** first (planned; unlocks the most and the flashiest arcade action), then **disk file I/O** — cheap, and it moves almost the whole application catalogue at once — then **disk streaming** (frees the \"epic\" game catalogue the optimizer can never touch), and finally **hand-tuned asm** plus a **fixed-point math** library for the 3D / showcase tier. Splitting disk access into its two halves is what makes that order visible: the game list alone would have ranked all disk work as one expensive lump."
   },
   "provenance": [
     "**The list is curated, not a sourced ranking.** These are 100 well-known, category-spanning C64 titles — not \"the top 100\" by any measured metric (sales, Zzap!64 score, Lemon64 votes). Swap freely with `/update_capability`.",
     "**Verdicts anchor on *engine archetype*, the real feasibility driver**, then adjust for a title’s specifics. Where a title’s internals are inferred rather than known, the **Conf** column says so (⚠️/🔴) — treat those rows as archetype estimates, not reverse-engineered fact.",
     "**Faithfulness bar is strict**: \"Now\" means the original *as played*. A reduced-scope demake that captures the feel but drops the smooth scroll, the multiplexed sprite count, the disk-streamed content, or the exact soundtrack is not \"Now\" — even when it would be a perfectly good game.",
-    "**Memory pressure is folded into difficulty, not a capability.** A title that strains 64 KB but fits with effort is not \"blocked\"; one whose data genuinely exceeds RAM needs *graphics loading* (disk), and is marked so."
+    "**Memory pressure is folded into difficulty, not a capability.** A title that strains 64 KB but fits with effort is not \"blocked\"; one whose data genuinely exceeds RAM needs *disk streaming*, and is marked so."
   ],
   "footer": "Maintained via `/update_capability`. When a capability ships (the optimizer lands, a disk / loader story arrives, fixed-point math or asm-linking ships), re-run it to move every game waiting on that capability and refresh the counts."
 }

@@ -24,18 +24,47 @@ const SRC = join(HERE, '..', 'docs', 'game-feasibility-matrix.json');
 const OUT = join(HERE, '..', 'docs', 'game-feasibility-matrix.html');
 const CHECK_ONLY = process.argv.includes('--check') || process.argv.includes('--dry-run');
 
-/** A game's verdict is a pure function of its needs and each capability's tier. */
-function verdictOf(game, capById) {
-  if (game.needs.length === 0) return 'now';
-  return game.needs.some((c) => capById[c].tier === 'unplanned') ? 'blocked' : 'soon';
+/** A row's verdict is a pure function of its needs and each capability's tier. */
+function verdictOf(row, capById) {
+  if (row.needs.length === 0) return 'now';
+  return row.needs.some((c) => capById[c].tier === 'unplanned') ? 'blocked' : 'soon';
+}
+
+/**
+ * Validates one array of scored rows — `games` and `software` share a shape, so they
+ * share these checks. Row numbers are 1-indexed and contiguous *within* their own array.
+ */
+function validateRows(rows, label, sets, errors) {
+  const seenTitles = new Set();
+  rows.forEach((r, i) => {
+    const at = `${label}[${i}] (#${r.n ?? '?'} ${r.title ?? '?'})`;
+    if (typeof r.n !== 'number') errors.push(`${at}: n must be a number`);
+    if (!r.title) errors.push(`${at}: title is required`);
+    if (!r.category) errors.push(`${at}: category is required`);
+    if (!r.archetype) errors.push(`${at}: archetype is required`);
+    if (!sets.conf.has(r.conf)) errors.push(`${at}: conf "${r.conf}" not in ${[...sets.conf].join('|')}`);
+    if (!sets.diff.has(r.diff)) errors.push(`${at}: diff "${r.diff}" not in ${[...sets.diff].join('|')}`);
+    if (!Array.isArray(r.needs)) {
+      errors.push(`${at}: needs must be an array`);
+    } else {
+      for (const c of r.needs) {
+        if (!sets.cap.has(c)) errors.push(`${at}: needs "${c}" is not a known capability id`);
+      }
+    }
+    if (seenTitles.has(r.title)) errors.push(`${at}: duplicate title`);
+    seenTitles.add(r.title);
+    if (r.n !== i + 1) errors.push(`${at}: n should be ${i + 1} (rows are 1-indexed and contiguous)`);
+  });
 }
 
 function validate(data) {
   const errors = [];
-  const capIds = new Set(data.capabilities.map((c) => c.id));
   const tierIds = new Set(data.tiers.map((t) => t.id));
-  const confKeys = new Set(data.scales.confidence.map((c) => c.key));
-  const diffSet = new Set(data.scales.diff);
+  const sets = {
+    cap: new Set(data.capabilities.map((c) => c.id)),
+    conf: new Set(data.scales.confidence.map((c) => c.key)),
+    diff: new Set(data.scales.diff),
+  };
 
   for (const c of data.capabilities) {
     if (!tierIds.has(c.tier)) errors.push(`capability "${c.id}": tier "${c.tier}" not in ${[...tierIds].join('|')}`);
@@ -44,27 +73,13 @@ function validate(data) {
     errors.push('games: must be a non-empty array');
     return errors;
   }
+  validateRows(data.games, 'games', sets, errors);
 
-  const seenTitles = new Set();
-  data.games.forEach((g, i) => {
-    const at = `games[${i}] (#${g.n ?? '?'} ${g.title ?? '?'})`;
-    if (typeof g.n !== 'number') errors.push(`${at}: n must be a number`);
-    if (!g.title) errors.push(`${at}: title is required`);
-    if (!g.category) errors.push(`${at}: category is required`);
-    if (!g.archetype) errors.push(`${at}: archetype is required`);
-    if (!confKeys.has(g.conf)) errors.push(`${at}: conf "${g.conf}" not in ${[...confKeys].join('|')}`);
-    if (!diffSet.has(g.diff)) errors.push(`${at}: diff "${g.diff}" not in ${[...diffSet].join('|')}`);
-    if (!Array.isArray(g.needs)) {
-      errors.push(`${at}: needs must be an array`);
-    } else {
-      for (const c of g.needs) {
-        if (!capIds.has(c)) errors.push(`${at}: needs "${c}" is not a known capability id`);
-      }
-    }
-    if (seenTitles.has(g.title)) errors.push(`${at}: duplicate title`);
-    seenTitles.add(g.title);
-    if (g.n !== i + 1) errors.push(`${at}: n should be ${i + 1} (rows are 1-indexed and contiguous)`);
-  });
+  // The software section is optional; when present it is validated exactly like games.
+  if (data.software !== undefined) {
+    if (!Array.isArray(data.software)) errors.push('software: must be an array when present');
+    else validateRows(data.software, 'software', sets, errors);
+  }
 
   return errors;
 }
@@ -72,13 +87,29 @@ function validate(data) {
 function derive(data) {
   const capById = Object.fromEntries(data.capabilities.map((c) => [c.id, c]));
   const verdictIds = data.verdicts.map((v) => v.id);
-  const summary = Object.fromEntries(verdictIds.map((k) => [k, 0]));
-  for (const g of data.games) summary[verdictOf(g, capById)]++;
+  const tally = (rows) => {
+    const out = Object.fromEntries(verdictIds.map((k) => [k, 0]));
+    for (const r of rows) out[verdictOf(r, capById)]++;
+    return out;
+  };
+  // Tallies and unlock counts stay games-only: the headline numbers are about the
+  // 100-title list, and the software rows are scored alongside it, not folded into it.
   const unlock = Object.fromEntries(
     data.capabilities.map((c) => [c.id, data.games.filter((g) => g.needs.includes(c.id)).length]),
   );
   const categories = [...new Set(data.games.map((g) => g.category))];
-  return { total: data.games.length, summary, unlock, categories };
+  // The software list gets its own unlock counts. Without them the page would claim
+  // disk file I/O matters while the only visible number next to it is the games' 2.
+  const software = data.software?.length
+    ? {
+        total: data.software.length,
+        summary: tally(data.software),
+        unlock: Object.fromEntries(
+          data.capabilities.map((c) => [c.id, data.software.filter((s) => s.needs.includes(c.id)).length]),
+        ),
+      }
+    : null;
+  return { total: data.games.length, summary: tally(data.games), unlock, categories, software };
 }
 
 function buildHtml(payload) {
@@ -223,6 +254,14 @@ td.num{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;pad
 .cdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .cdot.known{background:var(--good)}.cdot.inferred{background:var(--warning)}.cdot.low{background:var(--critical)}
 .empty{padding:26px;text-align:center;color:var(--muted)}
+.needchip.static,.capchip.static{cursor:default}
+.needchip.static:hover,.capchip.static:hover{border-color:var(--border)}
+
+/* non-game software table */
+.softnote td{border-bottom:1px solid var(--grid);padding:0 12px 11px;color:var(--ink2);font-size:.83rem;
+  line-height:1.5;max-width:70ch}
+tbody tr.softhead td{border-bottom:0;padding-bottom:5px}
+.softsum{color:var(--ink2);font-size:.86rem;margin:0 0 10px}
 
 /* collapsibles + reference tables */
 details{border:1px solid var(--border);border-radius:10px;background:var(--surface);
@@ -405,6 +444,58 @@ function refTables(){
     "<details><summary>Provenance &amp; confidence caveats</summary><ul class=notes>"+prov+"</ul></details>";
 }
 
+// The software table is static — no filters, and its Needs chips are inert so a click
+// there can never silently re-filter the game table above it.
+function needsCellStatic(r){
+  if(!r.needs.length) return '<span class="dash">—</span>';
+  return sortedNeeds(r).map(id=>{
+    const c=CAP[id];
+    return '<span class="needchip static" title="'+esc(TIER[c.tier].label)+'">'+
+           '<span class="tdot '+statusOfTier(c.tier)+'"></span>'+esc(c.name)+"</span>";
+  }).join("");
+}
+function softwareSection(){
+  if(!DATA.software || !DATA.software.length) return "";
+  const intro=(DATA.softwareIntro?DATA.softwareIntro.blurb:[]).map(p=>"<p class=purpose>"+md(p)+"</p>").join("");
+  const sum=DATA.verdicts.map(v=>{
+    const n=D.software.summary[v.id]||0;
+    return n ? '<span class="verd '+v.status+'">'+v.glyph+" "+n+" "+esc(v.label)+"</span>" : "";
+  }).filter(Boolean).join(" ");
+  const head="<thead><tr><th class=c>#</th><th>Software</th><th>Kind</th><th>Archetype</th>"+
+    '<th class=c>Buildable?</th><th>Needs</th><th class=c>Diff</th><th>Conf</th></tr></thead>';
+  const rows=DATA.software.map(s=>{
+    const meta=s.year ? " ("+s.year+(s.publisher?", "+esc(s.publisher):"")+")" : "";
+    const c=CMAP[s.conf];
+    const main='<tr class="softhead"><td class="num">'+s.n+"</td>"+
+      "<td><span class=gtitle>"+esc(s.title)+'</span> <span class=gmeta>'+meta+"</span></td>"+
+      "<td>"+esc(s.category)+"</td>"+
+      '<td class="arch">'+esc(s.archetype)+"</td>"+
+      '<td class="c">'+verdictCell(s)+"</td>"+
+      "<td>"+needsCellStatic(s)+"</td>"+
+      '<td class="c diff">'+s.diff+"</td>"+
+      '<td class="conf"><span class="cdot '+s.conf+'"></span>'+esc(c.label)+"</td></tr>";
+    const note=s.note ? '<tr class="softnote"><td></td><td colspan="7">'+md(s.note)+"</td></tr>" : "";
+    return main+note;
+  }).join("");
+  // Ranked by how many of these entries wait on each capability — a different order
+  // from the game board above, which is the finding this section exists to show.
+  const ranked=DATA.capabilities
+    .map(c=>({c,n:D.software.unlock[c.id]||0}))
+    .filter(x=>x.n>0)
+    .sort((a,b)=>b.n-a.n);
+  const strip=ranked.map(({c,n})=>
+    '<span class="capchip static t-'+c.tier+'" title="'+esc(TIER[c.tier].label)+'">'+
+    '<span class="tdot '+statusOfTier(c.tier)+'"></span>'+esc(c.name)+
+    '<span class="n">'+n+"</span></span>").join("");
+  const title=(DATA.softwareIntro&&DATA.softwareIntro.title)||"Non-game software";
+  return "<h2>"+esc(title)+"</h2>"+intro+
+    '<div class="board"><div class="tiergroup"><div class="tiername">Waiting on'+
+      "<small>of these "+D.software.total+" entries</small></div>"+
+      '<div class="capchips">'+strip+"</div></div></div>"+
+    '<p class="softsum">'+sum+"</p>"+
+    '<div class="tablewrap"><table>'+head+"<tbody>"+rows+"</tbody></table></div>";
+}
+
 function render(){
   const app=document.getElementById("app");
   const purpose=DATA.intro.purpose.map(p=>"<p class=purpose>"+md(p)+"</p>").join("");
@@ -418,6 +509,7 @@ function render(){
     '<h2>Capability status <span class="gmeta">— the lever: ship one, everything waiting on it moves</span></h2>'+board()+
     '<h2>The matrix</h2>'+controls()+
     '<div class="tablewrap"><table>'+refHead()+'<tbody id="tbody"></tbody></table></div>'+
+    softwareSection()+
     refTables()+
     '<p class="foot">'+md(DATA.footer)+"</p>";
   app.removeAttribute("aria-busy");
@@ -497,6 +589,11 @@ const payload = { ...data, derived };
 const s = derived.summary;
 console.log(`✓ ${derived.total} games validated.`);
 console.log(`  Buildable:  ${s.now} Now   ${s.soon} Soon   ${s.blocked} Blocked`);
+if (derived.software) {
+  const w = derived.software.summary;
+  console.log(`✓ ${derived.software.total} non-game software entries validated (excluded from the tallies above).`);
+  console.log(`  Buildable:  ${w.now} Now   ${w.soon} Soon   ${w.blocked} Blocked`);
+}
 console.log('  unlock (titles waiting per capability): ' +
   data.capabilities.map((c) => `${c.id}=${derived.unlock[c.id]}`).join('  '));
 

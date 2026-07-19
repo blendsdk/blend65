@@ -5,7 +5,9 @@ description: >
   state, and add/remove games. The data lives in docs/game-feasibility-matrix.json (source of
   truth); docs/game-feasibility-matrix.html is generated from it. Use for "update_capability",
   "/update_capability", "refresh the feasibility matrix", "re-score the game matrix", "add <game>
-  to the matrix", or "remove <game> from the matrix". Manual only — the matrix is never auto-updated.
+  to the matrix", or "remove <game> from the matrix". Also keeps a separate non-game `software` list
+  (desktop environments, tools) scored by the same rubric but excluded from the 100-title tallies.
+  Manual only — the matrix is never auto-updated.
 ---
 
 # update_capability — feasibility matrix keeper
@@ -71,12 +73,47 @@ A game (in `games[]`):
 The generator **rejects** an unknown capability id, a bad tier/conf/diff value, a non-contiguous `n`,
 or a duplicate title — and writes nothing until you fix it. Trust it as your validator.
 
+### The `software` section (non-game entries)
+
+`software[]` is an optional second list for things that aren't games — desktop environments, tools,
+demos. Rows use the **same shape and the same rubric** as games, plus two differences:
+
+```json
+{ "n": 1, "title": "GEOS 1.3 / 2.0", "year": 86, "publisher": "Berkeley Softworks",
+  "category": "Native C64", "archetype": "vectored WIMP OS, disk-loaded apps, turbo loader",
+  "note": "Prose explaining *why* these needs — markdown, rendered under the row.",
+  "needs": ["graphics-loading", "indirect-calls", "asm", "optimizer"],
+  "diff": "XL", "conf": "known" }
+```
+
+- **`note`** (software only, optional) — a sentence or two justifying the needs. Games carry their
+  reasoning in the archetype; a non-game usually needs more room than that.
+- **`year` / `publisher`** are optional here — a greenfield entry has neither.
+- **`category`** reads as *kind* in this table (`Native C64`, `Greenfield`, `Foreign port`).
+- **`n`** is numbered from 1 **independently** of `games[]`.
+
+**These rows are deliberately excluded** from the 100-title tallies, the summary bars, and the
+per-capability unlock counts — every headline number on the page stays a statement about the game
+list. Keep it that way: the intro, provenance and inversion prose all say "100 titles", and folding
+software into those counts would make that copy false. The software section renders its **own**
+unlock counts (`derived.software.unlock`), which is where its prioritization signal lives.
+
+**Why the section earns its keep:** the two lists rank the capabilities differently, and that
+divergence is the point. Games rank `optimizer` first and `indirect-calls` near last; software ranks
+`disk-io` first and `indirect-calls` third. Preserve that contrast when you re-score — if a change
+would flatten the two rankings into agreement, check it against the actual titles before applying it.
+
+Scoring a non-game entry that never ran on a C64 (a port probe) is legitimate, but the `note` **must**
+say so plainly and `conf` must be `inferred` at best — the row scores a hypothetical retarget, not a
+shipped artifact.
+
 ## Modes (detect from the argument)
 
 | Invocation | Mode |
 |---|---|
 | `/update_capability` (no args) | **rescore** — re-derive capability tiers, adjust needs, re-tally |
 | `/update_capability add "<Game> (yr, pub)" [category]` | **add** — assess and insert one game |
+| `/update_capability add-software "<Name>" [kind]` | **add** — assess and insert one non-game entry |
 | `/update_capability remove <#\|name>` | **remove** — delete a row, renumber |
 | `/update_capability --check` (or `--dry-run`) | **check** — preview edits + validate; write no HTML |
 
@@ -108,7 +145,12 @@ Read the current state from disk and update each capability's `tier` in `capabil
 
 - **Optimizer** — read `codeops/features/blend65-ri/00-roadmap.md`. Has the Phase B optimizer (real
   peephole/IL passes) landed? If yes → `available`; if actively scheduled → keep `planned`.
-- **Graphics / data loading** (`DISK`) — any disk I/O / loader / KERNAL-call / streaming path shipped?
+- **Disk file I/O** (`disk-io`) — KERNAL open/read/write/close, sequential or relative records? This
+  is the cheap half, and the one most non-game software waits on — check it on its own merits, not
+  as a proxy for the loader story.
+- **Disk streaming / multi-load** (`disk-streaming`) — overlays, multi-load, >64 KB data sets?
+- **Firmware / foreign-CPU code** (`firmware`) — can the toolchain emit a cartridge or KERNAL ROM
+  image, or assemble code to run on the drive's own 6502?
 - **Math** — any floating-point or fixed-point-library support shipped?
 - **Hand-tuned asm** — external asm linking (was `FUT-011`) shipped?
 - **Indirect calls** — function pointers / indirect calls (was `FUT-003`) shipped? Check
@@ -133,7 +175,10 @@ Usually Step 1 does the work (a tier flip re-scores automatically). Only touch `
 - **add**: research the game's engine archetype (be honest about `conf`), set its `needs` per the
   rubric, insert it in its category grouping, and renumber `n` contiguous from 1. If the list already
   holds 100, ask the user whether to grow past 100 or swap out a game.
-- **remove**: delete the row by `n` or title, renumber `n` from 1.
+- **add-software**: same assessment, into `software[]` instead — set `category` to the kind, write the
+  `note`, renumber `n` contiguous from 1 within that array. There is no 100-row ceiling here.
+- **remove**: delete the row by `n` or title, renumber `n` from 1. Say which list you removed from;
+  `n` values collide across `games[]` and `software[]`, so disambiguate by title when it's unclear.
 
 ## Step 4 — Regenerate (mandatory after any content change)
 
