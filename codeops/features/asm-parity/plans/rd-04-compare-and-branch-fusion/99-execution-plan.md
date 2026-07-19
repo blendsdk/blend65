@@ -422,6 +422,34 @@ version picks the polarity that falls through, which is block layout, not fusion
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local VICE tiers)
 
+### Post-phase quality review
+
+Reviewer on the phase diff (`a006544..HEAD`), lenses: correctness · maintainability · standards ·
+api-surface. **2 findings, both 🟡 MINOR** — no CRITICAL/MAJOR, so no execution pause.
+
+| ID | Lens | Verdict | Disposition |
+| -- | ---- | ------- | ----------- |
+| RV-001 | maintainability | stale `lowerFor` doc comment still said the continue predicate branched via `brcond` | **accepted + fixed** — reworded to the fused form, matching the sibling docs updated in 4.2.2 |
+| RV-002 | correctness | a `switch` on a slot-claiming discriminant (a `?:`) ICEs: the planner counts the site once, the dispatch chain re-lowers it per case value and claims once per test | **accepted → filed as [#66](https://github.com/blendsdk/blend65/issues/66)** |
+
+RV-002 notes: reproduced independently (`switch (a ? 1 : 2)` → `E90001 … slot '0sc1' missing
+from the frame`, with a clean analysis bag), then reproduced AGAIN in a throwaway worktree at
+`a006544` to confirm it is long-standing rather than a regression from this phase. Not fixed
+here because the fix — lowering the discriminant once and letting the chain re-read it — is a
+switch-lowering change with its own golden consequences, and folding it into the flip would
+blur what this phase's corpus diff means. It fails loudly rather than mis-addressing, which is
+the drift design working as intended.
+
+Reviewer also noted the phase range contains a third commit, `46a1809 docs(matrix)` — confirmed
+as the user's own unrelated docs-data work committed mid-session, not part of this phase.
+
+Explicitly cleared by the review: the two-sided slot rule (the adapter's hand-rolled child
+enumeration matches the core walker's field order, including do-while's body-before-condition);
+short-circuit semantics in every nesting, incl. the `guards` CIA read executing only when
+`armed` holds; 6502 branch polarity across all fused goldens; spec-test integrity (every touched
+oracle additive or a sanctioned supersession); R15; and api-surface (nothing exported changed —
+all three new functions are module-private).
+
 ---
 
 ## Phase 5: Closeout

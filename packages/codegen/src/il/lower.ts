@@ -650,8 +650,8 @@ function lowerDoWhile(stmt: DoWhileStmtNode, ctx: LowerCtx): void {
 
 /**
  * Lower `for (let i: T = init to|downto bound [step s]) body` (Pattern A).
- * The counter is a frame local: `init` stores it; `cond` compares it against
- * `bound` (`le` for `to`, `ge` for `downto`) via `brcond`; `body` falls to
+ * The counter is a frame local: `init` stores it; `cond` branches on a fused
+ * compare against `bound` (`le` for `to`, `ge` for `downto`); `body` falls to
  * `incr`; `incr` adds/subtracts the const step and back-edges to `cond`.
  * `break`→`end`, `continue`→`incr`.
  *
