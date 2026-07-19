@@ -156,3 +156,40 @@ would judge it:
   run sequentially (`fileParallelism:false`) so concurrent `x64sc` instances don't contend.
 
 <!-- analyze_project: refreshed 2026-07-17 (post-RD-18-closure) — Project structure: examples now gate+slice3a…slice8b; docs line names the game-feasibility matrix + update_capability skill. Toolchain/Commands re-verified unchanged against package.json (10 packages, yarn@1.22.22, scripts build/typecheck/lint/test), .nvmrc (22), turbo.json; no clean script — TODO still applies. -->
+
+<!-- CODEOPS-ROUTING:START -->
+## Model & effort routing (Opus-dominant)
+- Tag each task trivial|standard|complex|sensitive (default complex) in make_plan — tags signal review depth, not model choice.
+- Build lane → Opus @ xhigh. exec_plan runs phases inline on Opus; dispatch plan-task-executor-opus when a phase warrants its own context. Both executors are pinned to Opus, so no tag can route work to a weaker model.
+- Critique lane → Fable @ xhigh: phase-reviewer, preflight-auditor, perf-auditor, security-auditor, design-challenger, spec-test-author. A different model family reviewing Opus's output is the point — don't collapse the two lanes onto one model.
+- Every agent runs xhigh except codebase-scout (opus @ low — facts-only retrieval, no reasoning). This deliberately overrides the CodeOps default of capping executors at high: a 6502 compiler earns the extra thinking.
+- Interactive skills: make_plan and exec_plan on Opus; grill_me and preflight on Fable. Sonnet is not used on this project. /compact after each phase; /clear on project switch.
+<!-- CODEOPS-ROUTING:END -->
+
+## Quality profile (CodeOps)
+<!-- CODEOPS-QUALITY:START -->
+lenses: [api-surface]
+security_profile: []
+perf_critical: false
+review_hook: on
+telemetry: on
+agent_models: {phase-reviewer: fable, preflight-auditor: fable, perf-auditor: fable, security-auditor: fable, design-challenger: fable, spec-test-author: fable, codebase-scout: opus}
+<!-- CODEOPS-QUALITY:END -->
+
+<!-- Agent pins: .claude/agents/ holds project copies of all 9 CodeOps agents, forked from plugin
+     3.10.0 with ONLY the `model:`/`effort:` frontmatter lines changed (effort can be set nowhere
+     else — agent_models carries model alone). Bodies are byte-identical, so on a plugin upgrade
+     re-sync with:
+       for f in .claude/agents/*.md; do diff "$PLUGIN/agents/$(basename $f)" "$f"; done
+     Anything beyond the two pin lines means the plugin's agent prompt moved and the fork is stale.
+
+     Project and plugin agents COEXIST rather than shadow — both `phase-reviewer` and
+     `codeops:phase-reviewer` resolve. The forks win because every dispatch reference in the
+     CodeOps skills uses the bare name; dispatching a `codeops:`-prefixed name instead would get
+     the plugin's own pins and silently bypass the effort settings here. Always dispatch bare.
+     agent_models above is kept as a cheap net: it re-applies the model (never the effort) even
+     on a prefixed dispatch. -->
+
+<!-- Verified 2026-07-19 against plugin 3.10.0: a fable+xhigh agent dispatches without error, and
+     all 35 agent references in the plugin's skills are bare. Note /agents no longer exists — to
+     inspect pins, read .claude/agents/*.md directly. -->
