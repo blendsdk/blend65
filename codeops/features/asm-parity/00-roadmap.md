@@ -3,7 +3,7 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-19 (RD-04 🔬 plan preflighted — PASSED: 7 findings (6🟡/1🔵, 0 blocking), all resolved & fixes applied same-day (never-guard idiom, translator silent-fall-through closed, twins.json routing re-audit + balloon measured re-measure added to phase 4, 14-golden count, ST-9a printer pin, cfg.ts header); challenger refuted one draft MAJOR (TS2366 verified). Next: `exec_plan`)
+> **Last Updated**: 2026-07-19 (RD-04 🔄 executing — phase 1/5 done (10/43 tasks): `brcmp` terminator, shared `terminatorTargets` successor helper, printer, termination walk rebase, dangling-target ICE pre-pass; nothing emits it yet, zero golden diffs. Phase review: 1🟠/2🟡 all accepted+fixed (translator never-guards pulled forward from 2.2.1). Next: phase 2 — translator branch-form framings)
 > **Progress**: 2 / 14 (14%)
 > **CodeOps Skills Version**: 3.8.0
 >
@@ -23,7 +23,7 @@
 | RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Done | ✅ | 2026-07-18 | — |
 | RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Done | ✅ | 2026-07-18 | — |
 | RD-03 | Memory & hardware access epic ([#49](https://github.com/blendsdk/blend65/issues/49)) | — | — | Backlog | ⬜ | 2026-07-18 | split: placement → B1/B2 (grammar-free); copy() gated (v3.1 + Guard) — blocks balloon $0340 (~370 B, largest divergence) · Fable |
-| RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | [RD](requirements/RD-04-compare-and-branch-fusion.md) | [Plan](plans/rd-04-compare-and-branch-fusion/00-index.md) | Plan Preflighted | 🔬 | 2026-07-19 | **B1 lead** — cycle lever, audit #1 · Fable (design; exec → Opus) |
+| RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | [RD](requirements/RD-04-compare-and-branch-fusion.md) | [Plan](plans/rd-04-compare-and-branch-fusion/00-index.md) | Executing | 🔄 | 2026-07-19 | **B1 lead** — cycle lever, audit #1 · Fable (design; exec → Opus) |
 | RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | — | — | Backlog | ⬜ | 2026-07-19 | B1 — depends on RD-04 (size-consequence); owns twin-idiom acceptance + #65 (branch range) |
 | RD-06 | Peephole seed catalog: INC/DEC, loads, staging ([#52](https://github.com/blendsdk/blend65/issues/52)) | — | — | Backlog | ⬜ | 2026-07-18 | B1 — **Rule 1 (INC/DEC) only**; R2–3 deferred (MMIO); seam blend65-ri/RD-08 |
 | RD-07 | Register-resident loop counters ([#53](https://github.com/blendsdk/blend65/issues/53)) | — | — | Backlog | ⬜ | 2026-07-18 | B2 — **demoted** (1 fixture); after RD-04, RD-06 |

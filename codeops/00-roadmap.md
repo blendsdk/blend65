@@ -19,7 +19,7 @@
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
 | blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** — frozen v3 compiles end-to-end (unoptimized); next: RD-13/RD-14 (`make_plan`) | 18/20 | 🔄 | 2026-07-17 |
-| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 ✅ done** (parity infra) · **RD-02 ✅ done** (#61 — 14-pair twin corpus, twin tier, committed SCOREBOARD.md baseline 4.83×/6.51×, routed audit, CI freshness gate) · **RD-04 🔬 plan preflighted** (#50 — `brcmp` fusion, 5 phases/43 tasks; preflight PASSED, 7 findings resolved) — next: `exec_plan` RD-04 | 2/14 RDs | 🔄 | 2026-07-19 |
+| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 ✅ done** (parity infra) · **RD-02 ✅ done** (#61 — 14-pair twin corpus, twin tier, committed SCOREBOARD.md baseline 4.83×/6.51×, routed audit, CI freshness gate) · **RD-04 🔄 executing** (#50 — `brcmp` fusion, 5 phases/43 tasks; phase 1 done — terminator + successor helper + dangling-target ICE, zero golden diffs) — next: phase 2 translator framings | 2/14 RDs | 🔄 | 2026-07-19 |
 
 ## Archived
 
