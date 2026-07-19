@@ -1,9 +1,9 @@
 # Ambiguity Register: asm-parity requirements
 
-> **Status**: ✅ GATE PASSED — all 25 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19)
-> **Last Updated**: 2026-07-19 09:50
-> **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61)) · Items 20–25: RD-04 ([#50](https://github.com/blendsdk/blend65/issues/50))
-> **CodeOps Skills Version**: 3.9.0
+> **Status**: ✅ GATE PASSED — all 33 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19)
+> **Last Updated**: 2026-07-19 22:05
+> **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61)) · Items 20–25: RD-04 ([#50](https://github.com/blendsdk/blend65/issues/50)) · Items 26–33: RD-05 ([#51](https://github.com/blendsdk/blend65/issues/51))
+> **CodeOps Skills Version**: 3.10.0
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|----------|-----------------|-------------------|---------------|--------|
@@ -174,3 +174,99 @@ measuring distances that are about to be wrong. The failure mode is a loud ACME 
 never silent corruption. Conditional resolution honored: the defect is filed before RD-04
 merges, and fusion's widening of the surface (framing-internal branches now target real
 block labels) is named in the issue and in RD-04's Won't-Have.
+
+---
+
+## RD-05 — Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51))
+
+> **Status**: ✅ GATE PASSED — all 8 items resolved (26–33)
+> **Opened**: 2026-07-19 21:52 · **Passed**: 2026-07-19 22:05 (bulk acceptance)
+> **Inherited obligations**: AR #20 (twin-byte-comparable raster idiom transfers here in writing)
+> and AR #25 ([#65](https://github.com/blendsdk/blend65/issues/65) branch-range relaxation routed here).
+>
+> **Measured baseline** (committed goldens, 2026-07-19): 105 `JMP`s across the 14-golden corpus,
+> of which **47 target the immediately-following label** and **13 blocks consist solely of a `JMP`**.
+> Corpus parity 3896 B / 4.23× and 5023 static cycles / 5.53×.
+
+| # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
+|---|----------|-----------------|-------------------|---------------|--------|
+| 26 | Technical (complex) | Where the four layout transforms live. Three wired seams exist: **A** the IL pass pipeline (`optimizeIL(il, [], bag)`, `packages/compiler/src/api/emit.ts:108`; `ILPass` contract at `il/optimizer/pass.ts`, zero passes shipped) — CFG-level, blocks and terminators first-class; **B** translation time (`instr/translate.ts:264`, `for (const block of this.fn.blocks)`) — the only place block *adjacency* exists, but `translate.ts` is already 2250 lines; **C** the instruction peephole (`optimizeInstr`, `instr/peephole.ts`, `V1_RULES = []`) — flat post-translation stream, block identity destroyed (`core/src/instr-model/stream.ts:54-76`), and the declared home of [#52](https://github.com/blendsdk/blend65/issues/52) | (a) **split by nature** — jump threading + unreachable-block removal as two `ILPass`es in **A**; fall-through elision + branch inversion as ONE tail-emission decision in **B** (given `B<c> T / JMP F` and next label `N`: `F===N` → drop the `JMP`; `T===N` → emit `B<!c> F` alone; else both); relaxation as a **new unconditional post-translation stage**, not a peephole rule / (b) all four in **B** as a layout pre-pass over `this.fn.blocks` / ~~(c) all four in **C**~~ — **rejected as non-viable**: the `PeepholeRule` contract windows consecutive instruction entries only ("labels/directives pass through verbatim", `instr/peephole.ts:33-35`, window/replace constraint `:47-60`), so `JMP L` + label `L` is unmatchable without redesigning the contract [#52](https://github.com/blendsdk/blend65/issues/52) is about to build on; block labels and translator-minted `_cmpN`/`_shN` labels (`translate.ts:804-811`, `:1219`) are distinguishable only by naming convention | ✅ Resolved — User accepted recommendation: (a) split by nature — threading + unreachable-removal as two `ILPass`es at seam A; fall-through elision + branch inversion as one tail-emission decision at seam B; relaxation as a new unconditional post-translation stage (challenger-reconciled; see note) | ✅ Resolved |
+| 27 | Scope | Does RD-05 **reorder** blocks (trace scheduling / moving cold arms out of line), or only exploit the existing lowering order? Issue #51 frames its transforms as running "after block order is fixed", but `guards` shows 9 fall-through `JMP`s and if/else arms that both jump to the join, where reordering could pay further | (a) reordering out of scope — exploit the existing `openBlock` order only; file a follow-up if residual cost shows in the scoreboard / (b) include a block-reordering heuristic in RD-05 | ✅ Resolved — User accepted recommendation: (a) reordering out of scope; exploit the existing `openBlock` order only, follow-up filed if the scoreboard shows residual cost | ✅ Resolved |
+| 28 | Scope | Is [#65](https://github.com/blendsdk/blend65/issues/65) branch relaxation (`B<inv> *+5 / JMP far`) delivered **inside** RD-05 or as its immediate follow-up? Issue #65 says "in #51 or as its immediate follow-up"; AR #25 routed it here because relaxation is a function of final block geometry | (a) inside RD-05, as the last stage after layout settles / (b) separate follow-up RD after RD-05 lands | ✅ Resolved — User accepted recommendation: (a) #65 relaxation delivered inside RD-05, as the last stage over the settled geometry | ✅ Resolved |
+| 29 | Scope | Unreachable-block removal is jointly assigned by AR #21 ("stay with the const-fold pass / RD-05"). Which owns the mechanism? Concrete case: `rasterpoll.asm.golden` carries a dead `Main_main_L2: RTS`, orphaned by RD-04's `while (true)` literal fold. Sub-question: a self-referential jump-only block (`L: JMP L`, i.e. `while (true) {}`) must survive as a deliberate carve-out from "no jump-only blocks survive" | (a) RD-05 owns the mechanism — a reachability-based dead-block-removal `ILPass`; the const-fold pass later reuses it by scheduling it after folding / (b) RD-05 removes only blocks its own threading orphans; the const-fold pass ships its own removal | ✅ Resolved — User accepted recommendation: (a) RD-05 owns the mechanism as a reusable reachability-based `ILPass`; the const-fold pass reuses it by scheduling. Self-referential jump-only block (`L: JMP L`) survives as a deliberate carve-out | ✅ Resolved |
+| 30 | Technical / Behavioral | Is block layout **unconditional**, or gated behind `--optimize` like the peephole? `optimizeIL` always runs (`emit.ts:108`) whereas `optimizeInstr` runs only under `run.config.optimize` (`emit.ts:139-141`; default `true`, `packages/config/src/defaults.ts:38`). Consequence: #65 relaxation is a **correctness** requirement — a program that assembles under `--optimize` but fails under `--no-optimize` would be a trap — and relaxation must measure the same geometry that is emitted | (a) unconditional — layout and relaxation always run, independent of `--optimize` / (b) gated behind `--optimize`, keeping `--no-optimize` a naive 1:1 IL→asm mapping for codegen debugging | ✅ Resolved — User accepted recommendation: (a) unconditional — layout and relaxation run independent of `--optimize` | ✅ Resolved |
+| 31 | Data / Testing | Existing spec-test oracles assert the exact `JMP` shapes this RD removes. Largest: `instr/translate-brcmp.spec.test.ts` — 47 `JMP` assertions across all five framings × both polarities, landed by RD-04 as immutable oracles. It calls `translateFunction` **directly** on hand-built `ILFunction`s, so its exposure depends entirely on AR #26's answer. Also affected: `switch-translate.spec.test.ts` (3), the golden suites, and `budgets.spec.test.ts`'s hand-derived cycle constants (poll iteration 15, compound guard 24 — both change) | (a) supersede only what the chosen seam actually reaches, stated per-file before rewriting / (b) blanket-supersede every `JMP`-shaped oracle in the corpus / (c) **preserve the framing matrix**: give those hand-built fixtures a block order in which neither target is adjacent, so `JMP falseTarget` legitimately survives and all 47 *expectations* stay byte-identical (a fixture change, not an expectation change); pin elision/inversion in a new dedicated layout suite instead. Rationale: the matrix's stated purpose is that a fused branch "would still look plausible in isolation; only the pair pins it" — branch inversion IS a polarity flip, so entangling it with the polarity oracle weakens RD-04's AC-10 guard. Goldens/budgets/scoreboard churn per AR #12/#17/#24 regardless | ✅ Resolved — User accepted recommendation: (c) preserve the framing matrix via a fixture block-order change (every expectation stays byte-identical); elision/inversion pinned in a new dedicated layout suite | ✅ Resolved |
+| 32 | Testing | Test tier for the #65 range cases (a do-while body >127 bytes; a switch dispatch-to-body distance >127 bytes). A hand-written twin for a 130-byte filler loop carries no idiom to compare against | (a) unit tier only — an ACME-assembling spec test (`skipIf(!hasAcme())`, runs in CI) proving it assembles and that in-range branches are untouched, plus a local VICE case proving it runs correctly; no new golden-corpus twin pair / (b) a new corpus fixture + hand-written twin + scoreboard row, following RD-04's `guards` precedent | ✅ Resolved — User accepted recommendation: (a) unit tier only — ACME-assembling spec test in CI plus a local VICE correctness case; no new golden-corpus twin pair | ✅ Resolved |
+| 33 | Naming | New surface names (batch), assuming AR #26(a) | `il/optimizer/thread-jumps.ts` → `threadJumps: ILPass` (`name: "thread-jumps"`) · `il/optimizer/remove-unreachable-blocks.ts` → `removeUnreachableBlocks: ILPass` (`name: "remove-unreachable-blocks"`) · `instr/branch-tail.ts` → the tail-emission decision + polarity-inversion table, extracted rather than grown inside the already-2250-line `translate.ts` · `instr/relax-branches.ts` → `relaxBranches(program, cpu, bag)` · new suite `instr/block-layout.spec.test.ts` | ✅ Resolved — User accepted recommendation: names as listed | ✅ Resolved |
+
+### Resolution Notes (RD-05)
+
+**AR-26:** The challenger ran blind on the three allocations and converged on the split, but
+corrected the initial framing twice, and both corrections were adopted. First, **relaxation
+cannot be a peephole rule**: the `PeepholeRule` contract windows consecutive instruction
+entries and caps the replacement at the window size (`instr/peephole.ts:47-60`), while
+relaxation must see labels and grows a 2-byte branch into 5 bytes; it must also cover
+*translator-internal* branches — shift loops (`translate.ts:806-811`), `_cmp` tails
+(`:1156`, `:1171`), word-equality early-outs (`:1219`) — which have no IL-level existence.
+It therefore becomes its own stage, not a rule inside a gated one. Second, **branch inversion
+is not a separate transform**: it is the third arm of a single tail decision the translator
+already holds the facts for (branch opcode and polarity are computed at `translate.ts:1122`,
+`:1141-1150`), and siting it there keeps framing-internal early-out branches — which must
+never be inverted (`:1290-1295`) — naturally out of reach.
+
+Threading and unreachable-removal are the genuinely *free* placements (a translator-local
+pre-pass would also be correct); they go to the IL seam on two grounds: the const-fold pass
+orphans blocks the same way and needs to re-sequence the same removal (AR #21), and
+`--emit-il` prints post-optimizer IL (`emit.ts:63-64`, `:107-108`), so IL-level threading
+keeps the printed IL an honest picture of what gets emitted — the same argument that decided
+AR #23. Threading chain-follows trampolines with a visited set, which both handles the
+`L: br L` carve-out of AR #29 and avoids needing pipeline-level iteration.
+
+Two implementation hazards named for the plan, not the RD: the "is this block a trampoline"
+predicate must decide whether `source_span`-provenance-only bodies count as empty
+(`translate.ts:393-394`) — requiring strictly-empty silently under-fires, skipping spans
+drops provenance; and the seam-B next-label comparison must account for the entry block,
+whose emitted label is `sanitize(fn.name)`/`ENTRY_LABEL` (`translate.ts:247`, `:2209-2214`)
+rather than `blockLabel("_entry")` (`:381-383`) — a mismatch there is either a dangling-label
+ACME error or a silently missed elision that only the budget ratchet would catch.
+
+**Sequencing consequence (binding on the plan):** threading and elision must land as ONE
+change. Threading alone still emits the `JMP`; elision alone still routes through the
+trampoline. Split across phases, the goldens and `budgets.json` churn twice for one result.
+
+**AR-28:** Relaxation is a correctness transform sharing RD-05's prerequisite (settled block
+geometry) and its unconditional siting (AR #30) — splitting it into a follow-up would mean
+measuring distances twice and shipping a known-reachable build failure in between.
+
+**AR-29:** One mechanism, two clients. `rasterpoll` and `guards` both already carry a dead
+`Main_main_L2: RTS`, orphaned by RD-04's `while (true)` literal fold — so the pass has work
+to do on day one, independent of what threading orphans. Consequence to carry into the
+scoreboard: the `guards` divergence row currently routed to [#59](https://github.com/blendsdk/blend65/issues/59)
+as "unreachable epilogue: main never returns, yet an RTS is still emitted past the frame
+loop" is fixed here, and its routing moves to #51.
+
+**AR-30:** The two halves cannot be gated differently — relaxation must measure the geometry
+that is actually emitted, so if layout were optional there would be two geometries. Since
+relaxation must always run (a `>127`-byte loop failing to assemble only under `--no-optimize`
+is a trap), layout must always run too. Gating would additionally require threading a flag
+into `translateFunction`, which has no such parameter today (`translate.ts:118-127`).
+
+**AR-31:** Option (c) is a *fixture* change, not an expectation change: every one of the 47
+expected instruction sequences in `instr/translate-brcmp.spec.test.ts` stays byte-identical;
+only the surrounding block order moves so that no target is adjacent and the `JMP
+falseTarget` legitimately survives. This preserves what that matrix exists for — its own
+header records that a fused branch "would still look plausible in isolation; only the pair
+pins it" — and branch inversion is precisely a polarity flip, so folding it into the polarity
+oracle would blunt RD-04's AC-10 guard one item after it landed. Layout gets its own suite.
+Goldens, `budgets.json` (including the hand-derived poll-iteration and compound-guard cycle
+constants) and `SCOREBOARD.md` still churn under AR #12/#17/#24.
+
+**AR-32:** Branch range is a correctness property, not a parity property — a 130-byte filler
+loop has no hand-written idiom to be compared against, so a twin would be mechanical filler
+that dilutes the corpus. The ACME-only tier already exists and runs in CI
+(`skipIf(!hasAcme())`, e.g. `compiler/src/api/build-report.spec.test.ts`); VICE stays local
+per AR-27.
+
+**Hardening disclosure:** Confidence High. Challenger: run blind on AR #26; converged on the
+seam split, diverged on relaxation's home and on inversion's status as a separate transform.
+Both divergences investigated against the code and adopted.

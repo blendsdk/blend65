@@ -2,7 +2,7 @@
 
 > **Project**: blend65 — Asm-Parity Initiative (Prime Directive audit program + parity tooling)
 > **Status**: Draft — RDs are authored on pickup from GitHub issues #49–#64 (umbrella [#56](https://github.com/blendsdk/blend65/issues/56))
-> **Created**: 2026-07-17
+> **Created**: 2026-07-17 · **Last Updated**: 2026-07-19 (RD-05 drafted; ambiguity register at 33 items, all resolved)
 > **Architecture**: TypeScript monorepo (`@blend65/*` packages) + `scripts/` tooling; VICE 3.10 + ACME local tiers, ACME-only CI (AR-27)
 > **CodeOps Skills Version**: 3.9.0
 
@@ -42,7 +42,8 @@ authored here only when its item is picked up, following
 | **PF** | [Preflight Report](00-preflight-report.md) | RD-01 audit (8 findings) + RD-02 audit (5, PF-009…PF-013) + RD-04 audit (4, PF-014…PF-017) — all resolved, fixes applied | RD-01, RD-02, RD-04 |
 | **RD-02** | [Golden-corpus twin audit + scoreboard](RD-02-golden-corpus-twin-audit.md) | 13 new twins, permanent VICE twin tier, committed SCOREBOARD.md + CI freshness gate, routed divergence inventory ([#61](https://github.com/blendsdk/blend65/issues/61)) — 🔎 preflighted 2026-07-18 | RD-01 |
 | **RD-04** | [Compare-and-branch fusion](RD-04-compare-and-branch-fusion.md) | Fused compare-and-branch IL terminator + condition-position lowering (`&&`/`||`/`!` slot-free, literal folds); twin-idiom acceptance transferred to #51 ([#50](https://github.com/blendsdk/blend65/issues/50)) — 🔎 preflighted 2026-07-19 | RD-01, RD-02 |
-| RD-03, RD-05…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
+| **RD-05** | [Block layout — fall-through elision + jump threading](RD-05-block-layout.md) | Layout-aware emission: fall-through elision, branch inversion, jump threading, unreachable-block removal, plus branch-range relaxation ([#65](https://github.com/blendsdk/blend65/issues/65)); discharges RD-04's transferred twin-idiom criterion ([#51](https://github.com/blendsdk/blend65/issues/51)) — ✏️ drafted 2026-07-19 | RD-01, RD-02, RD-04 |
+| RD-03, RD-06…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
 
 ## Dependency Graph
 
@@ -89,6 +90,8 @@ tiny fixed startup shim. So sequence by *representative* impact × risk, not raw
 | Placement ≠ copy() | Split RD-03 (#49) | Placement (grammar-free) serves in-place const tables ($0801+). The balloon's $0340 staging is below the PRG load base — a single-load PRG can't place there (the twin copies), so it needs `copy()`, gated on v3.1 + the Language Guard |
 | Calling convention | In scope now (not "if hot") | #59's per-call ABI is a hot cycle lever (balloon ≈13 instr/call), distinct from the fixture-inflated one-time startup; scoped as a structural pass |
 | Condition lowering | Fused compare-and-branch IL terminator + slot-free condition-position lowering | Fusion true by construction (no unfiring heuristic); composes with the const-fold pass and #51 threading; materialization stays for value contexts; branch-range relaxation routed to #51 via [#65](https://github.com/blendsdk/blend65/issues/65) (AR #20–#25) |
+| Layout transform placement | Split by seam: threading + unreachable-removal as IL passes; fall-through elision + branch inversion as one tail decision at translation; relaxation as a new unconditional stage | Each transform sits where its facts exist — the IL cannot represent fall-through, and block adjacency exists only in the translator's block loop. The instruction peephole is non-viable (its rule contract excludes labels from windows) and is #52's home (AR #26) |
+| Layout gating | Unconditional — not behind `--optimize` | A jump to the next instruction is a defect, not a withheld optimization; and relaxation is correctness that must measure the geometry actually emitted, so the two cannot be gated differently (AR #30) |
 
 ## Non-Functional Requirements
 
