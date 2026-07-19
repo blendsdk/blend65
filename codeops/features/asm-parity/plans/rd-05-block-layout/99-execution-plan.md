@@ -1,7 +1,7 @@
 # Execution Plan — Block Layout (RD-05)
 
 > **Implements**: asm-parity/RD-05 · [#51](https://github.com/blendsdk/blend65/issues/51), [#65](https://github.com/blendsdk/blend65/issues/65)
-> **Progress**: 20/58 tasks (34%) — Phases 1–2 complete
+> **Progress**: 25/58 tasks (43%) — Phases 1–3 complete
 > **Last Updated**: 2026-07-20
 > **CodeOps Skills Version**: 3.10.0
 
@@ -144,11 +144,22 @@ A pure decision table with no translator state. Small by design — the risk her
 complexity, it is that a wrong table is invisible in output. The polarity half landed in Phase 1;
 this phase adds the tail decision on top of it.
 
-- [ ] 3.1 **Extend** `codegen/src/instr/branch-tail.spec.test.ts` — ST-B16…ST-B19
-- [ ] 3.2 Verify **red** (the new cases only; ST-B20/B21 are already green from Phase 1)
-- [ ] 3.3 Implement `TailPlan` + `planBranchTail` alongside the polarity table from 1.6
-- [ ] 3.4 Verify **green**
-- [ ] 3.5 Full verify + prettier check
+- [x] 3.1 **Extend** `codegen/src/instr/branch-tail.spec.test.ts` — ST-B16…ST-B19
+      — *done 2026-07-20, plus **ST-B48** for the converging-edges input the table's row order
+      decides (AR #63), and a sweep asserting the tail decision inverts through the same polarity
+      table relaxation uses. Written directly rather than dispatched: the oracle is a four-row
+      truth table supplied in advance, which leaves no room for an implementation-shaped
+      expectation*
+- [x] 3.2 Verify **red** (the new cases only; ST-B20/B21 are already green from Phase 1)
+      — *done 2026-07-20: 6 new cases fail with `planBranchTail is not a function`; ST-B20/B21
+      stay green*
+- [x] 3.3 Implement `TailPlan` + `planBranchTail` alongside the polarity table from 1.6
+      — *done 2026-07-20. `planBranchTail` takes a narrowed `ConditionalBranch` so the
+      no-inverse state is unrepresentable rather than represented; `TailPlan` stays the three
+      variants planned (AR #63)*
+- [x] 3.4 Verify **green** — *done 2026-07-20: 669 codegen tests*
+- [x] 3.5 Full verify + prettier check — *done 2026-07-20. Verify exit 0; goldens byte-identical;
+      `spec/` clean; both touched files Prettier-clean*
 
 ---
 

@@ -4,8 +4,8 @@ Specification tests derive from RD-05 and 6502 semantics **only** — never from
 implementation. A failing spec test means the implementation is wrong.
 
 `ST-B*` is a fresh prefix; no `ST-B` id exists in the tree, so nothing collides. Ids run
-ST-B1…ST-B47; ST-B41…ST-B45 were added at preflight (AR #40–#47), and ST-B46/ST-B47 at
-execution (AR #60, AR #62).
+ST-B1…ST-B48; ST-B41…ST-B45 were added at preflight (AR #40–#47), and ST-B46…ST-B48 at
+execution (AR #60, #62, #63).
 
 ## Suites
 
@@ -75,6 +75,7 @@ golden carries an out-of-range branch — so without these two cases a wrong `BV
 | **ST-B19** | `(BEQ, "a", "b", undefined)` | `both` |
 | **ST-B20** | every one of `BEQ BNE BCC BCS BMI BPL BVC BVS` | inverts to its partner, and inverting twice is the identity |
 | **ST-B21** | any non-conditional opcode | `invertBranch` returns `undefined` (the caller raises an internal compiler error) |
+| **ST-B48** | `(BEQ, "a", "a", "a")` — both edges converge on the next block | `elide`. The table's stated row order settles it; the degenerate input is **decided**, not undefined (AR #63). Collapsing the branch to a plain jump stays out of scope (AR #37) |
 
 ### Layout at translation (integrated)
 
