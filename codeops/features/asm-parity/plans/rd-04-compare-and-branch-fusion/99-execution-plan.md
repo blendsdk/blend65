@@ -215,7 +215,7 @@ call site, `iceNoTranslation` still reachable, and that no pre-existing spec tes
 **Objective**: The pair is a full corpus citizen with a measured "before" row.
 
 - [x] 3.2.1 Author the hand-written twin (blind to fused output — the parity bar) + twin tier green via the shared observables — `packages/test-harness/test/golden/guards.twin.asm` ✅ (completed: 2026-07-19 18:56)
-      ↳ 132 bytes / 157 static cycles against the generated 347 / 404. It keeps the probe walk in X and its hit count in Y (`CPX`/`INY`, never a store), holds the four state bytes in zero page, and decides each guard with one compare and one branch — including the `SEC · SBC · BVC · EOR #$80` correction, where it branches on `BPL` instead of building a boolean. Landed the identical observable set on VICE 3.10 first run.
+      ↳ 130 bytes / 153 static cycles against the generated 347 / 404. It walks the probe in A and counts hits in Y (never a store), holds the four state bytes in zero page, and decides each guard with one compare and one branch — including the `SEC · SBC · BVC · EOR #$80` correction, where it branches on `BPL` instead of building a boolean. Landed the identical observable set on VICE 3.10 first run.
       ↳ Authored against the source's semantics, not against generated output: the fused form does not exist yet, and the pre-fusion golden was deliberately not consulted while writing it.
 - [x] 3.2.2 Register: `twins.json` pair + routed divergence groups; `budgets.json` bytes + compound-guard window (current values, ratchet); regenerate `SCOREBOARD.md` — `packages/test-harness/test/golden/twins.json`, `budgets.json`, `SCOREBOARD.md` ✅ (completed: 2026-07-19 18:57)
       ↳ Three computed divergence groups, all routed: **instruction selection** → #50 (every guard materialises and re-tests), #51 (JMP 29 vs 1), #53 (probe/count in frame memory vs X/Y), #52 (counter bump vs `INC`), #59 (unreachable `RTS` past a non-returning frame loop); **addressing modes** → #49 (`SBC Absolute` vs the hand version's zero-page velocities); **layout** → #51.
@@ -228,8 +228,33 @@ call site, `iceNoTranslation` still reachable, and that no pre-existing spec tes
 - [x] All verification passing
 
 **Measured "before"** (the baseline the flip ratchets against, from the committed scoreboard):
-`guards` 347 bytes generated vs 132 hand-written (2.63×), 404 static cycles vs 157 (2.57×);
+`guards` 347 bytes generated vs 130 hand-written (2.67×), 404 static cycles vs 153 (2.64×);
 `compoundGuard` window 43 static cycles.
+
+**Post-phase quality review** (phase-reviewer, lenses: correctness/maintainability/standards + api-surface):
+1 critical (protocol flag, discharged), 0 major, 2 minor — both minor accepted and fixed in a
+follow-up commit. The reviewer hand-executed the twin against all five observables, re-assembled
+both sides through ACME to confirm 347/130 bytes, re-derived the 43-cycle window and the
+"16 of those 43" claim, re-ran `twin-diff` to confirm every computed divergence group is routed,
+and checked that each golden-suite landmark survives the fused shape phase 4 will produce.
+- **RV-001 (critical by protocol — discharged):** three `*.spec.test.ts` files appear in the phase
+  diff, which the reviewer's protocol flags automatically. Verified against the diff: all three are
+  purely additive registrations of the new pair (an import plus a builder/pair/module row, one new
+  `it()`, and a "13 → 14" count comment). No existing assertion, expectation, or oracle value is
+  altered anywhere in the diff, and registering a corpus pair cannot be done without touching those
+  registries — they are named deliverables of task 3.2.2.
+- **RV-002 (minor, output parity — accepted, fixed):** the twin's BASIC stub carried `$0c,$08` as the
+  next-line link where the correct address is `$080B` — the compiler's own stub emits `!word $080B`.
+  Inert under `RUN` (the `SYS` never returns) but `LIST` would walk into the code. Fixed in the
+  guards twin; the same off-by-one is present in all fourteen pre-existing hand twins and is left
+  for a separate change, since correcting them is byte-neutral but touches the whole corpus on the
+  eve of the flip.
+- **RV-003 (minor, output parity — accepted, fixed):** the twin's probe walk kept the counter in X,
+  paying `TXA`/`TAX` on every iteration to step it — but the probe indexes nothing, so it never
+  needs to leave A. Rewritten to walk in A: 2 bytes and 4 static cycles leaner, identical
+  observables. This matters more than its size: the twin IS the bar the compiler is measured
+  against, so a loose twin flatters the ratios the flip is supposed to move. The scoreboard,
+  `twins.json` notes and the measured "before" above were regenerated from the tighter twin.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local VICE tiers)
 

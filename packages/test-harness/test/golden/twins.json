@@ -336,7 +336,7 @@
           {
             "disposition": "structural",
             "issue": 50,
-            "note": "every guard materializes 0/1 and re-tests it (BNE 10 vs 2, CMP 6 vs 2, BMI/BPL polarity round-trip)"
+            "note": "every guard materializes 0/1 and re-tests it (BNE 10 vs 2, BMI/BPL polarity round-trip)"
           },
           {
             "disposition": "structural",
@@ -346,7 +346,7 @@
           {
             "disposition": "structural",
             "issue": 53,
-            "note": "the probe walk and its hit count live in frame memory; the hand loop keeps them in X and Y (LDX/LDY/INY/CPX/TAX/TXA 0 generated)"
+            "note": "the probe walk and its hit count live in frame memory; the hand loop keeps them in A and Y (LDY/INY 0 generated, LDA 47 vs 13)"
           },
           {
             "disposition": "peephole",

@@ -14,7 +14,7 @@ dy     = $06        ; vertical fall, signed
 
 ; ---- BASIC stub: 10 SYS 2061 ----
 * = $0801
-        !byte $0c,$08, $0a,$00, $9e, $32,$30,$36,$31, $00, $00,$00
+        !byte $0b,$08, $0a,$00, $9e, $32,$30,$36,$31, $00, $00,$00
 
 ; ---- program entry ($080d) ----
 * = $080d
@@ -48,20 +48,19 @@ raster: lda $d012
         ; Frame body - entered exactly once per frame.
 update:
         ; --- sprite window: count the column probes inside [8,40) ---
-        ; X walks the probes, Y counts the hits. The upper bound is only
-        ; asked about once the lower bound holds.
-        ldx #0
+        ; A walks the probes, Y counts the hits. The probe indexes nothing,
+        ; so it never needs to leave A. The upper bound is only asked about
+        ; once the lower bound holds.
+        lda #0
         ldy #0
-band:   cpx #8
+band:   cmp #8
         bcc step            ; below the band
-        cpx #40
+        cmp #40
         bcs step            ; at or past the top
         iny
-step:   txa
-        clc
+step:   clc
         adc #8
-        tax
-        cpx #64
+        cmp #64
         bcc band
         sty $0400
 
