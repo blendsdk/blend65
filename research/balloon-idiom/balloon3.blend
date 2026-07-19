@@ -1,0 +1,119 @@
+module Main;
+
+// The bouncing C64 hot-air balloon — raster-interrupt version.
+//
+// Same balloon as balloon2, but the per-frame update no longer busy-waits
+// on the raster line. Instead the VIC-II is armed to raise an interrupt
+// when the beam reaches the sync line, and onRasterFrame() moves the sprite
+// once per frame. main() just arms the interrupt and then idles — freeing
+// the main path for game logic while the animation stays locked to the frame.
+//
+// The trigger line is the same one balloon2 polled (251); we've only
+// swapped "spin until the beam arrives" for "let the beam call us".
+
+// The classic 24x21 hi-res sprite: 21 rows of 3 bytes (63 total).
+const BALLOON: byte[] = embed("balloon.bin");
+
+// ---- VIC-II sprite registers ----
+const SPRITE0_X:         word = $D000;   // sprite 0 X position, low 8 bits
+const SPRITE0_Y:         word = $D001;   // sprite 0 Y position
+const SPRITE_X_MSB:      word = $D010;   // 9th X bit, one per sprite (bit 0 = sprite 0)
+const SPRITE_ENABLE:     word = $D015;   // one enable bit per sprite
+const SPRITE_EXPAND_Y:   word = $D017;   // vertical stretch, one bit per sprite
+const SPRITE_MULTICOLOR: word = $D01C;   // 0 = hi-res, 1 = multicolour
+const SPRITE_EXPAND_X:   word = $D01D;   // horizontal stretch, one bit per sprite
+const SPRITE0_COLOR:     word = $D027;   // sprite 0 colour
+const SPRITE0_POINTER:   word = $07F8;   // image block number (block * 64 = address)
+
+// ---- VIC-II raster-interrupt registers ----
+const VIC_CONTROL:  word = $D011;   // bit 7 is raster-compare line bit 8
+const RASTER:       word = $D012;   // raster-compare line, low 8 bits
+const VIC_IRQ_FLAG: word = $D019;   // pending IRQ sources; write a 1-bit to acknowledge
+const VIC_IRQ_MASK: word = $D01A;   // which sources may raise an IRQ (bit 0 = raster)
+const CIA1_IRQ_CTRL: word = $DC0D;  // CIA 1 timer-IRQ control (reading it clears pending)
+
+// The KERNAL runs the hardware IRQ through this indirect vector, so pointing
+// it at our handler is how a KERNAL-resident program takes over the IRQ.
+const KERNAL_IRQ_VECTOR: word = $0314;
+
+// ---- sprite image staging ----
+// Block 13 lands at $0340 (13 * 64): inside the VIC's default 16K bank and
+// 64-byte aligned, so SPRITE0_POINTER can name it directly.
+const SPRITE_BLOCK: byte = 13;
+const SPRITE_IMAGE: word = $0340;
+const COLOR_WHITE:  byte = 1;
+
+// ---- motion arena (screen edges, in sprite coordinates) ----
+const X_LEFT:   word = 24;
+const X_RIGHT:  word = 320;
+const Y_TOP:    byte = 50;
+const Y_BOTTOM: byte = 229;
+const STEP:     byte = 2;      // pixels moved per frame
+
+// Raster line the frame update fires on — just below the visible area.
+const FRAME_LINE: byte = 251;
+
+// Sprite state lives at module scope so the interrupt handler can reach it
+// without a function call — the Static-Frame-Allocation-safe pattern. Zero
+// page keeps the handful of bytes the handler touches every frame fast.
+zeropage {
+  x: word = 172;               // 9-bit X (24..320), starts mid-screen
+  y: byte = 139;
+  movingRight: boolean = true;
+  movingDown: boolean = true;
+}
+
+// Fires once per frame when the raster reaches FRAME_LINE. It only touches
+// module-level state and calls no other function, so it is SFA-safe.
+interrupt function onRasterFrame(): void {
+  if (movingRight) { x = x + STEP; } else { x = x - STEP; }
+  if (movingDown)  { y = y + STEP; } else { y = y - STEP; }
+
+  // Bounce at the borders. Compare with >=/<= (not ==) so a 2px step
+  // can never straddle a bound without tripping it.
+  if (x >= X_RIGHT)  { movingRight = false; }
+  if (x <= X_LEFT)   { movingRight = true; }
+  if (y >= Y_BOTTOM) { movingDown = false; }
+  if (y <= Y_TOP)    { movingDown = true; }
+
+  poke(SPRITE0_X, lo(x));
+  poke(SPRITE_X_MSB, hi(x));
+  poke(SPRITE0_Y, y);
+
+  // Acknowledge the raster source so the VIC can raise next frame's IRQ.
+  poke(VIC_IRQ_FLAG, 1);
+}
+
+function main(): void {
+  // Copy the sprite image into place — one copy() call, as in balloon2.
+  copy(SPRITE_IMAGE, BALLOON, length(BALLOON));
+
+  // Sprite 0: image block 13, white, hi-res, normal size, enabled.
+  poke(SPRITE0_POINTER, SPRITE_BLOCK);
+  poke(SPRITE_ENABLE, 1);
+  poke(SPRITE0_COLOR, COLOR_WHITE);
+  poke(SPRITE_EXPAND_Y, 0);
+  poke(SPRITE_MULTICOLOR, 0);
+  poke(SPRITE_EXPAND_X, 0);
+
+  // ---- arm the raster interrupt ----
+  asm_sei();                                  // hold off IRQs while we reconfigure
+
+  poke(CIA1_IRQ_CTRL, $7F);                   // silence the CIA jiffy-timer IRQ...
+  peek(CIA1_IRQ_CTRL);                         // ...and read it to clear any pending flag
+
+  // Trigger on FRAME_LINE. It is < 256, so the 9th compare bit (VIC_CONTROL
+  // bit 7) must be cleared; the other control bits are left as they were.
+  poke(VIC_CONTROL, peek(VIC_CONTROL) & $7F);
+  poke(RASTER, FRAME_LINE);
+
+  pokew(KERNAL_IRQ_VECTOR, &onRasterFrame);   // route the IRQ to our handler
+  poke(VIC_IRQ_MASK, 1);                       // enable the raster IRQ source
+  poke(VIC_IRQ_FLAG, 1);                        // clear any already-pending raster IRQ
+
+  asm_cli();                                   // interrupts on — the balloon now flies itself
+
+  // The main path is free. A real game spends this on input and logic;
+  // here there is nothing left to do, so we idle and let the IRQ animate.
+  while (true) { }
+}

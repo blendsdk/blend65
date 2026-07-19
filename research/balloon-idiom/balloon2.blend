@@ -1,0 +1,91 @@
+module Main;
+
+// The bouncing C64 hot-air balloon — reimagined.
+//
+// Same program as main.blend, written the way a 6502 game developer
+// actually would. Two things change, both about readability:
+//
+//   1. The 63-byte sprite copy is one copy() call, not 63 unrolled pokes.
+//      copy() lowers to a real indexed copy loop — the exact
+//      LDA src,x / STA dst,x / DEX / BPL the hand-written balloon.asm does.
+//   2. Every hardware access reads as a named VIC-II register, so the
+//      body says what it touches instead of spelling out bare $Dxxx.
+//
+// The behaviour is byte-for-byte identical; only the source got honest.
+
+// The classic 24x21 hi-res sprite: 21 rows of 3 bytes (63 total),
+// embedded straight from the committed binary.
+const BALLOON: byte[] = embed("balloon.bin");
+
+// ---- VIC-II sprite registers ----
+const SPRITE0_X:         word = $D000;   // sprite 0 X position, low 8 bits
+const SPRITE0_Y:         word = $D001;   // sprite 0 Y position
+const SPRITE_X_MSB:      word = $D010;   // 9th X bit, one per sprite (bit 0 = sprite 0)
+const SPRITE_ENABLE:     word = $D015;   // one enable bit per sprite
+const SPRITE_EXPAND_Y:   word = $D017;   // vertical stretch, one bit per sprite
+const SPRITE_MULTICOLOR: word = $D01C;   // 0 = hi-res, 1 = multicolour
+const SPRITE_EXPAND_X:   word = $D01D;   // horizontal stretch, one bit per sprite
+const SPRITE0_COLOR:     word = $D027;   // sprite 0 colour
+const SPRITE0_POINTER:   word = $07F8;   // image block number (block * 64 = address)
+const RASTER:            word = $D012;   // current raster line
+
+// ---- sprite image staging ----
+// Block 13 lands at $0340 (13 * 64): inside the VIC's default 16K bank and
+// 64-byte aligned, so SPRITE0_POINTER can name it directly.
+const SPRITE_BLOCK: byte = 13;
+const SPRITE_IMAGE: word = $0340;
+const COLOR_WHITE:  byte = 1;
+
+// ---- motion arena (screen edges, in sprite coordinates) ----
+const X_LEFT:   word = 24;
+const X_RIGHT:  word = 320;
+const Y_TOP:    byte = 50;
+const Y_BOTTOM: byte = 229;
+const STEP:     byte = 2;      // pixels moved per frame
+
+// Raster line we pace each update to — just below the visible area.
+const FRAME_LINE: byte = 251;
+
+function main(): void {
+  // Copy the sprite image into place. One copy() replaces the 63 unrolled
+  // stores main.blend was forced into: it lowers to a real indexed copy
+  // loop (LDA BALLOON,x / STA SPRITE_IMAGE,x / DEX / BPL) — the idiom you'd
+  // reach for by hand, said in one line.
+  copy(SPRITE_IMAGE, BALLOON, length(BALLOON));
+
+  // Sprite 0: image block 13, white, hi-res, normal size, enabled.
+  poke(SPRITE0_POINTER, SPRITE_BLOCK);
+  poke(SPRITE_ENABLE, 1);
+  poke(SPRITE0_COLOR, COLOR_WHITE);
+  poke(SPRITE_EXPAND_Y, 0);
+  poke(SPRITE_MULTICOLOR, 0);
+  poke(SPRITE_EXPAND_X, 0);
+
+  // Start mid-screen, drifting down-right. X spans 24..320, so it needs
+  // 9 bits: it lives in a word, split across SPRITE0_X and the X MSB bit.
+  let x: word = 172;
+  let y: byte = 139;
+  let movingRight: boolean = true;
+  let movingDown: boolean = true;
+
+  while (true) {
+    // One update per PAL frame: hold until the raster reaches line 251.
+    // The update body outlasts a single raster line, so it cannot
+    // double-fire within one frame.
+    while (peek(RASTER) != FRAME_LINE) { }
+
+    if (movingRight) { x = x + STEP; } else { x = x - STEP; }
+    if (movingDown)  { y = y + STEP; } else { y = y - STEP; }
+
+    // Bounce at the borders. Compare with >=/<= (not ==) so a 2px step
+    // can never straddle a bound without tripping it.
+    if (x >= X_RIGHT)  { movingRight = false; }
+    if (x <= X_LEFT)   { movingRight = true; }
+    if (y >= Y_BOTTOM) { movingDown = false; }
+    if (y <= Y_TOP)    { movingDown = true; }
+
+    poke(SPRITE0_X, lo(x));
+    poke(SPRITE_X_MSB, hi(x));
+    poke(SPRITE0_Y, y);
+  }
+}
