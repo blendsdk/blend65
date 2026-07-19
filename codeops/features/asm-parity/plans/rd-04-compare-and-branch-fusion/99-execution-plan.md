@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 10:28
-> **Progress**: 0/43 tasks (0%)
+> **Last Updated**: 2026-07-19 17:06
+> **Progress**: 8/43 tasks (19%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -55,25 +55,29 @@ task-size criteria in the quality checklist)
 
 ## Phase 1: IL terminator & validation infrastructure
 
+> **Phase ref**: 267a2150f7ee0f5dd1657d684125f9ad74b4a739
+
 ### Step 1.1: Specification tests
 
 **Reference**: 07 ST-9a–d, ST-13 · 03-01 · plan-AR #2, #4
 **Objective**: Pin the `brcmp` contract before it exists.
 
-- [ ] 1.1.1 Write printer + successor + termination spec cases (ST-9a/9b/9c, ST-13) — `packages/codegen/src/il/print-il.spec.test.ts`, `packages/codegen/src/il/termination.spec.test.ts` (new)
-- [ ] 1.1.2 Write dangling-target ICE spec cases for all three branching kinds (ST-9d) — `packages/codegen/src/instr/translate.spec.test.ts`
-- [ ] 1.1.3 Red phase: run the two suites; type errors on the not-yet-existing `brcmp` kind count as red for the type-level cases — document any case that passes
+- [x] 1.1.1 Write printer + successor + termination spec cases (ST-9a/9b/9c, ST-13) — `packages/codegen/src/il/print-il.spec.test.ts`, `packages/codegen/src/il/termination.spec.test.ts` (new) ✅ (completed: 2026-07-19 17:01)
+      ↳ *Mechanical placement correction:* ST-13 landed in `packages/codegen/src/instr/shim-selection.spec.test.ts` instead of `termination.spec.test.ts`. It is an end-to-end shim-selection case, and that file already owns the compile-and-select harness (`selectedShim`, :72-105); the `il/` home would have duplicated ~60 lines of fake-plugin scaffolding to assert the same thing. Oracle content unchanged.
+- [x] 1.1.2 Write dangling-target ICE spec cases for all three branching kinds (ST-9d) — `packages/codegen/src/instr/translate.spec.test.ts` ✅ (completed: 2026-07-19 17:01)
+- [x] 1.1.3 Red phase: run the two suites; type errors on the not-yet-existing `brcmp` kind count as red for the type-level cases — document any case that passes ✅ (completed: 2026-07-19 17:01)
+      ↳ **Red: 10 failed / 40 passed** across `print-il`, `termination`, `translate` spec suites. Cases that pass today, each by design: ST-13 (asserts today's shim choice survives the phase-4 fold — a preservation guard, green now and expected to stay green); "cannot return when neither fused edge reaches a return" and "silent when every terminator target resolves" (negative cases, vacuously green until `brcmp`/the pre-pass exist).
 
 ### Step 1.2: Implementation
 
 **Reference**: 03-01 §Implementation Details
 **Objective**: The terminator kind + every consumer that must understand it.
 
-- [ ] 1.2.1 Add the `brcmp` union member; add `terminatorTargets()` (exhaustive switch closed by the repo's `default:` never-guard); amend `cfg.ts`'s "pure data" module header (records + this one pure helper) — `packages/codegen/src/il/instruction.ts`, `packages/codegen/src/il/cfg.ts`
-- [ ] 1.2.2 Render `brcmp` in the printer — `packages/codegen/src/il/print-il.ts`
-- [ ] 1.2.3 Rebase the termination walk on `terminatorTargets` (keep the constant-`brcond` taken-edge rule; `brcmp` = both edges); update the dangling-label comment — `packages/codegen/src/il/termination.ts`
-- [ ] 1.2.4 Add the `validateTerminatorTargets()` pre-pass beside `prescanAll()` — `packages/codegen/src/instr/translate.ts`
-- [ ] 1.2.5 Green phase: ST-9a–d and ST-13 pass; fix implementation only
+- [x] 1.2.1 Add the `brcmp` union member; add `terminatorTargets()` (exhaustive switch closed by the repo's `default:` never-guard); amend `cfg.ts`'s "pure data" module header (records + this one pure helper) — `packages/codegen/src/il/instruction.ts`, `packages/codegen/src/il/cfg.ts` ✅ (completed: 2026-07-19 17:06) — also barrelled from `il/index.ts`
+- [x] 1.2.2 Render `brcmp` in the printer — `packages/codegen/src/il/print-il.ts` ✅ (completed: 2026-07-19 17:06)
+- [x] 1.2.3 Rebase the termination walk on `terminatorTargets` (keep the constant-`brcond` taken-edge rule; `brcmp` = both edges); update the dangling-label comment — `packages/codegen/src/il/termination.ts` ✅ (completed: 2026-07-19 17:06)
+- [x] 1.2.4 Add the `validateTerminatorTargets()` pre-pass beside `prescanAll()` — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-19 17:06)
+- [x] 1.2.5 Green phase: ST-9a–d and ST-13 pass; fix implementation only ✅ (completed: 2026-07-19 17:06) — 50/50 green across the four touched spec suites
 
 ### Step 1.3: Implementation tests & hardening
 

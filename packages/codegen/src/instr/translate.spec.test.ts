@@ -540,3 +540,66 @@ describe("Specification: translator — div/mod (ST-T18, ST-T19)", () => {
   });
 });
 
+
+describe("Specification: translator — terminator target validation", () => {
+  /** A two-block function whose entry terminator names a block that is absent. */
+  function fnWithDanglingTarget(terminator: ILTerminator): ILFunction {
+    return {
+      name: "M.f",
+      params: [],
+      returnType: "void",
+      blocks: [
+        { label: "_entry", instructions: [], terminator },
+        { label: "_real", instructions: [], terminator: { kind: "ret" } },
+      ],
+      tempCount: 8,
+      isInterrupt: false,
+    };
+  }
+
+  // Every branching kind is checked by the same pass, so every kind reports.
+  // A branch into nothing is a compiler bug, not user error: it is recorded
+  // as an ICE and translation continues so the rest of the diagnostics survive.
+  const danglingCases: ReadonlyArray<[string, ILTerminator]> = [
+    ["an unconditional branch", { kind: "br", target: "_LX" }],
+    [
+      "a value-conditional branch",
+      { kind: "brcond", cond: temp(0, IL_BYTE), trueTarget: "_LX", falseTarget: "_real" },
+    ],
+    [
+      "a fused compare-and-branch",
+      {
+        kind: "brcmp",
+        op: "lt",
+        left: temp(0, IL_BYTE),
+        right: imm(1, IL_BYTE),
+        type: IL_BYTE,
+        trueTarget: "_LX",
+        falseTarget: "_real",
+      },
+    ],
+  ];
+
+  it.each(danglingCases)("ICEs when %s targets a label with no block", (_kind, terminator) => {
+    const bag = createDiagnosticBag();
+    expect(() =>
+      translateFunction(fnWithDanglingTarget(terminator), makePlan(), "nmos6502", bag),
+    ).not.toThrow();
+    expect(bag.hasErrors()).toBe(true);
+    const ice = bag.getErrors()[0];
+    expect(ice.code).toBe(IceCode.Unexpected);
+    expect(ice.message).toContain("terminator target '_LX' resolves to no block");
+  });
+
+  // The pass must not fire on a function whose targets all resolve.
+  it("stays silent when every terminator target resolves to a block", () => {
+    const bag = createDiagnosticBag();
+    translateFunction(
+      fnWithDanglingTarget({ kind: "br", target: "_real" }),
+      makePlan(),
+      "nmos6502",
+      bag,
+    );
+    expect(bag.hasErrors()).toBe(false);
+  });
+});

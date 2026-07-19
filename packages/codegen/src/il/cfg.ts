@@ -9,7 +9,8 @@
  * data, and the carried {@link AllocationPlan} that codegen consumes.
  *
  * Every record is `readonly` — immutability is a contract: the optimizer
- * reads, codegen reads, nobody mutates in place. Pure data, no behavior.
+ * reads, codegen reads, nobody mutates in place. Records plus one pure
+ * successor helper ({@link terminatorTargets}) — no other behavior lives here.
  */
 
 import type { AllocationPlan } from "@blend65/core";
@@ -31,6 +32,43 @@ export interface BasicBlock {
   readonly instructions: readonly ILInstruction[];
   /** The single control-flow operation that ends the block. */
   readonly terminator: ILTerminator;
+}
+
+/**
+ * The branch-target labels of a terminator, in declaration order.
+ *
+ * The single place a terminator's outgoing edges are enumerated: the
+ * translator's target validation and the reachability walk behind startup-shim
+ * selection both read it, so neither can drift from the other or quietly
+ * forget a terminator kind. Callers that treat some edge specially (a constant
+ * condition follows only its taken edge, say) layer that on top rather than
+ * re-deriving the edge set.
+ *
+ * @param t The terminator to enumerate.
+ * @returns Its targets — one for `br`, true-then-false for the conditional
+ *   forms, none for `ret` and `unreachable`.
+ *
+ * @example
+ * terminatorTargets({ kind: "br", target: "_L0" });   // ["_L0"]
+ * terminatorTargets({ kind: "ret" });                 // []
+ */
+export function terminatorTargets(t: ILTerminator): readonly string[] {
+  switch (t.kind) {
+    case "br":
+      return [t.target];
+    case "brcond":
+    case "brcmp":
+      return [t.trueTarget, t.falseTarget];
+    case "ret":
+    case "unreachable":
+      return [];
+    default: {
+      // Exhaustiveness guard: a new terminator kind without a case here is a
+      // compile error naming the kind, never a silently dropped edge.
+      const _exhaustive: never = t;
+      return _exhaustive;
+    }
+  }
 }
 
 /**

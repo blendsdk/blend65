@@ -35,6 +35,7 @@ import { isAddr, isImmediate, isLocation, isTemp } from "../il/operand.js";
 import type { ILOperand } from "../il/operand.js";
 import type { ILInstruction, ILTerminator } from "../il/instruction.js";
 import type { ILFunction } from "../il/cfg.js";
+import { terminatorTargets } from "../il/cfg.js";
 
 import type { Opcode } from "./opcode.js";
 import type { AddressingMode } from "./addressing-mode.js";
@@ -242,6 +243,7 @@ class FunctionTranslator {
       this.emit("PHA", "Implied", none());
     }
 
+    this.validateTerminatorTargets();
     this.prescanAll();
     for (const block of this.fn.blocks) {
       this.resetBlockState();
@@ -269,6 +271,30 @@ class FunctionTranslator {
     }
 
     return { symbol: this.fn.name, segment: "code", entries: this.out };
+  }
+
+  // ── Pre-passes ─────────────────────────────────────────────────────────────
+
+  /**
+   * Check that every terminator branches to a block that exists.
+   *
+   * A branch into a label with no block would assemble to a jump at an
+   * undefined address — the kind of defect that surfaces as a hang on real
+   * hardware rather than as a compiler message. Lowering is what mints labels,
+   * so this catches its bugs at the boundary, before a single instruction is
+   * emitted. Every branching kind is checked from the one shared successor
+   * enumeration, so a terminator kind can never slip past by being forgotten
+   * here.
+   */
+  private validateTerminatorTargets(): void {
+    const labels = new Set(this.fn.blocks.map((b) => b.label));
+    for (const block of this.fn.blocks) {
+      for (const target of terminatorTargets(block.terminator)) {
+        if (!labels.has(target)) {
+          this.iceDanglingTarget(target, block.label, block.terminator.kind);
+        }
+      }
+    }
   }
 
   // ── Pre-scan (D10) ─────────────────────────────────────────────────────────
@@ -1899,6 +1925,20 @@ class FunctionTranslator {
       IceCode.Unexpected,
       null,
       `IL→Instr: unsupported op '${what}' (deferred to RD-07c)`,
+    );
+  }
+
+  /**
+   * Raise the dangling-branch-target ICE. Recorded rather than thrown, like
+   * every translator ICE, so one malformed function does not hide the
+   * diagnostics of the rest of the program.
+   */
+  private iceDanglingTarget(target: string, fromBlock: string, kind: string): void {
+    this.bag.addICE(
+      IceCode.Unexpected,
+      null,
+      `IL→Instr: terminator target '${target}' resolves to no block ` +
+        `(function '${this.fn.name}', block '${fromBlock}', ${kind})`,
     );
   }
 }

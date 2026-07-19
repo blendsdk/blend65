@@ -119,6 +119,21 @@ describe("startup shim selection (ST-34..ST-37)", () => {
     expect(shim).toBe("__shim_non-terminating");
   });
 
+  // The same idiom with an MMIO-only body — the shape a raster poll wraps.
+  // How the loop's constant condition is represented in the IL is free to
+  // change; which shim it selects is not.
+  it("a while(true) main whose body only pokes hardware still selects the non-terminating shim", () => {
+    const shim = selectedShim(
+      [
+        "module Main;",
+        "function main(): void {",
+        "  while (true) { poke($D020, 1); }",
+        "}",
+      ].join("\n"),
+    );
+    expect(shim).toBe("__shim_non-terminating");
+  });
+
   it("ST-35: a returning main keeps the terminating shim under auto", () => {
     const shim = selectedShim(
       ["module Main;", "let n: byte = 0;", "function main(): void { n = 1; }"].join("\n"),

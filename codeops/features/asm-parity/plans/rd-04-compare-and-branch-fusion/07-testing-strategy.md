@@ -32,7 +32,7 @@
 
 | #    | Input / Scenario | Expected Output / Behavior | Source |
 |------|------------------|----------------------------|--------|
-| ST-9a | Print a function whose block ends `brcmp lt` on temp `%0` vs immediate 251 (byte operands) → `_L1`/`_L2` | Printer line exactly `brcmp lt byte %0, 251, _L1, _L2` (format pinned here — the comparison instruction's prefix-tag/operand rendering plus the target list) | 03-01 §Printer |
+| ST-9a | Print a function whose block ends `brcmp lt` on temp `%0` vs immediate 251 (byte operands) → `_L1`/`_L2` | Printer line exactly `brcmp lt i8u %0, 251, _L1, _L2` (format pinned here — the comparison instruction's prefix-tag/operand rendering plus the target list; the tag is `ilTypeTag`'s, per plan-AR #8) | 03-01 §Printer |
 | ST-9b | `terminatorTargets` over all five kinds | `br`→`[target]`; `brcond`/`brcmp`→`[trueTarget, falseTarget]`; `ret`/`unreachable`→`[]` | plan-AR #2 |
 | ST-9c | `functionCanReturn` on a CFG whose only path to `ret` crosses a `brcmp` | `true` — both `brcmp` edges are live successors | 03-01 §Termination |
 | ST-9d | Translate a function whose terminator targets label `_LX` with no such block (each kind: `br`, `brcond`, `brcmp`) | Diagnostic bag holds ICE `terminator target '_LX' resolves to no block …`; no crash, no silent emission | RD AC-10 / plan-AR #2 |
@@ -42,7 +42,7 @@
 
 | #    | Input / Scenario | Expected Output / Behavior | Source |
 |------|------------------|----------------------------|--------|
-| ST-8a | Lower `if (a < b) { … }` (unsigned bytes) | Condition block terminates `brcmp lt byte a, b, then, else` (pinned printer grammar, ST-9a); NO comparison instruction, NO `brcond`, NO temp for the result | RD Must-Have (condition-position) |
+| ST-8a | Lower `if (a < b) { … }` (unsigned bytes) | Condition block terminates `brcmp lt i8u a, b, then, else` (pinned printer grammar, ST-9a); NO comparison instruction, NO `brcond`, NO temp for the result | RD Must-Have (condition-position) |
 | ST-8b | Lower `while (x != 5)` / `do … while (x != 5)` / `for (let i: byte = 0 to 9)` / `switch (d) { case 3: … }` | Each condition/dispatch block ends in `brcmp` (`ne`/`le`/`eq` respectively); for-init and switch-discriminant lowering otherwise unchanged | RD Must-Have; 03-03 §Statement rewiring |
 | ST-8c | Lower `if (!b)` where `b: boolean` | IDENTICAL instruction list to `if (b)` with true/false targets swapped; no `eq b, 0` instruction | RD AC-4 |
 | ST-8d | Lower `if (x >= 8 && x < 40)` | Two blocks each ending `brcmp` (`ge` then `lt`); right block reachable ONLY from the first's true edge; zero `0sc` stores/loads; frame has no slot for this site | RD AC-3 / req-AR #22 |

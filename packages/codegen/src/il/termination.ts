@@ -18,6 +18,7 @@
  */
 
 import type { ILFunction } from "./cfg.js";
+import { terminatorTargets } from "./cfg.js";
 
 /**
  * Whether `fn` can reach a `ret` terminator from its entry block.
@@ -39,21 +40,24 @@ export function functionCanReturn(fn: ILFunction): boolean {
     const t = block.terminator;
     if (t.kind === "ret") return true;
 
-    const next: string[] = [];
-    if (t.kind === "br") {
-      next.push(t.target);
-    } else if (t.kind === "brcond") {
-      if (t.cond.kind === "immediate") {
-        next.push(t.cond.value !== 0 ? t.trueTarget : t.falseTarget);
-      } else {
-        next.push(t.trueTarget, t.falseTarget);
-      }
-    }
-    // "unreachable" contributes no successors.
+    // One special case sits on top of the shared edge set: a value-conditional
+    // branch on a literal follows only the edge it will actually take. A fused
+    // compare-and-branch carries no such literal — its comparison is evaluated
+    // at runtime — so both of its edges stay live, which can only
+    // over-approximate reachability and therefore errs toward the harmless
+    // terminating shim.
+    const next =
+      t.kind === "brcond" && t.cond.kind === "immediate"
+        ? [t.cond.value !== 0 ? t.trueTarget : t.falseTarget]
+        : terminatorTargets(t);
+
     for (const target of next) {
       if (seen.has(target)) continue;
       const targetBlock = byLabel.get(target);
-      if (targetBlock === undefined) continue; // dangling label — ignore defensively
+      // Dangling label — skipped so the analysis stays total. Translation
+      // rejects these up front, so reaching one here means a malformed
+      // function is already being reported elsewhere.
+      if (targetBlock === undefined) continue;
       seen.add(target);
       work.push(targetBlock);
     }

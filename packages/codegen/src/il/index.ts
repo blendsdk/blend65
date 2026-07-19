@@ -33,8 +33,9 @@ export {
 // Intrinsic descriptor placeholder (superseded additively as the taxonomy grows)
 export type { IntrinsicDescriptor } from "./intrinsic-descriptor.js";
 
-// CFG records
+// CFG records + terminator successor enumeration
 export type { BasicBlock, ILFunction, ILProgram, ConstDataEntry } from "./cfg.js";
+export { terminatorTargets } from "./cfg.js";
 
 // Builder + lowering
 export { IlFunctionBuilder } from "./builder.js";

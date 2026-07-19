@@ -79,7 +79,7 @@ the same task (records + this one pure successor helper).
 Render beside `brcond`, reusing the comparison instruction's operand/type rendering:
 
 ```
-brcmp lt byte %0, 251, _L1, _L2
+brcmp lt i8u %0, 251, _L1, _L2
 ```
 
 (`brcmp <op> <typeTag> <left>, <right>, <trueTarget>, <falseTarget>` — op, then the prefix
@@ -94,11 +94,14 @@ A `validateTerminatorTargets()` private method called from `run()` beside `presc
 each label from `terminatorTargets(block.terminator)`; a miss records
 
 ```
-terminator target '<label>' resolves to no block (block '<blockLabel>', <kind>)
+IL→Instr: terminator target '<label>' resolves to no block (function '<fnName>', block '<blockLabel>', <kind>)
 ```
 
-through the existing `iceUnsupported` diagnostic-bag convention (record-and-continue, never
-throw — the established translator pattern). One uniform pass covers `br`, `brcond`, and
+through the record-and-continue diagnostic-bag convention (`bag.addICE(IceCode.Unexpected, null,
+msg)`, never throw — the established translator pattern) via a sibling `iceDanglingTarget()`
+helper beside `iceUnsupported`; the latter is NOT reused, because it wraps its argument in an
+"unsupported op … deferred to RD-07c" sentence that misattributes this case (plan-AR #9).
+One uniform pass covers `br`, `brcond`, and
 `brcmp` — including the branch-context recursion in 03-03, the code most able to mint a
 dangling label (RD Technical Requirements; plan-AR #2).
 

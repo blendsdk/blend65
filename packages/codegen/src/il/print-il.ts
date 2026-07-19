@@ -169,7 +169,7 @@ function renderCallLike(
 }
 
 /**
- * Render a block's terminator line body: `br`, `brcond`, `ret`, or
+ * Render a block's terminator line body: `br`, `brcond`, `brcmp`, `ret`, or
  * `unreachable`.
  *
  * @param term The terminator.
@@ -181,6 +181,12 @@ function renderTerminator(term: ILTerminator): string {
       return `br ${term.target}`;
     case "brcond":
       return `brcond ${renderOperand(term.cond)}, ${term.trueTarget}, ${term.falseTarget}`;
+    // Op and type tag lead, exactly as the comparison instruction renders
+    // them, with both branch targets appended as on `brcond`.
+    case "brcmp":
+      return `brcmp ${term.op} ${ilTypeTag(term.type)} ${renderOperand(term.left)}, ${renderOperand(
+        term.right,
+      )}, ${term.trueTarget}, ${term.falseTarget}`;
     case "ret":
       return term.value === undefined ? "ret" : `ret ${renderOperand(term.value)}`;
     case "unreachable":

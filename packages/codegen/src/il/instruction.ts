@@ -152,6 +152,7 @@ export type ILInstruction =
  * - **`br`** — unconditional branch to `target`
  * - **`brcond`** — branch to `trueTarget` when `cond` is non-zero, else
  *   `falseTarget`
+ * - **`brcmp`** — compare two operands and branch on the result directly
  * - **`ret`** — return, optionally yielding `value`
  * - **`unreachable`** — a block that can never be reached (e.g. after a
  *   diverging call); a defined terminator, never undefined behavior
@@ -161,6 +162,22 @@ export type ILTerminator =
   | {
       readonly kind: "brcond";
       readonly cond: ILOperand;
+      readonly trueTarget: string;
+      readonly falseTarget: string;
+    }
+  // Fused compare-and-branch — branches to `trueTarget` when
+  // `left <op> right` holds, else to `falseTarget`. The comparison's flags
+  // feed the branch directly: no 0/1 result is produced anywhere, so no temp,
+  // no frame slot, and no reload stand between the compare and the branch.
+  // `type` is the promoted OPERAND type (as on the comparison instruction) —
+  // it selects the width/signedness framing the translator emits.
+  // `brcond` remains the terminator for branching on a boolean *value*.
+  | {
+      readonly kind: "brcmp";
+      readonly op: (typeof COMPARISON_OPS)[number];
+      readonly left: ILOperand;
+      readonly right: ILOperand;
+      readonly type: ILType;
       readonly trueTarget: string;
       readonly falseTarget: string;
     }

@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import type { AllocationPlan } from "@blend65/core";
 
 import { IL_BYTE, IL_SBYTE, IL_SWORD, IL_WORD } from "./il-type.js";
-import { loc, temp } from "./operand.js";
+import { imm, loc, temp } from "./operand.js";
 import type { BasicBlock, ILFunction, ILProgram } from "./cfg.js";
 import { ilTypeTag, printIL } from "./print-il.js";
 
@@ -132,6 +132,36 @@ describe("Specification: RD-06 printIL (§4.6/§4.7)", () => {
       isInterrupt: false,
     };
     expect(printIL(program(fn))).toContain("store %0, s+2");
+  });
+
+  // A fused compare-and-branch renders its op and operand type tag exactly as
+  // the comparison instruction does, with both branch targets appended.
+  it("should print a fused compare-and-branch as `brcmp op tag left, right, true, false`", () => {
+    const fn: ILFunction = {
+      name: "M.poll",
+      params: [],
+      returnType: "void",
+      blocks: [
+        {
+          label: "_entry",
+          instructions: [],
+          terminator: {
+            kind: "brcmp",
+            op: "lt",
+            left: temp(0, IL_BYTE),
+            right: imm(251, IL_BYTE),
+            type: IL_BYTE,
+            trueTarget: "_L1",
+            falseTarget: "_L2",
+          },
+        },
+        { label: "_L1", instructions: [], terminator: { kind: "ret" } },
+        { label: "_L2", instructions: [], terminator: { kind: "ret" } },
+      ],
+      tempCount: 1,
+      isInterrupt: false,
+    };
+    expect(printIL(program(fn))).toContain("  brcmp lt i8u %0, 251, _L1, _L2");
   });
 
   // A multi-block function prints its blocks entry-first, in array order.

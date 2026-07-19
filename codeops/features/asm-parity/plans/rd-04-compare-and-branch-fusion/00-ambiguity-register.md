@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-04 Compare-and-Branch Fusion (plan)
 
-> **Status**: ✅ GATE PASSED — all 7 items resolved
-> **Last Updated**: 2026-07-19 10:13
+> **Status**: ✅ GATE PASSED — all 9 items resolved (7 planning + 2 runtime)
+> **Last Updated**: 2026-07-19 16:31
 > **Scope**: Implementation plan for asm-parity/RD-04 (`../../requirements/RD-04-compare-and-branch-fusion.md`)
 > **CodeOps Skills Version**: 3.9.0
 >
@@ -25,6 +25,8 @@
 | 5 | Naming | New acceptance fixture name (RD delegates; content: compound guard + `!` + signed compare + `peek`-in-right-clause) | A: `guards` · B: `clip` · C: `steer` | A — `guards` | ✅ Resolved |
 | 6 | Technical | Verify command for every plan Verify line | Detected from project CLAUDE.md (+ local VICE tiers where a phase touches emulator-verified assets) | Confirmed: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` | ✅ Resolved |
 | 7 | Scope | RD Should-Haves in this plan? (word-framing simplification; closeout delta record) | A: both in scope · B: Must-Haves only | A — both in scope | ✅ Resolved |
+| 8 | Technical (runtime) | `brcmp` printer type tag: ST-9a/ST-8a pin the literal word `byte`, but the comparison-instruction rendering 03-01 says to reuse emits `i8u` | A: `i8u` — match the printer · B: `byte` — honor the ST literal | A — `i8u`; the ST rows are corrected | ✅ Resolved |
+| 9 | Technical (runtime) | Dangling-target ICE emission: 03-01 names `iceUnsupported`, but that helper wraps its argument in an "unsupported op … deferred to RD-07c" sentence the case does not fit | A: sibling `iceDanglingTarget` helper on the same bag convention, exact 03-01 text + function name · B: reuse `iceUnsupported` verbatim | A — sibling helper | ✅ Resolved |
 
 ### Resolution Notes
 
@@ -79,6 +81,25 @@ shape each.
 **plan-AR #6 (verify command):** As detected in project CLAUDE.md. Phases touching
 emulator-verified assets additionally run the local VICE fixture/twin tiers
 (`describe.skipIf` in CI per AR-27).
+
+**plan-AR #8 (printer tag — `i8u`, runtime):** Surfaced while authoring the ST-9a oracle. The
+printer declares `ilTypeTag` "the **single** place this mapping lives" (`print-il.ts:20-30`) and
+every typed IL line in the corpus renders `i8u`/`i8s`/`i16u`/`i16s` (`print-il.spec.test.ts:88-92`,
+`:110-111`); `byte` exists nowhere in the IL text surface. 03-01 §Printer independently says to
+render "exactly as the comparison instruction renders", which resolves to `i8u`. The literal
+`byte` in the ST-9a/ST-8a rows is therefore prose that leaked into a pinned string, not a decision
+to give `brcmp` its own type vocabulary (option B would also have left the signed/word spellings
+undefined — the rows only ever show `byte`). Both ST rows are corrected to `i8u` as part of this
+resolution; the corrected text is the immutable oracle.
+
+**plan-AR #9 (dangling-target ICE — sibling helper, runtime):** 03-01 §Dangling-target ICE cites
+"the existing `iceUnsupported` diagnostic-bag convention", but that helper is not a passthrough —
+it wraps its argument into `IL→Instr: unsupported op '<what>' (deferred to RD-07c)`
+(`translate.ts:1897-1903`). A dangling target is neither an unsupported op nor deferred work, so
+reusing it verbatim would ship a false attribution on every occurrence. The cited *convention* is
+the record-and-continue bag pattern (`bag.addICE(IceCode.Unexpected, null, msg)`, never throw),
+which a sibling `iceDanglingTarget()` follows exactly. The message carries 03-01's text plus the
+function name plan-AR #2's resolution note asks for and 03-01's template omits.
 
 **plan-AR #7 (Should-Haves in scope):** Word-framing simplification is not separate work — the
 fused framings' internal true/false labels becoming real block targets IS the simplification
