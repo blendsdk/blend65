@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 18:58
+> **Last Updated**: 2026-07-19 19:12
 > **Progress**: 26/43 tasks (60%)
 > **CodeOps Skills Version**: 3.9.0
 
@@ -215,10 +215,10 @@ call site, `iceNoTranslation` still reachable, and that no pre-existing spec tes
 **Objective**: The pair is a full corpus citizen with a measured "before" row.
 
 - [x] 3.2.1 Author the hand-written twin (blind to fused output — the parity bar) + twin tier green via the shared observables — `packages/test-harness/test/golden/guards.twin.asm` ✅ (completed: 2026-07-19 18:56)
-      ↳ 130 bytes / 153 static cycles against the generated 347 / 404. It walks the probe in A and counts hits in Y (never a store), holds the four state bytes in zero page, and decides each guard with one compare and one branch — including the `SEC · SBC · BVC · EOR #$80` correction, where it branches on `BPL` instead of building a boolean. Landed the identical observable set on VICE 3.10 first run.
+      ↳ 128 bytes / 151 static cycles against the generated 347 / 404. It walks the probe down in A and counts hits in Y (never a store), holds all five state bytes in zero page, and decides each guard with one compare and one branch — including the `SEC · SBC · BVC · EOR #$80` correction, where it branches on `BPL` instead of building a boolean. Landed the identical observable set on VICE 3.10 first run.
       ↳ Authored against the source's semantics, not against generated output: the fused form does not exist yet, and the pre-fusion golden was deliberately not consulted while writing it.
 - [x] 3.2.2 Register: `twins.json` pair + routed divergence groups; `budgets.json` bytes + compound-guard window (current values, ratchet); regenerate `SCOREBOARD.md` — `packages/test-harness/test/golden/twins.json`, `budgets.json`, `SCOREBOARD.md` ✅ (completed: 2026-07-19 18:57)
-      ↳ Three computed divergence groups, all routed: **instruction selection** → #50 (every guard materialises and re-tests), #51 (JMP 29 vs 1), #53 (probe/count in frame memory vs X/Y), #52 (counter bump vs `INC`), #59 (unreachable `RTS` past a non-returning frame loop); **addressing modes** → #49 (`SBC Absolute` vs the hand version's zero-page velocities); **layout** → #51.
+      ↳ Two computed divergence groups, all routed: **instruction selection** → #50 (every guard materialises and re-tests), #51 (JMP 29 vs 1), #53 (probe/count in frame memory vs A/Y), #52 (counter bump vs `INC`), #59 (unreachable `RTS` past a non-returning frame loop), #49 (state staged through the absolute frame vs zero page); **layout** → #51.
       ↳ Budgets are the exact current figures, not headroom: **347 bytes** and a `compoundGuard` window of **43 static cycles** — both established by probing one below and reading the ratchet's own failure. The window carries a hand-derivation comment beside `EXPECTED_POLL_ITERATION_MAX_CYCLES` and its own equality test, so the figure is derived rather than transcribed; 16 of those 43 cycles exist only to build a 0/1 the join reads straight back.
 - [x] 3.2.3 Full verification + local VICE fixture & twin tiers + examples-sync green ✅ (completed: 2026-07-19 18:58)
       ↳ install/build/typecheck/lint/test green — 1 051 tests (cli 47, compiler 113, codegen 616, test-harness 295, root boundary 33), including the local VICE fixture tier, the 18-case twin tier, examples-sync (19), and the scoreboard freshness gate. Thirteen pre-existing goldens byte-identical; `git status --porcelain spec/` empty. Prettier: the three new files and both JSON assets are clean; the drift `--check` reports in `budgets.spec.test.ts` and `twins.spec.test.ts` is pre-existing and outside the touched ranges, so it was left alone.
@@ -228,7 +228,7 @@ call site, `iceNoTranslation` still reachable, and that no pre-existing spec tes
 - [x] All verification passing
 
 **Measured "before"** (the baseline the flip ratchets against, from the committed scoreboard):
-`guards` 347 bytes generated vs 130 hand-written (2.67×), 404 static cycles vs 153 (2.64×);
+`guards` 347 bytes generated vs 128 hand-written (2.71×), 404 static cycles vs 151 (2.68×);
 `compoundGuard` window 43 static cycles.
 
 **Post-phase quality review** (phase-reviewer, lenses: correctness/maintainability/standards + api-surface):
@@ -255,6 +255,16 @@ and checked that each golden-suite landmark survives the fused shape phase 4 wil
   observables. This matters more than its size: the twin IS the bar the compiler is measured
   against, so a loose twin flatters the ratios the flip is supposed to move. The scoreboard,
   `twins.json` notes and the measured "before" above were regenerated from the tighter twin.
+- **RV-004 (minor, output parity — raised on the fix diff, accepted, fixed):** the re-review
+  confirmed both fixes correct and fully propagated, and found one residue: the probe walk still
+  ascended and therefore still paid an explicit `CMP #64` to bound itself, where the count is
+  order-independent and the canonical 6502 idiom walks DOWN and falls out on the borrow. Adopted —
+  2 more bytes and 2 more static cycles, taking the pair to 128 / 151, identical observables on
+  VICE. The corpus already establishes descending walks as twin practice (the balloon twin's copy
+  loop counts `LDX #62 … DEX / BPL`). Side effect: the hand side now issues two `SBC`s, so the
+  mnemonic counts differ before the tool drills into addressing modes — the `addressing modes`
+  divergence group disappeared, and its zero-page placement note moved onto the instruction
+  selection group so the observation is not lost with the group.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local VICE tiers)
 

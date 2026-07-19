@@ -8,7 +8,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 | ---- | --------- | ---------- | ----------- | ---------- | ----------- | ------------ | ------------ | ------------- | -------------- |
 | balloon | 772 | 251 | 3.08 | 892 | 248 | 3.60 | 162 | 97 | 1.67 |
 | gate | 30 | 18 | 1.67 | 34 | 12 | 2.83 | — | — | — |
-| guards | 347 | 130 | 2.67 | 404 | 153 | 2.64 | — | — | — |
+| guards | 347 | 128 | 2.71 | 404 | 151 | 2.68 | — | — | — |
 | rasterpoll | 88 | 36 | 2.44 | 102 | 33 | 3.09 | — | — | — |
 | slice3a | 36 | 18 | 2.00 | 42 | 12 | 3.50 | — | — | — |
 | slice3b | 233 | 28 | 8.32 | 348 | 24 | 14.50 | — | — | — |
@@ -21,7 +21,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 | slice7b | 367 | 48 | 7.65 | 521 | 48 | 10.85 | — | — | — |
 | slice8 | 176 | 74 | 2.38 | 264 | 84 | 3.14 | — | — | — |
 | slice8b | 417 | 77 | 5.42 | 527 | 63 | 8.37 | — | — | — |
-| **Total** | 4172 | 922 | 4.52 | 5340 | 911 | 5.86 | — | — | — |
+| **Total** | 4172 | 920 | 4.53 | 5340 | 909 | 5.87 | — | — | — |
 
 ## balloon — routing
 
@@ -45,12 +45,12 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| addressing modes | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | the signed compare reads its operand from the absolute frame (SBC Absolute) where the hand version keeps velocities in zero page |
 | instruction selection | structural | [#50](https://github.com/blendsdk/blend65/issues/50) | every guard materializes 0/1 and re-tests it (BNE 10 vs 2, BMI/BPL polarity round-trip) |
 | instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 29 vs 1 - jump threading / fall-through elision |
-| instruction selection | structural | [#53](https://github.com/blendsdk/blend65/issues/53) | the probe walk and its hit count live in frame memory; the hand loop keeps them in A and Y (LDY/INY 0 generated, LDA 47 vs 13) |
+| instruction selection | structural | [#53](https://github.com/blendsdk/blend65/issues/53) | the probe walk and its hit count live in frame memory, stepped with CLC/ADC and bounded by a compare; the hand loop walks down in A and counts in Y (CLC/ADC 3 vs 0, LDY/INY 0 generated) |
 | instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | frame-counter bump is load-add-store where the hand version uses INC |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | unreachable epilogue: main never returns, yet an RTS is still emitted past the frame loop |
+| instruction selection | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | state is staged through the absolute frame (the signed compare's SBC reads it) where the hand version keeps all five bytes in zero page |
 | layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | code-size consequence of block layout |
 
 ## rasterpoll — routing

@@ -49,19 +49,20 @@ raster: lda $d012
 update:
         ; --- sprite window: count the column probes inside [8,40) ---
         ; A walks the probes, Y counts the hits. The probe indexes nothing,
-        ; so it never needs to leave A. The upper bound is only asked about
-        ; once the lower bound holds.
-        lda #0
+        ; so it never needs to leave A, and the count does not care what
+        ; order the probes come in - so walk down and let the borrow past
+        ; zero end the loop, which costs no compare at all. The upper bound
+        ; is only asked about once the lower bound holds.
+        lda #56
         ldy #0
 band:   cmp #8
         bcc step            ; below the band
         cmp #40
         bcs step            ; at or past the top
         iny
-step:   clc
-        adc #8
-        cmp #64
-        bcc band
+step:   sec
+        sbc #8
+        bcs band
         sty $0400
 
         ; --- nothing to animate while the sprite is parked ---

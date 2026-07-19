@@ -346,7 +346,7 @@
           {
             "disposition": "structural",
             "issue": 53,
-            "note": "the probe walk and its hit count live in frame memory; the hand loop keeps them in A and Y (LDY/INY 0 generated, LDA 47 vs 13)"
+            "note": "the probe walk and its hit count live in frame memory, stepped with CLC/ADC and bounded by a compare; the hand loop walks down in A and counts in Y (CLC/ADC 3 vs 0, LDY/INY 0 generated)"
           },
           {
             "disposition": "peephole",
@@ -357,13 +357,11 @@
             "disposition": "ceremony",
             "issue": 59,
             "note": "unreachable epilogue: main never returns, yet an RTS is still emitted past the frame loop"
-          }
-        ],
-        "addressing modes": [
+          },
           {
             "disposition": "data/placement",
             "issue": 49,
-            "note": "the signed compare reads its operand from the absolute frame (SBC Absolute) where the hand version keeps velocities in zero page"
+            "note": "state is staged through the absolute frame (the signed compare's SBC reads it) where the hand version keeps all five bytes in zero page"
           }
         ],
         "layout": [
