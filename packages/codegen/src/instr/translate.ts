@@ -59,6 +59,22 @@ interface MemHome {
 }
 
 /**
+ * What a comparison does with the flags it just produced.
+ *
+ * `value` materialises the 0/1 byte into `dest` — the form a boolean-valued
+ * expression needs. `branch` hands the flags straight to the two block edges:
+ * no 0/1 is built, so no temp, no frame slot, and no reload stand between the
+ * compare and the branch.
+ *
+ * Both tails sit behind ONE compare sequence per framing. That is deliberate:
+ * a divergence in polarity between the two forms is not something review has
+ * to catch, because there is only one place the polarity is decided.
+ */
+type CmpTail =
+  | { readonly kind: "value"; readonly dest: ILOperand }
+  | { readonly kind: "branch"; readonly trueTarget: string; readonly falseTarget: string };
+
+/**
  * Optional per-target translation options.
  *
  * `zpArgBlockSize` enables the runtime-call ZP arg-block check (E10044):
@@ -405,7 +421,13 @@ class FunctionTranslator {
       case "le":
       case "gt":
       case "ge":
-        this.translateComparison(ins.op, ins.dest, ins.left, ins.right, ins.type);
+        this.translateComparison(
+          ins.op,
+          { kind: "value", dest: ins.dest },
+          ins.left,
+          ins.right,
+          ins.type,
+        );
         return;
       case "neg":
         this.translateNeg(ins.dest, ins.src, ins.type, index, all);
@@ -546,13 +568,15 @@ class FunctionTranslator {
    * - `br` — an unconditional `JMP` to the target block label (3-byte absolute is
    *   always in range, unlike a relative branch).
    * - `brcond` — the condition operand is a **materialized boolean byte** (0/1),
-   *   not live CPU flags (`translateComparison` materializes the 0/1 and consumes
-   *   the compare's flags itself). Load it (a redundant `LDA` is suppressed only
-   *   when the boolean is already resident in A within this block), branch to the
-   *   true target with `BNE`, and `JMP` to the false target. Fusing the compare
-   *   into the branch would need a non-materializing comparison lowering that does
-   *   not exist yet (a future peephole optimization) — out of scope, so this
-   *   stays correct-first.
+   *   not live CPU flags. Load it (a redundant `LDA` is suppressed only when the
+   *   boolean is already resident in A within this block), branch to the true
+   *   target with `BNE`, and `JMP` to the false target. This is the terminator
+   *   for branching on a boolean *value* — one that was computed elsewhere, or
+   *   stored, or passed in.
+   * - `brcmp` — the comparison IS the branch: the same framing a value context
+   *   would run, ending in a branch to the true target instead of a 0/1 byte.
+   *   Nothing is materialized, so no temp, no frame slot, and no reload sit
+   *   between the compare and the branch.
    * - `unreachable` — control provably cannot reach here; emit nothing.
    */
   private translateTerminator(term: ILTerminator): void {
@@ -586,10 +610,13 @@ class FunctionTranslator {
       case "unreachable":
         return; // provably unreachable — no code, no ICE
       case "brcmp":
-        // The fused form has no branch-form framings behind it yet. Emitting
-        // nothing would leave the block with no control transfer at all, so
-        // this refuses loudly instead.
-        this.iceNoTranslation("brcmp terminator");
+        this.translateComparison(
+          term.op,
+          { kind: "branch", trueTarget: term.trueTarget, falseTarget: term.falseTarget },
+          term.left,
+          term.right,
+          term.type,
+        );
         return;
       default: {
         // Exhaustiveness guard: a new terminator kind without a case here is a
@@ -1051,16 +1078,20 @@ class FunctionTranslator {
   // ── comparisons — byte/word × unsigned/signed framings ─────────────────────
 
   /**
-   * Translate a comparison. The instruction's `type` is the (promoted)
-   * OPERAND type — it selects the framing; the 0/1 result is always a byte
-   * in A. Equality is signedness-neutral (bit compare) at both widths;
-   * ordered comparisons dispatch to the carry framing (unsigned) or the
+   * Translate a comparison. The `type` is the (promoted) OPERAND type — it
+   * selects the framing. Equality is signedness-neutral (bit compare) at both
+   * widths; ordered comparisons dispatch to the carry framing (unsigned) or the
    * N-xor-V framing (signed). All framings branch on the FRESH compare flag
    * before any `LDA` (an `LDA` clobbers Z/N).
+   *
+   * `tail` decides what happens to those flags — a materialised 0/1 byte in A
+   * for a value context, or a direct branch to the two block edges for a fused
+   * compare-and-branch. Every framing below produces its flags identically for
+   * both.
    */
   private translateComparison(
     op: "eq" | "ne" | "lt" | "le" | "gt" | "ge",
-    dest: ILOperand,
+    tail: CmpTail,
     left: ILOperand,
     right: ILOperand,
     type: ILType,
@@ -1073,16 +1104,16 @@ class FunctionTranslator {
 
     if (type.width === 16) {
       if (op === "eq" || op === "ne") {
-        this.wordEquality(op, dest, lhs, rhs);
+        this.wordEquality(op, tail, lhs, rhs);
       } else if (type.signed) {
-        this.wordSignedOrdered(op, dest, lhs, rhs);
+        this.wordSignedOrdered(op, tail, lhs, rhs);
       } else {
-        this.wordUnsignedOrdered(op, dest, lhs, rhs);
+        this.wordUnsignedOrdered(op, tail, lhs, rhs);
       }
       return;
     }
     if (type.signed && op !== "eq" && op !== "ne") {
-      this.byteSignedOrdered(op, dest, lhs, rhs);
+      this.byteSignedOrdered(op, tail, lhs, rhs);
       return;
     }
 
@@ -1093,23 +1124,40 @@ class FunctionTranslator {
     this.leftIntoA(lhs);
     const r = this.rightSource(rhs, 0);
     this.emit("CMP", r.mode, r.operand);
+    // Equality decides on Z, order on the carry — and only the carry survives
+    // an intervening `LDA`, which is what lets the compact value tail exist.
+    this.emitCmpTail(tail, branch, op === "eq" || op === "ne" ? "zn" : "carry");
+  }
 
-    if (op === "eq" || op === "ne") {
-      // Z-based (BEQ/BNE): an `LDA` between `CMP` and the branch clobbers the Z
-      // flag, so branch on the FRESH compare flag first, then materialise 0/1.
-      // `LDA #$01; B?? done; LDA #$00` would test the flag set by
-      // `LDA #$01` (always Z=0) and never take the branch.
-      this.materialiseOnBranch(branch);
-    } else {
-      // Carry-based (BCC/BCS): `LDA` preserves the carry flag, so the compact
-      // form is correct — the branch tests the carry `CMP` set.
+  /**
+   * Consume the flags a framing just produced.
+   *
+   * `branch` is the opcode taken exactly when the comparison holds, and it is
+   * always the first instruction emitted here: an `LDA` between the compare and
+   * the branch would clobber Z/N. `flag` says which flag carries the answer —
+   * the carry survives an `LDA`, so a carry-based value tail can use the
+   * compact three-instruction form, while a Z/N-based one must branch first.
+   */
+  private emitCmpTail(tail: CmpTail, branch: Opcode, flag: "carry" | "zn"): void {
+    if (tail.kind === "branch") {
+      this.emit(branch, "Relative", labelRef(this.blockLabel(tail.trueTarget)));
+      this.emit("JMP", "Absolute", labelRef(this.blockLabel(tail.falseTarget)));
+      return;
+    }
+    if (flag === "carry") {
+      // `LDA #$01; B?? done; LDA #$00` is correct here only because the branch
+      // still tests the carry the `CMP` set.
       const done = this.nextCmpLabel();
       this.emit("LDA", "Immediate", imm8(0x01));
       this.emit(branch, "Relative", labelRef(done));
       this.emit("LDA", "Immediate", imm8(0x00));
       this.out.push(label(done));
+    } else {
+      // The same shape on Z/N would test the flag set by `LDA #$01` (always
+      // Z=0, N=0) and never take the branch, so the branch goes first.
+      this.materialiseOnBranch(branch);
     }
-    this.bindA(asTempId(dest));
+    this.bindA(asTempId(tail.dest));
   }
 
   /** Branch-taken ⇒ 1: materialise the 0/1 from a flag-fresh branch opcode. */
@@ -1131,7 +1179,7 @@ class FunctionTranslator {
    */
   private byteSignedOrdered(
     op: "lt" | "le" | "gt" | "ge",
-    dest: ILOperand,
+    tail: CmpTail,
     lhs: ILOperand,
     rhs: ILOperand,
   ): void {
@@ -1144,12 +1192,11 @@ class FunctionTranslator {
     this.emit("BVC", "Relative", labelRef(skipL));
     this.emit("EOR", "Immediate", imm8(0x80));
     this.out.push(label(skipL));
-    this.materialiseOnBranch(wantLess ? "BMI" : "BPL");
-    this.bindA(asTempId(dest));
+    this.emitCmpTail(tail, wantLess ? "BMI" : "BPL", "zn");
   }
 
   /** 16-bit equality: low bytes decide fast, high bytes break the tie (Z-based). */
-  private wordEquality(op: "eq" | "ne", dest: ILOperand, lhs: ILOperand, rhs: ILOperand): void {
+  private wordEquality(op: "eq" | "ne", tail: CmpTail, lhs: ILOperand, rhs: ILOperand): void {
     const diffL = this.nextCmpLabel();
     this.wordLeftByteIntoA(lhs, 0);
     const rLo = this.rightSource(rhs, 0);
@@ -1159,27 +1206,66 @@ class FunctionTranslator {
     const rHi = this.rightSource(rhs, 1);
     this.emit("CMP", rHi.mode, rHi.operand);
     this.out.push(label(diffL)); // Z now holds the full 16-bit equality
-    this.materialiseOnBranch(op === "eq" ? "BEQ" : "BNE");
+    // The framing leaves A holding a compare residue, never the result: drop
+    // the residency mirror before any tail rebinds it.
     this.clearRegs();
-    this.bindA(asTempId(dest));
+    this.emitCmpTail(tail, op === "eq" ? "BEQ" : "BNE", "zn");
   }
 
   /**
    * 16-bit unsigned ordered comparison, high byte first: a differing high
    * byte decides outright; equal high bytes fall through to the low-byte
    * carry decision.
+   *
+   * The framing's two internal joins are the only place the two tails differ
+   * structurally. In a value context they are generated labels that a 0/1 tail
+   * hangs off; in a fused branch they ARE the block edges, so each decision
+   * branches straight to its target and the 0/1 tail disappears entirely.
    */
   private wordUnsignedOrdered(
     op: "lt" | "le" | "gt" | "ge",
-    dest: ILOperand,
+    tail: CmpTail,
     lhs: ILOperand,
     rhs: ILOperand,
   ): void {
     const wantLess = op === "lt" || op === "gt"; // after the caller's swap
+
+    if (tail.kind === "branch") {
+      const trueL = this.blockLabel(tail.trueTarget);
+      const falseL = this.blockLabel(tail.falseTarget);
+      this.wordUnsignedDecision(wantLess, lhs, rhs, trueL, falseL);
+      this.emit("JMP", "Absolute", labelRef(falseL)); // low-byte carry said no
+      this.clearRegs();
+      return;
+    }
+
     const falseL = this.nextCmpLabel();
     const trueL = this.nextCmpLabel();
     const endL = this.nextCmpLabel();
+    this.wordUnsignedDecision(wantLess, lhs, rhs, trueL, falseL);
+    this.out.push(label(falseL));
+    this.emit("LDA", "Immediate", imm8(0x00));
+    this.emit("JMP", "Absolute", labelRef(endL));
+    this.out.push(label(trueL));
+    this.emit("LDA", "Immediate", imm8(0x01));
+    this.out.push(label(endL));
+    this.clearRegs();
+    this.bindA(asTempId(tail.dest));
+  }
 
+  /**
+   * The high-then-low carry decision both 16-bit unsigned tails run: a
+   * differing high byte branches to its verdict outright, and equal high bytes
+   * leave the low-byte carry to decide. Falls through only when the answer is
+   * "no" — the caller says where that goes.
+   */
+  private wordUnsignedDecision(
+    wantLess: boolean,
+    lhs: ILOperand,
+    rhs: ILOperand,
+    trueL: string,
+    falseL: string,
+  ): void {
     this.wordLeftByteIntoA(lhs, 1);
     const rHi = this.rightSource(rhs, 1);
     this.emit("CMP", rHi.mode, rHi.operand);
@@ -1194,14 +1280,6 @@ class FunctionTranslator {
     const rLo = this.rightSource(rhs, 0);
     this.emit("CMP", rLo.mode, rLo.operand);
     this.emit(wantLess ? "BCC" : "BCS", "Relative", labelRef(trueL));
-    this.out.push(label(falseL));
-    this.emit("LDA", "Immediate", imm8(0x00));
-    this.emit("JMP", "Absolute", labelRef(endL));
-    this.out.push(label(trueL));
-    this.emit("LDA", "Immediate", imm8(0x01));
-    this.out.push(label(endL));
-    this.clearRegs();
-    this.bindA(asTempId(dest));
   }
 
   /**
@@ -1211,7 +1289,7 @@ class FunctionTranslator {
    */
   private wordSignedOrdered(
     op: "lt" | "le" | "gt" | "ge",
-    dest: ILOperand,
+    tail: CmpTail,
     lhs: ILOperand,
     rhs: ILOperand,
   ): void {
@@ -1226,9 +1304,9 @@ class FunctionTranslator {
     this.emit("BVC", "Relative", labelRef(skipL));
     this.emit("EOR", "Immediate", imm8(0x80));
     this.out.push(label(skipL));
-    this.materialiseOnBranch(wantLess ? "BMI" : "BPL");
+    // As in the equality framing, A holds a subtraction residue here.
     this.clearRegs();
-    this.bindA(asTempId(dest));
+    this.emitCmpTail(tail, wantLess ? "BMI" : "BPL", "zn");
   }
 
   // ── unary ops + width conversions ───────────────────────────────────────────

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 17:16
-> **Progress**: 10/43 tasks (23%)
+> **Last Updated**: 2026-07-19 18:10
+> **Progress**: 17/43 tasks (40%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -108,25 +108,48 @@ task-size criteria in the quality checklist)
 
 ## Phase 2: Translator branch-form framings
 
+> **Phase ref**: 2bb0abfc18e70a5bb5a542ec80993c61a20d9424
+
 ### Step 2.1: Specification tests
 
 **Reference**: 07 ST-10a–c, ST-6 · 03-02
 **Objective**: Byte-exact branch-form expectations per framing × polarity × operand order, both branch senses (inversion guard).
 
-- [ ] 2.1.1 Write ST-10a matrix cases (constructed IL with `brcmp` terminators) — `packages/codegen/src/instr/translate.spec.test.ts`
-- [ ] 2.1.2 Write ST-10b (signed sequence), ST-10c (deferred-load fold), ST-6 (value form byte-identical) — `packages/codegen/src/instr/translate.spec.test.ts`, `packages/codegen/src/instr/translate-expressions.spec.test.ts`
-- [ ] 2.1.3 Red phase: `brcmp` inputs currently translate to NO instructions — since the phase-1 review, `translateTerminator` records a `no translation for 'brcmp terminator'` ICE and its switch carries the never-guard, so the failure is loud rather than silent; the byte-sequence expectations still fail red on missing instructions; verify and document
+- [x] 2.1.1 Write ST-10a matrix cases (constructed IL with `brcmp` terminators) — `packages/codegen/src/instr/translate-brcmp.spec.test.ts` ✅ (completed: 2026-07-19 18:05)
+      ↳ *File placement deviation*: the plan named `translate.spec.test.ts`, which is already 604 lines; the full 40-row matrix would push it past 1 000 and breach the standards' file-size rule. The repo already splits translator spec tests by concern (`translate-expressions`, `translate-indexed`, `translate-indirect`, `translate-call`, `translate-t1`, `translate-interrupt`), so ST-10a–c + ST-6 live in a new sibling `translate-brcmp.spec.test.ts`. No expectation changed — only where it lives.
+- [x] 2.1.2 Write ST-10b (signed sequence), ST-10c (deferred-load fold), ST-6 (value form byte-identical) — `packages/codegen/src/instr/translate-brcmp.spec.test.ts` ✅ (completed: 2026-07-19 18:05)
+      ↳ ST-6 is authored **beside** each framing's fused twin rather than in `translate-expressions.spec.test.ts`: the oracle's whole purpose is to prove one compare core feeds two tails, and splitting the pair across files would hide exactly the polarity divergence it guards against. The pre-existing loose comparison assertions in `translate-expressions.spec.test.ts` stay as they are.
+- [x] 2.1.3 Red phase verified and documented ✅ (completed: 2026-07-19 18:05)
+      ↳ **51 fused cases fail, 6 value-form cases pass.** Every fused case fails on `bag.hasErrors()` — the phase-1 `no translation for 'brcmp terminator'` ICE fires before any byte expectation is reached, so the failure is loud rather than a silently empty block. The 6 ST-6 value-form cases pass green from the start, which is the point: they pin today's bytes so the phase-2 refactor cannot move them.
 
 ### Step 2.2: Implementation
 
 **Reference**: 03-02 §Implementation Details
 **Objective**: Shared flag-producing cores, two tails; `brcmp` dispatch; use-count plumbing.
 
-- [ ] 2.2.1 Extend `terminatorReads` with `brcmp` `[left, right]`; add the `translateTerminator` dispatch case and close its switch with the repo's `default:` never-guard (unhandled kind = compile error, not silent no-emission) — `packages/codegen/src/instr/translate.ts`
-      ↳ *Partly landed in phase 1* (review finding RV-001/RV-002): `terminatorReads` and both never-guards are done; what remains here is replacing the placeholder `brcmp` ICE arm with the real branch-form dispatch.
-- [ ] 2.2.2 Refactor the 8-bit framings (unsigned/equality inline, `byteSignedOrdered`) into core + value/branch tails — `packages/codegen/src/instr/translate.ts`
-- [ ] 2.2.3 Refactor the three word framings (`wordEquality`, `wordUnsignedOrdered` — internal labels become real targets, `wordSignedOrdered`) into core + tails — `packages/codegen/src/instr/translate.ts`
-- [ ] 2.2.4 Green phase: ST-10a–c, ST-6 pass; fix implementation only
+- [x] 2.2.1 Extend `terminatorReads` with `brcmp` `[left, right]`; add the `translateTerminator` dispatch case and close its switch with the repo's `default:` never-guard (unhandled kind = compile error, not silent no-emission) — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-19 18:10)
+      ↳ *Partly landed in phase 1* (review finding RV-001/RV-002): `terminatorReads` and both never-guards were already done; this task replaced the placeholder `brcmp` ICE arm with the real dispatch. `iceNoTranslation` stays live — the `default:` never-guard is now its only caller.
+- [x] 2.2.2 Refactor the 8-bit framings (unsigned/equality inline, `byteSignedOrdered`) into core + value/branch tails — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-19 18:10)
+- [x] 2.2.3 Refactor the three word framings (`wordEquality`, `wordUnsignedOrdered` — internal labels become real targets, `wordSignedOrdered`) into core + tails — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-19 18:10)
+- [x] 2.2.4 Green phase: ST-10a–c, ST-6 pass; fix implementation only ✅ (completed: 2026-07-19 18:10) — 57/57 green on the first run; no spec test touched
+
+**Design as landed** (deviates from 03-02 in naming only, not behavior):
+- A `CmpTail` discriminated union (`value` → materialise into `dest`; `branch` → the two block
+  edges) is threaded through `translateComparison` and all five framings. 03-02 sketched a separate
+  `translateComparisonBranch` entry point; a single dispatcher taking the tail is DRY-er and makes
+  "one compare sequence, two consumers" literal rather than a convention two functions must uphold.
+- `emitCmpTail(tail, branch, flag)` is the shared consumer for the four single-decision framings.
+  Its `flag: "carry" | "zn"` argument is what preserves the existing split between the compact
+  carry materialisation and the branch-first Z/N one; the branch tail ignores it entirely.
+- `wordUnsignedOrdered` is the one framing whose two tails differ structurally, so its high-then-low
+  carry decision is factored into `wordUnsignedDecision(...)` and each tail calls it: the fused path
+  passes the real block labels and appends `JMP false`, and the `LDA #$01`/`LDA #$00` tail is gone.
+- `clearRegs()` moved from after materialisation to immediately after the compare core in
+  `wordEquality`/`wordSignedOrdered`. Equivalent — the materialisation neither reads nor writes the
+  residency mirror — and it keeps the "A holds a compare residue, not a result" fact next to the
+  code that makes it true.
+- Generated-label numbering is unchanged on every value path (verified by the six ST-6 byte-exact
+  cases), so no golden can move.
 
 ### Step 2.3: Implementation tests & hardening
 
