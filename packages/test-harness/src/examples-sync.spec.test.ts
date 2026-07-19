@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { GATE_SRC } from "./testing/gate.js";
+import { GUARDS_MAIN_SRC } from "./testing/guards.js";
 import { RASTERPOLL_MAIN_SRC } from "./testing/rasterpoll.js";
 import { SLICE3A_SRC } from "./testing/slice3a.js";
 import { SLICE3B_SRC } from "./testing/slice3b.js";
@@ -34,7 +35,7 @@ import { SLICE8B_MAIN_SRC } from "./testing/slice8b.js";
 /** The repository root (this file lives at packages/test-harness/src). */
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
-/** Every inlined module across the 13 inlined-source programs. */
+/** Every inlined module across the 14 inlined-source programs. */
 const INLINED_MODULES: ReadonlyArray<{
   readonly fixture: string;
   readonly module: string;
@@ -58,6 +59,7 @@ const INLINED_MODULES: ReadonlyArray<{
   { fixture: "slice8", module: "main.blend", inlined: SLICE8_MAIN_SRC },
   { fixture: "slice8b", module: "main.blend", inlined: SLICE8B_MAIN_SRC },
   { fixture: "rasterpoll", module: "main.blend", inlined: RASTERPOLL_MAIN_SRC },
+  { fixture: "guards", module: "main.blend", inlined: GUARDS_MAIN_SRC },
 ];
 
 describe("Specification: inlined fixture sources match the committed examples", () => {

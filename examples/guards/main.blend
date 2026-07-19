@@ -1,0 +1,47 @@
+module Main;
+
+function main(): void {
+  // This loop owns the machine: silence CIA-1 so the KERNAL's keyboard scan
+  // stops rewriting port A, then drive the port and park it — column 7 down,
+  // every other line released — so the input guard reads a known value.
+  poke($DC0D, $7F);
+  poke($DC02, $FF);
+  poke($DC00, $7F);
+
+  let frame: byte = 0;
+  let active: boolean = false;
+  let armed: boolean = true;
+  let dx: sbyte = -3;
+  let dy: sbyte = 2;
+
+  while (true) {
+    // One update per PAL frame: hold until the raster reaches line 251, just
+    // below the visible area. The update body takes longer than one raster
+    // line, so this cannot double-fire within a frame.
+    while (peek($D012) != 251) { }
+
+    // Sprite window: walk the eight column probes and count the ones inside
+    // the visible band. The upper bound is only asked about once the lower
+    // bound holds — probe 0 never reaches it.
+    let probe: byte = 0;
+    let inBand: byte = 0;
+    while (probe < 64) {
+      if (probe >= 8 && probe < 40) { inBand = inBand + 1; }
+      probe = probe + 8;
+    }
+    poke($0400, inBand);   // 4: probes 8, 16, 24, 32
+
+    // Nothing to animate while the sprite is parked.
+    if (!active) { poke($0401, 1); } else { poke($0401, 2); }
+
+    // Signed velocity: is the drift steeper than the fall? Read as unsigned
+    // bytes, -3 would be 253 and the answer would flip.
+    if (dx < dy) { poke($0402, 3); } else { poke($0402, 4); }
+
+    // The port is only read once the sprite is armed.
+    if (armed && peek($DC00) == 127) { poke($0403, 5); } else { poke($0403, 6); }
+
+    frame = frame + 1;
+    poke($D020, frame);    // border: the frame heartbeat
+  }
+}

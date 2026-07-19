@@ -1,0 +1,203 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $2000
+__frame_Main_main_frame = $2000
+__frame_Main_main_active = $2001
+__frame_Main_main_armed = $2002
+__frame_Main_main_dx = $2003
+__frame_Main_main_dy = $2004
+__frame_Main_main_probe = $2005
+__frame_Main_main_inBand = $2006
+__frame_Main_main_0sc0 = $2007
+__frame_Main_main_0sc1 = $2008
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JMP _main
+; --- function: Main.main ---
+_main:
+    LDA #$7F
+    STA $DC0D
+    LDA #$FF
+    STA $DC02
+    LDA #$7F
+    STA $DC00
+    LDA #$00
+    STA __frame_Main_main_frame
+    LDA #$00
+    STA __frame_Main_main_active
+    LDA #$01
+    STA __frame_Main_main_armed
+    LDA #$FD
+    STA __frame_Main_main_dx
+    LDA #$02
+    STA __frame_Main_main_dy
+    JMP Main_main_L0
+Main_main_L0:
+    LDA #$01
+    BNE Main_main_L1
+    JMP Main_main_L2
+Main_main_L1:
+    JMP Main_main_L3
+Main_main_L3:
+    LDA $D012
+    CMP #$FB
+    BNE _cmp0
+    LDA #$00
+    JMP _cmp1
+_cmp0:
+    LDA #$01
+_cmp1:
+    BNE Main_main_L4
+    JMP Main_main_L5
+Main_main_L4:
+    JMP Main_main_L3
+Main_main_L5:
+    LDA #$00
+    STA __frame_Main_main_probe
+    LDA #$00
+    STA __frame_Main_main_inBand
+    JMP Main_main_L6
+Main_main_L6:
+    LDA __frame_Main_main_probe
+    CMP #$40
+    LDA #$01
+    BCC _cmp2
+    LDA #$00
+_cmp2:
+    BNE Main_main_L7
+    JMP Main_main_L8
+Main_main_L7:
+    LDA __frame_Main_main_probe
+    CMP #$08
+    LDA #$01
+    BCS _cmp3
+    LDA #$00
+_cmp3:
+    STA __frame_Main_main_0sc0
+    BNE Main_main_L9
+    JMP Main_main_L10
+Main_main_L9:
+    LDA __frame_Main_main_probe
+    CMP #$28
+    LDA #$01
+    BCC _cmp4
+    LDA #$00
+_cmp4:
+    STA __frame_Main_main_0sc0
+    JMP Main_main_L10
+Main_main_L10:
+    LDA __frame_Main_main_0sc0
+    BNE Main_main_L11
+    JMP Main_main_L12
+Main_main_L11:
+    LDA __frame_Main_main_inBand
+    CLC
+    ADC #$01
+    STA __frame_Main_main_inBand
+    JMP Main_main_L12
+Main_main_L12:
+    LDA __frame_Main_main_probe
+    CLC
+    ADC #$08
+    STA __frame_Main_main_probe
+    JMP Main_main_L6
+Main_main_L8:
+    LDA __frame_Main_main_inBand
+    STA $400
+    LDA __frame_Main_main_active
+    CMP #$00
+    BEQ _cmp5
+    LDA #$00
+    JMP _cmp6
+_cmp5:
+    LDA #$01
+_cmp6:
+    BNE Main_main_L13
+    JMP Main_main_L15
+Main_main_L13:
+    LDA #$01
+    STA $401
+    JMP Main_main_L14
+Main_main_L15:
+    LDA #$02
+    STA $401
+    JMP Main_main_L14
+Main_main_L14:
+    LDA __frame_Main_main_dx
+    SEC
+    SBC __frame_Main_main_dy
+    BVC _cmp7
+    EOR #$80
+_cmp7:
+    BMI _cmp8
+    LDA #$00
+    JMP _cmp9
+_cmp8:
+    LDA #$01
+_cmp9:
+    BNE Main_main_L16
+    JMP Main_main_L18
+Main_main_L16:
+    LDA #$03
+    STA $402
+    JMP Main_main_L17
+Main_main_L18:
+    LDA #$04
+    STA $402
+    JMP Main_main_L17
+Main_main_L17:
+    LDA __frame_Main_main_armed
+    STA __frame_Main_main_0sc1
+    BNE Main_main_L19
+    JMP Main_main_L20
+Main_main_L19:
+    LDA $DC00
+    CMP #$7F
+    BEQ _cmp10
+    LDA #$00
+    JMP _cmp11
+_cmp10:
+    LDA #$01
+_cmp11:
+    STA __frame_Main_main_0sc1
+    JMP Main_main_L20
+Main_main_L20:
+    LDA __frame_Main_main_0sc1
+    BNE Main_main_L21
+    JMP Main_main_L23
+Main_main_L21:
+    LDA #$05
+    STA $403
+    JMP Main_main_L22
+Main_main_L23:
+    LDA #$06
+    STA $403
+    JMP Main_main_L22
+Main_main_L22:
+    LDA __frame_Main_main_frame
+    CLC
+    ADC #$01
+    STA __frame_Main_main_frame
+    LDA __frame_Main_main_frame
+    STA $D020
+    JMP Main_main_L0
+Main_main_L2:
+    RTS
