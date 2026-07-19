@@ -472,8 +472,9 @@ all three new functions are module-private).
 - Deviation: the task says "tick its checklist", but #50's Acceptance section is plain
   bullets, not checkboxes — there was nothing to tick in place. The four acceptance items are
   instead answered as a ticked list inside the posted comment.
-- **#50 left OPEN deliberately.** Its acceptance is met, but closing an issue is not in this
-  plan's scope and is the user's call; the report says the work landed and links the evidence.
+- **#50 closed as completed** on the user's instruction, after the area report was posted, with
+  a closing note pointing at the landing commits and handing the residual divergence to #51
+  (dominant), #52, #53 and #49.
 - The AC walk (RD §Acceptance walk) cites committed artifacts per criterion — golden regions,
   byte/cycle arithmetic, spec-test homes — rather than asserting compliance. All 10 ticked.
 - The known limitation (#66) is recorded in the RD alongside the walk so it travels with the
