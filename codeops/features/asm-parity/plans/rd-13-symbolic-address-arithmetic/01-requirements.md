@@ -1,7 +1,7 @@
 # Requirements & Scope
 
 > **Source**: [RD-13](../../requirements/RD-13-symbolic-address-arithmetic.md)
-> **Register**: [AR #88–#95](00-ambiguity-register.md)
+> **Register**: [AR #88–#96](00-ambiguity-register.md)
 
 The RD owns the full requirement text. This document records only what the *plan* commits to,
 where the plan **narrowed or corrected** the RD, and the acceptance criteria as the phases
@@ -16,7 +16,7 @@ discharge them.
 | **M3** | `W10172` stops firing on power-of-two multiplies, per `spec/evaluations/F017-operators.md:442` | 1 |
 | **M4** | No fixture regresses; every `bytes` ratchet and the routing prose re-derived from the new build | 2, 4, 5 |
 | **M5** | The 16 misrouted `#58` divergence rows re-route to [#70](https://github.com/blendsdk/blend65/issues/70) | 5 |
-| **AC-6** | `examples/balloon` and `examples/balloon-color` migrate to `lo(&X / 64)`; balloon-color gains its first CI check (AR #93) | 4 |
+| **AC-6** | `examples/balloon`, `examples/balloon-color` **and `examples/boing-ball`** migrate to `lo(&X / 64)`; the latter two gain their first CI check (AR #93, #96) | 4 |
 | — | Three trailing `iceUnsupported` guards close pre-existing silent-failure holes on the paths the new operand flows through (AR #92) | 2 |
 
 ## Corrections this plan makes to the RD
@@ -57,7 +57,7 @@ the phase and the discharging artifact.
 | AC-3 the positional slot counter never shifted, proven **codegen-side** | Phase 2 | re-derived ST-9b |
 | AC-4 `lo(&X / 2^k)` folds; assembled byte = `(addr ÷ 64) mod 256` from the symbol map | Phase 3 | ST-13d |
 | AC-5 `lo(&X >> k)` folds and agrees byte-for-byte with the `/` form | Phase 3 | ST-13e |
-| AC-6 both examples migrate; balloon-color built and checked in CI | Phase 4 | ST-13f, re-derived ST-C14 |
+| AC-6 all three examples migrate; balloon-color and boing-ball built and checked in CI | Phase 4 | ST-13f, ST-13j, re-derived ST-C14 |
 | AC-7 `W10172` conforms to OP-5, witnessed by a program that still has a multiply | Phase 1 | re-derived ST-51a, ST-T16, ST-13c |
 | AC-8 no fixture regresses; ratchets re-derived; freshness gate green | Phases 2, 4 (+ review 5) | budget tier + closeout walk |
 | AC-9 the routing ledger is true | Phase 5 | manifest check + closeout walk |
@@ -83,6 +83,6 @@ No new runtime surface, no I/O, no user input, no parsing. Two properties the pl
 
 ## Definition of done
 
-All 50 tasks `[x]`, all 12 acceptance criteria walked with evidence in
+All 52 tasks `[x]`, all 12 acceptance criteria walked with evidence in
 [08-closeout.md](08-closeout.md), verify green, `spec/` clean, and the two RD corrections
 back-propagated.

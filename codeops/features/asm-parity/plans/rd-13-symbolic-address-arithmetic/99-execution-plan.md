@@ -1,7 +1,7 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 0/50 tasks (0%)
+> **Progress**: 0/52 tasks (0%)
 > **Last Updated**: 2026-07-21
 > **CodeOps Skills Version**: 3.11.0
 
@@ -21,7 +21,7 @@ source, so splitting them is CI-red by construction.
 | 1 | M3 — `W10172` conforms to OP-5 | none | 6 |
 | 2 | M1 — one-instruction byte-select | `balloon` −11 B | 14 |
 | 3 | M2 — the fold operand, built **unwired** | none | 12 |
-| 4 | AC-6 — both examples migrate | `balloon` −2 B | 9 |
+| 4 | AC-6 — all three examples migrate | `balloon` −2 B | 11 |
 | 5 | M4/M5 — ledgers, back-propagation, closeout | none | 9 |
 
 ---
@@ -136,20 +136,27 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
 - [ ] 4.1 Write **ST-13f** plus a `testing/balloon-color.ts` builder mirroring `testing/balloon.ts`;
       new `balloon-color.spec.test.ts`, build-only under `skipIf(!hasAcme())`. This is the demo's
       **first** CI signal of any kind — it is referenced by nothing today
-- [ ] 4.2 Re-derive **ST-C14** (`balloon.spec.test.ts:166-181`) to the two-instruction subsequence
+- [ ] 4.2 Write **ST-13j** plus a `testing/boing-ball.ts` builder; new `boing-ball.spec.test.ts`,
+      same tier. Its fourth assertion — `$07F8`..`$07FB` are `b, b+1, b+2, b+3` — is the one
+      neither balloon carries, and it proves the migrated value is still usable as the base of
+      64-byte block arithmetic (AR #96)
+- [ ] 4.3 Re-derive **ST-C14** (`balloon.spec.test.ts:166-181`) to the two-instruction subsequence
       `LDA #<(__data_Main_BALLOON / 64)` · `STA $07F8`, and rewrite its comment to describe the
       folded form rather than a weakness that no longer exists
-- [ ] 4.3 **Verify RED**
-- [ ] 4.4 Migrate `examples/balloon/main.blend:11` to `poke($07F8, lo(&BALLOON / 64));` and rewrite
+- [ ] 4.4 **Verify RED**
+- [ ] 4.5 Migrate `examples/balloon/main.blend:11` to `poke($07F8, lo(&BALLOON / 64));` and rewrite
       the teaching comment at `:8-10` — the block is the address divided by 64, not the high byte
       times four
-- [ ] 4.5 Migrate `examples/balloon-color/main.blend:21` and its comment at `:19-21` the same way
-- [ ] 4.6 **Verify GREEN**
-- [ ] 4.7 Re-derive `balloon`'s ratchet from the new build; regenerate the goldens and
-      `SCOREBOARD.md` — **same commit** as tasks 4.4/4.5
-- [ ] 4.8 Hand-review every regenerated golden hunk against what a 6502 developer would write.
+- [ ] 4.6 Migrate `examples/balloon-color/main.blend:21` and its comment at `:19-21` the same way
+- [ ] 4.7 Migrate `examples/boing-ball/main.blend:54` to `let base: byte = lo(&BALL / 64);` and its
+      comment at `:52-53`. A **`let` initializer**, not a `poke` value — same lowering route, and
+      the one site whose result is then used arithmetically (`base+0..3`, `:56-59`)
+- [ ] 4.8 **Verify GREEN**
+- [ ] 4.9 Re-derive `balloon`'s ratchet from the new build; regenerate the goldens and
+      `SCOREBOARD.md` — **same commit** as tasks 4.5–4.7
+- [ ] 4.10 Hand-review every regenerated golden hunk against what a 6502 developer would write.
       A divergence is a defect: fix it or file it, never shrug it off
-- [ ] 4.9 Confirm **ST-C15 still green** (AC-2 — the sprite is still page-aligned) and no fixture
+- [ ] 4.11 Confirm **ST-C15 still green** (AC-2 — the sprite is still page-aligned) and no fixture
       grew; full verify
 
 **Commit point.** Scope `perf(examples)`. Source, ratchet, goldens and scoreboard together.

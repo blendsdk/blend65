@@ -19,7 +19,7 @@ frozen spec forbids it.
 | **M3** `W10172` stops firing on power-of-two multiplies | Phase 1 | none |
 | **M1** `hi(&X)` / `lo(&X)` → one immediate byte-select | Phase 2 | `balloon` −11 B |
 | **M2** `lo(&X / 2^k)` / `lo(&X >> k)` fold, built **unwired** | Phase 3 | none |
-| **AC-6** both examples migrate to the blessed idiom | Phase 4 | `balloon` −2 B |
+| **AC-6** all three examples migrate to the blessed idiom | Phase 4 | `balloon` −2 B |
 | **M4/M5** ledgers re-derived, 16 rows re-routed, closeout | Phase 5 | none |
 
 The corpus regenerates **exactly twice** — Phase 2 and Phase 4 — and each regeneration carries its
@@ -30,13 +30,13 @@ every pair from `examples/` source.
 
 | Document | Contents |
 |---|---|
-| [00-ambiguity-register.md](00-ambiguity-register.md) | ✅ Gate passed — 8 decisions (AR #88–#95) |
+| [00-ambiguity-register.md](00-ambiguity-register.md) | ✅ Gate passed — 9 decisions (AR #88–#96) |
 | [01-requirements.md](01-requirements.md) | Scope, acceptance criteria, what is deliberately excluded |
 | [02-current-state.md](02-current-state.md) | The three measured defects and every seam they touch |
 | [03-01-operand-and-lowering.md](03-01-operand-and-lowering.md) | M1 + M2 — the two new operand variants, lowering, and every translator consumer |
-| [03-02-diagnostics-examples-ledgers.md](03-02-diagnostics-examples-ledgers.md) | M3 + AC-6 + the `balloon-color` check + M4/M5 |
+| [03-02-diagnostics-examples-ledgers.md](03-02-diagnostics-examples-ledgers.md) | M3 + AC-6 + the `balloon-color` and `boing-ball` checks + M4/M5 |
 | [07-testing-strategy.md](07-testing-strategy.md) | ST-* cases, the four re-derived spec tests, red/green ordering |
-| [99-execution-plan.md](99-execution-plan.md) | 5 phases / 50 tasks, per-phase verify and commit points |
+| [99-execution-plan.md](99-execution-plan.md) | 5 phases / 52 tasks, per-phase verify and commit points |
 
 ## The one hazard this plan is built around
 

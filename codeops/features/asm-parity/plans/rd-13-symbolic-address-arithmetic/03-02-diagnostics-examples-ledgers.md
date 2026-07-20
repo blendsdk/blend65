@@ -50,17 +50,27 @@ power-of-two multiply that survives every later phase.
 
 ## 2. AC-6 — the idiom migration (Phase 4)
 
-### The two source edits
+### The three source edits
 
 | File | Line | Was | Becomes |
 |---|---|---|---|
 | `examples/balloon/main.blend` | 11 | `poke($07F8, hi(&BALLOON) * 4);` | `poke($07F8, lo(&BALLOON / 64));` |
 | `examples/balloon-color/main.blend` | 21 | `poke($07F8, hi(&BALLOON) * 4);` | `poke($07F8, lo(&BALLOON / 64));` |
+| `examples/boing-ball/main.blend` | 54 | `let base: byte = hi(&BALL) * 4;` | `let base: byte = lo(&BALL / 64);` |
 
-Both files' teaching comments currently end *"…and the sprite pointer is just its block number,
-high byte times four"* (`balloon:8-10`, `balloon-color:19-21`). Both are rewritten to describe the
-block number as the address divided by 64 — the arithmetic the code now performs, and the one that
-stays correct at 64-byte alignment.
+The balloon pair's teaching comments currently end *"…and the sprite pointer is just its block
+number, high byte times four"* (`balloon:8-10`, `balloon-color:19-21`). Both are rewritten to
+describe the block number as the address divided by 64 — the arithmetic the code now performs, and
+the one that stays correct at 64-byte alignment.
+
+> **`boing-ball` is the strongest of the three, and a different lowering position** (AR #96). Its
+> site is a **`let` initializer**, not a `poke` value — it reaches `translateMul` and `leftIntoA`
+> by the same route, so M1 covers it identically, but it is the one case where the migrated value
+> is then used arithmetically: the ball is four consecutive 64-byte blocks addressed as
+> `base+0..3` (`main.blend:56-59`). The program is already doing 64-byte block arithmetic while
+> naming its first block through a page-alignment identity that holds only by luck, and it is the
+> example RD-15 breaks first — `hi(&X) * 4` computes the **wrong** block the moment the image is
+> no longer page-aligned. Its comment at `:52-53` is rewritten the same way.
 
 ### Why this ordering is mandatory
 
@@ -85,20 +95,26 @@ comment is rewritten to describe the folded form rather than a weakness that no 
 **ST-C15 (`:184-195`) is not touched.** It asserts `addr % 256 == 0` and `addr < 0x1000` and is
 AC-2's whole proof — it must keep failing if any path shortcuts `lowerAddressOf`.
 
-### The `balloon-color` check (AR #93)
+### The `balloon-color` and `boing-ball` checks (AR #93, #96)
 
-New `packages/test-harness/src/balloon-color.spec.test.ts`, plus a `testing/balloon-color.ts`
-builder mirroring `testing/balloon.ts`. Build-only, under `skipIf(!hasAcme())` — ACME is installed
-in CI, VICE is not (AR-27).
+Two new build-only spec tests in test-harness, each with a `testing/<demo>.ts` builder mirroring
+`testing/balloon.ts`, both under `skipIf(!hasAcme())` — ACME is installed in CI, VICE is not
+(AR-27). Neither demo is referenced by anything in `packages/`, `test/`, `scripts/` or `.github/`
+today, so these are their **first** CI signals of any kind.
 
-| Assertion | Oracle |
-|---|---|
-| the program assembles | ACME exit status |
-| `__data_Main_BALLOON` is page-aligned and below `$1000` | symbol map — mirrors ST-C15 |
-| the assembled byte stored to `$07F8` equals `(resolved address ÷ 64) mod 256` | symbol map — AC-4's rule |
+| Assertion | `balloon-color` | `boing-ball` | Oracle |
+|---|---|---|---|
+| the program assembles | ✅ | ✅ | ACME exit status |
+| the image is page-aligned and below `$1000` | `__data_Main_BALLOON` | `__data_Main_BALL` | symbol map — mirrors ST-C15 |
+| the assembled sprite-pointer byte equals `(resolved address ÷ 64) mod 256` | `$07F8` | `$07F8` | symbol map — AC-4's rule |
+| the three sibling pointers are that block **+1, +2, +3** | — | `$07F9`–`$07FB` | symbol map |
 
-No golden, no `budgets.json` row, no twin: the demo stays outside the parity corpus exactly as its
-own header states (`main.blend:2-6`). This is its **first** CI signal of any kind.
+`boing-ball`'s fourth row is the one neither balloon carries: it proves the migrated value is still
+usable as the base of 64-byte block arithmetic, which is the property RD-15 depends on.
+
+Neither demo gains a golden, a `budgets.json` row or a twin — both stay outside the parity corpus
+exactly as their own headers state (`balloon-color/main.blend:2-6`, `boing-ball/main.blend:3-4`).
+Neither is inlined by `examples-sync.spec.test.ts`, so no inlined-source constant needs updating.
 
 ## 3. M4 — the ledgers stay true (Phases 2, 4, 5)
 

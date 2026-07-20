@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-13 Symbolic Address Arithmetic (plan stage)
 
-> **Status**: ✅ GATE PASSED — all 8 items resolved (88–95), 2026-07-21
+> **Status**: ✅ GATE PASSED — all 9 items resolved (88–96), 2026-07-21
 > **Scope**: plan-stage decisions for
 > [RD-13](../../requirements/RD-13-symbolic-address-arithmetic.md)
 > ([#58](https://github.com/blendsdk/blend65/issues/58) — the symbolic-address slice)
@@ -31,6 +31,10 @@ operand; the re-routing of 16 divergence rows to
 
 ## Decisions surfaced during authoring
 
-None yet. Any ambiguity discovered while writing plan documents or during execution is appended
+| # | Category | Ambiguity | Options | Decision | Status |
+|---|----------|-----------|---------|----------|--------|
+| 96 | Scope (runtime) | `examples/boing-ball` was committed after the plan was written and carries the same idiom at `main.blend:54` — `let base: byte = hi(&BALL) * 4;`, a **`let` initializer** rather than a `poke` value. AC-6 and Phase 4 named only `balloon` and `balloon-color`, so the repo's newest demo would be left teaching the idiom this RD retires | (a) Migrate all three / (b) Leave `boing-ball` on `hi(&X) * 4` — it still gets M1's speedup for free | ✅ Resolved — User accepted recommendation: **(a)**. `boing-ball` is the strongest case of the three: its ball is four consecutive 64-byte blocks addressed as `base+0..3`, so the program is already doing 64-byte block arithmetic while naming the first block through a page-alignment identity that holds only by luck — and it is the example RD-15's 64-byte alignment breaks first, since `hi(&X) * 4` computes the wrong block the moment the image is no longer page-aligned. Phase 4 grows by 2 tasks (50 → 52) | ✅ Resolved |
+
+Any further ambiguity discovered while writing plan documents or during execution is appended
 here as the next `AR #n` with a `(runtime)` tag, resolved with the user before work resumes, and
 back-propagated into the affected documents.

@@ -26,6 +26,7 @@ each one loses only the expectation the source contradicts.
 | **ST-13d** | `lo(&X / 2^k)` folds and means the right thing | `poke($07F8, lo(&X / 64))` → exactly one `LDA #<(__data_Main_X / 64)`; **no** `JSR __rt_div16`, no `W10171`; **assembled byte at `$07F8` == `(symbolMap(X) / 64) & 0xFF`** | CI · harness (ACME) | AC-4 |
 | **ST-13e** | `>>` and `/` converge on one operand | `poke($07F8, lo(&X >> 6))` builds — no `E90001` — and its assembled byte equals ST-13d's | CI · harness (ACME) | AC-5 |
 | **ST-13f** | `balloon-color` builds and points at its own sprite | assembles; `__data_Main_BALLOON % 256 == 0` and `< $1000`; assembled `$07F8` byte == `(addr / 64) & 0xFF` | CI · harness (ACME) | AC-6 |
+| **ST-13j** | `boing-ball` builds and its four pointers are one block apart | assembles; `__data_Main_BALL % 256 == 0` and `< $1000`; assembled `$07F8`..`$07FB` bytes == `b, b+1, b+2, b+3` where `b = (addr / 64) & 0xFF` | CI · harness (ACME) | AC-6 |
 | **ST-13g** | M1 is uniform across all four operand kinds | `hi`/`lo` of a module variable, a **local**, a const aggregate and a function each emit one byte-select of `__var_*` / `__frame_*` / `__data_*` / the entry label | CI · codegen | AR #91 |
 | **ST-13h** | the fold's edges behave as specified | `lo(&X / 1)` and `lo(&X >> 0)` emit M1's plain `LDA #<sym` (not `#<(sym / 1)`); `lo(&X / 40)` and `lo(&X >> 16)` are **byte-identical to today's** emission and still carry today's diagnostics | CI · codegen | AR #89 |
 | **ST-13i** | a named const divisor folds | `const BLOCK: byte = 64; poke($07F8, lo(&X / BLOCK))` → the same single `LDA #<(__data_Main_X / 64)` as the literal form | CI · codegen | AR #90 |
@@ -99,7 +100,7 @@ context, **not** as proof.
 | 1 · M3 | ST-51a, ST-T16 re-derived; ST-13c written | full suite; **zero** byte movement anywhere |
 | 2 · M1 | ST-13a, ST-13b, ST-13g, ST-9b + header | full suite; ST-C15 still green (AC-2); `balloon` ratchet re-derived |
 | 3 · M2 | ST-13d, ST-13e, ST-13h, ST-13i | full suite; **zero** byte movement — the operand is built unwired |
-| 4 · AC-6 | ST-13f; ST-C14 re-derived | full suite; goldens + ratchets + `SCOREBOARD.md` in the same commit |
+| 4 · AC-6 | ST-13f, ST-13j; ST-C14 re-derived | full suite; goldens + ratchets + `SCOREBOARD.md` in the same commit |
 | 5 · ledgers | the `twins.json` structural check | full suite; local VICE tier for AC-10 |
 
 **Phase 3 moving zero bytes is a deliberate proof.** The fold operand lands with no `examples/`
