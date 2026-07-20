@@ -176,7 +176,8 @@ The permanent layout scan (RD-05's ST-B39/B40/B43/B44) stays green: padding must
 shape those invariants forbid, and the goldens regenerate cleanly. Because `balloon` has no golden
 and the three data-bearing goldens are frozen byte-identical by AC-2, that scan alone cannot
 observe a single byte this RD produces — so a **new mixed-alignment fixture** carries the
-discriminating proof (see AC-7).
+discriminating proof (see AC-7). That fixture is **CI-tier and committed as a test, not as a
+golden** — the reasoning is recorded under AC-7 (AR #70).
 
 ### Should Have
 
@@ -291,8 +292,17 @@ lowering, not the membership rule.
 
 ### Emission (complexity: S)
 
-`packages/codegen/src/instr/serialize-acme.ts:125-131` concatenates const-data streams after the
-code with a comment header per stream. Aligned streams gain the directive ahead of them.
+The directive is prepended to the const-data stream's **own entries**, ahead of its label, in
+`constDataStream` (`packages/codegen/src/instr/instr-program.ts:191-198`) — so it travels with the
+stream it aligns and cannot drift from it. `serialize-acme.ts:125-131`, which concatenates
+const-data streams after the code, needs **no change**: it already renders stream entries through
+`printInstr` (AR #71).
+
+The `aligned` flag reaches that function as a new field on `ConstDataEntry`
+(`packages/codegen/src/il/cfg.ts`), populated from a set of address-taken symbols accumulated
+during function lowering. The ordering makes this free and needs no extra pass: functions are
+lowered at `lower.ts:213-220` and `constData` is built afterward at `:237-249`, so the set is
+already complete when the entries are constructed (AR #72).
 
 **Multiple aligned arrays**: padding is per aligned stream and accumulates (worst case ~255 bytes
 each). The emission order is `program.streams` order, unchanged by this RD — no reordering pass is
@@ -421,12 +431,25 @@ emulator — AR-27). **Local** = `skipIf(!hasVice())`, proven locally, never in 
    clause is a **review gate, not a test** — the budget tier only fails on `actual > budget` and
    will pass a growth accompanied by a raised ratchet, so it is verified against the committed
    `SCOREBOARD.md` diff at closeout.
-7. [ ] **[CI]** **The new emission has a discriminating artifact**: a new mixed-alignment fixture —
-   two const arrays in one program, one address-taken and one not — has a committed golden showing
-   the alignment directive ahead of exactly the address-taken stream, both resolved addresses, and
-   the unaligned stream paying zero padding. RD-05's ST-B39/B40/B43/B44 scan stays green over all
-   goldens including the new one. *(Without this fixture the scan cannot observe a byte this RD
-   produces: `balloon` has no golden and AC-2 freezes the rest.)*
+7. [ ] **[CI]** **The new emission has a discriminating artifact**: a mixed-alignment program — two
+   const arrays in one program, one address-taken and one not — is built **in-test through the real
+   `build()` facade and real ACME** (the `buildBalloon` pattern, `testing/balloon.ts:44-58`;
+   committing no generated output) and asserts that the alignment directive precedes exactly the
+   address-taken stream, that its **resolved** address is a multiple of 256, and that the unaligned
+   stream pays zero padding. RD-05's ST-B39/B40/B43/B44 scan stays green over the 14 goldens.
+
+   > **No committed golden, and deliberately so** (AR #70). A golden is the *weaker* instrument
+   > here: one containing the silently-wrong `!align 256, 0` looks entirely plausible and passes,
+   > so only a resolved-address assertion catches the operand trap. And a golden would force a
+   > hand-written twin (`twins.spec.test.ts:93-99`) for a synthetic two-array program that has no
+   > idiom to be a twin *of*, entering the corpus ratio and `SCOREBOARD.md` as noise plus a
+   > permanent VICE maintenance obligation.
+   >
+   > Recorded so it is not re-litigated: the RD-05 invariants could never have covered this
+   > anyway. They scan **jump shapes inside function sections**
+   > (`golden-layout.spec.test.ts:63-92`); an `!align` sits ahead of a const-data stream and its
+   > padding is inserted by ACME at assembly time, so no golden — new or existing — contains a byte
+   > those invariants are capable of judging.
 8. [ ] **[CI]** **balloon's routing ledger is re-audited**: its `twins.json` entries no longer
    attribute the divergence to "63 unrolled pokes forced by the `copy()` language gap",
    `sourceForced` is dropped, and the byte prose is re-derived. *(The freshness gate checks only

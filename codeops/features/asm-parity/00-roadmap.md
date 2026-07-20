@@ -23,7 +23,18 @@ on [#51](https://github.com/blendsdk/blend65/issues/51)
 [#65](https://github.com/blendsdk/blend65/issues/65) is **closed**
 ([comment](https://github.com/blendsdk/blend65/issues/65#issuecomment-5022095419)). 58/58 tasks.
 
-**RD-03 is preflighted — next step is `make_plan`.** The scan raised **29 findings (2 critical,
+**RD-03 is planned — next step is `preflight` on the plan, then `exec_plan`.** The plan is
+5 phases / 40 tasks under [`plans/rd-03-placement/`](plans/rd-03-placement/00-index.md), with 7
+plan-stage decisions recorded as AR #69–#75. Its load-bearing shape: **the mechanism lands before
+the balloon rewrite, and its acceptance is that nothing moves** — no fixture takes a const array's
+address today, so the 14 byte-identical goldens are a free proof that the rule excludes
+by-reference arguments. Two decisions were challenger-hardened: the hand-written twin **stays
+unchanged** (its copy targets `$0340`, below the PRG load base — an idiom placement cannot reach,
+not a defect), and the new emission is proven by a **CI-tier in-test fixture rather than a golden**
+(a golden containing the silently-wrong `!align 256, 0` would look plausible and pass; only a
+resolved-address assertion catches it).
+
+**RD-03 was preflighted first.** The scan raised **29 findings (2 critical,
 7 major)**, all resolved and applied to the RD and the register
 ([report](requirements/00-preflight-report-rd-03.md)). The thesis held under measurement —
 balloon **677 → 318 bytes, 2.70× → 1.27×**, sprite block 36 at `$0900`, mechanism proven end to
@@ -81,7 +92,7 @@ the roadmap still tiers it B3 — that tiering no longer matches the data and is
 |----|-------|----|------|-------|--------|--------------|----------------------|
 | RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Done | ✅ | 2026-07-18 | — |
 | RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Done | ✅ | 2026-07-18 | — |
-| RD-03 | Placement: align const data, read it in place ([#49](https://github.com/blendsdk/blend65/issues/49)) | [RD](requirements/RD-03-placement.md) | — | RD Preflighted | 🔎 | 2026-07-20 | Placement slice only; `copy()` (FUT-012) stays gated but is **no longer blocking**. Grammar-free — no `spec/` change, no Guard. **Measured** target: balloon 677→**318 B** (2.70×→**1.27×**), zero runtime copy — beats the twin at runtime, not on bytes. [Preflight](requirements/00-preflight-report-rd-03.md): 29 findings (2 critical, 7 major), all resolved. AR #64–#68 + addenda · Fable |
+| RD-03 | Placement: align const data, read it in place ([#49](https://github.com/blendsdk/blend65/issues/49)) | [RD](requirements/RD-03-placement.md) | [Plan](plans/rd-03-placement/00-index.md) | Plan Created | 📋 | 2026-07-20 | Placement slice only; `copy()` (FUT-012) stays gated but is **no longer blocking**. Grammar-free — no `spec/` change, no Guard. **Measured** target: balloon 677→**318 B** (2.70×→**1.27×**), zero runtime copy — beats the twin at runtime, not on bytes. [Preflight](requirements/00-preflight-report-rd-03.md): 29 findings (2 critical, 7 major), all resolved. AR #64–#68 + addenda · Fable |
 | RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | [RD](requirements/RD-04-compare-and-branch-fusion.md) | [Plan](plans/rd-04-compare-and-branch-fusion/00-index.md) | Done | ✅ | 2026-07-19 | AC-1…AC-10 all walked; corpus 4172→3896 B / 5340→5023 cyc; **#50 closed**; spun off [#66](https://github.com/blendsdk/blend65/issues/66) |
 | RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | [RD](requirements/RD-05-block-layout.md) | [Plan](plans/rd-05-block-layout/00-index.md) | Done | ✅ | 2026-07-20 | AC-1…AC-13 all walked ([closeout](plans/rd-05-block-layout/08-closeout.md)); corpus 3896→3616 B / 5023→4724 cyc; **#65 closed**; AR #58–#63 at execution |
 | RD-06 | Peephole seed catalog: INC/DEC, loads, staging ([#52](https://github.com/blendsdk/blend65/issues/52)) | — | — | Backlog | ⬜ | 2026-07-18 | B1 — **Rule 1 (INC/DEC) only**; R2–3 deferred (MMIO); seam blend65-ri/RD-08 |
