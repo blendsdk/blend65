@@ -187,6 +187,16 @@ interface LowerCtx {
    */
   scCounter: number;
   /**
+   * The const-data labels whose address the program takes with a source-level
+   * `&`. Filled at the `&` site itself, so a by-reference argument — which
+   * lowers to the very same address operand — never lands in it.
+   *
+   * This is ONE set shared by every lowering context in the program, not one
+   * per context. A module initializer lowers through its own context, so a
+   * per-context set would silently lose every `&` written at module scope.
+   */
+  readonly addressTakenConsts: Set<string>;
+  /**
    * The zero-page pair this function stages runtime pointer formation
    * through: interrupt-only functions use the dedicated
    * `__zp_irq_ptr_scratch` (an interrupt firing mid-formation must never
@@ -208,6 +218,13 @@ interface LowerCtx {
  */
 export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   const registry = input.registry ?? createIntrinsicRegistry();
+
+  // Const images whose address the program takes with `&`. Created once here
+  // and handed to every lowering context, because a program's function bodies
+  // and its module initializers lower through separate contexts and both can
+  // contain a `&`.
+  const addressTakenConsts = new Set<string>();
+
   const functions: ILFunction[] = [];
   for (const program of input.program) {
     const moduleName = program.moduleDecl.name;
@@ -216,7 +233,17 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
         if (hasErrorNode(item)) {
           continue; // skip functions tainted by an ErrorType/error node
         }
-        functions.push(lowerFunction(item, moduleName, input.plan, input.model, registry, bag));
+        functions.push(
+          lowerFunction(
+            item,
+            moduleName,
+            input.plan,
+            input.model,
+            registry,
+            bag,
+            addressTakenConsts,
+          ),
+        );
       }
     }
   }
@@ -227,18 +254,23 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   // empty, so their output is byte-identical to before.
   const init =
     input.model.initOrder.length > 0
-      ? lowerInitCode(input, registry, bag)
+      ? lowerInitCode(input, registry, bag, addressTakenConsts)
       : { blocks: Object.freeze([] as const), tempCount: 0 };
 
   // Const aggregates carry fully-evaluated memory images — each becomes an
   // in-image data entry under its `__data_<Module>_<name>` label (const
   // SCALARS keep inlining as immediates and own no data). Embedded assets
   // keep their provenance tag; everything else derives from the type.
+  //
+  // The address-taken set is complete by now: every function has lowered, and
+  // so has the initializer stream, and those are the only two places a `&` can
+  // appear.
   const constData: ConstDataEntry[] = [];
   for (const [sym, value] of input.model.constValues) {
     if (value.bytes === undefined) continue;
+    const symbol = constDataSymbol(sym);
     constData.push({
-      symbol: constDataSymbol(sym),
+      symbol,
       data: value.bytes,
       type:
         value.source === "embed"
@@ -246,6 +278,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
           : sym.type.kind === "struct"
             ? "struct"
             : "array",
+      aligned: addressTakenConsts.has(symbol),
     });
   }
 
@@ -270,6 +303,7 @@ function lowerInitCode(
   input: LowerInput,
   registry: IntrinsicRegistry,
   bag: DiagnosticBag,
+  addressTakenConsts: Set<string>,
 ): { blocks: readonly BasicBlock[]; tempCount: number } {
   // Initializer expressions, keyed by their declared symbol (typing records
   // the declaration-node → symbol entry).
@@ -305,6 +339,7 @@ function lowerInitCode(
     plan: input.plan,
     moduleInit: true,
     scCounter: 0,
+    addressTakenConsts,
     scratchPair: SCRATCH_PAIR, // the initializer stream is never interrupt-only
   };
   for (const sym of input.model.initOrder) {
@@ -348,6 +383,7 @@ function lowerFunction(
   model: SemanticModel,
   registry: IntrinsicRegistry,
   bag: DiagnosticBag,
+  addressTakenConsts: Set<string>,
 ): ILFunction {
   const fqName = `${moduleName}.${fn.name}`;
   const frame = plan.frames.get(fqName)?.frame;
@@ -371,6 +407,7 @@ function lowerFunction(
     plan,
     moduleInit: false,
     scCounter: 0,
+    addressTakenConsts,
     scratchPair:
       plan.irqOnlyFunctions?.has(fqName) === true ? IRQ_SCRATCH_PAIR : SCRATCH_PAIR,
   };
@@ -1816,6 +1853,14 @@ function lowerAddressOf(expr: UnaryExprNode, ctx: LowerCtx, direct: boolean): IL
     symbol = moduleVar !== null ? moduleVar.symbol : frameSymbol(ctx.fqName, sym.name);
   } else if (sym.kind === "constant") {
     symbol = constDataSymbol(sym); // typing admits only aggregates (they own an image)
+    // Taking a const image's address is the program asking for the raw address
+    // itself, which is worth aligning: only hardware reading in page or block
+    // units needs one. The mark has to be made HERE, at the source-level `&`,
+    // and nowhere downstream — a by-reference argument emits an identical
+    // address operand, and a rule that scanned operands would align every
+    // table ever passed to a helper. Every caller of this function sits behind
+    // an address-of check, so the by-ref path cannot reach this line.
+    ctx.addressTakenConsts.add(symbol);
   } else if (sym.kind === "function" || sym.kind === "interrupt") {
     symbol = functionEntryLabel(sym);
   } else {

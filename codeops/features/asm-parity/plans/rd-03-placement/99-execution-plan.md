@@ -1,8 +1,8 @@
 # Execution Plan — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49)
-> **Progress**: 6/41 tasks (15%) — Phase 1 complete
-> **Last Updated**: 2026-07-20 (Phase 1 green)
+> **Progress**: 13/41 tasks (32%) — Phases 1-2 complete
+> **Last Updated**: 2026-07-20 (Phase 2 green — the free proof holds)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (every phase, before every commit — AR #75):
@@ -68,18 +68,18 @@ does not move: `slice7b` and `slice8b` (const data reached by by-reference argum
 (`&onIRQ`) are the named negative controls. A golden that moves a byte here means the rule is
 scanning IL operands instead of `&` sites.
 
-- [ ] 2.1 Write ST-C5–ST-C10, ST-C19 and ST-C19b in
+- [x] 2.1 Write ST-C5–ST-C10, ST-C19 and ST-C19b in
       `packages/codegen/src/il/lower-address-of.spec.test.ts` (spec tier): `&T` marks; by-ref
       `sum(T, 3)` does **not**; `&onIRQ` marks nothing; `&` on a mutable array marks nothing; a
       const struct marks; with two arrays exactly the `&`-taken one marks; **with two arrays both
       `&`-taken, both mark** (ST-C19 — the set must be a set, not a single slot); and **a
       module-scope `let ptr: word = &T;` marks** (ST-C19b — the second lowering context, see 2.3).
       Verify **red**
-- [ ] 2.2 Add `aligned: boolean` to `ConstDataEntry` (`codegen/src/il/cfg.ts`), JSDoc'd. It is
+- [x] 2.2 Add `aligned: boolean` to `ConstDataEntry` (`codegen/src/il/cfg.ts`), JSDoc'd. It is
       **required**, so both construction sites must supply it: `lower.ts:240` (task 2.4) and the
       typed literal at `packages/codegen/src/instr/assemble.impl.test.ts:151-155`, which gets
       `aligned: false`. These are the only two tree-wide; typecheck is red until both are done
-- [ ] 2.3 Create the address-taken set in `lowerToIL` and thread it into **both** `LowerCtx`
+- [x] 2.3 Create the address-taken set in `lowerToIL` and thread it into **both** `LowerCtx`
       construction sites — `lower.ts:294` (`lowerInitCode`, `fqName: "__init"`) and `:363`
       (`lowerFunction`). **They must share one instance.** `LowerCtx` is per lowering *unit*, not
       per program: adding a field forces both literals to supply one, but nothing forces them to
@@ -91,16 +91,16 @@ scanning IL operands instead of `&` sites.
       **eight** call sites (`:336, :485, :1042, :1466, :1607, :2473, :2494, :2528`) are
       `isAddressOfExpr`-gated, so the by-ref argument path at `:1022-1029` — which emits the
       *identical* `addrOf` operand — can never reach it
-- [ ] 2.4 Populate `aligned` in the `constData` loop (`lower.ts:237-249`), noting that the set is
+- [x] 2.4 Populate `aligned` in the `constData` loop (`lower.ts:237-249`), noting that the set is
       already complete: every function lowers at `:213-220` and init code at `:229-231`, both
       **before** the loop at `:237-249`
-- [ ] 2.5 ST-C5–ST-C10, ST-C19 and ST-C19b **green**
-- [ ] 2.6 **The free proof**: full verify with all 14 goldens **byte-identical**. Confirm
+- [x] 2.5 ST-C5–ST-C10, ST-C19 and ST-C19b **green**
+- [x] 2.6 **The free proof**: full verify with all 14 goldens **byte-identical**. Confirm
       explicitly that `slice7b`/`slice8b` (by-ref) and `slice8` (`&onIRQ`) did not move — record
       the confirmation in the commit body, since this is the phase's real assertion. Do **not**
       claim `slice7` as a by-ref control: it reads `__data_Gfx_TABLE,X` directly indexed
       (`slice7.asm.golden:138`) and materializes no address at all
-- [ ] 2.7 Impl tests in `packages/codegen/src/il/lower-address-of.impl.test.ts` for the set's
+- [x] 2.7 Impl tests in `packages/codegen/src/il/lower-address-of.impl.test.ts` for the set's
       lifetime: two modules in one program, and a const array whose address is taken twice, both
       yield one marked entry
 

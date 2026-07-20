@@ -106,6 +106,17 @@ export interface ConstDataEntry {
   readonly data: Uint8Array;
   /** What produced the entry, for emitter formatting. */
   readonly type: "array" | "struct" | "embed";
+  /**
+   * Whether this image must start on a 256-byte boundary.
+   *
+   * Set when the program takes the aggregate's address with a source-level
+   * `&`, which is the only way it can hand the raw address to hardware that
+   * reads in page or block units. Passing the aggregate by reference does not
+   * set it: the compiler's own indexed access does not care where the data
+   * sits, and aligning every table ever passed to a helper would cost padding
+   * for nothing.
+   */
+  readonly aligned: boolean;
 }
 
 /**

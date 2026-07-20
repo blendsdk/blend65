@@ -17,11 +17,12 @@ import {
   parse,
   planAllocation,
 } from "@blend65/frontend";
+import type { ILProgram } from "./cfg.js";
 import { printIL } from "./print-il.js";
 import { lowerToIL } from "./lower.js";
 
 /** Lowers sources through the real frontend and prints the IL. */
-function lowerText(sources: string[]): { text: string; hasErrors: boolean } {
+function lowerText(sources: string[]): { text: string; il: ILProgram; hasErrors: boolean } {
   const bag = createDiagnosticBag();
   const programs: ProgramNode[] = sources.map((source, i) => {
     const { tokens } = lex(i + 1, source, bag);
@@ -40,7 +41,7 @@ function lowerText(sources: string[]): { text: string; hasErrors: boolean } {
     bag,
   );
   const il = lowerToIL({ program: programs, model, plan }, bag);
-  return { text: printIL(il), hasErrors: bag.hasErrors() };
+  return { text: printIL(il), il, hasErrors: bag.hasErrors() };
 }
 
 describe("address-of lowering internals", () => {
@@ -100,5 +101,49 @@ describe("address-of lowering internals", () => {
     expect(hasErrors).toBe(false);
     expect(text).toContain("store &__var_Main_m, __frame_Main_main_0sc0");
     expect(text).toMatch(/add .*__frame_Main_main_0sc0/);
+  });
+});
+
+describe("the address-taken record's lifetime", () => {
+  it("marks exactly one entry when a program spans several modules", () => {
+    // Modules lower one after another, each contributing its own images. The
+    // record is program-wide, so an unaddressed image in a module that lowered
+    // earlier must not pick up the mark from a later module's `&`.
+    //
+    // Note the `&` and the image it names are deliberately in the SAME module:
+    // taking the address of another module's const is rejected upstream today
+    // — a qualified name parses as a field access, and addressing a field is
+    // not supported — so there is no cross-module case to exercise here.
+    const { il, hasErrors } = lowerText([
+      ["module Gfx;", "export const TABLE: byte[3] = [1, 2, 3];"].join("\n"),
+      [
+        "module Main;",
+        "const LOCAL: byte[3] = [4, 5, 6];",
+        "function main(): void {",
+        "  let p: word = &LOCAL;",
+        "}",
+      ].join("\n"),
+    ]);
+    expect(hasErrors).toBe(false);
+    const marked = il.constData.filter((e) => e.aligned).map((e) => e.symbol);
+    expect(marked).toEqual(["__data_Main_LOCAL"]);
+  });
+
+  it("yields one marked entry when the same address is taken twice", () => {
+    // The record is a set. Two `&` sites on one array must not produce two
+    // entries, or the emitter would lay the image down twice.
+    const { il, hasErrors } = lowerText([
+      [
+        "module Main;",
+        "const T: byte[3] = [1, 2, 3];",
+        "function main(): void {",
+        "  let a: word = &T;",
+        "  let b: word = &T;",
+        "}",
+      ].join("\n"),
+    ]);
+    expect(hasErrors).toBe(false);
+    expect(il.constData.filter((e) => e.symbol === "__data_Main_T")).toHaveLength(1);
+    expect(il.constData.filter((e) => e.aligned).map((e) => e.symbol)).toEqual(["__data_Main_T"]);
   });
 });
