@@ -14,20 +14,38 @@
 
 ## ▶ Resume here (2026-07-20)
 
-Two open threads, neither blocking the other:
+One open thread.
 
-1. **RD-05 task 5.6 — not done, deliberately.** The area report on
-   [#51](https://github.com/blendsdk/blend65/issues/51) and closing
-   [#65](https://github.com/blendsdk/blend65/issues/65) are **prepared but unposted**. All the
-   evidence is in [`plans/rd-05-block-layout/08-closeout.md`](plans/rd-05-block-layout/08-closeout.md)
-   (AC walk + delta record). Commenting on and closing issues is outward-facing and was outside
-   what the `--auto-commit` run was authorised to do, so it waits for an explicit go-ahead.
-   Everything else in RD-05 is complete: 57/58 tasks, five commits, verify green.
+**RD-05 is fully closed out.** Task 5.6 posted on authorisation: the block-layout area report is
+on [#51](https://github.com/blendsdk/blend65/issues/51)
+([comment](https://github.com/blendsdk/blend65/issues/51#issuecomment-5022094039)), which stays
+**open** for the block *reordering* this slice scoped out — the five `guards` if/else-arm jumps.
+[#65](https://github.com/blendsdk/blend65/issues/65) is **closed**
+([comment](https://github.com/blendsdk/blend65/issues/65#issuecomment-5022095419)). 58/58 tasks.
 
-2. **RD-03 is drafted, not preflighted.** Next step is
-   `/codeops:preflight asm-parity rd-03-placement`. Worth doing before planning: the RD rests on
-   three measurements and one *refuted* assumption (that the balloon needs `copy()`), and the two
-   previous preflights raised 32 and 27 findings.
+**RD-03 is drafted, not preflighted.** Next step is
+`/codeops:preflight asm-parity rd-03-placement`. Worth doing before planning: the RD rests on
+three measurements and one *refuted* assumption (that the balloon needs `copy()`), and the two
+previous preflights raised 32 and 27 findings. Two things the preflight must settle, both
+identified after the RD was drafted:
+
+- **The ~312-byte target excludes alignment padding.** It was measured *unaligned*; page-aligning
+  the const array adds up to 255 bytes on top, so balloon's real post-RD byte count is unknown
+  until built. The "beats the twin" framing is only true on runtime behaviour (zero copy vs the
+  twin's 63-byte startup copy) — on bytes ~312 vs 251 is ~1.24×, still behind.
+- **The `E10193`/symbolic-fold gap needs an owner.** `const BLOCK: byte = hi(&SPRITE) * 4;` is
+  rejected because `&SPRITE` is a *link-time* symbol — it cannot fold to a literal, only to an
+  emitted ACME expression. That is a different mechanism from #49 ①'s numeric fold and is
+  unscoped today; route it to #58/#60 at RD-03 closeout. Measurements are on
+  [#49](https://github.com/blendsdk/blend65/issues/49#issuecomment-5021941029).
+
+After RD-03: **#49 Phase 1 as one RD** — item ①'s const-evaluated half + item ③ + item ⑤, with
+the runtime-address half of `poke`/`peek` split into its own later RD. Sequenced second because
+it is byte-neutral by its own acceptance criterion, and because doing RD-03 first *shrinks* item
+③'s balloon diff (RD-03 deletes the `$0340-$037E` staging pokes; ③ then renames only the ~10
+register accesses). Note ③ cannot ship as a drop-in library: there is no module search path in
+`packages/config/src` or `packages/cli/src` — imports resolve as sibling files — so "zero
+compiler change" holds only for copy-the-file-into-your-project distribution.
 
 Alternatives to RD-03 if priorities shift: RD-06 (#52, INC/DEC peephole — smallest) or RD-13
 (#58, const-fold — whose groundwork RD-05 deliberately built as a separately schedulable pass).

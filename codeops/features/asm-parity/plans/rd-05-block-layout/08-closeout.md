@@ -2,6 +2,8 @@
 
 > **Implements**: asm-parity/RD-05 · [#51](https://github.com/blendsdk/blend65/issues/51), [#65](https://github.com/blendsdk/blend65/issues/65)
 > **Completed**: 2026-07-20 · 5 phases / 58 tasks
+> **Reported**: area report on [#51](https://github.com/blendsdk/blend65/issues/51#issuecomment-5022094039)
+> (left open for the block *reordering* this slice scoped out) · [#65](https://github.com/blendsdk/blend65/issues/65#issuecomment-5022095419) closed
 > **Commits**: `868700c` (relaxation, wired) · `e925640` (IL passes, unwired) · `32d7e9e` (tail decision, unwired) · `3fed25e` (the corpus commit) · this one (invariants + closeout)
 
 ## Delta record (AC-9)
