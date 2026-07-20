@@ -3,7 +3,7 @@
 > **Implements**: asm-parity/RD-03
 > **Source**: [RD-03](../../requirements/RD-03-placement.md)
 > **Issue**: [#49](https://github.com/blendsdk/blend65/issues/49) (placement slice)
-> **Status**: Plan Preflighted — 28 findings resolved and applied
+> **Status**: Executed — 40/41 tasks; 5.6 (posting on #49) awaits an explicit go-ahead
 >   ([report](00-preflight-report.md))
 > **Created**: 2026-07-20
 > **Routing tag**: complex (Phase 1: standard, Phase 2: sensitive)
@@ -50,7 +50,7 @@ remains behind it on bytes. Both statements belong in the closeout; neither surv
 | [07-testing-strategy.md](07-testing-strategy.md) | ST-C1…ST-C20 specification tests, per tier |
 | [99-execution-plan.md](99-execution-plan.md) | 5 phases, 41 tasks |
 | [00-preflight-report.md](00-preflight-report.md) | The plan-stage audit — 28 findings, all resolved |
-| `08-closeout.md` | *Written by task 5.5* — the AC-1…AC-10 walk, the delta record, the carried divergences |
+| [08-closeout.md](08-closeout.md) | The AC-1…AC-10 walk, the delta record, the carried divergences |
 
 ## The load-bearing decision
 

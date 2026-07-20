@@ -1,8 +1,8 @@
 # Execution Plan — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49)
-> **Progress**: 35/41 tasks (85%) — Phases 1-4 complete
-> **Last Updated**: 2026-07-20 (Phase 4 green — corpus regenerated once: balloon 677 → 318 B at `$0900`)
+> **Progress**: 40/41 tasks (98%) — 5.6 (posting on #49) needs an explicit go-ahead
+> **Last Updated**: 2026-07-20 (Phase 5 green — AC-1…AC-10 walked, [closeout](08-closeout.md) written)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (every phase, before every commit — AR #75):
@@ -195,22 +195,22 @@ point (M4's "in the same change"; AR #73's "regenerates exactly once, at the bal
 
 ## Phase 5 — Local re-measure, review gates and closeout · tag: complex
 
-- [ ] 5.1 Re-derive balloon's `frameUpdate` `staticMaxCycles`; **re-measure** `measuredMaxCycles`
+- [x] 5.1 Re-derive balloon's `frameUpdate` `staticMaxCycles`; **re-measure** `measuredMaxCycles`
       on VICE (local tier — CI cannot). Confirm `Main_main_L5`/`L3` still resolve (verified at
       planning time that they do). **If `measuredMaxCycles` moves, `SCOREBOARD.md` regenerates a
       second time** — it renders measured columns from committed `budgets.json`
       (`gen-parity-scoreboard.mjs:224-233`, rendered at `SCOREBOARD.md:9`) — so re-run
       `yarn gen:scoreboard` and the gate before committing this phase
-- [ ] 5.2 Verify no fixture grew and the corpus total strictly decreased — **a review gate, not a
+- [x] 5.2 Verify no fixture grew and the corpus total strictly decreased — **a review gate, not a
       test** (the budget tier only fails on `actual > budget`). Read the `budgets.json` and
       `SCOREBOARD.md` diffs **from the Phase 4 commit** and state the result explicitly
-- [ ] 5.3 Confirm ST-B39/B40/B43/B44 green over the regenerated corpus — a **no-regression** gate;
+- [x] 5.3 Confirm ST-B39/B40/B43/B44 green over the regenerated corpus — a **no-regression** gate;
       it cannot observe alignment (AR #70) and must not be cited as evidence for this RD
-- [ ] 5.4 Confirm `git status --porcelain spec/` empty and the boundary tier green (AC-10). For
+- [x] 5.4 Confirm `git status --porcelain spec/` empty and the boundary tier green (AC-10). For
       AC-9, also walk the RD's whole commit range for `spec/` paths — the working-tree check passes
       a *committed* spec edit clean, and CI has no `spec/` freeze step, so this is a **closeout
       review**, not a gate (see [01-requirements.md](01-requirements.md))
-- [ ] 5.5 Write `08-closeout.md`: the AC-1…AC-10 walk against committed artifacts, the delta
+- [x] 5.5 Write `08-closeout.md`: the AC-1…AC-10 walk against committed artifacts, the delta
       record, a `git diff` over `test/golden/*.asm.golden` across the RD's commit range confirming
       all 14 are byte-identical (ST-C16), and the two carried divergences (the 8-instruction
       sequence and its spurious `W10172`) attributed to #58/#60
