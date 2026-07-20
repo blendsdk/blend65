@@ -745,7 +745,7 @@ class FunctionTranslator {
     // 16-bit: write each byte inline to the consuming store's target.
     const home = this.foldStoreHome(dest, index, all);
     if (home === null) {
-      this.iceUnsupported("word arithmetic result not consumed by a store (RD-07c)");
+      this.iceUnsupported("word arithmetic result not consumed by a store");
       return;
     }
     this.wordLeftByteIntoA(left, 0);
@@ -779,7 +779,7 @@ class FunctionTranslator {
     }
     const home = this.foldStoreHome(dest, index, all);
     if (home === null) {
-      this.iceUnsupported("word bitwise result not consumed by a store (RD-07c)");
+      this.iceUnsupported("word bitwise result not consumed by a store");
       return;
     }
     this.wordLeftByteIntoA(left, 0);
@@ -2124,7 +2124,7 @@ class FunctionTranslator {
     this.bag.addICE(
       IceCode.Unexpected,
       null,
-      `IL→Instr: unsupported op '${what}' (deferred to RD-07c)`,
+      `IL→Instr: unsupported op '${what}' — not yet implemented`,
     );
   }
 
