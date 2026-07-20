@@ -1,7 +1,7 @@
 # Execution Plan — Block Layout (RD-05)
 
 > **Implements**: asm-parity/RD-05 · [#51](https://github.com/blendsdk/blend65/issues/51), [#65](https://github.com/blendsdk/blend65/issues/65)
-> **Progress**: 50/58 tasks (86%) — Phases 1–4 complete
+> **Progress**: 57/58 tasks (98%) — all implementation complete; 5.6 (GitHub) awaits a go-ahead
 > **Last Updated**: 2026-07-20
 > **CodeOps Skills Version**: 3.10.0
 
@@ -276,20 +276,34 @@ unconditionally, and the ST-B27 suite comment described the pre-change output as
 
 ## Phase 5 — Permanent invariants and closeout · tag: standard
 
-- [ ] 5.1 Write `test-harness/src/golden-layout.spec.test.ts` — ST-B39, ST-B40, ST-B43, ST-B44,
+- [x] 5.1 Write `test-harness/src/golden-layout.spec.test.ts` — ST-B39, ST-B40, ST-B43, ST-B44,
       importing the scan predicates authored at 4.2. ST-B43 carries the `_rlx<N>` carve-out
-- [ ] 5.2 Prove the scan bites: seed a violation of **each of the three shapes** locally, watch
+      — *done 2026-07-20: 43 assertions (14 programs × 3 shapes + non-vacuity), green*
+- [x] 5.2 Prove the scan bites: seed a violation of **each of the three shapes** locally, watch
       each fail, revert. Confirm the ST-B44 non-vacuity check fails if the function markers are
-      mangled
-- [ ] 5.3 Walk AC-1…AC-13 against committed artifacts, quoting evidence for each, and respecting
+      mangled — *done 2026-07-20. All four tripwires fire; a mangled marker fails ST-B44 while
+      the three shape checks pass by finding nothing, which is exactly the hazard it guards. The
+      `_rlx<N>` carve-out was additionally verified in the **permissive** direction — the same
+      trigram with a minted label leaves the scan green — because a false positive there would
+      have banned legitimate relaxed code from the corpus forever*
+- [x] 5.3 Walk AC-1…AC-13 against committed artifacts, quoting evidence for each, and respecting
       the Kind column in `07` — a hand-reviewed artifact may not be cited as a committed test
-- [ ] 5.4 Per-fixture before/after bytes and straight-line cycles; corpus totals must both
-      strictly decrease with no individual regression
-- [ ] 5.5 Note any pair whose residual divergence is now dominated by a different cause, so the
-      next wave item inherits an accurate picture *(Should-Have)*
-- [ ] 5.6 Area report on #51; close #65 with its range evidence
-- [ ] 5.7 Roadmap sync — feature row to `Done`, then cascade the portfolio row
-- [ ] 5.8 Full verify
+      — *done 2026-07-20 in [08-closeout.md](08-closeout.md). All 13 pass. One honest
+      discrepancy recorded rather than smoothed over: the committed scan counts 12 trampolines on
+      the pre-change corpus against the RD's hand-counted baseline of 13, unreconciled; the same
+      run reproduces the fall-through baseline of 47 exactly, and the post-change count is zero on
+      either baseline*
+- [x] 5.4 Per-fixture before/after bytes and straight-line cycles; corpus totals must both
+      strictly decrease with no individual regression — *done; table in the closeout. 3896→3616 B,
+      5023→4724 cyc, no fixture regressed*
+- [x] 5.5 Note any pair whose residual divergence is now dominated by a different cause, so the
+      next wave item inherits an accurate picture *(Should-Have)* — *done; `rasterpoll` → #59,
+      `balloon` → #49, `guards` stays on #51 as a reordering item*
+- [ ] 5.6 Area report on #51; close #65 with its range evidence — *prepared, **not posted**.
+      Commenting on and closing GitHub issues is outward-facing and outside what an auto-commit
+      run authorises, so it is left for an explicit go-ahead*
+- [x] 5.7 Roadmap sync — feature row to `Done`, then cascade the portfolio row — *done*
+- [x] 5.8 Full verify — *done*
 
 ---
 
