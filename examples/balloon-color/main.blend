@@ -1,0 +1,69 @@
+module Main;
+
+// The bouncing balloon, repainted on every bounce. Deliberately OUTSIDE the
+// parity corpus: no golden, no hand-written twin, no size budget. `balloon/`
+// next door is the measured fixture and stays a fixed white sprite; this one
+// is free to grow features without re-basing anything.
+
+// The classic Commodore 64 hot-air balloon: a 24x21 hires sprite,
+// 21 rows of 3 bytes, embedded straight from the committed binary.
+const BALLOON: byte[] = embed("balloon.bin");
+
+// The bounce palette, walked one step per bounce. Blue is left out on purpose:
+// the KERNAL leaves the screen blue, and a blue balloon on it is an invisible
+// balloon. Eight entries, so a full cycle is eight bounces.
+const PALETTE: byte[8] = [1, 7, 8, 2, 10, 4, 3, 13];
+
+function main(): void {
+  // Sprite 0: hires, normal size. Taking the image's address aligns it
+  // to a page, so the VIC reads it where it already lies — no staging copy —
+  // and the sprite pointer is just its block number, high byte times four.
+  poke($07F8, hi(&BALLOON) * 4);
+  poke($D015, 1);
+  poke($D017, 0);
+  poke($D01C, 0);
+  poke($D01D, 0);
+
+  // Start mid-screen, drifting down-right. X needs 9 bits (24..320),
+  // so it lives in a word and splits across $D000 + the $D010 MSB.
+  let x: word = 172;
+  let y: byte = 139;
+  let right: boolean = true;
+  let down: boolean = true;
+
+  // The starting colour is the palette's own first entry, so there is one
+  // place to change it rather than two that must agree.
+  let tint: byte = 0;
+  poke($D027, PALETTE[tint]);
+
+  while (true) {
+    // One update per PAL frame: hold until the raster reaches line 251,
+    // just below the visible area. The update body takes longer than one
+    // raster line, so this cannot double-fire within a frame.
+    while (peek($D012) != 251) { }
+
+    if (right) { x = x + 2; } else { x = x - 2; }
+    if (down) { y = y + 2; } else { y = y - 2; }
+
+    // Bounce at the borders; >=/<= (not ==) so a 2px step cannot overshoot a
+    // bound. A corner counts as one bounce, not two — the flag records that a
+    // wall was hit this frame, not how many.
+    let bounced: boolean = false;
+    if (x >= 320) { right = false; bounced = true; }
+    if (x <= 24) { right = true; bounced = true; }
+    if (y >= 229) { down = false; bounced = true; }
+    if (y <= 50) { down = true; bounced = true; }
+
+    // Repaint only on the frames that need it. The colour register is left
+    // alone the other 99% of the time, the way a hand-written loop leaves it.
+    if (bounced) {
+      tint = tint + 1;
+      if (tint >= 8) { tint = 0; }
+      poke($D027, PALETTE[tint]);
+    }
+
+    poke($D000, lo(x));
+    poke($D010, hi(x));
+    poke($D001, y);
+  }
+}
