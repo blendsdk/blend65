@@ -1,8 +1,8 @@
 # Execution Plan — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49)
-> **Progress**: 40/41 tasks (98%) — 5.6 (posting on #49) needs an explicit go-ahead
-> **Last Updated**: 2026-07-20 (Phase 5 green — AC-1…AC-10 walked, [closeout](08-closeout.md) written)
+> **Progress**: 41/41 tasks (100%) — complete
+> **Last Updated**: 2026-07-20 (area report posted on #49; #49 stays open — placement slice only)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (every phase, before every commit — AR #75):
@@ -214,9 +214,11 @@ point (M4's "in the same change"; AR #73's "regenerates exactly once, at the bal
       record, a `git diff` over `test/golden/*.asm.golden` across the RD's commit range confirming
       all 14 are byte-identical (ST-C16), and the two carried divergences (the 8-instruction
       sequence and its spurious `W10172`) attributed to #58/#60
-- [ ] 5.6 Post the area report on [#49](https://github.com/blendsdk/blend65/issues/49) —
+- [x] 5.6 Post the area report on [#49](https://github.com/blendsdk/blend65/issues/49) —
       **outward-facing; requires an explicit go-ahead** and is not covered by an auto-commit run.
-      #49 stays **open**: this RD is its placement slice only
+      #49 stays **open**: this RD is its placement slice only.
+      Posted 2026-07-20 —
+      [comment-5024737189](https://github.com/blendsdk/blend65/issues/49#issuecomment-5024737189)
 
 ---
 

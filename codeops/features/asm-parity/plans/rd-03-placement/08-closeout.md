@@ -1,8 +1,8 @@
 # Closeout — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49) (placement slice)
-> **Commit range**: `9534760..562237c` (10 commits — one per phase, plus three review follow-ups, the roadmap sync and this record)
-> **Status**: 40 of 41 tasks; every acceptance criterion walked against committed artifacts. Task 5.6 (the area report on #49) is outward-facing and awaits an explicit go-ahead
+> **Commit range**: `9534760..HEAD` (12 commits — one per phase, plus three review follow-ups, the roadmap sync, this record and the area-report sync)
+> **Status**: 41 of 41 tasks; every acceptance criterion walked against committed artifacts
 
 ---
 
@@ -166,5 +166,9 @@ half the move.
 **#49 stays open.** This RD is its **placement slice** only; the wider slice — runtime-address
 `poke`, the const-evaluated half, format handlers — is untouched.
 
-**Task 5.6 — posting the area report on #49 — is outward-facing and was not done.** It requires an
-explicit go-ahead and is not covered by an auto-commit run.
+The area report was posted on 2026-07-20 with an explicit go-ahead —
+[comment-5024737189](https://github.com/blendsdk/blend65/issues/49#issuecomment-5024737189). It
+records one correction to the issue's own history: the note filed on 2026-07-18 held that the
+balloon's staging copy was source-forced and that `copy()` was *required* because `$0340` sits
+below the PRG load base. The premise was true, the conclusion was not — the twin's author chose a
+block down there; a sprite does not have to live there. Placement alone removed the copy.
