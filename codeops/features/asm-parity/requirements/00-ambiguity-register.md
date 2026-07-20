@@ -1,6 +1,6 @@
 # Ambiguity Register: asm-parity requirements
 
-> **Status**: ✅ GATE PASSED — all 33 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19)
+> **Status**: ✅ GATE PASSED — all 38 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19 · RD-03 items 64–68: 2026-07-20 — numbering continues past the plan-stage registers so a single `AR #n` is unambiguous across the feature)
 > **Last Updated**: 2026-07-19 22:05
 > **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61)) · Items 20–25: RD-04 ([#50](https://github.com/blendsdk/blend65/issues/50)) · Items 26–33: RD-05 ([#51](https://github.com/blendsdk/blend65/issues/51))
 > **CodeOps Skills Version**: 3.10.0
@@ -298,3 +298,35 @@ RD-05, not a follow-up" resolution above stands unchanged.
 seam split, diverged on relaxation's home and on inversion's status as a separate transform.
 Both divergences investigated against the code and adopted. Preflight subsequently corrected two
 of the supporting rationales without disturbing the decision (see above).
+
+---
+
+## RD-03 — Placement: align const data and read it in place ([#49](https://github.com/blendsdk/blend65/issues/49))
+
+> **Status**: ✅ GATE PASSED — all 5 items resolved (64–68), 2026-07-20
+
+| # | Category | Ambiguity | Options | Decision | Status |
+|---|----------|-----------|---------|----------|--------|
+| 64 | Scope / Document identity | RD-03 (#49) is an umbrella epic — placement, `copy()`, and hardware access — with a roadmap row but no document. Which of those does this RD own? | (a) RD-03 **is** the placement slice; `copy()` and the wider hardware-access work are named out of scope and stay gated / (b) a new RD id for placement, leaving RD-03 as an unwritten umbrella | ✅ Resolved — User accepted recommendation: (a). The roadmap row already declares the split ("placement → B1/B2 (grammar-free); copy() gated"), so RD-03 documents the half that is actionable. #49 remains the linked issue | ✅ Resolved |
+| 65 | Technical / Behavioral | Which const arrays get aligned? Measured first: aligning **every** const array costs **+795 bytes** of padding corpus-wide against balloon's −365 — the corpus *grows* by 430 and `slice7` (+207), `slice7b` (+159) and `slice8b` (+276) each regress while gaining nothing, contradicting AR #66 | (a) every const array unconditionally / (b) only arrays a platform profile marks hardware-read / (c) **a const array is aligned iff its address is taken** | ✅ Resolved — User accepted recommendation: (c). Grammar-free (`&` already exists in v3); costs **zero** on today's corpus because no fixture takes an address, and −212 net once balloon is rewritten. The rule carries meaning rather than convenience: taking a const array's address is the program declaring that something other than the compiler's own indexing will read those bytes — hardware, or a pointer — which is exactly when placement matters. (a) was chosen first and **overturned by measurement**; (b) needs selection machinery that does not exist (format handlers are unimplemented — no `FormatHandler` type in `core/platform` or `packages/platforms`, `E10203` absent from the frontend) | ✅ Resolved |
+| 66 | Quality gate | Padding costs bytes, and this project treats a byte regression as a defect (AR #4, #12) | (a) corpus total must still strictly decrease and **no fixture may regress** — a fixture that grows is a stop, not a budget bump; all ratchets re-derived / (b) align only when the compiler judges padding cheaper than the copy it saves | ✅ Resolved — User accepted recommendation: (a), the same rule RD-05 followed. (b) was rejected because it makes a program's memory layout depend on a compiler judgement rather than on its own source | ✅ Resolved |
+| 67 | Scope | `poke($07F8, hi(&BALLOON) * 4)` compiles **today**, but emits 9 instructions where a hand-coder writes 4: the full 16-bit address is materialized into a scratch pair before `hi()` takes its high byte. Prime-Directive divergence — whose? | (a) out of scope; recorded and routed to the constant-materialization lever (#58/#60) / (b) in scope — this RD must emit `LDA #>sym` directly | ✅ Resolved — User accepted recommendation: (a). It is a constant-materialization defect, not a placement one, and #58/#60 is already the named lever for that class. Keeps this slice small | ✅ Resolved |
+| 68 | Technical | Alignment granularity: sprites need 64-byte blocks, so why page-align (256)? | (a) 64-byte — the hardware's actual granularity, tighter padding / (b) 256-byte (page) | ✅ Resolved — surfaced during authoring, decided on the language surface: (b). A sprite pointer is `address / 64`, and v3 offers **no way to name that** — there is no "address / 64" idiom. It *does* offer `hi()`, which is `address / 256` and is specified to fold at compile time (`spec/12-intrinsics.md:174`), so `hi(&X) * 4` equals `address / 64` **only when the address is a multiple of 256**. Page alignment is therefore what makes this slice expressible without touching `spec/`; 64-byte alignment would require new syntax and re-gate the whole RD behind the Language Guard | ✅ Resolved |
+
+**AR-65 (the measurement that overturned the first answer).** Per-array padding was computed from
+each fixture's real `__data_*` symbol addresses rather than estimated: `slice7` `$0931` (+207),
+`slice7b` `$0961` (+159), `slice8b` `$0972`/`$097A` (+142/+134), `balloon` `$0A67` (+153). The
+decisive fact is that none of those three programs would *use* the alignment — their tables are
+read by compiler-generated indexed access, never by hardware — so they were paying for nothing.
+The address-taken rule separates the two cases using something already in the language.
+
+**AR-65 (disclosed cost).** The rule couples a layout decision to an expression that may appear
+anywhere in the program: adding `&X` changes X's address and pads the binary. That is real action
+at a distance. It is accepted because the effect is deterministic, reported in the build summary,
+and gated by the no-regression ratchet — and because the alternative that avoids it entirely
+(an explicit alignment attribute, FUT-014) requires attribute syntax that v3 deliberately removed.
+
+**Hardening disclosure:** Confidence High on AR #65 and #68 — both rest on measurements taken
+against the current compiler (`+795` padding; `hi(&X)*4` verified to emit `LDA #>__data_Main_BALLOON`
+/ `ASL` / `ASL`) rather than on reasoning. Confidence Medium on AR #67: the routing to #58/#60 is
+judgement, and the 9-instruction sequence is a live divergence until that lever lands.
