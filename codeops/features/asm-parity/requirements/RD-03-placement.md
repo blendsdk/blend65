@@ -183,9 +183,17 @@ golden** — the reasoning is recorded under AC-7 (AR #70).
 
 **S1 — Any other fixture that stages hardware-read data in place.** If a corpus program can drop a
 copy the same way, it does, in the same change. **On the current corpus this is expected to be a
-no-op**, and deliberately so: the only other const→copy path is `slice8b`, whose destinations
-(`$0400` screen RAM, `$C000`) are below the PRG load base and therefore excluded by this RD's own
-Won't-Have. S1 exists for future fixtures, not present ones.
+no-op**, and deliberately so: the only other const→copy path is `slice8b`, and its const arrays are
+not copied to a hardware address at all. `copyBytes(TITLE, title2, …)` copies them into the
+**mutable staging arrays** `title2`/`table2` (`examples/slice8b/main.blend:6-7, 17-18`), which the
+program then pokes out to `$0400` and `$C000` (`:21-39`). Placement cannot substitute for a mutable
+buffer the source itself indexes and mutates, so S1 finds nothing here. S1 exists for future
+fixtures, not present ones.
+
+> An earlier form of this paragraph said slice8b's destinations "`$0400` screen RAM, `$C000`" are
+> below the PRG load base and excluded by the Won't-Have. Both halves were wrong: `$C000` is far
+> **above** `$0801`, and neither address is the const→copy destination. The no-op conclusion stands
+> on the mutable-buffer reason above.
 
 ### Won't Have (Out of Scope)
 
@@ -267,15 +275,20 @@ spec/` stays empty.
 `origin` and `fill` are not substitutes: both take literal numbers and need an absolute address or
 a byte count that is only known once the assembler has laid the program out.
 
-**The new union member forces three exhaustive switches** in
-`packages/codegen/src/instr/print-instr.ts`, each carrying a `const _exhaustive: never` arm that
-fails to compile until handled:
+**The new union member reaches three sites** in `packages/codegen/src/instr/print-instr.ts` — but
+only **two** of them fail to compile until handled:
 
-| Site | Decision required |
-|---|---|
-| `directiveText` (`:165-166`) | render as `!align 255, 0, 0` |
-| `directiveByteSize` (`:295-315`) | returns **0** — the size is address-dependent and unknowable statically. Consequence: `programByteSize` becomes a documented **lower bound** |
-| `isColumnZeroDirective` (`:178-180`) | **true** — `!align` is conventionally column-0 like `* =`; otherwise it renders at instruction indent in every golden |
+| Site | Compiler forces it? | Decision required |
+|---|---|---|
+| `directiveText` (`:165-166`) | ✅ `const _exhaustive: never` | render as `!align 255, 0, 0` |
+| `directiveByteSize` (`:295-315`) | ✅ `const _exhaustive: never` | returns **0** — the size is address-dependent and unknowable statically. Consequence: `programByteSize` becomes a documented **lower bound** |
+| `isColumnZeroDirective` (`:178-180`) | ❌ **no** | **true** — `!align` is conventionally column-0 like `* =`; otherwise it renders at instruction indent in every golden |
+
+> `isColumnZeroDirective` is not a switch: it is
+> `return d.kind === "origin" || d.kind === "outputFile" || d.kind === "symbolDef";`, which
+> silently returns `false` for a new variant. Nothing goes red — the directive just renders at the
+> wrong indent. A test must cover it; the compiler will not. (An earlier form of this section, and
+> the RD-stage preflight's PF-008, described all three as exhaustive switches.)
 
 `@blend65/platforms` needs **no** change (its plugins only construct `outputFile` directives and
 never switch over the union), and branch relaxation and per-function costs are unaffected (both
@@ -329,8 +342,14 @@ neither `@blend65/frontend` nor `@blend65/language-server` gains a codegen impor
 ### Test-harness surfaces this RD changes
 
 `src/testing/balloon.ts` (observable split, M6) · `src/balloon.spec.test.ts` (the migrated
-symbol-resolved checks) · `src/twins.spec.test.ts` (shrunk shared set; the new fixture's pair
-registration) · `test/golden/{budgets,twins}.json` + `SCOREBOARD.md`.
+symbol-resolved checks, plus a second `skipIf(!hasAcme())` block for the CI-tier placement
+assertions) · `src/twins.spec.test.ts` (shrunk shared set) · `src/align-mixed.spec.test.ts` (new) ·
+`test/golden/{budgets,twins}.json` + `SCOREBOARD.md`.
+
+The mixed-alignment fixture registers **no twin pair** — no golden, no twin, no `budgets.json` row
+(AC-7, AR #70). An earlier form of this list said `twins.spec.test.ts` gains "the new fixture's
+pair registration"; that is residue from a superseded design and would fail
+`twins.spec.test.ts:93-99`, which keys the pair set to the `*.asm.golden` files plus balloon.
 
 Adding a golden is **not** free: `twins.spec.test.ts:93-99` asserts the pair set equals the
 goldens plus balloon, so a new fixture drags in a hand-written twin, a `twins.json` pair, an
@@ -409,10 +428,15 @@ emulator — AR-27). **Local** = `skipIf(!hasVice())`, proven locally, never in 
    resolves to a multiple of 256 **and below `$1000`** (clear of the char-ROM shadow), asserted
    through the symbol map, with the alignment emitted as an assembler directive rather than a
    computed absolute address.
-2. [ ] **[CI]** **The exclusions in M1 hold, proven on named negative controls**: `slice7` and
-   `slice7b` (const data reached by by-ref argument), `slice8b` (same) and `slice8` (`&onIRQ` /
-   `&onNMI` — function address-of) are **byte-identical** to their pre-RD-03 goldens. These are
-   the cases an IL-operand scan would wrongly align, so they are the criterion's whole point.
+2. [ ] **[CI]** **The exclusions in M1 hold, proven on named negative controls**: `slice7b` (const
+   data reached by by-ref argument), `slice8b` (same) and `slice8` (`&onIRQ` / `&onNMI` — function
+   address-of) are **byte-identical** to their pre-RD-03 goldens. These are the cases an IL-operand
+   scan would wrongly align, so they are the criterion's whole point. **`slice7` is not one of
+   them**: it reads `__data_Gfx_TABLE,X` directly indexed (`slice7.asm.golden:138`) and
+   materializes no address, so it discriminates nothing. Only `slice7b` (2 sites) and `slice8b` (4)
+   contain a `LDA #</#>__data` pair — consistent with the +159/+276 = +435 figure, which carries no
+   slice7 term. All 14 goldens stay byte-identical regardless; the point is which ones are
+   *evidence*.
 3. [ ] **[CI]** **`hi(&X) * 4` names the sprite block correctly**: for a page-aligned `X` **below
    `$4000`**, the emitted pointer store is equivalent to `LDA #>sym` / `ASL` / `ASL` / `STA $07F8`
    and the symbol-map address satisfies `address / 64 == hi(address) * 4`. Behaviour at or above
@@ -455,9 +479,11 @@ emulator — AR-27). **Local** = `skipIf(!hasVice())`, proven locally, never in 
    `sourceForced` is dropped, and the byte prose is re-derived. *(The freshness gate checks only
    structural staleness and will stay green on false prose — RD-05 set the precedent for fixing
    this in-change.)*
-9. [ ] **[CI]** **`spec/` untouched**: `git status --porcelain spec/` empty (D3), and no new
+9. [ ] **[Review]** **`spec/` untouched**: `git status --porcelain spec/` empty (D3), and no new
    language syntax is introduced — the change uses only `embed`, `&`, `hi` and `poke` as frozen
-   v3.0 already defines them.
+   v3.0 already defines them. *Relabelled from `[CI]`: CI has no `spec/` freeze step and no test
+   guards `spec/`, and the porcelain check reports working-tree state — it passes a **committed**
+   spec edit clean. Discharged by a closeout walk of the RD's commit range.*
 10. [ ] **[CI]** **Boundary holds**: the repo-root boundary tier green (R15 / AR-20).
 
 ### Measured target

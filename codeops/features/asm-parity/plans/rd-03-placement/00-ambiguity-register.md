@@ -54,12 +54,26 @@ its padding is inserted by ACME at assembly time. No golden, new or existing, co
 invariants can judge. The fixture's justification is per-symbol discrimination and the
 resolved-address assertion — not invariant coverage.
 
-**AR-73 (why the free proof matters).** PF-001 was the preflight's most dangerous finding: `&X`
+**AR-73 (why the free proof matters).** The **RD-stage** preflight's PF-001 was its most dangerous
+finding (the plan-stage report in [`00-preflight-report.md`](00-preflight-report.md) numbers
+independently, so `PF-001` means different things in the two documents): `&X`
 and a by-reference array argument emit the *same* IL `addrOf` operand, so an implementation that
 scanned IL would align `slice7b`/`slice8b` (+435 bytes) and try to page-align `slice8`'s function
 labels. Phasing the mechanism in ahead of the balloon rewrite means that if the rule is wrong, the
 goldens move **in the phase whose entire acceptance is that they do not** — the defect surfaces
 against a byte-exact oracle rather than tangled up in balloon's own 359-byte delta.
+
+## Plan-stage preflight — cross-references
+
+The 28 findings from [`00-preflight-report.md`](00-preflight-report.md) are recorded there, not
+re-numbered here: this register tracks decisions made *during creation*, the report tracks defects
+found *during review*. No finding re-litigated AR #69–#75. Two touch an entry above and are noted
+so the register is not read as the whole story:
+
+| Finding | Entry | What it adds |
+|---|---|---|
+| **PF-002** | AR #72 | AR #72 settled *how* the mark reaches the data entry (an `aligned` flag fed by a set accumulated during lowering) and grounded it on ordering. It did not say **where the set is created**. `LowerCtx` is built twice (`lower.ts:294`, `:363`); the set must be created in `lowerToIL` and the **same instance** threaded into both, or module-scope `&` never aligns. Ordering answers completeness *in time*; this answers *reachability* |
+| **PF-001** | AR #73 | AR #73's "the corpus then regenerates exactly once, **at the balloon rewrite**" is now literally true: the ratchets, routing prose and scoreboard moved into Phase 4 alongside the source change. The plan had drifted from its own decision by sequencing them a commit later |
 
 ## Hardening disclosure
 

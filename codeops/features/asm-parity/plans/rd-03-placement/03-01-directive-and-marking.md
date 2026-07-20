@@ -23,16 +23,25 @@ the model stays readable — the mask is a rendering detail.
 
 Additive to `@blend65/core`'s instruction model. Not a `spec/` change — D3 unaffected.
 
-## 2. The three exhaustive switches
+## 2. The three switch sites — two exhaustive, one not
 
-Adding a union member breaks three `const _exhaustive: never` arms in
-`packages/codegen/src/instr/print-instr.ts`. Each is a decision, not a formality:
+Adding a union member touches three functions in
+`packages/codegen/src/instr/print-instr.ts`. Each is a decision, not a formality — and only **two**
+of them force it:
 
-| Function | Line | Returns | Why |
-|---|---|---|---|
-| `directiveText` | `:165-166` | `!align 255, 0, 0` | above |
-| `directiveByteSize` | `:295-315` | **`0`** | The size is address-dependent and unknowable before assembly. Consequence: `programByteSize` becomes a documented **lower bound** — acceptable, since it has no production caller and the live budget guard reads the post-ACME `binarySize` |
-| `isColumnZeroDirective` | `:178-180` | **`true`** | `!align` is conventionally column-0 like `* =`. Without this it renders at instruction indent, and every future golden carries the oddity |
+| Function | Line | Compiler forces it? | Returns | Why |
+|---|---|---|---|---|
+| `directiveText` | `:165-166` | ✅ `const _exhaustive: never` | `!align 255, 0, 0` | above |
+| `directiveByteSize` | `:295-315` | ✅ `const _exhaustive: never` | **`0`** | The size is address-dependent and unknowable before assembly. Consequence: `programByteSize` becomes a documented **lower bound** — acceptable, since it has no production caller and the live budget guard reads the post-ACME `binarySize` |
+| `isColumnZeroDirective` | `:178-180` | ❌ **no** | **`true`** | `!align` is conventionally column-0 like `* =`. Without this it renders at instruction indent, and every future golden carries the oddity |
+
+> **Do not trust the compiler to enumerate these sites.** `isColumnZeroDirective` is not a switch
+> at all — it is the boolean expression
+> `d.kind === "origin" || d.kind === "outputFile" || d.kind === "symbolDef"`, which silently
+> returns `false` for any new variant. Nothing goes red; the directive simply renders at the wrong
+> indent. Task 1.5 and ST-C3 are what catch it. (The RD and the RD-stage preflight both described
+> "three exhaustive switches"; the RD is corrected, the RD-stage report stands as the historical
+> record.)
 
 `@blend65/platforms` needs no change (verified: plugins construct `outputFile` directives, never
 switch over the union).
@@ -43,20 +52,46 @@ switch over the union).
 
 ```ts
 // lowerAddressOf, packages/codegen/src/il/lower.ts:1807
-// — reached only from real `&` expressions; lower.ts:1042 guards the call
-//   with isAddressOfExpr, so a by-reference argument can never arrive here.
+// — reached only from real `&` expressions. All eight call sites (:336, :485,
+//   :1042, :1466, :1607, :2473, :2494, :2528) are isAddressOfExpr-gated, so a
+//   by-reference argument can never arrive here.
 if (sym.kind === "constant") {
   ctx.addressTakenConsts.add(constDataSymbol(sym));
 }
 ```
 
-The set lives on the lowering context and is read when `constData` is built (`lower.ts:237-249`),
-which runs **after** every function is lowered — so it is already complete. `ConstDataEntry`
-(`packages/codegen/src/il/cfg.ts`) gains:
+`ConstDataEntry` (`packages/codegen/src/il/cfg.ts`) gains:
 
 ```ts
 readonly aligned: boolean;
 ```
+
+### Where the set is created — the part that is easy to get wrong
+
+The set is created **once in `lowerToIL`** and threaded into **both** `LowerCtx` construction
+sites, which must share the same instance:
+
+| Site | Line | Unit |
+|---|---|---|
+| `lowerInitCode` | `lower.ts:294` | module initializers, `fqName: "__init"` |
+| `lowerFunction` | `lower.ts:363` | every function body |
+
+`LowerCtx` is a per-lowering-*unit* interface, not a per-program one. Adding a field forces both
+object literals to supply one — but **nothing forces them to supply the same one.** Handing
+`lowerInitCode` a fresh `new Set()` typechecks, and every test that puts `&` inside a function body
+still passes.
+
+The init path is live. `let ptr: word = &TABLE;` at module scope reaches `lowerAddressOf` through
+`lower.ts:336` (`isAddressOfExpr(init) ? lowerAddressOf(init, ctx, true) : lowerExpr(init, ctx)`) —
+verified by compiling a probe. An implementation that misses it never aligns that array, computes
+the sprite pointer from an unaligned address, and issues no diagnostic. **ST-C19b** is the row that
+catches it.
+
+The set is read when `constData` is built (`lower.ts:237-249`). It is already complete by then
+because *both* producers run first: functions at `:213-220` and init code at `:229-231`. The
+ordering argument covers completeness **in time**; the shared-instance requirement above is what
+covers **reachability** — they are two separate obligations and only the first was previously
+stated (AR #72).
 
 ### What the rule deliberately excludes
 

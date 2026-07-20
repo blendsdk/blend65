@@ -84,6 +84,18 @@ Label anchors need no attention: `Main_main_L5`/`L3` survive the rewrite unchang
 generator copies the notes verbatim and only aborts on *structural* staleness (a routing category
 with no computed rows), so the gate stays green while the prose is false.
 
+**Four rows are falsified by the rewrite, not one.** Task 4.11 must re-author all of them:
+
+| `twins.json` | Row | Why it is now false |
+|---|---|---|
+| `:405` | `sourceForced: true` | Nothing is source-forced once the copy is gone |
+| `:410` | the `#49` pair — "63 unrolled pokes forced by the `copy()` language gap" | The pokes no longer exist |
+| `:415-416` | the `#51` row — "the remaining size gap is the unrolled sprite copy below, not layout" | The gap is now padding + `hi(&X)*4` + load/store; layout is exactly what changed |
+| `:423` | the `#52` row — "LDA 96 vs 27, STA 87 vs 21" | 63 LDA/STA pairs vanish; the counts are wrong by construction |
+
+The freshness gate cannot see any of it. Left alone, three false statements ship in the same commit
+that makes them false — which is precisely the failure AC-8 exists to prevent.
+
 What replaces it has to be honest in both directions (AR #69):
 
 - The twin's copy is the **file-size** idiom — it stages below the PRG load base, buying RAM the
@@ -96,11 +108,38 @@ That decomposition is what makes "1.27×" a true statement rather than a flatter
 
 ## 4. The mixed-alignment fixture (AC-7)
 
-A two-array program — one address-taken, one not — built **in-test** through the real `build()`
-facade and real ACME, following `testing/balloon.ts:44-58`, committing no generated output. It
-asserts the four properties in ST-C11–ST-C13 (see [07](07-testing-strategy.md)).
+The RD's only new artifact, and the sole carrier of AC-7. Two files, both named here because the
+task grain elsewhere in this plan is line-level and this one previously named neither:
+
+| File | What it is |
+|---|---|
+| `examples/align-mixed/main.blend` | **committed source** — two const arrays, the address-taken one **declared first** |
+| `packages/test-harness/src/align-mixed.spec.test.ts` | the suite, under `describe.skipIf(!hasAcme())` |
+
+Built through the real `build()` facade and real ACME following `testing/balloon.ts:44-58`,
+committing no generated output. It asserts ST-C11–ST-C13 (see [07](07-testing-strategy.md)).
+
+Three constraints that are easy to lose:
+
+- **The source is committed, not inlined in the test.** The pattern the task cites (`balloon.ts:45-47`)
+  copies a *committed* directory into a temp dir — it presupposes committed source, and the RD's
+  Integration Points say the same. It also matters on the merits: the marking rule is **syntactic**,
+  so the negative control's source must be reviewable in the tree, not buried in a template literal.
+- **It lives in `@blend65/test-harness`.** `build()` comes from `@blend65/compiler`
+  (`balloon.ts:19`); a `@blend65/codegen` home would invert the package edges.
+- **Declaration order is load-bearing.** ST-C12 proves "the unaligned array pays no padding" as
+  `unaligned.addr === aligned.addr + aligned.data.length` — the symbol map exposes labels only,
+  with no code-end symbol — so the aligned array must come first.
 
 **No committed golden and no hand-written twin** (AR #70). The reasoning is recorded in the RD's
 AC-7 and the register; the short form is that a golden containing the silently-wrong
 `!align 256, 0` would look plausible and pass, and a twin for a synthetic probe has no idiom to be
 a twin *of* while permanently polluting the corpus ratio.
+
+Head `main.blend` with a comment saying exactly that — a placement probe deliberately **outside**
+the parity corpus, no golden, no twin, no `budgets.json` row — so future corpus tooling does not
+sweep it in. Verified drag-free today: `examples-sync.spec.test.ts:38-63` iterates a closed
+`INLINED_MODULES` list, `twins.spec.test.ts:93-99` keys the pair set to `*.asm.golden` files plus
+balloon, and `budgets.spec.test.ts:226-230` closes over a fixed builder list. It becomes the first
+`examples/` member with no budgets row, and the header comment is what tells the next person that
+is deliberate.

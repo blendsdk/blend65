@@ -37,21 +37,25 @@ compiler code is written** — what remains is making the compiler emit what was
 
 ## The ordering fact the design rests on
 
-`lowerToIL` lowers **all functions first** (`lower.ts:213-220`), then builds `constData`
-(`:237-249`). A symbol set filled during `lowerAddressOf` is therefore **already complete** when
-the data entries are constructed — no second pass, no plumbing through serialization (AR #72).
+`lowerToIL` lowers **all functions first** (`lower.ts:213-220`), **then module init code**
+(`:229-231`), then builds `constData` (`:237-249`). A symbol set filled during `lowerAddressOf` is
+therefore **already complete** when the data entries are constructed — no second pass, no plumbing
+through serialization (AR #72). That covers completeness *in time*; see trap 5 for the separate
+question of whether the set is *reachable* from both lowering units.
 
 ## Traps, verified
 
-Four things will silently do the wrong thing if the implementer trusts the obvious reading.
+Five things will silently do the wrong thing if the implementer trusts the obvious reading.
 
 **1. `&X` and a by-reference argument are the same IL operand.**
 `lower.ts:1022-1029` emits the same `addrOf` constructor for a static aggregate argument that
 `lowerAddressOf` emits for `&X`. Already committed proof: `slice7b.asm.golden:89,91` contains
-`LDA #<__data_Game_TABLE` / `LDA #>__data_Game_TABLE`, produced by a plain `sum(TABLE, len)` call
-(`examples/slice7b/game.blend:15`) — the *same instruction pair* the RD once cited as its
-verification. Marking must happen **inside `lowerAddressOf`**, which `lower.ts:1042` guards with
-`isAddressOfExpr` so the by-ref path can never reach it.
+`LDA #<__data_Game_TABLE` / `LDA #>__data_Game_TABLE`, produced by the plain call
+`poke($C002, sum(TABLE, length(TABLE)))` at `examples/slice7b/main.blend:19` — `sum`'s
+*declaration* is `examples/slice7b/game.blend:15`, and it is the **call** that emits the pair. The
+*same instruction pair* the RD once cited as its verification. Marking must happen **inside
+`lowerAddressOf`**, whose eight call sites (`:336, :485, :1042, :1466, :1607, :2473, :2494, :2528`)
+are all `isAddressOfExpr`-gated, so the by-ref path can never reach it.
 
 **2. `slice8` takes addresses too — of functions.**
 `examples/slice8/main.blend:27-28` has `pokew($FFFE, &onIRQ)`. `lowerAddressOf` handles
@@ -76,6 +80,14 @@ every alignment assertion in this plan goes through the **resolved symbol addres
 consumed by the twin tier (`twins.spec.test.ts:87`) against a twin that still stages at `$0340`.
 `Check` (`observables.ts:38-41`) has no symbol-relative form.
 
+**5. `LowerCtx` is built twice, and the second one is easy to miss.**
+`lower.ts:161-198` is an all-`readonly` interface constructed at `:294` (`lowerInitCode`,
+`fqName: "__init"`) and `:363` (`lowerFunction`) — per lowering *unit*, not per program. Adding an
+`addressTakenConsts` field forces both literals to supply one but **not to share one**. The init
+path is live: a module-scope `let ptr: word = &TABLE;` reaches `lowerAddressOf` via `:336`
+(verified by compiling a probe on this tree). Since every planned spec test but ST-C19b puts `&`
+inside a function body, a per-context set passes the whole suite while that array never aligns.
+
 ## Refuted — checked, so nobody re-checks
 
 | Worry | Verdict |
@@ -84,5 +96,5 @@ consumed by the twin tier (`twins.spec.test.ts:87`) against a twin that still st
 | RD-05's invariants need to cover the aligned emission | **They cannot, and it does not matter.** They scan jump shapes inside function sections; padding is inserted by ACME and appears in no golden (AR #70) |
 | `@blend65/platforms` needs a new switch arm | **No.** Plugins construct `outputFile` directives; they never switch over the union |
 | Branch relaxation / per-function costs could be corrupted by a data directive | **No.** Both iterate `segment: "code"` streams only |
-| A hidden runtime const-data copy exists | **No.** `needsDataInit` (`instr-program.ts:233`) is declared on `PlatformPlugin` and consumed by no plugin |
+| A hidden runtime const-data copy exists | **No.** `needsDataInit` (set at `instr-program.ts:233`) is declared on `PreambleOptions` (`core/src/platform/platform-plugin.ts:40`) and passed *to* plugins — it is not a `PlatformPlugin` member. The load-bearing half holds: no plugin consumes it (`c64.ts:89-93` drops it) |
 | `origin`/`fill` could substitute for an align directive | **No.** Both take literal numbers |

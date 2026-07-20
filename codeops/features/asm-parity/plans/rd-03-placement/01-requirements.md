@@ -10,24 +10,39 @@ mapping and the scope fence. Where a fact lives in the RD it is cited, not resta
 
 | Req | What it demands | AC | Proven by | Tier |
 |-----|-----------------|----|-----------|------|
-| **M1** | A const array whose address is taken **syntactically** is page-aligned; the by-ref-argument, function-address-of and mutable-variable cases are excluded | AC-1, AC-2 | ST-C5, ST-C6, ST-C7, ST-C12 | CI |
-| **M2** | Alignment is page (256), not block (64) | AC-3 | ST-C13 | CI |
-| **M3** | Alignment is an emitted directive, not a computed address | AC-1 | ST-C1, ST-C11 | CI |
-| **M4** | No fixture grows; ratchets re-derived from the **aligned** build; `twins.json` prose re-audited | AC-6, AC-8 | ST-C15, ST-C16 + closeout review | CI + review |
+| **M1** | A const **aggregate** whose address is taken **syntactically** is page-aligned; the by-ref-argument, function-address-of and mutable-variable cases are excluded | AC-1, AC-2 | ST-C5, ST-C6, ST-C7, **ST-C8**, ST-C9, ST-C10, **ST-C19, ST-C19b**, ST-C12, **ST-C15** | CI |
+| **M2** | Alignment is page (256), not block (64) | AC-3 | ST-C13 (the identity) + **ST-C14** (the emitted pointer store) + **ST-C11**'s directive-text clause | CI |
+| **M3** | Alignment is an emitted directive, not a computed address | AC-1 | ST-C1, ST-C11, **ST-C15** | CI |
+| **M4** | No fixture grows; ratchets re-derived from the **aligned** build; `twins.json` prose re-audited | AC-6, AC-8 | ST-C16, **ST-C20** + closeout review | CI + review |
 | **M5** | `balloon` copies nothing | AC-4 | ST-C14 | CI |
 | **M6** | Balloon's shared observable contract splits | AC-5 | ST-C17, ST-C18 | Local (VICE) |
 | **M7** | RD-05's invariants stay green; the new emission gains a discriminating artifact | AC-7 | ST-C11, ST-C12, ST-C13 + existing ST-B39/B40/B43/B44 | CI |
 | **S1** | Other fixtures drop copies the same way | — | expected **no-op** — see below | — |
-| — | `spec/` untouched (D3) | AC-9 | existing gate | CI |
+| — | `spec/` untouched (D3) | AC-9 | closeout review over the RD's commit range (task 5.4) | Review |
 | — | R15 boundary holds | AC-10 | existing `test/boundary.spec.test.ts` | CI |
 
 Every M is discharged. AC-9 and AC-10 trace to standing project constraints rather than to an M,
 which is the same shape RD-04 and RD-05 used.
 
-**S1 is expected to do nothing, and that is the correct outcome.** The only other const→copy path
-in the corpus is `slice8b`, whose destinations (`$0400` screen RAM, `$C000`) sit below the PRG load
-base — excluded by the RD's own Won't-Have. The plan carries no task for S1; if an implementer
-finds a candidate, that is a scope change to raise, not to absorb.
+**AC-9 is a review, not a gate — the RD's `[CI]` label overstates it.** Verified: CI runs install,
+typecheck, lint, build, ACME, test, twin-diff and scoreboard freshness — there is **no `spec/`
+freeze step**, and no test anywhere guards `spec/`. The only mechanism is
+`git status --porcelain spec/`, which reports *working-tree* changes and passes a **committed**
+spec edit clean. Task 5.4 therefore walks the RD's whole commit range for `spec/` paths.
+
+**AC-8 keeps its `[CI]` label, but only half of it is mechanized.** ST-C20 asserts the checkable
+part — balloon's routing entries carry no `sourceForced` and no `/copy\(\) language gap/` note.
+Whether the replacement prose is *honest* remains a closeout review; no test can judge that.
+
+**S1 is expected to do nothing, and that is the correct outcome — but not for the reason the RD
+gives.** `slice8b` is the only other const→copy path in the corpus, and its const arrays are not
+copied to `$0400`/`$C000` at all: `copyBytes(TITLE, title2, …)` copies them into the **mutable
+staging arrays** `title2`/`table2` (`examples/slice8b/main.blend:6-7, 17-18`), which are then poked
+out to `$0400`/`$C000` (`:21-39`). (`$C000` is also far **above** the `$0801` load base, not below
+it.) Placement cannot substitute for a mutable buffer the source itself indexes and mutates, which
+is why S1 is a no-op here — the load-base argument does not apply. The plan carries no task for S1;
+if an implementer finds a candidate, that is a scope change to raise, not to absorb.
+*Back-propagate this correction to `RD-03-placement.md:184-188`.*
 
 ## What this plan does NOT do
 
