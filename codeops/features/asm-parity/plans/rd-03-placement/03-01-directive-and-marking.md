@@ -111,20 +111,22 @@ precisely that none of that happens** — see the phase note in
 `constDataStream` (`packages/codegen/src/instr/instr-program.ts:191-198`) prepends the directive to
 its own entries, ahead of the label:
 
+**As built:**
+
 ```ts
+const PAGE = 256;
+
 function constDataStream(entry: ConstDataEntry): InstrStream {
-  const entries: StreamEntry[] = [];
-  if (entry.pageAligned) {
-    entries.push(directive({ kind: "align", boundary: 256, fill: 0 }));
-  }
-  entries.push(label(entry.symbol));
+  const entries = entry.pageAligned
+    ? [directive({ kind: "align", boundary: PAGE, fill: 0 }), label(entry.symbol)]
+    : [label(entry.symbol)];
   // … unchanged !byte rows …
 }
 ```
 
-**`serialize-acme.ts` is not touched** (AR #71). It already renders stream entries through
-`printInstr`, and keeping the directive inside the stream means it cannot drift away from the data
-it aligns.
+**`serialize-acme.ts` is not touched** (AR #71) — confirmed at execution: it renders whole streams
+through `printInstr` (`serialize-acme.ts:121,130`) and hoists only the `outputFile` directive
+(`:44`). Keeping the directive inside the stream means it cannot drift away from the data it aligns.
 
 ### Multiple aligned arrays
 

@@ -1,0 +1,27 @@
+module Main;
+
+// A placement probe, deliberately OUTSIDE the parity corpus: no golden, no
+// hand-written twin, no size budget. It exists so a test can assert on the
+// resolved addresses of two const arrays in one program — one whose address
+// the program takes, one it only reads through an index.
+//
+// Declaration order is load-bearing. ALIGNED comes first so that PLAIN's
+// address can be checked against ALIGNED's end: if the aligned array paid its
+// padding and the plain one paid none, the two labels are exactly
+// `length(ALIGNED)` apart. Swap them and that arithmetic no longer holds.
+
+// Address taken — the program hands the raw address to hardware, so this
+// image must start on a page boundary.
+const ALIGNED: byte[4] = [1, 2, 3, 4];
+
+// Read by index only. The compiler resolves the element address itself, so
+// nothing here cares where the image sits and it must pay no padding.
+const PLAIN: byte[4] = [5, 6, 7, 8];
+
+function main(): void {
+  let sprite: word = &ALIGNED;
+  pokew($C000, sprite);
+
+  let i: byte = 2;
+  poke($C002, PLAIN[i]);
+}

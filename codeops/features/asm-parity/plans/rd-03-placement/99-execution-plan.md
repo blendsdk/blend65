@@ -1,8 +1,8 @@
 # Execution Plan — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49)
-> **Progress**: 13/41 tasks (32%) — Phases 1-2 complete
-> **Last Updated**: 2026-07-20 (Phase 2 green — the free proof holds)
+> **Progress**: 22/41 tasks (54%) — Phases 1-3 complete
+> **Last Updated**: 2026-07-20 (Phase 3 green — the directive is emitted; the corpus still has not moved)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (every phase, before every commit — AR #75):
@@ -108,7 +108,7 @@ scanning IL operands instead of `&` sites.
 
 The directive starts being emitted. Still a corpus no-op — no existing fixture takes an address.
 
-- [ ] 3.1 Create the mixed-alignment fixture as **committed source**:
+- [x] 3.1 Create the mixed-alignment fixture as **committed source**:
       `examples/align-mixed/main.blend` — two const arrays, the **address-taken one declared
       first** (ST-C12 computes "pays no padding" as
       `unaligned.addr === aligned.addr + aligned.data.length`; the symbol map exposes labels only,
@@ -118,24 +118,24 @@ The directive starts being emitted. Still a corpus no-op — no existing fixture
       `examples-sync.spec.test.ts:38-63` iterates a closed `INLINED_MODULES` list,
       `twins.spec.test.ts:93-99` keys the pair set to `*.asm.golden` files plus balloon, and
       `budgets.spec.test.ts:226-230` closes over a fixed builder list
-- [ ] 3.2 Write ST-C11–ST-C13 in a new `packages/test-harness/src/align-mixed.spec.test.ts` under
+- [x] 3.2 Write ST-C11–ST-C13 in a new `packages/test-harness/src/align-mixed.spec.test.ts` under
       `describe.skipIf(!hasAcme())` — built through the real `build()` facade + real ACME following
       `testing/balloon.ts:44-58`, committing no generated output. It must live in
       `@blend65/test-harness`: `build()` comes from `@blend65/compiler`, so a `@blend65/codegen`
       home would invert the package edges. Verify **red**
-- [ ] 3.3 Prepend the directive in `constDataStream` (`instr-program.ts:191-198`) when
+- [x] 3.3 Prepend the directive in `constDataStream` (`instr-program.ts:191-198`) when
       `entry.pageAligned`, ahead of the label
-- [ ] 3.4 Confirm `serialize-acme.ts` needs **no** change (AR #71) — if it does, the directive is
+- [x] 3.4 Confirm `serialize-acme.ts` needs **no** change (AR #71) — if it does, the directive is
       in the wrong place
-- [ ] 3.5 ST-C11 **green**: exactly one directive, immediately before the address-taken array's
+- [x] 3.5 ST-C11 **green**: exactly one directive, immediately before the address-taken array's
       label and no other, and its rendered text is `!align 255, 0, 0` end to end
-- [ ] 3.6 ST-C12 **green**: resolved address `% 256 === 0`, and the unaligned array pays no
+- [x] 3.6 ST-C12 **green**: resolved address `% 256 === 0`, and the unaligned array pays no
       padding. **This is the operand-trap oracle** — with `!align 256, 0` the build succeeds and
       ST-C11's placement clause still passes, so ST-C12 is what fails
-- [ ] 3.7 ST-C13 **green**: `hi(addr) * 4 === addr / 64` on the real resolved address
-- [ ] 3.8 Document in `03-01` §4 that padding is per-stream and cumulative, and that no reordering
+- [x] 3.7 ST-C13 **green**: `hi(addr) * 4 === addr / 64` on the real resolved address
+- [x] 3.8 Document in `03-01` §4 that padding is per-stream and cumulative, and that no reordering
       pass exists — verify the doc matches what was built
-- [ ] 3.9 Full verify; **14 goldens still byte-identical**
+- [x] 3.9 Full verify; **14 goldens still byte-identical**
 
 ## Phase 4 — The balloon rewrite and corpus supersession · tag: complex
 
