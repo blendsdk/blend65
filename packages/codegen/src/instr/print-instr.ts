@@ -161,8 +161,12 @@ function directiveText(d: AcmeDirective): string {
       return `!fill ${d.count}, ${hex8(d.value)}`;
     case "align":
       // ACME's `!align` takes `andValue, equalValue [, fill]` — a BITMASK, not
-      // a modulus. `!align 256, 0` assembles cleanly and aligns nothing at all,
-      // which is why the mask is derived here, in the one place that renders it.
+      // a modulus: it pads until `PC & andValue == equalValue`. Writing the
+      // boundary itself is the trap. `!align 256, 0` assembles cleanly and pads
+      // only when bit 8 of the current address happens to be set, so it can look
+      // correct from one address and do nothing from the next. `boundary` must
+      // be a power of two, which is what makes `boundary - 1` the low-bit mask
+      // that means "aligned"; it is derived here, in the one place that renders it.
       return `!align ${d.boundary - 1}, 0, ${d.fill}`;
     case "outputFile":
       return `!to "${d.name}", ${d.format}`;

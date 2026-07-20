@@ -44,8 +44,11 @@ export type AcmeDirective =
   | {
       /**
        * Pad forward until the next `boundary`-byte boundary, filling with
-       * `fill`. `boundary` is the alignment in bytes (256 = page); the
-       * serializer converts it to the bitmask ACME actually expects.
+       * `fill`. `boundary` is the alignment in bytes (256 = page) and MUST be
+       * a power of two: the serializer converts it to the bitmask ACME
+       * actually expects, and only a power of two has a mask that means
+       * "aligned". A non-power-of-two renders a directive that assembles
+       * cleanly and aligns to the wrong thing.
        */
       readonly kind: "align";
       readonly boundary: number;

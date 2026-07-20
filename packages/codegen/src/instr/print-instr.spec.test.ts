@@ -174,8 +174,10 @@ describe("Specification: printInstr — the align directive (ST-C1..ST-C4)", () 
 
   it("should render page alignment as ACME's bitmask form !align 255, 0, 0 (ST-C1)", () => {
     // ACME's directive is `!align andValue, equalValue [, fill]` — a BITMASK,
-    // not a modulus. `!align 256, 0` assembles cleanly and aligns nothing, so
-    // the rendered mask must be boundary - 1. Verified against ACME 0.97.
+    // not a modulus: it pads until `PC & andValue == equalValue`. Writing the
+    // boundary itself assembles cleanly but pads only when that bit happens to
+    // be set in the current address, so the rendered mask must be boundary - 1.
+    // Verified against ACME 0.97.
     expect(textOf(pageAlign)).toBe("!align 255, 0, 0");
   });
 
