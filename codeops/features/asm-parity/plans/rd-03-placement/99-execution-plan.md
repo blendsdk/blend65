@@ -75,10 +75,10 @@ scanning IL operands instead of `&` sites.
       `&`-taken, both mark** (ST-C19 — the set must be a set, not a single slot); and **a
       module-scope `let ptr: word = &T;` marks** (ST-C19b — the second lowering context, see 2.3).
       Verify **red**
-- [x] 2.2 Add `aligned: boolean` to `ConstDataEntry` (`codegen/src/il/cfg.ts`), JSDoc'd. It is
+- [x] 2.2 Add `pageAligned: boolean` to `ConstDataEntry` (`codegen/src/il/cfg.ts`), JSDoc'd. It is
       **required**, so both construction sites must supply it: `lower.ts:240` (task 2.4) and the
       typed literal at `packages/codegen/src/instr/assemble.impl.test.ts:151-155`, which gets
-      `aligned: false`. These are the only two tree-wide; typecheck is red until both are done
+      `pageAligned: false`. These are the only two tree-wide; typecheck is red until both are done
 - [x] 2.3 Create the address-taken set in `lowerToIL` and thread it into **both** `LowerCtx`
       construction sites — `lower.ts:294` (`lowerInitCode`, `fqName: "__init"`) and `:363`
       (`lowerFunction`). **They must share one instance.** `LowerCtx` is per lowering *unit*, not
@@ -91,7 +91,7 @@ scanning IL operands instead of `&` sites.
       **eight** call sites (`:336, :485, :1042, :1466, :1607, :2473, :2494, :2528`) are
       `isAddressOfExpr`-gated, so the by-ref argument path at `:1022-1029` — which emits the
       *identical* `addrOf` operand — can never reach it
-- [x] 2.4 Populate `aligned` in the `constData` loop (`lower.ts:237-249`), noting that the set is
+- [x] 2.4 Populate `pageAligned` in the `constData` loop (`lower.ts:237-249`), noting that the set is
       already complete: every function lowers at `:213-220` and init code at `:229-231`, both
       **before** the loop at `:237-249`
 - [x] 2.5 ST-C5–ST-C10, ST-C19 and ST-C19b **green**
@@ -124,7 +124,7 @@ The directive starts being emitted. Still a corpus no-op — no existing fixture
       `@blend65/test-harness`: `build()` comes from `@blend65/compiler`, so a `@blend65/codegen`
       home would invert the package edges. Verify **red**
 - [ ] 3.3 Prepend the directive in `constDataStream` (`instr-program.ts:191-198`) when
-      `entry.aligned`, ahead of the label
+      `entry.pageAligned`, ahead of the label
 - [ ] 3.4 Confirm `serialize-acme.ts` needs **no** change (AR #71) — if it does, the directive is
       in the wrong place
 - [ ] 3.5 ST-C11 **green**: exactly one directive, immediately before the address-taken array's

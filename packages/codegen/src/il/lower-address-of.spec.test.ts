@@ -198,7 +198,7 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").aligned).toBe(true);
+    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(true);
   });
 
   it("ST-C6: passing the const array only by reference does NOT mark it", () => {
@@ -220,7 +220,7 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").aligned).toBe(false);
+    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(false);
   });
 
   it("ST-C7: & on an interrupt handler marks nothing — code has no data image", () => {
@@ -242,8 +242,8 @@ describe("Specification: source-level & on a const aggregate marks its data imag
     ]);
     // Lowering must survive a non-data `&` without inventing an entry to mark.
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").aligned).toBe(false);
-    expect(il.constData.filter((e) => e.aligned === true)).toEqual([]);
+    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(false);
+    expect(il.constData.filter((e) => e.pageAligned === true)).toEqual([]);
   });
 
   it("ST-C8: & on a mutable module array marks nothing — RAM owns no image", () => {
@@ -265,9 +265,9 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").aligned).toBe(false);
+    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(false);
     for (const entry of il.constData) {
-      expect(entry.aligned, `${entry.symbol} must not be marked aligned`).toBe(false);
+      expect(entry.pageAligned, `${entry.symbol} must not be marked aligned`).toBe(false);
     }
   });
 
@@ -283,7 +283,7 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_P").aligned).toBe(true);
+    expect(constEntry(il, "__data_Main_P").pageAligned).toBe(true);
   });
 
   it("ST-C10: with two const arrays and one &-taken, exactly that one is marked", () => {
@@ -300,8 +300,8 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_A").aligned).toBe(true);
-    expect(constEntry(il, "__data_Main_B").aligned).toBe(false);
+    expect(constEntry(il, "__data_Main_A").pageAligned).toBe(true);
+    expect(constEntry(il, "__data_Main_B").pageAligned).toBe(false);
   });
 
   it("ST-C19: with two const arrays both &-taken, both are marked", () => {
@@ -321,8 +321,8 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_SPRITE_A").aligned).toBe(true);
-    expect(constEntry(il, "__data_Main_SPRITE_B").aligned).toBe(true);
+    expect(constEntry(il, "__data_Main_SPRITE_A").pageAligned).toBe(true);
+    expect(constEntry(il, "__data_Main_SPRITE_B").pageAligned).toBe(true);
   });
 
   it("ST-C19b: & taken only in a module-scope initializer still marks the entry", () => {
@@ -342,6 +342,6 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").aligned).toBe(true);
+    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(true);
   });
 });

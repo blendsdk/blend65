@@ -116,7 +116,7 @@ export interface ConstDataEntry {
    * sits, and aligning every table ever passed to a helper would cost padding
    * for nothing.
    */
-  readonly aligned: boolean;
+  readonly pageAligned: boolean;
 }
 
 /**

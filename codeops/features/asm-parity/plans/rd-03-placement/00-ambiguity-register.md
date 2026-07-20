@@ -24,6 +24,12 @@ resolutions recorded in [`00-preflight-report-rd-03.md`](../../requirements/00-p
 | 74 | Testing | How are balloon's two migrated observable checks expressed once they leave the shared twin table (`Check` has no symbol-relative form)? | (a) raw symbol-resolved reads in `balloon.spec.test.ts` / (b) extend `Check` with a `{ symbol, offset }` form | ✅ Resolved — User accepted recommendation: **(a)**. It matches `testing/observables.ts:5-12` verbatim — implementation-coupled assertions live in the fixture suite by construction — and needs no type change. (b) weakens the "source-mandated only" invariant the shared table exists to enforce, and the twin's symbol names differ from the compiled program's, so it would need per-consumer aliasing on top | ✅ Resolved |
 | 75 | Process | The verify command every Verify line references | (a) the full command from `CLAUDE.md` / (b) the same without the frozen-lockfile install | ✅ Resolved — User accepted recommendation: **(a)** — `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`, exactly as the project prescribes for every commit | ✅ Resolved |
 
+## Execution-stage additions
+
+| # | Category | Ambiguity | Options | Decision | Status |
+|---|----------|-----------|---------|----------|--------|
+| 76 (runtime) | Naming / API | Raised by the Phase 2 review (RV-002): the field AR #72 settled on was specified as `aligned: boolean`, which does not name its unit. On a 6502 target "aligned" can mean a 64-byte sprite block, a 2KB character set, or a page — and page-vs-block was a live enough question that AR #68 had to decide it explicitly | (a) rename to `pageAligned` / (b) keep `aligned`, whose JSDoc already pins the 256-byte boundary | ✅ Resolved — User accepted recommendation: **(a)**. The ambiguity is real rather than theoretical, since the RD had to settle the same question one level up. `@blend65/codegen` is private, so the blast radius was two construction sites, the ST-C assertions and three plan documents, and it only grows as later phases consume the field. Back-propagated into `00-index.md`, `03-01`, `07-testing-strategy.md`, `99-execution-plan.md` and the RD. AR #72's own row is left reading `aligned` — it records what was decided at the time | ✅ Resolved |
+
 ## Resolution notes
 
 **AR-69 (the correction that decided it).** The first framing of this question asserted that the

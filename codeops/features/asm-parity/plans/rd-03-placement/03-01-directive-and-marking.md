@@ -63,7 +63,7 @@ if (sym.kind === "constant") {
 `ConstDataEntry` (`packages/codegen/src/il/cfg.ts`) gains:
 
 ```ts
-readonly aligned: boolean;
+readonly pageAligned: boolean;
 ```
 
 ### Where the set is created — the part that is easy to get wrong
@@ -114,7 +114,7 @@ its own entries, ahead of the label:
 ```ts
 function constDataStream(entry: ConstDataEntry): InstrStream {
   const entries: StreamEntry[] = [];
-  if (entry.aligned) {
+  if (entry.pageAligned) {
     entries.push(directive({ kind: "align", boundary: 256, fill: 0 }));
   }
   entries.push(label(entry.symbol));

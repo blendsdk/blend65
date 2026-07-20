@@ -311,7 +311,7 @@ stream it aligns and cannot drift from it. `serialize-acme.ts:125-131`, which co
 const-data streams after the code, needs **no change**: it already renders stream entries through
 `printInstr` (AR #71).
 
-The `aligned` flag reaches that function as a new field on `ConstDataEntry`
+The `pageAligned` flag reaches that function as a new field on `ConstDataEntry`
 (`packages/codegen/src/il/cfg.ts`), populated from a set of address-taken symbols accumulated
 during function lowering. The ordering makes this free and needs no extra pass: functions are
 lowered at `lower.ts:213-220` and `constData` is built afterward at `:237-249`, so the set is

@@ -132,7 +132,7 @@ and in-bank.
 ## Red-phase expectations
 
 Phase 2's spec tests (ST-C5–ST-C10, ST-C19, ST-C19b) must fail before the marking exists, and must
-fail **for the right reason** — `aligned` being absent, not a lowering crash. ST-C16 is the
+fail **for the right reason** — `pageAligned` being absent, not a lowering crash. ST-C16 is the
 inverse: it must be **green from the first commit of Phase 2 onward** and stay green. A red ST-C16
 in Phase 2 means the marking rule is wrong, and it is the cheapest possible place to learn that.
 

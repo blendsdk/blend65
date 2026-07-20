@@ -22,7 +22,12 @@ import { printIL } from "./print-il.js";
 import { lowerToIL } from "./lower.js";
 
 /** Lowers sources through the real frontend and prints the IL. */
-function lowerText(sources: string[]): { text: string; il: ILProgram; hasErrors: boolean } {
+function lowerText(sources: string[]): {
+  text: string;
+  il: ILProgram;
+  hasErrors: boolean;
+  codes: string[];
+} {
   const bag = createDiagnosticBag();
   const programs: ProgramNode[] = sources.map((source, i) => {
     const { tokens } = lex(i + 1, source, bag);
@@ -41,7 +46,12 @@ function lowerText(sources: string[]): { text: string; il: ILProgram; hasErrors:
     bag,
   );
   const il = lowerToIL({ program: programs, model, plan }, bag);
-  return { text: printIL(il), il, hasErrors: bag.hasErrors() };
+  return {
+    text: printIL(il),
+    il,
+    hasErrors: bag.hasErrors(),
+    codes: bag.getAll().map((d) => d.code),
+  };
 }
 
 describe("address-of lowering internals", () => {
@@ -112,8 +122,7 @@ describe("the address-taken record's lifetime", () => {
     //
     // Note the `&` and the image it names are deliberately in the SAME module:
     // taking the address of another module's const is rejected upstream today
-    // — a qualified name parses as a field access, and addressing a field is
-    // not supported — so there is no cross-module case to exercise here.
+    // — see the case below — so there is no cross-module case to exercise here.
     const { il, hasErrors } = lowerText([
       ["module Gfx;", "export const TABLE: byte[3] = [1, 2, 3];"].join("\n"),
       [
@@ -125,7 +134,7 @@ describe("the address-taken record's lifetime", () => {
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    const marked = il.constData.filter((e) => e.aligned).map((e) => e.symbol);
+    const marked = il.constData.filter((e) => e.pageAligned).map((e) => e.symbol);
     expect(marked).toEqual(["__data_Main_LOCAL"]);
   });
 
@@ -144,6 +153,21 @@ describe("the address-taken record's lifetime", () => {
     ]);
     expect(hasErrors).toBe(false);
     expect(il.constData.filter((e) => e.symbol === "__data_Main_T")).toHaveLength(1);
-    expect(il.constData.filter((e) => e.aligned).map((e) => e.symbol)).toEqual(["__data_Main_T"]);
+    expect(il.constData.filter((e) => e.pageAligned).map((e) => e.symbol)).toEqual([
+      "__data_Main_T",
+    ]);
+  });
+
+  it("cannot mark another module's const — the qualified address-of is rejected first", () => {
+    // `&Gfx.TABLE` parses as the address of a field access, which the analyzer
+    // turns away before lowering ever sees it. Pinning that here keeps the
+    // note above honest: if this ever starts compiling, the marking rule has a
+    // cross-module case that nothing currently covers.
+    const { il, codes } = lowerText([
+      ["module Gfx;", "export const TABLE: byte[3] = [1, 2, 3];"].join("\n"),
+      ["module Main;", "function main(): void { let p: word = &Gfx.TABLE; }"].join("\n"),
+    ]);
+    expect(codes).toContain("E10042");
+    expect(il.constData.filter((e) => e.pageAligned)).toEqual([]);
   });
 });

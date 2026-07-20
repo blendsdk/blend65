@@ -20,7 +20,7 @@ sprite 63 bytes at a time into `$0340` and points the VIC at the embedded data i
 | # | Change | Seam | File |
 |---|--------|------|------|
 | 1 | **`align` directive** — a new `AcmeDirective` variant, plus its three render sites (only two of which the compiler forces) | instruction model | `core/src/instr-model/stream.ts`, `codegen/src/instr/print-instr.ts` |
-| 2 | **Address-taken marking** — a symbol set filled at the `&` site, surfacing as `ConstDataEntry.aligned` | IL lowering | `codegen/src/il/lower.ts`, `codegen/src/il/cfg.ts` |
+| 2 | **Address-taken marking** — a symbol set filled at the `&` site, surfacing as `ConstDataEntry.pageAligned` | IL lowering | `codegen/src/il/lower.ts`, `codegen/src/il/cfg.ts` |
 | 3 | **Emission** — the directive prepended to its own stream's entries | stream construction | `codegen/src/instr/instr-program.ts` |
 | 4 | **Balloon rewrite** — 63 staging pokes deleted; pointer from `hi(&BALLOON) * 4` | example | `examples/balloon/main.blend` |
 | 5 | **Observable split** — the shared twin contract shrinks to source-mandated rows | test harness | `test-harness/src/testing/balloon.ts`, `src/balloon.spec.test.ts` |

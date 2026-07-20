@@ -278,7 +278,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
           : sym.type.kind === "struct"
             ? "struct"
             : "array",
-      aligned: addressTakenConsts.has(symbol),
+      pageAligned: addressTakenConsts.has(symbol),
     });
   }
 
