@@ -1,0 +1,29 @@
+{
+  "examples": {
+    "align-mixed": "probe",
+    "balloon": "measured",
+    "balloon-color": "demo",
+    "boing-ball": "demo",
+    "gate": "corpus",
+    "guards": "corpus",
+    "rasterpoll": "corpus",
+    "slice3a": "corpus",
+    "slice3b": "corpus",
+    "slice4a": "corpus",
+    "slice4b": "corpus",
+    "slice5a": "corpus",
+    "slice5b": "corpus",
+    "slice6": "corpus",
+    "slice7": "corpus",
+    "slice7b": "corpus",
+    "slice8": "corpus",
+    "slice8b": "corpus"
+  },
+  "suites": {
+    "align-mixed": "align-mixed.spec.test.ts"
+  },
+  "pendingSuite": {
+    "balloon-color": "No suite compiles it yet. Its sprite-pointer and image-alignment checks arrive with the symbolic-address work that migrates it to the divided-address idiom.",
+    "boing-ball": "No suite compiles it yet. Its four sprite pointers must be asserted one 64-byte block apart, which arrives with the same migration."
+  }
+}

@@ -135,11 +135,13 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
 
 - [ ] 4.1 Write **ST-13f** plus a `testing/balloon-color.ts` builder mirroring `testing/balloon.ts`;
       new `balloon-color.spec.test.ts`, build-only under `skipIf(!hasAcme())`. This is the demo's
-      **first** CI signal of any kind — it is referenced by nothing today
+      **first** CI signal of any kind. **Move it out of the coverage manifest's `pendingSuite`
+      waiver and name the new suite instead** — the waiver exists only until this task lands
 - [ ] 4.2 Write **ST-13j** plus a `testing/boing-ball.ts` builder; new `boing-ball.spec.test.ts`,
       same tier. Its fourth assertion — `$07F8`..`$07FB` are `b, b+1, b+2, b+3` — is the one
       neither balloon carries, and it proves the migrated value is still usable as the base of
-      64-byte block arithmetic (AR #96)
+      64-byte block arithmetic (AR #96). **Clear its `pendingSuite` waiver too** — after 4.1 and
+      4.2 that list must be empty
 - [ ] 4.3 Re-derive **ST-C14** (`balloon.spec.test.ts:166-181`) to the two-instruction subsequence
       `LDA #<(__data_Main_BALLOON / 64)` · `STA $07F8`, and rewrite its comment to describe the
       folded form rather than a weakness that no longer exists
