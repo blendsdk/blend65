@@ -1,8 +1,8 @@
 # Closeout — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49) (placement slice)
-> **Commit range**: `9534760..6ad9fdb` (7 commits, one per phase plus two review follow-ups)
-> **Status**: all 41 tasks complete; every acceptance criterion walked against committed artifacts
+> **Commit range**: `9534760..562237c` (10 commits — one per phase, plus three review follow-ups, the roadmap sync and this record)
+> **Status**: 40 of 41 tasks; every acceptance criterion walked against committed artifacts. Task 5.6 (the area report on #49) is outward-facing and awaits an explicit go-ahead
 
 ---
 
@@ -36,7 +36,7 @@ remains behind it on **bytes**. Both statements are true and neither survives al
 | **AC-6** — no fixture regresses | CI + review | ✅ | All 15 fixtures re-measured from the aligned build: 14 unchanged to the byte, balloon 677 → 318. The only `budgets.json` change in the whole range is balloon's `bytes`. Corpus total 3616 → 3257 — strictly decreased. Freshness gate clean and idempotent |
 | **AC-7** — the new emission has a discriminating artifact | CI | ✅ | `examples/align-mixed/` + `align-mixed.spec.test.ts` (ST-C11–ST-C13), built through the real facade and real ACME, no golden. RD-05's `golden-layout.spec.test.ts` 43/43 green over the regenerated corpus |
 | **AC-8** — balloon's routing ledger re-audited | CI | ✅ | All four rows re-authored from measurement; `sourceForced` dropped and the `copy()`-gap attribution retired (ST-C20 pins both mechanically). The honest decomposition is below |
-| **AC-9** — `spec/` untouched | Review | ✅ | `git status --porcelain spec/` empty **and** `git diff --name-only 9534760..HEAD -- spec/` empty across all 7 commits. No new syntax: only `embed`, `&`, `hi`, `poke` as frozen v3.0 already defines them |
+| **AC-9** — `spec/` untouched | Review | ✅ | `git status --porcelain spec/` empty **and** `git diff --name-only 9534760..HEAD -- spec/` empty across every commit in the range. No new syntax: only `embed`, `&`, `hi`, `poke` as frozen v3.0 already defines them |
 | **AC-10** — boundary holds | CI | ✅ | `test/boundary.spec.test.ts` 3/3 green (R15 / AR-20) |
 
 ## The residual, decomposed honestly
