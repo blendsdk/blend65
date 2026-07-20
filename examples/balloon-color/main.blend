@@ -19,7 +19,6 @@ function main(): void {
   // to a page, so the VIC reads it where it already lies — no staging copy —
   // and the sprite pointer is just its block number, high byte times four.
   poke($07F8, hi(&BALLOON) * 4);
-  poke($D015, 1);
   poke($D017, 0);
   poke($D01C, 0);
   poke($D01D, 0);
@@ -35,6 +34,15 @@ function main(): void {
   // place to change it rather than two that must agree.
   let tint: byte = 0;
   poke($D027, PALETTE[tint]);
+
+  // Position before enabling. $D000/$D001 hold whatever the last program left
+  // there, so a sprite switched on ahead of its coordinates shows up at that
+  // stale spot for the rest of the frame — a visible flash on startup.
+  // Everything the VIC needs is set above; the enable bit goes last.
+  poke($D000, lo(x));
+  poke($D010, hi(x));
+  poke($D001, y);
+  poke($D015, 1);
 
   while (true) {
     // One update per PAL frame: hold until the raster reaches line 251,
