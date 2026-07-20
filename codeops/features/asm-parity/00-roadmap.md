@@ -12,7 +12,8 @@
 > bytes where a C64 sprite needs 64, costing **193 of 584 bytes (33%)** on that demo — and the
 > finding is not the constant but that 64-byte alignment is *unusable*, since `hi(addr) * 4` is
 > valid only at page alignment, `&X / 64` emits a runtime `JSR __rt_div16`, and `&X >> 6` is
-> rejected. Filed as **RD-15, blocked on RD-13/#58**. And unsized until now: all 48 frame-variable
+> rejected. Filed as **RD-15, blocked on RD-13** (not on #58's frontend half — a scoping challenger
+> corrected that attribution the same day; see the Resume section). And unsized until now: all 48 frame-variable
 > accesses are absolute at `$2000` where zero page saves a byte and a cycle each — **−48 B**,
 > strengthening #59. `--optimize` was confirmed a **no-op** today: it gates only the empty peephole
 > catalog, so RD-04 and RD-05 are always-on and the review was assessing current best output. Two
@@ -141,7 +142,27 @@ the bad end, against `balloon`'s lucky 6. The finding is not the constant, thoug
 alignment, so the one expressible sprite-block idiom depends on the very alignment that costs the
 bytes; `&X / 64` compiles to a runtime `JSR __rt_div16` to divide a link-time constant, and
 `&X >> 6` is rejected outright. A restriction that forces un-idiomatic user code is itself the
-defect, and here it also costs a third of the binary. Unblocking it is #58's symbolic fold.
+defect, and here it also costs a third of the binary. Unblocking it is RD-13's symbolic-operand fold.
+
+**Correction, same day, from the RD-13 scoping challenger.** An earlier draft of this section
+attributed the unblock to #58's *frontend* const-fold. That is wrong on checkable facts, all since
+verified. The frontend already **accepts** `hi(&X) * 4` in `poke` position, and `E90001` on
+`&X >> 6` is a **codegen** ICE (`translate.ts:839-842`), not a frontend diagnostic. The
+8-instruction defect lives at `lower.ts:2570-2577`, where `emitHi` on an `&` expression homes the
+whole address through a frame word slot before reading byte +1 — while `translate.ts:704,710`
+**already** emits `LDA #>sym` via `symbolRef(…, byteSelect: "high")`. So the 8→4 parity fix needs
+**no operand-model change at all**; only RD-15's `#(sym / 64)` fold does. #58's frontend scope
+covers just the const-*declaration* position (`E10193`, `statement-typing.ts:253`), which no
+measured defect depends on — and which carries a frozen-spec collision
+(`spec/evaluations/F006-address-of.md:119` calls an address a compile-time constant, while
+`spec/14-diagnostics.md:140`'s E10193 rejects exactly that as "not a compile-time constant
+expression"), so under D3 it needs an AR resolved before it can execute.
+
+Two hazards the challenger surfaced for the operand extension: `symbolText`
+(`print-instr.ts:58-79`) is a switch with **no `never` arm** and `tsconfig.base.json:9` sets
+`strict` without `noImplicitReturns`, so a new variant renders `undefined` into the asm with no
+compile error; and the peephole catalog is still empty (`peephole.ts:75`, `V1_RULES = []`), which
+makes now the cheapest moment to widen the union — before RD-06's rules pattern-match on it.
 
 **The `E10193`/symbolic-fold gap now has an owner: [#58](https://github.com/blendsdk/blend65/issues/58).**
 `const BLOCK: byte = hi(&SPRITE) * 4;` is rejected because `&SPRITE` is a *link-time* symbol — it
@@ -201,7 +222,7 @@ strengthens #59's case further.
 | RD-10 | Sweep C: memory, ABI, interrupts, startup ([#59](https://github.com/blendsdk/blend65/issues/59)) | — | — | Backlog | ⬜ | 2026-07-18 | B3 — ABI hot cycle lever (balloon ≈13 instr/call); startup trim cheap · Fable |
 | RD-11 | Sweep F: intrinsics & runtime routines ([#62](https://github.com/blendsdk/blend65/issues/62)) | — | — | Backlog | ⬜ | 2026-07-17 | interacts with RD-03 |
 | RD-12 | Sweep A: frontend conformance & diagnostics ([#57](https://github.com/blendsdk/blend65/issues/57)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
-| RD-13 | Sweep B: semantics & const-evaluation ([#58](https://github.com/blendsdk/blend65/issues/58)) | — | — | Backlog | ⬜ | 2026-07-18 | split: const-fold → B1; whole-loop eval + SFA slot-elision → B2 (type-conformance audit) · Fable |
+| RD-13 | Symbolic constant expressions ([#58](https://github.com/blendsdk/blend65/issues/58) slice) | — | — | Backlog | ⬜ | 2026-07-20 | **Selected 2026-07-20.** Vertical slice carved from #58 the way RD-03 was carved from #49 — #58 itself is an *audit sweep* (deliverable: tables + filed findings, scope `packages/frontend`) and stays open for its B2 half. Re-cut codegen-first by the scoping challenger: **P1** `emitHi`/`emitLo` on `&X` → immediate byte-select (`lower.ts:2570-2577`), 8 instr → 4, plus deleting the false `W10172`; **P2** targeted `InstrOperand` variant (symbol ÷ 2^k) + serializer arm + `never` guard → unblocks RD-15; **P3** frontend const-declaration acceptance (`E10193`) — **AR-gated on a frozen-spec collision**, severable without weakening P1–P2. Blocks RD-15 · Fable |
 | RD-14 | Sweep G: developer experience ([#63](https://github.com/blendsdk/blend65/issues/63)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
-| RD-15 | Alignment granularity: 64-byte sprite blocks ([#69](https://github.com/blendsdk/blend65/issues/69)) | — | — | Backlog | ⬜ | 2026-07-20 | **Blocked on RD-13/#58** — 64-byte alignment is unusable until `&X / 64` folds to an ACME expression instead of `JSR __rt_div16`. Measured: 193 of 584 B (33%) padding on `balloon-color`, 1 B at 64-byte. Open design question: which boundary a given array needs (64 for sprites, 256 for indexed tables) — attribute vs. inference |
+| RD-15 | Alignment granularity: 64-byte sprite blocks ([#69](https://github.com/blendsdk/blend65/issues/69)) | — | — | Backlog | ⬜ | 2026-07-20 | **Blocked on RD-13 (P2)** — 64-byte alignment is unusable until `&X / 64` folds to an ACME expression instead of `JSR __rt_div16`. Measured: 193 of 584 B (33%) padding on `balloon-color`, 1 B at 64-byte. Open design question: which boundary a given array needs (64 for sprites, 256 for indexed tables) — attribute vs. inference |
 | T-01 | CLI bug: relative --out-dir breaks ACME ([#55](https://github.com/blendsdk/blend65/issues/55)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
