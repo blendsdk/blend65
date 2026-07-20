@@ -1,8 +1,8 @@
 # Ambiguity Register: asm-parity requirements
 
-> **Status**: ✅ GATE PASSED — all 38 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19 · RD-03 items 64–68: 2026-07-20 — numbering continues past the plan-stage registers so a single `AR #n` is unambiguous across the feature)
-> **Last Updated**: 2026-07-19 22:05
-> **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61)) · Items 20–25: RD-04 ([#50](https://github.com/blendsdk/blend65/issues/50)) · Items 26–33: RD-05 ([#51](https://github.com/blendsdk/blend65/issues/51))
+> **Status**: ✅ GATE PASSED — all 48 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19 · RD-03 items 64–68: 2026-07-20 · RD-13 items 78–82 + preflight runtime items 83–87: 2026-07-20 — numbering continues past the plan-stage registers so a single `AR #n` is unambiguous across the feature)
+> **Last Updated**: 2026-07-20
+> **Scope**: see the per-RD sections below — each carries its own item range and gate status, so this header never needs to enumerate them again.
 > **CodeOps Skills Version**: 3.10.0
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -439,3 +439,27 @@ text, not on reasoning. Confidence **Medium** on AR #79: the semantic argument i
 bank-relative-block claim holds *only* under page alignment, which is today's invariant and
 RD-15's open question. Confidence **Medium** on AR #82: deferring the shape to the plan is
 deliberate, but it means the plan inherits the RD's riskiest decision.
+
+### RD-13 preflight addenda (2026-07-20) — AR #83–#87 (runtime)
+
+Raised by the 5-cluster preflight fan-out ([`00-preflight-report-rd-13.md`](00-preflight-report-rd-13.md),
+PF-053…PF-079). **No AR #78–#82 decision changes**; these are five *new* decisions the scan forced.
+
+| # | Category | Ambiguity | Options | Decision | Status |
+|---|----------|-----------|---------|----------|--------|
+| 83 | Scope / Testability | M1 says `hi(&X)`/`lo(&X)` become one instruction but never says what `X` ranges over. This decides whether **ST-9b** (`lower-address-of.spec.test.ts:157-174`, which uses `&helper` — a *function*) must be re-derived | (a) const aggregates only — ST-9b survives untouched / (b) all three address-of kinds: const aggregate, function/interrupt, mutable module variable | ✅ Resolved — User accepted recommendation: **(b)**. All three lower to a link-time symbol the assembler resolves, so the byte-select is equally valid for each and (a) would ship a fix that works for one operand kind and not two identical ones. ST-9b and its module header are re-derived, which is *why* the RD's spec-test inventory had to grow from two entries to five | ✅ Resolved |
+| 84 | Ledger / Routing | M5 (was S1) re-routes 16 divergence rows off #58, but no destination was named — and `twins.json` rows carry a numeric `issue:` field, so the plan could not execute without inventing one | (a) #60 (Sweep D) / (b) #52 (peephole catalog) / (c) file a dedicated issue | ✅ Resolved — User delegated the choice; **(c)**. Verified against every open issue: **#60 is itself an audit sweep**, so (a) repeats the exact failure M5 exists to correct; **#52** covers redundant loads but cannot fold across a frame slot into a runtime multiply, which is what `slice3b` needs. Filed [#70](https://github.com/blendsdk/blend65/issues/70) — local constant propagation & dead-store elimination — carrying the measured evidence and the 8.70×/8.32×/7.40×/7.12× ratios | ✅ Resolved |
+| 85 | Completeness | M3 described OP-5's positive case as "spun off", but nothing was filed, leaving a **registered diagnostic with no producer** and a **frozen-spec rule with no implementation** ownerless | (a) leave it in prose / (b) file it / (c) implement strength reduction inside RD-13 | ✅ Resolved — User delegated the choice; **(b)**. (c) is scope creep the RD already rejected; (a) breaks house style, where every RD-03 deferral carried a filed issue. Filed [#71](https://github.com/blendsdk/blend65/issues/71). AR #80's "temporarily producer-less" now has a defined end | ✅ Resolved |
+| 86 | Coverage | `examples/balloon-color` is the **second** site of `hi(&BALLOON) * 4`, was named nowhere in the RD, is deliberately outside the parity corpus, and is referenced by nothing in `packages/`, `test/`, `scripts/` or `.github/` — so a migration typo would ship with zero signal. It is also the fixture RD-15's 193 B / 33 % measurement comes from | (a) migrate + add a CI check / (b) migrate, review-only / (c) leave it on `hi(&X)*4` and hand it to RD-15 | ✅ Resolved — User accepted recommendation: **(a)**. Its array is address-taken, so AC-2/AC-4's machinery applies unchanged and the check is nearly free; (c) would leave a shipped teaching example demonstrating an idiom RD-15 makes incorrect | ✅ Resolved |
+| 87 | Technical / Correctness | The new `InstrOperand` variant was specified with "a symbol, an optional offset and a power-of-two shift count, serialized parenthesized **so ACME's precedence cannot reinterpret it**" | (a) keep the offset and require a self-parenthesized dividend `#<((sym+off) / 2^k)` / (b) drop the offset field | ✅ Resolved — **(b)**, on measurement. The claim was false: on ACME 0.97 with `sprite` at `$0900` (correct block `$24`), `#<(sprite+3 / 64)` yields **`0x00`** — ACME binds `/` tighter than `+`, so it computes `sprite + (3/64)` = `sprite + 0` — and `#<(sprite + 128/64)` yields `0x02`, silently a different address. **Both assemble cleanly**, the same trap class as RD-03's `!align 256, 0`. No requirement consumes an offset and the Won't-Have excludes `&X + n`, so the field is omitted and the trap is unreachable by construction. (a) is recorded for a later RD that needs it | ✅ Resolved |
+
+**Hardening disclosure:** Confidence **High** on AR #84, #85, #87 — each rests on a check the lead
+performed independently (every open issue enumerated; the absent issue confirmed by search; the
+ACME precedence behaviour reproduced on ACME 0.97 with four spellings). Confidence **High** on
+AR #83 and #86 — both follow from artifacts read directly (ST-9b's assertions;
+`examples/balloon-color/main.blend:21` and its zero inbound references).
+
+> **The two most serious preflight findings were raised by two clusters independently** that could
+> not see each other's output: the understated spec-test blast radius (PF-053) and AC-3's
+> unfailable oracle (PF-054). Same-session authorship was mitigated by model diversity — all five
+> clusters ran on a different family than the author — not by the author's own re-reading.

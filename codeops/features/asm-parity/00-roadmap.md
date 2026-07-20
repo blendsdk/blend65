@@ -3,8 +3,28 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-20 (**RD-13 ✏️ AUTHORED** — the symbolic-address slice of #58, gate
-> passed on AR #78–#82. An address is a **link-time** constant ACME folds for free; the compiler
+> **Last Updated**: 2026-07-20 (**RD-13 🔎 PREFLIGHTED** — a 5-cluster fan-out on a different model
+> family raised **27 findings (0 critical, 8 major)**, all resolved and applied; two new issues
+> filed ([#70](https://github.com/blendsdk/blend65/issues/70),
+> [#71](https://github.com/blendsdk/blend65/issues/71)) and five runtime decisions recorded as
+> AR #83–#87. The **architecture survived intact** — every central risk claim held under
+> adversarial verification, several reproduced with the repo's own toolchain: the one-forced-site
+> blast radius, the `lowerAddressOf` double side effect, the alignment/CI-blindness hazard, the
+> TS2366 correction, the ledger counts, and the block-number identity. The defects were all in
+> **test accounting and boundary precision**. Load-bearing catches: **the spec-test blast radius
+> was understated three-fold** — `ST-9b` pins the exact frame-slot homing M1 abolishes and its
+> module header states the rule normatively, while `ST-C14` pins the `LDA #>`/`ASL`/`ASL` run the
+> idiom migration deletes, so the RD's bolded "the one place RD-13 touches a spec test" claim was
+> false and the real set is four tests plus a header; **AC-3 could not fail** — it named a
+> *frontend* suite that has no `&` fixture and cannot observe codegen's counter, reproducing the
+> RD-03 preflight's own "proof that cannot fail" failure mode; and **the new operand's rendering
+> silently miscompiled** — `#<(sprite+3 / 64)` assembles cleanly to `0x00` because ACME binds `/`
+> tighter than `+`, so the offset field was dropped and the trap made unreachable. Also:
+> `balloon-color` is a **second** migration site named nowhere and verified by nothing; M5's
+> re-routing had no destination and no open issue owned the capability; and the RD cited `slice3a`
+> as one of the 16 misrouted rows when its rows already route to #59/#60. The two most serious
+> findings were raised by **two clusters independently**. Next: `make_plan`. — prior:
+> **RD-13 ✏️ AUTHORED** — the symbolic-address slice of #58, gate passed on AR #78–#82. An address is a **link-time** constant ACME folds for free; the compiler
 > materializes it at runtime instead, and three legal v3.0 source forms fail three different ways —
 > `hi(&X) * 4` costs 8 instructions plus a spurious `W10172`, `lo(&X / 64)` emits **11 instructions
 > and `JSR __rt_div16`** (a runtime 16-bit software division of a link-time constant), and
@@ -215,17 +235,20 @@ single unowned win on the board (193 B on one fixture) and it cannot start until
 
 > **Authoring corrected the size of the prize, and the correction should be read before the
 > closeout.** 17 of the corpus's 53 routed divergence rows name #58, but exactly **one** is a
-> symbolic-address defect. The other 16 carry *"constant-foldable program: full runtime machinery
-> emitted where a hand version folds to direct stores"* — and they are **misrouted**. `slice3a`'s
-> entire program is `let x: byte = 5; poke($D020, x)`, and it emits a store to the frame slot
-> followed by a reload of the byte just stored; `slice3b` reaches `JSR __rt_mul8` for `5 * 3`
-> because both operands live in frame slots. Those are local constant-propagation and dead-store
-> gaps in **codegen dataflow** — nothing to do with `packages/frontend` semantics or with
-> link-time symbols. They also drive the corpus's worst ratios (`slice6` 8.70×, `slice3b` 8.32×,
+> symbolic-address defect. The other 16 are **misrouted** — they split 8/8 between
+> *"constant-foldable program: full runtime machinery emitted where a hand version folds to direct
+> stores"* and *"code-size consequence of the unfolded machinery"*. `slice3b` reaches
+> `JSR __rt_mul8` for `5 * 3` because both operands live in frame slots; `slice5a` adds the
+> cross-function case. Those are local constant-propagation and dead-store gaps in **codegen
+> dataflow** — nothing to do with `packages/frontend` semantics or with link-time symbols.
+> (`slice3a` shows the defect in its purest form — `let x: byte = 5; poke($D020, x)` stores to a
+> frame slot then reloads the byte just stored — but **its rows already route to #59/#60**, so it
+> is the clearest exhibit rather than a member of the population; the preflight caught that the
+> RD had cited it as one.) They drive the corpus's worst ratios (`slice6` 8.70×, `slice3b` 8.32×,
 > `slice7b` 7.40×, `slice5a` 7.12×), so leaving them filed under an audit sweep that would never
-> fix them hides the **largest remaining parity gap on the board**. RD-13 re-routes them (AR #81);
-> it does not fix them, and it moves 1 routed row rather than 17. Whoever picks the constant-
-> propagation work up next inherits a much bigger prize than its current filing suggests.
+> fix them hides the **largest remaining parity gap on the board**. RD-13 re-routes them to
+> **[#70](https://github.com/blendsdk/blend65/issues/70)**, filed for exactly this; it does not
+> fix them, and it moves 1 routed row rather than 17.
 
 Not chosen, and why: RD-06 (#52, INC/DEC peephole) is the smaller entry and owns the +61-byte
 code-stream half of balloon's residual, but its Rules 2–3 — redundant loads and staging
@@ -259,7 +282,7 @@ strengthens #59's case further.
 | RD-10 | Sweep C: memory, ABI, interrupts, startup ([#59](https://github.com/blendsdk/blend65/issues/59)) | — | — | Backlog | ⬜ | 2026-07-18 | B3 — ABI hot cycle lever (balloon ≈13 instr/call); startup trim cheap · Fable |
 | RD-11 | Sweep F: intrinsics & runtime routines ([#62](https://github.com/blendsdk/blend65/issues/62)) | — | — | Backlog | ⬜ | 2026-07-17 | interacts with RD-03 |
 | RD-12 | Sweep A: frontend conformance & diagnostics ([#57](https://github.com/blendsdk/blend65/issues/57)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
-| RD-13 | [Symbolic address arithmetic](requirements/RD-13-symbolic-address-arithmetic.md) ([#58](https://github.com/blendsdk/blend65/issues/58) slice) | — | — | RD Drafted | ✏️ | 2026-07-20 | **RD authored 2026-07-20; gate passed on AR #78–#82.** An address is a link-time constant ACME folds for free; the compiler materializes it at runtime instead. **M1** `hi(&X)`/`lo(&X)` → one immediate byte-select (the existing `symbolRef.byteSelect` already expresses it — no new `InstrOperand` needed); the seam is `lowerAddressOf(arg, ctx, true)`, because that function also carries RD-03's alignment mark and the positional slot claim, and balloon's only `&` is this very site. **M2** one restricted `InstrOperand` variant (symbol + power-of-two shift) so `lo(&X / 64)` folds to `#<(sym/64)` instead of `JSR __rt_div16`, and `lo(&X >> 6)` builds at all instead of `E90001` — blast radius measured at **one** compiler-forced site (TS2366 at `print-instr.ts:58`). **M3** `W10172` stops firing on power-of-two multiplies, which `spec/evaluations/F017-operators.md:442` forbids verbatim; two spec-tier tests are re-derived from that text. Challenger-hardened on a different model family: it endorsed the scope and corrected three things — don't full-fold `hi(&X)*4` (the mod-256 wrap is *meaningful*; bless `lo(&X/64)` instead), `W10172` is left deliberately producer-less, and M1 is **not** shippable without M3. Deliberately excluded: `const` declarations naming link-time addresses — **spec-blocked under D3**, not merely expensive. Moves **1** of 53 routed rows; re-routes 16 misrouted ones. Blocks RD-15 · Fable |
+| RD-13 | [Symbolic address arithmetic](requirements/RD-13-symbolic-address-arithmetic.md) ([#58](https://github.com/blendsdk/blend65/issues/58) slice) | — | — | RD Preflighted | 🔎 | 2026-07-20 | **RD authored and preflighted 2026-07-20; gate passed on AR #78–#82, preflight raised 27 findings (8 major) resolved as AR #83–#87, spinning off [#70](https://github.com/blendsdk/blend65/issues/70) and [#71](https://github.com/blendsdk/blend65/issues/71).** An address is a link-time constant ACME folds for free; the compiler materializes it at runtime instead. **M1** `hi(&X)`/`lo(&X)` → one immediate byte-select (the existing `symbolRef.byteSelect` already expresses it — no new `InstrOperand` needed); the seam is `lowerAddressOf(arg, ctx, true)`, because that function also carries RD-03's alignment mark and the positional slot claim, and balloon's only `&` is this very site. **M2** one restricted `InstrOperand` variant (symbol + power-of-two shift) so `lo(&X / 64)` folds to `#<(sym/64)` instead of `JSR __rt_div16`, and `lo(&X >> 6)` builds at all instead of `E90001` — blast radius measured at **one** compiler-forced site (TS2366 at `print-instr.ts:58`). **M3** `W10172` stops firing on power-of-two multiplies, which `spec/evaluations/F017-operators.md:442` forbids verbatim; two spec-tier tests are re-derived from that text. Challenger-hardened on a different model family: it endorsed the scope and corrected three things — don't full-fold `hi(&X)*4` (the mod-256 wrap is *meaningful*; bless `lo(&X/64)` instead), `W10172` is left deliberately producer-less, and M1 is **not** shippable without M3. Deliberately excluded: `const` declarations naming link-time addresses — **spec-blocked under D3**, not merely expensive. Moves **1** of 53 routed rows; re-routes 16 misrouted ones. Blocks RD-15 · Fable |
 | RD-14 | Sweep G: developer experience ([#63](https://github.com/blendsdk/blend65/issues/63)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
 | RD-15 | Alignment granularity: 64-byte sprite blocks ([#69](https://github.com/blendsdk/blend65/issues/69)) | — | — | Backlog | ⬜ | 2026-07-20 | **Blocked on RD-13 (P2)** — 64-byte alignment is unusable until `&X / 64` folds to an ACME expression instead of `JSR __rt_div16`. Measured: 193 of 584 B (33%) padding on `balloon-color`, 1 B at 64-byte. Open design question: which boundary a given array needs (64 for sprites, 256 for indexed tables) — attribute vs. inference |
 | T-01 | CLI bug: relative --out-dir breaks ACME ([#55](https://github.com/blendsdk/blend65/issues/55)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
