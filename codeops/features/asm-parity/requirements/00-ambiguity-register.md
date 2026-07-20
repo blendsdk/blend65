@@ -399,3 +399,43 @@ spec line guarantees folding only *"when applied to compile-time constants"*, an
 shows. The correct justification is arithmetic and does not depend on folding: for an address that
 is a multiple of 256 the low byte is zero, so `hi(&X) * 4 == address / 64` exactly. Page alignment
 remains what makes the sprite block expressible without new syntax; only the stated reason changes.
+
+---
+
+## RD-13 — Symbolic address arithmetic ([#58](https://github.com/blendsdk/blend65/issues/58), symbolic slice)
+
+> **Status**: ✅ GATE PASSED — all 5 items resolved (78–82), 2026-07-20
+> **Continuity**: AR #67 routed the 8-instruction `hi(&X) * 4` divergence *out* of RD-03 and onto
+> the constant-materialization lever. **This RD is that lever.** The routing is now discharged.
+
+| # | Category | Ambiguity | Options | Decision | Status |
+|---|----------|-----------|---------|----------|--------|
+| 78 | Scope / Document identity | #58 is an *audit sweep* over `packages/frontend` (deliverable: conformance tables + filed findings). Which part does RD-13 own? | (a) byte-select only (`hi`/`lo` of `&X`) / (b) (a) + the `W10172` conformance fix / (c) (b) + a link-time expression operand so `&X / 2^k` and `&X >> k` fold / (d) (c) + `const` declarations naming link-time addresses | ✅ Resolved — **(c)**, endorsed by an independent challenger on a different model family. (a) and (b) leave two *live* Prime-Directive defects standing in the RD's own feature area — `lo(&X / 64)` runtime-divides a link-time constant and `&X >> 6` is rejected outright — so docs would have to keep teaching `hi(&X) * 4`, which RD-15's 64-byte alignment silently breaks. (c)'s new operand is **not** speculative: it has two producers inside this RD plus RD-15 downstream. #58 stays open for its audit halves | ✅ Resolved |
+| 79 | Technical / Semantics | Should `hi(&X) * 4` fold all the way to one immediate, or stop at `LDA #>sym` / `ASL` / `ASL`? | (a) full fold to a single immediate / (b) stop at the 4-instruction hand form and bless `lo(&X / 64)` as the sprite-block idiom going forward | ✅ Resolved — **(b)**, on semantics rather than economics. `hi(&X) * 4` is a **byte** multiply that wraps mod 256, and the wrap is meaningful: for a page-aligned `X` it yields `(X & $3FFF) / 64`, the block number *within the VIC bank*. A fold must either reproduce that truncation or change the program's meaning. `lo(&X / 64)` needs no such care — `lo()` **is** the truncation, so `#<(sym / 64)` is wrap-faithful, always in immediate range, and character-for-character the hand idiom. Building a multiply-over-address peephole for an idiom RD-15 will make *incorrect* is machinery with a shelf life | ✅ Resolved |
+| 80 | Quality gate / Conformance | `W10172` fires **only** on power-of-two multiplies (`translate.ts:1582-1592`); `spec/evaluations/F017-operators.md:442` says verbatim it *"does NOT trigger for power-of-2 constants"*. Two **spec-tier** tests assert the non-conformant behaviour (ST-51a, ST-T16) | (a) leave it — spec tests are immutable oracles / (b) remove the power-of-two emission and re-derive both tests from the normative spec text / (c) (b) + implement OP-5's positive case (non-power-of-two strength reduction) so the diagnostic keeps a producer | ✅ Resolved — **(b)**. The immutable-oracle rule protects tests from *implementation-convenience* edits; these two are defective **transcriptions** of a higher, frozen authority, so correcting them is the discipline working as designed — re-derived, never weakened. (c) is real scope creep: OP-5's positive case has **no implementation at all** (a non-power-of-two multiply falls through to `JSR __rt_mul8/16` + `W10170`, `translate.ts:1596-1604`), so it means *building* strength reduction. Accepted consequence, stated in the RD: `W10172` is left temporarily **producer-less** | ✅ Resolved |
+| 81 | Scope / Ledger accuracy | 17 of the corpus's 53 routed divergence rows name #58. Exactly **one** is a symbolic-address defect; the other 16 carry *"constant-foldable program: full runtime machinery emitted…"* and are local constant-propagation / dead-store gaps in codegen dataflow (`slice3a` stores `5` to a frame slot then reloads it) | (a) fix them here / (b) re-route them to their real owner without fixing them / (c) leave the routing alone | ✅ Resolved — **(b)**. They are not #58's (nothing to do with `packages/frontend` semantics or link-time symbols) and they are not RD-13's, but they drive the corpus's worst ratios (`slice6` 8.70×, `slice3b` 8.32×), so mis-attributing them hides the largest remaining parity gap behind a sweep that would never close it. (c) rejected on the RD-03 M4 precedent: the change that invalidates a routing row re-authors it | ✅ Resolved |
+| 82 | Technical / Architecture | A byte-selected address must flow into an ALU left operand, but `il/operand.ts:23-28` declares an `addr` operand legal in *"exactly two positions"* and `leftIntoA` ICEs on it (`translate.ts:921-924`) | (a) extend the `addr` variant with a byte `select` / (b) a distinct IL operand kind | ✅ Resolved — **deferred to the plan**, with a binding constraint rather than a chosen shape: whichever is picked, the **documented position contract gains a third legal shape and must be amended in the same change**, and the choice must be explicit about all 7 `isAddr` guards (`translate.ts:698, 921, 954, 978, 1035, 1760, 2044`). That loud-rejection rule is what makes drift fail visibly instead of silently misreading a word address as a byte; leaving it describing a contract the code no longer honours would disarm it | ✅ Resolved |
+
+**AR-78/79/80 (hardening).** An independent challenger (different model family) was dispatched on
+the scope question with the four options and **without** this author's preference. It endorsed (c)
+and returned three corrections that were adopted: AR #79's semantic argument against full-folding
+(which this author had not considered), AR #80's "producer-less diagnostic" consequence, and the
+observation that **AR #78's (a) is not independently shippable** — after the byte-select fix the
+`* 4` still lands in the power-of-two branch, so (a) alone would leave a spurious `W10172` on the
+very sprite-pointer line it just fixed. M1 and M3 are coupled.
+
+One challenger citation was **checked and corrected before adoption**: it cited `E10191` as the
+normative "const initializer must be a compile-time constant expression" code. `spec/00-feature-index.md:172`
+does say that, but `spec/14-diagnostics.md:139` assigns `E10191` to *assignment to const* and puts
+the initializer rule on `E10193` — which is what the implementation follows
+(`diagnostic-codes.ts:262`). **The frozen spec numbers this family inconsistently.** Both documents
+state the same *rule*, so the conclusion (option (d) is spec-blocked under D3, not merely
+expensive) is unaffected; the discrepancy is pre-existing and out of scope.
+
+**Hardening disclosure:** Confidence **High** on AR #78, #80 and #81 — each rests on live
+measurement against the current tree (the 8- and 11-instruction emissions, the `E90001` and
+`E10193` probes, the `W10172` build warning, the 17-of-53 row count) plus verbatim frozen-spec
+text, not on reasoning. Confidence **Medium** on AR #79: the semantic argument is sound but the
+bank-relative-block claim holds *only* under page alignment, which is today's invariant and
+RD-15's open question. Confidence **Medium** on AR #82: deferring the shape to the plan is
+deliberate, but it means the plan inherits the RD's riskiest decision.

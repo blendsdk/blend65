@@ -2,7 +2,7 @@
 
 > **Project**: blend65 — Asm-Parity Initiative (Prime Directive audit program + parity tooling)
 > **Status**: Draft — RDs are authored on pickup from GitHub issues #49–#64 (umbrella [#56](https://github.com/blendsdk/blend65/issues/56))
-> **Created**: 2026-07-17 · **Last Updated**: 2026-07-20 (RD-05 ✅ closed; RD-03 placement slice drafted; ambiguity register at 38 items, all resolved)
+> **Created**: 2026-07-17 · **Last Updated**: 2026-07-20 (RD-05 ✅ closed; RD-03 ✅ closed; RD-13 symbolic-address slice drafted, gate passed on AR #78–#82; ambiguity register at 43 items, all resolved)
 > **Architecture**: TypeScript monorepo (`@blend65/*` packages) + `scripts/` tooling; VICE 3.10 + ACME local tiers, ACME-only CI (AR-27)
 > **CodeOps Skills Version**: 3.10.0
 
@@ -44,7 +44,8 @@ authored here only when its item is picked up, following
 | **RD-04** | [Compare-and-branch fusion](RD-04-compare-and-branch-fusion.md) | Fused compare-and-branch IL terminator + condition-position lowering (`&&`/`||`/`!` slot-free, literal folds); twin-idiom acceptance transferred to #51 ([#50](https://github.com/blendsdk/blend65/issues/50)) — ✅ done 2026-07-19, #50 closed | RD-01, RD-02 |
 | **RD-05** | [Block layout — fall-through elision + jump threading](RD-05-block-layout.md) | Layout-aware emission: fall-through elision, branch inversion, jump threading, unreachable-block removal, plus branch-range relaxation ([#65](https://github.com/blendsdk/blend65/issues/65)); discharges RD-04's transferred twin-idiom criterion ([#51](https://github.com/blendsdk/blend65/issues/51)) — 🔎 preflighted 2026-07-19 (30 findings applied) | RD-01, RD-02, RD-04 |
 | **RD-03** | [Placement — align const data and read it in place](RD-03-placement.md) | A const array whose address is taken is page-aligned, so hardware reads it where it already sits instead of the program copying it there. Grammar-free — no `spec/` change, no Guard evaluation. Closes the corpus's largest single divergence ([#49](https://github.com/blendsdk/blend65/issues/49), placement slice only; `copy()` stays gated) — ✏️ drafted 2026-07-20 | RD-01, RD-02 |
-| RD-06…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
+| **RD-13** | [Symbolic address arithmetic](RD-13-symbolic-address-arithmetic.md) | An address is a link-time constant the assembler folds for free; the compiler materializes it at runtime instead. Makes `hi(&X)`/`lo(&X)` one instruction, folds `lo(&X / 2^k)` and `lo(&X >> k)` to an ACME expression instead of `JSR __rt_div16` / `E90001`, and stops `W10172` firing where the frozen spec forbids it. Grammar-free; unblocks RD-15 ([#58](https://github.com/blendsdk/blend65/issues/58), symbolic slice only) — ✏️ drafted 2026-07-20 | RD-01, RD-02, RD-03 |
+| RD-06…RD-12, RD-14, RD-15, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
 
 ## Dependency Graph
 
