@@ -45,9 +45,10 @@ shadow to the VIC**, so "any aligned address in the bank works" was false and AC
 balloon below `$1000`; and a **new mixed-alignment fixture** turns three vacuous criteria
 (AC-2/AC-7 + M1's negative half) into discriminating ones.
 
-Two follow-ups need issues filed (**not yet filed — outward-facing, awaiting go-ahead**):
-a data-segment-reporting RD, and a diagnostic for aligned data landing in the char-ROM shadow or
-above `$3FFF`.
+Two follow-ups were spun off: **[#67](https://github.com/blendsdk/blend65/issues/67)**
+(build-summary segment sizes declared but never populated — all four segment lines print zeros)
+and **[#68](https://github.com/blendsdk/blend65/issues/68)** (page-aligned const data can land in
+the VIC char-ROM shadow or outside the bank, silently).
 
 Still open from before: **the `E10193`/symbolic-fold gap needs an owner.**
 `const BLOCK: byte = hi(&SPRITE) * 4;` is rejected because `&SPRITE` is a *link-time* symbol — it

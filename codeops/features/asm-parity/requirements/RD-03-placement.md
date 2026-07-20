@@ -204,14 +204,15 @@ Won't-Have. S1 exists for future fixtures, not present ones.
 - **Runtime-address `poke`** — `E10045` restricts `poke` to a literal address, though the frozen
   spec specifies the runtime case (`spec/12-intrinsics.md:159`). That is a real unimplemented-spec
   gap, but placement removes the need for it *here*; it belongs with #49's wider slice.
-- **Reporting padding in the build summary.** Split out to its own RD — see *Deferred: padding
-  visibility* below.
+- **Reporting padding in the build summary.** Split out to
+  [#67](https://github.com/blendsdk/blend65/issues/67) — see *Deferred: padding visibility* below.
 - **Any general guarantee of VIC-bank residency.** This RD aligns; it does not constrain *where*.
   A program whose code grows can push an aligned array into the char-ROM shadow (`$1000–$1FFF`) or
   out of the bank (`> $3FFF`), and **nothing diagnoses either**. `hi(&X) * 4` also wraps silently
   above `$3FFF` — `hi()` returns a `byte` and the two `ASL`s discard the top bits with no carry
   check, so `$4000` yields pointer 0 and the VIC reads zero page. AC-3 is bounded accordingly, and
-  AC-1 pins balloon specifically. The general diagnostic is a follow-on issue.
+  AC-1 pins balloon specifically. The general diagnostic is
+  [#68](https://github.com/blendsdk/blend65/issues/68).
 
 ### Deferred: padding visibility
 
