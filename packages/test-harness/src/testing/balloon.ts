@@ -1,9 +1,10 @@
 /**
  * Shared test support for the balloon demo — the committed
- * `examples/balloon/` program: a hires sprite staged to block 13, then a
- * frame-locked movement loop (poll `$D012` for line 251, update position,
- * bounce at the borders). Its hand-written twin lives beside it as
- * `balloon.asm`.
+ * `examples/balloon/` program: a hires sprite the VIC reads in place from its
+ * page-aligned image, then a frame-locked movement loop (poll `$D012` for line
+ * 251, update position, bounce at the borders). Its hand-written twin lives
+ * beside it as `balloon.asm` and reaches the same picture the other way, by
+ * staging its copy of the image into the tape buffer at startup.
  *
  * Unlike the slice fixtures (whose sources are inlined as documentation),
  * the balloon's single source of truth is the committed example directory —

@@ -1,6 +1,9 @@
 ; The bouncing balloon, written by hand in 6502 for ACME.
-; Functionally identical to examples/balloon/main.blend, but the
-; sprite copy is a real 4-instruction loop instead of 63 unrolled stores.
+; Functionally identical to examples/balloon/main.blend, but it gets there
+; the other way: this stages a copy of the sprite into the tape buffer at
+; $0340, below the load address where a single-load PRG cannot place data.
+; The compiled program instead aligns its embedded image and reads it where
+; it lies. Both are legitimate; this one trades startup work for file size.
 !to "balloon-asm.prg", cbm
 
 ; ---- zero-page state ----
@@ -17,8 +20,9 @@ ydir = $02          ; 1 = moving down,  0 = moving up
 ; ---- program entry ($080d) ----
 * = $080d
 start:
-        ; Copy the 63 sprite bytes into $0340. THIS is the loop the
-        ; 63 pokes stand in for — one indexed store, X from 62 down to 0.
+        ; Copy the 63 sprite bytes into $0340 — one indexed store, X from
+        ; 62 down to 0. This startup cost is what buying the sub-$0800 RAM
+        ; costs; the compiled program pays page padding instead.
         ldx #62
 copy:   lda balloon,x
         sta $0340,x

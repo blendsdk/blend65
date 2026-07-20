@@ -127,6 +127,27 @@ Three claims were **seeded and watched to fail** rather than asserted:
 | ST-C18 really asserts on VICE | expected pointer `+1` | failed with `expected [0x25], was [0x24]` — a real read of real emulator memory |
 | ST-C14 catches the copy | ran against the pre-rewrite program | failed on `STA $340`. An earlier draft used the padded `$0340` and matched nothing — the serializer emits shortest-fit hex, so that draft would have passed vacuously |
 
+## Review finding worth recording
+
+The Phase 4 review caught that the observable split was **one-sided**, and it was right.
+
+The sprite pointer and image bytes were removed from the shared table on the grounds that the
+address is allocator-chosen — true for the *compiled* program, and false for the twin, whose own
+source hardcodes `lda #13 / sta $07f8` and `sta $0340,x`. ST-C18 restored the checks for the
+compiled side only, so for a window the twin's sprite display was asserted **nowhere**: a broken
+copy loop would have passed the twin tier while the reference program showed garbage — and that
+twin is the 251-byte denominator behind every ratio in `SCOREBOARD.md`.
+
+Fixed by giving `PairTable` a `twinExtraChecks` field: checks the twin's source mandates but the
+compiled program does not, run against the twin alongside the shared eight. The asymmetry is now
+explicit in the type rather than implied by a comment — and the comment that claimed "the twin has
+no equivalent" was simply wrong and has been corrected. Seeded and watched to fail: expecting
+block 14 fails with `expected [0x0e], was [0x0d]`.
+
+The general lesson: when a shared contract shrinks because one side changed, the rows that leave
+it still belong to whichever side still mandates them. Dropping them from the shared table is only
+half the move.
+
 ## Known gaps left open
 
 | Gap | Where |

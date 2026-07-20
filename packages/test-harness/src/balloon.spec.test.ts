@@ -62,16 +62,21 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: balloon on VICE"
     "ST-C18: points the VIC at the embedded image and finds the real sprite there",
     async () => {
       built ??= await buildBalloon();
-      const env = driver !== undefined ? { driver, symbols: built.result.symbolMap! } : await setupEmulator({ build: built.result, platform: "c64" });
+      const env =
+        driver !== undefined
+          ? { driver, symbols: built.result.symbolMap! }
+          : await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
       const addr = env.symbols.get(SPRITE_LABEL);
       if (addr === undefined) throw new Error(`${SPRITE_LABEL} did not resolve`);
 
       // These two checks left the shared table when the image stopped living
-      // at a source-chosen address: the twin has no equivalent to compare
-      // against, and the address is now the allocator's to pick. Resolving it
-      // from the symbol map is what keeps them honest.
+      // at a source-chosen address — the allocator picks it now, so no fixed
+      // number could be shared with the twin. The twin's own source DOES fix
+      // both, and asserts them on its side of the twin tier; what differs is
+      // the means, not the picture. Resolving the address from the symbol map
+      // is what keeps this side honest.
       await assertObservables(
         driver,
         {
@@ -117,72 +122,76 @@ function indexOfBytes(haystack: Uint8Array, needle: Uint8Array, from: number): n
   return -1;
 }
 
-describe.skipIf(!hasAcme())("Specification: balloon reads its sprite in place (ST-C14, ST-C15)", () => {
-  let built: BuiltBalloon | undefined;
+describe.skipIf(!hasAcme())(
+  "Specification: balloon reads its sprite in place (ST-C14, ST-C15)",
+  () => {
+    let built: BuiltBalloon | undefined;
 
-  afterAll(() => built?.cleanup());
+    afterAll(() => built?.cleanup());
 
-  /** Builds once; every case below reads from the same result. */
-  async function buildOnce(): Promise<BuiltBalloon> {
-    built ??= await buildBalloon();
-    expect(built.result.hasErrors).toBe(false);
-    return built;
-  }
-
-  it("ST-C14: stages nothing, embeds the sprite once, and points the VIC at it", async () => {
-    const { result } = await buildOnce();
-    const asm = result.asmText!;
-    const binary = result.binary!;
-
-    const lines = asm.split("\n").map((line) => line.trim());
-
-    // Nothing is copied into the tape buffer any more. The whole block the
-    // program used to stage into must see no store at all. The address is
-    // matched with optional leading zeros because the serializer emits the
-    // shortest hex that fits — `$340`, not `$0340`.
-    for (let addr = 0x0340; addr <= 0x037e; addr++) {
-      const hex = addr.toString(16).toUpperCase();
-      const store = new RegExp(`^STA \\$0*${hex}$`);
-      expect(
-        lines.filter((line) => store.test(line)),
-        `expected no store to $${hex}`,
-      ).toEqual([]);
+    /** Builds once; every case below reads from the same result. */
+    async function buildOnce(): Promise<BuiltBalloon> {
+      built ??= await buildBalloon();
+      expect(built.result.hasErrors).toBe(false);
+      return built;
     }
 
-    // The sprite exists exactly once in the binary — as the embedded image,
-    // not as an image plus a runtime copy of it.
-    const sprite = new Uint8Array(readFileSync(SPRITE_PATH));
-    const first = indexOfBytes(binary, sprite, 0);
-    expect(first, "the embedded sprite must appear in the binary").toBeGreaterThanOrEqual(0);
-    expect(indexOfBytes(binary, sprite, first + 1)).toBe(-1);
+    it("ST-C14: stages nothing, embeds the sprite once, and points the VIC at it", async () => {
+      const { result } = await buildOnce();
+      const asm = result.asmText!;
+      const binary = result.binary!;
 
-    // The sprite pointer is computed from the image's own address. Asserted as
-    // an ordered subsequence rather than an exact instruction run: the shape of
-    // the shift sequence is a known constant-materialisation weakness, and when
-    // that is fixed this expectation should move with it — not block it.
-    const order = [
-      new RegExp(`^LDA #>${SPRITE_LABEL}$`),
-      /^ASL$/,
-      /^ASL$/,
-      /^STA \$0*7F8$/,
-    ];
-    let at = 0;
-    for (const want of order) {
-      at = lines.findIndex((line, i) => i >= at && want.test(line)) + 1;
-      expect(at, `expected ${want.source} after the preceding step of the pointer store`).toBeGreaterThan(0);
-    }
-  });
+      const lines = asm.split("\n").map((line) => line.trim());
 
-  it("ST-C15: places the sprite image on a page, inside the VIC's reach", async () => {
-    const { result } = await buildOnce();
-    const addr = result.symbolMap!.get(SPRITE_LABEL);
-    expect(addr, `${SPRITE_LABEL} must resolve`).toBeTypeOf("number");
+      // Nothing is copied into the tape buffer any more. The whole block the
+      // program used to stage into must see no store at all. The address is
+      // matched with optional leading zeros because the serializer emits the
+      // shortest hex that fits — `$340`, not `$0340`.
+      for (let addr = 0x0340; addr <= 0x037e; addr++) {
+        const hex = addr.toString(16).toUpperCase();
+        const store = new RegExp(`^STA \\$0*${hex}$`);
+        expect(
+          lines.filter((line) => store.test(line)),
+          `expected no store to $${hex}`,
+        ).toEqual([]);
+      }
 
-    // Page-aligned, so the sprite pointer is exactly the high byte times four.
-    expect(addr! % 256).toBe(0);
+      // The sprite exists exactly once in the binary. This does NOT prove the
+      // copy is gone — the old staging copy happened at runtime, so it never
+      // appeared in the PRG either, and this check passed before the rewrite
+      // too. The store sweep above is what proves that. What this guards is a
+      // second image being BAKED into the file.
+      const sprite = new Uint8Array(readFileSync(SPRITE_PATH));
+      const first = indexOfBytes(binary, sprite, 0);
+      expect(first, "the embedded sprite must appear in the binary").toBeGreaterThanOrEqual(0);
+      expect(indexOfBytes(binary, sprite, first + 1)).toBe(-1);
 
-    // Below $1000 keeps it clear of the character-ROM shadow, where the VIC
-    // would read ROM instead of the image no matter what the pointer says.
-    expect(addr!).toBeLessThan(0x1000);
-  });
-});
+      // The sprite pointer is computed from the image's own address. Asserted as
+      // an ordered subsequence rather than an exact instruction run: the shape of
+      // the shift sequence is a known constant-materialisation weakness, and when
+      // that is fixed this expectation should move with it — not block it.
+      const order = [new RegExp(`^LDA #>${SPRITE_LABEL}$`), /^ASL$/, /^ASL$/, /^STA \$0*7F8$/];
+      let at = 0;
+      for (const want of order) {
+        at = lines.findIndex((line, i) => i >= at && want.test(line)) + 1;
+        expect(
+          at,
+          `expected ${want.source} after the preceding step of the pointer store`,
+        ).toBeGreaterThan(0);
+      }
+    });
+
+    it("ST-C15: places the sprite image on a page, inside the VIC's reach", async () => {
+      const { result } = await buildOnce();
+      const addr = result.symbolMap!.get(SPRITE_LABEL);
+      expect(addr, `${SPRITE_LABEL} must resolve`).toBeTypeOf("number");
+
+      // Page-aligned, so the sprite pointer is exactly the high byte times four.
+      expect(addr! % 256).toBe(0);
+
+      // Below $1000 keeps it clear of the character-ROM shadow, where the VIC
+      // would read ROM instead of the image no matter what the pointer says.
+      expect(addr!).toBeLessThan(0x1000);
+    });
+  },
+);

@@ -26,7 +26,7 @@ import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
 import { loadBudgetFile } from "./budget-loader.js";
 import { loadTwinManifest } from "./twin-manifest.js";
 import { assembleTwin } from "./testing/twin-assemble.js";
-import { assertObservables, type ProgramObservables } from "./testing/observables.js";
+import { assertObservables, type Check, type ProgramObservables } from "./testing/observables.js";
 import { BALLOON_OBSERVABLES } from "./testing/balloon.js";
 import { GATE_OBSERVABLES } from "./testing/gate.js";
 import { GUARDS_OBSERVABLES } from "./testing/guards.js";
@@ -58,6 +58,18 @@ interface PairTable {
   readonly observables: ProgramObservables;
   /** The TWIN's frame-loop-head label (frame-looping pairs only). */
   readonly twinLoopHead?: string;
+  /**
+   * Checks the TWIN's own source mandates but the compiled program does not,
+   * run against the twin only.
+   *
+   * The shared table holds what BOTH sources mandate. When the two programs
+   * reach the same visible result by different legitimate means, a value can
+   * be fixed by one source and chosen by the allocator in the other — it does
+   * not belong in the shared table, but dropping it outright would leave the
+   * twin's own behaviour unasserted, and the twin is the reference the whole
+   * corpus is measured against.
+   */
+  readonly twinExtraChecks?: readonly Check[];
 }
 
 /**
@@ -84,7 +96,22 @@ const PAIR_TABLES: Readonly<Record<string, PairTable>> = {
   slice8b: { observables: SLICE8B_OBSERVABLES },
   guards: { observables: GUARDS_OBSERVABLES, twinLoopHead: "update" },
   rasterpoll: { observables: RASTERPOLL_OBSERVABLES, twinLoopHead: "update" },
-  balloon: { observables: BALLOON_OBSERVABLES, twinLoopHead: "update" },
+  balloon: {
+    observables: BALLOON_OBSERVABLES,
+    twinLoopHead: "update",
+    // The twin stages its sprite into the tape buffer and hardcodes both the
+    // block number and the destination; the compiled program aligns its image
+    // and reads it where it lies, at an address the allocator picks. Same
+    // sprite on screen, different means — so these are asserted per side.
+    twinExtraChecks: [
+      { address: 0x07f8, value: 13, note: "twin's sprite pointer: block 13 = $0340" },
+      {
+        address: 0x0340,
+        bytesFile: "examples/balloon/balloon.bin",
+        note: "twin's staged sprite image",
+      },
+    ],
+  },
 };
 
 const manifest = loadTwinManifest(MANIFEST_PATH);
@@ -114,9 +141,10 @@ describe("Specification: balloon's routing prose survived the placement rewrite 
       expect(row.sourceForced, `${row.disposition}: the copy is no longer source-forced`).toBe(
         undefined,
       );
-      expect(row.note, `${row.disposition}: the copy() gap no longer explains anything`).not.toMatch(
-        /copy\(\) language gap/,
-      );
+      expect(
+        row.note,
+        `${row.disposition}: the copy() gap no longer explains anything`,
+      ).not.toMatch(/copy\(\) language gap/);
     }
   });
 });
@@ -137,7 +165,14 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: twin tier on VIC
         try {
           const env = await setupEmulator({ binary: twin.prgPath, labelFile: twin.labelPath });
           try {
-            await assertObservables(env.driver, table.observables, {
+            const observables: ProgramObservables =
+              table.twinExtraChecks === undefined
+                ? table.observables
+                : {
+                    landmarks: table.observables.landmarks,
+                    checks: [...table.observables.checks, ...table.twinExtraChecks],
+                  };
+            await assertObservables(env.driver, observables, {
               symbols: env.symbols,
               timeout: LOCAL_TEST_TIMEOUT,
               ...(table.twinLoopHead !== undefined ? { loopHeadLabel: table.twinLoopHead } : {}),

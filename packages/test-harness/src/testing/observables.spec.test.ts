@@ -23,7 +23,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 
 /** The committed balloon sprite asset used as the block-check oracle. */
 const SPRITE_FILE = "examples/balloon/balloon.bin";
-/** Where the balloon program stages the sprite block. */
+/** Where the balloon twin stages its sprite block. */
 const SPRITE_BLOCK = 0x0340;
 
 /** A fake-driver memory image holding `bytes` starting at `start`. */
