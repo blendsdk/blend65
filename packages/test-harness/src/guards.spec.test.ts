@@ -9,9 +9,13 @@
  * compiled: the values below must survive any change to the branch idiom,
  * which is exactly what makes it a before/after witness.
  *
- * The frame-loop head is the generated `Main_main_L0` (the label the
- * program's entry jumps to), resolved through the build's symbol map — the
- * run strategy fails loudly if the emitted labels ever change shape.
+ * The landmark is the frame **body** block, resolved through the build's
+ * symbol map — the run strategy fails loudly if the emitted labels ever
+ * change shape. It is the body block and not the poll block because the poll
+ * spins once per raster line: stopping at its second arrival would stop
+ * inside the first frame, before any guard had decided anything. The body
+ * block is reached exactly once per frame, so its second arrival means
+ * precisely "one complete update has happened".
  *
  * The suite compiles via ACME AND runs on VICE, so it gates on
  * `skipIf(!hasVice() || !hasAcme())`.
@@ -23,8 +27,8 @@ import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** The generated frame-loop-head label (the entry's jump target). */
-const LOOP_HEAD_LABEL = "Main_main_L0";
+/** The generated frame-body block — the once-per-frame program point. */
+const LOOP_HEAD_LABEL = "Main_main_L5";
 const LOCAL_TEST_TIMEOUT = 60000;
 
 describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: guards on VICE", () => {

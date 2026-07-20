@@ -79,9 +79,18 @@ function makePlan(): AllocationPlan {
 }
 
 /**
- * The three-block shape every fused case is measured in: an entry block ending
- * in the `brcmp`, plus the two blocks its edges land on. Both targets are real
- * blocks, so the fused terminator is the only thing under test.
+ * The shape every fused case is measured in: an entry block ending in the
+ * `brcmp`, a filler block, then the two blocks its edges land on. Both targets
+ * are real blocks, so the fused terminator is the only thing under test.
+ *
+ * The filler is load-bearing. A block whose branch target is also the block
+ * that follows it needs no jump to reach it — the translator elides the jump
+ * and, when it is the *true* edge, inverts the branch. That is correct output,
+ * but it is a different question from the one this suite asks: which flags a
+ * comparison branches on. Interposing a block neither edge names keeps every
+ * expectation below about the fusion alone. The filler survives to the emitted
+ * stream because these cases call the translator directly, so nothing removes
+ * a block nothing can reach.
  */
 function fusedFn(terminator: ILTerminator, instructions: readonly ILInstruction[]): ILFunction {
   return {
@@ -90,6 +99,7 @@ function fusedFn(terminator: ILTerminator, instructions: readonly ILInstruction[
     returnType: "void",
     blocks: [
       { label: "_entry", instructions, terminator },
+      { label: "_filler", instructions: [], terminator: { kind: "ret" } },
       { label: "_L1", instructions: [], terminator: { kind: "ret" } },
       { label: "_L2", instructions: [], terminator: { kind: "ret" } },
     ],
@@ -148,7 +158,16 @@ function expectFused(
   const { text, bag } = render(fusedFn(terminator, instructions));
   expect(bag.hasErrors()).toBe(false);
   expect(text).toBe(
-    ["M_f:", ...body(expected), "M_f_L1:", "    RTS", "M_f_L2:", "    RTS"].join("\n"),
+    [
+      "M_f:",
+      ...body(expected),
+      "M_f_filler:",
+      "    RTS",
+      "M_f_L1:",
+      "    RTS",
+      "M_f_L2:",
+      "    RTS",
+    ].join("\n"),
   );
 }
 

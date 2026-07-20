@@ -60,7 +60,13 @@ describe("Specification: RD-18 Slice 4b switch translate (ST-17, AR-1/AR-13)", (
     // Each dispatch test compares the discriminant against its case value and
     // branches on the flags that compare just set — nothing stands between the
     // CMP and the branch, so no 0/1 match flag is built, stored or re-tested.
-    expect(text).toMatch(/CMP #\$01\n\s+BEQ Main_main_L\d+\n\s+JMP Main_main_L\d+/);
-    expect(text).toMatch(/CMP #\$02\n\s+BEQ Main_main_L\d+\n\s+JMP Main_main_L\d+/);
+    //
+    // A dispatch test's "no match" edge is the next test, which is also the
+    // next block emitted, so it is reached by falling through and no jump is
+    // written for it. The negative lookahead is the whole point of the shape:
+    // a jump to the very next instruction is exactly what a hand-written
+    // dispatch chain never contains.
+    expect(text).toMatch(/CMP #\$01\n\s+BEQ Main_main_L\d+\n(?!\s+JMP)/);
+    expect(text).toMatch(/CMP #\$02\n\s+BEQ Main_main_L\d+\n(?!\s+JMP)/);
   });
 });

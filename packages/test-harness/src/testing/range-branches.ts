@@ -210,6 +210,12 @@ export interface BuiltRangeFixture {
   readonly cleanup: () => void;
 }
 
+/** Optional gating knobs for the range-probe builders. */
+export interface RangeBuildOptions {
+  /** Peephole-optimizer gating, passed straight through (compiler default: on). */
+  readonly optimize?: boolean;
+}
+
 /** Stages the given source into a fresh temp dir as `main.blend`. */
 function stageFixture(prefix: string, source: string): string {
   const cwd = mkdtempSync(join(tmpdir(), prefix));
@@ -222,13 +228,20 @@ function stageFixture(prefix: string, source: string): string {
  * included). The outDir is absolute so the assembler's working directory
  * resolves consistently regardless of the test runner's own cwd.
  */
-async function buildSource(prefix: string, source: string): Promise<BuiltRangeFixture> {
+async function buildSource(
+  prefix: string,
+  source: string,
+  options?: RangeBuildOptions,
+): Promise<BuiltRangeFixture> {
   const cwd = stageFixture(prefix, source);
   const result = await build({
     platform: "c64",
     cwd,
     sourceFiles: ["main.blend"],
     outDir: join(cwd, "out"),
+    // Attach only when set, so an omitted knob keeps the compiler's own default
+    // rather than pinning it to `undefined`.
+    ...(options?.optimize !== undefined ? { optimize: options.optimize } : {}),
   });
   return {
     result,
@@ -247,13 +260,13 @@ function emitSource(prefix: string, source: string): EmitResult {
 }
 
 /** Builds the `do…while` range probe through real ACME. */
-export function buildDoWhileRange(): Promise<BuiltRangeFixture> {
-  return buildSource("b65-range-dowhile-", DO_WHILE_RANGE_SRC);
+export function buildDoWhileRange(options?: RangeBuildOptions): Promise<BuiltRangeFixture> {
+  return buildSource("b65-range-dowhile-", DO_WHILE_RANGE_SRC, options);
 }
 
 /** Builds the `switch` range probe through real ACME. */
-export function buildSwitchRange(): Promise<BuiltRangeFixture> {
-  return buildSource("b65-range-switch-", SWITCH_RANGE_SRC);
+export function buildSwitchRange(options?: RangeBuildOptions): Promise<BuiltRangeFixture> {
+  return buildSource("b65-range-switch-", SWITCH_RANGE_SRC, options);
 }
 
 /** Emits the `do…while` range probe's ACME source (no assembler run). */

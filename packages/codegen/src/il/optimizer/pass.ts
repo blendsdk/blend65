@@ -3,11 +3,11 @@
  *
  * An {@link ILPass} is one transform in the optimizer pipeline: it takes an
  * {@link ILProgram}, may report diagnostics into the {@link DiagnosticBag}, and
- * returns a (possibly new) `ILProgram`. v1 ships **no** passes — the pipeline is
- * an architectural seam so the real passes (constant folding, DCE,
- * strength reduction) slot in later without restructuring the runner.
+ * returns a (possibly new) `ILProgram`. The pipeline is an architectural seam,
+ * so further passes (constant folding, DCE, strength reduction) slot in without
+ * restructuring the runner.
  *
- * Contracts on future passes (no v1 pass exists to violate them):
+ * Contracts every pass must honour:
  * - **Determinism:** output depends only on the input program.
  * - **Correctness:** observable semantics are preserved; a pass must be total.
  * - **Intrinsic barrier:** CPU-control `intrinsic` instructions must not be

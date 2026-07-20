@@ -70,8 +70,7 @@ Main_onNMI:
 Main_bump:
     LDA __zp_Main_frameCount
     CMP #$64
-    BCC Main_bump_L0
-    JMP Main_bump_L1
+    BCS Main_bump_L1
 Main_bump_L0:
     LDA $D020
     CLC
@@ -81,7 +80,6 @@ Main_bump_L0:
     CLC
     ADC #$01
     STA __zp_Main_frameCount
-    JMP Main_bump_L1
 Main_bump_L1:
     RTS
 ; --- function: Main.main ---
@@ -111,12 +109,7 @@ _main:
     LDA #$FF
     STA $D019
     CLI
-    JMP Main_main_L0
-Main_main_L0:
-    JMP Main_main_L1
 Main_main_L1:
     LDA __zp_Main_frameCount
     STA __var_Main_mirror
-    JMP Main_main_L0
-Main_main_L2:
-    RTS
+    JMP Main_main_L1

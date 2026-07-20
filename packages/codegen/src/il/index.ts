@@ -47,4 +47,4 @@ export { printIL, ilTypeTag } from "./print-il.js";
 
 // Optimizer pipeline
 export type { ILPass } from "./optimizer/index.js";
-export { optimizeIL } from "./optimizer/index.js";
+export { optimizeIL, threadJumps, removeUnreachableBlocks } from "./optimizer/index.js";

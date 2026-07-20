@@ -47,45 +47,32 @@ _main:
     STA __frame_Main_main_dx
     LDA #$02
     STA __frame_Main_main_dy
-    JMP Main_main_L0
-Main_main_L0:
-    JMP Main_main_L1
-Main_main_L1:
-    JMP Main_main_L3
 Main_main_L3:
     LDA $D012
     CMP #$FB
-    BNE Main_main_L4
-    JMP Main_main_L5
-Main_main_L4:
-    JMP Main_main_L3
+    BNE Main_main_L3
 Main_main_L5:
     LDA #$00
     STA __frame_Main_main_probe
     LDA #$00
     STA __frame_Main_main_inBand
-    JMP Main_main_L6
 Main_main_L6:
     LDA __frame_Main_main_probe
     CMP #$40
-    BCC Main_main_L7
-    JMP Main_main_L8
+    BCS Main_main_L8
 Main_main_L7:
     LDA __frame_Main_main_probe
     CMP #$08
-    BCS Main_main_L11
-    JMP Main_main_L10
+    BCC Main_main_L10
 Main_main_L11:
     LDA __frame_Main_main_probe
     CMP #$28
-    BCC Main_main_L9
-    JMP Main_main_L10
+    BCS Main_main_L10
 Main_main_L9:
     LDA __frame_Main_main_inBand
     CLC
     ADC #$01
     STA __frame_Main_main_inBand
-    JMP Main_main_L10
 Main_main_L10:
     LDA __frame_Main_main_probe
     CLC
@@ -97,7 +84,6 @@ Main_main_L8:
     STA $400
     LDA __frame_Main_main_active
     BNE Main_main_L14
-    JMP Main_main_L12
 Main_main_L12:
     LDA #$01
     STA $401
@@ -105,7 +91,6 @@ Main_main_L12:
 Main_main_L14:
     LDA #$02
     STA $401
-    JMP Main_main_L13
 Main_main_L13:
     LDA __frame_Main_main_dx
     SEC
@@ -113,8 +98,7 @@ Main_main_L13:
     BVC _cmp0
     EOR #$80
 _cmp0:
-    BMI Main_main_L15
-    JMP Main_main_L17
+    BPL Main_main_L17
 Main_main_L15:
     LDA #$03
     STA $402
@@ -122,16 +106,13 @@ Main_main_L15:
 Main_main_L17:
     LDA #$04
     STA $402
-    JMP Main_main_L16
 Main_main_L16:
     LDA __frame_Main_main_armed
-    BNE Main_main_L21
-    JMP Main_main_L20
+    BEQ Main_main_L20
 Main_main_L21:
     LDA $DC00
     CMP #$7F
-    BEQ Main_main_L18
-    JMP Main_main_L20
+    BNE Main_main_L20
 Main_main_L18:
     LDA #$05
     STA $403
@@ -139,7 +120,6 @@ Main_main_L18:
 Main_main_L20:
     LDA #$06
     STA $403
-    JMP Main_main_L19
 Main_main_L19:
     LDA __frame_Main_main_frame
     CLC
@@ -147,6 +127,4 @@ Main_main_L19:
     STA __frame_Main_main_frame
     LDA __frame_Main_main_frame
     STA $D020
-    JMP Main_main_L0
-Main_main_L2:
-    RTS
+    JMP Main_main_L3

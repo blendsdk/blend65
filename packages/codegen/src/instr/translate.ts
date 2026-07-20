@@ -38,6 +38,8 @@ import type { ILFunction } from "../il/cfg.js";
 import { terminatorTargets } from "../il/cfg.js";
 
 import type { Opcode } from "./opcode.js";
+import type { ConditionalBranch } from "./branch-tail.js";
+import { isConditionalBranch, planBranchTail } from "./branch-tail.js";
 import type { AddressingMode } from "./addressing-mode.js";
 import { imm8, labelRef, none, symbolRef } from "./operand.js";
 import type { InstrOperand } from "./operand.js";
@@ -207,6 +209,18 @@ class FunctionTranslator {
    * when no program-shared allocator is supplied.
    */
   private cmpCounter = 0;
+  /**
+   * The **IL** label of the block that will be emitted next, or `undefined`
+   * while translating the last one.
+   *
+   * This is the only point in the pipeline where block adjacency exists, which
+   * is why the tail decision is taken here rather than as a later text pass.
+   * The comparison is on IL labels, never on rendered names: the entry block
+   * renders under a different scheme from every other block, and comparing
+   * rendered names would either produce a dangling label or — worse — silently
+   * miss the elision.
+   */
+  private nextBlockLabel: string | undefined = undefined;
 
   /** The next program-unique generated-label number (shared across families). */
   private nextLabelNumber(): number {
@@ -261,8 +275,9 @@ class FunctionTranslator {
 
     this.validateTerminatorTargets();
     this.prescanAll();
-    for (const block of this.fn.blocks) {
+    this.fn.blocks.forEach((block, i) => {
       this.resetBlockState();
+      this.nextBlockLabel = this.fn.blocks[i + 1]?.label;
       if (block.label !== "_entry") {
         this.out.push(label(this.blockLabel(block.label)));
       }
@@ -281,7 +296,8 @@ class FunctionTranslator {
       });
       this.translateTerminator(block.terminator);
       this.consumeReads(terminatorReads(block.terminator));
-    }
+    });
+    this.nextBlockLabel = undefined;
     if (this.fn.blocks.length === 0) {
       this.translateTerminator({ kind: "ret" });
     }
@@ -566,13 +582,16 @@ class FunctionTranslator {
    * Translate a block terminator:
    * - `ret` — bring the value into A/A:X (if any) then `RTS`/`RTI` (unchanged).
    * - `br` — an unconditional `JMP` to the target block label (3-byte absolute is
-   *   always in range, unlike a relative branch).
+   *   always in range, unlike a relative branch) — omitted entirely when the
+   *   target is the block that follows, which control reaches by falling through.
    * - `brcond` — the condition operand is a **materialized boolean byte** (0/1),
    *   not live CPU flags. Load it (a redundant `LDA` is suppressed only when the
-   *   boolean is already resident in A within this block), branch to the true
-   *   target with `BNE`, and `JMP` to the false target. This is the terminator
-   *   for branching on a boolean *value* — one that was computed elsewhere, or
-   *   stored, or passed in.
+   *   boolean is already resident in A within this block), then emit the planned
+   *   tail: `BNE` to the true target and `JMP` to the false one, with the jump
+   *   dropped — and the branch inverted, when it is the *true* edge that
+   *   follows — whenever one of the two edges is the next block. This is the
+   *   terminator for branching on a boolean *value* — one that was computed
+   *   elsewhere, or stored, or passed in.
    * - `brcmp` — the comparison IS the branch: the same framing a value context
    *   would run, ending in a branch to the true target instead of a 0/1 byte.
    *   Nothing is materialized, so no temp, no frame slot, and no reload sit
@@ -600,12 +619,15 @@ class FunctionTranslator {
         }
         return;
       case "br":
-        this.emit("JMP", "Absolute", labelRef(this.blockLabel(term.target)));
+        // The degenerate tail: a jump to the block that follows is exactly the
+        // fall-through the hardware does for free.
+        if (term.target !== this.nextBlockLabel) {
+          this.emit("JMP", "Absolute", labelRef(this.blockLabel(term.target)));
+        }
         return;
       case "brcond":
         this.leftIntoA(term.cond); // materialized 0/1 boolean → A (redundant LDA suppressed)
-        this.emit("BNE", "Relative", labelRef(this.blockLabel(term.trueTarget)));
-        this.emit("JMP", "Absolute", labelRef(this.blockLabel(term.falseTarget)));
+        this.emitBranchTail("BNE", term.trueTarget, term.falseTarget);
         return;
       case "unreachable":
         return; // provably unreachable — no code, no ICE
@@ -1140,8 +1162,7 @@ class FunctionTranslator {
    */
   private emitCmpTail(tail: CmpTail, branch: Opcode, flag: "carry" | "zn"): void {
     if (tail.kind === "branch") {
-      this.emit(branch, "Relative", labelRef(this.blockLabel(tail.trueTarget)));
-      this.emit("JMP", "Absolute", labelRef(this.blockLabel(tail.falseTarget)));
+      this.emitBranchTail(branch, tail.trueTarget, tail.falseTarget);
       // No result exists to bind, and the framings that reach here have left a
       // compare residue in A. The block ends at a terminator either way, but
       // clearing here keeps the mirror honest without relying on that.
@@ -1162,6 +1183,49 @@ class FunctionTranslator {
       this.materialiseOnBranch(branch);
     }
     this.bindA(asTempId(tail.dest));
+  }
+
+  /**
+   * Emit a conditional block tail: the branch, plus the jump to the other edge
+   * unless the block that follows makes it redundant.
+   *
+   * This is the single place a block tail is emitted, so elision and inversion
+   * cannot diverge. A branch with no polarity partner cannot reach a block tail
+   * — every framing ends in one of the eight conditional branches — so an
+   * opcode that fails the guard is a translator bug; it is reported rather than
+   * quietly emitted un-inverted, because a missed inversion is invisible in the
+   * output.
+   */
+  private emitBranchTail(branch: Opcode, trueTarget: string, falseTarget: string): void {
+    const trueL = this.blockLabel(trueTarget);
+    const falseL = this.blockLabel(falseTarget);
+    if (!isConditionalBranch(branch)) {
+      this.bag.addICE(
+        IceCode.Unexpected,
+        null,
+        `translate: block tail on non-conditional branch '${branch}'`,
+      );
+      this.emit(branch, "Relative", labelRef(trueL));
+      this.emit("JMP", "Absolute", labelRef(falseL));
+      return;
+    }
+    const plan = planBranchTail(branch, trueTarget, falseTarget, this.nextBlockLabel);
+    switch (plan.kind) {
+      case "elide":
+        this.emit(branch, "Relative", labelRef(trueL));
+        return;
+      case "invert":
+        this.emit(plan.opcode, "Relative", labelRef(falseL));
+        return;
+      case "both":
+        this.emit(branch, "Relative", labelRef(trueL));
+        this.emit("JMP", "Absolute", labelRef(falseL));
+        return;
+      default: {
+        const _exhaustive: never = plan;
+        return _exhaustive;
+      }
+    }
   }
 
   /** Branch-taken ⇒ 1: materialise the 0/1 from a flag-fresh branch opcode. */
@@ -1250,8 +1314,26 @@ class FunctionTranslator {
     if (tail.kind === "branch") {
       const trueL = this.blockLabel(tail.trueTarget);
       const falseL = this.blockLabel(tail.falseTarget);
-      this.wordUnsignedDecision(wantLess, lhs, rhs, trueL, falseL);
-      this.emit("JMP", "Absolute", labelRef(falseL)); // low-byte carry said no
+      // This framing is the one where the branch that pairs with the trailing
+      // jump is emitted by a helper rather than here — and that helper is
+      // shared with the value tail, where inverting would be wrong. So the
+      // decision is taken here and handed down as a descriptor; the helper's
+      // other caller passes nothing and is provably unaffected.
+      const branch: ConditionalBranch = wantLess ? "BCC" : "BCS";
+      const plan = planBranchTail(branch, tail.trueTarget, tail.falseTarget, this.nextBlockLabel);
+      this.wordUnsignedDecision(
+        wantLess,
+        lhs,
+        rhs,
+        trueL,
+        falseL,
+        plan.kind === "invert"
+          ? { opcode: plan.opcode, target: falseL }
+          : { opcode: branch, target: trueL },
+      );
+      if (plan.kind === "both") {
+        this.emit("JMP", "Absolute", labelRef(falseL)); // low-byte carry said no
+      }
       this.clearRegs();
       return;
     }
@@ -1273,8 +1355,16 @@ class FunctionTranslator {
   /**
    * The high-then-low carry decision both 16-bit unsigned tails run: a
    * differing high byte branches to its verdict outright, and equal high bytes
-   * leave the low-byte carry to decide. Falls through only when the answer is
-   * "no" — the caller says where that goes.
+   * leave the low-byte carry to decide.
+   *
+   * The final low-byte branch is the one that can pair with a caller's trailing
+   * jump, so the caller may replace it wholesale via `finalBranch` — opcode and
+   * target together. Left to the default it branches to `trueL` and the framing
+   * falls through only when the answer is "no"; inverted by the caller it
+   * branches to `falseL` and falls through when the answer is "yes". Only the
+   * caller knows which, because only the caller knows what block comes next.
+   * The two high-byte decisions above are framing-internal and keep their
+   * polarity in either case.
    */
   private wordUnsignedDecision(
     wantLess: boolean,
@@ -1282,6 +1372,7 @@ class FunctionTranslator {
     rhs: ILOperand,
     trueL: string,
     falseL: string,
+    finalBranch?: { readonly opcode: ConditionalBranch; readonly target: string },
   ): void {
     this.wordLeftByteIntoA(lhs, 1);
     const rHi = this.rightSource(rhs, 1);
@@ -1296,7 +1387,8 @@ class FunctionTranslator {
     this.wordLeftByteIntoA(lhs, 0);
     const rLo = this.rightSource(rhs, 0);
     this.emit("CMP", rLo.mode, rLo.operand);
-    this.emit(wantLess ? "BCC" : "BCS", "Relative", labelRef(trueL));
+    const final = finalBranch ?? { opcode: wantLess ? "BCC" : ("BCS" as const), target: trueL };
+    this.emit(final.opcode, "Relative", labelRef(final.target));
   }
 
   /**

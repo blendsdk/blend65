@@ -31,18 +31,10 @@ __init:
     RTS
 ; --- function: Main.main ---
 _main:
-    JMP Main_main_L0
-Main_main_L0:
-    JMP Main_main_L1
-Main_main_L1:
-    JMP Main_main_L3
 Main_main_L3:
     LDA $D012
     CMP #$FB
-    BNE Main_main_L4
-    JMP Main_main_L5
-Main_main_L4:
-    JMP Main_main_L3
+    BNE Main_main_L3
 Main_main_L5:
     LDA __var_Main_frame
     CLC
@@ -52,6 +44,4 @@ Main_main_L5:
     STA $400
     LDA __var_Main_frame
     STA $D020
-    JMP Main_main_L0
-Main_main_L2:
-    RTS
+    JMP Main_main_L3

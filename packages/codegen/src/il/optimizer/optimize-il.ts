@@ -2,9 +2,14 @@
  * The IL optimizer pipeline runner.
  *
  * `optimizeIL` folds a sequence of {@link ILPass}es over an {@link ILProgram},
- * threading each pass's output into the next. **v1 callers pass `[]`** — the
- * loop body never runs and the original program reference is returned unchanged
- * (identity passthrough), so `printIL(optimizeIL(p, [], bag)) === printIL(p)`.
+ * threading each pass's output into the next. An empty pass list is an identity
+ * passthrough — the loop body never runs and the original program reference is
+ * returned unchanged, so `printIL(optimizeIL(p, [], bag)) === printIL(p)`.
+ *
+ * The pipeline is **not** gated on the optimizer flag. What runs here is
+ * structural: laying out basic blocks is how the emitted code is shaped, not an
+ * optional improvement on top of it, and a program whose control flow differed
+ * between two build settings would be a trap.
  *
  * The runner is generic over any `ILPass[]`, so the real optimizers (constant
  * folding, DCE, strength reduction) and tests' identity/tagging passes slot in

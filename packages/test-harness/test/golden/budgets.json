@@ -1,62 +1,95 @@
 {
   "programs": {
-    "gate": { "bytes": 30, "windows": [] },
-    "slice3a": { "bytes": 36, "windows": [] },
-    "slice3b": { "bytes": 233, "windows": [] },
-    "slice4a": { "bytes": 176, "windows": [] },
-    "slice4b": { "bytes": 176, "windows": [] },
-    "slice5a": { "bytes": 235, "windows": [] },
-    "slice5b": { "bytes": 151, "windows": [] },
-    "slice6": { "bytes": 535, "windows": [] },
-    "slice7": { "bytes": 328, "windows": [] },
-    "slice7b": { "bytes": 361, "windows": [] },
-    "slice8": { "bytes": 166, "windows": [] },
+    "gate": {
+      "bytes": 30,
+      "windows": []
+    },
+    "slice3a": {
+      "bytes": 36,
+      "windows": []
+    },
+    "slice3b": {
+      "bytes": 233,
+      "windows": []
+    },
+    "slice4a": {
+      "bytes": 143,
+      "windows": []
+    },
+    "slice4b": {
+      "bytes": 149,
+      "windows": []
+    },
+    "slice5a": {
+      "bytes": 235,
+      "windows": []
+    },
+    "slice5b": {
+      "bytes": 151,
+      "windows": []
+    },
+    "slice6": {
+      "bytes": 487,
+      "windows": []
+    },
+    "slice7": {
+      "bytes": 310,
+      "windows": []
+    },
+    "slice7b": {
+      "bytes": 355,
+      "windows": []
+    },
+    "slice8": {
+      "bytes": 153,
+      "windows": []
+    },
     "slice8b": {
-      "bytes": 402,
+      "bytes": 387,
       "windows": [
         {
           "name": "copyLoop",
           "fromLabel": "Main_copyBytes_L0",
           "toLabel": "Main_copyBytes_L3",
           "kind": "span",
-          "staticMaxCycles": 60
+          "staticMaxCycles": 54
         }
       ]
     },
     "guards": {
-      "bytes": 263,
+      "bytes": 211,
       "windows": [
         {
           "name": "compoundGuard",
           "fromLabel": "Main_main_L7",
           "toLabel": "Main_main_L9",
           "kind": "perIteration",
-          "staticCyclesPerIteration": 24
+          "staticCyclesPerIteration": 18
         }
       ]
     },
     "rasterpoll": {
-      "bytes": 75,
+      "bytes": 59,
       "windows": [
         {
           "name": "pollIter",
           "fromLabel": "Main_main_L3",
           "toLabel": "Main_main_L5",
           "kind": "perIteration",
-          "staticCyclesPerIteration": 15
+          "staticCyclesPerIteration": 9
         }
       ]
     },
     "balloon": {
-      "bytes": 729,
+      "bytes": 677,
       "windows": [
         {
           "name": "frameUpdate",
           "fromLabel": "Main_main_L5",
-          "toLabel": "Main_main_L0",
+          "toLabel": "Main_main_L3",
           "kind": "span",
-          "staticMaxCycles": 235,
-          "measuredMaxCycles": 133
+          "staticMaxCycles": 200,
+          "measuredMaxCycles": 125
         }
       ]
     }

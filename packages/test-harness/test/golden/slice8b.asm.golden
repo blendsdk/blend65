@@ -76,12 +76,10 @@ Main_copyBytes:
     STA __frame_Main_copyBytes_last
     LDA #$00
     STA __frame_Main_copyBytes_i
-    JMP Main_copyBytes_L0
 Main_copyBytes_L0:
     LDA __frame_Main_copyBytes_last
     CMP __frame_Main_copyBytes_i
-    BCS Main_copyBytes_L1
-    JMP Main_copyBytes_L3
+    BCC Main_copyBytes_L3
 Main_copyBytes_L1:
     LDY __frame_Main_copyBytes_i
     LDA (__zp_ptr_Main_copyBytes_src),Y
@@ -89,7 +87,6 @@ Main_copyBytes_L1:
     LDY __frame_Main_copyBytes_i
     LDA __zp_tmp_0
     STA (__zp_ptr_Main_copyBytes_dst),Y
-    JMP Main_copyBytes_L2
 Main_copyBytes_L2:
     LDA __frame_Main_copyBytes_i
     CLC
@@ -178,12 +175,10 @@ _main:
     STA $C017
     LDA __data_Main_TITLE
     CMP #$48
-    BEQ Main_main_L0
-    JMP Main_main_L1
+    BNE Main_main_L1
 Main_main_L0:
     LDA #$01
     STA $C020
-    JMP Main_main_L1
 Main_main_L1:
     RTS
 ; --- const data: __data_Main_TABLE ---

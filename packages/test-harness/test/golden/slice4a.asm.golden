@@ -35,32 +35,23 @@ _main:
     STA __frame_Main_main_sum
     LDA #$01
     STA __frame_Main_main_i
-    JMP Main_main_L0
 Main_main_L0:
     LDA #$0A
     CMP __frame_Main_main_i
-    BCS Main_main_L1
-    JMP Main_main_L3
+    BCC Main_main_L3
 Main_main_L1:
     LDA __frame_Main_main_i
     CMP #$07
-    BEQ Main_main_L4
-    JMP Main_main_L5
-Main_main_L4:
-    JMP Main_main_L3
+    BEQ Main_main_L3
 Main_main_L5:
     LDA __frame_Main_main_i
     CMP #$03
-    BEQ Main_main_L6
-    JMP Main_main_L7
-Main_main_L6:
-    JMP Main_main_L2
+    BEQ Main_main_L2
 Main_main_L7:
     LDA __frame_Main_main_sum
     CLC
     ADC __frame_Main_main_i
     STA __frame_Main_main_sum
-    JMP Main_main_L2
 Main_main_L2:
     LDA __frame_Main_main_i
     CLC
@@ -70,12 +61,10 @@ Main_main_L2:
 Main_main_L3:
     LDA #$03
     STA __frame_Main_main_n
-    JMP Main_main_L8
 Main_main_L8:
     LDA #$00
     CMP __frame_Main_main_n
-    BCC Main_main_L9
-    JMP Main_main_L10
+    BCS Main_main_L10
 Main_main_L9:
     LDA __frame_Main_main_sum
     CLC
@@ -93,8 +82,7 @@ Main_main_L10:
     STA $C000
     LDA #$14
     CMP __var_Main_result
-    BCC Main_main_L11
-    JMP Main_main_L13
+    BCS Main_main_L13
 Main_main_L11:
     LDA #$01
     STA $C001
@@ -102,6 +90,5 @@ Main_main_L11:
 Main_main_L13:
     LDA #$02
     STA $C001
-    JMP Main_main_L12
 Main_main_L12:
     RTS

@@ -6,31 +6,31 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Pair | Bytes gen | Bytes twin | Bytes ratio | Cycles gen | Cycles twin | Cycles ratio | Measured gen | Measured twin | Measured ratio |
 | ---- | --------- | ---------- | ----------- | ---------- | ----------- | ------------ | ------------ | ------------- | -------------- |
-| balloon | 729 | 251 | 2.90 | 843 | 248 | 3.40 | 133 | 97 | 1.37 |
+| balloon | 677 | 251 | 2.70 | 787 | 248 | 3.17 | 125 | 97 | 1.29 |
 | gate | 30 | 18 | 1.67 | 34 | 12 | 2.83 | — | — | — |
-| guards | 263 | 128 | 2.05 | 305 | 151 | 2.02 | — | — | — |
-| rasterpoll | 75 | 36 | 2.08 | 87 | 33 | 2.64 | — | — | — |
+| guards | 211 | 128 | 1.65 | 248 | 151 | 1.64 | — | — | — |
+| rasterpoll | 59 | 36 | 1.64 | 66 | 33 | 2.00 | — | — | — |
 | slice3a | 36 | 18 | 2.00 | 42 | 12 | 3.50 | — | — | — |
 | slice3b | 233 | 28 | 8.32 | 348 | 24 | 14.50 | — | — | — |
-| slice4a | 176 | 23 | 7.65 | 211 | 18 | 11.72 | — | — | — |
-| slice4b | 176 | 23 | 7.65 | 210 | 18 | 11.67 | — | — | — |
+| slice4a | 143 | 23 | 6.22 | 178 | 18 | 9.89 | — | — | — |
+| slice4b | 149 | 23 | 6.48 | 183 | 18 | 10.17 | — | — | — |
 | slice5a | 235 | 33 | 7.12 | 360 | 30 | 12.00 | — | — | — |
 | slice5b | 151 | 46 | 3.28 | 214 | 46 | 4.65 | — | — | — |
-| slice6 | 535 | 56 | 9.55 | 695 | 58 | 11.98 | — | — | — |
-| slice7 | 328 | 61 | 5.38 | 398 | 64 | 6.22 | — | — | — |
-| slice7b | 361 | 48 | 7.52 | 514 | 48 | 10.71 | — | — | — |
-| slice8 | 166 | 74 | 2.24 | 252 | 84 | 3.00 | — | — | — |
-| slice8b | 402 | 77 | 5.22 | 510 | 63 | 8.10 | — | — | — |
-| **Total** | 3896 | 920 | 4.23 | 5023 | 909 | 5.53 | — | — | — |
+| slice6 | 487 | 56 | 8.70 | 647 | 58 | 11.16 | — | — | — |
+| slice7 | 310 | 61 | 5.08 | 380 | 64 | 5.94 | — | — | — |
+| slice7b | 355 | 48 | 7.40 | 508 | 48 | 10.58 | — | — | — |
+| slice8 | 153 | 74 | 2.07 | 234 | 84 | 2.79 | — | — | — |
+| slice8b | 387 | 77 | 5.03 | 495 | 63 | 7.86 | — | — | — |
+| **Total** | 3616 | 920 | 3.93 | 4724 | 909 | 5.20 | — | — | — |
 
 ## balloon — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 21 vs 3 - jump threading / fall-through elision; the leftover branch-polarity spread (BEQ 0 vs 2, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through |
+| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 4 vs 3 - down from 21, so the jump count is now essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block. The remaining size gap is the unrolled sprite copy below, not layout |
 | instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 96 vs 27, STA 87 vs 21 - redundant load/store elimination |
 | instruction selection | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | **source-forced** — 63 unrolled pokes forced by the copy() language gap - the twin uses a 4-instruction indexed copy loop |
-| layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | code-size consequence of the above |
+| layout | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | 677 vs 251 bytes, down from 729. The residual is dominated by the 63 unrolled pokes the copy() gap forces, not by block layout |
 
 ## gate — routing
 
@@ -44,20 +44,19 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 23 vs 1 - jump threading / fall-through elision; the leftover branch-polarity spread (BMI 1 vs 0, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through, the generated one branches to the true arm and jumps to the false one |
+| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 6 vs 1 - down from 23 now that fall-through elision, branch inversion and jump threading have landed, and the branch-polarity spread is gone (BMI/BPL 1 vs 1). The five remaining function-local jumps all leave an if/else arm for a join that is not the next block; closing them needs the blocks themselves reordered, which this issue scopes out |
 | instruction selection | structural | [#53](https://github.com/blendsdk/blend65/issues/53) | the probe walk and its hit count live in frame memory, stepped with CLC/ADC and bounded by a compare; the hand loop walks down in A and counts in Y (CLC/ADC 3 vs 0, LDY/INY 0 generated) |
 | instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | frame-counter bump is load-add-store where the hand version uses INC |
-| instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | unreachable epilogue: main never returns, yet an RTS is still emitted past the frame loop |
 | instruction selection | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | state is staged through the absolute frame (the signed compare's SBC reads it) where the hand version keeps all five bytes in zero page |
-| layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | code-size consequence of block layout |
+| layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | 211 vs 128 bytes, down from 263. The residual layout cost is the five surviving arm-exit jumps above, which need block reordering rather than elision |
 
 ## rasterpoll — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 7 vs 1 - jump threading / fall-through elision |
+| instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | JMP 2 vs 1 - down from 7, and the frame loop itself is now the twin's idiom exactly (LDA/CMP/BNE back to its own head, 3 instructions and 9 cycles against the twin's 3 and 9). The one remaining extra jump is the startup shim's entry jump into _main, which is ceremony rather than layout |
 | instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | frame-counter bump is load-add-store where the hand version uses INC |
-| layout | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | code-size consequence of block layout |
+| layout | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | 59 vs 36 bytes, down from 75. What is left is not layout: the startup shim and the separate module-initializer function together account for the gap, where the twin initialises inline |
 
 ## slice3a — routing
 

@@ -173,12 +173,10 @@ Game_sum:
     STA __frame_Game_sum_total
     LDA #$00
     STA __frame_Game_sum_i
-    JMP Game_sum_L0
 Game_sum_L0:
     LDA __frame_Game_sum_i
     CMP __frame_Game_sum_len
-    BCC Game_sum_L1
-    JMP Game_sum_L2
+    BCS Game_sum_L2
 Game_sum_L1:
     LDY __frame_Game_sum_i
     LDA (__zp_ptr_Game_sum_data),Y

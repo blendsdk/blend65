@@ -8,3 +8,5 @@
 
 export type { ILPass } from "./pass.js";
 export { optimizeIL } from "./optimize-il.js";
+export { threadJumps } from "./thread-jumps.js";
+export { removeUnreachableBlocks } from "./remove-unreachable-blocks.js";

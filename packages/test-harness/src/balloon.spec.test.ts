@@ -3,12 +3,14 @@
  * program's shared observable set — the same table the twin tier runs
  * against the hand-written twin.
  *
- * At the stopped 2nd arrival of the frame-loop head exactly one movement
+ * At the stopped 2nd arrival of the frame-body block exactly one movement
  * update has run under the source's ±2-step / `>=`-`<=` bounce semantics:
  * the sprite sits at (174, 141), its image block matches the committed
  * asset byte-for-byte, and every sprite register holds its source-mandated
- * value. The loop head is the generated `Main_main_L0` (the label the
- * post-init code jumps to), resolved through the build's symbol map.
+ * value. The landmark is the body block and not the raster poll: the poll
+ * spins once per raster line, so its second arrival lands inside the first
+ * frame with the sprite still at its start position. The body block is
+ * reached exactly once per frame.
  *
  * The suite compiles via ACME AND runs on VICE, so it gates on
  * `skipIf(!hasVice() || !hasAcme())`.
@@ -20,8 +22,8 @@ import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** The generated frame-loop-head label (the post-init jump target). */
-const LOOP_HEAD_LABEL = "Main_main_L0";
+/** The generated frame-body block — the once-per-frame program point. */
+const LOOP_HEAD_LABEL = "Main_main_L5";
 const LOCAL_TEST_TIMEOUT = 60000;
 
 describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: balloon on VICE", () => {

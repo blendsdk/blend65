@@ -129,8 +129,7 @@ _cmp1:
     LDA #$01
 _cmp2:
     STA __frame_Main_main_0sc0
-    BNE Main_main_L0
-    JMP Main_main_L1
+    BEQ Main_main_L1
 Main_main_L0:
     LDA __frame_Main_main_s
     SEC
@@ -145,13 +144,11 @@ _cmp4:
     LDA #$01
 _cmp5:
     STA __frame_Main_main_0sc0
-    JMP Main_main_L1
 Main_main_L1:
     LDA __frame_Main_main_0sc0
     STA __frame_Main_main_cond
     LDA __frame_Main_main_cond
-    BNE Main_main_L2
-    JMP Main_main_L3
+    BEQ Main_main_L3
 Main_main_L2:
     LDA #$07
     STA __frame_Main_main_0sc1
@@ -159,7 +156,6 @@ Main_main_L2:
 Main_main_L3:
     LDA #$09
     STA __frame_Main_main_0sc1
-    JMP Main_main_L4
 Main_main_L4:
     LDA __frame_Main_main_0sc1
     STA __frame_Main_main_pick
@@ -179,12 +175,10 @@ _cmp7:
     LDA #$01
 _cmp8:
     STA __frame_Main_main_0sc2
-    BNE Main_main_L5
-    JMP Main_main_L6
+    BEQ Main_main_L6
 Main_main_L5:
     JSR Main_bump
     STA __frame_Main_main_0sc2
-    JMP Main_main_L6
 Main_main_L6:
     LDA __frame_Main_main_0sc2
     STA __frame_Main_main_dead
@@ -203,11 +197,9 @@ _cmp10:
 _cmp11:
     STA __frame_Main_main_0sc3
     BNE Main_main_L8
-    JMP Main_main_L7
 Main_main_L7:
     JSR Main_bump
     STA __frame_Main_main_0sc3
-    JMP Main_main_L8
 Main_main_L8:
     LDA __frame_Main_main_0sc3
     STA __frame_Main_main_live
@@ -216,7 +208,6 @@ Main_main_L8:
     LDA __frame_Main_main_dead
     STA __frame_Main_main_0sc5
     BNE Main_main_L10
-    JMP Main_main_L9
 Main_main_L9:
     LDA __frame_Main_main_base+1
     CMP #$00
@@ -232,31 +223,25 @@ _cmp13:
     LDA #$01
 _cmp14:
     STA __frame_Main_main_0sc5
-    JMP Main_main_L10
 Main_main_L10:
     LDA __frame_Main_main_0sc5
     STA __frame_Main_main_0sc4
     BNE Main_main_L12
-    JMP Main_main_L11
 Main_main_L11:
     JSR Main_bump
     STA __frame_Main_main_0sc4
-    JMP Main_main_L12
 Main_main_L12:
     LDA __frame_Main_main_0sc4
     STA __frame_Main_main_ran
     LDA __frame_Main_main_ran
     STA __frame_Main_main_0sc7
-    BNE Main_main_L13
-    JMP Main_main_L14
+    BEQ Main_main_L14
 Main_main_L13:
     LDA __frame_Main_main_live
     STA __frame_Main_main_0sc7
-    JMP Main_main_L14
 Main_main_L14:
     LDA __frame_Main_main_0sc7
-    BNE Main_main_L15
-    JMP Main_main_L16
+    BEQ Main_main_L16
 Main_main_L15:
     LDA __var_Main_witness
     STA __frame_Main_main_0sc6
@@ -264,7 +249,6 @@ Main_main_L15:
 Main_main_L16:
     LDA #$FF
     STA __frame_Main_main_0sc6
-    JMP Main_main_L17
 Main_main_L17:
     LDA __frame_Main_main_0sc6
     STA $C006

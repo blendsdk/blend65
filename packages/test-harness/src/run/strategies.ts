@@ -112,7 +112,9 @@ export function runUntilLabel(
  *   tracked checkpoints, `label` is unknown, or a stop lands elsewhere; a
  *   {@link TimeoutError} when an arrival never comes.
  * @example
- * const regs = await runUntilLabelArrivals(driver, symbols, "Main_main_L0", 2);
+ * // The label must be a program point reached once per iteration of whatever
+ * // you are counting — a frame body, not a raster poll that spins per line.
+ * const regs = await runUntilLabelArrivals(driver, symbols, "Main_main_L5", 2);
  */
 export function runUntilLabelArrivals(
   baseDriver: EmulatorDriver,

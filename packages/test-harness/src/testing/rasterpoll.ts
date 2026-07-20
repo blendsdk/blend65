@@ -68,11 +68,28 @@ export async function buildRasterpoll(): Promise<BuiltRasterpoll> {
   };
 }
 
-/** Emits the fixture's ACME source (no assembler run) for the golden tier. */
-export function emitAsmRasterpoll(): EmitResult {
+/** Optional gating knobs for {@link emitAsmRasterpoll}. */
+export interface RasterpollEmitOptions {
+  /** Peephole-optimizer gating, passed straight through (compiler default: on). */
+  readonly optimize?: boolean;
+}
+
+/**
+ * Emits the fixture's ACME source (no assembler run) for the golden tier.
+ * `options.optimize` forwards the optimizer gating so shape suites can
+ * compare the emitted text with the optimizer on versus off.
+ */
+export function emitAsmRasterpoll(options?: RasterpollEmitOptions): EmitResult {
   const cwd = stageFixture("b65-rasterpoll-asm-");
   try {
-    return emitAsm({ platform: "c64", cwd, sourceFiles: ["main.blend"] });
+    return emitAsm({
+      platform: "c64",
+      cwd,
+      sourceFiles: ["main.blend"],
+      // Attach only when set, so an omitted knob keeps the compiler's own
+      // default rather than pinning it to `undefined`.
+      ...(options?.optimize !== undefined ? { optimize: options.optimize } : {}),
+    });
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

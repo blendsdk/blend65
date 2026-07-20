@@ -429,9 +429,15 @@ describe("translator — fused compare-and-branch internals", () => {
     // The branch tail binds nothing — there is no result to bind — and a block
     // label is a branch target, so the target block re-reads what it needs even
     // though the compare left that very byte in A.
+    // The filler block belongs to the scaffold, not to the subject: with `_L1`
+    // sitting directly after `_entry` the translator would reach it by falling
+    // through and invert the branch, which is correct output but a different
+    // question from the one asked here. A block neither edge names keeps the
+    // branch pair intact so the residency claim is what the assertion tests.
     const stream = translateFunction(
       blocksFn([
         { label: "_entry", instructions: [], terminator: fused("lt", "L", 0x10, IL_BYTE) },
+        { label: "_filler", instructions: [], terminator: { kind: "ret" } },
         {
           label: "_L1",
           instructions: [
@@ -453,6 +459,8 @@ describe("translator — fused compare-and-branch internals", () => {
         "    CMP #$10",
         "    BCC M_f_L1",
         "    JMP M_f_L2",
+        "M_f_filler:",
+        "    RTS",
         "M_f_L1:",
         "    LDA L",
         "    STA V",
@@ -515,6 +523,9 @@ describe("translator — fused compare-and-branch internals", () => {
             falseTarget: "_L2",
           },
         },
+        // Filler, for the same reason as above: keep `_L1` off the fall-through
+        // so the branch pair stays the shape this case is about.
+        { label: "_filler", instructions: [], terminator: { kind: "ret" } },
         { label: "_L1", instructions: [], terminator: { kind: "ret" } },
         { label: "_L2", instructions: [], terminator: { kind: "ret" } },
       ]),

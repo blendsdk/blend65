@@ -26,6 +26,14 @@ import {
   SWITCH_RANGE_OBSERVABLES,
   type BuiltRangeFixture,
 } from "./testing/range-branches.js";
+import {
+  branchOverJumps,
+  fallThroughJumps,
+  parseFunctionSections,
+  scanCoverage,
+  trampolineBlocks,
+} from "./testing/golden-scan.js";
+import { emitAsmRasterpoll } from "./testing/rasterpoll.js";
 import { assertObservables, type ProgramObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
@@ -161,6 +169,115 @@ describe("Specification: long-range branches keep short branches short (ST-B38)"
       expect(sw.branchOverJump).toBeGreaterThan(0);
     },
     LOCAL_TEST_TIMEOUT,
+  );
+});
+
+// Block layout must NOT be gated on the optimizer flag: laying out basic
+// blocks (dropping fall-through jumps, threading trampolines, inverting
+// branch-over-jump trigrams, deleting unreachable epilogues) is how the code
+// is EMITTED, not an optional nicety — a program compiled with the optimizer
+// off must come out laid out exactly the same way. The raster-poll fixture is
+// the probe because its *lowered* control flow carries every shape layout has
+// to remove — a chain of jump-only blocks ahead of the poll, and a return
+// epilogue past a loop that never exits — so these assertions bite hardest
+// there.
+describe("Specification: block layout holds under both optimizer gatings (ST-B27a..ST-B27c)", () => {
+  /** The two gatings under test, labelled for actionable failure output. */
+  const GATINGS: readonly { readonly name: string; readonly optimize: boolean }[] = [
+    { name: "optimize on", optimize: true },
+    { name: "optimize off", optimize: false },
+  ];
+
+  /** Emits the raster-poll program's ACME text under one optimizer gating. */
+  function emitRasterpollText(optimize: boolean): string {
+    const emit = emitAsmRasterpoll({ optimize });
+    expect(emit.hasErrors).toBe(false);
+    expect(emit.text).toBeDefined();
+    return emit.text!;
+  }
+
+  /** The block labels inside function sections, sorted for set comparison. */
+  function blockLabelsOf(asm: string): string[] {
+    return parseFunctionSections(asm)
+      .flatMap((section) => section.blocks.map((block) => block.label))
+      .sort();
+  }
+
+  it(
+    "ST-B27a: the raster-poll program is layout-clean with the optimizer on AND off",
+    () => {
+      for (const { name, optimize } of GATINGS) {
+        const asm = emitRasterpollText(optimize);
+
+        // Non-vacuity first: the scan must actually have seen function
+        // sections, or the three clean-shape assertions below would be
+        // trivially true on unparsed text.
+        expect(scanCoverage(asm).functionSections, name).toBeGreaterThan(0);
+
+        // No jump to the very next label, no block that exists only to jump
+        // elsewhere, no branch hopping over a jump it could have absorbed.
+        expect(fallThroughJumps(asm), name).toEqual([]);
+        expect(trampolineBlocks(asm), name).toEqual([]);
+        expect(branchOverJumps(asm), name).toEqual([]);
+      }
+    },
+    LOCAL_TEST_TIMEOUT,
+  );
+
+  it(
+    "ST-B27b: both gatings keep the same block labels, and the dead epilogue is gone from both",
+    () => {
+      const on = emitRasterpollText(true);
+      const off = emitRasterpollText(false);
+
+      // Identical surviving block-label sets: the layout decisions (which
+      // blocks live, which are threaded away) must not depend on the flag.
+      expect(blockLabelsOf(on).length).toBeGreaterThan(0);
+      expect(blockLabelsOf(on)).toEqual(blockLabelsOf(off));
+
+      // The program's main function loops forever, so control can never
+      // reach a return — any `RTS` in its section is the dead epilogue
+      // block, and it must be absent under both gatings.
+      for (const [name, asm] of [
+        ["optimize on", on],
+        ["optimize off", off],
+      ] as const) {
+        const main = parseFunctionSections(asm).find((s) => s.name === "Main.main");
+        expect(main, name).toBeDefined();
+        const survivingRts = main!.blocks.flatMap((block) =>
+          block.body.filter((instr) => /^rts$/i.test(instr.text)),
+        );
+        expect(survivingRts, name).toEqual([]);
+      }
+    },
+    LOCAL_TEST_TIMEOUT,
+  );
+
+  const gatedBuilds: BuiltRangeFixture[] = [];
+  afterAll(() => {
+    for (const built of gatedBuilds) {
+      built.cleanup();
+    }
+  });
+
+  it.skipIf(!hasAcme())(
+    "ST-B27c: both out-of-range probes assemble under ACME with the optimizer on AND off",
+    async () => {
+      // The long-branch relaxation must survive either gating: four builds
+      // (each probe under each flag), and every one must yield a real binary
+      // with no assembler failure.
+      for (const { name, optimize } of GATINGS) {
+        for (const buildProbe of [buildDoWhileRange, buildSwitchRange]) {
+          const built = await buildProbe({ optimize });
+          gatedBuilds.push(built);
+          expect(assemblerFailures(built), name).toEqual([]);
+          expect(built.result.hasErrors, name).toBe(false);
+          expect(built.result.diagnostics, name).toEqual([]);
+          expect(built.result.binary, name).toBeInstanceOf(Uint8Array);
+        }
+      }
+    },
+    LOCAL_TEST_TIMEOUT * 2,
   );
 });
 

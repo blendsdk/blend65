@@ -110,9 +110,12 @@ async function assertBlock(
  * @throws {Error} On a `loopHead` landmark without `options.symbols` +
  *   `options.loopHeadLabel`, or an unreadable block-check file.
  * @example
+ * // Name the block that runs once per frame — the frame body. A raster poll
+ * // above it spins once per raster line, so arming there would stop the
+ * // machine inside the first frame with nothing yet updated.
  * await assertObservables(driver, RASTERPOLL_OBSERVABLES, {
  *   symbols: env.symbols,
- *   loopHeadLabel: "Main_main_L0",
+ *   loopHeadLabel: "Main_main_L5",
  * });
  */
 export async function assertObservables(

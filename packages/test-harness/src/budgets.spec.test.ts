@@ -63,14 +63,15 @@ const MEASURE_TIMEOUT = 60000;
  * the TEXTUAL sum of every instruction between the poll-loop head and its
  * exit label, transcribed from the committed `rasterpoll.asm.golden` + the
  * documented NMOS timings (all branches stay in one page, max = taken):
- *   LDA $D012 (4) + CMP #$FB (2) + BNE L4 (3) + JMP L5 (3) + JMP L3 (3)
- *   = 15.
+ *   LDA $D012 (4) + CMP #$FB (2) + BNE L3 (3)
+ *   = 9.
  * The compare's own flags carry the branch, so nothing stands between the
- * `CMP` and the `BNE`. The path actually walked while the raster has not
- * arrived — load, compare, branch taken, and the body block's jump back — is
- * 12 of those cycles; the remaining `JMP L5` is the exit, walked once.
+ * `CMP` and the `BNE`; and the branch closes the loop onto its own head, so
+ * nothing stands between the branch and the next iteration either. The slice
+ * IS the loop — three instructions, seven bytes — which is what a hand-written
+ * raster poll looks like and leaves the raster line untouched by bookkeeping.
  */
-const EXPECTED_POLL_ITERATION_MAX_CYCLES = 15;
+const EXPECTED_POLL_ITERATION_MAX_CYCLES = 9;
 
 /**
  * The hand-computed static max-sum of one guards compound-guard evaluation —
@@ -78,12 +79,14 @@ const EXPECTED_POLL_ITERATION_MAX_CYCLES = 15;
  * block the guard admits to, transcribed from the committed
  * `guards.asm.golden` + the documented NMOS timings (all branches stay in one
  * page, max = taken):
- *   lower clause: LDA probe (4) + CMP #$08 (2) + BCS (3) + JMP (3)  = 12
- *   upper clause: LDA probe (4) + CMP #$28 (2) + BCC (3) + JMP (3)  = 12
- *   = 24, every cycle of which is either the compare or the branch it
- * decides — nothing builds a 0/1 for the next test to read back.
+ *   lower clause: LDA probe (4) + CMP #$08 (2) + BCC out (3)  = 9
+ *   upper clause: LDA probe (4) + CMP #$28 (2) + BCS out (3)  = 9
+ *   = 18, every cycle of which is either the compare or the branch it
+ * decides — nothing builds a 0/1 for the next test to read back, and each
+ * clause's rejection branches straight out rather than hopping over a jump.
+ * The admitting path is the fall-through, which costs nothing.
  */
-const EXPECTED_COMPOUND_GUARD_MAX_CYCLES = 24;
+const EXPECTED_COMPOUND_GUARD_MAX_CYCLES = 18;
 
 /** A built corpus program: the compiler build result + scratch cleanup. */
 interface BuiltProgram {

@@ -3,9 +3,13 @@
  * program's shared observable set — the same table the twin tier runs
  * against the hand-written twin.
  *
- * The frame-loop head is the generated `Main_main_L0` (the label the
- * program's entry jumps to), resolved through the build's symbol map — the
- * run strategy fails loudly if the emitted labels ever change shape.
+ * The landmark is the frame **body** block, resolved through the build's
+ * symbol map — the run strategy fails loudly if the emitted labels ever
+ * change shape. It is the body block and not the poll block because the poll
+ * spins once per raster line: stopping at its second arrival would stop
+ * inside the first frame, before any update had run. The body block is the
+ * program point that is reached exactly once per frame, so its second
+ * arrival means precisely "one complete update has happened".
  *
  * The suite compiles via ACME AND runs on VICE, so it gates on
  * `skipIf(!hasVice() || !hasAcme())`.
@@ -17,8 +21,8 @@ import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** The generated frame-loop-head label (the entry's jump target). */
-const LOOP_HEAD_LABEL = "Main_main_L0";
+/** The generated frame-body block — the once-per-frame program point. */
+const LOOP_HEAD_LABEL = "Main_main_L5";
 const LOCAL_TEST_TIMEOUT = 60000;
 
 describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: rasterpoll on VICE", () => {

@@ -1,8 +1,11 @@
 /**
  * `emitIl` / `emitAsm` — the partial-pipeline facade entry points.
  *
- * `emitIl` runs the frontend → IL lowering → IL optimizer (always runs) →
- * `printIL`. `emitAsm` continues into `assembleProgram` (with overrides
+ * `emitIl` runs the frontend → IL lowering → IL optimizer (always runs, and
+ * carrying the block-layout passes) → `printIL`. Both entry points share the
+ * lowering step, so `--emit-il` shows exactly the blocks and edges that reach
+ * the emitter rather than a pre-layout fiction. `emitAsm` continues into
+ * `assembleProgram` (with overrides
  * threading the effective `outName` and `startup`), the peephole optimizer
  * (only when `config.optimize`), branch relaxation (always — an unreachable
  * branch target is a broken program, not a missed optimization), runtime-section
@@ -21,6 +24,8 @@ import {
   optimizeInstr,
   printIL,
   relaxBranches,
+  removeUnreachableBlocks,
+  threadJumps,
   serializeToAcme,
   type ILProgram,
   type InstrProgram,
@@ -106,8 +111,10 @@ function lowerProgram(run: FrontendRun): ILProgram | undefined {
     },
     run.bag,
   );
-  // The IL optimizer always runs; v1 ships no passes → identity.
-  return optimizeIL(il, [], run.bag);
+  // Block layout, and deliberately not behind the optimizer flag: it decides
+  // the shape of the emitted code rather than improving it. Threading runs
+  // first — it is what orphans the jump-only blocks removal then drops.
+  return optimizeIL(il, [threadJumps, removeUnreachableBlocks], run.bag);
 }
 
 /** What {@link assembleAsmText} yields: the ACME text + the assembled program. */

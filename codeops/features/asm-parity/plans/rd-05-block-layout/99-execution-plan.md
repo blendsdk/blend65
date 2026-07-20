@@ -1,7 +1,7 @@
 # Execution Plan — Block Layout (RD-05)
 
 > **Implements**: asm-parity/RD-05 · [#51](https://github.com/blendsdk/blend65/issues/51), [#65](https://github.com/blendsdk/blend65/issues/65)
-> **Progress**: 25/58 tasks (43%) — Phases 1–3 complete
+> **Progress**: 50/58 tasks (86%) — Phases 1–4 complete
 > **Last Updated**: 2026-07-20
 > **CodeOps Skills Version**: 3.10.0
 
@@ -175,60 +175,102 @@ changing anything: the four transforms are separably wired, so unregistering a p
 per-transform spec suites from Phases 1–3 say which decision procedure is at fault. Rollback itself
 is not a concern — the review precedes the commit.
 
-- [ ] 4.1 Write `codegen/src/instr/block-layout.spec.test.ts` — ST-B22…ST-B26
-- [ ] 4.2 Author the shared golden-scan predicate helper (ST-B39/ST-B40/ST-B43 shapes + the
+- [x] 4.1 Write `codegen/src/instr/block-layout.spec.test.ts` — ST-B22…ST-B26
+- [x] 4.2 Author the shared golden-scan predicate helper (ST-B39/ST-B40/ST-B43 shapes + the
       ST-B44 non-vacuity check) and **extend** `range-branches.spec.test.ts` with ST-B27a/b/c.
       The helper is consumed here and again by the Phase 5 corpus scan
-- [ ] 4.3 Verify **red**
-- [ ] 4.4 Thread the next block's **IL** label through the block loop (`translate.ts:264-284`);
+- [x] 4.3 Verify **red**
+- [x] 4.4 Thread the next block's **IL** label through the block loop (`translate.ts:264-284`);
       consult the plan at `br` (`:602-603`) and `brcond` (`:605-608`)
-- [ ] 4.5 Consult at `emitCmpTail`'s branch arm (`:1141-1149`) — covers four of the five framings
-- [ ] 4.6 Consult at `wordUnsignedOrdered`'s branch arm (`:1250-1256`). The final `BCC`/`BCS` is
+- [x] 4.5 Consult at `emitCmpTail`'s branch arm (`:1141-1149`) — covers four of the five framings
+- [x] 4.6 Consult at `wordUnsignedOrdered`'s branch arm (`:1250-1256`). The final `BCC`/`BCS` is
       emitted **inside** `wordUnsignedDecision` at `:1299`, a helper shared with the value tail at
       `:1262` — so pass an optional final-branch descriptor into the helper, **defaulted** so the
       value-tail call site is textually unchanged. Rewrite the helper's docstring, whose "falls
       through only when the answer is 'no'" becomes false under an inverted final branch. The two
       hi-byte decisions at `:1290-1294` are framing-internal and keep their polarity
-- [ ] 4.7 Register `[threadJumps, removeUnreachableBlocks]` at `emit.ts:108`, **and update the
+- [x] 4.7 Register `[threadJumps, removeUnreachableBlocks]` at `emit.ts:108`, **and update the
       three doc comments the registration falsifies**: `il/optimizer/pass.ts` ("v1 ships no
       passes"), `optimize-il.ts` ("v1 callers pass `[]`"), and `emit.ts:107`
-- [ ] 4.8 Verify `block-layout.spec.test.ts` and the ST-B27 cases **green**
-- [ ] 4.9 Re-anchor `rasterpoll/guards/balloon.spec.test.ts` `LOOP_HEAD_LABEL` and
+- [x] 4.8 Verify `block-layout.spec.test.ts` and the ST-B27 cases **green**
+- [x] 4.9 Re-anchor `rasterpoll/guards/balloon.spec.test.ts` `LOOP_HEAD_LABEL` and
       `budgets.json` balloon `frameUpdate.toLabel` (`:56`) by **re-deriving arrival semantics** —
       the once-per-frame point is the post-poll frame-body block, not the poll block
-- [ ] 4.10 Re-anchor `test-harness/src/run/label-arrivals.spec.test.ts`: delete `resolveLoopHead`
+- [x] 4.10 Re-anchor `test-harness/src/run/label-arrivals.spec.test.ts`: delete `resolveLoopHead`
       and `JMP_ABSOLUTE`, anchor on the frame-body label, rewrite the now-false docstring
-- [ ] 4.11 Update the two JSDoc usage examples that hard-code the deleted label —
+- [x] 4.11 Update the two JSDoc usage examples that hard-code the deleted label —
       `test-harness/src/testing/observables.ts:115` and `src/run/strategies.ts:115`
-- [ ] 4.12 `translate-brcmp.spec.test.ts`: interpose the filler block; every per-row `expected`
+- [x] 4.12 `translate-brcmp.spec.test.ts`: interpose the filler block; every per-row `expected`
       stays byte-identical; update `expectFused`'s scaffold and the fixture doc comment
-- [ ] 4.13 `translate.impl.test.ts`: filler block at both affected fixtures (`:449-463`,
+- [x] 4.13 `translate.impl.test.ts`: filler block at both affected fixtures (`:449-463`,
       `:499-527`). The `:454-455` branch-pair lines stay byte-identical; the `:449` **full-text**
       expected array grows by the filler's label and `RTS` — that growth is the recorded scaffold
       change, not a drifted expectation (AR #36, corrected)
-- [ ] 4.14 `switch-translate.spec.test.ts`: supersede in writing to the post-layout shape
+- [x] 4.14 `switch-translate.spec.test.ts`: supersede in writing to the post-layout shape
       **pre-stated in `03-04` §3** — do not derive it from the output on screen
-- [ ] 4.15 Re-verify `multiblock-translate.spec.test.ts` is genuinely unaffected
-- [ ] 4.16 Regenerate all 14 goldens; **hand-review each against its twin** as an assembly
+- [x] 4.15 Re-verify `multiblock-translate.spec.test.ts` is genuinely unaffected
+- [x] 4.16 Regenerate all 14 goldens; **hand-review each against its twin** as an assembly
       developer would — the five branch-free goldens must be byte-unchanged
-- [ ] 4.17 Re-derive the four budget windows in `budgets.json` from the regenerated goldens
-- [ ] 4.18 Re-derive the two hand-derived constants **and their derivation comments** in
+- [x] 4.17 Re-derive the four budget windows in `budgets.json` from the regenerated goldens
+- [x] 4.18 Re-derive the two hand-derived constants **and their derivation comments** in
       `budgets.spec.test.ts:73,86`
-- [ ] 4.19 Re-derive **every program's `bytes` ratchet** in `budgets.json` from the regenerated
+- [x] 4.19 Re-derive **every program's `bytes` ratchet** in `budgets.json` from the regenerated
       binaries — all 15, not only the windowed four. The five branch-free programs must re-derive
       to their **current** values exactly; a byte moving there is a stop, not a budget bump.
       `balloon` has no golden, so its ratchet is the only size gate it has
-- [ ] 4.20 Confirm balloon's back-edge `frameUpdate` window resolves to the intended slice —
+- [x] 4.20 Confirm balloon's back-edge `frameUpdate` window resolves to the intended slice —
       `windowSlice` stops at the *first* transfer to `toLabel`
-- [ ] 4.21 Update `twins.json` routing at source: the six #51 rows, the `guards` #59
+- [x] 4.21 Update `twins.json` routing at source: the six #51 rows, the `guards` #59
       "unreachable epilogue" row moving to #51, and the free-text counts CI cannot validate
-- [ ] 4.22 Regenerate `SCOREBOARD.md`; freshness gate green
-- [ ] 4.23 Extend `compiler/src/api/emit.spec.test.ts` with ST-B45 — `emitIl` on the raster-poll
+- [x] 4.22 Regenerate `SCOREBOARD.md`; freshness gate green
+- [x] 4.23 Extend `compiler/src/api/emit.spec.test.ts` with ST-B45 — `emitIl` on the raster-poll
       source shows no trampoline and no unreachable block, and its block set equals the set
       emitted into the assembly
-- [ ] 4.24 Local tier: emulator fixture + twin suites green; balloon `frameUpdate` **measured**
+- [x] 4.24 Local tier: emulator fixture + twin suites green; balloon `frameUpdate` **measured**
       re-measurement on VICE 3.10 (cannot run in CI)
-- [ ] 4.25 Full verify + prettier check
+- [x] 4.25 Full verify + prettier check
+
+**Phase 4 outcome — the single corpus commit.** Nine of fourteen goldens moved; the five
+branch-free ones (`gate`, `slice3a`, `slice3b`, `slice5a`, `slice5b`) are byte-identical, and
+their `bytes` ratchets re-derived to their existing values **exactly** — the free cross-check
+AR #56 was added for.
+
+| | before | after | delta |
+|---|---|---|---|
+| corpus bytes | 3896 | **3616** | −280 |
+| corpus static cycles | 5023 | **4724** | −299 |
+| `rasterpoll` pollIter | 15 | **9** | the predicted figure, reached exactly |
+| `guards` compoundGuard | 24 | **18** | the predicted figure, reached exactly |
+| `slice8b` copyLoop | 60 | **54** | |
+| `balloon` frameUpdate | 235 static / 133 measured | **200 / 125** | measured on VICE 3.10 |
+| corpus ratio (bytes) | 4.23× | **3.93×** | |
+| corpus ratio (cycles) | 5.53× | **5.20×** | |
+
+`rasterpoll`'s poll loop is now the twin's idiom instruction for instruction — `LDA $D012` ·
+`CMP #$FB` · `BNE` to its own head, 3 instructions, 7 bytes, 9 cycles. Jump counts against the
+twins: `guards` 23 → 6, `rasterpoll` 7 → 2, `balloon` 21 → 4 (twin 3). The `guards` unreachable
+`RTS` epilogue is gone, so that routing row was **deleted** rather than retargeted; `rasterpoll`'s
+two rows moved to #59, because what remains of its gap is the startup shim and the separate
+module-initializer function, not layout. `balloon`'s layout row moved to #49 — its residual is the
+63 unrolled pokes the `copy()` gap forces.
+
+The switch oracle's pre-stated shape (AR #55) was **correct**: elision, not inversion — the
+`JMP` to the next dispatch test disappeared and no branch flipped.
+
+Six files carry pre-existing Prettier drift; none of it falls inside this change's hunks, so it
+is left alone rather than buried under a reformat.
+
+**Post-phase review.** Sensitive phase, reviewed on a different model family over the whole diff.
+No critical or major findings. The reviewer independently confirmed the polarity at all four
+consult sites (`elide` keeps the branch on the true target, `invert` puts the partner on the false
+one, never reversed), that every framing-internal branch is emitted against a fixed label and can
+never reach the planner, that `nextBlockLabel` cannot leak a stale value (fresh translator per
+function, reassigned unconditionally per block, cleared before the zero-block fallback), and that
+no per-row oracle expectation moved. Its mechanical sweep of all 14 goldens found exactly one
+residual jump-to-the-next-label corpus-wide — the startup shim's `JMP _main`, which is outside
+every function section and already routed to #59. Two minor findings, both stale comments, both
+fixed: `translateTerminator`'s doc still described `br`/`brcond` emitting their jumps
+unconditionally, and the ST-B27 suite comment described the pre-change output as current.
 
 ---
 

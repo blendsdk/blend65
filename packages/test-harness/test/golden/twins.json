@@ -336,7 +336,7 @@
           {
             "disposition": "structural",
             "issue": 51,
-            "note": "JMP 23 vs 1 - jump threading / fall-through elision; the leftover branch-polarity spread (BMI 1 vs 0, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through, the generated one branches to the true arm and jumps to the false one"
+            "note": "JMP 6 vs 1 - down from 23 now that fall-through elision, branch inversion and jump threading have landed, and the branch-polarity spread is gone (BMI/BPL 1 vs 1). The five remaining function-local jumps all leave an if/else arm for a join that is not the next block; closing them needs the blocks themselves reordered, which this issue scopes out"
           },
           {
             "disposition": "structural",
@@ -349,11 +349,6 @@
             "note": "frame-counter bump is load-add-store where the hand version uses INC"
           },
           {
-            "disposition": "ceremony",
-            "issue": 59,
-            "note": "unreachable epilogue: main never returns, yet an RTS is still emitted past the frame loop"
-          },
-          {
             "disposition": "data/placement",
             "issue": 49,
             "note": "state is staged through the absolute frame (the signed compare's SBC reads it) where the hand version keeps all five bytes in zero page"
@@ -363,7 +358,7 @@
           {
             "disposition": "structural",
             "issue": 51,
-            "note": "code-size consequence of block layout"
+            "note": "211 vs 128 bytes, down from 263. The residual layout cost is the five surviving arm-exit jumps above, which need block reordering rather than elision"
           }
         ]
       }
@@ -374,9 +369,9 @@
       "routing": {
         "instruction selection": [
           {
-            "disposition": "structural",
-            "issue": 51,
-            "note": "JMP 7 vs 1 - jump threading / fall-through elision"
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "JMP 2 vs 1 - down from 7, and the frame loop itself is now the twin's idiom exactly (LDA/CMP/BNE back to its own head, 3 instructions and 9 cycles against the twin's 3 and 9). The one remaining extra jump is the startup shim's entry jump into _main, which is ceremony rather than layout"
           },
           {
             "disposition": "peephole",
@@ -386,9 +381,9 @@
         ],
         "layout": [
           {
-            "disposition": "structural",
-            "issue": 51,
-            "note": "code-size consequence of block layout"
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "59 vs 36 bytes, down from 75. What is left is not layout: the startup shim and the separate module-initializer function together account for the gap, where the twin initialises inline"
           }
         ]
       }
@@ -407,7 +402,7 @@
           {
             "disposition": "structural",
             "issue": 51,
-            "note": "JMP 21 vs 3 - jump threading / fall-through elision; the leftover branch-polarity spread (BEQ 0 vs 2, BPL 0 vs 1) is the same cause - the hand version picks the polarity that falls through"
+            "note": "JMP 4 vs 3 - down from 21, so the jump count is now essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block. The remaining size gap is the unrolled sprite copy below, not layout"
           },
           {
             "disposition": "peephole",
@@ -423,9 +418,9 @@
         ],
         "layout": [
           {
-            "disposition": "structural",
-            "issue": 51,
-            "note": "code-size consequence of the above"
+            "disposition": "data/placement",
+            "issue": 49,
+            "note": "677 vs 251 bytes, down from 729. The residual is dominated by the 63 unrolled pokes the copy() gap forces, not by block layout"
           }
         ]
       }
