@@ -1,0 +1,176 @@
+module Main;
+
+// The Amiga Boing Ball, rebuilt for the VIC-II. Deliberately OUTSIDE the parity
+// corpus: no golden, no hand-written twin, no size budget.
+//
+// The ball is a 2x2 block of unexpanded multicolor sprites — 24 multicolor
+// cells across by 42 rows. At the C64's non-square pixel aspect that reads as
+// very nearly a circle, which is why four sprites is the right shape rather
+// than a compromise:
+//
+//     sprite 0 | sprite 1
+//     ---------+---------
+//     sprite 2 | sprite 3
+//
+// Rotation is pointer swapping, not pixel work. Each stored frame is four
+// consecutive 64-byte blocks, so the four pointers for a frame are base+0..3.
+const BALL: byte[] = embed("ball.bin");
+
+// A checkerboard with an even number of meridian bands reproduces itself
+// colour-inverted when it turns by exactly one band. Only one band of rotation
+// is stored; the other half of the cycle swaps the two sprite colours instead,
+// which is why four frames of data yield eight visibly distinct steps.
+//
+// Four is the ceiling, not a preference: in the VIC's default bank the region
+// $1000-$1FFF reads as character ROM, so the image has to fit between the end
+// of this program's code and $1000.
+const STORED_FRAMES: byte = 4;
+
+// The ball spans 48x42 pixels, so the bounds are the visible area inset by its
+// own size — the far edge is what has to stay on screen, not the origin.
+const LEFT: word = 24;
+const RIGHT: word = 296;
+const TOP: byte = 50;
+const BOTTOM: byte = 188;
+
+function main(): void {
+  // Sprites 0-3: multicolor, unexpanded. The art's bit pairs mean 01 = the
+  // shared colour and 10 = each sprite's own, so a colour swap is one write to
+  // $D025 plus one per sprite.
+  poke($D01C, 15);
+  poke($D017, 0);
+  poke($D01D, 0);
+  poke($D026, 0);
+
+  // The KERNAL leaves its boot text on the screen in light blue. Clearing it
+  // would mean writing a thousand cells of screen RAM, which needs a store to
+  // a computed address — so instead the background is painted the same light
+  // blue as the text, which hides it in one write.
+  poke($D021, 14);
+  poke($D020, 14);
+
+  // Block number of the first chunk of frame 0. Taking the image's address
+  // aligns it to a page, so the VIC reads it where it already lies.
+  let base: byte = hi(&BALL) * 4;
+
+  let x: word = 100;
+  let y: byte = 90;
+  let right: boolean = true;
+  let down: boolean = true;
+
+  // Which stored frame is showing, and whether the colours are currently
+  // swapped — together these are the twelve rotation steps.
+  let frame: byte = 0;
+  let swapped: boolean = false;
+  let tick: byte = 0;
+
+  poke($D025, 1);
+  poke($D027, 2);
+  poke($D028, 2);
+  poke($D029, 2);
+  poke($D02A, 2);
+
+  // Position before enabling. $D000.. hold whatever the last program left
+  // there, so sprites switched on ahead of their coordinates appear at that
+  // stale spot for the rest of the frame — a visible flash on startup.
+  let xr: word = x + 24;
+  poke($D000, lo(x));
+  poke($D002, lo(xr));
+  poke($D004, lo(x));
+  poke($D006, lo(xr));
+  poke($D001, y);
+  poke($D003, y);
+  poke($D005, y + 21);
+  poke($D007, y + 21);
+
+  let msb: byte = 0;
+  if (hi(x) != 0) { msb = msb | 5; }
+  if (hi(xr) != 0) { msb = msb | 10; }
+  poke($D010, msb);
+
+  // Four consecutive blocks per frame. The multiply is hoisted into its own
+  // statement rather than written inline as `base + frame * 4`, which the
+  // compiler currently cannot lower.
+  let step: byte = frame * 4;
+  let p: byte = base + step;
+  poke($07F8, p);
+  poke($07F9, p + 1);
+  poke($07FA, p + 2);
+  poke($07FB, p + 3);
+
+  poke($D015, 15);
+
+  while (true) {
+    // One update per PAL frame: hold until the raster reaches line 251, just
+    // below the visible area, so the coordinate writes never tear a sprite
+    // that is being drawn.
+    while (peek($D012) != 251) { }
+
+    if (right) { x = x + 2; } else { x = x - 2; }
+    if (down) { y = y + 2; } else { y = y - 2; }
+
+    // Bounce on the far edge, not the origin. >=/<= (not ==) so a 2px step
+    // cannot overshoot a bound and escape.
+    if (x >= RIGHT) { right = false; }
+    if (x <= LEFT) { right = true; }
+    if (y >= BOTTOM) { down = false; }
+    if (y <= TOP) { down = true; }
+
+    // The ball rolls: one rotation step every second frame is close to the
+    // arc a 48-pixel ball covers at 2 pixels per frame, and the direction of
+    // spin follows the direction of travel.
+    tick = tick + 1;
+    if (tick >= 2) {
+      tick = 0;
+      if (right) {
+        frame = frame + 1;
+        if (frame >= STORED_FRAMES) { frame = 0; swapped = !swapped; }
+      } else {
+        if (frame == 0) { frame = STORED_FRAMES - 1; swapped = !swapped; }
+        else { frame = frame - 1; }
+      }
+
+      // Crossing a band boundary is where the stored frames run out and the
+      // inverted half of the cycle begins.
+      if (swapped) {
+        poke($D025, 2);
+        poke($D027, 1);
+        poke($D028, 1);
+        poke($D029, 1);
+        poke($D02A, 1);
+      } else {
+        poke($D025, 1);
+        poke($D027, 2);
+        poke($D028, 2);
+        poke($D029, 2);
+        poke($D02A, 2);
+      }
+
+      step = frame * 4;
+      p = base + step;
+      poke($07F8, p);
+      poke($07F9, p + 1);
+      poke($07FA, p + 2);
+      poke($07FB, p + 3);
+    }
+
+    // The left pair and the right pair share an X, the top pair and the bottom
+    // pair share a Y — four sprites, but only two of each coordinate.
+    xr = x + 24;
+    poke($D000, lo(x));
+    poke($D002, lo(xr));
+    poke($D004, lo(x));
+    poke($D006, lo(xr));
+    poke($D001, y);
+    poke($D003, y);
+    poke($D005, y + 21);
+    poke($D007, y + 21);
+
+    // The 9th X bit lives in $D010, one bit per sprite: the left pair is
+    // sprites 0 and 2 (bits 0 and 2), the right pair sprites 1 and 3.
+    msb = 0;
+    if (hi(x) != 0) { msb = msb | 5; }
+    if (hi(xr) != 0) { msb = msb | 10; }
+    poke($D010, msb);
+  }
+}
