@@ -304,13 +304,16 @@ of the supporting rationales without disturbing the decision (see above).
 ## RD-03 — Placement: align const data and read it in place ([#49](https://github.com/blendsdk/blend65/issues/49))
 
 > **Status**: ✅ GATE PASSED — all 5 items resolved (64–68), 2026-07-20
+> **Amended 2026-07-20 after the RD preflight** — the *decisions* below all stand; three of their
+> supporting figures were refuted by measurement and are corrected in the addenda following the
+> table. See [`00-preflight-report-rd-03.md`](00-preflight-report-rd-03.md).
 
 | # | Category | Ambiguity | Options | Decision | Status |
 |---|----------|-----------|---------|----------|--------|
 | 64 | Scope / Document identity | RD-03 (#49) is an umbrella epic — placement, `copy()`, and hardware access — with a roadmap row but no document. Which of those does this RD own? | (a) RD-03 **is** the placement slice; `copy()` and the wider hardware-access work are named out of scope and stay gated / (b) a new RD id for placement, leaving RD-03 as an unwritten umbrella | ✅ Resolved — User accepted recommendation: (a). The roadmap row already declares the split ("placement → B1/B2 (grammar-free); copy() gated"), so RD-03 documents the half that is actionable. #49 remains the linked issue | ✅ Resolved |
 | 65 | Technical / Behavioral | Which const arrays get aligned? Measured first: aligning **every** const array costs **+795 bytes** of padding corpus-wide against balloon's −365 — the corpus *grows* by 430 and `slice7` (+207), `slice7b` (+159) and `slice8b` (+276) each regress while gaining nothing, contradicting AR #66 | (a) every const array unconditionally / (b) only arrays a platform profile marks hardware-read / (c) **a const array is aligned iff its address is taken** | ✅ Resolved — User accepted recommendation: (c). Grammar-free (`&` already exists in v3); costs **zero** on today's corpus because no fixture takes an address, and −212 net once balloon is rewritten. The rule carries meaning rather than convenience: taking a const array's address is the program declaring that something other than the compiler's own indexing will read those bytes — hardware, or a pointer — which is exactly when placement matters. (a) was chosen first and **overturned by measurement**; (b) needs selection machinery that does not exist (format handlers are unimplemented — no `FormatHandler` type in `core/platform` or `packages/platforms`, `E10203` absent from the frontend) | ✅ Resolved |
 | 66 | Quality gate | Padding costs bytes, and this project treats a byte regression as a defect (AR #4, #12) | (a) corpus total must still strictly decrease and **no fixture may regress** — a fixture that grows is a stop, not a budget bump; all ratchets re-derived / (b) align only when the compiler judges padding cheaper than the copy it saves | ✅ Resolved — User accepted recommendation: (a), the same rule RD-05 followed. (b) was rejected because it makes a program's memory layout depend on a compiler judgement rather than on its own source | ✅ Resolved |
-| 67 | Scope | `poke($07F8, hi(&BALLOON) * 4)` compiles **today**, but emits 9 instructions where a hand-coder writes 4: the full 16-bit address is materialized into a scratch pair before `hi()` takes its high byte. Prime-Directive divergence — whose? | (a) out of scope; recorded and routed to the constant-materialization lever (#58/#60) / (b) in scope — this RD must emit `LDA #>sym` directly | ✅ Resolved — User accepted recommendation: (a). It is a constant-materialization defect, not a placement one, and #58/#60 is already the named lever for that class. Keeps this slice small | ✅ Resolved |
+| 67 | Scope | `poke($07F8, hi(&BALLOON) * 4)` compiles **today**, but emits ~~9~~ **8** instructions (*corrected by measurement — see the AR #67 addendum below*) where a hand-coder writes 4: the full 16-bit address is materialized into a ~~scratch pair~~ **word frame slot** before `hi()` takes its high byte. Prime-Directive divergence — whose? | (a) out of scope; recorded and routed to the constant-materialization lever (#58/#60) / (b) in scope — this RD must emit `LDA #>sym` directly | ✅ Resolved — User accepted recommendation: (a). It is a constant-materialization defect, not a placement one, and #58/#60 is already the named lever for that class. Keeps this slice small | ✅ Resolved |
 | 68 | Technical | Alignment granularity: sprites need 64-byte blocks, so why page-align (256)? | (a) 64-byte — the hardware's actual granularity, tighter padding / (b) 256-byte (page) | ✅ Resolved — surfaced during authoring, decided on the language surface: (b). A sprite pointer is `address / 64`, and v3 offers **no way to name that** — there is no "address / 64" idiom. It *does* offer `hi()`, which is `address / 256` and is specified to fold at compile time (`spec/12-intrinsics.md:174`), so `hi(&X) * 4` equals `address / 64` **only when the address is a multiple of 256**. Page alignment is therefore what makes this slice expressible without touching `spec/`; 64-byte alignment would require new syntax and re-gate the whole RD behind the Language Guard | ✅ Resolved |
 
 **AR-65 (the measurement that overturned the first answer).** Per-array padding was computed from
@@ -327,6 +330,72 @@ and gated by the no-regression ratchet — and because the alternative that avoi
 (an explicit alignment attribute, FUT-014) requires attribute syntax that v3 deliberately removed.
 
 **Hardening disclosure:** Confidence High on AR #65 and #68 — both rest on measurements taken
-against the current compiler (`+795` padding; `hi(&X)*4` verified to emit `LDA #>__data_Main_BALLOON`
-/ `ASL` / `ASL`) rather than on reasoning. Confidence Medium on AR #67: the routing to #58/#60 is
-judgement, and the 9-instruction sequence is a live divergence until that lever lands.
+against the current compiler (`+795` padding) rather than on reasoning. Confidence Medium on
+AR #67: the routing to #58/#60 is judgement, and the sequence is a live divergence until that
+lever lands.
+
+> **Corrected 2026-07-20 (preflight PF-016).** This disclosure originally cited `hi(&X)*4` as
+> "verified to emit `LDA #>__data_Main_BALLOON` / `ASL` / `ASL`" — the *ideal* three-instruction
+> form, which is precisely what the compiler does **not** emit. The measured emission is the
+> 8-instruction sequence in AR #67's addendum below. The confidence rating is unaffected (AR #68's
+> decision rests on the arithmetic identity, not on the instruction count), but the sentence was
+> doing evidentiary work it could not support.
+
+---
+
+### Preflight addenda (2026-07-20) — measured corrections to the supporting figures
+
+The RD preflight re-measured every figure in this section against the current tree. **No decision
+changes**; three supporting facts do.
+
+**AR #65 addendum — the `+153` / `−212` figures are superseded.** The per-fixture padding table
+above was computed from each fixture's `__data_*` address in its **pre-rewrite** build. For
+`balloon` that address is `$0A67`, giving +153 bytes of padding and a −212 net. But the rewrite
+that removes the 63 staging pokes shrinks the program first, moving the symbol to `$08FA` — where
+page padding costs **6 bytes**, not 153. Measured end to end:
+
+| Build | Bytes | `__data_Main_BALLOON` |
+|---|---|---|
+| today | 677 | `$0A67` |
+| pokes removed, pointer computed | 312 | `$08FA` |
+| **+ page alignment (`!align 255, 0, 0`)** | **318** | **`$0900`** (block 36) |
+
+So balloon's real net is **−359** (677 → 318), not −212, and the corpus figure improves
+accordingly. The decision (c) — align iff the address is taken — is untouched; it gets *better*,
+not worse. The +795/-corpus-grows measurement that **overturned option (a)** was taken across all
+fixtures and remains valid, because those fixtures are not rewritten.
+
+**AR #65 addendum 2 — padding is not a stable quantity.** The 6 bytes above is an artifact of
+where balloon's code happens to end. Any future change to its code size re-rolls the padding
+anywhere in 0–255. The disclosed "action at a distance" cost is therefore larger than first
+recorded: adding `&X` changes X's address *and* the binary's size by an amount that is not
+predictable from the source. This is accepted for the same reasons as before (deterministic per
+build, gated by the no-regression ratchet), with one added discipline: M4's ratchets are re-derived
+from the **aligned** build, never from an unaligned measurement.
+
+**AR #67 addendum — the count is 8, not 9.** The measured emission is:
+
+```asm
+LDA #<__data_Main_BALLOON      ; 1
+STA __frame_Main_main_0sc0     ; 2
+LDA #>__data_Main_BALLOON      ; 3
+STA __frame_Main_main_0sc0+1   ; 4
+LDA __frame_Main_main_0sc0+1   ; 5
+ASL                            ; 6
+ASL                            ; 7
+STA $7F8                       ; 8
+```
+
+Eight instructions against a hand-coder's four — **four** extra, not five. Two further details
+that affect how #58/#60 should price this: the staging pair is a synthetic **word frame slot**
+(`__frame_Main_main_0sc0`, absolute `$2000`), not zero page; and the line additionally emits
+`warning[W10172]: multiply by 4 generates a shift-and-add sequence`, even though the compiler
+emits two `ASL`s and incurs no shift-and-add cost.
+
+**AR #68 addendum — the rationale was wrong, the decision stands.** The entry justified page
+alignment on `hi()` being "specified to fold at compile time (`spec/12-intrinsics.md:174`)". That
+spec line guarantees folding only *"when applied to compile-time constants"*, and `&X` is a
+**link-time** symbol the assembler resolves — the compiler does not fold it, as AR #67's sequence
+shows. The correct justification is arithmetic and does not depend on folding: for an address that
+is a multiple of 256 the low byte is zero, so `hi(&X) * 4 == address / 64` exactly. Page alignment
+remains what makes the sprite block expressible without new syntax; only the stated reason changes.

@@ -23,21 +23,37 @@ on [#51](https://github.com/blendsdk/blend65/issues/51)
 [#65](https://github.com/blendsdk/blend65/issues/65) is **closed**
 ([comment](https://github.com/blendsdk/blend65/issues/65#issuecomment-5022095419)). 58/58 tasks.
 
-**RD-03 is drafted, not preflighted.** Next step is
-`/codeops:preflight asm-parity rd-03-placement`. Worth doing before planning: the RD rests on
-three measurements and one *refuted* assumption (that the balloon needs `copy()`), and the two
-previous preflights raised 32 and 27 findings. Two things the preflight must settle, both
-identified after the RD was drafted:
+**RD-03 is preflighted — next step is `make_plan`.** The scan raised **29 findings (2 critical,
+7 major)**, all resolved and applied to the RD and the register
+([report](requirements/00-preflight-report-rd-03.md)). The thesis held under measurement —
+balloon **677 → 318 bytes, 2.70× → 1.27×**, sprite block 36 at `$0900`, mechanism proven end to
+end — but two defects would have sunk the implementation:
 
-- **The ~312-byte target excludes alignment padding.** It was measured *unaligned*; page-aligning
-  the const array adds up to 255 bytes on top, so balloon's real post-RD byte count is unknown
-  until built. The "beats the twin" framing is only true on runtime behaviour (zero copy vs the
-  twin's 63-byte startup copy) — on bytes ~312 vs 251 is ~1.24×, still behind.
-- **The `E10193`/symbolic-fold gap needs an owner.** `const BLOCK: byte = hi(&SPRITE) * 4;` is
-  rejected because `&SPRITE` is a *link-time* symbol — it cannot fold to a literal, only to an
-  emitted ACME expression. That is a different mechanism from #49 ①'s numeric fold and is
-  unscoped today; route it to #58/#60 at RD-03 closeout. Measurements are on
-  [#49](https://github.com/blendsdk/blend65/issues/49#issuecomment-5021941029).
+- **The trigger rule was undefined at exactly the level that matters.** `&X` and an ordinary
+  by-reference array argument emit the *same* IL `addrOf` operand — `slice7b.asm.golden:89,91`
+  already contains the instruction pair the RD cited as its own verification. An IL-operand scan
+  would have aligned `slice7b`/`slice8b` (+435 B) and tried to page-align `slice8`'s function
+  labels. M1 is now pinned to the **syntactic** `&` set, marked in `lowerAddressOf` gated on
+  `sym.kind === "constant"` — free, and with no AST pass.
+- **AC-5 was unachievable.** balloon's observable table is the *shared* twin-equivalence
+  contract, and two of its rows are welded to `$0340`/block 13; the twin keeps staging there. The
+  table now splits per the doctrine `observables.ts` already states (new M6).
+
+Also settled: **padding visibility is scoped out** (the build summary's segment reporting is
+unwired and its layout is spec-transcribed — needs its own RD); **`$1000–$1FFF` is char-ROM
+shadow to the VIC**, so "any aligned address in the bank works" was false and AC-1 now pins
+balloon below `$1000`; and a **new mixed-alignment fixture** turns three vacuous criteria
+(AC-2/AC-7 + M1's negative half) into discriminating ones.
+
+Two follow-ups need issues filed (**not yet filed — outward-facing, awaiting go-ahead**):
+a data-segment-reporting RD, and a diagnostic for aligned data landing in the char-ROM shadow or
+above `$3FFF`.
+
+Still open from before: **the `E10193`/symbolic-fold gap needs an owner.**
+`const BLOCK: byte = hi(&SPRITE) * 4;` is rejected because `&SPRITE` is a *link-time* symbol — it
+cannot fold to a literal, only to an emitted ACME expression. A different mechanism from #49 ①'s
+numeric fold, unscoped today; route it to #58/#60 at RD-03 closeout. Measurements are on
+[#49](https://github.com/blendsdk/blend65/issues/49#issuecomment-5021941029).
 
 After RD-03: **#49 Phase 1 as one RD** — item ①'s const-evaluated half + item ③ + item ⑤, with
 the runtime-address half of `poke`/`peek` split into its own later RD. Sequenced second because
@@ -64,7 +80,7 @@ the roadmap still tiers it B3 — that tiering no longer matches the data and is
 |----|-------|----|------|-------|--------|--------------|----------------------|
 | RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Done | ✅ | 2026-07-18 | — |
 | RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Done | ✅ | 2026-07-18 | — |
-| RD-03 | Placement: align const data, read it in place ([#49](https://github.com/blendsdk/blend65/issues/49)) | [RD](requirements/RD-03-placement.md) | — | RD Drafted | ✏️ | 2026-07-20 | Placement slice only; `copy()` (FUT-012) stays gated but is **no longer blocking**. Grammar-free — no `spec/` change, no Guard. Target: balloon 677→~312 B (2.70×→~1.24×) with **no** runtime copy, beating the twin. AR #64–#68 · Fable |
+| RD-03 | Placement: align const data, read it in place ([#49](https://github.com/blendsdk/blend65/issues/49)) | [RD](requirements/RD-03-placement.md) | — | RD Preflighted | 🔎 | 2026-07-20 | Placement slice only; `copy()` (FUT-012) stays gated but is **no longer blocking**. Grammar-free — no `spec/` change, no Guard. **Measured** target: balloon 677→**318 B** (2.70×→**1.27×**), zero runtime copy — beats the twin at runtime, not on bytes. [Preflight](requirements/00-preflight-report-rd-03.md): 29 findings (2 critical, 7 major), all resolved. AR #64–#68 + addenda · Fable |
 | RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | [RD](requirements/RD-04-compare-and-branch-fusion.md) | [Plan](plans/rd-04-compare-and-branch-fusion/00-index.md) | Done | ✅ | 2026-07-19 | AC-1…AC-10 all walked; corpus 4172→3896 B / 5340→5023 cyc; **#50 closed**; spun off [#66](https://github.com/blendsdk/blend65/issues/66) |
 | RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | [RD](requirements/RD-05-block-layout.md) | [Plan](plans/rd-05-block-layout/00-index.md) | Done | ✅ | 2026-07-20 | AC-1…AC-13 all walked ([closeout](plans/rd-05-block-layout/08-closeout.md)); corpus 3896→3616 B / 5023→4724 cyc; **#65 closed**; AR #58–#63 at execution |
 | RD-06 | Peephole seed catalog: INC/DEC, loads, staging ([#52](https://github.com/blendsdk/blend65/issues/52)) | — | — | Backlog | ⬜ | 2026-07-18 | B1 — **Rule 1 (INC/DEC) only**; R2–3 deferred (MMIO); seam blend65-ri/RD-08 |
