@@ -6,7 +6,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Pair | Bytes gen | Bytes twin | Bytes ratio | Cycles gen | Cycles twin | Cycles ratio | Measured gen | Measured twin | Measured ratio |
 | ---- | --------- | ---------- | ----------- | ---------- | ----------- | ------------ | ------------ | ------------- | -------------- |
-| balloon | 677 | 251 | 2.70 | 787 | 248 | 3.17 | 125 | 97 | 1.29 |
+| balloon | 318 | 251 | 1.27 | 300 | 248 | 1.21 | 125 | 97 | 1.29 |
 | gate | 30 | 18 | 1.67 | 34 | 12 | 2.83 | — | — | — |
 | guards | 211 | 128 | 1.65 | 248 | 151 | 1.64 | — | — | — |
 | rasterpoll | 59 | 36 | 1.64 | 66 | 33 | 2.00 | — | — | — |
@@ -21,16 +21,17 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 | slice7b | 355 | 48 | 7.40 | 508 | 48 | 10.58 | — | — | — |
 | slice8 | 153 | 74 | 2.07 | 234 | 84 | 2.79 | — | — | — |
 | slice8b | 387 | 77 | 5.03 | 495 | 63 | 7.86 | — | — | — |
-| **Total** | 3616 | 920 | 3.93 | 4724 | 909 | 5.20 | — | — | — |
+| **Total** | 3257 | 920 | 3.54 | 4237 | 909 | 4.66 | — | — | — |
 
 ## balloon — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 4 vs 3 - down from 21, so the jump count is now essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block. The remaining size gap is the unrolled sprite copy below, not layout |
-| instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 96 vs 27, STA 87 vs 21 - redundant load/store elimination |
-| instruction selection | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | **source-forced** — 63 unrolled pokes forced by the copy() language gap - the twin uses a 4-instruction indexed copy loop |
-| layout | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | 677 vs 251 bytes, down from 729. The residual is dominated by the 63 unrolled pokes the copy() gap forces, not by block layout |
+| data placement | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | non-code 81 vs 75 bytes, +6 - page-alignment padding, and the only byte cost placement adds. It is an accident of where the image lands, so it re-rolls anywhere in 0-255 when unrelated code sizes shift. The two programs use different legitimate idioms here: the twin stages its image into the tape buffer below the load address, which a single-load PRG cannot reach and which buys file size; the compiled program aligns its image and reads it in place, which buys runtime - it copies nothing at startup where the twin copies 63 bytes. Padding is not reported anywhere today, which is #67 |
+| instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 4 vs 3 - essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block |
+| instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 35 vs 27, STA 26 vs 21 - redundant load/store elimination |
+| instruction selection | peephole | [#58](https://github.com/blendsdk/blend65/issues/58) | ASL 2 vs 0 and the loads feeding them: hi(&BALLOON) * 4 materialises the whole address into a frame-slot pair before taking its high byte, 8 instructions where a hand-coder writes 4. It also emits a spurious shift-and-add warning for a sequence it does not generate |
+| layout | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | code stream 237 vs 176 bytes, +61. Down from 677 total: the 63-store staging copy is gone entirely. What is left is redundant load/store and the address materialisation above, not block layout |
 
 ## gate — routing
 

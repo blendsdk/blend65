@@ -10,8 +10,10 @@ module Main;
 // padding and the plain one paid none, the two labels are exactly
 // `length(ALIGNED)` apart. Swap them and that arithmetic no longer holds.
 
-// Address taken — the program hands the raw address to hardware, so this
-// image must start on a page boundary.
+// Address taken. Standing in for the real use — a sprite pointer, a character
+// set base — where the program hands the image's own address to hardware
+// rather than reading it through the compiler's indexing. That is what makes
+// the image's placement matter, so this one must start on a page boundary.
 const ALIGNED: byte[4] = [1, 2, 3, 4];
 
 // Read by index only. The compiler resolves the element address itself, so

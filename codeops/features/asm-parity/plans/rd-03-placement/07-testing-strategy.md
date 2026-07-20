@@ -58,14 +58,14 @@ Home: `packages/codegen/src/il/lower-address-of.spec.test.ts`.
 
 | ST | Given | Expect | Kind |
 |---|---|---|---|
-| **ST-C5** | A module with `const T: byte[] = [1,2,3]` and a source-level `&T` | the entry for `__data_<M>_T` has `aligned === true` | committed |
-| **ST-C6** | The same module where `T` is only passed by reference — `sum(T, 3)` — with **no** `&` | `aligned === false`. *This is the by-ref case that emits the identical IL operand* | committed |
+| **ST-C5** | A module with `const T: byte[] = [1,2,3]` and a source-level `&T` | the entry for `__data_<M>_T` has `pageAligned === true` | committed |
+| **ST-C6** | The same module where `T` is only passed by reference — `sum(T, 3)` — with **no** `&` | `pageAligned === false`. *This is the by-ref case that emits the identical IL operand* | committed |
 | **ST-C7** | A module with `&onIRQ` (a function) and no const address-of | **no** const-data entry is marked; lowering does not throw | committed |
 | **ST-C8** | A module taking `&` of a **mutable** module array | no const-data entry marked (it owns no image) | committed |
-| **ST-C9** | A const **struct** whose address is taken | `aligned === true` — the rule is `sym.kind === "constant"`, which admits any const aggregate | committed |
+| **ST-C9** | A const **struct** whose address is taken | `pageAligned === true` — the rule is `sym.kind === "constant"`, which admits any const aggregate | committed |
 | **ST-C10** | Two const arrays, one `&`-taken and one not | exactly the `&`-taken entry is marked | committed |
 | **ST-C19** | Two const arrays, **both** `&`-taken | **both** entries are marked. ST-C10 is satisfied by an implementation that stores a single symbol slot instead of a set; a two-sprite program — the canonical C64 game shape this feature exists for — would then emit one directive. This is a marking-unit case and needs no assembler | committed |
-| **ST-C19b** | A const array whose address is taken **only at module scope** — `let ptr: word = &T;` outside any function | `aligned === true`. Module initializers lower through a **second** `LowerCtx` (`lower.ts:294`, `fqName: "__init"`), reaching `lowerAddressOf` at `:336`. Every other row above puts `&` inside a function body, so without this one an implementation that gives the init context its own set passes the entire suite | committed |
+| **ST-C19b** | A const array whose address is taken **only at module scope** — `let ptr: word = &T;` outside any function | `pageAligned === true`. Module initializers lower through a **second** `LowerCtx` (`lower.ts:294`, `fqName: "__init"`), reaching `lowerAddressOf` at `:336`. Every other row above puts `&` inside a function body, so without this one an implementation that gives the init context its own set passes the entire suite | committed |
 
 ### End-to-end alignment — ACME/build tier (CI)
 

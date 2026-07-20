@@ -5,75 +5,10 @@ module Main;
 const BALLOON: byte[] = embed("balloon.bin");
 
 function main(): void {
-  // Stage the sprite image in block 13 ($0340) — inside the VIC's 16K bank
-  // and 64-byte aligned, so the sprite pointer can reference it directly.
-  // poke/peek addresses must be compile-time constants, hence the unrolled copy.
-  poke($0340, BALLOON[0]);
-  poke($0341, BALLOON[1]);
-  poke($0342, BALLOON[2]);
-  poke($0343, BALLOON[3]);
-  poke($0344, BALLOON[4]);
-  poke($0345, BALLOON[5]);
-  poke($0346, BALLOON[6]);
-  poke($0347, BALLOON[7]);
-  poke($0348, BALLOON[8]);
-  poke($0349, BALLOON[9]);
-  poke($034A, BALLOON[10]);
-  poke($034B, BALLOON[11]);
-  poke($034C, BALLOON[12]);
-  poke($034D, BALLOON[13]);
-  poke($034E, BALLOON[14]);
-  poke($034F, BALLOON[15]);
-  poke($0350, BALLOON[16]);
-  poke($0351, BALLOON[17]);
-  poke($0352, BALLOON[18]);
-  poke($0353, BALLOON[19]);
-  poke($0354, BALLOON[20]);
-  poke($0355, BALLOON[21]);
-  poke($0356, BALLOON[22]);
-  poke($0357, BALLOON[23]);
-  poke($0358, BALLOON[24]);
-  poke($0359, BALLOON[25]);
-  poke($035A, BALLOON[26]);
-  poke($035B, BALLOON[27]);
-  poke($035C, BALLOON[28]);
-  poke($035D, BALLOON[29]);
-  poke($035E, BALLOON[30]);
-  poke($035F, BALLOON[31]);
-  poke($0360, BALLOON[32]);
-  poke($0361, BALLOON[33]);
-  poke($0362, BALLOON[34]);
-  poke($0363, BALLOON[35]);
-  poke($0364, BALLOON[36]);
-  poke($0365, BALLOON[37]);
-  poke($0366, BALLOON[38]);
-  poke($0367, BALLOON[39]);
-  poke($0368, BALLOON[40]);
-  poke($0369, BALLOON[41]);
-  poke($036A, BALLOON[42]);
-  poke($036B, BALLOON[43]);
-  poke($036C, BALLOON[44]);
-  poke($036D, BALLOON[45]);
-  poke($036E, BALLOON[46]);
-  poke($036F, BALLOON[47]);
-  poke($0370, BALLOON[48]);
-  poke($0371, BALLOON[49]);
-  poke($0372, BALLOON[50]);
-  poke($0373, BALLOON[51]);
-  poke($0374, BALLOON[52]);
-  poke($0375, BALLOON[53]);
-  poke($0376, BALLOON[54]);
-  poke($0377, BALLOON[55]);
-  poke($0378, BALLOON[56]);
-  poke($0379, BALLOON[57]);
-  poke($037A, BALLOON[58]);
-  poke($037B, BALLOON[59]);
-  poke($037C, BALLOON[60]);
-  poke($037D, BALLOON[61]);
-  poke($037E, BALLOON[62]);
-
-  // Sprite 0: image block 13, white, hires, normal size.
-  poke($07F8, 13);
+  // Sprite 0: white, hires, normal size. Taking the image's address aligns it
+  // to a page, so the VIC reads it where it already lies — no staging copy —
+  // and the sprite pointer is just its block number, high byte times four.
+  poke($07F8, hi(&BALLOON) * 4);
   poke($D015, 1);
   poke($D027, 1);
   poke($D017, 0);

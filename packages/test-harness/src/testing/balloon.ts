@@ -61,8 +61,16 @@ export async function buildBalloon(): Promise<BuiltBalloon> {
  * The balloon program's shared observable set: stopped at the 2nd arrival
  * of the frame-loop head, exactly one movement update has run under the
  * source's ±2-step / `>=`-`<=` bounce semantics. Everything here is
- * source-mandated sprite state — position, pointer, enable, colour, size
- * flags, and the staged sprite block compared against the committed asset.
+ * source-mandated sprite state — position, enable, colour and size flags.
+ *
+ * The sprite pointer and the image bytes are deliberately NOT here. This
+ * table is shared with the hand-written twin, and it holds only what the
+ * SOURCE mandates; both of those are now at an address the allocator
+ * chooses, which is the compiled program's business and not the twin's. The
+ * twin stages its image into the tape buffer and the compiled program reads
+ * its own in place — two legitimate idioms that agree on everything a
+ * player could see. Symbol-resolved checks for both live in the balloon
+ * suite, where implementation-coupled assertions belong.
  */
 export const BALLOON_OBSERVABLES: ProgramObservables = {
   landmarks: [{ kind: "loopHead", arrivals: 2 }],
@@ -70,12 +78,10 @@ export const BALLOON_OBSERVABLES: ProgramObservables = {
     { address: 0xd000, value: 174, note: "sprite 0 x: 172 + one +2 step" },
     { address: 0xd010, value: 0, note: "x MSB clear (174 < 256)" },
     { address: 0xd001, value: 141, note: "sprite 0 y: 139 + one +2 step" },
-    { address: 0x07f8, value: 13, note: "sprite pointer: block 13 = $0340" },
     { address: 0xd015, value: 1, note: "sprite 0 enabled" },
     { address: 0xd027, value: 0xf1, note: "sprite 0 colour 1 — readback $F1" },
     { address: 0xd017, value: 0, note: "no y-expand" },
     { address: 0xd01c, value: 0, note: "hires — no multicolour" },
     { address: 0xd01d, value: 0, note: "no x-expand" },
-    { address: 0x0340, bytesFile: "examples/balloon/balloon.bin", note: "staged sprite image" },
   ],
 };

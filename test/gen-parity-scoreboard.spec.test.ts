@@ -135,8 +135,21 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: parity-scoreboard gen
     "should render a fully routed one-pair manifest, measured columns from committed data",
     () => {
       const { dir, manifestPath, outPath } = stageManifest({
-        "instruction selection": [{ disposition: "parity" }],
+        // The source-forced annotation is exercised here, on a staged row,
+        // rather than through whichever corpus pair happens to carry the flag
+        // — the renderer's coverage should not depend on real routing data
+        // keeping a particular shape.
+        "instruction selection": [
+          { disposition: "parity" },
+          {
+            disposition: "data/placement",
+            issue: 49,
+            sourceForced: true,
+            note: "staged: a divergence the source itself forces",
+          },
+        ],
         layout: [{ disposition: "parity" }],
+        "data placement": [{ disposition: "parity" }],
       });
       try {
         const { status } = runGenerator(["--manifest", manifestPath, "--out", outPath]);
@@ -157,6 +170,7 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: parity-scoreboard gen
         expect(measuredTwin).toBeGreaterThan(0);
         expect(scoreboard).toContain(String(measuredGen));
         expect(scoreboard).toContain(String(measuredTwin));
+        expect(scoreboard).toContain("**source-forced**");
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }
@@ -206,9 +220,11 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: parity-scoreboard gen
         expect(first).toMatch(
           new RegExp(`\\| balloon \\|.*\\| ${measuredGen} \\| ${measuredTwin} \\| ${ratio} \\|`),
         );
-        // Routing sections carry issue links and the source-forced annotation.
+        // Routing sections carry issue links. The source-forced annotation is
+        // asserted against a staged manifest above instead: no corpus pair
+        // carries the flag today, and requiring one would mean keeping a
+        // routing claim alive purely to satisfy a test.
         expect(first).toContain("[#49](https://github.com/blendsdk/blend65/issues/49)");
-        expect(first).toContain("**source-forced**");
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }

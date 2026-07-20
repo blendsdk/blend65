@@ -100,6 +100,27 @@ describe("Specification: twin corpus coverage", () => {
   });
 });
 
+describe("Specification: balloon's routing prose survived the placement rewrite (ST-C20)", () => {
+  // The scoreboard freshness gate rebuilds every pair from source, so it
+  // catches stale numbers — but it reads none of this prose, and a routing
+  // note that has become false ships looking authoritative. These are the two
+  // claims that placement falsified outright and that a machine can check.
+  it("carries no sourceForced flag and no copy()-gap attribution", () => {
+    const routing = manifest.pairs.balloon?.routing;
+    expect(routing, "balloon must carry routing entries").toBeDefined();
+    const rows = Object.values(routing ?? {}).flat();
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.sourceForced, `${row.disposition}: the copy is no longer source-forced`).toBe(
+        undefined,
+      );
+      expect(row.note, `${row.disposition}: the copy() gap no longer explains anything`).not.toMatch(
+        /copy\(\) language gap/,
+      );
+    }
+  });
+});
+
 describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: twin tier on VICE", () => {
   for (const [name, pair] of Object.entries(manifest.pairs)) {
     it(

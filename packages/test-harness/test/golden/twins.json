@@ -402,25 +402,31 @@
           {
             "disposition": "structural",
             "issue": 51,
-            "note": "JMP 4 vs 3 - down from 21, so the jump count is now essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block. The remaining size gap is the unrolled sprite copy below, not layout"
+            "note": "JMP 4 vs 3 - essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block"
           },
           {
             "disposition": "peephole",
             "issue": 52,
-            "note": "LDA 96 vs 27, STA 87 vs 21 - redundant load/store elimination"
+            "note": "LDA 35 vs 27, STA 26 vs 21 - redundant load/store elimination"
           },
           {
-            "disposition": "data/placement",
-            "issue": 49,
-            "sourceForced": true,
-            "note": "63 unrolled pokes forced by the copy() language gap - the twin uses a 4-instruction indexed copy loop"
+            "disposition": "peephole",
+            "issue": 58,
+            "note": "ASL 2 vs 0 and the loads feeding them: hi(&BALLOON) * 4 materialises the whole address into a frame-slot pair before taking its high byte, 8 instructions where a hand-coder writes 4. It also emits a spurious shift-and-add warning for a sequence it does not generate"
           }
         ],
         "layout": [
           {
+            "disposition": "peephole",
+            "issue": 52,
+            "note": "code stream 237 vs 176 bytes, +61. Down from 677 total: the 63-store staging copy is gone entirely. What is left is redundant load/store and the address materialisation above, not block layout"
+          }
+        ],
+        "data placement": [
+          {
             "disposition": "data/placement",
             "issue": 49,
-            "note": "677 vs 251 bytes, down from 729. The residual is dominated by the 63 unrolled pokes the copy() gap forces, not by block layout"
+            "note": "non-code 81 vs 75 bytes, +6 - page-alignment padding, and the only byte cost placement adds. It is an accident of where the image lands, so it re-rolls anywhere in 0-255 when unrelated code sizes shift. The two programs use different legitimate idioms here: the twin stages its image into the tape buffer below the load address, which a single-load PRG cannot reach and which buys file size; the compiled program aligns its image and reads it in place, which buys runtime - it copies nothing at startup where the twin copies 63 bytes. Padding is not reported anywhere today, which is #67"
           }
         ]
       }

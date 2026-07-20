@@ -1,8 +1,8 @@
 # Execution Plan — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49)
-> **Progress**: 22/41 tasks (54%) — Phases 1-3 complete
-> **Last Updated**: 2026-07-20 (Phase 3 green — the directive is emitted; the corpus still has not moved)
+> **Progress**: 35/41 tasks (85%) — Phases 1-4 complete
+> **Last Updated**: 2026-07-20 (Phase 4 green — corpus regenerated once: balloon 677 → 318 B at `$0900`)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (every phase, before every commit — AR #75):
@@ -143,7 +143,7 @@ The directive starts being emitted. Still a corpus no-op — no existing fixture
 ratchets, the routing prose and the scoreboard, in one commit, so the tree is CI-clean at every
 point (M4's "in the same change"; AR #73's "regenerates exactly once, at the balloon rewrite").
 
-- [ ] 4.1 Write ST-C14/ST-C15 (**CI tier**) in a second `describe.skipIf(!hasAcme())` block in
+- [x] 4.1 Write ST-C14/ST-C15 (**CI tier**) in a second `describe.skipIf(!hasAcme())` block in
       `packages/test-harness/src/balloon.spec.test.ts`, alongside — **not inside** — the existing
       VICE block at `:29`. This is the in-tree dual-block convention
       (`slice3a.spec.test.ts:28/47`, `slice3b.spec.test.ts:26/48`, `slice7b.spec.test.ts:28/43`,
@@ -155,28 +155,28 @@ point (M4's "in the same change"; AR #73's "regenerates exactly once, at the bal
       `STA $7F8`) — a **subsequence, not an exact match**, with a comment that #58/#60 will
       deliberately revise this shape; and `__data_Main_BALLOON % 256 === 0` and `< $1000`.
       Verify **red**
-- [ ] 4.2 Delete the 63 staging pokes from `examples/balloon/main.blend:11-73`; set the pointer via
+- [x] 4.2 Delete the 63 staging pokes from `examples/balloon/main.blend:11-73`; set the pointer via
       `poke($07F8, hi(&BALLOON) * 4)`. Replace the stale comment — it currently explains the copy
       as forced by compile-time-constant addresses, which is the thing being removed
-- [ ] 4.3 ST-C14/ST-C15 **green**. Record the measured byte count and symbol address; **expected
+- [x] 4.3 ST-C14/ST-C15 **green**. Record the measured byte count and symbol address; **expected
       318 bytes at `$0900`**, but re-derive rather than assume
-- [ ] 4.4 Split `BALLOON_OBSERVABLES` (`testing/balloon.ts:67-82`): the shared table keeps the
+- [x] 4.4 Split `BALLOON_OBSERVABLES` (`testing/balloon.ts:67-82`): the shared table keeps the
       **eight** source-mandated rows; the `$07F8` and `$0340` rows are removed. Comment the split,
       citing `observables.ts:5-12` — the address is now allocator-chosen and stops qualifying by
       the contract's own rule
-- [ ] 4.5 Add ST-C18 to the **VICE block** of `balloon.spec.test.ts`: symbol-resolved pointer and
+- [x] 4.5 Add ST-C18 to the **VICE block** of `balloon.spec.test.ts`: symbol-resolved pointer and
       image-block checks (`peek($07F8) === addr / 64`; 63 bytes at `addr` match the committed asset)
-- [ ] 4.6 **Local tier**: ST-C17 green — the eight shared observables pass unchanged on VICE 3.10
-- [ ] 4.7 **Local tier**: ST-C18 green — the sprite renders from the new address
-- [ ] 4.8 **Local tier**: the twin tier passes against the **unmodified** twin with the shrunk
+- [x] 4.6 **Local tier**: ST-C17 green — the eight shared observables pass unchanged on VICE 3.10
+- [x] 4.7 **Local tier**: ST-C18 green — the sprite renders from the new address
+- [x] 4.8 **Local tier**: the twin tier passes against the **unmodified** twin with the shrunk
       shared table (AR #69 — the twin does not change)
-- [ ] 4.9 Re-derive balloon's `bytes` ratchet **from the aligned build** — never from an unaligned
+- [x] 4.9 Re-derive balloon's `bytes` ratchet **from the aligned build** — never from an unaligned
       measurement (AR #65 addendum). Procedure per AR #56: the budget tier only fails on
       `actual > budget` and cannot produce a value, so build the fixture and read the reported
       `binarySize`, then write it into `budgets.json` by hand
-- [ ] 4.10 Re-derive all other fixtures' `bytes` ratchets the same way — **all must be unchanged**;
+- [x] 4.10 Re-derive all other fixtures' `bytes` ratchets the same way — **all must be unchanged**;
       any movement is a stop, not a budget bump
-- [ ] 4.11 Re-author **all four** of balloon's `twins.json` routing rows (`:405, :410, :415-416,
+- [x] 4.11 Re-author **all four** of balloon's `twins.json` routing rows (`:405, :410, :415-416,
       :423`), not only the `#49` pair. The `#51` row ("the remaining size gap is the unrolled
       sprite copy below, not layout") and the `#52` row ("LDA 96 vs 27, STA 87 vs 21") are equally
       falsified once 63 LDA/STA pairs vanish, and the freshness gate is blind to prose — left
@@ -187,11 +187,11 @@ point (M4's "in the same change"; AR #73's "regenerates exactly once, at the bal
       `hi(&X)*4` materialization → #58/#60, and load/store → #52. Add **ST-C20** — the mechanizable
       half of AC-8: balloon's routing entries carry no `sourceForced` and no note matching
       `/copy\(\) language gap/`
-- [ ] 4.12 Regenerate `SCOREBOARD.md` with **`yarn gen:scoreboard`** (`package.json:21`) — the file
+- [x] 4.12 Regenerate `SCOREBOARD.md` with **`yarn gen:scoreboard`** (`package.json:21`) — the file
       forbids hand-editing and the generator aborts before writing on stale routing. Then confirm
       the gate: `git diff --exit-code -- packages/test-harness/test/golden/SCOREBOARD.md` is clean
       after a second regeneration
-- [ ] 4.13 Full verify **plus the freshness gate**
+- [x] 4.13 Full verify **plus the freshness gate**
 
 ## Phase 5 — Local re-measure, review gates and closeout · tag: complex
 
