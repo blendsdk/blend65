@@ -12,6 +12,30 @@
 > standard per-item sequence runs: `preflight (RD) → make_plan → preflight (plan) → exec_plan`.
 > Governing bar: the Prime Directive (project `CLAUDE.md`) — output parity with hand-written assembly.
 
+## ▶ Resume here (2026-07-20)
+
+Two open threads, neither blocking the other:
+
+1. **RD-05 task 5.6 — not done, deliberately.** The area report on
+   [#51](https://github.com/blendsdk/blend65/issues/51) and closing
+   [#65](https://github.com/blendsdk/blend65/issues/65) are **prepared but unposted**. All the
+   evidence is in [`plans/rd-05-block-layout/08-closeout.md`](plans/rd-05-block-layout/08-closeout.md)
+   (AC walk + delta record). Commenting on and closing issues is outward-facing and was outside
+   what the `--auto-commit` run was authorised to do, so it waits for an explicit go-ahead.
+   Everything else in RD-05 is complete: 57/58 tasks, five commits, verify green.
+
+2. **RD-03 is drafted, not preflighted.** Next step is
+   `/codeops:preflight asm-parity rd-03-placement`. Worth doing before planning: the RD rests on
+   three measurements and one *refuted* assumption (that the balloon needs `copy()`), and the two
+   previous preflights raised 32 and 27 findings.
+
+Alternatives to RD-03 if priorities shift: RD-06 (#52, INC/DEC peephole — smallest) or RD-13
+(#58, const-fold — whose groundwork RD-05 deliberately built as a separately schedulable pass).
+Note also that **#59 is now the top divergence by breadth** (17 rows across 13 of 14 pairs) while
+the roadmap still tiers it B3 — that tiering no longer matches the data and is worth revisiting.
+
+---
+
 ## Legend
 
 ⬜ Backlog · ✏️ RD Drafted · 🔎 RD Preflighted · 📋 Plan Created · 🔬 Plan Preflighted · 🔄 Executing · ✅ Done · ⛔ Blocked · ⏸️ Deferred
