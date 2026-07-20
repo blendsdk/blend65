@@ -70,8 +70,12 @@ one check enabled last — see task T-02.3.
 `boing-ball` is the closest thing in the repo to real game code — multicolor sprites, pointer-swap
 animation, bounds logic — while the parity corpus is 14 synthetic slices plus `balloon`. A
 hand-written twin for it would be the most informative addition to the scoreboard since the corpus
-was built, and it is RD-sized work, not a task. It is **not filed yet** — filing is outward-facing
-and waits on an explicit go; do not start the work here either way.
+was built, and it is RD-sized work, not a task. **Filed 2026-07-21 as
+[#72](https://github.com/blendsdk/blend65/issues/72)** and tracked as RD-16; not started here.
+
+One sequencing note carried into that issue: `boing-ball` still uses `hi(&BALL) * 4`, and RD-13
+migrates it to `lo(&BALL / 64)`, which moves its bytes. The twin must be authored **after** that
+lands or the pair is stale on arrival.
 
 ## Outcome
 
