@@ -240,8 +240,13 @@ function derivePreambleOptions(ilProgram: ILProgram, plugin: PlatformPlugin): Pr
  * every entry of every stream (plus the preamble, empty here). Feeds the
  * `ResourceReport` pre-ACME budget check.
  *
+ * This is a **lower bound**, not an exact size. Alignment directives pad by an
+ * amount that depends on the address they land at, so they contribute 0 here
+ * and the real binary may be larger. Anything needing the true size must read
+ * it from the assembled binary.
+ *
  * @param program The instruction program to size.
- * @returns The total number of bytes the program's instructions assemble to.
+ * @returns The number of bytes the program's instructions assemble to, at least.
  */
 export function programByteSize(program: InstrProgram): number {
   let total = 0;

@@ -30,9 +30,9 @@ export type { CpuVariant } from "./cpu-variant.js";
  * An ACME assembler directive that appears inline in a stream.
  *
  * These model the ACME pseudo-ops Blend65 emits: origin (`* =`), symbol
- * definitions, raw `!byte`/`!word` data, `!text` strings, `!fill` runs, and the
- * `!to` output-file directive. They are pure data; the serializer renders each
- * to its ACME syntax.
+ * definitions, raw `!byte`/`!word` data, `!text` strings, `!fill` runs,
+ * alignment padding, and the `!to` output-file directive. They are pure data;
+ * the serializer renders each to its ACME syntax.
  */
 export type AcmeDirective =
   | { readonly kind: "origin"; readonly address: number } // * = $0801
@@ -41,6 +41,16 @@ export type AcmeDirective =
   | { readonly kind: "word"; readonly values: readonly number[] } // !word $0801
   | { readonly kind: "text"; readonly text: string; readonly encoding?: string } // !text "hi"
   | { readonly kind: "fill"; readonly count: number; readonly value: number } // !fill 256, $00
+  | {
+      /**
+       * Pad forward until the next `boundary`-byte boundary, filling with
+       * `fill`. `boundary` is the alignment in bytes (256 = page); the
+       * serializer converts it to the bitmask ACME actually expects.
+       */
+      readonly kind: "align";
+      readonly boundary: number;
+      readonly fill: number;
+    } // !align 255, 0, 0
   | { readonly kind: "outputFile"; readonly name: string; readonly format: string }; // !to "out.prg", cbm
 
 /**

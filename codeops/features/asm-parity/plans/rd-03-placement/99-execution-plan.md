@@ -1,8 +1,8 @@
 # Execution Plan — Placement (RD-03)
 
 > **Implements**: asm-parity/RD-03 · [#49](https://github.com/blendsdk/blend65/issues/49)
-> **Progress**: 0/41 tasks (0%)
-> **Last Updated**: 2026-07-20
+> **Progress**: 6/41 tasks (15%) — Phase 1 complete
+> **Last Updated**: 2026-07-20 (Phase 1 green)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (every phase, before every commit — AR #75):
@@ -40,25 +40,25 @@ Commit one phase at a time via **/gitcm**.
 Spec → red → implement → green. Pure model addition; nothing emits it yet, so the corpus cannot
 move. Ends with all three switch sites handled and the build green.
 
-- [ ] 1.1 Write ST-C1–ST-C4 (`print-instr.spec.test.ts`): directive text is `!align 255, 0, 0`,
+- [x] 1.1 Write ST-C1–ST-C4 (`print-instr.spec.test.ts`): directive text is `!align 255, 0, 0`,
       byte size is `0`, column-zero is `true`, and a stream renders it at column 0 on its own line.
       Assert through the module's **public** surface — `printInstr` / `instrByteSize`, following the
       existing `textOf(directive({…}))` idiom at `print-instr.spec.test.ts:110-131`. `directiveText`,
       `isColumnZeroDirective` and `directiveByteSize` are module-private and **must not be exported**
       to make the test writable (unsanctioned api-surface change). Verify **red**
-- [ ] 1.2 Add the `align` variant to `AcmeDirective` (`core/src/instr-model/stream.ts:37-44`) with
+- [x] 1.2 Add the `align` variant to `AcmeDirective` (`core/src/instr-model/stream.ts:37-44`) with
       `boundary` and `fill`, JSDoc'd like its siblings
-- [ ] 1.3 Handle `directiveText` (`print-instr.ts:165-166`) — emit `boundary - 1` as the mask, in
+- [x] 1.3 Handle `directiveText` (`print-instr.ts:165-166`) — emit `boundary - 1` as the mask, in
       **one** place, with a comment stating that ACME's `!align` is a bitmask and that
       `!align 256, 0` silently aligns nothing
-- [ ] 1.4 Handle `directiveByteSize` (`:295-315`) — return `0`; document that `programByteSize` is
+- [x] 1.4 Handle `directiveByteSize` (`:295-315`) — return `0`; document that `programByteSize` is
       thereby a lower bound
-- [ ] 1.5 Handle `isColumnZeroDirective` (`:178-180`) — return `true`. **The compiler will not flag
+- [x] 1.5 Handle `isColumnZeroDirective` (`:178-180`) — return `true`. **The compiler will not flag
       this one.** Unlike the two above it carries no `const _exhaustive: never`; it is a boolean
       expression (`d.kind === "origin" || d.kind === "outputFile" || d.kind === "symbolDef"`) that
       silently returns `false` for a new variant, rendering `!align` at instruction indent. ST-C3
       is the only thing that catches it
-- [ ] 1.6 ST-C1–ST-C4 **green**; full verify. **All 14 goldens unchanged** (nothing emits the
+- [x] 1.6 ST-C1–ST-C4 **green**; full verify. **All 14 goldens unchanged** (nothing emits the
       directive yet — if one moves, something else is wrong)
 
 ## Phase 2 — The marking rule · tag: **sensitive**

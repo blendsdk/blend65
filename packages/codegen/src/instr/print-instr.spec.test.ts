@@ -167,3 +167,38 @@ describe("Specification: instrByteSize (ST-S22..S23)", () => {
     expect(instrByteSize(label("x"))).toBe(0);
   });
 });
+
+describe("Specification: printInstr — the align directive (ST-C1..ST-C4)", () => {
+  /** A page-alignment directive: 256-byte boundary, zero fill. */
+  const pageAlign = directive({ kind: "align", boundary: 256, fill: 0 });
+
+  it("should render page alignment as ACME's bitmask form !align 255, 0, 0 (ST-C1)", () => {
+    // ACME's directive is `!align andValue, equalValue [, fill]` — a BITMASK,
+    // not a modulus. `!align 256, 0` assembles cleanly and aligns nothing, so
+    // the rendered mask must be boundary - 1. Verified against ACME 0.97.
+    expect(textOf(pageAlign)).toBe("!align 255, 0, 0");
+  });
+
+  it("should size the align directive as 0 bytes (ST-C2)", () => {
+    // The padding an alignment inserts depends on the address it lands at,
+    // which is unknowable before the assembler resolves it. Sizing it 0 makes
+    // whole-program size arithmetic a lower bound rather than a wrong number.
+    expect(instrByteSize(pageAlign)).toBe(0);
+  });
+
+  it("should render the align directive at column 0, not instruction indent (ST-C3)", () => {
+    // Conventionally unindented, like `* =`. Nothing in the type system forces
+    // this: the column-0 predicate is a boolean expression over known kinds,
+    // so an unhandled variant silently renders at instruction indent instead.
+    expect(rawLineOf(pageAlign)).toBe("!align 255, 0, 0");
+  });
+
+  it("should give the align directive its own line at column 0 within a stream (ST-C4)", () => {
+    const lines = printInstr({
+      symbol: "__data_M_T",
+      segment: "data",
+      entries: [pageAlign, label("__data_M_T"), directive({ kind: "byte", values: [1, 2] })],
+    }).split("\n");
+    expect(lines).toContain("!align 255, 0, 0");
+  });
+});

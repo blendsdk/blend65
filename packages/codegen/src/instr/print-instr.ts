@@ -159,6 +159,11 @@ function directiveText(d: AcmeDirective): string {
       return `!text "${d.text}"`;
     case "fill":
       return `!fill ${d.count}, ${hex8(d.value)}`;
+    case "align":
+      // ACME's `!align` takes `andValue, equalValue [, fill]` — a BITMASK, not
+      // a modulus. `!align 256, 0` assembles cleanly and aligns nothing at all,
+      // which is why the mask is derived here, in the one place that renders it.
+      return `!align ${d.boundary - 1}, 0, ${d.fill}`;
     case "outputFile":
       return `!to "${d.name}", ${d.format}`;
     default: {
@@ -169,14 +174,21 @@ function directiveText(d: AcmeDirective): string {
 }
 
 /**
- * Whether a directive renders at column 0 (origin / output-file) rather than at
- * instruction indent. These ACME pseudo-ops are conventionally unindented.
+ * Whether a directive renders at column 0 (origin / output-file / alignment)
+ * rather than at instruction indent. These ACME pseudo-ops are conventionally
+ * unindented.
+ *
+ * Note this is a plain predicate, not an exhaustive switch: a directive kind
+ * left out of the list silently renders at instruction indent rather than
+ * failing to compile. Adding a column-0 kind means adding it here by hand.
  *
  * @param d The directive.
  * @returns `true` if the directive sits at column 0.
  */
 function isColumnZeroDirective(d: AcmeDirective): boolean {
-  return d.kind === "origin" || d.kind === "outputFile" || d.kind === "symbolDef";
+  return (
+    d.kind === "origin" || d.kind === "outputFile" || d.kind === "symbolDef" || d.kind === "align"
+  );
 }
 
 /**
@@ -230,7 +242,8 @@ export function printInstr(stream: InstrStream): string {
  *   Implied/Accumulator = 0; Absolute modes + Indirect = 2; everything else = 1.
  * - **directive**: payload size — `byte` = values.length; `word` =
  *   2×values.length; `text` = encoded length; `fill` = count;
- *   `origin`/`symbolDef`/`outputFile` = 0.
+ *   `origin`/`symbolDef`/`outputFile`/`align` = 0. `align` is 0 because its
+ *   padding is address-dependent, which makes program totals a lower bound.
  * - **label**: 0.
  *
  * @param entry The stream entry to size.
@@ -303,6 +316,12 @@ function directiveByteSize(d: AcmeDirective): number {
       return d.text.length;
     case "fill":
       return d.count;
+    case "align":
+      // The padding an alignment inserts depends on the address it lands at,
+      // which only the assembler knows. Reporting 0 keeps `programByteSize` a
+      // documented lower bound rather than a confidently wrong number; the
+      // live size budgets read the post-ACME binary, not this.
+      return 0;
     case "origin":
     case "symbolDef":
     case "outputFile":
