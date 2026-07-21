@@ -24,6 +24,8 @@ choice, and the next person has no way to tell the difference.
 
 | E-07 | `E10154` is assigned twice | `spec/14-diagnostics.md:92` — "Width narrowing without cast". `spec/04-expressions-operators.md:149` and `spec/00-feature-index.md:158` — ordered comparison applied to `boolean`. Two unrelated errors, one code | The registry implements the Ch 14 meaning (`WidthNarrowingNoCast`) | Found while selecting the code for the silent two-byte `poke`. The narrowing meaning is the one in use and the one that fits, so it is kept — but a user hitting the boolean case will get a code the spec documents for something else |
 
+| E-08 | The `INX`/`BNE` full-range loop idiom | `spec/05-statements-control-flow.md:253` promises `for (i = 0 to 255)` "uses INX/BNE-wrap codegen". Read literally that mandates an X-resident counter, but every counter this backend emits is SFA frame-homed memory (`lower.ts:700-706`) and codegen clobbers X freely — no register-resident user counters exist, and creating them is register allocation | Read as naming the **wrap-exit family**, not the X register: the deliverable is `INC`/`DEC` on the slot plus a branch on wrap | Recorded so the reading is deliberate rather than an unremarked divergence. Note also that the spec's Z-flag wrap test is only correct for step 1 — with step 3 the counter goes 252 → 255 → 2 and never reaches zero, so the general form must test the **carry** |
+
 ## How to use this file
 
 - Add a row when the frozen text contradicts itself, or when an implementation must knowingly

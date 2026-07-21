@@ -41,7 +41,24 @@ What C-01's probe pass changed:
   and no function carries duplicate `let` names. **P1 can land without forcing example source
   edits**, which removes the churn risk the challenger flagged.
 
-Next: **P1 (RD-01)**, or P0-tail's G-07. **D-02 and D-03 remain open** — neither gates P1.
+**P1 in progress — RD-01 authored, preflight iteration 1 ❌ BLOCKED, RD revised (2026-07-22).**
+
+Five auditor clusters on a different model family returned ~48 findings, 2 critical + 10 major.
+Every code and spec citation in the RD held; **all defects were in scope and oracles**. Two
+convergent findings, each raised independently by four of five clusters:
+
+- **The defect class was wider than the probes on four axes** — `step`, width, sign, and bound
+  spelling. Requirements shaped to the probes left live silent hangs while every criterion stayed
+  green, and the originally chosen `INX`/`BNE` idiom would have *created* a new one (with step 3
+  the counter goes 252 → 255 → 2, never zero). The exit is now **carry-based**.
+- **M-03 was cured by a mechanism that cannot legally touch it.** Sibling same-name reuse is
+  spec-legal, so no diagnostic may fire — yet the shared slot is sized last-wins and a wider store
+  overruns into the next variable. Probe-verified. Cured by a **width** rule, plus a negative
+  criterion pinning that sibling reuse still compiles clean.
+
+RD revised against all of PF-001…PF-024; PF-025…PF-027 fixed in the neighbouring documents.
+**Next: preflight iteration 2, in a fresh session** — same-session bias is now demonstrated rather
+than theoretical. **D-02 and D-03 remain open** — neither gates P1.
 
 ---
 
@@ -82,14 +99,14 @@ meant to end the orphaned-deferral pattern becomes its seventh instance.
 
 Legal source, no diagnostic, wrong machine code. Nothing else matters while the compiler lies.
 
+**Scope widened at preflight iteration 1** — the RD now targets the *class*, not the probes.
+
 | ID | Defect | Verified |
 |----|--------|----------|
-| M-01a | `for (i = 9 downto 0)` → infinite loop (`CMP #$00 / BCC` never taken) | ✅✅ |
-| M-01b | `for (i = 0 to MAX)`, `MAX` a named const 255 → infinite loop (`LDA #$FF / CMP i / BCC` never taken) ⚑ | ✅✅ |
-| M-01c | `for (i = 0 to 255)` literal → ICE (loud). Same root defect; fixing M-01a/b builds the wrap machinery, so this is nearly free here ⚑ | ✅ |
-| M-02 | `poke(addr, <word>)` writes two bytes — `STA $D020 / STX $D021` | ✅✅ |
-| M-03 | Flat function scope: same-named locals collapse onto one frame slot | ✅ |
-| M-04 | IRQ/mainline shared-frame corruption has no diagnostic | ❓ — scope set by C-01 |
+| M-01 | **Wrap defeats the exit test** — six confirmed instances across direction × width × sign × step × bound-spelling: `9 downto 0`; `0 to MAX` (named const); `9 downto 1 step 2`; `0 to 255` literal (loud ICE); word `500 downto 0` and `0 to $FFFF`; `sbyte 5 downto -128`. Plus two with no static trigger — a const-expression bound (`0 to 254 + 1`) and a runtime bound that equals the type maximum | ✅✅ |
+| M-02 | `poke(addr, <word>)` writes two bytes — `STA $D020 / STX $D021`. Also for a word-valued **expression** and a `peekw` result | ✅✅ |
+| M-03 | A name-collapsed frame slot is sized **last-wins**, so a wider sibling store overruns into the next variable. Sibling reuse is **spec-legal** — cured by slot **width**, never by a diagnostic | ✅✅ |
+| M-04 | IRQ/mainline shared-frame corruption has no diagnostic | ✅ probe-verified a **real miscompile**, zero diagnostics |
 
 **⚑ U1 (`0 to 255`) moved here from P5.** It is not a separate feature gap: the ascending guard
 inspects only `NumericLitExpr`, so the named-const spelling is *already* a silent miscompile
@@ -102,11 +119,20 @@ shadowing and duplicates errors), *not* scope-qualified frame slots. An executor
 "fixes it properly" with scoped allocation walks into the positional-slot-counter fragility
 issue #73 documents and risks manufacturing the very miscompile class this RD exists to kill.
 
-**Golden story**: expected byte-identical — no example uses `downto`, and no golden can contain
-the runtime-poke or word-poke shapes. That is an **acceptance criterion to prove, not an
+**Golden story**: expected byte-identical — no example uses `downto`, `step`, a word or signed
+boundary counter, or a word-valued poke. That is an **acceptance criterion to prove, not an
 assumption** ⚑. Two committed unit pins do change, and all 18 examples must be recompiled under
-the new diagnostics before landing ⚑ (`slice7/main.blend` and `slice7b/game.blend` carry
-multiple `let i:` declarations).
+the new diagnostics before landing ⚑.
+
+> **Corrected 2026-07-22 (preflight PF-025).** This paragraph previously claimed
+> `slice7/main.blend` and `slice7b/game.blend` "carry multiple `let i:` declarations". They carry
+> exactly one each, and no example file contains two `for (let i` at all — the claim was false and
+> would have handed a planner a phantom migration task. The exposure audit's conclusion (no
+> example affected) stands and is unchanged.
+>
+> **Also corrected**: the RD's scope widened materially at preflight. RD-01 now covers the whole
+> *wrap-defeats-the-exit-test* class — `step`, word, signed, and const-expression/runtime bounds
+> — plus a frame-slot **width** rule, not only the five originally probed defects.
 
 ### P2 — Cheap unblocks
 
@@ -240,7 +266,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | — | **Authored** ✏️ | 🔄 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | — | **Preflight it.1 ❌ BLOCKED → RD revised**; needs it.2 | 🔄 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |
