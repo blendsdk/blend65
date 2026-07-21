@@ -1585,11 +1585,6 @@ class FunctionTranslator {
           this.emit("ASL", "Accumulator", none());
         }
         this.bindA(asTempId(dest));
-        this.bag.addWarning(
-          DiagCode.ShiftAndAddMultiply,
-          null,
-          `multiply by ${constSide.value & 0xff} generates a shift-and-add sequence`,
-        );
         return;
       }
     }

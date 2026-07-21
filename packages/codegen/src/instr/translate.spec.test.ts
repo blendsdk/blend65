@@ -454,8 +454,10 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // mul by a constant power-of-two → shift sequence; W10172 emitted.
-  it("translates mul by a power of two into shifts and warns W10172 (ST-T16)", () => {
+  // mul by a constant power-of-two → shift sequence, and no shift-and-add warning:
+  // OP-5 (spec/evaluations/F017-operators.md:442) states the warning "does NOT
+  // trigger for power-of-2 constants (which use cheap shifts)".
+  it("translates mul by a power of two into shifts and does not warn W10172 (ST-T16)", () => {
     const { text, bag } = render(
       [
         { op: "load", a: temp(0, IL_BYTE), b: loc("a", IL_BYTE) },
@@ -467,7 +469,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
     expect(text).toBe(
       ["M_f:", "    LDA a", "    ASL", "    ASL", "    ASL", "    STA r", "    RTS"].join("\n"),
     );
-    expect(bag.getWarnings().map((w) => w.code)).toContain(DiagCode.ShiftAndAddMultiply);
+    expect(bag.getWarnings().map((w) => w.code)).not.toContain(DiagCode.ShiftAndAddMultiply);
   });
 
   // runtime mul (both operands variable) → JSR __rt_mul8; W10170 emitted.

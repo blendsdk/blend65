@@ -6,7 +6,8 @@
  * (an indexed read feeding further arithmetic must compile, never die in the
  * register binder), the fail-loud word-store rule (a register-resident word
  * source is rejected, never silently stored as the index), the documented
- * pointer-tier boundary, and `!byte` data streams serialized after code.
+ * pointer-tier boundary, `!byte` data streams serialized after code, and the
+ * user-written power-of-two multiply's own exclusion from that same warning.
  *
  * Programs run the REAL pipeline: frontend → IL lowering → instruction
  * translation → ACME serialization. Expectations derive from the documented
@@ -109,7 +110,11 @@ describe("Specification: indexed framings (ST-53, ST-53a, ST-54, ST-54a)", () =>
 });
 
 describe("Specification: scaling warnings (ST-51a, ST-51b)", () => {
-  it("ST-51a: a 2-byte element scale strength-reduces to ASL with W10172 — no runtime multiply", () => {
+  // OP-5 (spec/evaluations/F017-operators.md:442) states the shift-and-add warning
+  // "does NOT trigger for power-of-2 constants (which use cheap shifts)". A 2-byte
+  // element scale is exactly that case, and it is the compiler's own multiply — the
+  // user wrote an index, not an arithmetic expression to reconsider.
+  it("ST-51a: a 2-byte element scale strength-reduces to ASL with no W10172 — no runtime multiply", () => {
     const { asm, diags, hasErrors } = toAsm([
       "module Main;\nstruct Point { x: byte; y: byte; }\n" +
         "let pts: Point[4];\n" +
@@ -118,7 +123,7 @@ describe("Specification: scaling warnings (ST-51a, ST-51b)", () => {
     expect(hasErrors).toBe(false);
     expect(asm).toContain("ASL");
     expect(asm).not.toContain("__rt_mul8");
-    expect(diags.some((d) => d.code === DiagCode.ShiftAndAddMultiply)).toBe(true);
+    expect(diags.some((d) => d.code === DiagCode.ShiftAndAddMultiply)).toBe(false);
     expect(diags.some((d) => d.code === DiagCode.RuntimeMultiply)).toBe(false);
   });
 
@@ -131,6 +136,27 @@ describe("Specification: scaling warnings (ST-51a, ST-51b)", () => {
     expect(hasErrors).toBe(false);
     expect(asm).toContain("__rt_mul8");
     expect(diags.some((d) => d.code === DiagCode.RuntimeMultiply)).toBe(true);
+  });
+});
+
+describe("Specification: a user-written power-of-two multiply (ST-13c)", () => {
+  // The companion to ST-51a on the other side of authorship: here the multiply IS
+  // the user's own, written in source, and it still must not warn. OP-5
+  // (spec/evaluations/F017-operators.md:442) excludes power-of-2 constants because
+  // they lower to cheap shifts — advising "consider power-of-2 stride" about a
+  // stride that already is one has nothing to tell the developer.
+  //
+  // The multiplicand is a raster read, so the product is genuinely computed at run
+  // time and cannot be folded away by any future constant propagation.
+  it("ST-13c: `peek($D012) * 4` shifts twice, calls no runtime multiply, and warns nothing", () => {
+    const { asm, diags, hasErrors } = toAsm([
+      "module Main;\nfunction main(): void { poke($0400, peek($D012) * 4); }\n",
+    ]);
+    expect(hasErrors).toBe(false);
+    expect(asm.match(/^\s*ASL\b/gm) ?? []).toHaveLength(2);
+    expect(asm).not.toContain("__rt_mul8");
+    expect(diags.some((d) => d.code === DiagCode.ShiftAndAddMultiply)).toBe(false);
+    expect(diags.some((d) => d.code === DiagCode.RuntimeMultiply)).toBe(false);
   });
 });
 

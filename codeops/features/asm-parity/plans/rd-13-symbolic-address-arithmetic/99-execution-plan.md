@@ -1,8 +1,8 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 0/54 tasks (0%)
-> **Last Updated**: 2026-07-21 (plan preflight — see [00-preflight-report.md](00-preflight-report.md))
+> **Progress**: 6/54 tasks (11%) — Phase 1 complete
+> **Last Updated**: 2026-07-21 (Phase 1 — M3 landed, full verify green, zero byte movement)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #95), run at every marked point:
@@ -41,23 +41,29 @@ hand-review is pointed at `balloon`'s assembly against its committed twin instea
 Independently shippable, no dependency on M1, zero byte movement (AR #94). Touches no ratchet, no
 golden, no scoreboard. Spec: [03-02 §1](03-02-diagnostics-examples-ledgers.md#1--m3--w10172-conformance-phase-1).
 
-- [ ] 1.1 Re-derive **ST-51a** (`translate-indexed.spec.test.ts:112,121`): invert the diagnostic
+- [x] 1.1 Re-derive **ST-51a** (`translate-indexed.spec.test.ts:112,121`): invert the diagnostic
       expectation to absent, update the title, add the `spec/evaluations/F017-operators.md:442`
       citation to its header. `ASL` present / `__rt_mul8` absent stay unchanged
-- [ ] 1.2 Re-derive **ST-T16** (`translate.spec.test.ts:458,470`) the same way; the exact
+- [x] 1.2 Re-derive **ST-T16** (`translate.spec.test.ts:458,470`) the same way; the exact
       `LDA a`/`ASL`×3/`STA r` text assertion at `:467-469` stays byte-for-byte. **Also rewrite the
       comment at `:457`** — *"// mul by a constant power-of-two → shift sequence; W10172 emitted."*
       — which is the fifth site of the diagnostic's footprint and would otherwise state the
       opposite of what the test pins
-- [ ] 1.3 Write **ST-13c** — a user-written runtime power-of-two multiply emits no
+- [x] 1.3 Write **ST-13c** — a user-written runtime power-of-two multiply emits no
       `ShiftAndAddMultiply`, with both `ASL`s pinned present. This is AC-7's witness and must
       survive Phase 4, when `balloon` loses its multiply entirely
-- [ ] 1.4 **Verify RED** — all three fail for the stated reason, not an unrelated one
-- [ ] 1.5 Delete the `bag.addWarning(DiagCode.ShiftAndAddMultiply, …)` call at
+- [x] 1.4 **Verify RED** — all three fail for the stated reason, not an unrelated one
+      *(2026-07-21: 3 failed / 38 passed; each failure on the `ShiftAndAddMultiply`
+      assertion alone — ST-13c's `ASL`×2, no-`__rt_mul8` and no-W10170 assertions
+      passed on the unmodified compiler)*
+- [x] 1.5 Delete the `bag.addWarning(DiagCode.ShiftAndAddMultiply, …)` call at
       `translate.ts:1588-1592`. Nothing else in `translateMul` moves; the registration at
       `diagnostic-codes.ts:374` **stays**
-- [ ] 1.6 **Verify GREEN** + full verify. Confirm zero byte movement: 14 goldens byte-identical,
+- [x] 1.6 **Verify GREEN** + full verify. Confirm zero byte movement: 14 goldens byte-identical,
       `budgets.json` untouched, `SCOREBOARD.md` unchanged
+      *(2026-07-21: full verify green — codegen 78 files / 696 tests, whole run exit 0.
+      `git status --porcelain` on `examples/`, the golden dir, `budgets.json` and
+      `SCOREBOARD.md` returns **0 lines**; `spec/` clean)*
 
 **Commit point.** Scope `fix(codegen)`.
 
