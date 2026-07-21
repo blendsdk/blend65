@@ -1,0 +1,114 @@
+{
+  "_readme": "Idioms a C64 game developer cannot express, or can express only in a form no competent developer would accept. Each entry is EXECUTABLE: the gate compiles `source` and asserts `expect` still describes what happens. When a gap is fixed the gate goes RED, which is the point — an entry cannot rot silently, it must be retired deliberately. Add an entry when a restriction is discovered; delete it in the same change that removes the restriction.",
+  "entries": [
+    {
+      "id": "X-01",
+      "idiom": "Write to screen RAM in a loop — clear the screen, blit text, draw a tile row",
+      "source": "module Main;\nfunction main(): void {\n  for (let i: byte = 0 to 39) { poke($0400 + i, 32); }\n}\n",
+      "expect": "diagnostic",
+      "code": "E10045",
+      "governedBy": "AR-101 (runtime half) — rationale EXPIRED when slice 7b shipped (zp),Y",
+      "owner": "blend65-conformance RD-02",
+      "note": "The frozen spec mandates this form at spec/12-intrinsics.md:159."
+    },
+    {
+      "id": "X-02",
+      "idiom": "Name a hardware register instead of a magic number",
+      "source": "module Main;\nconst BORDER: word = $D020;\nfunction main(): void {\n  poke(BORDER, 5);\n}\n",
+      "expect": "diagnostic",
+      "code": "E10045",
+      "governedBy": "none — drift. No decision authorised rejecting a named constant",
+      "owner": "blend65-conformance T-01",
+      "note": "Violates Prime Directive clause 3. The diagnostic text claims to require a compile-time constant and then rejects one."
+    },
+    {
+      "id": "X-03",
+      "idiom": "Use a constant expression as an address",
+      "source": "module Main;\nfunction main(): void {\n  poke($0400 + 5, 1);\n}\n",
+      "expect": "diagnostic",
+      "code": "E10045",
+      "governedBy": "none — drift",
+      "owner": "blend65-conformance T-01"
+    },
+    {
+      "id": "X-04",
+      "idiom": "Call code at an address — a tracker-authored SID player, or a KERNAL routine",
+      "source": "module Main;\nconst PLAY: word = $1003;\nfunction main(): void {\n  let f: word = PLAY;\n  f();\n}\n",
+      "expect": "diagnostic",
+      "code": "E10175",
+      "governedBy": "FUT-003 (typed function pointers), FUT-011 (extern function)",
+      "owner": "blend65-conformance RD-09",
+      "note": "spec/evaluations/F015-data-inclusion.md:583 builds its embedded-SID example on callAddress(), a helper the language cannot express. Music is unreachable by construction."
+    },
+    {
+      "id": "X-05",
+      "idiom": "Copy a whole struct out of an array of sprite records",
+      "source": "module Main;\nstruct Spr { x: byte; y: byte; }\nlet sprites: Spr[4];\nfunction main(): void {\n  let i: byte = 1;\n  let tmp: Spr = sprites[i];\n  poke($D000, tmp.x);\n}\n",
+      "expect": "diagnostic",
+      "code": "E90001",
+      "governedBy": "slice-7b ST-40 (partial); the spill ceiling is unrecorded",
+      "owner": "blend65-conformance RD-05",
+      "note": "spec/07-structs.md:588 uses this exact shape as its own example. Fails as an internal compiler error naming IR nodes, not as a user diagnostic."
+    },
+    {
+      "id": "X-06",
+      "idiom": "Index a tile map two-dimensionally",
+      "source": "module Main;\nlet map: byte[25][40];\nfunction main(): void {\n  let x: byte = 1;\n  let y: byte = 2;\n  poke($D020, map[<word>(y)][x]);\n}\n",
+      "expect": "diagnostic",
+      "code": "E90001",
+      "governedBy": "none found",
+      "owner": "blend65-conformance RD-05",
+      "note": "A screen-sized 25x40 map. A small map with byte indices folds and compiles; the failure needs a realistic size, which is exactly the shape a game uses."
+    },
+    {
+      "id": "X-07",
+      "idiom": "The canonical full-page loop",
+      "source": "module Main;\nfunction main(): void {\n  for (let i: byte = 0 to 255) { poke($D020, i); }\n}\n",
+      "expect": "diagnostic",
+      "code": "E90001",
+      "governedBy": "slice-4a AR-6 — deferred to a follow-up that no longer exists",
+      "owner": "blend65-conformance RD-01",
+      "note": "spec/05-statements-control-flow.md:253 explicitly promises this compiles via INX/BNE-wrap. The named-const spelling of the same loop does NOT error — it silently hangs (see X-08)."
+    },
+    {
+      "id": "X-08",
+      "idiom": "Count down to zero — the canonical 6502 loop",
+      "source": "module Main;\nfunction main(): void {\n  for (let i: byte = 9 downto 0) { poke($D020, i); }\n}\n",
+      "expect": "miscompiles",
+      "asmSignature": "BCC",
+      "governedBy": "none — drift",
+      "owner": "blend65-conformance RD-01",
+      "note": "Compiles clean and emits CMP #$00 / BCC, a branch that can never be taken. The loop never exits. This entry asserts the DEFECT is still present; it is retired by RD-01."
+    },
+    {
+      "id": "X-09",
+      "idiom": "Exclusive range over an array",
+      "source": "module Main;\nlet buf: byte[8];\nfunction main(): void {\n  for (let i: byte = 0 until 8) { buf[i] = 0; }\n}\n",
+      "expect": "diagnostic",
+      "code": "E10309",
+      "governedBy": "slice-4a AR-3 — deferred to 'alongside Slice 7'; Slice 7 shipped without it",
+      "owner": "blend65-conformance RD-04",
+      "note": "`until` is normative spec surface (spec/05, spec/08). Every spec example using it is a syntax error."
+    },
+    {
+      "id": "X-10",
+      "idiom": "Cast, using the syntax the specification documents",
+      "source": "module Main;\nfunction main(): void {\n  let w: word = 300;\n  let b: byte = byte(w);\n  poke($D020, b);\n}\n",
+      "expect": "diagnostic",
+      "code": "E10301",
+      "governedBy": "none — no ruling found on the syntax divergence",
+      "owner": "blend65-conformance RD-04 (pending the D3 ruling)",
+      "note": "spec/02-type-system.md:302 documents byte(expr); grammar.ebnf.md:305 documents `expr as type`; the parser accepts only <byte>(expr). Three different answers."
+    },
+    {
+      "id": "X-11",
+      "idiom": "Divide by a power of two",
+      "source": "module Main;\nfunction main(): void {\n  let x: byte = peek($D012);\n  let h: byte = x / 2;\n  poke($D020, h);\n}\n",
+      "expect": "miscompiles",
+      "asmSignature": "__rt_div8",
+      "governedBy": "none — drift",
+      "owner": "blend65-conformance RD-07",
+      "note": "spec/04-expressions-operators.md:70 and F017:251 promise LSR (2 cycles). Emits a runtime division call instead — roughly 75x. F017 passed its Language Guard on this cost model."
+    }
+  ]
+}

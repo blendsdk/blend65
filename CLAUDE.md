@@ -132,6 +132,15 @@ would judge it:
   under any future optimization.
 - **A restriction that forces un-idiomatic user code** (e.g. unrolled pokes) is itself the bug —
   treat it as such.
+- **Output is judged as an expert 6502 programmer would; input is judged as the target user
+  would.** Those are two different people. The person writing Blend65 knows their game, not the
+  VIC's block granularity — lore the hardware demands belongs in the platform library, not in
+  every user's source. A wrapper that makes the hardware approachable must cost nothing, or the
+  developers who most need it will correctly refuse it.
+- **A program the language cannot express at all is the limiting parity failure — an infinite
+  ratio.** The scoreboard measures only programs that compile, so it is structurally blind to
+  this class; such gaps live in the expressiveness ledger
+  (`codeops/features/blend65-conformance/`), never in the scoreboard.
 
 ### Environment & dependencies
 
@@ -150,6 +159,16 @@ would judge it:
   compiler implementation (decision D3). `git status --porcelain spec/` must stay empty.
 - Honor the Blend65 Language Guard (`.clinerules/language-guard.md`) for any language-
   feature work: no feature enters the spec without passing all 23 rules.
+- **Deferral-expiry gate (mandatory at every RD closeout).** Before an RD may close, answer in
+  its closeout document: *"did this RD's deliverables expire any deferral's stated rationale?"*
+  A deferral is justified by a **reason**, not by a date — when the reason stops holding, the
+  deferral is due, and nothing else will notice. Walk the ambiguity registers, the RD
+  "Won't Have" sections and `spec/future-considerations.md` reconsideration criteria for
+  anything this RD's work invalidates, and re-open each as an owned backlog row.
+  **A rollout RD may not close while any deferral names one of its own future slices as its
+  landing place** — those deferrals are orphaned the moment it closes, and must be given a new
+  owner first. Restrictions a user can hit belong in the expressiveness ledger
+  (`packages/test-harness/test/golden/expressiveness-ledger.json`), whose gate keeps them honest.
 - Runtime-ambiguity protocol: if an implementation decision is undetermined, STOP, log
   it in the active plan's Ambiguity Register as the next AR-PN (runtime), resolve with
   the user, then resume and back-propagate the resolution into the affected plan docs.

@@ -149,6 +149,25 @@
 > standard per-item sequence runs: `preflight (RD) → make_plan → preflight (plan) → exec_plan`.
 > Governing bar: the Prime Directive (project `CLAUDE.md`) — output parity with hand-written assembly.
 
+## ⚠ Lane interaction with `blend65-conformance` (added 2026-07-21)
+
+A conformance audit found four **silent miscompiles** and the reasons a C64 game cannot be
+written at all; the work is owned by the new
+[`blend65-conformance`](../blend65-conformance/00-roadmap.md) feature. The two lanes
+**interleave** — this one does not stop.
+
+| Rule | |
+|------|--|
+| **L-1** | This lane pauses only for conformance **P0-core → P1 → P2** (hours + one small RD) |
+| **L-2** | The pause does **not** mean parity measurements are invalid — no corpus fixture exercises the broken forms, so the scoreboard is sound for what it measures |
+| **L-3** | **#70 is absorbed, not blocked** — it is conformance RD-07, batched with strength reduction, so the corpus regenerates once instead of twice |
+| **L-4** | ⛔ **RD-16 (`boing-ball` twin, #72) waits until after conformance P6.** A twin authored earlier goes stale at every later behavioural phase — the hazard this row already records about RD-13. The only hard wait |
+| **L-5** | **RD-12 (Sweep A, #57) is substantially discharged** by the conformance audit, and **RD-09 (Sweep D, #60)** overlaps conformance RD-07. Re-scope both against `codeops/00-conformance-triage.md`; do not re-run them fresh |
+| **L-6** | Parallel-safe now: RD-10 (#59), RD-08 (#54), RD-11 (#62), RD-14 (#63), T-01 (#55), T-03 (#73). RD-06 Rule 1 may proceed; Rules 2–3 await the MMIO/FUT-018 deadlock decision at conformance P6 |
+
+> The **▶ Resume here** section below is stale (dated 2026-07-20, pre-RD-13/RD-15). Read the
+> Tracker and this block for current position.
+
 ## ▶ Resume here (2026-07-20)
 
 No open threads — RD-03 and RD-05 are both fully closed out. The next decision is which RD to pick

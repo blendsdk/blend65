@@ -53,8 +53,15 @@ audited + ticked; RD-04b phantom retired. Next: RD-13/RD-14 (both need `make_pla
 - 2026-07-17 — **RD-18 ✅ CLOSED — Slice 8b ✅ (58/58)** — strings/encoding + `embed()` +
   rollout closure: the encoder seam, both literal desugars, the traversal-safe asset reader,
   the acceptance bar green on real VICE first run, the label-allocator codegen fix, and the
-  closure audit (items 7–9; RD-04/06/07 ACs; RD-04b retired). The whole frozen v3 language
-  now compiles end-to-end, unoptimized.
+  closure audit (items 7–9; RD-04/06/07 ACs; RD-04b retired).
+  > **Correction (2026-07-21)**: this entry originally read "the whole frozen v3 language now
+  > compiles end-to-end, unoptimized." That claim is **false**. A conformance audit found legal
+  > frozen-spec surface that still ICEs or fails to parse — `for (i = 0 to 255)`, the `until`
+  > range form, signed `/` and `%`, `arr[i] += 1`, `hi()` of a computed word, whole-struct
+  > assignment through a runtime index, and the spec's own documented cast syntax — plus four
+  > silent miscompiles. Several are deferrals that named "a later RD-18 slice" as their landing
+  > place and were orphaned when RD-18 closed. See `codeops/00-conformance-triage.md` and the
+  > `blend65-conformance` feature, which owns the remainder.
 - 2026-07-17 — **RD-18 Slice 8b plan preflighted 🔬** — 11 findings resolved (incl. the
   `SourceId`-keyed `AssetReader` contract — the frontend owns no source paths — and in-place
   char-literal conversion, without which the acceptance fixture's own shapes would ICE at
@@ -87,8 +94,12 @@ audited + ticked; RD-04b phantom retired. Next: RD-13/RD-14 (both need `make_pla
 ## Current Position
 
 - **Active**: none — **RD-18 is CLOSED** (2026-07-17). All slices 3a–8b ✅ complete, each
-  gated by CI assemble-clean + CI golden + local VICE; the whole frozen v3 language compiles
-  end-to-end (unoptimized; Phase-B optimizer deliberately out of scope).
+  gated by CI assemble-clean + CI golden + local VICE.
+  **⚠️ Corrected 2026-07-21** — the original wording, "the whole frozen v3 language compiles
+  end-to-end", is **false**. Legal frozen-spec constructs still ICE, fail to parse, or
+  miscompile silently; the remainder is owned by the `blend65-conformance` feature and
+  catalogued in `codeops/00-conformance-triage.md`. RD-18's *slices* are complete; the
+  *language* is not.
 - **Last completed non-RD-18 work**: **RD-12** (test harness & emulator verification) and
   **RD-15** (programmatic + CLI API), both 2026-07-03. The full pipeline compiles
   frontend→SFA→IL→6502→ACME→loadable c64 `.prg` and is VICE-verified; `blendc` ships with config,
