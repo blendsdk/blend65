@@ -95,8 +95,14 @@ rule would be arbitrary. This scope is load-bearing rather than cosmetic: it is 
 (`packages/codegen/src/il/lower-address-of.spec.test.ts:157-174`), which pins the homing behaviour
 for `lo(&fn)` / `hi(&fn)`, a test this RD must re-derive — see M3's spec-test inventory.
 
-A **local** variable's `&` is out of scope only because it is already excluded upstream: its
-address is a frame symbol, and `hi(&local)` is unaffected by this RD either way.
+> **Corrected during implementation.** This paragraph originally read *"a local variable's `&` is
+> out of scope only because it is already excluded upstream: its address is a frame symbol, and
+> `hi(&local)` is unaffected by this RD either way."* The code contradicts it. `lowerAddressOf`
+> resolves a local to a `__frame_*` symbol and `emitLo`/`emitHi` reach it through the very same
+> address-of branch as every other kind, so `hi(&local)` **is** affected — beneficially. M1 is
+> uniform across all four kinds `&` accepts: module variable, local, const aggregate, and function
+> or interrupt entry label. It performs no kind test at all; the uniformity is inherited from
+> `lowerAddressOf`, which is the point of routing through it.
 
 The instruction-operand model **already expresses this**: `symbolRef`
 (`packages/core/src/instr-model/operand.ts:30-40`) carries
@@ -125,7 +131,7 @@ Two further constraints the implementation cannot choose away:
 | Constraint | Evidence | Consequence |
 |---|---|---|
 | **The slot claim is positional and must survive.** `claimResultSlot` names slots `0sc<N>` off `ctx.scCounter++` (`lower.ts:1392`), matched against slots the SFA planner appends in AST preorder (`packages/frontend/src/sfa/model-adapter.ts:119-124`). Its own doc states *"Every `&` site claims a slot — including plain-store sites that end up not writing theirs — so the counter never depends on how the site is used"* (`:186-190`) | The **frontend** planner's lists are pinned by `model-adapter.spec.test.ts:287-324` — but that suite has no `&` fixture and cannot observe codegen's counter, so it is **not** the proof (see AC-3) | Keep the claim. The slot goes unwritten — 2 dead bytes in the SFA **RAM** region, **zero** binary bytes |
-| **An IL `addr` operand is rejected outside its two legal positions.** Of the seven `isAddr` guards, **five ICE** — `leftIntoA` (`translate.ts:921-924`) plus `:954`, `:978`, `:1760`, `:2044` — while **`:698` (store source) and `:1035` (ALU right) are the two *accepting* paths and must stay accepting** | `il/operand.ts:20-28` states the rule normatively | A byte-selected address needs to be *representable in IL* and legal in one **new** position — the load source (see Technical Requirements). This is an IL-level change, not an `InstrOperand` one |
+| **An IL `addr` operand is rejected outside its two legal positions.** Of the seven `isAddr` guards, **five ICE** — `leftIntoA` (`translate.ts:921-924`) plus `:954`, `:978`, `:1760`, `:2044` — while **`:698` (store source) and `:1035` (ALU right) are the two *accepting* paths and must stay accepting** | `il/operand.ts:20-28` states the rule normatively | A byte-selected address needs to be *representable in IL*. **Corrected during implementation**: this originally continued *"and legal in one new position — the load source"*, which was wrong and is retracted in full under Technical Requirements. The rule was not amended and all seven guards stand: the IL gained a separate byte-typed operand kind, so `addr`'s two positions are untouched and a consumer with no arm for the new kind is a compile error rather than a silent misread |
 
 **M2 — Link-time division and shift on an address fold, under `lo()`, to an assembler expression.**
 `lo(&X / 2^k)` and `lo(&X >> k)` emit a single immediate whose operand ACME evaluates —
@@ -342,10 +348,19 @@ is how a word address reaches a byte consumer.
 Either way, **the IL operand's position contract gains a third legal shape and must say so.**
 `il/operand.ts:23-28` currently states that an address operand *"is legal in exactly two
 positions: a `store` source … and an ALU right operand. Every other consumer rejects it loudly."*
-M1 needs a byte-selected address to be legal as a **load source** as well, so that the `* 4`'s
-`leftIntoA` sees a value already in `A`. That documented rule is load-bearing — it is what makes
-drift fail loudly instead of silently misreading — so it is amended deliberately, in the same
-change, not left describing a contract the code no longer honours.
+> **Corrected during implementation.** This originally required a byte-selected address to become
+> legal as a **load source**, amending that rule. It needed no such thing, and the rule was left
+> exactly as written. `emitLo`/`emitHi` emit no `load` at all — they return the operand **directly**,
+> the shape both already used for a numeric literal. What the IL gained is a separate byte-typed
+> operand kind, not a third legal position for the 16-bit `addr`, whose two-position rule still says
+> what it always said and is still true.
+>
+> The separate kind also proved to be the load-bearing choice rather than a stylistic one. Extending
+> `addr` would have failed *silently* at the two guards that already **accept** it: the store source
+> would emit the two-byte marshalling pair for a byte-typed value, writing one byte past a byte slot,
+> and the ALU right operand derives its byte select from the byte index, so a high select read at
+> index 0 emits the low byte. Both assemble cleanly. As distinct kinds, a missing arm is a compile
+> error instead.
 
 > The `lowerAddressOf` routing constraint under M1 applies to **M2's fold path too**, not only to
 > M1's byte-select. Any path that reaches a `&` site without calling `lowerAddressOf` loses both
@@ -486,10 +501,16 @@ No new runtime surface, no I/O, no user input. Two notes:
    (`div` vs `shr`) and converge on one fold operand, so agreement catches an entry-point mapping
    bug; it is not circular because AC-4 anchors the shared value externally against the symbol
    map. If AC-4 is ever weakened, this pair becomes circular.*
-6. [ ] **[CI]** **The blessed idiom migrates, in both examples**: `examples/balloon/main.blend:11`
-   **and** `examples/balloon-color/main.blend:21` use `lo(&X / 64)`, and balloon-color's teaching
-   comment no longer describes the block as "high byte times four". Both are built in CI and each
-   program's sprite-pointer byte is asserted against its own symbol map by AC-4's rule.
+6. [ ] **[CI]** **The blessed idiom migrates, in all three examples**: `examples/balloon/main.blend`,
+   `examples/balloon-color/main.blend` **and** `examples/boing-ball/main.blend` use `lo(&X / 64)`,
+   and no teaching comment still describes the block as "high byte times four". All three are built
+   in CI and each program's block number is asserted against its own symbol map by AC-4's rule.
+   *Corrected during implementation: this criterion originally said "both examples" and named two.
+   `examples/boing-ball` landed after this RD was written and carries the same idiom in a `let`
+   initializer — a different lowering position, and the one case where the value is then used
+   arithmetically, since its ball is four consecutive 64-byte blocks reached as `base + 0..3`. Its
+   four sprite pointers are computed at run time, so its evidence splits: CI proves the link-time
+   half, a local emulator check proves the rest.*
    *`balloon-color` is outside the corpus and referenced by nothing today, so without this it
    would be verified by nothing at all.* **Ordering:** AC-6 lands only after M2 is wired —
    migrating first makes `balloon` grow past its ratchet, fires `W10171`, and reds the scoreboard

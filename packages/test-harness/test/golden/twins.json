@@ -57,7 +57,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -69,7 +69,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ]
@@ -82,7 +82,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -94,7 +94,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ]
@@ -107,7 +107,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -119,7 +119,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ]
@@ -132,7 +132,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -144,7 +144,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ]
@@ -157,7 +157,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -169,7 +169,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ]
@@ -182,7 +182,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -194,7 +194,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ]
@@ -207,7 +207,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -219,7 +219,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ],
@@ -239,7 +239,7 @@
         "instruction selection": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
           },
           {
@@ -251,7 +251,7 @@
         "layout": [
           {
             "disposition": "structural",
-            "issue": 58,
+            "issue": 70,
             "note": "code-size consequence of the unfolded machinery"
           }
         ],
@@ -407,26 +407,21 @@
           {
             "disposition": "peephole",
             "issue": 52,
-            "note": "LDA 35 vs 27, STA 26 vs 21 - redundant load/store elimination"
-          },
-          {
-            "disposition": "peephole",
-            "issue": 58,
-            "note": "ASL 2 vs 0 and the loads feeding them: hi(&BALLOON) * 4 materialises the whole address into a frame-slot pair before taking its high byte, 8 instructions where a hand-coder writes 4. It also emits a spurious shift-and-add warning for a sequence it does not generate"
+            "note": "LDA 33 vs 27, STA 24 vs 21 - redundant load/store elimination"
           }
         ],
         "layout": [
           {
             "disposition": "peephole",
             "issue": 52,
-            "note": "code stream 237 vs 176 bytes, +61. Down from 677 total: the 63-store staging copy is gone entirely. What is left is redundant load/store and the address materialisation above, not block layout"
+            "note": "code stream 224 vs 176 bytes, +48. Down from 677 total: the 63-store staging copy is gone entirely and the sprite pointer is now the twin's own two instructions. What is left is redundant load/store elimination, not block layout"
           }
         ],
         "data placement": [
           {
             "disposition": "data/placement",
             "issue": 49,
-            "note": "non-code 81 vs 75 bytes, +6 - page-alignment padding, and the only byte cost placement adds. It is an accident of where the image lands, so it re-rolls anywhere in 0-255 when unrelated code sizes shift. The two programs use different legitimate idioms here: the twin stages its image into the tape buffer below the load address, which a single-load PRG cannot reach and which buys file size; the compiled program aligns its image and reads it in place, which buys runtime - it copies nothing at startup where the twin copies 63 bytes. Padding is not reported anywhere today, which is #67"
+            "note": "non-code 94 vs 75 bytes, +19 - page-alignment padding, and the only byte cost placement adds. It is an accident of where the image lands, so it re-rolls anywhere in 0-255 when unrelated code sizes shift. The two programs use different legitimate idioms here: the twin stages its image into the tape buffer below the load address, which a single-load PRG cannot reach and which buys file size; the compiled program aligns its image and reads it in place, which buys runtime - it copies nothing at startup where the twin copies 63 bytes. Padding is not reported anywhere today, which is #67"
           }
         ]
       }

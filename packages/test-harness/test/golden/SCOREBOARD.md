@@ -27,11 +27,10 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| data placement | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | non-code 81 vs 75 bytes, +6 - page-alignment padding, and the only byte cost placement adds. It is an accident of where the image lands, so it re-rolls anywhere in 0-255 when unrelated code sizes shift. The two programs use different legitimate idioms here: the twin stages its image into the tape buffer below the load address, which a single-load PRG cannot reach and which buys file size; the compiled program aligns its image and reads it in place, which buys runtime - it copies nothing at startup where the twin copies 63 bytes. Padding is not reported anywhere today, which is #67 |
+| data placement | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | non-code 94 vs 75 bytes, +19 - page-alignment padding, and the only byte cost placement adds. It is an accident of where the image lands, so it re-rolls anywhere in 0-255 when unrelated code sizes shift. The two programs use different legitimate idioms here: the twin stages its image into the tape buffer below the load address, which a single-load PRG cannot reach and which buys file size; the compiled program aligns its image and reads it in place, which buys runtime - it copies nothing at startup where the twin copies 63 bytes. Padding is not reported anywhere today, which is #67 |
 | instruction selection | structural | [#51](https://github.com/blendsdk/blend65/issues/51) | JMP 4 vs 3 - essentially at parity; three of the four are the startup shim's entry jump and two if/else joins that are not the next block |
-| instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 35 vs 27, STA 26 vs 21 - redundant load/store elimination |
-| instruction selection | peephole | [#58](https://github.com/blendsdk/blend65/issues/58) | ASL 2 vs 0 and the loads feeding them: hi(&BALLOON) * 4 materialises the whole address into a frame-slot pair before taking its high byte, 8 instructions where a hand-coder writes 4. It also emits a spurious shift-and-add warning for a sequence it does not generate |
-| layout | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | code stream 237 vs 176 bytes, +61. Down from 677 total: the 63-store staging copy is gone entirely. What is left is redundant load/store and the address materialisation above, not block layout |
+| instruction selection | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | LDA 33 vs 27, STA 24 vs 21 - redundant load/store elimination |
+| layout | peephole | [#52](https://github.com/blendsdk/blend65/issues/52) | code stream 224 vs 176 bytes, +48. Down from 677 total: the 63-store staging copy is gone entirely and the sprite pointer is now the twin's own two instructions. What is left is redundant load/store elimination, not block layout |
 
 ## gate — routing
 
@@ -71,67 +70,67 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice4a — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice4b — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice5a — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice5b — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice6 — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice7 — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
 | data placement | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | const tables and padding placed differently from the hand layout |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice7b — routing
 
 | Category | Disposition | Issue | Notes |
 | -------- | ----------- | ----- | ----- |
 | data placement | data/placement | [#49](https://github.com/blendsdk/blend65/issues/49) | const tables and padding placed differently from the hand layout |
-| instruction selection | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
+| instruction selection | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores |
 | instruction selection | ceremony | [#59](https://github.com/blendsdk/blend65/issues/59) | startup/call ceremony: JSR main, RTS chain, init routine |
-| layout | structural | [#58](https://github.com/blendsdk/blend65/issues/58) | code-size consequence of the unfolded machinery |
+| layout | structural | [#70](https://github.com/blendsdk/blend65/issues/70) | code-size consequence of the unfolded machinery |
 
 ## slice8 — routing
 

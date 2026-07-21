@@ -70,6 +70,26 @@ describe("Specification: loadTwinManifest", () => {
     expect(manifest.pairs.balloon?.twin).toBe("examples/balloon/balloon.asm");
   });
 
+  it("should route no divergence to the symbolic-address audit issue", () => {
+    // That issue was an audit umbrella, and the rows filed under it turned out
+    // to belong elsewhere: all but one were local constant-propagation gaps in
+    // codegen dataflow, and the one genuine symbolic-address divergence has
+    // since been fixed and its row re-authored from measurement. Stated flatly,
+    // with no exception clause: an exception set nobody can enumerate is not a
+    // check. The issue itself stays open for its remaining audit halves; it
+    // simply no longer owns a routed row.
+    const manifest = loadTwinManifest(COMMITTED_MANIFEST);
+    const misrouted: string[] = [];
+    for (const [name, pair] of Object.entries(manifest.pairs)) {
+      for (const [category, entries] of Object.entries(pair.routing ?? {})) {
+        for (const entry of entries) {
+          if (entry.issue === 58) misrouted.push(`${name} / ${category}`);
+        }
+      }
+    }
+    expect(misrouted).toEqual([]);
+  });
+
   it("should load a valid manifest with measured and routing blocks, typed", () => {
     const path = stage({ pairs: { balloon: FULL_PAIR, gate: { source: "examples/gate", twin: "packages/test-harness/test/golden/gate.twin.asm" } } });
     const manifest = loadTwinManifest(path);

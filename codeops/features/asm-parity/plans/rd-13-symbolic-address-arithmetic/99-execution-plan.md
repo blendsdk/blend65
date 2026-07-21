@@ -1,8 +1,8 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 45/54 tasks (83%) — Phases 1–4 complete
-> **Last Updated**: 2026-07-21 (Phase 4 — all three demos migrated, parity reached on the idiom)
+> **Progress**: 54/54 tasks (100%) — complete
+> **Last Updated**: 2026-07-21 (Phase 5 — ledgers re-authored, RD corrected, closed out)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #95), run at every marked point:
@@ -276,38 +276,41 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
 
 Spec: [03-02 §3–§5](03-02-diagnostics-examples-ledgers.md#3--m4--the-ledgers-stay-true-phases-2-4-5).
 
-- [ ] 5.1 Add the structural manifest check to `twin-manifest.spec.test.ts`: **no `twins.json` row
+- [x] 5.1 Add the structural manifest check to `twin-manifest.spec.test.ts`: **no `twins.json` row
       carries `"issue": 58`** — flatly, with no exception clause, since all 17 rows are accounted
       for as 1 re-authored + 16 re-routed. **Watch it fail on all 17 first**; this is the phase's
       RED, and writing it after 5.2/5.3 would make it unfailable
-- [ ] 5.2 Re-author **all three** of `balloon`'s routing rows **from measurement**. The
+- [x] 5.2 Re-author **all three** of `balloon`'s routing rows **from measurement**. The
       `hi(&BALLOON) * 4` row on `#58` describes a divergence that no longer exists at all — 0 `ASL`s,
       no warning, instruction-identical to the twin — and must name its measured owner rather than
       #58. The other two are off by the two migrated bytes and were **not** anticipated when this
       plan was written; Phase 4's review found them: `layout`/#52 reads *"code stream 237 vs 176,
-      +61"* (now **235 vs 176, +59**) and `data placement`/#49 reads *"non-code 81 vs 75, +6"*
-      (now **83 vs 75, +8**). The total is unchanged at 318 either way, which is exactly why no
+      +61"* and `data placement`/#49 reads *"non-code 81 vs 75, +6"*. **The corrected figures this
+      task was written with — 235/+59 and 83/+8 — are themselves wrong**: they account for Phase 4's
+      2 bytes and not Phase 2's 11. Measured with `yarn twin:diff`, the truth is **code 224 vs 176,
+      +48** and **non-code 94 vs 75, +19**. See [08-closeout.md](08-closeout.md#ledger-changes). The
+      total is unchanged at 318 throughout, which is exactly why no
       gate caught it — the generator's stale-key abort is category-granular, and every category
       still has backing rows
-- [ ] 5.3 Re-route the **16** misrouted rows (8 instruction-selection + 8 layout) from `#58` to
+- [x] 5.3 Re-route the **16** misrouted rows (8 instruction-selection + 8 layout) from `#58` to
       [#70](https://github.com/blendsdk/blend65/issues/70). They are re-routed, **not** fixed.
       5.1 turns green here
-- [ ] 5.4 Back-propagate the **three** RD corrections — the locals claim (AR #91), the "load source"
+- [x] 5.4 Back-propagate the **three** RD corrections — the locals claim (AR #91), the "load source"
       framing (AR #88), and AC-6's scope, which the RD states as *"both examples"* while this plan
       migrates three (AR #96) — into
       [RD-13](../../requirements/RD-13-symbolic-address-arithmetic.md)
-- [ ] 5.5 Run the **local VICE 3.10 tier** for AC-10 and **ST-13k**: `balloon` renders and its
+- [x] 5.5 Run the **local VICE 3.10 tier** for AC-10 and **ST-13k**: `balloon` renders and its
       shared observables pass unchanged; `boing-ball`'s four sprite pointers read `b, b+1, b+2, b+3`
       in memory — the runtime half CI structurally cannot prove
-- [ ] 5.6 Walk all **12 acceptance criteria** with evidence into `08-closeout.md`, stating plainly
+- [x] 5.6 Walk all **12 acceptance criteria** with evidence into `08-closeout.md`, stating plainly
       that RD-13 moves **1** of 53 routed divergence rows and re-routes 16 — and that `balloon`
       still does not beat its twin on bytes
-- [ ] 5.7 Confirm `git status --porcelain spec/` empty across the whole commit range (AC-11), and
+- [x] 5.7 Confirm `git status --porcelain spec/` empty across the whole commit range (AC-11), and
       that the corpus total **strictly decreased** — AC-8's review half, which no test enforces
-- [ ] 5.8 Sync the feature roadmap and the portfolio roadmap; post the area report on
+- [x] 5.8 Sync the feature roadmap and the portfolio roadmap; post the area report on
       [#58](https://github.com/blendsdk/blend65/issues/58), noting that #58 **stays open** for its
       remaining audit halves
-- [ ] 5.9 Full verify
+- [x] 5.9 Full verify
 
 **Commit point.** Scope `docs(rd-13)`.
 
