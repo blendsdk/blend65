@@ -71,6 +71,7 @@ import type {
 import { IL_BYTE, IL_WORD, ilTypeOfType } from "./il-type.js";
 import type { ILType } from "./il-type.js";
 import { addrByteOf, addrOf, imm, isAddr, isTemp, loc } from "./operand.js";
+import { log2Exact } from "../util/bits.js";
 import type { ILOperand } from "./operand.js";
 import type { ILInstruction, ILTerminator } from "./instruction.js";
 import type { BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
@@ -2522,10 +2523,74 @@ function emitPokew(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
 }
 
 /**
- * `lo(val)` → the low byte. A constant folds to an immediate. A runtime
- * 16-bit value truncates (`trunc` reads the operand's home low byte); an
- * 8-bit value IS its own low byte (identity — the widened word's low byte
- * equals the original pattern).
+ * The compile-time value of a numeric literal or a resolved named constant,
+ * or `null` for anything else. Accepting a named constant matters: refusing
+ * one would make the more readable spelling of a block size the slower one.
+ */
+function constantOperandValue(e: ExprNode, ctx: LowerCtx): number | null {
+  if (e.kind === "NumericLitExpr") return e.value;
+  if (e.kind !== "IdentExpr" && e.kind !== "FieldAccessExpr") return null;
+  const sym = ctx.model.symbolOf(e);
+  if (sym === null || sym.kind !== "constant") return null;
+  const value = ctx.model.constValues.get(sym);
+  return value !== undefined && typeof value.value === "number" ? value.value : null;
+}
+
+/**
+ * `&X / 2^k` and `&X >> k` reduced to a single selected byte of the address,
+ * or `null` when the expression is not that shape.
+ *
+ * A sprite's block number is its address divided by 64 — arithmetic on a
+ * link-time constant, which the assembler performs for free. Without this the
+ * division of a constant becomes a call to the 16-bit runtime divide.
+ *
+ * The two operators reach `k` differently and conflating them would be a
+ * defect: `/` takes a power-of-two DIVISOR, `>>` takes a shift COUNT — `>> 6`
+ * has a right operand of 6, which is not a power of two. The divisor is read
+ * unmasked, because a count up to 15 means divisors up to 32768.
+ *
+ * Anything outside the shape falls through to the caller's existing path and
+ * keeps its existing diagnostics: a non-power-of-two divisor still emits the
+ * runtime divide and its warning, a count at or past the type width still
+ * fails the way it does today.
+ */
+function foldedAddressByte(arg: ExprNode, ctx: LowerCtx): ILOperand | null {
+  if (arg.kind !== "BinaryExpr") return null;
+  const binary = arg as BinaryExprNode;
+  if (binary.op !== "/" && binary.op !== ">>") return null;
+  if (!isAddressOfExpr(binary.left)) return null;
+
+  const right = constantOperandValue(binary.right, ctx);
+  if (right === null) return null;
+  const shift = binary.op === "/" ? log2Exact(right) : right;
+  if (shift === null || shift < 0 || shift > 15) return null;
+
+  // The address lowers through the address-of path, so the fold inherits that
+  // path's slot claim and data-placement marking exactly as a plain select does.
+  const address = lowerAddressOf(binary.left, ctx, true);
+  if (!isAddr(address)) return address; // rejection already reported
+  if (address.offset !== undefined) {
+    // An addend cannot ride inside the division: the assembler binds `/`
+    // tighter than `+`, so `sym+3 / 64` divides the 3 and quietly yields a
+    // different byte. No address-of form produces an offset today, and this
+    // fails loudly rather than dropping one if some future form does.
+    // Falling through instead is not an option — the slot for this site has
+    // already been claimed, and the ordinary path would claim a second.
+    return iceUnsupported(binary, ctx, "byte select of an address with an offset");
+  }
+  // Dividing by one names the address itself; emitting `#<(sym / 1)` would
+  // assemble to the same byte and read as noise. This is an explicit branch
+  // rather than a fall-through — the argument is a binary expression, so it
+  // could never reach the plain address-of case below.
+  return shift === 0 ? addrByteOf(address.symbol, "low") : addrByteOf(address.symbol, "low", shift);
+}
+
+/**
+ * `lo(val)` → the low byte. A constant folds to an immediate. A power-of-two
+ * division or shift of an address folds into the byte select itself, so the
+ * assembler resolves it. A runtime 16-bit value truncates (`trunc` reads the
+ * operand's home low byte); an 8-bit value IS its own low byte (identity —
+ * the widened word's low byte equals the original pattern).
  */
 function emitLo(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const arg = expr.args[0];
@@ -2533,6 +2598,8 @@ function emitLo(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   if (arg.kind === "NumericLitExpr") {
     return imm(arg.value & 0xff, IL_BYTE);
   }
+  const folded = foldedAddressByte(arg, ctx);
+  if (folded !== null) return folded;
   if (isAddressOfExpr(arg)) {
     // The low byte of a link-time constant is a link-time constant: the
     // assembler selects it, exactly as it does for a numeric literal above.

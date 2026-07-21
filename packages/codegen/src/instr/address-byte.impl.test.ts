@@ -18,6 +18,9 @@ import { IL_BYTE, IL_WORD } from "../il/il-type.js";
 import type { ILInstruction, ILTerminator } from "../il/instruction.js";
 import type { ILFunction } from "../il/cfg.js";
 import { printInstr } from "./print-instr.js";
+import { isSymbolExprOperand, symbolExpr, symbolRef } from "./operand.js";
+import { instr } from "./stream.js";
+import type { InstrOperand } from "./operand.js";
 import { translateFunction } from "./translate.js";
 
 function makePlan(tempSlotNames: readonly string[] = []): AllocationPlan {
@@ -171,6 +174,52 @@ describe("the address byte's consumers each emit one immediate", () => {
     expect(text).toContain("ADC #<SPRITE");
     expect(text).toContain("ADC #$00");
     expect(ices(bag)).toEqual([]);
+  });
+});
+
+/** The rendered `LDA #<operand>` line for one immediate operand. */
+function loadOf(operand: InstrOperand): string {
+  return printInstr({
+    symbol: "M_f",
+    segment: "code",
+    entries: [instr("LDA", "Immediate", operand)],
+  });
+}
+
+describe("symbolExpr and its rendering", () => {
+  it("constructs with both fields required and narrows through its guard", () => {
+    const op = symbolExpr("SPRITE", 6, "low");
+    expect(isSymbolExprOperand(op)).toBe(true);
+    expect(op).toEqual({ kind: "symbolExpr", name: "SPRITE", shift: 6, byteSelect: "low" });
+    expect(isSymbolExprOperand(symbolRef("SPRITE", { byteSelect: "low" }))).toBe(false);
+  });
+
+  it("renders as a parenthesised division for every shift the fold accepts", () => {
+    for (let k = 1; k <= 15; k++) {
+      expect(loadOf(symbolExpr("S", k, "low"))).toBe(`    LDA #<(S / ${2 ** k})`);
+    }
+  });
+
+  it("renders both byte selects", () => {
+    expect(loadOf(symbolExpr("S", 6, "low"))).toContain("#<(S / 64)");
+    expect(loadOf(symbolExpr("S", 6, "high"))).toContain("#>(S / 64)");
+  });
+});
+
+describe("instrOperandFor maps both spellings from the one site", () => {
+  it("an unshifted select renders as a plain byte selector", () => {
+    const { text } = render([
+      { op: "store", a: addrByteOf("SPRITE", "low"), b: loc("r", IL_BYTE) },
+    ]);
+    expect(text).toContain("LDA #<SPRITE");
+    expect(text).not.toContain("(");
+  });
+
+  it("a shifted select renders as the division", () => {
+    const { text } = render([
+      { op: "store", a: addrByteOf("SPRITE", "low", 6), b: loc("r", IL_BYTE) },
+    ]);
+    expect(text).toContain("LDA #<(SPRITE / 64)");
   });
 });
 

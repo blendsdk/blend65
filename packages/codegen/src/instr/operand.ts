@@ -12,10 +12,12 @@ export {
   none,
   imm8,
   symbolRef,
+  symbolExpr,
   labelRef,
   zpSlot,
   isImmediateOperand,
   isSymbolRef,
+  isSymbolExprOperand,
   isLabelRef,
   isZpSlot,
 } from "@blend65/core/platform";

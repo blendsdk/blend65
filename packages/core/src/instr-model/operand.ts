@@ -24,6 +24,10 @@
  * - **symbolRef** — a named symbol (variable/struct field/code label) with an
  *   optional struct/array `offset` and a `byteSelect` for ACME `<sym`/`>sym`
  *   low/high-byte selection
+ * - **symbolExpr** — a byte of a symbol's address after dividing it by a power
+ *   of two, e.g. `<(sprite / 64)` for a sprite's 64-byte block number. The
+ *   assembler does the division at link time, so what would otherwise be a
+ *   runtime divide of a constant costs nothing at all
  * - **labelRef** — a branch/jump target label
  * - **zpSlot** — a zero-page allocation symbol
  */
@@ -35,6 +39,12 @@ export type InstrOperand =
       readonly name: string;
       readonly offset?: number;
       readonly byteSelect: "low" | "high" | "none";
+    }
+  | {
+      readonly kind: "symbolExpr";
+      readonly name: string;
+      readonly shift: number;
+      readonly byteSelect: "low" | "high";
     }
   | { readonly kind: "labelRef"; readonly label: string }
   | { readonly kind: "zpSlot"; readonly name: string };
@@ -90,6 +100,32 @@ export function symbolRef(
 }
 
 /**
+ * Construct a byte of a symbol's address divided by `2**shift`.
+ *
+ * Both `shift` and `byteSelect` are required, and `shift` is at least 1. That
+ * leaves every value exactly one spelling: an unshifted select is
+ * {@link symbolRef}, which already exists and already round-trips, and a
+ * select is never optional because the truncation is what keeps the divided
+ * value in range at any address.
+ *
+ * There is deliberately no offset parameter. ACME binds `/` tighter than `+`,
+ * so an addend written inside the division without its own parentheses
+ * silently assembles to the wrong byte; omitting the field makes that
+ * unwritable rather than merely discouraged.
+ *
+ * @param name The symbol name.
+ * @param shift The power-of-two divisor's exponent (≥ 1).
+ * @param byteSelect Which byte of the divided address to take.
+ * @returns A `symbolExpr` operand.
+ * @example
+ * // A sprite's 64-byte block number, resolved by the assembler:
+ * symbolExpr("__data_Main_BALLOON", 6, "low"); // renders <(__data_Main_BALLOON / 64)
+ */
+export function symbolExpr(name: string, shift: number, byteSelect: "low" | "high"): InstrOperand {
+  return { kind: "symbolExpr", name, shift, byteSelect };
+}
+
+/**
  * Construct a reference to a branch/jump target label.
  *
  * @param label The target label name.
@@ -135,6 +171,22 @@ export function isSymbolRef(
   o: InstrOperand,
 ): o is Extract<InstrOperand, { kind: "symbolRef" }> {
   return o.kind === "symbolRef";
+}
+
+/**
+ * Type guard: is this operand a divided-address byte?
+ *
+ * Named `isSymbolExprOperand` for the same reason as
+ * {@link isImmediateOperand} — both operand families are re-exported flat at
+ * the `@blend65/codegen` barrel and used side by side.
+ *
+ * @param o The operand to classify.
+ * @returns `true` and narrows to the `symbolExpr` variant when matched.
+ */
+export function isSymbolExprOperand(
+  o: InstrOperand,
+): o is Extract<InstrOperand, { kind: "symbolExpr" }> {
+  return o.kind === "symbolExpr";
 }
 
 /**

@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createDiagnosticBag, DEFAULT_PROFILE } from "@blend65/core";
+import { createDiagnosticBag, DEFAULT_PROFILE, DiagCode, isIceCode } from "@blend65/core";
 import type { Diagnostic, ProgramNode } from "@blend65/core";
 import {
   analyze,
@@ -214,5 +214,76 @@ describe("Specification: the byte select is uniform across kinds and positions (
       line("STA __var_Main_v"),
     ]);
     expect(scratchTraffic(asm)).toEqual([]);
+  });
+});
+
+/** A program whose only statement stores `expr` to the sprite-pointer byte. */
+function poking(expr: string, extra: readonly string[] = []): string {
+  return [
+    "module Main;",
+    "const SPRITE: byte[3] = [1, 2, 3];",
+    ...extra,
+    "function main(): void {",
+    `  poke($07F8, ${expr});`,
+    "}",
+  ].join("\n");
+}
+
+describe("Specification: the fold's edges behave as specified (ST-13h)", () => {
+  it("ST-13h: dividing or shifting by one leaves a plain byte select", () => {
+    // Both spellings name the address itself. Rendering `#<(sym / 1)` would
+    // assemble to the same byte and read as noise in the listing.
+    for (const expr of ["lo(&SPRITE / 1)", "lo(&SPRITE >> 0)"]) {
+      const { asm, hasErrors } = toAsm(poking(expr));
+      expect(hasErrors, expr).toBe(false);
+      expectSubsequence(asm, [line("LDA #<__data_Main_SPRITE"), line("STA $07F8")]);
+      expect(asm, expr).not.toContain("/ 1)");
+    }
+  });
+
+  it("ST-13h: divisors of 256 and 32768 fold, not only small ones", () => {
+    // The neighbouring power-of-two multiply is byte-only and masks its
+    // constant to 8 bits. Carrying that mask here would send every divisor
+    // from 256 up down the runtime-divide path — still warning about a runtime
+    // divide, and so indistinguishable from a deliberate fall-through.
+    for (const divisor of [256, 32768]) {
+      const { asm, hasErrors, diags } = toAsm(poking(`lo(&SPRITE / ${divisor})`));
+      expect(hasErrors, `divisor ${divisor}`).toBe(false);
+      expect(asm).toContain(`LDA #<(__data_Main_SPRITE / ${divisor})`);
+      expect(asm).not.toContain("__rt_div16");
+      expect(diags.map((d) => d.code)).not.toContain(DiagCode.RuntimeDivide);
+    }
+  });
+
+  it("ST-13h: a non-power-of-two divisor keeps today's runtime divide and warning", () => {
+    const { asm, hasErrors, diags } = toAsm(poking("lo(&SPRITE / 40)"));
+    expect(hasErrors).toBe(false);
+    expect(asm).toContain("__rt_div16");
+    expect(asm).not.toContain("/ 40)");
+    expect(diags.map((d) => d.code)).toContain(DiagCode.RuntimeDivide);
+  });
+
+  it("ST-13h: a shift count at or past the type width still fails, emitting nothing", () => {
+    const { hasErrors, diags } = toAsm(poking("lo(&SPRITE >> 16)"));
+    const codes = diags.map((d) => d.code);
+    expect(codes).toContain(DiagCode.ShiftCountExceedsWidth);
+    expect(hasErrors).toBe(true);
+    expect(codes.some((c) => isIceCode(c))).toBe(true);
+  });
+});
+
+describe("Specification: a named constant folds for both operators (ST-13i)", () => {
+  it("ST-13i: a named divisor and a named shift count reach the same operand", () => {
+    // Refusing a named constant would make the readable spelling the slow one.
+    // The shift half matters more: an unfolded divisor is merely slow, while
+    // an unfolded shift count does not build at all.
+    for (const [decl, expr] of [
+      ["const BLOCK: byte = 64;", "lo(&SPRITE / BLOCK)"],
+      ["const SHIFT: byte = 6;", "lo(&SPRITE >> SHIFT)"],
+    ] as const) {
+      const { asm, hasErrors } = toAsm(poking(expr, [decl]));
+      expect(hasErrors, expr).toBe(false);
+      expectSubsequence(asm, [line("LDA #<(__data_Main_SPRITE / 64)"), line("STA $07F8")]);
+    }
   });
 });

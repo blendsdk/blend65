@@ -48,9 +48,10 @@ export function hex16(value: number): string {
 }
 
 /**
- * Render the *symbol text* for a `symbolRef`/`zpSlot`/`labelRef` operand — the
- * bare identifier, plus a `+offset` suffix and `<`/`>` byte-select prefix when
- * present. Immediates and `none` are handled by {@link operandText}.
+ * Render the *symbol text* for a `symbolRef`/`symbolExpr`/`zpSlot`/`labelRef`
+ * operand — the bare identifier, plus a `+offset` suffix, a `/ divisor`
+ * division and a `<`/`>` byte-select prefix where present. Immediates and
+ * `none` are handled by {@link operandText}.
  *
  * @param o The operand to render the name portion of.
  * @returns The symbolic name text (without any `#` immediate prefix).
@@ -66,6 +67,14 @@ function symbolText(o: InstrOperand): string {
         return `>${base}`;
       }
       return base;
+    }
+    case "symbolExpr": {
+      // Written as a division rather than a shift because that is how a 6502
+      // programmer writes a block number (`lda #sprite/64`). The parentheses
+      // are not decoration: ACME binds `/` tighter than `+`, so a bare addend
+      // inside them would bind to the divisor and assemble to a different byte.
+      const sel = o.byteSelect === "low" ? "<" : ">";
+      return `${sel}(${o.name} / ${1 << o.shift})`;
     }
     case "labelRef":
       return o.label;

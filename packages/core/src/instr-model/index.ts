@@ -34,10 +34,12 @@ export {
   none,
   imm8,
   symbolRef,
+  symbolExpr,
   labelRef,
   zpSlot,
   isImmediateOperand,
   isSymbolRef,
+  isSymbolExprOperand,
   isLabelRef,
   isZpSlot,
 } from "./operand.js";

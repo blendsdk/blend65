@@ -36,12 +36,13 @@ import type { ILOperand } from "../il/operand.js";
 import type { ILInstruction, ILTerminator } from "../il/instruction.js";
 import type { ILFunction } from "../il/cfg.js";
 import { terminatorTargets } from "../il/cfg.js";
+import { log2Exact } from "../util/bits.js";
 
 import type { Opcode } from "./opcode.js";
 import type { ConditionalBranch } from "./branch-tail.js";
 import { isConditionalBranch, planBranchTail } from "./branch-tail.js";
 import type { AddressingMode } from "./addressing-mode.js";
-import { imm8, labelRef, none, symbolRef } from "./operand.js";
+import { imm8, labelRef, none, symbolExpr, symbolRef } from "./operand.js";
 import type { InstrOperand } from "./operand.js";
 import { instr, label } from "./stream.js";
 
@@ -1031,13 +1032,9 @@ class FunctionTranslator {
    * @returns The immediate operand the assembler resolves at link time.
    */
   private instrOperandFor(op: Extract<ILOperand, { kind: "addrByte" }>): InstrOperand {
-    if (op.shift !== undefined) {
-      // A shifted select has no assembler spelling yet. Falling back to the
-      // unshifted symbol would assemble cleanly and mean a different byte, so
-      // it fails loudly instead; the returned operand never reaches output.
-      this.iceUnsupported("shifted address byte");
-    }
-    return symbolRef(op.symbol, { byteSelect: op.select });
+    return op.shift === undefined
+      ? symbolRef(op.symbol, { byteSelect: op.select })
+      : symbolExpr(op.symbol, op.shift, op.select);
   }
 
   /**
@@ -2373,25 +2370,3 @@ function isEntryFunction(fqName: string): boolean {
   const bare = dot >= 0 ? fqName.slice(dot + 1) : fqName;
   return bare === ENTRY_FUNCTION;
 }
-
-
-/**
- * The exact base-2 logarithm of `n` when `n` is a power of two (≥ 1), else
- * `null`. Used to pick the shift count for a power-of-two multiply.
- *
- * @param n The candidate constant multiplier.
- * @returns `k` such that `n === 2**k`, or `null` when `n` is not a power of two.
- */
-function log2Exact(n: number): number | null {
-  if (n < 1 || (n & (n - 1)) !== 0) {
-    return null;
-  }
-  let k = 0;
-  let v = n;
-  while (v > 1) {
-    v >>= 1;
-    k++;
-  }
-  return k;
-}
-

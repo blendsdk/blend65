@@ -1,8 +1,8 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 22/54 tasks (41%) — Phases 1–2 complete
-> **Last Updated**: 2026-07-21 (Phase 2 — M1 landed, full verify green; AR #100 resolved)
+> **Progress**: 34/54 tasks (63%) — Phases 1–3 complete
+> **Last Updated**: 2026-07-21 (Phase 3 — M2 landed unwired, zero byte movement)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #95), run at every marked point:
@@ -153,31 +153,31 @@ Nothing in `examples/` uses the fold yet, so the 14 byte-identical goldens are a
 M2 changed nothing it was not asked to change. Spec:
 [03-01 §2, §3, §4](03-01-operand-and-lowering.md).
 
-- [ ] 3.1 Move `log2Exact` (`translate.ts:2330`) to a new `packages/codegen/src/util/bits.ts`;
+- [x] 3.1 Move `log2Exact` (`translate.ts:2330`) to a new `packages/codegen/src/util/bits.ts`;
       update both importers. `il/` must not import from `instr/`; `util/` rather than the package
       root because every codegen module lives under a subdirectory. Pure move — full verify green
-- [ ] 3.2 Add the `symbolExpr` variant to `InstrOperand` with its constructor and
+- [x] 3.2 Add the `symbolExpr` variant to `InstrOperand` with its constructor and
       `isSymbolExprOperand`. `shift` (≥ 1) and `byteSelect` are **required**; there is **no**
       `offset` field. **Add both symbols to all three re-export lists** —
       `core/src/instr-model/index.ts`, `codegen/src/instr/operand.ts` (the shim `translate.ts:44`
       imports from), `codegen/src/instr/index.ts`. Only the shim is build-forced; TS2366 does not
       reach a re-export list
-- [ ] 3.3 Add the `symbolText` arm (`print-instr.ts:58`) rendering `<(sym / 2^k)` — divisor form,
+- [x] 3.3 Add the `symbolText` arm (`print-instr.ts:58`) rendering `<(sym / 2^k)` — divisor form,
       matching the hand idiom and the ACME 0.97 measurement (TS2366-forced until written)
-- [ ] 3.4 Extend `instrOperandFor`: shift-present → `symbolExpr(name, shift, select)`
-- [ ] 3.5 Write **ST-13d** and **ST-13e** in a new `symbolic-address.spec.test.ts` in test-harness
+- [x] 3.4 Extend `instrOperandFor`: shift-present → `symbolExpr(name, shift, select)`
+- [x] 3.5 Write **ST-13d** and **ST-13e** in a new `symbolic-address.spec.test.ts` in test-harness
       under `skipIf(!hasAcme())`, building an **inline source through the `build()` facade in a temp
       dir** — `testing/balloon.ts` cannot serve, since it compiles the committed balloon, which does
       not carry the fold until Phase 4. Do **not** add a probe to `examples/` (that would owe the
       coverage manifest a tier). The oracle is the **assembled byte**, read by scanning
       `result.binary` for the `A9 xx 8D F8 07` pattern and comparing `xx` against the symbol map,
       never operand presence
-- [ ] 3.6 Write **ST-13h** (degenerate ends `k = 0`; **the `k = 8` and `k = 15` folds**; `/40`
+- [x] 3.6 Write **ST-13h** (degenerate ends `k = 0`; **the `k = 8` and `k = 15` folds**; `/40`
       byte-identical with `W10171`; `>>16` still `W10174` + `E90001` with no emission) and
       **ST-13i** (named const for **both** operators — `/BLOCK` and `>>SHIFT`, AR #90; the `>>` half
       is where an unresolved const is a hard error rather than merely slow)
-- [ ] 3.7 **Verify RED**
-- [ ] 3.8 Add the fold pattern-match to `emitLo` only. **The two operators derive `k`
+- [x] 3.7 **Verify RED**
+- [x] 3.8 Add the fold pattern-match to `emitLo` only. **The two operators derive `k`
       differently**: `/` takes a power-of-two divisor and `k = log2Exact(divisor)`; `>>` takes a
       constant count `0..15` and `k = count`. Either right operand may be a literal or a const
       resolved through `ctx.model.constValues`. The symbol comes from
@@ -187,16 +187,21 @@ M2 changed nothing it was not asked to change. Spec:
       diagnostic**. **Do not mask the divisor to a byte** — `k = 1..15` needs values to 32768, and
       `translate.ts:1581`'s `& 0xff` is correct only for the byte-only multiply. `emitHi` gains no
       fold branch
-- [ ] 3.9 **Verify GREEN**
-- [ ] 3.10 Implementation tests: `symbolExpr`, `symbolText` across `k = 1..15` and both selects,
+- [x] 3.9 **Verify GREEN**
+- [x] 3.10 Implementation tests: `symbolExpr`, `symbolText` across `k = 1..15` and both selects,
       `instrOperandFor`'s two branches, and **first-time direct coverage for `log2Exact`** — it has
       none today (module-private, reached only through `translateMul`), so there are no cases to
       relocate: 0 and negatives → `null`; 1 → 0; 2 → 1; 64 → 6; 256 → 8; 32768 → 15; 40 → `null`
-- [ ] 3.11 **Seed and watch fail**: perturb ST-13d's expected assembled byte and confirm it fails —
+- [x] 3.11 **Seed and watch fail**: perturb ST-13d's expected assembled byte and confirm it fails —
       this is the trap RD-03's `!align 256, 0` sprang, where a plausible operand assembled cleanly
       and meant something else
-- [ ] 3.12 Confirm **zero byte movement**: 14 goldens byte-identical, no ratchet moves,
+- [x] 3.12 Confirm **zero byte movement**: 14 goldens byte-identical, no ratchet moves,
       `SCOREBOARD.md` unchanged; full verify
+
+> **Measured at 3.12 — zero byte movement, as designed.** No golden, no ratchet, no
+> `SCOREBOARD.md` line moved: nothing under `examples/` uses the fold yet, so the 14 byte-identical
+> goldens are a free proof M2 changed nothing it was not asked to. ST-13d's assembled byte reads
+> **36** — `$0900 / 64` — and the seed at 3.11 detected a one-off in it.
 
 **Commit point.** Scope `feat(codegen)`.
 
