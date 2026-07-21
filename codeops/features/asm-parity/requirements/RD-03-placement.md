@@ -134,6 +134,23 @@ narrowing. Page alignment is what makes the sprite block expressible without new
 > `ASL`/`ASL` (see Known Divergence). The correctness of the identity does not depend on folding;
 > only its cost does.
 
+> ### ⚠️ M2's boundary value is superseded by [RD-15](RD-15-alignment-granularity.md)
+>
+> **Superseded:** the universal **256** boundary, and the reasoning above that justifies it. That
+> reasoning was sound when written and its premise is now gone: `hi(&X) * 4 == address / 64`
+> required page alignment because v3 offered no other way to name a sprite block, and
+> [RD-13](RD-13-symbolic-address-arithmetic.md) made `lo(&X / 64)` fold to `#<(sym / 64)` at link
+> time. RD-15 therefore derives the boundary from the divisor the source writes — 64 for
+> `lo(&X / 64)`, 256 for a bare `&X` — combined coarsest-wins.
+>
+> **Not superseded:** M1's membership rule, which remains load-bearing and unchanged. The
+> syntactic, at-the-`&`-site set is exactly as specified above; RD-15 changes only the *value*
+> recorded at that site, never which symbols are in the set.
+>
+> **Also unchanged:** `hi(&X) * 4` stays legal and stays correct. Its own `&` site registers the
+> 256 demand, so a symbol reached that way is still page-aligned and the identity still holds
+> (AR #103, AR #111).
+
 **M3 — Alignment is emitted, not assumed.**
 The compiler emits an explicit assembler alignment directive ahead of the aligned stream rather
 than computing an absolute address. Absolute addresses are not known at serialization time; the

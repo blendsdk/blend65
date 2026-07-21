@@ -1,9 +1,9 @@
 # Ambiguity Register: asm-parity requirements
 
-> **Status**: ✅ GATE PASSED — all 48 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19 · RD-03 items 64–68: 2026-07-20 · RD-13 items 78–82 + preflight runtime items 83–87: 2026-07-20 — numbering continues past the plan-stage registers so a single `AR #n` is unambiguous across the feature)
-> **Last Updated**: 2026-07-20
+> **Status**: ✅ GATE PASSED — all 60 items resolved (RD-01 items 1–14: 2026-07-17 · RD-02 items 15–19: 2026-07-18 · RD-04 items 20–25: 2026-07-19 · RD-05 items 26–33: 2026-07-19 · RD-03 items 64–68: 2026-07-20 · RD-13 items 78–82 + preflight runtime items 83–87: 2026-07-20 · RD-15 items 101–110 + authoring-surfaced items 111–112: 2026-07-21 — numbering continues past the plan-stage registers so a single `AR #n` is unambiguous across the feature)
+> **Last Updated**: 2026-07-21
 > **Scope**: see the per-RD sections below — each carries its own item range and gate status, so this header never needs to enumerate them again.
-> **CodeOps Skills Version**: 3.10.0
+> **CodeOps Skills Version**: 3.11.0
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|----------|-----------------|-------------------|---------------|--------|
@@ -463,3 +463,82 @@ AR #83 and #86 — both follow from artifacts read directly (ST-9b's assertions;
 > not see each other's output: the understated spec-test blast radius (PF-053) and AC-3's
 > unfailable oracle (PF-054). Same-session authorship was mitigated by model diversity — all five
 > clusters ran on a different family than the author — not by the author's own re-reading.
+
+## RD-15 — Alignment granularity: 64-byte sprite blocks ([#69](https://github.com/blendsdk/blend65/issues/69))
+
+> **Status**: ✅ GATE PASSED — all 12 items resolved (101–112), 2026-07-21 · items 111–112 surfaced during authoring, per the surface-during-authoring rule
+> **Last Updated**: 2026-07-21 12:36
+> **Continuity**: AR #68 chose page alignment *because* it "makes the sprite block expressible
+> without new syntax" ([`RD-03-placement.md:129`](RD-03-placement.md)). RD-13 removed that
+> dependency — `lo(&X / 64)` now folds to `#<(sym / 64)` — so AR #68's premise no longer holds and
+> this RD re-opens the boundary decision it settled. AR #79 recorded the same unblock from the
+> other side.
+
+| # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
+|---|----------|-----------------|-------------------|---------------|--------|
+| 101 | Scope / Document identity | What does RD-15 own, given the measured corpus delta is **0 bytes**? | (a) boundary-derivation mechanism + oracle re-derivation only / (b) (a) + extend the parity corpus so the 128 B on `balloon-color` is ratcheted / (c) (a) + padding visibility (#67) so the win is observable / (d) close #69 won't-fix | ✅ Resolved — User accepted recommendation: **(a)**. This is a **bound-the-tax** RD, not a save-bytes RD. The deliverable is the invariant *padding on a 64-demand image is < 64*, which caps byte-ratchet noise at 63 instead of 255 — the noise that made RD-13's real 13-byte win invisible (AC-8 ❌ on bytes, ✅ on cycles). The 128 B on `balloon-color` is a closeout measurement, not a gate. (b) rejected as scope: ST-13f asserts that image's boundary regardless, so the invariant is guarded even though the byte count is not | ✅ Resolved |
+| 102 | Technical / Architecture | How is a symbol's boundary decided? | (a) divisor inference from the fold site / (b) uniform 64 for every address-taken const / (c) consumption inference (dataflow to a sprite-pointer store) / (d) `@align(n)` attribute / (e) status quo | ✅ Resolved — User accepted recommendation: **(a)**, independently endorsed by a challenger on a different model family. The source already states the granularity: `lo(&X / 64)` **is** the program declaring that hardware dereferences this address in 64-byte units. `foldedAddressByte` computes the normalized `shift` (`lower.ts:2565`) before calling the marking function (`:2570`), so the demand costs one optional parameter, not a new analysis. (b) silently breaks `hi(&X) * 4`, which is still legal and still correct. (c) re-imports the IL-operand-scan mistake RD-03 rejected for cause (`RD-03:108-119`) — `boing-ball` reaches its pointers through runtime `base + 0..3`, so consumption analysis must chase dataflow through frame slots, and `$07F8` is not a stable signature since sprite pointers live at screen-base + `$3F8`. (d) is D3-blocked and already Won't-Have (`RD-03:219`) | ✅ Resolved |
+| 103 | Behavioral | A symbol carrying **two** demands (`lo(&X / 64)` and a bare `&X` or `hi(&X)*4`) — which boundary wins? | (a) coarsest (max) — alignment composes / (b) finest (min) / (c) diagnostic on conflict | ✅ Resolved — User accepted recommendation: **(a)**. Alignment composes (a multiple of 256 is a multiple of 64 — `RD-03:83-86` already relies on this), so a coarser boundary can only waste bytes, never change a value. This is what makes the "`hi(&X)*4` goes silently wrong" hazard **unreachable by construction** rather than merely documented: `hi(&X)` lowers through a divisor-less `lowerAddressOf` site, registers 256, max keeps the page, and the identity holds. Same discipline as AR #87 — remove the trap instead of writing it down. Binding proviso: **every** const-`&` lowering path outside the shift-6 fold must register 256, which AC pins as a test rather than assumes | ✅ Resolved |
+| 104 | Scope / Edge cases | Which source shapes register a 64 demand? `foldedAddressByte` accepts any `2^k` divisor and any `>> k`, k∈[0,15] | (a) allowlist of hardware granularities — shift 6 only — derived from the normalized `shift` so `/ 64` ≡ `>> 6` / (b) any `2^k`, clamped to [64,256] / (c) any `2^k` unclamped | ✅ Resolved — User accepted recommendation: **(a)**. Generalizing is **unsound**, not merely risky: `lo(&X / 16384)` is a *read* of which VIC bank `X` sits in — correct at any address — not a demand that `X` be 16 KB-aligned; honoring it as a demand inserts up to 16 KB of padding. Below 64 nothing on this platform dereferences quotient × N. Note that **256 is not a VIC granularity at all** — it is only RD-03's default, which is why the allowlist cannot simply be "the divisor". Deriving from the normalized `shift` also keeps RD-13's AC-5 (`/ 64` ≡ `>> 6`, byte-for-byte) true, which a surface-operator rule would make placement-dependent. Future granularities (charset 2048, screen 1024) extend the allowlist through the platform seam, not through arithmetic on arbitrary `k` | ✅ Resolved |
+| 105 | Behavioral | What does a **bare** `&X` (no divisor) demand, now that the blessed idiom carries its own demand? | (a) 256, unchanged from RD-03 / (b) nothing — unaligned / (c) 64 | ✅ Resolved — User accepted recommendation: **(a)**. (b) is genuinely arguable post-RD-13 and is recorded here precisely so it is rejected on the record rather than by omission: dropping bare `&` to unaligned would break ST-C11/C12/C13, break every stored-pointer and `hi(&X)*4` consumer arbitrarily, and re-litigate AR #65 | ✅ Resolved |
+| 106 | Data / Naming | Shape of the mark, now that alignment is a value rather than a flag | (a) `addressTakenConsts: Set<string>` → `Map<string, number>`; `pageAligned: boolean` → a boundary number; `const PAGE` → per-entry value / (b) keep the boolean, add a parallel 64-demand set | ✅ Resolved — User accepted recommendation: **(a)**. (b) is two sources of truth for one property, and the max-combining rule of AR #103 has no natural home in it. Measured blast radius: 16 `pageAligned` sites — 12 in `lower-address-of.spec.test.ts`, 3 in `lower-address-of.impl.test.ts`, and the `ConstDataEntry` literal in `assemble.impl.test.ts` (the 16th found at preflight, PF-084) | ✅ Resolved |
+| 107 | Quality gate / Conformance | **Six** spec-tier assertions pin page alignment; ST-C15 and ST-13j would pass **by luck**, ST-13f fails deterministically | (a) re-derive the three fold-form oracles to the demanded boundary; keep the three `align-mixed` ones as the pinned bare-`&` negative control / (b) leave the by-luck passes alone / (c) re-derive all six | ✅ Resolved — User accepted recommendation: **(a)**. The inventory was **four** until the challenger found two more; both additions are load-bearing. ST-13f (`balloon-color.spec.test.ts:51`) fails deterministically at `$0980` and is therefore the change's built-in tripwire. ST-C15 (`balloon.spec.test.ts:191`) and ST-13j (`boing-ball.spec.test.ts:68`) pass **by luck** — `$08ED`→`$0900` and `$0AFF`→`$0B00` round identically under both boundaries — so CI would never flag them and a ±19-byte code change flips them red later. That is the unfailable-oracle class RD-13's preflight caught as PF-054. The three `align-mixed` assertions survive untouched *because* its only `&` is bare, which promotes them from incidental coverage to the pinned negative control for AR #105 | ✅ Resolved |
+| 108 | Non-functional / Acceptance | What may AC assert, when per-fixture padding is a function of upstream code size and re-rolls on unrelated edits? | (a) code-size-independent invariants only — directive text per demand, `addr % boundary === 0`, an inter-stream delta fixture, and the corpus-facing claim as a **bound** (pad < 64) / (b) a per-fixture byte delta / (c) corpus total decreases | ✅ Resolved — User accepted recommendation: **(a)**. (c) **would fail on a correct implementation** — the exact trap RD-13's AC-8 fell into. The strongest available assertion is a two-array delta fixture: two 4-byte arrays, both `/ 64`-taken, whose second label is the first + 64 *regardless of upstream code size* (256 if the boundary were wrongly kept, 4 if alignment were dropped) — generalizing the `plain === aligned + 4` trick already used at `align-mixed.spec.test.ts:104`. Directive text (`!align 63, 0, 0`) is the only deterministic 64-vs-256 discriminator, since resolved addresses frequently coincide — a hazard `align-mixed.spec.test.ts:78-81` already documents — and it also re-covers the ACME bitmask trap | ✅ Resolved |
+| 109 | Completeness / Ledger | [`RD-13:157-159`](RD-13-symbolic-address-arithmetic.md) records that `hi(&X)*4` is "an idiom that RD-15's 64-byte alignment will make **incorrect**" — false under a max-of-demands rule, and it contradicts `RD-13:439` on the same page | (a) correct the RD-13 text and state the non-repeal in RD-15 / (b) state it in RD-15 only / (c) leave it | ✅ Resolved — User accepted recommendation: **(a)**. Left standing, that sentence reads as pre-authorizing uniform-64 (AR #102 option (b)) to a future implementer. RD-13 already contradicts itself on this point — `:439` states "`hi(&X) * 4` keeps working" — so the correction resolves an internal inconsistency rather than revising a decision. The RD-13 *conclusion* (no multiply-over-address peephole) is unaffected: it stands on AR #79's semantic argument, not on the false prediction | ✅ Resolved |
+| 110 | Scope / Integration | RD-15 changes where images land, which touches two filed issues: #67 (padding invisible in the build report) and #68 (aligned data can land in the char-ROM shadow) | (a) both stay filed, RD-15 notes the interaction / (b) fold #67 in / (c) fold #68 in | ✅ Resolved — User accepted recommendation: **(a)**. 64-byte alignment *lowers* resolved addresses, so it makes #68 strictly less likely without addressing it — and `boing-ball`'s own source requires its 1 KB image below `$1000` while today's 1-byte pad is luck. Neither issue is closed or diminished by this RD; both are named in Won't Have with the interaction stated | ✅ Resolved |
+
+| 111 | Scope / Traceability | `RD-03-placement.md:127-135` **M2 — "Alignment is page (256-byte), not block (64-byte)"** is a shipped Must-Have that RD-15's M1 supersedes. RD-03 is closed; nothing in it says so. Same class as AR #24 and AR #31, where this project resolved supersession **in writing** through the register rather than by inference | (a) annotate RD-03 M2 in place as superseded by RD-15, stating what survives (the M1 membership rule) and what does not (the 256 value) / (b) state the supersession only in RD-15's *With RD-03* section, leaving RD-03 untouched as a historical record / (c) leave both silent | ✅ Resolved — User accepted recommendation: **(a)**. Supersession is stated **in writing** on this project, not left to inference — AR #24 and AR #31 both resolved this same class that way, and AR #109 is resolving it for RD-13 in this very gate. (b) leaves a closed RD asserting a boundary value the compiler no longer emits. The annotation is precise about the split: RD-03 M2's **membership rule survives intact and stays load-bearing** (the syntactic, at-the-`&`-site set), and only its **value** — 256 as the universal boundary — is superseded, together with the `hi(&X) * 4` justification RD-13 dissolved | ✅ Resolved |
+| 112 | Scope / Sequencing | The README's *Suggested Implementation Order* wave table has no row for RD-15. Its nearest neighbour, the placement slice of RD-03, sits in **Wave B2** | (a) add RD-15 to Wave B2 beside placement, as its follow-on / (b) add a note that RD-15 is unblocked and sequenced by the tracker rather than by wave / (c) leave the wave table alone — the tracker is authoritative | ✅ Resolved — User accepted recommendation: **(a)**. RD-15 is placement's direct follow-on and its dependencies are all satisfied, so it belongs beside the placement slice in Wave B2 rather than in Wave C, which is reserved for audit sweeps | ✅ Resolved |
+
+### Resolution Notes (RD-15)
+
+**AR-101…110:** Presented as one batch of 10 (under the 15-item batching threshold); the user
+accepted all ten recommendations after reviewing a stated summary of what the set delivers and,
+explicitly, what it does not.
+
+**The measurement this RD rests on was re-taken at HEAD, because #69's headline figures were
+stale.** #69 was filed before RD-13 and reports 193 B of 584 with "1 B at 64-byte"; both numbers
+predate the fold. All four address-taken programs were rebuilt and their padding read from
+`main.report`:
+
+| program | source form | last code byte + 1 | image @256 | pad 256 | image @64 | pad 64 | recovered |
+|---|---|---|---|---|---|---|---|
+| `examples/balloon` | `lo(&BALLOON / 64)` | `$08ED` | `$0900` | 19 | `$0900` | 19 | **0** |
+| `examples/balloon-color` | `lo(&BALLOON / 64)` | `$0944` | `$0A00` | 188 | `$0980` | 60 | **128** |
+| `examples/boing-ball` | `lo(&BALL / 64)` | `$0AFF` | `$0B00` | 1 | `$0B00` | 1 | **0** |
+| `examples/align-mixed` | bare `&ALIGNED` | `$083E` | `$0900` | 194 | *(stays 256)* | 194 | **0** |
+
+The corrected figure for `balloon-color` is 188 of 584 B and **60 B at 64-byte, not 1** — the "1 B"
+was a lucky landing under pre-RD-13 code sizes, and is exactly the volatility AR #108 exists to
+keep out of the acceptance criteria. Only `balloon` carries a size budget, and it recovers **zero**;
+this is what AR #101 is answering.
+
+**AR-104 (the counterexample that decided it).** `foldedAddressByte` accepts `k` up to 15, so a
+"demand = divisor" rule would read `lo(&X / 16384)` — a legitimate way to ask which VIC bank an
+address sits in — as a request for 16 KB alignment. The rule has to be an allowlist of granularities
+the hardware actually dereferences, which on this platform is `{64}`.
+
+**Hardening disclosure.** An independent challenger on a different model family (Fable) was
+dispatched on AR #102 and its sub-questions with the five candidate options and **without** this
+author's preference, per `_shared/recommendation-hardening.md`. It reached option (a) independently
+and returned three corrections, each **verified against the tree before adoption**:
+
+1. The page-alignment oracle inventory was **four; it is six** — ST-13f
+   (`balloon-color.spec.test.ts:51`) and ST-13j (`boing-ball.spec.test.ts:68`) both pin `% 256` on
+   programs whose only `&` is the fold form. Confirmed by reading both files. Without this, AR #107
+   would have shipped one flaky oracle and been ambushed by one red.
+2. Generalized divisor inference is **unsound**, not merely unclamped — the `/ 16384` bank-read
+   counterexample above. This changed AR #104's answer from "clamp to [64,256]" to an allowlist.
+3. `RD-13:157-159`'s prediction that this RD makes `hi(&X)*4` incorrect is **false** under a
+   max-of-demands rule. Confirmed verbatim, along with the contradicting `RD-13:439`. AR #109
+   exists only because of this.
+
+Rows **#104, #107 and #109 exist because of the challenger**; #101, #102, #103, #105, #106, #108
+and #110 were the author's and survived its independent review unchanged.
+
+Confidence **High** on AR #102, #103, #107 and #109 — each rests on source, test files and RD text
+read directly this session, plus the four-program re-measurement, rather than on reasoning.
+Confidence **Medium** on AR #101 and #104, both disclosed as such when presented: on #101 because
+option (b) is genuinely viable and leaves the only measured win unratcheted, and on #104 because an
+allowlist of exactly one value is narrow — accepted because no sound reading of `/ 128` or
+`/ 16384` as a placement demand could be constructed.
