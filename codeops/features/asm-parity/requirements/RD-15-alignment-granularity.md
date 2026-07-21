@@ -255,8 +255,16 @@ AR #79's semantic argument about byte-multiply wraparound, not on the prediction
 The demand is available where the mark is made, with no new analysis. `foldedAddressByte`
 (`lower.ts:2557-2586`) matches `&X / 2^k` and `&X >> k`, normalizes both to `shift`
 (`lower.ts:2565`), and *then* calls `lowerAddressOf(binary.left, ctx, true)` (`lower.ts:2570`) —
-the very function that records the mark (`lower.ts:1864`). Passing the normalized shift into that
-call is the whole mechanism.
+the very function that records the mark (`lower.ts:1864`). Passing a demand into that call is the
+whole mechanism.
+
+> **Corrected as built.** This originally said the *normalized shift* is what gets passed. What is
+> passed is the **derived boundary in bytes**, and the `{shift 6 → 64}` allowlist stays inside
+> `foldedAddressByte`. The reason is that the boundary is typed `AlignBoundary = 64 | 256` at the
+> parameter, at the map value and at the entry field, which closes the legal values by
+> construction at every producer — including hand-built entry literals in tests. Passing a shift
+> instead would leave the units ambiguous at the boundary between the two functions, where writing
+> `6` where bytes were meant renders `!align 5, 0` and silently under-aligns a sprite.
 
 Deriving from the **normalized shift** rather than the surface operator is required, not
 stylistic: RD-13's AC-5 pins `lo(&X / 64)` and `lo(&X >> 6)` as byte-for-byte equal, and a rule
@@ -268,9 +276,21 @@ same structure at the non-const edge.
 
 ### Combining demands (complexity: S)
 
-Insertion is `map.set(sym, Math.max(existing ?? 0, demand))`. Order-independent by construction,
-which matters because the two demand sites for one symbol can appear in either order and in
-different functions.
+Insertion keeps the coarser of the two:
+
+```ts
+const existing = ctx.alignmentDemands.get(symbol);
+if (existing === undefined || demand > existing) ctx.alignmentDemands.set(symbol, demand);
+```
+
+Order-independent by construction, which matters because the two demand sites for one symbol can
+appear in either order and in different functions.
+
+> **Corrected as built.** This originally read `map.set(sym, Math.max(existing ?? 0, demand))`,
+> which cannot compile against a `Map<string, AlignBoundary>`: `Math.max` is typed
+> `(...values: number[]) => number` and widens the value straight back to `number`, and `0` is not
+> an `AlignBoundary` either. The comparison form above preserves the narrowing the type exists to
+> provide.
 
 ### The emitted directive (complexity: S)
 
@@ -378,75 +398,81 @@ Every criterion below is **independent of upstream code size**, per AR #108. Abs
 per-fixture byte counts are deliberately absent **from gates**; they appear only inside recorded
 measurements (AC-10, AC-11).
 
-1. [ ] **AC-1 — Directive text, 64 demand.** For a program whose only `&` on symbol `X` is
+1. [x] **AC-1 — Directive text, 64 demand.** For a program whose only `&` on symbol `X` is
    `lo(&X / 64)`, the emitted assembly contains exactly **one** `!align` directive for that stream,
    its text is exactly `!align 63, 0, 0`, and the immediately following line is `__data_*_X:`.
    Negative: the text is never `!align 255, 0, 0` and never `!align 64, 0, 0` (the latter assembles
    silently and aligns nothing).
-2. [ ] **AC-2 — Resolved boundary.** In the same program, the address `X` resolves to satisfies
+2. [x] **AC-2 — Resolved boundary.** In the same program, the address `X` resolves to satisfies
    `addr % 64 === 0`. For a bare-`&` program, `addr % 256 === 0`.
-3. [ ] **AC-3 — Code-size-independent delta.** A fixture declaring two 4-byte `const` arrays, both
+3. [x] **AC-3 — Code-size-independent delta.** A fixture declaring two 4-byte `const` arrays, both
    address-taken as `lo(&A / 64)` and `lo(&B / 64)`, places the second label exactly **64** bytes
    after the first, for any amount of preceding code. Negative cases this discriminates: **256**
    would mean the demand was not applied; **4** would mean alignment was dropped entirely.
-4. [ ] **AC-4 — Maximum rule, both directions.** (a) A program with both `lo(&X / 64)` and
+4. [x] **AC-4 — Maximum rule, both directions.** (a) A program with both `lo(&X / 64)` and
    `hi(&X) * 4` on the same `X` emits `!align 255, 0, 0` and resolves `addr % 256 === 0`, in
    **either** source order. (b) A program with only `lo(&X / 64)` emits `!align 63, 0, 0`.
    (c) The assembled sprite-pointer byte in (a) equals `(addr / 64) & 0xff` under **both** idioms —
    i.e. `hi(&X) * 4` is still correct.
-5. [ ] **AC-5 — Non-allowlisted shapes keep 256.** Each of `lo(&X / 1)`, `lo(&X / 128)`,
+5. [x] **AC-5 — Non-allowlisted shapes keep 256.** Each of `lo(&X / 1)`, `lo(&X / 128)`,
    `lo(&X / 16384)` and `lo(&X / 32768)` emits `!align 255, 0, 0` and resolves
    `addr % 256 === 0` — covering `k = 0` and `k = 15`, the extremes `foldedAddressByte` accepts —
    and so do plain `lo(&X)` and plain `hi(&X)`, the divisor-less rows of M1's table.
-   `lo(&X / 65536)` (`k = 16`, rejected by the fold and lowered through the ordinary path) also
-   keeps 256.
-6. [ ] **AC-6 — `/ 64`, `>> 6` and `/ BLOCK` are indistinguishable.** Three programs identical but
+
+   > **Corrected while planning.** A `lo(&X / 65536)` clause was dropped from this criterion. It
+   > assumed `k = 16` is merely fold-rejected and lowers through the ordinary path; measured, the
+   > program does not compile at all. `65536` exceeds the 16-bit maximum, so the **lexer** rejects
+   > it with `E10216` (`packages/frontend/src/lexer/lexer.ts:238`) before lowering runs — no
+   > assembly, no symbol map, no boundary to keep. The other k=16 spelling, `lo(&X >> 16)`, is a
+   > hard error too and belongs to RD-13, whose ST-13h already pins it. The extremes this criterion
+   > can actually cover are `k = 0` and `k = 15`, both above.
+6. [x] **AC-6 — `/ 64`, `>> 6` and `/ BLOCK` are indistinguishable.** Three programs identical but
    for the divisor's spelling — `/ 64`, `>> 6`, and `/ BLOCK` with `const BLOCK = 64` (a named
    constant reaches the fold through `constantOperandValue`, which accepts it by design,
    `lower.ts:2530-2537`) — produce the same directive text, the same `addr % 64 === 0`, and the
    same assembled pointer byte — preserving RD-13 AC-5, and pinning that the demand keys on the
    normalized shift, not on a literal `64` token.
-7. [ ] **AC-7 — By-reference arguments still register nothing.** A program passing a `const` array
+7. [x] **AC-7 — By-reference arguments still register nothing.** A program passing a `const` array
    to a helper by reference (`sum(TABLE, len)`) with no `&` anywhere emits **no** `!align`
    directive, and `slice7b`, `slice8b` and `slice8` goldens are byte-identical to their current
    committed contents. This is RD-03 M1's membership rule, re-pinned because M3 rewrites the data
    structure that implements it.
-8. [ ] **AC-8 — Bare `&` is untouched.** `align-mixed.spec.test.ts` ST-C11, ST-C12 and ST-C13 pass
+8. [x] **AC-8 — Bare `&` is untouched.** `align-mixed.spec.test.ts` ST-C11, ST-C12 and ST-C13 pass
    **unmodified** — no edit to the file, no edit to `examples/align-mixed/main.blend`.
-9. [ ] **AC-9 — The three fold-form oracles are re-derived and green.** ST-C15, ST-13f and ST-13j
+9. [x] **AC-9 — The three fold-form oracles are re-derived and green.** ST-C15, ST-13f and ST-13j
    assert **both** `addr % 64 === 0` **and** the directive text — `!align 63, 0, 0` immediately
    preceding the image label, in ST-C11's style — each with its restated rationale, and their
    `< 0x1000` clauses are retained unchanged. The directive clause is load-bearing, not
    belt-and-braces: `% 256 === 0` implies `% 64 === 0` and every current image lands on a multiple
    of both, so the `% 64` clause alone cannot fail if the demand regresses to 256; directive text
    is the only deterministic discriminator (AR #108).
-10. [ ] **AC-10 — The bound.** For every 64-demand image in `examples/` (`balloon`,
+10. [x] **AC-10 — The bound.** For every 64-demand image in `examples/` (`balloon`,
     `balloon-color`, `boing-ball`), the gap between the `!align` directive's address and the
     label's address is **< 64**. Discharged at closeout by measurement, not by a test. The
     recorded measurements: `balloon` 19, `balloon-color` 60, `boing-ball` 1 — and `align-mixed`
     194, which sits outside the bound's scope as the bare-`&` 256-demand control.
-11. [ ] **AC-11 — No corpus movement is claimed.** `packages/test-harness/test/golden/budgets.json`
+11. [x] **AC-11 — No corpus movement is claimed.** `packages/test-harness/test/golden/budgets.json`
     is **unchanged**, and `balloon` remains 318 B. A closeout that reports a corpus byte improvement
     is wrong. `balloon-color` is measured at **454 B** (down from 582 — both in the budget
     convention, payload excluding the 2-byte load address, the same convention as `balloon`'s 318;
     #69's "584" is the `.prg` file size) and recorded as a measurement, not a budget.
-12. [ ] **AC-12 — The ledger contradiction is closed.** `RD-13-symbolic-address-arithmetic.md:157-159`
+12. [x] **AC-12 — The ledger contradiction is closed.** `RD-13-symbolic-address-arithmetic.md:157-159`
     no longer predicts that this RD makes `hi(&X) * 4` incorrect, and RD-13's peephole conclusion is
     visibly unchanged.
-13. [ ] **AC-13 — Verify is green.** `yarn install --frozen-lockfile && yarn turbo run build &&
+13. [x] **AC-13 — Verify is green.** `yarn install --frozen-lockfile && yarn turbo run build &&
     yarn turbo run typecheck && yarn turbo run lint && yarn test`, plus the local VICE tier for
     `balloon` and `boing-ball` (CI has no emulator tier, AR-27). `git status --porcelain spec/` is
     empty (D3). Stated for honesty: those two programs are exactly the two whose image address this
     RD does not move; `balloon-color`, the one image that moves, is build-tier only and its
     hardware correctness rests on ST-13f's assembled-pointer oracle. A one-off manual VICE look at
     `balloon-color` at closeout is recorded, not gated.
-14. [ ] **AC-14 — Prime Directive review.** The emitted directive for a sprite image reads
+14. [x] **AC-14 — Prime Directive review.** The emitted directive for a sprite image reads
     `!align 63, 0, 0` — the idiom a competent 6502 developer hand-writes for in-place sprite data.
     The committed hand twin (`examples/balloon/balloon.asm`) deliberately contains no `!align` —
     it stages the sprite into the tape buffer with a copy loop — so the review is strategy-level:
     in-place-plus-align judged against staging-copy as that developer would judge the trade, not a
     line-for-line directive comparison.
-15. [ ] **AC-15 — Non-const `&` registers nothing, divisor or no divisor.** A program applying
+15. [x] **AC-15 — Non-const `&` registers nothing, divisor or no divisor.** A program applying
     `lo(&buf / 64)` to a mutable module array and `lo(&fn / 64)` to a function compiles, emits
     **no** `!align` directive for those symbols, and the folded operand still assembles to
     `#<(sym / 64)` — the shift parameter is inert outside the const branch. AC-7's rationale
@@ -466,7 +492,7 @@ measurements (AC-10, AC-11).
 | new — 64-demand directive + resolved boundary | new fixture | AC-1, AC-2 |
 | new — two-array 64-byte delta | new fixture | AC-3 |
 | new — mixed demand, both orders | new fixture | AC-4 |
-| new — non-allowlisted shapes (`/1`, `/128`, `/16384`, `/32768`, `/65536`, plain `lo`/`hi`) | new fixture | AC-5 |
+| new — non-allowlisted shapes (`/1`, `/128`, `/16384`, `/32768`, plain `lo`/`hi`) | new fixture | AC-5 (the `/65536` row is dropped — the lexer rejects the literal before lowering runs; see AC-5) |
 | new — `/ 64` ≡ `>> 6` ≡ `/ BLOCK` | new fixture | AC-6 |
 | new — non-const `&` with divisor: no directive, fold byte unchanged | new fixture | AC-15 |
 | by-reference registers nothing | existing — `lower-address-of.spec.test.ts:279` reshape + `slice7b`/`slice8b`/`slice8` goldens, CI | AC-7 |

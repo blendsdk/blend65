@@ -38,15 +38,15 @@ suite file, test tier), #118 (phase structure), #119 (the Should-Have), #120 (th
 RD-15 owns the fifteen acceptance criteria. These three are additional, and exist because this
 plan's phase split makes claims the RD does not:
 
-1. [ ] **P-1 — Phase 1 moves no bytes.** After the data-shape migration and before the 64 demand
+1. [x] **P-1 — Phase 1 moves no bytes.** After the data-shape migration and before the 64 demand
    exists, every committed golden is byte-identical, `budgets.json` is unchanged, no ratchet moves,
    `SCOREBOARD.md` is unchanged, and the three fold-form oracles still assert `% 256` — *untouched*
    — and still pass. This is what buys the split its keep (AR #118).
-2. [ ] **P-2 — The reshape weakens no negative case.** Every one of the twelve `pageAligned`
+2. [x] **P-2 — The reshape weakens no negative case.** Every one of the twelve `pageAligned`
    assertions in `lower-address-of.spec.test.ts` that reads `false` today becomes an assertion that
    the entry carries **no boundary at all**, not an assertion that it carries 256. The distinction
    is the suppression predicate M3 introduces, and a reshape that flattened it would leave the
    by-reference membership rule (AC-7) pinned by nothing.
-3. [ ] **P-3 — No boundary value outside `{64, 256}` is representable.** Not asserted in a test but
+3. [x] **P-3 — No boundary value outside `{64, 256}` is representable.** Not asserted in a test but
    in the type: `AlignBoundary` is the declared type of the parameter, the map value and the
    `ConstDataEntry` field, so a third value is a compile error at every producer (AR #113).

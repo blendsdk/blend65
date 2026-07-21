@@ -4,7 +4,7 @@
 > **Source**: [RD-15](../../requirements/RD-15-alignment-granularity.md) ·
 > [RD preflight](../../requirements/00-preflight-report-rd-15.md)
 > **Issue**: [#69](https://github.com/blendsdk/blend65/issues/69)
-> **Status**: 🔬 Plan preflighted — 2026-07-21 (10 findings, all resolved)
+> **Status**: ✅ Complete — 2026-07-21 (3 phases / 24 tasks, all criteria discharged)
 > **CodeOps Skills Version**: 3.11.0
 
 ## What this plan delivers
@@ -41,6 +41,7 @@ every later code-size requirement inherits (AR #101).
 | [03-02-oracles-and-ledgers.md](03-02-oracles-and-ledgers.md) | M4/M5 — the six pinned assertions, the sixteen reshaped sites, the ledger corrections |
 | [07-testing-strategy.md](07-testing-strategy.md) | ST-cases, the re-derivations, red/green ordering |
 | [99-execution-plan.md](99-execution-plan.md) | 3 phases / 24 tasks, per-phase verify and commit points |
+| [08-closeout.md](08-closeout.md) | ✅ All 15 acceptance criteria + P-1/P-2/P-3 discharged with evidence |
 
 ## Key decisions
 

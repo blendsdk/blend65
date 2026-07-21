@@ -155,10 +155,19 @@ Two further constraints the implementation cannot choose away:
 > low-byte operation, so `#<(sym / 64)` is wrap-faithful by construction, always in immediate
 > range, and byte-for-byte equivalent to the hand idiom (`lda #sprite/64`). M1 already brings
 > `hi(&X) * 4` down to the four instructions a hand-coder writes; building a
-> multiply-over-address peephole to save two more bytes on an idiom that RD-15's 64-byte
-> alignment will make *incorrect* is machinery with a shelf life. **`lo(&SPRITE / 64)` becomes
+> multiply-over-address peephole to save two more bytes on an idiom this RD is deliberately
+> steering away from is machinery with a shelf life. **`lo(&SPRITE / 64)` becomes
 > the blessed sprite-block idiom** from this RD forward, and the `examples/` sources that
 > currently teach `hi(&X) * 4` are updated to it.
+
+> **Correction, made when RD-15 shipped.** The sentence above originally said RD-15's 64-byte
+> alignment would make `hi(&X) * 4` *incorrect*. It does not, and the claim was already
+> contradicted further down this page under *With RD-03*. RD-15 combines the demands a symbol
+> collects **coarsest-wins**, and `hi(&X) * 4` lowers through a divisor-less path that registers a
+> page — so a symbol named that way stays page-aligned no matter what else names it, and the
+> identity `(addr >> 8) * 4 === addr / 64` continues to hold on its resolved address. The
+> conclusion the sentence supports is unaffected and stands as written: the peephole is declined
+> on the wraparound-semantics argument, which never depended on the prediction.
 
 This is the one place RD-13 extends `InstrOperand`. **Blast radius, measured rather than
 estimated:**

@@ -1,8 +1,8 @@
 # Execution Plan: Alignment Granularity
 
 > **Implements**: asm-parity/RD-15 · [00-index.md](00-index.md)
-> **Progress**: 17/24 tasks (71%)
-> **Last Updated**: 2026-07-21 18:10
+> **Progress**: 24/24 tasks (100%) — ✅ COMPLETE
+> **Last Updated**: 2026-07-21 18:40
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #120), run at every marked point:
@@ -152,21 +152,21 @@ correct, structurally; the three oracles can now fail in both directions.
 
 ## Phase 3 — M5: ledgers, back-propagation, closeout
 
-> **Phase ref**: _(recorded at phase start)_
+> **Phase ref**: `9b7d7bc`
 
 Spec: [03-02 §3–§4](03-02-oracles-and-ledgers.md#3--ledger-corrections-phase-3).
 
-- [ ] 3.1 Correct `RD-13-symbolic-address-arithmetic.md:157-159`, which predicts this RD makes
+- [x] 3.1 ✅ (completed: 2026-07-21 18:35) Correct `RD-13-symbolic-address-arithmetic.md:157-159`, which predicts this RD makes
       `hi(&X) * 4` *"incorrect"* — false under the maximum rule, and contradicted at `:439` on the
       same page. Leave RD-13's peephole **conclusion** visibly unchanged: it stands on AR #79's
       wraparound argument, not on the prediction (AC-12)
-- [ ] 3.2 **Verify, do not re-apply**, the two ledger edits already made during RD authoring (they
+- [x] 3.2 ✅ (completed: 2026-07-21 18:35) **Verify, do not re-apply**, the two ledger edits already made during RD authoring (they
       land with this plan's own commit, so expect them present and not pending):
       `RD-03-placement.md:137-153` annotates M2's boundary value as superseded while stating the
       membership rule survives intact (AR #111), and `README.md:84` carries RD-15 in **Wave B2**
       beside the placement slice (AR #112). Confirm both read true against the shipped
       implementation; re-applying either would duplicate it
-- [ ] 3.3 Back-propagate **three** corrections into
+- [x] 3.3 ✅ (completed: 2026-07-21 18:35) Back-propagate **three** corrections into
       [RD-15](../../requirements/RD-15-alignment-granularity.md): the Technical-Requirements
       sentence *"passing the normalized shift into that call is the whole mechanism"* → the derived
       boundary, allowlist in `foldedAddressByte` (AR #113); the *Combining demands* sentence
@@ -175,16 +175,16 @@ Spec: [03-02 §3–§4](03-02-oracles-and-ledgers.md#3--ledger-corrections-phase
       RD as written prescribes code that cannot typecheck (AR #113, same consequence); and AC-5 +
       the Spec-Test Inventory drop the `lo(&X / 65536)` clause — the lexer rejects the literal with
       `E10216` before lowering runs, so there is no boundary to keep (AR #121)
-- [ ] 3.4 Run the **local VICE 3.10 tier** for AC-13: `balloon` and `boing-ball` render and their
+- [x] 3.4 ✅ (completed: 2026-07-21 18:35) Run the **local VICE 3.10 tier** for AC-13: `balloon` and `boing-ball` render and their
       observables pass unchanged. Take the one-off manual look at `balloon-color` — the one image
       that actually moves — and **record** it; it is not gated, because nothing in CI can re-run it
-- [ ] 3.5 Walk all **fifteen** acceptance criteria plus P-1, P-2 and P-3 with evidence into
+- [x] 3.5 ✅ (completed: 2026-07-21 18:35) Walk all **fifteen** acceptance criteria plus P-1, P-2 and P-3 with evidence into
       `08-closeout.md`, stating plainly that this RD recovers 128 B in a program with no budget,
       that the corpus total does not move, and that the deliverable is the bound (AC-10, AC-11,
       AC-14)
-- [ ] 3.6 Sync the feature roadmap and the portfolio roadmap; post the area report on
+- [x] 3.6 ✅ (completed: 2026-07-21 18:35) Sync the feature roadmap and the portfolio roadmap; post the area report on
       [#69](https://github.com/blendsdk/blend65/issues/69)
-- [ ] 3.7 Confirm `git status --porcelain spec/` empty across the whole commit range, and that
+- [x] 3.7 ✅ (completed: 2026-07-21 18:40) Confirm `git status --porcelain spec/` empty across the whole commit range, and that
       `align-mixed.spec.test.ts` and `examples/align-mixed/main.blend` appear in **no** diff of any
       phase (AC-8). Full verify
 
