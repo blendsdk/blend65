@@ -1,8 +1,8 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 34/54 tasks (63%) — Phases 1–3 complete
-> **Last Updated**: 2026-07-21 (Phase 3 — M2 landed unwired, zero byte movement)
+> **Progress**: 45/54 tasks (83%) — Phases 1–4 complete
+> **Last Updated**: 2026-07-21 (Phase 4 — all three demos migrated, parity reached on the idiom)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #95), run at every marked point:
@@ -26,7 +26,7 @@ them is CI-red by construction.
 | 1 | M3 — `W10172` conforms to OP-5 | none | 6 |
 | 2 | M1 — one-instruction byte-select | `balloon` code −11 B, **binary ±0** | 16 |
 | 3 | M2 — the fold operand, built **unwired** | none | 12 |
-| 4 | AC-6 — all three examples migrate | `balloon` −2 B | 11 |
+| 4 | AC-6 — all three examples migrate | `balloon` code −2 B, **binary ±0** | 11 |
 | 5 | M4/M5 — ledgers, back-propagation, closeout | none | 9 |
 
 **No committed golden changes in any phase.** The 14 corpus fixtures are untouched by M1, M2 and M3
@@ -213,12 +213,12 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
 `W10171`, and reds the freshness gate. Spec:
 [03-02 §2](03-02-diagnostics-examples-ledgers.md#2--ac-6--the-idiom-migration-phase-4).
 
-- [ ] 4.1 Write **ST-13f** plus a `testing/balloon-color.ts` builder mirroring `testing/balloon.ts`;
+- [x] 4.1 Write **ST-13f** plus a `testing/balloon-color.ts` builder mirroring `testing/balloon.ts`;
       new `balloon-color.spec.test.ts`, build-only under `skipIf(!hasAcme())`. Its `$07F8` byte
       **is** link-time — the migrated expression feeds the store directly. **Move `balloon-color`
       out of `pendingSuite` in `packages/test-harness/test/golden/examples-coverage.json` and name
       the new suite in `suites`** — the waiver exists only until this task lands
-- [ ] 4.2 Write **ST-13j** plus a `testing/boing-ball.ts` builder; new `boing-ball.spec.test.ts`.
+- [x] 4.2 Write **ST-13j** plus a `testing/boing-ball.ts` builder; new `boing-ball.spec.test.ts`.
       **Its CI half asserts only link-time facts** (AR #98): the `base` initializer's immediate ==
       `(symbolMap(BALL) / 64) & 0xFF`, plus the `ADC #1`/`#2`/`#3` → `STA $07F9`..`$07FB` chain that
       proves the value is still a usable 64-byte block base. The four pointer **values** do not
@@ -226,29 +226,47 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
       **ST-13k** alongside it under `skipIf(!hasVice())`, asserting `peek($07F8..$07FB)`; it runs in
       task 5.5, not in CI. **Clear its `pendingSuite` waiver too** — after 4.1 and 4.2 that list
       must be empty
-- [ ] 4.3 Re-derive **ST-C14** (`balloon.spec.test.ts:169-181`) to the two-instruction subsequence
+- [x] 4.3 Re-derive **ST-C14** (`balloon.spec.test.ts:169-181`) to the two-instruction subsequence
       `LDA #<(__data_Main_BALLOON / 64)` · `STA $07F8`, and rewrite its comment to describe the
       folded form rather than a weakness that no longer exists. **`:166-167` — the
       embed-appears-exactly-once assertions in the same block — are not part of this and stay
       byte-for-byte.** ST-C15 (`:184-195`) is untouched, comment included
-- [ ] 4.4 **Verify RED**
-- [ ] 4.5 Migrate `examples/balloon/main.blend:11` to `poke($07F8, lo(&BALLOON / 64));` and rewrite
+- [x] 4.4 **Verify RED**
+- [x] 4.5 Migrate `examples/balloon/main.blend:11` to `poke($07F8, lo(&BALLOON / 64));` and rewrite
       the teaching comment at `:8-10` — the block is the address divided by 64, not the high byte
       times four
-- [ ] 4.6 Migrate `examples/balloon-color/main.blend:21` and its comment at `:18-20` the same way
-- [ ] 4.7 Migrate `examples/boing-ball/main.blend:54` to `let base: byte = lo(&BALL / 64);` and its
+- [x] 4.6 Migrate `examples/balloon-color/main.blend:21` and its comment at `:18-20` the same way
+- [x] 4.7 Migrate `examples/boing-ball/main.blend:54` to `let base: byte = lo(&BALL / 64);` and its
       comment at `:52-53`. A **`let` initializer**, not a `poke` value — same lowering route, and
       the one site whose result is then used arithmetically (`p = base + frame * 4`, `:91-99`)
-- [ ] 4.8 **Verify GREEN**
-- [ ] 4.9 Re-derive `balloon`'s ratchet from the new build and regenerate `SCOREBOARD.md` —
+- [x] 4.8 **Verify GREEN**
+- [x] 4.9 Re-derive `balloon`'s ratchet from the new build and regenerate `SCOREBOARD.md` —
       **same commit** as tasks 4.5–4.7
-- [ ] 4.10 **Hand-review `balloon`'s regenerated assembly against `examples/balloon/balloon.asm`**,
+- [x] 4.10 **Hand-review `balloon`'s regenerated assembly against `examples/balloon/balloon.asm`**,
       its committed hand-written twin, and judge the migrated demos' emissions the same way. A
       divergence is a defect: fix it or file it, never shrug it off. (The 14 goldens cannot change
       in this phase — see 4.11 — so there are no golden hunks to review; this is where the
       Prime-Directive read actually happens)
-- [ ] 4.11 Confirm **zero golden diff** — a non-empty one is a defect to stop on, since no corpus
+- [x] 4.11 Confirm **zero golden diff** — a non-empty one is a defect to stop on, since no corpus
       fixture should move — plus **ST-C15 still green** (AC-2) and no fixture grew; full verify
+
+> **Measured at 4.9/4.10 — parity reached on this idiom, and the hand-review says so plainly.**
+> `balloon`'s pointer store is now instruction-for-instruction what its committed twin writes:
+>
+> | | |
+> |---|---|
+> | twin (`balloon.asm`) | `lda #13` · `sta $07f8` — block counted by hand |
+> | compiled | `LDA #<(__data_Main_BALLOON / 64)` · `STA $7F8` |
+>
+> Same two instructions, same 5 bytes, same 6 cycles — the difference is only that the assembler
+> supplies the constant instead of the programmer counting blocks, which is the version that cannot
+> go stale when the image moves. End to end this RD took the idiom **18 B / 24 cyc → 5 B / 6 cyc**,
+> exactly [03-01 §7](03-01-operand-and-lowering.md#7-projected-emission).
+>
+> Bytes again land in padding, as in Phase 2: `balloon` 318 → **318**, ratchet unmoved,
+> `budgets.json` untouched. Cycles carry it — `balloon` 286 → **282** (1.15× → **1.14×**), corpus
+> 4223 → **4219**. Zero golden diff; ST-C15 green; `pendingSuite` **empty**, both demos now built by
+> a named suite, and `boing-ball`'s four sprite pointers verified on VICE 3.10 as well.
 
 **Commit point.** Scope `perf(examples)`. Source, ratchet and scoreboard together.
 
@@ -262,8 +280,15 @@ Spec: [03-02 §3–§5](03-02-diagnostics-examples-ledgers.md#3--m4--the-ledgers
       carries `"issue": 58`** — flatly, with no exception clause, since all 17 rows are accounted
       for as 1 re-authored + 16 re-routed. **Watch it fail on all 17 first**; this is the phase's
       RED, and writing it after 5.2/5.3 would make it unfailable
-- [ ] 5.2 Re-author `balloon`'s `hi(&BALLOON) * 4` routing row **from measurement** — the divergence
-      it describes no longer exists — naming its measured owner rather than #58
+- [ ] 5.2 Re-author **all three** of `balloon`'s routing rows **from measurement**. The
+      `hi(&BALLOON) * 4` row on `#58` describes a divergence that no longer exists at all — 0 `ASL`s,
+      no warning, instruction-identical to the twin — and must name its measured owner rather than
+      #58. The other two are off by the two migrated bytes and were **not** anticipated when this
+      plan was written; Phase 4's review found them: `layout`/#52 reads *"code stream 237 vs 176,
+      +61"* (now **235 vs 176, +59**) and `data placement`/#49 reads *"non-code 81 vs 75, +6"*
+      (now **83 vs 75, +8**). The total is unchanged at 318 either way, which is exactly why no
+      gate caught it — the generator's stale-key abort is category-granular, and every category
+      still has backing rows
 - [ ] 5.3 Re-route the **16** misrouted rows (8 instruction-selection + 8 layout) from `#58` to
       [#70](https://github.com/blendsdk/blend65/issues/70). They are re-routed, **not** fixed.
       5.1 turns green here

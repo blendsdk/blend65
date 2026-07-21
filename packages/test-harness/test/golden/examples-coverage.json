@@ -20,10 +20,9 @@
     "slice8b": "corpus"
   },
   "suites": {
-    "align-mixed": "align-mixed.spec.test.ts"
+    "align-mixed": "align-mixed.spec.test.ts",
+    "balloon-color": "balloon-color.spec.test.ts",
+    "boing-ball": "boing-ball.spec.test.ts"
   },
-  "pendingSuite": {
-    "balloon-color": "No suite compiles it yet. Its sprite-pointer and image-alignment checks arrive with the symbolic-address work that migrates it to the divided-address idiom.",
-    "boing-ball": "No suite compiles it yet. Its four sprite pointers must be asserted one 64-byte block apart, which arrives with the same migration."
-  }
+  "pendingSuite": {}
 }

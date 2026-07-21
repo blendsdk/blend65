@@ -166,11 +166,12 @@ describe.skipIf(!hasAcme())(
       expect(first, "the embedded sprite must appear in the binary").toBeGreaterThanOrEqual(0);
       expect(indexOfBytes(binary, sprite, first + 1)).toBe(-1);
 
-      // The sprite pointer is computed from the image's own address. Asserted as
-      // an ordered subsequence rather than an exact instruction run: the shape of
-      // the shift sequence is a known constant-materialisation weakness, and when
-      // that is fixed this expectation should move with it — not block it.
-      const order = [new RegExp(`^LDA #>${SPRITE_LABEL}$`), /^ASL$/, /^ASL$/, /^STA \$0*7F8$/];
+      // The sprite pointer is the image's own 64-byte block number, and the
+      // assembler resolves it: the address and the division are both link-time,
+      // so the program loads one immediate and stores it. Asserted as an ordered
+      // subsequence rather than an exact run, so unrelated code between them
+      // does not block it.
+      const order = [new RegExp(`^LDA #<\\(${SPRITE_LABEL} / 64\\)$`), /^STA \$0*7F8$/];
       let at = 0;
       for (const want of order) {
         at = lines.findIndex((line, i) => i >= at && want.test(line)) + 1;

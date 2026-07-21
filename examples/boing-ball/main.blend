@@ -50,8 +50,10 @@ function main(): void {
   poke($D020, 14);
 
   // Block number of the first chunk of frame 0. Taking the image's address
-  // aligns it to a page, so the VIC reads it where it already lies.
-  let base: byte = hi(&BALL) * 4;
+  // aligns it, so the VIC reads it where it already lies. The VIC counts sprite
+  // data in 64-byte blocks, and this program walks four of them per frame, so
+  // the block number is the address divided by 64 — resolved at link time.
+  let base: byte = lo(&BALL / 64);
 
   let x: word = 100;
   let y: byte = 90;

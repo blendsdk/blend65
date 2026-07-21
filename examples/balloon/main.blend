@@ -5,10 +5,12 @@ module Main;
 const BALLOON: byte[] = embed("balloon.bin");
 
 function main(): void {
-  // Sprite 0: white, hires, normal size. Taking the image's address aligns it
-  // to a page, so the VIC reads it where it already lies — no staging copy —
-  // and the sprite pointer is just its block number, high byte times four.
-  poke($07F8, hi(&BALLOON) * 4);
+  // Sprite 0: white, hires, normal size. Taking the image's address aligns it,
+  // so the VIC reads it where it already lies — no staging copy. The sprite
+  // pointer is the image's block number: the VIC counts sprite data in 64-byte
+  // blocks, so the block number is the address divided by 64. Both the address
+  // and the division are known at link time, so this costs one instruction.
+  poke($07F8, lo(&BALLOON / 64));
   poke($D015, 1);
   poke($D027, 1);
   poke($D017, 0);
