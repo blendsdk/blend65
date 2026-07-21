@@ -6,7 +6,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 
 | Pair | Bytes gen | Bytes twin | Bytes ratio | Cycles gen | Cycles twin | Cycles ratio | Measured gen | Measured twin | Measured ratio |
 | ---- | --------- | ---------- | ----------- | ---------- | ----------- | ------------ | ------------ | ------------- | -------------- |
-| balloon | 318 | 251 | 1.27 | 300 | 248 | 1.21 | 125 | 97 | 1.29 |
+| balloon | 318 | 251 | 1.27 | 286 | 248 | 1.15 | 125 | 97 | 1.29 |
 | gate | 30 | 18 | 1.67 | 34 | 12 | 2.83 | — | — | — |
 | guards | 211 | 128 | 1.65 | 248 | 151 | 1.64 | — | — | — |
 | rasterpoll | 59 | 36 | 1.64 | 66 | 33 | 2.00 | — | — | — |
@@ -21,7 +21,7 @@ committed measured window (generated from `budgets.json`, twin from `twins.json`
 | slice7b | 355 | 48 | 7.40 | 508 | 48 | 10.58 | — | — | — |
 | slice8 | 153 | 74 | 2.07 | 234 | 84 | 2.79 | — | — | — |
 | slice8b | 387 | 77 | 5.03 | 495 | 63 | 7.86 | — | — | — |
-| **Total** | 3257 | 920 | 3.54 | 4237 | 909 | 4.66 | — | — | — |
+| **Total** | 3257 | 920 | 3.54 | 4223 | 909 | 4.65 | — | — | — |
 
 ## balloon — routing
 

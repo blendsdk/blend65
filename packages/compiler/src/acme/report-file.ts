@@ -129,6 +129,31 @@ const ALL_MNEMONICS: ReadonlySet<string> = new Set(OPCODES);
 /** A report line carrying an address column: line no, hex address, rest. */
 const ADDRESSED_LINE = /^\s*(\d+)\s+([0-9a-fA-F]{4})\s+(\S+)(?:\s+(.*))?$/;
 
+/**
+ * Divide a report line's bytes column from its source column.
+ *
+ * Normally whitespace separates them. But ACME truncates a long byte run with a
+ * literal `...`, and a run long enough to fill the column's fixed width leaves
+ * no trailing space — so when the source is a directive written at column 0,
+ * supplying no leading space either, the two columns touch. The truncation
+ * marker is then the only place the division can be read from.
+ *
+ * @param token The whitespace-delimited token following the address.
+ * @param rest The remainder of the line after that token.
+ * @returns The bytes column and the source column.
+ */
+function splitBytesColumn(token: string, rest: string): { bytes: string; source: string } {
+  const marker = token.indexOf("...");
+  if (marker === -1) {
+    return { bytes: token, source: rest };
+  }
+  const trailing = token.slice(marker + 3);
+  return {
+    bytes: token.slice(0, marker + 3),
+    source: trailing === "" ? rest : `${trailing} ${rest}`.trimEnd(),
+  };
+}
+
 /** Decode the operand value for a mode from the emitted bytes. */
 function decodeOperand(mode: AddressingMode, address: number, bytes: Uint8Array): number | null {
   switch (mode) {
@@ -182,8 +207,7 @@ export function parseReportFile(content: string, fileName: string): ReportInstru
     }
     const line = Number(match[1]);
     const address = parseInt(match[2], 16);
-    const bytesToken = match[3];
-    const source = match[4] ?? "";
+    const { bytes: bytesToken, source } = splitBytesColumn(match[3], match[4] ?? "");
 
     // ACME truncates long data lines with a literal trailing "..." — strip
     // it before validating; an instruction line (≤3 bytes) never truncates.

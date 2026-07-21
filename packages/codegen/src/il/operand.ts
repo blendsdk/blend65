@@ -14,7 +14,7 @@
  */
 
 import type { ILType } from "./il-type.js";
-import { IL_WORD } from "./il-type.js";
+import { IL_BYTE, IL_WORD } from "./il-type.js";
 
 /**
  * A value source for an IL instruction. A discriminated union keyed on
@@ -26,6 +26,16 @@ import { IL_WORD } from "./il-type.js";
  * (by-reference argument marshalling) and an ALU right operand (runtime
  * pointer formation adds a base address to a scaled index). Every other
  * consumer rejects it loudly — never a silent misread.
+ *
+ * The `addrByte` variant is ONE BYTE of such an address, already selected —
+ * an 8-bit link-time constant, and so an ordinary byte value legal wherever a
+ * byte immediate is. `shift`, when present, divides the address by `2^shift`
+ * before the byte is taken, which is how a sprite block number (`address / 64`)
+ * reaches the assembler as arithmetic it folds for free rather than as a
+ * runtime division of a constant. It is a separate variant from `addr` rather
+ * than a flag on it precisely because the two have different widths and
+ * different legal positions: a consumer that quietly treated one as the other
+ * would marshal two bytes into a one-byte slot, and would assemble cleanly.
  */
 export type ILOperand =
   | { readonly kind: "immediate"; readonly value: number; readonly type: ILType }
@@ -40,6 +50,13 @@ export type ILOperand =
       readonly kind: "addr";
       readonly symbol: string;
       readonly offset?: number;
+      readonly type: ILType;
+    }
+  | {
+      readonly kind: "addrByte";
+      readonly symbol: string;
+      readonly select: "low" | "high";
+      readonly shift?: number;
       readonly type: ILType;
     };
 
@@ -107,6 +124,41 @@ export function addrOf(symbol: string, offset?: number): ILOperand {
  */
 export function isAddr(o: ILOperand): o is Extract<ILOperand, { kind: "addr" }> {
   return o.kind === "addr";
+}
+
+/**
+ * Construct a selected byte of a symbol's address (always byte-typed — one
+ * byte is 8 bits by definition, mirroring how {@link addrOf} hardcodes a word).
+ *
+ * With `shift` the value is `(address / 2^shift)`'s selected byte, which the
+ * assembler folds at link time. There is deliberately no offset parameter: an
+ * addend inside the division would need its own parentheses to mean what it
+ * reads like, and an unparenthesized one assembles silently to the wrong byte.
+ *
+ * @param symbol The symbolic address (plan symbol or data label).
+ * @param select Which byte of the (optionally shifted) address to take.
+ * @param shift Optional right shift, 1..15; absent is a plain byte select.
+ * @returns An `addrByte` operand.
+ * @example
+ * // The sprite's 64-byte block number, resolved by the assembler:
+ * addrByteOf("__data_Main_BALLOON", "low", 6);
+ */
+export function addrByteOf(symbol: string, select: "low" | "high", shift?: number): ILOperand {
+  // Match `loc`/`addrOf`: omit the optional key entirely when unused, so the
+  // bare form stays comparable by value and prints without it.
+  return shift === undefined
+    ? { kind: "addrByte", symbol, select, type: IL_BYTE }
+    : { kind: "addrByte", symbol, select, shift, type: IL_BYTE };
+}
+
+/**
+ * Type guard: is this operand a selected byte of an address?
+ *
+ * @param o The operand to classify.
+ * @returns `true` and narrows to the `addrByte` variant when matched.
+ */
+export function isAddrByte(o: ILOperand): o is Extract<ILOperand, { kind: "addrByte" }> {
+  return o.kind === "addrByte";
 }
 
 /**

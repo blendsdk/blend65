@@ -3,11 +3,12 @@
  * link-time constant (frozen spec Ch 04 §8.5): in a plain store position —
  * a `let` initialiser, a simple assignment, a call argument, a `poke`/
  * `pokew` value — the address operand feeds the store directly and the
- * assembler materialises `#<sym` / `#>sym`. In every other position (ALU
- * arithmetic, `lo`/`hi` extraction) the address is first homed into a
- * synthetic word frame slot, and the consumer reads the slot — address
- * operands are legal only as store sources and ALU right operands, so the
- * homed copy is what keeps arbitrary expressions expressible.
+ * assembler materialises `#<sym` / `#>sym`. A `lo`/`hi` extraction is
+ * link-time too and selects its byte from the symbol directly. In ALU
+ * arithmetic the address is first homed into a synthetic word frame slot and
+ * the consumer reads the slot — address operands are legal only as store
+ * sources and ALU right operands, so the homed copy is what keeps arbitrary
+ * expressions expressible.
  *
  * Operand → symbol mapping: module variables address their `__var_*` slot,
  * locals their `__frame_*` slot, const aggregates their `__data_*` image,
@@ -154,7 +155,7 @@ describe("Specification: address-of outside store position homes through a word 
     expect(main).toMatch(/store %\d+, __frame_Main_main_w/);
   });
 
-  it("ST-9b: lo(&fn) / hi(&fn) home the address and read the slot's low/high byte", () => {
+  it("ST-9b: lo(&fn) / hi(&fn) select a byte directly, and still claim their slot", () => {
     const { text, hasErrors } = lowerReal([
       [
         "module Main;",
@@ -162,15 +163,23 @@ describe("Specification: address-of outside store position homes through a word 
         "function main(): void {",
         "  poke($C000, lo(&helper));",
         "  poke($C001, hi(&helper));",
+        "  let w: word = &helper + 2;",
         "}",
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
     const main = fnText(text, "Main.main");
-    expect(main).toContain("store &Main_helper, __frame_Main_main_0sc0");
-    expect(main).toContain("store &Main_helper, __frame_Main_main_0sc1");
-    expect(main).toMatch(/load i8u __frame_Main_main_0sc0\b/);
-    expect(main).toContain("load i8u __frame_Main_main_0sc1+1");
+    // The byte select carries the symbol itself: nothing is homed, and nothing
+    // is read back out of a slot.
+    expect(main).toContain("store <&Main_helper, $C000");
+    expect(main).toContain("store >&Main_helper, $C001");
+    expect(main).not.toMatch(/store &Main_helper, __frame_Main_main_0sc[01]\b/);
+    expect(main).not.toMatch(/load i8u __frame_Main_main_0sc[01]\b/);
+    // The two byte selects still CLAIM their scratch slots — they simply never
+    // write them. The trailing ALU site is the one position that still homes,
+    // so it names the third slot, and it is what would notice if the positional
+    // slot counter had shifted: dropping the claims would name `0sc0` here.
+    expect(main).toContain("store &Main_helper, __frame_Main_main_0sc2");
   });
 });
 

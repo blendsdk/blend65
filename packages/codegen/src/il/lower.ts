@@ -70,7 +70,7 @@ import type {
 
 import { IL_BYTE, IL_WORD, ilTypeOfType } from "./il-type.js";
 import type { ILType } from "./il-type.js";
-import { addrOf, imm, isTemp, loc } from "./operand.js";
+import { addrByteOf, addrOf, imm, isAddr, isTemp, loc } from "./operand.js";
 import type { ILOperand } from "./operand.js";
 import type { ILInstruction, ILTerminator } from "./instruction.js";
 import type { BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
@@ -2534,13 +2534,13 @@ function emitLo(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
     return imm(arg.value & 0xff, IL_BYTE);
   }
   if (isAddressOfExpr(arg)) {
-    // An address homes through its word slot; the low byte is the slot's
-    // first byte (little-endian).
-    const homed = lowerAddressOf(arg, ctx, false);
-    if (homed.kind !== "location") return homed; // slot miss already rejected
-    const dest = ctx.builder.newTemp(IL_BYTE);
-    ctx.builder.emit({ op: "load", a: dest, b: loc(homed.symbol, IL_BYTE) });
-    return dest;
+    // The low byte of a link-time constant is a link-time constant: the
+    // assembler selects it, exactly as it does for a numeric literal above.
+    // The address still lowers through the address-of path so it keeps that
+    // path's slot claim and its data-placement marking.
+    const address = lowerAddressOf(arg, ctx, true);
+    if (!isAddr(address)) return address; // rejection already reported
+    return addrByteOf(address.symbol, "low");
   }
   const value = lowerExpr(arg, ctx);
   if (value.type.width === 8) return value; // identity
@@ -2568,13 +2568,12 @@ function emitHi(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
     return imm((arg.value >> 8) & 0xff, IL_BYTE);
   }
   if (isAddressOfExpr(arg)) {
-    // An address homes through its word slot; the high byte sits at +1
-    // (little-endian).
-    const homed = lowerAddressOf(arg, ctx, false);
-    if (homed.kind !== "location") return homed; // slot miss already rejected
-    const dest = ctx.builder.newTemp(IL_BYTE);
-    ctx.builder.emit({ op: "load", a: dest, b: loc(homed.symbol, IL_BYTE, 1) });
-    return dest;
+    // The high byte of a link-time constant is a link-time constant; see the
+    // low-byte case above for why the address still lowers through the
+    // address-of path rather than being named directly.
+    const address = lowerAddressOf(arg, ctx, true);
+    if (!isAddr(address)) return address; // rejection already reported
+    return addrByteOf(address.symbol, "high");
   }
 
   const argIl = ilTypeOfType(ctx.model.typeOf(arg));

@@ -1,8 +1,8 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 6/54 tasks (11%) — Phase 1 complete
-> **Last Updated**: 2026-07-21 (Phase 1 — M3 landed, full verify green, zero byte movement)
+> **Progress**: 22/54 tasks (41%) — Phases 1–2 complete
+> **Last Updated**: 2026-07-21 (Phase 2 — M1 landed, full verify green; AR #100 resolved)
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #95), run at every marked point:
@@ -24,7 +24,7 @@ them is CI-red by construction.
 | Phase | Delivers | Byte movement | Tasks |
 |---|---|---|---|
 | 1 | M3 — `W10172` conforms to OP-5 | none | 6 |
-| 2 | M1 — one-instruction byte-select | `balloon` −11 B | 16 |
+| 2 | M1 — one-instruction byte-select | `balloon` code −11 B, **binary ±0** | 16 |
 | 3 | M2 — the fold operand, built **unwired** | none | 12 |
 | 4 | AC-6 — all three examples migrate | `balloon` −2 B | 11 |
 | 5 | M4/M5 — ledgers, back-propagation, closeout | none | 9 |
@@ -75,58 +75,73 @@ The hazard phase. Every path routes through `lowerAddressOf(arg, ctx, true)`, wh
 the page-alignment mark and the positional slot claim. Spec:
 [03-01 §1, §4, §5](03-01-operand-and-lowering.md).
 
-- [ ] 2.1 Add the **three ICE guards** (AR #92): trailing `iceUnsupported` in `leftIntoA`
+- [x] 2.1 Add the **three ICE guards** (AR #92): trailing `iceUnsupported` in `leftIntoA`
       (`translate.ts:950`), an `else` on `bringValueIntoRegisters`'s `if (lo && hi)` (`:998`), and
       `iceUnsupported` replacing `rightSource`'s `{ none(), "Implied" }` fallthrough (`:1052`).
       **Full verify green here is the proof they are unreachable** for every currently-compiling
       program — it must be run and recorded before anything else in this phase
-- [ ] 2.2 Add the `addrByte` variant to `ILOperand` with `addrByteOf` and `isAddrByte`; extend the
+- [x] 2.2 Add the `addrByte` variant to `ILOperand` with `addrByteOf` and `isAddrByte`; extend the
       union's doc comment. `addr`'s two-position rule is **not** amended. No barrel change —
       `il/index.ts` does not export `addrOf`/`isAddr` either
-- [ ] 2.3 Add the `renderOperand` arm in `print-il.ts` (TS2366-forced until written)
-- [ ] 2.4 Add `instrOperandFor` in `instr/translate.ts` — the single `addrByte` → `InstrOperand`
+- [x] 2.3 Add the `renderOperand` arm in `print-il.ts` (TS2366-forced until written)
+- [x] 2.4 Add `instrOperandFor` in `instr/translate.ts` — the single `addrByte` → `InstrOperand`
       mapping site; shift-absent → `symbolRef(name, { byteSelect })`
-- [ ] 2.5 Write **ST-13a**, **ST-13b**, **ST-13g** — all four operand kinds including locals
+- [x] 2.5 Write **ST-13a**, **ST-13b**, **ST-13g** — all four operand kinds including locals
       (AR #91), **and the three non-`poke` positions**: index `table[lo(&X)]` (AR #97), `let`
       initializer `let b: byte = lo(&X);` and assignment `v = hi(&X);` (AR #99). All three compile
       today; each would regress to an `E90001` without its arm, and no existing test covers them
-- [ ] 2.6 Re-derive **ST-9b** — no homing store, no slot reload, and a trailing **homing** `&` site
+- [x] 2.6 Re-derive **ST-9b** — no homing store, no slot reload, and a trailing **homing** `&` site
       (`let w: word = &helper + 2;`) still emits `store &Main_helper, __frame_Main_main_0sc2`,
       which is AC-3's real proof. **It must be a homing site, not a plain store**: every plain-store
       position lowers with `direct = true`, so the slot name never reaches the IL text and the
       assertion would be unwritable. Update the module header prose at
       `lower-address-of.spec.test.ts:6-10` to drop `lo`/`hi` extraction from the homing sentence
-- [ ] 2.7 **Verify RED**
-- [ ] 2.8 Switch `emitLo` (`lower.ts:2536`) and `emitHi` (`:2570`) to
+- [x] 2.7 **Verify RED**
+- [x] 2.8 Switch `emitLo` (`lower.ts:2536`) and `emitHi` (`:2570`) to
       `lowerAddressOf(arg, ctx, true)` and return `addrByteOf(...)` **directly** — no `load`, no
       temp, mirroring the numeric-literal path at `:2534`
-- [ ] 2.9 Add the `byteRefOf` arm (`translate.ts:1008`): byteIndex 0 → the mapped operand in
+- [x] 2.9 Add the `byteRefOf` arm (`translate.ts:1008`): byteIndex 0 → the mapped operand in
       Immediate mode, byteIndex 1 → `imm8(0)`
-- [ ] 2.10 Add the `leftIntoA` arm (`translate.ts:920`): emit `LDA` Immediate, then `clearRegs()`,
+- [x] 2.10 Add the `leftIntoA` arm (`translate.ts:920`): emit `LDA` Immediate, then `clearRegs()`,
       following the `isImmediate` arm exactly
-- [ ] 2.11 Add the `indexIntoX` arm (`translate.ts:1758`): emit `LDX` Immediate, following its
+- [x] 2.11 Add the `indexIntoX` arm (`translate.ts:1758`): emit `LDX` Immediate, following its
       `isImmediate` arm at `:1764-1767` (AR #97). **Without this `table[lo(&X)]` — which compiles
       today — becomes an `E90001`.** The trailing ICE at `:1786` stays for genuinely unhandled kinds
-- [ ] 2.12 Add the `translateConst` arm (`translate.ts:655`), **ahead of** its temp/immediate guard:
+- [x] 2.12 Add the `translateConst` arm (`translate.ts:655`), **ahead of** its temp/immediate guard:
       `protectA()` · `LDA` Immediate via `instrOperandFor` · `bindA(dest.id)`, byte-only (AR #99).
       **This is not optional hardening.** Only a store source takes a lowered operand raw; all ten
       other expression positions funnel through `materialise` → `const` → `translateConst`
       (`lower.ts:2659-2666`), so without this arm `let b: byte = lo(&X);` and `v = hi(&X);` — both
       of which **compile today** — become `E90001` the moment task 2.8 lands, and task 4.7's
       migration cannot build at all
-- [ ] 2.13 **Verify GREEN**
-- [ ] 2.14 Implementation tests: `addrByteOf` / `isAddrByte` / `instrOperandFor`; **each of the
+- [x] 2.13 **Verify GREEN**
+- [x] 2.14 Implementation tests: `addrByteOf` / `isAddrByte` / `instrOperandFor`; **each of the
       three ICE guards firing** on a deliberately malformed operand (2.1 proved them unreachable,
       never that they work); the `indexIntoX` and `translateConst` arms
-- [ ] 2.15 **Seed and watch fail**: break ST-13a's byte-select expectation; and seed ST-C15
+- [x] 2.15 **Seed and watch fail**: break ST-13a's byte-select expectation; and seed ST-C15
       **code-side** by dropping the alignment mark at `lower.ts:1863`, rebuilding, and watching
       `addr % 256 == 0` fail. Restore both. Perturbing ST-C15's assertion instead would prove only
       that the test runs, not that it detects the hazard it exists for
-- [ ] 2.16 Re-derive `balloon`'s `bytes` ratchet **from the new build**; regenerate
+- [x] 2.16 Re-derive `balloon`'s `bytes` ratchet **from the new build**; regenerate
       `SCOREBOARD.md`; confirm the 14 goldens byte-identical and ST-C15 green (AC-2);
       **hand-review `balloon`'s regenerated assembly against `examples/balloon/balloon.asm`**, its
       committed hand-written twin — this is the code the RD exists to produce, and the only phase
       gate that reads it; full verify
+
+> **Measured at 2.16 — the phase's byte prediction was wrong, and the reason matters.** The
+> pointer idiom went 18 B → **7 B** and 24 cyc → **10 cyc** exactly as [03-01 §7](03-01-operand-and-lowering.md#7-projected-emission)
+> projected. But `balloon`'s **binary did not shrink**: its sprite is `!align 256`, so all 11 saved
+> code bytes were absorbed by page padding, which grew from 6 B to 17 B. The `bytes` ratchet
+> re-derives to the same **318** and `budgets.json` is unchanged; the scoreboard moves on cycles
+> only — `balloon` 300 → **286** (1.21× → **1.15×**), corpus 4237 → **4223**. Phase 4's further
+> −2 B will be absorbed the same way, so this RD never moves `balloon`'s byte ratchet at all.
+> That is not a defect in M1 — it is the cost RD-15 exists to remove, and the sharpest evidence yet
+> for it: at 64-byte alignment the padding is 1 B and the saving is real.
+>
+> Also resolved here: **AR #100 (runtime)** — the shrink pushed `balloon`'s `!align` padding past
+> 8 bytes, so ACME truncated its report byte column and it abutted the column-zero directive,
+> breaking `parseReportFile`. A pre-existing parser defect, fixed with a regression test in the
+> same commit.
 
 **Commit point.** Scope `perf(codegen)`. Source, ratchet and scoreboard together.
 

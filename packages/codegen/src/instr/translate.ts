@@ -31,7 +31,7 @@ import { DiagCode, IceCode, RT_ROUTINES } from "@blend65/core";
 import type { AllocationPlan, DiagnosticBag, IntrinsicDescriptor, SourceSpan } from "@blend65/core";
 
 import type { ILType } from "../il/il-type.js";
-import { isAddr, isImmediate, isLocation, isTemp } from "../il/operand.js";
+import { isAddr, isAddrByte, isImmediate, isLocation, isTemp } from "../il/operand.js";
 import type { ILOperand } from "../il/operand.js";
 import type { ILInstruction, ILTerminator } from "../il/instruction.js";
 import type { ILFunction } from "../il/cfg.js";
@@ -653,6 +653,17 @@ class FunctionTranslator {
   // ── const / load / store ─────────────────────────────────────────────────────
 
   private translateConst(dest: ILOperand, src: ILOperand): void {
+    // Only a store source takes a lowered value raw; every other expression
+    // position wraps it in a `const` first, so this is where an address byte
+    // arrives when it initialises a variable, feeds an assignment, or reaches
+    // any of the other materialising positions. It is always byte-wide, so the
+    // 16-bit high half below never applies to it.
+    if (isAddrByte(src) && isTemp(dest)) {
+      this.protectA();
+      this.emit("LDA", "Immediate", this.instrOperandFor(src));
+      this.bindA(dest.id);
+      return;
+    }
     if (!isTemp(dest) || !isImmediate(src)) {
       this.iceUnsupported("const (non-temp dest or non-immediate src)");
       return;
@@ -942,11 +953,20 @@ class FunctionTranslator {
       this.clearRegs();
       return;
     }
+    if (isAddrByte(op)) {
+      this.emit("LDA", "Immediate", this.instrOperandFor(op));
+      this.clearRegs();
+      return;
+    }
     if (isLocation(op)) {
       this.emit("LDA", "Absolute", symHome(op, 0));
       this.clearRegs();
       return;
     }
+    // Falling out of the chain would emit nothing at all, and the caller's
+    // following STA would then store whatever value happens to be left in A.
+    // Silence is the one outcome this must never have.
+    this.iceUnsupported("byte operand with no load form");
   }
 
   /** Bring one byte (lo=0/hi=1) of a word ALU left operand into A. */
@@ -995,7 +1015,29 @@ class FunctionTranslator {
       this.emit("LDX", hi.mode, hi.operand);
       this.bindA(isTemp(value) ? value.id : null);
       this.bindX(isTemp(value) ? value.id : null);
+      return;
     }
+    // Without an else the word simply never reaches A:X, and the consumer
+    // stores stale registers as if it had.
+    this.iceUnsupported("word value with no per-byte read reference");
+  }
+
+  /**
+   * The assembler operand a selected address byte maps to. This is the single
+   * place the IL variant becomes an instruction operand, so the plain and
+   * shifted spellings cannot drift apart as consumers are added.
+   *
+   * @param op The address-byte operand to map.
+   * @returns The immediate operand the assembler resolves at link time.
+   */
+  private instrOperandFor(op: Extract<ILOperand, { kind: "addrByte" }>): InstrOperand {
+    if (op.shift !== undefined) {
+      // A shifted select has no assembler spelling yet. Falling back to the
+      // unshifted symbol would assemble cleanly and mean a different byte, so
+      // it fails loudly instead; the returned operand never reaches output.
+      this.iceUnsupported("shifted address byte");
+    }
+    return symbolRef(op.symbol, { byteSelect: op.select });
   }
 
   /**
@@ -1009,6 +1051,13 @@ class FunctionTranslator {
     if (isImmediate(op)) {
       const v = byteIndex === 0 ? op.value & 0xff : (op.value >> 8) & 0xff;
       return { operand: imm8(v), mode: "Immediate" };
+    }
+    if (isAddrByte(op)) {
+      // A byte value widened to a word has a zero high byte; without that half
+      // a word consumer would read a null here and emit nothing for it.
+      return byteIndex === 0
+        ? { operand: this.instrOperandFor(op), mode: "Immediate" }
+        : { operand: imm8(0), mode: "Immediate" };
     }
     const home = this.sourceHome(op);
     if (home !== null) {
@@ -1049,6 +1098,11 @@ class FunctionTranslator {
     if (isTemp(op)) {
       return { operand: this.binder.operandFor(op), mode: "ZeroPage" };
     }
+    // An implied-mode operand on an instruction that needs a source is not a
+    // read at all; it survives translation and validation and only the
+    // assembler ever objects, by which point the cause is long gone. The
+    // returned reference is unreachable — the ICE fails the build first.
+    this.iceUnsupported("ALU right operand with no read reference");
     return { operand: none(), mode: "Implied" };
   }
 
@@ -1758,6 +1812,12 @@ class FunctionTranslator {
     }
     if (isImmediate(index)) {
       this.emit("LDX", "Immediate", imm8(index.value & 0xff));
+      return;
+    }
+    if (isAddrByte(index)) {
+      // A block number indexing a table is an ordinary byte; the assembler
+      // supplies its value the same way it supplies any other immediate.
+      this.emit("LDX", "Immediate", this.instrOperandFor(index));
       return;
     }
     if (isTemp(index)) {

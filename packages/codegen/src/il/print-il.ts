@@ -37,6 +37,7 @@ export function ilTypeTag(t: ILType): string {
  * - temp → `%N`
  * - location → `symbol` (+ `+offset` when an offset is present)
  * - addr → `&symbol` (+ `+offset` when an offset is present)
+ * - addrByte → `<&symbol` / `>&symbol` (+ `/divisor` when shifted)
  *
  * @param o The operand to render.
  * @returns The operand's textual form.
@@ -51,6 +52,14 @@ function renderOperand(o: ILOperand): string {
       return o.offset === undefined ? o.symbol : `${o.symbol}+${o.offset}`;
     case "addr":
       return o.offset === undefined ? `&${o.symbol}` : `&${o.symbol}+${o.offset}`;
+    case "addrByte": {
+      // The byte select leads, as it does in assembler source, and the shift
+      // prints as the divisor it stands for so the IL text reads the way the
+      // emitted operand will.
+      const sel = o.select === "low" ? "<" : ">";
+      const div = o.shift === undefined ? "" : `/${1 << o.shift}`;
+      return `${sel}&${o.symbol}${div}`;
+    }
   }
 }
 

@@ -84,6 +84,23 @@ describe("Specification: ACME report parsing — modes come from bytes, not text
     expect(() => parseReportFile(report, "broken.report")).toThrowError(/broken\.report.*line 6/s);
   });
 
+  it("should read a truncated bytes column that abuts a column-zero directive", () => {
+    // ACME pads the bytes column to a fixed width and truncates a long byte run
+    // with a literal "...". A run long enough to fill that width leaves no space
+    // before the source text, and a directive written at column 0 supplies none
+    // of its own — so the two columns touch. Splitting on whitespace reads the
+    // directive as part of the byte run.
+    const report = [
+      "     5  0801 a900                       lda #$00",
+      "   139  08ef 0000000000000000...!align 255, 0, 0",
+      "   141  0900 007f0001ffc003ff...    !byte $00, $7F, $00, $01",
+      "   150  0a00 60                         rts",
+    ].join("\n");
+
+    const records = parseReportFile(report, "main.report");
+    expect(records.map((r) => r.opcode)).toEqual(["LDA", "RTS"]);
+  });
+
   it("should throw naming the file and line when bytes and mnemonic disagree", () => {
     // $A9 is LDA immediate — a source column claiming STA is a corrupt report.
     const report = ["     5  0801 a900                       sta #$00"].join("\n");
