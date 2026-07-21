@@ -34,7 +34,7 @@ export {
 export type { IntrinsicDescriptor } from "./intrinsic-descriptor.js";
 
 // CFG records + terminator successor enumeration
-export type { BasicBlock, ILFunction, ILProgram, ConstDataEntry } from "./cfg.js";
+export type { AlignBoundary, BasicBlock, ILFunction, ILProgram, ConstDataEntry } from "./cfg.js";
 export { terminatorTargets } from "./cfg.js";
 
 // Builder + lowering

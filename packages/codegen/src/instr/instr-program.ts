@@ -187,20 +187,19 @@ export function assembleProgram(
 /** Bytes per `!byte` row — keeps goldens readable. */
 const DATA_BYTES_PER_ROW = 16;
 
-/** The alignment a page-aligned const image is placed on. */
-const PAGE = 256;
-
 /**
  * Build the labeled `!byte` data stream for one const-data entry.
  *
- * An address-taken image opens with its alignment directive, ahead of the
- * label, so the padding lands before the data and the directive travels with
- * the bytes it aligns rather than being reconstructed at serialization time.
+ * An image that demands a boundary opens with its alignment directive, ahead
+ * of the label, so the padding lands before the data and the directive travels
+ * with the bytes it aligns rather than being reconstructed at serialization
+ * time. An image that demands nothing opens with the label alone.
  */
 function constDataStream(entry: ConstDataEntry): InstrStream {
-  const entries = entry.pageAligned
-    ? [directive({ kind: "align", boundary: PAGE, fill: 0 }), label(entry.symbol)]
-    : [label(entry.symbol)];
+  const entries =
+    entry.boundary !== undefined
+      ? [directive({ kind: "align", boundary: entry.boundary, fill: 0 }), label(entry.symbol)]
+      : [label(entry.symbol)];
   for (let i = 0; i < entry.data.length; i += DATA_BYTES_PER_ROW) {
     const values = [...entry.data.slice(i, i + DATA_BYTES_PER_ROW)];
     entries.push(directive({ kind: "byte", values }));

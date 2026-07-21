@@ -190,13 +190,17 @@ function constEntry(il: ILProgram, symbol: string): ConstDataEntry {
   return entry!;
 }
 
-describe("Specification: source-level & on a const aggregate marks its data image page-aligned", () => {
+describe("Specification: source-level & on a const aggregate demands a boundary for its image", () => {
   // A `&`-taken const aggregate is data the hardware will read in place
-  // (sprite images, character sets), so its image must start on a 256-byte
-  // boundary. The mark rides on the const-data entry as a required boolean,
-  // and it is *syntactic*: only a source-level `&` sets it.
+  // (sprite images, character sets), so its image must start on a boundary the
+  // hardware dereferences in. The demand rides on the const-data entry as a
+  // boundary in bytes, and an aggregate whose address is handed out with no
+  // arithmetic around it demands a page — 256. The demand is *syntactic*: only
+  // a source-level `&` registers one, and an entry nothing demanded a boundary
+  // of carries no boundary at all rather than a default one, because absent is
+  // what says "nothing was ever registered here".
 
-  it("ST-C5: &T on a const array inside a function body marks its entry aligned", () => {
+  it("ST-C5: &T on a const array inside a function body demands a page for its entry", () => {
     const { il, hasErrors } = lowerReal([
       [
         "module Main;",
@@ -207,10 +211,10 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(true);
+    expect(constEntry(il, "__data_Main_T").boundary).toBe(256);
   });
 
-  it("ST-C6: passing the const array only by reference does NOT mark it", () => {
+  it("ST-C6: passing the const array only by reference demands nothing", () => {
     // A by-reference argument lowers to the very same IL address-of operand
     // that `&T` produces, so an operand-level rule could not tell them apart
     // and would align every table ever passed to a helper. This is why the
@@ -229,10 +233,10 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(false);
+    expect(constEntry(il, "__data_Main_T").boundary).toBeUndefined();
   });
 
-  it("ST-C7: & on an interrupt handler marks nothing — code has no data image", () => {
+  it("ST-C7: & on an interrupt handler demands nothing — code has no data image", () => {
     // The module also carries a const array that is never addressed. Without
     // it the expectation would be vacuous — a program with no const data
     // trivially has nothing marked — and could not distinguish a correct rule
@@ -249,13 +253,14 @@ describe("Specification: source-level & on a const aggregate marks its data imag
         "}",
       ].join("\n"),
     ]);
-    // Lowering must survive a non-data `&` without inventing an entry to mark.
+    // Lowering must survive a non-data `&` without inventing an entry to
+    // demand a boundary of.
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(false);
-    expect(il.constData.filter((e) => e.pageAligned === true)).toEqual([]);
+    expect(constEntry(il, "__data_Main_T").boundary).toBeUndefined();
+    expect(il.constData.filter((e) => e.boundary !== undefined)).toEqual([]);
   });
 
-  it("ST-C8: & on a mutable module array marks nothing — RAM owns no image", () => {
+  it("ST-C8: & on a mutable module array demands nothing — RAM owns no image", () => {
     // A `let` array lives in the RAM region; there is no emitted const image
     // whose placement could be constrained, so its `&` must leave the
     // const-data table untouched. The unaddressed const array is what gives
@@ -274,13 +279,13 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(false);
+    expect(constEntry(il, "__data_Main_T").boundary).toBeUndefined();
     for (const entry of il.constData) {
-      expect(entry.pageAligned, `${entry.symbol} must not be marked aligned`).toBe(false);
+      expect(entry.boundary, `${entry.symbol} must carry no alignment demand`).toBeUndefined();
     }
   });
 
-  it("ST-C9: & on a const struct marks its entry aligned — any aggregate qualifies", () => {
+  it("ST-C9: & on a const struct demands a page for its entry — any aggregate qualifies", () => {
     const { il, hasErrors } = lowerReal([
       [
         "module Main;",
@@ -292,10 +297,10 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_P").pageAligned).toBe(true);
+    expect(constEntry(il, "__data_Main_P").boundary).toBe(256);
   });
 
-  it("ST-C10: with two const arrays and one &-taken, exactly that one is marked", () => {
+  it("ST-C10: with two const arrays and one &-taken, exactly that one demands a boundary", () => {
     const { il, hasErrors } = lowerReal([
       [
         "module Main;",
@@ -309,15 +314,15 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_A").pageAligned).toBe(true);
-    expect(constEntry(il, "__data_Main_B").pageAligned).toBe(false);
+    expect(constEntry(il, "__data_Main_A").boundary).toBe(256);
+    expect(constEntry(il, "__data_Main_B").boundary).toBeUndefined();
   });
 
-  it("ST-C19: with two const arrays both &-taken, both are marked", () => {
+  it("ST-C19: with two const arrays both &-taken, both demand a boundary", () => {
     // ST-C10 alone is satisfied by an implementation that remembers a single
-    // symbol slot instead of a set. A two-sprite program — the canonical game
+    // symbol slot instead of a table. A two-sprite program — the canonical game
     // shape this feature exists for — would then align only one image and
-    // silently corrupt the other's display. Both entries must carry the mark.
+    // silently corrupt the other's display. Both entries must carry a demand.
     const { il, hasErrors } = lowerReal([
       [
         "module Main;",
@@ -330,15 +335,15 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_SPRITE_A").pageAligned).toBe(true);
-    expect(constEntry(il, "__data_Main_SPRITE_B").pageAligned).toBe(true);
+    expect(constEntry(il, "__data_Main_SPRITE_A").boundary).toBe(256);
+    expect(constEntry(il, "__data_Main_SPRITE_B").boundary).toBe(256);
   });
 
-  it("ST-C19b: & taken only in a module-scope initializer still marks the entry", () => {
+  it("ST-C19b: & taken only in a module-scope initializer still demands a boundary", () => {
     // Module initializers lower through a second, separate lowering context
     // from function bodies. If that context kept a private record of &-taken
     // symbols, every function-body case above would still pass while an array
-    // addressed only at module scope silently never aligned — so the mark
+    // addressed only at module scope silently never aligned — so the demand
     // must survive regardless of which context saw the `&`.
     const { il, hasErrors } = lowerReal([
       [
@@ -351,6 +356,6 @@ describe("Specification: source-level & on a const aggregate marks its data imag
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    expect(constEntry(il, "__data_Main_T").pageAligned).toBe(true);
+    expect(constEntry(il, "__data_Main_T").boundary).toBe(256);
   });
 });

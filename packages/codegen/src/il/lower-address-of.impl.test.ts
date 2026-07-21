@@ -134,7 +134,7 @@ describe("the address-taken record's lifetime", () => {
       ].join("\n"),
     ]);
     expect(hasErrors).toBe(false);
-    const marked = il.constData.filter((e) => e.pageAligned).map((e) => e.symbol);
+    const marked = il.constData.filter((e) => e.boundary !== undefined).map((e) => e.symbol);
     expect(marked).toEqual(["__data_Main_LOCAL"]);
   });
 
@@ -153,7 +153,7 @@ describe("the address-taken record's lifetime", () => {
     ]);
     expect(hasErrors).toBe(false);
     expect(il.constData.filter((e) => e.symbol === "__data_Main_T")).toHaveLength(1);
-    expect(il.constData.filter((e) => e.pageAligned).map((e) => e.symbol)).toEqual([
+    expect(il.constData.filter((e) => e.boundary !== undefined).map((e) => e.symbol)).toEqual([
       "__data_Main_T",
     ]);
   });
@@ -168,6 +168,6 @@ describe("the address-taken record's lifetime", () => {
       ["module Main;", "function main(): void { let p: word = &Gfx.TABLE; }"].join("\n"),
     ]);
     expect(codes).toContain("E10042");
-    expect(il.constData.filter((e) => e.pageAligned)).toEqual([]);
+    expect(il.constData.filter((e) => e.boundary !== undefined)).toEqual([]);
   });
 });

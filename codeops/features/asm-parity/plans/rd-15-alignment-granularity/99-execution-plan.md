@@ -1,8 +1,8 @@
 # Execution Plan: Alignment Granularity
 
 > **Implements**: asm-parity/RD-15 · [00-index.md](00-index.md)
-> **Progress**: 0/24 tasks (0%)
-> **Last Updated**: 2026-07-21 15:24
+> **Progress**: 9/24 tasks (38%)
+> **Last Updated**: 2026-07-21 17:50
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #120), run at every marked point:
@@ -43,32 +43,32 @@ the idiom rather than at a golden diff.
 
 ## Phase 1 — M3: the mark becomes a value
 
-> **Phase ref**: _(recorded at phase start)_
+> **Phase ref**: `cf5696b`
 > **Lenses**: api-surface
 
 Behaviour-neutral by design: every demand is still 256, so this phase's own proof is that nothing
 moved (AR #118). Spec: [03-01 §1, §3, §4](03-01-demand-and-emission.md) ·
 [03-02 §1](03-02-oracles-and-ledgers.md#1--the-sixteen-reshaped-sites-phase-1).
 
-- [ ] 1.1 Reshape the **12** `pageAligned` assertions in
+- [x] 1.1 ✅ (completed: 2026-07-21 17:47) Reshape the **12** `pageAligned` assertions in
       `packages/codegen/src/il/lower-address-of.spec.test.ts` (`:210, :232, :254, :255, :277, :279,
       :295, :312, :313, :333, :334, :354`). `true` → `boundary` is **256**; `false` → the entry
       carries **no boundary at all**, never `boundary === 256` — that distinction is the
       by-reference membership rule and flattening it leaves AC-7 pinned by nothing. Each comment
       restates its requirement in the new terms; none is weakened
-- [ ] 1.2 Reshape the **4** remaining sites: the three filter predicates in
+- [x] 1.2 ✅ (completed: 2026-07-21 17:47) Reshape the **4** remaining sites: the three filter predicates in
       `lower-address-of.impl.test.ts` (`:137, :156, :171`) become `e.boundary !== undefined`, and
       the `ConstDataEntry` literal in `assemble.impl.test.ts:155` **omits** the field — its own
       comment already says the case is about preamble derivation, not placement
-- [ ] 1.3 **Verify RED** — `yarn turbo run typecheck` fails on all sixteen sites, in two distinct
+- [x] 1.3 ✅ (completed: 2026-07-21 17:47) **Verify RED** — `yarn turbo run typecheck` fails on all sixteen sites, in two distinct
       ways: fifteen read a `boundary` field that does not exist yet, and `assemble.impl.test.ts:155`
       omits a `pageAligned` field that is still required. Both are expected; the errors are confined
       to three test files
-- [ ] 1.4 Add the `AlignBoundary` union and replace `pageAligned: boolean` with
+- [x] 1.4 ✅ (completed: 2026-07-21 17:50) Add the `AlignBoundary` union and replace `pageAligned: boolean` with
       `boundary?: AlignBoundary` — `packages/codegen/src/il/cfg.ts:119`, exported alongside
       `ConstDataEntry`. The doc comment carries **why** the union is closed: `!align` takes a
       bitmask, so a non-power-of-two boundary assembles cleanly and aligns nothing
-- [ ] 1.5 `packages/codegen/src/il/lower.ts` — rename `addressTakenConsts` to
+- [x] 1.5 ✅ (completed: 2026-07-21 17:50) `packages/codegen/src/il/lower.ts` — rename `addressTakenConsts` to
       `alignmentDemands: Map<string, AlignBoundary>` (`:199`, created `:227`, threaded `:245, :258,
       :307, :343, :387, :411`); add the module-level `PAGE_BOUNDARY` constant (**this phase** — the
       default below refers to it, so Phase 1 does not compile without it; the other three fold
@@ -77,14 +77,14 @@ moved (AR #118). Spec: [03-01 §1, §3, §4](03-01-demand-and-emission.md) ·
       **a comparison, not `Math.max`**, which widens the union back to `number`. Build the entry at
       `:282` with a conditional spread: `exactOptionalPropertyTypes` is on, so `boundary:
       map.get(sym)` does not typecheck. **No call site passes a demand in this phase**
-- [ ] 1.6 `packages/codegen/src/instr/instr-program.ts` — delete `const PAGE = 256` (`:191`; it
+- [x] 1.6 ✅ (completed: 2026-07-21 17:50) `packages/codegen/src/instr/instr-program.ts` — delete `const PAGE = 256` (`:191`; it
       stops existing rather than moving) and key `constDataStream` (`:200-208`) on
       `entry.boundary !== undefined`. `print-instr.ts` is **not** touched
-- [ ] 1.7 **Verify GREEN** — the sixteen reshaped sites pass
-- [ ] 1.8 Implementation tests in `instr-program.impl.test.ts`: an entry carrying a boundary opens
+- [x] 1.7 ✅ (completed: 2026-07-21 17:50) **Verify GREEN** — the sixteen reshaped sites pass
+- [x] 1.8 ✅ (completed: 2026-07-21 17:50) Implementation tests in `instr-program.impl.test.ts`: an entry carrying a boundary opens
       with the align directive immediately ahead of its label; an entry without one opens with the
       label
-- [ ] 1.9 **Prove P-1 — zero movement.** 14 committed goldens byte-identical, `budgets.json`
+- [x] 1.9 ✅ (completed: 2026-07-21 17:50) **Prove P-1 — zero movement.** 14 committed goldens byte-identical, `budgets.json`
       unchanged, no ratchet moves, `SCOREBOARD.md` unchanged, and ST-C15 / ST-13f / ST-13j still
       assert `% 256`, still **untouched**, still green. Full verify
 

@@ -94,6 +94,19 @@ export interface ILFunction {
 }
 
 /**
+ * A boundary a const image can be placed on, in bytes.
+ *
+ * Closed deliberately, and this is the reason: ACME's `!align` takes a bitmask
+ * rather than a modulus, so the emitted directive is derived as `boundary - 1`.
+ * That derivation is only meaningful for a power of two — any other value
+ * assembles cleanly, appears in the listing, and aligns nothing, which shows up
+ * as a sprite reading from the wrong block with no diagnostic anywhere. Naming
+ * the two boundaries the hardware actually dereferences in makes the mistake
+ * unrepresentable instead of merely warned about.
+ */
+export type AlignBoundary = 64 | 256;
+
+/**
  * A blob of constant data emitted into the binary.
  *
  * Produced for array/struct literals and `embed`ded data (the embed arm is
@@ -107,16 +120,19 @@ export interface ConstDataEntry {
   /** What produced the entry, for emitter formatting. */
   readonly type: "array" | "struct" | "embed";
   /**
-   * Whether this image must start on a 256-byte boundary.
+   * The boundary this image must start on, in bytes — absent when nothing
+   * demands one.
    *
-   * Set when the program takes the aggregate's address with a source-level
-   * `&`, which is the only way it can hand the raw address to hardware that
-   * reads in page or block units. Passing the aggregate by reference does not
-   * set it: the compiler's own indexed access does not care where the data
-   * sits, and aligning every table ever passed to a helper would cost padding
-   * for nothing.
+   * A demand comes from a source-level `&` on the aggregate, the only way a
+   * program can hand the raw address to hardware that reads in page or block
+   * units, and its value follows the arithmetic the source writes around it:
+   * naming a 64-byte block demands 64, any other form demands a page, and a
+   * symbol named both ways takes the coarser of the two. Passing the aggregate
+   * by reference demands nothing — the compiler's own indexed access does not
+   * care where the data sits, and aligning every table ever passed to a helper
+   * would cost padding for nothing.
    */
-  readonly pageAligned: boolean;
+  readonly boundary?: AlignBoundary;
 }
 
 /**

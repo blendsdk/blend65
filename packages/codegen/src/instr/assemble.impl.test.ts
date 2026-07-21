@@ -152,7 +152,7 @@ describe("assembleProgram — implementation edge cases", () => {
       symbol: "__data_x",
       data: new Uint8Array([1, 2, 3]),
       type: "array",
-      pageAligned: false, // this case is about preamble derivation, not placement
+      // No boundary: this case is about preamble derivation, not placement.
     };
 
     assembleProgram(programOf([voidFn("Main.main")]), plugin, createDiagnosticBag());

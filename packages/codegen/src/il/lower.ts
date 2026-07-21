@@ -74,7 +74,7 @@ import { addrByteOf, addrOf, imm, isAddr, isTemp, loc } from "./operand.js";
 import { log2Exact } from "../util/bits.js";
 import type { ILOperand } from "./operand.js";
 import type { ILInstruction, ILTerminator } from "./instruction.js";
-import type { BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
+import type { AlignBoundary, BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
 import { IlFunctionBuilder } from "./builder.js";
 
 /**
@@ -94,6 +94,9 @@ export interface LowerInput {
    */
   readonly registry?: IntrinsicRegistry;
 }
+
+/** The boundary a const image gets when nothing finer is demanded. */
+const PAGE_BOUNDARY: AlignBoundary = 256;
 
 /** The comparison opcodes the fused compare-and-branch terminator accepts. */
 type CompareOp = Extract<ILTerminator, { kind: "brcmp" }>["op"];
@@ -189,14 +192,15 @@ interface LowerCtx {
   scCounter: number;
   /**
    * The const-data labels whose address the program takes with a source-level
-   * `&`. Filled at the `&` site itself, so a by-reference argument — which
-   * lowers to the very same address operand — never lands in it.
+   * `&`, each mapped to the coarsest boundary its `&` sites demand. Filled at
+   * the `&` site itself, so a by-reference argument — which lowers to the very
+   * same address operand — never lands in it.
    *
-   * This is ONE set shared by every lowering context in the program, not one
+   * This is ONE map shared by every lowering context in the program, not one
    * per context. A module initializer lowers through its own context, so a
-   * per-context set would silently lose every `&` written at module scope.
+   * per-context map would silently lose every `&` written at module scope.
    */
-  readonly addressTakenConsts: Set<string>;
+  readonly alignmentDemands: Map<string, AlignBoundary>;
   /**
    * The zero-page pair this function stages runtime pointer formation
    * through: interrupt-only functions use the dedicated
@@ -220,11 +224,11 @@ interface LowerCtx {
 export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   const registry = input.registry ?? createIntrinsicRegistry();
 
-  // Const images whose address the program takes with `&`. Created once here
-  // and handed to every lowering context, because a program's function bodies
-  // and its module initializers lower through separate contexts and both can
-  // contain a `&`.
-  const addressTakenConsts = new Set<string>();
+  // Const images whose address the program takes with `&`, and the boundary
+  // each one demands. Created once here and handed to every lowering context,
+  // because a program's function bodies and its module initializers lower
+  // through separate contexts and both can contain a `&`.
+  const alignmentDemands = new Map<string, AlignBoundary>();
 
   const functions: ILFunction[] = [];
   for (const program of input.program) {
@@ -235,15 +239,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
           continue; // skip functions tainted by an ErrorType/error node
         }
         functions.push(
-          lowerFunction(
-            item,
-            moduleName,
-            input.plan,
-            input.model,
-            registry,
-            bag,
-            addressTakenConsts,
-          ),
+          lowerFunction(item, moduleName, input.plan, input.model, registry, bag, alignmentDemands),
         );
       }
     }
@@ -255,7 +251,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   // empty, so their output is byte-identical to before.
   const init =
     input.model.initOrder.length > 0
-      ? lowerInitCode(input, registry, bag, addressTakenConsts)
+      ? lowerInitCode(input, registry, bag, alignmentDemands)
       : { blocks: Object.freeze([] as const), tempCount: 0 };
 
   // Const aggregates carry fully-evaluated memory images — each becomes an
@@ -263,13 +259,17 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   // SCALARS keep inlining as immediates and own no data). Embedded assets
   // keep their provenance tag; everything else derives from the type.
   //
-  // The address-taken set is complete by now: every function has lowered, and
-  // so has the initializer stream, and those are the only two places a `&` can
+  // The demand map is complete by now: every function has lowered, and so has
+  // the initializer stream, and those are the only two places a `&` can
   // appear.
   const constData: ConstDataEntry[] = [];
   for (const [sym, value] of input.model.constValues) {
     if (value.bytes === undefined) continue;
     const symbol = constDataSymbol(sym);
+    // An image nothing demanded a boundary of carries no boundary at all —
+    // the field has to be absent rather than `undefined`, which is also what
+    // tells the emitter to lay the bytes down with no directive ahead of them.
+    const boundary = alignmentDemands.get(symbol);
     constData.push({
       symbol,
       data: value.bytes,
@@ -279,7 +279,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
           : sym.type.kind === "struct"
             ? "struct"
             : "array",
-      pageAligned: addressTakenConsts.has(symbol),
+      ...(boundary !== undefined ? { boundary } : {}),
     });
   }
 
@@ -304,7 +304,7 @@ function lowerInitCode(
   input: LowerInput,
   registry: IntrinsicRegistry,
   bag: DiagnosticBag,
-  addressTakenConsts: Set<string>,
+  alignmentDemands: Map<string, AlignBoundary>,
 ): { blocks: readonly BasicBlock[]; tempCount: number } {
   // Initializer expressions, keyed by their declared symbol (typing records
   // the declaration-node → symbol entry).
@@ -340,7 +340,7 @@ function lowerInitCode(
     plan: input.plan,
     moduleInit: true,
     scCounter: 0,
-    addressTakenConsts,
+    alignmentDemands,
     scratchPair: SCRATCH_PAIR, // the initializer stream is never interrupt-only
   };
   for (const sym of input.model.initOrder) {
@@ -384,7 +384,7 @@ function lowerFunction(
   model: SemanticModel,
   registry: IntrinsicRegistry,
   bag: DiagnosticBag,
-  addressTakenConsts: Set<string>,
+  alignmentDemands: Map<string, AlignBoundary>,
 ): ILFunction {
   const fqName = `${moduleName}.${fn.name}`;
   const frame = plan.frames.get(fqName)?.frame;
@@ -408,7 +408,7 @@ function lowerFunction(
     plan,
     moduleInit: false,
     scCounter: 0,
-    addressTakenConsts,
+    alignmentDemands,
     scratchPair:
       plan.irqOnlyFunctions?.has(fqName) === true ? IRQ_SCRATCH_PAIR : SCRATCH_PAIR,
   };
@@ -1842,7 +1842,12 @@ function functionEntryLabel(sym: Symbol): string {
  * counters aligned (a drift is a loud slot-miss rejection, never a silent
  * mis-address).
  */
-function lowerAddressOf(expr: UnaryExprNode, ctx: LowerCtx, direct: boolean): ILOperand {
+function lowerAddressOf(
+  expr: UnaryExprNode,
+  ctx: LowerCtx,
+  direct: boolean,
+  demand: AlignBoundary = PAGE_BOUNDARY,
+): ILOperand {
   const slot = claimResultSlot(expr, ctx); // claimed at node entry — preorder
   const sym = ctx.model.symbolOf(expr.operand);
   if (sym === null) {
@@ -1856,12 +1861,18 @@ function lowerAddressOf(expr: UnaryExprNode, ctx: LowerCtx, direct: boolean): IL
     symbol = constDataSymbol(sym); // typing admits only aggregates (they own an image)
     // Taking a const image's address is the program asking for the raw address
     // itself, which is worth aligning: only hardware reading in page or block
-    // units needs one. The mark has to be made HERE, at the source-level `&`,
-    // and nowhere downstream — a by-reference argument emits an identical
+    // units needs one. The demand has to be recorded HERE, at the source-level
+    // `&`, and nowhere downstream — a by-reference argument emits an identical
     // address operand, and a rule that scanned operands would align every
     // table ever passed to a helper. Every caller of this function sits behind
     // an address-of check, so the by-ref path cannot reach this line.
-    ctx.addressTakenConsts.add(symbol);
+    //
+    // Coarsest demand wins, and it holds regardless of the order the sites
+    // lower in or which function each sits in: alignment composes, so a
+    // multiple of 256 is already a multiple of 64 and the coarser boundary can
+    // only cost padding, never change a value the program reads back.
+    const existing = ctx.alignmentDemands.get(symbol);
+    if (existing === undefined || demand > existing) ctx.alignmentDemands.set(symbol, demand);
   } else if (sym.kind === "function" || sym.kind === "interrupt") {
     symbol = functionEntryLabel(sym);
   } else {
