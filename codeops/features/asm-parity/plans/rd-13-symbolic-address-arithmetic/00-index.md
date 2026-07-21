@@ -23,20 +23,27 @@ frozen spec forbids it.
 | **M4/M5** ledgers re-derived, 16 rows re-routed, closeout | Phase 5 | none |
 
 The corpus regenerates **exactly twice** — Phase 2 and Phase 4 — and each regeneration carries its
-ratchets, goldens and `SCOREBOARD.md` in the *same* commit, because the freshness gate rebuilds
-every pair from `examples/` source.
+ratchets and `SCOREBOARD.md` in the *same* commit, because the freshness gate rebuilds every pair
+from `examples/` source.
+
+**No committed golden changes in either regeneration**, or anywhere in this RD: the 14 corpus
+fixtures are untouched, and the three programs that do move have no goldens. The regeneration steps
+are zero-diff guards. That leaves the Prime-Directive hand-review with nothing to read, so it is
+pointed where the change actually is — `balloon`'s regenerated assembly against
+`examples/balloon/balloon.asm`, its committed hand-written twin.
 
 ## Documents
 
 | Document | Contents |
 |---|---|
-| [00-ambiguity-register.md](00-ambiguity-register.md) | ✅ Gate passed — 9 decisions (AR #88–#96) |
+| [00-ambiguity-register.md](00-ambiguity-register.md) | ✅ Gate passed — 12 decisions (AR #88–#99) |
+| [00-preflight-report.md](00-preflight-report.md) | ✅ Plan preflight (2 iterations) — 1 critical, 5 major, 15 minor, 9 observations, all resolved |
 | [01-requirements.md](01-requirements.md) | Scope, acceptance criteria, what is deliberately excluded |
 | [02-current-state.md](02-current-state.md) | The three measured defects and every seam they touch |
 | [03-01-operand-and-lowering.md](03-01-operand-and-lowering.md) | M1 + M2 — the two new operand variants, lowering, and every translator consumer |
 | [03-02-diagnostics-examples-ledgers.md](03-02-diagnostics-examples-ledgers.md) | M3 + AC-6 + the `balloon-color` and `boing-ball` checks + M4/M5 |
 | [07-testing-strategy.md](07-testing-strategy.md) | ST-* cases, the four re-derived spec tests, red/green ordering |
-| [99-execution-plan.md](99-execution-plan.md) | 5 phases / 52 tasks, per-phase verify and commit points |
+| [99-execution-plan.md](99-execution-plan.md) | 5 phases / 54 tasks, per-phase verify and commit points |
 
 ## The one hazard this plan is built around
 

@@ -1,8 +1,13 @@
 # Current State
 
-Every line reference below was read on the working tree at `8f71432`. The RD owns the *measured
-emissions*; this document owns the **seam inventory** — every site an implementer touches or must
-deliberately not touch.
+Every line reference below was read on the working tree at `8f71432` and re-verified at `c4e10bf`,
+the ref this plan executes on. The RD owns the *measured emissions*; this document owns the **seam
+inventory** — every site an implementer touches or must deliberately not touch.
+
+`packages/codegen` is byte-identical between those two refs, so every code line reference stands.
+Three non-codegen arrivals landed in between and are folded into the inventory below rather than
+left to be rediscovered: `examples/boing-ball` (`85d0413`), the examples coverage manifest and its
+gate (`2beb0d1`), and the RD-16 roadmap row (`c4e10bf`).
 
 ## The three defects, at their source
 
@@ -76,6 +81,30 @@ label (`:1865`).
 `o.kind === "addr"` (AR #88), so the two accepting paths correctly do not accept it — a byte value
 is not a word address — and the five rejecting paths correctly do not fire.
 
+Three of these functions do gain a **separate** `isAddrByte` arm alongside the untouched `isAddr`
+guard — `leftIntoA`, `indexIntoX`, and `byteRefOf` (which `rightSource` and `wordLeftByteIntoA`
+reach transitively). Adding an arm for a new kind is not editing the guard for the old one.
+
+## The consumer these guards do NOT reveal: `materialise` → `const` → `translateConst`
+
+The `isAddr` map above is a map of the **translate side**. It says nothing about which lowering
+positions hand an operand to which consumer, and one of those routes is load-bearing.
+
+| Site | Behaviour |
+|---|---|
+| `materialise` (`lower.ts:2659-2666`) | passes a **temp** straight through; wraps anything else in `{ op: "const", dest, src }` |
+| `translateConst` (`translate.ts:655-658`) | the sole consumer of `const`; ICEs unless `dest` is a temp **and** `src` is an immediate |
+
+Only a *store source* takes a lowered operand raw. Every other expression position — ten of them,
+listed in [03-01 §5e](03-01-operand-and-lowering.md) — funnels through `materialise`. Today
+`emitLo`/`emitHi` return a temp, so the funnel is transparent; the moment M1 returns a bare
+`addrByte`, all ten route into a guard that rejects it. Measured on the current build:
+`let b: byte = lo(&X);` and `v = hi(&X);` both compile.
+
+`emitPokew` (`:2517-2518`) is the existing precedent for the direct return and does **not** hit
+this, because a `poke`/`pokew` value is a store source. That is precisely why the `poke`-shaped
+tests do not cover the `let`-shaped regression.
+
 ## The three silent-failure holes on the new operand's path
 
 Verified unreachable today; each becomes reachable the moment a consumer is missed (AR #92).
@@ -109,14 +138,17 @@ Immediate stays 2 bytes) · `relax-branches.ts:224,266` (guards on `isLabelRef`)
 | `core/src/diagnostics/diagnostic-codes.ts:374` | `ShiftAndAddMultiply: "W10172"` — the registration **stays** |
 | `translate-indexed.spec.test.ts:112,121` | ST-51a — pins it on a compiler-generated 2-byte element scale |
 | `translate.spec.test.ts:458,470` | ST-T16 — pins it on a power-of-two multiply |
+| `translate.spec.test.ts:457` | a **comment** — *"// mul by a constant power-of-two → shift sequence; W10172 emitted."* — directly above ST-T16 |
 
-Grep-confirmed: those four are the entire footprint. After M3 the diagnostic is registered with no
-producer — the deliberate intermediate state owned by
+Those **five** are the entire footprint (goldens and `.twin.asm` files carry no W10172). After M3
+the diagnostic is registered with no producer — the deliberate intermediate state owned by
 [#71](https://github.com/blendsdk/blend65/issues/71).
 
 `log2Exact` (`translate.ts:2330`) is module-private and M2's fold needs the same test. `il/lower.ts`
 must not import from `instr/` (a layering inversion), so it moves to a shared module in the same
-package — see [03-01](03-01-operand-and-lowering.md).
+package — see [03-01](03-01-operand-and-lowering.md). It has **no direct test coverage today**
+(`grep log2Exact packages --include=*.test.ts` is empty — it is reached only through
+`translateMul`), so the move gains first-time coverage rather than relocating cases.
 
 ## The corpus and its ledgers
 
@@ -132,10 +164,20 @@ package — see [03-01](03-01-operand-and-lowering.md).
 `examples/` source, migrating `examples/balloon/main.blend` in one commit and updating its ratchet
 and `SCOREBOARD.md` in a later one is **CI-red by construction**. They land together.
 
-## `examples/balloon-color`
+## The two demos, and the manifest that now tracks them
 
-`grep -rn "balloon-color"` across `packages/`, `test/`, `scripts/` and `.github/` returns
-**nothing**. It is compiled by no test, has no golden, no budget row and no twin — a migration typo
-there ships with zero signal. Its `main.blend:21` carries the same `poke($07F8, hi(&BALLOON) * 4)`
-as `balloon/main.blend:11`, and its header (`:2-6`) states the out-of-corpus intent that AR #93
-preserves.
+| | `balloon-color` | `boing-ball` |
+|---|---|---|
+| the migrating site | `main.blend:21` — `poke($07F8, hi(&BALLOON) * 4)`, identical to `balloon:11` | `main.blend:54` — `let base: byte = hi(&BALL) * 4`, a **`let` initializer** |
+| teaching comment to rewrite | `:18-20` | `:52-53` |
+| out-of-corpus header | `:3-6` | `:3-4` |
+| where the block number is used | fed straight to the store | `p = base + frame * 4`, then `$07F8`..`$07FB` (`:91-99`) |
+| golden / ratchet / twin | none | none |
+
+**Neither is compiled by any suite**, so a migration typo in either ships with zero signal — the gap
+AR #93 and AR #96 exist to close. They are not, however, unreferenced: since `2beb0d1` the examples
+coverage manifest (`packages/test-harness/test/golden/examples-coverage.json`) tiers both as `demo`
+and records a `pendingSuite` waiver for each, stating that their checks arrive with this RD. That
+manifest is a **seam this plan edits**: Phase 4 moves both names out of `pendingSuite` and into
+`suites`. `scripts/gen-boing-ball.mjs` also references `boing-ball` as its asset generator; it is
+not touched.

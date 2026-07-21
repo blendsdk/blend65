@@ -1,7 +1,8 @@
 # M1 + M2 — Operand Model, Lowering, Instruction Selection
 
 > **Decides**: AR #88 (distinct variants) · AR #89 (shift range) · AR #90 (named-const divisor) ·
-> AR #91 (locals included) · AR #92 (three ICE guards)
+> AR #91 (locals included) · AR #92 (three ICE guards) · AR #97 (`indexIntoX` arm) ·
+> AR #99 (`translateConst` arm)
 > **Current state**: [02-current-state.md](02-current-state.md) owns every line reference; this
 > document does not restate them.
 
@@ -49,7 +50,20 @@ addrByte low  __data_Main_BALLOON shift 6    ->  <&__data_Main_BALLOON/64
 ```
 
 Constructor `symbolExpr(name, shift, byteSelect)`, guard `isSymbolExprOperand` (suffixed like
-`isImmediateOperand`, which is suffixed to avoid the flat-barrel collision with the IL guard).
+`isImmediateOperand`, which is suffixed to avoid the flat-barrel collision with the IL guard —
+`codegen/src/index.ts` re-exports both `il/` and `instr/` with `export *`).
+
+> **Three hand-maintained re-export lists must gain both symbols. TS2366 does not reach any of
+> them.** `InstrOperand` is defined in `@blend65/core` but surfaced through explicit named lists:
+> `core/src/instr-model/index.ts:33-42` · `codegen/src/instr/operand.ts:11-22` (the re-export shim
+> `translate.ts:44` imports from) · `codegen/src/instr/index.ts:25-35`. Only the shim is
+> build-forced; omitting the two barrels compiles clean and silently leaves the new variant present
+> in a type that `@blend65/codegen` and `@blend65/core/platform` consumers can receive but cannot
+> narrow.
+>
+> The IL side needs no such change, and that asymmetry is deliberate rather than an oversight:
+> `il/index.ts:21` exports `imm`/`temp`/`loc` and their guards but **not** `addrOf`/`isAddr`, so
+> `addrByteOf`/`isAddrByte` stay package-internal exactly as their `addr` siblings do.
 
 **Every field is required on purpose.** A required `shift >= 1` gives each value exactly one
 canonical spelling, honouring the serializer's determinism contract — the unshifted case is
@@ -79,8 +93,16 @@ same byte; only one reads like what a 6502 developer wrote.
 
 `log2Exact` (`translate.ts:2330`) is module-private and both M2's fold (in `il/`) and
 `translateMul` (in `instr/`) need it. `il/` must not import from `instr/`. It moves to a new
-`packages/codegen/src/bits.ts`, exported package-internally, imported by both. Behaviour
-unchanged — a pure move plus its existing unit coverage.
+`packages/codegen/src/util/bits.ts`, exported package-internally, imported by both.
+
+**`util/`, not the package root.** `codegen/src/` holds only `index.ts` and three directories
+(`il/`, `instr/`, `runtime/`) — every module in this package lives under a subdirectory, and a bare
+`src/bits.ts` would be the only exception.
+
+Behaviour is unchanged, but this is **not** a covered move: `log2Exact` is module-private today and
+`grep log2Exact packages --include=*.test.ts` returns nothing — it is reached only indirectly
+through `translateMul`. Exporting it is the moment to pin it, so the move lands **with first-time
+direct coverage**, not with relocated cases that do not exist.
 
 ## 4. Lowering — `emitLo` / `emitHi`
 
@@ -98,8 +120,13 @@ if (isAddressOfExpr(arg)) {
 ```
 
 The operand is returned **directly** — no `load`, no temp. This is the shape both functions
-already use for a numeric literal (`lower.ts:2534`). It is also why routing the result through
-`translateConst` is wrong: that path guards on temp/immediate (`translate.ts:655-657`).
+already use for a numeric literal (`lower.ts:2534`).
+
+> **And that shape is exactly why `translateConst` is a consumer, not a path to avoid.** A numeric
+> literal in a non-store position flows `materialise` → `const` → `translateConst` today. The
+> byte-select will follow it — see §5e. An earlier draft of this document read
+> `translateConst`'s temp/immediate guard (`translate.ts:655-657`) as *reassurance* that the direct
+> return keeps the operand away from it. It does not: the lowering side routes it back in.
 
 The slot is claimed and left **unwritten** — 2 dead bytes in the SFA RAM region, zero binary bytes.
 
@@ -112,18 +139,39 @@ from `lowerAddressOf`, which is the point.
 Ahead of the existing `isAddressOfExpr` branch, `emitLo` recognizes one closed shape:
 
 ```
-BinaryExpr( op ∈ {"/", ">>"}, left = UnaryExpr("&", …), right = <power-of-two constant> )
+BinaryExpr( op ∈ {"/", ">>"}, left = UnaryExpr("&", …), right = <constant> )
 ```
+
+**The two operators derive `k` differently, and conflating them is a defect.** For `/` the right
+operand is a *divisor* and must be a power of two; for `>>` it is a *shift count* and must not be —
+`lo(&X >> 6)` has right = 6, which is not a power of two:
+
+| op | right operand | `k` |
+|---|---|---|
+| `/` | a power-of-two constant | `k = log2Exact(divisor)` |
+| `>>` | a constant count `0..15` | `k = count` |
 
 - The right operand is a `NumericLitExpr`, **or** an identifier the frontend has const-evaluated —
   read through `ctx.model.constValues`, the same map `emitHi` already reads at `lower.ts:2591`
-  (AR #90). A non-numeric or unevaluated const is not a fold.
-- `k = log2Exact(divisor)` for `/`, or the literal count for `>>`. Both converge on one operand,
-  which is what AC-5 tests.
-- `k = 0` → fall into M1's plain byte-select, not `#<(sym / 1)` (AR #89).
+  (AR #90). A non-numeric or unevaluated const is not a fold. **This applies to both operators**:
+  AR #90's reasoning cuts harder for `>>` than for `/`, because an unfolded `/BLOCK` is merely slow
+  while an unfolded `>>SHIFT` is a hard `E90001`.
+- **The divisor is a word, not a byte.** `k = 1..15` needs divisors up to 32768, so `log2Exact` must
+  be called on the *unmasked* value. The one existing call site — `translate.ts:1581`,
+  `log2Exact(constSide.value & 0xff)` — masks to a byte because a power-of-two **multiply** is
+  byte-only. Carrying that mask into this fold would make every divisor ≥ 256 return `null` and fall
+  silently through to the runtime divide, **still emitting `W10171`** and so indistinguishable from
+  the designed fall-through. ST-13h's `k ≥ 8` cases exist to catch exactly this.
+- The symbol comes from `lowerAddressOf(binary.left, ctx, true)` — the **inner** `&` node, not
+  `emitLo`'s own argument. Nothing constructs a symbol name independently, so the fold inherits the
+  slot claim and RD-03's page-alignment mark exactly as M1 does.
+- `k = 0` (`/1`, `>>0`) → emit M1's plain byte-select, `addrByteOf(symbol, "low")` with no shift.
+  Note this is an explicit branch, **not** a fall-through: the argument is a `BinaryExpr`, so it can
+  never reach the `isAddressOfExpr` branch below (AR #89).
 - `k = 1..15` → `addrByteOf(symbol, "low", k)`.
-- `k >= 16`, a non-power-of-two divisor, or anything else → **fall through unchanged** to today's
-  path. No new diagnostic (AR #89).
+- `k >= 16`, a non-power-of-two divisor, a divisor of 0, or anything else → **fall through
+  unchanged** to today's path, carrying today's diagnostics exactly. No new diagnostic (AR #89).
+  `log2Exact` already rejects 0 (`n < 1`), so `lo(&X / 0)` cannot fold.
 
 `emitHi` gains **no** fold branch: `hi(&X / 2^k)` and the word-context forms keep today's paths,
 per the RD.
@@ -145,7 +193,8 @@ if (isAddrByte(op)) {
 
 `instrOperandFor` is the single place that maps `addrByte` → `InstrOperand`: `symbolRef(name,
 { byteSelect: select })` when `shift` is absent, `symbolExpr(name, shift, select)` when present.
-One mapping site, so the two representations cannot drift.
+One mapping site, so the two representations cannot drift. It lives in `instr/translate.ts` beside
+its only consumers — it reads an IL type and returns a core type, so `il/` is not a legal home.
 
 This arm transitively covers `rightSource` (`:1045`), `wordLeftByteIntoA` (`:958`),
 `bringValueIntoRegisters`'s word path (`:991-992`), `copyWordToHome` (`:906`), the zero-extension
@@ -188,14 +237,82 @@ of a cleanly-assembling wrong binary:
 Each is verified unreachable for every currently-compiling program **before** the change lands —
 the full suite green with the guards in place and the new operand not yet produced is that proof.
 
-`indexIntoX` (`:1760`) is deliberately **not** given an `addrByte` arm: an address byte as an array
-index has no meaning, and its existing trailing ICE stays loud.
+### 5d. `indexIntoX` (`translate.ts:1758`) — an address byte IS a legal index (AR #97)
+
+```ts
+if (isAddrByte(index)) {
+  this.emit("LDX", "Immediate", instrOperandFor(index));
+  return;
+}
+```
+
+Placed beside its `isImmediate` arm (`:1764-1767`) and following it exactly. A block number indexing
+a frame table is an ordinary byte, and `table[lo(&X)]` **compiles today** — without this arm M1 would
+turn a working program into an `E90001`. It is also the largest single win in this RD:
+
+| | Emission | Bytes |
+|---|---|---|
+| today | `LDA #<sym` · `STA 0sc0` · `LDA #>sym` · `STA 0sc0+1` · `LDX 0sc0` · `LDA table,X` · `STA $D020` | 19 |
+| after | `LDX #<sym` · `LDA table,X` · `STA $D020` | **8** |
+
+The trailing ICE at `:1786` stays for every other unhandled kind.
+
+### 5e. `translateConst` (`translate.ts:655`) — the whole non-store surface, at one site (AR #99)
+
+```ts
+if (isAddrByte(src) && isTemp(dest)) {
+  this.protectA();
+  this.emit("LDA", "Immediate", instrOperandFor(src));
+  this.bindA(dest.id);
+  return;
+}
+```
+
+Placed ahead of the existing temp/immediate guard, byte-only by construction (`addrByte` is always
+`IL_BYTE`, so the 16-bit `LDX` half never applies).
+
+**Why one arm covers so much.** Only a *store source* receives a lowered operand raw. Every other
+expression position funnels through `materialise` (`lower.ts:2659-2666`), which passes temps
+through and wraps everything else in `{ op: "const", … }` — and `translateConst` is the sole
+consumer of `const`. The ten funnel sites:
+
+| Position | Site |
+|---|---|
+| `let` initializer | `:523` |
+| `for` initializer | `:704` |
+| `&&` / `\|\|` operands | `:1426`, `:1438` |
+| conditional condition and both arms | `:1459`, `:1472`, `:1482` |
+| assignment | `:1645` |
+| indexed-store value | `:1930` |
+| coercion | `:2320` |
+
+Today all ten work because `emitLo`/`emitHi` return a **temp**, which `materialise` passes through.
+After M1 they return a bare `addrByte`, and without this arm every one of them becomes an `E90001`.
+Measured before the change: `let b: byte = lo(&X);` and `v = hi(&X);` both compile today.
+
+The emission stays optimal — the `store` that follows folds through `leftIntoA`'s register
+suppression (`translate.ts:925-927`), so `let base: byte = lo(&BALL / 64);` is
+`LDA #<(__data_Main_BALL / 64)` · `STA __frame_Main_main_base`, 5 bytes.
 
 ## 6. What is deliberately not touched
 
 `addr`'s doc comment and its two-position rule · all seven `isAddr` guards · `translateDivMod` ·
-the word `shr` path and its `E90001` · `instrByteSize` · `relax-branches.ts` · `runtime/embed.ts` ·
-the peephole catalog · `symbolRef`'s existing shape and its unparenthesized offset rendering.
+the word `shr` path and its `E90001` · `instrByteSize` (keys on addressing mode) ·
+`relax-branches.ts` (guards on `isLabelRef`) · `runtime/embed.ts` (inspects `JSR` operands) ·
+`symbolRef`'s existing shape and its unparenthesized offset rendering.
+
+Two facts that bound the blast radius, both worth stating because they are the reason a new operand
+kind is safe here at all:
+
+- **The peephole optimizer has no rules.** `optimizeInstr` (`peephole.ts:145-157`) is a v1 thin
+  passthrough that validates stream structure and returns the program verbatim. Nothing downstream
+  of translate inspects operand kinds, so no catalog needs auditing against the new variant.
+- **`validateStream` checks opcode+mode legality only**, never operand kind, so `LDA` in `Immediate`
+  mode stays legal whatever the operand carries.
+
+One piece of deliberate symmetry, recorded so it is not later mistaken for dead code:
+`symbolExpr`'s `"high"` byteSelect has **no producer** — `emitHi` gains no fold branch — and is
+exercised only by rendering tests. It is the union shape AR #88 chose, not an unfinished path.
 
 ## 7. Projected emission
 

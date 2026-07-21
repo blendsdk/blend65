@@ -1,8 +1,8 @@
 # Execution Plan: Symbolic Address Arithmetic
 
 > **Implements**: asm-parity/RD-13 · [00-index.md](00-index.md)
-> **Progress**: 0/52 tasks (0%)
-> **Last Updated**: 2026-07-21
+> **Progress**: 0/54 tasks (0%)
+> **Last Updated**: 2026-07-21 (plan preflight — see [00-preflight-report.md](00-preflight-report.md))
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #95), run at every marked point:
@@ -12,17 +12,27 @@ yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typeche
 ```
 
 Ordering within every phase is **spec tests → RED → implement → GREEN → impl tests → full verify**.
-One commit per phase. Byte-moving phases carry their source edit, ratchet, goldens and
-`SCOREBOARD.md` in that **same** commit — the freshness gate rebuilds every pair from `examples/`
-source, so splitting them is CI-red by construction.
+One commit per phase. Byte-moving phases carry their source edit, ratchet and `SCOREBOARD.md` in
+that **same** commit — the freshness gate rebuilds every pair from `examples/` source, so splitting
+them is CI-red by construction.
+
+> **The one deliberate deviation**: Phases 2 and 3 add behaviour-neutral *type scaffolding* (the
+> operand variants, their printers, the mapping site) ahead of their spec tests. RED stays genuine
+> because nothing **produces** the new operands until tasks 2.8 and 3.8 — the scaffolding cannot
+> make a spec test pass. Noted so an executor or phase reviewer does not read it as a violation.
 
 | Phase | Delivers | Byte movement | Tasks |
 |---|---|---|---|
 | 1 | M3 — `W10172` conforms to OP-5 | none | 6 |
-| 2 | M1 — one-instruction byte-select | `balloon` −11 B | 14 |
+| 2 | M1 — one-instruction byte-select | `balloon` −11 B | 16 |
 | 3 | M2 — the fold operand, built **unwired** | none | 12 |
 | 4 | AC-6 — all three examples migrate | `balloon` −2 B | 11 |
 | 5 | M4/M5 — ledgers, back-propagation, closeout | none | 9 |
+
+**No committed golden changes in any phase.** The 14 corpus fixtures are untouched by M1, M2 and M3
+alike; only `balloon`, `balloon-color` and `boing-ball` move, and none has a golden. Every
+"regenerate the goldens" step below is therefore a **zero-diff guard**, and the Prime-Directive
+hand-review is pointed at `balloon`'s assembly against its committed twin instead.
 
 ---
 
@@ -35,7 +45,10 @@ golden, no scoreboard. Spec: [03-02 §1](03-02-diagnostics-examples-ledgers.md#1
       expectation to absent, update the title, add the `spec/evaluations/F017-operators.md:442`
       citation to its header. `ASL` present / `__rt_mul8` absent stay unchanged
 - [ ] 1.2 Re-derive **ST-T16** (`translate.spec.test.ts:458,470`) the same way; the exact
-      `LDA a`/`ASL`×3/`STA r` text assertion at `:466-469` stays byte-for-byte
+      `LDA a`/`ASL`×3/`STA r` text assertion at `:467-469` stays byte-for-byte. **Also rewrite the
+      comment at `:457`** — *"// mul by a constant power-of-two → shift sequence; W10172 emitted."*
+      — which is the fifth site of the diagnostic's footprint and would otherwise state the
+      opposite of what the test pins
 - [ ] 1.3 Write **ST-13c** — a user-written runtime power-of-two multiply emits no
       `ShiftAndAddMultiply`, with both `ASL`s pinned present. This is AC-7's witness and must
       survive Phase 4, when `balloon` loses its multiply entirely
@@ -62,14 +75,20 @@ the page-alignment mark and the positional slot claim. Spec:
       **Full verify green here is the proof they are unreachable** for every currently-compiling
       program — it must be run and recorded before anything else in this phase
 - [ ] 2.2 Add the `addrByte` variant to `ILOperand` with `addrByteOf` and `isAddrByte`; extend the
-      union's doc comment. `addr`'s two-position rule is **not** amended
+      union's doc comment. `addr`'s two-position rule is **not** amended. No barrel change —
+      `il/index.ts` does not export `addrOf`/`isAddr` either
 - [ ] 2.3 Add the `renderOperand` arm in `print-il.ts` (TS2366-forced until written)
-- [ ] 2.4 Add `instrOperandFor` — the single `addrByte` → `InstrOperand` mapping site; shift-absent
-      → `symbolRef(name, { byteSelect })`
-- [ ] 2.5 Write **ST-13a**, **ST-13b**, **ST-13g** (all four operand kinds, locals included per
-      AR #91)
-- [ ] 2.6 Re-derive **ST-9b** — no homing store, no slot reload, and the trailing plain-store `&`
-      site still receives `0sc2`, which is AC-3's real proof. Update the module header prose at
+- [ ] 2.4 Add `instrOperandFor` in `instr/translate.ts` — the single `addrByte` → `InstrOperand`
+      mapping site; shift-absent → `symbolRef(name, { byteSelect })`
+- [ ] 2.5 Write **ST-13a**, **ST-13b**, **ST-13g** — all four operand kinds including locals
+      (AR #91), **and the three non-`poke` positions**: index `table[lo(&X)]` (AR #97), `let`
+      initializer `let b: byte = lo(&X);` and assignment `v = hi(&X);` (AR #99). All three compile
+      today; each would regress to an `E90001` without its arm, and no existing test covers them
+- [ ] 2.6 Re-derive **ST-9b** — no homing store, no slot reload, and a trailing **homing** `&` site
+      (`let w: word = &helper + 2;`) still emits `store &Main_helper, __frame_Main_main_0sc2`,
+      which is AC-3's real proof. **It must be a homing site, not a plain store**: every plain-store
+      position lowers with `direct = true`, so the slot name never reaches the IL text and the
+      assertion would be unwritable. Update the module header prose at
       `lower-address-of.spec.test.ts:6-10` to drop `lo`/`hi` extraction from the homing sentence
 - [ ] 2.7 **Verify RED**
 - [ ] 2.8 Switch `emitLo` (`lower.ts:2536`) and `emitHi` (`:2570`) to
@@ -79,13 +98,29 @@ the page-alignment mark and the positional slot claim. Spec:
       Immediate mode, byteIndex 1 → `imm8(0)`
 - [ ] 2.10 Add the `leftIntoA` arm (`translate.ts:920`): emit `LDA` Immediate, then `clearRegs()`,
       following the `isImmediate` arm exactly
-- [ ] 2.11 **Verify GREEN**
-- [ ] 2.12 Implementation tests: `addrByteOf` / `isAddrByte` / `instrOperandFor`
-- [ ] 2.13 **Seed and watch fail**: break ST-13a's byte-select expectation and ST-C15's alignment
-      assertion, confirm each fails loudly, restore. A claim that cannot be watched failing is not
-      yet proven
-- [ ] 2.14 Re-derive `balloon`'s `bytes` ratchet **from the new build**; regenerate
-      `SCOREBOARD.md`; confirm the 14 goldens byte-identical and ST-C15 green (AC-2); full verify
+- [ ] 2.11 Add the `indexIntoX` arm (`translate.ts:1758`): emit `LDX` Immediate, following its
+      `isImmediate` arm at `:1764-1767` (AR #97). **Without this `table[lo(&X)]` — which compiles
+      today — becomes an `E90001`.** The trailing ICE at `:1786` stays for genuinely unhandled kinds
+- [ ] 2.12 Add the `translateConst` arm (`translate.ts:655`), **ahead of** its temp/immediate guard:
+      `protectA()` · `LDA` Immediate via `instrOperandFor` · `bindA(dest.id)`, byte-only (AR #99).
+      **This is not optional hardening.** Only a store source takes a lowered operand raw; all ten
+      other expression positions funnel through `materialise` → `const` → `translateConst`
+      (`lower.ts:2659-2666`), so without this arm `let b: byte = lo(&X);` and `v = hi(&X);` — both
+      of which **compile today** — become `E90001` the moment task 2.8 lands, and task 4.7's
+      migration cannot build at all
+- [ ] 2.13 **Verify GREEN**
+- [ ] 2.14 Implementation tests: `addrByteOf` / `isAddrByte` / `instrOperandFor`; **each of the
+      three ICE guards firing** on a deliberately malformed operand (2.1 proved them unreachable,
+      never that they work); the `indexIntoX` and `translateConst` arms
+- [ ] 2.15 **Seed and watch fail**: break ST-13a's byte-select expectation; and seed ST-C15
+      **code-side** by dropping the alignment mark at `lower.ts:1863`, rebuilding, and watching
+      `addr % 256 == 0` fail. Restore both. Perturbing ST-C15's assertion instead would prove only
+      that the test runs, not that it detects the hazard it exists for
+- [ ] 2.16 Re-derive `balloon`'s `bytes` ratchet **from the new build**; regenerate
+      `SCOREBOARD.md`; confirm the 14 goldens byte-identical and ST-C15 green (AC-2);
+      **hand-review `balloon`'s regenerated assembly against `examples/balloon/balloon.asm`**, its
+      committed hand-written twin — this is the code the RD exists to produce, and the only phase
+      gate that reads it; full verify
 
 **Commit point.** Scope `perf(codegen)`. Source, ratchet and scoreboard together.
 
@@ -97,26 +132,45 @@ Nothing in `examples/` uses the fold yet, so the 14 byte-identical goldens are a
 M2 changed nothing it was not asked to change. Spec:
 [03-01 §2, §3, §4](03-01-operand-and-lowering.md).
 
-- [ ] 3.1 Move `log2Exact` (`translate.ts:2330`) to a new `packages/codegen/src/bits.ts`; update
-      both importers. `il/` must not import from `instr/`. Pure move — full verify green
+- [ ] 3.1 Move `log2Exact` (`translate.ts:2330`) to a new `packages/codegen/src/util/bits.ts`;
+      update both importers. `il/` must not import from `instr/`; `util/` rather than the package
+      root because every codegen module lives under a subdirectory. Pure move — full verify green
 - [ ] 3.2 Add the `symbolExpr` variant to `InstrOperand` with its constructor and
       `isSymbolExprOperand`. `shift` (≥ 1) and `byteSelect` are **required**; there is **no**
-      `offset` field
+      `offset` field. **Add both symbols to all three re-export lists** —
+      `core/src/instr-model/index.ts`, `codegen/src/instr/operand.ts` (the shim `translate.ts:44`
+      imports from), `codegen/src/instr/index.ts`. Only the shim is build-forced; TS2366 does not
+      reach a re-export list
 - [ ] 3.3 Add the `symbolText` arm (`print-instr.ts:58`) rendering `<(sym / 2^k)` — divisor form,
       matching the hand idiom and the ACME 0.97 measurement (TS2366-forced until written)
 - [ ] 3.4 Extend `instrOperandFor`: shift-present → `symbolExpr(name, shift, select)`
-- [ ] 3.5 Write **ST-13d** and **ST-13e** in the harness tier under `skipIf(!hasAcme())` — the
-      oracle is the **assembled byte** checked against the symbol map, never operand presence
-- [ ] 3.6 Write **ST-13h** (edges: `k = 0` degenerates; `/40` and `>>16` byte-identical to today,
-      today's diagnostics intact) and **ST-13i** (named-const divisor, AR #90)
+- [ ] 3.5 Write **ST-13d** and **ST-13e** in a new `symbolic-address.spec.test.ts` in test-harness
+      under `skipIf(!hasAcme())`, building an **inline source through the `build()` facade in a temp
+      dir** — `testing/balloon.ts` cannot serve, since it compiles the committed balloon, which does
+      not carry the fold until Phase 4. Do **not** add a probe to `examples/` (that would owe the
+      coverage manifest a tier). The oracle is the **assembled byte**, read by scanning
+      `result.binary` for the `A9 xx 8D F8 07` pattern and comparing `xx` against the symbol map,
+      never operand presence
+- [ ] 3.6 Write **ST-13h** (degenerate ends `k = 0`; **the `k = 8` and `k = 15` folds**; `/40`
+      byte-identical with `W10171`; `>>16` still `W10174` + `E90001` with no emission) and
+      **ST-13i** (named const for **both** operators — `/BLOCK` and `>>SHIFT`, AR #90; the `>>` half
+      is where an unresolved const is a hard error rather than merely slow)
 - [ ] 3.7 **Verify RED**
-- [ ] 3.8 Add the fold pattern-match to `emitLo` only: `BinaryExpr(op ∈ {"/", ">>"}, &X,
-      power-of-two constant)`, divisor a literal or a const resolved through `ctx.model.constValues`;
-      `k = 0` → M1's plain byte-select; `k = 1..15` → `addrByteOf(sym, "low", k)`; everything else
-      falls through unchanged with **no new diagnostic**. `emitHi` gains no fold branch
+- [ ] 3.8 Add the fold pattern-match to `emitLo` only. **The two operators derive `k`
+      differently**: `/` takes a power-of-two divisor and `k = log2Exact(divisor)`; `>>` takes a
+      constant count `0..15` and `k = count`. Either right operand may be a literal or a const
+      resolved through `ctx.model.constValues`. The symbol comes from
+      `lowerAddressOf(binary.left, ctx, true)`. `k = 0` → M1's plain byte-select (an explicit
+      branch — a `BinaryExpr` can never reach the `isAddressOfExpr` branch); `k = 1..15` →
+      `addrByteOf(sym, "low", k)`; everything else falls through unchanged with **no new
+      diagnostic**. **Do not mask the divisor to a byte** — `k = 1..15` needs values to 32768, and
+      `translate.ts:1581`'s `& 0xff` is correct only for the byte-only multiply. `emitHi` gains no
+      fold branch
 - [ ] 3.9 **Verify GREEN**
 - [ ] 3.10 Implementation tests: `symbolExpr`, `symbolText` across `k = 1..15` and both selects,
-      `instrOperandFor`'s two branches, `log2Exact` after its move
+      `instrOperandFor`'s two branches, and **first-time direct coverage for `log2Exact`** — it has
+      none today (module-private, reached only through `translateMul`), so there are no cases to
+      relocate: 0 and negatives → `null`; 1 → 0; 2 → 1; 64 → 6; 256 → 8; 32768 → 15; 40 → `null`
 - [ ] 3.11 **Seed and watch fail**: perturb ST-13d's expected assembled byte and confirm it fails —
       this is the trap RD-03's `!align 256, 0` sprang, where a plausible operand assembled cleanly
       and meant something else
@@ -134,34 +188,43 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
 [03-02 §2](03-02-diagnostics-examples-ledgers.md#2--ac-6--the-idiom-migration-phase-4).
 
 - [ ] 4.1 Write **ST-13f** plus a `testing/balloon-color.ts` builder mirroring `testing/balloon.ts`;
-      new `balloon-color.spec.test.ts`, build-only under `skipIf(!hasAcme())`. This is the demo's
-      **first** CI signal of any kind. **Move it out of the coverage manifest's `pendingSuite`
-      waiver and name the new suite instead** — the waiver exists only until this task lands
-- [ ] 4.2 Write **ST-13j** plus a `testing/boing-ball.ts` builder; new `boing-ball.spec.test.ts`,
-      same tier. Its fourth assertion — `$07F8`..`$07FB` are `b, b+1, b+2, b+3` — is the one
-      neither balloon carries, and it proves the migrated value is still usable as the base of
-      64-byte block arithmetic (AR #96). **Clear its `pendingSuite` waiver too** — after 4.1 and
-      4.2 that list must be empty
-- [ ] 4.3 Re-derive **ST-C14** (`balloon.spec.test.ts:166-181`) to the two-instruction subsequence
+      new `balloon-color.spec.test.ts`, build-only under `skipIf(!hasAcme())`. Its `$07F8` byte
+      **is** link-time — the migrated expression feeds the store directly. **Move `balloon-color`
+      out of `pendingSuite` in `packages/test-harness/test/golden/examples-coverage.json` and name
+      the new suite in `suites`** — the waiver exists only until this task lands
+- [ ] 4.2 Write **ST-13j** plus a `testing/boing-ball.ts` builder; new `boing-ball.spec.test.ts`.
+      **Its CI half asserts only link-time facts** (AR #98): the `base` initializer's immediate ==
+      `(symbolMap(BALL) / 64) & 0xFF`, plus the `ADC #1`/`#2`/`#3` → `STA $07F9`..`$07FB` chain that
+      proves the value is still a usable 64-byte block base. The four pointer **values** do not
+      exist in the PRG — they are computed at runtime as `p = base + frame * 4` — so write
+      **ST-13k** alongside it under `skipIf(!hasVice())`, asserting `peek($07F8..$07FB)`; it runs in
+      task 5.5, not in CI. **Clear its `pendingSuite` waiver too** — after 4.1 and 4.2 that list
+      must be empty
+- [ ] 4.3 Re-derive **ST-C14** (`balloon.spec.test.ts:169-181`) to the two-instruction subsequence
       `LDA #<(__data_Main_BALLOON / 64)` · `STA $07F8`, and rewrite its comment to describe the
-      folded form rather than a weakness that no longer exists
+      folded form rather than a weakness that no longer exists. **`:166-167` — the
+      embed-appears-exactly-once assertions in the same block — are not part of this and stay
+      byte-for-byte.** ST-C15 (`:184-195`) is untouched, comment included
 - [ ] 4.4 **Verify RED**
 - [ ] 4.5 Migrate `examples/balloon/main.blend:11` to `poke($07F8, lo(&BALLOON / 64));` and rewrite
       the teaching comment at `:8-10` — the block is the address divided by 64, not the high byte
       times four
-- [ ] 4.6 Migrate `examples/balloon-color/main.blend:21` and its comment at `:19-21` the same way
+- [ ] 4.6 Migrate `examples/balloon-color/main.blend:21` and its comment at `:18-20` the same way
 - [ ] 4.7 Migrate `examples/boing-ball/main.blend:54` to `let base: byte = lo(&BALL / 64);` and its
       comment at `:52-53`. A **`let` initializer**, not a `poke` value — same lowering route, and
-      the one site whose result is then used arithmetically (`base+0..3`, `:56-59`)
+      the one site whose result is then used arithmetically (`p = base + frame * 4`, `:91-99`)
 - [ ] 4.8 **Verify GREEN**
-- [ ] 4.9 Re-derive `balloon`'s ratchet from the new build; regenerate the goldens and
-      `SCOREBOARD.md` — **same commit** as tasks 4.5–4.7
-- [ ] 4.10 Hand-review every regenerated golden hunk against what a 6502 developer would write.
-      A divergence is a defect: fix it or file it, never shrug it off
-- [ ] 4.11 Confirm **ST-C15 still green** (AC-2 — the sprite is still page-aligned) and no fixture
-      grew; full verify
+- [ ] 4.9 Re-derive `balloon`'s ratchet from the new build and regenerate `SCOREBOARD.md` —
+      **same commit** as tasks 4.5–4.7
+- [ ] 4.10 **Hand-review `balloon`'s regenerated assembly against `examples/balloon/balloon.asm`**,
+      its committed hand-written twin, and judge the migrated demos' emissions the same way. A
+      divergence is a defect: fix it or file it, never shrug it off. (The 14 goldens cannot change
+      in this phase — see 4.11 — so there are no golden hunks to review; this is where the
+      Prime-Directive read actually happens)
+- [ ] 4.11 Confirm **zero golden diff** — a non-empty one is a defect to stop on, since no corpus
+      fixture should move — plus **ST-C15 still green** (AC-2) and no fixture grew; full verify
 
-**Commit point.** Scope `perf(examples)`. Source, ratchet, goldens and scoreboard together.
+**Commit point.** Scope `perf(examples)`. Source, ratchet and scoreboard together.
 
 ---
 
@@ -169,17 +232,22 @@ Lands only after M2 is wired. Migrating earlier makes `balloon` grow past its ra
 
 Spec: [03-02 §3–§5](03-02-diagnostics-examples-ledgers.md#3--m4--the-ledgers-stay-true-phases-2-4-5).
 
-- [ ] 5.1 Re-author `balloon`'s `hi(&BALLOON) * 4` routing row in `twins.json` **from measurement** —
-      the divergence it describes no longer exists
-- [ ] 5.2 Re-route the **16** misrouted rows (8 instruction-selection + 8 layout) from `#58` to
-      [#70](https://github.com/blendsdk/blend65/issues/70). They are re-routed, **not** fixed
-- [ ] 5.3 Add the structural manifest check: no `twins.json` row carries `"issue": 58` except the
-      rows belonging to #58's own remaining halves
-- [ ] 5.4 Back-propagate the two RD corrections — the locals claim (AR #91) and the "load source"
-      framing (AR #88) — into
+- [ ] 5.1 Add the structural manifest check to `twin-manifest.spec.test.ts`: **no `twins.json` row
+      carries `"issue": 58`** — flatly, with no exception clause, since all 17 rows are accounted
+      for as 1 re-authored + 16 re-routed. **Watch it fail on all 17 first**; this is the phase's
+      RED, and writing it after 5.2/5.3 would make it unfailable
+- [ ] 5.2 Re-author `balloon`'s `hi(&BALLOON) * 4` routing row **from measurement** — the divergence
+      it describes no longer exists — naming its measured owner rather than #58
+- [ ] 5.3 Re-route the **16** misrouted rows (8 instruction-selection + 8 layout) from `#58` to
+      [#70](https://github.com/blendsdk/blend65/issues/70). They are re-routed, **not** fixed.
+      5.1 turns green here
+- [ ] 5.4 Back-propagate the **three** RD corrections — the locals claim (AR #91), the "load source"
+      framing (AR #88), and AC-6's scope, which the RD states as *"both examples"* while this plan
+      migrates three (AR #96) — into
       [RD-13](../../requirements/RD-13-symbolic-address-arithmetic.md)
-- [ ] 5.5 Run the **local VICE 3.10 tier** for AC-10: `balloon` renders, its shared observables and
-      its own sprite-pointer / image-block checks pass unchanged
+- [ ] 5.5 Run the **local VICE 3.10 tier** for AC-10 and **ST-13k**: `balloon` renders and its
+      shared observables pass unchanged; `boing-ball`'s four sprite pointers read `b, b+1, b+2, b+3`
+      in memory — the runtime half CI structurally cannot prove
 - [ ] 5.6 Walk all **12 acceptance criteria** with evidence into `08-closeout.md`, stating plainly
       that RD-13 moves **1** of 53 routed divergence rows and re-routes 16 — and that `balloon`
       still does not beat its twin on bytes
@@ -201,6 +269,7 @@ Spec: [03-02 §3–§5](03-02-diagnostics-examples-ledgers.md#3--m4--the-ledgers
 | `git status --porcelain spec/` stays empty | every commit (D3) |
 | No plan, requirement, task, AR or issue ID in any code or doc comment | every file touched |
 | Newly added lines Prettier-clean; never `--write` a file carrying pre-existing drift | every file touched |
-| No new diagnostics — `k >= 16`, non-power-of-two divisors and every word-context form keep today's behaviour exactly | Phases 3, 4 |
+| No new diagnostics — `k >= 16`, non-power-of-two divisors and every word-context form keep today's behaviour exactly (`W10171`, `W10174`, `E90001`) | Phases 3, 4 |
+| No committed golden changes; a non-empty golden diff is a defect to stop on | every phase |
 | A spec test is never edited to make an implementation pass | Phases 1, 2, 4 |
 | Any undetermined decision: **STOP**, log as the next `AR #n (runtime)`, resolve with the user, back-propagate | every phase |
