@@ -5,8 +5,8 @@
  * blocks, and each frame points the four sprites at `base + frame*4 + 0..3`.
  * That divides the program's evidence cleanly in two.
  *
- * The **build suite** proves everything that exists at link time — the image is
- * page-aligned and in the VIC's reach, and the `base` initialiser's assembled
+ * The **build suite** proves everything that exists at link time — the image
+ * sits on a sprite block and in the VIC's reach, and the `base` initialiser's assembled
  * immediate is that image's own block number. It also proves the value is still
  * usable as a BLOCK base, structurally, through the `+1`/`+2`/`+3` chain that
  * feeds the three sibling pointers. It runs wherever ACME does, which includes
@@ -65,8 +65,19 @@ describe.skipIf(!hasAcme())("Specification: boing-ball's block base is link-time
       expect(address, `${BALL_LABEL} must resolve`).toBeTypeOf("number");
       expect(baseSlot, `${BASE_SLOT} must resolve`).toBeTypeOf("number");
 
-      expect(address! % 256).toBe(0);
+      // The program names its image as a 64-byte block, the unit the VIC
+      // dereferences a sprite in, so that is the boundary it earns.
+      expect(address! % 64).toBe(0);
       expect(address!).toBeLessThan(0x1000);
+
+      // The rendered directive is load-bearing rather than belt-and-braces: a
+      // multiple of 256 is already a multiple of 64, so the address check above
+      // cannot fail if the demand silently coarsened back to a page. ACME's
+      // `!align` takes a bitmask, so 64 renders as 63.
+      const alignLines = result.asmText!.split("\n").map((line) => line.trim());
+      const ballLabelIndex = alignLines.indexOf(`${BALL_LABEL}:`);
+      expect(ballLabelIndex, `${BALL_LABEL}: must appear in the assembly`).toBeGreaterThan(0);
+      expect(alignLines[ballLabelIndex - 1]).toBe("!align 63, 0, 0");
 
       // The initialiser's own assembled byte, read back out of the binary.
       expect(immediateStoredTo(result.binary!, baseSlot!)).toBe(Math.floor(address! / 64) & 0xff);

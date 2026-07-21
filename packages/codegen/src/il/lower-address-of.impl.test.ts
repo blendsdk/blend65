@@ -1,8 +1,9 @@
 /**
  * Implementation tests for address-of lowering internals: the entry-label
  * special case, qualified cross-module function operands, the module
- * initializer stream's direct store, and the homed path feeding non-store
- * consumers (`return`, compound assignment).
+ * initializer stream's direct store, the homed path feeding non-store
+ * consumers (`return`, compound assignment), and the alignment demand a folded
+ * divisor mints — exhaustively across every shift the fold admits.
  */
 
 import { describe, expect, it } from "vitest";
@@ -139,8 +140,8 @@ describe("the address-taken record's lifetime", () => {
   });
 
   it("yields one marked entry when the same address is taken twice", () => {
-    // The record is a set. Two `&` sites on one array must not produce two
-    // entries, or the emitter would lay the image down twice.
+    // The record is keyed by symbol. Two `&` sites on one array must not
+    // produce two entries, or the emitter would lay the image down twice.
     const { il, hasErrors } = lowerText([
       [
         "module Main;",
@@ -169,5 +170,87 @@ describe("the address-taken record's lifetime", () => {
     ]);
     expect(codes).toContain("E10042");
     expect(il.constData.filter((e) => e.boundary !== undefined)).toEqual([]);
+  });
+});
+
+describe("the alignment demand a folded divisor mints", () => {
+  /** The boundary lowering records for `SPRITE` when its address is named as `expr`. */
+  function boundaryOf(expr: string, extraDecls: string[] = []): number | undefined {
+    const { il, hasErrors } = lowerText([
+      [
+        "module Main;",
+        ...extraDecls,
+        "const SPRITE: byte[64] = [",
+        "  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,",
+        "  17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,",
+        "  33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,",
+        "  49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64",
+        "];",
+        "function main(): void {",
+        `  poke($07F8, ${expr});`,
+        "}",
+      ].join("\n"),
+    ]);
+    expect(hasErrors, `lowering ${expr} must not error`).toBe(false);
+    return il.constData.find((e) => e.symbol === "__data_Main_SPRITE")?.boundary;
+  }
+
+  it("maps only the block shift to 64 — every other divisor the fold accepts keeps a page", () => {
+    // Exhaustive across the shifts the fold admits, reached through lowering
+    // rather than by calling the mapping directly, so the wiring between the
+    // fold and the mark is covered along with the rule itself.
+    for (let k = 0; k <= 15; k++) {
+      const divisor = 2 ** k;
+      expect(boundaryOf(`lo(&SPRITE / ${divisor})`), `/ ${divisor}`).toBe(k === 6 ? 64 : 256);
+    }
+  });
+
+  it("reads the shift, not the operator: >> 6 mints the same demand as / 64", () => {
+    expect(boundaryOf("lo(&SPRITE >> 6)")).toBe(64);
+    expect(boundaryOf("lo(&SPRITE >> 7)")).toBe(256);
+  });
+
+  it("keeps a page for a divisor the fold rejects, which never reaches the mapping", () => {
+    // A non-power-of-two divisor falls through to the ordinary path with its
+    // existing diagnostics; the symbol still collects a page from that path.
+    expect(boundaryOf("lo(&SPRITE / 3)")).toBe(256);
+  });
+
+  it("takes the coarser demand whichever order the two namings appear in", () => {
+    const block = "poke($07F8, lo(&SPRITE / 64));";
+    const page = "poke($D000, hi(&SPRITE) * 4);";
+    expect(boundaryOf(`lo(&SPRITE / 64)`, [`function pageToo(): void { ${page} }`])).toBe(256);
+    // And with the statements the other way round inside one function.
+    const both = (first: string, second: string): number | undefined => {
+      const { il, hasErrors } = lowerText([
+        [
+          "module Main;",
+          "const SPRITE: byte[4] = [1, 2, 3, 4];",
+          "function main(): void {",
+          `  ${first}`,
+          `  ${second}`,
+          "}",
+        ].join("\n"),
+      ]);
+      expect(hasErrors).toBe(false);
+      return il.constData.find((e) => e.symbol === "__data_Main_SPRITE")?.boundary;
+    };
+    expect(both(block, page)).toBe(256);
+    expect(both(page, block)).toBe(256);
+  });
+
+  it("stays at 64 when the same symbol is named as a block from two functions", () => {
+    // The demand map is program-wide, so a second block naming must combine
+    // with the first rather than land beside it or coarsen it.
+    const { il, hasErrors } = lowerText([
+      [
+        "module Main;",
+        "const SPRITE: byte[4] = [1, 2, 3, 4];",
+        "function other(): void { poke($07F9, lo(&SPRITE / 64)); }",
+        "function main(): void { poke($07F8, lo(&SPRITE / 64)); other(); }",
+      ].join("\n"),
+    ]);
+    expect(hasErrors).toBe(false);
+    expect(il.constData.find((e) => e.symbol === "__data_Main_SPRITE")?.boundary).toBe(64);
   });
 });

@@ -1,8 +1,8 @@
 # Execution Plan: Alignment Granularity
 
 > **Implements**: asm-parity/RD-15 · [00-index.md](00-index.md)
-> **Progress**: 9/24 tasks (38%)
-> **Last Updated**: 2026-07-21 17:50
+> **Progress**: 17/24 tasks (71%)
+> **Last Updated**: 2026-07-21 18:10
 > **CodeOps Skills Version**: 3.11.0
 
 **Verify** (AR #120), run at every marked point:
@@ -98,25 +98,25 @@ its own.
 
 ## Phase 2 — M1/M2/M4: the 64-byte demand
 
-> **Phase ref**: _(recorded at phase start)_
+> **Phase ref**: `37038ff`
 > **Lenses**: api-surface
 
 Spec: [03-01 §2](03-01-demand-and-emission.md#2--the-demand-and-where-it-is-minted) ·
 [03-02 §2](03-02-oracles-and-ledgers.md#2--the-six-pinned-assertions-phase-2) ·
 [07 ST-15a…ST-15g](07-testing-strategy.md).
 
-- [ ] 2.1 `[spec-author]` Write **ST-15a … ST-15g** in a new
+- [x] 2.1 ✅ (completed: 2026-07-21 18:10) `[spec-author]` Write **ST-15a … ST-15g** in a new
       `packages/test-harness/src/align-granularity.spec.test.ts` under `skipIf(!hasAcme())`,
       building inline sources through the `build()` facade in a temp dir — the
       `symbolic-address.spec.test.ts:25-36` pattern. **Do not add anything to `examples/`** (it
       would owe the coverage manifest a tier and a suite). The header states the ACME bitmask trap
-- [ ] 2.2 Re-derive **ST-C15** (`balloon.spec.test.ts:191`), **ST-13f**
+- [x] 2.2 ✅ (completed: 2026-07-21 18:10) Re-derive **ST-C15** (`balloon.spec.test.ts:191`), **ST-13f**
       (`balloon-color.spec.test.ts:51`) and **ST-13j** (`boing-ball.spec.test.ts:68`): `% 256` → `%
       64` **plus** the directive text `!align 63, 0, 0` on the line immediately preceding the image
       label. Keep every `< 0x1000` and assembled-pointer clause. Restate in each comment why the
       directive clause is load-bearing — `% 256 === 0` implies `% 64 === 0`, so the address clause
       alone cannot fail if the demand regresses
-- [ ] 2.3 **Verify RED**, against [07's red-phase table](07-testing-strategy.md#red-phase-expectations)
+- [x] 2.3 ✅ (completed: 2026-07-21 18:10) **Verify RED**, against [07's red-phase table](07-testing-strategy.md#red-phase-expectations)
       specifically, and at **clause** granularity: ST-15a, ST-15c, ST-15d(b) and ST-15f fail now,
       and the three re-derived oracles fail now on their **directive-text clause only** — their
       `% 64` clause is already green, because all three images are page-aligned today and a multiple
@@ -124,23 +124,23 @@ Spec: [03-01 §2](03-01-demand-and-emission.md#2--the-demand-and-where-it-is-min
       ST-15g, **and the `% 64` clause of each re-derived oracle**) pass now — **perturb each once
       and watch it fail**, then restore. A guard that cannot fail is worse than no guard, and this
       feature manufactures them: 64 and 256 coincide on most real addresses
-- [ ] 2.4 Implement — add `BLOCK_BOUNDARY`, `BLOCK_SHIFT` and `boundaryOfShift` beside the fold in
+- [x] 2.4 ✅ (completed: 2026-07-21 18:10) Implement — add `BLOCK_BOUNDARY`, `BLOCK_SHIFT` and `boundaryOfShift` beside the fold in
       `lower.ts` (`PAGE_BOUNDARY` already exists from 1.5), and pass the demand at the **single**
       call site `:2570`: `lowerAddressOf(binary.left, ctx, true, boundaryOfShift(shift))`. An
       **allowlist**, not arithmetic on the shift — `/ 16384` is a VIC-bank read, and honoring it
       would insert up to 16 KB of padding. The other **eight** `lowerAddressOf` call sites are
       untouched: that is M2's structural guarantee, not a convention
-- [ ] 2.5 **Verify GREEN**
-- [ ] 2.6 Implementation tests in `lower-address-of.impl.test.ts`: the allowlist exhaustively
+- [x] 2.5 ✅ (completed: 2026-07-21 18:10) **Verify GREEN**
+- [x] 2.6 ✅ (completed: 2026-07-21 18:10) Implementation tests in `lower-address-of.impl.test.ts`: the allowlist exhaustively
       through lowering (`lo(&X / 2^k)` for `k = 0..15` → 256 everywhere but `k = 6` → 64), the
       coarsest-wins insert in both source orders, and a symbol demanded 64 from two different
       functions staying 64
-- [ ] 2.7 **Measure and record** for closeout: pad per 64-demand image (`balloon` 19,
+- [x] 2.7 ✅ (completed: 2026-07-21 18:10) **Measure and record** for closeout: pad per 64-demand image (`balloon` 19,
       `balloon-color` 60, `boing-ball` 1) and `align-mixed`'s 194 as the out-of-scope bare-`&`
       control; `balloon-color` 584 → 456 B `.prg` (582 → 454 in the budget convention);
       `budgets.json` unchanged and `balloon` still 318 B; 14 goldens byte-identical. **A closeout
       that reports a corpus byte improvement is wrong** — the corpus total does not move
-- [ ] 2.8 Full verify
+- [x] 2.8 ✅ (completed: 2026-07-21 18:10) Full verify
 
 **Deliverables**: a sprite image is aligned to what the VIC actually reads; `hi(&X) * 4` is still
 correct, structurally; the three oracles can now fail in both directions.

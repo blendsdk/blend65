@@ -2547,6 +2547,28 @@ function constantOperandValue(e: ExprNode, ctx: LowerCtx): number | null {
   return value !== undefined && typeof value.value === "number" ? value.value : null;
 }
 
+/** The unit the VIC dereferences a sprite in. */
+const BLOCK_BOUNDARY: AlignBoundary = 64;
+
+/** The normalized shift that names a block — `/ 64` and `>> 6` both reduce to it. */
+const BLOCK_SHIFT = 6;
+
+/**
+ * The alignment that naming a unit of `2^shift` bytes demands of the image.
+ *
+ * An allowlist rather than arithmetic on the shift, and the distinction is the
+ * whole rule: `lo(&X / 16384)` reads which VIC bank an address sits in, which
+ * is correct wherever the image lands, and treating it as a placement demand
+ * would insert up to 16 KB of padding to satisfy a question. Only a unit the
+ * hardware genuinely dereferences in is a demand. Everything else keeps the
+ * default — including a page, which is not a VIC granularity at all but the
+ * boundary an address handed out with no arithmetic around it has always been
+ * given.
+ */
+function boundaryOfShift(shift: number): AlignBoundary {
+  return shift === BLOCK_SHIFT ? BLOCK_BOUNDARY : PAGE_BOUNDARY;
+}
+
 /**
  * `&X / 2^k` and `&X >> k` reduced to a single selected byte of the address,
  * or `null` when the expression is not that shape.
@@ -2577,8 +2599,10 @@ function foldedAddressByte(arg: ExprNode, ctx: LowerCtx): ILOperand | null {
   if (shift === null || shift < 0 || shift > 15) return null;
 
   // The address lowers through the address-of path, so the fold inherits that
-  // path's slot claim and data-placement marking exactly as a plain select does.
-  const address = lowerAddressOf(binary.left, ctx, true);
+  // path's slot claim and data-placement marking exactly as a plain select
+  // does — and this is the one call site that knows what unit the source named
+  // the address in, so it is the one that passes a demand.
+  const address = lowerAddressOf(binary.left, ctx, true, boundaryOfShift(shift));
   if (!isAddr(address)) return address; // rejection already reported
   if (address.offset !== undefined) {
     // An addend cannot ride inside the division: the assembler binds `/`

@@ -46,10 +46,21 @@ describe.skipIf(!hasAcme())(
         const address = result.symbolMap!.get(SPRITE_LABEL);
         expect(address, `${SPRITE_LABEL} must resolve`).toBeTypeOf("number");
 
-        // Page-aligned and below the character-ROM shadow, where the VIC would
-        // read ROM instead of the image no matter what the pointer said.
-        expect(address! % 256).toBe(0);
+        // The program names its image as a 64-byte block — the unit the VIC
+        // dereferences a sprite in — so that is the boundary it earns. Below
+        // the character-ROM shadow too, where the VIC would read ROM instead
+        // of the image no matter what the pointer said.
+        expect(address! % 64).toBe(0);
         expect(address!).toBeLessThan(0x1000);
+
+        // The rendered directive is load-bearing rather than belt-and-braces:
+        // a multiple of 256 is already a multiple of 64, so the address check
+        // above cannot fail if the demand silently coarsened back to a page.
+        // ACME's `!align` takes a bitmask, so 64 renders as 63.
+        const lines = result.asmText!.split("\n").map((line) => line.trim());
+        const labelIndex = lines.indexOf(`${SPRITE_LABEL}:`);
+        expect(labelIndex, `${SPRITE_LABEL}: must appear in the assembly`).toBeGreaterThan(0);
+        expect(lines[labelIndex - 1]).toBe("!align 63, 0, 0");
 
         // The stored byte is the image's own 64-byte block number. Truncation is
         // deliberate: above $4000 the quotient no longer fits a byte, and the low

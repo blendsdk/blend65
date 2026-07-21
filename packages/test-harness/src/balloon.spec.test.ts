@@ -15,7 +15,7 @@
  *
  * The **build suite** needs only the assembler, so it runs everywhere: the
  * staging copy is gone, the image appears once, the pointer is derived from
- * the image's own address, and that address is page-aligned and in-bank. It
+ * the image's own address, and that address sits on a sprite block and in-bank. It
  * deliberately sits OUTSIDE the VICE guard — placed inside, these would skip
  * where no emulator exists rather than fail, and a skip raises no alarm.
  */
@@ -182,13 +182,23 @@ describe.skipIf(!hasAcme())(
       }
     });
 
-    it("ST-C15: places the sprite image on a page, inside the VIC's reach", async () => {
+    it("ST-C15: places the sprite image on a sprite block, inside the VIC's reach", async () => {
       const { result } = await buildOnce();
       const addr = result.symbolMap!.get(SPRITE_LABEL);
       expect(addr, `${SPRITE_LABEL} must resolve`).toBeTypeOf("number");
 
-      // Page-aligned, so the sprite pointer is exactly the high byte times four.
-      expect(addr! % 256).toBe(0);
+      // The program names its image as a 64-byte block, which is the unit the
+      // VIC dereferences a sprite in, so that is the boundary it earns.
+      expect(addr! % 64).toBe(0);
+
+      // The rendered directive is load-bearing rather than belt-and-braces:
+      // a multiple of 256 is already a multiple of 64, so the address check
+      // above cannot fail if the demand silently coarsened back to a page.
+      // ACME's `!align` takes a bitmask, so 64 renders as 63.
+      const lines = result.asmText!.split("\n").map((line) => line.trim());
+      const labelIndex = lines.indexOf(`${SPRITE_LABEL}:`);
+      expect(labelIndex, `${SPRITE_LABEL}: must appear in the assembly`).toBeGreaterThan(0);
+      expect(lines[labelIndex - 1]).toBe("!align 63, 0, 0");
 
       // Below $1000 keeps it clear of the character-ROM shadow, where the VIC
       // would read ROM instead of the image no matter what the pointer says.
