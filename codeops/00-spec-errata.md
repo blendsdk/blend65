@@ -22,6 +22,8 @@ choice, and the next person has no way to tell the difference.
 | E-05 | Diagnostic code assignments | Dozens of Ch 14 code assignments carry different meanings in the registry (Ch-14 E10072 case-type-mismatch → impl missing-default; E10161/2 shift/ternary → impl struct-field; E10200-03 sizeof/offsetof → impl embed family). The registry documents this as accepted deviation | The registry's meanings | Behaviour is present; the numbers lie. Breaks `--suppress-warning` and any tooling keyed on published codes |
 | E-06 | `poke`/`peek` runtime lowering | `spec/12-intrinsics.md:159` mandates **zero-page indirect** for a runtime address. For a constant base plus an index, the idiomatic 6502 form is absolute-indexed `STA base,X` — 4 cycles against ZP-indirect's 6 plus pointer setup | Not yet implemented either way | Implementing the spec's letter uniformly would itself violate Prime Directive clause 1. The divergence needs an explicit decision at authoring, recorded here so it is not mistaken for an oversight |
 
+| E-07 | `E10154` is assigned twice | `spec/14-diagnostics.md:92` — "Width narrowing without cast". `spec/04-expressions-operators.md:149` and `spec/00-feature-index.md:158` — ordered comparison applied to `boolean`. Two unrelated errors, one code | The registry implements the Ch 14 meaning (`WidthNarrowingNoCast`) | Found while selecting the code for the silent two-byte `poke`. The narrowing meaning is the one in use and the one that fits, so it is kept — but a user hitting the boolean case will get a code the spec documents for something else |
+
 ## How to use this file
 
 - Add a row when the frozen text contradicts itself, or when an implementation must knowingly

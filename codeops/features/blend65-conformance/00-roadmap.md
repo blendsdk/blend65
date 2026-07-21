@@ -240,7 +240,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | — | — | Backlog | ⬜ |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | — | **Authored** ✏️ | 🔄 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |
