@@ -1622,13 +1622,17 @@ function typeIntrinsicCall(
 }
 
 /**
- * Checks a `poke`/`pokew` value operand against its store width. A value wider
- * than the store — a `word`/`sword` handed to a one-byte `poke` — would silently
- * split into a second store that clobbers the neighbouring address, so it is
- * rejected with E10154. A `boolean` value is a KIND mismatch (E10152), not a
- * width narrowing: boolean is itself one byte. `byte`/`sbyte`/enum values and
- * numeric literals (whose range the literal-argument check already owns) fit a
- * single byte and are accepted.
+ * Checks a `poke`/`pokew` value operand against its store width.
+ *
+ * A value wider than the store — a `word`/`sword` handed to a one-byte `poke` —
+ * would silently split into a second store that clobbers the neighbouring
+ * address, so it is rejected with E10154. A value that is not a byte-width
+ * integer or enum at all — a `boolean`, a struct, an array, a `void` call
+ * result — is a KIND mismatch (E10152): a `boolean` is one byte but non-numeric,
+ * and a struct/array is a multi-byte aggregate that would spill stores past the
+ * target just the same. `byte`/`sbyte`/enum values and numeric literals (whose
+ * range the literal-argument check already owns) fit a single byte and are
+ * accepted.
  */
 function checkPokeValueWidth(
   expr: IntrinsicCallExprNode,
@@ -1639,16 +1643,20 @@ function checkPokeValueWidth(
   if (valueArg === undefined || valueArg.kind === "NumericLitExpr") return;
   const valueType = ctx.typeMap.get(valueArg);
   if (valueType === undefined || valueType.kind === "error") return; // already poisoned upstream
-  if (valueType.kind === "primitive" && valueType.name === "boolean") {
+  const valueWidth = pokeValueWidth(valueType);
+  if (valueWidth === null) {
+    // Not a byte-width integer or enum: a boolean, struct, array, or void value
+    // is a kind mismatch, not a valid single-byte store operand. (No cast fixes
+    // it — boolean↔integer casts are themselves illegal — so the message names
+    // the kind rather than suggesting one.)
     ctx.bag.addError(
       DiagCode.TypeMismatchAssignment, // E10152
       valueArg.span,
-      `A '${expr.name}' value must be an integer, not 'boolean' — a cast is required`,
+      `A '${expr.name}' value must be an integer, not '${typeName(valueType)}'`,
     );
     return;
   }
-  const valueWidth = pokeValueWidth(valueType);
-  if (valueWidth !== null && valueWidth > storeWidth) {
+  if (valueWidth > storeWidth) {
     ctx.bag.addError(
       DiagCode.WidthNarrowingNoCast, // E10154
       valueArg.span,
@@ -1660,8 +1668,9 @@ function checkPokeValueWidth(
 
 /**
  * The storage width in bits of a `poke` value type: an integer's own width, or
- * 8 for an enum (a one-byte identity backing). `null` for anything the width
- * rule does not apply to (handled or rejected elsewhere).
+ * 8 for an enum (a one-byte identity backing). `null` for every other type —
+ * boolean, struct, array, void — none of which is a valid single-byte store
+ * value; the caller rejects those as a kind mismatch.
  */
 function pokeValueWidth(t: Type): 8 | 16 | null {
   if (t.kind === "enum") return 8;
