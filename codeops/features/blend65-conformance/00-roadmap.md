@@ -3,7 +3,7 @@
 > **Feature-Set**: Conformance & Expressiveness
 > **Status**: Proposed — awaiting acceptance
 > **Created**: 2026-07-21
-> **Last Updated**: 2026-07-21
+> **Last Updated**: 2026-07-22
 > **Progress**: 0 / 14
 > **Findings source**: [`codeops/00-conformance-triage.md`](../../00-conformance-triage.md)
 >
@@ -106,7 +106,22 @@ when it is *emitted*; a planner emitting it on every loop would regenerate slice
 AC-12's byte-identical claim) — **found and fixed in-iteration**: AR-1 now gates emission on the
 provably-safe analysis, and AC-12 pins the two interior corpus loops' byte-identity as proof.
 
-**Next: `make_plan` for RD-01.** **D-02 and D-03 remain open** — neither gates P1.
+**RD-01 plan created (2026-07-22) 📋** — `plans/rd-01-silent-miscompiles/` (5 phases, 49 tasks,
+spec-tests-first). Zero-Ambiguity Gate passed on 8 plan-level rows: 2 user forks (5-phase shape;
+full-verify-at-close cadence) + 6 grounded single-path decisions (wrap-check reuses the already-live
+in-block `current` temp — no scratch; M-03 pop-3 via per-use type resolution with positional
+allocation untouched; frontend-stamped wrap-safe emission gate; etc.). AR-P8 (surfaced during
+authoring; user-delegated the final call): the mechanical re-goldens — slice8b, X-07/X-08
+retirement, control-flow unit pins, the +1-cycle scoreboard row — land in their forcing phase
+**P1**, not the P5 closeout, because every phase must close on full CI-equivalent verify. P1 is
+split into **two green commits**: P1-a (behaviour-neutral bound stamp, byte-identical) → P1-b (the
+atomic gated-`brcmp` fix bundled with slice8b re-golden + X-07/X-08 retirement + scoreboard
+re-derivation — forced together since the ledger gate goes red the instant the fix lands). The
+X-08 red-perturbation is a pre-retirement gate inside P1-b. P5 is discharge-only (AC-15
+attestation, AC-16 deferral gate, scoreboard/ratchet verification).
+
+**Next: `preflight` the plan** (per-RD workflow: `make_plan → preflight (plan) → exec_plan`).
+**D-02 and D-03 remain open** — neither gates P1.
 
 ---
 
@@ -314,7 +329,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | — | **Preflight it.3 ✅ PASSED** — PF-028…PF-049 resolved + re-verified; PF-050 found in the buildability check and fixed; AR-1 mechanism grounded against the real IL. Ready for `make_plan` | 🔬 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) | **📋 Plan Created** (2026-07-22) — 5 phases, 49 tasks, spec-tests-first; Zero-Ambiguity Gate passed (8 AR-P#: 2 user forks + 6 grounded single-path). Mechanical re-goldens land in forcing phase P1 (AR-P8). Next: `preflight` the plan | 📋 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |
