@@ -84,9 +84,9 @@ type, so signed dispatch (else M-01f) and the 16-bit high-byte shape (M-01e) fal
 type-stamped compare. When the loop **is** wrap-safe, `incr` keeps today's exact `br(condL)` —
 byte-identical output (AC-12; slice4a `1 to 10`, slice7 `0 to 4`).
 
-> **Why immediate, not pre-step counter (PF-001).** Wrap on an unsigned add of a positive step `s`
-> is exactly "the result landed below `s`" (ascending) or "above `typeMax − s`" (descending) — the
-> pre-step value is not needed. Comparing against `current` instead would make `current` and `next`
+> **Why immediate, not pre-step counter (PF-001).** Wrap on an add of a positive step `s` is exactly
+> "the result landed below `typeMin + s`" (ascending) or "above `typeMax − s`" (descending) — for
+> unsigned `typeMin = 0` this reads "below `s`" (PF-053) — the pre-step value is not needed. Comparing against `current` instead would make `current` and `next`
 > both multi-use, which the translator cannot honour (word ALU requires a single-use store-folded
 > dest; the byte path spills nothing). The immediate form sidesteps the whole hazard.
 
@@ -100,7 +100,7 @@ times — RD R1 zero-trip invariant).
 | Case | `cond` bound compare | `incr` wrap check | Result |
 | ---- | -------------------- | ----------------- | ------ |
 | Interior, step divides range | fires normally | not emitted (wrap-safe) | unchanged |
-| Interior, step escapes range (`0 to 254 step 2`) | never fires (counter steps past) | after `254+2=0`, `next(0) < step(2)` → exit | terminates; body ran at 254 once, never at 0 |
+| Interior, step escapes range (`0 to 254 step 2`) | never fires (counter steps past) | after `254+2=0`, `next(0) < step(2)` → exit | terminates; body ran at 254 once; the init visit at 0 is unaffected; no wrapped re-entry at 0 |
 | Bound at extreme (`0 to 255`, `9 downto 0`) | never fires | wrap detected at the extreme step | terminates, visits bound once |
 | Zero-trip (`9 to 0` ascending) | fires immediately → `endL` | n/a (body/incr never entered) | zero iterations |
 

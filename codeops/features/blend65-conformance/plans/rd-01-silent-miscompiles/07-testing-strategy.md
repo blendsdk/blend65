@@ -56,7 +56,7 @@ everywhere; `[local]` is the VICE tier CI skips (AR-27). The RD's AC-# is the ow
 | ST-10 | `for (let i: byte = 9 to 0)` (init past bound, ascending) | emitted exit lets the bound compare fall straight to end (zero-trip); `[local]`: body runs **zero** times | `[CI]` shape + `[local]` · AC-1 |
 | ST-11 | `for (let i: byte = 0 to 254 + 1)` (const-expression bound) | wrap guard present (const-expr evaluates to 255) | `[CI]` shape · AC-3 |
 | ST-12 | `let limit: byte = 255; for (let i: byte = 0 to limit)` (runtime bound) | wrap guard present (runtime bound never provably safe) | `[CI]` gating · AC-3, R2 |
-| ST-13 | emitted **IL** for a wrap-unsafe loop | the `incr` terminator is a `brcmp` of the post-step counter (`next`) against the type/step **immediate**, in addition to the `cond` bound compare | `[CI]` IL · AC-4 |
+| ST-13 | emitted **IL** for a wrap-unsafe loop | the `incr` terminator is a `brcmp` of a **freshly-reloaded** post-step counter temp (the schematic's `next2`, NOT the `add`'s dest temp — that identity is load-bearing, PF-052) against the type/step **immediate**, in addition to the `cond` bound compare | `[CI]` IL · AC-4 |
 | ST-14 | wrap-unsafe loop, end-to-end **asm**, small body | inversion/relaxation-tolerant + **direction-tolerant**: **exactly one** of the wrap compare's operand pair reads the counter slot and the other is the derived immediate — **never both read the slot** (that predicate rules out the stale-reload trap and survives the translator's `gt`-operand swap on descending loops, PF-034); its taken edge resolves to the loop-exit label | `[CI]` asm · AC-4 |
 | ST-15 | wrap-unsafe loop, body > 127 bytes | branch relaxes; no out-of-range branch emitted | `[CI]` · AC-5 |
 | ST-16 | slice4a `1 to 10` and slice7 `0 to 4` goldens | **byte-identical** — no added guard (gated-emission proof); pinned by the existing golden suite, not a new test (PF-024) | `[CI]` golden · AC-12 |
@@ -89,7 +89,7 @@ everywhere; `[local]` is the VICE tier CI skips (AR-27). The RD's AC-# is the ow
 | ST-29 | **nested** loop reusing its enclosing counter | `E10062` | AC-8, AR-6 |
 | ST-30 | sibling `if{ let t:word } else{ let t:byte }` | compiles with **no diagnostic** | `[CI]` frontend · AC-9 |
 | ST-30b | sibling for-counters `for(let i:byte…){} for(let i:word…){}` | compiles with **no diagnostic** | `[CI]` frontend · PF-012 |
-| ST-30c | same sibling for-counters, **codegen tier** | the byte loop's counter compare/step emit at **byte** width (no `+1`-byte counter ops), the word loop's at **word** width — proves the `:701` per-declaration fix, which the frontend tier (ST-30b) cannot observe (PF-035/PF-012) | `[CI]` codegen · PF-012 |
+| ST-30c | same sibling for-counters, **codegen tier** | the byte loop's counter compare/step emit at **byte** width (no `+1`-byte counter ops), the word loop's at **word** width — proves the `:701` per-declaration fix, which the frontend tier (ST-30b) cannot observe (PF-037/PF-012) | `[CI]` codegen · PF-012 |
 | ST-31 | pop-2 word/byte sibling, **layout** | the widened slot's neighbour is at a **non-overlapping** offset (layout assertion — frontend tier sees plan, not asm) | `[CI]` frontend · AC-9 |
 | ST-32 | pop-3 `if{ let t:word; pokew($D000,t) } else{ let t:byte }`, **test-harness** | the wide read lowers `LDA t / LDX t+1 / STA $D000 / STX $D000+1` (value assertion), **and** the pop-2 store writes no byte outside its slot — the emitted-extent evidence R15 keeps out of the frontend tier (PF-025) | `[CI]` test-harness · AC-9 |
 

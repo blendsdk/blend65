@@ -52,7 +52,7 @@ re-goldens land in their **forcing** phase (P1), not the closeout (AR-P8).
 
 > **Phase ref**: _(recorded by exec_plan at phase start)_
 > **Lenses**: api-surface, correctness (codegen terminator + IL invariants)
-> **Spec**: [03-01](03-01-loop-exit.md) · **ST**: ST-1…ST-16 (incl. ST-5b/6b/9b), ST-16L/16C, ST-36…ST-38 · **AR**: RD AR-1/AR-2/AR-10, AR-P3/AR-P5/AR-P8 · **Packages**: frontend, codegen, **core** (PF-003)
+> **Spec**: [03-01](03-01-loop-exit.md) · **ST**: ST-1…ST-16 (incl. ST-5b/5c/6b/9b), ST-16L/16C, ST-36…ST-38 · **AR**: RD AR-1/AR-2/AR-10, AR-P3/AR-P5/AR-P8 · **Packages**: frontend, codegen, **core** (PF-003)
 
 ### Step 1.1: Specification tests
 
@@ -78,7 +78,7 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 **Commit P1-b — atomic behaviour change (fix + red spec tests + forced re-goldens/retirement):**
 
-- [ ] 1.2.3 Range-check the folded step against the counter type at `statement-typing.ts:810-825` → the `E10061` range case when `step > typeMax` (PF-009). **This lands in P1-b, not P1-a** (PF-033): `step 256` on a byte compiles today, so rejecting it *changes the accepted-program set* — a behaviour change that must ride with ST-6b, not the byte-identical stamp commit (it is corpus-neutral — no committed source uses an over-width step, so goldens/examples are unchanged; the program itself compiles-and-hangs today). Register the code + comment per PF-035/AR-P10
+- [ ] 1.2.3 Range-check the folded step against the counter type at `statement-typing.ts:810-825` → the `E10061` range case when `step > typeMax` (PF-009). **This lands in P1-b, not P1-a** (PF-033): `step 256` on a byte compiles today, so rejecting it *changes the accepted-program set* — a behaviour change that must ride with ST-6b, not the byte-identical stamp commit (it is corpus-neutral — no committed source uses an over-width step, so goldens/examples are unchanged; the program itself compiles-and-hangs today). Register the extended `E10061` + its comment in `packages/core/.../diagnostic-codes.ts`, **and add the narrowing note to `codeops/00-spec-errata.md`** (a real task, not implicit — PF-051; per AR-P10/PF-036)
 - [ ] 1.2.4 Emit the gated wrap exit in `incr`: a **fresh single-use reload** of the counter, `brcmp` against a type/step **immediate** — asc `lt(next, imm(typeMin+step))`, desc `gt(next, imm(typeMax−step))` (the ascending immediate carries `typeMin` for signed correctness — PF-032; unsigned `typeMin=0`); drop the `:717-726` ICE guard — `lower.ts` (`lowerFor`, new `wrapExitBranch`), AR-P3
 - [ ] 1.2.5 **`translate.ts`-seam verification (AR-P3):** prove the emitted `brcmp lt/gt(next, imm)` lowers cleanly at byte **and** word width (no `foldStoreHome`/`bindA` ICE) — no translator change expected, but the it.1 CRITICAL was invisible at IL level, so this is an explicit gate
 - [ ] 1.2.6 **X-08 red-perturbation GATE (before retirement):** retighten X-08's signature to the wrap form, watch it go **red** against the fixed output; update X-08's stale carry note **and refresh `codeops/00-spec-errata.md` E-08** from the rejected carry design to the `brcmp` form (PF-023) — `expressiveness-ledger.json`
@@ -133,7 +133,7 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 > **Phase ref**: _(recorded by exec_plan at phase start)_
 > **Lenses**: api-surface, correctness (frame allocation must stay positional)
-> **Spec**: [03-03](03-03-frame-slot.md) · **ST**: ST-25…ST-32, ST-30b · **AR**: RD AR-3/AR-6/AR-9, AR-P4 · **Packages**: frontend, **core** (`Symbol`, `E10062`)
+> **Spec**: [03-03](03-03-frame-slot.md) · **ST**: ST-25…ST-32, ST-30b, ST-30c · **AR**: RD AR-3/AR-6/AR-9, AR-P4 · **Packages**: frontend, **core** (`Symbol`, `E10062`)
 
 ### Step 3.1: Specification tests (+ R8 fixture audit, pre-wiring)
 

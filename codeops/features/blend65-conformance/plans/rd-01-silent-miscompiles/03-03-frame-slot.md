@@ -122,4 +122,7 @@ positional running sum over the (now correctly-sized) slots; later slots shift b
   **extent** lives here, not in the frontend ST-31 above): the pop-2 word/byte sibling store writes
   no byte outside its slot, **and** the pop-3 `pokew($D000, t)` in the `word` arm lowers
   `LDA t / LDX t+1 / STA $D000 / STX $D000+1`, not the truncated one-byte load — a value assertion,
-  since an address-only oracle passes the truncation case while still wrong (AC-9, ST-32).
+  since an address-only oracle passes the truncation case while still wrong (AC-9, ST-32). **Plus the
+  sibling for-counter width oracle** (ST-30c, PF-037): the byte loop's counter compare/step emit at
+  byte width and the word loop's at word width — proving the `:701` per-declaration fix that the
+  frontend tier (ST-30b) cannot observe.

@@ -24,7 +24,7 @@ prose.
 | **`packages/compiler/src/api/run-frontend.ts`** | `:185` `modelToFunctionInfo`, bagless | thread the `DiagnosticBag` for the M-04 emission seam (PF-030) |
 | `packages/frontend/src/sfa/frame-computation.ts` | one `FrameSlot` per name, `:52-66`; **never sees a collision** (already collapsed upstream) | assigns offsets over the correctly-sized slots — **not** the sizing site (PF-002) |
 | `packages/test-harness/test/golden/expressiveness-ledger.json` | X-07/X-08 defect pins | Retire both in P1; update X-08's stale carry-exit note (AR-P8) |
-| `codeops/00-spec-errata.md` | E-08 still prescribes the **rejected** carry mechanism; no W10182 entry | refresh E-08 to the `brcmp` form; add the W10182 minted-code entry (PF-023) |
+| `codeops/00-spec-errata.md` | E-08 still prescribes the **rejected** carry mechanism; no W10182 entry; no E10061-narrowing note | refresh E-08 to the `brcmp` form; add the W10182 minted-code entry (PF-023); add the E10061 step-range-narrowing note (AR-P10/PF-051) |
 | `packages/test-harness/test/golden/slice8b.asm.golden` | pins the hang-shaped `LDA last / CMP i / BCC` exit `:79-82` | Re-golden to the wrap-safe idiom (AR-10); source `examples/slice8b/` stays frozen (R8/PF-029) |
 
 ### Code Analysis — the load-bearing facts

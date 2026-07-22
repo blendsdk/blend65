@@ -1,6 +1,6 @@
 # Preflight Report: RD-01 Silent Miscompiles (plan)
 
-> **Status**: 🔧 ITERATION 2 REVISION APPLIED — it.1 (31) + it.2 (16) findings resolved (2026-07-22); awaiting preflight iteration 3
+> **Status**: ✅ PREFLIGHT PASSED at iteration 3 — it.1 (31) + it.2 (16) + it.3 (7) findings all resolved (2026-07-22). Mechanism + math independently verified clean; 0 critical / 0 major at it.3.
 > **Iteration 1 resolution**: full revision; PF-001 Option A (reconstruction-immediate). AR-P3 reopened; AR-P9 added. 31 findings applied. 49→52 tasks.
 > **Iteration 2 resolution**: the it.1 revision's reconstruction-immediate **translated** (verified by 2 clusters) but its **ascending immediate was wrong for signed counters** — found by 3 clusters + lead-derived. Corrected to `next < typeMin + step` (PF-032). Task 1.2 step-check moved to P1-b (PF-033); ST-14 made direction-tolerant (PF-034); 13 minors applied; AR-P10 added. Register 9→10 items.
 > **Iteration**: 2 (re-scan of the it.1 revision)
@@ -50,6 +50,30 @@ corpus scan found **no example reuses a local name**, so ST-38 byte-identity hol
 test cells, not a redesign — the architecture survived audit) and two MAJORs (a task-move and an
 oracle reword). The trend is convergent: it.1 = 1C+13M+17m; it.2 = 1C+2M+13m, and the it.2 CRITICAL
 is a single formula term. Awaiting preflight iteration 3.
+
+---
+
+## Iteration 3 — focused re-scan (verify it.2 fixes + the twice-bitten seam) — ✅ PASSED
+
+> **Previous iterations**: PF-001…PF-047 — all resolved and verified.
+> **This iteration**: 7 new findings (PF-048…PF-054) — **0 CRITICAL, 0 MAJOR, 7 MINOR** — all resolved.
+> **Scan**: 3 focused Fable clusters — A (mechanism/translator), B (exhaustive math), C (soundness/fit) + lead.
+
+### Why it.3 was focused, and what it proved
+
+A CRITICAL had hidden in the wrap-exit math seam **twice** (it.1 IL-vs-translator, it.2 unsigned-vs-signed), and a revision can introduce new defects, so it.3 aimed three clusters at exactly that seam plus fix-verification:
+
+- **Cluster A (mechanism)** hand-simulated the corrected `brcmp lt/gt(next2, imm)` through the real translator at **byte/sbyte/word/sword × asc/desc**: the word/sword signed framing (`wordSignedOrdered`, N⊕V correction) emits correctly; the fresh single-use reload folds without re-creating the PF-001 word ICE; `imm(typeMin+step)` is representable at every type; and **no IL/peephole pass can collapse the reload back** (optimizer = `remove-unreachable-blocks` + `thread-jumps`; peephole rule-set empty). Verdict: mechanism clean.
+- **Cluster B (math)** gave a general proof (`next < typeMin+step` / `next > typeMax−step` separate wrapped from non-wrapped exactly, no overlap/gap, for every `s ∈ [1, typeMax]`) and instantiated all 8 axis×direction cells incl. `step = typeMax`; verified guard-before-`cond` ordering, the wrap-safe gating predicate, the E10061 cutoff, all 8 ST-16C counts, even `until` (parser-rejected) and `continue` routing. Verdict: math verified exact.
+- **Cluster C (soundness)** verified all 12 it.2 doc/test/task fixes landed, recounted 52 tasks / 10 AR-P#, and confirmed P1-a is behaviour-neutral *in code* (`ctx.engine.evalExpr` emits no new diagnostic).
+
+### it.3 findings (7 MINOR, all applied)
+
+PF-048 (ST-30c cited PF-035 → PF-037) · PF-049 (ST-5c/ST-30c added to the P1/P3 phase-header rosters + 03-03 Testing) · PF-050 (03-01 case table's stale ST-7 "never at 0" → init visit unaffected) · PF-051 (E10061 errata note made an explicit task in 1.2.3 + 02's errata row) · PF-052 (ST-13 names the compared operand `next2`, the fresh reload, not the add-dest) · PF-053 ("Why immediate" rationale generalized off the unsigned-only form) · PF-054 (AR-P10 records the signed-band cap's type-representability ground, not only the masking ground).
+
+### Verdict (it.3)
+
+✅ **PREFLIGHT PASSED.** Across three iterations the plan converged 1C+13M+17m → 1C+2M+13m → **0C+0M+7m**; the wrap-exit mechanism and its arithmetic — where a CRITICAL hid twice — are now independently proven correct at the translator level and by exhaustive per-axis derivation. All 54 findings resolved. The plan is ready for exec_plan.
 > **Artifact**: implementation plan at `codeops/features/blend65-conformance/plans/rd-01-silent-miscompiles/`
 > **Codebase Grounded**: ~20 source files examined; all 13 plan code-claims re-verified; CRITICAL + 2 new majors lead-verified firsthand
 > **Last Updated**: 2026-07-22

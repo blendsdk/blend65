@@ -147,8 +147,18 @@ one axis further out (unsigned→signed), introduced by the it.1 revision itself
 plus a P1-a/P1-b task-move (PF-033), a direction-tolerant ST-14 (PF-034), and 13 minors; AR-P10 added.
 Trend convergent (it.1 1C+13M+17m → it.2 1C+2M+13m, the CRITICAL now a single formula term).
 
-**Next: preflight iteration 3** (or accept-and-proceed — user's call given the it.2 CRITICAL is
-4-way confirmed and the residue is minor). **D-02 and D-03 remain open** — neither gates P1.
+**Preflight iteration 3 ✅ PASSED (2026-07-22)** — a focused re-scan (3 clusters aimed at the
+twice-bitten wrap-exit seam + fix-verification) found **0 critical, 0 major, 7 minor** doc residues,
+all applied. Cluster A hand-simulated the corrected `brcmp(next2, imm)` through the real translator
+(word/sword signed framing, the fresh-reload fold, no optimizer pass that defeats it) → mechanism
+clean; cluster B gave a general proof + all 8 axis×direction cells (incl. `step = typeMax`) → math
+exact; cluster C reverified every it.2 fix + counts. Three-iteration convergence
+**1C+13M+17m → 1C+2M+13m → 0C+0M+7m**; the mechanism where a CRITICAL hid twice is now
+independently proven correct. RD-01 plan is **🔬 Plan Preflighted**.
+
+**Next: `exec_plan` for RD-01** (per-RD workflow: `make_plan → preflight (plan) ✅ → exec_plan`).
+Standing brief: do **not** start implementation without the user's go-ahead. **D-02 and D-03 remain
+open** — neither gates P1.
 
 ---
 
@@ -356,7 +366,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔧 Plan preflight it.2 revision applied** (2026-07-22) — it.1 (1C+13M+17m) + it.2 (1C+2M+13m) resolved. it.2 CRITICAL PF-032 (3 clusters + lead): AR-P3's ascending immediate `next<step` wrong for signed → corrected to `next<typeMin+step`. Converging; 52 tasks, 10 AR-P#. Awaiting preflight it.3 | 📋 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight ✅](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔬 Plan Preflighted — it.3 ✅ PASSED** (2026-07-22). Converged 1C+13M+17m → 1C+2M+13m → **0C+0M+7m** across 3 iterations (5+4+3 Fable clusters). The wrap-exit mechanism + math (where a CRITICAL hid twice) independently verified clean at the translator level and by exhaustive per-axis derivation. 54 findings resolved; 52 tasks, 10 AR-P#. Ready for `exec_plan` | 🔬 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |
