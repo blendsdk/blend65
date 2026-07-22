@@ -133,7 +133,13 @@ the RD-budgeted +1 cost. Twelve further majors (M-03 sizing seam mis-scoped; cor
 blindness; two new silent-miscompile axes — `step ≥ 2^width`, sibling for-counters; a cluster of
 `[CI]` oracles that pass on a broken compiler). Revision iteration owed, then re-preflight; stays 📋.
 
-**Next: revise the plan against the 31 findings (adopt PF-001 Option A), then preflight it.2.**
+**Revision applied (2026-07-22)** — all 31 findings addressed across the 8 plan docs. AR-P3
+reopened → **reconstruction-immediate** (`brcmp next` vs a type/step immediate; translatable
+today, 0 binder changes); AR-P9 added (M-04 spill-state proxy). Impact-blindness fixed
+(`@blend65/core` + `compiler` now in the inventory); M-03 reordered (retention→diagnostics→sizing
+at the real seam); two new silent axes (`step ≥ 2^width`, sibling for-counters) get
+diagnostics/tests; `[CI]`/`[local]` tier discipline reworked so no oracle passes on a broken
+compiler; R8 audits moved pre-wiring. Plan now 52 tasks. **Next: preflight iteration 2.**
 **D-02 and D-03 remain open** — neither gates P1.
 
 ---

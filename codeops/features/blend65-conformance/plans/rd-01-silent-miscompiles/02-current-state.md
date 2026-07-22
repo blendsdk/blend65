@@ -14,44 +14,56 @@ prose.
 
 | File | Purpose | Changes Needed |
 | ---- | ------- | -------------- |
-| `packages/codegen/src/il/lower.ts` | for-loop lowering; use-site width resolution | Gated `brcmp` wrap exit in the incr block (M-01); read width from per-declaration type, not the name-keyed slot (M-03 pop-3) |
-| `packages/frontend/src/semantics/type-check/statement-typing.ts` | for-stmt typing; discards `evalConst(bound)` at `:798` | Stamp the const-evaluated bound + a wrap-safe bit into the model (M-01/AR-2, AR-P5) |
-| `packages/frontend/src/semantics/intrinsic-validation.ts` | intrinsic arity + **literal-only** range check `:178-188` | Width check for non-literal `poke`/`pokew` value operands (M-02) |
-| `packages/frontend/src/semantics/type-check/expression-typing.ts` | intrinsic-call typing; value width never checked `:1608-1620` | Emit `E10154` on a wide value operand (M-02); see AR-5 accepted set |
-| `packages/frontend/src/semantics/function-collection.ts` | flat, last-wins symbol collection | Retain per-declaration types; distinguish disjoint siblings (M-03 pop-3, R5) |
-| `packages/frontend/src/sfa/frame-computation.ts` | one `FrameSlot` per name, `:52-64` | Size a name-collapsed slot to the **widest** colliding declaration (M-03 pop-2, R6) |
-| `packages/frontend/src/sfa/model-adapter.ts` | `computeIrqClassification` `:443-488`; discards witnesses `:473-481` | Thread provenance; emit `W10182` via a new address-taken predicate over the classification output (M-04) |
+| `packages/codegen/src/il/lower.ts` | for-loop lowering; use-site width at 6 `slotIlType` sites | Gated `brcmp` wrap exit (`next` vs immediate) in the incr block (M-01); read width from per-declaration type at `:701`,`:525`,`:1184`,`:1634` (M-03 pop-3/PF-012) |
+| `packages/frontend/src/semantics/type-check/statement-typing.ts` | for-stmt typing; `evalConst(bound)` at `:798` (no resolver); step check `:810-825` (only `≥1`) | Stamp wrap-safe via the **resolver-backed** engine (PF-010); range-check the folded step (PF-009) |
+| `packages/frontend/src/semantics/type-check/expression-typing.ts` | intrinsic-call typing; poke value width never checked `:1608-1620` | Emit `E10154`/`E10152` on a wide/kind-mismatched value (M-02) — the **only** viable seam (PF-028) |
+| `packages/frontend/src/semantics/intrinsic-validation.ts` | intrinsic arity + **literal-only** range check `:178-188`; runs **before** typing (no type access) | unchanged for the width check (PF-028 rules it out); literal-range stays |
+| `packages/frontend/src/semantics/function-collection.ts` | flat, last-wins symbol collection (`:326`) — the **actual** collapse site | Retain per-declaration types; distinguish disjoint siblings (M-03, R5) |
+| `packages/frontend/src/sfa/model-adapter.ts` | projects `scope.symbols.values()` → `FunctionInfo.locals` `:429-441`; `computeIrqClassification` `:443-488`, discards witnesses `:473-481` | Widest-slot projection where widths still exist (M-03/PF-002); thread provenance + `W10182` (M-04) |
+| **`packages/core/src/semantics/{semantic-model,symbol}.ts`, `diagnostics/diagnostic-codes.ts`** | `SemanticModel` (whole-program maps only), `Symbol`, the code registry | Wrap-safe node-keyed map + `createEmptyModel` mirror; per-declaration `Symbol` types; register `E10062`/`W10182` (impact missed first draft — PF-003) |
+| **`packages/compiler/src/api/run-frontend.ts`** | `:185` `modelToFunctionInfo`, bagless | thread the `DiagnosticBag` for the M-04 emission seam (PF-030) |
+| `packages/frontend/src/sfa/frame-computation.ts` | one `FrameSlot` per name, `:52-66`; **never sees a collision** (already collapsed upstream) | assigns offsets over the correctly-sized slots — **not** the sizing site (PF-002) |
 | `packages/test-harness/test/golden/expressiveness-ledger.json` | X-07/X-08 defect pins | Retire both in P1; update X-08's stale carry-exit note (AR-P8) |
-| `examples/slice8b/` | the one runtime-bound corpus loop | Re-golden the `copyBytes` exit to the wrap-safe idiom (AR-10) |
+| `codeops/00-spec-errata.md` | E-08 still prescribes the **rejected** carry mechanism; no W10182 entry | refresh E-08 to the `brcmp` form; add the W10182 minted-code entry (PF-023) |
+| `packages/test-harness/test/golden/slice8b.asm.golden` | pins the hang-shaped `LDA last / CMP i / BCC` exit `:79-82` | Re-golden to the wrap-safe idiom (AR-10); source `examples/slice8b/` stays frozen (R8/PF-029) |
 
 ### Code Analysis — the load-bearing facts
 
 **M-01.** `lowerFor` (`lower.ts:700-742`) builds the classic `cond → body → incr → cond` CFG.
 `cond` terminates on `branchOnCounter` (`:841-861`) — already a **type-stamped `brcmp`** (`le`
-for `to`, `ge` for `downto`), so the RD's claimed IL form exists. `incr` runs `incrementCounter`
-(`:864-883`): it loads `current` (`:872`), computes `next = current ± step` (`:875-882`), stores
-`next`, then the block unconditionally `br(condL)` (`:739`). **Both `current` and `next` are live
-temps in that block at terminator time** — this is why AR-P3 needs no scratch copy. The full-range
-ICE guard at `:717-726` inspects only `NumericLitExpr` (`ilTypeMax` compare), which is exactly why
-the named-const spelling M-01b slips past it. `constStep` (`:891-896`) folds only `NumericLitExpr`.
+for `to`, `ge` for `downto`). `incr` runs `incrementCounter` (`:864-883`): it loads `current`
+(`:872`), computes `next = current ± step` (`:875-882`), stores `next`, then the block
+unconditionally `br(condL)` (`:739`). `current`/`next` are live temps at the **IL** level — but
+NOT at the translator level, where liveness is A-residency + a memory home. **This is the it.1
+CRITICAL (PF-001):** an added `brcmp(next, current)` makes both temps multi-use, which
+`translate.ts` cannot honour — the 16-bit `add` requires a single-use store-folded dest
+(`foldStoreHome:1134` → ICE at `:760`) and the byte `add` rebinds A to `next` with no spill of
+`current` (`:754`). So the wrap test is reconstructed from `next` alone against an immediate
+(AR-P3, revised). The full-range ICE guard at `:717-726` inspects only `NumericLitExpr`, which is
+why named-const M-01b slips past it. `constStep` (`:891-896`) folds only `NumericLitExpr`; the step
+site (`:810-825`) checks only `step ≥ 1` — a `step ≥ 2^width` is unguarded (PF-009).
 
-**M-01 / AR-2.** `statement-typing.ts:798` already calls `evalConst(stmt.bound)`, but only to run
-the E10064 range check (`:799-808`); the value is discarded and lowering re-derives the AST. The
-wrap-safe stamp (AR-P5) rides this existing evaluation.
+**M-01 / AR-2.** `statement-typing.ts:798` calls `evalConst(stmt.bound)` with **no resolver**, so
+for a named-const/const-ref bound it returns `nonConst` (`const-eval.ts:187`) — the E10064 check is
+skipped and the value is discarded. The wrap-safe stamp must therefore use the **resolver-backed**
+engine (`ctx.engine.evalExpr`, as `expression-typing.ts:1601` does), not this bare call, or every
+named-const interior loop is wrongly marked wrap-unsafe and guarded (PF-010).
 
 **M-02.** Poke value typing (`expression-typing.ts:1608-1620`) returns `void` without inspecting
 the value operand's width. The only range check (`intrinsic-validation.ts:178-188`) fires solely
 when `arg.kind === "NumericLitExpr"`; a `word` variable, expression, `peekw` result, or named
 `word` constant passes unchecked and codegen emits the two-byte store.
 
-**M-03.** `frame-computation.ts:52-64` pushes one `FrameSlot {name, kind, type, size, offset}` per
-local; a name collision keeps the last. `slotIlType` (`lower.ts:2822-2825`) resolves width by
-`slots.find(s => s.name === varName)` — **name-keyed, last-wins**. Every variable read
-(`lower.ts:1184`) and store (`:525`, `:1634`) picks width this way, so a wider sibling's read
-truncates (pop-3) and a wider sibling's store overruns (pop-2). The symbol table itself is flat:
-`function-collection.ts` harvests case/if/for locals into one function scope and
-`bodyScope.symbols.set(name, sym)` keeps last-wins — so per-declaration types do not survive to
-the use site today.
+**M-03.** The name-collapse is **upstream** of frame computation (PF-002): `function-collection.ts`
+harvests case/if/for locals flat into one function scope and `bodyScope.symbols.set(name, sym)`
+(`:326`) keeps last-wins; `model-adapter.ts:429-441` then projects `scope.symbols.values()` into
+`FunctionInfo.locals` (one entry per name), and `frame-computation.ts:52-66` pushes one slot each
+with **no collision logic** — it never sees more than one width per name. So widest-sizing must
+consume the retained widths at the projection seam, **not** `frame-computation`. At use sites,
+`slotIlType` (`lower.ts:2822-2825`) resolves width by name — reads (`:1184`), stores (`:525`,
+`:1634`), and the **for-counter** (`:701`, missed in the first draft — PF-012) all pick the
+last-wins width, so a wider sibling's read truncates (pop-3) and a wider sibling's store overruns
+(pop-2). Per-declaration types do not survive to any use site today.
 
 **M-04.** `computeIrqClassification` (`model-adapter.ts:443-488`) computes `irqReachable` and
 `irqOnly` and returns membership sets; the full mainline closure and the identity of which handler
@@ -64,12 +76,11 @@ AR-8's address-taken filter relies on.
 Each gap maps 1:1 to an RD defect (M-01…M-04) and is fully specified in the RD; not restated here.
 The **plan-relevant** delta from current state:
 
-- **Gap M-01:** incr block exits unconditionally → needs a gated `brcmp lt/gt(next, current)`.
-- **Gap M-01/AR-2:** stamped bound absent → lowering re-derives, can't gate emission → needs the frontend stamp.
-- **Gap M-02:** value width unchecked → needs `E10154` on non-literal wide operands.
-- **Gap M-03 pop-2/3:** name-keyed last-wins slot → needs widest-sizing + per-declaration read width.
-- **Gap M-03 R5:** nested reuse/shadow undiagnosed → needs E10062/E10101/E10003 (E10062 unregistered).
-- **Gap M-04:** witnesses discarded, no emission seam → needs provenance threading + `W10182`.
+- **Gap M-01:** incr block exits unconditionally → needs a gated `brcmp next` vs a type/step immediate (AR-P3 revised), plus a resolver-backed wrap-safe stamp and a step range-check.
+- **Gap M-02:** value width/kind unchecked → needs `E10154`/`E10152` in `expression-typing` (the only viable seam).
+- **Gap M-03 pop-2/3:** upstream last-wins collapse → needs per-declaration retention (core `Symbol`) + widest projection + per-use width at all local consumers incl. `:701`.
+- **Gap M-03 R5:** nested reuse/shadow undiagnosed → needs E10062/E10101/E10003 (E10062 unregistered — a core edit).
+- **Gap M-04:** witnesses discarded, no emission seam → needs provenance threading + the compiler-package `DiagnosticBag` seam + `W10182`.
 
 ## Dependencies
 
@@ -89,8 +100,9 @@ The **plan-relevant** delta from current state:
 
 | Risk | Likelihood | Impact | Mitigation |
 | ---- | ---------- | ------ | ---------- |
+| Wrap `brcmp` reads a value with no translator home → ICE / stale-reload silent hang (the it.1 CRITICAL) | — (found) | High | AR-P3 reconstruction-immediate: `brcmp next` vs an immediate, `next` single-use — no cross-op liveness; a `translate.ts`-seam verification task proves it at both widths |
 | Retained bound compare leaves `downto 0` emitting `CMP #$00 / BCC`, so X-08 stays green and AC-14's forcing function is void | Med | High | P1 perturbs X-08 against the chosen idiom, retightens the signature to the wrap form (RD Notes; AR-P8) |
-| Unconditional wrap-guard emission regenerates slice4a/slice7 and fails AC-12 byte-identity | Med | High | Emission gated on the frontend wrap-safe bit (AR-P5); slice4a/slice7 byte-identity pinned as positive proof (AC-12) |
-| A spec test is green before the fix for the wrong reason (harness-bounded loop, golden that never exercised the shape) | High | High | AC-15: perturb every new assertion once, watch it fail, restore (per-phase oracle discipline) |
-| M-03 pop-3 "fixed properly" via scope-qualified slots → re-homes slots, manufacturing the M-03 defect class | Med | High | AR-3/AR-P4: per-use type resolution only; allocation stays positional; frame-computation change is width-only |
-| M-04 provenance threading grows a new adapter seam taking a `DiagnosticBag` | Low | Med | Confined to a separate address-taken predicate over the classification output; the classification BFS (pinned by ST-17/18/19) stays untouched (AR-8) |
+| Unconditional / mis-stamped wrap-guard emission regenerates provably-interior loops (incl. named-const bounds) → AC-12 byte-identity fails / meet-or-beat regression | Med | High | Emission gated on the **resolver-backed** wrap-safe bit (AR-P5/PF-010); slice4a/slice7 + a named-const interior loop pinned as no-guard proof (AC-12, ST-9/ST-9b) |
+| A spec test is green before the fix for the wrong reason (harness-bounded loop, `[CI]` row asserting behaviour it can't see, golden never exercising the shape) | High | High | Tier discipline (`[CI]`=shape, `[local]`=behaviour); AC-15 perturbs every new assertion incl. goldens (PF-005/PF-007/PF-024) |
+| M-03 pop-3 "fixed properly" via scope-qualified slots → re-homes slots, manufacturing the M-03 defect class | Med | High | AR-3/AR-P4: per-use type resolution only; allocation stays positional; sizing is a width rule at the retention seam |
+| M-04 provenance threading grows a new adapter seam taking a `DiagnosticBag` (in `packages/compiler`) | Low | Med | Confined to a separate address-taken predicate over the classification output; the classification BFS (pinned by `irq-interference.spec.test.ts:71-118`) stays untouched (AR-8) |

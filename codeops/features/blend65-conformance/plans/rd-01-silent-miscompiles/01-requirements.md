@@ -38,12 +38,13 @@ Only decisions **not** already in the RD. Full context in the register.
 | -------- | ------ | ------ |
 | Phase decomposition | 5 phases, M-01 first, dedicated closeout | AR-P1 |
 | Verify cadence | targeted during tasks; full root verify at phase close | AR-P2 |
-| Wrap-check pre-step value preservation | reuse the already-live in-block `current` temp | AR-P3 |
-| M-03 pop-3 per-declaration-type mechanism | per-use type resolution; allocation stays positional | AR-P4 |
-| Emission-gating predicate location/shape | frontend-stamped wrap-safe bit; guard only when absent | AR-P5 |
+| Wrap-check form (⚠ reopened at preflight it.1) | reconstruction-immediate `brcmp next` vs type/step immediate — translatable today | AR-P3 |
+| M-03 pop-3 per-declaration-type mechanism | per-use type resolution; allocation stays positional; sizing at the retention seam | AR-P4 |
+| Emission-gating predicate location/shape | frontend-stamped wrap-safe bit (resolver-backed eval); guard only when absent | AR-P5 |
 | Diagnostic message text | drafted in the 03 docs following registry phrasing | AR-P6 |
 | Component-doc / spec-test file layout | one 03-doc per surface | AR-P7 |
 | Mechanical re-golden placement | forcing phase (P1), not P5 | AR-P8 |
+| M-04 spill-state proxy (added at preflight it.1) | no params/locals AND a syntactically spill-free body | AR-P9 |
 
 ## Acceptance Criteria
 

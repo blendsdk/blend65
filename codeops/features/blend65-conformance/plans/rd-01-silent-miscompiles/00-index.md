@@ -18,9 +18,11 @@ code means what the source says.
 
 This plan implements the RD across five phases — the loop-exit mechanism (M-01) first because its
 instances are one mechanism, then the three independent codegen surfaces (M-02, M-03, M-04) in any
-order, then a closeout that discharges the ledger, the scoreboard, and the deferral-expiry gate.
-Every design decision is already fixed by the RD's AR-1…AR-10; this plan adds only the six
-plan-level `AR-P#` decisions in the register and the phase/test structure.
+order, then a closeout that discharges the ledger *retirement* (the retirement itself lands in P1),
+the scoreboard, and the deferral-expiry gate. Every design decision is already fixed by the RD's
+AR-1…AR-10; this plan adds nine plan-level `AR-P#` decisions in the register (two user forks + seven
+grounded) and the phase/test structure. Preflight iteration 1 reopened AR-P3 (its no-scratch wrap
+shape could not translate) and added AR-P9 (the AR-8 spill-state proxy).
 
 ## Document Index
 
@@ -29,7 +31,7 @@ plan-level `AR-P#` decisions in the register and the phase/test structure.
 | AR  | [Ambiguity Register](00-ambiguity-register.md) | Plan-level Zero-Ambiguity decisions (AR-P#) |
 | 00  | [Index](00-index.md)                           | This document — overview and navigation     |
 | 01  | [Requirements](01-requirements.md)             | Delta view over RD-01 (the owning doc)      |
-| 02  | [Current State](02-current-state.md)           | The six touch-points, grounded at HEAD      |
+| 02  | [Current State](02-current-state.md)           | The touched sites (frontend/codegen/core), grounded at HEAD |
 | 03-01 | [Loop exit (M-01)](03-01-loop-exit.md)       | Gated `brcmp` wrap exit + bound stamp       |
 | 03-02 | [Poke width (M-02)](03-02-poke-width.md)     | `E10154` value-width diagnostic             |
 | 03-03 | [Frame slot (M-03)](03-03-frame-slot.md)     | Widest-slot sizing + per-declaration types  |
@@ -54,18 +56,20 @@ else   { let t: byte = 7; }
 | -------- | ------- | --- |
 | Phase decomposition | 5 phases, M-01 first, dedicated closeout | AR-P1 |
 | Verify cadence | targeted during tasks, full root verify at phase close | AR-P2 |
-| Wrap-check pre-step value | reuse already-live in-block `current` temp; no scratch | AR-P3 |
-| M-03 pop-3 mechanism | per-use type resolution; positional allocation untouched | AR-P4 |
-| Emission gating | frontend-stamped wrap-safe bit; guard emitted only when absent | AR-P5 |
+| Wrap-check form | `brcmp` of post-step counter vs a type/step **immediate** (asc `next<step`; desc `next>typeMax−step`) — reconstruction, translatable today (reopened it.1) | AR-P3 |
+| M-03 pop-3 mechanism | per-use type resolution; positional allocation untouched; sizing at the retention seam, not `frame-computation` | AR-P4 |
+| Emission gating | frontend-stamped wrap-safe bit (resolver-backed eval); guard emitted only when absent | AR-P5 |
 | Re-golden placement | mechanical re-goldens land in their forcing phase (P1); P5 is discharge-only | AR-P8 |
+| M-04 spill-state proxy | warn unless no params/locals AND a syntactically spill-free body (spill is codegen-time, invisible at the seam) | AR-P9 |
 
 ## Related Files
 
-- `packages/codegen/src/il/lower.ts` — loop lowering (M-01), use-site width (M-03 read)
-- `packages/frontend/src/semantics/type-check/statement-typing.ts` — bound stamp (M-01/AR-2)
-- `packages/frontend/src/semantics/type-check/expression-typing.ts` + `intrinsic-validation.ts` — poke width (M-02)
+- `packages/codegen/src/il/lower.ts` — loop lowering (M-01), per-declaration use-site width (M-03: `:701`,`:525`,`:1184`,`:1634`)
+- `packages/frontend/src/semantics/type-check/statement-typing.ts` — bound stamp + step range-check (M-01/AR-2)
+- `packages/frontend/src/semantics/type-check/expression-typing.ts` — poke value width (M-02, the viable seam)
 - `packages/frontend/src/semantics/function-collection.ts` — per-declaration types (M-03)
-- `packages/frontend/src/sfa/frame-computation.ts` — widest-slot sizing (M-03)
-- `packages/frontend/src/sfa/model-adapter.ts` — IRQ/mainline provenance (M-04)
-- `examples/slice8b/` — the one re-goldened corpus loop (AR-10)
+- `packages/frontend/src/sfa/model-adapter.ts` — widest-slot projection (M-03) + IRQ/mainline provenance (M-04)
+- **`packages/core/src/semantics/{semantic-model,symbol}.ts` + `diagnostics/diagnostic-codes.ts`** — the wrap-safe model map, per-declaration `Symbol` types, and `E10062`/`W10182` registration (impact missed in the first draft — PF-003)
+- **`packages/compiler/src/api/run-frontend.ts`** — the M-04 emission-seam caller (`modelToFunctionInfo`)
+- `packages/test-harness/test/golden/slice8b.asm.golden` — the one re-goldened corpus loop (AR-10); source `examples/slice8b/` stays frozen (R8)
 - `packages/test-harness/test/golden/expressiveness-ledger.json` — X-07/X-08 retirement

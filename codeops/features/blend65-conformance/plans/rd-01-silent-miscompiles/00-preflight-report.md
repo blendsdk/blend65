@@ -1,6 +1,7 @@
 # Preflight Report: RD-01 Silent Miscompiles (plan)
 
-> **Status**: ❌ BLOCKED — 1 critical + 13 major unresolved (+ 17 minor)
+> **Status**: 🔧 REVISION APPLIED — all 31 findings resolved in the plan docs (2026-07-22); awaiting preflight iteration 2
+> **Resolution**: User chose "full revision now" and adopted **PF-001 Option A** (reconstruction-immediate). AR-P3 reopened → Option A; AR-P9 added (PF-013 spill proxy). All 13 majors and 17 minors applied per each finding's recommendation. Task count 49→52; register 8→9 items. Re-preflight pending.
 > **Iteration**: 1 (first plan scan)
 > **Artifact**: implementation plan at `codeops/features/blend65-conformance/plans/rd-01-silent-miscompiles/`
 > **Codebase Grounded**: ~20 source files examined; all 13 plan code-claims re-verified; CRITICAL + 2 new majors lead-verified firsthand
