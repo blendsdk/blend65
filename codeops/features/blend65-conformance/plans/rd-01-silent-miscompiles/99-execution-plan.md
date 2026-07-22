@@ -131,7 +131,7 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 ## Phase 3: M-03 — widest-slot sizing + per-declaration types
 
-> **Phase ref**: _(recorded by exec_plan at phase start)_
+> **Phase ref**: 8146272
 > **Lenses**: api-surface, correctness (frame allocation must stay positional)
 > **Spec**: [03-03](03-03-frame-slot.md) · **ST**: ST-25…ST-32, ST-30b, ST-30c · **AR**: RD AR-3/AR-6/AR-9, AR-P4 · **Packages**: frontend, **core** (`Symbol`, `E10062`)
 

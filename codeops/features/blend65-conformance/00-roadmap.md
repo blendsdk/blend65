@@ -156,9 +156,22 @@ exact; cluster C reverified every it.2 fix + counts. Three-iteration convergence
 **1C+13M+17m → 1C+2M+13m → 0C+0M+7m**; the mechanism where a CRITICAL hid twice is now
 independently proven correct. RD-01 plan is **🔬 Plan Preflighted**.
 
-**`exec_plan` for RD-01 STARTED (2026-07-22, from `b8c91cf`).** Auto-commit-only mode (Prime
-Directive #1: commit at green checkpoints, never push). Phase 1 (M-01 gated wrap exit) in progress,
-spec-tests-first. **D-02 and D-03 remain open** — neither gates P1.
+**`exec_plan` for RD-01 IN PROGRESS (2026-07-22, from `b8c91cf`).** Auto-commit-only mode (Prime
+Directive #1: commit at green checkpoints, never push). **26/52 tasks (50%).**
+
+- **Phase 1 (M-01 gated wrap exit) ✅ DONE** — commits `50271a3` (P1-a stamp, byte-identical),
+  `76ebf37` (P1-b atomic fix + tests + goldens + ledger retirement X-07/X-08 + scoreboard),
+  `4ce45b2` (review polish). Proven on real VICE across every axis (exact visit counts incl. 256,
+  the signed-through-negatives 133). Beat-shortfall issue **#75** filed.
+- **Phase 2 (M-02 poke value-width) ✅ DONE** — commits `851069e` (E10154 wide / E10152 boolean),
+  `8146272` (review fix: reject struct/array/void poke — a silent clobber the reviewer caught).
+  Ledger X-12 added (named-const step, RD-04-owned).
+- **Phase 3 (M-03 widest-slot sizing + per-declaration types) — NEXT, the complex phase.** The
+  crux: Pass-3 resolves names through the flat last-wins function scope, so sibling `let t:word`/
+  `let t:byte` reads truncate; the fix needs per-use lexical type resolution (the "trap" — a
+  careless scope-qualified allocation would manufacture the very defect class this RD kills).
+
+**D-02 and D-03 remain open** — neither gates P1.
 
 ---
 
