@@ -135,9 +135,18 @@ would judge it:
   the capability matrix (`docs/game-feasibility-matrix.json` → `.html`) tracks are **(a)**
   expressible in a modern way (audience directive #3) and **(b)** ship with output at or beyond
   that bar. A capability the matrix marks feasible but whose generated code an expert would still
-  beat is a **defect, not a completed row** — reopen it. (The honest limit: a human can hand-tune
-  any *single* routine to the metal, so per-routine the bar is meet-or-beat; the strict *beat* is
-  realised at program scale, where the compiler's global view wins.)
+  beat is a **defect, not a completed row** — reopen it.
+- **Beat first; meet only as a last resort, and file the gap (NON-NEGOTIABLE).** The posture is to
+  **beat** the expert. Settle for *meeting* only when there is genuinely no way to beat it right
+  now — and when you do, **file a GitHub issue** (the "file it" of the parity clause) that spells
+  out exactly what it would take to beat after all: the missing optimization pass, IL form,
+  allocation change, or platform-library primitive, with the measured cost delta. A "meet" is never
+  a silent settle — it is a **tracked, reopenable debt with a written path to the win** (issue
+  creation for this purpose is durably authorised — do not stop to ask; never push). This bar is
+  raised deliberately: planning and implementation must be **forward-looking** — design each seam so
+  the beat stays reachable, and never settle into a shape that can only ever meet. (Per-routine an
+  expert can still hand-tune to the metal, so meeting is the honest *local* floor; the strict beat
+  is realised at program scale and by working those filed issues down.)
 - **Data lives where the hardware reads it**: placement over copying; never duplicate bytes in
   RAM; hot paths flip pointers, they don't copy.
 - **Hardware access reads as named registers**, not magic numbers; MMIO stays volatile-correct
