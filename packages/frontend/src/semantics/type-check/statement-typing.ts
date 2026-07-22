@@ -824,7 +824,55 @@ function typeFor(
     }
   }
 
+  // (5) wrap analysis for lowering. A counted loop needs a runtime wrap guard
+  // unless its bound is a known constant AND stepping once past it stays inside
+  // the counter type's range — only then is the ordinary bound compare
+  // guaranteed to fire. The bound is evaluated with the resolver-backed engine,
+  // NOT the bare `evalConst` above: a named-constant bound (`const N = 10; for
+  // (i = 0 to N)`) must fold, or a provably-interior loop would be marked unsafe
+  // and guarded unnecessarily.
+  stampWrapAnalysis(stmt, scope, range, ctx);
+
   typeBody(stmt.body, scope, returnType, ctx, loopDepth + 1);
+}
+
+/**
+ * Records the {@link ForLoopInfo} wrap analysis for a `for` loop. A loop is
+ * wrap-safe only when its bound folds to a compile-time constant and stepping
+ * once past it stays within `[range.min, range.max]` — ascending
+ * `bound + step ≤ max`, descending `bound − step ≥ min`. A runtime bound, or an
+ * unfoldable step, is never wrap-safe (the conservative, guard-emitting side).
+ */
+function stampWrapAnalysis(
+  stmt: ForStmtNode,
+  scope: Scope,
+  range: { readonly min: number; readonly max: number },
+  ctx: TypeCheckContext,
+): void {
+  const evaluated = ctx.engine?.evalExpr(stmt.bound, scope);
+  if (evaluated?.kind !== "value" || typeof evaluated.value !== "number") {
+    ctx.forLoopInfo.set(stmt, { wrapSafe: false });
+    return;
+  }
+  const evaluatedBound = evaluated.value;
+  const step = forLoopStepValue(stmt.step, scope, ctx);
+  const wrapSafe =
+    step !== null &&
+    (stmt.direction === "to"
+      ? evaluatedBound + step <= range.max
+      : evaluatedBound - step >= range.min);
+  ctx.forLoopInfo.set(stmt, { wrapSafe, evaluatedBound });
+}
+
+/** The for-loop step folded to a number (absent → 1), or `null` when not a constant. */
+function forLoopStepValue(
+  step: ExprNode | null,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): number | null {
+  if (step === null) return 1;
+  const folded = ctx.engine?.evalExpr(step, scope);
+  return folded?.kind === "value" && typeof folded.value === "number" ? folded.value : null;
 }
 
 /**

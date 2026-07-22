@@ -156,9 +156,9 @@ exact; cluster C reverified every it.2 fix + counts. Three-iteration convergence
 **1C+13M+17m → 1C+2M+13m → 0C+0M+7m**; the mechanism where a CRITICAL hid twice is now
 independently proven correct. RD-01 plan is **🔬 Plan Preflighted**.
 
-**Next: `exec_plan` for RD-01** (per-RD workflow: `make_plan → preflight (plan) ✅ → exec_plan`).
-Standing brief: do **not** start implementation without the user's go-ahead. **D-02 and D-03 remain
-open** — neither gates P1.
+**`exec_plan` for RD-01 STARTED (2026-07-22, from `b8c91cf`).** Auto-commit-only mode (Prime
+Directive #1: commit at green checkpoints, never push). Phase 1 (M-01 gated wrap exit) in progress,
+spec-tests-first. **D-02 and D-03 remain open** — neither gates P1.
 
 ---
 
@@ -366,7 +366,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight ✅](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔬 Plan Preflighted — it.3 ✅ PASSED** (2026-07-22). Converged 1C+13M+17m → 1C+2M+13m → **0C+0M+7m** across 3 iterations (5+4+3 Fable clusters). The wrap-exit mechanism + math (where a CRITICAL hid twice) independently verified clean at the translator level and by exhaustive per-axis derivation. 54 findings resolved; 52 tasks, 10 AR-P#. Ready for `exec_plan` | 🔬 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight ✅](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔄 Executing** (started 2026-07-22, from `b8c91cf`). Plan preflighted it.3 (0C+0M+7m across 3 iterations). Phase 1 (M-01 gated wrap exit) underway: spec-tests-first, two-commit P1-a→P1-b. 52 tasks, 10 AR-P# | 🔄 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-22 12:20
-> **Progress**: 0/52 tasks (0%)
+> **Last Updated**: 2026-07-22 16:56
+> **Progress**: 6/52 tasks (12%)
 > **CodeOps Skills Version**: 3.11.0
 
 ## Overview
@@ -50,7 +50,7 @@ re-goldens land in their **forcing** phase (P1), not the closeout (AR-P8).
 
 ## Phase 1: M-01 — gated `brcmp` wrap exit + bound stamp
 
-> **Phase ref**: _(recorded by exec_plan at phase start)_
+> **Phase ref**: b8c91cfee32e1dd6c0a75049d26a7b6dcae37ea8
 > **Lenses**: api-surface, correctness (codegen terminator + IL invariants)
 > **Spec**: [03-01](03-01-loop-exit.md) · **ST**: ST-1…ST-16 (incl. ST-5b/5c/6b/9b), ST-16L/16C, ST-36…ST-38 · **AR**: RD AR-1/AR-2/AR-10, AR-P3/AR-P5/AR-P8 · **Packages**: frontend, codegen, **core** (PF-003)
 
@@ -60,10 +60,10 @@ re-goldens land in their **forcing** phase (P1), not the closeout (AR-P8).
 **shape/gating only** (a CI codegen test can't observe termination); behaviour is `[local]`.
 The Step-1.1 test files are red until 1.2.6, so they ride the **P1-b** commit, not P1-a (PF-021).
 
-- [ ] 1.1.1 [spec-author] Write M-01 `[CI]` shape/gating/diag spec tests ST-1…ST-5, ST-5b, **ST-5c** (signed-ascending immediate), ST-6, ST-6b, ST-7…ST-9, ST-9b, ST-10…ST-15 — `control-flow-lowering.spec.test.ts` (codegen). ST-14 asserts **exactly one** wrap-compare operand reads the counter slot, the other the immediate — never both (direction-tolerant, PF-034); ST-5c pins the ascending immediate as `typeMin+step` (PF-032)
-- [ ] 1.1.2 [spec-author] Designate the **existing** slice4a/slice7 golden suite as ST-16's no-added-guard oracle (gated-emission proof) — a permanently-green regression pin, documented per 1.1.4, not a new test (PF-024)
-- [ ] 1.1.3 Author the `[local]` VICE termination + visit-count suite (ST-16L incl. **sword**, ST-16C incl. the **256** and **10** headline counts) — `describe.skipIf(!hasVice()||!hasAcme())`
-- [ ] 1.1.4 Run the new spec tests — verify they FAIL (red phase); document any green-by-construction (the gating no-guard pins) and why
+- [x] 1.1.1 [spec-author] Write M-01 `[CI]` shape/gating/diag spec tests ST-1…ST-5, ST-5b, **ST-5c** (signed-ascending immediate), ST-6, ST-6b, ST-7…ST-9, ST-9b, ST-10…ST-15 — `control-flow-lowering.spec.test.ts` (codegen). ST-14 asserts **exactly one** wrap-compare operand reads the counter slot, the other the immediate — never both (direction-tolerant, PF-034); ST-5c pins the ascending immediate as `typeMin+step` (PF-032) ✅ (completed: 2026-07-22 16:42) — IL rows via spec-test-author (16 red + 3 green-by-construction); ST-15 relaxation placed in the ACME-gated `[local]` tier (asm-level, R15) — see 1.1.3
+- [x] 1.1.2 [spec-author] Designate the **existing** slice4a/slice7 golden suite as ST-16's no-added-guard oracle (gated-emission proof) — a permanently-green regression pin, documented per 1.1.4, not a new test (PF-024) ✅ (completed: 2026-07-22 16:42) — the wrap-safe interior loops slice4a `1 to 10`, slice7 `0 to 4` must stay byte-identical post-fix (no guard added); their existing goldens ARE the oracle
+- [x] 1.1.3 Author the `[local]` VICE termination + visit-count suite (ST-16L incl. **sword**, ST-16C incl. the **256** and **10** headline counts) — `describe.skipIf(!hasVice()||!hasAcme())` ✅ (completed: 2026-07-22 16:42) — `loop-termination.spec.test.ts`, 12 cells across byte/word/sbyte/sword × to/downto × step × interior/zero-trip + the ACME-gated ST-15 relaxation probe
+- [x] 1.1.4 Run the new spec tests — verify they FAIL (red phase); document any green-by-construction (the gating no-guard pins) and why ✅ (completed: 2026-07-22 16:42) — [CI]: 16 red, ST-9/ST-9b/ST-10 green-by-construction (they assert ABSENCE of a guard that doesn't exist yet); ST-15 red (build ICEs today). [local] VICE cells red-by-hang (known-infinite loops) — not burned to timeout; the load-bearing proof is the post-fix green run
 
 ### Step 1.2: Implementation — two commits (AR-P8)
 
@@ -73,8 +73,8 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 **Commit P1-a — behaviour-neutral (byte-identical output AND identical accepted-program set):**
 
-- [ ] 1.2.1 Add the wrap-safe node-keyed map to `SemanticModel` (`packages/core`) + `createEmptyModel` mirror + `analyze.ts` threading; stamp `wrapSafe`/`evaluatedBound` in for-stmt typing using the **resolver-backed** `ctx.engine.evalExpr` (NOT the bare `evalConst` at `:798`, which returns `nonConst` for named consts — PF-010); nothing consumes it yet — 03-01 §Proposed-Changes-1, AR-P5, PF-003
-- [ ] 1.2.2 Verify P1-a is byte-identical: all goldens unchanged, ledger still green (defect still present), accepted-program set unchanged, only model-shape impl tests updated — the P1-a commit boundary
+- [x] 1.2.1 Add the wrap-safe node-keyed map to `SemanticModel` (`packages/core`) + `createEmptyModel` mirror + `analyze.ts` threading; stamp `wrapSafe`/`evaluatedBound` in for-stmt typing using the **resolver-backed** `ctx.engine.evalExpr` (NOT the bare `evalConst` at `:798`, which returns `nonConst` for named consts — PF-010); nothing consumes it yet — 03-01 §Proposed-Changes-1, AR-P5, PF-003 ✅ (completed: 2026-07-22 16:56) — `ForLoopInfo` on core `SemanticModel`; `stampWrapAnalysis` in `typeFor` (resolver-backed); frontend impl test `for-loop-wrap-analysis.impl.test.ts` (7) covers the stamp incl. the named-const resolver case
+- [x] 1.2.2 Verify P1-a is byte-identical: all goldens unchanged, ledger still green (defect still present), accepted-program set unchanged, only model-shape impl tests updated — the P1-a commit boundary ✅ (completed: 2026-07-22 16:56) — CI-equivalent verify green (build/typecheck/lint/test); all goldens byte-identical, expressiveness-ledger 13/13 green (defect still present), one model-shape impl test updated (`call-semantics.impl.test.ts` ctx literal)
 
 **Commit P1-b — atomic behaviour change (fix + red spec tests + forced re-goldens/retirement):**
 

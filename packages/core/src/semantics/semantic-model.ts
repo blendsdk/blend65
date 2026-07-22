@@ -23,6 +23,27 @@ import type { ConstValue } from "./const-value.js";
 import type { CallGraph } from "./call-graph.js";
 import { emptyCallGraph } from "./call-graph.js";
 
+/**
+ * The compile-time wrap analysis for one `for` loop.
+ *
+ * A counted loop whose counter would pass its bound by WRAPPING — stepping
+ * past the type's extreme rather than reaching the bound — never terminates on
+ * its own. Lowering adds a value-level wrap guard to such loops; this record is
+ * how it decides. A loop is {@link ForLoopInfo.wrapSafe} only when the bound is
+ * a compile-time constant AND stepping once past it stays inside the counter
+ * type's range, so the ordinary bound compare is guaranteed to fire.
+ */
+export interface ForLoopInfo {
+  /**
+   * `true` when the loop provably cannot wrap past its bound — a constant bound
+   * with `bound ± step` still in range — so no wrap guard is needed. A runtime
+   * bound is never wrap-safe.
+   */
+  readonly wrapSafe: boolean;
+  /** The end bound's compile-time value, when it is statically known. */
+  readonly evaluatedBound?: number;
+}
+
 /** The resolved semantic information for a whole program. */
 export interface SemanticModel {
   readonly globalScope: Scope;
@@ -30,6 +51,13 @@ export interface SemanticModel {
   readonly typeMap: ReadonlyMap<ExprNode, Type>;
   /** Resolved symbol for every name-introducing or name-referencing node. */
   readonly symbolMap: ReadonlyMap<AstNode, Symbol>;
+  /**
+   * Per-`for`-loop wrap analysis, keyed by the loop statement node. Lowering
+   * consults it to decide whether a counted loop needs a runtime wrap guard;
+   * an absent entry (or a `false` {@link ForLoopInfo.wrapSafe}) means the guard
+   * is emitted.
+   */
+  readonly forLoopInfo: ReadonlyMap<AstNode, ForLoopInfo>;
   readonly callGraph: CallGraph;
   /** Module/global initialiser execution order. */
   readonly initOrder: ReadonlyArray<Symbol>;
@@ -91,6 +119,7 @@ export function createEmptyModel(): SemanticModel {
     globalScope,
     typeMap: new Map(),
     symbolMap: new Map(),
+    forLoopInfo: new Map(),
     callGraph: emptyCallGraph(),
     initOrder: [],
     constValues: new Map(),

@@ -17,6 +17,7 @@ import type {
   ConstValue,
   DiagnosticBag,
   ExprNode,
+  ForLoopInfo,
   IntrinsicRegistry,
   Scope,
   SourceSpan,
@@ -55,6 +56,12 @@ export interface TypeCheckContext {
   readonly typeMap: Map<ExprNode, Type>;
   /** Resolved symbol for every name-introducing / name-referencing node. */
   readonly symbolMap: Map<AstNode, Symbol>;
+  /**
+   * Per-`for`-loop wrap analysis, keyed by the loop statement node. Filled as
+   * for-statements are typed and frozen into the model, so lowering can decide
+   * whether each counted loop needs a runtime wrap guard.
+   */
+  readonly forLoopInfo: Map<AstNode, ForLoopInfo>;
   /** Per-function signature cache, computed on first call-site use. */
   readonly signatures: Map<Symbol, FnSignature>;
   /** The resolved entry-point symbol (calling it directly is an error). */

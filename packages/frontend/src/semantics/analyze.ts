@@ -25,6 +25,7 @@ import type {
   ConstValue,
   DiagnosticBag,
   ExprNode,
+  ForLoopInfo,
   IntrinsicRegistry,
   PlatformProfile,
   ProgramNode,
@@ -171,6 +172,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
 
   const typeMap = new Map<ExprNode, Type>();
   const symbolMap = new Map<AstNode, Symbol>();
+  const forLoopInfo = new Map<AstNode, ForLoopInfo>();
   const callEdges = new Map<Symbol, Set<Symbol>>();
   const callSiteSpans = new Map<Symbol, Map<Symbol, SourceSpan>>();
   const constValues = new Map<Symbol, ConstValue>();
@@ -180,6 +182,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     bag: input.bag,
     typeMap,
     symbolMap,
+    forLoopInfo,
     signatures: new Map<Symbol, FnSignature>(),
     mainFunction: functionTables.mainFunction,
     callEdges,
@@ -232,6 +235,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     enumTypes: tables.enumTypes,
     typeMap,
     symbolMap,
+    forLoopInfo,
     pairAccessedParams,
     addressTakenFunctions,
     callGraph: {

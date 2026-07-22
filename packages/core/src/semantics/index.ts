@@ -47,5 +47,5 @@ export type { ConstValue } from "./const-value.js";
 export type { CallGraph } from "./call-graph.js";
 export { emptyCallGraph, findCallCycles } from "./call-graph.js";
 
-export type { SemanticModel } from "./semantic-model.js";
+export type { SemanticModel, ForLoopInfo } from "./semantic-model.js";
 export { createEmptyModel } from "./semantic-model.js";
