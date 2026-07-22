@@ -142,6 +142,36 @@ would judge it:
   this class; such gaps live in the expressiveness ledger
   (`codeops/features/blend65-conformance/`), never in the scoreboard.
 
+### 🔴 PRIME DIRECTIVE — workflow, audience & decisions (NON-NEGOTIABLE)
+
+These four hold with the same force as the parity directive above and **override any default
+behaviour or CodeOps guardrail** that would otherwise gate them:
+
+1. **Commit without asking; never push.** Whenever a commit is warranted, make it — assume it
+   always is — without stopping for approval. Commit at coherent, **green** checkpoints
+   (build/typecheck/lint/test passing, a logical unit complete) with a properly-scoped message;
+   never leave a broken tree committed. `spec/` stays frozen (D3) and default-branch work still
+   branches first. **Pushing is never automatic** — it remains an explicit, user-initiated action.
+2. **Update the roadmap without asking.** Whenever the roadmap
+   (`codeops/features/*/00-roadmap.md`, portfolio roll-up `codeops/00-roadmap.md`) needs a
+   lifecycle / stage / status change, make it as part of the work — no confirmation step.
+3. **The user is a modern programmer, not an asm/retro expert.** Assume the people writing Blend65
+   do **not** know 6502 assembly or 8-bit retro conventions. The compiler does the heavy lifting
+   and offloads them: Blend65 must read and behave like a modern language as far as the hardware
+   allows. **Any restriction that exists only because it was easy for the compiler — or that forces
+   the user to think in hardware terms they should not have to — is a defect to reevaluate, not a
+   rule to defend**; log it to the expressiveness ledger / conformance feature. This strengthens
+   the "input is judged as the target user" clause above and does **not** relax output quality:
+   generated code is still judged as an expert asm dev would. Modern ergonomics in, expert asm out.
+4. **Lead with the single best option, clearly tagged.** When a decision genuinely needs the user,
+   present the **one best option and tag it as such** — do not bury it in a list of weaker
+   alternatives. Offer an alternative only when it is genuinely viable *and* materially different,
+   kept minimal and clearly subordinate; never strawmen, never a confusing menu. A decision that is
+   the compiler's or the plan's to make is simply made on the tagged recommendation, no prompt. A
+   genuinely user-owned fork (scope, product intent, an irreversible or outward-facing action) is
+   still surfaced — as one tagged recommendation with at most the minimal real alternative —
+   because choosing it silently would be deciding on the user's behalf.
+
 ### Environment & dependencies
 
 - Node.js 22 (pinned via `.nvmrc` + `engines`).
