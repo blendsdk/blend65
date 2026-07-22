@@ -57,8 +57,56 @@ convergent findings, each raised independently by four of five clusters:
   criterion pinning that sibling reuse still compiles clean.
 
 RD revised against all of PF-001…PF-024; PF-025…PF-027 fixed in the neighbouring documents.
-**Next: preflight iteration 2, in a fresh session** — same-session bias is now demonstrated rather
-than theoretical. **D-02 and D-03 remain open** — neither gates P1.
+
+**Preflight iteration 2 (fresh session, 2026-07-22) ❌ BLOCKED — 6 critical + 6 major (PF-028…PF-049).**
+21 of 27 iteration-1 findings verified fixed; all nine defects reproduce at HEAD. The revision widened
+the defect *inventory* completely but not **AR-1**, the resolution everything leans on. Every critical
+is downstream of it:
+
+- **AR-1's carry-based exit is wrong on two axes and unbuildable at its seam.** Carry is the *unsigned*
+  wrap flag — signed wrap is V (`sbyte to 127` hangs, interior signed loops that work today break).
+  The word wrap is the high byte's carry. And it is **inexpressible**: `ILTerminator` has no flag
+  branch, `translate.ts` forbids flags crossing a block boundary, and no `INC`/`DEC` emission site
+  exists — so AR-1's stated shape cannot even emit headline defect M-01a. Iteration 1's PF-005 recurring
+  one layer deeper. Fix: terminate the incr block with `brcmp lt(next, current)` (type-dispatched, gives
+  sign handling free), retain the bound compare as a supplement.
+- **The mandated idiom would regress correct code.** `0 to 253 step 2` and `-5 to 5` run correctly today;
+  a carry-only exit overshoots / exits early. Interior and zero-trip loops miscompile under AC-4's
+  "replace the compare" reading. The trigger is *not* "bound at the extreme" — `0 to 254 step 2` hangs
+  with an interior bound.
+- **R2/AC-3 vs AR-10/AC-12 are mutually unsatisfiable**: `slice8b`'s golden pins a runtime-bound loop
+  (`0 to last`, `last = len-1`) that R2 forces to change and AC-12 forbids. Blast radius = exactly one
+  golden; resolving it also discharges AC-13's idiom pin for free.
+- **M-03 has a third population the RD misses**: sibling collision **truncates reads** of the wider
+  declaration (`pokew($D000, t)` with `t:word` colliding a `t:byte` sibling emits a one-byte store).
+
+**Revision applied (2026-07-22).** All of PF-028…PF-049 are addressed in the RD:
+
+- **AR-1 rewritten** from the rejected carry/flag exit to a **value-level `brcmp lt(next, current)`**
+  wrap check that *supplements* the retained bound compare — type-dispatched, so signed (else M-01f)
+  and word (M-01e) fall out for free; the inexpressible-at-the-seam problem (no flag terminator, no
+  `INC`/`DEC` site) is gone. Rematerialisation hazard and the +1 load/compare scoreboard row named;
+  the fused terminator filed to the asm-parity lane.
+- **R1/R2 reframed** off "bound at the extreme" onto *"the counter can pass the bound by wrapping"*
+  (interior `bound ± step` escapes included); R1 gains no-overshoot and zero-trip invariants.
+- **`slice8b` excepted** in AR-10/AC-12 (its `copyBytes` runtime-bound exit is a live latent instance;
+  re-goldened, blast radius = one golden) — which supplies AC-13's corpus pin for free.
+- **M-03 population 3** (sibling read truncation) added; AR-3 now states resolution needs
+  per-declaration types while allocation stays positional; AC-9 gains a value assertion.
+- **RD-04 now owns** the handler∩handler hazard, `until`'s wrap-class, and non-literal `step` folding
+  (previously orphaned). Oracle honesty, W10182 "clean = zero errors", AC-6's named-const spelling,
+  and the counting slips all fixed. RD is Prettier-clean.
+
+**Preflight iteration 3 ✅ PASSED (2026-07-22).** The verification pass confirmed all six iteration-2
+criticals closed and the 21 already-fixed findings intact. It grounded AR-1's rewritten mechanism
+against the real IL — `brcmp` is type-dispatched on `{width, sign}` exactly as claimed, and the
+retained bound compare is *already* a type-stamped `brcmp` — so the fix is buildable at its named seam.
+The buildability check surfaced **one new major, PF-050** (AR-1 specified when the guard *fires*, not
+when it is *emitted*; a planner emitting it on every loop would regenerate slice4a/slice7 and fail
+AC-12's byte-identical claim) — **found and fixed in-iteration**: AR-1 now gates emission on the
+provably-safe analysis, and AC-12 pins the two interior corpus loops' byte-identity as proof.
+
+**Next: `make_plan` for RD-01.** **D-02 and D-03 remain open** — neither gates P1.
 
 ---
 
@@ -171,7 +219,7 @@ ZP budget reports 46 bytes against the profile's 142; `warnFrameSize`/`warnArray
 
 | RD | Covers | Note |
 |----|--------|------|
-| RD-04 | Loops & ranges: `until`, signed `/` and `%`, `arr[i] += 1`, `hi()` of a computed word | ⚑ `0 to 255` moved to P1 |
+| RD-04 | Loops & ranges: `until`, signed `/` and `%`, `arr[i] += 1`, `hi()` of a computed word | ⚑ `0 to 255` moved to P1. **Owns three RD-01 hand-offs** (else orphaned): the handler∩handler hazard (NMI∩IRQ helper, never mainline-reached); `until`'s wrap-class membership (`0 until 255 step 2` wraps past an exclusive bound); and non-literal `step` folding (`constStep` is `NumericLitExpr`-only, ICEs on named-const/const-expr steps — loud) |
 | RD-05 | Aggregate lowering — six ICE classes | **Highest-risk step in the sequence** (see below) |
 | RD-03b | Temp-pool growth ⚑ — **behavioural**, sized by RD-05's measured spill demand | Split from P4: temp runs precede `irq-temp` in ZP order, so growing the pool shifts `__zp_irqtmp_*` and regenerates every IRQ-using golden |
 | RD-06 | Screen-code text output | Every C64 game renders text |
@@ -266,7 +314,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | — | **Preflight it.1 ❌ BLOCKED → RD revised**; needs it.2 | 🔄 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | — | **Preflight it.3 ✅ PASSED** — PF-028…PF-049 resolved + re-verified; PF-050 found in the buildability check and fixed; AR-1 mechanism grounded against the real IL. Ready for `make_plan` | 🔬 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |
