@@ -126,6 +126,18 @@ would judge it:
   would hand-write (instruction selection, cycles, bytes, ZP usage). A divergence is a defect —
   file it (GitHub issue) or fix it, never shrug it off. Goldens should read like a competent
   asm dev wrote them.
+- **Meet or beat the expert — across the whole capability matrix (NON-NEGOTIABLE).** Parity is the
+  *floor*, not the goal. The generated code must **never be worse** than what an expert would
+  hand-write for a routine (that floor is the scoreboard's 1.0 ratio), and must **beat** the
+  expert's *realistic whole-program* result — the win a compiler alone can take: global allocation,
+  exhaustive strength reduction, cross-routine layout, perfect consistency, no fatigue, no
+  hand-tuned routine left un-tuned. Steer every implementation decision so the programs and games
+  the capability matrix (`docs/game-feasibility-matrix.json` → `.html`) tracks are **(a)**
+  expressible in a modern way (audience directive #3) and **(b)** ship with output at or beyond
+  that bar. A capability the matrix marks feasible but whose generated code an expert would still
+  beat is a **defect, not a completed row** — reopen it. (The honest limit: a human can hand-tune
+  any *single* routine to the metal, so per-routine the bar is meet-or-beat; the strict *beat* is
+  realised at program scale, where the compiler's global view wins.)
 - **Data lives where the hardware reads it**: placement over copying; never duplicate bytes in
   RAM; hot paths flip pointers, they don't copy.
 - **Hardware access reads as named registers**, not magic numbers; MMIO stays volatile-correct
