@@ -96,6 +96,10 @@ describe("shared frame slot — the narrow declaration still lowers narrow", () 
         "else { let e: word; } }\n",
     );
 
+    // Anchor that the arm emitted its store at all, so the absence assertions
+    // below cannot pass by the poke simply having vanished.
+    expect(asm).toContain("STA $D020");
+    expect(asm).not.toContain("__frame_Main_main_e+1");
     expect(asm).not.toContain("STX $D020+1");
   });
 

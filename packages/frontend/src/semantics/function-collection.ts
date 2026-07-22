@@ -275,6 +275,10 @@ export function checkLocalShadowing(
       const moduleSym = moduleScope.symbols.get(sym.name);
       if (moduleSym === undefined) continue;
       if (sym.kind === "parameter") {
+        // Parameters take the broader rule the functions chapter states: a
+        // parameter may not reuse any module-level NAME. Locals take the
+        // variables chapter's narrower one, below. The asymmetry is the
+        // specification's, not an oversight here.
         bag.addError(
           DiagCode.NameShadows,
           isParameterNode(sym.decl) ? sym.decl.nameSpan : null,
@@ -287,6 +291,12 @@ export function checkLocalShadowing(
         // function. A local named after a module function, constant, struct or
         // enum is ordinary code in any modern language and cannot collapse two
         // variables onto one slot, so it is left alone.
+        //
+        // Known residual, tracked separately: because name resolution ignores
+        // position, a local also captures uses of that name that PRECEDE its
+        // own declaration — so a read of a module constant written above the
+        // local silently reads the local's slot instead of folding. Curing
+        // that needs a declared-before-use rule, not a wider shadowing net.
         bag.addError(
           DiagCode.NameShadows,
           declNameSpan(sym.decl),
