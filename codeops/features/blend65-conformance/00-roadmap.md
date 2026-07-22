@@ -157,7 +157,7 @@ exact; cluster C reverified every it.2 fix + counts. Three-iteration convergence
 independently proven correct. RD-01 plan is **🔬 Plan Preflighted**.
 
 **`exec_plan` for RD-01 IN PROGRESS (2026-07-22, from `b8c91cf`).** Auto-commit-only mode (Prime
-Directive #1: commit at green checkpoints, never push). **26/52 tasks (50%).**
+Directive #1: commit at green checkpoints, never push). **37/52 tasks (71%).**
 
 - **Phase 1 (M-01 gated wrap exit) ✅ DONE** — commits `50271a3` (P1-a stamp, byte-identical),
   `76ebf37` (P1-b atomic fix + tests + goldens + ledger retirement X-07/X-08 + scoreboard),
@@ -166,12 +166,32 @@ Directive #1: commit at green checkpoints, never push). **26/52 tasks (50%).**
 - **Phase 2 (M-02 poke value-width) ✅ DONE** — commits `851069e` (E10154 wide / E10152 boolean),
   `8146272` (review fix: reject struct/array/void poke — a silent clobber the reviewer caught).
   Ledger X-12 added (named-const step, RD-04-owned).
-- **Phase 3 (M-03 widest-slot sizing + per-declaration types) — NEXT, the complex phase.** The
-  crux: Pass-3 resolves names through the flat last-wins function scope, so sibling `let t:word`/
-  `let t:byte` reads truncate; the fix needs per-use lexical type resolution (the "trap" — a
-  careless scope-qualified allocation would manufacture the very defect class this RD kills).
+- **Phase 3 (M-03 widest-slot sizing + per-declaration types) ✅ DONE** — commits `b03e876` (the
+  fix + spec/impl tests), `6e6927a` (review fixes), `57ade8b` (re-review). Each block now gets a
+  nested scope holding its own declarations, so a use resolves to the declaration covering it;
+  the flat function scope is retained untouched, which keeps allocation positional and avoids
+  introducing block-scope lifetime. The shared slot is sized to the **widest** declaration.
+  - The trap was avoided: slot order and every golden are **byte-identical**, verified by a
+    corpus audit run *before* wiring (23 `.blend` + 187 `.ts` files, 1189 function bodies — zero
+    local-name reuse, zero shadowing) rather than assumed from a green suite.
+  - A third defect instance surfaced that the RD never enumerated: the collapse also reached the
+    **type-checker**, rejecting a well-formed program (`poke($D020,i)` in a byte loop judged
+    E10154 against the *next* loop's word counter).
+  - Review caught a 🔴 enum hole (an enum local inherited a `word` sibling's width and clobbered
+    the neighbouring MMIO register) and a 🟠 over-broad shadow rule (a local named after a module
+    *function*/const/struct/enum was newly rejected). Both fixed.
+  - Two pre-existing residuals given owners rather than left invisible: **#76** (a use after its
+    declaring block still resolves last-wins — needs block lifetime) and **#77** (a local captures
+    uses *preceding* its declaration, so a module constant reads an uninitialised slot — needs a
+    declared-before-use rule).
+- **Phase 4 (M-04 `W10182` IRQ/mainline shared-frame warning) — NEXT.**
 
 **D-02 and D-03 remain open** — neither gates P1.
+
+> **Critique-lane note:** the Phase 3 reviews ran on Opus, not Fable — the Fable usage limit was
+> reached mid-review. Reviewer and author were therefore the same model family, which is exactly
+> the independence the routing policy exists to preserve; the findings were substantive
+> (one 🔴, two 🟠), but a Fable pass over Phase 3 is worth re-running when credits allow.
 
 ---
 
