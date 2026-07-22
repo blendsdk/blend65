@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-22 17:23
-> **Progress**: 13/52 tasks (25%)
+> **Last Updated**: 2026-07-22 17:29
+> **Progress**: 16/52 tasks (31%)
 > **CodeOps Skills Version**: 3.11.0
 
 ## Overview
@@ -88,9 +88,9 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 ### Step 1.3: Implementation tests & hardening
 
 - [x] 1.3.1 Update the moved unit pins: `control-flow-lowering.impl.test.ts:62-70` (+boundary), `:72-78` ICE-flip (`:76-77`) ✅ (completed: 2026-07-22 17:23) — ICE-expectation flipped (`0 to 255` now compiles w/ `brcmp lt … 1`); added a `downto 0` boundary pin (`ge` retained + `brcmp gt … 254`)
-- [ ] 1.3.2 Record the +1 load/compare per-guarded-iteration scoreboard row **and file the beat-shortfall GitHub issue** — the guarded loop meets rather than beats the expert (whose `ADC` carry-out is the wrap flag, free); the fused increment-and-branch-on-wrap terminator is the beat path — document it with the measured cost delta (beat-first directive; issue filing durably authorised, no push)
-- [ ] 1.3.3 AC-15: perturb each new M-01 assertion once (fail observed), restore — including the **golden** perturbations: mutate one byte of the re-goldened `slice8b.asm.golden` (ST-36) **and** of an unchanged corpus golden (ST-38), observe each suite fail, restore (PF-024/PF-040)
-- [ ] 1.3.4 Full verify
+- [x] 1.3.2 Record the +1 load/compare per-guarded-iteration scoreboard row **and file the beat-shortfall GitHub issue** — the guarded loop meets rather than beats the expert (whose `ADC` carry-out is the wrap flag, free); the fused increment-and-branch-on-wrap terminator is the beat path — document it with the measured cost delta (beat-first directive; issue filing durably authorised, no push) ✅ (completed: 2026-07-22 17:23) — cost delta recorded in budgets.json + SCOREBOARD.md (slice8b +4 bytes / +6 cyc); **issue #75** filed (fused step-and-branch-on-wrap terminator OR a translate peephole recovers it), no push
+- [x] 1.3.3 AC-15: perturb each new M-01 assertion once (fail observed), restore — including the **golden** perturbations: mutate one byte of the re-goldened `slice8b.asm.golden` (ST-36) **and** of an unchanged corpus golden (ST-38), observe each suite fail, restore (PF-024/PF-040) ✅ (completed: 2026-07-22 17:23) — [CI]/[local] assertions had genuine reds (16 red→green; hang/ICE); golden perturbations: slice8b (`CMP #$01`→`#$99`) RED→restored, slice4a (`LDA #$01`→`#$7E`) RED→restored — both clean
+- [x] 1.3.4 Full verify ✅ (completed: 2026-07-22 17:29) — `yarn install --frozen-lockfile && build && typecheck && lint && test` all green (17/17 turbo tasks incl. all [local] VICE tiers; root R15 boundary 33/33)
 
 **Deliverables**: gated wrap exit (reconstruction-immediate, translator-verified); resolver-backed stamp; step range-check; full-range compiles; slice8b re-goldened; X-07/X-08 retired + E-08 refreshed; slice4a/slice7 + named-const interior byte-identical.
 

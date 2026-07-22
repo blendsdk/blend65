@@ -764,8 +764,11 @@ function typeCondition(expr: ExprNode, scope: Scope, ctx: TypeCheckContext): voi
  * (2) init + bound adapt to the counter type; (3) a const end bound outside
  * the counter's range emits E10064 (a non-const bound is allowed and simply
  * skips the check); (4) a `step`, if present, must `evalConst` to an integer
- * ≥ 1 else E10061. The body is always typed with the counter in scope and the
- * loop depth incremented.
+ * that is both ≥ 1 and ≤ the counter type's maximum, else E10061 (a step
+ * wider than the type wraps to a smaller effective step and would hang);
+ * (5) the per-loop wrap analysis (`ForLoopInfo`) is stamped for lowering. The
+ * body is always typed with the counter in scope and the loop depth
+ * incremented.
  */
 function typeFor(
   stmt: ForStmtNode,

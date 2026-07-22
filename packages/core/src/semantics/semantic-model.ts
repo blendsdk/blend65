@@ -13,7 +13,7 @@
  * The real four-pass checker, not yet implemented, will populate these.
  */
 
-import type { ExprNode, AstNode } from "../ast/index.js";
+import type { ExprNode, AstNode, ForStmtNode } from "../ast/index.js";
 import type { Type, StructType, EnumType } from "./type.js";
 import { ERROR_TYPE } from "./type.js";
 import type { Scope } from "./scope.js";
@@ -57,7 +57,7 @@ export interface SemanticModel {
    * an absent entry (or a `false` {@link ForLoopInfo.wrapSafe}) means the guard
    * is emitted.
    */
-  readonly forLoopInfo: ReadonlyMap<AstNode, ForLoopInfo>;
+  readonly forLoopInfo: ReadonlyMap<ForStmtNode, ForLoopInfo>;
   readonly callGraph: CallGraph;
   /** Module/global initialiser execution order. */
   readonly initOrder: ReadonlyArray<Symbol>;

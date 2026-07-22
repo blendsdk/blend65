@@ -89,6 +89,16 @@
       "governedBy": "none — drift",
       "owner": "blend65-conformance RD-07",
       "note": "spec/04-expressions-operators.md:70 and F017:251 promise LSR (2 cycles). Emits a runtime division call instead — roughly 75x. F017 passed its Language Guard on this cost model."
+    },
+    {
+      "id": "X-12",
+      "idiom": "Use a named constant as the loop step",
+      "source": "module Main;\nconst STRIDE: byte = 2;\nfunction main(): void {\n  for (let i: byte = 0 to 10 step STRIDE) { poke($D020, i); }\n}\n",
+      "expect": "diagnostic",
+      "code": "E10061",
+      "governedBy": "RD-01 Won't-Have — non-literal step deferred to RD-04",
+      "owner": "blend65-conformance RD-04",
+      "note": "STRIDE is a positive compile-time constant, but the for-loop step check folds with a resolver-less evalConst, so a named-constant step is rejected as 'must be a positive compile-time constant'. Prime Directive clause 3: an illogical restriction the target user would reasonably write. RD-04 (non-literal step folding) lifts it — the folded value must also reach codegen, since constStep is literal-only today."
     }
   ]
 }

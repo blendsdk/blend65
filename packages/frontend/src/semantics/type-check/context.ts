@@ -18,6 +18,7 @@ import type {
   DiagnosticBag,
   ExprNode,
   ForLoopInfo,
+  ForStmtNode,
   IntrinsicRegistry,
   Scope,
   SourceSpan,
@@ -61,7 +62,7 @@ export interface TypeCheckContext {
    * for-statements are typed and frozen into the model, so lowering can decide
    * whether each counted loop needs a runtime wrap guard.
    */
-  readonly forLoopInfo: Map<AstNode, ForLoopInfo>;
+  readonly forLoopInfo: Map<ForStmtNode, ForLoopInfo>;
   /** Per-function signature cache, computed on first call-site use. */
   readonly signatures: Map<Symbol, FnSignature>;
   /** The resolved entry-point symbol (calling it directly is an error). */
