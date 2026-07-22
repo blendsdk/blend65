@@ -84,7 +84,7 @@ are owned by exec_plan (`/gitcm`); the tasks below fix the two boundaries and th
 ### Step 1.3: Implementation tests & hardening
 
 - [ ] 1.3.1 Update the moved unit pins: `control-flow-lowering.impl.test.ts:62-70` (+boundary), `:72-78` ICE-flip (`:76-77`)
-- [ ] 1.3.2 Record the +1 load/compare per-guarded-iteration scoreboard row (Prime-Directive cost) in the phase's scoreboard delta
+- [ ] 1.3.2 Record the +1 load/compare per-guarded-iteration scoreboard row (Prime-Directive cost) in the phase's scoreboard delta **and file the beat-shortfall GitHub issue** — the guarded loop meets rather than beats the expert (whose `ADC` carry-out is the wrap flag, free); the fused increment-and-branch-on-wrap terminator is the beat path — document it with the measured cost delta (beat-first directive; issue filing durably authorised, no push)
 - [ ] 1.3.3 AC-15: perturb each new M-01 assertion once (fail observed), restore
 - [ ] 1.3.4 Full verify
 
