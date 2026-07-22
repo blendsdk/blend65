@@ -1614,10 +1614,59 @@ function typeIntrinsicCall(
       return primitive("word");
     case "poke":
     case "pokew":
+      checkPokeValueWidth(expr, expr.name === "pokew" ? 16 : 8, ctx);
       return primitive("void");
     default:
       return ERROR_TYPE; // embed/etc. — not yet supported here
   }
+}
+
+/**
+ * Checks a `poke`/`pokew` value operand against its store width. A value wider
+ * than the store — a `word`/`sword` handed to a one-byte `poke` — would silently
+ * split into a second store that clobbers the neighbouring address, so it is
+ * rejected with E10154. A `boolean` value is a KIND mismatch (E10152), not a
+ * width narrowing: boolean is itself one byte. `byte`/`sbyte`/enum values and
+ * numeric literals (whose range the literal-argument check already owns) fit a
+ * single byte and are accepted.
+ */
+function checkPokeValueWidth(
+  expr: IntrinsicCallExprNode,
+  storeWidth: 8 | 16,
+  ctx: TypeCheckContext,
+): void {
+  const valueArg = expr.args[1];
+  if (valueArg === undefined || valueArg.kind === "NumericLitExpr") return;
+  const valueType = ctx.typeMap.get(valueArg);
+  if (valueType === undefined || valueType.kind === "error") return; // already poisoned upstream
+  if (valueType.kind === "primitive" && valueType.name === "boolean") {
+    ctx.bag.addError(
+      DiagCode.TypeMismatchAssignment, // E10152
+      valueArg.span,
+      `A '${expr.name}' value must be an integer, not 'boolean' — a cast is required`,
+    );
+    return;
+  }
+  const valueWidth = pokeValueWidth(valueType);
+  if (valueWidth !== null && valueWidth > storeWidth) {
+    ctx.bag.addError(
+      DiagCode.WidthNarrowingNoCast, // E10154
+      valueArg.span,
+      `A '${expr.name}' value of type '${typeName(valueType)}' is wider than its ` +
+        `${storeWidth === 8 ? "one-byte" : "two-byte"} store — a cast is required`,
+    );
+  }
+}
+
+/**
+ * The storage width in bits of a `poke` value type: an integer's own width, or
+ * 8 for an enum (a one-byte identity backing). `null` for anything the width
+ * rule does not apply to (handled or rejected elsewhere).
+ */
+function pokeValueWidth(t: Type): 8 | 16 | null {
+  if (t.kind === "enum") return 8;
+  if (t.kind === "primitive" && isInteger(t)) return bitWidth(t);
+  return null;
 }
 
 /** True when a syntactic type annotation contains an unsized `[]` anywhere. */

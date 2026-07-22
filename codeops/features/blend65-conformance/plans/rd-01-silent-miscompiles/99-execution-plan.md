@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-22 17:29
-> **Progress**: 16/52 tasks (31%)
+> **Last Updated**: 2026-07-22 17:52
+> **Progress**: 26/52 tasks (50%)
 > **CodeOps Skills Version**: 3.11.0
 
 ## Overview
@@ -100,28 +100,28 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 ## Phase 2: M-02 — `E10154` poke value-width diagnostic
 
-> **Phase ref**: _(recorded by exec_plan at phase start)_
+> **Phase ref**: 4ce45b2
 > **Lenses**: api-surface (diagnostic surface + accepted-type contract)
 > **Spec**: [03-02](03-02-poke-width.md) · **ST**: ST-17…ST-24, ST-24b, ST-20A · **AR**: RD AR-4/AR-5, AR-P6
 
 ### Step 2.1: Specification tests (+ R8 fixture audit, pre-wiring)
 
-- [ ] 2.1.1 **R8 fixture audit (BEFORE wiring — PF-004):** scan committed fixtures for a wide/kind-mismatched poke value; enumerate any that the new diagnostic will turn red, so surprise reds at green-phase are pre-explained (an exposed fixture is *edited*, which the "never fix the test" rule otherwise forbids)
-- [ ] 2.1.2 [spec-author] Write the four wide-spelling `E10154` tests ST-17…ST-20 + the boolean **`E10152`** kind-mismatch ST-24b — poke-width frontend spec (`frontend`)
-- [ ] 2.1.3 [spec-author] Write ST-20A (test-harness): on the wide poke `emitAsm` yields **no text** (error blocks emission — PF-006); the one-store assertion rides the accepted `byte` control ST-21
-- [ ] 2.1.4 [spec-author] Write the accepted-type negative controls ST-21…ST-24 (`byte`/`sbyte`/enum/literal)
-- [ ] 2.1.5 Run — verify FAIL (red phase); document any negative-control that passes by construction (ST-21…ST-24 are green — no diagnostic exists yet) and why (PF-026)
+- [x] 2.1.1 **R8 fixture audit (BEFORE wiring — PF-004):** scan committed fixtures for a wide/kind-mismatched poke value; enumerate any that the new diagnostic will turn red, so surprise reds at green-phase are pre-explained (an exposed fixture is *edited*, which the "never fix the test" rule otherwise forbids) ✅ (completed: 2026-07-22 17:52) — CLEAN: all example poke values are byte-typed (`combo`/`result` confirmed byte); word values go only to `pokew`. No fixture turns red (confirms C-01)
+- [x] 2.1.2 [spec-author] Write the four wide-spelling `E10154` tests ST-17…ST-20 + the boolean **`E10152`** kind-mismatch ST-24b — poke-width frontend spec (`frontend`) ✅ (completed: 2026-07-22 17:52) — `frontend/.../poke-width.spec.test.ts`
+- [x] 2.1.3 [spec-author] Write ST-20A (test-harness): on the wide poke `emitAsm` yields **no text** (error blocks emission — PF-006); the one-store assertion rides the accepted `byte` control ST-21 ✅ (completed: 2026-07-22 17:52) — `test-harness/src/poke-width.spec.test.ts`
+- [x] 2.1.4 [spec-author] Write the accepted-type negative controls ST-21…ST-24 (`byte`/`sbyte`/enum/literal) ✅ (completed: 2026-07-22 17:52)
+- [x] 2.1.5 Run — verify FAIL (red phase); document any negative-control that passes by construction (ST-21…ST-24 are green — no diagnostic exists yet) and why (PF-026) ✅ (completed: 2026-07-22 17:52) — 5 red (ST-17…20, ST-24b, ST-20A), 4 green-by-construction (ST-21…24 assert absence of a not-yet-existing diagnostic)
 
 ### Step 2.2: Implementation
 
-- [ ] 2.2.1 Add the value width/kind check in **`expression-typing.ts:1608-1620`** (the only viable seam — `intrinsic-validation` runs before typing, PF-028): `word`/`sword` → `E10154`, `boolean` → the `E10152` kind-mismatch family (PF-027); accept `byte`/`sbyte`/enum/in-range-literal. Do NOT reuse `checkAssignable` unmodified (AR-5)
-- [ ] 2.2.2 Draft the messages following registry phrasing (AR-P6); no `codeops`/RD id in the string
-- [ ] 2.2.3 Run — verify PASS (green phase)
+- [x] 2.2.1 Add the value width/kind check in **`expression-typing.ts:1608-1620`** (the only viable seam — `intrinsic-validation` runs before typing, PF-028): `word`/`sword` → `E10154`, `boolean` → the `E10152` kind-mismatch family (PF-027); accept `byte`/`sbyte`/enum/in-range-literal. Do NOT reuse `checkAssignable` unmodified (AR-5) ✅ (completed: 2026-07-22 17:52) — `checkPokeValueWidth`/`pokeValueWidth` in the poke/pokew typing case; implemented directly (accepts same-width sbyte, unlike checkAssignable); literals skipped (literal-range check owns them)
+- [x] 2.2.2 Draft the messages following registry phrasing (AR-P6); no `codeops`/RD id in the string ✅ (completed: 2026-07-22 17:52)
+- [x] 2.2.3 Run — verify PASS (green phase) ✅ (completed: 2026-07-22 17:52) — frontend poke-width 9/9, test-harness emit 2/2
 
 ### Step 2.3: Implementation tests & hardening
 
-- [ ] 2.3.1 AC-15: perturb each new M-02 assertion once, restore
-- [ ] 2.3.2 Full verify
+- [x] 2.3.1 AC-15: perturb each new M-02 assertion once, restore ✅ (completed: 2026-07-22 17:52) — positives were red-first; negative controls proven by an impl perturbation (`>`→`>=`) → byte/sbyte/enum + the one-store control failed, then restored
+- [x] 2.3.2 Full verify ✅ (completed: 2026-07-22 17:52) — `install/build/typecheck/lint/test` all green (17/17 tasks; frontend 912, test-harness 401, root 33); no example broke
 
 **Deliverables**: `E10154` on all four wide spellings; `E10152` on boolean; accepted set compiles; wide poke blocks emission.
 
