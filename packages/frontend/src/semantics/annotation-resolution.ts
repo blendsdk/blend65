@@ -45,6 +45,7 @@ import type { PlatformProfile } from "@blend65/core/platform";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
 import type { TypeResolverContext } from "./type-check/type-resolution.js";
 import type { ConstTypeEngine } from "./const-type-engine.js";
+import { declaredSymbols } from "./function-collection.js";
 
 /** Narrows a symbol's declaring node to a let/const declaration. */
 function isVarDecl(node: AstNode): node is LetDeclNode | ConstDeclNode {
@@ -102,30 +103,10 @@ export function resolveDeclaredTypes(
     // The block scopes nested in the body hold the same locals the flat body
     // scope does, plus the ones a repeated name would otherwise hide — each
     // must have its own annotation finalized, and each exactly once.
-    for (const sym of bodySymbols(bodyScope)) {
+    for (const sym of declaredSymbols(bodyScope)) {
       finalizeSymbol(sym, ctx, targetProfile);
     }
   }
-}
-
-/**
- * Every symbol declared in a function body, each exactly once: the body
- * scope's own entries followed by those of the block scopes nested inside it.
- * A local appears in both places by design, so identity dedupes.
- */
-function bodySymbols(bodyScope: Scope): Symbol[] {
-  const seen = new Set<Symbol>();
-  const out: Symbol[] = [];
-  const visit = (scope: Scope): void => {
-    for (const sym of scope.symbols.values()) {
-      if (seen.has(sym)) continue;
-      seen.add(sym);
-      out.push(sym);
-    }
-    for (const child of scope.children) visit(child);
-  };
-  visit(bodyScope);
-  return out;
 }
 
 /**

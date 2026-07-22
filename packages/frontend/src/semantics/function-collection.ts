@@ -178,9 +178,10 @@ export function collectFunctions(
       moduleScope.children.push(bodyScope);
       scopeByNode.set(item, bodyScope);
 
-      // Step 2b — parameters, before locals (their insertion order is what the
-      // frame layout reads, and a body local of the same name deliberately
-      // wins over its parameter — flat-scope last-wins). The type here is
+      // Step 2b — parameters, before locals: their insertion order is what the
+      // frame layout reads. A body local of the same name is rejected as
+      // shadowing, so the overwrite that follows in the flat map is only ever
+      // reached on a program that has already errored. The type here is
       // provisional (primitive annotations resolve now; named/array/unsized
       // annotations finalize in the type-resolution pass, which also patches
       // `byRef` — an array annotation is known by-ref syntactically, a named
@@ -224,6 +225,11 @@ export function collectFunctions(
           bodyScope,
           block: bodyScope,
           enclosing: [],
+          params: new Set(
+            [...bodyScope.symbols.values()]
+              .filter((s) => s.kind === "parameter")
+              .map((s) => s.name),
+          ),
           counters: new Set(),
           fnName: item.name,
           blockScopeByNode,
@@ -266,7 +272,8 @@ export function checkLocalShadowing(
     const decl = bodyScope.node;
     const fnName = isFunctionLikeDecl(decl) ? decl.name : "?";
     for (const sym of declaredSymbols(bodyScope)) {
-      if (!moduleScope.symbols.has(sym.name)) continue;
+      const moduleSym = moduleScope.symbols.get(sym.name);
+      if (moduleSym === undefined) continue;
       if (sym.kind === "parameter") {
         bag.addError(
           DiagCode.NameShadows,
@@ -274,12 +281,17 @@ export function checkLocalShadowing(
           `Parameter '${sym.name}' of '${fnName}' shadows the module-level ` +
             `declaration of '${sym.name}'`,
         );
-      } else if (sym.kind === "variable") {
+      } else if (sym.kind === "variable" && moduleSym.kind === "variable") {
+        // Only a module VARIABLE is shadowed in the sense that matters: it is
+        // storage, and a local of the same name hides it for the rest of the
+        // function. A local named after a module function, constant, struct or
+        // enum is ordinary code in any modern language and cannot collapse two
+        // variables onto one slot, so it is left alone.
         bag.addError(
           DiagCode.NameShadows,
           declNameSpan(sym.decl),
           `Declaration of '${sym.name}' in function '${fnName}' shadows the ` +
-            `module-level declaration of '${sym.name}'`,
+            `module-level variable '${sym.name}'`,
         );
       }
     }
@@ -291,10 +303,14 @@ export function checkLocalShadowing(
  * the flat local copies in the body scope, then the block scopes' own
  * declarations. Locals appear in both places by design, so identity dedupes.
  *
+ * This is the canonical way to enumerate a body's symbols now that a local
+ * lives both in its block scope and in the flat function scope — walking
+ * either one alone misses declarations or reports them twice.
+ *
  * @param bodyScope The function body scope to walk from.
  * @returns The distinct declared symbols, outermost scope first.
  */
-function declaredSymbols(bodyScope: Scope): Symbol[] {
+export function declaredSymbols(bodyScope: Scope): Symbol[] {
   const seen = new Set<Symbol>();
   const out: Symbol[] = [];
   const visit = (scope: Scope): void => {
@@ -339,6 +355,12 @@ interface LocalCtx {
   readonly block: Scope;
   /** The block scopes strictly enclosing {@link block} — what a name may shadow. */
   readonly enclosing: readonly Scope[];
+  /**
+   * The function's parameter names, captured before any local is registered.
+   * The flat scope cannot answer this later: registering a local overwrites
+   * the parameter's entry there, so the second offender would go unreported.
+   */
+  readonly params: ReadonlySet<string>;
   /** The names of the `for` counters this position sits inside. */
   readonly counters: ReadonlySet<string>;
   /** The enclosing function's name, for diagnostic text. */
@@ -515,7 +537,7 @@ function shadowedKind(name: string, ctx: LocalCtx): string | null {
   for (let i = ctx.enclosing.length - 1; i >= 0; i--) {
     if (ctx.enclosing[i]?.symbols.has(name) === true) return "local";
   }
-  return ctx.bodyScope.symbols.get(name)?.kind === "parameter" ? "parameter" : null;
+  return ctx.params.has(name) ? "parameter" : null;
 }
 
 /**

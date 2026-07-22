@@ -72,6 +72,33 @@ describe("shared frame slot — the narrow declaration still lowers narrow", () 
     expect(lowByte.length).toBeGreaterThan(highByte.length); // the byte loop does not
   });
 
+  it("emits no high-byte access for an enum declaration sharing a widened slot", () => {
+    // An enum is a one-byte value. Sharing a slot with a `word` sibling must
+    // not give it a high byte: the extra store would land on whatever follows
+    // the target address — here the register next to $D020.
+    const asm = emitClean(
+      "module Main;\nenum Colors { Red = 1, Blue = 2 }\n" +
+        "function main(): void { let c: boolean = true;\n" +
+        "if (c) { let e: word; }\n" +
+        "else { let e: Colors = Colors.Red; poke($D020, e); } }\n",
+    );
+
+    expect(asm).toContain("STA $D020");
+    expect(asm).not.toContain("__frame_Main_main_e+1");
+    expect(asm).not.toContain("STX $D020+1");
+  });
+
+  it("keeps the enum arm narrow whichever order the two declarations appear in", () => {
+    const asm = emitClean(
+      "module Main;\nenum Colors { Red = 1, Blue = 2 }\n" +
+        "function main(): void { let c: boolean = true;\n" +
+        "if (c) { let e: Colors = Colors.Red; poke($D020, e); }\n" +
+        "else { let e: word; } }\n",
+    );
+
+    expect(asm).not.toContain("STX $D020+1");
+  });
+
   it("keeps a byte store inside the low byte when the slot was widened", () => {
     const asm = emitClean(
       "module Main;\nfunction main(): void { let c: boolean = true;\n" +

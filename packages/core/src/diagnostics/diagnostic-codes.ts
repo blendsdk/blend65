@@ -226,10 +226,14 @@ export const DiagCode = {
   //   "must be an integer type" rule to the type system.
   // - E10062: a `for` loop whose counter reuses the name of a counter it is
   //   NESTED INSIDE. The two counters would share one frame slot, so the inner
-  //   loop silently destroys the outer loop's position. Scoped to nesting
-  //   only: two SIBLING loops reusing a counter name are well-defined and
-  //   deliberately share the slot, which is the frugal layout a hand-coder
-  //   wants — diagnosing that would reject ordinary code.
+  //   loop silently destroys the outer loop's position. Not a new code — the
+  //   spec's control-flow chapter already assigns E10062 to exactly this
+  //   nesting restriction; this registers what the spec pinned. Scoped to
+  //   nesting only: two SIBLING loops reusing a counter name are well-defined
+  //   and deliberately share the slot, which is the frugal layout a hand-coder
+  //   wants — diagnosing that would reject ordinary code. A non-counter local
+  //   shadowing an enclosing counter is the general shadowing rule (E10101),
+  //   of which this is the loop-specific specialization.
   // `spec/` stays frozen.
   StepValueNotPositive: "E10061",
   ForCounterTypeNotInteger: "E10065",

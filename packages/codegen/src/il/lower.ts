@@ -2880,11 +2880,16 @@ function slotIlType(frame: FunctionFrame | undefined, varName: string): ILType {
  *
  * Blocks that cannot be live at once may each declare the same name and share
  * one frame slot, sized to the widest of them. Reading the slot's width would
- * therefore lower a narrow declaration's use too wide and — worse — a wide
- * declaration's use too narrow, silently truncating the value. The resolved
- * symbol carries the right width, so scalar locals take it from there;
- * everything else (parameters, aggregates, an unresolved name) keeps reading
- * the slot, which is already correct for them.
+ * therefore lower a narrow declaration's use too wide — a one-byte variable
+ * would grow a high-byte access that spills into whatever sits beside its
+ * target — and a wide declaration's use too narrow, silently truncating the
+ * value. The resolved symbol carries the right width, so every scalar local
+ * takes it from there, enums included: an enum is a one-byte value and must
+ * never inherit a word sibling's width.
+ *
+ * Aggregates keep reading the slot, which is where their by-reference size
+ * lives rather than in the element type; so do parameters and unresolved
+ * names, for both of which the slot is already the right answer.
  *
  * @param sym The symbol this use resolved to, or `null` when unresolved.
  * @param frame The enclosing function's frame, for the fallback.
@@ -2892,7 +2897,7 @@ function slotIlType(frame: FunctionFrame | undefined, varName: string): ILType {
  * @returns The IL type to load or store at.
  */
 function useIlType(sym: Symbol | null, frame: FunctionFrame | undefined, varName: string): ILType {
-  if (sym !== null && sym.kind === "variable" && sym.type.kind === "primitive") {
+  if (sym !== null && sym.kind === "variable" && !isAggregateType(sym.type)) {
     return ilTypeOfType(sym.type);
   }
   return slotIlType(frame, varName);

@@ -197,4 +197,26 @@ describe("reuse diagnostics — nesting reports, siblings do not", () => {
       "default: let t: word = 300; pokew($D000, t); } }\n";
     expect(codes(source)).toEqual([]);
   });
+
+  it("reports every offender, not just the first, when siblings shadow one parameter", () => {
+    // Each arm shadows the parameter independently, so each is its own error —
+    // the check must not be answerable only once per name.
+    const source =
+      "module Main;\nfunction f(a: byte): void { let c: boolean = true;\n" +
+      "if (c) { let a: byte = 1; } else { let a: byte = 2; } }\n";
+    expect(codes(source).filter((code) => code === "E10101")).toHaveLength(2);
+  });
+
+  it("leaves a local named after a module function, constant, struct or enum alone", () => {
+    // Only a module VARIABLE is storage a local can hide. Rejecting a local
+    // that merely shares a name with a function or a type would outlaw
+    // ordinary code and could not cause a shared-slot miscompile.
+    const sources = [
+      "module Main;\nfunction clear(): void { }\nfunction main(): void { let clear: byte = 1; }\n",
+      "module Main;\nconst N: byte = 4;\nfunction main(): void { let N: byte = 1; }\n",
+      "module Main;\nstruct P { x: byte; }\nfunction main(): void { let P: byte = 1; }\n",
+      "module Main;\nenum C { Red = 1 }\nfunction main(): void { let C: byte = 1; }\n",
+    ];
+    for (const source of sources) expect(codes(source)).not.toContain("E10101");
+  });
 });
