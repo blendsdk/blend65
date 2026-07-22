@@ -120,7 +120,20 @@ re-derivation — forced together since the ledger gate goes red the instant the
 X-08 red-perturbation is a pre-retirement gate inside P1-b. P5 is discharge-only (AC-15
 attestation, AC-16 deferral gate, scoreboard/ratchet verification).
 
-**Next: `preflight` the plan** (per-RD workflow: `make_plan → preflight (plan) → exec_plan`).
+**Plan preflight iteration 1 ❌ BLOCKED (2026-07-22)** — 5 Fable auditor clusters (independent of
+the Opus author) + lead synthesis returned 1 CRITICAL + 13 MAJOR + 17 MINOR
+([report](plans/rd-01-silent-miscompiles/00-preflight-report.md)). Headline, the RD's own defect
+species one layer deeper: **PF-001 (CRITICAL, found by 2 clusters + lead-verified against
+`translate.ts`)** — AR-P3's "reuse the live temps, no scratch" wrap `brcmp` **cannot translate**
+(word axis ICEs at `foldStoreHome`'s single-use rule; byte axis loses `current` at `bindA` with no
+spill), and the natural reload workaround compares `next` vs `next` → the guard **silently never
+fires**, CI-green, only `[local]` VICE catches it. Fix: reconstruction-immediate form (asc wrap ⟺
+`next < step`; desc ⟺ `next > typeMax − step`) — translatable today, zero binder changes, exactly
+the RD-budgeted +1 cost. Twelve further majors (M-03 sizing seam mis-scoped; core-package impact
+blindness; two new silent-miscompile axes — `step ≥ 2^width`, sibling for-counters; a cluster of
+`[CI]` oracles that pass on a broken compiler). Revision iteration owed, then re-preflight; stays 📋.
+
+**Next: revise the plan against the 31 findings (adopt PF-001 Option A), then preflight it.2.**
 **D-02 and D-03 remain open** — neither gates P1.
 
 ---
@@ -329,7 +342,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) | **📋 Plan Created** (2026-07-22) — 5 phases, 49 tasks, spec-tests-first; Zero-Ambiguity Gate passed (8 AR-P#: 2 user forks + 6 grounded single-path). Mechanical re-goldens land in forcing phase P1 (AR-P8). Next: `preflight` the plan | 📋 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔧 Plan preflight it.1 ❌ BLOCKED** (2026-07-22) — 1 CRITICAL + 13 MAJOR + 17 MINOR (5 Fable clusters). CRITICAL PF-001 (2 clusters + lead-verified): AR-P3's no-scratch wrap `brcmp` cannot translate (word ICE / byte value-loss), reload workaround silently disables the guard. Revision iteration needed; stays 📋 | 📋 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |
