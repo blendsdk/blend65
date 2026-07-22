@@ -46,9 +46,10 @@ everywhere; `[local]` is the VICE tier CI skips (AR-27). The RD's AC-# is the ow
 | ST-4 | `for (let i: word = 500 downto 0)`; `const M: word = $FFFF; for (let i: word = 0 to M)` | wrap guard present at **word** width | `[CI]` shape · AC-1 (word axis) |
 | ST-5 | `for (let i: sbyte = 5 downto -128)` | wrap guard present, **signed** compare framing | `[CI]` shape · AC-1 (signed axis) |
 | ST-5b | `for (let i: sword = 100 downto -32768)` | wrap guard present, **signed word** framing (the sword axis — no `[CI]` row before, PF-008) | `[CI]` shape · AC-1 (sword axis) |
+| ST-5c | `let lim: sbyte = 100; for (let i: sbyte = -5 to lim)` (guarded, signed **ascending** through negatives) | wrap guard present; the ascending immediate is **`typeMin + step`** (raw `$80 + s`), signed compare — NOT `step` (PF-032). A `next < step` immediate would exit at the first negative | `[CI]` shape · AC-1, PF-032 |
 | ST-6 | `for (let i: byte = 9 downto 1 step 2)` | wrap guard present (non-dividing step) | `[CI]` shape · AC-1 |
-| ST-6b | `for (let i: byte = 0 to 10 step 256)` (step ≥ 2^width) | **`E10061` range diagnostic** (folded step exceeds the counter type) | `[CI]` diag · PF-009 |
-| ST-7 | `for (let i: byte = 0 to 254 step 2)` (step lands on the bound, next step wraps) | wrap guard present; **[local] behavior**: body runs at 254 **exactly once**, never at the wrapped 0 (no overshoot) | `[CI]` shape + `[local]` · AC-1, AC-3, PF-014 |
+| ST-6b | `for (let i: byte = 0 to 10 step 256)` (step ≥ 2^width) | **`E10061`** (the step-validity code, extended to the over-range case) | `[CI]` diag · PF-009, AR-P10, spec/05 §7.3 |
+| ST-7 | `for (let i: byte = 0 to 254 step 2)` (step lands on the bound, next step wraps) | wrap guard present; **[local] behavior**: body runs at 0 once (init) and at 254 once; **128 visits total**; no visit occurs after 254 (no wrapped re-entry at 0) | `[CI]` shape + `[local]` · AC-1, AC-3, PF-014/PF-047 |
 | ST-8 | `for (let i: sbyte = 0 to 126 step 3)` (interior, next step escapes) | wrap guard present | `[CI]` shape · AC-3 |
 | ST-9 | `for (let i: byte = 0 to 9)` (ordinary interior, literal) | **wrap-safe → NO added guard** (today's exact code) | `[CI]` gating · AC-1, AC-12 |
 | ST-9b | `const N: byte = 10; for (let i: byte = 0 to N)` (named-const interior) | **wrap-safe → NO added guard** — the resolver-backed stamp evaluates `N` (PF-010); a resolver-less stamp would wrongly guard this | `[CI]` gating · PF-010, AC-12 |
@@ -56,17 +57,17 @@ everywhere; `[local]` is the VICE tier CI skips (AR-27). The RD's AC-# is the ow
 | ST-11 | `for (let i: byte = 0 to 254 + 1)` (const-expression bound) | wrap guard present (const-expr evaluates to 255) | `[CI]` shape · AC-3 |
 | ST-12 | `let limit: byte = 255; for (let i: byte = 0 to limit)` (runtime bound) | wrap guard present (runtime bound never provably safe) | `[CI]` gating · AC-3, R2 |
 | ST-13 | emitted **IL** for a wrap-unsafe loop | the `incr` terminator is a `brcmp` of the post-step counter (`next`) against the type/step **immediate**, in addition to the `cond` bound compare | `[CI]` IL · AC-4 |
-| ST-14 | wrap-unsafe loop, end-to-end **asm**, small body | inversion/relaxation-tolerant: the wrap compare's operand is an **immediate** (not the counter slot — rules out the stale-reload trap, PF-001/PF-007) and its taken edge resolves to the loop-exit label | `[CI]` asm · AC-4 |
+| ST-14 | wrap-unsafe loop, end-to-end **asm**, small body | inversion/relaxation-tolerant + **direction-tolerant**: **exactly one** of the wrap compare's operand pair reads the counter slot and the other is the derived immediate — **never both read the slot** (that predicate rules out the stale-reload trap and survives the translator's `gt`-operand swap on descending loops, PF-034); its taken edge resolves to the loop-exit label | `[CI]` asm · AC-4 |
 | ST-15 | wrap-unsafe loop, body > 127 bytes | branch relaxes; no out-of-range branch emitted | `[CI]` · AC-5 |
 | ST-16 | slice4a `1 to 10` and slice7 `0 to 4` goldens | **byte-identical** — no added guard (gated-emission proof); pinned by the existing golden suite, not a new test (PF-024) | `[CI]` golden · AC-12 |
 | ST-16L | `[local]` VICE: ≥1 `to` + ≥1 `downto` at **each** of byte/word/**sbyte**/**sword**; one non-dividing step each direction; ST-7's interior-escape; one zero-trip | **actual termination + visit-set** observed on hardware | `[local]` · AC-1 |
-| ST-16C | `[local]` VICE, **visit tally held in a word** (loop counters typed per cell): `0 to 255`=**256**, `9 downto 0`=**10**, `$FFF0 to $FFFF`=16, `-120 downto -128`=9, `$FFF0 to $FFFF step 3`=6, `0 to 9`=10, `9 to 0`=0 | exact iteration counts (256 and 10 are the headline-defect counts — PF-005) | `[local]` · AC-2 |
+| ST-16C | `[local]` VICE, **visit tally held in a word** (loop counters typed per cell): `0 to 255`=**256**, `9 downto 0`=**10**, `$FFF0 to $FFFF`=16, `-120 downto -128`=9, **`sbyte -5 to 127`=133** (guarded signed ascending through negatives — the PF-032 cell), `$FFF0 to $FFFF step 3`=6, `0 to 9`=10, `9 to 0`=0 | exact iteration counts (256 and 10 are the headline-defect counts — PF-005; the `-5 to 127` cell fails under the wrong ascending immediate — PF-032) | `[local]` · AC-2 |
 
 ### M-02 — poke width (Phase 2)
 
 | #    | Input / Scenario | Expected Output / Behavior | Source |
 |------|------------------|----------------------------|--------|
-| ST-17 | `let w: word = 300; poke($D020, w)` | `E10154`; no second store | AC-6 |
+| ST-17 | `let w: word = 300; poke($D020, w)` | `E10154` (the emission consequence is ST-20A's, test-harness tier — not observable here, PF-042) | `[CI]` frontend · AC-6 |
 | ST-18 | `poke($D020, w + 1)` (word-valued expression) | `E10154` | AC-6 |
 | ST-19 | `poke($D020, peekw($D000))` (`peekw` result) | `E10154` | AC-6 |
 | ST-20 | `const W: word = 300; poke($D020, W)` (named `word` const) | `E10154` (fourth spelling) | `[CI]` frontend · AC-6 |
@@ -87,7 +88,8 @@ everywhere; `[local]` is the VICE tier CI skips (AR-27). The RD's AC-# is the ow
 | ST-28 | same-scope **duplicate** | `E10003` | AC-8 |
 | ST-29 | **nested** loop reusing its enclosing counter | `E10062` | AC-8, AR-6 |
 | ST-30 | sibling `if{ let t:word } else{ let t:byte }` | compiles with **no diagnostic** | `[CI]` frontend · AC-9 |
-| ST-30b | sibling for-counters `for(let i:byte…){} for(let i:word…){}` | compiles with **no diagnostic**; per-declaration width covers `lower.ts:701` so no new miscompile | `[CI]` frontend · PF-012 |
+| ST-30b | sibling for-counters `for(let i:byte…){} for(let i:word…){}` | compiles with **no diagnostic** | `[CI]` frontend · PF-012 |
+| ST-30c | same sibling for-counters, **codegen tier** | the byte loop's counter compare/step emit at **byte** width (no `+1`-byte counter ops), the word loop's at **word** width — proves the `:701` per-declaration fix, which the frontend tier (ST-30b) cannot observe (PF-035/PF-012) | `[CI]` codegen · PF-012 |
 | ST-31 | pop-2 word/byte sibling, **layout** | the widened slot's neighbour is at a **non-overlapping** offset (layout assertion — frontend tier sees plan, not asm) | `[CI]` frontend · AC-9 |
 | ST-32 | pop-3 `if{ let t:word; pokew($D000,t) } else{ let t:byte }`, **test-harness** | the wide read lowers `LDA t / LDX t+1 / STA $D000 / STX $D000+1` (value assertion), **and** the pop-2 store writes no byte outside its slot — the emitted-extent evidence R15 keeps out of the frontend tier (PF-025) | `[CI]` test-harness · AC-9 |
 
@@ -119,12 +121,12 @@ everywhere; `[local]` is the VICE tier CI skips (AR-27). The RD's AC-# is the ow
 
 | Test File | ST Cases | Component | Tier |
 | --------- | -------- | --------- | ---- |
-| `control-flow-lowering.spec.test.ts` (codegen) | ST-1…ST-6, ST-6b, ST-7…ST-9, ST-9b, ST-10…ST-15 (shape/gating/diag) | M-01 IL/asm | `[CI]` |
+| `control-flow-lowering.spec.test.ts` (codegen) | ST-1…ST-5, ST-5b, ST-5c, ST-6, ST-6b, ST-7…ST-9, ST-9b, ST-10…ST-15 (shape/gating/diag) | M-01 IL/asm | `[CI]` |
 | VICE loop-termination suite | ST-16L, ST-16C | M-01 runtime | `[local]` |
 | poke-width frontend spec (`frontend`) | ST-17…ST-20, ST-21…ST-24, ST-24b | M-02 diag | `[CI]` |
 | poke-width emit spec (`test-harness`) | ST-20A | M-02 asm | `[CI]` |
 | shadowing/reuse spec (`frontend`) | ST-25…ST-30, ST-30b, ST-31 | M-03 diag/layout | `[CI]` |
-| wide-read/store extent spec (`test-harness`) | ST-32 | M-03 emit | `[CI]` |
+| sibling-counter width + wide-read/store extent spec (`test-harness`/codegen) | ST-30c, ST-32 | M-03 emit | `[CI]` |
 | irq-interference spec (`frontend`/`sfa`) | ST-33, ST-33b, ST-34, ST-35 | M-04 warn | `[CI]` |
 | golden suite + ledger + example build | ST-16, ST-36…ST-38 | closeout | `[CI]` |
 

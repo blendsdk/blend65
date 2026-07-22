@@ -60,8 +60,8 @@ re-goldens land in their **forcing** phase (P1), not the closeout (AR-P8).
 **shape/gating only** (a CI codegen test can't observe termination); behaviour is `[local]`.
 The Step-1.1 test files are red until 1.2.6, so they ride the **P1-b** commit, not P1-a (PF-021).
 
-- [ ] 1.1.1 [spec-author] Write M-01 `[CI]` shape/gating/diag spec tests ST-1…ST-6, ST-6b, ST-7…ST-9, ST-9b, ST-10…ST-15 — `control-flow-lowering.spec.test.ts` (codegen). ST-14 asserts the wrap compare's operand is an **immediate**, not the counter slot (PF-001/PF-007)
-- [ ] 1.1.2 [spec-author] Designate the **existing** slice4a/slice7 golden suite as ST-16's no-added-guard oracle (gated-emission proof) — a permanently-green regression pin, documented per 1.1.4, not a new test (PF-024/PF-010: also add ST-9b named-const interior = no guard)
+- [ ] 1.1.1 [spec-author] Write M-01 `[CI]` shape/gating/diag spec tests ST-1…ST-5, ST-5b, **ST-5c** (signed-ascending immediate), ST-6, ST-6b, ST-7…ST-9, ST-9b, ST-10…ST-15 — `control-flow-lowering.spec.test.ts` (codegen). ST-14 asserts **exactly one** wrap-compare operand reads the counter slot, the other the immediate — never both (direction-tolerant, PF-034); ST-5c pins the ascending immediate as `typeMin+step` (PF-032)
+- [ ] 1.1.2 [spec-author] Designate the **existing** slice4a/slice7 golden suite as ST-16's no-added-guard oracle (gated-emission proof) — a permanently-green regression pin, documented per 1.1.4, not a new test (PF-024)
 - [ ] 1.1.3 Author the `[local]` VICE termination + visit-count suite (ST-16L incl. **sword**, ST-16C incl. the **256** and **10** headline counts) — `describe.skipIf(!hasVice()||!hasAcme())`
 - [ ] 1.1.4 Run the new spec tests — verify they FAIL (red phase); document any green-by-construction (the gating no-guard pins) and why
 
@@ -71,15 +71,15 @@ The Step-1.1 test files are red until 1.2.6, so they ride the **P1-b** commit, n
 **P1-b** the atomic codegen fix + the red Step-1.1 test files + forced re-goldens/retirement.
 Commit mechanics are owned by exec_plan (`/gitcm`).
 
-**Commit P1-a — behaviour-neutral (byte-identical output):**
+**Commit P1-a — behaviour-neutral (byte-identical output AND identical accepted-program set):**
 
 - [ ] 1.2.1 Add the wrap-safe node-keyed map to `SemanticModel` (`packages/core`) + `createEmptyModel` mirror + `analyze.ts` threading; stamp `wrapSafe`/`evaluatedBound` in for-stmt typing using the **resolver-backed** `ctx.engine.evalExpr` (NOT the bare `evalConst` at `:798`, which returns `nonConst` for named consts — PF-010); nothing consumes it yet — 03-01 §Proposed-Changes-1, AR-P5, PF-003
-- [ ] 1.2.2 Range-check the folded step against the counter type at `statement-typing.ts:810-825` → `E10061` when `step > typeMax` (PF-009); still behaviour-neutral (a new diagnostic on today-uncompilable code)
-- [ ] 1.2.3 Verify P1-a is byte-identical: all goldens unchanged, ledger still green (defect still present), only model-shape impl tests updated — the P1-a commit boundary
+- [ ] 1.2.2 Verify P1-a is byte-identical: all goldens unchanged, ledger still green (defect still present), accepted-program set unchanged, only model-shape impl tests updated — the P1-a commit boundary
 
 **Commit P1-b — atomic behaviour change (fix + red spec tests + forced re-goldens/retirement):**
 
-- [ ] 1.2.4 Emit the gated wrap exit in `incr`: `brcmp` of the post-step `next` against a type/step **immediate** (asc `lt(next, imm(step))`; desc `gt(next, imm(typeMax−step))`); drop the `:717-726` ICE guard — `lower.ts` (`lowerFor`, new `wrapExitBranch(next, …)`), AR-P3
+- [ ] 1.2.3 Range-check the folded step against the counter type at `statement-typing.ts:810-825` → the `E10061` range case when `step > typeMax` (PF-009). **This lands in P1-b, not P1-a** (PF-033): `step 256` on a byte compiles today, so rejecting it *changes the accepted-program set* — a behaviour change that must ride with ST-6b, not the byte-identical stamp commit (it is corpus-neutral — no committed source uses an over-width step, so goldens/examples are unchanged; the program itself compiles-and-hangs today). Register the code + comment per PF-035/AR-P10
+- [ ] 1.2.4 Emit the gated wrap exit in `incr`: a **fresh single-use reload** of the counter, `brcmp` against a type/step **immediate** — asc `lt(next, imm(typeMin+step))`, desc `gt(next, imm(typeMax−step))` (the ascending immediate carries `typeMin` for signed correctness — PF-032; unsigned `typeMin=0`); drop the `:717-726` ICE guard — `lower.ts` (`lowerFor`, new `wrapExitBranch`), AR-P3
 - [ ] 1.2.5 **`translate.ts`-seam verification (AR-P3):** prove the emitted `brcmp lt/gt(next, imm)` lowers cleanly at byte **and** word width (no `foldStoreHome`/`bindA` ICE) — no translator change expected, but the it.1 CRITICAL was invisible at IL level, so this is an explicit gate
 - [ ] 1.2.6 **X-08 red-perturbation GATE (before retirement):** retighten X-08's signature to the wrap form, watch it go **red** against the fixed output; update X-08's stale carry note **and refresh `codeops/00-spec-errata.md` E-08** from the rejected carry design to the `brcmp` form (PF-023) — `expressiveness-ledger.json`
 - [ ] 1.2.7 Retire ledger X-07 and X-08, re-golden `slice8b.asm.golden` to the wrap-safe idiom (ST-36; source `examples/slice8b/` stays frozen — PF-029), and re-derive the scoreboard/ratchet — **all in the P1-b commit** (AC-14 "same change"; the ledger gate is red until this lands)
@@ -89,7 +89,7 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 - [ ] 1.3.1 Update the moved unit pins: `control-flow-lowering.impl.test.ts:62-70` (+boundary), `:72-78` ICE-flip (`:76-77`)
 - [ ] 1.3.2 Record the +1 load/compare per-guarded-iteration scoreboard row **and file the beat-shortfall GitHub issue** — the guarded loop meets rather than beats the expert (whose `ADC` carry-out is the wrap flag, free); the fused increment-and-branch-on-wrap terminator is the beat path — document it with the measured cost delta (beat-first directive; issue filing durably authorised, no push)
-- [ ] 1.3.3 AC-15: perturb each new M-01 assertion once (fail observed), restore — including the **golden** perturbation (mutate one byte of the re-goldened slice8b, observe fail, restore — PF-024)
+- [ ] 1.3.3 AC-15: perturb each new M-01 assertion once (fail observed), restore — including the **golden** perturbations: mutate one byte of the re-goldened `slice8b.asm.golden` (ST-36) **and** of an unchanged corpus golden (ST-38), observe each suite fail, restore (PF-024/PF-040)
 - [ ] 1.3.4 Full verify
 
 **Deliverables**: gated wrap exit (reconstruction-immediate, translator-verified); resolver-backed stamp; step range-check; full-range compiles; slice8b re-goldened; X-07/X-08 retired + E-08 refreshed; slice4a/slice7 + named-const interior byte-identical.
@@ -137,9 +137,9 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 ### Step 3.1: Specification tests (+ R8 fixture audit, pre-wiring)
 
-- [ ] 3.1.1 **R8 fixture audit (BEFORE wiring — PF-004):** scan committed fixtures for nested reuse / shadowing / duplicate-`let` shapes the R5 diagnostics will turn red; enumerate them before wiring
+- [ ] 3.1.1 **R8 fixture + example audit (BEFORE wiring — PF-004/PF-044):** scan for nested reuse / shadowing / duplicate-`let` shapes the R5 diagnostics will turn red, **and** for differing-width same-name **sibling** shapes that widest-sizing/per-use width will change *bytes* on (no diagnostic fires, but a golden could shift) — so both the diagnostic and byte-neutrality exposures are pre-enumerated. (C-01 scanned only downto/step/word/poke, never sibling reuse; a fresh corpus scan found no local-name reuse today, but the audit makes P3's byte-neutrality verified, not assumed)
 - [ ] 3.1.2 [spec-author] Write the five R5 diagnostic tests ST-25…ST-29 (`E10101`/`E10003`/`E10062`) + the sibling no-diagnostic ST-30 and **sibling for-counter** ST-30b (PF-012) — shadowing/reuse spec (`frontend`)
-- [ ] 3.1.3 [spec-author] Write the pop-2 **layout** assertion ST-31 (frontend: neighbour at a non-overlapping offset) and the pop-2 store-extent + pop-3 wide-read **value** assertion ST-32 (`test-harness` — R15 keeps emitted extent out of the frontend tier, PF-025)
+- [ ] 3.1.3 [spec-author] Write the pop-2 **layout** assertion ST-31 (frontend) + the pop-2 store-extent/pop-3 wide-read **value** assertion ST-32 and the **sibling-counter width** assertion ST-30c (codegen/`test-harness` — R15 keeps emitted width/extent out of the frontend tier, PF-025/PF-037)
 - [ ] 3.1.4 Run — verify FAIL (red phase); document any negative control green by construction (ST-30/ST-30b)
 
 ### Step 3.2: Implementation — retention → diagnostics → sizing (PF-002 ordering)

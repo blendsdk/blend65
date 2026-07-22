@@ -45,9 +45,17 @@ Only decisions **not** already in the RD. Full context in the register.
 | Component-doc / spec-test file layout | one 03-doc per surface | AR-P7 |
 | Mechanical re-golden placement | forcing phase (P1), not P5 | AR-P8 |
 | M-04 spill-state proxy (added at preflight it.1) | no params/locals AND a syntactically spill-free body | AR-P9 |
+| Step range-check narrowing (added at preflight it.2) | extend `E10061` for `step > typeMax`; record in errata | AR-P10 |
 
 ## Acceptance Criteria
 
 RD-01 AC-1…AC-16 are the acceptance oracle and are **not** restated here. This plan adds no
 plan-local acceptance criteria; §07 maps each RD criterion to concrete ST-cases and each ST-case
 back to its AC.
+
+**Delta note on AC-4 (PF-043).** AC-4's parenthetical names the wrap check as a `brcmp` of the
+post-step counter "against the pre-step counter". AR-1 explicitly sanctions the reconstruction
+family ("a compare reconstructed from `next ∓ step`"), and AR-P3 chose the immediate form of it, so
+the comparand differs from AC-4's literal text while the criterion's substance — a value-level wrap
+check *supplementing* the bound compare — is unchanged. AC-4 is discharged in that sanctioned form;
+recorded here so the closeout does not read as a divergence.

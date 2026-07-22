@@ -139,8 +139,16 @@ today, 0 binder changes); AR-P9 added (M-04 spill-state proxy). Impact-blindness
 (`@blend65/core` + `compiler` now in the inventory); M-03 reordered (retention→diagnostics→sizing
 at the real seam); two new silent axes (`step ≥ 2^width`, sibling for-counters) get
 diagnostics/tests; `[CI]`/`[local]` tier discipline reworked so no oracle passes on a broken
-compiler; R8 audits moved pre-wiring. Plan now 52 tasks. **Next: preflight iteration 2.**
-**D-02 and D-03 remain open** — neither gates P1.
+compiler; R8 audits moved pre-wiring. Plan now 52 tasks. **Preflight iteration 2 (2026-07-22) ❌ BLOCKED at scan → revised.** The it.1 revision's
+reconstruction-immediate wrap check *translates* (verified), but 3 clusters + lead independently
+caught that its **ascending immediate was wrong for signed counters** (`next < step` should be
+`next < typeMin + step`; `sbyte -5 to 127` would exit after one iteration) — the same defect species
+one axis further out (unsigned→signed), introduced by the it.1 revision itself. Corrected (PF-032),
+plus a P1-a/P1-b task-move (PF-033), a direction-tolerant ST-14 (PF-034), and 13 minors; AR-P10 added.
+Trend convergent (it.1 1C+13M+17m → it.2 1C+2M+13m, the CRITICAL now a single formula term).
+
+**Next: preflight iteration 3** (or accept-and-proceed — user's call given the it.2 CRITICAL is
+4-way confirmed and the residue is minor). **D-02 and D-03 remain open** — neither gates P1.
 
 ---
 
@@ -348,7 +356,7 @@ assertion is perturbed once and watched to fail, then restored.
 
 | ID | Title | Phase | RD | Plan | Stage | Status |
 |----|-------|-------|----|----|------|--------|
-| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔧 Plan preflight it.1 ❌ BLOCKED** (2026-07-22) — 1 CRITICAL + 13 MAJOR + 17 MINOR (5 Fable clusters). CRITICAL PF-001 (2 clusters + lead-verified): AR-P3's no-scratch wrap `brcmp` cannot translate (word ICE / byte value-loss), reload workaround silently disables the guard. Revision iteration needed; stays 📋 | 📋 |
+| RD-01 | Silent miscompiles | P1 | [RD](requirements/RD-01-silent-miscompiles.md) | [Plan](plans/rd-01-silent-miscompiles/00-index.md) · [preflight](plans/rd-01-silent-miscompiles/00-preflight-report.md) | **🔧 Plan preflight it.2 revision applied** (2026-07-22) — it.1 (1C+13M+17m) + it.2 (1C+2M+13m) resolved. it.2 CRITICAL PF-032 (3 clusters + lead): AR-P3's ascending immediate `next<step` wrong for signed → corrected to `next<typeMin+step`. Converging; 52 tasks, 10 AR-P#. Awaiting preflight it.3 | 📋 |
 | RD-02 | Memory-access conformance | P3 | — | — | Backlog | ⬜ |
 | RD-03a | Platform-profile honesty | P4 | — | — | Backlog | ⬜ |
 | RD-03b | Temp-pool growth | P5 | — | — | Backlog | ⬜ |

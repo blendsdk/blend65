@@ -20,9 +20,10 @@ This plan implements the RD across five phases — the loop-exit mechanism (M-01
 instances are one mechanism, then the three independent codegen surfaces (M-02, M-03, M-04) in any
 order, then a closeout that discharges the ledger *retirement* (the retirement itself lands in P1),
 the scoreboard, and the deferral-expiry gate. Every design decision is already fixed by the RD's
-AR-1…AR-10; this plan adds nine plan-level `AR-P#` decisions in the register (two user forks + seven
-grounded) and the phase/test structure. Preflight iteration 1 reopened AR-P3 (its no-scratch wrap
-shape could not translate) and added AR-P9 (the AR-8 spill-state proxy).
+AR-1…AR-10; this plan adds ten plan-level `AR-P#` decisions in the register (two user forks + eight
+grounded) and the phase/test structure. Preflight it.1 reopened AR-P3 (its no-scratch wrap shape
+could not translate) and added AR-P9 (spill-state proxy); it.2 corrected AR-P3's ascending immediate
+for signed counters and added AR-P10 (the step range-check).
 
 ## Document Index
 
@@ -56,7 +57,7 @@ else   { let t: byte = 7; }
 | -------- | ------- | --- |
 | Phase decomposition | 5 phases, M-01 first, dedicated closeout | AR-P1 |
 | Verify cadence | targeted during tasks, full root verify at phase close | AR-P2 |
-| Wrap-check form | `brcmp` of post-step counter vs a type/step **immediate** (asc `next<step`; desc `next>typeMax−step`) — reconstruction, translatable today (reopened it.1) | AR-P3 |
+| Wrap-check form | `brcmp` of post-step counter vs a type/step **immediate** (asc `next < typeMin+step`; desc `next > typeMax−step`) — reconstruction, translatable today (reopened it.1; ascending immediate corrected for signed at it.2) | AR-P3 |
 | M-03 pop-3 mechanism | per-use type resolution; positional allocation untouched; sizing at the retention seam, not `frame-computation` | AR-P4 |
 | Emission gating | frontend-stamped wrap-safe bit (resolver-backed eval); guard emitted only when absent | AR-P5 |
 | Re-golden placement | mechanical re-goldens land in their forcing phase (P1); P5 is discharge-only | AR-P8 |

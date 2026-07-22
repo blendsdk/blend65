@@ -53,16 +53,29 @@ Also **range-check the folded step against the counter type** here (PF-009). Tod
 (`statement-typing.ts:810-825`) only asserts `step ≥ 1`; a literal `step ≥ 2^width` (e.g.
 `for (i: byte = 0 to 10 step 256)`) folds to `imm` masked to width (`translate.ts:1048-1050`) →
 effective step 0 → `next == current`, defeating **both** the bound compare and the wrap check — a
-silent hang in the same class, uncaught by every other deliverable. Emit `E10061`'s range sibling
-(the `range` for the counter type is already in scope at that site) when the folded step exceeds
-`typeMax`.
+silent hang in the same class, uncaught by every other deliverable. **Extend `E10061`** (the
+step-validity code, `StepValueNotPositive`) with this range case — a single code, its registry
+comment updated to cover "positive AND ≤ typeMax" (PF-035) — emitted when the folded step exceeds
+`typeMax` (the `range` for the counter type is already in scope at that site). This narrows
+spec-legal input, so it is recorded durably (AR-P10 + a `codeops/00-spec-errata.md` note — PF-036),
+not left to the ephemeral plan folder.
 
 **2. Codegen — gated wrap exit in `incr`, reconstruction-immediate form (AR-1, AR-P3).** When the
 loop is **not** wrap-safe, replace the `incr` block's unconditional `br(condL)` with a `brcmp` of
 the post-step counter against a **compile-time immediate**:
 
-- ascending (`to`, step `s`): wrap ⟺ `next < s` → `brcmp lt(next, imm(s))` → `trueTarget: endL`, `falseTarget: condL`
+- ascending (`to`, step `s`): wrap ⟺ `next < typeMin + s` → `brcmp lt(next, imm(typeMin + s))` → `trueTarget: endL`, `falseTarget: condL`
 - descending (`downto`, step `s`): wrap ⟺ `next > typeMax − s` → `brcmp gt(next, imm(typeMax − s))` → `trueTarget: endL`, `falseTarget: condL`
+
+> **The ascending immediate carries `typeMin` (PF-032, it.2).** The `brcmp` is signed-dispatched on
+> the counter type, so a *signed* `lt` executes for `sbyte`/`sword`. For those, a non-wrapped
+> post-step value lands in `[typeMin + s, typeMax]` — which includes negatives — while a wrapped one
+> lands in `[typeMin, typeMin + s − 1]`; only `next < typeMin + s` separates them. Unsigned
+> `typeMin = 0` degenerates to `next < s`, so byte/word are unchanged. Dropping `typeMin` (as the
+> first revision did) makes a guarded ascending loop through negatives — e.g. `sbyte -5 to 127` —
+> exit after one iteration. The descending form already uses the type extreme and is correct on all
+> four types; only ascending needed the fix. **Both immediates assume `1 ≤ s ≤ typeMax`, enforced by
+> the step range-check — the two are one invariant** (PF-046).
 
 Only `next` is read (single-use into the compare → the deferred-load path folds it into `CMP` /
 the word framing), so the shape **translates at every width with zero `translate.ts`/binder
@@ -108,7 +121,7 @@ via `ctx.model`. **This is a `packages/core` change** (impact was missed in the 
   terminate `incr` with the gated wrap `brcmp` (below) instead of the unconditional `br(condL)`
   when `!wrapSafe`.
 - New helper `wrapExitBranch(next, direction, step, counterType, condL, endL, ctx)`: emits
-  `brcmp lt(next, imm(step))` (ascending) / `brcmp gt(next, imm(typeMax − step))` (descending),
+  `brcmp lt(next, imm(typeMin + step))` (ascending) / `brcmp gt(next, imm(typeMax − step))` (descending),
   type-stamped with `counterType`. Reads only `next` (the value `incrementCounter` already stored)
   — reloaded single-use so it folds into the compare; **no pre-step temp, no scratch**.
 
@@ -130,7 +143,9 @@ via `ctx.model`. **This is a `packages/core` change** (impact was missed in the 
   load  current, i
   add   next, current, #s
   store i, next
-  brcmp lt(next, #s) ? end : cond     ; NEW — post-step value below the step ⇒ it wrapped
+  load  next2, i                       ; FRESH single-use reload — keeps next2 single-use into the
+                                        ; compare so it folds (else the add-dest goes multi-use → word ICE, PF-045)
+  brcmp lt(next2, #(typeMin + s)) ? end : cond   ; NEW — post-step below typeMin+s ⇒ it wrapped
 ```
 
 ## Error Handling
@@ -152,7 +167,8 @@ via `ctx.model`. **This is a `packages/core` change** (impact was missed in the 
   oracle): IL-level `brcmp` wrap-form assertion (AC-4); the wrap guard is **present** on
   wrap-unsafe loops and **absent** on wrap-safe ones (gating); one end-to-end asm case asserting
   the wrap compare's taken edge resolves (through relaxation/inversion) to the loop-exit label and
-  its memory operand is **not** the counter slot (PF-007 — rules out the stale-reload trap);
+  **exactly one** of its operand pair reads the counter slot, the other the immediate — never both
+  the slot (PF-007/PF-034 — rules out the stale-reload trap, direction-tolerant across the `gt` swap);
   oversized-body relaxation (AC-5); the `[CI]`-observable half of the axis matrix per §07. Named-
   const interior bound emits **no** guard (PF-010); literal `step ≥ 2^width` diagnoses (PF-009).
 - Spec (`[local]`, VICE — the only tier that observes behaviour): termination + exact visit-count

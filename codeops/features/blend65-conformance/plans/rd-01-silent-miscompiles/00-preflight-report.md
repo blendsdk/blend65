@@ -1,8 +1,55 @@
 # Preflight Report: RD-01 Silent Miscompiles (plan)
 
-> **Status**: 🔧 REVISION APPLIED — all 31 findings resolved in the plan docs (2026-07-22); awaiting preflight iteration 2
-> **Resolution**: User chose "full revision now" and adopted **PF-001 Option A** (reconstruction-immediate). AR-P3 reopened → Option A; AR-P9 added (PF-013 spill proxy). All 13 majors and 17 minors applied per each finding's recommendation. Task count 49→52; register 8→9 items. Re-preflight pending.
-> **Iteration**: 1 (first plan scan)
+> **Status**: 🔧 ITERATION 2 REVISION APPLIED — it.1 (31) + it.2 (16) findings resolved (2026-07-22); awaiting preflight iteration 3
+> **Iteration 1 resolution**: full revision; PF-001 Option A (reconstruction-immediate). AR-P3 reopened; AR-P9 added. 31 findings applied. 49→52 tasks.
+> **Iteration 2 resolution**: the it.1 revision's reconstruction-immediate **translated** (verified by 2 clusters) but its **ascending immediate was wrong for signed counters** — found by 3 clusters + lead-derived. Corrected to `next < typeMin + step` (PF-032). Task 1.2 step-check moved to P1-b (PF-033); ST-14 made direction-tolerant (PF-034); 13 minors applied; AR-P10 added. Register 9→10 items.
+> **Iteration**: 2 (re-scan of the it.1 revision)
+
+---
+
+## Iteration 2 — re-scan of the revised plan
+
+> **Previous iteration**: PF-001…PF-031 — all resolved and verified in it.2 (every it.1 fix confirmed landed and code-true across clusters).
+> **This iteration**: 16 new findings (PF-032…PF-047) — 1 CRITICAL, 2 MAJOR, 13 MINOR — all resolved in the plan.
+> **Scan**: 4 Fable clusters (①+③ merged) + lead. Same-session caveat unchanged.
+
+### The it.2 CRITICAL (three clusters + lead, converged)
+
+**PF-032: the ascending reconstruction immediate `next < step` is wrong for signed counters.**
+The `brcmp` is signed-dispatched on the counter type. For a signed counter, a non-wrapped post-step
+value lands in `[typeMin+step, typeMax]` (which includes negatives); only `next < typeMin + step`
+separates it from a wrapped value in `[typeMin, typeMin+step−1]`. The plan's `next < step` fires on
+the first negative-range value — `for (let i: sbyte = -5 to 127)` would exit after **one** iteration.
+A silent wrong-visit-count miscompile, introduced by the it.1 revision, in the R1-protected class —
+the same defect species one axis further out (unsigned→signed). Descending (`next > typeMax − step`)
+was already the general form and is correct. **Fix**: ascending immediate = `typeMin + step` (unsigned
+`typeMin=0` unchanged) in the register/03-01/00-index/99; + a `[CI]` shape row (ST-5c) pinning the
+signed-ascending immediate and a `[local]` count cell (`sbyte -5 to 127` = 133). **No oracle caught
+it** because every signed ST row was descending or non-negative — now closed.
+
+### it.2 MAJOR
+
+| PF | Finding | Fix |
+|---|---|---|
+| PF-033 | Task 1.2.2 (step range-check) rejects `step 256`, which compiles today → P1-a is not behaviour-neutral (2 clusters) | Move the step-check to **P1-b** (rides ST-6b); correct the "today-uncompilable" label to "corpus-neutral" |
+| PF-034 | ST-14's "operand is an immediate, not the counter slot" **fails a correct descending** loop — the translator's `gt`-swap puts the slot in the compare operand | Reword direction-tolerant: **exactly one** operand reads the slot, the other the immediate — never both |
+
+### it.2 MINOR (13, all applied)
+
+PF-035 (E10061 code identity — extend the one code, not a "range sibling") · PF-036 (durable record → AR-P10 + errata) · PF-037 (ST-30c: codegen-tier `:701` width oracle, frontend can't see it) · PF-038 (delete 1.1.2 "also add ST-9b" residue) · PF-039 (ST-5b was dropped from task 1.1.1's list) · PF-040 (ST-38 golden perturbation untasked → extend 1.3.3) · PF-041 (02 "six sites" stale) · PF-042 (ST-17 "no second store" belongs to test-harness ST-20A) · PF-043 (AC-4 comparand-supersession note) · PF-044 (3.1.1 audit extended to byte-affecting sibling shapes) · PF-045 (03-01 IL schematic now shows the single-use reload) · PF-046 (immediates valid only under the `s ≤ typeMax` cap — invariant stated) · PF-047 (ST-7: `0` is visited once at init; reworded to 128 total, no re-entry).
+
+### it.2 verified (carried from it.1)
+
+All 31 it.1 fixes confirmed landed and code-true. Notably the reconstruction-immediate **architecture
+translates** at both widths (2 clusters, grounded in `translate.ts` `foldStoreHome`/`bindA`); ④'s
+corpus scan found **no example reuses a local name**, so ST-38 byte-identity holds.
+
+### Verdict (it.2)
+
+❌ **BLOCKED at scan; resolved by revision.** One CRITICAL (a one-immediate arithmetic fix + two
+test cells, not a redesign — the architecture survived audit) and two MAJORs (a task-move and an
+oracle reword). The trend is convergent: it.1 = 1C+13M+17m; it.2 = 1C+2M+13m, and the it.2 CRITICAL
+is a single formula term. Awaiting preflight iteration 3.
 > **Artifact**: implementation plan at `codeops/features/blend65-conformance/plans/rd-01-silent-miscompiles/`
 > **Codebase Grounded**: ~20 source files examined; all 13 plan code-claims re-verified; CRITICAL + 2 new majors lead-verified firsthand
 > **Last Updated**: 2026-07-22

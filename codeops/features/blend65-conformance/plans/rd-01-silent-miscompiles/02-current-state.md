@@ -5,7 +5,7 @@
 
 All line numbers verified at HEAD (`feat/asm-parity`, 2026-07-22). RD-01 §"The defects" owns the
 root-cause narrative and the probe evidence; this document records only the code as it stands at
-the six sites the plan modifies, so the executor starts from ground truth rather than the RD's
+the sites the plan modifies, so the executor starts from ground truth rather than the RD's
 prose.
 
 ## Existing Implementation
