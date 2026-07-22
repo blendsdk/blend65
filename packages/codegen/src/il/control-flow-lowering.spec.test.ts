@@ -351,3 +351,220 @@ describe("Specification: condition-position compare-and-branch fusion", () => {
     expect(text).not.toContain("brcmp");
   });
 });
+
+/** Lowers `source` like `lowerRealSource` but returns only the emitted diagnostic codes. */
+function lowerCodes(source: string): string[] {
+  const bag = createDiagnosticBag();
+  const { tokens } = lex(1, source, bag);
+  const { ast }: { ast: ProgramNode } = parse({ tokens, source, sourceId: 1, bag });
+  const model = analyze({ programs: [ast], bag, profile: DEFAULT_PROFILE });
+  const plan = planAllocation(
+    {
+      functions: modelToFunctionInfo(model),
+      moduleVars: modelToModuleVars(model),
+      zpUserVars: [],
+      upstreamErrors: bag.hasErrors(),
+    },
+    DEFAULT_PROFILE,
+    bag,
+  );
+  lowerToIL({ program: [ast], model, plan }, bag);
+  return bag.getAll().map((d) => d.code);
+}
+
+/**
+ * Wraps a for-loop header in the standard test program. `modulePrelude` lands at
+ * module scope (const declarations); `fnPrelude` lands as the first statement of main.
+ */
+function forProgram(header: string, modulePrelude = "", fnPrelude = ""): string {
+  return (
+    `module Main;\nlet sum: byte;\n${modulePrelude}` +
+    `function main(): void { ${fnPrelude}${header} { sum = sum + 1; } }\n`
+  );
+}
+
+// A for-loop counter that can only pass its bound by WRAPPING (not by reaching it)
+// would spin forever. The increment block therefore gains a wrap guard: after the
+// step is stored, the counter is freshly reloaded and compared against a
+// compile-time immediate — ascending guards use `lt` against typeMin + step,
+// descending guards use `gt` against typeMax − step — exiting the loop on wrap.
+// The guard supplements the retained bound compare in the condition block; it is
+// omitted only when the bound is statically known AND stepping past it stays in
+// range (ascending: bound + step ≤ typeMax; descending: bound − step ≥ typeMin).
+// A runtime bound is never wrap-safe.
+describe("Specification: for-loop wrap guard at type extremes", () => {
+  it("should emit a gt-254 wrap guard alongside the retained ge compare when a byte loop counts down to 0", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 9 downto 0)"));
+    expect(hasErrors).toBe(false);
+    // the descending bound compare in the condition block is retained …
+    expect(text).toMatch(/brcmp ge i8u/);
+    // … and the increment block adds the wrap guard: gt against 255 − 1.
+    expect(text).toMatch(/brcmp gt i8u %\d+, 254,/);
+  });
+
+  it("should compile without errors and emit a lt-1 wrap guard when a byte loop counts up to 255", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 0 to 255)"));
+    // the full-range loop compiles cleanly (no internal error) …
+    expect(hasErrors).toBe(false);
+    // … and gets the ascending wrap guard: lt against 0 + 1.
+    expect(text).toMatch(/brcmp lt i8u %\d+, 1,/);
+  });
+
+  it("should emit the lt-1 wrap guard when the 255 bound arrives through a named constant", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: byte = 0 to MAX)", "const MAX: byte = 255;\n"),
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toMatch(/brcmp lt i8u %\d+, 1,/);
+  });
+
+  it("should emit a gt-65534 wrap guard when a word loop counts down to 0", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: word = 500 downto 0)"));
+    expect(hasErrors).toBe(false);
+    // descending word guard: gt against 65535 − 1.
+    expect(text).toMatch(/brcmp gt i16u %\d+, 65534,/);
+  });
+
+  it("should emit a lt-1 wrap guard when a word loop counts up to a 0xFFFF named constant", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: word = 0 to M)", "const M: word = 0xFFFF;\n"),
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toMatch(/brcmp lt i16u %\d+, 1,/);
+  });
+
+  it("should emit a signed gt-126 wrap guard when an sbyte loop counts down to -128", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: sbyte = 5 downto -128)"));
+    expect(hasErrors).toBe(false);
+    // descending sbyte guard: gt against 127 − 1, on the signed tag.
+    expect(text).toMatch(/brcmp gt i8s %\d+, 126,/);
+  });
+
+  it("should emit a signed gt-32766 wrap guard when an sword loop counts down to -32768", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: sword = 100 downto -32768)"),
+    );
+    expect(hasErrors).toBe(false);
+    // descending sword guard: gt against 32767 − 1.
+    expect(text).toMatch(/brcmp gt i16s %\d+, 32766,/);
+  });
+
+  it("should anchor the signed ascending guard at typeMin + step, never at the bare step, when an sbyte loop climbs a runtime bound", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: sbyte = -5 to lim)", "", "let lim: sbyte = 100; "),
+    );
+    expect(hasErrors).toBe(false);
+    // ascending sbyte guard: lt against −128 + 1 = −127.
+    expect(text).toMatch(/brcmp lt i8s %\d+, -127,/);
+    // a bare-step immediate (lt 1) would exit at the first negative counter value.
+    expect(text).not.toMatch(/brcmp lt i8s %\d+, 1,/);
+  });
+
+  it("should fold the step into the guard immediate (gt 253) when a byte loop counts down by 2", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: byte = 9 downto 1 step 2)"),
+    );
+    expect(hasErrors).toBe(false);
+    // descending byte guard with step 2: gt against 255 − 2.
+    expect(text).toMatch(/brcmp gt i8u %\d+, 253,/);
+  });
+
+  it("should reject a step of at least 2^width with the step-validity diagnostic", () => {
+    const codes = lowerCodes(forProgram("for (let i: byte = 0 to 10 step 256)"));
+    // a step no counter value can survive is a compile-time error, not silent wrap.
+    expect(codes).toContain("E10061");
+  });
+
+  it("should fold the step into the guard immediate (lt 2) when a byte loop climbs to 254 by 2", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 0 to 254 step 2)"));
+    expect(hasErrors).toBe(false);
+    // ascending byte guard with step 2: lt against 0 + 2.
+    expect(text).toMatch(/brcmp lt i8u %\d+, 2,/);
+  });
+
+  it("should anchor the signed ascending stepped guard at typeMin + step (lt -125) when an sbyte loop climbs to 126 by 3", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: sbyte = 0 to 126 step 3)"));
+    expect(hasErrors).toBe(false);
+    // ascending sbyte guard with step 3: lt against −128 + 3 = −125, signed tag.
+    expect(text).toMatch(/brcmp lt i8s %\d+, -125,/);
+  });
+
+  it("should emit no wrap guard when a byte loop stays in the interior of its range", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 0 to 9)"));
+    expect(hasErrors).toBe(false);
+    // wrap-safe: stepping past bound 9 stays in range, so no guard appears —
+    // the only comparison branch is the retained bound compare.
+    expect(text).not.toMatch(/brcmp lt i8u/);
+    expect(text).toMatch(/brcmp le i8u/);
+    expect((text.match(/brcmp/g) ?? []).length).toBe(1);
+  });
+
+  it("should emit no wrap guard when an interior bound arrives through a named constant", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: byte = 0 to N)", "const N: byte = 10;\n"),
+    );
+    expect(hasErrors).toBe(false);
+    // a named constant folding to an interior bound is just as wrap-safe.
+    expect(text).not.toMatch(/brcmp lt i8u/);
+    expect(text).toMatch(/brcmp le i8u/);
+    expect((text.match(/brcmp/g) ?? []).length).toBe(1);
+  });
+
+  it("should keep the zero-trip bound compare and emit no guard when the init already exceeds a wrap-safe bound", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 9 to 0)"));
+    expect(hasErrors).toBe(false);
+    // the retained bound compare makes the loop fall straight through …
+    expect(text).toMatch(/brcmp le i8u/);
+    // … and bound 0 is wrap-safe, so no ascending guard is added.
+    expect(text).not.toMatch(/brcmp lt i8u/);
+  });
+
+  it("should emit the lt-1 wrap guard when a constant expression folds the bound to 255", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 0 to 254 + 1)"));
+    expect(hasErrors).toBe(false);
+    expect(text).toMatch(/brcmp lt i8u %\d+, 1,/);
+  });
+
+  it("should emit the wrap guard when the bound is a runtime variable", () => {
+    const { text, hasErrors } = lowerRealSource(
+      forProgram("for (let i: byte = 0 to limit)", "", "let limit: byte = 255; "),
+    );
+    expect(hasErrors).toBe(false);
+    // a bound unknown at compile time can never be proven wrap-safe.
+    expect(text).toMatch(/brcmp lt i8u %\d+, 1,/);
+  });
+
+  it("should guard on a fresh post-store reload of the counter, not the add's destination temp", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 0 to 255)"));
+    expect(hasErrors).toBe(false);
+    const { sections } = splitBlocks(text);
+    // the increment block both steps the counter and stores it back to its slot.
+    const incr = [...sections.values()].find(
+      (chunk) => chunk.includes("add i8u") && /store [^\n]*__frame_Main_main_i/.test(chunk),
+    );
+    expect(incr).toBeDefined();
+    // the counter slot is loaded twice in that block: once feeding the add,
+    // once as the fresh reload the guard compares.
+    const loads = [...incr!.matchAll(/%(\d+) = load i8u __frame_Main_main_i/g)];
+    expect(loads).toHaveLength(2);
+    // the fresh reload happens after the store, so it observes the stepped value.
+    const storeIdx = incr!.search(/store [^\n]*__frame_Main_main_i/);
+    expect(loads[1].index).toBeGreaterThan(storeIdx);
+    // the guard branches on the reload's temp, not on the add's destination temp.
+    const addDest = incr!.match(/%(\d+) = add i8u/);
+    expect(addDest).not.toBeNull();
+    const guard = incr!.match(/brcmp lt i8u %(\d+),/);
+    expect(guard).not.toBeNull();
+    expect(guard![1]).toBe(loads[1][1]);
+    expect(guard![1]).not.toBe(addDest![1]);
+  });
+
+  it("should compare one counter temp against a bare numeric immediate, never two temps", () => {
+    const { text, hasErrors } = lowerRealSource(forProgram("for (let i: byte = 0 to 255)"));
+    expect(hasErrors).toBe(false);
+    // exact operand shape: %temp on the left, a literal number on the right.
+    expect(text).toMatch(/brcmp lt i8u %\d+, \d+, _L\d+, _L\d+/);
+    // comparing against another temp would test the pre-step value, not wrap.
+    expect(text).not.toMatch(/brcmp lt i8u %\d+, %\d+/);
+  });
+});

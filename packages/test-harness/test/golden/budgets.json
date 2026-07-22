@@ -45,14 +45,14 @@
       "windows": []
     },
     "slice8b": {
-      "bytes": 387,
+      "bytes": 391,
       "windows": [
         {
           "name": "copyLoop",
           "fromLabel": "Main_copyBytes_L0",
           "toLabel": "Main_copyBytes_L3",
           "kind": "span",
-          "staticMaxCycles": 54
+          "staticMaxCycles": 60
         }
       ]
     },

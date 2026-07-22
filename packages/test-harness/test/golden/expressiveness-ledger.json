@@ -61,26 +61,6 @@
       "note": "A screen-sized 25x40 map. A small map with byte indices folds and compiles; the failure needs a realistic size, which is exactly the shape a game uses."
     },
     {
-      "id": "X-07",
-      "idiom": "The canonical full-page loop",
-      "source": "module Main;\nfunction main(): void {\n  for (let i: byte = 0 to 255) { poke($D020, i); }\n}\n",
-      "expect": "diagnostic",
-      "code": "E90001",
-      "governedBy": "slice-4a AR-6 — deferred to a follow-up that no longer exists",
-      "owner": "blend65-conformance RD-01",
-      "note": "spec/05-statements-control-flow.md:253 explicitly promises this compiles via INX/BNE-wrap. The named-const spelling of the same loop does NOT error - it silently hangs, and is not separately listed here because the same fix retires both."
-    },
-    {
-      "id": "X-08",
-      "idiom": "Count down to zero — the canonical 6502 loop",
-      "source": "module Main;\nfunction main(): void {\n  for (let i: byte = 9 downto 0) { poke($D020, i); }\n}\n",
-      "expect": "miscompiles",
-      "asmSignature": "CMP #$00\n    BCC",
-      "governedBy": "none — drift",
-      "owner": "blend65-conformance RD-01",
-      "note": "Compiles clean and emits CMP #$00 / BCC, a branch that can never be taken. The loop never exits. The signature pins the ADJACENT PAIR, not a bare BCC: the fix emits a carry-based wrap exit that legitimately contains BCC, so a loose signature would stay green after the defect was gone and this entry would never force its own retirement."
-    },
-    {
       "id": "X-09",
       "idiom": "Exclusive range over an array",
       "source": "module Main;\nlet buf: byte[8];\nfunction main(): void {\n  for (let i: byte = 0 until 8) { buf[i] = 0; }\n}\n",

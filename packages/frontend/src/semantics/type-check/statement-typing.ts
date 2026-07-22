@@ -807,19 +807,28 @@ function typeFor(
     }
   }
 
-  // (4) step positivity (E10061): present → must fold to an integer ≥ 1.
+  // (4) step validity (E10061): present → a positive compile-time constant that
+  // also fits the counter type. A step wider than the type's maximum wraps to a
+  // smaller effective step — possibly zero — on the hardware, so the counter
+  // would never make real progress and the loop would silently never end.
   if (stmt.step !== null) {
     const step = evalConst(stmt.step);
-    const ok =
-      step.kind === "value" &&
-      typeof step.value === "number" &&
-      Number.isInteger(step.value) &&
-      step.value >= 1;
-    if (!ok) {
+    const value =
+      step.kind === "value" && typeof step.value === "number" && Number.isInteger(step.value)
+        ? step.value
+        : null;
+    if (value === null || value < 1) {
       ctx.bag.addError(
         DiagCode.StepValueNotPositive, // E10061
         stmt.step.span,
         "For-loop step must be a positive compile-time constant",
+      );
+    } else if (value > range.max) {
+      ctx.bag.addError(
+        DiagCode.StepValueNotPositive, // E10061
+        stmt.step.span,
+        `For-loop step ${value} is out of range for type '${typeName(counterType)}' ` +
+          `(must be 1 to ${range.max})`,
       );
     }
   }

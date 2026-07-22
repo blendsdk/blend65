@@ -211,8 +211,12 @@ export const DiagCode = {
   //   spec's own condition code E10100 is already taken by
   //   `UndeclaredIdentifier`, so the boolean-condition check uses the next
   //   free control-flow code, adjacent to the loop-context codes.
-  // - E10061: a for-loop `step` that is not a positive compile-time constant
-  //   (zero / negative / non-const). Free in this registry.
+  // - E10061: a for-loop `step` that is not valid — either not a positive
+  //   compile-time constant (zero / negative / non-const), OR larger than the
+  //   counter type's maximum. A step wider than the type wraps to a smaller
+  //   effective step (or zero) on the hardware, so the loop would silently
+  //   never terminate; it is rejected here rather than miscompiled. Free in
+  //   this registry.
   // - E10065: a for-loop counter whose type is missing or non-integer
   //   (`integerRange(counterType) === null`). The counter annotation is
   //   optional in the parser (`parse-stmt.ts`), so a null/boolean/void

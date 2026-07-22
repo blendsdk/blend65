@@ -92,7 +92,9 @@ Main_copyBytes_L2:
     CLC
     ADC #$01
     STA __frame_Main_copyBytes_i
-    JMP Main_copyBytes_L0
+    LDA __frame_Main_copyBytes_i
+    CMP #$01
+    BCS Main_copyBytes_L0
 Main_copyBytes_L3:
     RTS
 ; --- function: Main.main ---

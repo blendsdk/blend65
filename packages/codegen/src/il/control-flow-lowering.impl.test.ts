@@ -69,12 +69,25 @@ describe("RD-18 Slice 4a CFG lowering internals (P2)", () => {
     expect(text).toContain("sub i8u"); // downto → decrement
   });
 
-  it("records an ICE (never throws) for the Pattern-B full-range 'to 255' (AR-6)", () => {
-    const { iceCount, threw } = lowerReal(
+  it("compiles the full-range 'to 255' with a wrap guard, no ICE", () => {
+    const { text, iceCount, threw } = lowerReal(
       "module Main;\nfunction main(): void { for (let i: byte = 0 to 255) {} }\n",
     );
     expect(threw).toBe(false);
-    expect(iceCount).toBeGreaterThanOrEqual(1); // Pattern-B wrap deferred → ICE
+    expect(iceCount).toBe(0); // the full-range loop now compiles: the wrap guard terminates it
+    // the ascending wrap guard compares the post-step counter with typeMin+step (0+1).
+    expect(text).toMatch(/brcmp lt i8u %\d+, 1,/);
+  });
+
+  it("adds a descending wrap guard at the type minimum ('downto 0')", () => {
+    const { text, iceCount } = lowerReal(
+      "module Main;\nlet sum: byte;\nfunction main(): void {" +
+        " for (let i: byte = 9 downto 0) { sum = sum + i; } }\n",
+    );
+    expect(iceCount).toBe(0);
+    // descending wrap guard: gt against typeMax − step (255 − 1); the ge bound compare is retained.
+    expect(text).toContain("ge i8u");
+    expect(text).toMatch(/brcmp gt i8u %\d+, 254,/);
   });
 });
 

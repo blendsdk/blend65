@@ -693,9 +693,11 @@ function lowerDoWhile(stmt: DoWhileStmtNode, ctx: LowerCtx): void {
  * `incr`; `incr` adds/subtracts the const step and back-edges to `cond`.
  * `break`→`end`, `continue`→`incr`.
  *
- * Full-range guard: a `to <type-max>` inclusive bound is the Pattern-B wrap
- * case — its `counter <= max` predicate can never go false — so it records an
- * ICE (Pattern B deferred) rather than lower a non-terminating loop.
+ * Wrap guard: a loop whose counter can pass its bound by WRAPPING — a
+ * full-range bound, or a step that escapes the range — never terminates on the
+ * bound compare alone (`counter <= max` can never go false). When the analysis
+ * on the loop did not prove it wrap-safe, `incr` ends with an extra branch that
+ * exits the loop the moment the step wraps the counter past its type extreme.
  */
 function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
   const counterType = slotIlType(ctx.frame, stmt.varName);
@@ -714,16 +716,6 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
 
   // cond: continue while counter <= bound (to) / >= bound (downto) — Pattern A.
   ctx.builder.openBlock(condL);
-  if (
-    stmt.direction === "to" &&
-    stmt.bound.kind === "NumericLitExpr" &&
-    stmt.bound.value === ilTypeMax(counterType)
-  ) {
-    // Pattern-B wrap (full-range `to <type-max>`) is deferred: a compare
-    // `counter <= max` never falls through. Record the ICE; the emitted compare is
-    // never assembled (hasErrors), but keeps the block well-formed.
-    iceUnsupported(stmt, ctx, "for-loop full-range 'to <type-max>' (Pattern B deferred)");
-  }
   const boundValue = lowerExpr(stmt.bound, ctx);
   branchOnCounter(counterLoc, counterType, stmt.direction, boundValue, bodyL, endL, ctx);
 
@@ -733,10 +725,19 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
   if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: incrL });
   ctx.loopStack.pop();
 
-  // incr: counter = counter ± step
+  // incr: counter = counter ± step, then back-edge to cond — unless the loop is
+  // not provably wrap-safe, in which case an extra branch exits the moment the
+  // step wrapped the counter past its bound (the only thing that makes a
+  // full-range or step-escaping loop terminate at all).
   ctx.builder.openBlock(incrL);
-  incrementCounter(counterLoc, counterType, stmt.direction, constStep(stmt.step, ctx), ctx);
-  ctx.builder.terminate({ kind: "br", target: condL });
+  const step = constStep(stmt.step, ctx);
+  incrementCounter(counterLoc, counterType, stmt.direction, step, ctx);
+  const wrapSafe = ctx.model.forLoopInfo.get(stmt)?.wrapSafe ?? false;
+  if (wrapSafe) {
+    ctx.builder.terminate({ kind: "br", target: condL });
+  } else {
+    wrapExitBranch(counterLoc, counterType, stmt.direction, step, condL, endL, ctx);
+  }
 
   ctx.builder.openBlock(endL);
 }
@@ -883,6 +884,46 @@ function incrementCounter(
 }
 
 /**
+ * Terminate the increment block with the wrap-exit branch: exit the loop when
+ * the just-stored counter has wrapped past its bound, else back-edge to `cond`.
+ *
+ * The test is reconstructed from the post-step counter ALONE, compared against a
+ * compile-time immediate — ascending wrap ⟺ `next < typeMin + step`, descending
+ * ⟺ `next > typeMax − step`. The counter is reloaded fresh here (a single-use
+ * temp the compare consumes) rather than reusing the increment's own temps: a
+ * single-use value folds into the compare at every width, and never forces a
+ * pre-step counter value to stay live across the arithmetic (which the
+ * instruction layer cannot honour). The compare is stamped with the counter
+ * type, so one form is correct for byte/word/sbyte/sword — the ascending
+ * immediate carries `typeMin` (0 for unsigned) so a signed loop climbing
+ * through negatives is not cut short. Assumes `1 ≤ step ≤ typeMax`, which the
+ * frontend step check guarantees.
+ */
+function wrapExitBranch(
+  counterLoc: ILOperand,
+  counterType: ILType,
+  direction: "to" | "downto",
+  step: number,
+  condL: string,
+  endL: string,
+  ctx: LowerCtx,
+): void {
+  const next = ctx.builder.newTemp(counterType);
+  ctx.builder.emit({ op: "load", a: next, b: counterLoc });
+  const boundary =
+    direction === "to" ? ilTypeMin(counterType) + step : ilTypeMax(counterType) - step;
+  ctx.builder.terminate({
+    kind: "brcmp",
+    op: direction === "to" ? "lt" : "gt",
+    left: next,
+    right: imm(boundary, counterType),
+    type: counterType,
+    trueTarget: endL,
+    falseTarget: condL,
+  });
+}
+
+/**
  * The compile-time for-loop step: absent → 1; a numeric literal → its value. The
  * semantic pass has already required a present `step` to be a positive constant
  * (E10061); lowering only folds a literal here (the const-evaluator is
@@ -915,10 +956,16 @@ function lowerContinue(stmt: StmtNode, ctx: LowerCtx): void {
   ctx.builder.terminate({ kind: "br", target: top.continueTarget });
 }
 
-/** The inclusive maximum value representable by an IL integer type (used by the full-range guard). */
+/** The inclusive maximum value representable by an IL integer type. */
 function ilTypeMax(t: ILType): number {
   if (t.signed) return t.width === 8 ? 127 : 32767;
   return t.width === 8 ? 255 : 65535;
+}
+
+/** The inclusive minimum value representable by an IL integer type. */
+function ilTypeMin(t: ILType): number {
+  if (t.signed) return t.width === 8 ? -128 : -32768;
+  return 0;
 }
 
 /** Lower a single expression to an operand; ICE default for unsupported expression kinds. */
