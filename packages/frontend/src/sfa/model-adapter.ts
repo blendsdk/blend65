@@ -431,13 +431,44 @@ function collectFrameVars(
   kind: "parameter" | "variable",
   pairAccessed: ReadonlySet<Symbol>,
 ): FrameVar[] {
+  const widest = kind === "variable" ? widestLocalTypes(scope) : null;
   const vars: FrameVar[] = [];
   for (const sym of scope.symbols.values()) {
     if (sym.kind === kind) {
-      vars.push({ name: sym.name, type: sym.type, byRef: sym.byRef && pairAccessed.has(sym) });
+      const type = widest?.get(sym.name) ?? sym.type;
+      vars.push({ name: sym.name, type, byRef: sym.byRef && pairAccessed.has(sym) });
     }
   }
   return vars;
+}
+
+/**
+ * The widest declared type per local name in a function body.
+ *
+ * Blocks that cannot be live at once may each declare the same name, and they
+ * deliberately share one frame slot — but the slot has to hold the LARGEST of
+ * them. Sized to anything narrower, a store through the wider declaration
+ * writes past the slot and corrupts whichever variable follows it. Only the
+ * size changes; the slot keeps its position, and the later slots shift along
+ * by the difference exactly as the positional layout intends.
+ *
+ * @param bodyScope The function body scope (its nested blocks hold the rest).
+ * @returns Local name → the widest type declared for it anywhere in the body.
+ */
+function widestLocalTypes(bodyScope: Scope): Map<string, Type> {
+  const widest = new Map<string, Type>();
+  const visit = (scope: Scope): void => {
+    for (const sym of scope.symbols.values()) {
+      if (sym.kind !== "variable") continue;
+      const current = widest.get(sym.name);
+      if (current === undefined || byteSize(sym.type) > byteSize(current)) {
+        widest.set(sym.name, sym.type);
+      }
+    }
+    for (const child of scope.children) visit(child);
+  };
+  visit(bodyScope);
+  return widest;
 }
 
 /**

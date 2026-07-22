@@ -63,6 +63,12 @@ export interface TypeCheckContext {
    * whether each counted loop needs a runtime wrap guard.
    */
   readonly forLoopInfo: Map<ForStmtNode, ForLoopInfo>;
+  /**
+   * Block-introducing node → the nested `Scope` its declarations live in.
+   * Threaded as the walk enters each block so a name resolves to the
+   * declaration lexically covering it rather than to the last one collected.
+   */
+  readonly blockScopeByNode: ReadonlyMap<AstNode, Scope>;
   /** Per-function signature cache, computed on first call-site use. */
   readonly signatures: Map<Symbol, FnSignature>;
   /** The resolved entry-point symbol (calling it directly is an error). */

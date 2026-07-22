@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-22 17:52
-> **Progress**: 26/52 tasks (50%)
+> **Last Updated**: 2026-07-22 23:31
+> **Progress**: 37/52 tasks (71%)
 > **CodeOps Skills Version**: 3.11.0
 
 ## Overview
@@ -137,23 +137,23 @@ Commit mechanics are owned by exec_plan (`/gitcm`).
 
 ### Step 3.1: Specification tests (+ R8 fixture audit, pre-wiring)
 
-- [ ] 3.1.1 **R8 fixture + example audit (BEFORE wiring — PF-004/PF-044):** scan for nested reuse / shadowing / duplicate-`let` shapes the R5 diagnostics will turn red, **and** for differing-width same-name **sibling** shapes that widest-sizing/per-use width will change *bytes* on (no diagnostic fires, but a golden could shift) — so both the diagnostic and byte-neutrality exposures are pre-enumerated. (C-01 scanned only downto/step/word/poke, never sibling reuse; a fresh corpus scan found no local-name reuse today, but the audit makes P3's byte-neutrality verified, not assumed)
-- [ ] 3.1.2 [spec-author] Write the five R5 diagnostic tests ST-25…ST-29 (`E10101`/`E10003`/`E10062`) + the sibling no-diagnostic ST-30 and **sibling for-counter** ST-30b (PF-012) — shadowing/reuse spec (`frontend`)
-- [ ] 3.1.3 [spec-author] Write the pop-2 **layout** assertion ST-31 (frontend) + the pop-2 store-extent/pop-3 wide-read **value** assertion ST-32 and the **sibling-counter width** assertion ST-30c (codegen/`test-harness` — R15 keeps emitted width/extent out of the frontend tier, PF-025/PF-037)
-- [ ] 3.1.4 Run — verify FAIL (red phase); document any negative control green by construction (ST-30/ST-30b)
+- [x] 3.1.1 **R8 fixture + example audit (BEFORE wiring — PF-004/PF-044):** scan for nested reuse / shadowing / duplicate-`let` shapes the R5 diagnostics will turn red, **and** for differing-width same-name **sibling** shapes that widest-sizing/per-use width will change *bytes* on (no diagnostic fires, but a golden could shift) — so both the diagnostic and byte-neutrality exposures are pre-enumerated. (C-01 scanned only downto/step/word/poke, never sibling reuse; a fresh corpus scan found no local-name reuse today, but the audit makes P3's byte-neutrality verified, not assumed)
+- [x] 3.1.2 [spec-author] Write the five R5 diagnostic tests ST-25…ST-29 (`E10101`/`E10003`/`E10062`) + the sibling no-diagnostic ST-30 and **sibling for-counter** ST-30b (PF-012) — shadowing/reuse spec (`frontend`)
+- [x] 3.1.3 [spec-author] Write the pop-2 **layout** assertion ST-31 (frontend) + the pop-2 store-extent/pop-3 wide-read **value** assertion ST-32 and the **sibling-counter width** assertion ST-30c (codegen/`test-harness` — R15 keeps emitted width/extent out of the frontend tier, PF-025/PF-037)
+- [x] 3.1.4 Run — verify FAIL (red phase); document any negative control green by construction (ST-30/ST-30b)
 
 ### Step 3.2: Implementation — retention → diagnostics → sizing (PF-002 ordering)
 
-- [ ] 3.2.1 **Retention (first):** retain per-declaration types on the `Symbol` (`packages/core/src/semantics/symbol.ts`) + sibling-distinguishing structure in `function-collection.ts`; resolve per-use width at **every** local consumer — `lower.ts:701` (counter), `:525` (let-store), `:1184` (read), `:1634` (store) — instead of name-keyed `slotIlType` (pop-3, PF-012, AR-P4). Allocation stays positional
-- [ ] 3.2.2 **Diagnostics:** register `E10062` in `packages/core/src/diagnostics/diagnostic-codes.ts` (RD AR-6, PF-003) and wire R5 on the now-distinguishable scopes: `E10101` shadow, `E10003` duplicate, `E10062` nested counter — silent on siblings
-- [ ] 3.2.3 **Sizing:** at the retention-layer projection into `FrameVar`s (`collectFrameVars`/`model-adapter.ts`, where colliding widths still exist — NOT `frame-computation.ts`, which never sees a collision, PF-002), collapse to the **widest**; `frame-computation` recomputes offsets over the resized slots (later slots shift by the delta — that shift IS the fix, PF-011)
-- [ ] 3.2.4 Run — verify PASS (green phase)
+- [x] 3.2.1 **Retention (first):** retain per-declaration types on the `Symbol` (`packages/core/src/semantics/symbol.ts`) + sibling-distinguishing structure in `function-collection.ts`; resolve per-use width at **every** local consumer — `lower.ts:701` (counter), `:525` (let-store), `:1184` (read), `:1634` (store) — instead of name-keyed `slotIlType` (pop-3, PF-012, AR-P4). Allocation stays positional
+- [x] 3.2.2 **Diagnostics:** register `E10062` in `packages/core/src/diagnostics/diagnostic-codes.ts` (RD AR-6, PF-003) and wire R5 on the now-distinguishable scopes: `E10101` shadow, `E10003` duplicate, `E10062` nested counter — silent on siblings
+- [x] 3.2.3 **Sizing:** at the retention-layer projection into `FrameVar`s (`collectFrameVars`/`model-adapter.ts`, where colliding widths still exist — NOT `frame-computation.ts`, which never sees a collision, PF-002), collapse to the **widest**; `frame-computation` recomputes offsets over the resized slots (later slots shift by the delta — that shift IS the fix, PF-011)
+- [x] 3.2.4 Run — verify PASS (green phase)
 
 ### Step 3.3: Implementation tests & hardening
 
-- [ ] 3.3.1 Impl tests: widest-sizing internals; **later-slot offsets equal the recomputed running sum, no overlap** (NOT offset identity — PF-011); per-use resolution edge cases incl. sibling for-counters
-- [ ] 3.3.2 AC-15: perturb each new M-03 assertion once, restore
-- [ ] 3.3.3 Full verify
+- [x] 3.3.1 Impl tests: widest-sizing internals; **later-slot offsets equal the recomputed running sum, no overlap** (NOT offset identity — PF-011); per-use resolution edge cases incl. sibling for-counters
+- [x] 3.3.2 AC-15: perturb each new M-03 assertion once, restore
+- [x] 3.3.3 Full verify
 
 **Deliverables**: R5 diagnostics; sibling reuse (incl. for-counters) compiles clean; widest slot; wide read/store emit full width.
 

@@ -522,7 +522,7 @@ function lowerLetDecl(decl: LetDeclNode, ctx: LowerCtx): void {
   const value = isAddressOfExpr(decl.initialiser)
     ? lowerAddressOf(decl.initialiser, ctx, true)
     : materialise(lowerExpr(decl.initialiser, ctx), ctx);
-  const target = loc(frameSymbol(ctx.fqName, decl.name), slotIlType(ctx.frame, decl.name));
+  const target = loc(frameSymbol(ctx.fqName, decl.name), useIlType(sym, ctx.frame, decl.name));
   ctx.builder.emit({ op: "store", a: value, b: target });
 }
 
@@ -700,7 +700,7 @@ function lowerDoWhile(stmt: DoWhileStmtNode, ctx: LowerCtx): void {
  * exits the loop the moment the step wraps the counter past its type extreme.
  */
 function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
-  const counterType = slotIlType(ctx.frame, stmt.varName);
+  const counterType = useIlType(ctx.model.symbolOf(stmt), ctx.frame, stmt.varName);
   const counterLoc = loc(frameSymbol(ctx.fqName, stmt.varName), counterType);
 
   // init: counter = init
@@ -1228,7 +1228,7 @@ function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
   if (ctx.moduleInit) {
     return iceUnsupported(expr, ctx, "module-initializer reference (no frame storage)");
   }
-  const type = slotIlType(ctx.frame, expr.name);
+  const type = useIlType(sym, ctx.frame, expr.name);
   const dest = ctx.builder.newTemp(type);
   ctx.builder.emit({ op: "load", a: dest, b: loc(frameSymbol(ctx.fqName, expr.name), type) });
   return dest;
@@ -1678,7 +1678,10 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   if (moduleVar !== null) {
     target = loc(moduleVar.symbol, moduleVar.type); // module scalar → __var_*
   } else if (targetExpr.kind === "IdentExpr") {
-    target = loc(frameSymbol(ctx.fqName, targetExpr.name), slotIlType(ctx.frame, targetExpr.name));
+    target = loc(
+      frameSymbol(ctx.fqName, targetExpr.name),
+      useIlType(sym, ctx.frame, targetExpr.name),
+    );
   } else {
     // A qualified target that is not a module variable was already rejected
     // by typing; reaching it here is a compiler bug.
@@ -2869,6 +2872,30 @@ function moduleVarLocOfSymbol(sym: Symbol): { symbol: string; type: ILType } | n
 function slotIlType(frame: FunctionFrame | undefined, varName: string): ILType {
   const slot = frame?.slots.find((s) => s.name === varName);
   return slot ? ilTypeOfType(slot.type) : IL_BYTE;
+}
+
+/**
+ * The IL type ONE use of a local lowers at: the width of the declaration that
+ * use resolves to.
+ *
+ * Blocks that cannot be live at once may each declare the same name and share
+ * one frame slot, sized to the widest of them. Reading the slot's width would
+ * therefore lower a narrow declaration's use too wide and — worse — a wide
+ * declaration's use too narrow, silently truncating the value. The resolved
+ * symbol carries the right width, so scalar locals take it from there;
+ * everything else (parameters, aggregates, an unresolved name) keeps reading
+ * the slot, which is already correct for them.
+ *
+ * @param sym The symbol this use resolved to, or `null` when unresolved.
+ * @param frame The enclosing function's frame, for the fallback.
+ * @param varName The variable name, for the fallback.
+ * @returns The IL type to load or store at.
+ */
+function useIlType(sym: Symbol | null, frame: FunctionFrame | undefined, varName: string): ILType {
+  if (sym !== null && sym.kind === "variable" && sym.type.kind === "primitive") {
+    return ilTypeOfType(sym.type);
+  }
+  return slotIlType(frame, varName);
 }
 
 /** The IL type carried by any operand. */

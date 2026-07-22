@@ -15,13 +15,18 @@
  * builds a function **body** `Scope` holding the function's parameters
  * (declaration order, before the locals; a duplicate name is E10003) followed
  * by its local variables (from body `LetDecl`s) in declaration order. It
- * resolves `mainFunction`. {@link checkParameterShadowing} — run separately,
- * once all module-level names exist — rejects a parameter shadowing a
+ * resolves `mainFunction`. {@link checkLocalShadowing} — run separately, once
+ * all module-level names exist — rejects a parameter or local shadowing a
  * module-level declaration (E10101).
  *
- * It is designed to be extended rather than replaced: later work adds block
- * scopes and the remaining visibility rules on top of it. No typing or name
- * resolution happens here.
+ * Each block additionally gets a nested `Scope` of its own holding the
+ * declarations written inside it. Those scopes are what let a name USE resolve
+ * to the declaration covering it — two sibling blocks may each declare `t` at
+ * different widths, and each use must read its own. They do not change where a
+ * variable lives: every local is still registered in the flat function scope
+ * the frame layout reads, in the same order as before.
+ *
+ * No typing or name resolution happens here.
  *
  * Emit-diagnostic-never-throw: a malformed / body-less declaration is skipped,
  * not crashed on. This module lives in `@blend65/frontend` and imports
@@ -31,12 +36,16 @@
 import { createScope, DiagCode, ERROR_TYPE, primitive } from "@blend65/core";
 import type {
   AstNode,
+  BlockNode,
   DiagnosticBag,
+  ForStmtNode,
   FunctionDeclNode,
   InterruptDeclNode,
+  LetDeclNode,
   ParameterNode,
   ProgramNode,
   Scope,
+  SourceSpan,
   StmtNode,
   Symbol,
   Type,
@@ -60,6 +69,23 @@ export interface FunctionTables {
    * backing the model's `scopeOf` query helper.
    */
   readonly scopeByNode: ReadonlyMap<AstNode, Scope>;
+  /**
+   * Block-introducing node (`Block`, `ForStmt`, `CaseClause`, `DefaultClause`)
+   * → the nested `Scope` its own declarations live in.
+   *
+   * These scopes exist so a NAME USE resolves to the declaration lexically
+   * covering it rather than to whichever declaration of that name happened to
+   * be collected last. Two sibling blocks may each declare `t` at different
+   * widths; each use must read its own `t`'s width, or a wide read silently
+   * truncates. Type checking threads these scopes, and `resolveName` is
+   * already innermost-first, so per-use resolution falls out of the tree.
+   *
+   * They deliberately do NOT introduce block-scope *lifetime*: every local is
+   * ALSO registered in the flat function body scope, so a use outside its
+   * declaring block still resolves exactly as before. The frame layout reads
+   * the flat scope, so slot order is untouched.
+   */
+  readonly blockScopeByNode: ReadonlyMap<AstNode, Scope>;
   /**
    * Each program → its module `Scope`, so later passes (import resolution)
    * can address a specific file's module scope without relying on the
@@ -89,6 +115,7 @@ export function collectFunctions(
 ): FunctionTables {
   const functions = new Set<Symbol>();
   const scopeByNode = new Map<AstNode, Scope>();
+  const blockScopeByNode = new Map<AstNode, Scope>();
   const moduleScopeByProgram = new Map<ProgramNode, Scope>();
   const moduleScopeByName = new Map<string, Scope>();
   let mainFunction: Symbol | null = null;
@@ -184,33 +211,52 @@ export function collectFunctions(
         }
       }
 
-      // Step 3 — the function's locals, in source order. This recurses into
-      // control-flow bodies (flat-recurse): nested `let` locals AND each
-      // `for`-counter land in the enclosing FUNCTION scope so SFA assigns every
-      // one a `__frame_*` slot. No new `Scope` objects are created and no
-      // duplicate detection is done (sibling-block locals silently alias,
-      // last-wins — real block-scope lifetime + E10101/E10062 are deferred). A
-      // body-less/malformed declaration contributes no locals.
-      collectBodyLocals(item.body?.statements ?? [], bodyScope);
+      // Step 3 — the function's locals, in source order. Every local (nested
+      // `let`s and each `for`-counter alike) lands in the FLAT function scope
+      // so SFA assigns it a `__frame_*` slot, exactly as before: insertion
+      // order is declaration order, and a repeated name keeps its first
+      // position. Alongside that, each block gets a nested `Scope` holding its
+      // OWN declarations, so a use resolves to the declaration covering it
+      // instead of to the last one collected. A body-less/malformed
+      // declaration contributes no locals.
+      if (item.body !== null && item.body !== undefined) {
+        collectBlockLocals(item.body, {
+          bodyScope,
+          block: bodyScope,
+          enclosing: [],
+          counters: new Set(),
+          fnName: item.name,
+          blockScopeByNode,
+          bag,
+        });
+      }
     }
   }
 
-  return { functions, mainFunction, scopeByNode, moduleScopeByProgram, moduleScopeByName };
+  return {
+    functions,
+    mainFunction,
+    scopeByNode,
+    blockScopeByNode,
+    moduleScopeByProgram,
+    moduleScopeByName,
+  };
 }
 
 /**
- * Rejects parameters that shadow a module-level declaration (E10101).
+ * Rejects parameters and locals that shadow a module-level declaration (E10101).
  *
  * Runs as a separate step after ALL module-level names exist (functions,
- * module variables/constants, imported names) — parameter collection itself
- * runs before module variables are collected, so the check cannot live
- * inline there. A parameter's own body scope legitimately shadows nothing;
- * only a hit in the enclosing module scope is an error.
+ * module variables/constants, imported names) — collection itself runs before
+ * module variables are collected, so the check cannot live inline there. The
+ * shadowing a body can see on its own (a local over an enclosing block's local
+ * or over a parameter) is caught during collection; only the module-level half
+ * has to wait for this pass.
  *
  * @param scopeByNode Decl → body scope (from {@link collectFunctions}).
  * @param bag The diagnostic accumulator (receives E10101).
  */
-export function checkParameterShadowing(
+export function checkLocalShadowing(
   scopeByNode: ReadonlyMap<AstNode, Scope>,
   bag: DiagnosticBag,
 ): void {
@@ -219,18 +265,55 @@ export function checkParameterShadowing(
     if (moduleScope === null) continue;
     const decl = bodyScope.node;
     const fnName = isFunctionLikeDecl(decl) ? decl.name : "?";
-    for (const sym of bodyScope.symbols.values()) {
-      if (sym.kind !== "parameter") continue;
-      if (moduleScope.symbols.has(sym.name)) {
+    for (const sym of declaredSymbols(bodyScope)) {
+      if (!moduleScope.symbols.has(sym.name)) continue;
+      if (sym.kind === "parameter") {
         bag.addError(
           DiagCode.NameShadows,
           isParameterNode(sym.decl) ? sym.decl.nameSpan : null,
           `Parameter '${sym.name}' of '${fnName}' shadows the module-level ` +
             `declaration of '${sym.name}'`,
         );
+      } else if (sym.kind === "variable") {
+        bag.addError(
+          DiagCode.NameShadows,
+          declNameSpan(sym.decl),
+          `Declaration of '${sym.name}' in function '${fnName}' shadows the ` +
+            `module-level declaration of '${sym.name}'`,
+        );
       }
     }
   }
+}
+
+/**
+ * Every symbol a function body declares, each exactly once: the parameters and
+ * the flat local copies in the body scope, then the block scopes' own
+ * declarations. Locals appear in both places by design, so identity dedupes.
+ *
+ * @param bodyScope The function body scope to walk from.
+ * @returns The distinct declared symbols, outermost scope first.
+ */
+function declaredSymbols(bodyScope: Scope): Symbol[] {
+  const seen = new Set<Symbol>();
+  const out: Symbol[] = [];
+  const visit = (scope: Scope): void => {
+    for (const sym of scope.symbols.values()) {
+      if (seen.has(sym)) continue;
+      seen.add(sym);
+      out.push(sym);
+    }
+    for (const child of scope.children) visit(child);
+  };
+  visit(bodyScope);
+  return out;
+}
+
+/** The span naming a local's declaration, for a diagnostic that points at it. */
+function declNameSpan(decl: AstNode): SourceSpan | null {
+  if (decl.kind === "LetDecl") return (decl as LetDeclNode).nameSpan;
+  if (decl.kind === "ForStmt") return (decl as ForStmtNode).varNameSpan;
+  return decl.span;
 }
 
 /** Narrows a scope's introducing node to a function-like declaration. */
@@ -246,57 +329,105 @@ function isParameterNode(node: AstNode): node is ParameterNode {
 }
 
 /**
- * Recursively harvests the local variables introduced anywhere in a function
- * body into its (flat) function `Scope`: top-level and control-flow-nested
- * `let` locals, plus each `for`-loop counter. No `Scope` nesting; insertion
- * order == source order.
- *
- * @param statements The statements to scan (a block's `statements`).
- * @param bodyScope The enclosing function scope every local is registered into.
+ * The lexical position local collection is currently at: which scopes a new
+ * declaration lands in, and what it may legally shadow.
  */
-function collectBodyLocals(statements: readonly StmtNode[], bodyScope: Scope): void {
-  for (const stmt of statements) collectStmtLocals(stmt, bodyScope);
+interface LocalCtx {
+  /** The flat function scope. Every local is registered here for frame layout. */
+  readonly bodyScope: Scope;
+  /** The scope the declarations being collected right now belong to. */
+  readonly block: Scope;
+  /** The block scopes strictly enclosing {@link block} — what a name may shadow. */
+  readonly enclosing: readonly Scope[];
+  /** The names of the `for` counters this position sits inside. */
+  readonly counters: ReadonlySet<string>;
+  /** The enclosing function's name, for diagnostic text. */
+  readonly fnName: string;
+  /** The block-scope index being built. */
+  readonly blockScopeByNode: Map<AstNode, Scope>;
+  /** The diagnostic accumulator (E10003 / E10101 / E10062). */
+  readonly bag: DiagnosticBag;
+}
+
+/**
+ * Opens a nested scope for a block-introducing node and returns the context
+ * its declarations are collected in.
+ *
+ * The function body's own scope attaches directly to the function scope, so
+ * the function scope — which also holds the flat copy of every local — is
+ * never treated as an "enclosing block" a sibling could be said to shadow.
+ */
+function pushBlock(node: AstNode, ctx: LocalCtx): LocalCtx {
+  const scope = createScope("block", ctx.block, node);
+  ctx.block.children.push(scope);
+  ctx.blockScopeByNode.set(node, scope);
+  return {
+    ...ctx,
+    block: scope,
+    enclosing: ctx.block === ctx.bodyScope ? [] : [...ctx.enclosing, ctx.block],
+  };
+}
+
+/** Harvests the locals of one block into a scope of its own. */
+function collectBlockLocals(block: BlockNode, ctx: LocalCtx): void {
+  const inner = pushBlock(block, ctx);
+  for (const stmt of block.statements) collectStmtLocals(stmt, inner);
+}
+
+/** Harvests the locals of a statement list into a scope of its own. */
+function collectClauseLocals(
+  clause: AstNode,
+  statements: readonly StmtNode[],
+  ctx: LocalCtx,
+): void {
+  const inner = pushBlock(clause, ctx);
+  for (const stmt of statements) collectStmtLocals(stmt, inner);
 }
 
 /** Harvests the local(s) a single statement introduces, recursing into bodies. */
-function collectStmtLocals(stmt: StmtNode, bodyScope: Scope): void {
+function collectStmtLocals(stmt: StmtNode, ctx: LocalCtx): void {
   switch (stmt.kind) {
     case "LetDecl":
-      registerLocal(bodyScope, stmt.name, stmt.declaredType, stmt, true);
+      registerLocal(ctx, stmt.name, stmt.declaredType, stmt, stmt.nameSpan, true, false);
       return;
     case "Block":
-      collectBodyLocals(stmt.statements, bodyScope);
+      collectBlockLocals(stmt, ctx);
       return;
     case "IfStmt":
-      collectBodyLocals(stmt.thenBlock.statements, bodyScope);
+      collectBlockLocals(stmt.thenBlock, ctx);
       if (stmt.elseClause !== null) {
         // A `Block` else, or a chained `else if` (an IfStmt) — recurse either way.
         if (stmt.elseClause.kind === "Block") {
-          collectBodyLocals(stmt.elseClause.statements, bodyScope);
+          collectBlockLocals(stmt.elseClause, ctx);
         } else {
-          collectStmtLocals(stmt.elseClause, bodyScope);
+          collectStmtLocals(stmt.elseClause, ctx);
         }
       }
       return;
     case "WhileStmt":
     case "DoWhileStmt":
-      collectBodyLocals(stmt.body.statements, bodyScope);
+      collectBlockLocals(stmt.body, ctx);
       return;
-    case "ForStmt":
-      // The for-counter is a read-only (`mutable:false`) function local; it
-      // is visible to the bound, step, and body. Its type may be `null`/non-integer
-      // (parser-optional annotation) — resolved defensively here; the type-check
-      // pass emits E10065 and poisons it. Counter first, then the body.
-      registerLocal(bodyScope, stmt.varName, stmt.varType, stmt, false);
-      collectBodyLocals(stmt.body.statements, bodyScope);
+    case "ForStmt": {
+      // The counter is a read-only (`mutable:false`) local visible to the
+      // bound, the step, and the body, so it gets a scope of its own that the
+      // body's scope nests inside. Its type may be `null`/non-integer
+      // (parser-optional annotation) — resolved defensively here; the
+      // type-check pass emits E10065 and poisons it.
+      const forCtx = pushBlock(stmt, ctx);
+      registerLocal(forCtx, stmt.varName, stmt.varType, stmt, stmt.varNameSpan, false, true);
+      collectBlockLocals(stmt.body, {
+        ...forCtx,
+        counters: new Set([...forCtx.counters, stmt.varName]),
+      });
       return;
+    }
     case "SwitchStmt":
-      // case/default body `let` locals are harvested flat into the enclosing
-      // function scope (an SFA frame slot each), mirroring the `IfStmt`/`ForStmt`
-      // recursion above. No block-scope lifetime (deferred). `stmt.defaultClause`
-      // is always present (the parser synthesizes it).
-      for (const clause of stmt.cases) collectBodyLocals(clause.body, bodyScope);
-      collectBodyLocals(stmt.defaultClause.body, bodyScope);
+      // Each clause body is a scope of its own — sibling clauses may reuse a
+      // name, exactly as sibling `if`/`else` arms may. `stmt.defaultClause` is
+      // always present (the parser synthesizes it).
+      for (const clause of stmt.cases) collectClauseLocals(clause, clause.body, ctx);
+      collectClauseLocals(stmt.defaultClause, stmt.defaultClause.body, ctx);
       return;
     default:
       // ExpressionStmt / ReturnStmt / Break / Continue / Const / error — none of
@@ -305,25 +436,86 @@ function collectStmtLocals(stmt: StmtNode, bodyScope: Scope): void {
   }
 }
 
-/** Registers one local `variable` symbol into the (flat) function scope. */
+/**
+ * Registers one local `variable` symbol, rejecting the reuse shapes that would
+ * otherwise collapse two distinct variables onto one frame slot.
+ *
+ * Three shapes are errors: a second declaration of the name in the SAME scope
+ * (E10003), a declaration shadowing an enclosing block's local or one of the
+ * function's parameters (E10101), and a `for` counter reusing the name of a
+ * counter it is nested inside (E10062 — the inner loop would destroy the outer
+ * loop's position). Sibling reuse is silent by design: two blocks that cannot
+ * be live at once share one slot, which is the layout a hand-coder wants.
+ *
+ * The symbol lands in its own block scope (so each USE resolves to its own
+ * declaration's type) and in the flat function scope (which the frame layout
+ * reads, keeping slot order exactly as it has always been).
+ */
 function registerLocal(
-  bodyScope: Scope,
+  ctx: LocalCtx,
   name: string,
   declaredType: TypeNode | null,
   decl: AstNode,
+  nameSpan: SourceSpan,
   mutable: boolean,
+  isCounter: boolean,
 ): void {
+  if (ctx.block.symbols.has(name)) {
+    ctx.bag.addError(
+      DiagCode.DuplicateDecl,
+      nameSpan,
+      `Duplicate declaration of '${name}' in function '${ctx.fnName}'`,
+    );
+    return; // first declaration wins, as it does for a duplicate parameter
+  }
+
+  if (isCounter && ctx.counters.has(name)) {
+    ctx.bag.addError(
+      DiagCode.NestedCounterReuse,
+      nameSpan,
+      `Nested for-loop counter '${name}' reuses the counter of an enclosing loop ` +
+        `in function '${ctx.fnName}' — the inner loop would destroy the outer loop's position`,
+    );
+  } else {
+    const shadowed = shadowedKind(name, ctx);
+    if (shadowed !== null) {
+      ctx.bag.addError(
+        DiagCode.NameShadows,
+        nameSpan,
+        `Declaration of '${name}' in function '${ctx.fnName}' shadows the ${shadowed} ` +
+          `of the same name`,
+      );
+    }
+  }
+
   const sym: Symbol = {
     name,
     kind: "variable",
     type: primitiveFromTypeNode(declaredType),
     decl,
-    scope: bodyScope,
+    scope: ctx.block,
     exported: false,
     mutable,
     byRef: false,
   };
-  bodyScope.symbols.set(name, sym); // insertion order == declaration order (last-wins)
+  ctx.block.symbols.set(name, sym);
+  // The flat copy: a `Map` keeps a repeated key at its FIRST insertion
+  // position, so slot order is declaration order whether or not a name repeats.
+  ctx.bodyScope.symbols.set(name, sym);
+}
+
+/**
+ * What an about-to-be-declared local would shadow, or `null` if nothing.
+ *
+ * Innermost outwards: an enclosing block's local, then one of the function's
+ * parameters. Module-level names are NOT checked here — they are collected
+ * after this pass, so that half runs later (see {@link checkLocalShadowing}).
+ */
+function shadowedKind(name: string, ctx: LocalCtx): string | null {
+  for (let i = ctx.enclosing.length - 1; i >= 0; i--) {
+    if (ctx.enclosing[i]?.symbols.has(name) === true) return "local";
+  }
+  return ctx.bodyScope.symbols.get(name)?.kind === "parameter" ? "parameter" : null;
 }
 
 /**

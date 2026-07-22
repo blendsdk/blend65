@@ -58,6 +58,7 @@ describe("call typing internals", () => {
       typeMap: new Map<ExprNode, Type>(),
       symbolMap: new Map<AstNode, Symbol>(),
       forLoopInfo: new Map<ForStmtNode, ForLoopInfo>(),
+      blockScopeByNode: tables.blockScopeByNode,
       signatures,
       mainFunction: tables.mainFunction,
       callEdges: new Map<Symbol, Set<Symbol>>(),

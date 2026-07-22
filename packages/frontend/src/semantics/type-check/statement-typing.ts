@@ -411,9 +411,10 @@ function evaluateModuleConsts(
 }
 
 /**
- * Types every statement in a body block, reusing the enclosing (flat) scope.
- * `loopDepth` records how many enclosing loops the block sits in, so
- * `break`/`continue` outside any loop are caught.
+ * Types every statement in a body block, in the block's own scope so each name
+ * resolves to the declaration covering it. `loopDepth` records how many
+ * enclosing loops the block sits in, so `break`/`continue` outside any loop
+ * are caught.
  */
 function typeBody(
   body: BlockNode,
@@ -422,7 +423,8 @@ function typeBody(
   ctx: TypeCheckContext,
   loopDepth: number,
 ): void {
-  for (const stmt of body.statements) typeStmt(stmt, scope, returnType, ctx, loopDepth);
+  const inner = ctx.blockScopeByNode.get(body) ?? scope;
+  for (const stmt of body.statements) typeStmt(stmt, inner, returnType, ctx, loopDepth);
 }
 
 /** Types a single statement. Never throws. */
@@ -456,7 +458,7 @@ function typeStmt(
       typeReturn(stmt, scope, returnType, ctx);
       return;
     case "Block":
-      // Flat scope model: reuse the enclosing scope; carry the loop depth.
+      // The block's own scope is threaded by `typeBody`; carry the loop depth.
       typeBody(stmt, scope, returnType, ctx, loopDepth);
       return;
     case "IfStmt": {
@@ -560,11 +562,15 @@ function typeSwitch(
     checkFallthroughPlacement(body, i === clauseBodies.length - 1, ctx),
   );
 
-  // (4) Type each clause body (switch does not raise `loopDepth` — transparency).
+  // (4) Type each clause body in the clause's own scope — sibling clauses may
+  // reuse a name, so each body reads its own declarations. Switch does not
+  // raise `loopDepth` (transparency).
   for (const clause of stmt.cases) {
-    for (const s of clause.body) typeStmt(s, scope, returnType, ctx, loopDepth);
+    const inner = ctx.blockScopeByNode.get(clause) ?? scope;
+    for (const s of clause.body) typeStmt(s, inner, returnType, ctx, loopDepth);
   }
-  for (const s of stmt.defaultClause.body) typeStmt(s, scope, returnType, ctx, loopDepth);
+  const defaultScope = ctx.blockScopeByNode.get(stmt.defaultClause) ?? scope;
+  for (const s of stmt.defaultClause.body) typeStmt(s, defaultScope, returnType, ctx, loopDepth);
 }
 
 /**
@@ -772,11 +778,18 @@ function typeCondition(expr: ExprNode, scope: Scope, ctx: TypeCheckContext): voi
  */
 function typeFor(
   stmt: ForStmtNode,
-  scope: Scope,
+  outerScope: Scope,
   returnType: Type,
   ctx: TypeCheckContext,
   loopDepth: number,
 ): void {
+  // The counter lives in a scope of its own, covering the bound, the step, and
+  // the body — so a use of the name inside this loop reads THIS counter's
+  // width even when a sibling loop reuses the name at another width.
+  const scope = ctx.blockScopeByNode.get(stmt) ?? outerScope;
+  const counterSym = scope.symbols.get(stmt.varName);
+  if (counterSym !== undefined) ctx.symbolMap.set(stmt, counterSym);
+
   const counterType = resolveTypeNode(stmt.varType);
   const range = integerRange(counterType);
 

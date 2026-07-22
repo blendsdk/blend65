@@ -50,7 +50,7 @@ import { encoderFor } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 import { ConstTypeEngine } from "./const-type-engine.js";
 import { computePairAccessedParams } from "./pair-access.js";
-import { checkParameterShadowing, collectFunctions } from "./function-collection.js";
+import { checkLocalShadowing, collectFunctions } from "./function-collection.js";
 import { collectModuleVariables } from "./module-variable-collection.js";
 import { resolveImports } from "./import-resolution.js";
 import { computeInitOrder } from "./init-order.js";
@@ -147,7 +147,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     functionTables.moduleScopeByName,
     input.bag,
   );
-  checkParameterShadowing(functionTables.scopeByNode, input.bag);
+  checkLocalShadowing(functionTables.scopeByNode, input.bag);
 
   // Pass 2 — type resolution: with imports bound, the const/type engine
   // computes struct layouts / enum values / module constants (one
@@ -184,6 +184,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     typeMap,
     symbolMap,
     forLoopInfo,
+    blockScopeByNode: functionTables.blockScopeByNode,
     signatures: new Map<Symbol, FnSignature>(),
     mainFunction: functionTables.mainFunction,
     callEdges,

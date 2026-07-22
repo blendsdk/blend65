@@ -224,9 +224,16 @@ export const DiagCode = {
   //   `ERROR_TYPE` codegen. Free in registry/spec/code; adjacent to the
   //   for-loop code E10064; the spec leaves this range open, delegating the
   //   "must be an integer type" rule to the type system.
+  // - E10062: a `for` loop whose counter reuses the name of a counter it is
+  //   NESTED INSIDE. The two counters would share one frame slot, so the inner
+  //   loop silently destroys the outer loop's position. Scoped to nesting
+  //   only: two SIBLING loops reusing a counter name are well-defined and
+  //   deliberately share the slot, which is the frugal layout a hand-coder
+  //   wants — diagnosing that would reject ordinary code.
   // `spec/` stays frozen.
   StepValueNotPositive: "E10061",
   ForCounterTypeNotInteger: "E10065",
+  NestedCounterReuse: "E10062",
   NonBooleanCondition: "E10134",
   // The `switch` sub-machine's semantic validators. Five codes registered
   // additively (`spec/` frozen). Four carry their spec-assigned numbers
