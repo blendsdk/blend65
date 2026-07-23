@@ -10,7 +10,7 @@
 ## Feature Overview
 
 Produce a transparent rule-by-rule readiness matrix and issue the exact claim `C64 v3.0 Ready`
-only when every applicable mandatory rule passes its declared terminal evidence. The matrix, not a
+only when every applicable mandatory rule passes all declared evidence obligations. The matrix, not a
 single percentage, is the decision surface for compiler recovery.
 
 ## Functional Requirements
@@ -18,12 +18,15 @@ single percentage, is the decision surface for compiler recovery.
 ### Must Have
 
 - [ ] Report every inventory rule as `passing`, `failing`, `unmodeled`, `blocked-errata` or
-  `not-applicable-c64`, with links to evidence.
-- [ ] Show counts by specification area, terminal tier and failure class.
+  `not-applicable-c64`, with target-projected children outside this claim shown separately as
+  `out-of-claim-target`, all with links to evidence.
+- [ ] Show counts by specification area, evidence tier and failure class.
 - [ ] Refuse `C64 v3.0 Ready` unless 100% of `mandatory-c64` rules are modeled and passing, no
   rule is `blocked-errata`, and no campaign contains ICE, assembler-failure or timeout outcomes.
   (AR-10)
 - [ ] Treat missing required ACME/VICE execution as incomplete evidence, not pass.
+- [ ] Treat any declared-but-unbound generator, oracle or transform and any missing evidence
+  obligation as incomplete evidence, not pass.
 - [ ] Generate human-readable Markdown and machine-readable JSON from the same result model.
 - [ ] Preserve existing examples, goldens, twins and performance budgets as named secondary
   regression/quality sections that cannot affect semantic pass status. (AR-3)
@@ -66,8 +69,14 @@ data, encryption or rate limiting is authorized.
 2. [ ] One ICE, assembler failure or VICE timeout prevents the claim even when all other cases
    pass.
 3. [ ] A `not-applicable-c64` rule is excluded only when RD-01 validation accepts its citation.
+   An `out-of-claim-target` child is excluded only when its source-linked C64 sibling exists and
+   the report names the unevaluated target.
 4. [ ] Markdown and JSON contain identical rule IDs, statuses and counts.
 5. [ ] Altering a twin byte ratio or static-cost value cannot change any semantic rule status.
 6. [ ] The report never emits `Compiler Ready`; the only success claim is `C64 v3.0 Ready`.
 7. [ ] Every failing row links a deterministic reproducer or, for infrastructure failure, the
    classified campaign record.
+8. [ ] A declared-but-unbound handler or one missing obligation prevents the claim even when all
+   available evidence passes.
+9. [ ] Each RD-01 readiness-blocking reason (`blocked-errata`, unresolved conflict, unbound handler
+   or unbound evidence capability) independently prevents the exact readiness claim.

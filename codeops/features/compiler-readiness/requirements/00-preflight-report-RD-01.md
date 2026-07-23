@@ -1,10 +1,10 @@
 # Preflight Report: RD-01 Specification Inventory and Rule Schema
 
-> **Status**: ❌ PREFLIGHT BLOCKED — 10 major findings require artifact fixes
-> **Iteration**: 1 (first scan)
+> **Status**: ✅ PREFLIGHT PASSED — all 13 findings resolved
+> **Iteration**: 2 (bounded rescan after authorized fixes)
 > **Artifact**: single requirement at
 > `codeops/features/compiler-readiness/requirements/RD-01-specification-inventory.md`
-> **Artifact Blob**: `0a408aa68880b5df41defe79c166a8abc097251c`
+> **Artifact Blob**: `621a5eb7de95bbf48ccf8298242b3d5009475d76`
 > **Codebase Grounded**: frozen specification, requirements graph, compiler boundaries, validation
 > patterns and tests examined
 > **Mode**: Auto-design
@@ -454,5 +454,35 @@ acceptance criteria permit false completeness, conflicting sources, unresolvable
 unimplementable handler sequencing and insufficient evidence tiers. Auto-design selected
 remediations for all findings, but preflight does not authorize applying them.
 
-The roadmap remains at **RD Drafted** for RD-01. It must not advance to **RD Preflighted** until
-the target is fixed and a bounded second iteration verifies every major finding.
+## Iteration 2
+
+> **Previous Iteration**: 12 findings — 10 major, 2 minor
+> **This Iteration**: 1 new finding, resolved during bounded correction
+> **Carried Forward**: none
+
+The authorized remediation revised RD-01 and the directly affected handler, execution, readiness,
+evolution, ambiguity and traceability contracts. Five clustered reviews rechecked all 13
+dimensions. Residual wording and acceptance gaps were corrected and re-reviewed within the bounded
+iteration.
+
+| Finding | Iteration 2 result |
+|---|---|
+| PF-001 | Resolved — closed source authority, conflict classification and decisive fixtures |
+| PF-002 | Resolved — deterministic fragmentation profile and conformance vectors prove clause coverage |
+| PF-003 | Resolved — rule identity follows falsifiable outcomes; evidence remains a complete obligation set |
+| PF-004 | Resolved — complete closed schema with conditional fields and lossless fixtures |
+| PF-005 | Resolved — declarations belong to RD-01; downstream RDs bind implementations and own claim checks |
+| PF-006 | Resolved — JSON Schema and semantic validation have explicit, testable boundaries |
+| PF-007 | Resolved — capability declarations are separate from RD-04 executable route bindings |
+| PF-008 | Resolved — source citations resolve uniquely against revisioned normalized content |
+| PF-009 | Resolved — upgrades require a current machine-readable RD-07 evolution-gate record |
+| PF-010 | Resolved — descriptive relations and target-compatible DAG prerequisites are distinct |
+| PF-011 | Resolved — generated documentation is faithful, escaped and link-safe |
+| PF-012 | Resolved — structural and aggregate resource bounds have boundary fixtures |
+| PF-013 | Resolved — target projection rewrites universal prerequisites to same-target children |
+
+Independent final rechecks found no residual ambiguity, contradiction, completeness, dependency,
+ordering, feasibility, security, edge-case, testability, scope or codebase-alignment defect in the
+target. The deterministic CodeOps graph and audit-readiness gates pass.
+
+**Final verdict:** RD-01 is eligible to advance to **RD Preflighted**.

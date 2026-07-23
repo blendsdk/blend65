@@ -11,12 +11,12 @@
 | AR-1 | Scope | What defines compiler readiness? | Frozen v3.0 specification; examples, goldens, twins and performance are secondary evidence | User, imported from retro T-003/T-008 | ✅ Resolved |
 | AR-2 | Behavioral | Is runtime/computed memory access an unsupported feature or a defect? | Defect: ordinary `word` address forms required by the spec belong in recovery scope | User, imported from retro T-001 | ✅ Resolved |
 | AR-3 | Scope | Does assembly parity participate in the readiness gate? | No. Correctness, expressibility and robustness gate first; parity remains downstream quality evidence | User, imported from retro T-002/T-004/T-005 | ✅ Resolved |
-| AR-4 | Data & state | How is the normative rule inventory represented? | Versioned JSON validated by JSON Schema, referencing separately keyed TypeScript generator/oracle handlers | AI delegated by `--auto-design` | ✅ Resolved |
+| AR-4 | Data & state | How is the normative rule inventory represented? | Versioned closed JSON: JSON Schema validates local shape, a semantic validator owns cross-record integrity, and declared handler contracts bind to implementations in RD-02/RD-03 | AI delegated by `--auto-design`, hardened by RD-01 preflight | ✅ Resolved |
 | AR-5 | Technical | What provides an independent semantic oracle? | Hybrid: deliberately bounded pure interpreter plus orthogonal metamorphic relations | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-6 | Technical | How are programs generated without sharing compiler assumptions? | Independent typed generator IR for valid/type-neighbor cases; grammar/token/text generation for malformed syntax and robustness | AI delegated by `--auto-design` | ✅ Resolved |
-| AR-7 | Integration | Which execution tier decides each case? | Every rule declares its terminal tier; use cheapest-sufficient execution, while runtime-semantic cases must reach ACME and bounded VICE | AI delegated by `--auto-design` | ✅ Resolved |
+| AR-7 | Integration | Which execution tier decides each case? | Every rule declares one or more capability-defined evidence obligations; use cheapest-sufficient routes, while runtime-semantic cases must reach ACME and bounded VICE | AI delegated by `--auto-design`, hardened by RD-01 preflight | ✅ Resolved |
 | AR-8 | Failure recovery | How are generated failures minimized? | Typed-IR-aware shrinking for semantic cases; token/text delta debugging for malformed cases; preserve rule coverage and failure predicate | AI delegated by `--auto-design` | ✅ Resolved |
-| AR-9 | Data lifecycle | Which generated evidence is persistent? | Commit versioned rule/schema data and confirmed minimized regressions; retain campaign manifests/summaries; bulk cases remain reproducible ephemeral data | AI delegated by `--auto-design` | ✅ Resolved |
+| AR-9 | Data lifecycle | Which generated evidence is persistent? | Commit versioned rule/schema data and confirmed minimized regressions; retain campaign manifests/summaries; bulk cases remain reproducible ephemeral data; activate RD-07 evolution gates before the first format upgrade | AI delegated by `--auto-design`, hardened by RD-01 preflight | ✅ Resolved |
 | AR-10 | Product acceptance | What exact scope and threshold earns a readiness claim? | Issue target-scoped claims, beginning with `C64 v3.0 Ready`; require 100% of applicable mandatory rules modeled and passing their declared terminal tier, zero unexplained exclusions, and zero ICE/assembler-failure/timeout outcomes. Never issue an unqualified global “compiler ready” claim while another advertised target is unevaluated. Additional platform readiness is future work. | User approved recommendation | ✅ Resolved |
 
 ## Delegated Resolution Records
@@ -26,17 +26,18 @@
 - **Authority:** AI — delegated by `--auto-design`
 - **Eligibility:** internal data representation and reversible schema-evolution mechanism
 - **Objective:** auditable machine-readable coverage without coupling semantic authority to compiler code
-- **Decision:** versioned JSON + JSON Schema owns stable rule IDs, spec citations, domains,
-  exclusions, terminal tiers and handler IDs; TypeScript handlers implement generation/oracles
-  behind referential-integrity checks
+- **Decision:** versioned closed JSON owns stable rule IDs, resolvable spec citations, domains,
+  applicability, evidence obligations and handler declarations. JSON Schema validates local shape;
+  one semantic validator owns uniqueness, source resolution, graph and declaration integrity.
+  RD-02/RD-03 bind executable handlers and readiness rejects unbound declarations.
 - **Evidence:** the reconstruction requires a machine-readable denominator and strict separation;
   the repository already uses JSON manifests with TypeScript tooling
 - **Rejected alternatives:** Markdown annotations are weakly governed; a TypeScript-only DSL makes
   the authority executable and easier to couple accidentally to compiler internals
 - **Strongest counterargument:** split JSON/TypeScript ownership can drift
 - **Confidence:** High — reopen if schema/handler integrity cannot be made exhaustive
-- **Hardening:** blind challenger converged; mitigate drift with generated types, schema validation
-  and exhaustive handler-ID checks
+- **Hardening:** the creation challenger converged; RD-01 preflight separated local schema checks
+  from semantic integrity and handler declarations from executable bindings
 - **Reopen triggers:** unrepresentable rule domains or unrecoverable schema migration
 - **Policy version:** 1
 - **Root invocation ID:** `compiler-readiness-20260723-01`
@@ -81,15 +82,18 @@
 - **Authority:** AI — delegated by `--auto-design`
 - **Eligibility:** internal execution strategy and performance engineering
 - **Objective:** obtain decisive evidence without making every generated case pay emulator cost
-- **Decision:** each rule declares a terminal tier; invalid diagnostic cases terminate after
-  diagnostic/no-emission proof, while runtime-semantic rules include bounded cases through ACME
-  and VICE even when cheaper tiers pass
+- **Decision:** RD-01 declares versioned evidence-capability contracts, initially `frontend`,
+  `compiler-api`, `cli`, `emit`, `acme` and `vice`; RD-04 binds executable routes. Each rule
+  declares one or more obligations; invalid diagnostic cases prove both diagnostics and no
+  emission, while runtime-semantic rules include bounded cases through ACME and VICE even when
+  cheaper obligations pass.
 - **Evidence:** VICE suites are sequential and not universally available in CI; runtime behavior
   cannot be proved by frontend or assembly legality
 - **Rejected alternatives:** every case through VICE; failure-triggered heuristic escalation
 - **Strongest counterargument:** tier declarations can be under-specified
 - **Confidence:** High
-- **Hardening:** blind challenger converged; schema validation requires a terminal tier
+- **Hardening:** the creation challenger converged; RD-01 preflight found that compiler API and CLI
+  are distinct observable boundaries and that some rules require multiple obligations
 - **Reopen triggers:** a declared tier cannot observe the rule's normative outcome
 - **Policy version:** 1
 - **Root invocation ID:** `compiler-readiness-20260723-01`
@@ -117,14 +121,16 @@
 - **Eligibility:** reversible artifact persistence and compatibility design
 - **Objective:** retain forensic evidence without turning generated bulk into repository goldens
 - **Decision:** persist schemas, rule inventory, generator/PRNG versions, campaign summaries and
-  confirmed minimized regressions; reconstruct bulk cases from identity and seed
+  confirmed minimized regressions; reconstruct bulk cases from identity and seed. RD-01 defines v1
+  dispatch and migration interfaces; every format upgrade requires a current `evolutionGate`
+  record keyed to RD-07's semantic revision and evolution acceptance gate.
 - **Evidence:** every failure needs replay, but committing entire campaigns creates bloat and
   accidental authority
 - **Rejected alternatives:** commit all generated source; retain only ephemeral CI output
 - **Strongest counterargument:** replay can break when generators evolve
 - **Confidence:** High
-- **Hardening:** blind challenger converged; historical replay requires versioned generators or
-  explicit migration/invalidation records
+- **Hardening:** the creation challenger converged; RD-01 preflight made the first-upgrade
+  prerequisite explicit so migration guarantees cannot arrive after durable readiness evidence
 - **Reopen triggers:** a historical confirmed failure cannot be replayed after an allowed upgrade
 - **Policy version:** 1
 - **Root invocation ID:** `compiler-readiness-20260723-01`

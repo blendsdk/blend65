@@ -67,10 +67,14 @@ RD-01 Specification Inventory
 
 | Phase | Documents | Outcome |
 |---|---|---|
-| A: Authority | RD-01 | Known denominator and ambiguity status |
+| A: Authority | RD-01 | Known denominator, source precedence and ambiguity status |
 | B: Evidence engine | RD-02 → RD-03 → RD-04 | Generated cases with decisive outcomes |
 | C: Operability | RD-05 | Minimal reproducible failures |
 | D: Readiness | RD-06 → RD-07 | Strict C64 claim and durable operation |
+
+RD-01 defines the v1 format and migration interface. RD-07's evolution subset is a conditional
+prerequisite before the first schema or inventory-format upgrade, even if that upgrade occurs
+before RD-07's remaining operational work.
 
 ## Key Decisions
 

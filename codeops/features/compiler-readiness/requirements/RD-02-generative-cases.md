@@ -18,6 +18,8 @@ type/value boundaries and feature interactions that compiler-authored examples o
 
 - [ ] Define a small independent typed generator IR that does not import `@blend65/core`,
   `@blend65/frontend`, `@blend65/codegen` or compiler AST/type utilities. (AR-6)
+- [ ] Bind every implemented generator to an RD-01 handler declaration and record its
+  implementation revision; reject undeclared IDs and duplicate bindings.
 - [ ] Render IR through deterministic source generation so the real lexer and parser remain under
   test.
 - [ ] Generate valid programs only where evaluation behavior is defined by inventoried rules.
@@ -68,3 +70,5 @@ after bounded execution. No credentials, user accounts, encryption or network ac
    before compilation.
 6. [ ] A renderer mutation affecting precedence or parentheses is detected by independent
    round-trip/property tests.
+7. [ ] Binding validation fails for an undeclared, duplicate or contract-incompatible generator
+   implementation and leaves declared-but-unbound generators visibly unavailable.

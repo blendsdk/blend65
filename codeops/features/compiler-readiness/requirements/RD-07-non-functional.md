@@ -22,6 +22,9 @@ versions and long-running compiler recovery. These requirements apply to every p
   changes.
 - [ ] Preserve replay through compatible upgrades or emit an explicit invalidation record naming
   affected campaigns and regressions. (AR-9)
+- [ ] Before the first schema or inventory-format upgrade, activate this RD's evolution gate as a
+  mechanically recorded prerequisite: version-dispatched readers, deterministic chained
+  migrations, failure-atomic output and replay invalidation must all pass.
 - [ ] Bound source size, generation attempts, compilation time, subprocess output, shrink attempts
   and emulator execution.
 - [ ] Run all non-emulator readiness tiers in CI; require the VICE tier in the release environment
@@ -89,3 +92,5 @@ sensitive persisted data is introduced.
 6. [ ] A timed-out ACME/VICE child and its process group are absent after cleanup.
 7. [ ] Controlled mutations demonstrate failing checks for rule mapping, generator rendering,
    interpreter semantics, metamorphic comparison and VICE observation.
+8. [ ] An attempted first format upgrade is rejected until the evolution prerequisite is recorded;
+   once active, repeated migration is deterministic and failure leaves the source evidence intact.

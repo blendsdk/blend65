@@ -19,6 +19,8 @@ semantic equivalence beyond that first subset.
 
 - [ ] Implement a pure reference evaluator over the independent generator IR. It must not import
   compiler lexer, parser, semantic, constant-folding, IL or codegen implementation. (AR-5)
+- [ ] Bind every implemented oracle and metamorphic transform to its RD-01 handler declaration and
+  record its implementation revision; reject undeclared IDs and duplicate bindings.
 - [ ] Declare the evaluator's supported rule subset explicitly; unsupported evaluation never
   becomes a pass or silent skip.
 - [ ] Model exact v3.0 evaluation order, integer width/sign, overflow, control flow, calls, state
@@ -71,3 +73,5 @@ authentication or encryption surface exists.
    least one oracle specification test fail.
 6. [ ] Exceeding the evaluator step bound produces a distinct oracle-budget failure and cannot
    count toward compiler readiness.
+7. [ ] Binding validation fails for an undeclared, duplicate or contract-incompatible oracle or
+   transform and leaves declared-but-unbound handlers visibly unavailable.
