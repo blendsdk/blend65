@@ -1,0 +1,393 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blend65.dev/readiness/inventory-v1.schema.json",
+  "title": "Blend65 compiler readiness inventory v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "inventoryVersion",
+    "specRevision",
+    "identityLedgerHead",
+    "fragmentationProfile",
+    "normativeSources",
+    "handlerDeclarations",
+    "evidenceCapabilityDeclarations",
+    "clauseLedger",
+    "conflicts",
+    "rules",
+    "evolutionGate"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "inventoryVersion": { "$ref": "#/$defs/semanticVersion" },
+    "specRevision": { "$ref": "#/$defs/hash" },
+    "identityLedgerHead": { "$ref": "#/$defs/hash" },
+    "fragmentationProfile": { "$ref": "#/$defs/fragmentationProfile" },
+    "normativeSources": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/normativeSource" }
+    },
+    "handlerDeclarations": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": { "$ref": "#/$defs/handlerDeclaration" }
+    },
+    "evidenceCapabilityDeclarations": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": { "$ref": "#/$defs/evidenceCapabilityDeclaration" }
+    },
+    "clauseLedger": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": { "$ref": "#/$defs/clauseLedgerEntry" }
+    },
+    "conflicts": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": { "$ref": "#/$defs/conflictRecord" }
+    },
+    "rules": {
+      "type": "array",
+      "maxItems": 32768,
+      "items": { "$ref": "#/$defs/rule" }
+    },
+    "evolutionGate": {
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/evolutionGate" }]
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "stringArray": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": { "type": "string" }
+    },
+    "idArray": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "relationshipArray": {
+      "type": "array",
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "classification": {
+      "enum": [
+        "normative-chapter",
+        "normative-grammar",
+        "normative-target",
+        "contextual",
+        "deferred",
+        "rejected",
+        "blocked-errata"
+      ]
+    },
+    "fragmentationProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileId", "version", "contentHashAlgorithm", "newlinePolicy"],
+      "properties": {
+        "profileId": { "const": "markdown-ebnf-v1" },
+        "version": { "const": 1 },
+        "contentHashAlgorithm": { "const": "sha256" },
+        "newlinePolicy": { "const": "lf" }
+      }
+    },
+    "sourceSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headingAncestry", "classification", "contentHash"],
+      "properties": {
+        "headingAncestry": { "$ref": "#/$defs/stringArray" },
+        "classification": { "$ref": "#/$defs/classification" },
+        "contentHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "normativeSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "order", "classification", "sections"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "classification": { "$ref": "#/$defs/classification" },
+        "sections": {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/sourceSection" }
+        }
+      }
+    },
+    "binding": {
+      "enum": ["bound", "unbound"]
+    },
+    "handlerDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "owner", "contractVersion", "binding"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["generator", "oracle", "transform"] },
+        "owner": { "$ref": "#/$defs/id" },
+        "contractVersion": { "$ref": "#/$defs/semanticVersion" },
+        "binding": { "$ref": "#/$defs/binding" }
+      }
+    },
+    "evidenceCapabilityDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "owner",
+        "contractVersion",
+        "binding",
+        "observableContract",
+        "prerequisiteRoute"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "owner": { "$ref": "#/$defs/id" },
+        "contractVersion": { "$ref": "#/$defs/semanticVersion" },
+        "binding": { "$ref": "#/$defs/binding" },
+        "observableContract": { "type": "string", "minLength": 1 },
+        "prerequisiteRoute": { "$ref": "#/$defs/id" }
+      }
+    },
+    "childOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcomeId", "ruleIds"],
+      "properties": {
+        "outcomeId": { "$ref": "#/$defs/id" },
+        "ruleIds": { "$ref": "#/$defs/idArray" }
+      }
+    },
+    "clauseLedgerEntry": {
+      "type": "object",
+      "discriminator": { "propertyName": "disposition" },
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fragmentId", "disposition", "ruleIds"],
+          "properties": {
+            "fragmentId": { "$ref": "#/$defs/id" },
+            "disposition": { "const": "mapped" },
+            "ruleIds": { "$ref": "#/$defs/idArray" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fragmentId", "disposition", "childOutcomes"],
+          "properties": {
+            "fragmentId": { "$ref": "#/$defs/id" },
+            "disposition": { "const": "decomposed" },
+            "childOutcomes": {
+              "type": "array",
+              "maxItems": 65536,
+              "items": { "$ref": "#/$defs/childOutcome" }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fragmentId", "disposition", "reasonCode"],
+          "properties": {
+            "fragmentId": { "$ref": "#/$defs/id" },
+            "disposition": { "const": "non-normative" },
+            "reasonCode": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fragmentId", "disposition", "canonicalRuleId"],
+          "properties": {
+            "fragmentId": { "$ref": "#/$defs/id" },
+            "disposition": { "const": "canonical-restatement" },
+            "canonicalRuleId": { "$ref": "#/$defs/id" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fragmentId", "disposition", "conflictId"],
+          "properties": {
+            "fragmentId": { "$ref": "#/$defs/id" },
+            "disposition": { "const": "blocked-errata" },
+            "conflictId": { "$ref": "#/$defs/id" }
+          }
+        }
+      ]
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "headingAncestry", "quote", "contentHash", "displayLine"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "headingAncestry": { "$ref": "#/$defs/stringArray" },
+        "quote": { "type": "string", "minLength": 1 },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "displayLine": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "conflictRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conflictId", "classification", "citations", "ruleIds", "resolution"],
+      "properties": {
+        "conflictId": { "$ref": "#/$defs/id" },
+        "classification": {
+          "enum": [
+            "equivalent-restatement",
+            "duplicate-ownership",
+            "overlapping-obligation",
+            "contradiction"
+          ]
+        },
+        "citations": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": { "$ref": "#/$defs/citation" }
+        },
+        "ruleIds": { "$ref": "#/$defs/idArray" },
+        "resolution": { "type": "string" }
+      }
+    },
+    "domainDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/id" },
+        "values": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "applicabilityReason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "target", "citation"],
+      "properties": {
+        "code": { "$ref": "#/$defs/id" },
+        "target": { "$ref": "#/$defs/id" },
+        "citation": { "$ref": "#/$defs/citation" }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supersedes": { "$ref": "#/$defs/idArray" },
+        "splitFrom": { "$ref": "#/$defs/idArray" },
+        "mergedFrom": { "$ref": "#/$defs/idArray" }
+      },
+      "minProperties": 1
+    },
+    "universalProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parentRuleId", "target"],
+      "properties": {
+        "parentRuleId": { "$ref": "#/$defs/id" },
+        "target": { "enum": ["c64", "c64u", "cx16", "a800xl", "a7800"] }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "source",
+        "requirement",
+        "category",
+        "polarity",
+        "applicability",
+        "validDomains",
+        "invalidNeighbors",
+        "boundaryFamilies",
+        "generatorIds",
+        "oracleIds",
+        "transformIds",
+        "evidenceObligations",
+        "prerequisiteRuleIds",
+        "relatedRuleIds"
+      ],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/id" },
+        "source": { "$ref": "#/$defs/citation" },
+        "requirement": { "type": "string", "minLength": 1 },
+        "category": { "$ref": "#/$defs/id" },
+        "polarity": {
+          "enum": ["positive", "negative-diagnostic", "negative-rejection", "quality-obligation"]
+        },
+        "applicability": {
+          "enum": ["mandatory-c64", "not-applicable-c64", "out-of-claim-target", "blocked-errata"]
+        },
+        "applicabilityReason": { "$ref": "#/$defs/applicabilityReason" },
+        "validDomains": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": { "$ref": "#/$defs/domainDescriptor" }
+        },
+        "invalidNeighbors": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": { "$ref": "#/$defs/domainDescriptor" }
+        },
+        "boundaryFamilies": { "$ref": "#/$defs/idArray" },
+        "generatorIds": { "$ref": "#/$defs/idArray" },
+        "oracleIds": { "$ref": "#/$defs/idArray" },
+        "transformIds": { "$ref": "#/$defs/idArray" },
+        "handlerAbsenceReason": { "$ref": "#/$defs/id" },
+        "evidenceObligations": { "$ref": "#/$defs/idArray" },
+        "prerequisiteRuleIds": { "$ref": "#/$defs/relationshipArray" },
+        "relatedRuleIds": { "$ref": "#/$defs/relationshipArray" },
+        "lineage": { "$ref": "#/$defs/lineage" },
+        "universalProjection": { "$ref": "#/$defs/universalProjection" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "applicability": { "const": "mandatory-c64" } },
+            "required": ["applicability"]
+          },
+          "then": { "not": { "required": ["applicabilityReason"] } },
+          "else": { "required": ["applicabilityReason"] }
+        }
+      ]
+    },
+    "evolutionGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "semanticRevision", "acceptanceGate", "validatedAt"],
+      "properties": {
+        "owner": { "$ref": "#/$defs/id" },
+        "semanticRevision": { "$ref": "#/$defs/hash" },
+        "acceptanceGate": { "$ref": "#/$defs/id" },
+        "validatedAt": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    }
+  }
+}

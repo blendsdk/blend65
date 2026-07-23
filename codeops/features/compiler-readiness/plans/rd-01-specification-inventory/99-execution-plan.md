@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-23 22:02
-> **Progress**: 0/62 tasks (0%)
+> **Last Updated**: 2026-07-23 23:57
+> **Progress**: 10/62 tasks (16%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -39,36 +39,51 @@ Every phase uses targeted tests during red/green work, then the full AGENTS.md v
 
 ## Phase 1: Workspace, strict input and closed schema
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: c00af39aa55a3164f4700717e5627c230605a746
 > **Lenses**: compiler/language; data/migration; security/resource safety
 
 ### Step 1.1: Specification tests
 
 **Reference**: `03-01` §Package surface–§Limits · AR-P2, AR-P4, AR-P5, AR-P11
 
-- [ ] 1.1.1 [spec-author] Write ST-1–ST-5 strict-input/schema tests — `packages/readiness/src/json-input.spec.test.ts`, `schema-validator.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Write ST-6 limits tests — `packages/readiness/src/limits.spec.test.ts`
-- [ ] 1.1.3 Run Phase 1 specification tests and record genuine red failures — targeted readiness Vitest
+- [x] 1.1.1 [spec-author] Write ST-1–ST-5 strict-input/schema tests — `packages/readiness/src/json-input.spec.test.ts`, `schema-validator.spec.test.ts` ✅ (completed: 2026-07-23 23:24)
+- [x] 1.1.2 [spec-author] Write ST-6 limits tests — `packages/readiness/src/limits.spec.test.ts` ✅ (completed: 2026-07-23 23:24)
+- [x] 1.1.3 Run Phase 1 specification tests and record genuine red failures — targeted readiness Vitest ✅ (completed: 2026-07-23 23:24)
 
 ### Step 1.2: Implementation
 
 **Reference**: `03-01` §Architecture–§Strict JSON intake · AR-P2–AR-P5, AR-P11
 
-- [ ] 1.2.1 Scaffold private workspace and root commands — `packages/readiness/package.json`, `packages/readiness/tsconfig.json`, `package.json`
-- [ ] 1.2.2 Add root TS reference plus explicit Ajv/jsonc-parser and Vitest 2 coverage-provider dependencies — `tsconfig.json`, `packages/readiness/package.json`, `yarn.lock`
-- [ ] 1.2.3 Implement v1 contracts, limits and ordered diagnostics — `packages/readiness/src/model.ts`, `limits.ts`, `diagnostics.ts`
-- [ ] 1.2.4 Implement strict duplicate-preserving intake — `packages/readiness/src/json-input.ts`
-- [ ] 1.2.5 Commit the closed schema and Ajv adapter — `readiness/schema/inventory-v1.schema.json`, `packages/readiness/src/schema-validator.ts`
-- [ ] 1.2.6 Export the minimal internal API and make ST-1–ST-6 green — `packages/readiness/src/index.ts`
+- [x] 1.2.1 Scaffold private workspace and root commands — `packages/readiness/package.json`, `packages/readiness/tsconfig.json`, `package.json` ✅ (completed: 2026-07-23 23:36)
+- [x] 1.2.2 Add root TS reference plus explicit Ajv/jsonc-parser and Vitest 2 coverage-provider dependencies — `tsconfig.json`, `packages/readiness/package.json`, `yarn.lock` ✅ (completed: 2026-07-23 23:36)
+- [x] 1.2.3 Implement v1 contracts, limits and ordered diagnostics — `packages/readiness/src/model.ts`, `limits.ts`, `diagnostics.ts` ✅ (completed: 2026-07-23 23:36)
+- [x] 1.2.4 Implement strict duplicate-preserving intake — `packages/readiness/src/json-input.ts` ✅ (completed: 2026-07-23 23:36)
+- [x] 1.2.5 Commit the closed schema and Ajv adapter — `readiness/schema/inventory-v1.schema.json`, `packages/readiness/src/schema-validator.ts` ✅ (completed: 2026-07-23 23:36)
+- [x] 1.2.6 Export the minimal internal API and make ST-1–ST-6 green — `packages/readiness/src/index.ts` ✅ (completed: 2026-07-23 23:36)
 
 ### Step 1.3: Implementation tests and hardening
 
 **Reference**: `07` ST-1–ST-6 · AR-P7, AR-P11
 
-- [ ] 1.3.1 Add visitor-abort, package-boundary and diagnostic internal tests; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `json-input.impl.test.ts`, `dependency-boundary.impl.test.ts`, `diagnostics.impl.test.ts`
+- [x] 1.3.1 Add visitor-abort, package-boundary and diagnostic internal tests; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `json-input.impl.test.ts`, `dependency-boundary.impl.test.ts`, `diagnostics.impl.test.ts` ✅ (completed: 2026-07-23 23:43)
 
 **Deliverables:** private compiler-independent workspace; strict raw intake; closed v1 schema;
 deterministic diagnostics; repository commands established.
+
+### Phase 1 quality review
+
+| Finding | Severity | Ruling |
+|---|---|---|
+| RV-001 | MAJOR | Fixed; re-review resolved — reject excessive depth in container-begin callbacks and prove extreme nesting cannot throw |
+| RV-002 | MINOR | Fixed; re-review resolved — replace locale-sensitive diagnostic comparison with ordinal comparison |
+| RV-SEM-001 | MAJOR | Fixed; re-review resolved — extend closed-object and required-field oracles across every v1 variant |
+| RV-SEM-002 | MAJOR | Fixed after re-review rejection — exact-boundary fixtures are complete valid inventories and must return `ok: true` |
+| SA-001 | MAJOR | Fixed after re-review rejection — enforce value, property-name and path-specific collection caps before materialization |
+| SA-002 | MAJOR | Fixed after re-review rejection — fail fast before Ajv with a bound derived from the published input contract |
+| RV-003 | MAJOR | Fixed after re-review — remove the hidden aggregate limit that rejected a valid 14,000-rule inventory |
+
+The protocol's single re-review was completed. Its rejected findings were corrected and verified;
+no third review was dispatched.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

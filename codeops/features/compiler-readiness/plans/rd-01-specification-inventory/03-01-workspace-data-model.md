@@ -66,6 +66,46 @@ capability, applicability, domain descriptor and lineage. Every discriminator is
 union exported from `model.ts`; runtime acceptance still comes from the committed schema and
 semantic validator, not TypeScript erasure (AR-P5).
 
+### Closed v1 field surface
+
+The requirements-derived tests target this exact public shape before implementation. Every object
+is closed. Optional collections default to empty only in test builders; persisted JSON carries all
+required top-level registries explicitly.
+
+- `InventoryV1`: `schemaVersion`, `inventoryVersion`, `specRevision`, `identityLedgerHead`,
+  `fragmentationProfile`, `normativeSources`, `handlerDeclarations`,
+  `evidenceCapabilityDeclarations`, `clauseLedger`, `conflicts`, `rules`, `evolutionGate`.
+- `FragmentationProfile`: `profileId`, `version`, `contentHashAlgorithm`, `newlinePolicy`.
+- `NormativeSource`: `path`, `order`, `classification`, `sections`; each `SourceSection` has
+  `headingAncestry`, `classification`, `contentHash`.
+- `HandlerDeclaration`: `id`, `kind`, `owner`, `contractVersion`, `binding`.
+- `EvidenceCapabilityDeclaration`: `id`, `owner`, `contractVersion`, `binding`,
+  `observableContract`, `prerequisiteRoute`.
+- `ClauseLedgerEntry`: `fragmentId`, `disposition`, plus exactly the fields selected by that
+  disposition: `ruleIds`, `childOutcomes`, `reasonCode`, `canonicalRuleId`, or `conflictId`.
+- `ConflictRecord`: `conflictId`, `classification`, `citations`, `ruleIds`, `resolution`.
+- `InventoryRule`: `ruleId`, `source`, `requirement`, `category`, `polarity`, `applicability`,
+  optional `applicabilityReason`, `validDomains`, `invalidNeighbors`, `boundaryFamilies`,
+  `generatorIds`, `oracleIds`, `transformIds`, optional `handlerAbsenceReason`,
+  `evidenceObligations`, `prerequisiteRuleIds`, `relatedRuleIds`, optional `lineage`, and
+  optional `universalProjection`.
+- `SourceCitation`: `path`, `headingAncestry`, `quote`, `contentHash`, `displayLine`.
+- Domain and neighbor descriptors are closed `{ kind, values }` objects. Applicability reasons are
+  closed `{ code, target, citation }` objects. Lineage is a closed object with optional
+  `supersedes`, `splitFrom`, and `mergedFrom` ID arrays. Universal projection is a closed
+  `{ parentRuleId, target }` object.
+- `EvolutionGate` is either `null` or a closed object containing `owner`, `semanticRevision`,
+  `acceptanceGate`, and `validatedAt`.
+
+Closed discriminators are: handler kind `generator | oracle | transform`; binding
+`bound | unbound`; source/section classification `normative-chapter | normative-grammar |
+normative-target | contextual | deferred | rejected | blocked-errata`; ledger disposition
+`mapped | decomposed | non-normative | canonical-restatement | blocked-errata`; conflict
+classification `equivalent-restatement | duplicate-ownership | overlapping-obligation |
+contradiction`; and the rule polarity/applicability values already listed in the owning
+requirement. IDs use ASCII allowlists and semantic revisions/content hashes use lowercase
+`sha256:<64 hex>`.
+
 The result model is:
 
 ```ts
@@ -116,11 +156,14 @@ only schema-valid `InventoryV1` values (AR-P5).
 
 ## Limits
 
-`limits.ts` exports one immutable `INVENTORY_V1_LIMITS` object covering input bytes, nesting,
-sources, fragments, rules, string lengths, arrays and relationship fan-out. Exact numbers are
-selected during implementation from measured frozen-corpus maxima with at least 4× headroom and
-are pinned by exact-boundary/one-over specification tests (AR-P11). Changing a cap requires an
-inventory-version review.
+`limits.ts` exports one immutable `INVENTORY_V1_LIMITS` object with these exact fields and values:
+`maxInputBytes: 8_388_608`, `maxDepth: 64`, `maxSources: 256`, `maxSectionsPerSource: 256`,
+`maxFragments: 65_536`, `maxRules: 32_768`, `maxStringBytes: 65_536`,
+`maxArrayItems: 65_536`, and `maxRelationshipsPerRule: 512`. The frozen specification is currently
+919,012 bytes across 50 files, so the byte/source caps exceed measured maxima by more than 4×;
+the structural caps deliberately leave headroom for one complete fragmentation and decomposition
+pass without becoming unbounded. Exact-boundary/one-over specification tests pin the contract
+(AR-P11, AR-P14). Changing a cap requires an inventory-version review.
 
 ## Integration Points
 

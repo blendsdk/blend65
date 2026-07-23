@@ -10,6 +10,7 @@
     { "path": "packages/cli" },
     { "path": "packages/language-server" },
     { "path": "packages/vscode" },
-    { "path": "packages/test-harness" }
+    { "path": "packages/test-harness" },
+    { "path": "packages/readiness" }
   ]
 }

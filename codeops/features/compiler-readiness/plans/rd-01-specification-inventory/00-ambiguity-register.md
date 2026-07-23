@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-01 Specification Inventory and Rule Schema (plan)
 
-> **Status**: ✅ GATE PASSED — all 12 items resolved
-> **Last Updated**: 2026-07-23 22:02
+> **Status**: ✅ GATE PASSED — all 16 items resolved
+> **Last Updated**: 2026-07-23 23:57
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd01-plan-20260723-01`
 > **Scope**: Plan-level implementation decisions only. The owning RD and the requirements
@@ -28,6 +28,10 @@ modification set.
 | AR-P10 | Data & migration | What version-evolution surface ships in v1? | (A) strict version dispatcher, migration registry/interface, atomic writer abstraction and deterministic invalidation report, with no v2 migrator; (B) speculative v2 migration; (C) reject-only reader | **A** — proves the upgrade boundary without inventing a future format; RD-07 remains the gate owner | ✅ Resolved |
 | AR-P11 | Security & non-functional | Which concrete bounds and hostile-input controls govern v1? | (A) named constants enforced before allocation/traversal, canonical real paths beneath `spec/`, no symlink escape, Markdown escaping and safe relative links; (B) rely on repository trust | **A** — inventory data is hostile by RD contract and boundary tests need one executable policy | ✅ Resolved |
 | AR-P12 | Testing & process | What verification and execution structure governs the work? | (A) five specification-first phases, targeted red/green checks per phase, Prettier on touched files and the full AGENTS.md verify at every phase close; (B) one monolithic phase | **A** — isolates infrastructure, fragmentation, semantics, population and evolution/docs while preserving one CI-equivalent close gate | ✅ Resolved |
+| AR-P13 | Technical (runtime) | How can the approved plan enter execution when the graph requires child-node execution snapshots but the transition API rejects execution-gate child targets? | (A) deterministically backfill only the missing execution snapshots in the approved graph, then validate and rerun readiness; (B) bypass the execution gate | **A** — preserve the gate and repair its evidence after the user approved the exact traceability scope expansion | ✅ Resolved |
+| AR-P14 | Technical (runtime) | What exact closed v1 object surface and resource-limit names can requirements-derived Phase-1 tests target? | (A) freeze the smallest explicit aggregate/registry/rule/citation shapes and one named limits object that supports every approved downstream phase; (B) let tests infer fields from implementation | **A** — specification tests require an independent public contract before implementation exists | ✅ Resolved |
+| AR-P15 | Testing (runtime) | Should the depth oracle identify a not-yet-visited child value or the container rejected immediately at the safety boundary? | (A) identify the rejected container and abort in its begin callback; (B) enter the excessive container to discover a deeper child path | **A** — immediate rejection prevents parser-stack exhaustion; the requirements promise an input-phase failure, not speculative child traversal | ✅ Resolved |
+| AR-P16 | Security (runtime) | How can in-memory validation remain bounded without rejecting inventories that are legal under the published byte and collection caps? | (A) derive the traversal ceiling from `maxInputBytes` and detect only ancestor cycles; (B) keep an unrelated lower aggregate ceiling; (C) remove traversal bounds | **A** — every serialized JSON value consumes at least one input byte, so the published byte cap is a safe compatible ceiling while ancestor tracking accepts shared acyclic values | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -244,6 +248,86 @@ modification set.
 - **Policy version:** 1
 - **Reopen triggers:** execution discovers a phase cannot close green without consuming a later
   phase's behavior
+
+### AR-P13 — execution snapshot repair
+
+- **Authority:** AI — delegated by `--auto-design` after explicit user approval to modify
+  `codeops/features/compiler-readiness/traceability.json`
+- **Eligibility:** reversible workflow-state repair inside the approved RD-01 execution scope
+- **Objective:** satisfy the mandatory execution-entry gate without weakening or bypassing it
+- **Evidence:** the gate reported 24 missing snapshots, while the public transition command
+  rejected the first required criterion refresh because the execution gate accepts only plan
+  targets
+- **Rejected alternative:** bypassing readiness would discard the semantic-drift protection that
+  the graph is intended to provide
+- **Strongest counterargument:** direct graph repair does not use the transition journal; the
+  change is limited to deterministic validation records and is followed by schema validation,
+  execution readiness and Git review
+- **Confidence:** High — reconsider if the transition interface gains an atomic plan-closure
+  snapshot refresh
+- **Hardening:** dependency-order analysis showed no public transition sequence can start because
+  every required child refresh is target-incompatible
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** graph validation fails, readiness still reports a missing/stale snapshot,
+  or any semantic revision differs from the approved preflight graph
+
+### AR-P14 — closed v1 test contract
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal data-contract and resource-limit design inside approved RD-01 behavior
+- **Objective:** let independent tests define the immutable v1 boundary before implementation
+- **Evidence:** ST-1–ST-3 require exact required/unknown-field behavior and ST-6 requires named
+  exact limits, but the preflighted plan described both only narratively
+- **Rejected alternative:** implementation-derived fixtures would make the specification tests
+  tautological and violate the repository's immutable-oracle rule
+- **Strongest counterargument:** freezing fields early increases migration cost; closed versioned
+  objects and the existing evolution seam make that cost explicit instead of accidental
+- **Confidence:** High — reconsider only if a requirements-level field cannot be represented by
+  the recorded discriminated unions
+- **Hardening:** the contract was checked against source, ledger, declaration, graph, projection
+  and migration consumers; optional empty collections preserve a small minimal fixture
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** a later phase needs semantic authority that cannot be encoded without an
+  additive v1 field or the frozen corpus exceeds a recorded cap
+
+### AR-P15 — immediate depth rejection
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** hostile-input failure mechanism and test precision within the approved depth cap
+- **Objective:** reject excessive nesting before the parser enters attacker-controlled containers
+- **Evidence:** phase review reproduced a 10,000-array input throwing `RangeError`; the original
+  oracle demanded the path of a child that cannot safely be visited
+- **Rejected alternative:** delaying rejection until a property, literal or closing delimiter
+  preserves a deeper path but allows container-only nesting to overflow the parser stack
+- **Strongest counterargument:** the diagnostic path becomes the excessive container rather than
+  its prospective child; that is the exact value the validator actually rejected
+- **Confidence:** High
+- **Hardening:** independent correctness and security reviews converged on begin-callback rejection
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** the parser supplies a bounded non-recursive traversal that can safely report
+  a more specific path without entering the excessive container
+
+### AR-P16 — contract-compatible traversal bound
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal resource-safety mechanism within the approved published v1 limits
+- **Objective:** bound hostile in-memory traversal without introducing a hidden stricter contract
+- **Evidence:** re-review reproduced a valid 14,000-rule inventory rejected by the fixed 262,144
+  value ceiling; every value in authoritative JSON consumes at least one input byte
+- **Rejected alternatives:** the unrelated fixed ceiling contradicted the published collection
+  limits; removing the traversal ceiling would leave direct in-memory callers exposed
+- **Strongest counterargument:** direct callers can construct graphs that were never serialized;
+  the same ceiling deliberately applies the authoritative byte-budget invariant to that seam
+- **Confidence:** High — reopen if a supported non-JSON producer needs a separately governed budget
+- **Hardening:** independent re-review rejected the fixed ceiling; a 14,000-rule valid regression,
+  exact boundary fixtures and cycle tests cover the corrected mechanism
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** the authoritative input format changes or a legal serialized inventory can
+  exceed the derived traversal ceiling
 
 ## Systematic 12-category closure
 
