@@ -61,4 +61,7 @@ their local proofs were allowed to stand in for a compiler-readiness strategy.
 | Triage ID | Bug or invalid authority | Required correction |
 |---|---|---|
 | T-001 | Runtime/computed memory-intrinsic addresses are rejected despite the frozen spec | Implement the specified `word` address forms and generated semantic coverage |
+| T-002 | Static instruction cost was interpreted as runtime cycles | Rename it and restrict it to secondary optimization evidence |
 | T-003 | Compiler-authored examples were treated as readiness authority | Retain them as regressions; replace their authority with the spec-derived baseline |
+| T-004 | Universal per-routine expert parity was used as a readiness rule | Move it to a measurable downstream optimization-quality program |
+| T-005 | “Beat expert” whole-program output was used as a readiness rule | Treat it as an aspiration until a benchmark contract makes it decidable |

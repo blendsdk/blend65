@@ -15,8 +15,8 @@
 | 6: Cross-cutting | ✅ Complete | diagnostics, verification, determinism, security | No network service surface |
 | 7: Integrations | ✅ Complete | ACME, VICE, filesystem, editor protocol | External tool boundaries recorded |
 | 8: Gaps and debt | ✅ Complete | conformance/parity artifacts and source | Includes asm-parity disposition |
-| 8B: Triage gate | ❌ Blocked | 5 unresolved of 8 | Three prior user rulings recorded; retro is not auto-design-enabled |
-| 9: Synthesis | ⬜ Not started | — | Prohibited until 8B passes |
+| 8B: Triage gate | ✅ Complete | 8 resolved | All reserved rulings supplied by user |
+| 9: Synthesis | ✅ Complete | phases 0–8B | Reconstruction brief ready for make-requirements |
 
 ## Module Coverage
 
