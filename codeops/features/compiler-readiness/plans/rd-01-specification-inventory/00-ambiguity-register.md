@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-01 Specification Inventory and Rule Schema (plan)
 
-> **Status**: ✅ GATE PASSED — all 18 items resolved
-> **Last Updated**: 2026-07-24 00:10
+> **Status**: ✅ GATE PASSED — all 21 items resolved
+> **Last Updated**: 2026-07-24 01:35
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd01-plan-20260723-01`
 > **Scope**: Plan-level implementation decisions only. The owning RD and the requirements
@@ -34,6 +34,9 @@ modification set.
 | AR-P16 | Security (runtime) | How can in-memory validation remain bounded without rejecting inventories that are legal under the published byte and collection caps? | (A) derive the traversal ceiling from `maxInputBytes` and detect only ancestor cycles; (B) keep an unrelated lower aggregate ceiling; (C) remove traversal bounds | **A** — every serialized JSON value consumes at least one input byte, so the published byte cap is a safe compatible ceiling while ancestor tracking accepts shared acyclic values | ✅ Resolved |
 | AR-P17 | Technical (runtime) | What exact normalization, fragment identity, hierarchy and public API can independent Phase-2 byte vectors target? | (A) strict UTF-8 with hash-only BOM/newline/NFC normalization, hierarchical container/child spans, domain-separated length-framed 160-bit IDs and one mandatory-policy API; (B) delimiter/JSON IDs with flat overlapping spans and exported policy helpers; (C) raw-byte hashes and offset-derived IDs | **A** — it preserves raw authority, portable content identity, total non-overlapping coverage at each tree level and one composable source-validation policy | ✅ Resolved |
 | AR-P18 | Technical (runtime) | Which exact bytes belong to headings, list items, table cells, EBNF productions, paragraphs and residual fragments? | (A) freeze the bounded line-oriented grammar and parent/child delimiter ownership in `03-02`; (B) defer offsets to implementation | **A** — literal independent vectors require one scanner grammar before implementation, including recognizer precedence and newline ownership | ✅ Resolved |
+| AR-P19 | Technical (runtime) | What exact Phase-3 API, identity-event chain and authored-vs-derived boundary can independent semantic tests target? | (A) freeze pure validators over an explicit context, fixed-order hash-chained JSONL identity events, authored conflict/projection records and one composed validator; (B) let tests infer module signatures and ledger framing from implementation; (C) synthesize conflicts and target children from prose | **A** — immutable tests need literal events and outputs while reviewed semantic classifications and stable IDs must remain authored authority | ✅ Resolved |
+| AR-P20 | Technical (runtime) | What exact context makes semantic-review evidence a closed enforceable gate? | (A) require expected spec revision, required unit IDs and current digests; reject missing/extra/duplicate/blocked/wrong-revision records and empty reviewers; (B) validate only whatever records happen to be supplied | **A** — review evidence cannot prove completeness or acceptance without an explicit expected set and revision | ✅ Resolved |
+| AR-P21 | Technical (runtime) | How does review evidence prove each unit's dependency-digest set is closed? | (A) context supplies lexical unique required dependency IDs per required unit and records must match exactly; (B) trust dependency keys volunteered by records | **A** — omitted dependency classes otherwise never become stale | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -375,6 +378,60 @@ modification set.
 - **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
 - **Reopen triggers:** an independent vector exposes overlapping peers, lost non-whitespace bytes
   or an ambiguous recognizer at the same precedence
+
+### AR-P19 — semantic validation and identity-chain contract
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal validation APIs, deterministic serialization and authored/derived
+  boundaries within the approved Phase-3 behavior
+- **Objective:** let the independent spec author construct literal ledger, conflict, declaration
+  and graph fixtures before implementation
+- **Evidence:** the Phase-3 spec author stopped because no validator signatures, identity JSONL
+  record, genesis value, hash framing or conflict/projection ownership boundary was defined
+- **Rejected alternatives:** implementation-derived APIs make the oracle circular; synthesized
+  natural-language conflicts exceed mechanical authority; generated target IDs undermine the
+  approved append-only identity ledger
+- **Strongest counterargument:** authored target children are more verbose than synthesizing them,
+  but they preserve reviewability, stable IDs and explicit source citations while projection
+  validation remains deterministic
+- **Confidence:** High — reopen if a literal Phase-3 fixture cannot be expressed without production
+  helpers or if reciprocal lineage cannot represent an approved split/merge
+- **Hardening:** independent challenger reviews fixed serialization, event ordering, reciprocal
+  lineage, duplicate-ID fail-fast behavior and same-target prerequisite rewriting before tests
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** identity-chain ambiguity, a mechanically uncheckable authored aggregate, or
+  a downstream consumer requiring a second semantic policy
+
+### AR-P20 — closed semantic-review evidence
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal Phase-3 review-evidence validation contract
+- **Objective:** prevent absent, blocked or stale review records from satisfying the population gate
+- **Evidence:** Phase-3 correctness review showed that digest equality alone accepted empty
+  reviewers, wrong spec revisions, blocked outcomes and an empty required-unit set
+- **Decision:** `validateReviewEvidence` receives expected spec revision, lexical unique required
+  unit IDs and current digests; records must cover that set exactly once, use a nonempty reviewer,
+  match the expected revision/digests and have outcome `accepted`
+- **Confidence:** High
+- **Hardening:** independent correctness review RV-304
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** review units become optional or multiple review rounds per unit are required
+
+### AR-P21 — closed per-unit review dependencies
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal review-evidence completeness mechanism
+- **Decision:** review context includes `requiredDependencyIdsByUnit`; every required unit has one
+  lexical unique dependency-ID list, and its record's dependency keys match that list exactly
+- **Evidence:** the single Phase-3 re-review showed volunteered dependency maps could omit changed
+  dependency classes while remaining valid
+- **Confidence:** High
+- **Hardening:** independent re-review RV-307
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** dependency closure becomes derivable from another frozen authoritative graph
 
 ## Systematic 12-category closure
 

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 00:34
-> **Progress**: 20/62 tasks (32%)
+> **Last Updated**: 2026-07-24 01:22
+> **Progress**: 30/62 tasks (48%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -144,37 +144,56 @@ verified; no third review was dispatched.
 
 ## Phase 3: Semantic graph, declarations and blockers
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: cb81d6a1f411f64fa8b521d56eee487da83210c7
 > **Lenses**: compiler/language; data/migration; correctness
 
 ### Step 3.1: Specification tests
 
 **Reference**: `03-03` §Validation pipeline · AR-P7–AR-P9
 
-- [ ] 3.1.1 [spec-author] Write ST-15–ST-19 plus ST-18a ledger/conflict/identity tests — `packages/readiness/src/ledger-validator.spec.test.ts`, `conflict-validator.spec.test.ts`
-- [ ] 3.1.2 [spec-author] Write ST-20–ST-22 declaration/capability/blocker tests — `packages/readiness/src/declaration-validator.spec.test.ts`
-- [ ] 3.1.3 [spec-author] Write ST-23–ST-26 projection/graph tests — `packages/readiness/src/rule-graph.spec.test.ts`
-- [ ] 3.1.4 Run Phase 3 specification tests and record genuine red failures — targeted readiness Vitest
+- [x] 3.1.1 [spec-author] Write ST-15–ST-19 plus ST-18a ledger/conflict/identity tests — `packages/readiness/src/ledger-validator.spec.test.ts`, `conflict-validator.spec.test.ts` ✅ (completed: 2026-07-24 01:06)
+- [x] 3.1.2 [spec-author] Write ST-20–ST-22 declaration/capability/blocker tests — `packages/readiness/src/declaration-validator.spec.test.ts` ✅ (completed: 2026-07-24 01:06)
+- [x] 3.1.3 [spec-author] Write ST-23–ST-26 projection/graph tests — `packages/readiness/src/rule-graph.spec.test.ts` ✅ (completed: 2026-07-24 01:06)
+- [x] 3.1.4 Run Phase 3 specification tests and record genuine red failures — targeted readiness Vitest: 4 files / 38 tests failed because all Phase-3 exports were absent ✅ (completed: 2026-07-24 01:06)
 
 ### Step 3.2: Implementation
 
 **Reference**: `03-03` §Ownership–§Blocking reasons · AR-P7–AR-P9
 
-- [ ] 3.2.1 Implement ledger totality, decomposition, genesis-anchored hash-chained identity allocation/retirement and lineage validation — `packages/readiness/src/ledger-validator.ts`, `identity-ledger.ts`, `readiness/inventory/rule-identities-v1.jsonl`
-- [ ] 3.2.2 Implement reviewed conflict classification and canonical aggregates — `packages/readiness/src/conflict-validator.ts`
-- [ ] 3.2.3 Implement handler/capability declaration lifecycle, typed blocker reasons and a deterministic bounded declaration generator with a hand-written stable barrel seam; exercise only fixture/in-memory output — `packages/readiness/src/declaration-validator.ts`, `blocking-reasons.ts`, `declaration-generator.ts`, `index.ts`
-- [ ] 3.2.4 Implement target projection, prerequisite rewriting, DAG and stable ordering — `packages/readiness/src/rule-graph.ts`
-- [ ] 3.2.5 Compose prerequisite-gated semantic passes, review-evidence validation and make ST-15–ST-26 plus ST-18a green — `packages/readiness/src/semantic-validator.ts`, `review-evidence.ts`
+- [x] 3.2.1 Implement ledger totality, decomposition, genesis-anchored hash-chained identity allocation/retirement and lineage validation — `packages/readiness/src/ledger-validator.ts`, `identity-ledger.ts`, `readiness/inventory/rule-identities-v1.jsonl` ✅ (completed: 2026-07-24 01:15)
+- [x] 3.2.2 Implement reviewed conflict classification and canonical aggregates — `packages/readiness/src/conflict-validator.ts` ✅ (completed: 2026-07-24 01:15)
+- [x] 3.2.3 Implement handler/capability declaration lifecycle, typed blocker reasons and a deterministic bounded declaration generator with a hand-written stable barrel seam; exercise only fixture/in-memory output — `packages/readiness/src/declaration-validator.ts`, `blocking-reasons.ts`, `declaration-generator.ts`, `index.ts` ✅ (completed: 2026-07-24 01:15)
+- [x] 3.2.4 Implement target projection, prerequisite rewriting, DAG and stable ordering — `packages/readiness/src/rule-graph.ts` ✅ (completed: 2026-07-24 01:15)
+- [x] 3.2.5 Compose prerequisite-gated semantic passes, review-evidence validation and make ST-15–ST-26 plus ST-18a green — `packages/readiness/src/semantic-validator.ts`, `review-evidence.ts` ✅ (completed: 2026-07-24 01:15)
 
 ### Step 3.3: Implementation tests and hardening
 
 **Reference**: `07` ST-15–ST-26 · AR-P7
 
-- [ ] 3.3.1 Add graph/index/cycle, declaration-generation and review-evidence internals; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `semantic-validator.impl.test.ts`, `declaration-generator.impl.test.ts`, `review-evidence.impl.test.ts`
+- [x] 3.3.1 Add graph/index/cycle, declaration-generation and review-evidence internals; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `semantic-validator.impl.test.ts`, `declaration-generator.impl.test.ts`, `review-evidence.impl.test.ts` ✅ (completed: 2026-07-24 01:22)
 
 **Deliverables:** exhaustive ledger semantics; conflict aggregates; typed declaration contracts,
 deterministic in-memory declaration generator and blockers; five-target graph projection; stable
 topological order.
+
+### Phase 3 quality review
+
+| Finding | Severity | Ruling |
+|---|---|---|
+| RV-301 / RV-SEM-301 | MAJOR | Fixed — bind mapped/decomposed ownership and exact rule union to resolved source fragments |
+| RV-302 / RV-SEM-303 / RV-SEM-304 | MAJOR | Fixed — enforce connected replacement topology and exact split/merge/supersedes lineage semantics |
+| RV-303 / RV-SEM-302 / SA-304 | MAJOR | Fixed — resolve conflict and ledger citations exactly against source context |
+| RV-304 | MAJOR | Fixed — require closed accepted semantic-review evidence through AR-P20/AR-P21 |
+| RV-305 / RV-SEM-305 / RV-SEM-306 | MAJOR | Fixed after re-review rejection — require complete universal groups and reject all cross-target prerequisites |
+| SA-301 | MAJOR | Fixed — scan identity framing/event bounds before decoding or splitting |
+| SA-302 | MAJOR | Fixed — use linear ledger duplicate accounting |
+| SA-303 | MAJOR | Fixed — use iterative graph analysis and a lexical heap, proven at maximum rule count |
+| SA-305 / SA-306 | MINOR | Fixed — use structured citation tuples and ordinal authority ordering |
+| RV-306 | MAJOR | Fixed after re-review rejection — exclude recomputed display lines from citation identity |
+| RV-307 | MAJOR | Fixed after re-review rejection — close required dependency-digest keys per review unit |
+
+The protocol's single re-review was completed. Its three remaining findings were corrected and
+verified; no third review was dispatched.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

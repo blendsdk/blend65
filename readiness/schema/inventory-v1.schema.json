@@ -219,11 +219,12 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["fragmentId", "disposition", "canonicalRuleId"],
+          "required": ["fragmentId", "disposition", "canonicalRuleId", "conflictId"],
           "properties": {
             "fragmentId": { "$ref": "#/$defs/id" },
             "disposition": { "const": "canonical-restatement" },
-            "canonicalRuleId": { "$ref": "#/$defs/id" }
+            "canonicalRuleId": { "$ref": "#/$defs/id" },
+            "conflictId": { "$ref": "#/$defs/id" }
           }
         },
         {

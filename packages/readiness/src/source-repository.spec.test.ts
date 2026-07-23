@@ -297,6 +297,7 @@ describe("authority and citation semantics", () => {
         fragmentId: "frag.v1.vn6sbqvtn222cucw5ir2hhndamaqpk42",
         disposition: "canonical-restatement",
         canonicalRuleId: "rule.value",
+        conflictId: "conflict.value-restatement",
       },
     ];
     const fixture = inventory(
@@ -347,6 +348,7 @@ describe("authority and citation semantics", () => {
           fragmentId: "frag.v1.k35b2h7vx2sajdrxb5pnnzqiwmr3oh7b",
           disposition: "canonical-restatement",
           canonicalRuleId: "rule.screen",
+          conflictId: "conflict.screen-restatement",
         },
       ],
       [
@@ -392,6 +394,7 @@ describe("authority and citation semantics", () => {
           fragmentId: "frag.v1.h4creqzrhli5ubqphhxg5trcbyjnpj4e",
           disposition: "canonical-restatement",
           canonicalRuleId: "rule.value",
+          conflictId: "conflict.value-restatement",
         },
       ],
       [rule("rule.value", citation("spec/repeated.md", "Values", "Value.", valueHash))],

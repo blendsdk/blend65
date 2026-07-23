@@ -191,12 +191,13 @@ const VARIANT_OBJECTS: readonly VariantObjectFixture[] = [
   {
     name: "restatement ledger entry",
     segments: ["clauseLedger", 0],
-    requiredFields: ["fragmentId", "disposition", "canonicalRuleId"],
+    requiredFields: ["fragmentId", "disposition", "canonicalRuleId", "conflictId"],
     create: () =>
       inventoryWithLedger({
         fragmentId: "fragment.values.aaaaaaaa",
         disposition: "canonical-restatement",
         canonicalRuleId: "rule.integer-literal",
+        conflictId: "conflict.integer-literal-restatement",
       }),
   },
   {

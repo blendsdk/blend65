@@ -97,7 +97,7 @@
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:2c129506648b038d164f2435aaae3f69c6a341e706694a06e1b528f7bd5ec971",
+          "revision": "sha256:9bf62497b62e4e48c928947434f9436cf713aa7316a2048c54d9ebc6e0b5c865",
           "upstream": "compiler-readiness/SPEC-RD-01-SEMANTICS",
           "validatedAt": "2026-07-23T22:02:00Z"
         },
@@ -125,7 +125,7 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:2c129506648b038d164f2435aaae3f69c6a341e706694a06e1b528f7bd5ec971",
+          "revision": "sha256:9bf62497b62e4e48c928947434f9436cf713aa7316a2048c54d9ebc6e0b5c865",
           "upstream": "compiler-readiness/SPEC-RD-01-SEMANTICS",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -712,7 +712,7 @@
     {
       "edges": [],
       "id": "AR-P01",
-      "revision": "sha256:c9400062e4a384174ec182a05671aeb26b691f68a7786f75e5e5d993b511ff9d",
+      "revision": "sha256:33c9dde51dc77a0ebac4449e53775eaa1ff38770d8459c0aaf4e23aadfd08661",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -856,7 +856,7 @@
         }
       ],
       "id": "SPEC-RD-01-SEMANTICS",
-      "revision": "sha256:2c129506648b038d164f2435aaae3f69c6a341e706694a06e1b528f7bd5ec971",
+      "revision": "sha256:9bf62497b62e4e48c928947434f9436cf713aa7316a2048c54d9ebc6e0b5c865",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -888,7 +888,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:7c57afb6b71fe5603f00b807a7aeaf0cc5b86cf6f240557b20dc76de501252c7",
+          "revision": "sha256:db1dd9e1b5bc7353d7dfc9d725f03fe2528f972c6c128fd1aee4f1729adc9d13",
           "upstream": "compiler-readiness/TASK-RD-01-P3",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -1064,7 +1064,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:7c57afb6b71fe5603f00b807a7aeaf0cc5b86cf6f240557b20dc76de501252c7",
+          "revision": "sha256:db1dd9e1b5bc7353d7dfc9d725f03fe2528f972c6c128fd1aee4f1729adc9d13",
           "upstream": "compiler-readiness/TASK-RD-01-P3",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -1162,6 +1162,10 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:All 278 readiness tests and full repository gate pass; Phase 3 branch coverage 95.21%",
+        "redEvidence:Four requirements-derived Phase 3 files and 38 tests failed before semantic validator exports existed"
+      ],
       "id": "TEST-RD-01-SEMANTICS",
       "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
@@ -1174,7 +1178,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-01 semantic specification tests",
       "type": "test",
       "validations": []
@@ -1236,7 +1240,7 @@
         "summary:Zero-Ambiguity Gate passed; 32 requirements-derived specification cases and 62 execution tasks are grounded in approved RD-01"
       ],
       "id": "PLAN-RD-01",
-      "revision": "sha256:3937076d3c11428d0ba487f6c3da954679f050a84cdd0dee6a5ecce8c7992275",
+      "revision": "sha256:28fd6a33bca8d4834564fab73c984b078c121ace8eb19aae797d310ec77aff6e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1282,7 +1286,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:7c57afb6b71fe5603f00b807a7aeaf0cc5b86cf6f240557b20dc76de501252c7",
+          "revision": "sha256:db1dd9e1b5bc7353d7dfc9d725f03fe2528f972c6c128fd1aee4f1729adc9d13",
           "upstream": "compiler-readiness/TASK-RD-01-P3",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -1356,8 +1360,15 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "implementation:Phase 3 ledger, identity, conflicts, declarations, blockers, graph, review evidence, and semantic composition",
+        "implementation:Phase 3 semantic validation foundation",
+        "review:All accepted findings and the single re-review findings corrected; no third review dispatched",
+        "review:Independent correctness, semantics, and security reviews completed",
+        "verificationEvidence:Full repository build, typecheck, lint, and tests passed; readiness 278/278 and 95.21% branch coverage"
+      ],
       "id": "TASK-RD-01-P3",
-      "revision": "sha256:7c57afb6b71fe5603f00b807a7aeaf0cc5b86cf6f240557b20dc76de501252c7",
+      "revision": "sha256:db1dd9e1b5bc7353d7dfc9d725f03fe2528f972c6c128fd1aee4f1729adc9d13",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1369,7 +1380,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-01 phase 3",
       "type": "task",
       "validations": []

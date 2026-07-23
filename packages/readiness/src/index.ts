@@ -4,6 +4,13 @@ export { fragmentSource } from "./fragmenter.js";
 export { INVENTORY_V1_LIMITS } from "./limits.js";
 export { createSourceRepository, validateInventorySources } from "./source-repository.js";
 export { validateInventorySchema } from "./schema-validator.js";
+export { validateLedger } from "./ledger-validator.js";
+export { validateConflicts } from "./conflict-validator.js";
+export { validateDeclarations } from "./declaration-validator.js";
+export { renderDeclarationModule } from "./declaration-generator.js";
+export { validateRuleGraph } from "./rule-graph.js";
+export { validateInventorySemantics } from "./semantic-validator.js";
+export { validateReviewEvidence } from "./review-evidence.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -36,11 +43,20 @@ export type {
   ParsedInventoryResult,
   ReadinessBlockingReason,
   ReadinessBlockingReasonKind,
+  ResolvedSourceFragment,
+  RuleGraphResult,
+  RuleIdentityEvent,
   RuleApplicability,
   RuleLineage,
   RulePolarity,
   SourceCitation,
   SourceSection,
+  SemanticValidationContext,
   UniversalProjection,
   ValidationResult,
 } from "./model.js";
+export type {
+  ReviewEvidenceContext,
+  ReviewEvidenceResult,
+  SemanticReviewRecord,
+} from "./review-evidence.js";

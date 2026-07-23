@@ -127,6 +127,7 @@ export type ClauseLedgerEntry =
       readonly fragmentId: string;
       readonly disposition: "canonical-restatement";
       readonly canonicalRuleId: string;
+      readonly conflictId: string;
     }
   | {
       readonly fragmentId: string;
@@ -246,6 +247,39 @@ export interface InventoryV1 {
   readonly evolutionGate: EvolutionGate | null;
 }
 
+/** Source fragment paired with its canonical path and normalized quoted bytes. */
+export interface ResolvedSourceFragment {
+  readonly sourcePath: string;
+  readonly fragment: SourceFragment;
+  readonly quote: string;
+}
+
+/** Immutable inputs shared by the focused semantic validators. */
+export interface SemanticValidationContext {
+  readonly fragments: readonly ResolvedSourceFragment[];
+  readonly identityLedgerBytes: Uint8Array;
+  readonly limits: InventoryLimits;
+}
+
+/** One append-only allocation or retirement fact in the rule identity ledger. */
+export interface RuleIdentityEvent {
+  readonly schemaVersion: 1;
+  readonly sequence: number;
+  readonly operation: "allocate" | "retire";
+  readonly ruleId: string;
+  readonly predecessorRuleIds: readonly string[];
+  readonly successorRuleIds: readonly string[];
+  readonly previousHash: `sha256:${string}`;
+  readonly eventHash: `sha256:${string}`;
+}
+
+/** Result of validating prerequisite and target-projection relationships. */
+export interface RuleGraphResult {
+  readonly ok: boolean;
+  readonly diagnostics: readonly InventoryDiagnostic[];
+  readonly topologicalRuleIds?: readonly string[];
+}
+
 /** Result returned by schema and semantic validation. */
 export interface ValidationResult {
   readonly ok: boolean;
@@ -262,3 +296,5 @@ export interface ParsedInventoryResult {
   readonly inventory: unknown | undefined;
   readonly blockingReasons: readonly ReadinessBlockingReason[];
 }
+import type { SourceFragment } from "./fragment-model.js";
+import type { InventoryLimits } from "./limits.js";
