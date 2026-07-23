@@ -2,7 +2,7 @@
 
 > Mode: make-requirements `--auto-design`
 > Root invocation ID: `compiler-readiness-20260723-01`
-> Status: Zero-Ambiguity Gate preparation
+> Status: Complete — requirements gate passed; retained as discovery provenance
 
 ## Confirmed Vision
 
@@ -72,7 +72,9 @@ evidence and do not define readiness.
 | RD-06 | Readiness matrix, release gate and legacy-evidence integration | RD-01–RD-05 |
 | RD-07 | Non-functional safety, determinism and evolution | RD-01–RD-06 |
 
-## Reserved Decision Still Required
+## Final Reserved Decision
 
-The exact release threshold for calling the compiler “ready” is product acceptance authority and
-cannot be delegated by `--auto-design`.
+The user approved a strict target-scoped claim: `C64 v3.0 Ready` requires every applicable
+mandatory rule to be modeled and passing at its declared terminal tier, with no unexplained
+exclusions, ICEs, assembler failures or emulator timeouts. Additional platforms are future
+readiness programs.

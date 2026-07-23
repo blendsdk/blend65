@@ -1,6 +1,6 @@
 # Ambiguity Register: Compiler Readiness
 
-> **Status**: ❌ GATE BLOCKED — 1 of 10 items unresolved
+> **Status**: ✅ GATE PASSED — all 10 items resolved
 > **Last Updated**: 2026-07-23
 > **Mode**: Auto-design
 > **Root invocation ID**: `compiler-readiness-20260723-01`
@@ -17,7 +17,7 @@
 | AR-7 | Integration | Which execution tier decides each case? | Every rule declares its terminal tier; use cheapest-sufficient execution, while runtime-semantic cases must reach ACME and bounded VICE | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-8 | Failure recovery | How are generated failures minimized? | Typed-IR-aware shrinking for semantic cases; token/text delta debugging for malformed cases; preserve rule coverage and failure predicate | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-9 | Data lifecycle | Which generated evidence is persistent? | Commit versioned rule/schema data and confirmed minimized regressions; retain campaign manifests/summaries; bulk cases remain reproducible ephemeral data | AI delegated by `--auto-design` | ✅ Resolved |
-| AR-10 | Product acceptance | What exact scope and threshold earns a readiness claim? | **Recommended:** issue target-scoped claims, beginning with `C64 v3.0 Ready`; require 100% of applicable mandatory rules modeled and passing their declared terminal tier, zero unexplained exclusions, and zero ICE/assembler-failure/timeout outcomes. Never issue an unqualified global “compiler ready” claim while another advertised target is unevaluated. | Reserved for user | ❌ Open |
+| AR-10 | Product acceptance | What exact scope and threshold earns a readiness claim? | Issue target-scoped claims, beginning with `C64 v3.0 Ready`; require 100% of applicable mandatory rules modeled and passing their declared terminal tier, zero unexplained exclusions, and zero ICE/assembler-failure/timeout outcomes. Never issue an unqualified global “compiler ready” claim while another advertised target is unevaluated. Additional platform readiness is future work. | User approved recommendation | ✅ Resolved |
 
 ## Delegated Resolution Records
 
@@ -134,7 +134,7 @@
 | Category | Result |
 |---|---|
 | Feature and behavioral gaps | Covered by AR-1–AR-3, AR-5–AR-8 |
-| Scope | One open product-acceptance decision: AR-10 |
+| Scope | Target-scoped C64 threshold resolved by AR-10 |
 | Technical unknowns | Resolved under auto-design: AR-4–AR-9 |
 | Edge cases | Bounds, undefined behavior, malformed input, timeouts and shrink preservation included |
 | Integration | Compiler API, ACME, VICE, filesystem and CI tiering included |

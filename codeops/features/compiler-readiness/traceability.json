@@ -1,0 +1,491 @@
+{
+  "schema": 2,
+  "feature": "compiler-readiness",
+  "nodes": [
+    {
+      "id": "REQ-SET",
+      "type": "requirement-set",
+      "title": "Compiler Readiness Requirements",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/README.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:c507fa68d78168609be9b2410a03059f22169b2dda390b46a3c5614ac7cf3341",
+      "edges": [],
+      "validations": [],
+      "members": [
+        "compiler-readiness/RD-01",
+        "compiler-readiness/RD-02",
+        "compiler-readiness/RD-03",
+        "compiler-readiness/RD-04",
+        "compiler-readiness/RD-05",
+        "compiler-readiness/RD-06",
+        "compiler-readiness/RD-07"
+      ]
+    },
+    {
+      "id": "RD-01",
+      "type": "requirement",
+      "title": "Specification Inventory and Rule Schema",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-01-specification-inventory.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:26530fe1f39742cd3fbd4e9e8cd703bcef6ca399223331e0b9ae4b725615d014",
+      "edges": [
+        { "relation": "affected-by", "target": "compiler-readiness/AR-01" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-02" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-04" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-10" }
+      ],
+      "validations": []
+    },
+    {
+      "id": "RD-02",
+      "type": "requirement",
+      "title": "Typed Generative Cases and Deterministic Replay",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-02-generative-cases.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:0ce0ec8e4b4449fa1bf966f091d952afe125b10a7d9bfad9cc8e01aec3119b84",
+      "edges": [
+        { "relation": "depends-on", "target": "compiler-readiness/RD-01" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-04" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-06" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-09" }
+      ],
+      "validations": [
+        {
+          "upstream": "compiler-readiness/RD-01",
+          "relation": "depends-on",
+          "revision": "sha256:26530fe1f39742cd3fbd4e9e8cd703bcef6ca399223331e0b9ae4b725615d014",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-03",
+      "type": "requirement",
+      "title": "Independent Semantic, Diagnostic and Metamorphic Oracles",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-03-independent-oracles.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:221d87592afd9613d341dbe5b447a95576dac37c928a14387f88f34a47d48494",
+      "edges": [
+        { "relation": "depends-on", "target": "compiler-readiness/RD-01" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-01" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-05" }
+      ],
+      "validations": [
+        {
+          "upstream": "compiler-readiness/RD-01",
+          "relation": "depends-on",
+          "revision": "sha256:26530fe1f39742cd3fbd4e9e8cd703bcef6ca399223331e0b9ae4b725615d014",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-04",
+      "type": "requirement",
+      "title": "Tiered Compiler, ACME and VICE Execution",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-04-tiered-execution.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:4544ebb27a022b5469121f043b44892677470844896541c45664944a4fe3af71",
+      "edges": [
+        { "relation": "depends-on", "target": "compiler-readiness/RD-02" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-03" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-03" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-07" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-10" }
+      ],
+      "validations": [
+        {
+          "upstream": "compiler-readiness/RD-02",
+          "relation": "depends-on",
+          "revision": "sha256:0ce0ec8e4b4449fa1bf966f091d952afe125b10a7d9bfad9cc8e01aec3119b84",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-03",
+          "relation": "depends-on",
+          "revision": "sha256:221d87592afd9613d341dbe5b447a95576dac37c928a14387f88f34a47d48494",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-05",
+      "type": "requirement",
+      "title": "Failure Classification, Shrinking and Regression Promotion",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-05-failure-reduction.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:e8a4bfa01df4d2ae6b098927e0ce51af680ce1fdaa407e4078c83e72c431965f",
+      "edges": [
+        { "relation": "depends-on", "target": "compiler-readiness/RD-02" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-04" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-08" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-09" }
+      ],
+      "validations": [
+        {
+          "upstream": "compiler-readiness/RD-02",
+          "relation": "depends-on",
+          "revision": "sha256:0ce0ec8e4b4449fa1bf966f091d952afe125b10a7d9bfad9cc8e01aec3119b84",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-04",
+          "relation": "depends-on",
+          "revision": "sha256:4544ebb27a022b5469121f043b44892677470844896541c45664944a4fe3af71",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-06",
+      "type": "requirement",
+      "title": "Readiness Matrix, Release Gate and Legacy Evidence",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-06-readiness-gate.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:25a183aa3fd97c9896a38e4e0dd9b7912b503353766148700d96eec4af532716",
+      "edges": [
+        { "relation": "depends-on", "target": "compiler-readiness/RD-01" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-02" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-03" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-04" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-05" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-01" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-02" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-03" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-10" }
+      ],
+      "validations": [
+        {
+          "upstream": "compiler-readiness/RD-01",
+          "relation": "depends-on",
+          "revision": "sha256:26530fe1f39742cd3fbd4e9e8cd703bcef6ca399223331e0b9ae4b725615d014",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-02",
+          "relation": "depends-on",
+          "revision": "sha256:0ce0ec8e4b4449fa1bf966f091d952afe125b10a7d9bfad9cc8e01aec3119b84",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-03",
+          "relation": "depends-on",
+          "revision": "sha256:221d87592afd9613d341dbe5b447a95576dac37c928a14387f88f34a47d48494",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-04",
+          "relation": "depends-on",
+          "revision": "sha256:4544ebb27a022b5469121f043b44892677470844896541c45664944a4fe3af71",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-05",
+          "relation": "depends-on",
+          "revision": "sha256:e8a4bfa01df4d2ae6b098927e0ce51af680ce1fdaa407e4078c83e72c431965f",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-07",
+      "type": "requirement",
+      "title": "Non-Functional Safety, Determinism and Evolution",
+      "status": "approved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/RD-07-non-functional.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:22bf01a4553c694ae6de2a01e79759784d3a1164263d8873e83f307c5a97c632",
+      "edges": [
+        { "relation": "depends-on", "target": "compiler-readiness/RD-01" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-02" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-03" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-04" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-05" },
+        { "relation": "depends-on", "target": "compiler-readiness/RD-06" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-07" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-09" },
+        { "relation": "affected-by", "target": "compiler-readiness/AR-10" }
+      ],
+      "validations": [
+        {
+          "upstream": "compiler-readiness/RD-01",
+          "relation": "depends-on",
+          "revision": "sha256:26530fe1f39742cd3fbd4e9e8cd703bcef6ca399223331e0b9ae4b725615d014",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-02",
+          "relation": "depends-on",
+          "revision": "sha256:0ce0ec8e4b4449fa1bf966f091d952afe125b10a7d9bfad9cc8e01aec3119b84",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-03",
+          "relation": "depends-on",
+          "revision": "sha256:221d87592afd9613d341dbe5b447a95576dac37c928a14387f88f34a47d48494",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-04",
+          "relation": "depends-on",
+          "revision": "sha256:4544ebb27a022b5469121f043b44892677470844896541c45664944a4fe3af71",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-05",
+          "relation": "depends-on",
+          "revision": "sha256:e8a4bfa01df4d2ae6b098927e0ce51af680ce1fdaa407e4078c83e72c431965f",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        },
+        {
+          "upstream": "compiler-readiness/RD-06",
+          "relation": "depends-on",
+          "revision": "sha256:25a183aa3fd97c9896a38e4e0dd9b7912b503353766148700d96eec4af532716",
+          "gate": "requirements",
+          "validatedAt": "2026-07-23T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "AR-01",
+      "type": "ambiguity",
+      "title": "Readiness authority",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-02",
+      "type": "ambiguity",
+      "title": "Runtime memory access classification",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-03",
+      "type": "ambiguity",
+      "title": "Assembly parity relationship",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-04",
+      "type": "ambiguity",
+      "title": "Rule inventory representation",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-05",
+      "type": "ambiguity",
+      "title": "Independent semantic oracle",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-06",
+      "type": "ambiguity",
+      "title": "Program generation model",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-07",
+      "type": "ambiguity",
+      "title": "Execution terminal tiers",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-08",
+      "type": "ambiguity",
+      "title": "Failure shrinking",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-09",
+      "type": "ambiguity",
+      "title": "Evidence persistence and evolution",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-10",
+      "type": "ambiguity",
+      "title": "C64 readiness claim threshold",
+      "status": "resolved",
+      "semanticSources": [
+        {
+          "path": "codeops/features/compiler-readiness/requirements/00-ambiguity-register.md",
+          "selector": { "kind": "whole-file" },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "revision": "sha256:7678768e03499e8a0133c7851a997d08396f94e5a02b9a78ecebd337d893ee8f",
+      "edges": [],
+      "validations": []
+    }
+  ]
+}
