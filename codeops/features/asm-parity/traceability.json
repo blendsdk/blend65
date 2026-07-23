@@ -1,0 +1,494 @@
+{
+  "feature": "asm-parity",
+  "nodes": [
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-01"
+        }
+      ],
+      "id": "RD-01",
+      "revision": "sha256:cbeec9c729e939ad550a0d376bffd624a5d47416a64d5297ef328b58b656c17d",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-01-parity-measurement-infrastructure.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Parity Measurement Infrastructure",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-02"
+        }
+      ],
+      "id": "RD-02",
+      "revision": "sha256:8d7f1be3d48230684b6fde9ba7f3a800aaf76efe7c68aa800f9fc2fc5722a8a1",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-02-golden-corpus-twin-audit.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Golden-Corpus Twin Audit and Scoreboard",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-03"
+        }
+      ],
+      "id": "RD-03",
+      "revision": "sha256:b36aee1c555dd5888097989ca3c563959ec0568dea9ab53edc48599f512b8045",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-03-placement.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Placement",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-04"
+        }
+      ],
+      "id": "RD-04",
+      "revision": "sha256:f4ecb7209e39423a394a221b025992532c66e217070d06de4aa2297441451ab9",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-04-compare-and-branch-fusion.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Compare-and-Branch Fusion",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-05"
+        }
+      ],
+      "id": "RD-05",
+      "revision": "sha256:dac9ec1e81430db7bd8a8049d59a769a964650530d0010758971f0bd34d7ae2f",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-05-block-layout.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Block Layout",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-13"
+        }
+      ],
+      "id": "RD-13",
+      "revision": "sha256:03bbfab05c194c97e7c1fb337ba73853e62047395a39c648dee6ddac5d1febbc",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-13-symbolic-address-arithmetic.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Symbolic Address Arithmetic",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "specified-by",
+          "target": "asm-parity/SPEC-RD-15"
+        }
+      ],
+      "id": "RD-15",
+      "revision": "sha256:fbac818fd4d6cec6538128d78fc2a19b2ad83b30fd2212a9e0e107cd8ce88f23",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/requirements/RD-15-alignment-granularity.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Alignment Granularity",
+      "type": "requirement",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-01"
+        }
+      ],
+      "id": "SPEC-RD-01",
+      "revision": "sha256:8bc1b6acba06d8ed374c20e20ea577d301bd42b580ad610e3627c7543a9d3c60",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-01-parity-measurement-infrastructure/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Parity Measurement Infrastructure Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-02"
+        }
+      ],
+      "id": "SPEC-RD-02",
+      "revision": "sha256:e5087d9d25bc73ffbf392e5263f89db7fe668fcb8510cd6b6ddda145704151d4",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-02-golden-corpus-twin-audit/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Golden-Corpus Twin Audit and Scoreboard Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-03"
+        }
+      ],
+      "id": "SPEC-RD-03",
+      "revision": "sha256:7f98104361c6fb90613842c4c8f8923eb9efe5363239639ac2fc39c8574ea970",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-03-placement/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Placement Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-04"
+        }
+      ],
+      "id": "SPEC-RD-04",
+      "revision": "sha256:e5c86506f4e81e64a4a927cd9b04c5f2f416225419ab4325abc425d9452db189",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-04-compare-and-branch-fusion/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Compare-and-Branch Fusion Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-05"
+        }
+      ],
+      "id": "SPEC-RD-05",
+      "revision": "sha256:947f0e9365f723ef3902f36393573bec4bfc90723c0aa5141d4043f8bf55de4e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-05-block-layout/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Block Layout Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-13"
+        }
+      ],
+      "id": "SPEC-RD-13",
+      "revision": "sha256:98e91639875ada9eee18312141a4acff12f72f95e5b652e657f8821d734a57d0",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-13-symbolic-address-arithmetic/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Symbolic Address Arithmetic Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "implemented-by",
+          "target": "asm-parity/TASK-RD-15"
+        }
+      ],
+      "id": "SPEC-RD-15",
+      "revision": "sha256:2aba7ae303ab25d3319c91726a66d9d81d3332e581a492edb12c200b34ac2e2e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-15-alignment-granularity/00-index.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "Alignment Granularity Plan",
+      "type": "specification",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-01",
+      "revision": "sha256:ba99ddfaf2251dc5c2f1a7412b79cf2bdc2b0b8ba8e84553385197517f484a6e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-01-parity-measurement-infrastructure/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Parity Measurement Infrastructure",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02",
+      "revision": "sha256:82f77815012c08f6d64af51004942ff21f6dd1e91edecbd56c62042dea84346d",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-02-golden-corpus-twin-audit/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Golden-Corpus Twin Audit and Scoreboard",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03",
+      "revision": "sha256:671ee3fed7559a5c6b9e82404bfd3a0ef6edb466098506449b3cfde019788a15",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-03-placement/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Placement",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-04",
+      "revision": "sha256:e31714eaec30a1e5d6cfcd2888f9263747aefb204354a7df0adbcd61e2f3c136",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-04-compare-and-branch-fusion/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Compare-and-Branch Fusion",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-05",
+      "revision": "sha256:32b6fcd5281716878a5c9b2da0cc1eb288e8787aaec517ce81d621c38440ce3f",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-05-block-layout/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Block Layout",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-13",
+      "revision": "sha256:9be1d10594910e722695ad00e5b29a652c82d9490d4ca36c1c5f830fdd52ffc5",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-13-symbolic-address-arithmetic/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Symbolic Address Arithmetic",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-15",
+      "revision": "sha256:234edaad789457ff7ad1588153f2390d958417799d37ab1b134ab992fe09504e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/rd-15-alignment-granularity/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Execute Alignment Granularity",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-T-02",
+      "revision": "sha256:b4d67ee14db75696791e21e2906cda5000cb8a7031b9b2ab60e4d7d21cee467a",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/asm-parity/plans/t-02-examples-coverage-manifest/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "verified",
+      "title": "Examples Coverage Manifest and Completeness Gate",
+      "type": "task",
+      "validations": []
+    }
+  ],
+  "schema": 2
+}

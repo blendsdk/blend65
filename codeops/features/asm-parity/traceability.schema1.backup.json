@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "feature": "asm-parity",
+  "nodes": [
+    {
+      "id": "RD-01",
+      "type": "requirement",
+      "title": "Parity Measurement Infrastructure",
+      "status": "approved",
+      "path": "requirements/RD-01-parity-measurement-infrastructure.md",
+      "links": ["SPEC-RD-01"]
+    },
+    {
+      "id": "SPEC-RD-01",
+      "type": "specification",
+      "title": "Parity Measurement Infrastructure Plan",
+      "status": "approved",
+      "path": "plans/rd-01-parity-measurement-infrastructure/00-index.md",
+      "links": ["TASK-RD-01"]
+    },
+    {
+      "id": "TASK-RD-01",
+      "type": "task",
+      "title": "Execute Parity Measurement Infrastructure",
+      "status": "verified",
+      "path": "plans/rd-01-parity-measurement-infrastructure/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "RD-02",
+      "type": "requirement",
+      "title": "Golden-Corpus Twin Audit and Scoreboard",
+      "status": "approved",
+      "path": "requirements/RD-02-golden-corpus-twin-audit.md",
+      "links": ["SPEC-RD-02"]
+    },
+    {
+      "id": "SPEC-RD-02",
+      "type": "specification",
+      "title": "Golden-Corpus Twin Audit and Scoreboard Plan",
+      "status": "approved",
+      "path": "plans/rd-02-golden-corpus-twin-audit/00-index.md",
+      "links": ["TASK-RD-02"]
+    },
+    {
+      "id": "TASK-RD-02",
+      "type": "task",
+      "title": "Execute Golden-Corpus Twin Audit and Scoreboard",
+      "status": "verified",
+      "path": "plans/rd-02-golden-corpus-twin-audit/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "RD-03",
+      "type": "requirement",
+      "title": "Placement",
+      "status": "approved",
+      "path": "requirements/RD-03-placement.md",
+      "links": ["SPEC-RD-03"]
+    },
+    {
+      "id": "SPEC-RD-03",
+      "type": "specification",
+      "title": "Placement Plan",
+      "status": "approved",
+      "path": "plans/rd-03-placement/00-index.md",
+      "links": ["TASK-RD-03"]
+    },
+    {
+      "id": "TASK-RD-03",
+      "type": "task",
+      "title": "Execute Placement",
+      "status": "verified",
+      "path": "plans/rd-03-placement/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "RD-04",
+      "type": "requirement",
+      "title": "Compare-and-Branch Fusion",
+      "status": "approved",
+      "path": "requirements/RD-04-compare-and-branch-fusion.md",
+      "links": ["SPEC-RD-04"]
+    },
+    {
+      "id": "SPEC-RD-04",
+      "type": "specification",
+      "title": "Compare-and-Branch Fusion Plan",
+      "status": "approved",
+      "path": "plans/rd-04-compare-and-branch-fusion/00-index.md",
+      "links": ["TASK-RD-04"]
+    },
+    {
+      "id": "TASK-RD-04",
+      "type": "task",
+      "title": "Execute Compare-and-Branch Fusion",
+      "status": "verified",
+      "path": "plans/rd-04-compare-and-branch-fusion/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "RD-05",
+      "type": "requirement",
+      "title": "Block Layout",
+      "status": "approved",
+      "path": "requirements/RD-05-block-layout.md",
+      "links": ["SPEC-RD-05"]
+    },
+    {
+      "id": "SPEC-RD-05",
+      "type": "specification",
+      "title": "Block Layout Plan",
+      "status": "approved",
+      "path": "plans/rd-05-block-layout/00-index.md",
+      "links": ["TASK-RD-05"]
+    },
+    {
+      "id": "TASK-RD-05",
+      "type": "task",
+      "title": "Execute Block Layout",
+      "status": "verified",
+      "path": "plans/rd-05-block-layout/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "RD-13",
+      "type": "requirement",
+      "title": "Symbolic Address Arithmetic",
+      "status": "approved",
+      "path": "requirements/RD-13-symbolic-address-arithmetic.md",
+      "links": ["SPEC-RD-13"]
+    },
+    {
+      "id": "SPEC-RD-13",
+      "type": "specification",
+      "title": "Symbolic Address Arithmetic Plan",
+      "status": "approved",
+      "path": "plans/rd-13-symbolic-address-arithmetic/00-index.md",
+      "links": ["TASK-RD-13"]
+    },
+    {
+      "id": "TASK-RD-13",
+      "type": "task",
+      "title": "Execute Symbolic Address Arithmetic",
+      "status": "verified",
+      "path": "plans/rd-13-symbolic-address-arithmetic/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "RD-15",
+      "type": "requirement",
+      "title": "Alignment Granularity",
+      "status": "approved",
+      "path": "requirements/RD-15-alignment-granularity.md",
+      "links": ["SPEC-RD-15"]
+    },
+    {
+      "id": "SPEC-RD-15",
+      "type": "specification",
+      "title": "Alignment Granularity Plan",
+      "status": "approved",
+      "path": "plans/rd-15-alignment-granularity/00-index.md",
+      "links": ["TASK-RD-15"]
+    },
+    {
+      "id": "TASK-RD-15",
+      "type": "task",
+      "title": "Execute Alignment Granularity",
+      "status": "verified",
+      "path": "plans/rd-15-alignment-granularity/99-execution-plan.md",
+      "links": []
+    },
+    {
+      "id": "TASK-T-02",
+      "type": "task",
+      "title": "Examples Coverage Manifest and Completeness Gate",
+      "status": "verified",
+      "path": "plans/t-02-examples-coverage-manifest/99-execution-plan.md",
+      "links": []
+    }
+  ]
+}
