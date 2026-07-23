@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 1,
+  "inventoryVersion": "1.0.0",
+  "specRevision": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "identityLedgerHead": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "fragmentationProfile": {
+    "profileId": "markdown-ebnf-v1",
+    "version": 1,
+    "contentHashAlgorithm": "sha256",
+    "newlinePolicy": "lf"
+  },
+  "normativeSources": [
+    {
+      "path": "spec/00-feature-index.md",
+      "order": 0,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/00-introduction.md",
+      "order": 1,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/01-lexical-structure.md",
+      "order": 2,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/02-type-system.md",
+      "order": 3,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/03-variables.md",
+      "order": 4,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/04-expressions-operators.md",
+      "order": 5,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/05-statements-control-flow.md",
+      "order": 6,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/06-functions.md",
+      "order": 7,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/07-structs.md",
+      "order": 8,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/08-arrays-strings.md",
+      "order": 9,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/09-enums.md",
+      "order": 10,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/10-modules.md",
+      "order": 11,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/11-memory-model.md",
+      "order": 12,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/12-intrinsics.md",
+      "order": 13,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/13-data-inclusion.md",
+      "order": 14,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/14-diagnostics.md",
+      "order": 15,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/15-platform-profile.md",
+      "order": 16,
+      "classification": "normative-chapter",
+      "sections": []
+    },
+    {
+      "path": "spec/appendix-a7800.md",
+      "order": 17,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/appendix-a800xl.md",
+      "order": 18,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/appendix-c64.md",
+      "order": 19,
+      "classification": "normative-target",
+      "sections": []
+    },
+    {
+      "path": "spec/appendix-c64u.md",
+      "order": 20,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/appendix-cx16.md",
+      "order": 21,
+      "classification": "contextual",
+      "sections": []
+    },
+    { "path": "spec/build-plan.md", "order": 22, "classification": "contextual", "sections": [] },
+    {
+      "path": "spec/evaluations/F001-multi-file.md",
+      "order": 23,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F002-modules.md",
+      "order": 24,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F003-module-contents.md",
+      "order": 25,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F004-entry-point.md",
+      "order": 26,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F005-memory-placement.md",
+      "order": 27,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F006-address-of.md",
+      "order": 28,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F007-interrupt-functions.md",
+      "order": 29,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F008-for-loop.md",
+      "order": 30,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F009-switch-statement.md",
+      "order": 31,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F010-signed-types.md",
+      "order": 32,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F011-structs.md",
+      "order": 33,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F012-cpu-control-intrinsics.md",
+      "order": 34,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F013-control-flow.md",
+      "order": 35,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F014-arrays.md",
+      "order": 36,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F015-data-inclusion.md",
+      "order": 37,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F016-type-system.md",
+      "order": 38,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F017-operators.md",
+      "order": 39,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F018-functions.md",
+      "order": 40,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F019-variables.md",
+      "order": 41,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F020-memory-intrinsics.md",
+      "order": 42,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F021-lexical-structure.md",
+      "order": 43,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F022-enums.md",
+      "order": 44,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/evaluations/F024-conditional-operator.md",
+      "order": 45,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/future-considerations.md",
+      "order": 46,
+      "classification": "deferred",
+      "sections": []
+    },
+    {
+      "path": "spec/grammar.ebnf.md",
+      "order": 47,
+      "classification": "normative-grammar",
+      "sections": [
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "1. Notation"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:303ad457fa0a629e0a7778b6ac6356928bcb71eef856e855e32b29dc339ba4c6"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "2. Source Structure"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:580239d5509bcd18073b116137106f862943ea2a71b7c62b6b56542e62f4f0d0"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "3. Declarations"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:5463eb7d499d70dbeb8a171a82ba008aa39fc2fae452e11599fae88c7d0e33d2"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "4. Types (→ Ch 02)"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:2f31db5667c006fd0f147139168e000c94c1e0fd1c0bca4834911e7dd13bc220"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "5. Statements (→ Ch 05)"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:2cf5ff01c66aee1b60395b3c84a6d0385898b0ec7edc2c5263f285edf01e8802"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "6. Expressions (→ Ch 04)"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:a97027f3c487d25cc71bcd1b6106e08787a40dec5e2d4ff53fcb86dd2d5af09d"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "7. Intrinsic Calls (→ Ch 12)"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:46d9791839dc92113b49e319aa8d3f45d1f3c660ecc4c2acbab1667878407d41"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "8. Data Inclusion (→ Ch 13)"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:9117179770e67fcdf3110b70b7fdfda0abdb5aae4ae54b9e912c71df492d8947"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "9. Lexical Grammar (→ Ch 01)"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:8074f21e47455493834361d14528841a7348cdc9b7b4e84149371bf613cf076c"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "10. Production Index"],
+          "classification": "normative-grammar",
+          "contentHash": "sha256:8245dc04870da26e6bd8b662b33d3886601edc9e4b0e4adbeebb24f735a7c2f7"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "11. Parser Architecture Notes"],
+          "classification": "contextual",
+          "contentHash": "sha256:8c72edc1c705d0d8f5161890d3519983429d6e4eda032d89abd03024ec2bd2e0"
+        },
+        {
+          "headingAncestry": ["Blend65 v3 — Master EBNF Grammar", "12. Gate G4 Certification"],
+          "classification": "contextual",
+          "contentHash": "sha256:ccd0905b3eebcfe77a1642a8cea309fd8b422d65932432bf147ac91eb69ea6cd"
+        }
+      ]
+    },
+    {
+      "path": "spec/preflight-report.md",
+      "order": 48,
+      "classification": "contextual",
+      "sections": []
+    },
+    {
+      "path": "spec/v2-to-v3-migration.md",
+      "order": 49,
+      "classification": "contextual",
+      "sections": []
+    }
+  ],
+  "handlerDeclarations": [],
+  "evidenceCapabilityDeclarations": [],
+  "clauseLedger": [],
+  "conflicts": [],
+  "rules": [],
+  "evolutionGate": null
+}

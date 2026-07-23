@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-01 Specification Inventory and Rule Schema (plan)
 
-> **Status**: ✅ GATE PASSED — all 16 items resolved
-> **Last Updated**: 2026-07-23 23:57
+> **Status**: ✅ GATE PASSED — all 18 items resolved
+> **Last Updated**: 2026-07-24 00:10
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd01-plan-20260723-01`
 > **Scope**: Plan-level implementation decisions only. The owning RD and the requirements
@@ -32,6 +32,8 @@ modification set.
 | AR-P14 | Technical (runtime) | What exact closed v1 object surface and resource-limit names can requirements-derived Phase-1 tests target? | (A) freeze the smallest explicit aggregate/registry/rule/citation shapes and one named limits object that supports every approved downstream phase; (B) let tests infer fields from implementation | **A** — specification tests require an independent public contract before implementation exists | ✅ Resolved |
 | AR-P15 | Testing (runtime) | Should the depth oracle identify a not-yet-visited child value or the container rejected immediately at the safety boundary? | (A) identify the rejected container and abort in its begin callback; (B) enter the excessive container to discover a deeper child path | **A** — immediate rejection prevents parser-stack exhaustion; the requirements promise an input-phase failure, not speculative child traversal | ✅ Resolved |
 | AR-P16 | Security (runtime) | How can in-memory validation remain bounded without rejecting inventories that are legal under the published byte and collection caps? | (A) derive the traversal ceiling from `maxInputBytes` and detect only ancestor cycles; (B) keep an unrelated lower aggregate ceiling; (C) remove traversal bounds | **A** — every serialized JSON value consumes at least one input byte, so the published byte cap is a safe compatible ceiling while ancestor tracking accepts shared acyclic values | ✅ Resolved |
+| AR-P17 | Technical (runtime) | What exact normalization, fragment identity, hierarchy and public API can independent Phase-2 byte vectors target? | (A) strict UTF-8 with hash-only BOM/newline/NFC normalization, hierarchical container/child spans, domain-separated length-framed 160-bit IDs and one mandatory-policy API; (B) delimiter/JSON IDs with flat overlapping spans and exported policy helpers; (C) raw-byte hashes and offset-derived IDs | **A** — it preserves raw authority, portable content identity, total non-overlapping coverage at each tree level and one composable source-validation policy | ✅ Resolved |
+| AR-P18 | Technical (runtime) | Which exact bytes belong to headings, list items, table cells, EBNF productions, paragraphs and residual fragments? | (A) freeze the bounded line-oriented grammar and parent/child delimiter ownership in `03-02`; (B) defer offsets to implementation | **A** — literal independent vectors require one scanner grammar before implementation, including recognizer precedence and newline ownership | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -328,6 +330,51 @@ modification set.
 - **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
 - **Reopen triggers:** the authoritative input format changes or a legal serialized inventory can
   exceed the derived traversal ceiling
+
+### AR-P17 — independent fragmentation contract
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** parsing, hashing, internal interface and testability mechanisms within approved
+  fragmentation, source-safety and ledger behavior
+- **Objective:** let immutable tests compute exact hashes, IDs, spans and source outcomes without
+  importing production policy
+- **Evidence:** the spec author could not write ST-8 literals because normalization, serialization
+  and signatures were narrative only; flat row/cell and fence/production spans also contradict
+  global non-overlap
+- **Rejected alternatives:** delimiter or canonical-JSON framing adds escaping/version ambiguity;
+  raw hashes lose approved newline/BOM portability; offset IDs churn after unrelated preceding
+  edits; exporting policy helpers permits later phases to compose a second validator
+- **Strongest counterargument:** NFC intentionally gives canonically equivalent Unicode the same
+  hash and identical repeated fragments use a local occurrence ordinal; raw spans still distinguish
+  bytes, and the ordinal churn is narrower than offset-derived identity
+- **Confidence:** High — reopen if the frozen corpus contains canonically distinct Unicode that
+  must retain different semantic hashes or a required construct cannot fit the fragment hierarchy
+- **Hardening:** blind challenger identified identical-fragment collisions and the container/child
+  overlap contradiction; both are closed by occurrence ordinals and parent IDs
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** measured collision/identity instability, cross-platform path divergence, or
+  a Phase-3 consumer needing policy not expressible through `validateInventorySources`
+
+### AR-P18 — scanner byte ownership
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** compiler-like scanner grammar inside the approved supported node kinds
+- **Objective:** make every expected byte offset independently computable and preserve total
+  non-whitespace coverage without overlap at one hierarchy level
+- **Evidence:** the spec author identified five offset-changing gaps after identity closure:
+  terminators, heading ancestry, delimiters, fence ownership and paragraph/residual precedence
+- **Rejected alternative:** implementation-selected boundaries would make ST-8 a tautology and
+  allow scanner behavior to drift without changing the oracle
+- **Strongest counterargument:** a purpose-built grammar will not implement all CommonMark edge
+  cases; unsupported syntax is deliberately residual, keeping loss visible rather than guessed
+- **Confidence:** High — reopen on an unrepresentable frozen-spec construct, not renderer parity
+- **Hardening:** the hierarchy and precedence were checked against nested row/cell and
+  fence/production overlap plus malformed/unterminated inputs
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** an independent vector exposes overlapping peers, lost non-whitespace bytes
+  or an ambiguous recognizer at the same precedence
 
 ## Systematic 12-category closure
 

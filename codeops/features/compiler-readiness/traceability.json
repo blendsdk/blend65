@@ -90,7 +90,7 @@
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:926f777130d09f8fb3a3589ec173847abbc7584e23aa9a784fff770cb8655da6",
+          "revision": "sha256:b21ddeb8e656f0d7d8a0e39e921fbe6f9a8b597b3cc6587658a07d414449ee12",
           "upstream": "compiler-readiness/SPEC-RD-01-SOURCE",
           "validatedAt": "2026-07-23T22:02:00Z"
         },
@@ -118,7 +118,7 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:926f777130d09f8fb3a3589ec173847abbc7584e23aa9a784fff770cb8655da6",
+          "revision": "sha256:b21ddeb8e656f0d7d8a0e39e921fbe6f9a8b597b3cc6587658a07d414449ee12",
           "upstream": "compiler-readiness/SPEC-RD-01-SOURCE",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -712,7 +712,7 @@
     {
       "edges": [],
       "id": "AR-P01",
-      "revision": "sha256:f34748aeba420eaa4e8642ff0d44c99c2aee66541e6231d8e947c38f6ab9e7bf",
+      "revision": "sha256:c9400062e4a384174ec182a05671aeb26b691f68a7786f75e5e5d993b511ff9d",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -798,7 +798,7 @@
         }
       ],
       "id": "SPEC-RD-01-SOURCE",
-      "revision": "sha256:926f777130d09f8fb3a3589ec173847abbc7584e23aa9a784fff770cb8655da6",
+      "revision": "sha256:b21ddeb8e656f0d7d8a0e39e921fbe6f9a8b597b3cc6587658a07d414449ee12",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -830,7 +830,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d0d45b9333fc9834b0dedda89b46f2e404e987e5c2938c623c290457ea8c043e",
+          "revision": "sha256:cf763838d280611e090de140f80e56d2f75079a0614ff68c142c4c42bdf1052e",
           "upstream": "compiler-readiness/TASK-RD-01-P2",
           "validatedAt": "2026-07-23T21:15:17Z"
         }
@@ -1023,7 +1023,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d0d45b9333fc9834b0dedda89b46f2e404e987e5c2938c623c290457ea8c043e",
+          "revision": "sha256:cf763838d280611e090de140f80e56d2f75079a0614ff68c142c4c42bdf1052e",
           "upstream": "compiler-readiness/TASK-RD-01-P2",
           "validatedAt": "2026-07-23T21:15:17Z"
         }
@@ -1139,6 +1139,10 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:Readiness package 210 tests passing; full repository build, typecheck, lint, and test gate passing",
+        "redEvidence:Twenty-four requirements-derived source and fragmentation tests failed before Phase 2 APIs and the closed manifest existed"
+      ],
       "id": "TEST-RD-01-SOURCE",
       "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
@@ -1151,7 +1155,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-01 source specification tests",
       "type": "test",
       "validations": []
@@ -1232,7 +1236,7 @@
         "summary:Zero-Ambiguity Gate passed; 32 requirements-derived specification cases and 62 execution tasks are grounded in approved RD-01"
       ],
       "id": "PLAN-RD-01",
-      "revision": "sha256:66d312cd947bb80f04123e659e091d65b165282433982512bd3af4cc7a1321bd",
+      "revision": "sha256:3937076d3c11428d0ba487f6c3da954679f050a84cdd0dee6a5ecce8c7992275",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1271,7 +1275,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d0d45b9333fc9834b0dedda89b46f2e404e987e5c2938c623c290457ea8c043e",
+          "revision": "sha256:cf763838d280611e090de140f80e56d2f75079a0614ff68c142c4c42bdf1052e",
           "upstream": "compiler-readiness/TASK-RD-01-P2",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -1326,8 +1330,14 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "implementation:packages/readiness source fragmentation and bounded repository plus readiness conformance vectors and inventory manifest",
+        "review:All accepted Phase 2 findings and the single re-review containment finding were corrected",
+        "review:Phase 2 independent correctness, semantics, and security review completed",
+        "verificationEvidence:Full repository build, typecheck, lint, and test gate passed with readiness 210/210 tests"
+      ],
       "id": "TASK-RD-01-P2",
-      "revision": "sha256:d0d45b9333fc9834b0dedda89b46f2e404e987e5c2938c623c290457ea8c043e",
+      "revision": "sha256:cf763838d280611e090de140f80e56d2f75079a0614ff68c142c4c42bdf1052e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1339,7 +1349,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-01 phase 2",
       "type": "task",
       "validations": []

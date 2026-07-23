@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-23 23:57
-> **Progress**: 10/62 tasks (16%)
+> **Last Updated**: 2026-07-24 00:34
+> **Progress**: 20/62 tasks (32%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -89,36 +89,56 @@ no third review was dispatched.
 
 ## Phase 2: Fragmentation, manifest and source safety
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: cce222517e9780ea48a9801f64af2def1fb6afd7
 > **Lenses**: compiler/language; security/resource safety; data/migration
 
 ### Step 2.1: Specification tests
 
 **Reference**: `03-02` §Fragmentation profile–§Source resolution · AR-P6, AR-P8, AR-P11
 
-- [ ] 2.1.1 [spec-author] Write ST-8 and ST-10 requirement-derived vector tests from independent bytes — `packages/readiness/src/fragmenter.spec.test.ts`, `readiness/conformance/fragmentation-v1.json`
-- [ ] 2.1.2 [spec-author] Write ST-11–ST-14 manifest/citation/path tests — `packages/readiness/src/source-repository.spec.test.ts`
-- [ ] 2.1.3 Run Phase 2 specification tests and record genuine red failures — targeted readiness Vitest
+- [x] 2.1.1 [spec-author] Write ST-8 and ST-10 requirement-derived vector tests from independent bytes — `packages/readiness/src/fragmenter.spec.test.ts`, `readiness/conformance/fragmentation-v1.json` ✅ (completed: 2026-07-24 00:22)
+- [x] 2.1.2 [spec-author] Write ST-11–ST-14 manifest/citation/path tests — `packages/readiness/src/source-repository.spec.test.ts` ✅ (completed: 2026-07-24 00:22)
+- [x] 2.1.3 Run Phase 2 specification tests and record genuine red failures — targeted readiness Vitest ✅ (completed: 2026-07-24 00:22)
 
 ### Step 2.2: Implementation
 
 **Reference**: `03-02` §Fragmentation profile–§Normative-source manifest · AR-P6, AR-P8
 
-- [ ] 2.2.1 Implement byte/line/hash primitives and v1 fragment types — `packages/readiness/src/source-bytes.ts`, `fragment-model.ts`
-- [ ] 2.2.2 Implement heading, paragraph and list scanning — `packages/readiness/src/fragmenter.ts`
-- [ ] 2.2.3 Add table, fenced-EBNF and residual scanning — `packages/readiness/src/fragmenter.ts`
-- [ ] 2.2.4 Implement canonical root containment and exact citation resolution — `packages/readiness/src/source-repository.ts`
-- [ ] 2.2.5 Add the closed ordered source/section manifest classifications — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 2.2.6 Make ST-8 and ST-10–ST-14 green and verify deterministic scans — fragment/source targeted suite
+- [x] 2.2.1 Implement byte/line/hash primitives and v1 fragment types — `packages/readiness/src/source-bytes.ts`, `fragment-model.ts` ✅ (completed: 2026-07-24 00:32)
+- [x] 2.2.2 Implement heading, paragraph and list scanning — `packages/readiness/src/fragmenter.ts` ✅ (completed: 2026-07-24 00:32)
+- [x] 2.2.3 Add table, fenced-EBNF and residual scanning — `packages/readiness/src/fragmenter.ts` ✅ (completed: 2026-07-24 00:32)
+- [x] 2.2.4 Implement canonical root containment and exact citation resolution — `packages/readiness/src/source-repository.ts` ✅ (completed: 2026-07-24 00:32)
+- [x] 2.2.5 Add the closed ordered source/section manifest classifications — `readiness/inventory/compiler-readiness-v1.json` ✅ (completed: 2026-07-24 00:32)
+- [x] 2.2.6 Make ST-8 and ST-10–ST-14 green and verify deterministic scans — fragment/source targeted suite ✅ (completed: 2026-07-24 00:32)
 
 ### Step 2.3: Implementation tests and hardening
 
 **Reference**: `07` ST-8, ST-10–ST-14 · AR-P6, AR-P11
 
-- [ ] 2.3.1 Add scanner state/hash internals, enforce readiness branch coverage, run Prettier/full verify and confirm `spec/` clean — `fragmenter.impl.test.ts`
+- [x] 2.3.1 Add scanner state/hash internals, enforce readiness branch coverage, run Prettier/full verify and confirm `spec/` clean — `fragmenter.impl.test.ts` ✅ (completed: 2026-07-24 00:34)
 
 **Deliverables:** implementation-independent vectors; total byte scanner; closed manifest; secure
 source repository; exact citations.
+
+### Phase 2 quality review
+
+| Finding | Severity | Ruling |
+|---|---|---|
+| RV-201 | MAJOR | Fixed — reject unsupported profiles and noncanonical source paths before scanning |
+| RV-202 / RV-SEM-202 | MAJOR | Fixed — emit residual children for every unclaimed EBNF byte interval |
+| RV-203 / RV-SEM-203 | MAJOR | Fixed — enforce unique contiguous order and the authoritative path/classification/section policy |
+| RV-204 / SA-201 | MAJOR | Fixed — enforce `maxFragments` during draft creation and reuse one line table |
+| SA-202 | MAJOR | Fixed — use iterative bounded enumeration and reserve aggregate bytes before reads |
+| SA-203 | MAJOR | Fixed — index fragments once for bounded citation resolution |
+| SA-204 | MAJOR | Fixed — reject source symlinks instead of canonicalizing away lexical aliases |
+| SA-205 | MINOR | Fixed — replace raw filesystem messages with stable repository diagnostics |
+| RV-SEM-201 | MAJOR | Fixed — keep the Phase-2 skeleton source-invalid until every fragment is disposed |
+| RV-SEM-204 | MAJOR | Fixed — count section occurrences using NFC-normalized ancestry |
+| RV-SEM-205 | MINOR | Fixed — remove at most one ASCII space around table cells |
+| RV-205 | MAJOR | Fixed after re-review rejection — keep unterminated production children within the fence's non-whitespace span |
+
+The protocol's single re-review was completed. Its remaining containment finding was corrected and
+verified; no third review was dispatched.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
