@@ -1,4 +1,4 @@
-# CLAUDE.md notes — asm-parity (fold on integration)
+# AGENTS.md notes — asm-parity (fold on integration)
 
 Hand-written prose only; derived facts (scripts, structure, CI steps) re-scan when
 `/analyze_project` runs on the integration branch.
