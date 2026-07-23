@@ -56,7 +56,8 @@ manifest or citation path it:
 5. verifies the bounded quote/hash at exactly one selected span.
 
 No later source read bypasses this abstraction (AR-P11). Display line numbers are recomputed
-metadata and never participate in identity.
+metadata and never participate in identity. The repository is required to remain stable during a
+validation run; concurrent malicious checkout mutation is outside the offline tool's threat model.
 
 ## Conformance vectors
 

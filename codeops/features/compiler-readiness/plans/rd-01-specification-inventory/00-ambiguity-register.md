@@ -17,14 +17,14 @@ modification set.
 | # | Category | Ambiguity / Gap | Options Presented | Decision / Authority | Status |
 |---|---|---|---|---|---|
 | AR-P1 | Scope | Does the plan populate the complete C64 v3.0 denominator or only build inventory tooling? | (A) tooling plus the complete manifest, clause ledger and rule inventory; (B) tooling only, deferring population | **A** — the RD's denominator does not exist until the authoritative inventory is populated and validated | ✅ Resolved |
-| AR-P2 | Technical | Where should reusable readiness code live? | (A) a new private `@blend65/readiness` workspace; (B) `@blend65/test-harness`; (C) root scripts only | **A** — dedicated dependency-free domain boundary, with repository data under `readiness/` | ✅ Resolved |
+| AR-P2 | Technical | Where should reusable readiness code live? | (A) a new private `@blend65/readiness` workspace; (B) `@blend65/test-harness`; (C) root scripts only | **A** — dedicated compiler/toolchain-independent domain boundary, with allowlisted validation dependencies and repository data under `readiness/` | ✅ Resolved |
 | AR-P3 | Data & state | Where do authoritative and generated artifacts live? | (A) root `readiness/` with `schema/`, `inventory/`, `conformance/`, and `generated/`; (B) package source; (C) `docs/` | **A** — separates durable data from executable code and marks generated Markdown non-authoritative | ✅ Resolved |
 | AR-P4 | Technical | How are duplicate JSON keys preserved for rejection before ordinary parsing erases them? | (A) inspect a `jsonc-parser` syntax tree, reject comments/trailing commas and duplicates, then materialize; (B) write a JSON parser; (C) accept `JSON.parse` loss | **A** — reuse a declared parser dependency while retaining exact property occurrences | ✅ Resolved |
 | AR-P5 | Technical | How are JSON Schema and semantic validation divided? | (A) committed draft-2020-12 schema compiled by explicit Ajv v8, followed by ordered semantic passes; (B) custom validation only; (C) schema-only | **A** — portable local constraints plus TypeScript-owned relational checks, exposed through one result model and command | ✅ Resolved |
 | AR-P6 | Technical | How are Markdown/EBNF fragments derived with stable byte spans? | (A) a versioned, purpose-built byte-oriented scanner over UTF-8/LF source; (B) a general Markdown AST and inferred offsets; (C) hand-authored fragments | **A** — the RD's total non-overlapping byte-span contract needs a smaller explicit grammar than a renderer-oriented AST | ✅ Resolved |
 | AR-P7 | Behavioral | What ordering and failure contract does the validation command use? | (A) parse/limits → schema → source/fragment → declarations → conflicts/ledger → graph/projection → evolution, returning all deterministically sortable diagnostics and no partial outputs; (B) fail-fast | **A** — deterministic complete diagnostics, with unsafe source access and unsupported versions rejected before later phases | ✅ Resolved |
 | AR-P8 | Data & state | How are identifiers and source identity stabilized? | (A) human-assigned allowlisted rule IDs plus hash-based fragment/source identity and explicit lineage; (B) derive all rule IDs from source hashes | **A** — source edits can invalidate evidence without silently changing semantic rule identity | ✅ Resolved |
-| AR-P9 | Integration | How are RD-02–RD-04 handlers and evidence routes represented before implementations exist? | (A) generated TypeScript declaration unions and contract records with explicit `unbound` state; (B) placeholders that count as bound; (C) free-form strings | **A** — compile-time ID exhaustiveness without falsely claiming executable readiness | ✅ Resolved |
+| AR-P9 | Integration | How are RD-02–RD-04 handlers and evidence routes represented before implementations exist? | (A) generated TypeScript declaration unions and contract records with explicit `unbound` state; (B) placeholders that count as bound; (C) free-form strings | **A** — compile-time exhaustiveness for bounded declaration identities without falsely claiming executable readiness; semantic rule IDs remain branded and runtime-validated | ✅ Resolved |
 | AR-P10 | Data & migration | What version-evolution surface ships in v1? | (A) strict version dispatcher, migration registry/interface, atomic writer abstraction and deterministic invalidation report, with no v2 migrator; (B) speculative v2 migration; (C) reject-only reader | **A** — proves the upgrade boundary without inventing a future format; RD-07 remains the gate owner | ✅ Resolved |
 | AR-P11 | Security & non-functional | Which concrete bounds and hostile-input controls govern v1? | (A) named constants enforced before allocation/traversal, canonical real paths beneath `spec/`, no symlink escape, Markdown escaping and safe relative links; (B) rely on repository trust | **A** — inventory data is hostile by RD contract and boundary tests need one executable policy | ✅ Resolved |
 | AR-P12 | Testing & process | What verification and execution structure governs the work? | (A) five specification-first phases, targeted red/green checks per phase, Prettier on touched files and the full AGENTS.md verify at every phase close; (B) one monolithic phase | **A** — isolates infrastructure, fragmentation, semantics, population and evolution/docs while preserving one CI-equivalent close gate | ✅ Resolved |
@@ -68,8 +68,8 @@ modification set.
   sequence. Strongest objection was the eleventh-workspace/build-before-CLI overhead, outweighed by
   the stable API required by RD-02 through RD-07.
 - **Policy version:** 1
-- **Reopen triggers:** the workspace boundary cannot remain compiler-independent or the repository
-  adopts a single tooling package
+- **Reopen triggers:** the workspace boundary cannot remain compiler-independent, an allowlisted
+  validation dependency creates compiler coupling, or the repository adopts a single tooling package
 
 ### AR-P3 — root artifact layout
 
@@ -184,14 +184,16 @@ modification set.
 - **Objective:** let later RDs bind implementations without creating false readiness
 - **Evidence:** RD-01 owns declarations while RD-02/RD-03/RD-04 own bindings
   (`RD-01:48-50,101-105`)
-- **Rejected alternatives:** bound placeholders make unavailable evidence appear usable; strings
-  lose compile-time exhaustiveness
-- **Strongest counterargument:** generated unions can drift from JSON; generation freshness and
-  round-trip tests are part of the same phase
+- **Rejected alternatives:** bound placeholders make unavailable evidence appear usable; free-form
+  declaration strings lose compile-time exhaustiveness. Generating unions for the potentially large
+  semantic rule set was rejected in favor of branded runtime-validated rule IDs.
+- **Strongest counterargument:** generated unions can drift from JSON; the generated declaration
+  module has an explicit owner, output path, barrel export and post-population freshness gate
 - **Confidence:** Very high
 - **Hardening:** preflight PF-005/PF-007 resolution already challenged
 - **Policy version:** 1
 - **Reopen triggers:** downstream handlers need richer contracts than v1 declarations can express
+  or measured declaration-union size becomes impractical
 
 ### AR-P10 — v1 evolution boundary
 

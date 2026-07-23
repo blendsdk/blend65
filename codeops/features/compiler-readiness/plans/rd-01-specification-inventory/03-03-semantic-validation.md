@@ -29,7 +29,9 @@ equivalence at runtime.
 
 Rule decomposition is unique by normative outcome × polarity × applicability. Split/merge lineage
 references retired stable IDs; the validator rejects ID reuse, uncovered child outcomes and one
-outcome mapped twice (AR-P8).
+outcome mapped twice (AR-P8). The append-only hash-chained identity ledger is the source of truth
+for allocated and retired IDs. Current validation walks from fixed v1 genesis to the
+inventory-anchored head and rejects missing, mutated, reordered or reactivated identity facts.
 
 ### Handler and evidence declarations
 
@@ -40,8 +42,28 @@ distinct readiness-blocking reason; missing or incompatible declarations are val
 (AR-P9).
 
 Generated literal unions and declaration records are derived from the authoritative inventory and
-checked for freshness. They expose identity and contract shape only, never executable handler
-logic.
+written to `packages/readiness/src/generated/declarations.ts` during Phase 5, exported through the
+package barrel and checked for freshness with the complete inventory. Phase 4 renders them in
+memory after each population unit to prove deterministic representability without prematurely
+publishing a partial projection. They cover bounded handler, capability and declaration identities;
+semantic rule IDs remain branded and runtime-validated. They expose identity and contract shape
+only, never executable handler logic.
+
+### Independent semantic review
+
+Mechanical validation cannot infer whether real natural-language fragments were classified,
+decomposed or assigned evidence correctly. Each chapter, grammar, target-projection and contextual
+population unit therefore has separate author and compiler/language reviewer ownership. The
+reviewer checks every disposition, normative outcome, applicability choice, conflict class and
+evidence-obligation set. Disagreement becomes `blocked-errata`, never a silently accepted row.
+
+`readiness/reviews/compiler-readiness-v1-review.json` records reviewer identity, spec revision,
+canonical semantic digest of the reviewed unit, closed dependency digests, outcome and resolved
+disagreement references. A unit review survives unrelated later population but becomes stale when
+its own fragments/rules or any declared dependency class changes. It is process evidence rather
+than semantic authority. The aggregate review is keyed separately to the complete inventory
+revision and covers canonical ownership, cross-chapter duplicates, conflicts and target
+projections.
 
 ### Rule graph and target projection
 
@@ -88,3 +110,5 @@ unreadable.
 - Five-target projection and prerequisite-rewrite fixtures.
 - DAG, deterministic cycle and related-cycle fixtures.
 - Stable blocking-reason serialization for RD-06 consumption.
+- Permanent identity/tombstone and predecessor-migration integrity fixtures.
+- Revision-keyed per-source-group and aggregate semantic-review evidence fixtures.

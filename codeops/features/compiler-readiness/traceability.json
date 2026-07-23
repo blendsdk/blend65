@@ -83,28 +83,28 @@
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:4a97a03db8efd50702166a3431dc253f0a02d6137813f9415c0ac4740baf788b",
+          "revision": "sha256:d90b5557e0fb26f7aaf6ac4b527744496acf519dc14e96cb66b5e03535f97a71",
           "upstream": "compiler-readiness/SPEC-RD-01-MODEL",
           "validatedAt": "2026-07-23T22:02:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:d6f903d450f8b999f8515c7eb45db8081a72d800c331a1902e88a89313cadba6",
+          "revision": "sha256:926f777130d09f8fb3a3589ec173847abbc7584e23aa9a784fff770cb8655da6",
           "upstream": "compiler-readiness/SPEC-RD-01-SOURCE",
           "validatedAt": "2026-07-23T22:02:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:23c3202b54b16c2f960a1cc36208ca5477133c84fd56e8b06e34b2e4a62cac67",
+          "revision": "sha256:2c129506648b038d164f2435aaae3f69c6a341e706694a06e1b528f7bd5ec971",
           "upstream": "compiler-readiness/SPEC-RD-01-SEMANTICS",
           "validatedAt": "2026-07-23T22:02:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:90ea3e3b855af6ff26909fc108ffa41b78b4555b4ff9f7f12156682b8405ce6b",
+          "revision": "sha256:6288a5bf4eaa849dbdd13d3c75e4c9893d201648b0b1407e6ee2ab820476a355",
           "upstream": "compiler-readiness/SPEC-RD-01-EVOLUTION",
           "validatedAt": "2026-07-23T22:02:00Z"
         }
@@ -684,7 +684,7 @@
     {
       "edges": [],
       "id": "AR-P01",
-      "revision": "sha256:9ccc245dfbfd5a57b3ed3d91359cf3472521eb02874f9de434e70cc64f23b0ef",
+      "revision": "sha256:8cd1f3062b44d7b3fbbb93dd802ea5ba3a46ce0b4b360c4c3bfc3b4b9a5b070e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -716,7 +716,7 @@
         }
       ],
       "id": "SPEC-RD-01-MODEL",
-      "revision": "sha256:4a97a03db8efd50702166a3431dc253f0a02d6137813f9415c0ac4740baf788b",
+      "revision": "sha256:d90b5557e0fb26f7aaf6ac4b527744496acf519dc14e96cb66b5e03535f97a71",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -734,7 +734,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:c96e345cace8aaf50f81d85e31c77da04270dceedd09884e620fd892a8732d68",
+          "revision": "sha256:5761ca28b39b6e05ebb06439bbe288e227fdc20351a6cd80b013abe68ef72bbe",
           "upstream": "compiler-readiness/AC-RD-01-MODEL",
           "validatedAt": "2026-07-23T22:02:00Z"
         }
@@ -756,7 +756,7 @@
         }
       ],
       "id": "SPEC-RD-01-SOURCE",
-      "revision": "sha256:d6f903d450f8b999f8515c7eb45db8081a72d800c331a1902e88a89313cadba6",
+      "revision": "sha256:926f777130d09f8fb3a3589ec173847abbc7584e23aa9a784fff770cb8655da6",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -774,7 +774,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:c6bdc661133159fcb8a9e59f9a554b6ab09c2c34c20dfcdda86b8eeb6f5de565",
+          "revision": "sha256:a2a89205a4c257f97a93492992e6362c4b09f9c12c09a4b0b4abc884ca113b24",
           "upstream": "compiler-readiness/AC-RD-01-SOURCE",
           "validatedAt": "2026-07-23T22:02:00Z"
         }
@@ -800,7 +800,7 @@
         }
       ],
       "id": "SPEC-RD-01-SEMANTICS",
-      "revision": "sha256:23c3202b54b16c2f960a1cc36208ca5477133c84fd56e8b06e34b2e4a62cac67",
+      "revision": "sha256:2c129506648b038d164f2435aaae3f69c6a341e706694a06e1b528f7bd5ec971",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -818,7 +818,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:a55f3262a5467cc6b5e464122c1b72002205d59406a062487cec7668d42a592b",
+          "revision": "sha256:9d94b0f782d4b2904518bd1dc91f71987c31d3b4ec4a58fc93679035d742f0cf",
           "upstream": "compiler-readiness/AC-RD-01-SEMANTICS",
           "validatedAt": "2026-07-23T22:02:00Z"
         }
@@ -840,7 +840,7 @@
         }
       ],
       "id": "SPEC-RD-01-EVOLUTION",
-      "revision": "sha256:90ea3e3b855af6ff26909fc108ffa41b78b4555b4ff9f7f12156682b8405ce6b",
+      "revision": "sha256:6288a5bf4eaa849dbdd13d3c75e4c9893d201648b0b1407e6ee2ab820476a355",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -858,7 +858,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:81282b82727a4f8a3b164e1abbcccb94d660258eecb1ac94acd21276e0e71798",
+          "revision": "sha256:4b9e9fa5d2cf37636731886a482ae997f61966396c7b2c9930ccd877dfb09d33",
           "upstream": "compiler-readiness/AC-RD-01-EVOLUTION",
           "validatedAt": "2026-07-23T22:02:00Z"
         }
@@ -876,7 +876,7 @@
         }
       ],
       "id": "AC-RD-01-MODEL",
-      "revision": "sha256:c96e345cace8aaf50f81d85e31c77da04270dceedd09884e620fd892a8732d68",
+      "revision": "sha256:5761ca28b39b6e05ebb06439bbe288e227fdc20351a6cd80b013abe68ef72bbe",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -905,7 +905,7 @@
         }
       ],
       "id": "AC-RD-01-SOURCE",
-      "revision": "sha256:c6bdc661133159fcb8a9e59f9a554b6ab09c2c34c20dfcdda86b8eeb6f5de565",
+      "revision": "sha256:a2a89205a4c257f97a93492992e6362c4b09f9c12c09a4b0b4abc884ca113b24",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -938,7 +938,7 @@
         }
       ],
       "id": "AC-RD-01-SEMANTICS",
-      "revision": "sha256:a55f3262a5467cc6b5e464122c1b72002205d59406a062487cec7668d42a592b",
+      "revision": "sha256:9d94b0f782d4b2904518bd1dc91f71987c31d3b4ec4a58fc93679035d742f0cf",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -967,7 +967,7 @@
         }
       ],
       "id": "AC-RD-01-EVOLUTION",
-      "revision": "sha256:81282b82727a4f8a3b164e1abbcccb94d660258eecb1ac94acd21276e0e71798",
+      "revision": "sha256:4b9e9fa5d2cf37636731886a482ae997f61966396c7b2c9930ccd877dfb09d33",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -987,7 +987,7 @@
     {
       "edges": [],
       "id": "TEST-RD-01-MODEL",
-      "revision": "sha256:ee3abd72df39c99123ddefe351408029eeae83f3029666a3cc75c7783dcc831d",
+      "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1006,7 +1006,7 @@
     {
       "edges": [],
       "id": "TEST-RD-01-SOURCE",
-      "revision": "sha256:ee3abd72df39c99123ddefe351408029eeae83f3029666a3cc75c7783dcc831d",
+      "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1025,7 +1025,7 @@
     {
       "edges": [],
       "id": "TEST-RD-01-SEMANTICS",
-      "revision": "sha256:ee3abd72df39c99123ddefe351408029eeae83f3029666a3cc75c7783dcc831d",
+      "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1044,7 +1044,7 @@
     {
       "edges": [],
       "id": "TEST-RD-01-EVOLUTION",
-      "revision": "sha256:ee3abd72df39c99123ddefe351408029eeae83f3029666a3cc75c7783dcc831d",
+      "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1095,10 +1095,10 @@
         "packages/readiness",
         "readiness/generated/compiler-readiness.md",
         "readiness/inventory/compiler-readiness-v1.json",
-        "summary:Zero-Ambiguity Gate passed; 34 specification cases and 50 execution tasks are grounded in approved RD-01"
+        "summary:Zero-Ambiguity Gate passed; 32 requirements-derived specification cases and 62 execution tasks are grounded in approved RD-01"
       ],
       "id": "PLAN-RD-01",
-      "revision": "sha256:4162a168c799e169dbe721c4c58452ba1d9198b3c039509746e511bfc8a46edc",
+      "revision": "sha256:5e55ca562563ed598a355ef0ad14c7788003d951bb3b64ad866731604c93bd2d",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1125,7 +1125,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P1",
-      "revision": "sha256:443a1a82c0388081f642a558b239c4c382127c8153b84b976c83c06bef564610",
+      "revision": "sha256:e1cfb673bcc7d10cf5ae58e075e7dee62332185fcbb43ee75aceae08431bf5e3",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1145,7 +1145,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P2",
-      "revision": "sha256:85bb67c708e8912363711bc7421667bab50a9c1e8f22409205019b735e6a30c0",
+      "revision": "sha256:d0d45b9333fc9834b0dedda89b46f2e404e987e5c2938c623c290457ea8c043e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1165,7 +1165,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P3",
-      "revision": "sha256:b5f6f066ca4e986d3b61afa8d738753c9b2833cad6fa051eeab5382dcfaffc9c",
+      "revision": "sha256:7c57afb6b71fe5603f00b807a7aeaf0cc5b86cf6f240557b20dc76de501252c7",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1185,7 +1185,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P4",
-      "revision": "sha256:6b099c2ae1122221400bab465bd161b95fdabb90b13d69d9db24fb9a9b7fd720",
+      "revision": "sha256:7a0fc89c5b35f568d6d8f043c272ce233ca08a7ebefb2663cc11c9c2cb333615",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1205,7 +1205,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P5",
-      "revision": "sha256:155aaa0f0e8dc27b71ca7e1e25f8a1fd65b58b11e13ecbdadb05c92e9da5cef7",
+      "revision": "sha256:5118c47108d4c6b1a9e80831efcb805b59947660aadb9d995d6d8bc0c245026c",
       "semanticSources": [
         {
           "digest": "sha256",

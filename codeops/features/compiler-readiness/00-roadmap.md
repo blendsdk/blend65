@@ -15,7 +15,7 @@
 
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |---|---|---|---|---|---|---|---|
-| RD-01 | Specification inventory and rule schema | [RD-01](requirements/RD-01-specification-inventory.md) | [Plan](plans/rd-01-specification-inventory/00-index.md) | Plan Created | 📋 | 2026-07-23 | — |
+| RD-01 | Specification inventory and rule schema | [RD-01](requirements/RD-01-specification-inventory.md) | [Plan](plans/rd-01-specification-inventory/00-index.md) | Plan Preflighted | 🔬 | 2026-07-23 | — |
 | RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01 |
 | RD-03 | Independent semantic, diagnostic and metamorphic oracles | [RD-03](requirements/RD-03-independent-oracles.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01 |
 | RD-04 | Tiered compiler, ACME and VICE execution | [RD-04](requirements/RD-04-tiered-execution.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-03 |

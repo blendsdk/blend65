@@ -92,10 +92,10 @@ freshness part of one non-mutating command (03-04, AR-P1, AR-P3).
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Natural-language inventory omits a clause | High | High | Total fragment ledger and chapter-sized population tasks |
+| Natural-language inventory omits or misclassifies a clause | High | High | Total fragment ledger plus author/reviewer separation and unit/dependency-digest review evidence |
 | Scanner accidentally becomes incomplete Markdown parser | Medium | High | Closed node profile plus residual spans and independent vectors |
 | Duplicate/conflicting rules inflate denominator | Medium | High | Canonical ownership and one blocked-conflict aggregate |
 | Generated docs drift from JSON | Medium | Medium | Byte-identical generation and non-mutating freshness check |
 | Path or symlink escapes `spec/` | Low | High | Realpath containment before reads and adversarial fixtures |
 | Resource exhaustion on hostile JSON/Markdown | Medium | Medium | Pre-allocation v1 caps and exact-boundary tests |
-| Future RDs couple to implementation internals | Medium | High | Small exported contract barrel and dependency-free workspace |
+| Future RDs couple to implementation internals | Medium | High | Small exported contract barrel and compiler/toolchain-independent workspace |

@@ -44,8 +44,11 @@ yarn readiness:check
 yarn readiness:generate
 ```
 
-`readiness:check` is non-mutating and fails if validation or generated-document freshness fails.
-`readiness:generate` writes only the generated projection after the inventory validates (AR-P7).
+`readiness:check` does not alter tracked, authoritative, conformance, review-evidence or generated
+artifacts and fails if validation or either generated projection is stale. Its package build may
+refresh ignored `dist/**` and `*.tsbuildinfo` outputs. `readiness:generate` validates first, renders
+all outputs in memory, then updates only the explicitly enumerated generated TypeScript declaration
+module and generated Markdown projection (AR-P7).
 
 ### Key Decisions
 
@@ -63,6 +66,12 @@ yarn readiness:generate
 - `packages/readiness/` — new private typed implementation and tests.
 - `readiness/schema/inventory-v1.schema.json` — committed closed schema.
 - `readiness/inventory/compiler-readiness-v1.json` — authoritative inventory aggregate.
+- `readiness/inventory/rule-identities-v1.jsonl` — append-only, hash-chained allocation and
+  retirement ledger anchored by the inventory's current head digest.
 - `readiness/conformance/fragmentation-v1.json` — implementation-independent source vectors.
+- `readiness/reviews/compiler-readiness-v1-review.json` — unit/dependency-digest and aggregate
+  independent semantic review evidence; process evidence, not semantic authority.
 - `readiness/generated/compiler-readiness.md` — deterministic non-authoritative projection.
+- `packages/readiness/src/generated/declarations.ts` — deterministic non-authoritative bounded
+  handler/capability/declaration ID unions.
 - `package.json`, `tsconfig.json`, `yarn.lock` — workspace integration and commands.

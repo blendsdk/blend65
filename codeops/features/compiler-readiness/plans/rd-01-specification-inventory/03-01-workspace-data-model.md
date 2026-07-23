@@ -7,7 +7,8 @@
 
 The private `@blend65/readiness` workspace owns reusable typed mechanisms. Root `readiness/` owns
 authoritative data and generated projections (AR-P2, AR-P3). The package has no dependency on any
-`@blend65/*` compiler package.
+`@blend65/*` compiler package; its runtime dependencies are restricted to explicitly declared
+validation libraries.
 
 ## Architecture
 
@@ -24,6 +25,9 @@ packages/readiness/
     ├── diagnostics.ts
     ├── json-input.ts
     ├── schema-validator.ts
+    ├── declaration-generator.ts
+    ├── generated/
+    │   └── declarations.ts
     └── cli.ts
 ```
 
@@ -38,16 +42,25 @@ readiness/
 ├── README.md
 ├── schema/inventory-v1.schema.json
 ├── inventory/compiler-readiness-v1.json
+├── inventory/rule-identities-v1.jsonl
 ├── conformance/fragmentation-v1.json
+├── reviews/compiler-readiness-v1-review.json
 └── generated/compiler-readiness.md
 ```
 
-JSON under `inventory/` is authoritative. The generated Markdown is reviewable but never an input
-to validation or readiness computation (AR-P3).
+JSON under `inventory/` is semantic authority. Review JSON is unit/dependency-digest and
+aggregate-revision process evidence that gates closeout but never supplies rule meaning. Generated
+Markdown and TypeScript are reviewable projections and never inputs to validation or readiness
+computation (AR-P3).
 
 ## V1 contracts
 
-`InventoryV1` mirrors every top-level field owned by RD-01. Nested objects are discriminated
+`InventoryV1` mirrors every top-level field owned by RD-01. Its `identityLedgerHead` anchors the
+current digest of `rule-identities-v1.jsonl`. That separate append-only ledger begins at a fixed v1
+genesis and records each allocation or retirement event with the predecessor digest; it never
+reactivates an ID. Full-chain validation rejects truncation, reordering, mutation, duplicate
+allocation and any head mismatch before projecting active/retired identity state into the
+inventory. Active rules reference active identities. Nested objects are discriminated
 unions for authority classification, ledger disposition, handler kind/binding, evidence
 capability, applicability, domain descriptor and lineage. Every discriminator is a string-literal
 union exported from `model.ts`; runtime acceptance still comes from the committed schema and
@@ -89,10 +102,13 @@ valid prerequisites does not run, preventing cascades while preserving independe
 
 ## Strict JSON intake
 
-`parseInventoryJson(bytes, limits)` first checks byte and nesting bounds, parses a
-`jsonc-parser` tree with comments and trailing commas rejected, traverses every object property to
-detect duplicate keys, and only then materializes a JavaScript value (AR-P4, AR-P11). Parse
-failure returns diagnostics and never a partial inventory.
+`parseInventoryJson(bytes, limits)` first checks the byte bound and malformed UTF-8. It then uses
+the pinned `jsonc-parser.visit` API as a non-tree pass with explicit depth and per-object key stacks.
+The pass aborts at the exact depth or duplicate-key violation before `parseTree` or materialization.
+A pinned behavioral contract test must prove that abort prevents suffix traversal; if that proof
+fails, execution uses a minimal strict-JSON byte structural scanner instead. Only bounded,
+duplicate-free input reaches `parseTree` and materialization (AR-P4, AR-P11). Comments and trailing
+commas remain rejected. Parse failure returns diagnostics and never a partial inventory.
 
 Ajv v8 compiles the committed draft-2020-12 schema with remote references and data mutation
 disabled. Ajv diagnostics are normalized into the common ordering. Semantic validation receives
@@ -108,8 +124,18 @@ inventory-version review.
 
 ## Integration Points
 
-- Root `readiness:check` builds the package and invokes the CLI in check mode.
-- Root `readiness:generate` invokes explicit generation after full validation.
+- Root `readiness:check` builds the package, invokes the CLI in check mode and verifies both
+  generated outputs without altering tracked, authoritative, conformance, review-evidence or
+  generated paths. Ignored build outputs are outside this non-mutation contract.
+- Root `readiness:generate` validates and renders both generated outputs in memory, then replaces
+  only `packages/readiness/src/generated/declarations.ts` and
+  `readiness/generated/compiler-readiness.md`.
+- `packages/readiness/src/generated/declarations.ts` contains bounded literal unions and contract
+  records for handler, capability and declaration identities. `RuleId` remains a branded string
+  validated against the inventory registry.
+- Phase 4 validates deterministic declaration rendering in memory after each population unit.
+  Committed declaration freshness begins only in Phase 5, where the complete inventory exists and
+  the publication command owns both projections.
 - RD-02–RD-04 import only exported model/declaration contracts.
 - No compiler package imports readiness during RD-01.
 
@@ -128,5 +154,6 @@ inventory-version review.
 
 - Strict-intake specification tests cover duplicate keys at every nesting depth and JSONC rejection.
 - Schema fixtures cover every closed object, enum and conditional field.
-- Implementation tests cover diagnostic sorting, Ajv normalization and measured-limit helpers.
+- Implementation tests cover visitor early-abort behavior, diagnostic sorting, Ajv normalization,
+  measured-limit helpers, the hash-chained identity ledger and the generated-declaration lifecycle.
 - Static boundary test rejects imports from all other `@blend65/*` packages.

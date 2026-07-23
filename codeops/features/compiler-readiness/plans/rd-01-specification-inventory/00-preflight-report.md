@@ -1,22 +1,50 @@
 # Preflight Report: RD-01 Specification Inventory Plan
 
-> **Status**: ❌ BLOCKED — 7 major findings require artifact fixes
-> **Iteration**: 1 (first scan)
+> **Status**: ✅ PASSED — all 14 findings resolved
+> **Iteration**: 3 (bounded final verification)
+> **Previous Iterations**: Iteration 1 found 13 issues; Iteration 2 verified eight and exposed five
+> residual/new major issues; Iteration 3 verified their fixes
 > **Artifact**: Complete implementation plan at
 > `codeops/features/compiler-readiness/plans/rd-01-specification-inventory/`
 > **Artifact Content Hash**:
+> `a9b09429aad70d8271d66867d52d9efec413128375fd8f3a29b77565a30311af`
+> **Original Content Hash**:
 > `cf190616aa6b8f39ec845137ef474de79a2fa409080f8360a4551abe51aaf1e6`
 > **Codebase Grounded**: 10 plan documents, the owning RD, 18 representative source/spec/config
 > files and 24 plan-to-repository references examined
 > **Last Updated**: 2026-07-23
 > **Mode**: Auto-design
-> **Root Invocation ID**: `compiler-readiness-rd01-preflight-20260723-01`
+> **Root Invocation IDs**: `compiler-readiness-rd01-preflight-20260723-01`,
+> `compiler-readiness-rd01-preflight-20260723-02`
 
 The audit target was the complete ten-document plan. The owning RD, ambiguity register, roadmap,
 traceability graph, frozen specification, repository instructions, manifests, build configuration
-and representative implementation/test patterns were context. This invocation authorized the
-audit and delegated resolution selection, but not application of fixes; no context document is
-part of the modification set.
+and representative implementation/test patterns were context. The continuation authorized
+application of the selected fixes within the plan target. No context document entered the
+modification set.
+
+## Iteration 2 and 3 Resolution Verification
+
+| Finding | Final result | Verification |
+|---|---|---|
+| PF-001 | Resolved | Committed declaration publication is Phase 5-only; Phase 3 owns the in-memory generator and stable seam, while Phase 4 proves renderability |
+| PF-002 | Resolved | ST-32 closes inventory in Phase 4; ST-35 owns complete projection freshness in Phase 5 |
+| PF-003 | Resolved | Unit reviews use canonical unit/dependency digests; aggregate review separately keys to the complete inventory |
+| PF-004 | Resolved | Byte/UTF-8 bounds precede parsing; visitor abort must be proven or the strict byte scanner is mandatory |
+| PF-005 | Resolved | Fixed-genesis hash-chained identity ledger is anchored by the inventory head and tests truncation/reordering/reuse |
+| PF-006 | Resolved | Plan-only fragmentation and review-process assertions moved to implementation/process gates |
+| PF-007 | Resolved | ST-18a directly tests duplicate rule IDs across records |
+| PF-008 | Resolved | Phase 4 now has one durable unit per chapter plus grammar, C64 and contextual reconciliation |
+| PF-009 | Resolved | Dependency boundary consistently means compiler/toolchain independence with allowlisted validation libraries |
+| PF-010 | Resolved | Test file map and execution tasks agree |
+| PF-011 | Resolved | Temporary files are invocation-owned and concurrent-writer behavior is covered |
+| PF-012 | Resolved | Non-mutation excludes ignored build outputs and protects tracked/authority artifacts |
+| PF-013 | Resolved | Vitest coverage provider, command, thresholds and phase gates are explicit |
+| PF-014 | Resolved | PID/token lock spans reread through pair verification; dead-owner crash recovery and shared generation digests are tested |
+
+Iteration 2 re-scanned all 13 dimensions through five independent clusters. Iteration 3 was bounded
+to the five residual/new major roots and their direct dependency surface. No unresolved finding or
+new independent root remains.
 
 ## Codebase Context Summary
 
@@ -45,26 +73,26 @@ readiness commands were verified. The deterministic CodeOps audit gate was ready
 | # | Dimension | Findings | Highest severity |
 |---:|---|---:|---|
 | 1 | Ambiguities | 0 | — |
-| 2 | Implicit Assumptions | 1 | 🟠 Major |
+| 2 | Implicit Assumptions | 0 | — |
 | 3 | Logical Contradictions | 0 | — |
-| 4 | Completeness Gaps | 2 | 🟠 Major |
+| 4 | Completeness Gaps | 0 | — |
 | 5 | Dependency Issues | 0 | — |
-| 6 | Feasibility Concerns | 1 | 🟠 Major |
-| 7 | Testability | 3 | 🟠 Major |
+| 6 | Feasibility Concerns | 0 | — |
+| 7 | Testability | 0 | — |
 | 8 | Security Blind Spots | 0 | — |
-| 9 | Edge Cases | 1 | 🟡 Minor |
-| 10 | Scope Creep Indicators | 1 | 🟡 Minor |
-| 11 | Ordering & Sequencing | 1 | 🟠 Major |
-| 12 | Consistency | 2 | 🟡 Minor |
-| 13 | Codebase Alignment | 2 | 🟡 Minor |
+| 9 | Edge Cases | 0 | — |
+| 10 | Scope Creep Indicators | 0 | — |
+| 11 | Ordering & Sequencing | 0 | — |
+| 12 | Consistency | 0 | — |
+| 13 | Codebase Alignment | 0 | — |
 
 ## Summary by Severity
 
 | Severity | Count | Status |
 |---|---:|---|
 | 🔴 Critical | 0 | None |
-| 🟠 Major | 7 | Resolution selected; fixes not authorized or applied |
-| 🟡 Minor | 6 | Resolution selected; fixes not authorized or applied |
+| 🟠 Major | 0 open / 8 resolved | All verified |
+| 🟡 Minor | 0 open / 6 resolved | All verified |
 | 🔵 Observation | 0 | None |
 
 ## Findings
@@ -554,22 +582,17 @@ hostile inputs and the plan already commits to precise branch thresholds.
 
 ## Verdict
 
-❌ **PREFLIGHT BLOCKED — 7 major findings unresolved**
+✅ **PREFLIGHT PASSED — all 14 findings resolved**
 
-All 13 dimensions were scanned and all eligible resolutions were selected under `--auto-design`.
-No critical issue challenges the compiler-readiness reconstruction or the goal of a
-specification-derived C64 denominator. The blockers concern the plan's ability to implement and
-independently trust that denominator: generated contract ownership, phase ordering, semantic review,
-early hostile-input bounds, durable identity history, test-oracle independence and one missing
-acceptance case.
-
-The plan must be amended and re-scanned before execution. The feature roadmap remains at
-**Plan Created**; a blocked preflight does not advance it.
+All 13 dimensions were re-scanned after the selected `--auto-design` fixes. The bounded third pass
+verified the residual generated-contract, semantic-review, identity-history, test-tier and
+concurrent-publication corrections. The plan is ready for execution and the feature roadmap
+advances to **Plan Preflighted**.
 
 ## Adversarial Closeout
 
 - The largest same-framing risk was assuming mechanical fragment closure proves semantic
-  correctness; PF-003 closes that gap with independent, revision-keyed review.
+  correctness; PF-003 closes that gap with independent unit/dependency-digest and aggregate review.
 - The strongest external-standard constraint is the repository's requirements-only specification
   test taxonomy; PF-006 prevents implementation design from becoming its own oracle.
 - A compiler/language expert may still challenge individual inventory classifications during

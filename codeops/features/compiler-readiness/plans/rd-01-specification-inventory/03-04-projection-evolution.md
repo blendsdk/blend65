@@ -16,12 +16,21 @@ AR-P7, AR-P10, AR-P11).
 1. loads through the strict version dispatcher;
 2. performs all schema/source/semantic validation;
 3. renders Markdown in memory;
-4. byte-compares it with the committed projection;
-5. emits ordered diagnostics and exits nonzero on any error or freshness mismatch.
+4. renders bounded TypeScript declaration contracts in memory;
+5. byte-compares both outputs with their committed projections;
+6. verifies unit/dependency-digest and complete-inventory aggregate semantic-review evidence;
+7. emits ordered diagnostics and exits nonzero on any error or freshness mismatch.
 
-`readiness:generate` performs the same validation, then atomically replaces only
-`readiness/generated/compiler-readiness.md`. It never rewrites authoritative JSON, schemas,
-conformance vectors or `spec/` (AR-P3, AR-P7).
+`readiness:generate` acquires one exclusive generation lock before re-reading authoritative inputs,
+performs the same validation, then atomically replaces only
+`packages/readiness/src/generated/declarations.ts` and
+`readiness/generated/compiler-readiness.md`. It renders all outputs before writing and never
+rewrites authoritative JSON, schemas, conformance vectors, review evidence or `spec/` (AR-P3,
+AR-P7). The lock is an atomically created directory containing PID and random owner-token metadata.
+A live competing owner produces an actionable contention diagnostic. A dead owner's directory is
+reclaimed through an atomic quarantine rename; PID reuse conservatively causes false contention
+rather than unsafe reclamation. Retry begins by re-acquiring the lock and re-reading current
+inputs, and only the matching owner token may release or clean its lock.
 
 ## Markdown projection
 
@@ -58,30 +67,33 @@ source inventory must contain a current `evolutionGate` naming RD-07, its semant
 acceptance gate and validation time. Missing/stale gates reject before creating a temporary output
 (AR-P10).
 
-Atomic writes create a same-directory temporary file, flush/close it, then rename over the target.
-Failure removes only the known temporary path and leaves source evidence unchanged. Paths are
-canonicalized and fixed by the caller; inventory content never selects output paths (AR-P11).
+Atomic writes create an invocation-owned, exclusive, uniquely named same-directory temporary file,
+flush/close it, then rename over the target while the generation lock is held. Failure removes only
+that invocation's temporary path and leaves source evidence unchanged. Both outputs embed the same
+generation digest, and the command verifies the pair before releasing the lock or reporting
+success. A crash can leave complete but mismatched projections; their digests make that state
+deterministically detectable, dead-owner reclamation releases the abandoned lock and the next
+generation safely repairs the pair after re-reading authority. Two-writer and subprocess-crash
+tests prove that concurrent generation cannot report success with a mixed pair or remove another
+invocation's temporary file. Paths are canonicalized and fixed by the caller; inventory content
+never selects output paths (AR-P11).
 
 ## Inventory population and closeout
 
-Population proceeds in reviewable source groups after mechanisms are green:
-
-1. chapters 00–03;
-2. chapters 04–08;
-3. chapters 09–12;
-4. chapters 13–15, normative grammar and C64 appendix;
-5. contextual/other-target classifications, conflict consolidation and feature-index
-   reconciliation.
-
-Each group runs the fragment/ledger validator and leaves no undisposed included span. The aggregate
-must then validate with stable rule IDs, complete evidence obligations and no ordinary rule hiding
-an unresolved contradiction (AR-P1, AR-P8).
+Population proceeds in bounded units after mechanisms are green: one unit for each chapter 00–15,
+one for normative grammar, one for C64 target projections and one for
+contextual/other-target/conflict/feature-index reconciliation. Every unit runs fragment, ledger,
+identity and in-memory declaration-render determinism checks, then receives independent
+compiler/language review keyed to its canonical unit and dependency digests. The aggregate review
+is keyed separately to the complete inventory revision and must validate stable rule IDs, complete
+evidence obligations, canonical cross-chapter ownership, target projections and no ordinary rule
+hiding an unresolved contradiction (AR-P1, AR-P8).
 
 ## Error Handling
 
 | Error Case | Handling Strategy | AR Ref |
 |---|---|---|
-| Projection stale | Check-mode diagnostic; never writes | AR-P3, AR-P7 |
+| Generated declaration or Markdown projection stale | Check-mode diagnostic; never writes tracked or authority artifacts | AR-P3, AR-P7 |
 | Unsafe Markdown/link value | Escaped text or rejected link diagnostic | AR-P11 |
 | Unknown version | Exact unsupported-version diagnostic, no output | AR-P10 |
 | Missing/stale evolution gate | Reject before temp-file creation | AR-P10 |
@@ -90,9 +102,14 @@ an unresolved contradiction (AR-P1, AR-P8).
 
 ## Testing Requirements
 
-- Exact projection completeness and two-render determinism.
+- Exact declaration/Markdown projection completeness and two-render determinism.
 - Markdown table, raw HTML and unsafe-link attacks.
-- Check-mode freshness without mutation.
+- Check-mode freshness without changes to tracked, authoritative, conformance, review-evidence or
+  generated artifacts.
 - Unknown-version, missing/stale/current-gate fixtures.
-- Deterministic test migration and injected write failure.
+- Deterministic test migration, injected write failure, live-owner contention, dead-owner lock
+  reclamation and cross-output generation-digest consistency.
+- A subprocess crash after the first target rename proves no success is reported, check mode names
+  the mixed digest, a new generator safely reclaims the dead owner's lock and both outputs are
+  repaired to one current digest.
 - Final real-inventory validation, feature-index reconciliation and `spec/` freeze check.

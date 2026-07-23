@@ -35,7 +35,7 @@
 | Fragmentation mechanism | Versioned byte-oriented scanner | AR-P6 |
 | Validation behavior | Prerequisite-gated accumulation and deterministic sort | AR-P7 |
 | Identity | Stable assigned rules, hashed fragments, explicit lineage | AR-P8 |
-| Pre-binding contracts | Typed declarations with explicit unbound state | AR-P9 |
+| Pre-binding contracts | Generated bounded declaration unions with explicit unbound state; branded runtime rule IDs | AR-P9 |
 | v1 evolution | Dispatch and atomic migration interface, no speculative v2 | AR-P10 |
 | Security policy | Fixed v1 resource caps and canonical root containment | AR-P11 |
 | Delivery order | Five specification-first phases | AR-P12 |

@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-23 22:02
-> **Progress**: 0/50 tasks (0%)
+> **Progress**: 0/62 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -19,10 +19,10 @@ Every phase uses targeted tests during red/green work, then the full AGENTS.md v
 | 1 | Workspace, strict input and closed schema | 10 |
 | 2 | Fragmentation, manifest and source safety | 10 |
 | 3 | Semantic graph, declarations and blockers | 10 |
-| 4 | Complete source ledger and C64 inventory | 10 |
+| 4 | Complete source ledger and C64 inventory | 22 |
 | 5 | Projection, version evolution and closeout | 10 |
 
-**Total: 50 tasks across 5 phases**
+**Total: 62 tasks across 5 phases**
 
 > **⚠️ EXECUTION RULE — APPLIES TO EVERY AGENT EXECUTING THIS PLAN:**
 >
@@ -47,7 +47,7 @@ Every phase uses targeted tests during red/green work, then the full AGENTS.md v
 **Reference**: `03-01` §Package surface–§Limits · AR-P2, AR-P4, AR-P5, AR-P11
 
 - [ ] 1.1.1 [spec-author] Write ST-1–ST-5 strict-input/schema tests — `packages/readiness/src/json-input.spec.test.ts`, `schema-validator.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Write ST-6–ST-7 limits/dependency-boundary tests — `packages/readiness/src/limits.spec.test.ts`, `dependency-boundary.spec.test.ts`
+- [ ] 1.1.2 [spec-author] Write ST-6 limits tests — `packages/readiness/src/limits.spec.test.ts`
 - [ ] 1.1.3 Run Phase 1 specification tests and record genuine red failures — targeted readiness Vitest
 
 ### Step 1.2: Implementation
@@ -55,17 +55,17 @@ Every phase uses targeted tests during red/green work, then the full AGENTS.md v
 **Reference**: `03-01` §Architecture–§Strict JSON intake · AR-P2–AR-P5, AR-P11
 
 - [ ] 1.2.1 Scaffold private workspace and root commands — `packages/readiness/package.json`, `packages/readiness/tsconfig.json`, `package.json`
-- [ ] 1.2.2 Add root TS reference and explicit Ajv/jsonc-parser dependencies — `tsconfig.json`, `packages/readiness/package.json`, `yarn.lock`
+- [ ] 1.2.2 Add root TS reference plus explicit Ajv/jsonc-parser and Vitest 2 coverage-provider dependencies — `tsconfig.json`, `packages/readiness/package.json`, `yarn.lock`
 - [ ] 1.2.3 Implement v1 contracts, limits and ordered diagnostics — `packages/readiness/src/model.ts`, `limits.ts`, `diagnostics.ts`
 - [ ] 1.2.4 Implement strict duplicate-preserving intake — `packages/readiness/src/json-input.ts`
 - [ ] 1.2.5 Commit the closed schema and Ajv adapter — `readiness/schema/inventory-v1.schema.json`, `packages/readiness/src/schema-validator.ts`
-- [ ] 1.2.6 Export the minimal internal API and make ST-1–ST-7 green — `packages/readiness/src/index.ts`
+- [ ] 1.2.6 Export the minimal internal API and make ST-1–ST-6 green — `packages/readiness/src/index.ts`
 
 ### Step 1.3: Implementation tests and hardening
 
-**Reference**: `07` ST-1–ST-7 · AR-P7, AR-P11
+**Reference**: `07` ST-1–ST-6 · AR-P7, AR-P11
 
-- [ ] 1.3.1 Add parser/diagnostic internal tests, run Prettier, full verify and confirm `spec/` clean — `json-input.impl.test.ts`, `diagnostics.impl.test.ts`
+- [ ] 1.3.1 Add visitor-abort, package-boundary and diagnostic internal tests; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `json-input.impl.test.ts`, `dependency-boundary.impl.test.ts`, `diagnostics.impl.test.ts`
 
 **Deliverables:** private compiler-independent workspace; strict raw intake; closed v1 schema;
 deterministic diagnostics; repository commands established.
@@ -81,7 +81,7 @@ deterministic diagnostics; repository commands established.
 
 **Reference**: `03-02` §Fragmentation profile–§Source resolution · AR-P6, AR-P8, AR-P11
 
-- [ ] 2.1.1 [spec-author] Write ST-8–ST-10 vector tests from independent bytes — `packages/readiness/src/fragmenter.spec.test.ts`, `readiness/conformance/fragmentation-v1.json`
+- [ ] 2.1.1 [spec-author] Write ST-8 and ST-10 requirement-derived vector tests from independent bytes — `packages/readiness/src/fragmenter.spec.test.ts`, `readiness/conformance/fragmentation-v1.json`
 - [ ] 2.1.2 [spec-author] Write ST-11–ST-14 manifest/citation/path tests — `packages/readiness/src/source-repository.spec.test.ts`
 - [ ] 2.1.3 Run Phase 2 specification tests and record genuine red failures — targeted readiness Vitest
 
@@ -94,13 +94,13 @@ deterministic diagnostics; repository commands established.
 - [ ] 2.2.3 Add table, fenced-EBNF and residual scanning — `packages/readiness/src/fragmenter.ts`
 - [ ] 2.2.4 Implement canonical root containment and exact citation resolution — `packages/readiness/src/source-repository.ts`
 - [ ] 2.2.5 Add the closed ordered source/section manifest classifications — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 2.2.6 Make ST-8–ST-14 green and verify deterministic scans — fragment/source targeted suite
+- [ ] 2.2.6 Make ST-8 and ST-10–ST-14 green and verify deterministic scans — fragment/source targeted suite
 
 ### Step 2.3: Implementation tests and hardening
 
-**Reference**: `07` ST-8–ST-14 · AR-P6, AR-P11
+**Reference**: `07` ST-8, ST-10–ST-14 · AR-P6, AR-P11
 
-- [ ] 2.3.1 Add scanner state/hash internals, run Prettier, full verify and confirm `spec/` clean — `fragmenter.impl.test.ts`
+- [ ] 2.3.1 Add scanner state/hash internals, enforce readiness branch coverage, run Prettier/full verify and confirm `spec/` clean — `fragmenter.impl.test.ts`
 
 **Deliverables:** implementation-independent vectors; total byte scanner; closed manifest; secure
 source repository; exact citations.
@@ -116,7 +116,7 @@ source repository; exact citations.
 
 **Reference**: `03-03` §Validation pipeline · AR-P7–AR-P9
 
-- [ ] 3.1.1 [spec-author] Write ST-15–ST-19 ledger/conflict/identity tests — `packages/readiness/src/ledger-validator.spec.test.ts`, `conflict-validator.spec.test.ts`
+- [ ] 3.1.1 [spec-author] Write ST-15–ST-19 plus ST-18a ledger/conflict/identity tests — `packages/readiness/src/ledger-validator.spec.test.ts`, `conflict-validator.spec.test.ts`
 - [ ] 3.1.2 [spec-author] Write ST-20–ST-22 declaration/capability/blocker tests — `packages/readiness/src/declaration-validator.spec.test.ts`
 - [ ] 3.1.3 [spec-author] Write ST-23–ST-26 projection/graph tests — `packages/readiness/src/rule-graph.spec.test.ts`
 - [ ] 3.1.4 Run Phase 3 specification tests and record genuine red failures — targeted readiness Vitest
@@ -125,20 +125,21 @@ source repository; exact citations.
 
 **Reference**: `03-03` §Ownership–§Blocking reasons · AR-P7–AR-P9
 
-- [ ] 3.2.1 Implement ledger totality, decomposition and lineage validation — `packages/readiness/src/ledger-validator.ts`
+- [ ] 3.2.1 Implement ledger totality, decomposition, genesis-anchored hash-chained identity allocation/retirement and lineage validation — `packages/readiness/src/ledger-validator.ts`, `identity-ledger.ts`, `readiness/inventory/rule-identities-v1.jsonl`
 - [ ] 3.2.2 Implement reviewed conflict classification and canonical aggregates — `packages/readiness/src/conflict-validator.ts`
-- [ ] 3.2.3 Implement handler/capability declaration lifecycle and typed blocker reasons — `packages/readiness/src/declaration-validator.ts`, `blocking-reasons.ts`
+- [ ] 3.2.3 Implement handler/capability declaration lifecycle, typed blocker reasons and a deterministic bounded declaration generator with a hand-written stable barrel seam; exercise only fixture/in-memory output — `packages/readiness/src/declaration-validator.ts`, `blocking-reasons.ts`, `declaration-generator.ts`, `index.ts`
 - [ ] 3.2.4 Implement target projection, prerequisite rewriting, DAG and stable ordering — `packages/readiness/src/rule-graph.ts`
-- [ ] 3.2.5 Compose prerequisite-gated semantic passes and make ST-15–ST-26 green — `packages/readiness/src/semantic-validator.ts`
+- [ ] 3.2.5 Compose prerequisite-gated semantic passes, review-evidence validation and make ST-15–ST-26 plus ST-18a green — `packages/readiness/src/semantic-validator.ts`, `review-evidence.ts`
 
 ### Step 3.3: Implementation tests and hardening
 
 **Reference**: `07` ST-15–ST-26 · AR-P7
 
-- [ ] 3.3.1 Add graph/index/cycle internals, run Prettier, full verify and confirm `spec/` clean — `semantic-validator.impl.test.ts`
+- [ ] 3.3.1 Add graph/index/cycle, declaration-generation and review-evidence internals; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `semantic-validator.impl.test.ts`, `declaration-generator.impl.test.ts`, `review-evidence.impl.test.ts`
 
-**Deliverables:** exhaustive ledger semantics; conflict aggregates; typed declarations and
-blockers; five-target graph projection; stable topological order.
+**Deliverables:** exhaustive ledger semantics; conflict aggregates; typed declaration contracts,
+deterministic in-memory declaration generator and blockers; five-target graph projection; stable
+topological order.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -151,29 +152,49 @@ blockers; five-target graph projection; stable topological order.
 
 **Reference**: `03-04` §Inventory population and closeout · AR-P1, AR-P8, AR-P9
 
-- [ ] 4.1.1 [spec-author] Write ST-32–ST-33 real-inventory completeness/freeze tests — `packages/readiness/src/inventory.spec.test.ts`
+- [ ] 4.1.1 [spec-author] Write ST-32 requirements-derived real-inventory completeness tests — `packages/readiness/src/inventory.spec.test.ts`
 - [ ] 4.1.2 Run the real-inventory tests and record missing-ledger/rule failures — targeted readiness Vitest
 
-### Step 4.2: Implementation
+### Step 4.2: Chapter-granular inventory and independent review
 
 **Reference**: RD-01 Must Haves and AC-3–AC-14 · `03-03` · AR-P1, AR-P8, AR-P9
 
-- [ ] 4.2.1 Populate rules and ledger for chapters 00–03 in bounded reviewed batches — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 4.2.2 Populate rules and ledger for chapters 04–06 in bounded reviewed batches — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 4.2.3 Populate rules and ledger for chapters 07–09 in bounded reviewed batches — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 4.2.4 Populate rules and ledger for chapters 10–12 in bounded reviewed batches — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 4.2.5 Populate rules and ledger for chapters 13–15 in bounded reviewed batches — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 4.2.6 Populate normative grammar and C64 projection children in bounded batches — `readiness/inventory/compiler-readiness-v1.json`
-- [ ] 4.2.7 Reconcile contextual restatements, conflicts and feature-index coverage — `readiness/inventory/compiler-readiness-v1.json`
+Every unit below requires separate author and compiler/language reviewer ownership. The reviewer
+checks every disposition, decomposition, applicability choice and evidence set. Run ledger and
+in-memory declaration-render determinism checks, then record evidence keyed to the unit's canonical
+semantic digest and closed dependency digests before completing the unit; unresolved disagreements
+become `blocked-errata`.
+
+- [ ] 4.2.1 Populate and independently review chapter 00 — inventory + review evidence
+- [ ] 4.2.2 Populate and independently review chapter 01 — inventory + review evidence
+- [ ] 4.2.3 Populate and independently review chapter 02 — inventory + review evidence
+- [ ] 4.2.4 Populate and independently review chapter 03 — inventory + review evidence
+- [ ] 4.2.5 Populate and independently review chapter 04 — inventory + review evidence
+- [ ] 4.2.6 Populate and independently review chapter 05 — inventory + review evidence
+- [ ] 4.2.7 Populate and independently review chapter 06 — inventory + review evidence
+- [ ] 4.2.8 Populate and independently review chapter 07 — inventory + review evidence
+- [ ] 4.2.9 Populate and independently review chapter 08 — inventory + review evidence
+- [ ] 4.2.10 Populate and independently review chapter 09 — inventory + review evidence
+- [ ] 4.2.11 Populate and independently review chapter 10 — inventory + review evidence
+- [ ] 4.2.12 Populate and independently review chapter 11 — inventory + review evidence
+- [ ] 4.2.13 Populate and independently review chapter 12 — inventory + review evidence
+- [ ] 4.2.14 Populate and independently review chapter 13 — inventory + review evidence
+- [ ] 4.2.15 Populate and independently review chapter 14 — inventory + review evidence
+- [ ] 4.2.16 Populate and independently review chapter 15 — inventory + review evidence
+- [ ] 4.2.17 Populate and independently review normative grammar — inventory + review evidence
+- [ ] 4.2.18 Populate and independently review C64 target projections — inventory + review evidence
+- [ ] 4.2.19 Classify and independently review contextual/other-target sources, conflicts and feature-index reconciliation — inventory + review evidence
 
 ### Step 4.3: Implementation tests and hardening
 
-**Reference**: `07` ST-32–ST-33 · AR-P1, AR-P12
+**Reference**: `07` ST-32 · AR-P1, AR-P12
 
-- [ ] 4.3.1 Add aggregate consistency checks, make ST-32–ST-33 green, run Prettier/full verify and confirm `spec/` clean — `packages/readiness/src/inventory.impl.test.ts`
+- [ ] 4.3.1 Run an independent aggregate review of canonical ownership, cross-chapter duplicates, conflicts and target projection; make ST-32 green; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `packages/readiness/src/inventory.impl.test.ts`, `readiness/reviews/compiler-readiness-v1-review.json`
 
 **Deliverables:** complete source classification; zero undisposed included spans; stable C64
-denominator; visible other-target children; declared handler/capability contracts.
+denominator with genesis-anchored identity ledger; visible other-target children; declared
+handler/capability contracts that render deterministically in memory; unit/dependency-keyed
+semantic-review evidence plus an aggregate review keyed to the complete inventory.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -187,28 +208,29 @@ denominator; visible other-target children; declared handler/capability contract
 **Reference**: `03-04` §Commands–§Version dispatch · AR-P3, AR-P7, AR-P10, AR-P11
 
 - [ ] 5.1.1 [spec-author] Write ST-27–ST-29 projection/freshness tests — `packages/readiness/src/projection.spec.test.ts`
-- [ ] 5.1.2 [spec-author] Write ST-30–ST-31 versioning/atomic-failure tests — `packages/readiness/src/versioning.spec.test.ts`
+- [ ] 5.1.2 [spec-author] Write ST-30–ST-31 versioning/atomic-failure tests and ST-35 aggregate command test — `packages/readiness/src/versioning.spec.test.ts`, `readiness-command.spec.test.ts`
 - [ ] 5.1.3 Run Phase 5 specification tests and record genuine red failures — targeted readiness Vitest
 
 ### Step 5.2: Implementation
 
 **Reference**: `03-04` §Markdown projection–§Version dispatch · AR-P3, AR-P10, AR-P11
 
-- [ ] 5.2.1 Implement safe deterministic Markdown projection — `packages/readiness/src/projection.ts`
+- [ ] 5.2.1 Implement safe deterministic Markdown projection and compose render-first generation of both explicit outputs — `packages/readiness/src/projection.ts`, `declaration-generator.ts`
 - [ ] 5.2.2 Implement exact version dispatch, migration registry and invalidation model — `packages/readiness/src/versioning.ts`
-- [ ] 5.2.3 Implement failure-atomic writer with injected failure seam — `packages/readiness/src/atomic-writer.ts`
-- [ ] 5.2.4 Implement check/generate CLI orchestration and make ST-27–ST-31 green — `packages/readiness/src/cli.ts`
-- [ ] 5.2.5 Generate and review the committed projection and authority README — `readiness/generated/compiler-readiness.md`, `readiness/README.md`
+- [ ] 5.2.3 Implement one PID/token-owned generation lock held from authoritative reread through verified dual-output replacement, conservative dead-owner quarantine/reclamation, invocation-owned exclusive temporary files and injected failure/crash seams — `packages/readiness/src/atomic-writer.ts`, `generation-lock.ts`
+- [ ] 5.2.4 Implement check/generate CLI orchestration and make ST-27–ST-31 plus ST-35 green — `packages/readiness/src/cli.ts`, `readiness-command.spec.test.ts`
+- [ ] 5.2.5 Generate and review both committed projections and authority README — `packages/readiness/src/generated/declarations.ts`, `readiness/generated/compiler-readiness.md`, `readiness/README.md`
 
 ### Step 5.3: Implementation tests and hardening
 
-**Reference**: `07` ST-27–ST-34 · AR-P10–AR-P12
+**Reference**: `07` ST-27–ST-31, ST-35 · AR-P10–AR-P12
 
-- [ ] 5.3.1 Add projection/version internals, run `yarn readiness:check`, Prettier/full verify, deferral-expiry review and final `spec/` freeze check — `projection.impl.test.ts`, `versioning.impl.test.ts`
+- [ ] 5.3.1 Add projection/version/identity-chain/generation-lock internals plus a subprocess crash-after-first-rename repair test; enforce readiness branch coverage, run `yarn readiness:check`, Prettier/full verify, deferral-expiry review and final `spec/` freeze check — `projection.impl.test.ts`, `versioning.impl.test.ts`, `identity-ledger.impl.test.ts`, `atomic-writer.impl.test.ts`
 - [ ] 5.3.2 Record implementation/verification evidence, update RD-01 closeout and synchronize roadmaps — CodeOps traceability and roadmap artifacts
 
-**Deliverables:** byte-stable safe projection; non-mutating trust gate; explicit generator; strict
-version dispatcher; proven atomic migration seam; RD closeout evidence.
+**Deliverables:** byte-stable safe projections; trust gate that preserves tracked and authority
+artifacts; explicit generator; strict version dispatcher; proven concurrent failure-atomic
+migration seam; RD closeout evidence.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -230,13 +252,16 @@ Phase 5: projection + evolution + closeout
 
 The RD is complete when:
 
-1. All 50 tasks are verified.
-2. RD-01 AC-1–AC-18 pass through ST-1–ST-34.
+1. All 62 tasks are verified.
+2. RD-01 AC-1–AC-18 pass through 32 requirements-derived cases (ST-1–ST-35, excluding
+   process/implementation-only ST-7/ST-9/ST-33/ST-34 and including ST-18a).
 3. The complete C64 v3.0 denominator validates with zero undisposed included fragments.
 4. Every blocking ambiguity/unbound declaration remains visible as a typed blocker.
-5. `yarn readiness:check` is deterministic and non-mutating.
-6. Generated Markdown is fresh, complete and injection-safe.
+5. `yarn readiness:check` is deterministic and does not modify tracked, authoritative,
+   conformance, review-evidence or generated artifacts.
+6. Generated TypeScript declarations and Markdown are fresh, complete and safe.
 7. The full project verify passes with no new warnings/errors.
 8. `spec/` remains byte-for-byte untouched.
 9. Deferral-expiry review finds no orphaned downstream owner.
-10. CodeOps implementation and verification evidence is recorded before roadmap completion.
+10. Current per-unit and aggregate independent semantic-review evidence exists before closeout.
+11. CodeOps implementation and verification evidence is recorded before roadmap completion.
