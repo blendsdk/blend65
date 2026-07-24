@@ -1,0 +1,2296 @@
+{
+  "schema": 2,
+  "feature": "game-optimizer-codegen",
+  "nodes": [
+    {
+      "id": "REQ-SET",
+      "type": "requirement-set",
+      "title": "Commercial-Game Optimizer and Code Generator Requirements",
+      "status": "approved",
+      "members": [
+        "game-optimizer-codegen/RD-01",
+        "game-optimizer-codegen/RD-02",
+        "game-optimizer-codegen/RD-03",
+        "game-optimizer-codegen/RD-04",
+        "game-optimizer-codegen/RD-05",
+        "game-optimizer-codegen/RD-06",
+        "game-optimizer-codegen/RD-07",
+        "game-optimizer-codegen/RD-08",
+        "game-optimizer-codegen/RD-09",
+        "game-optimizer-codegen/RD-10",
+        "game-optimizer-codegen/RD-11",
+        "game-optimizer-codegen/RD-12",
+        "game-optimizer-codegen/RD-13",
+        "game-optimizer-codegen/RD-14",
+        "game-optimizer-codegen/RD-15",
+        "game-optimizer-codegen/RD-16",
+        "game-optimizer-codegen/RD-17",
+        "game-optimizer-codegen/RD-18"
+      ],
+      "revision": "sha256:f2e726d2c2cb5ee097a5d4f834c8bcc94d81b088ec07d5b2ed60e6604aee5e41",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/README.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "RD-01",
+      "type": "requirement",
+      "title": "Optimization Authority, Cost Model and Commercial Acceptance",
+      "status": "approved",
+      "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-01-authority-cost-model.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-01"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-02"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-03"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-16"
+        }
+      ],
+      "validations": []
+    },
+    {
+      "id": "RD-02",
+      "type": "requirement",
+      "title": "Effect Model and Optimization Overlay",
+      "status": "approved",
+      "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-02-effects-optimization-overlay.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-01"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-06"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-07"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-14"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-01",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-03",
+      "type": "requirement",
+      "title": "Pass Manager, Execution Profiles and Lifecycle",
+      "status": "approved",
+      "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-03-pass-manager-profiles.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-01"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-08"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-18"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-23"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-01",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-04",
+      "type": "requirement",
+      "title": "Whole-Program Analysis, Specialization and Internal ABI",
+      "status": "approved",
+      "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-04-whole-program-analysis.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-09"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-16"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-05",
+      "type": "requirement",
+      "title": "Scalar and Dataflow Optimization",
+      "status": "approved",
+      "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-05-scalar-dataflow.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-08"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-11"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-06",
+      "type": "requirement",
+      "title": "Control-Flow and Loop Optimization",
+      "status": "approved",
+      "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-06-control-flow-loops.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-11"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-14"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-17"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-07",
+      "type": "requirement",
+      "title": "Memory Optimization and Data Placement",
+      "status": "approved",
+      "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-07-memory-data-placement.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-01"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-07"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-20"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-08",
+      "type": "requirement",
+      "title": "Register, Zero-Page and Static-Frame Allocation",
+      "status": "approved",
+      "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-08-allocation.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-10"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-14"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-09",
+      "type": "requirement",
+      "title": "Costed NMOS 6502 Instruction Selection",
+      "status": "approved",
+      "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-09-instruction-selection.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-01"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-08"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-11"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-14"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-01",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-08",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-10",
+      "type": "requirement",
+      "title": "Verified Superoptimizer and Peephole Catalog",
+      "status": "approved",
+      "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-10-superoptimizer-peephole.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-12"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-17"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-11",
+      "type": "requirement",
+      "title": "Scheduling, Code Layout and Link-Time Optimization",
+      "status": "approved",
+      "revision": "sha256:a14f2fc01c9645e1a107fdaf6efbc1a25488591a2576440212f38e5f9c7b5bce",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-11-scheduling-layout-link.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-08"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-10"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-07"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-08"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-09"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-14"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-15"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-08",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-10",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-12",
+      "type": "requirement",
+      "title": "Deterministic Profile-Guided Optimization",
+      "status": "approved",
+      "revision": "sha256:2ab40c4410e509d2e0bcd2841926ca39c168b6f58b0ba2a67e61ac2556cd62a7",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-12-profile-guided-optimization.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-08"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-10"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-11"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-13"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-21"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-08",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-10",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-11",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:a14f2fc01c9645e1a107fdaf6efbc1a25488591a2576440212f38e5f9c7b5bce",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-13",
+      "type": "requirement",
+      "title": "Hardware-Aware and Timing-Constrained Code Generation",
+      "status": "approved",
+      "revision": "sha256:1106b9cadb1c71499c70454b49f29bafe11ea5faf2502b9b795ccdd3a1929b79",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-13-hardware-timing.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-08"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-10"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-11"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-12"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-07"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-14"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-20"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-08",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-10",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-11",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:a14f2fc01c9645e1a107fdaf6efbc1a25488591a2576440212f38e5f9c7b5bce",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-12",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2ab40c4410e509d2e0bcd2841926ca39c168b6f58b0ba2a67e61ac2556cd62a7",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-14",
+      "type": "requirement",
+      "title": "Translation Validation and Optimizer Assurance",
+      "status": "approved",
+      "revision": "sha256:87f1b5620f41c32f559d0531abb7c2985a88828268e6453f54a1bc7dfa341dcb",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-14-translation-validation.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-08"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-10"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-11"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-12"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-13"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-17"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-18"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-08",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-10",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-11",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:a14f2fc01c9645e1a107fdaf6efbc1a25488591a2576440212f38e5f9c7b5bce",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-12",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2ab40c4410e509d2e0bcd2841926ca39c168b6f58b0ba2a67e61ac2556cd62a7",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-13",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:1106b9cadb1c71499c70454b49f29bafe11ea5faf2502b9b795ccdd3a1929b79",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-15",
+      "type": "requirement",
+      "title": "Game-Shaped Corpus and Commercial Acceptance Gate",
+      "status": "approved",
+      "revision": "sha256:e965cb7a778d0dc649e4ec3a6678319a73e278101fffda76b49270963f58d075",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-15-game-corpus-commercial-gate.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-01"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-10"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-11"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-12"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-13"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-14"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-01"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-02"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-03"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-16"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-19"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-24"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-01",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-10",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-11",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:a14f2fc01c9645e1a107fdaf6efbc1a25488591a2576440212f38e5f9c7b5bce",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-12",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2ab40c4410e509d2e0bcd2841926ca39c168b6f58b0ba2a67e61ac2556cd62a7",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-13",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:1106b9cadb1c71499c70454b49f29bafe11ea5faf2502b9b795ccdd3a1929b79",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-14",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:87f1b5620f41c32f559d0531abb7c2985a88828268e6453f54a1bc7dfa341dcb",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-16",
+      "type": "requirement",
+      "title": "Optimization Reports and Developer Control",
+      "status": "approved",
+      "revision": "sha256:c78b1716740ad90ab59f8e8e993aee6458a7e29f33da6e3882ee3f8f6a608e96",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-16-reports-developer-control.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-15"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-03"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-18"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-20"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-15",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:e965cb7a778d0dc649e4ec3a6678319a73e278101fffda76b49270963f58d075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-17",
+      "type": "requirement",
+      "title": "Commercial-Game Toolchain Capability Integration",
+      "status": "approved",
+      "revision": "sha256:04f523fbb2ac00186b44bcaf03e0e60036307e2f5b238a897c0b654e67a64e9a",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-17-toolchain-capability-integration.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-01"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-15"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-02"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-03"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-04"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-20"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-24"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-25"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-01",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-15",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:e965cb7a778d0dc649e4ec3a6678319a73e278101fffda76b49270963f58d075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "RD-18",
+      "type": "requirement",
+      "title": "Determinism, Scale, Security and Evolution",
+      "status": "approved",
+      "revision": "sha256:d0fbbf0fe98d4c7e7f9e10e7214e2c4313866465978cfb3ecf29edf8bd0b27c7",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/RD-18-non-functional-evolution.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-01"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-02"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-03"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-04"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-05"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-06"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-07"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-08"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-09"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-10"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-11"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-12"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-13"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-14"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-15"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-16"
+        },
+        {
+          "relation": "depends-on",
+          "target": "game-optimizer-codegen/RD-17"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-08"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-21"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-22"
+        },
+        {
+          "relation": "affected-by",
+          "target": "game-optimizer-codegen/AR-26"
+        }
+      ],
+      "validations": [
+        {
+          "upstream": "game-optimizer-codegen/RD-01",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fd8557b398118d9f8d7e18a14592f157295e020e91ac180e5b39b2310b894e7a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-02",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:3c036ef66ac60fc01bbd82e92b216712069db2d0ac3fb0f3062c0ec54a471138",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-03",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c75551ace0d979d13a49fdbb026a22bafd72363e3e3afbd73958cdc10ae55523",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-04",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:462c398fcc98f420b349858d4b83214a31cc064ea8b3c1d016ed93dd8ffc083c",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-05",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:fb6f470c15ca31c91b9ba8d3965f939aabd8f675d8fe4fc556551a5c846fadff",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-06",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2eb83f91a8dddf94b0aae5a126fef7623733f7d9817c9f5a5016cb8920403f0f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-07",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ee8f565f176d561021a3a74b0627c13155af4fa0bdfeca903a461711a1330635",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-08",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ab6d463a0995f3c94b2d3022682782463f0148ec4a7f8c483d637edfef9c1001",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-09",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:ed503a70a3074c474657baff26c36ad3cb2f483f9622b2da9a416b17fa13f52f",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-10",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:d898567e2aa2c9b321c46602ab7e00326be584b9dafd4a3f787eddad693e8075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-11",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:a14f2fc01c9645e1a107fdaf6efbc1a25488591a2576440212f38e5f9c7b5bce",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-12",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:2ab40c4410e509d2e0bcd2841926ca39c168b6f58b0ba2a67e61ac2556cd62a7",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-13",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:1106b9cadb1c71499c70454b49f29bafe11ea5faf2502b9b795ccdd3a1929b79",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-14",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:87f1b5620f41c32f559d0531abb7c2985a88828268e6453f54a1bc7dfa341dcb",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-15",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:e965cb7a778d0dc649e4ec3a6678319a73e278101fffda76b49270963f58d075",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-16",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:c78b1716740ad90ab59f8e8e993aee6458a7e29f33da6e3882ee3f8f6a608e96",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        },
+        {
+          "upstream": "game-optimizer-codegen/RD-17",
+          "relation": "depends-on",
+          "gate": "requirements",
+          "revision": "sha256:04f523fbb2ac00186b44bcaf03e0e60036307e2f5b238a897c0b654e67a64e9a",
+          "validatedAt": "2026-07-24T20:30:00Z"
+        }
+      ]
+    },
+    {
+      "id": "AR-01",
+      "type": "ambiguity",
+      "title": "Commercial-game-class product identity",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-02",
+      "type": "ambiguity",
+      "title": "Workload class",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-03",
+      "type": "ambiguity",
+      "title": "Capability boundary",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-04",
+      "type": "ambiguity",
+      "title": "Feature ownership",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-05",
+      "type": "ambiguity",
+      "title": "Independent semantic authority",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-06",
+      "type": "ambiguity",
+      "title": "Derived SSA/value-memory overlay",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-07",
+      "type": "ambiguity",
+      "title": "Effect and alias authority",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-08",
+      "type": "ambiguity",
+      "title": "Pass manifest and pipeline identity",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-09",
+      "type": "ambiguity",
+      "title": "Whole-program AOT optimization",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-10",
+      "type": "ambiguity",
+      "title": "Joint register/ZP/frame allocation",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-11",
+      "type": "ambiguity",
+      "title": "Costed instruction selection",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-12",
+      "type": "ambiguity",
+      "title": "Verified bounded superoptimization",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-13",
+      "type": "ambiguity",
+      "title": "Deterministic profile-guided optimization",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-14",
+      "type": "ambiguity",
+      "title": "Hardware effects and timing",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-15",
+      "type": "ambiguity",
+      "title": "Multi-resource exact cost model",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-16",
+      "type": "ambiguity",
+      "title": "Trade-off policy",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-17",
+      "type": "ambiguity",
+      "title": "Transformation assurance gate",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-18",
+      "type": "ambiguity",
+      "title": "Profiles, bisection and reduction",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-19",
+      "type": "ambiguity",
+      "title": "Game-shaped acceptance corpus",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-20",
+      "type": "ambiguity",
+      "title": "Modern programmer ergonomics",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-21",
+      "type": "ambiguity",
+      "title": "Evidence and manifest evolution",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-22",
+      "type": "ambiguity",
+      "title": "Safe deterministic campaigns",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-23",
+      "type": "ambiguity",
+      "title": "Pass lifecycle and default enablement",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-24",
+      "type": "ambiguity",
+      "title": "Commercial-game capability dependencies",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-25",
+      "type": "ambiguity",
+      "title": "Target-parametric architecture",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    },
+    {
+      "id": "AR-26",
+      "type": "ambiguity",
+      "title": "Initial bounded-resource profiles",
+      "status": "resolved",
+      "revision": "sha256:28d337611dd8986b1531e6719975f05e868be17f490df8b299c073f9bdc73240",
+      "semanticSources": [
+        {
+          "path": "codeops/features/game-optimizer-codegen/requirements/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          },
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "digest": "sha256"
+        }
+      ],
+      "edges": [],
+      "validations": []
+    }
+  ]
+}
