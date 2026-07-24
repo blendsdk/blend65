@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 17:15 UTC
-> **Progress**: 19/71 tasks (27%)
+> **Last Updated**: 2026-07-24 18:46 UTC
+> **Progress**: 29/71 tasks (41%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -80,21 +80,21 @@ unpublished until the final phase.
 
 ## Phase 3: Canonical Identity and Deterministic Choices
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `ad54627c8704da5cd7c092f80f94fd1854816f36`
 > **Lenses**: security, perf, api-surface
 
 **Reference**: 03-03 · AR-P4–AR-P6, AR-P12 · ST-15–ST-22 excluding fresh-process ST-17, plus ST-34
 
-- [ ] 3.1.1 [spec-author] Write identity/counter/input specification tests — `case-identity.spec.test.ts`, replay input cases in `replay.spec.test.ts`
-- [ ] 3.1.2 Run Phase 3 spec tests and record expected RED
-- [ ] 3.2.1 Implement canonical length-prefixed encoding and closed identity inputs — `canonical-identity.ts`
-- [ ] 3.2.2 Implement SHA-256 counter draws and unbiased bounded integers — `deterministic-choice.ts`
-- [ ] 3.2.3 Implement configuration, campaign and case digest derivation/collision checks — `case-identity.ts`
-- [ ] 3.2.4 Implement bounded replay envelope parser and exact revision resolver contracts — `replay-input.ts`, `revision-registry.ts`
-- [ ] 3.2.5 Implement canonical handler dependency digests and freshness gate — `implementation-revision.ts`, generated revision metadata
-- [ ] 3.2.6 Run Phase 3 ST cases including ST-34 GREEN; fix implementation only
-- [ ] 3.3.1 Add canonicalization/vector/collision/path-stability implementation tests
-- [ ] 3.3.2 Run coverage, Prettier and full verify
+- [x] 3.1.1 [spec-author] Write identity/counter/input specification tests — `case-identity.spec.test.ts`, replay input cases in `replay.spec.test.ts` — completed 2026-07-24 17:27 UTC
+- [x] 3.1.2 Run Phase 3 spec tests and record expected RED — completed 2026-07-24 17:28 UTC; both suites failed collection because Phase 3 modules do not yet exist
+- [x] 3.2.1 Implement canonical length-prefixed encoding and closed identity inputs — `canonical-identity.ts` — completed 2026-07-24 17:48 UTC; readiness typecheck and immutable Phase 3 specifications pass
+- [x] 3.2.2 Implement SHA-256 counter draws and unbiased bounded integers — `deterministic-choice.ts` — completed 2026-07-24 17:48 UTC; published counter and bounded vectors pass
+- [x] 3.2.3 Implement configuration, campaign and case digest derivation/collision checks — `case-identity.ts` — completed 2026-07-24 17:48 UTC; field mutation, path stability and collision specifications pass
+- [x] 3.2.4 Implement bounded replay envelope parser and exact revision resolver contracts — `replay-input.ts`, `revision-registry.ts` — completed 2026-07-24 17:48 UTC; closed input and exact no-fallback specifications pass
+- [x] 3.2.5 Implement canonical handler dependency digests and freshness gate — `implementation-revision.ts`, generated revision metadata — completed 2026-07-24 17:48 UTC; stale dependency bytes reject; generated metadata is not yet warranted because Phase 5 owns the first production handlers
+- [x] 3.2.6 Run Phase 3 ST cases including ST-34 GREEN; fix implementation only — completed 2026-07-24 17:48 UTC; 19/19 immutable Phase 3 specification assertions pass
+- [x] 3.3.1 Add canonicalization/vector/collision/path-stability implementation tests — completed 2026-07-24 21:15 UTC; 130/130 focused implementation assertions pass across canonicalization, deterministic choice, reusable context validation/encoding, identity, replay, revision resolution, freshness, lifecycle bounds and allocation-sensitive pre-copy paths
+- [x] 3.3.2 Run coverage, Prettier and full verify — completed 2026-07-24 21:25 UTC; all Phase 3 review findings remediated, including complete exported result/helper documentation, unconditional intrinsic byte-length checks before registry lookup or copies, extracted collision lifecycle and reusable pre-encoded choice contexts; 800/800 readiness tests and 95.01% branch coverage; touched TypeScript is Prettier-clean; exact full verify exits zero
 
 **Deliverable:** stable random-access choice and identity substrate; no generator yet.
 

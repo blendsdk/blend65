@@ -2,10 +2,18 @@ import type {
   BindingDeclarationInput,
   BindingValidationResult,
   ExecutableBinding,
+  FreshCandidateRegistration,
+  FreshCandidateRegistrationInput,
+  FreshCandidateRegistrationResult,
   HandlerImplementation,
   PublishedSnapshot,
   ValidatedBindingRegistry,
 } from "./binding-model.js";
+import { FRESH_CANDIDATE_REGISTRATION_CAPABILITY } from "./binding-model.js";
+import {
+  isFreshImplementationRevision,
+  matchesFreshImplementationRevision,
+} from "./implementation-revision.js";
 import type { BindingState, HandlerKind } from "./model.js";
 import type {
   ModelBindingDiagnostic,
@@ -26,6 +34,9 @@ const BINDING_KEYS = [
   "implementationRevision",
   "implementation",
 ] as const;
+const FRESH_REGISTRATION_KEYS = ["binding", "freshness"] as const;
+const FRESH_CANDIDATE_REGISTRATIONS = new WeakSet<object>();
+const EMPTY_BINDING_DIAGNOSTICS: readonly [] = Object.freeze([]);
 
 interface IndexedDeclaration {
   readonly declaration: BindingDeclarationInput;
@@ -417,4 +428,182 @@ export function getPublishedBinding(
   handlerId: string,
 ): ExecutableBinding<HandlerImplementation> | undefined {
   return snapshot.bindings.get(handlerId);
+}
+
+/**
+ * Reports whether a value is a freshness-gated candidate registration.
+ *
+ * @param value Candidate registration capability.
+ * @returns Whether the value came from successful freshness-gated registration.
+ *
+ * @example
+ * ```ts
+ * if (isFreshCandidateRegistration(value)) value.binding.implementation();
+ * ```
+ */
+export function isFreshCandidateRegistration(value: unknown): value is FreshCandidateRegistration {
+  return typeof value === "object" && value !== null && FRESH_CANDIDATE_REGISTRATIONS.has(value);
+}
+
+/**
+ * Registers one candidate only when its claimed revision has fresh dependency proof.
+ *
+ * This is the authoritative registration seam. The earlier candidate validator remains a
+ * non-authoritative structural and declaration-compatibility check.
+ *
+ * @param input Raw binding metadata plus successful implementation freshness validation.
+ * @returns A non-forgeable registration capability or stable binding diagnostics.
+ *
+ * @example
+ * ```ts
+ * const result = registerFreshCandidateBinding({ binding, freshness });
+ * ```
+ */
+export function registerFreshCandidateBinding(
+  input: FreshCandidateRegistrationInput,
+): FreshCandidateRegistrationResult {
+  try {
+    if (!isRecord(input)) {
+      return {
+        ok: false,
+        diagnostics: [schemaFailure("", "Fresh candidate registration must be a plain record.")],
+      };
+    }
+    const prototype = Object.getPrototypeOf(input);
+    const keys = Reflect.ownKeys(input);
+    const descriptors = Object.getOwnPropertyDescriptors(input);
+    if (
+      (prototype !== Object.prototype && prototype !== null) ||
+      keys.length !== FRESH_REGISTRATION_KEYS.length ||
+      keys.some(
+        (key) =>
+          typeof key !== "string" || !FRESH_REGISTRATION_KEYS.some((allowed) => allowed === key),
+      )
+    ) {
+      return {
+        ok: false,
+        diagnostics: [
+          schemaFailure("", "Fresh candidate registration must use the exact closed shape."),
+        ],
+      };
+    }
+    for (const key of FRESH_REGISTRATION_KEYS) {
+      const descriptor = descriptors[key];
+      if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) {
+        return {
+          ok: false,
+          diagnostics: [
+            schemaFailure(
+              `/${key}`,
+              "Fresh candidate property must be an enumerable own data property.",
+            ),
+          ],
+        };
+      }
+    }
+
+    const bindingFailure = inspectPlainDataTree(
+      input.binding,
+      "/binding",
+      (path) => path === "/binding/implementation",
+    );
+    if (bindingFailure !== undefined) {
+      return {
+        ok: false,
+        diagnostics: [schemaFailure(bindingFailure.path, bindingFailure.message)],
+      };
+    }
+    const normalized = normalizeBinding(input.binding, 0);
+    if ("code" in normalized) {
+      return {
+        ok: false,
+        diagnostics: [
+          Object.freeze({
+            ...normalized,
+            path: normalized.path.replace("/bindings/0", "/binding"),
+          }),
+        ],
+      };
+    }
+    if (!isSha256Digest(normalized.implementationRevision)) {
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            "binding.entry.revision",
+            "/binding/implementationRevision",
+            "Implementation revision is not a canonical SHA-256 digest.",
+          ),
+        ],
+      };
+    }
+    if (!isFreshImplementationRevision(input.freshness)) {
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            "binding.entry.revision",
+            "/freshness",
+            "Implementation freshness was not produced by successful validation.",
+          ),
+        ],
+      };
+    }
+    if (input.freshness.revision !== normalized.implementationRevision) {
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            "binding.entry.revision",
+            "/binding/implementationRevision",
+            "Binding revision does not match its freshness capability.",
+          ),
+        ],
+      };
+    }
+    if (
+      !matchesFreshImplementationRevision(
+        input.freshness,
+        normalized.implementationRevision,
+        normalized.contractVersion,
+      )
+    ) {
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            "binding.entry.contract",
+            "/binding/contractVersion",
+            "Binding contract version does not match its freshness capability.",
+          ),
+        ],
+      };
+    }
+
+    const binding: ExecutableBinding = Object.freeze({
+      handlerId: normalized.handlerId,
+      kind: normalized.kind,
+      contractVersion: normalized.contractVersion,
+      implementationRevision: normalized.implementationRevision,
+      implementation: normalized.implementation,
+    });
+    const registrationValue: FreshCandidateRegistration = {
+      [FRESH_CANDIDATE_REGISTRATION_CAPABILITY]: true,
+      binding,
+    };
+    const registration = Object.freeze(registrationValue);
+    FRESH_CANDIDATE_REGISTRATIONS.add(registration);
+    return Object.freeze({
+      ok: true,
+      registration,
+      diagnostics: EMPTY_BINDING_DIAGNOSTICS,
+    });
+  } catch {
+    return {
+      ok: false,
+      diagnostics: [
+        schemaFailure("", "Fresh candidate registration could not be inspected safely."),
+      ],
+    };
+  }
 }

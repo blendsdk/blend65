@@ -22,6 +22,8 @@ export { validateReviewEvidence } from "./review-evidence.js";
 export { computeInventoryReviewDigests, INVENTORY_REVIEW_UNIT_IDS } from "./review-digests.js";
 export {
   getPublishedBinding,
+  isFreshCandidateRegistration,
+  registerFreshCandidateBinding,
   validateCandidateBindings,
   validatePublishedBindings,
 } from "./binding-validator.js";
@@ -32,6 +34,27 @@ export { validateGeneratorIr } from "./generator-ir-validator.js";
 export { applyInvalidNeighbor } from "./invalid-neighbor.js";
 export { createBoundaryVariants } from "./boundary-variants.js";
 export { createGenerationBudgetTracker, validateGenerationBudget } from "./generation-budget.js";
+export {
+  createIdentityCollisionRegistry,
+  deriveCampaignIdentity,
+  deriveCaseIdentity,
+  deriveConfigurationIdentity,
+  IDENTITY_COLLISION_REGISTRY_LIMITS,
+} from "./case-identity.js";
+export {
+  createDeterministicChoiceContext,
+  drawBoundedInteger,
+  drawBoundedIntegerFromContext,
+  drawCounterBlock,
+  drawCounterBlockFromContext,
+} from "./deterministic-choice.js";
+export { parseReplayEnvelope, REPLAY_V1_LIMITS } from "./replay-input.js";
+export { createRevisionRegistry, resolveReplayRevisions } from "./revision-registry.js";
+export {
+  deriveImplementationRevision,
+  isFreshImplementationRevision,
+  validateImplementationRevision,
+} from "./implementation-revision.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -96,10 +119,58 @@ export type {
   BindingValidationResult,
   ExecutableBinding,
   ExecutableBindingInput,
+  FreshCandidateRegistration,
+  FreshCandidateRegistrationInput,
+  FreshCandidateRegistrationResult,
   HandlerImplementation,
   PublishedSnapshot,
   ValidatedBindingRegistry,
 } from "./binding-model.js";
+export type {
+  CampaignIdentityInput,
+  CaseIdentity,
+  HandlerIdentity,
+  IdentityCollisionRegistry,
+  IdentityCollisionRegistryLimits,
+  IdentityDiagnostic,
+  IdentityDigest,
+  IdentityRegistryResult,
+  IdentityResult,
+} from "./case-identity.js";
+export type {
+  BoundedIntegerInput,
+  ChoiceDiagnostic,
+  ChoiceResult,
+  CounterBlockDigest,
+  CounterBlockInput,
+  DeterministicChoiceContext,
+  DeterministicChoiceContextInput,
+} from "./deterministic-choice.js";
+export type { GenerationConfiguration, GenerationSpelling } from "./canonical-identity.js";
+export type {
+  ReplayDiagnostic,
+  ReplayEnvelopeParseResult,
+  ReplayEnvelopeV1,
+  ReplayInputLimits,
+} from "./replay-input.js";
+export type {
+  IdentityComponent,
+  RevisionEntry,
+  RevisionRegistry,
+  RevisionRegistryResult,
+  RevisionResolutionResult,
+} from "./revision-registry.js";
+export type {
+  DerivedImplementationRevisionSuccess,
+  FreshImplementationRevision,
+  ImplementationRevisionDiagnostic,
+  ImplementationRevisionDerivationResult,
+  ImplementationRevisionFailure,
+  ImplementationRevisionFile,
+  ImplementationRevisionInput,
+  ImplementationRevisionValidationResult,
+  ValidatedImplementationRevisionSuccess,
+} from "./implementation-revision.js";
 export type {
   BoundaryFamilyId,
   ConstructionPrecondition,
