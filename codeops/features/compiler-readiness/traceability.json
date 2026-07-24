@@ -157,8 +157,12 @@
           "target": "compiler-readiness/AR-09"
         }
       ],
+      "evidence": [
+        "invalidation:codeops/features/compiler-readiness/requirements/00-preflight-report-RD-02.md",
+        "preflight:codeops/features/compiler-readiness/requirements/00-preflight-report-RD-02.md"
+      ],
       "id": "RD-02",
-      "revision": "sha256:b53ca049fb3f78d4403e75086cb550510dec9eb8d9a4cda475c5d0db5ba047a5",
+      "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -257,7 +261,7 @@
           }
         }
       ],
-      "status": "approved",
+      "status": "stale",
       "title": "Tiered Compiler, ACME and VICE Execution",
       "type": "requirement",
       "validations": [
@@ -308,7 +312,7 @@
           }
         }
       ],
-      "status": "approved",
+      "status": "stale",
       "title": "Failure Classification, Shrinking and Regression Promotion",
       "type": "requirement",
       "validations": [
@@ -379,7 +383,7 @@
           }
         }
       ],
-      "status": "approved",
+      "status": "stale",
       "title": "Readiness Matrix, Release Gate and Legacy Evidence",
       "type": "requirement",
       "validations": [
@@ -471,7 +475,7 @@
           }
         }
       ],
-      "status": "approved",
+      "status": "stale",
       "title": "Non-Functional Safety, Determinism and Evolution",
       "type": "requirement",
       "validations": [
