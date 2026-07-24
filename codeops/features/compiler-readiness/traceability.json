@@ -155,6 +155,26 @@
         {
           "relation": "affected-by",
           "target": "compiler-readiness/AR-09"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-02-MODELS"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-02-IR"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-02-IDENTITY"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-02-RENDER"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-02-PUBLISH"
         }
       ],
       "evidence": [
@@ -183,6 +203,48 @@
           "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
           "validatedAt": "2026-07-24T13:19:28Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "depends-on",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
+          "upstream": "compiler-readiness/RD-01",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:e82068b150653532abc77122bb5907d1973d23b6fff57765fb67bb9cf3e6d160",
+          "upstream": "compiler-readiness/SPEC-RD-02-MODELS",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:5a02a9faaa84b075093eae37c16f52f0a138bf1c40e7ede674c09145163dab39",
+          "upstream": "compiler-readiness/SPEC-RD-02-IR",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:6aeb9c9174b29548319ddcd22ed1088f87ada95590001a4de9ac0211758ace8a",
+          "upstream": "compiler-readiness/SPEC-RD-02-IDENTITY",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:91a8d94ea563927861530640f47594d1b75e451600bf84ae4a031c48ef4f41f5",
+          "upstream": "compiler-readiness/SPEC-RD-02-RENDER",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:d6b4b3b8a978438471ac3172156649c2ce38769988fe93c885e850ee96bbcb6b",
+          "upstream": "compiler-readiness/SPEC-RD-02-PUBLISH",
+          "validatedAt": "2026-07-24T15:55:00Z"
         }
       ]
     },
@@ -1482,6 +1544,700 @@
           "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
+    },
+    {
+      "edges": [],
+      "id": "AR-P02",
+      "revision": "sha256:411c3ea14089042b25ed65d7ebcb6b6b47a4a5d6f2c3ff7781ad3a1ab5864164",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "resolved",
+      "title": "RD-02 plan Zero-Ambiguity decisions",
+      "type": "ambiguity",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-02-MODELS"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P1"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P5"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P02"
+        }
+      ],
+      "id": "SPEC-RD-02-MODELS",
+      "revision": "sha256:e82068b150653532abc77122bb5907d1973d23b6fff57765fb67bb9cf3e6d160",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/03-01-rule-models-bindings.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 rule models and executable bindings",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "upstream": "compiler-readiness/AC-RD-02-MODELS",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-02-IR"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P2"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P5"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P02"
+        }
+      ],
+      "id": "SPEC-RD-02-IR",
+      "revision": "sha256:5a02a9faaa84b075093eae37c16f52f0a138bf1c40e7ede674c09145163dab39",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/03-02-generator-ir-budgets.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 generator IR and budgets",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "upstream": "compiler-readiness/AC-RD-02-IR",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-02-IDENTITY"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P3"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P6"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P02"
+        }
+      ],
+      "id": "SPEC-RD-02-IDENTITY",
+      "revision": "sha256:6aeb9c9174b29548319ddcd22ed1088f87ada95590001a4de9ac0211758ace8a",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/03-03-identity-replay.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 identity and replay",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "upstream": "compiler-readiness/AC-RD-02-IDENTITY",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-02-RENDER"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P4"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P6"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P02"
+        }
+      ],
+      "id": "SPEC-RD-02-RENDER",
+      "revision": "sha256:91a8d94ea563927861530640f47594d1b75e451600bf84ae4a031c48ef4f41f5",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/03-04-rendering-roundtrip.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 rendering and independent round trip",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "upstream": "compiler-readiness/AC-RD-02-RENDER",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-02-PUBLISH"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P7"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P02"
+        }
+      ],
+      "id": "SPEC-RD-02-PUBLISH",
+      "revision": "sha256:d6b4b3b8a978438471ac3172156649c2ce38769988fe93c885e850ee96bbcb6b",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/03-05-atomic-publication.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 atomic binding publication",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "upstream": "compiler-readiness/AC-RD-02-PUBLISH",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-02-MODELS"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P1"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P5"
+        }
+      ],
+      "id": "AC-RD-02-MODELS",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 model and binding acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-02-IR"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P2"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P5"
+        }
+      ],
+      "id": "AC-RD-02-IR",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 IR and budget acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-02-IDENTITY"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P3"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P6"
+        }
+      ],
+      "id": "AC-RD-02-IDENTITY",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 identity and replay acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-02-RENDER"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P4"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P6"
+        }
+      ],
+      "id": "AC-RD-02-RENDER",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 rendering acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-02-PUBLISH"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P7"
+        }
+      ],
+      "id": "AC-RD-02-PUBLISH",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 publication acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-02-MODELS",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-02 model and binding specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-02-IR",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-02 IR and budget specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-02-IDENTITY",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-02 identity and replay specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-02-RENDER",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-02 renderer specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-02-PUBLISH",
+      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/07-testing-strategy.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-02 publication specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "compiler-readiness/RD-02"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P1"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P2"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P3"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P4"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P5"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P6"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-02-P7"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P02"
+        }
+      ],
+      "evidence": [
+        "summary:Zero-Ambiguity Gate passed; 33 requirements-derived specification cases and 64 execution tasks are grounded in approved RD-02.",
+        "summary:Zero-Ambiguity Gate passed; 33 specification cases and 64 tasks ground RD-02."
+      ],
+      "id": "PLAN-RD-02",
+      "revision": "sha256:dfd543cf9867b6a3edd1b225fea1e6add7a6d716d3bb14dd2a36b77a080c5c0b",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-02 typed generative cases implementation plan",
+      "type": "plan",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "depends-on",
+          "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
+          "upstream": "compiler-readiness/RD-02",
+          "validatedAt": "2026-07-24T15:55:00Z"
+        }
+      ]
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P1",
+      "revision": "sha256:225020706aeaf49eb8b15a553af4e1a1d1984debfba9ba072ac94a8553b5aace",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 1: Closed Contracts and Rule-Model Skeleton"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 1",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P2",
+      "revision": "sha256:882c95566069bbd1d2bf660e3efbf9eb0eab2c80672fbf9b7e61895fed255e6a",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 2: Independent IR, Neighbors and Structural Budgets"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 2",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P3",
+      "revision": "sha256:5af63eba70315c7ab81a89bd92d63b664e79afa12b19d8bc8d8f110bbf7a95f2",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 3: Canonical Identity and Deterministic Choices"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 3",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P4",
+      "revision": "sha256:a5d3672c516835f4ce66c1ac0ad5120db17bb0fd06e4a5aacc3db15c22cb8363",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 4: Deterministic Renderer and Independent Round Trip"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 4",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P5",
+      "revision": "sha256:0681085a45bbf700a912398ab2077d09ed00122ad98f19c563495d66284b7164",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 5: Generators, Boundary Transform and Modeled Semantic Slice"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 5",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P6",
+      "revision": "sha256:c1f21b6768c5d8e304483232390f46d96697a9c4f749a9f7a3ef30c085c9b214",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 6: Campaign Composition and Exact Replay"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 6",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-02-P7",
+      "revision": "sha256:5780d25bb1677a257e1f9fe3125717bc1062e4696e2586e12e90c7bf0bd65f0a",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-02-generative-cases/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 7: Atomic Binding Publication and Closeout"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-02 phase 7",
+      "type": "task",
+      "validations": []
     }
   ],
   "schema": 2
