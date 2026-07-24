@@ -138,6 +138,11 @@ describe("readiness package boundary", () => {
       expect.arrayContaining([
         "binding-model.ts",
         "binding-validator.ts",
+        "boundary-variants.ts",
+        "generation-budget.ts",
+        "generator-ir-validator.ts",
+        "generator-ir.ts",
+        "invalid-neighbor.ts",
         "model-registry-model.ts",
         "rule-model-input.ts",
         "rule-model-registry.ts",

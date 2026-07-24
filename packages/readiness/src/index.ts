@@ -27,6 +27,11 @@ export {
 } from "./binding-validator.js";
 export { parseRuleModelRegistry, validateRuleModelRegistry } from "./rule-model-input.js";
 export { createExecutableOperationRegistry, isRuleModelId } from "./rule-model-registry.js";
+export { isGenIdentifier, isScalarType } from "./generator-ir.js";
+export { validateGeneratorIr } from "./generator-ir-validator.js";
+export { applyInvalidNeighbor } from "./invalid-neighbor.js";
+export { createBoundaryVariants } from "./boundary-variants.js";
+export { createGenerationBudgetTracker, validateGenerationBudget } from "./generation-budget.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -128,3 +133,41 @@ export type {
   ExecutableRuleModelOperation,
   RuleModelOperationKind,
 } from "./rule-model-registry.js";
+export type {
+  BinaryOperator,
+  BoundarySpelling,
+  BoundaryVariant,
+  BoundaryVariantInput,
+  BoundaryVariantKind,
+  BoundaryVariantResult,
+  GenAssignStatement,
+  GenBinaryExpression,
+  GenConst,
+  GenExpression,
+  GenFunction,
+  GenIdentifier,
+  GenLiteralExpression,
+  GenLocalStatement,
+  GenMemoryReadExpression,
+  GenMemoryWriteStatement,
+  GenModule,
+  GenNameExpression,
+  GenParameter,
+  GenReturnStatement,
+  GenStatement,
+  GenUnaryExpression,
+  GenerationBudget,
+  GenerationBudgetDimension,
+  GenerationBudgetResult,
+  GenerationBudgetStepResult,
+  GenerationBudgetTracker,
+  GenerationDiagnostic,
+  GenerationDiagnosticCode,
+  GenerationUsage,
+  InvalidNeighborOperation,
+  IrValidationResult,
+  NamedModelPredicate,
+  NeighborResult,
+  ScalarType,
+  UnaryOperator,
+} from "./generator-ir.js";

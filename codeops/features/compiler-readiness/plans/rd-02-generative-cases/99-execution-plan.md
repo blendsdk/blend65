@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 16:13 UTC
-> **Progress**: 10/71 tasks (14%)
+> **Last Updated**: 2026-07-24 17:15 UTC
+> **Progress**: 19/71 tasks (27%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -59,20 +59,20 @@ unpublished until the final phase.
 
 ## Phase 2: Independent IR, Neighbors and Structural Budgets
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `b44624f2b1fb22803cc85221fdadb587e6345d51`
 > **Lenses**: api-surface, security, perf
 
 **Reference**: 03-02 · AR-P3, AR-P8, AR-P11 · ST-08–ST-14
 
-- [ ] 2.1.1 [spec-author] Write IR, neighbor and budget specification tests — `generator-ir.spec.test.ts`, `generation-budget.spec.test.ts`
-- [ ] 2.1.2 Run Phase 2 spec tests and record expected RED for ST-08–ST-14
-- [ ] 2.2.1 Implement branded identifiers, scalar types and immutable IR unions — `generator-ir.ts`
-- [ ] 2.2.2 Implement IR structural validation and model predicates — `generator-ir-validator.ts`
-- [ ] 2.2.3 Implement incremental/final budget accounting with checked arithmetic — `generation-budget.ts`
-- [ ] 2.2.4 Implement single-violation neighbor application and revalidation — `invalid-neighbor.ts`
-- [ ] 2.2.5 Implement boundary variant core independent of rule population — `boundary-variants.ts`
-- [ ] 2.2.6 Run ST-08–ST-14 GREEN; fix implementation only
-- [ ] 2.3.1 Add IR/budget/neighbor implementation tests, coverage and full verify
+- [x] 2.1.1 [spec-author] Write IR, neighbor and budget specification tests — `generator-ir.spec.test.ts`, `generation-budget.spec.test.ts` — completed 2026-07-24 16:26 UTC
+- [x] 2.1.2 Run Phase 2 spec tests and record expected RED for ST-08–ST-14 — completed 2026-07-24 16:27 UTC; both suites failed collection because Phase 2 modules do not yet exist
+- [x] 2.2.1 Implement branded identifiers, scalar types and immutable IR unions — `generator-ir.ts` — completed 2026-07-24 16:52 UTC
+- [x] 2.2.2 Implement IR structural validation and model predicates — `generator-ir-validator.ts` — completed 2026-07-24 16:52 UTC
+- [x] 2.2.3 Implement incremental/final budget accounting with checked arithmetic — `generation-budget.ts` — completed 2026-07-24 16:52 UTC
+- [x] 2.2.4 Implement single-violation neighbor application and revalidation — `invalid-neighbor.ts` — completed 2026-07-24 16:52 UTC
+- [x] 2.2.5 Implement boundary variant core independent of rule population — `boundary-variants.ts` — completed 2026-07-24 16:52 UTC
+- [x] 2.2.6 Run ST-08–ST-14 GREEN; fix implementation only — completed 2026-07-24 16:52 UTC; 28/28 immutable specification assertions pass
+- [x] 2.3.1 Add IR/budget/neighbor implementation tests, coverage and full verify — completed 2026-07-24 17:15 UTC; review remediations cover operator semantics, writable bindings, terminal returns and bounded validation; 651 readiness tests pass with 95.45% branch coverage; exact full verify exits 0
 
 **Deliverable:** compiler-independent typed construction kernel with enforced bounds.
 
