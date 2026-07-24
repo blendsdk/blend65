@@ -65,7 +65,7 @@
         }
       ],
       "id": "RD-01",
-      "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+      "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -104,9 +104,9 @@
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:6288a5bf4eaa849dbdd13d3c75e4c9893d201648b0b1407e6ee2ab820476a355",
+          "revision": "sha256:9037fa00b0c5ef67d3b0f8c4ee71498983504351dc89d96a39efe38c2430787b",
           "upstream": "compiler-readiness/SPEC-RD-01-EVOLUTION",
-          "validatedAt": "2026-07-23T22:02:00Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         },
         {
           "gate": "execution",
@@ -132,9 +132,9 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:6288a5bf4eaa849dbdd13d3c75e4c9893d201648b0b1407e6ee2ab820476a355",
+          "revision": "sha256:9037fa00b0c5ef67d3b0f8c4ee71498983504351dc89d96a39efe38c2430787b",
           "upstream": "compiler-readiness/SPEC-RD-01-EVOLUTION",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -176,9 +176,9 @@
         {
           "gate": "requirements",
           "relation": "depends-on",
-          "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
-          "validatedAt": "2026-07-23T00:00:00Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -216,9 +216,9 @@
         {
           "gate": "requirements",
           "relation": "depends-on",
-          "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
-          "validatedAt": "2026-07-23T00:00:00Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -386,9 +386,9 @@
         {
           "gate": "requirements",
           "relation": "depends-on",
-          "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
-          "validatedAt": "2026-07-23T00:00:00Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         },
         {
           "gate": "requirements",
@@ -478,9 +478,9 @@
         {
           "gate": "requirements",
           "relation": "depends-on",
-          "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
-          "validatedAt": "2026-07-23T00:00:00Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         },
         {
           "gate": "requirements",
@@ -712,7 +712,7 @@
     {
       "edges": [],
       "id": "AR-P01",
-      "revision": "sha256:33c9dde51dc77a0ebac4449e53775eaa1ff38770d8459c0aaf4e23aadfd08661",
+      "revision": "sha256:e052d14ba9a64026a9698f6a6639ef7355ae5fe56e69e7d4c82810b4a147214a",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -895,9 +895,9 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
+          "revision": "sha256:88e9abbe39f0673437367ab059842e30ee5f87c2d04589d716bc21fefaa5eed8",
           "upstream": "compiler-readiness/TASK-RD-01-P4",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -917,7 +917,7 @@
         }
       ],
       "id": "SPEC-RD-01-EVOLUTION",
-      "revision": "sha256:6288a5bf4eaa849dbdd13d3c75e4c9893d201648b0b1407e6ee2ab820476a355",
+      "revision": "sha256:9037fa00b0c5ef67d3b0f8c4ee71498983504351dc89d96a39efe38c2430787b",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -949,9 +949,9 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:5118c47108d4c6b1a9e80831efcb805b59947660aadb9d995d6d8bc0c245026c",
+          "revision": "sha256:dec31c30820264dd40a8adc2ac47d409553f90ac40b56df066ed7a7c6ae36445",
           "upstream": "compiler-readiness/TASK-RD-01-P5",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -1071,9 +1071,9 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
+          "revision": "sha256:88e9abbe39f0673437367ab059842e30ee5f87c2d04589d716bc21fefaa5eed8",
           "upstream": "compiler-readiness/TASK-RD-01-P4",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -1108,9 +1108,9 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:5118c47108d4c6b1a9e80831efcb805b59947660aadb9d995d6d8bc0c245026c",
+          "revision": "sha256:dec31c30820264dd40a8adc2ac47d409553f90ac40b56df066ed7a7c6ae36445",
           "upstream": "compiler-readiness/TASK-RD-01-P5",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -1185,6 +1185,12 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:yarn workspace @blend65/readiness test:coverage: 351 of 351 tests passing at 95.17% branch coverage.",
+        "redEvidence:/tmp/rd01-p5-red.eQimLO.log: 12 of 12 Phase 5 specification assertions failed before implementation.",
+        "summary:All Phase 5 specification and implementation tests pass; readiness coverage is 95.17% branches.",
+        "summary:Phase 5 requirements-derived specification tests were observed red before implementation."
+      ],
       "id": "TEST-RD-01-EVOLUTION",
       "revision": "sha256:591bc972105d6cf026f3320962606becf0a9671776cbc00a2db804112330fb14",
       "semanticSources": [
@@ -1197,7 +1203,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-01 projection and evolution specification tests",
       "type": "test",
       "validations": []
@@ -1244,7 +1250,7 @@
         "summary:Zero-Ambiguity Gate passed; 32 requirements-derived specification cases and 62 execution tasks are grounded in approved RD-01"
       ],
       "id": "PLAN-RD-01",
-      "revision": "sha256:af498ee599f868bc7573f76d706c79e49f0ad62d74ca86a7329f85db23419f8f",
+      "revision": "sha256:7e19d9db13b284367c9946d5bad9d175ff6b14ca45cb419481f6f6b335914c34",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1262,16 +1268,16 @@
         {
           "gate": "plan",
           "relation": "depends-on",
-          "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
-          "validatedAt": "2026-07-23T22:02:00Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         },
         {
           "gate": "execution",
           "relation": "depends-on",
-          "revision": "sha256:b52fbf77dfe3ae492559f87eb7bdc548cb8069302bdc77ec273f20e08328bc15",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "validatedAt": "2026-07-24T13:19:28Z"
         },
         {
           "gate": "execution",
@@ -1297,16 +1303,23 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
-          "upstream": "compiler-readiness/TASK-RD-01-P4",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "revision": "sha256:dec31c30820264dd40a8adc2ac47d409553f90ac40b56df066ed7a7c6ae36445",
+          "upstream": "compiler-readiness/TASK-RD-01-P5",
+          "validatedAt": "2026-07-24T13:19:28Z"
         },
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:5118c47108d4c6b1a9e80831efcb805b59947660aadb9d995d6d8bc0c245026c",
-          "upstream": "compiler-readiness/TASK-RD-01-P5",
-          "validatedAt": "2026-07-23T21:15:17Z"
+          "revision": "sha256:88e9abbe39f0673437367ab059842e30ee5f87c2d04589d716bc21fefaa5eed8",
+          "upstream": "compiler-readiness/TASK-RD-01-P4",
+          "validatedAt": "2026-07-24T13:19:28Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:dc56149edc9ffc712f050e0073f2db9ad7d6abbc98d50020ece717870043d6a4",
+          "upstream": "compiler-readiness/T-01",
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     },
@@ -1392,7 +1405,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P4",
-      "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
+      "revision": "sha256:88e9abbe39f0673437367ab059842e30ee5f87c2d04589d716bc21fefaa5eed8",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1411,8 +1424,13 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "summary:Phase 5 completed after independent quality review and mandatory critical/major remediation.",
+        "summary:Phase 5 projections, version evolution, safe generation command, and closeout evidence are implemented.",
+        "verificationEvidence:351 readiness tests pass at 95.17% branch coverage; readiness check and full repository verification pass; spec tree unchanged."
+      ],
       "id": "TASK-RD-01-P5",
-      "revision": "sha256:5118c47108d4c6b1a9e80831efcb805b59947660aadb9d995d6d8bc0c245026c",
+      "revision": "sha256:dec31c30820264dd40a8adc2ac47d409553f90ac40b56df066ed7a7c6ae36445",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1424,30 +1442,20 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-01 phase 5",
       "type": "task",
       "validations": []
     },
     {
-      "id": "T-01",
-      "type": "task",
-      "title": "Manual remediation of rejected inventory rules",
-      "status": "verified",
       "edges": [
         {
           "relation": "depends-on",
           "target": "compiler-readiness/TASK-RD-01-P4"
-        },
-        {
-          "relation": "affected-by",
-          "target": "compiler-readiness/AR-P20"
-        },
-        {
-          "relation": "affected-by",
-          "target": "compiler-readiness/AR-P21"
         }
       ],
+      "id": "T-01",
+      "revision": "sha256:dc56149edc9ffc712f050e0073f2db9ad7d6abbc98d50020ece717870043d6a4",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1456,6 +1464,18 @@
           "selector": {
             "kind": "whole-file"
           }
+        }
+      ],
+      "status": "verified",
+      "title": "Manual remediation of rejected inventory rules",
+      "type": "task",
+      "validations": [
+        {
+          "gate": "execution",
+          "relation": "depends-on",
+          "revision": "sha256:88e9abbe39f0673437367ab059842e30ee5f87c2d04589d716bc21fefaa5eed8",
+          "upstream": "compiler-readiness/TASK-RD-01-P4",
+          "validatedAt": "2026-07-24T13:19:28Z"
         }
       ]
     }

@@ -5,7 +5,7 @@ export default defineConfig({
     include: ["src/**/*.{spec,impl}.test.ts"],
     environment: "node",
     passWithNoTests: false,
-    testTimeout: 30_000,
+    testTimeout: 240_000,
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],

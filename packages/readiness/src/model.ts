@@ -287,6 +287,7 @@ export interface ValidationResult {
   readonly inventory?: InventoryV1;
   readonly topologicalRuleIds?: readonly string[];
   readonly blockingReasons: readonly ReadinessBlockingReason[];
+  readonly resolvedFragments?: readonly ResolvedSourceFragment[];
 }
 
 /** Result returned by strict raw JSON intake. */

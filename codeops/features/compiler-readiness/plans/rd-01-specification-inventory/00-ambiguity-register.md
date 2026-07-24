@@ -37,6 +37,8 @@ modification set.
 | AR-P19 | Technical (runtime) | What exact Phase-3 API, identity-event chain and authored-vs-derived boundary can independent semantic tests target? | (A) freeze pure validators over an explicit context, fixed-order hash-chained JSONL identity events, authored conflict/projection records and one composed validator; (B) let tests infer module signatures and ledger framing from implementation; (C) synthesize conflicts and target children from prose | **A** — immutable tests need literal events and outputs while reviewed semantic classifications and stable IDs must remain authored authority | ✅ Resolved |
 | AR-P20 | Technical (runtime) | What exact context makes semantic-review evidence a closed enforceable gate? | (A) require expected spec revision, required unit IDs and current digests; reject missing/extra/duplicate/blocked/wrong-revision records and empty reviewers; (B) validate only whatever records happen to be supplied | **A** — review evidence cannot prove completeness or acceptance without an explicit expected set and revision | ✅ Resolved |
 | AR-P21 | Technical (runtime) | How does review evidence prove each unit's dependency-digest set is closed? | (A) context supplies lexical unique required dependency IDs per required unit and records must match exactly; (B) trust dependency keys volunteered by records | **A** — omitted dependency classes otherwise never become stale | ✅ Resolved |
+| AR-P23 | Technical (runtime) | What exact public Phase-5 contract can immutable projection, migration, publication and command tests target? | (A) freeze small result-based render/freshness/version/command APIs, fixed repository paths, test-only migration/publication seams and digest-based mixed-pair repair; (B) test the CLI only; (C) expose filesystem implementation details | **A — AI delegated by `--auto-design`**: it keeps the oracle independent while acknowledging that two file renames cannot be crash-atomic as one transaction | ✅ Resolved |
+| AR-P24 | Testing (runtime) | How should the non-mutating command oracle compare repeated 7.3 MB authority snapshots without Vitest recursively expanding every byte? | (A) compare SHA-256 snapshots for each fixed artifact; (B) raise time/memory until raw-array deep equality completes | **A — AI delegated by `--auto-design`**: cryptographic byte snapshots preserve the exact oracle while bounding diagnostic work | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -475,6 +477,63 @@ modification set.
 - **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
 - **Reopen triggers:** an unclassified normative residual, unstable ID under a non-semantic edit,
   incomplete digest dependency, or source evidence requiring a different universal projection
+
+### AR-P23 — Phase-5 public execution contract (runtime)
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal API, failure-recovery and testing mechanism within approved Phase-5
+  behavior; no product scope, compatibility or acceptance criterion changes
+- **Objective:** let immutable specification tests state exact projection, migration, publication
+  and command behavior without reading implementation files
+- **Decision:** expose result-based pure render/freshness and strict version-dispatch APIs; keep
+  production at v1 while a test-only dispatcher accepts migration registrations; publish two
+  fixed-path outputs under one PID/token lock with exclusive invocation-owned temporary files and
+  hooks after sync/rename; embed one canonical-inventory generation digest in both projections;
+  check mode detects missing/stale/mixed projections without filesystem mutation. Generation
+  guarantees individually atomic renames, no mixed-pair success, and deterministic dead-owner
+  repair rather than impossible cross-file crash atomicity. Diagnostics use the existing lowercase
+  dotted code convention and existing `source`/`evolution` phases.
+- **Evidence:** existing results use `{ ok, diagnostics }`; `InventoryV1` already carries
+  `evolutionGate` and source citations; root scripts already fix the output paths; POSIX rename is
+  atomic for one target but cannot atomically replace two independent files
+- **Rejected alternatives:** CLI-only tests cannot independently target escaping, migration chains
+  or injected failures; exposing lock/temp internals as the primary API couples the oracle to the
+  mechanism; a directory/pointer swap would change the approved artifact layout
+- **Strongest counterargument:** exported test seams enlarge the internal package surface and can
+  ossify recovery mechanics; the package is private, seams are narrowly typed, and only render,
+  dispatch and command contracts are barrel exports
+- **Confidence:** High — every approved behavior has a concrete observable seam and the filesystem
+  guarantee matches what two fixed output paths can provide
+- **Hardening:** blind design challenger converged on the result-based API and identified the
+  impossible stronger crash-atomic interpretation; adopted that correction
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260724-02`
+- **Reopen triggers:** output layout changes to one atomic directory/pointer, a production v2
+  migration is approved, or a supported filesystem cannot provide exclusive creation and atomic
+  same-directory rename
+
+### AR-P24 — bounded exact artifact snapshots (runtime)
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** test-harness performance mechanism; the immutable no-mutation behavior and all
+  acceptance expectations remain unchanged
+- **Objective:** keep real-authority command tests bounded and failure diagnostics usable
+- **Decision:** snapshot each fixed artifact as SHA-256 and compare the path-to-digest map; retain
+  raw bytes only where a test intentionally mutates or restores one output
+- **Evidence:** isolated production digest/generate completes in about 0.7 seconds at 147 MB, while
+  Vitest recursive equality over repeated 7.3 MB byte arrays reached 3.4 GB and 30+ seconds
+- **Rejected alternatives:** raising timeout/memory preserves an unnecessarily quadratic diagnostic
+  path and risks CI instability; sampling bytes weakens exactness
+- **Strongest counterargument:** a hash comparison is probabilistic rather than mathematical byte
+  equality; SHA-256 collision risk is negligible for a repository integrity oracle and materially
+  safer than an unbounded test runner
+- **Confidence:** High — the production benchmark isolates the test matcher as the cost center
+- **Hardening:** implementation-blind spec author owns the mechanical helper repair and may not
+  change scenarios or expectations
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260724-02`
+- **Reopen triggers:** the matcher gains a bounded native byte-array comparator with concise
+  diagnostics or the authority grows beyond the configured input limit
 
 ## Systematic 12-category closure
 

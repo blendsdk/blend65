@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 08:15
-> **Progress**: 59/69 tasks (86%)
+> **Last Updated**: 2026-07-24 15:18
+> **Progress**: 69/69 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -320,37 +320,64 @@ broad inventory regeneration or review occurred in T-01.
 
 ## Phase 5: Projection, version evolution and closeout
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: 90a4be19bb5eb03b89eda0daa99675b7ac28688b
 > **Lenses**: data/migration; security/resource safety; maintainability
 
 ### Step 5.1: Specification tests
 
 **Reference**: `03-04` §Commands–§Version dispatch · AR-P3, AR-P7, AR-P10, AR-P11
 
-- [ ] 5.1.1 [spec-author] Write ST-27–ST-29 projection/freshness tests — `packages/readiness/src/projection.spec.test.ts`
-- [ ] 5.1.2 [spec-author] Write ST-30–ST-31 versioning/atomic-failure tests and ST-35 aggregate command test — `packages/readiness/src/versioning.spec.test.ts`, `readiness-command.spec.test.ts`
-- [ ] 5.1.3 Run Phase 5 specification tests and record genuine red failures — targeted readiness Vitest
+- [x] 5.1.1 [spec-author] Write ST-27–ST-29 projection/freshness tests — `packages/readiness/src/projection.spec.test.ts` ✅ (completed: 2026-07-24 13:13)
+- [x] 5.1.2 [spec-author] Write ST-30–ST-31 versioning/atomic-failure tests and ST-35 aggregate command test — `packages/readiness/src/versioning.spec.test.ts`, `readiness-command.spec.test.ts` ✅ (completed: 2026-07-24 13:13)
+- [x] 5.1.3 Run Phase 5 specification tests and record genuine red failures — targeted readiness Vitest ✅ (completed: 2026-07-24 13:13 — 3 files / 12 tests failed on absent Phase-5 APIs; log `/tmp/rd01-p5-red.eQimLO.log`)
 
 ### Step 5.2: Implementation
 
 **Reference**: `03-04` §Markdown projection–§Version dispatch · AR-P3, AR-P10, AR-P11
 
-- [ ] 5.2.1 Implement safe deterministic Markdown projection and compose render-first generation of both explicit outputs — `packages/readiness/src/projection.ts`, `declaration-generator.ts`
-- [ ] 5.2.2 Implement exact version dispatch, migration registry and invalidation model — `packages/readiness/src/versioning.ts`
-- [ ] 5.2.3 Implement one PID/token-owned generation lock held from authoritative reread through verified dual-output replacement, conservative dead-owner quarantine/reclamation, invocation-owned exclusive temporary files and injected failure/crash seams — `packages/readiness/src/atomic-writer.ts`, `generation-lock.ts`
-- [ ] 5.2.4 Implement check/generate CLI orchestration and make ST-27–ST-31 plus ST-35 green — `packages/readiness/src/cli.ts`, `readiness-command.spec.test.ts`
-- [ ] 5.2.5 Generate and review both committed projections and authority README — `packages/readiness/src/generated/declarations.ts`, `readiness/generated/compiler-readiness.md`, `readiness/README.md`
+- [x] 5.2.1 Implement safe deterministic Markdown projection and compose render-first generation of both explicit outputs — `packages/readiness/src/projection.ts`, `declaration-generator.ts` ✅ (completed: 2026-07-24 13:45)
+- [x] 5.2.2 Implement exact version dispatch, migration registry and invalidation model — `packages/readiness/src/versioning.ts` ✅ (completed: 2026-07-24 13:45)
+- [x] 5.2.3 Implement one PID/token-owned generation lock held from authoritative reread through verified dual-output replacement, conservative dead-owner quarantine/reclamation, invocation-owned exclusive temporary files and injected failure/crash seams — `packages/readiness/src/atomic-writer.ts`, `generation-lock.ts` ✅ (completed: 2026-07-24 13:45)
+- [x] 5.2.4 Implement check/generate CLI orchestration and make ST-27–ST-31 plus ST-35 green — `packages/readiness/src/cli.ts`, `readiness-command.spec.test.ts` ✅ (completed: 2026-07-24 13:45 — 12/12 Phase-5 specs green; full authority validation and complete dependency fingerprint verified)
+- [x] 5.2.5 Generate and review both committed projections and authority README — `packages/readiness/src/generated/declarations.ts`, `readiness/generated/compiler-readiness.md`, `readiness/README.md` ✅ (completed: 2026-07-24 13:45)
 
 ### Step 5.3: Implementation tests and hardening
 
 **Reference**: `07` ST-27–ST-31, ST-35 · AR-P10–AR-P12
 
-- [ ] 5.3.1 Add projection/version/identity-chain/generation-lock internals plus a subprocess crash-after-first-rename repair test; enforce readiness branch coverage, run `yarn readiness:check`, Prettier/full verify, deferral-expiry review and final `spec/` freeze check — `projection.impl.test.ts`, `versioning.impl.test.ts`, `identity-ledger.impl.test.ts`, `atomic-writer.impl.test.ts`
-- [ ] 5.3.2 Record implementation/verification evidence, update RD-01 closeout and synchronize roadmaps — CodeOps traceability and roadmap artifacts
+- [x] 5.3.1 Add projection/version/identity-chain/generation-lock internals plus a subprocess crash-after-first-rename repair test; enforce readiness branch coverage, run `yarn readiness:check`, Prettier/full verify, deferral-expiry review and final `spec/` freeze check — `projection.impl.test.ts`, `versioning.impl.test.ts`, `identity-ledger.impl.test.ts`, `atomic-writer.impl.test.ts` ✅ (completed: 2026-07-24 14:25 — 327/327 tests; 95.13% branches; readiness check and full verify green; `spec/` clean; no deferral rationale expired)
+- [x] 5.3.2 Record implementation/verification evidence, update RD-01 closeout and synchronize roadmaps — CodeOps traceability and roadmap artifacts ✅ (completed: 2026-07-24 15:18 — quality findings resolved; task/test state transitioned through the CodeOps state engine; feature and portfolio roadmaps synchronized)
 
 **Deliverables:** byte-stable safe projections; trust gate that preserves tracked and authority
 artifacts; explicit generator; strict version dispatcher; proven concurrent failure-atomic
 migration seam; RD closeout evidence.
+
+### Phase 5 quality review
+
+Initial independent correctness, security and semantic reviews rejected the phase. Auto-design
+selected fixes for every critical/major finding; none were waived. A single fix-diff re-review is
+required before closeout. The fix-only review baseline is
+`baefae436ba4f0833f52164db57864c58aadab98`.
+
+| Finding | Severity | Ruling |
+|---|---|---|
+| SA-01 / RV-SEM-03 | CRITICAL | Fix — serialize token-specific stale-lock reclamation so a stale observation cannot remove a replacement owner |
+| RV-P5-CR-002 / SA-02 | MAJOR | Fix — atomically publish owner metadata and make release/reclamation token-safe |
+| RV-P5-CR-001 / SA-03 / RV-SEM-02 | MAJOR | Fix — enforce canonical source paths and context-safe Markdown label/destination encoding |
+| SA-04 | MAJOR | Fix — reject symlink aliases/escapes for every fixed read/write/lock path |
+| SA-05 | MAJOR | Fix — re-fingerprint all dependencies after validation and bound the cache to one complete snapshot |
+| RV-P5-CR-003 | MAJOR | Fix — extract bounded embedded digests and emit a deterministic mixed-pair diagnostic |
+| RV-SEM-01 | MAJOR | Fix — render complete citation fields and separate prerequisite/related relationships |
+| RV-P5-CR-004 | MINOR | Fix — correct the stale 62-task closeout total to 69 |
+
+The single fix-only re-review accepted the authority-cache, path-containment, projection-fidelity,
+mixed-digest, atomic-publication and closeout-total corrections. It rejected the first remediation
+for two remaining defects: raw Markdown link labels and a stale-reclaimer replacement-owner race.
+Auto-design resolved both without waiver: the immutable label oracle now requires independent
+label escaping, and generation ownership now uses an exclusive hard-link canonical owner plus a
+token-specific reclamation claim. Deterministic three-actor tests cover delayed publication and
+dead-owner replacement interleavings. The final delegated ruling is **resolved**: 351 readiness
+tests pass, branch coverage is 95.17%, and the full repository verification is green.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -372,7 +399,7 @@ Phase 5: projection + evolution + closeout
 
 The RD is complete when:
 
-1. All 62 tasks are verified.
+1. All 69 tasks are verified.
 2. RD-01 AC-1–AC-18 pass through 32 requirements-derived cases (ST-1–ST-35, excluding
    process/implementation-only ST-7/ST-9/ST-33/ST-34 and including ST-18a).
 3. The complete C64 v3.0 denominator validates with zero undisposed included fragments.

@@ -446,5 +446,23 @@ export async function validateInventorySources(
   if (diagnostics.length > 0) {
     return { ok: false, diagnostics: sortDiagnostics(diagnostics), blockingReasons: [] };
   }
-  return { ok: true, diagnostics: [], inventory: resultInventory, blockingReasons: [] };
+  const resolvedFragments = [...fragmentsByPath.entries()].flatMap(([sourcePath, fragments]) => {
+    const document = documentsByPath.get(sourcePath);
+    if (document === undefined) return [];
+    return fragments.map((fragment) => ({
+      sourcePath,
+      fragment,
+      quote: decodedSpan(document, fragment)
+        .replaceAll("\r\n", "\n")
+        .replaceAll("\r", "\n")
+        .normalize("NFC"),
+    }));
+  });
+  return {
+    ok: true,
+    diagnostics: [],
+    inventory: resultInventory,
+    blockingReasons: [],
+    resolvedFragments,
+  };
 }

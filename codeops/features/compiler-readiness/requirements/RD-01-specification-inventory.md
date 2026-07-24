@@ -1,7 +1,7 @@
 # RD-01: Specification Inventory and Rule Schema
 
 > **Document**: RD-01-specification-inventory.md
-> **Status**: Approved
+> **Status**: Done
 > **Created**: 2026-07-23
 > **Project**: Compiler Readiness
 > **Depends On**: —
@@ -17,38 +17,38 @@ one or more sufficient evidence obligations before generated evidence can count.
 
 ### Must Have
 
-- [ ] Maintain a closed, ordered normative-source manifest. It includes chapters 00–15, normative
+- [x] Maintain a closed, ordered normative-source manifest. It includes chapters 00–15, normative
   grammar sections and the applicable C64 appendix; every other file or section under `spec/` is
   explicitly classified as non-authoritative context, deferred/rejected material or blocked
   pending errata. Chapters 00–15 own consolidated language semantics; the C64 appendix owns
   target-specific obligations. (AR-1, AR-10)
-- [ ] Detect duplicate or conflicting statements across included and contextual sources.
+- [x] Detect duplicate or conflicting statements across included and contextual sources.
   Canonical restatements link to one owning rule; unresolved conflicts become one
   `blocked-errata` record containing every conflicting citation.
-- [ ] Build a clause ledger over every included source fragment. Each fragment maps to one or more
+- [x] Build a clause ledger over every included source fragment. Each fragment maps to one or more
   inventory rules, a reason-coded non-normative disposition or `blocked-errata`; no fragment may
   disappear silently. A versioned fragmentation profile deterministically derives total,
   non-overlapping Markdown and EBNF node spans from the source bytes.
-- [ ] Inventory every mandatory C64 v3.0 rule with a stable rule ID, exact source citation,
+- [x] Inventory every mandatory C64 v3.0 rule with a stable rule ID, exact source citation,
   category, applicability and normative polarity. (AR-1, AR-10)
-- [ ] Store inventory data in versioned JSON validated by a committed JSON Schema. (AR-4)
-- [ ] Decompose specification text into one rule per independently falsifiable normative outcome,
+- [x] Store inventory data in versioned JSON validated by a committed JSON Schema. (AR-4)
+- [x] Decompose specification text into one rule per independently falsifiable normative outcome,
   polarity and applicability. Attach the complete sufficient evidence-obligation set to that rule;
   split only when the normative outcomes themselves are independently falsifiable. Decomposed
   parent fragments require exhaustive child coverage, and split/merge operations preserve explicit
   ID lineage.
-- [ ] Record valid domains, invalid neighbors, boundary families, handler declarations, evidence
+- [x] Record valid domains, invalid neighbors, boundary families, handler declarations, evidence
   obligations and typed relationships between rules.
-- [ ] Represent ambiguity as `blocked-errata`, never as an ordinary exclusion or passing case.
-- [ ] Permit only reason-coded non-applicability; the C64 readiness denominator excludes a rule
+- [x] Represent ambiguity as `blocked-errata`, never as an ordinary exclusion or passing case.
+- [x] Permit only reason-coded non-applicability; the C64 readiness denominator excludes a rule
   only when the specification itself makes it target-inapplicable.
-- [ ] Project universally quantified multi-platform obligations into stable per-target child rules
+- [x] Project universally quantified multi-platform obligations into stable per-target child rules
   with source-preserving lineage. The C64 child participates in this claim; other target children
   remain visible as `out-of-claim-target` and cannot support an unqualified readiness claim.
-- [ ] Validate every generator/oracle/transform ID against a versioned TypeScript handler
+- [x] Validate every generator/oracle/transform ID against a versioned TypeScript handler
   declaration. RD-02 and RD-03 bind executable implementations; declared-but-unbound handlers
   cannot run a campaign or contribute readiness evidence.
-- [ ] Produce human-readable inventory documentation from JSON without making generated Markdown
+- [x] Produce human-readable inventory documentation from JSON without making generated Markdown
   authoritative.
 
 ### Won't Have
@@ -146,47 +146,63 @@ encryption or rate-limiting requirement.
 
 ## Acceptance Criteria
 
-1. [ ] JSON Schema fixtures reject unknown fields at every nesting level, missing required fields,
+1. [x] JSON Schema fixtures reject unknown fields at every nesting level, missing required fields,
    invalid enums, malformed IDs and violations of every conditional absence/presence rule.
-2. [ ] Semantic validation rejects duplicate rule IDs, unknown references or handler declarations,
+2. [x] Semantic validation rejects duplicate rule IDs, unknown references or handler declarations,
    conflicting source ownership and duplicate JSON keys before ordinary parsing can erase them.
-3. [ ] The normative-source manifest classifies every `spec/` file and included section and
+3. [x] The normative-source manifest classifies every `spec/` file and included section and
    enforces chapter/C64 ownership precedence.
-4. [ ] Controlled conflict fixtures distinguish equivalent restatements, duplicate ownership,
+4. [x] Controlled conflict fixtures distinguish equivalent restatements, duplicate ownership,
    overlapping obligations and contradictions. Restatements link to one owning rule without a
    second denominator row; each contradiction yields exactly one `blocked-errata` record containing
    all citations and no competing passable row.
-5. [ ] The clause-ledger command reports every included normative fragment as mapped, exhaustively
+5. [x] The clause-ledger command reports every included normative fragment as mapped, exhaustively
    decomposed, reason-coded non-normative or `blocked-errata`; feature-index reconciliation is a
    secondary check and zero fragments disappear silently.
-6. [ ] Implementation-independent conformance vectors contain source bytes and expected ordered
+6. [x] Implementation-independent conformance vectors contain source bytes and expected ordered
    fragment IDs/spans for every supported Markdown/EBNF node kind; production output must match
    byte-for-byte, and deleting or leaving any derived span undisposed fails.
-7. [ ] Decomposition fixtures prove every independently falsifiable child is covered exactly once;
+7. [x] Decomposition fixtures prove every independently falsifiable child is covered exactly once;
    split/merge fixtures preserve lineage without reusing retired IDs.
-8. [ ] Every source path exists beneath `spec/`, resolves exactly once and matches its normalized
+8. [x] Every source path exists beneath `spec/`, resolves exactly once and matches its normalized
    quote/hash; missing, repeated-heading, stale-hash, traversal, absolute-path and symlink fixtures
    fail before source access escapes the allowed root.
-9. [ ] A rule marked `not-applicable-c64` requires a reason code and a uniquely resolved
+9. [x] A rule marked `not-applicable-c64` requires a reason code and a uniquely resolved
    specification citation proving target inapplicability.
-10. [ ] A universal five-platform obligation is projected into source-linked per-target children;
+10. [x] A universal five-platform obligation is projected into source-linked per-target children;
    only the C64 child enters the denominator and the other four remain `out-of-claim-target`.
-11. [ ] Handler declaration validation distinguishes declared, bound and unbound IDs; an unbound ID
+11. [x] Handler declaration validation distinguishes declared, bound and unbound IDs; an unbound ID
     is valid inventory metadata and emits an `unbound-handler` readiness-blocking reason.
-12. [ ] Evidence-capability validation distinguishes declared, bound and unbound routes; fixtures
+12. [x] Evidence-capability validation distinguishes declared, bound and unbound routes; fixtures
     cover frontend, compiler API, CLI, emission, ACME and VICE boundaries and prove that one rule
     can require multiple obligations.
-13. [ ] Graph fixtures reject self-edges, duplicates, cycles, cross-target prerequisites and
+13. [x] Graph fixtures reject self-edges, duplicates, cycles, cross-target prerequisites and
     missing corresponding projected children; same-target and target-neutral prerequisites pass,
     universal edges project deterministically, and related-rule cycles do not affect ordering.
-14. [ ] `blocked-errata`, unresolved source conflicts and unbound declarations emit distinct,
+14. [x] `blocked-errata`, unresolved source conflicts and unbound declarations emit distinct,
     machine-readable readiness-blocking reasons for RD-06 to consume.
-15. [ ] Two consecutive documentation generations from identical JSON are byte-identical and
+15. [x] Two consecutive documentation generations from identical JSON are byte-identical and
     contain every rule exactly once with citation, applicability, evidence and relationships equal
     to JSON; no report-only rule or broken link is permitted.
-16. [ ] Adversarial Markdown values cannot create table columns, raw HTML or unsafe links.
-17. [ ] Exact-boundary and one-over fixtures cover file size, rule count, nesting, field lengths,
+16. [x] Adversarial Markdown values cannot create table columns, raw HTML or unsafe links.
+17. [x] Exact-boundary and one-over fixtures cover file size, rule count, nesting, field lengths,
     arrays and relationship fan-out.
-18. [ ] The v1 reader rejects unknown/unsupported versions with no partial output. Upgrade fixtures
+18. [x] The v1 reader rejects unknown/unsupported versions with no partial output. Upgrade fixtures
     reject absent/stale evolution-gate records, accept the current RD-07 revision, produce
     deterministic invalidation records and leave source evidence intact after injected failure.
+
+## Closeout Evidence
+
+Implemented and verified on 2026-07-24.
+
+- The authority classifies the complete frozen specification tree and disposes every included
+  fragment into 2,112 independently reviewed rules.
+- The append-only identity ledger, closed schema, semantic graph, blockers and current unit plus
+  aggregate review evidence pass the real repository trust gate.
+- Both generated projections share one canonical generation digest. Check mode is non-mutating;
+  generation holds one PID/token lock and recovers a crash-created mixed pair.
+- Readiness package coverage passes at 95.13% branches with 327 tests, including a real subprocess
+  crash/reclaim/repair case. The complete repository verification passes and `spec/` is unchanged.
+- Deferral-expiry review found no expired rationale. RD-02/RD-03 still own executable handler
+  bindings, RD-04 still owns evidence-route execution, and RD-07 still owns the first real format
+  migration gate. No future-consideration item names RD-01 as its landing place.

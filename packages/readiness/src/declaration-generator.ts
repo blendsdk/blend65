@@ -17,13 +17,14 @@ function union(values: readonly string[]): string {
  * const source = renderDeclarationModule(inventory);
  * ```
  */
-export function renderDeclarationModule(inventory: InventoryV1): string {
+export function renderDeclarationModule(inventory: InventoryV1, generationDigest?: string): string {
   const handlers = [...inventory.handlerDeclarations].sort((a, b) => compareOrdinal(a.id, b.id));
   const capabilities = [...inventory.evidenceCapabilityDeclarations].sort((a, b) =>
     compareOrdinal(a.id, b.id),
   );
   return [
     "// Generated from the authoritative compiler-readiness inventory.",
+    ...(generationDigest === undefined ? [] : [`// Generation digest: ${generationDigest}`]),
     `export type HandlerId = ${union(handlers.map(({ id }) => id))};`,
     `export type EvidenceCapabilityId = ${union(capabilities.map(({ id }) => id))};`,
     "",

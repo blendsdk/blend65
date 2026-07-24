@@ -8,13 +8,18 @@ export { validateLedger } from "./ledger-validator.js";
 export { validateConflicts } from "./conflict-validator.js";
 export { validateDeclarations } from "./declaration-validator.js";
 export { renderDeclarationModule } from "./declaration-generator.js";
+export {
+  checkProjectionFreshness,
+  computeGenerationDigest,
+  renderGeneratedProjections,
+  renderMarkdownProjection,
+} from "./projection.js";
+export { createInventoryVersionDispatcherForTest, readInventoryVersioned } from "./versioning.js";
+export { READINESS_PATHS, runReadinessCommand } from "./cli.js";
 export { validateRuleGraph } from "./rule-graph.js";
 export { validateInventorySemantics } from "./semantic-validator.js";
 export { validateReviewEvidence } from "./review-evidence.js";
-export {
-  computeInventoryReviewDigests,
-  INVENTORY_REVIEW_UNIT_IDS,
-} from "./review-digests.js";
+export { computeInventoryReviewDigests, INVENTORY_REVIEW_UNIT_IDS } from "./review-digests.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -65,3 +70,12 @@ export type {
   SemanticReviewRecord,
 } from "./review-evidence.js";
 export type { InventoryReviewDigests } from "./review-digests.js";
+export type { GeneratedProjectionSet, GenerationDigest, ProjectionResult } from "./projection.js";
+export type {
+  EvolutionGateExpectation,
+  InventoryMigration,
+  MigrationInvalidation,
+  MigrationResult,
+  VersionDispatchResult,
+} from "./versioning.js";
+export type { PublicationHooks } from "./atomic-writer.js";

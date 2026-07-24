@@ -40,6 +40,49 @@ HTML-significant characters and link destinations use context-specific escaping;
 unsafe schemes never pass through. Stable sorting and LF output make consecutive renders
 byte-identical (AR-P11).
 
+## Public Phase-5 contract
+
+Projection APIs use the existing `{ ok, diagnostics }` result convention:
+
+```ts
+type GenerationDigest = `sha256:${string}`;
+
+interface ProjectionResult {
+  readonly ok: boolean;
+  readonly diagnostics: readonly InventoryDiagnostic[];
+  readonly bytes?: Uint8Array;
+}
+
+interface GeneratedProjectionSet {
+  readonly generationDigest: GenerationDigest;
+  readonly declarations: Uint8Array;
+  readonly markdown: Uint8Array;
+}
+
+function computeGenerationDigest(inventory: InventoryV1): GenerationDigest;
+function renderMarkdownProjection(
+  inventory: InventoryV1,
+  generationDigest: GenerationDigest,
+): ProjectionResult;
+function renderGeneratedProjections(inventory: InventoryV1): {
+  readonly ok: boolean;
+  readonly diagnostics: readonly InventoryDiagnostic[];
+  readonly outputs?: GeneratedProjectionSet;
+};
+function checkProjectionFreshness(
+  expected: GeneratedProjectionSet,
+  actual: {
+    readonly declarations?: Uint8Array;
+    readonly markdown?: Uint8Array;
+  },
+): ValidationResult;
+```
+
+The generation digest hashes a domain-separated canonical JSON representation of the complete
+inventory. Both outputs embed it. Source links accept only canonical repository-relative
+`spec/...` paths: reject backslashes, `..`, absolute paths, URI schemes, fragments and control
+characters. Escape display text separately from link destinations.
+
 ## Version dispatch and migration
 
 `readInventory` inspects only enough strict JSON to select an exact supported reader. Unknown
@@ -59,6 +102,33 @@ interface MigrationInvalidation {
   readonly identity: string;
   readonly reasonCode: string;
 }
+
+interface MigrationResult {
+  readonly ok: boolean;
+  readonly diagnostics: readonly InventoryDiagnostic[];
+  readonly output?: Readonly<unknown>;
+  readonly invalidations: readonly MigrationInvalidation[];
+}
+
+interface EvolutionGateExpectation {
+  readonly owner: string;
+  readonly semanticRevision: string;
+  readonly acceptanceGate: string;
+}
+
+interface VersionDispatchResult<T = Readonly<unknown>> {
+  readonly ok: boolean;
+  readonly diagnostics: readonly InventoryDiagnostic[];
+  readonly inventory?: T;
+  readonly invalidations: readonly MigrationInvalidation[];
+}
+
+function readInventoryVersioned(bytes: Uint8Array): VersionDispatchResult<InventoryV1>;
+function createInventoryVersionDispatcherForTest(
+  migrations: readonly InventoryMigration[],
+  expectedGate: EvolutionGateExpectation,
+  targetVersion: number,
+): (bytes: Uint8Array) => VersionDispatchResult;
 ```
 
 No production v2 migration ships. Tests register a deterministic in-memory migration to prove
@@ -66,6 +136,45 @@ dispatch, chaining, invalidation ordering and failure atomicity. Before any real
 source inventory must contain a current `evolutionGate` naming RD-07, its semantic revision,
 acceptance gate and validation time. Missing/stale gates reject before creating a temporary output
 (AR-P10).
+
+The registry rejects duplicate or ambiguous edges, gaps, cycles, reverse edges and step/version
+mismatches. A gate is current only when owner, semantic revision and acceptance gate equal the
+expected values and `validatedAt` is a valid timestamp. Invalidations sort by fixed kind order,
+identity and reason code; exact duplicates collapse and conflicting reasons for one kind/identity
+fail.
+
+Fixed-path orchestration exposes:
+
+```ts
+const READINESS_PATHS = {
+  inventory: "readiness/inventory/compiler-readiness-v1.json",
+  identityLedger: "readiness/inventory/rule-identities-v1.jsonl",
+  reviewEvidence: "readiness/reviews/compiler-readiness-v1-review.json",
+  declarations: "packages/readiness/src/generated/declarations.ts",
+  markdown: "readiness/generated/compiler-readiness.md",
+  lock: "readiness/generated/.generation-lock",
+} as const;
+
+interface PublicationHooks {
+  readonly afterTemporaryFileSynced?: (
+    target: "declarations" | "markdown",
+  ) => void | Promise<void>;
+  readonly afterTargetRenamed?: (
+    target: "declarations" | "markdown",
+  ) => void | Promise<void>;
+}
+
+function runReadinessCommand(
+  command: "check" | "generate",
+  repositoryRoot: string,
+  hooks?: { readonly publication?: PublicationHooks },
+): Promise<{ readonly ok: boolean; readonly diagnostics: readonly InventoryDiagnostic[] }>;
+```
+
+`repositoryRoot` exists only for test isolation; all artifact paths are fixed by the command.
+`check` performs no write, rename, unlink, directory creation or lock acquisition. Operational
+diagnostics use lowercase dotted families: `projection.*`, `version.*`, `migration.*`,
+`evolution-gate.*`, `generation-lock.*` and `publication.*`.
 
 Atomic writes create an invocation-owned, exclusive, uniquely named same-directory temporary file,
 flush/close it, then rename over the target while the generation lock is held. Failure removes only
