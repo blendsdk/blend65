@@ -872,7 +872,7 @@ function validateModuleTypes(module: GenModule): GenerationDiagnostic | undefine
  * });
  * ```
  */
-export function validateGeneratorIr(input: unknown): IrValidationResult {
+function validateGeneratorIrStructure(input: unknown): IrValidationResult {
   try {
     const structuralFailure = inspectGeneratorInput(input, "", () => false);
     if (structuralFailure !== undefined) {
@@ -887,11 +887,56 @@ export function validateGeneratorIr(input: unknown): IrValidationResult {
     if (!parsed.ok) {
       return { ok: false, diagnostics: Object.freeze([parsed.diagnostic]) };
     }
-    const typeFailure = validateModuleTypes(parsed.node);
+    return Object.freeze({ ok: true, module: parsed.node, diagnostics: EMPTY_DIAGNOSTICS });
+  } catch {
+    return {
+      ok: false,
+      diagnostics: Object.freeze([
+        diagnostic(
+          "generation-input-invalid",
+          "",
+          "Generator module could not be inspected safely.",
+        ),
+      ]),
+    };
+  }
+}
+
+/**
+ * Validates and snapshots the data shape required by syntax-level generator consumers.
+ *
+ * This deliberately does not resolve names or enforce expression typing. Syntax round trips need
+ * to preserve those facts without claiming that the module is semantically compilable.
+ *
+ * @param input Unknown programmatic module input.
+ * @returns A structurally validated immutable module or stable diagnostics.
+ */
+export function validateGeneratorIrSyntax(input: unknown): IrValidationResult {
+  return validateGeneratorIrStructure(input);
+}
+
+/**
+ * Validates, snapshots and deeply freezes a semantically well-formed generator module.
+ *
+ * @param input Unknown programmatic module input.
+ * @returns A validated immutable module or stable diagnostics.
+ *
+ * @example
+ * ```ts
+ * const checked = validateGeneratorIr(module);
+ * ```
+ */
+export function validateGeneratorIr(input: unknown): IrValidationResult {
+  const structural = validateGeneratorIrStructure(input);
+  if (!structural.ok) {
+    return structural;
+  }
+  try {
+    const typeFailure = validateModuleTypes(structural.module);
     if (typeFailure !== undefined) {
       return { ok: false, diagnostics: Object.freeze([typeFailure]) };
     }
-    return Object.freeze({ ok: true, module: parsed.node, diagnostics: EMPTY_DIAGNOSTICS });
+    return structural;
   } catch {
     return {
       ok: false,

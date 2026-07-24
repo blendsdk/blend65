@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 18:46 UTC
-> **Progress**: 29/71 tasks (41%)
+> **Last Updated**: 2026-07-24 23:18 UTC
+> **Progress**: 39/71 tasks (55%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -102,21 +102,21 @@ unpublished until the final phase.
 
 ## Phase 4: Deterministic Renderer and Independent Round Trip
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `9d6650f3157e99fdeaa6d5f6e24d36bebb378d42`
 > **Lenses**: correctness, api-surface
 
 **Reference**: 03-04 · AR-P7, AR-P11 · ST-23–ST-27, ST-36
 
-- [ ] 4.1.1 [spec-author] Write renderer/round-trip specification tests — `renderer-roundtrip.spec.test.ts`
-- [ ] 4.1.2 Run Phase 4 spec tests and record expected RED
-- [ ] 4.2.1 Implement deterministic module/declaration/statement renderer — `source-renderer.ts`
-- [ ] 4.2.2 Implement renderer-owned expression precedence/parentheses — `expression-renderer.ts`
-- [ ] 4.2.3 Implement independent bounded tokenizer — `roundtrip-tokenizer.ts`
-- [ ] 4.2.4 Implement independent Pratt projection parser/normalizer — `roundtrip-parser.ts`, `roundtrip-model.ts`
-- [ ] 4.2.5 Implement projection equality and bounded mismatch diagnostics — `roundtrip-validator.ts`
-- [ ] 4.2.6 Add inverse module-graph gate and frozen spec-derived vectors — `roundtrip-boundary.impl.test.ts`
-- [ ] 4.2.7 Run ST-23–ST-27 and ST-36 GREEN; fix implementation only
-- [ ] 4.3.1 Add mutation/error-path implementation tests, coverage and full verify
+- [x] 4.1.1 [spec-author] Write renderer/round-trip specification tests — `renderer-roundtrip.spec.test.ts` ✅ (completed: 2026-07-24 22:01 UTC)
+- [x] 4.1.2 Run Phase 4 spec tests and record expected RED ✅ (completed: 2026-07-24 22:01 UTC; suite failed collection because `roundtrip-conformance-v1.js` does not yet exist)
+- [x] 4.2.1 Implement deterministic module/declaration/statement renderer — `source-renderer.ts`
+- [x] 4.2.2 Implement renderer-owned expression precedence/parentheses — `expression-renderer.ts`
+- [x] 4.2.3 Implement independent bounded tokenizer — `roundtrip-tokenizer.ts`
+- [x] 4.2.4 Implement independent Pratt projection parser/normalizer — `roundtrip-parser.ts`, `roundtrip-model.ts`
+- [x] 4.2.5 Implement projection equality and bounded mismatch diagnostics — `roundtrip-validator.ts`
+- [x] 4.2.6 Add inverse module-graph gate and frozen spec-derived vectors — `roundtrip-boundary.impl.test.ts`
+- [x] 4.2.7 Run ST-23–ST-27 and ST-36 GREEN; fix implementation only
+- [x] 4.3.1 Add mutation/error-path implementation tests, coverage and full verify ✅ (completed: 2026-07-24 23:18 UTC; second authorized remediation resolved all five retained composition/inverse findings; exact full gate passed with 849 readiness tests and 95.05% branch coverage)
 
 **Deliverable:** source bytes independently checked for structural fidelity.
 

@@ -245,6 +245,48 @@
           "revision": "sha256:d6b4b3b8a978438471ac3172156649c2ce38769988fe93c885e850ee96bbcb6b",
           "upstream": "compiler-readiness/SPEC-RD-02-PUBLISH",
           "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "depends-on",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
+          "upstream": "compiler-readiness/RD-01",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "specified-by",
+          "revision": "sha256:ac027876ad1a50c2ce4912cf9f28ef85c36b658f9b6ee3197c5e1547d6d68c42",
+          "upstream": "compiler-readiness/SPEC-RD-02-MODELS",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "specified-by",
+          "revision": "sha256:82b24e5039a3f8ac2af4085992177052c19a34bb33b280ce605183c838d66c91",
+          "upstream": "compiler-readiness/SPEC-RD-02-IR",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "specified-by",
+          "revision": "sha256:909f4c55557eecfda4fb87dfc12f776f05caa9fa764069b4331b8df91bfd6835",
+          "upstream": "compiler-readiness/SPEC-RD-02-IDENTITY",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "specified-by",
+          "revision": "sha256:5169fb1029f2525792d9ed87430f680de4ea06ed60f07c024f3408ce9450500b",
+          "upstream": "compiler-readiness/SPEC-RD-02-RENDER",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "specified-by",
+          "revision": "sha256:f303bd48755167be6e89e4c874305d8e55056000a0a951ec82cd273f3b9f89b3",
+          "upstream": "compiler-readiness/SPEC-RD-02-PUBLISH",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -1548,7 +1590,7 @@
     {
       "edges": [],
       "id": "AR-P02",
-      "revision": "sha256:411c3ea14089042b25ed65d7ebcb6b6b47a4a5d6f2c3ff7781ad3a1ab5864164",
+      "revision": "sha256:96e84ab2eb0c2e08d7b80b375976dcabf2a8a746ae5f841fedd4876c993ec857",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1584,7 +1626,7 @@
         }
       ],
       "id": "SPEC-RD-02-MODELS",
-      "revision": "sha256:e82068b150653532abc77122bb5907d1973d23b6fff57765fb67bb9cf3e6d160",
+      "revision": "sha256:ac027876ad1a50c2ce4912cf9f28ef85c36b658f9b6ee3197c5e1547d6d68c42",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1605,6 +1647,27 @@
           "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
           "upstream": "compiler-readiness/AC-RD-02-MODELS",
           "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "accepted-by",
+          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "upstream": "compiler-readiness/AC-RD-02-MODELS",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:84ccca617e1d1b7988cb7030a098d40eb902b8164913d4b21775f5f9c699bda0",
+          "upstream": "compiler-readiness/TASK-RD-02-P1",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "upstream": "compiler-readiness/TASK-RD-02-P5",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -1628,7 +1691,7 @@
         }
       ],
       "id": "SPEC-RD-02-IR",
-      "revision": "sha256:5a02a9faaa84b075093eae37c16f52f0a138bf1c40e7ede674c09145163dab39",
+      "revision": "sha256:82b24e5039a3f8ac2af4085992177052c19a34bb33b280ce605183c838d66c91",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1649,6 +1712,27 @@
           "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
           "upstream": "compiler-readiness/AC-RD-02-IR",
           "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "accepted-by",
+          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "upstream": "compiler-readiness/AC-RD-02-IR",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:5ecace4e82ed884dc6fbff1b102b0f3df4c969fb165835b5cb3b3d345ba17611",
+          "upstream": "compiler-readiness/TASK-RD-02-P2",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "upstream": "compiler-readiness/TASK-RD-02-P5",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -1672,7 +1756,7 @@
         }
       ],
       "id": "SPEC-RD-02-IDENTITY",
-      "revision": "sha256:6aeb9c9174b29548319ddcd22ed1088f87ada95590001a4de9ac0211758ace8a",
+      "revision": "sha256:909f4c55557eecfda4fb87dfc12f776f05caa9fa764069b4331b8df91bfd6835",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1693,6 +1777,27 @@
           "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
           "upstream": "compiler-readiness/AC-RD-02-IDENTITY",
           "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "accepted-by",
+          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "upstream": "compiler-readiness/AC-RD-02-IDENTITY",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:0614d8ab425bb64ffb17c2b469cb4ea3319898337fa0a71f87c8e79fd01a0f02",
+          "upstream": "compiler-readiness/TASK-RD-02-P3",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "upstream": "compiler-readiness/TASK-RD-02-P6",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -1716,7 +1821,7 @@
         }
       ],
       "id": "SPEC-RD-02-RENDER",
-      "revision": "sha256:91a8d94ea563927861530640f47594d1b75e451600bf84ae4a031c48ef4f41f5",
+      "revision": "sha256:5169fb1029f2525792d9ed87430f680de4ea06ed60f07c024f3408ce9450500b",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1737,6 +1842,27 @@
           "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
           "upstream": "compiler-readiness/AC-RD-02-RENDER",
           "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "accepted-by",
+          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "upstream": "compiler-readiness/AC-RD-02-RENDER",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:f0de552ba3e11f47c18b5c847a7500af4b8bec668191aaf42cd3ee53f8ea895d",
+          "upstream": "compiler-readiness/TASK-RD-02-P4",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "upstream": "compiler-readiness/TASK-RD-02-P6",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -1756,7 +1882,7 @@
         }
       ],
       "id": "SPEC-RD-02-PUBLISH",
-      "revision": "sha256:d6b4b3b8a978438471ac3172156649c2ce38769988fe93c885e850ee96bbcb6b",
+      "revision": "sha256:f303bd48755167be6e89e4c874305d8e55056000a0a951ec82cd273f3b9f89b3",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1777,6 +1903,20 @@
           "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
           "upstream": "compiler-readiness/AC-RD-02-PUBLISH",
           "validatedAt": "2026-07-24T15:55:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "accepted-by",
+          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "upstream": "compiler-readiness/AC-RD-02-PUBLISH",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+          "upstream": "compiler-readiness/TASK-RD-02-P7",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -1796,7 +1936,7 @@
         }
       ],
       "id": "AC-RD-02-MODELS",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1810,7 +1950,22 @@
       "status": "approved",
       "title": "RD-02 model and binding acceptance",
       "type": "criterion",
-      "validations": []
+      "validations": [
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:84ccca617e1d1b7988cb7030a098d40eb902b8164913d4b21775f5f9c699bda0",
+          "upstream": "compiler-readiness/TASK-RD-02-P1",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "upstream": "compiler-readiness/TASK-RD-02-P5",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        }
+      ]
     },
     {
       "edges": [
@@ -1828,7 +1983,7 @@
         }
       ],
       "id": "AC-RD-02-IR",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1842,7 +1997,22 @@
       "status": "approved",
       "title": "RD-02 IR and budget acceptance",
       "type": "criterion",
-      "validations": []
+      "validations": [
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:5ecace4e82ed884dc6fbff1b102b0f3df4c969fb165835b5cb3b3d345ba17611",
+          "upstream": "compiler-readiness/TASK-RD-02-P2",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "upstream": "compiler-readiness/TASK-RD-02-P5",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        }
+      ]
     },
     {
       "edges": [
@@ -1860,7 +2030,7 @@
         }
       ],
       "id": "AC-RD-02-IDENTITY",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1874,7 +2044,22 @@
       "status": "approved",
       "title": "RD-02 identity and replay acceptance",
       "type": "criterion",
-      "validations": []
+      "validations": [
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:0614d8ab425bb64ffb17c2b469cb4ea3319898337fa0a71f87c8e79fd01a0f02",
+          "upstream": "compiler-readiness/TASK-RD-02-P3",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "upstream": "compiler-readiness/TASK-RD-02-P6",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        }
+      ]
     },
     {
       "edges": [
@@ -1892,7 +2077,7 @@
         }
       ],
       "id": "AC-RD-02-RENDER",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1906,7 +2091,22 @@
       "status": "approved",
       "title": "RD-02 rendering acceptance",
       "type": "criterion",
-      "validations": []
+      "validations": [
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:f0de552ba3e11f47c18b5c847a7500af4b8bec668191aaf42cd3ee53f8ea895d",
+          "upstream": "compiler-readiness/TASK-RD-02-P4",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "upstream": "compiler-readiness/TASK-RD-02-P6",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        }
+      ]
     },
     {
       "edges": [
@@ -1920,7 +2120,7 @@
         }
       ],
       "id": "AC-RD-02-PUBLISH",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1934,12 +2134,20 @@
       "status": "approved",
       "title": "RD-02 publication acceptance",
       "type": "criterion",
-      "validations": []
+      "validations": [
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+          "upstream": "compiler-readiness/TASK-RD-02-P7",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        }
+      ]
     },
     {
       "edges": [],
       "id": "TEST-RD-02-MODELS",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1958,7 +2166,7 @@
     {
       "edges": [],
       "id": "TEST-RD-02-IR",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1976,8 +2184,12 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:Phase 3 immutable identity and replay specifications pass 19 of 19 assertions; full readiness suite passes 800 of 800.",
+        "redEvidence:Phase 3 immutable specifications initially failed collection because the identity implementation modules did not exist."
+      ],
       "id": "TEST-RD-02-IDENTITY",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1988,15 +2200,19 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-02 identity and replay specification tests",
       "type": "test",
       "validations": []
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:Renderer oracle passes 35 cases; readiness suite passes 844 tests with 95.04 percent branch coverage.",
+        "redEvidence:Renderer specification oracle failed before implementation because the conformance module was absent."
+      ],
       "id": "TEST-RD-02-RENDER",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2007,7 +2223,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-02 renderer specification tests",
       "type": "test",
       "validations": []
@@ -2015,7 +2231,7 @@
     {
       "edges": [],
       "id": "TEST-RD-02-PUBLISH",
-      "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2071,11 +2287,12 @@
         }
       ],
       "evidence": [
-        "summary:Zero-Ambiguity Gate and plan preflight passed; 40 requirements-derived specification cases and 71 execution tasks are grounded in approved RD-02.",
-        "summary:Plan preflight resolved 12 major findings before execution."
+        "summary:Plan preflight resolved 12 major findings before execution.",
+        "summary:Repair missing execution snapshots after verified Phase 3 artifact updates.",
+        "summary:Zero-Ambiguity Gate and plan preflight passed; 40 requirements-derived specification cases and 71 execution tasks are grounded in approved RD-02."
       ],
       "id": "PLAN-RD-02",
-      "revision": "sha256:5f30b15c9b410924777f0449ee57526c3a2367645e5880bd4580bd4471d4a4f2",
+      "revision": "sha256:c6548b9362675d5d655298a80fa9d6bea204fe321291a06560b906353a95f181",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2096,6 +2313,62 @@
           "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
           "upstream": "compiler-readiness/RD-02",
           "validatedAt": "2026-07-24T18:30:00Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "depends-on",
+          "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
+          "upstream": "compiler-readiness/RD-02",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:84ccca617e1d1b7988cb7030a098d40eb902b8164913d4b21775f5f9c699bda0",
+          "upstream": "compiler-readiness/TASK-RD-02-P1",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:5ecace4e82ed884dc6fbff1b102b0f3df4c969fb165835b5cb3b3d345ba17611",
+          "upstream": "compiler-readiness/TASK-RD-02-P2",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:0614d8ab425bb64ffb17c2b469cb4ea3319898337fa0a71f87c8e79fd01a0f02",
+          "upstream": "compiler-readiness/TASK-RD-02-P3",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:f0de552ba3e11f47c18b5c847a7500af4b8bec668191aaf42cd3ee53f8ea895d",
+          "upstream": "compiler-readiness/TASK-RD-02-P4",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "upstream": "compiler-readiness/TASK-RD-02-P5",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "upstream": "compiler-readiness/TASK-RD-02-P6",
+          "validatedAt": "2026-07-24T21:42:44Z"
+        },
+        {
+          "gate": "execution",
+          "relation": "implemented-by",
+          "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+          "upstream": "compiler-readiness/TASK-RD-02-P7",
+          "validatedAt": "2026-07-24T21:42:44Z"
         }
       ]
     },
@@ -2153,8 +2426,12 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "summary:Phase 3 verified with 800 readiness tests, 95.01 percent branch coverage, exact full verify, and clean correctness and performance rescans.",
+        "verificationEvidence:/tmp/blend65-rd02-phase3-final-rv006-full-verify.log"
+      ],
       "id": "TASK-RD-02-P3",
-      "revision": "sha256:2d0b9dd79ce18954dbdfc359e51fb870144d5dc74e2ad271a9fc27944ede76eb",
+      "revision": "sha256:0614d8ab425bb64ffb17c2b469cb4ea3319898337fa0a71f87c8e79fd01a0f02",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2166,15 +2443,20 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-02 phase 3",
       "type": "task",
       "validations": []
     },
     {
       "edges": [],
+      "evidence": [
+        "summary:Phase 4 renderer and independent inverse implementation completed.",
+        "verificationEvidence:Exact repository verify passed; readiness coverage passed 844 tests at 95.04 percent branches.",
+        "verificationEvidence:Second authorized remediation resolved all five retained composition and inverse findings. Exact repository verify passed: install, build, typecheck, lint, and tests; readiness passed 849 tests with 95.05 percent branch coverage."
+      ],
       "id": "TASK-RD-02-P4",
-      "revision": "sha256:fc60c76f09d73736873dc39d4841b4c46a03d6db9ffcd69a5c9b9503317ddfda",
+      "revision": "sha256:f0de552ba3e11f47c18b5c847a7500af4b8bec668191aaf42cd3ee53f8ea895d",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2186,7 +2468,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-02 phase 4",
       "type": "task",
       "validations": []

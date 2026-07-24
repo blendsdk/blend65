@@ -50,6 +50,9 @@ export {
 } from "./deterministic-choice.js";
 export { parseReplayEnvelope, REPLAY_V1_LIMITS } from "./replay-input.js";
 export { createRevisionRegistry, resolveReplayRevisions } from "./revision-registry.js";
+export { parseRenderedSource } from "./roundtrip-parser.js";
+export { projectForRoundTrip, validateRoundTrip } from "./roundtrip-validator.js";
+export { renderSourceModule } from "./source-renderer.js";
 export {
   deriveImplementationRevision,
   isFreshImplementationRevision,
@@ -171,6 +174,20 @@ export type {
   ImplementationRevisionValidationResult,
   ValidatedImplementationRevisionSuccess,
 } from "./implementation-revision.js";
+export type {
+  LiteralSpellingClass,
+  LiteralSpellingSelection,
+  RoundTripDiagnosticCode,
+  SourceRenderOptions,
+  SourceRenderResult,
+  RoundTripDiagnostic,
+  RoundTripExpression,
+  RoundTripFunction,
+  RoundTripModule,
+  RoundTripParseResult,
+  RoundTripStatement,
+  RoundTripValidationResult,
+} from "./roundtrip-model.js";
 export type {
   BoundaryFamilyId,
   ConstructionPrecondition,

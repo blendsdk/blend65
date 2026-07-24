@@ -3,8 +3,8 @@
 > **Feature-Set**: Compiler Readiness
 > **Status**: In Progress
 > **Created**: 2026-07-23
-> **Last Updated**: 2026-07-24
-> **Progress**: 2 / 8 (25%)
+> **Last Updated**: 2026-07-25
+> **Progress**: 1 / 7 (14%)
 > **CodeOps Artifact Schema**: 1
 
 ## Legend
@@ -16,7 +16,7 @@
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |---|---|---|---|---|---|---|---|
 | RD-01 | Specification inventory and rule schema | [RD-01](requirements/RD-01-specification-inventory.md) | [Plan](plans/rd-01-specification-inventory/00-index.md) | Done | ✅ | 2026-07-24 | 69/69 tasks; 351 readiness tests; 95.17% branch coverage; quality gate resolved |
-| RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Executing | 🚧 | 2026-07-24 | Phase 3 complete and review-remediated; 29/71 tasks; 800 readiness tests; 95.01% branch coverage; full verify green |
+| RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Executing | 🚧 | 2026-07-25 | Phase 4 complete: 39/71 tasks; deterministic renderer and syntax-only round trip verified with 849 readiness tests and 95.05% branch coverage; next Phase 5 |
 | RD-03 | Independent semantic, diagnostic and metamorphic oracles | [RD-03](requirements/RD-03-independent-oracles.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01 |
 | RD-04 | Tiered compiler, ACME and VICE execution | [RD-04](requirements/RD-04-tiered-execution.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-03 |
 | RD-05 | Failure classification, shrinking and regression promotion | [RD-05](requirements/RD-05-failure-reduction.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-04 |
