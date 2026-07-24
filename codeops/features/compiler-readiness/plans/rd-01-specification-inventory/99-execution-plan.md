@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 01:22
-> **Progress**: 30/62 tasks (48%)
+> **Last Updated**: 2026-07-24 08:15
+> **Progress**: 59/69 tasks (86%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -20,9 +20,10 @@ Every phase uses targeted tests during red/green work, then the full AGENTS.md v
 | 2 | Fragmentation, manifest and source safety | 10 |
 | 3 | Semantic graph, declarations and blockers | 10 |
 | 4 | Complete source ledger and C64 inventory | 22 |
+| 4R | Semantic inventory remediation | 7 |
 | 5 | Projection, version evolution and closeout | 10 |
 
-**Total: 62 tasks across 5 phases**
+**Total: 69 tasks across 6 phases**
 
 > **⚠️ EXECUTION RULE — APPLIES TO EVERY AGENT EXECUTING THIS PLAN:**
 >
@@ -199,15 +200,15 @@ verified; no third review was dispatched.
 
 ## Phase 4: Complete source ledger and C64 inventory
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: fc0fb1815f65b8b99ae98827468d7071bb446472
 > **Lenses**: compiler/language; data/migration; semantic completeness
 
 ### Step 4.1: Specification tests
 
 **Reference**: `03-04` §Inventory population and closeout · AR-P1, AR-P8, AR-P9
 
-- [ ] 4.1.1 [spec-author] Write ST-32 requirements-derived real-inventory completeness tests — `packages/readiness/src/inventory.spec.test.ts`
-- [ ] 4.1.2 Run the real-inventory tests and record missing-ledger/rule failures — targeted readiness Vitest
+- [x] 4.1.1 [spec-author] Write ST-32 requirements-derived real-inventory completeness tests — `packages/readiness/src/inventory.spec.test.ts` ✅ (completed: 2026-07-24 01:42)
+- [x] 4.1.2 Run the real-inventory tests and record missing-ledger/rule failures — targeted readiness Vitest: 1 file / 2 tests failed on undisposed fragments and semantic totality ✅ (completed: 2026-07-24 01:42)
 
 ### Step 4.2: Chapter-granular inventory and independent review
 
@@ -219,36 +220,101 @@ in-memory declaration-render determinism checks, then record evidence keyed to t
 semantic digest and closed dependency digests before completing the unit; unresolved disagreements
 become `blocked-errata`.
 
-- [ ] 4.2.1 Populate and independently review chapter 00 — inventory + review evidence
-- [ ] 4.2.2 Populate and independently review chapter 01 — inventory + review evidence
-- [ ] 4.2.3 Populate and independently review chapter 02 — inventory + review evidence
-- [ ] 4.2.4 Populate and independently review chapter 03 — inventory + review evidence
-- [ ] 4.2.5 Populate and independently review chapter 04 — inventory + review evidence
-- [ ] 4.2.6 Populate and independently review chapter 05 — inventory + review evidence
-- [ ] 4.2.7 Populate and independently review chapter 06 — inventory + review evidence
-- [ ] 4.2.8 Populate and independently review chapter 07 — inventory + review evidence
-- [ ] 4.2.9 Populate and independently review chapter 08 — inventory + review evidence
-- [ ] 4.2.10 Populate and independently review chapter 09 — inventory + review evidence
-- [ ] 4.2.11 Populate and independently review chapter 10 — inventory + review evidence
-- [ ] 4.2.12 Populate and independently review chapter 11 — inventory + review evidence
-- [ ] 4.2.13 Populate and independently review chapter 12 — inventory + review evidence
-- [ ] 4.2.14 Populate and independently review chapter 13 — inventory + review evidence
-- [ ] 4.2.15 Populate and independently review chapter 14 — inventory + review evidence
-- [ ] 4.2.16 Populate and independently review chapter 15 — inventory + review evidence
-- [ ] 4.2.17 Populate and independently review normative grammar — inventory + review evidence
-- [ ] 4.2.18 Populate and independently review C64 target projections — inventory + review evidence
-- [ ] 4.2.19 Classify and independently review contextual/other-target sources, conflicts and feature-index reconciliation — inventory + review evidence
+- [x] 4.2.1 Populate and independently review chapter 00 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.2 Populate and independently review chapter 01 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.3 Populate and independently review chapter 02 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.4 Populate and independently review chapter 03 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.5 Populate and independently review chapter 04 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.6 Populate and independently review chapter 05 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.7 Populate and independently review chapter 06 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.8 Populate and independently review chapter 07 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.9 Populate and independently review chapter 08 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.10 Populate and independently review chapter 09 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.11 Populate and independently review chapter 10 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.12 Populate and independently review chapter 11 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.13 Populate and independently review chapter 12 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.14 Populate and independently review chapter 13 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.15 Populate and independently review chapter 14 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.16 Populate and independently review chapter 15 — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.17 Populate and independently review normative grammar — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.18 Populate and independently review C64 target projections — inventory + review evidence ✅ (verified: 2026-07-24)
+- [x] 4.2.19 Classify and independently review contextual/other-target sources, conflicts and feature-index reconciliation — inventory + review evidence ✅ (verified: 2026-07-24)
 
 ### Step 4.3: Implementation tests and hardening
 
 **Reference**: `07` ST-32 · AR-P1, AR-P12
 
-- [ ] 4.3.1 Run an independent aggregate review of canonical ownership, cross-chapter duplicates, conflicts and target projection; make ST-32 green; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `packages/readiness/src/inventory.impl.test.ts`, `readiness/reviews/compiler-readiness-v1-review.json`
+- [x] 4.3.1 Run an independent aggregate review of canonical ownership, cross-chapter duplicates, conflicts and target projection; make ST-32 green; enforce readiness branch coverage; run Prettier/full verify and confirm `spec/` clean — `packages/readiness/src/inventory.impl.test.ts`, `readiness/reviews/compiler-readiness-v1-review.json` ✅ (verified: 2026-07-24 — 95.23% branches; full verify exit 0)
 
 **Deliverables:** complete source classification; zero undisposed included spans; stable C64
 denominator with genesis-anchored identity ledger; visible other-target children; declared
 handler/capability contracts that render deterministically in memory; unit/dependency-keyed
 semantic-review evidence plus an aggregate review keyed to the complete inventory.
+
+### Phase 4 quality review
+
+The initial independent compiler/language and correctness reviews rejected the mechanically
+complete draft. Auto-design repaired example/rationale inflation, error/warning polarity,
+capability-specific handlers, semantic identity slugs, compound paragraph decomposition, false
+grammar equivalence, contextual isolation and target projection. The protocol's single re-review
+still rejected the phase; no third review was dispatched and no review-evidence acceptance record
+was created.
+
+| Finding | Severity | Re-review ruling |
+|---|---|---|
+| RV-401 | MAJOR | Rejected — structural chapter-index/registry/rationale prose remains mapped in chapters 00–08 |
+| RV-402 | MAJOR | Rejected — order-derived `variant-N` collisions and compound mixed-polarity table rows remain |
+| RV-403 | MAJOR | Rejected — several output, ABI, placement and instruction-cycle rules still lack ACME/VICE evidence |
+| RV-404 | MAJOR | Rejected — grammar call-postfix ownership remains inconsistent between production comment and note |
+| RV-405 | MAJOR | Rejected — chapter 10 prohibited-form row and chapter 13 mixed acceptance/error outcome retain positive polarity |
+| RV-406 | MAJOR | Rejected — chapter 15 other-target rows remain mandatory C64 and incorrectly name VICE evidence |
+
+The phase remains implemented-but-unverified at tasks 4.2.1–4.2.19. Phase 4 cannot advance to
+4.3.1, commit or push without a new user-authorized review strategy because the configured
+single-re-review budget is exhausted.
+
+**Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
+
+## Phase 4R: Semantic inventory remediation
+
+> **Phase baseline tree**: ff99b9eb3c68a8f4244fe9a8a8649c1472efbde4
+> **Authorized**: 2026-07-24 — user-approved fresh remediation/review cycle
+> **Lenses**: compiler/language; semantic completeness; data/migration
+
+This phase repairs the six rejected Phase-4 finding groups against a fresh worktree baseline. It
+does not waive or re-review the rejected Phase-4 diff; it produces a new remediation diff with its
+own one-pass quality loop. When this phase verifies, it closes the implemented Phase-4 population
+tasks and aggregate hardening task together.
+
+- [x] 4R.1.1 [spec-author] Add requirements-derived regression assertions for structural-carrier exclusion, stable semantic IDs, polarity decomposition, evidence sufficiency and C64 applicability ✅ (completed: 2026-07-24 08:15)
+- [x] 4R.1.2 Run the remediation specification assertions and record genuine red failures — targeted readiness Vitest: 3 remediation assertions failed on stable semantics, executable evidence and C64 applicability ✅ (completed: 2026-07-24 08:15)
+- [x] 4R.2.1 Remove structural/navigation/rationale carriers and replace order-derived identity collisions with reviewed semantic identities ✅ (verified: 2026-07-24)
+- [x] 4R.2.2 Decompose mixed-polarity table/paragraph outcomes and close grammar production-comment ownership ✅ (verified: 2026-07-24)
+- [x] 4R.2.3 Correct capability-specific evidence and C64/other-target applicability ✅ (verified: 2026-07-24; residuals closed by T-01)
+- [x] 4R.2.4 Produce current unit/dependency and aggregate independent-review evidence; make specification and implementation inventory tests green ✅ (completed: 2026-07-24)
+- [x] 4R.3.1 Enforce readiness branch coverage; run declaration determinism, Prettier/full verify and confirm `spec/` clean; complete the fresh independent quality review ✅ (completed: 2026-07-24 — focused remediation accepted; 95.23% branches; full verify exit 0)
+
+**Deliverables:** independently accepted semantic denominator, closed review evidence, verified
+Phase-4 population tasks and one green auto-commit/push checkpoint.
+
+### Phase 4R quality review
+
+The fresh initial review found incomplete example/metadata filtering, polarity, executable-evidence
+and identity repairs. Auto-design applied the eligible technical corrections. The single permitted
+fix-diff re-review accepted chapters 00–02, 04, 09, 11–15, grammar, C64 projection and contextual
+isolation, but rejected the phase on residual MAJOR findings; no third review was dispatched.
+
+| Finding | Severity | Re-review ruling |
+|---|---|---|
+| RV-4R-101 | MAJOR | Rejected — four chapter-03 ROM-size rules and one chapter-07 zero-page cost rule remain frontend-only |
+| RV-4R-102 | MAJOR | Rejected — six chapter-05 runtime/control-flow rules lack complete emulator evidence |
+| RV-4R-103 | MAJOR | Rejected — chapter-06 struct/array return cells and eleven chapter-08 unsupported-platform cells remain positive despite `❌` |
+| RV-4R-104 | MAJOR | Rejected — chapter-10 wildcard-import rejection remains positive |
+
+The user authorized a separate narrowly scoped manual task after the Phase-4R review budget was
+exhausted. T-01 corrected only the 24 explicitly rejected records, added focused assertions, and
+passed one correctness re-review plus one semantic audit. The prior findings are resolved; no
+broad inventory regeneration or review occurred in T-01.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

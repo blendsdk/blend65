@@ -895,7 +895,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:7a0fc89c5b35f568d6d8f043c272ce233ca08a7ebefb2663cc11c9c2cb333615",
+          "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
           "upstream": "compiler-readiness/TASK-RD-01-P4",
           "validatedAt": "2026-07-23T21:15:17Z"
         }
@@ -1071,7 +1071,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:7a0fc89c5b35f568d6d8f043c272ce233ca08a7ebefb2663cc11c9c2cb333615",
+          "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
           "upstream": "compiler-readiness/TASK-RD-01-P4",
           "validatedAt": "2026-07-23T21:15:17Z"
         }
@@ -1231,6 +1231,10 @@
         {
           "relation": "affected-by",
           "target": "compiler-readiness/AR-P01"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/T-01"
         }
       ],
       "evidence": [
@@ -1240,7 +1244,7 @@
         "summary:Zero-Ambiguity Gate passed; 32 requirements-derived specification cases and 62 execution tasks are grounded in approved RD-01"
       ],
       "id": "PLAN-RD-01",
-      "revision": "sha256:28fd6a33bca8d4834564fab73c984b078c121ace8eb19aae797d310ec77aff6e",
+      "revision": "sha256:af498ee599f868bc7573f76d706c79e49f0ad62d74ca86a7329f85db23419f8f",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1293,7 +1297,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:7a0fc89c5b35f568d6d8f043c272ce233ca08a7ebefb2663cc11c9c2cb333615",
+          "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
           "upstream": "compiler-readiness/TASK-RD-01-P4",
           "validatedAt": "2026-07-23T21:15:17Z"
         },
@@ -1388,7 +1392,7 @@
     {
       "edges": [],
       "id": "TASK-RD-01-P4",
-      "revision": "sha256:7a0fc89c5b35f568d6d8f043c272ce233ca08a7ebefb2663cc11c9c2cb333615",
+      "revision": "sha256:88a5ab43ed686dad01be6ec800c0f08d68391dd03a8c5390dc25a46d67c400ed",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1400,7 +1404,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-01 phase 4",
       "type": "task",
       "validations": []
@@ -1424,6 +1428,36 @@
       "title": "Execute RD-01 phase 5",
       "type": "task",
       "validations": []
+    },
+    {
+      "id": "T-01",
+      "type": "task",
+      "title": "Manual remediation of rejected inventory rules",
+      "status": "verified",
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "compiler-readiness/TASK-RD-01-P4"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P20"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P21"
+        }
+      ],
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/t-01-manual-rule-remediation/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ]
     }
   ],
   "schema": 2

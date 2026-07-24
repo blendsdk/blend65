@@ -433,6 +433,49 @@ modification set.
 - **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
 - **Reopen triggers:** dependency closure becomes derivable from another frozen authoritative graph
 
+### AR-P22 — semantic-population authoring contract (runtime)
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal inventory-authoring, stable-identity, classification and review-digest
+  mechanisms within the approved frozen-spec denominator
+- **Objective:** prevent a mechanically complete ledger from turning formatting, examples or
+  duplicated prose into false compiler obligations
+- **Decision:** table rows are the only semantic table carriers and table cells are structural;
+  EBNF productions are the only grammar carriers and fences are structural; headings are
+  structural; non-whitespace residuals in normative authority require explicit inspection.
+  Initial rule IDs use reviewed canonical-owner labels and semantic outcome slugs, never fragment
+  hashes, offsets or line numbers. They become append-only identities after review acceptance and
+  do not change when wording changes. Rejected, uncommitted authoring drafts are replaced rather
+  than recorded as permanent allocations; accepted IDs are never regenerated or reused.
+  Non-normative reasons use the closed vocabulary `structural-heading`,
+  `structural-table-cell`, `structural-ebnf-container`, `structural-markup`,
+  `example-or-rationale`, `contextual-source`, `deferred-source`, `section-context`,
+  `table-header`, `table-separator`, and `canonical-carrier-child`. Universal projection is
+  limited to source text that explicitly quantifies a platform-profile obligation over the five
+  named targets; ordinary target-neutral language rules remain direct C64 obligations. Canonical
+  review digests hash UTF-8 canonical JSON containing the unit's ordered fragments,
+  dispositions, owned rules and referenced conflicts with `displayLine` removed; shared dependency
+  digests separately cover declarations/capabilities and the identity-ledger head.
+- **Evidence:** both independent Phase-4 reviewers found that one-rule-per-fragment, modal-word
+  classification, hash-derived IDs and blanket five-target projection would produce a false
+  denominator despite passing the current mechanical validators
+- **Rejected alternatives:** content-derived IDs churn when prose changes; table-cell ownership
+  loses row context and duplicates row ownership; unrestricted reason strings are unauditable;
+  keyword-only rule discovery misclassifies definitions, examples and rationale; projecting every
+  core rule creates unjustified target children
+- **Strongest counterargument:** authored semantic carriers and outcome ordinals require a
+  substantial one-time review; that cost is intrinsic to creating an authoritative denominator
+  and is bounded by the chapter units already approved
+- **Confidence:** High — the two independent reviews converged; reopen if a frozen normative
+  construct cannot be represented by row/production/paragraph/list carriers or a later edit needs
+  to insert an outcome without preserving its allocated identity
+- **Hardening:** independent compiler/language and correctness reviewers converged on the same
+  carrier, identity, applicability, capability and digest boundaries
+- **Policy version:** 1
+- **Root invocation ID:** `compiler-readiness-rd01-exec-20260723-01`
+- **Reopen triggers:** an unclassified normative residual, unstable ID under a non-semantic edit,
+  incomplete digest dependency, or source evidence requiring a different universal projection
+
 ## Systematic 12-category closure
 
 | Category | Closure |

@@ -3,8 +3,8 @@
 > **Feature-Set**: Compiler Readiness
 > **Status**: In Progress
 > **Created**: 2026-07-23
-> **Last Updated**: 2026-07-23
-> **Progress**: 0 / 7 (0%)
+> **Last Updated**: 2026-07-24
+> **Progress**: 1 / 8 (13%)
 > **CodeOps Artifact Schema**: 1
 
 ## Legend
@@ -22,3 +22,4 @@
 | RD-05 | Failure classification, shrinking and regression promotion | [RD-05](requirements/RD-05-failure-reduction.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-04 |
 | RD-06 | Readiness matrix, release gate and legacy evidence | [RD-06](requirements/RD-06-readiness-gate.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01–RD-05 |
 | RD-07 | Non-functional safety, determinism and evolution | [RD-07](requirements/RD-07-non-functional.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01–RD-06 |
+| T-01 | Manual remediation of rejected inventory rules | — | [Task](plans/t-01-manual-rule-remediation/99-execution-plan.md) | Done | ✅ | 2026-07-24 | 24-rule allowlist corrected and independently accepted; no broad regeneration; 95.23% branch coverage; full verify green |

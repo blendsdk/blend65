@@ -10,6 +10,8 @@ yarn.lock
 # (Phase 8 acceptance constraint). Prettier governs only the code/config the
 # toolchain owns (packages/** source, root *.json / *.mjs / *.ts).
 spec/
+readiness/inventory/
+readiness/reviews/
 requirements/
 research/
 plans/

@@ -204,14 +204,14 @@ describe("closed normative source manifest", () => {
     );
   });
 
-  it("should reject the manifest skeleton until every source fragment has a disposition", async () => {
+  it("should accept the authoritative manifest when every source fragment has a disposition", async () => {
     const result = await validateInventorySources(
       await repositoryFor(REPOSITORY_ROOT),
       await loadInventory(),
     );
 
-    expect(result.ok).toBe(false);
-    expectDiagnostic(result, /undisposed-fragment/i);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.ok).toBe(true);
   });
 
   // A newly added specification file cannot inherit authority through a wildcard.

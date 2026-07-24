@@ -11,6 +11,10 @@ export { renderDeclarationModule } from "./declaration-generator.js";
 export { validateRuleGraph } from "./rule-graph.js";
 export { validateInventorySemantics } from "./semantic-validator.js";
 export { validateReviewEvidence } from "./review-evidence.js";
+export {
+  computeInventoryReviewDigests,
+  INVENTORY_REVIEW_UNIT_IDS,
+} from "./review-digests.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -60,3 +64,4 @@ export type {
   ReviewEvidenceResult,
   SemanticReviewRecord,
 } from "./review-evidence.js";
+export type { InventoryReviewDigests } from "./review-digests.js";
