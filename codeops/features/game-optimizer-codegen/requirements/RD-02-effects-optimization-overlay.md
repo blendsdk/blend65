@@ -9,7 +9,7 @@
 
 ## Feature Overview
 
-Build the semantic substrate for aggressive optimization without replacing the shipped mutable TAC
+Build the semantic substrate for aggressive optimization without replacing the shipped immutable TAC
 boundary. Each function receives a derived SSA value graph, dominance/loop structure and memory
 effect graph. All transformations must preserve the closed observable-effect model.
 
@@ -18,7 +18,7 @@ effect graph. All transformations must preserve the closed observable-effect mod
 ### Must Have
 
 - [ ] Construct a deterministic derived SSA/value graph from every valid canonical `ILProgram`;
-  the canonical serialized IL remains unchanged at the public boundary. (AR-6)
+  the canonical serialized IL remains immutable and rewrites are pure copy-on-write. (AR-6)
 - [ ] Represent φ-like merge values, def-use chains, dominators, post-dominators, natural loops and
   irreducible regions without exposing a third public lowering level.
 - [ ] Model ordinary locals/frames, module storage, const data, zero page, indirect memory,
@@ -31,8 +31,11 @@ effect graph. All transformations must preserve the closed observable-effect mod
   target-specific proof explicitly permits a rewrite. (AR-14)
 - [ ] Produce proof queries consumed by all later passes: `mayAlias`, `mayRead`, `mayWrite`,
   `mayTrapOrTerminate`, `isVolatile`, `isInterruptVisible`, and `isMotionSafe`.
-- [ ] Lower optimized overlay results back to valid canonical IL with deterministic temp/block
-  naming and no semantic loss.
+- [ ] Introduce allocation-neutral virtual storage identities before optimization. Lower optimized
+  overlay results back to valid canonical IL with deterministic temp/block/storage naming and no
+  final frame, ZP, register, ABI-home or absolute-address commitment.
+- [ ] Preserve input IL object structure and canonical text after overlay construction, failed
+  transforms and budget exits; no pass mutates its input.
 - [ ] Reject unsupported/malformed IL with an ICE before transformation; never guess effects.
 
 ### Should Have
@@ -61,6 +64,11 @@ The effect lattice must distinguish at least:
 | Call | Use content-revisioned summary; unknown call is conservative |
 | Interrupt-visible access | Respect interrupt interference and atomicity |
 | Termination/unknown | Blocks speculative motion |
+
+Hardware-visible effects additionally consume the target profile's bus-access and interrupt-sampling
+contract. Dummy reads/writes, read-to-clear/write-to-ack behavior, read-modify-write double writes,
+indexed dummy accesses, interrupt-control latency and IRQ/NMI priority are observable where the
+profile declares them. An absent model is `unmodeled` and blocks the rewrite.
 
 ## Integration Points
 
@@ -101,3 +109,7 @@ shell or network access is permitted.
    pass profiles.
 9. [ ] Graph construction exceeding its declared node/edge limit returns a classified bounded
    failure and emits no partially optimized IL.
+10. [ ] Overlay construction and every no-op/failure path leave the input `ILProgram` reference
+    graph and canonical text unchanged.
+11. [ ] MMIO read-modify-write, indexed dummy-access and interrupt-control counterexamples preserve
+    the target-declared bus trace and interrupt sampling or are rejected as unmodeled.

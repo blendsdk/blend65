@@ -37,16 +37,22 @@ libraries; these remain explicit portfolio dependencies rather than hidden optim
 
 | Term | Definition |
 |---|---|
-| Canonical IL | Existing mutable TAC `ILProgram` consumed and produced at optimizer boundaries |
+| Canonical IL | Existing immutable readonly TAC `ILProgram`; rewrites are pure copy-on-write |
 | Optimization overlay | Derived SSA value graph, memory/effect graph, dominators and loop forest |
 | Legalizer | Required transform that makes output representable; never skipped as an optimization |
 | Optimization pass | Skippable semantics-preserving transform intended to improve a cost objective |
-| Execution profile | Content-addressed reference, isolated, prefix or full pipeline configuration |
 | Cost vector | Bytes, path cycles, ZP, RAM/frame, stack, padding, helper and frame/IRQ costs |
 | Pareto regression | Output worse in at least one cost dimension without an authorized measured win |
 | Assured pass | Pass whose semantic, interaction, replay and cost gates all pass |
 | Game-shaped fixture | Original workload modeling behavior found in a commercial game engine |
 | Commercial gate | Semantic assurance plus expert parity and whole-program workload acceptance |
+| Execution profile | Pass composition (`reference`, `isolated`, `prefix` or `full`) |
+| PGO profile | Versioned VICE workload observations used only for profitability |
+| Target profile | Versioned CPU, ABI, memory, effect, timing and legality contract |
+| Objective profile | Named optimization priorities and hard resource budgets |
+| Resource-limit profile | `interactive`, `release` or `campaign` safety ceilings |
+| Optimizer commercial quality | This feature's closable semantic, local-parity and whole-program optimizer gate |
+| Commercial toolchain ready | Portfolio gate requiring every external capability provider to be shipped |
 
 ## Document Index
 
@@ -72,11 +78,11 @@ libraries; these remain explicit portfolio dependencies rather than hidden optim
 | [RD-17](RD-17-toolchain-capability-integration.md) | External capabilities required for complete commercial games | RD-01, RD-15 |
 | [RD-18](RD-18-non-functional-evolution.md) | Determinism, scale, security, evolution and release operation | RD-01–RD-17 |
 
-## Dependency Graph
+## Dependency and Iteration Model
 
 ```text
-RD-01 Authority + Cost
-  └─ RD-02 Effects + Optimization Overlay
+RD-01 Authority + Cost + target-contract foundation
+  └─ RD-02 Effects + immutable Optimization Overlay + virtual storage
       └─ RD-03 Pass Manager + Profiles
           ├─ RD-04 Whole-Program Analysis
           │   └─ RD-05 Scalar/Dataflow
@@ -89,35 +95,47 @@ RD-01 Authority + Cost
           │                               └─ RD-12 PGO
           │                                   └─ RD-13 Hardware/Timing
           └───────────────────────────────────────┴─ RD-14 Validation
-                                                       └─ RD-15 Game Gate
+                                                       └─ RD-15 Optimizer Game Gate
                                                            ├─ RD-16 Reports
                                                            ├─ RD-17 Integrations
-                                                           └─ RD-18 Non-functional
+                                                           └─ RD-18 Non-functional completion
 ```
 
-## Suggested Implementation Order
+The document dependencies describe ownership, not a one-shot backend pipeline. Static target cost
+and timing interfaces, assurance/evolution primitives, virtual storage and publication/resource
+governors land before the first optimizing pass. Allocation, selection and layout then converge
+through a deterministic bounded backend loop: select from target-cost estimates, allocate,
+re-select with resolved homes, lay out/relax, re-cost, and repeat only while the complete cost
+vector improves; the exact manifest declares the iteration cap and deterministic fallback. PGO is
+a later profitability refinement of this already-correct static loop. Provisional estimates and
+fallback results never satisfy an optimality or commercial-quality claim.
+
+## Required Implementation Order
 
 | Phase | Documents | Outcome |
 |---|---|---|
-| A: Authority | RD-01–RD-03 | Measurable costs, semantic model and attributable pipeline |
-| B: Global optimizer | RD-04–RD-08 | Whole-program analysis, transforms, placement and allocation |
-| C: Expert backend | RD-09–RD-11 | Costed selection, verified local optimum and linked layout |
-| D: Game specialization | RD-12–RD-13 | Workload feedback and hardware/timing correctness |
-| E: Proof and acceptance | RD-14–RD-16 | Independent correctness, commercial corpus and diagnostics |
-| F: Product integration | RD-17–RD-18 | Explicit dependencies, deterministic evolution and release |
+| A: Foundations | RD-01–RD-03 plus RD-14/RD-18 foundations and RD-17 target-contract slice | Exact authorities, immutable/virtual IL seam, target facts, identities, schemas, limits and proof interfaces |
+| B: Global optimizer | RD-04–RD-08 | Whole-program analysis, transforms, placement and one authoritative late allocation |
+| C: Expert backend | RD-09–RD-11 | Bounded allocation/selection/layout convergence and certified local optimum |
+| D: Game specialization | RD-12–RD-13 | Workload feedback and complete hardware/bus/timing correctness |
+| E: Proof and acceptance | RD-14–RD-16 | Full interaction assurance, operational workload contracts, commercial optimizer gate and reports |
+| F: Product integration | RD-17–RD-18 | External capability status, operational stress, migration and closeout |
 
 ## Governing Acceptance Rules
 
 | Rule | Requirement |
 |---|---|
 | Semantic floor | Every enabled transform preserves all specified observable behavior |
-| Local parity | No routine is worse than its expert-equivalent implementation without a filed defect |
-| Whole-program win | Default optimized game-shaped programs beat realistic expert results on the active objective |
+| Candidate trade | Intermediate candidates may trade one axis only under an explicit objective and hard budgets |
+| Local parity | Final output has both byte and cycle ratios ≤1.0 for every expert-covered routine; worse blocks and files a defect |
+| Exact meet | A 1.0 routine result passes the local floor and always files improvement debt |
+| Whole-program win | Default optimized game-shaped programs strictly beat their versioned expert workload contract on its active objective |
 | No hidden trade | A bytes/cycles/RAM regression is explicit, budgeted and measured |
 | Modern source | Users express game intent; compiler/platform libraries own hardware lore |
 | Honest capability | Missing streaming, overlay, sound, math or expressiveness remains separately visible |
 | Exact provenance | Every result names case, compiler, pass manifest, profile, target and tool revisions |
 | Target honesty | Shared mechanisms are target-driven; each target earns its own commercial claim |
+| Gate honesty | Optimizer commercial quality may close with named provider blockers; commercial toolchain readiness may not |
 
 ## External Commercial-Game Capability Dependencies
 

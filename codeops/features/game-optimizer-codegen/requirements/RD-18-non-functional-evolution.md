@@ -13,6 +13,10 @@ Make the optimizer/code generator safe and durable under large game programs, ge
 parallel workers, evolving pass/profile schemas and failures. Commercial quality requires
 reproducible binaries, bounded compile time/memory, atomic evidence and recoverable upgrades.
 
+Schema/evolution gates, deterministic governors, atomic publication and the broker land as
+foundations before the first pass. This RD's final slice owns full stress, migration and closeout
+acceptance after all preceding behavior exists.
+
 ## Functional Requirements
 
 ### Must Have
@@ -24,6 +28,8 @@ reproducible binaries, bounded compile time/memory, atomic evidence and recovera
 - [ ] Use deterministic scheduling/merge independent of worker completion order.
 - [ ] Support cancellation/deadlines with cleanup of temporary files, locks, ACME/VICE processes
   and unpublished artifacts.
+- [ ] Centralize filesystem, ACME and VICE authority behind one subprocess/artifact broker with a
+  linearized run-state machine and terminal-result precedence.
 - [ ] Publish manifests, profiles, proofs and reports atomically after complete validation.
 - [ ] Version every schema/algorithm and use content revisions for semantic implementations.
 - [ ] Provide deterministic, idempotent migrations with pre/postconditions, rollback/recovery and
@@ -32,6 +38,9 @@ reproducible binaries, bounded compile time/memory, atomic evidence and recovera
   symlink escape paths before reads/writes/subprocesses.
 - [ ] Invoke tools with argument arrays, allowlisted executables/options and bounded captured output;
   generated source/data never controls shell or host paths.
+- [ ] Resolve a canonical absolute executable plus tool revision, pass a typed allowlisted option
+  model, use an explicit minimal environment and private invocation-owned working/home roots, close
+  unrelated descriptors and own the complete process group.
 - [ ] Preserve no secrets, PII, environment variables or host-specific paths in artifacts/logs.
 - [ ] Track compile/search/proof duration, memory peaks, fallbacks and capacity saturation.
 - [ ] Complete deferral-expiry and external-capability review before feature closeout.
@@ -50,10 +59,17 @@ reproducible binaries, bounded compile time/memory, atomic evidence and recovera
 ## Technical Requirements
 
 Initial hard safety ceilings are frozen below. They are not performance targets: the implementation
-plan must measure p50/p95/p99 demand and may lower a ceiling with evidence and a new profile
+plan must measure p50/p95/p99 demand and may lower a ceiling with evidence and a new resource-limit profile
 revision. Raising one requires a resource/security review and a new revision. A run exceeding any
 ceiling returns a typed bounded result and the last semantically valid pipeline state; it cannot
 publish assurance. (AR-26)
+
+Structural/logical quotas are exact and use injected governors for limit/limit+1 tests. Wall-clock,
+RSS and external-tool deadlines are operational ceilings: deterministic tests inject monotonic
+clock and resource telemetry, while bounded real-process stress tests use documented safety
+margins. Resident memory means process RSS sampled by the broker for enforcement and injected
+accounted telemetry for exact state-machine tests; hosted CI never allocates 2–4 GiB merely to hit a
+boundary.
 
 | Resource | Interactive | Release | Campaign |
 |---|---:|---:|---:|
@@ -73,6 +89,18 @@ publish assurance. (AR-26)
 | Concurrent child processes | 2 | 4 | `min(4, availableProcessors)` |
 | Published evidence | 64 MiB | 256 MiB | 1 GiB per campaign |
 
+The broker state machine is `created → registered → running → terminal → cleaned → published`.
+Cancellation/deadline linearizes at one recorded transition, forbids later publication, and has
+precedence over incomplete work; a result already atomically published before that point remains
+successful. Spawn ownership is registered before cancellation becomes observable. Cleanup is
+idempotent and awaits process-group/descendant termination plus output draining. Race tests cover
+spawn registration, natural exit, timeout escalation, output-limit failure, result merge,
+checkpoint commit, atomic rename and descendant creation.
+
+Filesystem roots are private and immutable for the run. Where that cannot be guaranteed, each
+operation uses no-follow/handle-relative access with revalidation so symlink swaps cannot turn a
+validated path into an escape.
+
 ## Integration Points
 
 - Applies to every preceding RD and provider/tool interaction.
@@ -86,7 +114,7 @@ publish assurance. (AR-26)
 | Reproducibility | Complete-input byte determinism | AR-8, AR-21, AR-22 |
 | Evolution | Exact migration/replay or invalidation | AR-21 |
 | Parallelism | Bounded workers + deterministic merge | AR-22 |
-| Initial ceilings | Exact profile-specific hard limits | AR-26 |
+| Initial ceilings | Exact resource-limit-profile hard limits | AR-26 |
 
 ## Security Considerations
 
@@ -99,8 +127,9 @@ network/multi-user/sensitive-data service exists.
 
 1. [ ] Two fresh complete builds with worker counts 1 and the configured maximum produce
    byte-identical canonical outputs and linked binaries.
-2. [ ] Each graph/search/pass/proof/compile/memory/output/process bound has a test that reaches the
-   exact limit successfully and rejects limit+1 with a typed bounded result.
+2. [ ] Each structural/logical bound reaches the exact limit and rejects limit+1 under an injected
+   governor. Time/RSS/tool ceilings pass exact deterministic broker tests plus bounded real stress
+   tests with documented margins.
 3. [ ] Cancellation before/during/after ACME or VICE leaves no child process, lock, checkpoint or
    partial published artifact.
 4. [ ] Traversal, absolute path and symlink escape inputs are rejected before any external read,
@@ -120,6 +149,10 @@ network/multi-user/sensitive-data service exists.
 12. [ ] Closeout answers the mandatory deferral-expiry question and leaves every external
     capability dependency owned.
 13. [ ] Lowering a ceiling preserves all in-budget outputs byte-for-byte; raising one is rejected
-    without a new profile revision and recorded resource/security review.
+    without a new resource-limit-profile revision and recorded resource/security review.
 14. [ ] At 75% of any ceiling the run emits one structured capacity warning naming the resource,
-    observed amount, ceiling and profile; it emits no duplicate warning for that resource.
+    observed amount, ceiling and resource-limit profile; it emits no duplicate warning for that resource.
+15. [ ] Poisoned PATH/HOME/environment, executable/directory symlink swaps, hostile extra options,
+    output-path attempts and descendant processes cannot escape broker authority.
+16. [ ] Every cancellation/publication race produces exactly one terminal result, leaves no child,
+    lock or partial artifact, and never publishes after its linearization point.

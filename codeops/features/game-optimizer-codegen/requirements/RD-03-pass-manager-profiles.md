@@ -22,20 +22,24 @@ contract.
   implementation revision, phase, kind, prerequisites, invalidations, objective compatibility,
   effect contract and skippability. (AR-8)
 - [ ] Reject unknown, duplicate, cyclic, misordered or contract-incompatible pass declarations.
-- [ ] Define `reference`, `isolated`, `prefix`, `full` and public optimized/unoptimized execution
-  profiles under a separate content-addressed execution identity. (AR-18)
+- [ ] Define `ExecutionProfile` as the pass-composition artifact with `reference`, `isolated`,
+  `prefix` and `full` variants under a content-addressed execution identity. `PgoProfile`,
+  `TargetProfile` and `ResourceLimitProfile` are separate closed types with independent revisions.
 - [ ] Keep mandatory legalizers enabled in reference/unoptimized profiles and identify them
   separately from cost-improving passes.
 - [ ] Trace every pass invocation, input/output digest, changed unit, application count and cost
   delta without logging full user source by default.
 - [ ] Provide deterministic first-failing-prefix bisection and non-monotonic pass-set reduction.
-- [ ] Enforce lifecycle `proposed → experimental → assured → default-enabled → retired`; only
-  assured passes may become default-enabled. (AR-23)
+- [ ] Enforce lifecycle `proposed → experimental → assured → default-enabled → retired`, plus
+  terminal `withdrawn` for a never-default-enabled pass that fails assurance. Every withdrawal or
+  retirement retains an immutable replay tombstone; only assured passes may become default-enabled.
 - [ ] Inventory current `threadJumps`, `removeUnreachableBlocks`, peephole stage and branch
   relaxation before issuing the first feature claim.
 - [ ] Publish manifests atomically; readers see either the prior complete manifest or the new one.
 - [ ] Retain public `--optimize`/`--no-optimize` behavior while keeping arbitrary pass selection in
-  an internal/test developer surface.
+  an internal/test developer surface. Preserve the existing omitted-options v1 `optimizeInstr`
+  passthrough and empty catalog; the compiler selects assured catalogs through an additive
+  versioned manifest/profile seam.
 
 ### Should Have
 
@@ -64,6 +68,10 @@ ExecutionIdentity =
 Reference means “candidate optimizations disabled,” not “illegal code allowed.” Prefix numbering
 is stable through the last enabled invocation. Interaction reduction may search non-prefix subsets
 after prefix bisection identifies the first observable failure.
+
+Public mapping is normative: `--no-optimize` selects the `reference` execution profile;
+`--optimize` without PGO selects static `full`; `--optimize` with a valid PGO profile selects
+PGO-weighted `full`. `isolated` and `prefix` remain internal developer/test profiles.
 
 ## Integration Points
 
@@ -104,3 +112,7 @@ host module, command or arbitrary output path.
    selectable.
 10. [ ] Every pre-existing transform is classified as analysis, legalizer, optimizer or
     allocator-layout before the first commercial assurance report passes.
+11. [ ] A failed experimental pass becomes `withdrawn`, remains exactly replayable through its
+    tombstone, and cannot enter any selectable production manifest.
+12. [ ] Existing v1 omitted-options peephole calls remain byte-identical while the compiler's new
+    versioned seam can select a non-empty assured catalog.

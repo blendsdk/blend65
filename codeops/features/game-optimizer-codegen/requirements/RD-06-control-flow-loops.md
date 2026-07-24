@@ -49,6 +49,11 @@ Loop transforms consume dominance, effect and range proofs. Costing includes ent
 branch taken/not-taken costs, page-cross possibilities and code growth. Required source evaluation
 and MMIO access order remain invariant.
 
+Early implementation consumes the versioned static target-cost interface established in the
+foundation phase. Final profitability is re-evaluated inside the bounded RD-08/RD-09/RD-11
+allocation-selection-layout loop. RD-12 may refine weights later, and RD-13 may add hard timing
+constraints, but neither may change transform legality.
+
 ## Integration Points
 
 - RD-05 provides value/range facts.

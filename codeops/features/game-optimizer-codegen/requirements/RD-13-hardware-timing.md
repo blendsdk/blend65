@@ -25,8 +25,8 @@ and measurable without forcing ordinary Blend65 programmers to hand-schedule ass
 - [ ] Verify worst-case path cost including taken branches, page crossings, calls, helpers and
   interrupt save/restore.
 - [ ] Optimize MMIO setup/update sequences only when all ordering/effect contracts remain true.
-- [ ] Infer efficient named-register access and platform-library lowering; user source need not
-  spell magic addresses or block granularities. (AR-20)
+- [ ] Consume provider-owned named-register/platform-library contracts and compile their lowering
+  hooks efficiently; user source need not spell magic addresses or block granularities. (AR-20)
 - [ ] Schedule hot frame/IRQ work against hard budgets before accepting code-size trade-offs.
 - [ ] Preserve self-consistency when code/data relocation changes page-cross and raster costs.
 - [ ] Execute timing-critical acceptance workloads on cycle-accurate VICE and distinguish semantic,
@@ -35,8 +35,8 @@ and measurable without forcing ordinary Blend65 programmers to hand-schedule ass
 
 ### Should Have
 
-- [ ] Offer zero-cost platform primitives for common raster wait, sprite update, SID cadence and
-  CIA/input sequences.
+- [ ] Certify provider-owned platform primitives for common raster wait, sprite update, SID
+  cadence and CIA/input sequences at zero wrapper overhead.
 - [ ] Report the critical path and remaining cycle slack for each declared budget.
 
 ### Won't Have
@@ -50,6 +50,11 @@ and measurable without forcing ordinary Blend65 programmers to hand-schedule ass
 Timing contracts bind program/profile/target/VICE revisions and named completion observations.
 Worst-case analysis is conservative; unknown/unbounded paths cannot satisfy a deadline. Hardware
 register metadata owns volatility, access width, side effects and ordering groups.
+
+The target contract also owns observable bus accesses and interrupt sampling: NMOS dummy
+reads/writes, read-modify-write double writes, read-to-clear/write-to-ack registers, indexed dummy
+access into I/O, CLI/SEI recognition latency, IRQ/NMI priority/simultaneous arrival and nesting.
+Transforms preserve the declared bus trace and sampling behavior or remain unmodeled.
 
 ## Integration Points
 
@@ -87,3 +92,5 @@ completion scripts.
    expert twins with zero wrapper overhead.
 8. [ ] VICE distinguishes wrong memory state, missed completion, timeout and cycle-budget failure.
 9. [ ] Reports contain exact slack for every passing frame/IRQ contract.
+10. [ ] MMIO RMW versus load/modify/store, indexed dummy-access, IRQ acknowledgement, CLI latency,
+    simultaneous IRQ/NMI and nested-interrupt counterexamples preserve the target-declared trace.

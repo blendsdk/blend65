@@ -19,8 +19,8 @@ compiler developers receive deterministic pass traces and bisection tools.
 
 - [ ] Produce machine-readable JSON and human-readable Markdown/text from one validated result
   model.
-- [ ] Report compiler/target/tool/pass-manifest/profile identities, objectives, budgets and
-  assurance status.
+- [ ] Report compiler/tool/pass-manifest plus distinct execution, objective, PGO, target and
+  resource-limit profile identities, budgets and assurance status.
 - [ ] Report before/after linked cost vectors by program, routine, hot path and pass.
 - [ ] Report pass hits, missed opportunities with stable reason codes, analysis/search fallbacks,
   padding, runtime helpers and unresolved parity debt.

@@ -13,6 +13,10 @@ Prove each transform locally and the complete compiler end to end. Combine pass-
 bounded translation validation, generated independent semantics, ACME/VICE execution, mutation
 testing, exact replay and reduction. No single oracle may approve its own implementation.
 
+This RD delivers its identity/oracle adapter, pass-contract and validation-hook foundations before
+the first optimizing pass. Each later pass ships its own evidence before enablement; this RD's final
+slice runs cross-pass campaigns, reduction and commercial assurance.
+
 ## Functional Requirements
 
 ### Must Have
@@ -21,8 +25,8 @@ testing, exact replay and reduction. No single oracle may approve its own implem
   failure contract before implementing the pass. (AR-17)
 - [ ] Validate before/after overlay/IL/instruction semantics with an independent bounded evaluator
   or symbolic/exhaustive checker where the declared subset supports it.
-- [ ] Run the same generated case through reference, isolated, prefix and full profiles and compare
-  each to the RD-03 independent oracle. (AR-18)
+- [ ] Run the same generated case through reference, isolated, prefix and full execution profiles
+  and compare each to the exact versioned `compiler-readiness/RD-03` independent-oracle contract.
 - [ ] Require runtime-semantic and timing obligations to assemble with ACME and execute on bounded
   VICE routes.
 - [ ] Treat unsupported oracle/effect/proof forms as explicit `unmodeled`/`proof-incomplete`, never
@@ -56,7 +60,12 @@ closed schemas, canonical roots and deterministic aggregation.
 
 ## Integration Points
 
-- Consumes compiler-readiness generator/oracle/execution/reducer contracts.
+- Consumes completed, versioned provider contracts from `compiler-readiness/RD-02` generation,
+  `compiler-readiness/RD-03` independent oracles, `compiler-readiness/RD-04` ACME/VICE execution
+  and `compiler-readiness/RD-05` reduction. These are explicit assurance blockers, not inferred
+  from session timing.
+- Dependency direction is one-way through a harness adapter: readiness invokes the public
+  compiler; production optimizer/codegen never imports readiness or implements a competing oracle.
 - Supplies assurance evidence to RD-03 lifecycle and RD-15 commercial gate.
 - Uses asm-parity only for cost results, not semantic expectations.
 
@@ -93,3 +102,5 @@ groups on every outcome. Artifacts redact host paths/environment.
    invoke current code.
 10. [ ] Independent semantics and performance reviews report zero unresolved critical/major
     findings before assurance.
+11. [ ] Missing or stale readiness RD-02–RD-05 provider evidence blocks assurance with the exact
+    provider, expected revision and actual status named.

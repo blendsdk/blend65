@@ -18,19 +18,19 @@ hard frame/memory budgets.
 
 ### Must Have
 
-- [ ] Maintain a manifest whose rows name fixture kind, workload class, semantic rules, target,
-  execution route, twin, budgets, capability dependencies and ownership. (AR-19, AR-24)
-- [ ] Include original kernels for vertical/horizontal scrolling, screen/colour/bitmap update,
-  sprite multiplexing/pointer animation, collision, input, AI, decompression, sound cadence,
-  IRQ/mainline coordination and loader/streaming boundaries.
+- [ ] Maintain a manifest whose rows name a stable workload ID, fixture kind, semantic rules,
+  target, execution route, `CommercialWorkloadContract`, budgets, capability dependencies and
+  ownership. (AR-19, AR-24)
+- [ ] Cover every closed workload ID in the table below; prose labels never define completeness.
 - [ ] Include at least three complete original programs: smooth horizontal scroller, vertical
   action scroller, and isometric/multiload engine shell using substitute assets/data.
 - [ ] Give every performance fixture an expert hand-written twin or a documented reason it cannot
   yet participate; no waiver counts toward acceptance.
 - [ ] Measure exact linked bytes/cycles/RAM/ZP/padding, hot paths, frame/IRQ budgets and runtime
   helper costs under reference/static/PGO profiles as applicable.
-- [ ] Require each routine to meet or beat the expert twin and the whole program to beat the
-  realistic expert result on its active objective; meet-only results file debt. (AR-1)
+- [ ] Require final output to have both byte and cycle ratios ≤1.0 for each expert-covered routine
+  and each complete program to strictly beat its versioned expert workload contract on the active
+  objective; exact meets always file improvement debt. (AR-1)
 - [ ] Require all semantic/timing obligations to pass RD-14 independently.
 - [ ] Keep capability blockers distinct: an optimizer pass cannot turn missing streaming/overlay/
   indirect-call/sound/library functionality into a pass. (AR-3, AR-24)
@@ -55,6 +55,34 @@ The manifest distinguishes `kernel`, `whole-program`, `probe`, `negative` and `f
 Acceptance uses per-row gates plus an aggregate summary. Programs use deterministic generated or
 repository-owned assets and stable VICE workloads.
 
+| Workload ID | Required behavior |
+|---|---|
+| `scroll-horizontal` | Smooth horizontal screen/colour/bitmap update |
+| `scroll-vertical` | Smooth vertical screen/colour/bitmap update |
+| `sprite-multiplex` | Multiplexing plus pointer animation |
+| `collision` | Game-shaped collision detection/response |
+| `input` | Joystick/keyboard input cadence |
+| `ai` | Bounded game-agent decision/update loop |
+| `decompression-boundary` | Optimizer-owned calls across a provider decompression boundary |
+| `sound-cadence-boundary` | Optimizer-owned scheduling across a provider sound boundary |
+| `irq-mainline` | Interrupt/mainline interference and deadlines |
+| `loader-stream-boundary` | Optimizer-owned state around provider loader/stream events |
+| `animation-update` | Frame animation/state update |
+
+Each complete program owns a versioned `CommercialWorkloadContract` containing scenario inputs,
+frame count/duration, completion observations, fidelity invariants, required capability events,
+source/asset provenance, expert artifact and independent approval revisions, routine mapping,
+active objective, both local floors, hard budgets and exact measurement route. Negative mutations
+remove each characteristic behavior and must fail its fidelity oracle. Baseline changes require
+independent approval and a new content revision.
+
+Two distinct gates are published:
+
+- `optimizer-commercial-quality` may close using optimizer-owned behavior plus provider-boundary
+  fixtures; external capabilities remain named blockers and cannot be simulated as shipped.
+- `commercial-toolchain-ready` is a portfolio gate outside this feature and requires every provider
+  plus faithful end-to-end complete programs to ship.
+
 ## Integration Points
 
 - Extends asm-parity infrastructure/ratchets rather than copying it.
@@ -78,12 +106,12 @@ canonical/relative. VICE execution remains isolated/bounded and reports exclude 
 
 1. [ ] Manifest and fixture directory agree exactly; missing/extra fixtures and missing/forbidden
    artifacts fail with the offender named.
-2. [ ] The corpus contains all eleven workload categories listed above and all three complete
-   original program classes.
+2. [ ] The manifest covers each of the eleven closed workload IDs exactly as required and contains
+   all three complete original program classes.
 3. [ ] Every counting performance row has an expert twin, exact budget and independent semantic
    result.
-4. [ ] No routine exceeds a 1.0 expert bytes/cycles ratio on its active objective; every meet-only
-   row links a concrete improvement issue.
+4. [ ] No final routine exceeds 1.0 on either expert byte or cycle ratio; every exact-meet row links
+   a concrete improvement issue.
 5. [ ] Each complete program beats its realistic expert whole-program result while satisfying all
    frame/IRQ/RAM/ZP/stack budgets.
 6. [ ] A one-cycle frame-budget miss, one-byte memory-region overflow or one semantic mismatch
@@ -95,3 +123,7 @@ canonical/relative. VICE execution remains isolated/bounded and reports exclude 
    separately and cannot satisfy each other.
 10. [ ] The feasibility matrix changes only when all named dependencies for a game row are shipped
     and the faithful acceptance workloads pass.
+11. [ ] Removing any fidelity invariant or characteristic event fails a negative mutation and
+    cannot improve a workload into acceptance.
+12. [ ] `optimizer-commercial-quality` can pass with explicit provider blockers, while
+    `commercial-toolchain-ready` remains blocked until those exact provider claims ship.

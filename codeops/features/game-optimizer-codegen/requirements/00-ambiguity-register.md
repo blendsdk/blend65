@@ -1,6 +1,6 @@
 # Ambiguity Register: Commercial-Game Optimizer and Code Generator
 
-> **Status**: ✅ GATE PASSED — all 26 items resolved
+> **Status**: ✅ GATE PASSED — all 34 items resolved
 > **Last Updated**: 2026-07-24 22:05 CEST
 > **Mode**: Auto-design
 > **Root invocation ID**: `game-optimizer-codegen-20260724-01`
@@ -13,7 +13,7 @@
 | AR-3 | Scope | Does optimizer/codegen success alone make every exemplar game feasible? | No; optimizer/codegen owns generated-code quality, while streaming, overlays, indirect calls, sound and libraries remain separately gated capabilities | User goal reconciled with capability matrix | ✅ Resolved |
 | AR-4 | Architecture | Where does this capability live? | A separate `game-optimizer-codegen` feature consumes compiler-readiness semantic evidence and asm-parity expert evidence; it does not alter active compiler-readiness/RD-02 | AI delegated by `--auto-design`; blind challenger converged | ✅ Resolved |
 | AR-5 | Semantic authority | What decides whether an optimization is correct? | Frozen language semantics plus independent readiness oracles and target execution; compiler output, current goldens and hand twins cannot manufacture semantic truth | AI delegated by `--auto-design` | ✅ Resolved |
-| AR-6 | Optimization representation | Must the canonical mutable TAC IL be replaced with SSA? | Keep canonical TAC as the pipeline boundary; construct a derived, non-serialized SSA/value-and-memory overlay for analysis and optimization, then lower back before allocation/codegen | AI delegated by `--auto-design` | ✅ Resolved |
+| AR-6 | Optimization representation | Must the canonical immutable TAC IL be replaced with SSA? | Keep immutable readonly canonical TAC as the copy-on-write pipeline boundary; construct a derived, non-serialized SSA/value-and-memory overlay, then lower to allocation-neutral canonical IL before allocation/codegen | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-7 | Effects and aliasing | How are memory, MMIO, calls and interrupts modeled? | One conservative effect system classifies ordinary memory regions, aliases, volatile/MMIO, calls, intrinsics, interrupt-visible state and unknown effects; absence of proof blocks motion/removal | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-8 | Pipeline identity | How are passes classified, ordered and replayed? | Closed content-addressed pass manifest with stable IDs, revisions, phase, kind, prerequisites, invalidations, effect contract, skippability and deterministic order | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-9 | Optimization scope | Is optimization function-local or whole-program? | Whole-program AOT optimization is the default: call-graph summaries, specialization, inlining, internal ABI selection, runtime pruning and cross-routine allocation; conservative boundaries remain around exported/indirect/interrupt entry points | AI delegated by `--auto-design` | ✅ Resolved |
@@ -34,6 +34,14 @@
 | AR-24 | Portfolio scope | Which non-optimizer capabilities are still required for commercial-game-class Blend65? | Track expressiveness/conformance, indirect calls, platform libraries, IRQ/raster services, asset pipeline, fixed-point math, sound/tracker integration, disk I/O/fast loading, streamed data, overlays/linking, debugging/profiling and release packaging as explicit external dependencies; never hide them inside optimizer completion | User requested completeness audit; AI structured under `--auto-design` | ✅ Resolved |
 | AR-25 | Target architecture | Does C64-first acceptance permit C64 constants in generic optimizer/backend logic? | No; C64/NMOS 6502 is the first commercial gate, but costs, legal instructions, memory regions, ABI, effects and hardware constraints are versioned target-profile contracts. A target may claim commercial quality only after its own proof and corpus gates pass | AI delegated by `--auto-design`, grounded in the repository's five declared target families | ✅ Resolved |
 | AR-26 | Resource budgets | Which initial resource ceilings make boundedness testable before empirical tuning? | Freeze explicit interactive, release and campaign safety ceilings in RD-18; later lowering requires measured evidence and a versioned profile revision, while raising a ceiling requires an authorized resource/security review | AI delegated by `--auto-design` | ✅ Resolved |
+| AR-27 | Allocation lifecycle | How can optimization precede allocation when current IL is plan-backed? | Replace pre-IL definitive SFA with allocation-neutral virtual storage and one authoritative late allocator that materializes the existing public `AllocationPlan` shape | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-28 | Delivery topology | How do cyclic cost/selection/allocation/layout and late assurance dependencies execute? | Land target/proof/evolution/report interfaces first; use one bounded deterministic allocation-selection-layout convergence coordinator; complete PGO and campaigns later | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-29 | Compatibility | How can assured peepholes coexist with the immutable empty v1 oracle? | Preserve v1 `optimizeInstr`/empty catalog; add a versioned manifest/catalog runner and switch compiler defaults only after assurance | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-30 | Commercial evidence | What makes faithfulness and the expert whole-program result reproducible? | Each complete program uses a versioned `CommercialWorkloadContract` with stable IDs, observations, fidelity invariants, provenance, independent expert approval, objectives, floors and budgets | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-31 | Acceptance boundary | Can optimizer completion wait on every external toolchain provider? | Publish a closable optimizer-commercial-quality gate and a separate portfolio commercial-toolchain-ready gate; provider blockers never masquerade as shipped capability | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-32 | Hardware proof closure | Which 6502 state and hardware observables must proofs cover? | Mechanically close architectural state/opcode coverage and target bus/interrupt semantics; enforce restricted subsets where full proof is infeasible | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-33 | Optimality | When may selection/superoptimization say “optimal”? | Only with a machine-checkable complete search-domain certificate and independent small-domain cross-check; otherwise report `best-found` | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-34 | Host operations | What owns paths, subprocesses, cancellation and publication races? | One broker owns private roots, executable/environment/options, process groups, quotas and a linearized cancellation/publication state machine | AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
 
 ## Resolution Records
 
@@ -112,13 +120,14 @@
 - **Eligibility:** internal optimizer representation
 - **Objective:** enable top-tier dataflow and whole-program optimization without destabilizing the
   shipped TAC/codegen boundary.
-- **Decision:** canonical IL remains mutable TAC. The optimizer builds a derived SSA value graph,
+- **Decision:** canonical IL remains immutable readonly TAC. The optimizer builds a derived SSA value graph,
   dominance/loop forest and memory/effect overlay, applies verified rewrites, then lowers back to
   canonical IL before allocation.
 - **Evidence:** current `ILPass` accepts/returns `ILProgram`; the earlier SSA rejection conflated a
   compile-time analysis form with scarce target registers. A non-serialized overlay avoids a third
   public lowering level.
-- **Rejected alternatives:** optimize mutable TAC only; permanently replace IL with SSA; sea of
+- **Rejected alternatives:** optimize TAC without an overlay; mutate canonical IL in place;
+  permanently replace IL with SSA; sea of
   nodes as the first implementation.
 - **Strongest counterargument:** SSA construction/destruction adds compiler complexity.
 - **Confidence:** High — change if measured optimizer compile-time or destruction costs exceed the
@@ -297,8 +306,9 @@
 - **Authority:** AI — delegated by `--auto-design`
 - **Eligibility:** performance mechanism constrained by the existing Prime Directive
 - **Objective:** prevent optimizations that win a metric while making real programs worse.
-- **Decision:** reject transforms that worsen both bytes and cycles. A one-axis regression needs a
-  named objective/budget and measured whole-program benefit; unexplained regressions fail default.
+- **Decision:** reject intermediate candidates that worsen both bytes and cycles. A one-axis
+  intermediate regression needs a named objective/budget and measured whole-program benefit.
+  Final commercial output must meet both per-routine byte and cycle floors.
 - **Evidence:** no universal scalar exchange rate exists between bytes, cycles and scarce memory.
 - **Rejected alternatives:** fixed weighted score; always prefer speed; always prefer size.
 - **Strongest counterargument:** Pareto sets can grow.
@@ -510,6 +520,41 @@
 - **Root invocation ID:** `game-optimizer-codegen-20260724-01`
 - **Reopen triggers:** largest committed game-shaped fixture reaches 75% of a ceiling, or p99
   measured usage shows a ceiling is more than 8× normal demand.
+
+### AR-27–AR-34 — Preflight architectural closure
+
+- **Authority:** AI — delegated by `--auto-design`
+- **Eligibility:** internal compiler architecture, verification, compatibility, evidence,
+  performance and host-safety mechanisms within the confirmed product scope and acceptance bar
+- **Objective:** make the commercial optimizer requirements implementable without weakening modern
+  source ergonomics, either expert routine floor, the strict whole-program win, provider ownership
+  or target independence.
+- **Decisions:** one late authoritative allocator over virtual storage (AR-27); foundation-first
+  milestones plus bounded backend convergence (AR-28); additive versioned peephole compatibility
+  seam (AR-29); versioned operational commercial workload contracts (AR-30); separate optimizer and
+  portfolio toolchain gates (AR-31); mechanically closed 6502 architectural/bus/interrupt proof
+  surface (AR-32); certified search completeness before any optimality claim (AR-33); one
+  subprocess/artifact broker with linearized cancellation/publication (AR-34).
+- **Evidence:** current SFA runs before immutable plan-backed IL; v1 peephole specification freezes
+  an empty passthrough; current cost reports are straight-line; target profiles are duplicated and
+  incomplete for optimizer facts; readiness oracle/execution/reduction providers are not shipped;
+  external streaming/overlays remain independent capabilities; Node RSS/time boundaries are not
+  exact host-portable test inputs.
+- **Rejected alternatives:** two persistent allocation authorities; mutate canonical IL; retrofit
+  assurance after passes; replace immutable v1 tests; implement external providers here; accept
+  prose-only fidelity; claim optimality from sampled coverage; trust inherited host process state.
+- **Strongest counterargument:** the foundation and evidence machinery substantially increases
+  early delivery cost.
+- **Confidence:** High — every change removes a demonstrated contradiction or unfalsifiable claim;
+  implementation plans may split milestones further without changing these contracts.
+- **Hardening:** one blind independent challenger reviewed all 18 merged high-stakes findings and
+  converged on every resolution; it elevated allocation, dependency topology, target authority,
+  assurance ordering, workload evidence, gate separation and hardware closure as critical.
+- **Policy version:** 1
+- **Root invocation ID:** `game-optimizer-codegen-preflight-20260724-01`
+- **Reopen triggers:** a plan reintroduces pre-optimization final homes, competing semantic
+  authority, uncertified “optimal” output, hidden provider substitution, C64 facts in generic
+  analysis, or host operations outside the broker.
 
 ## Systematic Gate Scan
 

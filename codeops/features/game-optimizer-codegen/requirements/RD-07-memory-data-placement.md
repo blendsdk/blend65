@@ -36,7 +36,9 @@ layout coalescing and zero-copy assets without changing observable addresses.
 ### Should Have
 
 - [ ] Reorder unobservable internal fields/data for access locality when no address/layout escapes.
-- [ ] Select compressed-versus-raw placement when decompression cost and frame budgets prove a win.
+- [ ] Select compressed-versus-raw placement only among versioned provider-supplied
+  encodings/decompressors whose capability evidence passes, when complete decompression and frame
+  costs prove a win.
 
 ### Won't Have
 

@@ -32,6 +32,9 @@ constants and runtime helper calls under exact cost/budget objectives.
 - [ ] Respect CPU compatibility and never emit 65C02-only instructions for NMOS 6502.
 - [ ] Preserve volatile/effect order and every required label/directive/relocation.
 - [ ] Produce multiple Pareto candidates when later layout/allocation can change the winner.
+- [ ] Publish a machine-checkable selection-domain certificate for every bounded-optimality claim:
+  pattern/enumerator revision, state and cost bounds, legal candidate cardinality, explored and
+  rejected counts, equivalence-class/Pareto digest and complete-classification result.
 
 ### Should Have
 
@@ -86,3 +89,6 @@ bounded and deduplicated by canonical keys. No pattern executes code or selects 
 9. [ ] Each parity-critical selected sequence is instruction-for-instruction equal to or cheaper
    than its expert twin; meet-only output creates a tracked improvement issue.
 10. [ ] Equal-cost candidates resolve deterministically and report the tie rule.
+11. [ ] An independent small-domain enumerator reproduces each certified frontier, and a seeded
+    omitted-cheaper-candidate mutation fails the certificate.
+12. [ ] Any result outside a completely certified domain is labeled `best-found`, never `optimal`.

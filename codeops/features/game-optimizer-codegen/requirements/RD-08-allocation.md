@@ -13,6 +13,11 @@ Allocate the NMOS 6502's A/X/Y registers, scarce zero page and statically alloca
 as one whole-program problem. The allocator must minimize loads/stores/spills while respecting
 special register roles, calls, interrupts, indirect addressing and static call-graph lifetimes.
 
+This RD replaces the current pre-IL definitive SFA placement. RD-02 first lowers plan-backed
+locations to allocation-neutral virtual storage. After optimization, this RD produces the one
+authoritative final `AllocationPlan`, symbol table and ABI-home mapping consumed by codegen and the
+public compiler result. There is no provisional-plus-final dual authority.
+
 ## Functional Requirements
 
 ### Must Have
@@ -32,6 +37,9 @@ special register roles, calls, interrupts, indirect addressing and static call-g
 - [ ] Coordinate internal ABI argument/result locations with call-site allocation.
 - [ ] Respect fixed platform/compiler ZP reservations and report exact remaining pressure.
 - [ ] Use deterministic bounded regional search with a documented safe fallback.
+- [ ] Migrate frontend ownership, `LowerInput`, canonical IL operands, instruction generation,
+  spill pools, symbol emission, reports and compiler results to the late-allocation lifecycle
+  without weakening the public `AllocationPlan` result contract.
 
 ### Should Have
 
@@ -49,6 +57,10 @@ special register roles, calls, interrupts, indirect addressing and static call-g
 Allocation is hierarchical: whole-program storage classes and call overlays, regional
 register/ZP decisions, then local repair/selection. Costs include extra bytes/cycles from every
 move, spill, reload, register transfer and absolute-versus-ZP addressing change.
+
+The safe fallback is the deterministic conservative late allocator over the same virtual-storage
+input; it may forgo coalescing/optimal placement but must always produce a legal non-overlapping
+final plan or a typed allocation failure. It cannot reuse stale pre-optimization addresses.
 
 ## Integration Points
 
@@ -87,3 +99,7 @@ storage or reserved regions.
 8. [ ] Two fresh allocations of the same program/profile produce byte-identical plans.
 9. [ ] A forced search-budget exhaustion uses the safe fallback, preserves semantics and reports
    the fallback in quality evidence rather than silently claiming optimality.
+10. [ ] Reference/unoptimized builds preserve the existing public `AllocationPlan` shape and
+    byte-identical emitted output while deriving that plan at the new late pipeline point.
+11. [ ] No final IL, instruction stream, report or compiler result retains a stale provisional
+    frame/ZP/ABI home.

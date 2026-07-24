@@ -13,6 +13,10 @@ Define the capabilities outside optimization/codegen that a complete commercial-
 still needs. The feature must publish honest dependency/blocker status so performance success can
 never conceal an inexpressible, unloadable, inaudible or unpackageable game.
 
+This RD has two delivery slices. Its minimal `TargetMachineContract` foundation and current-profile
+migration land in Phase A before RD-02 consumers. Its external capability graph and per-target
+commercial certification complete here after RD-15.
+
 ## Functional Requirements
 
 ### Must Have
@@ -36,6 +40,9 @@ never conceal an inexpressible, unloadable, inaudible or unpackageable game.
 - [ ] Keep generic optimizer and code-generator contracts target-profile-driven; target costs,
   instruction sets/addressing modes, ABI, memory regions, effects and timing facts come from a
   versioned provider rather than C64 constants in shared analysis. (AR-25)
+- [ ] Consolidate the current interim semantics profile and canonical platform profile into one
+  versioned `TargetMachineContract` before effects, placement, allocation, selection or proof
+  implementations consume target facts.
 - [ ] Gate every target's commercial-quality claim independently. C64/NMOS 6502 evidence cannot
   certify C64 Ultimate, Commander X16, Atari 800XL or Atari 7800 output.
 
@@ -56,6 +63,12 @@ never conceal an inexpressible, unloadable, inaudible or unpackageable game.
 Capability records have stable ID, provider feature/target, semantic revision, status, evidence
 links, target/platform, dependencies and fidelity claims. Only `shipped` plus passing evidence
 satisfies a dependency.
+
+`TargetMachineContract` minimally owns CPU legality/addressing, exact opcode costs, ABI/clobbers,
+memory/banking/regions, volatile and bus effects, interrupt/timing semantics, reserved resources,
+output/link constraints and its content revision. The early foundation exposes no speculative
+cross-target operation: every field is justified by an existing C64 consumer or current platform
+contract.
 
 ## Integration Points
 
@@ -112,3 +125,7 @@ network publication, credentials or external issue mutation is authorized by thi
     invalidating byte-identical evidence for unrelated targets.
 12. [ ] No target is labeled commercial-game-class until its own semantic, expert-parity,
     hardware-execution and game-shaped corpus gates pass.
+13. [ ] Semantic analysis and allocation consume the selected canonical plugin contract, never the
+    interim default profile; one profile revision owns each target fact.
+14. [ ] The optimizer-quality gate reports external blockers without treating them as failures of
+    generated-code quality; only the portfolio toolchain-ready gate requires them all shipped.

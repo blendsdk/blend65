@@ -26,11 +26,13 @@ valuable only when linked output improves the declared commercial-game objective
   estimates may guide search but cannot satisfy acceptance.
 - [ ] Represent cost as a vector with named objectives and hard budgets, never one undocumented
   weighted scalar. (AR-16)
-- [ ] Reject any candidate that worsens both bytes and cycles for the same semantic unit.
-- [ ] Require every one-axis regression to name the active objective/budget and demonstrate a
-  measured whole-program benefit.
-- [ ] Link every affected expert twin/corpus row and file a durable issue for any routine that only
-  meets rather than beats the expert where a future improvement path exists.
+- [ ] Reject any intermediate candidate that worsens both bytes and cycles for the same semantic
+  unit. A one-axis intermediate trade must name the objective/budget and demonstrate a measured
+  whole-program benefit.
+- [ ] Require final commercial-gate output to have both byte and cycle ratios at or below 1.0 for
+  every expert-covered routine. A worse final routine blocks the gate even when a defect is filed.
+- [ ] Link every affected expert twin/corpus row and file a durable issue for every routine that
+  exactly meets rather than beats the expert, naming the measured delta and improvement path.
 - [ ] Keep performance outside the `C64 v3.0 Ready` semantic claim while making it mandatory for
   the separate commercial optimizer/codegen gate.
 
@@ -109,3 +111,5 @@ values, secrets or arbitrary subprocess output.
 8. [ ] Every meet-only expert result emitted by closeout links a filed issue containing measured
    delta and a concrete future optimizer/codegen mechanism.
 9. [ ] No acceptance artifact contains copyrighted program bytes or assets from the exemplar games.
+10. [ ] A one-axis-regressing intermediate candidate may survive search, but the same regression in
+    final output blocks the local parity gate.

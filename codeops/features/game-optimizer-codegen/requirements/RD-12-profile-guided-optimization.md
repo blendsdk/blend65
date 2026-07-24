@@ -17,7 +17,7 @@ unsafe transform; static optimization remains a complete safe fallback.
 
 ### Must Have
 
-- [ ] Define a closed profile schema binding compiler/program/workload/target, VICE/tool revision,
+- [ ] Define a closed `PgoProfile` schema binding compiler/program/workload/target, VICE/tool revision,
   memory map, completion condition and instrumentation revision. (AR-13, AR-21)
 - [ ] Collect block/edge/routine counts and declared frame/IRQ timing observations under bounded
   deterministic workloads.
@@ -45,7 +45,7 @@ unsafe transform; static optimization remains a complete safe fallback.
 
 ## Technical Requirements
 
-Profiles use saturating/checked 64-bit counters and stable symbol/edge IDs independent of final
+PGO profiles use saturating/checked 64-bit counters and stable symbol/edge IDs independent of final
 addresses. Collection runs in isolated emulator processes with instruction/step/output/time limits.
 Merging sorts canonical identity before aggregation.
 
