@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blend65.dev/readiness/rule-models-v1.schema.json",
+  "title": "Blend65 rule-model registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "registryVersion", "rules"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "registryVersion": { "$ref": "#/$defs/id" },
+    "rules": {
+      "type": "array",
+      "maxItems": 32768,
+      "items": {
+        "type": "object",
+        "oneOf": [
+          { "$ref": "#/$defs/modeledRule" },
+          { "$ref": "#/$defs/unmodeledRule" },
+          { "$ref": "#/$defs/notGeneratableRule" }
+        ],
+        "discriminator": { "propertyName": "state" }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "maxLength": 65536,
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "sourcePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[A-Za-z0-9._/-]+$"
+    },
+    "value": {
+      "type": "string",
+      "maxLength": 65536
+    },
+    "nonEmptyValueArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 65536,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/value" }
+    },
+    "nonEmptyIdArray": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 65536,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourcePath", "contentHash"],
+      "properties": {
+        "sourcePath": { "$ref": "#/$defs/sourcePath" },
+        "contentHash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "constructionPrecondition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "subject", "values"],
+      "properties": {
+        "kind": {
+          "enum": ["type-in", "value-range", "arity", "spelling-in"]
+        },
+        "subject": { "$ref": "#/$defs/id" },
+        "values": { "$ref": "#/$defs/nonEmptyValueArray" }
+      }
+    },
+    "typedDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "type", "values"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/id" },
+        "type": {
+          "enum": ["byte", "sbyte", "word", "sword", "boolean", "void"]
+        },
+        "values": { "$ref": "#/$defs/nonEmptyValueArray" }
+      }
+    },
+    "invalidContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "diagnosticFamily", "neighborIds"],
+      "properties": {
+        "contractId": { "$ref": "#/$defs/id" },
+        "diagnosticFamily": { "$ref": "#/$defs/id" },
+        "neighborIds": { "$ref": "#/$defs/nonEmptyIdArray" }
+      }
+    },
+    "modeledRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "state",
+        "citations",
+        "constructionPreconditions",
+        "typedDomains",
+        "invalidContracts",
+        "constructorIds",
+        "predicateIds",
+        "neighborIds",
+        "boundaryFamilyIds",
+        "spellings"
+      ],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/id" },
+        "state": { "const": "modeled" },
+        "citations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65536,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/citation" }
+        },
+        "constructionPreconditions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65536,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/constructionPrecondition" }
+        },
+        "typedDomains": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65536,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/typedDomain" }
+        },
+        "invalidContracts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65536,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/invalidContract" }
+        },
+        "constructorIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+        "predicateIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+        "neighborIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+        "boundaryFamilyIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+        "spellings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["literal", "named-constant", "local-variable", "parameter"]
+          }
+        }
+      }
+    },
+    "unmodeledRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "state", "reason"],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/id" },
+        "state": { "const": "unmodeled" },
+        "reason": {
+          "enum": ["outside-initial-slice", "requires-semantic-oracle", "not-source-generatable"]
+        }
+      }
+    },
+    "notGeneratableRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruleId", "state", "reason"],
+      "properties": {
+        "ruleId": { "$ref": "#/$defs/id" },
+        "state": { "const": "not-generatable" },
+        "reason": {
+          "enum": ["outside-initial-slice", "requires-semantic-oracle", "not-source-generatable"]
+        }
+      }
+    }
+  }
+}

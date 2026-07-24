@@ -17,6 +17,34 @@ type RuleModelState =
   | { readonly state: "unmodeled"; readonly reason: RuleModelReason }
   | { readonly state: "not-generatable"; readonly reason: RuleModelReason };
 
+type RuleModelReason =
+  | "outside-initial-slice"
+  | "requires-semantic-oracle"
+  | "not-source-generatable";
+
+interface ModelCitation {
+  readonly sourcePath: string;
+  readonly contentHash: Sha256Digest;
+}
+
+interface ConstructionPrecondition {
+  readonly kind: "type-in" | "value-range" | "arity" | "spelling-in";
+  readonly subject: string;
+  readonly values: readonly string[];
+}
+
+interface TypedDomain {
+  readonly subject: string;
+  readonly type: "byte" | "sbyte" | "word" | "sword" | "boolean" | "void";
+  readonly values: readonly string[];
+}
+
+interface InvalidContract {
+  readonly contractId: string;
+  readonly diagnosticFamily: string;
+  readonly neighborIds: readonly NeighborId[];
+}
+
 interface ModeledRuleRecord {
   readonly ruleId: RuleId;
   readonly citations: readonly ModelCitation[];
@@ -37,7 +65,115 @@ interface ExecutableBinding<TImplementation> {
   readonly implementationRevision: Sha256Digest;
   readonly implementation: TImplementation;
 }
+
+interface ModelBindingDiagnostic {
+  readonly code: string;
+  readonly path: string;
+  readonly message: string;
+}
+
+type RuleModelRegistryResult =
+  | {
+      readonly ok: true;
+      readonly registry: RuleModelRegistry;
+      readonly counts: RuleModelStateCounts;
+      readonly diagnostics: readonly [];
+    }
+  | { readonly ok: false; readonly diagnostics: readonly ModelBindingDiagnostic[] };
+
+type BindingValidationResult =
+  | {
+      readonly ok: true;
+      readonly bindings: ValidatedBindingRegistry;
+      readonly diagnostics: readonly [];
+    }
+  | { readonly ok: false; readonly diagnostics: readonly ModelBindingDiagnostic[] };
+
+declare function getPublishedBinding(
+  snapshot: PublishedSnapshot,
+  handlerId: HandlerId,
+): ExecutableBinding<HandlerImplementation> | undefined;
 ```
+
+Parsing and validation return these closed discriminated results. Expected invalid input is never
+reported by throwing, and specification tests assert stable diagnostic `code` and JSON `path`
+rather than English message text (AR-P15).
+
+### Wire contract
+
+Canonical model input is closed JSON:
+
+```ts
+interface RuleModelRegistryInput {
+  readonly schemaVersion: 1;
+  readonly registryVersion: string;
+  readonly rules: readonly RuleModelEntryInput[];
+}
+```
+
+Every entry contains `ruleId`, `state` and exactly the fields permitted by that state. Modeled
+entries contain citations, construction preconditions, typed domains, invalid contracts,
+constructor/predicate/neighbor/boundary operation IDs and spellings. `unmodeled` and
+`not-generatable` entries contain one closed reason code and no modeled fields.
+
+All semantic subjects, contract IDs, diagnostic families and executable operation IDs use
+`^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$`. Source paths are contained repository-relative paths and
+content hashes use canonical `sha256:<64 lowercase hex>` form. Arrays are non-empty, duplicate-free
+and lexically ordered wherever order is not semantic. Values are canonical strings interpreted only
+by the operation named in the same modeled record; the registry never parses requirement prose.
+
+The two-stage public API is:
+
+```ts
+declare function parseRuleModelRegistry(
+  input: Uint8Array,
+): RuleModelRegistryParseResult;
+
+declare function validateRuleModelRegistry(
+  input: RuleModelRegistryInput,
+  inventoryRuleIds: readonly string[],
+  executableOperationIds: readonly string[],
+): RuleModelRegistryResult;
+```
+
+Parsing applies strict UTF-8/JSON, duplicate-key, closed-schema and resource-limit checks.
+Validation joins the already-parsed input against exact inventory IDs and an injected closed set of
+known operation IDs. Specification fixtures therefore use fixture-local IDs such as
+`constructor.fixture.scalar`, `predicate.fixture.range`, `neighbor.fixture.above-max` and
+`boundary.fixture.min-max`; they do not depend on Phase 5 implementations.
+
+Binding validation accepts the RD-01 declaration shape exactly:
+`{ id, kind, owner, contractVersion, binding: "bound" | "unbound" }`. Executable entries contain
+exactly `handlerId`, `kind`, `contractVersion`, `implementationRevision` and `implementation`.
+Duplicate declarations and bindings are rejected before map construction.
+
+Diagnostics use RFC 6901 JSON pointers. Model paths are rooted at `/rules`; binding paths are rooted
+at `/declarations` or `/bindings`. The Phase 1 closed codes are:
+
+| Code | Meaning |
+|---|---|
+| `model.input.invalid-json` | Input is not strict valid JSON |
+| `model.input.invalid-utf8` | Input is not strict UTF-8 |
+| `model.input.limit` | A byte, depth, string or collection limit is exceeded |
+| `model.schema.invalid` | Closed envelope, field, version or state shape is invalid |
+| `model.rule.missing` | An authoritative inventory rule has no entry |
+| `model.rule.duplicate` | A rule ID occurs more than once |
+| `model.rule.unknown` | An entry names no authoritative inventory rule |
+| `model.modeled.incomplete` | A modeled entry lacks a required canonical semantic fact |
+| `model.operation.unknown` | A modeled entry names an unavailable executable operation |
+| `binding.declaration.missing` | A binding has no declaration |
+| `binding.declaration.duplicate` | A declaration ID occurs more than once |
+| `binding.entry.duplicate` | A binding handler ID occurs more than once |
+| `binding.entry.kind` | Binding and declaration kinds differ |
+| `binding.entry.contract` | Binding and declaration contract versions differ |
+| `binding.entry.revision` | Implementation revision is not canonical or fresh |
+| `binding.candidate.state` | Candidate declaration is not `unbound` |
+| `binding.published.state` | Published binding targets an `unbound` declaration |
+| `binding.published.missing` | A `bound` declaration lacks exactly one binding |
+
+Phase 1 never constructs a trusted `PublishedSnapshot`. Candidate bindings remain unavailable to
+published lookup by type; runtime lookup behavior is completed with the opaque snapshot in Phase 7
+(AR-P16).
 
 `RuleModelReason`, operation IDs and spelling kinds are closed discriminated unions. The canonical
 manifest covers every current inventory rule exactly once and is stored in lexical rule-ID order.

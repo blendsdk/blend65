@@ -20,6 +20,13 @@ export { validateRuleGraph } from "./rule-graph.js";
 export { validateInventorySemantics } from "./semantic-validator.js";
 export { validateReviewEvidence } from "./review-evidence.js";
 export { computeInventoryReviewDigests, INVENTORY_REVIEW_UNIT_IDS } from "./review-digests.js";
+export {
+  getPublishedBinding,
+  validateCandidateBindings,
+  validatePublishedBindings,
+} from "./binding-validator.js";
+export { parseRuleModelRegistry, validateRuleModelRegistry } from "./rule-model-input.js";
+export { createExecutableOperationRegistry, isRuleModelId } from "./rule-model-registry.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -79,3 +86,45 @@ export type {
   VersionDispatchResult,
 } from "./versioning.js";
 export type { PublicationHooks } from "./atomic-writer.js";
+export type {
+  BindingDeclarationInput,
+  BindingValidationResult,
+  ExecutableBinding,
+  ExecutableBindingInput,
+  HandlerImplementation,
+  PublishedSnapshot,
+  ValidatedBindingRegistry,
+} from "./binding-model.js";
+export type {
+  BoundaryFamilyId,
+  ConstructionPrecondition,
+  ConstructorId,
+  InvalidContract,
+  ModelBindingDiagnostic,
+  ModelBindingDiagnosticCode,
+  ModelCitation,
+  ModeledRuleRecord,
+  NeighborId,
+  NonModeledRuleRecord,
+  PredicateId,
+  RuleId,
+  RuleModelEntryInput,
+  RuleModelInputLimits,
+  RuleModelReason,
+  RuleModelRegistry,
+  RuleModelRegistryInput,
+  RuleModelRegistryParseResult,
+  RuleModelRegistryResult,
+  RuleModelScalarType,
+  RuleModelStateCounts,
+  Sha256Digest,
+  SpellingKind,
+  TypedDomain,
+} from "./model-registry-model.js";
+export { RULE_MODEL_V1_LIMITS } from "./model-registry-model.js";
+export type {
+  ExecutableOperationRegistry,
+  ExecutableOperationRegistryResult,
+  ExecutableRuleModelOperation,
+  RuleModelOperationKind,
+} from "./rule-model-registry.js";

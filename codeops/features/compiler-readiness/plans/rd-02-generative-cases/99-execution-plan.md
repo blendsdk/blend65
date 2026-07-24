@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 15:55
-> **Progress**: 0/71 tasks (0%)
+> **Last Updated**: 2026-07-24 16:13 UTC
+> **Progress**: 10/71 tasks (14%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -37,21 +37,21 @@ unpublished until the final phase.
 
 ## Phase 1: Closed Contracts and Rule-Model Skeleton
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `b3ebf3ef92468f0d8762dcc0c7e03d8b5a767752`
 > **Lenses**: api-surface, security
 
 **Reference**: 03-01 · AR-P2, AR-P9, AR-P12 · ST-01–ST-03, ST-06–ST-07
 
-- [ ] 1.1.1 [spec-author] Write skeleton and binding specification tests — `packages/readiness/src/rule-model-registry.spec.test.ts`, `handler-bindings.spec.test.ts`
-- [ ] 1.1.2 Run Phase 1 spec tests and record expected RED for ST-01–ST-03, ST-06–ST-07
-- [ ] 1.2.1 Add closed model/binding types, diagnostics and limits — `model-registry-model.ts`, `binding-model.ts`
-- [ ] 1.2.2 Add bounded closed JSON model schema/parser — `readiness/schema/rule-models-v1.schema.json`, `rule-model-input.ts`
-- [ ] 1.2.3 Add exhaustive manifest skeleton for all inventory rules — `readiness/rule-models/rule-models-v1.json`
-- [ ] 1.2.4 Add executable-operation registry and model semantic validator — `rule-model-registry.ts`, `rule-model-validator.ts`
-- [ ] 1.2.5 Add candidate and published-state binding validators — `binding-validator.ts`
-- [ ] 1.2.6 Export stable public contracts and prove production import boundary — `index.ts`, `dependency-boundary.impl.test.ts`
-- [ ] 1.2.7 Run ST-01–ST-03 and ST-06–ST-07 GREEN; fix implementation only
-- [ ] 1.3.1 Add schema/validator/error-path implementation tests and full verify
+- [x] 1.1.1 [spec-author] Write skeleton and binding specification tests — `packages/readiness/src/rule-model-registry.spec.test.ts`, `handler-bindings.spec.test.ts` — completed 2026-07-24 15:05 UTC
+- [x] 1.1.2 Run Phase 1 spec tests and record expected RED for ST-01–ST-03, ST-06–ST-07 — completed 2026-07-24 15:06 UTC; both suites failed collection because production modules do not yet exist
+- [x] 1.2.1 Add closed model/binding types, diagnostics and limits — `model-registry-model.ts`, `binding-model.ts` — completed 2026-07-24 15:08 UTC
+- [x] 1.2.2 Add bounded closed JSON model schema/parser — `readiness/schema/rule-models-v1.schema.json`, `rule-model-input.ts` — completed 2026-07-24 15:11 UTC
+- [x] 1.2.3 Add exhaustive manifest skeleton for all inventory rules — `readiness/rule-models/rule-models-v1.json` — completed 2026-07-24 15:11 UTC
+- [x] 1.2.4 Add executable-operation registry and model semantic validator — `rule-model-registry.ts`, `rule-model-validator.ts` — completed 2026-07-24 15:14 UTC
+- [x] 1.2.5 Add candidate and published-state binding validators — `binding-validator.ts` — completed 2026-07-24 15:15 UTC
+- [x] 1.2.6 Export stable public contracts and prove production import boundary — `index.ts`, `dependency-boundary.impl.test.ts` — completed 2026-07-24 15:16 UTC
+- [x] 1.2.7 Run ST-01–ST-03 and ST-06–ST-07 GREEN; fix implementation only — completed 2026-07-24 15:29 UTC; 38/38 specification assertions pass
+- [x] 1.3.1 Add schema/validator/error-path implementation tests and full verify — completed 2026-07-24 16:13 UTC; 473 readiness tests and full repository verify pass; 95.67% readiness branch coverage; quality review resolved
 
 **Deliverable:** exhaustive non-vacuous model-state and binding foundation; no bound handlers.
 
