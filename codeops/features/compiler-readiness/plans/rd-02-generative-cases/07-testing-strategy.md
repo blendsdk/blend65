@@ -20,8 +20,8 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 |---|---|---|---|
 | ST-01 | Manifest contains every authoritative rule exactly once | Validation succeeds and reports exact modeled/unmodeled/not-generatable counts | RD-02 AC-2; 03-01 |
 | ST-02 | Remove, duplicate or add an unknown rule record | Deterministic validation failure naming the offending rule/path | RD-02 AC-2; AR-P2 |
-| ST-03 | A modeled record has no citation/predicate or an unknown operation ID | Registry is rejected before generation | RD-02 AC-2/3; 03-01 |
-| ST-04 | Initial subset query | Scalar types/expressions and all four memory intrinsics include literal/const/local/parameter models; totals are non-zero | RD-02 AC-3/6; AR-P1 |
+| ST-03 | A modeled record has a missing/mutated citation, precondition, typed domain, invalid contract, predicate or operation ID | Registry is rejected unless canonical facts and executable behavior agree | RD-02 AC-2/3; 03-01 |
+| ST-04 | Initial subset query plus accepted model-review record | Exact nine-rule seed set and exact per-rule contract/spelling matrix match digest-bound independent review evidence | RD-02 AC-3/6; AR-P1 |
 | ST-05 | Unmodeled/not-generatable rule requested by a campaign | No case is generated; RD-06 projection is `unmodeled` with reason retained | RD-02 AC-2; 03-01 |
 | ST-06 | Compatible implementation against one unbound declaration | Candidate validation succeeds but published lookup remains unavailable | RD-02 AC-10/13; AR-P9 |
 | ST-07 | Candidate/published matrix with undeclared, duplicate, kind/contract/revision mismatch and stale binding state | Each invalid state fails with its stable diagnostic | RD-02 AC-10/13; 03-01 |
@@ -50,6 +50,8 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 | ST-20 | Requested exact model/generator/transform/renderer revision is absent | `replay-incompatible` names it; current implementation is never called | RD-02 AC-5; AR-P6 |
 | ST-21 | Inject equal digest for unequal canonical preimages | Collision is rejected and neither case is accepted | RD-02 AC-5; AR-P5 |
 | ST-22 | Replay JSON has duplicate/unknown/oversize fields, unsupported IDs or path-like values | Rejected before generation/filesystem access | RD-02 AC-12; AR-P12 |
+| ST-34 | Handler dependency bytes change while claimed implementation revision remains fixed | Freshness validation rejects before candidate validation, replay or publication | RD-02 identity requirements; 03-01 |
+| ST-35 | Fresh-process replay has no ambient configuration, or carried configuration is missing/mismatched | Complete carried configuration replays; missing/mismatched content is explicitly incompatible | RD-02 AC-4/5; 03-03 |
 
 ### Rendering and round trip
 
@@ -60,6 +62,7 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 | ST-25 | Mutate one renderer precedence/parenthesis rule | At least one independent round-trip test fails | RD-02 AC-9; AR-P7 |
 | ST-26 | Source contains unsupported token/construct | Inverse returns bounded `roundtrip-unsupported`, never partial success | 03-04; AR-P7 |
 | ST-27 | Source exceeds byte limit after UTF-8 rendering | Fails before source is returned | RD-02 AC-8/12; AR-P11 |
+| ST-36 | Inverse imports renderer behavior, or a spec-derived token/literal/normalization/precedence vector is mutated | Static boundary or frozen-vector test fails | RD-02 AC-9; 03-04 |
 
 ### Binding publication and closeout
 
@@ -71,6 +74,10 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 | ST-31 | Member digest, symlink, traversal or non-regular pointer is injected | Resolver rejects before member consumption | RD-02 AC-12; AR-P12 |
 | ST-32 | Production module reads published member directly | Static boundary test fails; resolver is the only readiness-claim path | 03-05; AR-P10 |
 | ST-33 | Final selected publication | Three generators and boundary transform are bound; RD-03/RD-04 declarations remain unbound | RD-02 AC-10/11; AR-P14 |
+| ST-37 | Directory/pointer/manifest publication digests differ, or injected equal digest has unequal release bytes | Promotion rejects and the old pointer remains selected; byte-identical reuse is idempotent | RD-02 AC-13; 03-05 |
+| ST-38 | Pointer, manifest, binding, member-count, per-member or total-release size hits its limit then exceeds it | Limit succeeds; excess is rejected before allocation or hashing | RD-02 AC-12; 03-05 |
+| ST-39 | Raw authority reaches published lookup, or CLI command crosses the authoring/claim boundary | Opaque capability is required; generate is non-authoritative, check resolves selected release, publish uses lock/protocol | RD-02 AC-10/13; 03-05 |
+| ST-40 | Staged binding digest lacks accepted matching independent review, or real pointer is selected before staged suite passes | Publication is blocked; accepted evidence and complete staging suite precede the sole pointer commit | RD-02 AC-13; 03-05 |
 
 ## Test Files
 
@@ -81,9 +88,10 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 | `generator-ir.spec.test.ts` | ST-08–ST-11 |
 | `generation-budget.spec.test.ts` | ST-12–ST-14 |
 | `case-identity.spec.test.ts` | ST-15–ST-16, ST-18–ST-21 |
-| `replay.spec.test.ts` | ST-17, ST-20, ST-22 |
-| `renderer-roundtrip.spec.test.ts` | ST-23–ST-27 |
-| `binding-publication.spec.test.ts` | ST-28–ST-33 |
+| `handler-revision.spec.test.ts` | ST-34 |
+| `replay.spec.test.ts` | ST-17, ST-20, ST-22, ST-35 |
+| `renderer-roundtrip.spec.test.ts` | ST-23–ST-27, ST-36 |
+| `binding-publication.spec.test.ts` | ST-28–ST-33, ST-37–ST-40 |
 
 Implementation tests use matching `*.impl.test.ts` files split by parser/schema internals,
 canonicalization, budget accounting, error paths and crash recovery.
@@ -92,6 +100,8 @@ canonicalization, budget accounting, error paths and crash recovery.
 
 - Fresh-process replay uses a small checked-in child entrypoint and real filesystem isolation.
 - Publication crash tests use child processes and the real pointer resolver.
+- Publication durability tests inject each sync/rename failure boundary and use a capability probe
+  to skip only with the typed unsupported result on platforms lacking directory synchronization.
 - No compiler package is imported or invoked in RD-02 tests.
 - Final checks: `yarn readiness:generate`, `yarn readiness:check`, readiness coverage, full verify,
   traceability readiness, Markdown links, Prettier, and `git status --porcelain spec/`.

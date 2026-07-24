@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-24 15:55
-> **Progress**: 0/64 tasks (0%)
+> **Progress**: 0/71 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -20,13 +20,13 @@ unpublished until the final phase.
 |---|---|---:|
 | 1 | Closed contracts and exhaustive rule-model skeleton | 10 |
 | 2 | Independent IR, neighbors and structural budgets | 9 |
-| 3 | Canonical identity and path-local deterministic choices | 9 |
-| 4 | Deterministic renderer and independent round trip | 9 |
-| 5 | Generators, boundary transform and modeled semantic slice | 9 |
+| 3 | Canonical identity and path-local deterministic choices | 10 |
+| 4 | Deterministic renderer and independent round trip | 10 |
+| 5 | Generators, boundary transform and modeled semantic slice | 10 |
 | 6 | Campaign composition and exact replay | 8 |
-| 7 | Atomic binding publication and closeout | 10 |
+| 7 | Atomic binding publication and closeout | 14 |
 
-**Total: 64 tasks across 7 phases**
+**Total: 71 tasks across 7 phases**
 
 > **⚠️ EXECUTION RULE — APPLIES TO EVERY AGENT EXECUTING THIS PLAN:**
 >
@@ -40,17 +40,17 @@ unpublished until the final phase.
 > **Phase baseline tree**: _(recorded by exec-plan)_
 > **Lenses**: api-surface, security
 
-**Reference**: 03-01 · AR-P2, AR-P9, AR-P12 · ST-01–ST-07
+**Reference**: 03-01 · AR-P2, AR-P9, AR-P12 · ST-01–ST-03, ST-06–ST-07
 
-- [ ] 1.1.1 [spec-author] Write rule-model and binding specification tests — `packages/readiness/src/rule-model-registry.spec.test.ts`, `handler-bindings.spec.test.ts`
-- [ ] 1.1.2 Run Phase 1 spec tests and record expected RED for ST-01–ST-07
+- [ ] 1.1.1 [spec-author] Write skeleton and binding specification tests — `packages/readiness/src/rule-model-registry.spec.test.ts`, `handler-bindings.spec.test.ts`
+- [ ] 1.1.2 Run Phase 1 spec tests and record expected RED for ST-01–ST-03, ST-06–ST-07
 - [ ] 1.2.1 Add closed model/binding types, diagnostics and limits — `model-registry-model.ts`, `binding-model.ts`
 - [ ] 1.2.2 Add bounded closed JSON model schema/parser — `readiness/schema/rule-models-v1.schema.json`, `rule-model-input.ts`
 - [ ] 1.2.3 Add exhaustive manifest skeleton for all inventory rules — `readiness/rule-models/rule-models-v1.json`
 - [ ] 1.2.4 Add executable-operation registry and model semantic validator — `rule-model-registry.ts`, `rule-model-validator.ts`
 - [ ] 1.2.5 Add candidate and published-state binding validators — `binding-validator.ts`
 - [ ] 1.2.6 Export stable public contracts and prove production import boundary — `index.ts`, `dependency-boundary.impl.test.ts`
-- [ ] 1.2.7 Run ST-01–ST-07 GREEN; fix implementation only
+- [ ] 1.2.7 Run ST-01–ST-03 and ST-06–ST-07 GREEN; fix implementation only
 - [ ] 1.3.1 Add schema/validator/error-path implementation tests and full verify
 
 **Deliverable:** exhaustive non-vacuous model-state and binding foundation; no bound handlers.
@@ -83,7 +83,7 @@ unpublished until the final phase.
 > **Phase baseline tree**: _(recorded by exec-plan)_
 > **Lenses**: security, perf, api-surface
 
-**Reference**: 03-03 · AR-P4–AR-P6, AR-P12 · ST-15–ST-22 excluding fresh-process ST-17
+**Reference**: 03-03 · AR-P4–AR-P6, AR-P12 · ST-15–ST-22 excluding fresh-process ST-17, plus ST-34
 
 - [ ] 3.1.1 [spec-author] Write identity/counter/input specification tests — `case-identity.spec.test.ts`, replay input cases in `replay.spec.test.ts`
 - [ ] 3.1.2 Run Phase 3 spec tests and record expected RED
@@ -91,7 +91,8 @@ unpublished until the final phase.
 - [ ] 3.2.2 Implement SHA-256 counter draws and unbiased bounded integers — `deterministic-choice.ts`
 - [ ] 3.2.3 Implement configuration, campaign and case digest derivation/collision checks — `case-identity.ts`
 - [ ] 3.2.4 Implement bounded replay envelope parser and exact revision resolver contracts — `replay-input.ts`, `revision-registry.ts`
-- [ ] 3.2.5 Run Phase 3 ST cases GREEN; fix implementation only
+- [ ] 3.2.5 Implement canonical handler dependency digests and freshness gate — `implementation-revision.ts`, generated revision metadata
+- [ ] 3.2.6 Run Phase 3 ST cases including ST-34 GREEN; fix implementation only
 - [ ] 3.3.1 Add canonicalization/vector/collision/path-stability implementation tests
 - [ ] 3.3.2 Run coverage, Prettier and full verify
 
@@ -104,7 +105,7 @@ unpublished until the final phase.
 > **Phase baseline tree**: _(recorded by exec-plan)_
 > **Lenses**: correctness, api-surface
 
-**Reference**: 03-04 · AR-P7, AR-P11 · ST-23–ST-27
+**Reference**: 03-04 · AR-P7, AR-P11 · ST-23–ST-27, ST-36
 
 - [ ] 4.1.1 [spec-author] Write renderer/round-trip specification tests — `renderer-roundtrip.spec.test.ts`
 - [ ] 4.1.2 Run Phase 4 spec tests and record expected RED
@@ -113,7 +114,8 @@ unpublished until the final phase.
 - [ ] 4.2.3 Implement independent bounded tokenizer — `roundtrip-tokenizer.ts`
 - [ ] 4.2.4 Implement independent Pratt projection parser/normalizer — `roundtrip-parser.ts`, `roundtrip-model.ts`
 - [ ] 4.2.5 Implement projection equality and bounded mismatch diagnostics — `roundtrip-validator.ts`
-- [ ] 4.2.6 Run ST-23–ST-27 GREEN; fix implementation only
+- [ ] 4.2.6 Add inverse module-graph gate and frozen spec-derived vectors — `roundtrip-boundary.impl.test.ts`
+- [ ] 4.2.7 Run ST-23–ST-27 and ST-36 GREEN; fix implementation only
 - [ ] 4.3.1 Add mutation/error-path implementation tests, coverage and full verify
 
 **Deliverable:** source bytes independently checked for structural fidelity.
@@ -129,12 +131,13 @@ unpublished until the final phase.
 
 - [ ] 5.1.1 [spec-author] Extend model/generator specification tests with the exact scalar-memory subset and spelling matrix
 - [ ] 5.1.2 Run Phase 5 spec tests and record expected RED
-- [ ] 5.2.1 Author independently reviewed modeled manifest records/citations — `readiness/rule-models/rule-models-v1.json`
-- [ ] 5.2.2 Implement scalar/module/function constructors and predicates — `scalar-rule-models.ts`
-- [ ] 5.2.3 Implement memory-intrinsic constructors, predicates and neighbors — `memory-rule-models.ts`
-- [ ] 5.2.4 Implement frontend/compiler/runtime generator entrypoints — `generators.ts`
-- [ ] 5.2.5 Bind executable boundary-transform implementation in candidate registry — `bindings.ts`
-- [ ] 5.2.6 Run Phase 5 ST matrix GREEN, including ordinary local/parameter memory operands
+- [ ] 5.2.1 Author exact nine-rule seed contract and modeled manifest facts/citations — `readiness/rule-models/rule-models-v1.json`
+- [ ] 5.2.2 [semantics-reviewer] Independently review seed/manifest semantics and record digest-bound evidence — `readiness/reviews/rule-models-v1-review.json`
+- [ ] 5.2.3 Implement scalar/module/function constructors and predicates — `scalar-rule-models.ts`
+- [ ] 5.2.4 Implement memory-intrinsic constructors, predicates and neighbors — `memory-rule-models.ts`
+- [ ] 5.2.5 Implement frontend/compiler/runtime generator entrypoints — `generators.ts`
+- [ ] 5.2.6 Bind executable boundary-transform implementation in candidate registry — `bindings.ts`
+- [ ] 5.2.7 Run Phase 5 ST matrix GREEN, including exact ST-04 equality and ordinary local/parameter memory operands
 - [ ] 5.3.1 Add distribution/deduplication/model-invariant implementation tests, review and full verify
 
 **Deliverable:** first meaningful modeled generator slice; bindings remain candidate-only.
@@ -146,7 +149,7 @@ unpublished until the final phase.
 > **Phase baseline tree**: _(recorded by exec-plan)_
 > **Lenses**: security, perf, concurrency
 
-**Reference**: 03-02, 03-03, 03-04 · AR-P4–AR-P8, AR-P11–AR-P12 · ST-15–ST-27
+**Reference**: 03-02, 03-03, 03-04 · AR-P4–AR-P8, AR-P11–AR-P12 · ST-15–ST-27, ST-35
 
 - [ ] 6.1.1 [spec-author] Write end-to-end campaign/fresh-process replay specification cases including ST-17
 - [ ] 6.1.2 Run Phase 6 spec tests and record expected RED
@@ -166,18 +169,22 @@ unpublished until the final phase.
 > **Phase baseline tree**: _(recorded by exec-plan)_
 > **Lenses**: concurrency, security, api-surface
 
-**Reference**: 03-05 · AR-P9, AR-P10, AR-P12–AR-P14 · ST-28–ST-33
+**Reference**: 03-05 · AR-P9, AR-P10, AR-P12–AR-P14 · ST-28–ST-33, ST-37–ST-40
 
-- [ ] 7.1.1 [spec-author] Write publication, crash and resolver-boundary specification tests — `binding-publication.spec.test.ts`
+- [ ] 7.1.1 [spec-author] Write publication, durability, collision, CLI and resolver-capability specification tests — `binding-publication.spec.test.ts`
 - [ ] 7.1.2 Run Phase 7 spec tests and record expected RED
 - [ ] 7.2.1 Implement release manifest/schema and digest-verified resolver — `publication-model.ts`, `publication-resolver.ts`
 - [ ] 7.2.2 Implement staged release builder under generation lock — `binding-publication.ts`
 - [ ] 7.2.3 Implement atomic pointer commit and crash recovery — `publication-pointer.ts`
-- [ ] 7.2.4 Route published readiness loads through resolver and add direct-read boundary gate — `authority-loader.ts`, `dependency-boundary.impl.test.ts`
-- [ ] 7.2.5 Stage four RD-02 declaration bindings, refresh review evidence/projections, validate release
-- [ ] 7.2.6 Atomically publish final snapshot; run ST-28–ST-33 GREEN
-- [ ] 7.3.1 Add concurrency/symlink/crash/digest implementation tests and full readiness coverage
-- [ ] 7.3.2 Run generate/check/full verify, deferral-expiry review, traceability/roadmap/docs closeout
+- [ ] 7.2.4 Migrate generate/check and add guarded publish API/CLI/root script/documentation — `cli.ts`, CLI tests, `package.json`, `readiness/README.md`
+- [ ] 7.2.5 Route claims through opaque `PublishedSnapshot` and add direct-read boundary gate — `authority-loader.ts`, `dependency-boundary.impl.test.ts`
+- [ ] 7.2.6 Stage four RD-02 declaration bindings and compute semantic digests; do not select the pointer
+- [ ] 7.2.7 [semantics-reviewer] Independently review staged semantic changes and record accepted digest-bound evidence
+- [ ] 7.2.8 Refresh projections and published-state-validate the complete staged release
+- [ ] 7.2.9 Run ST-01–ST-40 GREEN against an isolated resolver selecting the staged digest
+- [ ] 7.2.10 Add concurrency/symlink/crash/digest implementation tests and full readiness coverage against staging
+- [ ] 7.2.11 Atomically publish only the already-proven digest, then verify the selected snapshot
+- [ ] 7.3.1 Run source-check/generate/check/full verify, deferral-expiry review, traceability/roadmap/docs closeout
 
 **Deliverable:** four RD-02 handlers bound and visible only as a complete validated publication.
 
@@ -191,8 +198,8 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
 
 ## Success Criteria
 
-1. All 64 tasks verified and the full command passes.
-2. All ST-01–ST-33 expectations pass without modification.
+1. All 71 tasks verified and the full command passes.
+2. All ST-01–ST-40 expectations pass without modification.
 3. No `@blend65/*` production dependency enters the independent generation surface.
 4. `spec/` remains untouched.
 5. Readiness package branch coverage remains at least 90%.

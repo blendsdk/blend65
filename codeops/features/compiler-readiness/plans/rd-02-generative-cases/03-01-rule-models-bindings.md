@@ -20,6 +20,9 @@ type RuleModelState =
 interface ModeledRuleRecord {
   readonly ruleId: RuleId;
   readonly citations: readonly ModelCitation[];
+  readonly constructionPreconditions: readonly ConstructionPrecondition[];
+  readonly typedDomains: readonly TypedDomain[];
+  readonly invalidContracts: readonly InvalidContract[];
   readonly constructorIds: readonly ConstructorId[];
   readonly predicateIds: readonly PredicateId[];
   readonly neighborIds: readonly NeighborId[];
@@ -38,8 +41,11 @@ interface ExecutableBinding<TImplementation> {
 
 `RuleModelReason`, operation IDs and spelling kinds are closed discriminated unions. The canonical
 manifest covers every current inventory rule exactly once and is stored in lexical rule-ID order.
-Modeled records require at least one source citation and one executable predicate. Non-modeled
-states project to RD-06 `unmodeled` while retaining their distinct reason code.
+Modeled records require at least one source citation, one closed construction precondition, one
+typed domain and one executable predicate. Each invalid contract names its expected diagnostic
+family. Validation evaluates executable operations against these canonical facts; matching IDs
+alone never establishes modeled coverage. Non-modeled states project to RD-06 `unmodeled` while
+retaining their distinct reason code.
 
 ## Executable registry
 
@@ -51,6 +57,13 @@ generated closed IDs. Loading performs three linear joins:
 3. handler declarations ↔ executable handler bindings.
 
 No operation may inspect requirement prose, compiler types or compiler output.
+
+`implementationRevision` is derived, not supplied. The domain tag
+`blend65-handler-implementation-v1` covers canonical LF-normalized UTF-8 bytes of the handler entry
+module and its complete transitive production-module dependency set, each preceded by its
+repository-relative path and byte length in lexical path order. Generated revision metadata and a
+freshness gate reject changed, missing or extra dependency bytes before candidate validation,
+replay or publication.
 
 ## Binding state machines
 
@@ -72,11 +85,28 @@ No operation may inspect requirement prose, compiler types or compiler output.
 
 ## First modeled subset
 
-The manifest models only the cited rules needed for primitive scalar types, literal/const/local/
-parameter expressions, minimal module/functions, arithmetic/comparison grouping and the four
-memory intrinsics. It includes runtime/computed address operands because the specification permits
-them; current compiler rejection is evidence to be found later, not a generator constraint
-(AR-P1).
+The initial modeled set is exactly these nine inventory rules. Every other rule remains explicitly
+`unmodeled` or `not-generatable`; adding a rule requires an amended seed contract and new accepted
+review evidence.
+
+| Concern | Exact rule IDs |
+|---|---|
+| Scalar value domains | `rule.ch02.2-primitive-types.byte.range.0-255`; `rule.ch02.2-primitive-types.sbyte.range.128-127`; `rule.ch02.2-primitive-types.word.range.0-65535`; `rule.ch02.2-primitive-types.sword.range.32768-32767`; `rule.ch02.2-primitive-types.boolean.range.true` |
+| Memory signatures | `rule.ch12.3-1-memory-access.peek-addr.signature.word`; `rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte`; `rule.ch12.3-1-memory-access.peekw-addr.signature.word`; `rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word` |
+
+Each scalar rule carries its exact domain, boundary family, literal/const/local/parameter
+constructors, range/type predicate and nearest-invalid neighbors. Each memory rule carries its
+exact parameter/return types, literal/const/local/parameter address spellings, value spellings
+where applicable, and wrong-type/wrong-arity invalid contracts. Runtime/computed address operands
+are mandatory model-valid constructor variants because the specification permits them; current
+compiler rejection is evidence to be found later, not a generator constraint (AR-P1).
+Arithmetic/comparison expressions and module/function scaffolding are IR composition machinery,
+not extra modeled-coverage claims.
+
+Before generator implementation, a separate semantics reviewer records the exact seed-contract and
+manifest digests, reviewer identity, disposition and citations in
+`readiness/reviews/rule-models-v1-review.json`. Candidate validation requires accepted,
+digest-matching evidence; any model-fact or manifest change invalidates it.
 
 ## Error handling
 
@@ -92,5 +122,7 @@ them; current compiler rejection is evidence to be found later, not a generator 
 
 - Exhaustive 2,112-rule coverage and non-vacuity.
 - One-to-one executable operation joins.
+- Exact equality with the nine-rule seed set and per-rule contract/spelling matrix.
+- Manifest-fact mutation and implementation-revision freshness failures.
 - Candidate/published state matrix.
 - Dependency boundary across every new production file.

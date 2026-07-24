@@ -30,7 +30,7 @@
 
 | Decision | Chosen | AR Ref |
 |---|---|---|
-| First modeled subset | Scalar kernel plus ordinary memory-intrinsic spellings | AR-P1 |
+| First modeled subset | Exact nine-rule scalar-domain and memory-signature seed in 03-01 | AR-P1 |
 | Registry split | Canonical JSON facts plus executable TypeScript table | AR-P2 |
 | Deterministic selection | SHA-256 counter generation | AR-P4 |
 | Publication | Content-addressed snapshot pointer | AR-P10 |
@@ -39,6 +39,12 @@
 
 - The modeled subset includes ordinary local and parameter address/value operands for memory
   intrinsics even when the current compiler rejects them (AR-P1).
+- Canonical model facts and accepted independent review evidence match the exact seed and manifest
+  digests; executable IDs alone cannot establish coverage.
+- Handler implementation revisions are freshly derived from complete production dependency bytes.
+- Replay carries and verifies normalized configuration content, not only its digest.
 - No final handler declaration becomes `bound` until every RD-02 specification test passes and the
   staged publication validates as one snapshot (AR-P10, AR-P14).
+- Published claims require a resolver-produced opaque snapshot; authoring commands cannot bypass
+  the selected release, and future promotions reuse the guarded handler-agnostic publisher.
 - All other rules remain explicit and cannot count as generated coverage (AR-P2).

@@ -2071,11 +2071,11 @@
         }
       ],
       "evidence": [
-        "summary:Zero-Ambiguity Gate passed; 33 requirements-derived specification cases and 64 execution tasks are grounded in approved RD-02.",
-        "summary:Zero-Ambiguity Gate passed; 33 specification cases and 64 tasks ground RD-02."
+        "summary:Zero-Ambiguity Gate and plan preflight passed; 40 requirements-derived specification cases and 71 execution tasks are grounded in approved RD-02.",
+        "summary:Plan preflight resolved 12 major findings before execution."
       ],
       "id": "PLAN-RD-02",
-      "revision": "sha256:dfd543cf9867b6a3edd1b225fea1e6add7a6d716d3bb14dd2a36b77a080c5c0b",
+      "revision": "sha256:992410ea7325788983488442b2bb1fbdbef0e944c52e8d0f6b2a13357a4a3c0e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2095,14 +2095,14 @@
           "relation": "depends-on",
           "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
           "upstream": "compiler-readiness/RD-02",
-          "validatedAt": "2026-07-24T15:55:00Z"
+          "validatedAt": "2026-07-24T18:30:00Z"
         }
       ]
     },
     {
       "edges": [],
       "id": "TASK-RD-02-P1",
-      "revision": "sha256:225020706aeaf49eb8b15a553af4e1a1d1984debfba9ba072ac94a8553b5aace",
+      "revision": "sha256:9041bf34064214dcd6fb54a4e0e278c65d1751a19d4533a6a7e0934d961724c9",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2142,7 +2142,7 @@
     {
       "edges": [],
       "id": "TASK-RD-02-P3",
-      "revision": "sha256:5af63eba70315c7ab81a89bd92d63b664e79afa12b19d8bc8d8f110bbf7a95f2",
+      "revision": "sha256:2d0b9dd79ce18954dbdfc359e51fb870144d5dc74e2ad271a9fc27944ede76eb",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2162,7 +2162,7 @@
     {
       "edges": [],
       "id": "TASK-RD-02-P4",
-      "revision": "sha256:a5d3672c516835f4ce66c1ac0ad5120db17bb0fd06e4a5aacc3db15c22cb8363",
+      "revision": "sha256:fc60c76f09d73736873dc39d4841b4c46a03d6db9ffcd69a5c9b9503317ddfda",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2182,7 +2182,7 @@
     {
       "edges": [],
       "id": "TASK-RD-02-P5",
-      "revision": "sha256:0681085a45bbf700a912398ab2077d09ed00122ad98f19c563495d66284b7164",
+      "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2202,7 +2202,7 @@
     {
       "edges": [],
       "id": "TASK-RD-02-P6",
-      "revision": "sha256:c1f21b6768c5d8e304483232390f46d96697a9c4f749a9f7a3ef30c085c9b214",
+      "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2222,7 +2222,7 @@
     {
       "edges": [],
       "id": "TASK-RD-02-P7",
-      "revision": "sha256:5780d25bb1677a257e1f9fe3125717bc1062e4696e2586e12e90c7bf0bd65f0a",
+      "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
       "semanticSources": [
         {
           "digest": "sha256",

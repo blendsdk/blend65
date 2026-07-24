@@ -44,10 +44,13 @@ type ReplayResult =
   | { readonly ok: false; readonly kind: "replay-invalid"; readonly diagnostics: readonly ReplayDiagnostic[] };
 ```
 
-Replay resolves every exact digest/revision before generation. Any missing component returns
-`replay-incompatible`; it never substitutes current implementations or emits partial source
-(AR-P6). Bulk cases remain ephemeral; identity records are enough to reconstruct them under the
-current supported revision.
+The replay envelope carries the complete closed normalized generation configuration as well as the
+identities and path/ordinal. Replay verifies its bytes against the configuration digest, then
+resolves every exact digest/revision before generation. Any missing component, missing
+configuration or digest/content mismatch returns `replay-incompatible`; it never substitutes
+current implementations, consults ambient process configuration or emits partial source (AR-P6).
+Bulk cases remain ephemeral; identity plus digest-verified configuration reconstructs them under
+the current supported revision.
 
 ## Input safety
 
@@ -63,3 +66,5 @@ joined to a host path (AR-P12).
 - Path-local stability when unrelated branches are inserted.
 - Collision fixture with injected digest function.
 - Missing exact revision with no fallback calls.
+- Fresh-process replay with no ambient campaign configuration.
+- Missing configuration and configuration digest/content mismatch.

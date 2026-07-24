@@ -28,6 +28,11 @@ spelling class and operator grouping.
 ignore whitespace, numeric-base surface spelling where the case does not select that spelling, and
 redundant parentheses. It may not reorder, fold, rename or infer semantics.
 
+A static module-graph gate forbids tokenizer/parser/normalizer production files from importing
+renderer modules, renderer tables or formatting helpers. Only neutral IR types and token-kind
+discriminators may cross the boundary. Frozen, spec-derived vectors cover every emitted token,
+literal spelling, normalization rule, precedence level and associativity class.
+
 ## Mutation contract
 
 The tests inject renderer operator-precedence and parenthesis-policy tables through test-only
