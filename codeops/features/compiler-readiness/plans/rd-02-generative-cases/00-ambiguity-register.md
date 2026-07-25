@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-02 Typed Generative Cases and Deterministic Replay
 
-> **Status**: ✅ GATE PASSED — all 25 items resolved
-> **Last Updated**: 2026-07-25 01:15 UTC
+> **Status**: ✅ GATE PASSED — all 29 items resolved
+> **Last Updated**: 2026-07-25 02:42 UTC
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd02-20260724-01`
 > **Policy version**: 1
@@ -35,6 +35,10 @@
 | AR-P23 | Phase 4 runtime contract | Which exact renderer, inverse, conformance and diagnostic shapes may immutable Phase 4 tests target without making the oracle circular? | Use the complete closed contract in 03-04. Production exports expose named render/project/parse/validate operations and passive result/projection types. A non-package-exported versioned conformance seam owns only policy mutation and pure module-graph validation. The immutable spec suite owns the expected token, spelling, normalization and precedence vectors; production never exports a normative syntax catalog for tests to echo. Explicit literal spellings are a renderer option keyed by validated expression JSON pointers, so the Phase 2 IR remains unchanged. | AI delegated by accepted `--auto-design`; runtime spec-author blocker resolved after independent challenge | ✅ Resolved |
 | AR-P24 | Phase 4 semantic remediation | Which facts can the syntax round trip honestly preserve after review exposed non-injective IR-to-source mappings? | Preserve source-observable structure and declaration types, not unobservable recursive expression type annotations. Emit boolean IR values as `true`/`false`; prohibit numeric spelling overrides for them. Distinguish explicit unary-minus literals with grouping, while an ungrouped sign remains a signed literal. Reject lexical keywords before rendering, snapshot hostile options under guarded own-data inspection, scan static and dynamic inverse imports, and limit mutation claims to the eight binary precedence rows, binary associativity and required-parenthesis decisions the seam can actually perturb. | AI delegated by accepted `--auto-design`; Phase 4 correctness and semantics review remediation | ✅ Resolved |
 | AR-P25 | Phase 4 authorized remediation | How are the surviving composition and syntax-only inverse findings closed after the automatic review loop is exhausted? | Prepare one immutable module/options snapshot and share it across render, project and validate. Discriminate boolean and integer literal projections. Parse void-value returns and unresolved assignments structurally, dispatch `poke`/`pokew` as intrinsics only before `(`, and AST-walk all static/dynamic imports while rejecting non-literal dynamic targets. Retain the frozen inverse token-vector acceptance of keyword-shaped module segments as an explicit parser superset; the renderer still rejects them as non-emittable Blend65 source. | **Authorized by user 2026-07-25, including a third remediation pass if needed** | ✅ Resolved |
+| AR-P26 | Phase 5 runtime API | Which exact callable boundary lets immutable tests observe reviewed seed authority and typed generation without merging rule-model and handler identities? | Validate injected seed-contract, rule-model and review-evidence bytes plus inventory authority into an opaque `ModeledGeneratorSuite`. Stateless typed constructor/predicate/neighbor operations and the three generator handlers take the suite explicitly. The suite exposes lexical modeled domains; the five scalar rules route to frontend, the four memory rules to runtime, and compiler has a deliberate zero-direct-domain composition route. Four exact stateless callables become candidate bindings at contract `1.0.0`; candidate validation creates no published capability. | AI delegated by accepted `--auto-design`; runtime spec-author blocker; independent challenger recommended the typed capability-injected suite | ✅ Resolved |
+| AR-P27 | Phase 5 invalid-case representation | How can wrong-arity and wrong-type memory neighbors exist without corrupting the valid-only typed IR contract? | Keep `GenModule` valid-only. An invalid case is a validated baseline plus exactly one closed `InvalidSourceTransform` that inserts, removes or replaces one intrinsic argument at a canonical call path. Predicates independently derive effective arity/types from the projected call and prove only the named contract flips. Invalid rendering applies the descriptor structurally at the argument-list seam and uses its own frozen vectors; it never passes through the valid round-trip oracle or edits rendered strings. | AI delegated by accepted `--auto-design`; runtime impossibility found before test authoring; independent challenger selected the narrow delta model | ✅ Resolved |
+| AR-P28 | Phase 5 scalar neighbors | How can reviewed scalar nearest-invalid neighbors execute without weakening valid typed literals? | Keep the baseline IR valid and use one closed `scalar-expression-replace` descriptor containing only the canonical integer literal immediately outside the numeric range, or integer zero for boolean wrong-type. Parameter cases use a distinct `parameter-binding-replace` descriptor. Resolve and apply the path against the full semantic case, then independently prove only the named scalar predicate flips. | AI delegated by accepted `--auto-design`; independent challenger selected the narrow source/binding delta | ✅ Resolved |
+| AR-P29 | Phase 5 parameter boundaries | How do parameter-spelling min/max cases remain distinct when the independent IR has no call expression? | Store one immutable external parameter binding keyed by the canonical parameter declaration path and exact chosen value. Identical function source is allowed; case metadata and replay identity are not identical. Phase 6 must reproduce the binding, and compilation alone cannot claim that the parameter value executed. | AI delegated by accepted `--auto-design`; independent challenger rejected reopening Phase 4 call IR | ✅ Resolved |
 
 ## Delegated Resolution Provenance
 
@@ -125,6 +129,64 @@ testing or sequencing decisions within the approved RD-02 behavior and scope.
 - **Frozen-oracle constraint:** the specification vector explicitly accepts `module token.const;`.
   The inverse therefore retains that conformance superset while production rendering rejects
   keyword identifiers. No specification test was modified.
+
+### AR-P26–AR-P27 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal API, immutable test seam,
+  data validation and invalid-case representation within approved RD-02 scope. No product
+  behavior, frozen-spec rule, publication, compatibility promise or external action changes.
+- **Objective:** make the exact nine-rule generator slice independently testable while preserving
+  separate replay identities and the valid-only meaning of `GenModule`.
+- **Evidence:** the Phase 5 spec author could not observe reviewed seed authority through existing
+  generic validators; operation and binding registries erase callable signatures; replay resolves
+  rule-model and implementation revisions separately; `GenMemoryReadExpression` and
+  `GenMemoryWriteStatement` encode correct arity while semantic IR validation rejects wrong types.
+- **Decision:** an injected-byte factory returns an opaque suite; stateless typed handlers receive
+  that suite explicitly. Invalid signatures are one structural argument-list delta over a valid
+  baseline, not invalid nodes in the main IR.
+- **Rejected alternatives:** a closure-based facade hides model state behind the implementation
+  revision; direct raw tables make accepted review optional; the generic operation registry loses
+  type safety; widening the main IR forces every valid consumer to handle malformed nodes; a
+  second invalid IR/renderer duplicates precedence and scaffolding.
+- **Strongest counterargument:** the explicit suite and wider invalid-case projection add more
+  named contracts and a second predicate seam. This is narrower than merging replay identities or
+  duplicating the IR, and keeps each proof boundary observable.
+- **Confidence:** High — reopen if replay intentionally merges rule-model and handler identities,
+  or if a required invalid contract cannot be expressed as one intrinsic argument-list delta.
+- **Hardening:** an independent challenger proposed the adopted typed suite as a stronger fourth
+  option, then separately converged on the structural invalid-source transform.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P28–AR-P29 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; invalid-case representation and
+  generator metadata inside the already approved exact nine-rule slice. No frozen specification,
+  product scope, publication or external compatibility promise changes.
+- **Objective:** make every reviewed scalar neighbor executable and keep parameter boundary
+  choices semantically distinct without weakening valid generator IR or reopening the Phase 4
+  source grammar.
+- **Evidence:** the accepted seed advertises numeric below/above and boolean wrong-type neighbors;
+  valid typed literals reject those values; function parameters carry types but the independent IR
+  has no call expression; Phase 6 owns composition and exact replay.
+- **Decision:** non-parameter scalar invalid cases use one closed
+  `scalar-expression-replace` source descriptor over a valid baseline; parameter invalid cases use
+  the sibling `parameter-binding-replace` descriptor. Numeric replacements are exactly
+  minimum-minus-one or maximum-plus-one; boolean wrong-type is canonical integer zero. Valid
+  parameter cases retain one immutable `parameterBindings` value keyed by the canonical parameter
+  path; source may match while semantic case metadata and later replay do not.
+- **Rejected alternatives:** removing scalar neighbors or parameter cross-products contradicts the
+  accepted seed and requires renewed review; invalid typed IR nodes weaken every valid consumer;
+  adding call IR now reopens the closed renderer, inverse and budget vectors; a general invalid
+  expression mini-IR creates a second shadow language.
+- **Strongest counterargument:** parameter boundary source bytes remain identical. That is correct:
+  the boundary is an invocation value, and it cannot count as executed evidence until a later
+  adapter consumes the binding.
+- **Confidence / hardening:** High. An independent challenger selected each design after comparing
+  the viable alternatives. Reopen if Phase 6 cannot replay bindings exactly or if invalid rendering
+  cannot resolve the canonical scalar-expression path.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
 
 ## Systematic Gate Scan
 

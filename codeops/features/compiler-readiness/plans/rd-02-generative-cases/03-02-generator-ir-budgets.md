@@ -154,6 +154,239 @@ Invalid input paths root at `/baseline`, `/operation` or `/predicates`. A zero/m
 predicate flip reports `neighbor-invalid` at `/predicates`; a missing target reports it at
 `/operation/targetPredicateId`.
 
+### Modeled case construction
+
+The valid `GenModule` contract remains valid-only. Invalid memory signatures and scalar nearest
+neighbors therefore use one closed structural delta over a valid baseline instead of weakening the
+IR or editing rendered text.
+
+```ts
+type InvalidSourceTransform =
+  | {
+      readonly kind: "intrinsic-argument-remove";
+      readonly callPath: string;
+      readonly argumentIndex: number;
+    }
+  | {
+      readonly kind: "intrinsic-argument-insert";
+      readonly callPath: string;
+      readonly argumentIndex: number;
+      readonly argument: GenExpression;
+    }
+  | {
+      readonly kind: "intrinsic-argument-replace";
+      readonly callPath: string;
+      readonly argumentIndex: number;
+      readonly argument: GenExpression;
+    }
+  | {
+      readonly kind: "scalar-expression-replace";
+      readonly expressionPath: string;
+      readonly replacement: {
+        readonly kind: "integer-literal";
+        readonly value: bigint;
+      };
+    }
+  | {
+      readonly kind: "parameter-binding-replace";
+      readonly parameterPath: string;
+      readonly replacement: {
+        readonly kind: "integer-literal";
+        readonly value: bigint;
+      };
+    };
+
+type GeneratedCaseProjection =
+  | { readonly kind: "valid"; readonly module: GenModule }
+  | {
+      readonly kind: "invalid";
+      readonly baseline: GenModule;
+      readonly transform: InvalidSourceTransform;
+    };
+
+interface NamedCasePredicate {
+  readonly predicateId: string;
+  readonly evaluate: (generatedCase: GeneratedModeledCase) => boolean;
+}
+
+interface InvalidCaseNeighborOperation {
+  readonly neighborId: string;
+  readonly targetPredicateId: string;
+  readonly diagnosticFamily: string;
+  readonly apply: (baseline: GeneratedModeledCase) => InvalidSourceTransform;
+}
+
+type InvalidCaseNeighborResult =
+  | {
+      readonly ok: true;
+      readonly projection: Extract<GeneratedCaseProjection, { readonly kind: "invalid" }>;
+      readonly neighborId: NeighborId;
+      readonly violatedPredicateId: PredicateId;
+      readonly diagnosticFamily: string;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly GenerationDiagnostic[];
+    };
+
+declare function applyInvalidCaseNeighbor(input: {
+  readonly baseline: GenModule;
+  readonly operation: InvalidCaseNeighborOperation;
+  readonly predicates: readonly NamedCasePredicate[];
+}): InvalidCaseNeighborResult;
+
+declare function renderInvalidCase(
+  projection: Extract<GeneratedCaseProjection, { readonly kind: "invalid" }>,
+  options: SourceRenderOptions,
+): SourceRenderResult;
+```
+
+`callPath` is a bounded canonical JSON Pointer that resolves exactly one existing
+`memory-read`/`memory-write` node. Inserted or replacement expressions must independently pass
+structural and scope validation. Predicates derive effective arity and operand types from the
+projected call; they never trust the transform discriminator. Every baseline passes normal
+`validateRoundTrip` before a delta is admitted. Baseline predicates are all true and exactly the
+named target is false afterward. Invalid rendering applies the descriptor at the intrinsic
+argument-list seam; arbitrary or post-render string replacement is forbidden. Invalid rendering
+uses frozen expected-byte vectors and dedicated transform mutation tests, not the valid round-trip
+inverse. Added expression nodes/depth and final source bytes count toward Phase 6 budgets.
+
+The Phase 5 suite exposes a closed choice surface:
+
+```ts
+type ScalarCaseChoice = {
+  readonly kind: "scalar";
+  readonly ruleId: RuleId;
+  readonly spelling: GenerationSpelling;
+  readonly value: bigint | boolean;
+};
+
+type MemoryExpressionForm = "direct" | "computed";
+
+type MemoryCaseChoice = {
+  readonly kind: "memory";
+  readonly ruleId: RuleId;
+  readonly addressSpelling: GenerationSpelling;
+  readonly addressForm: MemoryExpressionForm;
+  readonly valueSpelling?: GenerationSpelling;
+};
+
+type ModeledCaseChoice = ScalarCaseChoice | MemoryCaseChoice;
+
+type ModeledCaseValidity =
+  | { readonly kind: "valid" }
+  | { readonly kind: "invalid"; readonly neighborId: NeighborId };
+
+interface ModeledCaseRequest {
+  readonly handlerId:
+    | "generator.frontend-cases"
+    | "generator.compiler-cases"
+    | "generator.runtime-cases";
+  readonly modulePath: readonly string[];
+  readonly choice: ModeledCaseChoice;
+  readonly validity: ModeledCaseValidity;
+  readonly budget: GenerationBudget;
+}
+
+type ConstructionUsage = Readonly<
+  Record<
+    | "modules"
+    | "declarations"
+    | "ir-nodes"
+    | "statements"
+    | "expression-depth"
+    | "loop-work",
+    bigint
+  >
+>;
+
+interface GeneratedModeledCase {
+  readonly projection: GeneratedCaseProjection;
+  readonly parameterBindings: readonly {
+    readonly kind: "parameter-value";
+    readonly parameterPath: string;
+    readonly value: bigint | boolean;
+  }[];
+  readonly primaryRuleId: RuleId;
+  readonly claimedRuleIds: readonly RuleId[];
+  readonly spelling: GenerationSpelling;
+  readonly validity:
+    | { readonly kind: "valid" }
+    | {
+        readonly kind: "invalid";
+        readonly neighborId: NeighborId;
+        readonly violatedPredicateId: PredicateId;
+        readonly expectedDiagnosticFamily: string;
+      };
+  readonly constructionUsage: ConstructionUsage;
+}
+
+type GeneratorCaseResult =
+  | {
+      readonly ok: true;
+      readonly outcome: "generated";
+      readonly case: GeneratedModeledCase;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: true;
+      readonly outcome: "unavailable";
+      readonly ruleId: RuleId;
+      readonly state: "unmodeled" | "not-generatable";
+      readonly reason: RuleModelReason;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly ModeledGenerationDiagnostic[];
+    };
+
+type PredicateResult =
+  | {
+      readonly ok: true;
+      readonly predicateId: PredicateId;
+      readonly valid: boolean;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly ModeledGenerationDiagnostic[];
+    };
+
+declare function constructModeledCase(
+  suite: ModeledGeneratorSuite,
+  request: unknown,
+): GeneratorCaseResult;
+
+declare function evaluateModeledRule(
+  suite: ModeledGeneratorSuite,
+  request: unknown,
+): PredicateResult;
+
+declare function applyModeledRuleNeighbor(
+  suite: ModeledGeneratorSuite,
+  request: unknown,
+): GeneratorCaseResult;
+
+type GeneratorHandlerV1 = (
+  suite: ModeledGeneratorSuite,
+  request: unknown,
+) => GeneratorCaseResult;
+
+declare const generateFrontendCase: GeneratorHandlerV1;
+declare const generateCompilerCase: GeneratorHandlerV1;
+declare const generateRuntimeCase: GeneratorHandlerV1;
+declare const boundaryVariantsHandler: (input: unknown) => BoundaryVariantResult;
+```
+
+Every request is a closed own-data record. The suite validates and snapshots it before any
+constructor or budget capability runs. Generation choices are lexical and duplicate-free so Phase
+6 can index them with path-local draws. `constructionUsage` excludes source bytes and attempts;
+Phase 6 supplies those only after rendering and finalization. Scalar rules route directly to the
+frontend handler, memory rules to runtime, and the compiler handler accepts only already modeled
+composition choices. Wrong-handler calls fail with `modeled.handler.route`.
+
 ## Boundary transform
 
 `transform.boundary-variants` deterministically expands a model choice into empty/min/max and
@@ -247,6 +480,14 @@ interface GenerationBudgetTracker {
   snapshot(): GenerationUsage;
 }
 ```
+
+`scalar-expression-replace` resolves exactly one canonical source-expression path;
+`parameter-binding-replace` resolves exactly one binding keyed to an existing parameter
+declaration. Numeric neighbors contain only the named nearest value outside the range; boolean
+wrong-type contains canonical integer zero. Parameter-spelling cases carry exactly one immutable
+binding to `/functions/<i>/parameters/<j>` whose value equals the chosen boundary. Other scalar
+spellings carry none. Phase 6 replays source and bindings together; source compilation alone does
+not claim that a parameter boundary executed.
 
 All numeric fields are positive closed-range integers. Construction accounts incrementally and
 the final case is recounted independently. Products use checked BigInt arithmetic. The initial IR

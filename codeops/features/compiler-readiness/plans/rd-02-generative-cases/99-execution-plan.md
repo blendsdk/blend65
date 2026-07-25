@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-24 23:18 UTC
-> **Progress**: 39/71 tasks (55%)
+> **Last Updated**: 2026-07-25 02:56 UTC
+> **Progress**: 49/71 tasks (69%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -124,21 +124,21 @@ unpublished until the final phase.
 
 ## Phase 5: Generators, Boundary Transform and Modeled Semantic Slice
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `8e347e96225724581e86e4b9948c7b723a0e2fc6`
 > **Lenses**: compiler-semantics, api-surface, perf
 
-**Reference**: 03-01, 03-02 · AR-P1, AR-P2, AR-P8 · ST-03–ST-05, ST-09–ST-14
+**Reference**: 03-01, 03-02 · AR-P1, AR-P2, AR-P8, AR-P26–AR-P29 · ST-03–ST-05, ST-09–ST-14
 
-- [ ] 5.1.1 [spec-author] Extend model/generator specification tests with the exact scalar-memory subset and spelling matrix
-- [ ] 5.1.2 Run Phase 5 spec tests and record expected RED
-- [ ] 5.2.1 Author exact nine-rule seed contract and modeled manifest facts/citations — `readiness/rule-models/rule-models-v1.json`
-- [ ] 5.2.2 [semantics-reviewer] Independently review seed/manifest semantics and record digest-bound evidence — `readiness/reviews/rule-models-v1-review.json`
-- [ ] 5.2.3 Implement scalar/module/function constructors and predicates — `scalar-rule-models.ts`
-- [ ] 5.2.4 Implement memory-intrinsic constructors, predicates and neighbors — `memory-rule-models.ts`
-- [ ] 5.2.5 Implement frontend/compiler/runtime generator entrypoints — `generators.ts`
-- [ ] 5.2.6 Bind executable boundary-transform implementation in candidate registry — `bindings.ts`
-- [ ] 5.2.7 Run Phase 5 ST matrix GREEN, including exact ST-04 equality and ordinary local/parameter memory operands
-- [ ] 5.3.1 Add distribution/deduplication/model-invariant implementation tests, review and full verify
+- [x] 5.1.1 [spec-author] Extend model/generator specification tests with the exact scalar-memory subset and spelling matrix ✅ (completed: 2026-07-25 02:02 UTC; immutable 10-case oracle authored in `modeled-generators.spec.test.ts`)
+- [x] 5.1.2 Run Phase 5 spec tests and record expected RED ✅ (completed: 2026-07-25 02:02 UTC; 1 suite and all 10 authored tests failed because the reviewed suite and handler APIs do not yet exist)
+- [x] 5.2.1 Author exact nine-rule seed contract and modeled manifest facts/citations — `readiness/rule-models/rule-models-v1.json`, `readiness/rule-models/rule-model-seed-v1.json` ✅ (completed: 2026-07-25 02:09 UTC; exact 9/2,103/0 population and seed/model identity check pass; JSON is Prettier-clean)
+- [x] 5.2.2 [semantics-reviewer] Independently review seed/manifest semantics and record digest-bound evidence — `readiness/reviews/rule-models-v1-review.json` ✅ (completed: 2026-07-25 02:14 UTC; accepted no-findings review is bound to seed, manifest and citation digests)
+- [x] 5.2.3 Implement scalar/module/function constructors and predicates — `modeled-case-builder.ts`, `modeled-generator-facts.ts` ✅ (completed: 2026-07-25 02:18 UTC; all 40 scalar boundary/spelling choices construct as valid independent IR)
+- [x] 5.2.4 Implement memory-intrinsic constructors, predicates and neighbors — `modeled-case-builder.ts`, `modeled-generators.ts` ✅ (completed: 2026-07-25 02:18 UTC; all 80 direct/computed ordinary-variable choices and every reviewed wrong-arity/type delta pass)
+- [x] 5.2.5 Implement frontend/compiler/runtime generator entrypoints — `modeled-generator-suite.ts`, `modeled-generators.ts` ✅ (completed: 2026-07-25 02:18 UTC; authority-gated stateless routing passes with compiler composition deliberately empty)
+- [x] 5.2.6 Bind executable boundary-transform implementation in candidate registry — `modeled-candidate-bindings.ts`, `modeled-generators.ts`, `index.ts` ✅ (completed: 2026-07-25 02:39 UTC; all four revisions are derived from injected dependency closures, freshness-gated through authoritative candidate registration and remain unavailable to published lookup)
+- [x] 5.2.7 Run Phase 5 ST matrix GREEN, including exact ST-04 equality and ordinary local/parameter memory operands ✅ (completed: 2026-07-25 02:18 UTC; 10/10 immutable specification tests pass)
+- [x] 5.3.1 Add distribution/deduplication/model-invariant implementation tests, review and full verify ✅ (completed: 2026-07-25 02:56 UTC; three authorized review passes leave no critical/major findings, two minor semantic documentation drifts are closed, PE-003 is explicitly owned by Phase 6, and the exact full gate passes with 869 readiness tests)
 
 **Deliverable:** first meaningful modeled generator slice; bindings remain candidate-only.
 
@@ -156,7 +156,7 @@ unpublished until the final phase.
 - [ ] 6.2.1 Implement campaign planner and deterministic generation paths — `campaign.ts`
 - [ ] 6.2.2 Implement valid/invalid case composition and stable metadata — `case-generator.ts`
 - [ ] 6.2.3 Implement exact replay orchestration and fresh-process fixture — `replay.ts`, `test-fixtures/replay-child.ts`
-- [ ] 6.2.4 Integrate render/round-trip/budget finalization in one case pipeline — `generate-case.ts`
+- [ ] 6.2.4 Integrate render/round-trip/budget finalization in one case pipeline — `generate-case.ts`; use prepared or batched construction accounting so campaign-scale generation does not repeat full IR and budget snapshots per case (Phase 5 PE-003)
 - [ ] 6.2.5 Run all campaign/replay ST cases GREEN; fix implementation only
 - [ ] 6.3.1 Add scale/determinism/error implementation tests, coverage and full verify
 

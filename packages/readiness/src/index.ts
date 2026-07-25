@@ -33,6 +33,17 @@ export { isGenIdentifier, isScalarType } from "./generator-ir.js";
 export { validateGeneratorIr } from "./generator-ir-validator.js";
 export { applyInvalidNeighbor } from "./invalid-neighbor.js";
 export { createBoundaryVariants } from "./boundary-variants.js";
+export {
+  applyModeledRuleNeighbor,
+  boundaryVariantsHandler,
+  constructModeledCase,
+  evaluateModeledRule,
+  generateCompilerCase,
+  generateFrontendCase,
+  generateRuntimeCase,
+} from "./modeled-generators.js";
+export { createModeledGeneratorSuite, getRuleGenerationDomain } from "./modeled-generator-suite.js";
+export { registerModeledCandidateBindings } from "./modeled-candidate-bindings.js";
 export { createGenerationBudgetTracker, validateGenerationBudget } from "./generation-budget.js";
 export {
   createIdentityCollisionRegistry,
@@ -259,3 +270,32 @@ export type {
   ScalarType,
   UnaryOperator,
 } from "./generator-ir.js";
+export type {
+  ConstructionUsage,
+  GeneratedCaseProjection,
+  GeneratedModeledCase,
+  GeneratorCaseResult,
+  GeneratorHandlerV1,
+  InvalidSourceTransform,
+  MemoryCaseChoice,
+  MemoryExpressionForm,
+  ModeledCaseChoice,
+  ModeledCaseRequest,
+  ModeledCaseValidity,
+  ModeledGenerationDiagnostic,
+  ModeledGenerationDiagnosticCode,
+  ModeledGeneratorSuite,
+  ModeledGeneratorSuiteInput,
+  ModeledGeneratorSuiteResult,
+  ModeledRuleGenerationDomain,
+  ParameterValueBinding,
+  PredicateResult,
+  RuleGenerationDomainResult,
+  ScalarCaseChoice,
+  UnavailableRuleGenerationDomain,
+} from "./modeled-generator-model.js";
+export type {
+  ModeledCandidateDependencyInput,
+  ModeledCandidateDiagnostic,
+  ModeledCandidateRegistrationResult,
+} from "./modeled-candidate-bindings.js";

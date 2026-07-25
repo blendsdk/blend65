@@ -1819,8 +1819,49 @@
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.boolean.range.true",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/02-type-system.md",
+          "contentHash": "sha256:96674f97b973e268e23b84eb2d3a5979ac30ecf0695df9710ccece117727e167"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["boolean"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "value",
+          "type": "boolean",
+          "values": ["false", "true"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "value.domain",
+          "diagnosticFamily": "type.domain",
+          "neighborIds": ["neighbor.scalar.boolean.wrong-type"]
+        }
+      ],
+      "constructorIds": [
+        "constructor.scalar.boolean.literal",
+        "constructor.scalar.boolean.local-variable",
+        "constructor.scalar.boolean.named-constant",
+        "constructor.scalar.boolean.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.boolean.domain"],
+      "neighborIds": ["neighbor.scalar.boolean.wrong-type"],
+      "boundaryFamilyIds": ["boundary.scalar.boolean"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.boolean.signed.no",
@@ -1839,8 +1880,54 @@
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/02-type-system.md",
+          "contentHash": "sha256:6528f235728cf0ce57055a6d39df6c856d17f8849cc2430d7980624cb31d3706"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["byte"]
+        },
+        {
+          "kind": "value-range",
+          "subject": "value",
+          "values": ["0", "255"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "value",
+          "type": "byte",
+          "values": ["0", "255"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "value.range",
+          "diagnosticFamily": "type.range",
+          "neighborIds": ["neighbor.scalar.byte.above-max", "neighbor.scalar.byte.below-min"]
+        }
+      ],
+      "constructorIds": [
+        "constructor.scalar.byte.literal",
+        "constructor.scalar.byte.local-variable",
+        "constructor.scalar.byte.named-constant",
+        "constructor.scalar.byte.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.byte.range"],
+      "neighborIds": ["neighbor.scalar.byte.above-max", "neighbor.scalar.byte.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.byte"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.byte.signed.no",
@@ -1859,8 +1946,54 @@
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/02-type-system.md",
+          "contentHash": "sha256:61e3ac07609636a18b15169bf9041ecd90332e722e519e6c03d3e952c26394b5"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["sbyte"]
+        },
+        {
+          "kind": "value-range",
+          "subject": "value",
+          "values": ["-128", "127"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "value",
+          "type": "sbyte",
+          "values": ["-128", "127"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "value.range",
+          "diagnosticFamily": "type.range",
+          "neighborIds": ["neighbor.scalar.sbyte.above-max", "neighbor.scalar.sbyte.below-min"]
+        }
+      ],
+      "constructorIds": [
+        "constructor.scalar.sbyte.literal",
+        "constructor.scalar.sbyte.local-variable",
+        "constructor.scalar.sbyte.named-constant",
+        "constructor.scalar.sbyte.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.sbyte.range"],
+      "neighborIds": ["neighbor.scalar.sbyte.above-max", "neighbor.scalar.sbyte.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.sbyte"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.sbyte.signed.yes",
@@ -1879,8 +2012,54 @@
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/02-type-system.md",
+          "contentHash": "sha256:6e18bfb36377f51573d8d0e1479bd2de05a5f111cd27ea3c7b98cac85f8341f8"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["sword"]
+        },
+        {
+          "kind": "value-range",
+          "subject": "value",
+          "values": ["-32768", "32767"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "value",
+          "type": "sword",
+          "values": ["-32768", "32767"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "value.range",
+          "diagnosticFamily": "type.range",
+          "neighborIds": ["neighbor.scalar.sword.above-max", "neighbor.scalar.sword.below-min"]
+        }
+      ],
+      "constructorIds": [
+        "constructor.scalar.sword.literal",
+        "constructor.scalar.sword.local-variable",
+        "constructor.scalar.sword.named-constant",
+        "constructor.scalar.sword.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.sword.range"],
+      "neighborIds": ["neighbor.scalar.sword.above-max", "neighbor.scalar.sword.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.sword"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.sword.signed.yes",
@@ -1919,8 +2098,54 @@
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/02-type-system.md",
+          "contentHash": "sha256:48f02a69e784cc6a0c30df65926f6543d7a6c269e3c82fad68afa7fd03dd192d"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["word"]
+        },
+        {
+          "kind": "value-range",
+          "subject": "value",
+          "values": ["0", "65535"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "value",
+          "type": "word",
+          "values": ["0", "65535"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "value.range",
+          "diagnosticFamily": "type.range",
+          "neighborIds": ["neighbor.scalar.word.above-max", "neighbor.scalar.word.below-min"]
+        }
+      ],
+      "constructorIds": [
+        "constructor.scalar.word.literal",
+        "constructor.scalar.word.local-variable",
+        "constructor.scalar.word.named-constant",
+        "constructor.scalar.word.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.word.range"],
+      "neighborIds": ["neighbor.scalar.word.above-max", "neighbor.scalar.word.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.word"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch02.2-primitive-types.word.signed.no",
@@ -8044,8 +8269,60 @@
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.peek-addr.signature.word",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/12-intrinsics.md",
+          "contentHash": "sha256:5203f50dc427587f1265fd4e38e25b0e5331599b193095470b069e3c50fc55f4"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "arity",
+          "subject": "arguments",
+          "values": ["1"]
+        },
+        {
+          "kind": "spelling-in",
+          "subject": "address",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "address",
+          "values": ["word"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "address",
+          "type": "word",
+          "values": ["0", "65535"]
+        },
+        {
+          "subject": "result",
+          "type": "byte",
+          "values": ["0", "255"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "memory.signature",
+          "diagnosticFamily": "intrinsic.signature",
+          "neighborIds": [
+            "neighbor.memory.peek.wrong-address-type",
+            "neighbor.memory.peek.wrong-arity"
+          ]
+        }
+      ],
+      "constructorIds": ["constructor.memory.peek"],
+      "predicateIds": ["predicate.memory.peek.signature"],
+      "neighborIds": [
+        "neighbor.memory.peek.wrong-address-type",
+        "neighbor.memory.peek.wrong-arity"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.peek"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.peekw-addr.cycles.8",
@@ -8064,8 +8341,60 @@
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/12-intrinsics.md",
+          "contentHash": "sha256:c5c95f18692ac78969a98b0999ac56505d93eb7cabd80c18f412a57f331c3e95"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "arity",
+          "subject": "arguments",
+          "values": ["1"]
+        },
+        {
+          "kind": "spelling-in",
+          "subject": "address",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "address",
+          "values": ["word"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "address",
+          "type": "word",
+          "values": ["0", "65535"]
+        },
+        {
+          "subject": "result",
+          "type": "word",
+          "values": ["0", "65535"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "memory.signature",
+          "diagnosticFamily": "intrinsic.signature",
+          "neighborIds": [
+            "neighbor.memory.peekw.wrong-address-type",
+            "neighbor.memory.peekw.wrong-arity"
+          ]
+        }
+      ],
+      "constructorIds": ["constructor.memory.peekw"],
+      "predicateIds": ["predicate.memory.peekw.signature"],
+      "neighborIds": [
+        "neighbor.memory.peekw.wrong-address-type",
+        "neighbor.memory.peekw.wrong-arity"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.peekw"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.cycles.4",
@@ -8084,8 +8413,72 @@
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/12-intrinsics.md",
+          "contentHash": "sha256:4993f2b87162fe86a07349b38d520b1c13375264303fa4ee1d632c3455e5832f"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "arity",
+          "subject": "arguments",
+          "values": ["2"]
+        },
+        {
+          "kind": "spelling-in",
+          "subject": "address",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "address",
+          "values": ["word"]
+        },
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["byte"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "address",
+          "type": "word",
+          "values": ["0", "65535"]
+        },
+        {
+          "subject": "value",
+          "type": "byte",
+          "values": ["0", "255"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "memory.signature",
+          "diagnosticFamily": "intrinsic.signature",
+          "neighborIds": [
+            "neighbor.memory.poke.wrong-address-type",
+            "neighbor.memory.poke.wrong-arity",
+            "neighbor.memory.poke.wrong-value-type"
+          ]
+        }
+      ],
+      "constructorIds": ["constructor.memory.poke"],
+      "predicateIds": ["predicate.memory.poke.signature"],
+      "neighborIds": [
+        "neighbor.memory.poke.wrong-address-type",
+        "neighbor.memory.poke.wrong-arity",
+        "neighbor.memory.poke.wrong-value-type"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.poke"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.cycles.8",
@@ -8104,8 +8497,72 @@
     },
     {
       "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
-      "state": "unmodeled",
-      "reason": "outside-initial-slice"
+      "state": "modeled",
+      "citations": [
+        {
+          "sourcePath": "spec/12-intrinsics.md",
+          "contentHash": "sha256:cefdb9b88af00e21788a9d13ce5763a9ca60c2f7e62c885a98d9e9bfe3cefab5"
+        }
+      ],
+      "constructionPreconditions": [
+        {
+          "kind": "arity",
+          "subject": "arguments",
+          "values": ["2"]
+        },
+        {
+          "kind": "spelling-in",
+          "subject": "address",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "address",
+          "values": ["word"]
+        },
+        {
+          "kind": "spelling-in",
+          "subject": "value",
+          "values": ["literal", "local-variable", "named-constant", "parameter"]
+        },
+        {
+          "kind": "type-in",
+          "subject": "value",
+          "values": ["word"]
+        }
+      ],
+      "typedDomains": [
+        {
+          "subject": "address",
+          "type": "word",
+          "values": ["0", "65535"]
+        },
+        {
+          "subject": "value",
+          "type": "word",
+          "values": ["0", "65535"]
+        }
+      ],
+      "invalidContracts": [
+        {
+          "contractId": "memory.signature",
+          "diagnosticFamily": "intrinsic.signature",
+          "neighborIds": [
+            "neighbor.memory.pokew.wrong-address-type",
+            "neighbor.memory.pokew.wrong-arity",
+            "neighbor.memory.pokew.wrong-value-type"
+          ]
+        }
+      ],
+      "constructorIds": ["constructor.memory.pokew"],
+      "predicateIds": ["predicate.memory.pokew.signature"],
+      "neighborIds": [
+        "neighbor.memory.pokew.wrong-address-type",
+        "neighbor.memory.pokew.wrong-arity",
+        "neighbor.memory.pokew.wrong-value-type"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.pokew"],
+      "spellings": ["literal", "local-variable", "named-constant", "parameter"]
     },
     {
       "ruleId": "rule.ch12.3-2-byte-extraction.applied-compile-time-constants-lo-hi",

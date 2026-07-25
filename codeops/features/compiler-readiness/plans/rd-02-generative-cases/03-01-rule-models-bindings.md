@@ -225,6 +225,9 @@ The initial modeled set is exactly these nine inventory rules. Every other rule 
 `unmodeled` or `not-generatable`; adding a rule requires an amended seed contract and new accepted
 review evidence.
 
+For the version-one inventory's 2,112 rules, the exact post-seed state counts are
+`modeled: 9`, `unmodeled: 2,103`, and `not-generatable: 0`.
+
 | Concern | Exact rule IDs |
 |---|---|
 | Scalar value domains | `rule.ch02.2-primitive-types.byte.range.0-255`; `rule.ch02.2-primitive-types.sbyte.range.128-127`; `rule.ch02.2-primitive-types.word.range.0-65535`; `rule.ch02.2-primitive-types.sword.range.32768-32767`; `rule.ch02.2-primitive-types.boolean.range.true` |
@@ -243,6 +246,209 @@ Before generator implementation, a separate semantics reviewer records the exact
 manifest digests, reviewer identity, disposition and citations in
 `readiness/reviews/rule-models-v1-review.json`. Candidate validation requires accepted,
 digest-matching evidence; any model-fact or manifest change invalidates it.
+
+### Reviewed generator-suite authority
+
+The exact nine-rule allowlist and its handler/operation matrix are canonical JSON at
+`readiness/rule-models/rule-model-seed-v1.json`. The manifest remains the source of modeled facts
+and citations; the seed contract is the closed population and executable-routing contract. The
+two artifacts have distinct digests and neither digest substitutes for the other.
+
+The seed bytes use this closed version-one wire shape:
+
+```ts
+interface RuleModelSeedContractV1 {
+  readonly schemaVersion: 1;
+  readonly seedVersion: "rule-model-seed-v1";
+  readonly rules: readonly RuleModelSeedRuleV1[];
+}
+
+type RuleModelSeedRuleV1 =
+  | {
+      readonly kind: "scalar";
+      readonly ruleId: RuleId;
+      readonly handlerId: "generator.frontend-cases";
+      readonly scalarType: "byte" | "sbyte" | "word" | "sword" | "boolean";
+      readonly values: readonly string[];
+      readonly constructorIds: readonly ConstructorId[];
+      readonly predicateIds: readonly [PredicateId];
+      readonly neighborIds: readonly NeighborId[];
+      readonly boundaryFamilyIds: readonly [BoundaryFamilyId];
+      readonly spellings: readonly [
+        "literal",
+        "named-constant",
+        "local-variable",
+        "parameter",
+      ];
+    }
+  | {
+      readonly kind: "memory";
+      readonly ruleId: RuleId;
+      readonly handlerId: "generator.runtime-cases";
+      readonly intrinsic: "peek" | "poke" | "peekw" | "pokew";
+      readonly parameterTypes: readonly RuleModelScalarType[];
+      readonly returnType: RuleModelScalarType;
+      readonly constructorIds: readonly [ConstructorId];
+      readonly predicateIds: readonly [PredicateId];
+      readonly neighborIds: readonly NeighborId[];
+      readonly boundaryFamilyIds: readonly [BoundaryFamilyId];
+      readonly addressSpellings: readonly [
+        "literal",
+        "named-constant",
+        "local-variable",
+        "parameter",
+      ];
+      readonly valueSpellings: readonly (
+        | "literal"
+        | "named-constant"
+        | "local-variable"
+        | "parameter"
+      )[];
+      readonly addressForms: readonly ["direct", "computed"];
+    };
+}
+```
+
+The top-level keys and every variant's keys are exact. `rules` is lexical by `ruleId`; all
+operation arrays are lexical and duplicate-free. Scalar `values` are respectively
+`["0","255"]`, `["-128","127"]`, `["0","65535"]`, `["-32768","32767"]`, and
+`["false","true"]`. Memory `parameterTypes`/`returnType` are exactly `(word)->byte`,
+`(word,byte)->void`, `(word)->word`, and `(word,word)->void`; read operations have an empty
+`valueSpellings` array and writes have the four spelling values above.
+
+The independent semantic review is closed JSON:
+
+```ts
+interface RuleModelSeedReviewEvidenceV1 {
+  readonly schemaVersion: 1;
+  readonly review: {
+    readonly reviewId: "rule-model-seed-v1";
+    readonly reviewer: string;
+    readonly outcome: "accepted" | "blocked";
+    readonly seedContractDigest: Sha256Digest;
+    readonly ruleModelDigest: Sha256Digest;
+    readonly inventoryCitationDigest: Sha256Digest;
+    readonly citations: readonly {
+      readonly ruleId: RuleId;
+      readonly sourcePath: string;
+      readonly contentHash: Sha256Digest;
+    }[];
+    readonly resolvedDisagreementIds: readonly string[];
+  };
+}
+```
+
+The citation digest is computed from the lexical sequence of modeled
+`ruleId/sourcePath/contentHash` triples. The sequence must equal the same projection from the
+authoritative inventory exactly. Review strings are UTF-8 bounded, citations are unique and
+lexically ordered, and all three digests use canonical `sha256:<64 lowercase hex>` spelling.
+
+Artifact bytes are injected rather than read from ambient paths. Successful validation creates an
+opaque suite capability; raw operation tables and unreviewed parsed registries cannot generate
+cases.
+
+```ts
+interface ModeledGeneratorSuiteInput {
+  readonly seedContractBytes: Uint8Array;
+  readonly ruleModelBytes: Uint8Array;
+  readonly reviewEvidenceBytes: Uint8Array;
+  readonly inventory: InventoryV1;
+}
+
+type ModeledGenerationDiagnosticCode =
+  | "modeled.input.invalid"
+  | "modeled.input.limit"
+  | "modeled.seed.mismatch"
+  | "modeled.review.missing"
+  | "modeled.review.stale"
+  | "modeled.review.not-accepted"
+  | "modeled.citation.mismatch"
+  | "modeled.rule.unavailable"
+  | "modeled.handler.route"
+  | "modeled.choice.invalid"
+  | "modeled.operation.failed";
+
+interface ModeledGenerationDiagnostic {
+  readonly code: ModeledGenerationDiagnosticCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+type RuleGenerationDomainResult =
+  | {
+      readonly ok: true;
+      readonly state: "modeled";
+      readonly ruleId: RuleId;
+      readonly handlerId:
+        | "generator.frontend-cases"
+        | "generator.runtime-cases";
+      readonly choices: readonly ModeledCaseChoice[];
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: true;
+      readonly state: "unmodeled" | "not-generatable";
+      readonly ruleId: RuleId;
+      readonly reason: RuleModelReason;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly ModeledGenerationDiagnostic[];
+    };
+
+type ModeledGeneratorSuiteResult =
+  | {
+      readonly ok: true;
+      readonly suite: ModeledGeneratorSuite;
+      readonly seedContractDigest: Sha256Digest;
+      readonly ruleModelDigest: Sha256Digest;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly ModeledGenerationDiagnostic[];
+    };
+
+declare function createModeledGeneratorSuite(input: unknown): ModeledGeneratorSuiteResult;
+
+declare function getRuleGenerationDomain(
+  suite: ModeledGeneratorSuite,
+  ruleId: string,
+): RuleGenerationDomainResult;
+```
+
+`ModeledGeneratorSuite` is branded at runtime and exposes no mutable artifact state.
+`getRuleGenerationDomain` returns the exact rule state plus a deeply immutable, lexically ordered
+choice list for modeled rules. An unmodeled or not-generatable rule returns its state and closed
+reason without a choice list. Missing/unknown rules fail with `modeled.rule.unavailable`.
+
+The seed contract routes the five scalar rules to `generator.frontend-cases` and the four memory
+signature rules to `generator.runtime-cases`. `generator.compiler-cases` is deliberately a
+zero-direct-domain composition handler in this first slice: Phase 6 may give it already modeled
+scalar and memory choices, but it may not claim a tenth rule. Calling a handler with a rule outside
+its direct domain fails with `modeled.handler.route`.
+
+The seed's exact operation-ID matrix is:
+
+| Rule family | Constructor IDs | Predicate ID | Neighbor IDs | Boundary ID | Spellings / forms |
+|---|---|---|---|---|---|
+| scalar `<type>` (`byte`, `sbyte`, `word`, `sword`) | `constructor.scalar.<type>.literal`, `.named-constant`, `.local-variable`, `.parameter` | `predicate.scalar.<type>.range` | `neighbor.scalar.<type>.below-min`, `.above-max` | `boundary.scalar.<type>` | `literal`, `named-constant`, `local-variable`, `parameter` |
+| scalar `boolean` | `constructor.scalar.boolean.literal`, `.named-constant`, `.local-variable`, `.parameter` | `predicate.scalar.boolean.domain` | `neighbor.scalar.boolean.wrong-type` | `boundary.scalar.boolean` | same four spellings; values `false`, `true` only |
+| `peek` | `constructor.memory.peek` | `predicate.memory.peek.signature` | `neighbor.memory.peek.wrong-arity`, `.wrong-address-type` | `boundary.memory.peek` | address: four spellings × `direct`, `computed` |
+| `peekw` | `constructor.memory.peekw` | `predicate.memory.peekw.signature` | `neighbor.memory.peekw.wrong-arity`, `.wrong-address-type` | `boundary.memory.peekw` | address: four spellings × `direct`, `computed` |
+| `poke` | `constructor.memory.poke` | `predicate.memory.poke.signature` | `neighbor.memory.poke.wrong-arity`, `.wrong-address-type`, `.wrong-value-type` | `boundary.memory.poke` | address and value: four spellings each; address form `direct`, `computed` |
+| `pokew` | `constructor.memory.pokew` | `predicate.memory.pokew.signature` | `neighbor.memory.pokew.wrong-arity`, `.wrong-address-type`, `.wrong-value-type` | `boundary.memory.pokew` | address and value: four spellings each; address form `direct`, `computed` |
+
+`<type>` is substituted literally in every scalar ID. Arrays inside each rule record are lexical,
+unique and contain exactly the applicable cells above. Manifest spelling names retain the canonical
+wire vocabulary `literal`, `named-constant`, `local-variable`, `parameter`; case requests normalize
+those to the identity vocabulary `literal`, `const`, `local`, `parameter` at the suite boundary.
+
+Candidate bindings use the exact four stateless callable identities fixed in 03-02 and contract
+version `1.0.0`. The suite is supplied explicitly at invocation time, so handler implementation
+revisions and rule-model revisions remain separate replay identity components. Candidate
+validation still returns no `PublishedSnapshot`.
 
 ## Error handling
 

@@ -256,14 +256,14 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:ac027876ad1a50c2ce4912cf9f28ef85c36b658f9b6ee3197c5e1547d6d68c42",
+          "revision": "sha256:a006c0141c697f36d602a15200ff3432e376e6a13d718f808185e16dca985f84",
           "upstream": "compiler-readiness/SPEC-RD-02-MODELS",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:82b24e5039a3f8ac2af4085992177052c19a34bb33b280ce605183c838d66c91",
+          "revision": "sha256:e2d65fd3b3cce52ba367b99feb1dd56d8d3c2113340fe0339640c3d97da8c84a",
           "upstream": "compiler-readiness/SPEC-RD-02-IR",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1590,7 +1590,7 @@
     {
       "edges": [],
       "id": "AR-P02",
-      "revision": "sha256:96e84ab2eb0c2e08d7b80b375976dcabf2a8a746ae5f841fedd4876c993ec857",
+      "revision": "sha256:a245c31a749f64d933f055b636a5c646a4130caf3876f8c52afcde0be8141dfd",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1626,7 +1626,7 @@
         }
       ],
       "id": "SPEC-RD-02-MODELS",
-      "revision": "sha256:ac027876ad1a50c2ce4912cf9f28ef85c36b658f9b6ee3197c5e1547d6d68c42",
+      "revision": "sha256:a006c0141c697f36d602a15200ff3432e376e6a13d718f808185e16dca985f84",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1665,7 +1665,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "revision": "sha256:46f746483d6890d676eb95cbc105da5641937b7317b89ef3a365a0987d1f62cb",
           "upstream": "compiler-readiness/TASK-RD-02-P5",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1691,7 +1691,7 @@
         }
       ],
       "id": "SPEC-RD-02-IR",
-      "revision": "sha256:82b24e5039a3f8ac2af4085992177052c19a34bb33b280ce605183c838d66c91",
+      "revision": "sha256:e2d65fd3b3cce52ba367b99feb1dd56d8d3c2113340fe0339640c3d97da8c84a",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1730,7 +1730,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "revision": "sha256:46f746483d6890d676eb95cbc105da5641937b7317b89ef3a365a0987d1f62cb",
           "upstream": "compiler-readiness/TASK-RD-02-P5",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1795,7 +1795,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1860,7 +1860,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1961,7 +1961,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "revision": "sha256:46f746483d6890d676eb95cbc105da5641937b7317b89ef3a365a0987d1f62cb",
           "upstream": "compiler-readiness/TASK-RD-02-P5",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2008,7 +2008,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "revision": "sha256:46f746483d6890d676eb95cbc105da5641937b7317b89ef3a365a0987d1f62cb",
           "upstream": "compiler-readiness/TASK-RD-02-P5",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2055,7 +2055,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2102,7 +2102,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2146,6 +2146,12 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:modeled-generators.spec.test.ts passes all 10 immutable specification cases; the complete repository gate passes.",
+        "redEvidence:modeled-generators.spec.test.ts ran 10 cases and failed all 10 because the reviewed suite and handler APIs did not exist.",
+        "summary:The exact reviewed model and binding specification oracle is green.",
+        "summary:The independently authored exact model and binding specification oracle failed before implementation."
+      ],
       "id": "TEST-RD-02-MODELS",
       "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
@@ -2158,13 +2164,19 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-02 model and binding specification tests",
       "type": "test",
       "validations": []
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:modeled-generators.spec.test.ts passes all 10 immutable specification cases; focused implementation suites and the complete repository gate pass.",
+        "redEvidence:modeled-generators.spec.test.ts ran 10 cases and failed all 10 because the modeled suite and handler APIs did not exist.",
+        "summary:The independently authored modeled generator IR specification oracle failed before implementation.",
+        "summary:The modeled generator IR specification oracle is green."
+      ],
       "id": "TEST-RD-02-IR",
       "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
       "semanticSources": [
@@ -2177,7 +2189,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-02 IR and budget specification tests",
       "type": "test",
       "validations": []
@@ -2292,7 +2304,7 @@
         "summary:Zero-Ambiguity Gate and plan preflight passed; 40 requirements-derived specification cases and 71 execution tasks are grounded in approved RD-02."
       ],
       "id": "PLAN-RD-02",
-      "revision": "sha256:c6548b9362675d5d655298a80fa9d6bea204fe321291a06560b906353a95f181",
+      "revision": "sha256:f1694c81dbc21cd47e0edb42e9511e505edb7c752eb4165384811bf95c6bb861",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2352,14 +2364,14 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+          "revision": "sha256:46f746483d6890d676eb95cbc105da5641937b7317b89ef3a365a0987d1f62cb",
           "upstream": "compiler-readiness/TASK-RD-02-P5",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -2475,8 +2487,13 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "summary:Phase 5 exact nine-rule modeled generators, boundary transforms, and freshness-gated candidate bindings are implemented.",
+        "summary:Phase 5 passed 10 immutable specification cases, focused implementation checks, three authorized quality review passes with no surviving critical or major findings, and the complete repository verification gate.",
+        "verificationEvidence:yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test passed; readiness package reported 56 files and 869 tests passing."
+      ],
       "id": "TASK-RD-02-P5",
-      "revision": "sha256:4ad1e99979a8941f2ff7f88f85e0f2ae1148ae6192787891cdeef5ebabe2c2e1",
+      "revision": "sha256:46f746483d6890d676eb95cbc105da5641937b7317b89ef3a365a0987d1f62cb",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2488,7 +2505,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-02 phase 5",
       "type": "task",
       "validations": []
@@ -2496,7 +2513,7 @@
     {
       "edges": [],
       "id": "TASK-RD-02-P6",
-      "revision": "sha256:3d79b75eb74741e0e18bec780aa7fbe9c882c30e4a0c10c441008aebe63527a3",
+      "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
       "semanticSources": [
         {
           "digest": "sha256",

@@ -5,6 +5,7 @@ import {
   parseRuleModelRegistry,
   validateRuleModelRegistry,
 } from "./index.js";
+import { modeledOperationIds } from "./modeled-generator-facts.js";
 
 const encoder = new TextEncoder();
 
@@ -230,7 +231,7 @@ describe("rule-model input", () => {
     });
   });
 
-  it("parses and validates the exhaustive checked-in skeleton", async () => {
+  it("parses and validates the exhaustive checked-in reviewed manifest", async () => {
     const [manifestBytes, inventoryBytes] = await Promise.all([
       readFile(new URL("../../../readiness/rule-models/rule-models-v1.json", import.meta.url)),
       readFile(new URL("../../../readiness/inventory/compiler-readiness-v1.json", import.meta.url)),
@@ -258,11 +259,13 @@ describe("rule-model input", () => {
     expect(parsedManifest.ok).toBe(true);
     if (!parsedManifest.ok) return;
 
-    expect(validateRuleModelRegistry(parsedManifest.input, inventoryRuleIds, [])).toMatchObject({
+    expect(
+      validateRuleModelRegistry(parsedManifest.input, inventoryRuleIds, modeledOperationIds()),
+    ).toMatchObject({
       ok: true,
       counts: {
-        modeled: 0,
-        unmodeled: 2_112,
+        modeled: 9,
+        unmodeled: 2_103,
         "not-generatable": 0,
       },
     });

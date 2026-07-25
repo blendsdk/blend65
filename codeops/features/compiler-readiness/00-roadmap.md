@@ -16,7 +16,7 @@
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |---|---|---|---|---|---|---|---|
 | RD-01 | Specification inventory and rule schema | [RD-01](requirements/RD-01-specification-inventory.md) | [Plan](plans/rd-01-specification-inventory/00-index.md) | Done | ✅ | 2026-07-24 | 69/69 tasks; 351 readiness tests; 95.17% branch coverage; quality gate resolved |
-| RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Executing | 🚧 | 2026-07-25 | Phase 4 complete: 39/71 tasks; deterministic renderer and syntax-only round trip verified with 849 readiness tests and 95.05% branch coverage; next Phase 5 |
+| RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Executing | 🚧 | 2026-07-25 | Phase 5 complete: 49/71 tasks; exact nine-rule modeled generator slice and candidate-only freshness bindings verified with 869 readiness tests; next Phase 6 |
 | RD-03 | Independent semantic, diagnostic and metamorphic oracles | [RD-03](requirements/RD-03-independent-oracles.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01 |
 | RD-04 | Tiered compiler, ACME and VICE execution | [RD-04](requirements/RD-04-tiered-execution.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-03 |
 | RD-05 | Failure classification, shrinking and regression promotion | [RD-05](requirements/RD-05-failure-reduction.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-04 |
