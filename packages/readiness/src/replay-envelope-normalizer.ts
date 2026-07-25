@@ -385,6 +385,13 @@ function cloneCampaign(input: CampaignIdentityInput): CampaignIdentityInput {
 export function normalizeReplayEnvelope(value: unknown): ReplayEnvelopeParseResult {
   if (!isRecord(value) || !hasExactKeys(value, ENVELOPE_KEYS)) {
     if (isRecord(value)) {
+      if (!Object.hasOwn(value, "configuration")) {
+        return replayFailure(
+          "replay.schema.invalid",
+          "/configuration",
+          "Replay envelope is missing its carried configuration.",
+        );
+      }
       const unknown = Object.keys(value).find(
         (key) => !ENVELOPE_KEYS.some((allowed) => allowed === key),
       );

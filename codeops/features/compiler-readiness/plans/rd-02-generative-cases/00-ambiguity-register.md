@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-02 Typed Generative Cases and Deterministic Replay
 
-> **Status**: ✅ GATE PASSED — all 29 items resolved
-> **Last Updated**: 2026-07-25 02:42 UTC
+> **Status**: ✅ GATE PASSED — all 35 items resolved
+> **Last Updated**: 2026-07-25 04:44 UTC
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd02-20260724-01`
 > **Policy version**: 1
@@ -39,6 +39,12 @@
 | AR-P27 | Phase 5 invalid-case representation | How can wrong-arity and wrong-type memory neighbors exist without corrupting the valid-only typed IR contract? | Keep `GenModule` valid-only. An invalid case is a validated baseline plus exactly one closed `InvalidSourceTransform` that inserts, removes or replaces one intrinsic argument at a canonical call path. Predicates independently derive effective arity/types from the projected call and prove only the named contract flips. Invalid rendering applies the descriptor structurally at the argument-list seam and uses its own frozen vectors; it never passes through the valid round-trip oracle or edits rendered strings. | AI delegated by accepted `--auto-design`; runtime impossibility found before test authoring; independent challenger selected the narrow delta model | ✅ Resolved |
 | AR-P28 | Phase 5 scalar neighbors | How can reviewed scalar nearest-invalid neighbors execute without weakening valid typed literals? | Keep the baseline IR valid and use one closed `scalar-expression-replace` descriptor containing only the canonical integer literal immediately outside the numeric range, or integer zero for boolean wrong-type. Parameter cases use a distinct `parameter-binding-replace` descriptor. Resolve and apply the path against the full semantic case, then independently prove only the named scalar predicate flips. | AI delegated by accepted `--auto-design`; independent challenger selected the narrow source/binding delta | ✅ Resolved |
 | AR-P29 | Phase 5 parameter boundaries | How do parameter-spelling min/max cases remain distinct when the independent IR has no call expression? | Store one immutable external parameter binding keyed by the canonical parameter declaration path and exact chosen value. Identical function source is allowed; case metadata and replay identity are not identical. Phase 6 must reproduce the binding, and compilation alone cannot claim that the parameter value executed. | AI delegated by accepted `--auto-design`; independent challenger rejected reopening Phase 4 call IR | ✅ Resolved |
+| AR-P30 | Phase 6 orchestration API | Which exact campaign, generated-case, dependency, replay and fresh-process contracts may the immutable Phase 6 oracle target? | Use the closed prepared-campaign capability and random-access APIs in 03-03. `createCampaignPlan` validates and binds all campaign-wide authority once; `getCampaignPlanItem`, `generateCase`, `generateCampaignCase` and `replayCase` are output-pure by ordinal and have closed failures-as-data. The total is exactly `caseCount`; mandatory valid spelling coverage is allocated first and invalid cases fill only remaining slots up to `maxInvalidCases`. One campaign accepts rules routed to one exact generator binding. A campaign-specific collision index proves all case identities before the immutable plan becomes available. The final case carries parsed round-trip evidence, effective parameter bindings, exact usage and attempts. Fresh-process replay uses one bounded stdin envelope and one canonical stdout response, with no ambient configuration or path input. | AI delegated by accepted `--auto-design`; runtime spec-author blocker; independent challenger selected an immutable prepared campaign over stateless repetition and callback injection | ✅ Resolved |
+| AR-P31 | Phase 6 freshness composition | How do campaign and replay fixtures carry executable dependencies without bypassing Phase 3's non-forgeable freshness gate? | Public campaign creation accepts `FreshCandidateRegistration` capabilities for the generator and boundary transform, never raw executable bindings. Revision registration accepts those same capabilities and may expose only their already verified binding to its private replay composition path. The rule-model revision value is the factory-produced `ModeledGeneratorSuite` capability, preserved by identity rather than cloned into an empty record. Renderer and immutable data remain exact opaque values selected by their content-addressed registry keys. Test fixtures create real freshness capabilities from bounded fixture dependency bytes; missing-revision spies use a different fresh capability and prove it is not invoked. | AI delegated by accepted `--auto-design`; runtime conflict found before GREEN; preserves AR-P21 rather than weakening revision registration | ✅ Resolved |
+| AR-P32 | Phase 6 replay performance | Must exact replay repeat the full campaign collision proof before regenerating one carried ordinal? | No. Public `createCampaignPlan` remains the only producer of a fully proven `PreparedCampaign` and still proves every identity before returning it. Normal replay instead creates a distinct private target-only capability after the same bounded campaign, configuration, dependency and domain validation; it derives the carried ordinal's lane, path, plan item and complete identity only, then regenerates and compares that exact case. It must never masquerade as a fully proven public campaign. An explicitly supplied conformance collision index retains the full-proof path. | AI delegated by accepted `--auto-design`; Phase 6 performance review; independent challenger found no schema-compatible sublinear proof of global uniqueness | ✅ Resolved |
+| AR-P33 | Phase 6 campaign accounting | How does campaign generation avoid repeating construction snapshots and IR recounts without weakening validation? | The factory-produced modeled suite privately prepares the finite reviewed valid/neighbor construction templates once, including independent semantic validation and authoritative construction usage. Per-case generation invokes the exact freshness-gated handler, binds a frozen template result, checks cached usage against the prepared budget and publishes one final usage snapshot after source bytes and attempts are known. Arbitrary or unbranded handler output retains full structural validation. Renderer parsing and projection comparison remain independent per case. Plan-item derivation uses one choice context and the internal campaign path consumes one already-verified item; the public caller-supplied-item API retains defensive membership validation. | AI delegated by accepted `--auto-design`; Phase 5 PE-003 expiry found by Phase 6 performance review; independent challenger selected prepared finite templates over memoized outputs or a new batch API | ✅ Resolved |
+| AR-P34 | Phase 6 rule-model authority | Does campaign `ruleModelVersion` equal the manifest's `registryVersion`, and which facts bind a suite to replay identity? | They are distinct. Campaign `ruleModelVersion` is the v1 generator/replay protocol compatibility label and must equal the suite-owned constant `rule-model-v1`. The suite separately retains manifest `registryVersion` (`rule-models-v1` for the current reviewed release) and the SHA-256 digest of the exact validated manifest bytes. Campaign composition requires the exact protocol label and digest; resolved replay authority requires the registry key and campaign digest to equal the retained digest. Generic identity derivation may hash any closed version string, but composing a real suite rejects aliases. Replay protocol or digest disagreement is `replay-incompatible` for `rule-model`, never fallback. | AI delegated by accepted `--auto-design`; Phase 6 provenance remediation exposed the naming collision; independent challenger reconciled immutable oracle and reviewed manifest authority | ✅ Resolved |
+| AR-P35 | Phase 6 revision-set validation | May a revision registry retain an alternate rule-model suite under a nonmatching key when that entry is not the requested exact revision? | Yes, as a non-authoritative compatibility-set entry. Registry creation closes and preserves the factory suite but does not claim that every stored key/content pair is usable authority. Raw `RevisionRegistry.resolve` is compatibility-set lookup only. Exported `resolveReplayRevisions` establishes authority: after exact lookup it verifies the suite's retained protocol and digest against both the requested key and campaign; disagreement is `replay-incompatible` naming `rule-model` before any handler runs. This preserves the immutable missing-revision oracle, which deliberately supplies a nonrequested alternate suite, while preventing that suite from authorizing a falsely labeled replay through either public replay API. Public campaign composition still requires exact suite protocol/digest directly. | AI delegated by accepted `--auto-design`; immutable Phase 6 missing-revision case exposed the distinction; independent adjudicator moved enforcement to the exported authoritative resolver | ✅ Resolved |
 
 ## Delegated Resolution Provenance
 
@@ -185,6 +191,143 @@ testing or sequencing decisions within the approved RD-02 behavior and scope.
 - **Confidence / hardening:** High. An independent challenger selected each design after comparing
   the viable alternatives. Reopen if Phase 6 cannot replay bindings exactly or if invalid rendering
   cannot resolve the canonical scalar-expression path.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P30 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal orchestration API,
+  deterministic planning, performance preparation, replay and test-protocol design within the
+  approved RD-02 acceptance criteria. No frozen specification, product scope, publication,
+  external compatibility or deployment decision changes.
+- **Objective:** let an implementation-blind oracle prove complete campaign generation and exact
+  replay without repeating campaign-wide validation per case, hiding ambient fallback, dropping
+  parameter bindings or making generation depend on call order.
+- **Evidence:** the Phase 6 spec author identified six missing contract families; Phase 3 exposes
+  exact revision resolution but no current fallback; Phase 5 exposes an opaque reviewed suite,
+  three stateless generator handlers, structural invalid transforms and external parameter
+  bindings; the existing 4,096-entry general collision registry is too small for a bounded
+  100,000-case campaign; `caseCount` is the campaign total and `maxInvalidCases` is a ceiling.
+- **Decision:** one immutable prepared-campaign capability validates exact dependencies and
+  pre-proves its case-identity set. Plan items are lazy and random-access through fixed
+  coverage-valid, random-valid and invalid path lanes. Mandatory spelling coverage consumes valid
+  slots first; invalid slots use only the remainder up to the configured maximum. Each campaign
+  binds exactly one generator handler, while separate campaigns cover frontend and runtime
+  domains. Case rendering validates valid/binding-only source by independent round trip and
+  source-transform invalid cases by independent parse plus exact transform-path evidence.
+- **Rejected alternatives:** stateless per-case dependency assembly repeats validation and allows
+  ordinary generation and replay to diverge; generic callbacks widen the identity boundary with
+  behavior that is not closed by carried revisions; eager materialization of every plan item
+  wastes memory; treating `maxInvalidCases` as additional required cases contradicts its name and
+  the already validated `maxInvalidCases <= caseCount` invariant; a mixed-handler campaign cannot
+  be represented by the approved singular generator identity.
+- **Strongest counterargument:** an opaque prepared capability can conceal mutable caches.
+  Mitigation: it has no cursor or ambient lookup, exposes closed plan/item metadata, precomputes
+  collision evidence before publication and must pass repetition, permutation, concurrency and
+  fresh-process equivalence.
+- **Confidence / hardening:** High. The independent challenger converged on the prepared-campaign
+  capability and added lazy planning, a 100,000-case bound, whole-campaign collision evidence and
+  a closed child protocol. The final design corrected its proposed case-count interpretation to
+  preserve the existing total/count ceiling contract. Reopen if one enabled rule set needs more
+  than one generator identity, or if exact invalid rendering cannot produce independent
+  transform-path evidence without sharing renderer policy.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P31 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal capability composition and
+  test-fixture construction inside approved replay/freshness behavior. No product, frozen-spec,
+  publication or compatibility decision changes.
+- **Objective:** compose executable campaigns without creating a second raw-callable path around
+  the exact dependency-byte proof already required for authoritative registration and replay.
+- **Evidence:** AR-P21 restricts revision registration/replay to non-forgeable freshness-gated
+  candidates; `registerFreshCandidateBinding` already produces the required capability;
+  `createRevisionRegistry` validates that capability and retains only its verified binding; the
+  first Phase 6 fixture instead supplied raw wrappers with invented revision labels.
+- **Decision:** campaign creation takes the existing candidate-registration capability for both
+  executable dependencies. Replay receives those capabilities through exact revision entries and
+  uses only resolver-authorized bindings internally. A module-private suite predicate preserves
+  the already immutable reviewed rule-model capability as one opaque registry value. Renderer and
+  data values retain the existing exact-key registry behavior.
+- **Rejected alternatives:** accepting a new closed raw wrapper makes freshness optional;
+  test-only bypasses make the oracle prove a path production cannot use; re-deriving handler
+  closures inside every replay repeats file authority and introduces filesystem dependence;
+  publishing bindings early violates Phase 7 ordering.
+- **Strongest counterargument:** fixture freshness metadata proves the fixture wrapper's declared
+  dependency bytes, not the production handler's complete generated closure. That is deliberate:
+  Phase 5 independently proves the production closure, while Phase 6 tests capability enforcement
+  and orchestration without duplicating that oracle.
+- **Confidence / hardening:** High — this reuses the sole existing non-forgeable seam and removes,
+  rather than adds, authority paths. Reopen if revision resolution can expose a binding that did
+  not enter through a fresh registration, or if preserving the suite capability requires
+  weakening its factory brand.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P32–AR-P33 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; private replay preparation and
+  bounded campaign-accounting architecture inside the already approved exact-replay behavior.
+- **Objective:** remove campaign-size work from one-case replay and retire repeated construction
+  accounting without weakening collision proof, exact identity, freshness or independent parsing.
+- **Evidence:** the Phase 6 performance audit measured seconds of repeated 100,000-case collision
+  proof per replay and found seven usage snapshots plus repeated IR validation/recount per case.
+  The replay envelope carries one case identity but no independently verifiable global uniqueness
+  proof. The modeled domain is finite and already closed behind a factory-produced suite.
+- **Decision:** distinguish a public, globally collision-proven campaign from a private,
+  target-validated replay capability. Prepare finite construction templates and their usage behind
+  the suite capability, while preserving full fallback validation for arbitrary handler output.
+- **Rejected alternatives:** an ambient proof cache breaks fresh-process isolation; a Merkle root
+  does not prove leaf uniqueness; a signed or succinct proof changes the v1 trust/schema model;
+  merely mutating the budget tracker still repeats construction and IR walks; whole-case memoization
+  risks ordinal growth and misleading callable provenance; a batch generator widens the immutable
+  public contract.
+- **Strongest counterargument:** a strict reading could require every replay to re-prove global
+  campaign uniqueness. The current envelope cannot establish that sublinearly. Public campaign
+  creation therefore retains the global proof, while replay proves exact membership and complete
+  identity for the carried target without claiming to have prepared the whole campaign.
+- **Confidence / hardening:** High. An independent challenger converged after evaluating persistent
+  caches, proof certificates, succinct proofs, tracker-only changes, whole-case memoization and a
+  batch API. Reopen if replay becomes an authority for first-time campaign publication or if the
+  modeled domain ceases to be finitely preparable.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P34 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal version-authority
+  semantics needed to close a runtime remediation without changing the frozen specification.
+- **Evidence:** immutable campaign and identity oracles use `rule-model-v1`, while the reviewed
+  manifest's closed `registryVersion` is `rule-models-v1`. Replay selects exact content by digest.
+- **Decision:** retain protocol version, manifest release version and exact content digest as
+  three separately named suite facts. Protocol and digest must match campaign authority; the
+  digest must match the revision-registry key.
+- **Rejected alternatives:** equating both version fields contradicts the immutable oracle and
+  reviewed manifest; accepting arbitrary aliases makes the compatibility field meaningless.
+- **Confidence / hardening:** High. An independent challenger verified the wire fixtures, identity
+  primitive, manifest model and digest-based resolver. Reopen only if a protocol revision changes
+  the suite/generator contract independently of a manifest release.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P35 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; replay compatibility
+  classification inside the frozen Phase 6 behavior.
+- **Evidence:** the immutable missing-rule-model case intentionally stores the real suite under a
+  different, nonrequested revision so it can prove that replay does not fall back. Rejecting the
+  alternate at registry construction prevents that required scenario, while resolved-content
+  validation still closes the false-authority exploit.
+- **Decision:** registry construction and its raw `resolve` method are compatibility-set storage
+  and lookup. Exported `resolveReplayRevisions` establishes authority only for the exact resolved
+  component after key/content/protocol comparison; `replayCase` retains defense-in-depth checks.
+- **Rejected alternative:** rejecting all nonmatching stored alternatives contradicts the
+  immutable oracle and conflates storage closure with exact replay authorization.
+- **Confidence / hardening:** High. The earlier semantics review required individual
+  resolved-component classification and permitted registry-time rejection only where possible.
+  A post-remediation independent adjudicator found the registry-time remedy incompatible with the
+  immutable no-fallback oracle, but identified and closed the narrower exported-resolver gap.
 - **Policy / invocation:** policy version 1; root invocation
   `compiler-readiness-rd02-20260724-01`.
 

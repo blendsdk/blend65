@@ -349,7 +349,7 @@ describe("replay input identity closure", () => {
     delete missingEnvelope.configuration;
     expect(parseReplayEnvelope(bytes(missingEnvelope))).toMatchObject({
       ok: false,
-      diagnostics: [{ code: "replay.schema.invalid", path: "" }],
+      diagnostics: [{ code: "replay.schema.invalid", path: "/configuration" }],
     });
 
     const missingCase = object();

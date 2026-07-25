@@ -2,14 +2,19 @@ import { createBoundaryVariants } from "./boundary-variants.js";
 import type { GenerationSpelling } from "./canonical-identity.js";
 import {
   isGenIdentifier,
-  type GenExpression,
   type GenIdentifier,
   type GenModule,
-  type GenerationBudget,
+  type GenExpression,
 } from "./generator-ir.js";
 import { inspectGeneratorInput, validateGeneratorIr } from "./generator-ir-validator.js";
-import { createGenerationBudgetTracker, validateGenerationBudget } from "./generation-budget.js";
+import { validateGenerationBudget } from "./generation-budget.js";
 import { buildModeledModule } from "./modeled-case-builder.js";
+import {
+  exceededConstructionDimension,
+  instantiateModeledConstruction,
+  publishPreparedGeneratedCase,
+  type InstantiatedModeledConstruction,
+} from "./modeled-construction-templates.js";
 import {
   isModeledChoice,
   MODELED_RULE_FACTS,
@@ -35,24 +40,15 @@ import { getModeledSuiteState } from "./modeled-generator-suite.js";
 
 interface ClosedRequest {
   readonly handlerId: ModeledCaseRequest["handlerId"];
-  readonly modulePath: readonly GenIdentifier[];
   readonly choice: ModeledCaseChoice;
   readonly validity: ModeledCaseValidity;
-  readonly budget: GenerationBudget;
   readonly fact: ModeledRuleFact;
+  readonly construction: InstantiatedModeledConstruction;
 }
 
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
 const SPELLINGS: ReadonlySet<string> = new Set(["const", "literal", "local", "parameter"]);
 const REQUEST_KEYS = ["handlerId", "modulePath", "choice", "validity", "budget"] as const;
-const CONSTRUCTION_DIMENSIONS: readonly (keyof ConstructionUsage)[] = Object.freeze([
-  "modules",
-  "declarations",
-  "ir-nodes",
-  "statements",
-  "expression-depth",
-  "loop-work",
-]);
 
 function diagnostic(
   code: ModeledGenerationDiagnostic["code"],
@@ -145,7 +141,8 @@ function closeRequest(
 ):
   | ClosedRequest
   | { readonly ok: false; readonly diagnostics: readonly ModeledGenerationDiagnostic[] } {
-  if (getModeledSuiteState(suite) === undefined) {
+  const suiteState = getModeledSuiteState(suite);
+  if (suiteState === undefined) {
     return failure("modeled.input.invalid", "/suite", "Generator suite capability is invalid.");
   }
   const structuralFailure = inspectGeneratorInput(input, "", () => false);
@@ -206,114 +203,34 @@ function closeRequest(
       problem?.message ?? "Generation budget is invalid.",
     );
   }
-  return Object.freeze({
-    handlerId: input.handlerId,
-    modulePath: Object.freeze(modulePath),
+  const construction = instantiateModeledConstruction(
+    suiteState.constructions,
     choice,
     validity,
-    budget: budget.budget,
-    fact,
-  });
-}
-
-function expressionUsage(expression: GenExpression): {
-  readonly nodes: bigint;
-  readonly depth: bigint;
-} {
-  if (expression.kind === "unary") {
-    const operand = expressionUsage(expression.operand);
-    return { nodes: 1n + operand.nodes, depth: 1n + operand.depth };
-  }
-  if (expression.kind === "binary") {
-    const left = expressionUsage(expression.left);
-    const right = expressionUsage(expression.right);
-    return {
-      nodes: 1n + left.nodes + right.nodes,
-      depth: 1n + (left.depth > right.depth ? left.depth : right.depth),
-    };
-  }
-  if (expression.kind === "memory-read") {
-    const address = expressionUsage(expression.address);
-    return { nodes: 1n + address.nodes, depth: 1n + address.depth };
-  }
-  return { nodes: 1n, depth: 1n };
-}
-
-function constructionUsage(module: GenModule): ConstructionUsage {
-  let declarations = 0n;
-  let nodes = 1n;
-  let statements = 0n;
-  let depth = 0n;
-  for (const constant of module.constants) {
-    declarations += 1n;
-    nodes += 1n;
-    const usage = expressionUsage(constant.value);
-    nodes += usage.nodes;
-    if (usage.depth > depth) depth = usage.depth;
-  }
-  for (const fn of module.functions) {
-    declarations += 1n + BigInt(fn.parameters.length);
-    nodes += 1n + BigInt(fn.parameters.length);
-    for (const statement of fn.body) {
-      statements += 1n;
-      nodes += 1n;
-      const expressions =
-        statement.kind === "local"
-          ? [statement.initializer]
-          : statement.kind === "assign"
-            ? [statement.value]
-            : statement.kind === "memory-write"
-              ? [statement.address, statement.value]
-              : statement.value === undefined
-                ? []
-                : [statement.value];
-      for (const expression of expressions) {
-        const usage = expressionUsage(expression);
-        nodes += usage.nodes;
-        if (usage.depth > depth) depth = usage.depth;
-      }
-    }
-  }
-  return Object.freeze({
-    modules: 1n,
-    declarations,
-    "ir-nodes": nodes,
-    statements,
-    "expression-depth": depth,
-    "loop-work": 0n,
-  });
-}
-
-function accountConstruction(
-  module: GenModule,
-  budget: GenerationBudget,
-):
-  | ConstructionUsage
-  | { readonly ok: false; readonly diagnostics: readonly ModeledGenerationDiagnostic[] } {
-  const usage = constructionUsage(module);
-  const tracker = createGenerationBudgetTracker(budget);
-  for (const dimension of CONSTRUCTION_DIMENSIONS) {
-    const amount = usage[dimension];
-    const result = tracker.consume(dimension, dimension === "loop-work" ? amount : Number(amount));
-    if (!result.ok) {
-      const problem = result.diagnostics[0];
-      return failure(
-        "modeled.operation.failed",
-        problem?.path ?? `/usage/${dimension}`,
-        problem?.message ?? "Construction exceeded its budget.",
-      );
-    }
-  }
-  const finalized = tracker.finalize(module, 0, 0);
-  if (!finalized.ok) {
-    const problem = finalized.diagnostics[0];
+    Object.freeze(modulePath),
+  );
+  if (construction === undefined) {
     return failure(
-      "modeled.operation.failed",
-      problem?.path ?? "/usage",
-      problem?.message ?? "Construction accounting failed.",
+      "modeled.choice.invalid",
+      "/choice",
+      "Choice and validity do not select a reviewed construction.",
     );
   }
-  return usage;
+  const exceeded = exceededConstructionDimension(construction.usage, budget.budget);
+  if (exceeded !== undefined) {
+    return failure(
+      "modeled.operation.failed",
+      `/usage/${exceeded}`,
+      `Construction exceeded the ${exceeded} budget.`,
+    );
+  }
+  return Object.freeze({
+    handlerId: input.handlerId,
+    choice,
+    validity,
+    fact,
+    construction,
+  });
 }
 
 function invalidTransform(
@@ -570,6 +487,13 @@ function generatedCase(
       validity: Object.freeze({ kind: "valid" }),
       constructionUsage: usage,
     });
+    if (!publishPreparedGeneratedCase(modeledCase, request.construction)) {
+      return failure(
+        "modeled.operation.failed",
+        "/constructionUsage",
+        "Generated case did not retain its prepared construction evidence.",
+      );
+    }
     return Object.freeze({
       ok: true,
       outcome: "generated",
@@ -627,6 +551,13 @@ function generatedCase(
     }),
     constructionUsage: usage,
   });
+  if (!publishPreparedGeneratedCase(invalidCase, request.construction)) {
+    return failure(
+      "modeled.operation.failed",
+      "/constructionUsage",
+      "Generated case did not retain its prepared construction evidence.",
+    );
+  }
   return Object.freeze({
     ok: true,
     outcome: "generated",
@@ -636,18 +567,7 @@ function generatedCase(
 }
 
 function constructClosed(request: ClosedRequest): GeneratorCaseResult {
-  const module = buildModeledModule(request.fact, request.choice, request.modulePath);
-  const validation = validateGeneratorIr(module);
-  if (!validation.ok) {
-    const problem = validation.diagnostics[0];
-    return failure(
-      "modeled.operation.failed",
-      problem?.path ?? "",
-      problem?.message ?? "Constructed module is invalid.",
-    );
-  }
-  const usage = accountConstruction(validation.module, request.budget);
-  return "ok" in usage ? usage : generatedCase(request, validation.module, usage);
+  return generatedCase(request, request.construction.module, request.construction.usage);
 }
 
 /**

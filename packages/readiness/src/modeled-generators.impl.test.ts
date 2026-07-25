@@ -9,6 +9,7 @@ import { INVENTORY_V1_LIMITS, parseInventoryJson, validateInventorySchema } from
 import { isGenIdentifier, type GenerationBudget } from "./generator-ir.js";
 import { validateGeneratorIr } from "./generator-ir-validator.js";
 import { buildModeledModule } from "./modeled-case-builder.js";
+import { validateGeneratedConstruction } from "./modeled-construction-templates.js";
 import {
   createModeledChoices,
   MODELED_RULE_FACTS,
@@ -156,6 +157,32 @@ describe("modeled generator invariants", () => {
     expect(Reflect.set(choice, "ruleId", "rule.mutated")).toBe(false);
     const second = getRuleGenerationDomain(suite, fact.ruleId);
     expect(second).toEqual(first);
+  });
+
+  it("publishes prepared construction evidence and fully checks unbranded outputs", async () => {
+    const { suite } = await suiteFixture();
+    const fact = [...MODELED_RULE_FACTS.values()].find((candidate) => candidate.kind === "scalar");
+    if (fact?.kind !== "scalar") throw new TypeError("Scalar fact fixture must exist.");
+    const choice = createModeledChoices(fact)[0];
+    if (choice === undefined) throw new TypeError("Scalar choice fixture must exist.");
+    const generated = generateFrontendCase(suite, validRequest(choice));
+    if (!generated.ok || generated.outcome !== "generated") {
+      throw new TypeError("Expected generated modeled case.");
+    }
+
+    expect(validateGeneratedConstruction(generated.case)).toBe(true);
+    expect(
+      validateGeneratedConstruction(
+        Object.freeze({
+          ...generated.case,
+          constructionUsage: Object.freeze({
+            ...generated.case.constructionUsage,
+            statements: generated.case.constructionUsage.statements + 1n,
+          }),
+        }),
+      ),
+    ).toBe(false);
+    expect(validateGeneratedConstruction(Object.freeze({ ...generated.case }))).toBe(true);
   });
 
   it("resolves and proves every scalar and memory invalid neighbor over every choice", async () => {

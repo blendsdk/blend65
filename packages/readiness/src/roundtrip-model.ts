@@ -99,6 +99,16 @@ export interface RoundTripMemoryReadExpression {
   readonly address: RoundTripExpression;
 }
 
+/** A structurally parsed memory-read call with intentionally invalid arity. */
+export interface RoundTripInvalidMemoryReadExpression {
+  /** Projection discriminator. */
+  readonly kind: "invalid-memory-read";
+  /** Exact intrinsic spelling. */
+  readonly intrinsic: "peek" | "peekw";
+  /** Ordered arguments retained without semantic acceptance. */
+  readonly arguments: readonly RoundTripExpression[];
+}
+
 /** Closed expression union used only for structural comparison. */
 export type RoundTripExpression =
   | RoundTripIntegerLiteralExpression
@@ -106,7 +116,8 @@ export type RoundTripExpression =
   | RoundTripNameExpression
   | RoundTripUnaryExpression
   | RoundTripBinaryExpression
-  | RoundTripMemoryReadExpression;
+  | RoundTripMemoryReadExpression
+  | RoundTripInvalidMemoryReadExpression;
 
 /** One local declaration in a projected function body. */
 export interface RoundTripLocalStatement {
@@ -142,6 +153,16 @@ export interface RoundTripMemoryWriteStatement {
   readonly value: RoundTripExpression;
 }
 
+/** A structurally parsed memory-write call with intentionally invalid arity. */
+export interface RoundTripInvalidMemoryWriteStatement {
+  /** Projection discriminator. */
+  readonly kind: "invalid-memory-write";
+  /** Exact intrinsic spelling. */
+  readonly intrinsic: "poke" | "pokew";
+  /** Ordered arguments retained without semantic acceptance. */
+  readonly arguments: readonly RoundTripExpression[];
+}
+
 /** One projected function return. */
 export interface RoundTripReturnStatement {
   /** Projection discriminator. */
@@ -155,6 +176,7 @@ export type RoundTripStatement =
   | RoundTripLocalStatement
   | RoundTripAssignStatement
   | RoundTripMemoryWriteStatement
+  | RoundTripInvalidMemoryWriteStatement
   | RoundTripReturnStatement;
 
 /** One projected function parameter. */

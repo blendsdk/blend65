@@ -278,6 +278,286 @@ current implementations, consults ambient process configuration or emits partial
 Bulk cases remain ephemeral; identity plus digest-verified configuration reconstructs them under
 the current supported revision.
 
+## Campaign composition
+
+Campaign composition prepares immutable authority once, then generates by ordinal without a
+mutable cursor. The total number of planned cases is exactly `configuration.caseCount`;
+`maxInvalidCases` is a ceiling inside that total, not an additional count. Campaign creation
+rejects totals above 100,000.
+
+One campaign binds exactly one of the three generator handlers. Every enabled modeled rule must
+route to that binding's handler ID. A frontend/runtime mixture therefore uses two campaigns; the
+compiler handler remains a deliberate empty direct domain. This preserves the singular generator
+identity already carried by `CampaignIdentityInput`.
+
+```ts
+type CampaignGeneratorId =
+  | "generator.frontend-cases"
+  | "generator.compiler-cases"
+  | "generator.runtime-cases";
+
+interface CampaignInventoryAuthorityV1 {
+  readonly schemaVersion: 1;
+  readonly inventoryVersion: string;
+  readonly inventoryDigest: Sha256Digest;
+  readonly specRevision: string;
+}
+
+interface CampaignRuleModelAuthorityV1 {
+  readonly schemaVersion: 1;
+  readonly ruleModelVersion: string;
+  readonly ruleModelDigest: Sha256Digest;
+  readonly suite: ModeledGeneratorSuite;
+}
+
+type CampaignGeneratorRegistrationV1 = FreshCandidateRegistration;
+type CampaignBoundaryRegistrationV1 = FreshCandidateRegistration;
+
+type CaseRenderRoundTripKind =
+  | "valid"
+  | "invalid-source-transform"
+  | "invalid-parameter-binding";
+
+interface CaseRenderSuccess {
+  readonly ok: true;
+  readonly kind: CaseRenderRoundTripKind;
+  readonly source: string;
+  readonly sourceBytes: Uint8Array;
+  readonly projection: RoundTripModule;
+  readonly effectiveParameterBindings: readonly ParameterValueBinding[];
+  readonly diagnostics: readonly [];
+}
+
+type CaseRenderResult =
+  | CaseRenderSuccess
+  | { readonly ok: false; readonly diagnostics: readonly RoundTripDiagnostic[] };
+
+type CaseRendererV1 = (
+  generatedCase: GeneratedModeledCase,
+  options: SourceRenderOptions,
+) => CaseRenderResult;
+
+declare function renderGeneratedCase(
+  generatedCase: GeneratedModeledCase,
+  options: SourceRenderOptions,
+): CaseRenderResult;
+
+interface CampaignRendererBindingV1 {
+  readonly implementationRevision: Sha256Digest;
+  readonly implementation: CaseRendererV1;
+}
+
+interface CampaignDependenciesV1 {
+  readonly inventory: CampaignInventoryAuthorityV1;
+  readonly ruleModel: CampaignRuleModelAuthorityV1;
+  readonly generator: CampaignGeneratorRegistrationV1;
+  readonly boundaryTransform: CampaignBoundaryRegistrationV1;
+  readonly renderer: CampaignRendererBindingV1;
+}
+
+interface CampaignPlanSummary {
+  readonly schemaVersion: 1;
+  readonly campaignDigest: Sha256Digest;
+  readonly totalCaseCount: number;
+  readonly validCaseCount: number;
+  readonly invalidCaseCount: number;
+}
+
+declare const PREPARED_CAMPAIGN_CAPABILITY: unique symbol;
+
+interface PreparedCampaign {
+  readonly [PREPARED_CAMPAIGN_CAPABILITY]: true;
+  readonly summary: CampaignPlanSummary;
+}
+
+declare const CAMPAIGN_COLLISION_INDEX_CAPABILITY: unique symbol;
+
+interface CampaignCollisionIndex {
+  readonly [CAMPAIGN_COLLISION_INDEX_CAPABILITY]: true;
+}
+
+type CampaignPlanLane = "coverage-valid" | "random-valid" | "invalid";
+
+interface CampaignPlanItem {
+  readonly ordinal: number;
+  readonly generationPath: readonly [lane: 0 | 1 | 2, laneOrdinal: number];
+  readonly lane: CampaignPlanLane;
+  readonly request: ModeledCaseRequest;
+  readonly renderOptions: SourceRenderOptions;
+}
+
+interface GeneratedCase {
+  readonly identity: CaseIdentity;
+  readonly planItem: CampaignPlanItem;
+  readonly modeledCase: GeneratedModeledCase;
+  readonly source: string;
+  readonly sourceBytes: Uint8Array;
+  readonly roundTripProjection: RoundTripModule;
+  readonly effectiveParameterBindings: readonly ParameterValueBinding[];
+  readonly usage: GenerationUsage;
+  readonly attempts: number;
+}
+
+interface CampaignDiagnostic {
+  readonly code:
+    | "campaign.input.invalid"
+    | "campaign.identity.mismatch"
+    | "campaign.dependency.mismatch"
+    | "campaign.rule.unavailable"
+    | "campaign.coverage.insufficient"
+    | "campaign.choice.invalid"
+    | "campaign.identity.collision"
+    | "campaign.case.invalid"
+    | "campaign.render.invalid";
+  readonly path: string;
+  readonly message: string;
+}
+
+type CampaignResult<T> =
+  | { readonly ok: true; readonly value: T; readonly diagnostics: readonly [] }
+  | { readonly ok: false; readonly diagnostics: readonly CampaignDiagnostic[] };
+
+declare function createCampaignCollisionIndex(input: {
+  readonly campaignDigest: Sha256Digest;
+  readonly digest?: (preimage: Uint8Array) => Uint8Array;
+}): CampaignResult<CampaignCollisionIndex>;
+
+declare function createCampaignPlan(input: {
+  readonly campaign: CampaignIdentityInput;
+  readonly configuration: GenerationConfiguration;
+  readonly dependencies: CampaignDependenciesV1;
+  readonly collisionIndex?: CampaignCollisionIndex;
+}): CampaignResult<PreparedCampaign>;
+
+declare function getCampaignPlanItem(
+  campaign: PreparedCampaign,
+  ordinal: number,
+): CampaignResult<CampaignPlanItem>;
+
+declare function generateCase(
+  campaign: PreparedCampaign,
+  item: CampaignPlanItem,
+): CampaignResult<GeneratedCase>;
+
+declare function generateCampaignCase(
+  campaign: PreparedCampaign,
+  ordinal: number,
+): CampaignResult<GeneratedCase>;
+
+declare function replayCase(input: {
+  readonly envelopeBytes: Uint8Array;
+  readonly registry: RevisionRegistry;
+  readonly collisionIndex?: CampaignCollisionIndex;
+}): ReplayResult;
+```
+
+The factory first validates exact own-data input and configuration/campaign digests. It requires
+factory-produced `FreshCandidateRegistration` capabilities for the generator and boundary
+transform, checks their verified bindings plus inventory, rule-model and renderer identities
+against the campaign, then invokes the boundary transform during canonical coverage preparation
+and requires its typed families to agree with the reviewed suite. Dependencies are snapshotted
+once. No later operation reads caller-owned objects, accessors, environment, process arguments,
+current bindings or the filesystem.
+
+The mandatory valid prefix contains one canonical case for every enabled rule and every permitted
+literal/const/local/parameter position in that rule's reviewed spelling matrix, including ordinary
+local and parameter address/value positions for memory intrinsics. If `caseCount` cannot hold that
+prefix, creation fails with `campaign.coverage.insufficient`. Remaining valid slots use path-local
+draws. Invalid slots use only space remaining after mandatory valid coverage, up to
+`maxInvalidCases`. The three fixed path lanes are `[0, coverageOrdinal]`,
+`[1, randomValidOrdinal]` and `[2, invalidOrdinal]`; adding an unrelated branch cannot renumber an
+existing lane.
+
+Every plan item uses `{ maxSourceBytes: configuration.budget.maxSourceBytes,
+literalSpellings: [] }` as its closed render options in v1. A later spelling-policy revision must
+become a case-shaping identity input rather than consulting ambient renderer defaults.
+
+`PreparedCampaign` is factory-branded, deeply immutable and has no cursor. Plan-item and case
+lookups are output-pure by ordinal: repetition, permutation and concurrent calls return the same
+identity, metadata, bindings and bytes. Plan items are derived lazily rather than retaining up to
+100,000 request objects. The campaign's exact case identities are nevertheless collision-checked
+before the prepared capability is returned.
+
+`CampaignCollisionIndex` is an opaque factory value bound to one campaign digest. It accepts at
+most 100,000 case witnesses. A witness stores the exact generation path and ordinal while the
+campaign digest is retained once, so collision proof does not duplicate the invariant campaign
+preimage for every case. An injected digest function exists only on its factory for collision
+conformance tests. Equal digest/equal witness is idempotent; equal digest/unequal witness returns
+`campaign.identity.collision`. A supplied index must be fresh and bound to the derived campaign.
+The normal factory creates one internally.
+
+`CaseRendererV1` first validates the model-valid baseline. Valid cases and
+`parameter-binding-replace` cases use the ordinary independent round-trip validator; the latter
+also replaces exactly the named effective external binding. Source-transform invalid cases apply
+their one closed transform at the renderer's structural expression/argument seam, parse the result
+with the independent inverse and prove that the resolved transform path contains the exact
+replacement while unrelated structure is unchanged. No invalid case is passed through valid-only
+IR validation after its transform. `GeneratedCase.usage` is finalized once from construction
+usage, rendered bytes and attempts; `sourceBytes` and replay's `source` reference the same isolated
+byte array.
+
+The finite reviewed valid and neighbor constructions are prepared once behind the factory-produced
+modeled-suite capability. Preparation independently validates every template and retains its exact
+construction usage. Per-case generation still invokes the exact registered handler, but it may
+consume that branded prepared evidence instead of rebuilding, resnapshotting and recounting the
+same IR. Arbitrary or unbranded handler results receive the complete structural validation path.
+Independent rendering, parsing and projection comparison still run for every generated case.
+
+Replay parses bounded bytes first, resolves all six exact revisions and validates the resolved
+closed value shapes. Normal replay creates a private target-only capability after the same
+campaign, configuration, dependency and domain validation; it derives only the carried ordinal's
+lane, path, plan item and complete identity before regenerating and comparing that case. This
+capability is not a `PreparedCampaign` and does not claim that a fresh process repeated the public
+factory's global collision proof. Public `createCampaignPlan` remains the sole producer of a
+globally proven prepared campaign and still checks every case identity before returning. When a
+caller explicitly supplies a collision-conformance index, replay uses the full-proof path.
+Generator and boundary-transform revision entries must be
+`FreshCandidateRegistration` capabilities; the registry validates them and its private replay
+path consumes only their verified bindings. The rule-model entry is the factory-produced
+`ModeledGeneratorSuite` itself and is preserved by identity rather than structurally cloned. That
+suite retains three distinct authority facts: protocol compatibility `rule-model-v1`, the
+manifest's own `registryVersion`, and the digest of the exact validated manifest bytes. Campaign
+composition requires the protocol label and digest to match the suite; revision registration
+may retain nonrequested alternate suites, but resolving one as authority requires its key,
+retained digest and campaign digest to agree. A disagreement is `replay-incompatible` naming
+`rule-model` before any handler runs. Raw `RevisionRegistry.resolve` is compatibility-set lookup;
+exported `resolveReplayRevisions` performs this authority check, and `replayCase` repeats it as
+defense in depth. The manifest release version is already protected by those digested bytes and is
+not an alias for the protocol label.
+A missing exact value returns `replay-incompatible`; invalid input returns `replay-invalid`;
+neither path invokes a current handler or returns source.
+
+### Fresh-process fixture protocol
+
+The checked-in child accepts exactly one bounded `ReplayEnvelopeV1` JSON byte sequence on stdin.
+It accepts no argv configuration or path, and reads no campaign configuration from the
+environment, current working directory or ambient binding state. For a valid request it constructs
+only the fixture's exact revision registry from code and fixed authority assets addressed relative
+to the fixture module, then calls `replayCase`.
+
+Stdout is exactly one canonical LF-terminated JSON object:
+
+```ts
+type ReplayChildResponseV1 =
+  | {
+      readonly schemaVersion: 1;
+      readonly ok: true;
+      readonly caseDigest: Sha256Digest;
+      readonly sourceBase64: string;
+    }
+  | {
+      readonly schemaVersion: 1;
+      readonly ok: false;
+      readonly result:
+        | { readonly kind: "replay-incompatible"; readonly missing: IdentityComponent }
+        | { readonly kind: "replay-invalid"; readonly diagnostics: readonly ReplayDiagnostic[] };
+    };
+```
+
+Exit zero means one typed response was produced; a non-zero exit means fixture/protocol failure.
+ST-17 launches two independent children with the same stdin and compares the decoded source bytes,
+case digest and exact response shape.
+
 ## Input safety
 
 Replay JSON is parsed with byte/depth/string/count limits, closed properties and duplicate-key

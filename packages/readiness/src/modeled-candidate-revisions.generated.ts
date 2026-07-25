@@ -24,6 +24,7 @@ export const MODELED_GENERATOR_REVISION: GeneratedCandidateRevision = Object.fre
     "packages/readiness/src/model-registry-model.ts",
     "packages/readiness/src/model.ts",
     "packages/readiness/src/modeled-case-builder.ts",
+    "packages/readiness/src/modeled-construction-templates.ts",
     "packages/readiness/src/modeled-generator-facts.ts",
     "packages/readiness/src/modeled-generator-model.ts",
     "packages/readiness/src/modeled-generator-suite.ts",
@@ -35,7 +36,7 @@ export const MODELED_GENERATOR_REVISION: GeneratedCandidateRevision = Object.fre
     "packages/readiness/src/rule-model-validator.ts",
     "packages/readiness/src/strict-json.ts",
   ]),
-  claimedRevision: "sha256:e80b82806c59c11bedfd389265804da3c4ecac0e4eb986200d94e0067204405f",
+  claimedRevision: "sha256:b71530380c60b5b2bb7dbe778a4c5a17045fa05840bf569ed7ac652f6019dfdb",
 });
 
 /** Generated revision authority for the boundary-transform callable. */

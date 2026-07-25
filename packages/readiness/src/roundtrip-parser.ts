@@ -258,13 +258,23 @@ class Parser {
         this.tokens[this.cursor + 1]?.kind === "lparen")
     ) {
       const width = token.kind === "poke" || token.lexeme === "poke" ? 1 : 2;
+      const intrinsic = width === 1 ? "poke" : "pokew";
       this.advance();
       this.expect("lparen");
-      const address = this.parseExpression(0, "word");
-      this.expect("comma");
-      const value = this.parseExpression(0, width === 1 ? "byte" : "word");
-      this.expect("rparen");
+      const argumentsValue = this.parseIntrinsicArguments(["word", width === 1 ? "byte" : "word"]);
       this.expect("semicolon");
+      if (argumentsValue.length !== 2) {
+        return Object.freeze({
+          kind: "invalid-memory-write",
+          intrinsic,
+          arguments: argumentsValue,
+        });
+      }
+      const address = argumentsValue[0];
+      const value = argumentsValue[1];
+      if (address === undefined || value === undefined) {
+        throw new ParseFailure(token.offset);
+      }
       return Object.freeze({ kind: "memory-write", width, address, value });
     }
     const target = asIdentifier(this.expect("identifier"));
@@ -273,6 +283,18 @@ class Parser {
     const value = this.parseExpression(0, type);
     this.expect("semicolon");
     return Object.freeze({ kind: "assign", target, value });
+  }
+
+  parseIntrinsicArguments(expectedTypes: readonly ScalarType[]): readonly RoundTripExpression[] {
+    const argumentsValue: RoundTripExpression[] = [];
+    while (this.current().kind !== "rparen") {
+      const expectedType = expectedTypes[argumentsValue.length] ?? "word";
+      argumentsValue.push(this.parseExpression(0, expectedType));
+      if (this.current().kind !== "comma") break;
+      this.advance();
+    }
+    this.expect("rparen");
+    return Object.freeze(argumentsValue);
   }
 
   parseExpression(minimumBindingPower: number, expectedType: ScalarType): RoundTripExpression {
@@ -319,9 +341,18 @@ class Parser {
       this.current().kind === "lparen"
     ) {
       const width = token.kind === "peek" || token.lexeme === "peek" ? 1 : 2;
+      const intrinsic = width === 1 ? "peek" : "peekw";
       this.expect("lparen");
-      const address = this.parseExpression(0, "word");
-      this.expect("rparen");
+      const argumentsValue = this.parseIntrinsicArguments(["word"]);
+      if (argumentsValue.length !== 1) {
+        return Object.freeze({
+          kind: "invalid-memory-read",
+          intrinsic,
+          arguments: argumentsValue,
+        });
+      }
+      const address = argumentsValue[0];
+      if (address === undefined) throw new ParseFailure(token.offset);
       return Object.freeze({
         kind: "memory-read",
         width,

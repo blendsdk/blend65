@@ -64,6 +64,14 @@ export { createRevisionRegistry, resolveReplayRevisions } from "./revision-regis
 export { parseRenderedSource } from "./roundtrip-parser.js";
 export { projectForRoundTrip, validateRoundTrip } from "./roundtrip-validator.js";
 export { renderSourceModule } from "./source-renderer.js";
+export { renderGeneratedCase } from "./case-generator.js";
+export {
+  createCampaignCollisionIndex,
+  createCampaignPlan,
+  getCampaignPlanItem,
+} from "./campaign.js";
+export { generateCampaignCase, generateCase } from "./generate-case.js";
+export { replayCase } from "./replay.js";
 export {
   deriveImplementationRevision,
   isFreshImplementationRevision,
@@ -299,3 +307,25 @@ export type {
   ModeledCandidateDiagnostic,
   ModeledCandidateRegistrationResult,
 } from "./modeled-candidate-bindings.js";
+export type {
+  CampaignBoundaryBindingV1,
+  CampaignCollisionIndex,
+  CampaignDependenciesV1,
+  CampaignDiagnostic,
+  CampaignGeneratorBindingV1,
+  CampaignGeneratorId,
+  CampaignInventoryAuthorityV1,
+  CampaignPlanItem,
+  CampaignPlanLane,
+  CampaignPlanSummary,
+  CampaignRendererBindingV1,
+  CampaignResult,
+  CampaignRuleModelAuthorityV1,
+  CaseRendererV1,
+  CaseRenderResult,
+  CaseRenderRoundTripKind,
+  CaseRenderSuccess,
+  GeneratedCase,
+  PreparedCampaign,
+} from "./campaign-model.js";
+export type { ReplayResult } from "./replay.js";

@@ -52,6 +52,8 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 | ST-22 | Replay JSON has duplicate/unknown/oversize fields, unsupported IDs or path-like values | Rejected before generation/filesystem access | RD-02 AC-12; AR-P12 |
 | ST-34 | Handler dependency bytes change while claimed implementation revision remains fixed | Freshness validation rejects before candidate validation, replay or publication | RD-02 identity requirements; 03-01 |
 | ST-35 | Fresh-process replay has no ambient configuration, or carried configuration is missing/mismatched | Complete carried configuration replays; missing/mismatched content is explicitly incompatible | RD-02 AC-4/5; 03-03 |
+| ST-41 | Prepared campaign requested by ordinal in repeated, reversed and concurrent order | Identity, plan item, effective parameter bindings, usage and source bytes remain identical; the plan has no cursor | RD-02 AC-4/6/8; AR-P30 |
+| ST-42 | Campaign cannot hold mandatory reviewed spelling coverage, mixes generator routes, exceeds 100,000 cases or supplies a used/wrong-campaign collision index | Closed deterministic failure occurs before any case handler or renderer runs | RD-02 AC-5/6/8/12; AR-P30 |
 
 ### Rendering and round trip
 
@@ -90,6 +92,7 @@ Prettier checks, the full repository verify passes, and `spec/` remains unchange
 | `case-identity.spec.test.ts` | ST-15–ST-16, ST-18–ST-21 |
 | `handler-revision.spec.test.ts` | ST-34 |
 | `replay.spec.test.ts` | ST-17, ST-20, ST-22, ST-35 |
+| `campaign-replay.spec.test.ts` | ST-17–ST-22, ST-27, ST-35, ST-41–ST-42 at the composed campaign boundary |
 | `renderer-roundtrip.spec.test.ts` | ST-23–ST-27, ST-36 |
 | `binding-publication.spec.test.ts` | ST-28–ST-33, ST-37–ST-40 |
 

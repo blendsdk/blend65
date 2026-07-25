@@ -270,7 +270,7 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:909f4c55557eecfda4fb87dfc12f776f05caa9fa764069b4331b8df91bfd6835",
+          "revision": "sha256:879c2dd1f65da4350adfcef742664ffd276f00dd1c30070eb61b917cdd42e798",
           "upstream": "compiler-readiness/SPEC-RD-02-IDENTITY",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1590,7 +1590,7 @@
     {
       "edges": [],
       "id": "AR-P02",
-      "revision": "sha256:a245c31a749f64d933f055b636a5c646a4130caf3876f8c52afcde0be8141dfd",
+      "revision": "sha256:13e6830b83b9e8f0058518582478745cb939953c19ec6a0dc7b8f65ae28f376f",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1651,7 +1651,7 @@
         {
           "gate": "execution",
           "relation": "accepted-by",
-          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-MODELS",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1716,7 +1716,7 @@
         {
           "gate": "execution",
           "relation": "accepted-by",
-          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-IR",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1756,7 +1756,7 @@
         }
       ],
       "id": "SPEC-RD-02-IDENTITY",
-      "revision": "sha256:909f4c55557eecfda4fb87dfc12f776f05caa9fa764069b4331b8df91bfd6835",
+      "revision": "sha256:879c2dd1f65da4350adfcef742664ffd276f00dd1c30070eb61b917cdd42e798",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1781,7 +1781,7 @@
         {
           "gate": "execution",
           "relation": "accepted-by",
-          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-IDENTITY",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1795,7 +1795,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
+          "revision": "sha256:2059afdcebd71482e0e30f864fe7e24c56371c7a2db40e0781b7a95058fb6e25",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1846,7 +1846,7 @@
         {
           "gate": "execution",
           "relation": "accepted-by",
-          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-RENDER",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1860,7 +1860,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
+          "revision": "sha256:2059afdcebd71482e0e30f864fe7e24c56371c7a2db40e0781b7a95058fb6e25",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1907,7 +1907,7 @@
         {
           "gate": "execution",
           "relation": "accepted-by",
-          "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-PUBLISH",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -1936,7 +1936,7 @@
         }
       ],
       "id": "AC-RD-02-MODELS",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1983,7 +1983,7 @@
         }
       ],
       "id": "AC-RD-02-IR",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2030,7 +2030,7 @@
         }
       ],
       "id": "AC-RD-02-IDENTITY",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2055,7 +2055,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
+          "revision": "sha256:2059afdcebd71482e0e30f864fe7e24c56371c7a2db40e0781b7a95058fb6e25",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2077,7 +2077,7 @@
         }
       ],
       "id": "AC-RD-02-RENDER",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2102,7 +2102,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
+          "revision": "sha256:2059afdcebd71482e0e30f864fe7e24c56371c7a2db40e0781b7a95058fb6e25",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2120,7 +2120,7 @@
         }
       ],
       "id": "AC-RD-02-PUBLISH",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2153,7 +2153,7 @@
         "summary:The independently authored exact model and binding specification oracle failed before implementation."
       ],
       "id": "TEST-RD-02-MODELS",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2178,7 +2178,7 @@
         "summary:The modeled generator IR specification oracle is green."
       ],
       "id": "TEST-RD-02-IR",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2201,7 +2201,7 @@
         "redEvidence:Phase 3 immutable specifications initially failed collection because the identity implementation modules did not exist."
       ],
       "id": "TEST-RD-02-IDENTITY",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2224,7 +2224,7 @@
         "redEvidence:Renderer specification oracle failed before implementation because the conformance module was absent."
       ],
       "id": "TEST-RD-02-RENDER",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2243,7 +2243,7 @@
     {
       "edges": [],
       "id": "TEST-RD-02-PUBLISH",
-      "revision": "sha256:4808ddd799d9f1c7242391a34ccb75e86a4c6f4bde497a37a6ecdd63cdc41c51",
+      "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2304,7 +2304,7 @@
         "summary:Zero-Ambiguity Gate and plan preflight passed; 40 requirements-derived specification cases and 71 execution tasks are grounded in approved RD-02."
       ],
       "id": "PLAN-RD-02",
-      "revision": "sha256:f1694c81dbc21cd47e0edb42e9511e505edb7c752eb4165384811bf95c6bb861",
+      "revision": "sha256:e0abf3f6a5156386886cccc5866b654bd223d55f0562c5f5f913f2360e12a7e1",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2371,7 +2371,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
+          "revision": "sha256:2059afdcebd71482e0e30f864fe7e24c56371c7a2db40e0781b7a95058fb6e25",
           "upstream": "compiler-readiness/TASK-RD-02-P6",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -2512,8 +2512,12 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "summary:Phase 6 campaign composition, exact replay, prepared accounting and remediation are implemented; immutable campaign/replay oracle passes 16 of 16.",
+        "verificationEvidence:Exact full repository gate passes after review remediation: 63 readiness files with 908 tests and 8 root files with 33 tests; build, typecheck, lint and frozen install all pass."
+      ],
       "id": "TASK-RD-02-P6",
-      "revision": "sha256:a4a6031077526508944959f6c1828a9c6c6c40ec7679d0bd099c98a40809346e",
+      "revision": "sha256:2059afdcebd71482e0e30f864fe7e24c56371c7a2db40e0781b7a95058fb6e25",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2525,7 +2529,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-02 phase 6",
       "type": "task",
       "validations": []

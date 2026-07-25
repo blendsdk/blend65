@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import { copyUint8Array, uint8ArrayByteLength } from "./canonical-identity.js";
+import {
+  prepareModeledConstructionRegistry,
+  type PreparedModeledConstructionRegistry,
+} from "./modeled-construction-templates.js";
 import type { InventoryV1 } from "./model.js";
 import {
   createModeledChoices,
@@ -44,6 +48,10 @@ interface ReviewEvidence {
 
 interface SuiteState {
   readonly registry: RuleModelRegistry;
+  readonly protocolVersion: "rule-model-v1";
+  readonly manifestRegistryVersion: string;
+  readonly ruleModelDigest: Sha256Digest;
+  readonly constructions: PreparedModeledConstructionRegistry;
 }
 
 const MAX_AUTHORITY_BYTES = 16_777_216;
@@ -379,11 +387,24 @@ function modelFactsAgree(record: ModeledRuleRecord): boolean {
   );
 }
 
-function createCapability(registry: RuleModelRegistry): ModeledGeneratorSuite {
+function createCapability(
+  registry: RuleModelRegistry,
+  ruleModelDigest: Sha256Digest,
+  constructions: PreparedModeledConstructionRegistry,
+): ModeledGeneratorSuite {
   const capability: ModeledGeneratorSuite = Object.freeze({
     [MODELED_GENERATOR_SUITE_CAPABILITY]: true as const,
   });
-  SUITE_STATES.set(capability, { registry });
+  SUITE_STATES.set(
+    capability,
+    Object.freeze({
+      registry,
+      protocolVersion: "rule-model-v1",
+      manifestRegistryVersion: registry.registryVersion,
+      ruleModelDigest,
+      constructions,
+    }),
+  );
   return capability;
 }
 
@@ -537,10 +558,18 @@ export function createModeledGeneratorSuite(input: unknown): ModeledGeneratorSui
       "Modeled facts or citations do not match reviewed inventory authority.",
     );
   }
+  const constructions = prepareModeledConstructionRegistry();
+  if (constructions === undefined) {
+    return failure(
+      "modeled.operation.failed",
+      "/ruleModelBytes/rules",
+      "A reviewed construction template failed structural preparation.",
+    );
+  }
 
   return Object.freeze({
     ok: true,
-    suite: createCapability(validated.registry),
+    suite: createCapability(validated.registry, modelDigest, constructions),
     seedContractDigest: seedDigest,
     ruleModelDigest: modelDigest,
     diagnostics: EMPTY_DIAGNOSTICS,

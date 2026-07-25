@@ -1,3 +1,7 @@
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -6,12 +10,23 @@ import {
 } from "./binding-validator.js";
 import type { ExecutableBindingInput, FreshCandidateRegistration } from "./binding-model.js";
 import type { GenerationConfiguration } from "./canonical-identity.js";
-import type { CampaignIdentityInput, CaseIdentity } from "./case-identity.js";
+import {
+  deriveCampaignIdentity,
+  deriveCaseIdentity,
+  deriveConfigurationIdentity,
+  type CampaignIdentityInput,
+} from "./case-identity.js";
 import {
   deriveImplementationRevision,
   validateImplementationRevision,
 } from "./implementation-revision.js";
 import type { Sha256Digest } from "./model-registry-model.js";
+import type { ModeledGeneratorSuite } from "./modeled-generator-model.js";
+import { createModeledGeneratorSuite, getModeledSuiteState } from "./modeled-generator-suite.js";
+import { INVENTORY_V1_LIMITS } from "./limits.js";
+import { parseInventoryJson } from "./json-input.js";
+import { replayCase } from "./replay.js";
+import { validateInventorySchema } from "./schema-validator.js";
 import type { ReplayEnvelopeV1 } from "./replay-input.js";
 import {
   createRevisionRegistry,
@@ -21,6 +36,7 @@ import {
 } from "./revision-registry.js";
 
 const encoder = new TextEncoder();
+const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 function digest(character: string): Sha256Digest {
   return `sha256:${character.repeat(64)}`;
@@ -30,6 +46,7 @@ function freshRegistration(
   kind: "generator" | "transform",
   handlerId: string,
   source: string,
+  implementation: (...args: never[]) => unknown = () => handlerId,
 ): FreshCandidateRegistration {
   const metadata = {
     contractVersion: "1",
@@ -48,7 +65,7 @@ function freshRegistration(
     kind,
     contractVersion: "1",
     implementationRevision: fresh.revision,
-    implementation: () => handlerId,
+    implementation,
   };
   const registered = registerFreshCandidateBinding({ binding, freshness: fresh });
   if (!registered.ok) throw new Error("expected fresh candidate registration");
@@ -75,17 +92,51 @@ function config(): GenerationConfiguration {
   };
 }
 
+interface ModeledSuiteFixture {
+  readonly suite: ModeledGeneratorSuite;
+  readonly digest: Sha256Digest;
+}
+
+async function modeledSuite(): Promise<ModeledSuiteFixture> {
+  const [inventoryBytes, seedContractBytes, ruleModelBytes, reviewEvidenceBytes] =
+    await Promise.all([
+      readFile(resolve(REPOSITORY_ROOT, "readiness/inventory/compiler-readiness-v1.json")),
+      readFile(resolve(REPOSITORY_ROOT, "readiness/rule-models/rule-model-seed-v1.json")),
+      readFile(resolve(REPOSITORY_ROOT, "readiness/rule-models/rule-models-v1.json")),
+      readFile(resolve(REPOSITORY_ROOT, "readiness/reviews/rule-models-v1-review.json")),
+    ]);
+  const parsed = parseInventoryJson(inventoryBytes, INVENTORY_V1_LIMITS);
+  if (!parsed.ok) throw new Error("expected parsed inventory");
+  const validated = validateInventorySchema(parsed.inventory);
+  if (!validated.ok) throw new Error("expected validated inventory");
+  const result = createModeledGeneratorSuite({
+    inventory: validated.inventory,
+    seedContractBytes,
+    ruleModelBytes,
+    reviewEvidenceBytes,
+  });
+  if (!result.ok) throw new Error("expected modeled suite");
+  const state = getModeledSuiteState(result.suite);
+  if (state === undefined) throw new Error("expected modeled suite state");
+  return { suite: result.suite, digest: state.ruleModelDigest };
+}
+
 function envelope(
   generatorRevision: Sha256Digest,
   transformRevision: Sha256Digest,
+  ruleModelDigest: Sha256Digest,
+  ruleModelVersion = "rule-model-v1",
 ): ReplayEnvelopeV1 {
+  const configuration = config();
+  const configurationIdentity = deriveConfigurationIdentity(configuration);
+  if (!configurationIdentity.ok) throw new Error("expected configuration identity");
   const campaign: CampaignIdentityInput = {
     inventorySchemaVersion: 1,
     inventoryVersion: "inventory-v1",
     inventoryDigest: digest("1"),
     specRevision: "spec-v3.0",
-    ruleModelVersion: "models-v1",
-    ruleModelDigest: digest("2"),
+    ruleModelVersion,
+    ruleModelDigest,
     generator: {
       handlerId: "generator.fixture",
       contractVersion: "1",
@@ -100,36 +151,97 @@ function envelope(
     target: "c64",
     prngAlgorithm: "blend65-sha256-ctr-v1",
     seed: digest("0"),
-    configurationDigest: digest("6"),
+    configurationDigest: configurationIdentity.identity,
   };
-  const caseIdentity: CaseIdentity = {
-    campaignDigest: digest("7"),
-    generationPath: [],
-    ordinal: 0,
-    digest: digest("8"),
-  };
+  const campaignIdentity = deriveCampaignIdentity(campaign);
+  if (!campaignIdentity.ok) throw new Error("expected campaign identity");
+  const caseIdentity = deriveCaseIdentity(campaignIdentity.identity, [0, 0], 0);
+  if (!caseIdentity.ok) throw new Error("expected case identity");
   return {
     schemaVersion: 1,
     campaign,
-    campaignDigest: caseIdentity.campaignDigest,
-    caseIdentity,
-    configuration: config(),
+    campaignDigest: campaignIdentity.identity,
+    caseIdentity: caseIdentity.identity,
+    configuration,
   };
 }
 
+function wireBytes(value: unknown): Uint8Array {
+  return encoder.encode(
+    JSON.stringify(value, (_key, member: unknown) =>
+      typeof member === "bigint" ? member.toString(10) : member,
+    ),
+  );
+}
+
+function completeEntries(
+  replay: ReplayEnvelopeV1,
+  suite: ModeledGeneratorSuite,
+  generator: FreshCandidateRegistration,
+  transform: FreshCandidateRegistration,
+  renderer: (...args: never[]) => unknown = () => undefined,
+): readonly RevisionEntry[] {
+  return Object.freeze([
+    {
+      component: "inventory",
+      revision: replay.campaign.inventoryDigest,
+      value: Object.freeze({
+        schemaVersion: 1,
+        inventoryVersion: replay.campaign.inventoryVersion,
+        inventoryDigest: replay.campaign.inventoryDigest,
+        specRevision: replay.campaign.specRevision,
+      }),
+    },
+    {
+      component: "rule-model",
+      revision: replay.campaign.ruleModelDigest,
+      value: suite,
+    },
+    {
+      component: "generator",
+      revision: replay.campaign.generator.implementationRevision,
+      value: generator,
+    },
+    {
+      component: "boundary-transform",
+      revision: replay.campaign.boundaryTransform.implementationRevision,
+      value: transform,
+    },
+    {
+      component: "renderer",
+      revision: replay.campaign.rendererRevision,
+      value: Object.freeze({
+        implementationRevision: replay.campaign.rendererRevision,
+        implementation: renderer,
+      }),
+    },
+    {
+      component: "configuration",
+      revision: replay.campaign.configurationDigest,
+      value: replay.configuration,
+    },
+  ]);
+}
+
 describe("exact revision registry", () => {
-  it("closes opaque values and resolves all six exact revisions", () => {
+  it("closes opaque values and resolves all six exact revisions", async () => {
     const generator = freshRegistration("generator", "generator.fixture", "export const g = 1;\n");
     const transform = freshRegistration("transform", "transform.fixture", "export const t = 1;\n");
+    const modeled = await modeledSuite();
     const replay = envelope(
       generator.binding.implementationRevision,
       transform.binding.implementationRevision,
+      modeled.digest,
     );
     const render = vi.fn();
     const inventoryValue = { version: 1, nested: { stable: true } };
     const entries: RevisionEntry[] = [
       { component: "inventory", revision: replay.campaign.inventoryDigest, value: inventoryValue },
-      { component: "rule-model", revision: replay.campaign.ruleModelDigest, value: { rules: [] } },
+      {
+        component: "rule-model",
+        revision: replay.campaign.ruleModelDigest,
+        value: modeled.suite,
+      },
       {
         component: "generator",
         revision: replay.campaign.generator.implementationRevision,
@@ -169,6 +281,112 @@ describe("exact revision registry", () => {
     });
   });
 
+  it("retains an alternate suite key while reporting the requested revision missing", async () => {
+    const generator = freshRegistration("generator", "generator.fixture", "export const g = 1;\n");
+    const transform = freshRegistration("transform", "transform.fixture", "export const t = 1;\n");
+    const modeled = await modeledSuite();
+    const replay = envelope(
+      generator.binding.implementationRevision,
+      transform.binding.implementationRevision,
+      modeled.digest,
+    );
+    const alternateRevision = digest("f");
+    const entries = completeEntries(replay, modeled.suite, generator, transform).map((entry) =>
+      entry.component === "rule-model" ? { ...entry, revision: alternateRevision } : entry,
+    );
+    const created = createRevisionRegistry(entries);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    expect(created.registry.resolve("rule-model", alternateRevision)).toBe(modeled.suite);
+    expect(resolveReplayRevisions(replay, created.registry)).toEqual({
+      ok: false,
+      kind: "replay-incompatible",
+      missing: "rule-model",
+    });
+  });
+
+  it("rejects a suite stored under another requested digest before replay handlers", async () => {
+    const generatorSpy = vi.fn();
+    const transformSpy = vi.fn();
+    const rendererSpy = vi.fn();
+    const generator = freshRegistration(
+      "generator",
+      "generator.fixture",
+      "export const g = 1;\n",
+      generatorSpy,
+    );
+    const transform = freshRegistration(
+      "transform",
+      "transform.fixture",
+      "export const t = 1;\n",
+      transformSpy,
+    );
+    const modeled = await modeledSuite();
+    const replay = envelope(
+      generator.binding.implementationRevision,
+      transform.binding.implementationRevision,
+      digest("f"),
+    );
+    const created = createRevisionRegistry(
+      completeEntries(replay, modeled.suite, generator, transform, rendererSpy),
+    );
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const incompatible = {
+      ok: false,
+      kind: "replay-incompatible",
+      missing: "rule-model",
+    } as const;
+    expect(resolveReplayRevisions(replay, created.registry)).toEqual(incompatible);
+    expect(
+      replayCase({
+        envelopeBytes: wireBytes(replay),
+        registry: created.registry,
+      }),
+    ).toEqual(incompatible);
+    expect(generatorSpy).not.toHaveBeenCalled();
+    expect(transformSpy).not.toHaveBeenCalled();
+    expect(rendererSpy).not.toHaveBeenCalled();
+  });
+
+  it("accepts a requested suite only when retained digest and protocol both match", async () => {
+    const generator = freshRegistration("generator", "generator.fixture", "export const g = 1;\n");
+    const transform = freshRegistration("transform", "transform.fixture", "export const t = 1;\n");
+    const modeled = await modeledSuite();
+    const matching = envelope(
+      generator.binding.implementationRevision,
+      transform.binding.implementationRevision,
+      modeled.digest,
+    );
+    const matchingRegistry = createRevisionRegistry(
+      completeEntries(matching, modeled.suite, generator, transform),
+    );
+    expect(matchingRegistry.ok).toBe(true);
+    if (!matchingRegistry.ok) return;
+    expect(resolveReplayRevisions(matching, matchingRegistry.registry)).toMatchObject({
+      ok: true,
+    });
+
+    const wrongProtocol = envelope(
+      generator.binding.implementationRevision,
+      transform.binding.implementationRevision,
+      modeled.digest,
+      "rule-model-v2",
+    );
+    const wrongProtocolRegistry = createRevisionRegistry(
+      completeEntries(wrongProtocol, modeled.suite, generator, transform),
+    );
+    expect(wrongProtocolRegistry.ok).toBe(true);
+    if (!wrongProtocolRegistry.ok) return;
+    expect(resolveReplayRevisions(wrongProtocol, wrongProtocolRegistry.registry)).toEqual({
+      ok: false,
+      kind: "replay-incompatible",
+      missing: "rule-model",
+    });
+  });
+
   it.each([
     [[{ component: "future", revision: digest("1"), value: {} }], "/entries/0/component"],
     [[{ component: "renderer", revision: "latest", value: {} }], "/entries/0/revision"],
@@ -201,6 +419,36 @@ describe("exact revision registry", () => {
     ).toMatchObject({
       ok: false,
       diagnostics: [{ path: "/entries/0/value" }],
+    });
+  });
+
+  it("rejects inventory and renderer keys that disagree with self-described revisions", () => {
+    expect(
+      createRevisionRegistry([
+        {
+          component: "inventory",
+          revision: digest("1"),
+          value: { inventoryDigest: digest("2") },
+        },
+      ]),
+    ).toMatchObject({
+      ok: false,
+      diagnostics: [{ path: "/entries/0/revision" }],
+    });
+    expect(
+      createRevisionRegistry([
+        {
+          component: "renderer",
+          revision: digest("3"),
+          value: {
+            implementationRevision: digest("4"),
+            implementation: () => undefined,
+          },
+        },
+      ]),
+    ).toMatchObject({
+      ok: false,
+      diagnostics: [{ path: "/entries/0/revision" }],
     });
   });
 
@@ -303,7 +551,7 @@ describe("exact revision registry", () => {
     expect(
       createRevisionRegistry([
         { component: "inventory", revision: digest("1"), value: large },
-        { component: "rule-model", revision: digest("2"), value: large },
+        { component: "configuration", revision: digest("2"), value: large },
       ]),
     ).toMatchObject({
       ok: false,
@@ -312,7 +560,7 @@ describe("exact revision registry", () => {
   });
 
   it("returns the first missing exact component when a resolver throws", () => {
-    const replay = envelope(digest("3"), digest("4"));
+    const replay = envelope(digest("3"), digest("4"), digest("2"));
     const calls: IdentityComponent[] = [];
     const result = resolveReplayRevisions(replay, {
       resolve: (component) => {
@@ -348,7 +596,7 @@ describe("exact revision registry", () => {
         },
       },
     );
-    const replay = envelope(digest("3"), digest("4"));
+    const replay = envelope(digest("3"), digest("4"), digest("2"));
     expect(
       resolveReplayRevisions(replay, {
         resolve: () => hostile,

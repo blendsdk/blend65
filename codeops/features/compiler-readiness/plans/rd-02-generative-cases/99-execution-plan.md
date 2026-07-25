@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-25 02:56 UTC
-> **Progress**: 49/71 tasks (69%)
+> **Last Updated**: 2026-07-25 05:16 UTC
+> **Progress**: 57/71 tasks (80%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -146,19 +146,19 @@ unpublished until the final phase.
 
 ## Phase 6: Campaign Composition and Exact Replay
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `1f3ca90ce60dd395681c92211ec965302bfc5caf`
 > **Lenses**: security, perf, concurrency
 
-**Reference**: 03-02, 03-03, 03-04 · AR-P4–AR-P8, AR-P11–AR-P12 · ST-15–ST-27, ST-35
+**Reference**: 03-02, 03-03, 03-04 · AR-P4–AR-P8, AR-P11–AR-P12, AR-P30–AR-P35 · ST-15–ST-27, ST-35, ST-41–ST-42
 
-- [ ] 6.1.1 [spec-author] Write end-to-end campaign/fresh-process replay specification cases including ST-17
-- [ ] 6.1.2 Run Phase 6 spec tests and record expected RED
-- [ ] 6.2.1 Implement campaign planner and deterministic generation paths — `campaign.ts`
-- [ ] 6.2.2 Implement valid/invalid case composition and stable metadata — `case-generator.ts`
-- [ ] 6.2.3 Implement exact replay orchestration and fresh-process fixture — `replay.ts`, `test-fixtures/replay-child.ts`
-- [ ] 6.2.4 Integrate render/round-trip/budget finalization in one case pipeline — `generate-case.ts`; use prepared or batched construction accounting so campaign-scale generation does not repeat full IR and budget snapshots per case (Phase 5 PE-003)
-- [ ] 6.2.5 Run all campaign/replay ST cases GREEN; fix implementation only
-- [ ] 6.3.1 Add scale/determinism/error implementation tests, coverage and full verify
+- [x] 6.1.1 [spec-author] Write end-to-end campaign/fresh-process replay specification cases including ST-17 ✅ (completed: 2026-07-25 03:30 UTC; implementation-blind author produced 16 immutable campaign/replay cases plus the checked-in child fixture after AR-P30 closed the orchestration contract)
+- [x] 6.1.2 Run Phase 6 spec tests and record expected RED ✅ (completed: 2026-07-25 03:30 UTC; 1 suite and all 16 cases fail solely because the seven Phase 6 orchestration exports do not yet exist; readiness typecheck, exact-file lint, Prettier and diff checks pass)
+- [x] 6.2.1 Implement campaign planner and deterministic generation paths — `campaign.ts` ✅ (completed: 2026-07-25 05:16 UTC; cursor-free ordinal planning uses fixed lanes, one prepared choice context, exact mandatory coverage and a single-use 100,000-witness collision proof)
+- [x] 6.2.2 Implement valid/invalid case composition and stable metadata — `case-generator.ts` ✅ (completed: 2026-07-25 05:16 UTC; valid, parameter-binding and structural-invalid cases carry independently parsed projections and reject no-op, out-of-range or unrelated transform drift)
+- [x] 6.2.3 Implement exact replay orchestration and fresh-process fixture — `replay.ts`, `test-fixtures/replay-child.ts` ✅ (completed: 2026-07-25 05:16 UTC; bounded six-revision replay enforces freshness, suite protocol/content authority and exact target identity with no ambient fallback; ordinary replay is target-only while explicit conformance indexes retain full proof)
+- [x] 6.2.4 Integrate render/round-trip/budget finalization in one case pipeline — `generate-case.ts`; use prepared or batched construction accounting so campaign-scale generation does not repeat full IR and budget snapshots per case (Phase 5 PE-003) ✅ (completed: 2026-07-25 05:16 UTC; finite reviewed construction templates cache validated IR usage behind the suite capability, branded cases take the prepared path, arbitrary outputs retain full validation, and final usage is published once)
+- [x] 6.2.5 Run all campaign/replay ST cases GREEN; fix implementation only ✅ (completed: 2026-07-25 05:16 UTC; immutable oracle hashes remain exact and all 16 campaign/replay cases pass, including two fresh processes)
+- [x] 6.3.1 Add scale/determinism/error implementation tests, coverage and full verify ✅ (completed: 2026-07-25 05:16 UTC; correctness, semantics, security and performance review findings remediated or independently adjudicated; exact full gate passes with 63 readiness files / 908 tests and 8 root files / 33 tests)
 
 **Deliverable:** reproducible case generation and replay, still unpublished.
 

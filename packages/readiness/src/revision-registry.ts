@@ -3,6 +3,12 @@ import { Buffer } from "node:buffer";
 import { inspectGeneratorInput } from "./generator-ir-validator.js";
 import { isSha256Digest } from "./canonical-identity.js";
 import { isFreshCandidateRegistration } from "./binding-validator.js";
+import type { ExecutableBinding } from "./binding-model.js";
+import {
+  MODELED_GENERATOR_SUITE_CAPABILITY,
+  type ModeledGeneratorSuite,
+} from "./modeled-generator-model.js";
+import { getModeledSuiteState } from "./modeled-generator-suite.js";
 import type { Sha256Digest } from "./model-registry-model.js";
 import type { ReplayDiagnostic, ReplayEnvelopeV1 } from "./replay-input.js";
 
@@ -29,7 +35,12 @@ const REVISION_REGISTRY_BRAND: unique symbol = Symbol("revision-registry");
 
 /** Exact revision lookup with no ambient-current or nearest-revision operation. */
 export interface RevisionRegistry {
-  /** Resolves only the exact component/revision pair retained by the registry. */
+  /**
+   * Returns the raw value retained for an exact compatibility-set key.
+   *
+   * This lookup does not establish that a value describes its key. Envelope-aware resolution
+   * performs the authority checks required for replay.
+   */
   readonly resolve: (component: IdentityComponent, revision: Sha256Digest) => unknown | undefined;
 }
 
@@ -81,6 +92,7 @@ const MAX_REVISION_ENTRIES = 4_096;
 const MAX_REVISION_VALUE_NODES = 65_536;
 const MAX_REVISION_VALUE_BYTES = 4_194_304;
 const REVISION_REGISTRIES = new WeakSet<object>();
+const RESOLVED_FRESH_BINDINGS = new WeakMap<object, "generator" | "boundary-transform">();
 
 interface ValueBudget {
   nodes: number;
@@ -90,6 +102,11 @@ interface ValueBudget {
 type ClosedValueResult =
   | { readonly ok: true; readonly value: unknown }
   | { readonly ok: false; readonly path: string; readonly message: string };
+
+type SelfDescribedRevision =
+  | { readonly kind: "absent" }
+  | { readonly kind: "invalid" }
+  | { readonly kind: "present"; readonly revision: Sha256Digest };
 
 function diagnostic(
   path: string,
@@ -133,8 +150,57 @@ function isIdentityComponent(value: unknown): value is IdentityComponent {
   );
 }
 
+function hasModeledGeneratorSuiteMarker(value: unknown): value is ModeledGeneratorSuite {
+  if (typeof value !== "object" || value === null) return false;
+  try {
+    const descriptor = Reflect.getOwnPropertyDescriptor(value, MODELED_GENERATOR_SUITE_CAPABILITY);
+    return descriptor !== undefined && "value" in descriptor && descriptor.value === true;
+  } catch {
+    return false;
+  }
+}
+
+function isModeledGeneratorSuite(value: unknown): value is ModeledGeneratorSuite {
+  return hasModeledGeneratorSuiteMarker(value) && getModeledSuiteState(value) !== undefined;
+}
+
+/**
+ * Reports whether a replay value is a binding verified by a factory revision registry.
+ *
+ * @param value Resolved replay value.
+ * @param component Executable component the binding must implement.
+ * @returns Whether the registry accepted the original freshness registration.
+ *
+ * @example
+ * ```ts
+ * if (isResolvedFreshReplayBinding(value, "generator")) value.implementation();
+ * ```
+ */
+export function isResolvedFreshReplayBinding(
+  value: unknown,
+  component: "generator" | "boundary-transform",
+): value is ExecutableBinding {
+  return (
+    typeof value === "object" && value !== null && RESOLVED_FRESH_BINDINGS.get(value) === component
+  );
+}
+
 function registryKey(component: IdentityComponent, revision: Sha256Digest): string {
   return `${component}\u0000${revision}`;
+}
+
+function selfDescribedRevision(value: unknown, key: string): SelfDescribedRevision {
+  if (typeof value !== "object" || value === null) return { kind: "absent" };
+  try {
+    const descriptor = Reflect.getOwnPropertyDescriptor(value, key);
+    if (descriptor === undefined) return { kind: "absent" };
+    if (!("value" in descriptor) || !descriptor.enumerable) return { kind: "invalid" };
+    return isSha256Digest(descriptor.value)
+      ? { kind: "present", revision: descriptor.value }
+      : { kind: "invalid" };
+  } catch {
+    return { kind: "invalid" };
+  }
 }
 
 function consumeBudget(
@@ -253,6 +319,10 @@ export function createRevisionRegistry(entries: readonly RevisionEntry[]): Revis
     const values = new Map<string, unknown>();
     const valueBudget: ValueBudget = { nodes: 0, bytes: 0 };
     const closedObjects = new WeakMap<object, unknown>();
+    const verifiedBindings: {
+      readonly binding: ExecutableBinding;
+      readonly component: "generator" | "boundary-transform";
+    }[] = [];
     for (let index = 0; index < entries.length; index += 1) {
       const entry = entries[index];
       const base = `/entries/${index}`;
@@ -280,6 +350,24 @@ export function createRevisionRegistry(entries: readonly RevisionEntry[]): Revis
       if (values.has(key)) {
         return failure(base, "Component and revision pair occurs more than once.");
       }
+      const describedRevision =
+        entry.component === "inventory"
+          ? selfDescribedRevision(entry.value, "inventoryDigest")
+          : entry.component === "renderer"
+            ? selfDescribedRevision(entry.value, "implementationRevision")
+            : { kind: "absent" as const };
+      if (describedRevision.kind === "invalid") {
+        return failure(
+          `${base}/value`,
+          "Self-described replay revision must be enumerable canonical digest data.",
+        );
+      }
+      if (describedRevision.kind === "present" && describedRevision.revision !== entry.revision) {
+        return failure(
+          `${base}/revision`,
+          "Revision registry key does not match the value's self-described revision.",
+        );
+      }
       if (entry.component === "generator" || entry.component === "boundary-transform") {
         if (!isFreshCandidateRegistration(entry.value)) {
           return failure(
@@ -300,7 +388,18 @@ export function createRevisionRegistry(entries: readonly RevisionEntry[]): Revis
             "Executable replay component does not match its binding kind.",
           );
         }
+        verifiedBindings.push({ binding: entry.value.binding, component: entry.component });
         values.set(key, entry.value.binding);
+        continue;
+      }
+      if (entry.component === "rule-model") {
+        if (!isModeledGeneratorSuite(entry.value)) {
+          return failure(
+            `${base}/value`,
+            "Rule-model replay revisions require a factory-produced modeled suite.",
+          );
+        }
+        values.set(key, entry.value);
         continue;
       }
       const valueFailure = inspectGeneratorInput(
@@ -326,6 +425,9 @@ export function createRevisionRegistry(entries: readonly RevisionEntry[]): Revis
       },
     };
     const registry: RevisionRegistry = Object.freeze(registryValue);
+    for (const verified of verifiedBindings) {
+      RESOLVED_FRESH_BINDINGS.set(verified.binding, verified.component);
+    }
     REVISION_REGISTRIES.add(registry);
     return Object.freeze({ ok: true, registry, diagnostics: EMPTY_DIAGNOSTICS });
   } catch {
@@ -334,7 +436,7 @@ export function createRevisionRegistry(entries: readonly RevisionEntry[]): Revis
 }
 
 /**
- * Resolves all six replay components by their exact carried revisions.
+ * Resolves all six replay components and establishes their envelope-specific authority.
  *
  * @param envelope Parsed identity-verified replay envelope.
  * @param registry Exact revision registry with no fallback operation.
@@ -372,6 +474,17 @@ export function resolveReplayRevisions(
     }
     if (value === undefined) return incompatible(component);
     if (factoryRegistry) {
+      if (component === "rule-model") {
+        if (!isModeledGeneratorSuite(value)) return incompatible(component);
+        const state = getModeledSuiteState(value);
+        if (
+          state === undefined ||
+          state.ruleModelDigest !== requested[component] ||
+          state.protocolVersion !== envelope.campaign.ruleModelVersion
+        ) {
+          return incompatible(component);
+        }
+      }
       values.set(component, value);
       continue;
     }

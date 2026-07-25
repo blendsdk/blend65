@@ -13,7 +13,8 @@ import type {
 } from "./roundtrip-model.js";
 import { prepareSourceRenderInput, renderPreparedSourceModule } from "./source-renderer.js";
 
-function projectExpression(
+/** Projects one validated generator expression without rendering source. */
+export function projectExpressionForRoundTrip(
   expression: GenExpression,
   path: string,
   spellings: ReadonlyMap<string, LiteralSpellingClass>,
@@ -41,21 +42,21 @@ function projectExpression(
     return Object.freeze({
       kind: "unary",
       operator: expression.operator,
-      operand: projectExpression(expression.operand, `${path}/operand`, spellings),
+      operand: projectExpressionForRoundTrip(expression.operand, `${path}/operand`, spellings),
     });
   }
   if (expression.kind === "binary") {
     return Object.freeze({
       kind: "binary",
       operator: expression.operator,
-      left: projectExpression(expression.left, `${path}/left`, spellings),
-      right: projectExpression(expression.right, `${path}/right`, spellings),
+      left: projectExpressionForRoundTrip(expression.left, `${path}/left`, spellings),
+      right: projectExpressionForRoundTrip(expression.right, `${path}/right`, spellings),
     });
   }
   return Object.freeze({
     kind: "memory-read",
     width: expression.width,
-    address: projectExpression(expression.address, `${path}/address`, spellings),
+    address: projectExpressionForRoundTrip(expression.address, `${path}/address`, spellings),
   });
 }
 
@@ -69,34 +70,39 @@ function projectStatement(
       kind: "local",
       name: statement.name,
       type: statement.type,
-      initializer: projectExpression(statement.initializer, `${path}/initializer`, spellings),
+      initializer: projectExpressionForRoundTrip(
+        statement.initializer,
+        `${path}/initializer`,
+        spellings,
+      ),
     });
   }
   if (statement.kind === "assign") {
     return Object.freeze({
       kind: "assign",
       target: statement.target,
-      value: projectExpression(statement.value, `${path}/value`, spellings),
+      value: projectExpressionForRoundTrip(statement.value, `${path}/value`, spellings),
     });
   }
   if (statement.kind === "memory-write") {
     return Object.freeze({
       kind: "memory-write",
       width: statement.width,
-      address: projectExpression(statement.address, `${path}/address`, spellings),
-      value: projectExpression(statement.value, `${path}/value`, spellings),
+      address: projectExpressionForRoundTrip(statement.address, `${path}/address`, spellings),
+      value: projectExpressionForRoundTrip(statement.value, `${path}/value`, spellings),
     });
   }
   const value =
     statement.value === undefined
       ? undefined
-      : projectExpression(statement.value, `${path}/value`, spellings);
+      : projectExpressionForRoundTrip(statement.value, `${path}/value`, spellings);
   return value === undefined
     ? Object.freeze({ kind: "return" })
     : Object.freeze({ kind: "return", value });
 }
 
-function buildProjection(
+/** Projects one already-prepared generator module without rendering source. */
+export function projectPreparedModuleForRoundTrip(
   module: GenModule,
   spellings: ReadonlyMap<string, LiteralSpellingClass>,
 ): RoundTripModule {
@@ -109,7 +115,11 @@ function buildProjection(
           kind: "const" as const,
           name: constant.name,
           type: constant.type,
-          value: projectExpression(constant.value, `/constants/${index}/value`, spellings),
+          value: projectExpressionForRoundTrip(
+            constant.value,
+            `/constants/${index}/value`,
+            spellings,
+          ),
         }),
       ),
     ),
@@ -155,7 +165,10 @@ export function projectForRoundTrip(
   if (!prepared.ok) return prepared;
   return {
     ok: true,
-    projection: buildProjection(prepared.input.module, prepared.input.literalSpellings),
+    projection: projectPreparedModuleForRoundTrip(
+      prepared.input.module,
+      prepared.input.literalSpellings,
+    ),
     diagnostics: [],
   };
 }
@@ -182,7 +195,10 @@ export function validateRoundTrip(
   if (!rendered.ok) {
     return rendered;
   }
-  const expected = buildProjection(prepared.input.module, prepared.input.literalSpellings);
+  const expected = projectPreparedModuleForRoundTrip(
+    prepared.input.module,
+    prepared.input.literalSpellings,
+  );
   const parsed = parseRenderedSource(rendered.sourceBytes, prepared.input.maxSourceBytes);
   if (!parsed.ok) {
     return parsed;

@@ -165,7 +165,13 @@ export const MODELED_RULE_FACTS: ReadonlyMap<string, ModeledRuleFact> = new Map(
 const MODELED_CHOICE_CACHE = new WeakMap<ModeledRuleFact, readonly ModeledCaseChoice[]>();
 const MODELED_CHOICE_KEY_CACHE = new WeakMap<ModeledRuleFact, ReadonlySet<string>>();
 
-function choiceKey(choice: ModeledCaseChoice): string {
+/**
+ * Produces the stable identity used by reviewed choice indexes.
+ *
+ * @param choice Canonical modeled construction choice.
+ * @returns Collision-free key within the reviewed choice grammar.
+ */
+export function modeledChoiceKey(choice: ModeledCaseChoice): string {
   if (choice.kind === "scalar") {
     return [
       choice.kind,
@@ -217,10 +223,12 @@ export function createModeledChoices(fact: ModeledRuleFact): readonly ModeledCas
           }),
         );
   const closed = Object.freeze(
-    [...choices].sort((left, right) => choiceKey(left).localeCompare(choiceKey(right))),
+    [...choices].sort((left, right) =>
+      modeledChoiceKey(left).localeCompare(modeledChoiceKey(right)),
+    ),
   );
   MODELED_CHOICE_CACHE.set(fact, closed);
-  MODELED_CHOICE_KEY_CACHE.set(fact, new Set(closed.map(choiceKey)));
+  MODELED_CHOICE_KEY_CACHE.set(fact, new Set(closed.map(modeledChoiceKey)));
   return closed;
 }
 
@@ -233,7 +241,7 @@ export function createModeledChoices(fact: ModeledRuleFact): readonly ModeledCas
  */
 export function isModeledChoice(fact: ModeledRuleFact, choice: ModeledCaseChoice): boolean {
   createModeledChoices(fact);
-  return MODELED_CHOICE_KEY_CACHE.get(fact)?.has(choiceKey(choice)) === true;
+  return MODELED_CHOICE_KEY_CACHE.get(fact)?.has(modeledChoiceKey(choice)) === true;
 }
 
 /** Returns the exact operation identities permitted by the reviewed seed. */
