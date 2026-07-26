@@ -214,35 +214,35 @@
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:e82068b150653532abc77122bb5907d1973d23b6fff57765fb67bb9cf3e6d160",
+          "revision": "sha256:a006c0141c697f36d602a15200ff3432e376e6a13d718f808185e16dca985f84",
           "upstream": "compiler-readiness/SPEC-RD-02-MODELS",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:5a02a9faaa84b075093eae37c16f52f0a138bf1c40e7ede674c09145163dab39",
+          "revision": "sha256:e2d65fd3b3cce52ba367b99feb1dd56d8d3c2113340fe0339640c3d97da8c84a",
           "upstream": "compiler-readiness/SPEC-RD-02-IR",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:6aeb9c9174b29548319ddcd22ed1088f87ada95590001a4de9ac0211758ace8a",
+          "revision": "sha256:879c2dd1f65da4350adfcef742664ffd276f00dd1c30070eb61b917cdd42e798",
           "upstream": "compiler-readiness/SPEC-RD-02-IDENTITY",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:91a8d94ea563927861530640f47594d1b75e451600bf84ae4a031c48ef4f41f5",
+          "revision": "sha256:5169fb1029f2525792d9ed87430f680de4ea06ed60f07c024f3408ce9450500b",
           "upstream": "compiler-readiness/SPEC-RD-02-RENDER",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:d6b4b3b8a978438471ac3172156649c2ce38769988fe93c885e850ee96bbcb6b",
+          "revision": "sha256:9cfce1ff489b46a3e401b93663fa5396f8dfdabb42a782c9de530bc2bcde90e3",
           "upstream": "compiler-readiness/SPEC-RD-02-PUBLISH",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
@@ -297,16 +297,49 @@
           "target": "compiler-readiness/RD-01"
         },
         {
+          "relation": "depends-on",
+          "target": "compiler-readiness/RD-02"
+        },
+        {
           "relation": "affected-by",
           "target": "compiler-readiness/AR-01"
         },
         {
           "relation": "affected-by",
           "target": "compiler-readiness/AR-05"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-03-CONTRACTS"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-03-EVALUATOR"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-03-RELATIONS"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-03-IDENTITY"
+        },
+        {
+          "relation": "specified-by",
+          "target": "compiler-readiness/SPEC-RD-03-PUBLISH"
         }
       ],
+      "evidence": [
+        "invalidation:The preflight proved the approved RD did not define a non-vacuous executable subset and conflicted with the shipped IR and frozen semantic authority.",
+        "summary:Iteration 2 preflight verified all 13 findings resolved; the user authorized the two reserved scope and semantic-authority rulings.",
+        "summary:RD-03 preflight PF-001 through PF-013 were resolved under explicit user authorization and auto-design."
+      ],
       "id": "RD-03",
-      "revision": "sha256:c50f2c995116070fd701a95871baf35bba4e26c3738c9705b37b916d7bd473ef",
+      "revision": "sha256:170a9038f7f55e2f3cde3853a90e1b6f25a319f02c6cfa7413c188b24e0c8060",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -327,6 +360,62 @@
           "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
           "upstream": "compiler-readiness/RD-01",
           "validatedAt": "2026-07-24T13:19:28Z"
+        },
+        {
+          "gate": "requirements",
+          "relation": "depends-on",
+          "revision": "sha256:59d38e92ba5b640f272b48cb4a2c3e83de0bd1b23b93cef20c8616251341285f",
+          "upstream": "compiler-readiness/RD-02",
+          "validatedAt": "2026-07-26T22:48:34Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "depends-on",
+          "revision": "sha256:a45fedb5530039f3bc70ec992d1a534e7fec1c4826e5a8fa9c93aee08f5e137d",
+          "upstream": "compiler-readiness/RD-01",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "depends-on",
+          "revision": "sha256:59d38e92ba5b640f272b48cb4a2c3e83de0bd1b23b93cef20c8616251341285f",
+          "upstream": "compiler-readiness/RD-02",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:63f7bd6e2b12bffb2f0dc430f6e9a570656b2886c0ba548ec01d66cf7818a2d5",
+          "upstream": "compiler-readiness/SPEC-RD-03-CONTRACTS",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:a911e8ad4127880cd14b8db96c4fc0dc6f431d133702814aa353512ebd937408",
+          "upstream": "compiler-readiness/SPEC-RD-03-EVALUATOR",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:e0cec1ea4f6cfd3305811ca26974f70cf06ac8d83bbc59b58dbf03bd8f2f8dc0",
+          "upstream": "compiler-readiness/SPEC-RD-03-RELATIONS",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:64e836841133dda0cd89686a14de170bcde6277d1e19f169fc144ea70ea2a4ee",
+          "upstream": "compiler-readiness/SPEC-RD-03-IDENTITY",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        },
+        {
+          "gate": "plan",
+          "relation": "specified-by",
+          "revision": "sha256:aa09c5013ca7a0baf39cb43a908fb24ff57618e5783fce7d639edb07923e93e4",
+          "upstream": "compiler-readiness/SPEC-RD-03-PUBLISH",
+          "validatedAt": "2026-07-26T23:10:48Z"
         }
       ]
     },
@@ -1644,7 +1733,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-MODELS",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
@@ -1709,7 +1798,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-IR",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
@@ -1774,7 +1863,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-IDENTITY",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
@@ -1839,7 +1928,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-RENDER",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
@@ -1900,7 +1989,7 @@
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:5818e3f229462a5486bcdacf1540d86e44208aaccf1d2de7f21dd1513a169710",
+          "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
           "upstream": "compiler-readiness/AC-RD-02-PUBLISH",
           "validatedAt": "2026-07-24T15:55:00Z"
         },
@@ -2561,6 +2650,665 @@
       ],
       "status": "verified",
       "title": "Execute RD-02 phase 7",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "evidence": [
+        "summary:RD-03 Zero-Ambiguity Gate passed with 24 resolved decisions and independent publication-compatibility challenge."
+      ],
+      "id": "AR-P03",
+      "revision": "sha256:251e1bec55b2185352e3ae6dfce15b6599e6acb8f9e8c8262025cc3732fe2d9e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/00-ambiguity-register.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "resolved",
+      "title": "RD-03 plan Zero-Ambiguity decisions",
+      "type": "ambiguity",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "depends-on",
+          "target": "compiler-readiness/RD-03"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P1"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P2"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P3"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P4"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P5"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P6"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        }
+      ],
+      "evidence": [
+        "summary:Auto-design resolved all eligible technical decisions; the user authorized the reserved scope ruling.",
+        "summary:Zero-Ambiguity Gate passed with 24 resolved decisions; forty immutable specification cases and sixty-one ordered tasks cover approved RD-03."
+      ],
+      "id": "PLAN-RD-03",
+      "revision": "sha256:7ae51792e5904ec1f632492562b722a415e4fe7faa5214ee08f5d541eb714047",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 independent oracle implementation plan",
+      "type": "plan",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "depends-on",
+          "revision": "sha256:170a9038f7f55e2f3cde3853a90e1b6f25a319f02c6cfa7413c188b24e0c8060",
+          "upstream": "compiler-readiness/RD-03",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-03-CONTRACTS"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P1"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        }
+      ],
+      "id": "SPEC-RD-03-CONTRACTS",
+      "revision": "sha256:63f7bd6e2b12bffb2f0dc430f6e9a570656b2886c0ba548ec01d66cf7818a2d5",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/03-01-oracle-contracts-authority.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 oracle contracts and diagnostic authority",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:bc7d62750a871f8e39b378914a78fe6083ef616020976416be62fd78fc60cc8e",
+          "upstream": "compiler-readiness/AC-RD-03-CONTRACTS",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-03-EVALUATOR"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P2"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        }
+      ],
+      "id": "SPEC-RD-03-EVALUATOR",
+      "revision": "sha256:a911e8ad4127880cd14b8db96c4fc0dc6f431d133702814aa353512ebd937408",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/03-02-reference-evaluator.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 bounded reference evaluator",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:38a19b7fa198ad939e33ad44f33c7a37bd61dedc7363740643da03d957744564",
+          "upstream": "compiler-readiness/AC-RD-03-EVALUATOR",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-03-RELATIONS"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P3"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        }
+      ],
+      "id": "SPEC-RD-03-RELATIONS",
+      "revision": "sha256:e0cec1ea4f6cfd3305811ca26974f70cf06ac8d83bbc59b58dbf03bd8f2f8dc0",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/03-03-semantic-relations.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 semantic relation contracts",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:570ec12473111ecb947c7c31aea79908acab2c9b505a34e1942a4594667f3862",
+          "upstream": "compiler-readiness/AC-RD-03-RELATIONS",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-03-IDENTITY"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P4"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        }
+      ],
+      "id": "SPEC-RD-03-IDENTITY",
+      "revision": "sha256:64e836841133dda0cd89686a14de170bcde6277d1e19f169fc144ea70ea2a4ee",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/03-04-identity-mutation.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 evaluation identity and mutation adequacy",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:d7fe9983b77dad16e15e689a1d1f69dddce638b3ff73d689ce792b46bd19c415",
+          "upstream": "compiler-readiness/AC-RD-03-IDENTITY",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "accepted-by",
+          "target": "compiler-readiness/AC-RD-03-PUBLISH"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P5"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P6"
+        },
+        {
+          "relation": "affected-by",
+          "target": "compiler-readiness/AR-P03"
+        }
+      ],
+      "id": "SPEC-RD-03-PUBLISH",
+      "revision": "sha256:aa09c5013ca7a0baf39cb43a908fb24ff57618e5783fce7d639edb07923e93e4",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/03-05-atomic-publication.md",
+          "selector": {
+            "kind": "whole-file"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 compatible atomic publication",
+      "type": "specification",
+      "validations": [
+        {
+          "gate": "plan",
+          "relation": "accepted-by",
+          "revision": "sha256:59f21fb00515221f8517255263313afb84a9f85a99caf1eadcd40c8513513f36",
+          "upstream": "compiler-readiness/AC-RD-03-PUBLISH",
+          "validatedAt": "2026-07-26T23:10:48Z"
+        }
+      ]
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-03-CONTRACTS"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P1"
+        }
+      ],
+      "id": "AC-RD-03-CONTRACTS",
+      "revision": "sha256:bc7d62750a871f8e39b378914a78fe6083ef616020976416be62fd78fc60cc8e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Oracle protocol and diagnostic authority"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 protocol and authority acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-03-EVALUATOR"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P2"
+        }
+      ],
+      "id": "AC-RD-03-EVALUATOR",
+      "revision": "sha256:38a19b7fa198ad939e33ad44f33c7a37bd61dedc7363740643da03d957744564",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Reference evaluator"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 evaluator acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-03-RELATIONS"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P3"
+        }
+      ],
+      "id": "AC-RD-03-RELATIONS",
+      "revision": "sha256:570ec12473111ecb947c7c31aea79908acab2c9b505a34e1942a4594667f3862",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Semantic relations"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 semantic relation acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-03-IDENTITY"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P4"
+        }
+      ],
+      "id": "AC-RD-03-IDENTITY",
+      "revision": "sha256:d7fe9983b77dad16e15e689a1d1f69dddce638b3ff73d689ce792b46bd19c415",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Evaluation identity and mutation adequacy"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 identity and mutation acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [
+        {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-03-PUBLISH"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P5"
+        },
+        {
+          "relation": "implemented-by",
+          "target": "compiler-readiness/TASK-RD-03-P6"
+        }
+      ],
+      "id": "AC-RD-03-PUBLISH",
+      "revision": "sha256:59f21fb00515221f8517255263313afb84a9f85a99caf1eadcd40c8513513f36",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Bindings and compatible publication"
+          }
+        }
+      ],
+      "status": "approved",
+      "title": "RD-03 binding and publication acceptance",
+      "type": "criterion",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-03-CONTRACTS",
+      "revision": "sha256:bc7d62750a871f8e39b378914a78fe6083ef616020976416be62fd78fc60cc8e",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Oracle protocol and diagnostic authority"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-03 protocol and authority specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-03-EVALUATOR",
+      "revision": "sha256:38a19b7fa198ad939e33ad44f33c7a37bd61dedc7363740643da03d957744564",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Reference evaluator"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-03 evaluator specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-03-RELATIONS",
+      "revision": "sha256:570ec12473111ecb947c7c31aea79908acab2c9b505a34e1942a4594667f3862",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Semantic relations"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-03 semantic relation specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-03-IDENTITY",
+      "revision": "sha256:d7fe9983b77dad16e15e689a1d1f69dddce638b3ff73d689ce792b46bd19c415",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Evaluation identity and mutation adequacy"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-03 identity and mutation specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TEST-RD-03-PUBLISH",
+      "revision": "sha256:59f21fb00515221f8517255263313afb84a9f85a99caf1eadcd40c8513513f36",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/07-testing-strategy.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Bindings and compatible publication"
+          }
+        }
+      ],
+      "status": "planned",
+      "title": "RD-03 binding and publication specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03-P1",
+      "revision": "sha256:a40dc4ea853aca431cb29560dfdd8bf23762e5801413743b5db2393bc412c408",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 1: Closed Protocol and Diagnostic Authority"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-03 phase 1",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03-P2",
+      "revision": "sha256:3916591fed359bff52a4ab8c941a87ace420813c0b12a598ecbd726942c4ae95",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 2: Bounded Reference Evaluator and Memory State"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-03 phase 2",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03-P3",
+      "revision": "sha256:49e9031656a46937b5546af85fed620f4ed2241bb4dcc0a22be44feafdcc5650",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 3: Semantic Relations and Local Comparators"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-03 phase 3",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03-P4",
+      "revision": "sha256:3838cf8ff6a69422ec2193b8cecb5825a4017cf940deedcc9f12fff69927a9a0",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 4: Evaluation Identity and Exhaustive Mutation Adequacy"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-03 phase 4",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03-P5",
+      "revision": "sha256:691bdeb57b9d3db1e08e092ccea728c0e70b27b7b0848bd6ac300ba9b68c0f8c",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 5: Fresh Bindings and Backward-Compatible Staging"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-03 phase 5",
+      "type": "task",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "id": "TASK-RD-03-P6",
+      "revision": "sha256:aebb47e7a36b37c1b0fbae52c940b54f8ecf3d635fad39707c0fc496a25191c7",
+      "semanticSources": [
+        {
+          "digest": "sha256",
+          "normalization": "utf8-lf-trim-trailing-v1",
+          "path": "codeops/features/compiler-readiness/plans/rd-03-independent-oracles/99-execution-plan.md",
+          "selector": {
+            "kind": "heading",
+            "value": "Phase 6: Independent Review, Atomic Publication and Closeout"
+          }
+        }
+      ],
+      "status": "pending",
+      "title": "Execute RD-03 phase 6",
       "type": "task",
       "validations": []
     }
