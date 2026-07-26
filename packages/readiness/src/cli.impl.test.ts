@@ -64,10 +64,12 @@ describe("readiness command internals", () => {
         }),
       ],
     };
-    expect((await runReadinessCommand("check", path)).diagnostics[0]?.code).toBe("source.injected");
+    expect((await runReadinessCommand("source-check", path)).diagnostics[0]?.code).toBe(
+      "source.injected",
+    );
 
     state.result = { ok: true, inventory: INVENTORY };
-    const missing = await runReadinessCommand("check", path);
+    const missing = await runReadinessCommand("source-check", path);
     expect(missing.ok).toBe(false);
     expect(missing.diagnostics.map(({ code }) => code)).toEqual([
       "projection.declarations-missing",
@@ -108,7 +110,7 @@ describe("readiness command internals", () => {
         ],
       },
     };
-    const result = await runReadinessCommand("check", path);
+    const result = await runReadinessCommand("source-check", path);
     expect(result.diagnostics[0]?.code).toBe("projection.unsafe-source-link");
   });
 
@@ -135,7 +137,7 @@ describe("readiness command internals", () => {
     expect(failed.diagnostics[0]?.code).toBe("publication.failed");
 
     await mkdir(join(path, READINESS_PATHS.declarations), { recursive: true });
-    const readFailure = await runReadinessCommand("check", path);
+    const readFailure = await runReadinessCommand("source-check", path);
     expect(readFailure.diagnostics[0]?.code).toBe("publication.input-read");
   });
 });

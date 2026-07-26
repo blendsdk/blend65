@@ -3,7 +3,7 @@ import { lstat, readdir, readFile, realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { createDiagnostic } from "./diagnostics.js";
 import { INVENTORY_V1_LIMITS } from "./limits.js";
-import type { InventoryDiagnostic, InventoryV1 } from "./model.js";
+import type { InventoryDiagnostic, InventoryV1, ResolvedSourceFragment } from "./model.js";
 import { computeInventoryReviewDigests, INVENTORY_REVIEW_UNIT_IDS } from "./review-digests.js";
 import { validateReviewEvidence, type SemanticReviewRecord } from "./review-evidence.js";
 import { createSourceRepository, validateInventorySources } from "./source-repository.js";
@@ -16,19 +16,45 @@ export interface AuthorityPaths {
   readonly reviewEvidence: string;
 }
 
+type AuthorityLoadFailure = {
+  readonly ok: false;
+  readonly diagnostics: readonly InventoryDiagnostic[];
+};
+
 export type AuthorityLoadResult =
   | { readonly ok: true; readonly inventory: InventoryV1 }
-  | { readonly ok: false; readonly diagnostics: readonly InventoryDiagnostic[] };
+  | AuthorityLoadFailure;
+
+/** Validated loose authority inputs needed to derive staged semantic-review digests. */
+export interface PublicationAuthorityContext {
+  readonly inventory: InventoryV1;
+  readonly fragments: readonly ResolvedSourceFragment[];
+  readonly identityLedgerBytes: Uint8Array;
+}
+
+/** Result of loading validated loose authority for publication preparation. */
+export type PublicationAuthorityContextResult =
+  | { readonly ok: true; readonly context: PublicationAuthorityContext }
+  | AuthorityLoadFailure;
+
+interface ValidatedAuthorityState {
+  readonly inventory: InventoryV1;
+  readonly publicationContext: PublicationAuthorityContext;
+}
+
+type AuthorityValidationResult =
+  | { readonly ok: true; readonly state: ValidatedAuthorityState }
+  | AuthorityLoadFailure;
 
 interface AuthorityLoadTestHooks {
   readonly afterValidation?: () => void | Promise<void>;
 }
 
 let cachedAuthority:
-  | { readonly fingerprint: string; readonly result: Promise<AuthorityLoadResult> }
+  | { readonly fingerprint: string; readonly result: Promise<AuthorityValidationResult> }
   | undefined;
 
-function failure(code: string, path: string, message: string): AuthorityLoadResult {
+function failure(code: string, path: string, message: string): AuthorityLoadFailure {
   return {
     ok: false,
     diagnostics: [createDiagnostic({ phase: "ledger", code, path, message })],
@@ -180,7 +206,7 @@ async function validateFixedAuthorityPaths(
 async function validateAuthority(
   repositoryRoot: string,
   paths: AuthorityPaths,
-): Promise<AuthorityLoadResult> {
+): Promise<AuthorityValidationResult> {
   try {
     const inventoryBytes = await readFile(join(repositoryRoot, paths.inventory));
     const dispatched = readInventoryVersioned(inventoryBytes);
@@ -226,9 +252,19 @@ async function validateAuthority(
       requiredDependencyIdsByUnit: digests.requiredDependencyIdsByUnit,
       currentDigests: digests.currentDigests,
     });
-    return evidence.ok
-      ? { ok: true, inventory: semantics.inventory }
-      : { ok: false, diagnostics: evidence.diagnostics };
+    if (!evidence.ok) return { ok: false, diagnostics: evidence.diagnostics };
+    const publicationContext = Object.freeze({
+      inventory: semantics.inventory,
+      fragments,
+      identityLedgerBytes,
+    });
+    return {
+      ok: true,
+      state: Object.freeze({
+        inventory: semantics.inventory,
+        publicationContext,
+      }),
+    };
   } catch {
     return failure(
       "review-evidence.authority-read",
@@ -238,12 +274,31 @@ async function validateAuthority(
   }
 }
 
-/** Loads and validates authority, reusing only a complete dependency-identical result. */
-export async function loadValidatedAuthority(
+/**
+ * Loads the validated loose inventory plus exact digest inputs used by publication preparation.
+ *
+ * This is not a published readiness capability; only the digest-verified resolver can produce one.
+ */
+export async function loadPublicationAuthorityContext(
+  repositoryRoot: string,
+  paths: AuthorityPaths,
+): Promise<PublicationAuthorityContextResult> {
+  const result = await loadValidatedAuthorityState(repositoryRoot, paths);
+  return result.ok ? { ok: true, context: result.state.publicationContext } : result;
+}
+
+/**
+ * Loads the complete validated authority state behind both public views.
+ *
+ * Sharing this cache is important because semantic validation covers every inventory rule.
+ * Callers asking for publication inputs must not repeat that expensive validation after the
+ * loose-authority loader has already accepted the exact same dependency fingerprint.
+ */
+async function loadValidatedAuthorityState(
   repositoryRoot: string,
   paths: AuthorityPaths,
   testHooks?: AuthorityLoadTestHooks,
-): Promise<AuthorityLoadResult> {
+): Promise<AuthorityValidationResult> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     let fingerprint: string;
     try {
@@ -276,4 +331,14 @@ export async function loadValidatedAuthority(
     repositoryRoot,
     "Readiness authority changed while it was being validated.",
   );
+}
+
+/** Loads and validates authority, reusing only a complete dependency-identical result. */
+export async function loadValidatedAuthority(
+  repositoryRoot: string,
+  paths: AuthorityPaths,
+  testHooks?: AuthorityLoadTestHooks,
+): Promise<AuthorityLoadResult> {
+  const result = await loadValidatedAuthorityState(repositoryRoot, paths, testHooks);
+  return result.ok ? { ok: true, inventory: result.state.inventory } : result;
 }

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-25 05:16 UTC
-> **Progress**: 57/71 tasks (80%)
+> **Last Updated**: 2026-07-26 15:16 UTC
+> **Progress**: 71/71 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -166,25 +166,26 @@ unpublished until the final phase.
 
 ## Phase 7: Atomic Binding Publication and Closeout
 
-> **Phase baseline tree**: _(recorded by exec-plan)_
+> **Phase baseline tree**: `f08e7975855767fd7f7246873a80427bb6f056e8`
+> **Remediation baseline tree**: `7de5559b753e89927aef989ba4692232a8b46a6a`
 > **Lenses**: concurrency, security, api-surface
 
-**Reference**: 03-05 · AR-P9, AR-P10, AR-P12–AR-P14 · ST-28–ST-33, ST-37–ST-40
+**Reference**: 03-05 · AR-P9, AR-P10, AR-P12–AR-P14, AR-P36 · ST-28–ST-33, ST-37–ST-40
 
-- [ ] 7.1.1 [spec-author] Write publication, durability, collision, CLI and resolver-capability specification tests — `binding-publication.spec.test.ts`
-- [ ] 7.1.2 Run Phase 7 spec tests and record expected RED
-- [ ] 7.2.1 Implement release manifest/schema and digest-verified resolver — `publication-model.ts`, `publication-resolver.ts`
-- [ ] 7.2.2 Implement staged release builder under generation lock — `binding-publication.ts`
-- [ ] 7.2.3 Implement atomic pointer commit and crash recovery — `publication-pointer.ts`
-- [ ] 7.2.4 Migrate generate/check and add guarded publish API/CLI/root script/documentation — `cli.ts`, CLI tests, `package.json`, `readiness/README.md`
-- [ ] 7.2.5 Route claims through opaque `PublishedSnapshot` and add direct-read boundary gate — `authority-loader.ts`, `dependency-boundary.impl.test.ts`
-- [ ] 7.2.6 Stage four RD-02 declaration bindings and compute semantic digests; do not select the pointer
-- [ ] 7.2.7 [semantics-reviewer] Independently review staged semantic changes and record accepted digest-bound evidence
-- [ ] 7.2.8 Refresh projections and published-state-validate the complete staged release
-- [ ] 7.2.9 Run ST-01–ST-40 GREEN against an isolated resolver selecting the staged digest
-- [ ] 7.2.10 Add concurrency/symlink/crash/digest implementation tests and full readiness coverage against staging
-- [ ] 7.2.11 Atomically publish only the already-proven digest, then verify the selected snapshot
-- [ ] 7.3.1 Run source-check/generate/check/full verify, deferral-expiry review, traceability/roadmap/docs closeout
+- [x] 7.1.1 [spec-author] Write publication, durability, collision, CLI and resolver-capability specification tests — `binding-publication.spec.test.ts` ✅ (completed: 2026-07-25 05:40 UTC; 12 implementation-blind cases plus a bounded fresh-process crash fixture cover release selection, exact bindings, collision/reuse, limits, review/staged-validation failure, durability, path/digest validation, all nine crash points, CLI authority separation and the direct-read boundary; user-authorized mechanical oracle corrections on 2026-07-25 pass the existing freshness capability directly, execute built Node entrypoints, and scope synthetic collision resolution under the same injected digest; user-authorized AR-P37 correction on 2026-07-26 removes synthetic callable candidates and exercises the real package-owned version-one catalog; user-authorized AR-P38 correction distinguishes runtime staged invariant validation from the workflow ST gate; replacement immutable hashes `30837fc1c9cb9fba70190d82889fdc9851c89e483887f0be0cacd00059d5164e` and `3f1110d0590a51638078d697dee353bfa162d556f9c762bccc5a241cc88fd721`)
+- [x] 7.1.2 Run Phase 7 spec tests and record expected RED ✅ (completed: 2026-07-25 05:40 UTC; exact-file lint, typecheck and Prettier pass; the focused suite is 12/12 RED solely on the absent Phase 7 publication exports/conformance module and the not-yet-migrated four-command CLI protocol)
+- [x] 7.2.1 Implement release manifest/schema and digest-verified resolver — `publication-model.ts`, `publication-resolver.ts` ✅ (completed: 2026-07-25 19:35 UTC; bounded resolver verifies exact manifest/member digests, rejects pointer symlinks as path violations and returns only opaque snapshot capabilities)
+- [x] 7.2.2 Implement staged release builder under generation lock — `binding-publication.ts` ✅ (completed: 2026-07-25 19:35 UTC; independent review input, inert staging and package-owned acceptance pass the immutable publication gate)
+- [x] 7.2.3 Implement atomic pointer commit and crash recovery — `publication-pointer.ts` ✅ (completed: 2026-07-25 19:35 UTC; all nine fresh-process hard-crash boundaries pass with directory and file synchronization enforced)
+- [x] 7.2.4 Migrate generate/check and add guarded publish API/CLI/root script/documentation — `cli.ts`, CLI tests, `package.json`, `readiness/README.md` ✅ (completed: 2026-07-25 19:35 UTC; source-check/check authority separation and the exact built four-command CLI protocol pass)
+- [x] 7.2.5 Route claims through opaque `PublishedSnapshot` and add direct-read boundary gate — `authority-loader.ts`, `dependency-boundary.impl.test.ts` ✅ (completed: 2026-07-25 19:35 UTC; shared complete authority validation avoids duplicate semantic passes, capability reads remain WeakMap-gated, and the publication boundary passes)
+- [x] 7.2.6 Stage four RD-02 declaration bindings and compute semantic digests; do not select the pointer ✅ (completed: 2026-07-25 19:35 UTC; read-only preparation produced the exact four lexical handlers, 21 review units and semantic digest `sha256:dbfa2d26bc392a00b88cf13d46d0d9511f36d6e1437c40112b53d9d1acdbb304` without creating the real pointer)
+- [x] 7.2.7 [semantics-reviewer] Independently review staged semantic changes and record accepted digest-bound evidence ✅ (completed: 2026-07-26 11:57 UTC; accepted no-findings review by `codex-semantics-reviewer-rd02-p7-option-c-b` covers all 21 exact review units at semantic digest `sha256:dbfa2d26bc392a00b88cf13d46d0d9511f36d6e1437c40112b53d9d1acdbb304`; canonical evidence is recorded in `readiness/reviews/semantic-review-v1.json`)
+- [x] 7.2.8 Refresh projections and published-state-validate the complete staged release ✅ (completed: 2026-07-26 12:10 UTC; loose projections regenerate byte-identically and pass source-check; the complete release built from the recorded independent review published and resolved in an isolated repository at digest `sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403` while the real pointer remained absent)
+- [x] 7.2.9 Run ST-01–ST-40 GREEN on the exact unchanged phase tree immediately before real publication ✅ (completed: 2026-07-26 12:57 UTC; recovery repaired stale traceability revisions and the exact execution gate passes; 66 immutable specification files and 942 tests pass)
+- [x] 7.2.10 Add concurrency/symlink/crash/digest implementation tests and full readiness coverage against staging ✅ (completed: 2026-07-26 13:13 UTC; hardening suites cover concurrent publication, filesystem substitution, wire bounds, digest corruption, fault boundaries and capability/module guards; 66 files / 942 tests pass with 90.00% branch coverage)
+- [x] 7.2.11 Publish the independently reviewed authority from that unchanged green tree; recompute and runtime-validate the exact staged digest before pointer commit, then verify the selected snapshot ✅ (completed: 2026-07-26 13:15 UTC; guarded transaction selected the independently reviewed staged digest `sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403`, and publication-only check resolves it cleanly)
+- [x] 7.3.1 Run source-check/generate/check/full verify, deferral-expiry review, traceability/roadmap/docs closeout ✅ (completed: 2026-07-26 15:16 UTC; the authorized immutable specification baseline is unchanged, RV-002–RV-006 are independently accepted as resolved, RV-007 documentation drift is corrected, source and selected-publication checks pass, and the exact repository gate is green with 66 readiness files / 952 tests and 90.01% branch coverage)
 
 **Deliverable:** four RD-02 handlers bound and visible only as a complete validated publication.
 

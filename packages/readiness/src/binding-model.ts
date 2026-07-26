@@ -86,8 +86,6 @@ declare const PUBLISHED_SNAPSHOT_BRAND: unique symbol;
 export interface PublishedSnapshot {
   /** Compile-time marker paired with publication resolver authority. */
   readonly [PUBLISHED_SNAPSHOT_BRAND]: true;
-  /** Validated executable bindings selected by the publication. */
-  readonly bindings: ValidatedBindingRegistry;
 }
 
 const FRESH_CANDIDATE_REGISTRATION_BRAND: unique symbol = Symbol("fresh-candidate-registration");

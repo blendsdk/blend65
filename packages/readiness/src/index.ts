@@ -21,12 +21,22 @@ export { validateInventorySemantics } from "./semantic-validator.js";
 export { validateReviewEvidence } from "./review-evidence.js";
 export { computeInventoryReviewDigests, INVENTORY_REVIEW_UNIT_IDS } from "./review-digests.js";
 export {
-  getPublishedBinding,
   isFreshCandidateRegistration,
   registerFreshCandidateBinding,
   validateCandidateBindings,
   validatePublishedBindings,
 } from "./binding-validator.js";
+export {
+  prepareBindingPublicationReview,
+  publishBindingTransaction,
+} from "./binding-publication.js";
+export {
+  getPublishedBinding,
+  getPublishedInventory,
+  getPublishedMetadata,
+  resolvePublishedSnapshot,
+} from "./publication-resolver.js";
+export { PUBLICATION_V1_LIMITS } from "./publication-model.js";
 export { parseRuleModelRegistry, validateRuleModelRegistry } from "./rule-model-input.js";
 export { createExecutableOperationRegistry, isRuleModelId } from "./rule-model-registry.js";
 export { isGenIdentifier, isScalarType } from "./generator-ir.js";
@@ -148,6 +158,19 @@ export type {
   PublishedSnapshot,
   ValidatedBindingRegistry,
 } from "./binding-model.js";
+export type {
+  PrepareBindingPublicationReviewInput,
+  PreparedBindingPublicationReview,
+  PreparedPublicationReview,
+  PublicationDiagnostic,
+  PublicationResult,
+  PublicationReviewRequestV1,
+  PublicationReviewUnitV1,
+  PublishBindingTransactionInput,
+  PublishedBindingTransaction,
+  PublishedMetadata,
+  ResolvePublishedSnapshotInput,
+} from "./publication-model.js";
 export type {
   CampaignIdentityInput,
   CaseIdentity,

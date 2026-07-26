@@ -3,8 +3,8 @@
 > **Feature-Set**: Compiler Readiness
 > **Status**: In Progress
 > **Created**: 2026-07-23
-> **Last Updated**: 2026-07-25
-> **Progress**: 1 / 7 (14%)
+> **Last Updated**: 2026-07-26
+> **Progress**: 2 / 8 (25%)
 > **CodeOps Artifact Schema**: 1
 
 ## Legend
@@ -16,10 +16,11 @@
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |---|---|---|---|---|---|---|---|
 | RD-01 | Specification inventory and rule schema | [RD-01](requirements/RD-01-specification-inventory.md) | [Plan](plans/rd-01-specification-inventory/00-index.md) | Done | ✅ | 2026-07-24 | 69/69 tasks; 351 readiness tests; 95.17% branch coverage; quality gate resolved |
-| RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Executing | 🚧 | 2026-07-25 | Phase 6 complete: 57/71 tasks; deterministic campaign composition, exact target replay, fresh-process equivalence and prepared construction accounting verified with 908 readiness tests; next Phase 7 atomic binding publication and closeout |
+| RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Done | ✅ | 2026-07-26 | 71/71 tasks; atomic publication selected; filesystem hardening independently accepted; 952 readiness tests and exact full verify green |
 | RD-03 | Independent semantic, diagnostic and metamorphic oracles | [RD-03](requirements/RD-03-independent-oracles.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01 |
 | RD-04 | Tiered compiler, ACME and VICE execution | [RD-04](requirements/RD-04-tiered-execution.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-03 |
 | RD-05 | Failure classification, shrinking and regression promotion | [RD-05](requirements/RD-05-failure-reduction.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-04 |
-| RD-06 | Readiness matrix, release gate and legacy evidence | [RD-06](requirements/RD-06-readiness-gate.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01–RD-05 |
+| RD-08 | Complete C64 rule models and generator coverage | — | — | Backlog | ⬜ | 2026-07-26 | depends on RD-02; reopened at RD-02 closeout because 2,103 rules remain explicitly unmodeled |
+| RD-06 | Readiness matrix, release gate and legacy evidence | [RD-06](requirements/RD-06-readiness-gate.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01–RD-05 and RD-08 |
 | RD-07 | Non-functional safety, determinism and evolution | [RD-07](requirements/RD-07-non-functional.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01–RD-06 |
 | T-01 | Manual remediation of rejected inventory rules | — | [Task](plans/t-01-manual-rule-remediation/99-execution-plan.md) | Done | ✅ | 2026-07-24 | 24-rule allowlist corrected and independently accepted; no broad regeneration; 95.23% branch coverage; full verify green |

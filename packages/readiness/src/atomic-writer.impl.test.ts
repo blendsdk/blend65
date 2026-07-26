@@ -316,14 +316,14 @@ describe("crash recovery", () => {
     child.kill("SIGKILL");
     await new Promise<void>((resolveExit) => child.once("exit", () => resolveExit()));
 
-    const mixed = await runReadinessCommand("check", root);
+    const mixed = await runReadinessCommand("source-check", root);
     expect(mixed.ok).toBe(false);
     expect(mixed.diagnostics.some(({ code }) => code.startsWith("projection."))).toBe(true);
     expect(await runReadinessCommand("generate", root)).toMatchObject({
       ok: true,
       diagnostics: [],
     });
-    expect(await runReadinessCommand("check", root)).toMatchObject({
+    expect(await runReadinessCommand("source-check", root)).toMatchObject({
       ok: true,
       diagnostics: [],
     });

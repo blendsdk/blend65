@@ -21,6 +21,7 @@ import type {
   Sha256Digest,
 } from "./model-registry-model.js";
 import { inspectPlainDataTree } from "./programmatic-input.js";
+import { lookupPublishedBinding } from "./publication-binding-lookup.js";
 import { isRuleModelId } from "./rule-model-registry.js";
 
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
@@ -414,20 +415,16 @@ export function validatePublishedBindings(
 /**
  * Looks up an executable handler only through an opaque selected publication.
  *
+ * @deprecated Import the package-level publication resolver API in new code.
  * @param snapshot Digest-verified selected publication.
  * @param handlerId Handler identity to resolve.
  * @returns The published executable binding when present.
- *
- * @example
- * ```ts
- * const binding = getPublishedBinding(snapshot, "generator.compiler-cases");
- * ```
  */
 export function getPublishedBinding(
   snapshot: PublishedSnapshot,
   handlerId: string,
 ): ExecutableBinding<HandlerImplementation> | undefined {
-  return snapshot.bindings.get(handlerId);
+  return lookupPublishedBinding(snapshot, handlerId);
 }
 
 /**

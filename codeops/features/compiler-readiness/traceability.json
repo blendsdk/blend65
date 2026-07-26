@@ -182,7 +182,7 @@
         "preflight:codeops/features/compiler-readiness/requirements/00-preflight-report-RD-02.md"
       ],
       "id": "RD-02",
-      "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
+      "revision": "sha256:59d38e92ba5b640f272b48cb4a2c3e83de0bd1b23b93cef20c8616251341285f",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -284,7 +284,7 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:f303bd48755167be6e89e4c874305d8e55056000a0a951ec82cd273f3b9f89b3",
+          "revision": "sha256:9cfce1ff489b46a3e401b93663fa5396f8dfdabb42a782c9de530bc2bcde90e3",
           "upstream": "compiler-readiness/SPEC-RD-02-PUBLISH",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -1590,7 +1590,7 @@
     {
       "edges": [],
       "id": "AR-P02",
-      "revision": "sha256:13e6830b83b9e8f0058518582478745cb939953c19ec6a0dc7b8f65ae28f376f",
+      "revision": "sha256:ad8fe0fd53942286b63021e6fdbe3368cdd5f71b22f8f33780af57b631319eb5",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1882,7 +1882,7 @@
         }
       ],
       "id": "SPEC-RD-02-PUBLISH",
-      "revision": "sha256:f303bd48755167be6e89e4c874305d8e55056000a0a951ec82cd273f3b9f89b3",
+      "revision": "sha256:9cfce1ff489b46a3e401b93663fa5396f8dfdabb42a782c9de530bc2bcde90e3",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -1914,7 +1914,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+          "revision": "sha256:4b1a19dbd3d4fb6242a94e2728f69a0e884f0d3e29f210409ff7bc4e5940720f",
           "upstream": "compiler-readiness/TASK-RD-02-P7",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2138,7 +2138,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+          "revision": "sha256:4b1a19dbd3d4fb6242a94e2728f69a0e884f0d3e29f210409ff7bc4e5940720f",
           "upstream": "compiler-readiness/TASK-RD-02-P7",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2242,6 +2242,10 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "redEvidence:The immutable Phase 7 publication oracle is 12 of 12 RED solely on absent publication exports and conformance support plus the not-yet-migrated four-command CLI.",
+        "validationEvidence:All 66 immutable readiness specification files and 942 tests pass on the recovered Phase 7 tree before real publication."
+      ],
       "id": "TEST-RD-02-PUBLISH",
       "revision": "sha256:2ba337e713dd024051ea16cbd97b7b6e290814276a4bc0193d0ee4cd534110fa",
       "semanticSources": [
@@ -2254,7 +2258,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-02 publication specification tests",
       "type": "test",
       "validations": []
@@ -2304,7 +2308,7 @@
         "summary:Zero-Ambiguity Gate and plan preflight passed; 40 requirements-derived specification cases and 71 execution tasks are grounded in approved RD-02."
       ],
       "id": "PLAN-RD-02",
-      "revision": "sha256:e0abf3f6a5156386886cccc5866b654bd223d55f0562c5f5f913f2360e12a7e1",
+      "revision": "sha256:5b42463b6f2a774b92cbe0e2f50cd38ed1ce3a76a2e53afde1a457ba6c96d6a0",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2322,14 +2326,14 @@
         {
           "gate": "plan",
           "relation": "depends-on",
-          "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
+          "revision": "sha256:59d38e92ba5b640f272b48cb4a2c3e83de0bd1b23b93cef20c8616251341285f",
           "upstream": "compiler-readiness/RD-02",
           "validatedAt": "2026-07-24T18:30:00Z"
         },
         {
           "gate": "execution",
           "relation": "depends-on",
-          "revision": "sha256:e1b60b0281d24d69daa056e58c123e0346a891a9ea26d04e69a3695c7027a218",
+          "revision": "sha256:59d38e92ba5b640f272b48cb4a2c3e83de0bd1b23b93cef20c8616251341285f",
           "upstream": "compiler-readiness/RD-02",
           "validatedAt": "2026-07-24T21:42:44Z"
         },
@@ -2378,7 +2382,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+          "revision": "sha256:4b1a19dbd3d4fb6242a94e2728f69a0e884f0d3e29f210409ff7bc4e5940720f",
           "upstream": "compiler-readiness/TASK-RD-02-P7",
           "validatedAt": "2026-07-24T21:42:44Z"
         }
@@ -2536,8 +2540,14 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "implementation:Phase 7 atomic publication and closeout implementation is complete.",
+        "qualityReview:The authorized immutable specification baseline is unchanged; independent fix re-review accepted RV-002 through RV-006 as resolved with no surviving critical or major finding, and RV-007 documentation drift was corrected.",
+        "summary:Phase 7 atomic binding publication, portable filesystem hardening and RD-02 closeout are complete.",
+        "verificationEvidence:Exact frozen-install, build, typecheck, lint and test gate passes: 18 workspace tasks, 66 readiness files with 952 tests, 8 root files with 33 tests, and 90.01 percent readiness branch coverage; source-check and selected-publication check pass."
+      ],
       "id": "TASK-RD-02-P7",
-      "revision": "sha256:147550c4e53eeb69ca3cad528f7c23fd476dc0d00c62b79d1022785611900911",
+      "revision": "sha256:4b1a19dbd3d4fb6242a94e2728f69a0e884f0d3e29f210409ff7bc4e5940720f",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2549,7 +2559,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-02 phase 7",
       "type": "task",
       "validations": []

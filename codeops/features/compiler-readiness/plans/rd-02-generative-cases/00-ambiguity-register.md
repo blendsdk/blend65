@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-02 Typed Generative Cases and Deterministic Replay
 
-> **Status**: ✅ GATE PASSED — all 35 items resolved
-> **Last Updated**: 2026-07-25 04:44 UTC
+> **Status**: ✅ GATE PASSED — all 41 items resolved
+> **Last Updated**: 2026-07-26 14:18 UTC
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd02-20260724-01`
 > **Policy version**: 1
@@ -45,6 +45,12 @@
 | AR-P33 | Phase 6 campaign accounting | How does campaign generation avoid repeating construction snapshots and IR recounts without weakening validation? | The factory-produced modeled suite privately prepares the finite reviewed valid/neighbor construction templates once, including independent semantic validation and authoritative construction usage. Per-case generation invokes the exact freshness-gated handler, binds a frozen template result, checks cached usage against the prepared budget and publishes one final usage snapshot after source bytes and attempts are known. Arbitrary or unbranded handler output retains full structural validation. Renderer parsing and projection comparison remain independent per case. Plan-item derivation uses one choice context and the internal campaign path consumes one already-verified item; the public caller-supplied-item API retains defensive membership validation. | AI delegated by accepted `--auto-design`; Phase 5 PE-003 expiry found by Phase 6 performance review; independent challenger selected prepared finite templates over memoized outputs or a new batch API | ✅ Resolved |
 | AR-P34 | Phase 6 rule-model authority | Does campaign `ruleModelVersion` equal the manifest's `registryVersion`, and which facts bind a suite to replay identity? | They are distinct. Campaign `ruleModelVersion` is the v1 generator/replay protocol compatibility label and must equal the suite-owned constant `rule-model-v1`. The suite separately retains manifest `registryVersion` (`rule-models-v1` for the current reviewed release) and the SHA-256 digest of the exact validated manifest bytes. Campaign composition requires the exact protocol label and digest; resolved replay authority requires the registry key and campaign digest to equal the retained digest. Generic identity derivation may hash any closed version string, but composing a real suite rejects aliases. Replay protocol or digest disagreement is `replay-incompatible` for `rule-model`, never fallback. | AI delegated by accepted `--auto-design`; Phase 6 provenance remediation exposed the naming collision; independent challenger reconciled immutable oracle and reviewed manifest authority | ✅ Resolved |
 | AR-P35 | Phase 6 revision-set validation | May a revision registry retain an alternate rule-model suite under a nonmatching key when that entry is not the requested exact revision? | Yes, as a non-authoritative compatibility-set entry. Registry creation closes and preserves the factory suite but does not claim that every stored key/content pair is usable authority. Raw `RevisionRegistry.resolve` is compatibility-set lookup only. Exported `resolveReplayRevisions` establishes authority: after exact lookup it verifies the suite's retained protocol and digest against both the requested key and campaign; disagreement is `replay-incompatible` naming `rule-model` before any handler runs. This preserves the immutable missing-revision oracle, which deliberately supplies a nonrequested alternate suite, while preventing that suite from authorizing a falsely labeled replay through either public replay API. Public campaign composition still requires exact suite protocol/digest directly. | AI delegated by accepted `--auto-design`; immutable Phase 6 missing-revision case exposed the distinction; independent adjudicator moved enforcement to the exported authoritative resolver | ✅ Resolved |
+| AR-P36 | Phase 7 publication contract | Which exact API, wire, durability, crash, boundary and CLI contracts may the immutable publication oracle target? | Use the complete contract in 03-05. Public production exposes deterministic `prepareBindingPublicationReview`, one indivisible `publishBindingTransaction`, `resolvePublishedSnapshot` and capability-gated metadata/inventory/binding reads. Low-level member writes, release promotion, pointer replacement and snapshot construction remain private; a non-package-exported conformance seam owns fault points and injected collision/durability behavior. Closed v1 pointer, manifest, binding and review JSON use exact named caps and a length-prefixed `blend65-publication-v1` digest. The sole pointer commit follows accepted digest-bound review, fully synced inert release construction and package-owned staged invariant validation through the isolated resolver. CLI commands are exactly `source-check`, `generate`, `check`, `publish` with fixed exit/output behavior. Only the three generators and boundary transform become bound; all four RD-03 oracles and all RD-04 evidence capabilities remain unbound. | AI delegated by accepted `--auto-design`; Phase 7 spec-author blocker; independent challenger selected one high-level transaction over bypassable public stage/promote primitives | ✅ Resolved |
+| AR-P37 | Phase 7 callable authority | How does a published binding prove that the executable callable is the implementation named by its reviewed dependency revision, rather than an arbitrary function paired with valid metadata? | Remove candidates from public publication preparation, transaction and resolution inputs. Every operation reconstructs the package-owned candidate catalog from exact dependency bytes and selects an explicit version-one profile containing only the four approved handlers. Generic freshness registrations remain available to campaign/replay but cannot choose a published callable. The publication oracle uses the real catalog rather than synthetic functions. | **Option C authorized by user 2026-07-26**; independent semantic review and design challenger | ✅ Resolved |
+| AR-P38 | Phase 7 staged acceptance | How can the complete specification gate run against an isolated staged digest before the pointer commit without recursively invoking the publication specification itself or exposing bypassable public stage/commit primitives? | Separate the two gates by responsibility. Runtime package-owned acceptance is complete staged-release invariant validation through the isolated resolver before pointer replacement. CodeOps runs ST-01–ST-40 on the exact unchanged tree immediately before the one real publication and records the tree/result; the transaction then recomputes reviewed authority and validates its exact staged digest. Production never launches Vitest recursively or exposes stage/commit bypass primitives. | **Option B authorized by user 2026-07-26**; independent semantic review and design challenger | ✅ Resolved |
+| AR-P39 | Phase 7 oracle alignment | Which command owns loose-projection freshness after selected publication becomes authoritative? | The specification author replaces only obsolete `check` command calls with `source-check`; assertions and failure expectations remain immutable. `check` remains selected-publication-only and never falls back to loose source authority. | AI delegated by `--auto-design`; bounded specification-author correction | ✅ Resolved |
+| AR-P40 | Phase 7 review ruling | How are RV-001–RV-006 governed after the recovery review? | Treat the current requirements-derived specification tests as the authorized immutable pre-remediation baseline, waive no risk, and remediate every production finding through implementation and implementation-test changes only. | **Authorized by user 2026-07-26 with `--auto-design --auto-commit`** | ✅ Resolved |
+| AR-P41 | Phase 7 filesystem hardening | How can portable Node publication close symlink, bounded-read and crash-retry gaps without changing the accepted release layout? | Use one shared guard layer that verifies every existing directory component without following links, creates persistent directories one level at a time, pins bigint device/inode identities around every path mutation, and synchronizes each parent after child creation. Collision reuse enumerates at most the exact member count plus one and reads exact expected lengths through single-link handles with `O_NOFOLLOW` where available plus compensating `lstat`/`fstat` identity checks. Both fresh and reused releases synchronize `releases/` before pointer work. Lock failures remain typed, and the static boundary scans the complete real production closure using exact owner paths. | AI delegated by `--auto-design`; independent challenger selected portable A+ | ✅ Resolved |
 
 ## Delegated Resolution Provenance
 
@@ -330,6 +336,124 @@ testing or sequencing decisions within the approved RD-02 behavior and scope.
   immutable no-fallback oracle, but identified and closed the narrower exported-resolver gap.
 - **Policy / invocation:** policy version 1; root invocation
   `compiler-readiness-rd02-20260724-01`.
+
+### AR-P36 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal persistence, capability,
+  wire, validation, resource-bound and CLI design inside the approved atomic-publication scope.
+- **Objective:** give the immutable Phase 7 oracle a closed surface without exposing any operation
+  that can select unreviewed, unsynced or untested publication bytes.
+- **Evidence:** 03-05 fixed the content-addressed layout and pointer ordering but omitted callable
+  shapes, wire fields, caps, fault boundaries and CLI results. Existing code already has a
+  freshness capability, exact candidate/published validators, shared generation lock and
+  file-sync primitive, but its nominal `PublishedSnapshot` still exposes bindings directly.
+- **Decision:** expose review preparation, one transaction and opaque resolution/read APIs. Keep
+  write/promote/snapshot operations private and use a non-package conformance seam for deterministic
+  crash, collision and unsupported-durability tests. Freeze the schemas, limits, digest encoding,
+  handler matrix and CLI protocol in 03-05.
+- **Rejected alternatives:** public stage/build/promote primitives allow ordering bypass; trusting
+  a prepared capability permits stale inputs; serializing functions is non-portable; silently
+  degrading directory sync makes the crash-durability claim false.
+- **Strongest counterargument:** one transaction makes fault testing and isolated staging broader.
+  The private conformance seam supplies exact fault points without becoming a production bypass.
+- **Confidence / hardening:** High. An independent challenger grounded the design in the existing
+  lock, writer, binding validator, review evidence, authority loader and CLI, and converged from a
+  larger low-level API to the smaller transaction boundary.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P37 user-resolution provenance
+
+- **Authority:** explicit user authorization on 2026-07-26 for Option C and the corresponding
+  immutable-oracle correction.
+- **Evidence:** freshness validation binds dependency bytes, revision and contract but has no
+  callable input. Generic registration accepted any function carrying those claims, and the
+  resolver joined serialized bindings back to caller-supplied candidates by metadata alone.
+- **Decision:** publication APIs accept only a canonical repository root and review evidence.
+  They reconstruct executable authority internally from the package-owned catalog and an explicit
+  four-handler version-one profile. Campaign and replay retain generic freshness registrations.
+- **Rejected alternatives:** function-reference checks in publication duplicate catalog authority
+  while preserving a misleading generic API; another process-local publication brand retains
+  caller-controlled candidate transport and widens the capability surface.
+- **Confidence / hardening:** High. The independent challenger selected the same design and added
+  the explicit versioned profile so future catalog growth cannot silently widen publication.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P38 user-resolution provenance
+
+- **Authority:** explicit user authorization on 2026-07-26 for Option B and the corresponding
+  immutable-oracle correction.
+- **Evidence:** the transaction already validates every staged member, digest, authority artifact,
+  binding join and published-state invariant through the isolated resolver. Running the publication
+  specification recursively from that transaction would invoke the transaction again and would
+  add Vitest/build tooling to production.
+- **Decision:** runtime acceptance means isolated staged invariant validation. The complete
+  ST-01–ST-40 suite is a CodeOps workflow gate on the exact unchanged tree immediately before the
+  one real transaction. The tree revision and green result are recorded as execution evidence.
+- **Rejected alternatives:** private stage/commit orchestration adds cross-process state, new crash
+  boundaries and bypass primitives; a purpose-built runtime test subset is not the complete suite;
+  unsigned acceptance evidence is forgeable, while signed attestations are disproportionate here.
+- **Confidence / hardening:** High. An independent challenger reconciled the existing indivisible
+  API, the resolver's complete invariant validation and the execution plan's pre-publication ST
+  task without weakening runtime validation.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P39 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; mechanical oracle alignment within
+  the already user-approved Phase 7 four-command protocol.
+- **Evidence:** the older repository-command oracle still sent loose-projection checks through
+  `check`, while AR-P38 and 03-05 reserve `check` for the selected publication and name
+  `source-check` as the non-authoritative loose-projection check.
+- **Decision:** a specification-test author changed only the obsolete command names in
+  `readiness-command.spec.test.ts`; implementation tests exercising the same internal boundary were
+  aligned separately. All assertions and failure expectations remain unchanged.
+- **Rejected alternative:** falling back from `check` to loose source when no pointer exists would
+  silently restore split authority and contradict the accepted publication boundary.
+- **Confidence / hardening:** High. The bounded spec-author diff changed no assertion and its
+  focused immutable oracle passed 3/3.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-20260724-01`.
+
+### AR-P40 user-resolution provenance
+
+- **Authority:** explicit user authorization on 2026-07-26 with `--auto-design --auto-commit`.
+- **Decision:** baseline tree `7de5559b753e89927aef989ba4692232a8b46a6a` makes the existing
+  requirements-derived specification tests immutable for remediation review. RV-002–RV-006 must
+  be fixed; no finding or risk is waived.
+- **Reopen triggers:** any remediation edit to `*.spec.test.*`, any skipped major finding, or any
+  review diff not rooted at the authorized baseline.
+
+### AR-P41 delegated-resolution provenance
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; portable internal filesystem,
+  recovery, validation and boundary-test mechanisms inside the already approved publication
+  behavior and exact wire layout.
+- **Objective:** prevent pre-existing path substitution and unbounded collision reads, preserve
+  the sole pointer commit, and make release durability true across fresh creation and crash retry.
+- **Evidence:** Node 22 exposes handle `stat`, directory sync and `O_NOFOLLOW` on supporting hosts
+  but has no portable `openat`/`renameat`; the resolver already uses bounded handle reads; the
+  current writer recursively creates path components, omits reuse sync and authorizes boundary
+  owners by basename.
+- **Decision:** select portable A+ as recorded in the register. The guarantee is fail-closed
+  detection before pointer commit; portable Node cannot promise zero out-of-tree side effects
+  against a hostile same-user parent swap during the path-based syscall window.
+- **Rejected alternatives:** `/proc/self/fd` anchoring is Linux/procfs-specific; a single bundle
+  breaks the accepted seven-member layout without removing pointer-parent races; dual Linux and
+  portable backends double a security-critical implementation for a threat model not required by
+  the plan.
+- **Strongest counterargument:** identity rechecks can detect but cannot undo an operation
+  redirected during one syscall window. If hostile concurrent same-user mutation becomes an
+  explicit containment requirement, portable path-based Node is insufficient.
+- **Confidence / hardening:** High. An independent challenger selected A+ with required bigint
+  identity pinning, bounded enumeration, exact-size handle reads and honest residual guarantees.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd02-recovery-20260726-01`.
+- **Reopen triggers:** a hostile concurrent same-user containment requirement, portable
+  `openat`/`renameat` support in Node, or evidence that device/inode identities are unavailable on
+  a supported publication host.
 
 ## Systematic Gate Scan
 

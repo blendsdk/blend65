@@ -3,9 +3,15 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { replaceFileAtomically, type PublicationHooks } from "./atomic-writer.js";
 import { loadValidatedAuthority } from "./authority-loader.js";
-import { createDiagnostic, sortDiagnostics } from "./diagnostics.js";
+import {
+  PUBLICATION_SEMANTIC_REVIEW_SOURCE_PATH,
+  publishBindingTransaction,
+} from "./binding-publication.js";
+import { createDiagnostic } from "./diagnostics.js";
 import { acquireGenerationLock } from "./generation-lock.js";
 import type { InventoryDiagnostic, InventoryV1 } from "./model.js";
+import type { PublicationDiagnostic } from "./publication-model.js";
+import { resolvePublishedSnapshot } from "./publication-resolver.js";
 import {
   checkProjectionFreshness,
   renderGeneratedProjections,
@@ -20,6 +26,13 @@ export const READINESS_PATHS = {
   markdown: "readiness/generated/compiler-readiness.md",
   lock: "readiness/generated/.generation-lock",
 } as const;
+
+type ReadinessCommandDiagnostic = InventoryDiagnostic | PublicationDiagnostic;
+
+interface ReadinessCommandResult {
+  readonly ok: boolean;
+  readonly diagnostics: readonly ReadinessCommandDiagnostic[];
+}
 
 function diagnostic(code: string, path: string, message: string): InventoryDiagnostic {
   return createDiagnostic({ phase: "evolution", code, path, message });
@@ -63,8 +76,8 @@ async function loadAuthority(
   return result;
 }
 
-/** Runs the fixed-path projection trust gate or explicit generator. */
-export async function runReadinessCommand(
+/** Runs the fixed-path loose projection check or explicit generator. */
+async function runSourceAuthoringCommand(
   command: "check" | "generate",
   repositoryRoot: string,
   hooks?: { readonly publication?: PublicationHooks },
@@ -152,16 +165,94 @@ export async function runReadinessCommand(
   }
 }
 
+async function runSelectedPublicationCommand(
+  command: "check" | "publish",
+  repositoryRoot: string,
+): Promise<ReadinessCommandResult> {
+  const root = resolve(repositoryRoot);
+  if (command === "check") {
+    const resolved = await resolvePublishedSnapshot({
+      repositoryRoot: root,
+    });
+    return { ok: resolved.ok, diagnostics: resolved.diagnostics };
+  }
+  let semanticReviewBytes: Uint8Array;
+  try {
+    semanticReviewBytes = await readFile(join(root, PUBLICATION_SEMANTIC_REVIEW_SOURCE_PATH));
+  } catch {
+    return {
+      ok: false,
+      diagnostics: [
+        {
+          code: "publication.io",
+          path: PUBLICATION_SEMANTIC_REVIEW_SOURCE_PATH,
+          message: "Staged semantic-review evidence could not be read.",
+        },
+      ],
+    };
+  }
+  const published = await publishBindingTransaction({
+    repositoryRoot: root,
+    semanticReviewBytes,
+  });
+  return { ok: published.ok, diagnostics: published.diagnostics };
+}
+
+/**
+ * Runs one closed readiness command without granting authority to loose source artifacts.
+ *
+ * @param command Exact source-authoring, generation, selected-check or publication command.
+ * @param repositoryRoot Repository root used by the fixed package-owned paths.
+ * @param hooks Legacy loose-projection publication hooks used only by `generate`.
+ * @returns Deterministic command status and sorted diagnostics.
+ */
+export async function runReadinessCommand(
+  command: "source-check" | "generate" | "check" | "publish",
+  repositoryRoot: string,
+  hooks?: { readonly publication?: PublicationHooks },
+): Promise<ReadinessCommandResult> {
+  if (command === "source-check" || command === "generate") {
+    return runSourceAuthoringCommand(
+      command === "source-check" ? "check" : "generate",
+      repositoryRoot,
+      hooks,
+    );
+  }
+  return runSelectedPublicationCommand(command, repositoryRoot);
+}
+
 const invokedPath = process.argv[1] === undefined ? "" : resolve(process.argv[1]);
-if (invokedPath === fileURLToPath(import.meta.url)) {
-  const command = process.argv[2];
-  if (command !== "check" && command !== "generate") {
-    process.stderr.write("Usage: cli.js <check|generate>\n");
+const modulePath = fileURLToPath(import.meta.url);
+const invocationIndex = process.argv.findIndex((value, index) => {
+  if (index === 0 || value.startsWith("-")) return false;
+  try {
+    return resolve(value) === modulePath;
+  } catch {
+    return false;
+  }
+});
+if (invokedPath === modulePath || invocationIndex > 0) {
+  const argumentOffset = invocationIndex > 0 ? invocationIndex : 1;
+  const command = process.argv[argumentOffset + 1];
+  const commandArguments = process.argv.slice(argumentOffset + 1);
+  if (
+    commandArguments.length !== 1 ||
+    (command !== "source-check" &&
+      command !== "generate" &&
+      command !== "check" &&
+      command !== "publish")
+  ) {
+    process.stderr.write("Usage: cli.js <source-check|generate|check|publish>\n");
     process.exitCode = 2;
   } else {
     const result = await runReadinessCommand(command, process.cwd());
-    for (const item of sortDiagnostics(result.diagnostics)) {
-      process.stderr.write(`${item.code}: ${item.message}\n`);
+    for (const item of [...result.diagnostics].sort(
+      (left, right) =>
+        left.code.localeCompare(right.code) ||
+        left.path.localeCompare(right.path) ||
+        left.message.localeCompare(right.message),
+    )) {
+      process.stderr.write(`${item.code}: ${item.path}: ${item.message}\n`);
     }
     process.exitCode = result.ok ? 0 : 1;
   }

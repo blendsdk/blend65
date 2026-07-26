@@ -43,12 +43,12 @@ async function artifactDigests(root: string): Promise<Map<string, string>> {
 }
 
 describe("readiness repository command", () => {
-  it("should accept real authority only when both projections are current and never mutate in check mode", async () => {
+  it("should accept real authority only when both projections are current and never mutate in source-check mode", async () => {
     const root = await isolatedRepository();
     expect((await runReadinessCommand("generate", root)).ok).toBe(true);
     const before = await artifactDigests(root);
-    const first = await runReadinessCommand("check", root);
-    const second = await runReadinessCommand("check", root);
+    const first = await runReadinessCommand("source-check", root);
+    const second = await runReadinessCommand("source-check", root);
     expect(first).toEqual(second);
     expect(first).toMatchObject({ ok: true, diagnostics: [] });
     expect(await artifactDigests(root)).toEqual(before);
@@ -57,7 +57,7 @@ describe("readiness repository command", () => {
       const currentBytes = await readFile(join(root, path));
       await writeFile(join(root, path), new Uint8Array([...currentBytes, 0]));
       const staleBefore = await artifactDigests(root);
-      const stale = await runReadinessCommand("check", root);
+      const stale = await runReadinessCommand("source-check", root);
       expect(stale.ok).toBe(false);
       expect(stale.diagnostics.some(({ code }) => code.startsWith("projection."))).toBe(true);
       expect(await artifactDigests(root)).toEqual(staleBefore);
@@ -85,12 +85,15 @@ describe("readiness repository command", () => {
     expect(failed.ok).toBe(false);
     expect(failed.diagnostics.some(({ code }) => code.startsWith("publication."))).toBe(true);
 
-    const mixed = await runReadinessCommand("check", root);
+    const mixed = await runReadinessCommand("source-check", root);
     expect(mixed.ok).toBe(false);
     expect(mixed.diagnostics.some(({ code }) => code.startsWith("projection."))).toBe(true);
 
     expect((await runReadinessCommand("generate", root)).ok).toBe(true);
-    expect(await runReadinessCommand("check", root)).toMatchObject({ ok: true, diagnostics: [] });
+    expect(await runReadinessCommand("source-check", root)).toMatchObject({
+      ok: true,
+      diagnostics: [],
+    });
     expect(
       createHash("sha256")
         .update(await readFile(join(root, READINESS_PATHS.inventory)))
@@ -132,7 +135,7 @@ describe("readiness repository command", () => {
     expect(secondResult.diagnostics.some(({ code }) => code.startsWith("generation-lock."))).toBe(
       true,
     );
-    const check = await runReadinessCommand("check", root);
-    expect(check.diagnostics.some(({ code }) => code.startsWith("projection."))).toBe(false);
+    const sourceCheck = await runReadinessCommand("source-check", root);
+    expect(sourceCheck.diagnostics.some(({ code }) => code.startsWith("projection."))).toBe(false);
   });
 });
