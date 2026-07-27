@@ -1,10 +1,11 @@
 # Preflight Report: RD-03 Independent Semantic, Diagnostic and Metamorphic Oracles Plan
 
-> **Status**: ❌ PREFLIGHT BLOCKED — 1 critical and 15 major findings unresolved
-> **Iteration**: 1 (first scan)
+> **Status**: ✅ PREFLIGHT PASSED — all 29 findings resolved
+> **Iteration**: 2 (correction and complete re-scan)
 > **Artifact**: Full implementation plan at
 > `codeops/features/compiler-readiness/plans/rd-03-independent-oracles/`
-> **Artifact Revision**: git tree `cb208855a2a843511e8db349987a4156ce59659e`
+> **Artifact Revision**: plan-set content SHA-256
+> `c5ea7ab26058fbdad9945ce4ad916fbe40ccf844a105d7ffc61911fb5611da91`
 > **Codebase Grounded**: 153 readiness source/test files inventoried; 37 material
 > source/test/config/authority references verified
 > **Mode**: Auto-design
@@ -23,8 +24,8 @@
 - **Context only:** compiler-readiness RD-03 and its requirements preflight, traceability,
   RD-01/RD-02 artifacts, frozen specification, `packages/readiness`, readiness authority JSON,
   repository manifests/configuration, and project instructions
-- **Authorized modification set:** this permanent report only. The user authorized auto-design
-  rulings and a local report commit, but did not authorize applying plan corrections.
+- **Authorized modification set:** the user explicitly authorized all selected corrections,
+  auto-design continuation, roadmap/traceability updates and a verified local commit without push.
 - **Applicable domain lenses:** compiler and language; distributed and concurrent; data and
   migration
 - **Inapplicable domain lenses:** web application; financial system
@@ -62,7 +63,7 @@ specification tests, and relevant frozen type/constant rules.
 structurally READY; all plan links resolve; `spec/` is clean. Structural readiness does not
 supersede the semantic blockers below.
 
-## Summary by Dimension
+## Iteration 1 Summary by Dimension
 
 | # | Dimension | Findings | Highest severity |
 |---|---|---:|---|
@@ -80,16 +81,19 @@ supersede the semantic blockers below.
 | 12 | Consistency | 6 | 🔴 Critical |
 | 13 | Codebase Alignment | 9 | 🔴 Critical |
 
-## Summary by Severity
+## Final Summary by Severity
 
 | Severity | Count | Decision state | Fix state |
 |---|---:|---|---|
-| 🔴 Critical | 1 | Auto-design ruling recorded | Unresolved |
-| 🟠 Major | 15 | Auto-design rulings recorded | Unresolved |
-| 🟡 Minor | 1 | Auto-design ruling recorded | Unresolved |
+| 🔴 Critical | 2 | Auto-design rulings authorized | Resolved |
+| 🟠 Major | 26 | Auto-design rulings authorized | Resolved |
+| 🟡 Minor | 1 | Auto-design ruling authorized | Resolved |
 | 🔵 Observation | 0 | — | — |
 
-## Findings
+## Iteration 1 Findings (Historical Scan State)
+
+The per-finding “Not applied” lines below preserve the state at the Iteration 1 scan. The
+resolution matrix after PF-017 is authoritative for final fix state.
 
 ### PF-001: Published invocation does not bind accepted diagnostic authority 🔴 CRITICAL
 
@@ -495,6 +499,63 @@ does not satisfy the specification-first contract.
 **Reopen trigger:** a repository-wide immutable boundary oracle supersedes the package-local test.
 **Fix state:** Not applied; blocks execution.
 
+## Iteration 2 Corrections and Re-scan
+
+The user authorized every Iteration 1 ruling. The plan was corrected, then all thirteen dimensions
+and the compiler/language, concurrency and publication-integrity lenses were re-scanned against the
+current codebase. Iteration 2 exposed twelve additional issues created or made visible by the
+correction. PF identifiers remain stable across the complete audit.
+
+| Finding | Severity | Applied correction | Verification |
+|---|---|---|---|
+| PF-001 | Critical | Resolver-owned, runtime-branded snapshot context supplies reviewed suite/participants | Independent security re-review: resolved |
+| PF-002 | Major | Complete replay registry/provenance plus role-separated source/transformed content digests | Independent feasibility and challenger re-review: resolved |
+| PF-003 | Major | Pure identity primitives precede a selected-snapshot evidence API | Cross-document ordering scan: resolved |
+| PF-004 | Minor | Exhaustive invalid/authority/unmodeled classification table | Test mapping scan: resolved |
+| PF-005 | Major | Closed operation/path registries and exact reachable-pair join | Mutation contract/source-gate scan: resolved |
+| PF-006 | Major | Compiler diagnostics and external binding rejections have separate authorities/results/comparators | Independent feasibility and challenger re-review: resolved |
+| PF-007 | Major | Same-signed widening precedes dispatch in either operand order; narrowing rejects | Frozen-spec/code alignment scan: resolved |
+| PF-008 | Major | Oracle semantic closure enforces constant purity; roadmap T-02 owns RD-02 correction | Scope/ownership scan: resolved |
+| PF-009 | Major | Legacy wrapper preserved; explicit incremental prepare/publish capability added | Challenger/API sequencing re-review: resolved |
+| PF-010 | Major | Resolution reconstructs units and calls shared `validateReviewEvidence` | Publication-integrity scan: resolved |
+| PF-011 | Major | Post-rename full reconciliation returns committed/old/indeterminate result | Edge-case scan: resolved |
+| PF-012 | Major | AsyncLocalStorage plus barrier-controlled three-context specification | Independent concurrency re-review: resolved |
+| PF-013 | Major | Forced read-during-rename worker test plus one bounded full retry | Independent concurrency re-review: resolved |
+| PF-014 | Major | Stable-ID worker containment and closed harness-failure result | Independent testability re-review: resolved |
+| PF-015 | Major | Phase 5 evidence specs go GREEN; separate Phase 6 pointer specs never reopen them | Independent feasibility re-review: resolved |
+| PF-016 | Major | Relation-scoped production fault seam lands before relation GREEN | Ordering scan: resolved |
+| PF-017 | Major | Immutable boundary spec precedes evaluator work; source-check mirrors it | Security/testability scan: resolved |
+| PF-018 | Major | Published evaluation is a validated-evidence/failure discriminated union | Independent security re-review: resolved |
+| PF-019 | Major | Mutation run has explicit startup/timeout/crash/protocol/budget/harness failure branch | Independent testability re-review: resolved |
+| PF-020 | Major | Pointer-race retry reopens and revalidates from canonical state once only | Independent concurrency re-review: resolved |
+| PF-021 | Major | Specification files were split so no phase checkpoint leaves repository-wide RED tests | Independent feasibility re-review: resolved |
+| PF-022 | Major | Suite/context retain complete freshness-verified RD-02 replay registry including renderer | Independent dependency re-review: resolved |
+| PF-023 | Major | Closed `BindingRejectionObservationV1` makes external rejection testable | Independent completeness re-review: resolved |
+| PF-024 | Critical | Evaluation identity now binds entry function and canonical initial-memory digest | Independent challenger re-review: resolved |
+| PF-025 | Major | Published request union has explicit transform handler dispatch | Independent challenger re-review: resolved |
+| PF-026 | Major | Invalid relation comparators dispatch by source-diagnostic vs binding-rejection projection | Independent challenger re-review: resolved |
+| PF-027 | Major | Opaque incremental prepared capability binds root/base/target/release/review and has a sole publisher | Independent challenger re-review: resolved |
+| PF-028 | Major | Shift identities use unsigned-byte zero while preserving shifted expression/result type | Frozen operator/challenger re-review: resolved |
+| PF-029 | Major | Snapshot wrapper/context factory/replay-review dependencies enter all five final revisions before generation | Root ordering and authority-closure re-scan: resolved |
+
+### Iteration 2 Dimension Result
+
+| # | Dimension | Unresolved findings |
+|---|---|---:|
+| 1 | Ambiguities | 0 |
+| 2 | Implicit Assumptions | 0 |
+| 3 | Logical Contradictions | 0 |
+| 4 | Completeness Gaps | 0 |
+| 5 | Dependency Issues | 0 |
+| 6 | Feasibility Concerns | 0 |
+| 7 | Testability | 0 |
+| 8 | Security Blind Spots | 0 |
+| 9 | Edge Cases | 0 |
+| 10 | Scope Creep Indicators | 0 |
+| 11 | Ordering & Sequencing | 0 |
+| 12 | Consistency | 0 |
+| 13 | Codebase Alignment | 0 |
+
 ## Adversarial Checklist
 
 | Question | Result |
@@ -505,10 +566,11 @@ does not satisfy the specification-first contract.
 
 ## Verdict
 
-❌ **PREFLIGHT BLOCKED.** Auto-design selected technical remediations for all 17 findings, but the
-plan itself was not changed because this invocation did not authorize applying corrections. The
-critical authority-substitution flaw and all 15 major findings must be corrected and verified in a
-bounded Iteration 2 before the roadmap may advance to Plan Preflighted or `exec-plan` may begin.
+✅ **PREFLIGHT PASSED.** All 29 findings are resolved. The corrected plan contains 41 resolved
+ambiguity decisions, 49 immutable specification cases and 72 ordered tasks across six phases.
+CodeOps graph validation plus the RD-03 audit and plan gates are READY, `spec/` remains untouched,
+and independent targeted re-reviews found no remainder.
 
-The compiler/language and publication authority are architecturally foundational. A human compiler
-or formal-semantics reviewer should review the corrected plan in addition to the automated re-scan.
+The plan may advance to **Plan Preflighted**. Execution must still apply the configured
+specification-first and phase quality loops; preflight approval does not pre-authorize runtime
+ambiguities or weaken the independent semantic review before publication.

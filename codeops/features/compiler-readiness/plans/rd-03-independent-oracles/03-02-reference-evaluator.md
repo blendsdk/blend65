@@ -2,7 +2,7 @@
 
 > **Document**: 03-02-reference-evaluator.md
 > **Parent**: [Index](00-index.md)
-> **Implements**: AR-P5–AR-P10, AR-P18–AR-P20
+> **Implements**: AR-P5–AR-P10, AR-P18–AR-P20, AR-P29, AR-P32, AR-P41
 
 ## Responsibility
 
@@ -20,6 +20,8 @@ inventory coverage only for the nine modeled RD-02 rules.
 | `packages/readiness/src/oracle-state.ts` | Immutable frame and evaluation state |
 | `packages/readiness/src/oracle-evaluator.ts` | Declaration/statement/expression orchestration |
 | `packages/readiness/src/oracle-operations.ts` | Closed operation dispatch and spec citations |
+| `packages/readiness/src/oracle-semantic-closure.ts` | Evaluator prerequisite and constant-purity validator |
+| `packages/readiness/src/oracle-boundary.spec.test.ts` | Immutable package-independence fixtures |
 | `packages/readiness/src/oracle-evaluator.impl.test.ts` | Algorithm, error and boundary tests |
 
 No production file may import `@blend65/*` or leave `packages/readiness` through a relative path.
@@ -43,10 +45,13 @@ the expression's declared type:
 | `word` | 16 | 0…65535 | modulo 65536 |
 | `sword` | 16 | -32768…32767 | modulo 65536 then two's-complement signed projection |
 
-Both operands are evaluated left-to-right before dispatch. Arithmetic and bitwise operations
-require numeric same-type operands validated by the IR. Comparisons produce boolean. Right shift
-is logical for unsigned and sign-extending for signed types; left shift wraps at result width.
-Boolean supports `!`, `==` and `!=` only.
+Both operands are evaluated left-to-right before dispatch. Same-signed mixed-width arithmetic,
+bitwise and comparison operands are widened to the wider declared type before the operation:
+`byte→word` uses zero extension and `sbyte→sword` uses sign extension. Both operand orders and all
+8/16-bit same-signed pairs are valid. Arithmetic/bitwise results have that widened type;
+comparisons produce boolean. Any narrowing result annotation or signed/unsigned mixture is rejected
+by semantic closure. Right shift is logical for unsigned and sign-extending for signed types; left
+shift wraps at the promoted result width. Boolean supports `!`, `==` and `!=` only.
 
 Non-zero division and remainder truncate toward zero and normalize to result width. Any zero
 divisor returns `oracle-unmodeled` with reason `blocked-errata-division-by-zero`; the evaluator
@@ -65,6 +70,15 @@ The request names exactly one function. Evaluation:
 6. updates only an existing writable local/parameter on assignment;
 7. stops at the first return and validates its value against `returnType`;
 8. rejects fallthrough from a non-void function.
+
+Before this sequence, `validateOracleSemanticClosure` runs after structural IR validation. It
+requires every constant initializer to be a closed compile-time-constant expression: literals,
+previous pure constants, and recursively pure supported unary/binary expressions only. Memory
+reads, parameters, locals and any runtime-only form reject at the constant path. The validator also
+checks entry resolvability, frame compatibility, operation/result typing, mixed-width promotion and
+every other evaluator prerequisite. This plan-local semantic closure does not silently redefine the
+RD-02 structural validator; its broader admission gap is recorded as separately owned corrective
+debt.
 
 The entry frame is the only frame. Any future call expression or second frame is
 `unsupported-construct` and `oracle-unmodeled`.
@@ -131,12 +145,14 @@ host overflow and oversized allocations.
 ## Evaluation API
 
 ```ts
-function evaluateOracleCase(
+function evaluateSourceOracleCase(
   suite: OracleSuite,
   request: unknown,
 ): OracleResultV1;
 ```
 
+This raw function is a source-authoring/test capability, not publication evidence. The
+resolver-owned published API wraps it after selection and creates the complete evidence envelope.
 The operation is output-pure: repeated and concurrent calls over equal canonical inputs produce
 equal results and do not share mutable state. It never throws for rejected external input.
 
@@ -151,17 +167,24 @@ interface ValueStateObservationV1 {
 }
 ```
 
-Invalid generated cases do not execute malformed IR. The oracle validates the single RD-02
-invalid transform and returns the exact diagnostic-manifest record for `(ruleId, neighborId)`.
+Invalid generated cases do not execute malformed IR. An `invalid-source-transform` returns the
+exact diagnostic-manifest record for `(ruleId, neighborId)`. An `invalid-parameter-binding` uses
+the separate binding-rejection contract and never pretends that compiler-valid source emitted a
+compiler diagnostic.
 
 ## Independence Gate
 
-A TypeScript-AST module-graph test scans all production oracle/transform modules and rejects:
+An implementation-blind `oracle-boundary.spec.test.ts` is authored before any evaluator production
+work. It discovers the target module set and uses seeded positive/negative fixture modules to prove
+that the scanner accepts contained Node/readiness imports and rejects:
 
 - every package import beginning `@blend65/`;
 - a resolved relative path outside `packages/readiness`;
 - non-literal dynamic imports;
 - imports of compiler lexer/parser/analyzer/IL/codegen modules by any route.
+
+The same invariant is added to `readiness:source-check` as defense in depth. Implementation tests
+may cover AST edge cases but are not the sole acceptance oracle.
 
 Volatile order is proven by public memory effects and return values, not by inspecting evaluator
 traversal internals.
