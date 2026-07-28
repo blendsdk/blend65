@@ -87,6 +87,17 @@ export {
   isFreshImplementationRevision,
   validateImplementationRevision,
 } from "./implementation-revision.js";
+export { parseDiagnosticOracleManifest } from "./oracle-diagnostic-input.js";
+export { parseBindingRejectionManifest } from "./oracle-binding-rejection.js";
+export { createOracleSuite } from "./oracle-suite.js";
+export { resolveOracleRoute } from "./oracle-routing.js";
+export {
+  evaluateCompilerResultOracle,
+  evaluateEmittedProgramOracle,
+  evaluateFrontendResultOracle,
+  evaluateRuntimeStateOracle,
+} from "./oracle-handlers.js";
+export { ORACLE_V1_LIMITS } from "./oracle-model.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -352,3 +363,43 @@ export type {
   PreparedCampaign,
 } from "./campaign-model.js";
 export type { ReplayResult } from "./replay.js";
+export type {
+  BindingRejectionCodeV1,
+  BindingRejectionManifestParseResult,
+  BindingRejectionManifestV1,
+  BindingRejectionObservationV1,
+  BindingRejectionRecordV1,
+  DiagnosticContextV1,
+  DiagnosticObservationV1,
+  DiagnosticOracleManifestParseResult,
+  DiagnosticOracleManifestV1,
+  DiagnosticOraclePhaseV1,
+  DiagnosticOracleRecordV1,
+  MemoryCellV1,
+  MemoryEffectV1,
+  MemoryFixtureV1,
+  OracleBudgetV1,
+  OracleDiagnostic,
+  OracleDiagnosticCode,
+  OracleHandlerIdV1,
+  OracleLimitsV1,
+  OracleObservableV1,
+  OracleObservationV1,
+  OracleProjectionKindV1,
+  OracleRequestV1,
+  OracleResultV1,
+  OracleRouteQueryV1,
+  OracleRouteResultV1,
+  OracleSuite,
+  OracleSuiteInput,
+  OracleSuiteResult,
+  OracleUnmodeledReason,
+  OracleValueV1,
+  PublishedOracleContext,
+  PublishedOracleEvaluationResultV1,
+  PublishedOracleEvaluator,
+  PublishedOracleEvidenceV1,
+  Rd02ReplayProvenanceV1,
+  SemanticRelationId,
+  ValueStateObservationV1,
+} from "./oracle-model.js";

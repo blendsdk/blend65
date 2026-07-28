@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-03 Independent Semantic, Diagnostic and Metamorphic Oracles
 
-> **Status**: ✅ GATE PASSED — all 41 items resolved
+> **Status**: ✅ GATE PASSED — all 43 items resolved
 > **Last Updated**: 2026-07-27
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd03-20260727-01`
@@ -51,6 +51,13 @@
 | AR-P39 | Spec immutability | How are final publication behaviors specified without leaving a repository-wide RED checkpoint? | Author staged-context ST-46–ST-47 in `oracle-published-evidence.spec.test.ts` before the Phase 5 wrapper and make them GREEN in Phase 5. Author pointer ST-48–ST-49 separately before Phase 6 integration. Never reopen any earlier specification. | AI delegated by `--auto-design`; plan preflight PF-015; user authorized; Iteration 2 feasibility correction | ✅ Resolved |
 | AR-P40 | Relation fault seam | When does relation fault injection become available? | Introduce the relation-scoped production dispatch seam before Phase 3 GREEN so immutable relation specs can inject precondition/rewrite/comparator faults. Phase 4 generalizes it into the exhaustive catalog without changing those specs. | AI delegated by `--auto-design`; plan preflight PF-016; user authorized | ✅ Resolved |
 | AR-P41 | Boundary oracle | How is package independence specification-tested before evaluator implementation? | Author `oracle-boundary.spec.test.ts` before Phase 2 production work with positive discovery and seeded forbidden package, relative-escape and non-literal dynamic-import fixtures. Add the same invariant to `readiness:source-check` as defense in depth. | AI delegated by `--auto-design`; plan preflight PF-017; user authorized | ✅ Resolved |
+| AR-P42 | Public API `(runtime)` | Which exact Phase 1 exports and result members let immutable specification tests bind the approved oracle contract without inventing names or premature publication authority? | Export two bounded authority parsers, `createOracleSuite`, `resolveOracleRoute`, and four individually named raw evaluators: `evaluateFrontendResultOracle`, `evaluateCompilerResultOracle`, `evaluateEmittedProgramOracle`, and `evaluateRuntimeStateOracle`. Export closed parser, route, raw-result and passive published-evidence types. Phase 1 exports no published-context constructor, context factory or selected-evaluation value. Parser structure failures use input diagnostics; exact-join failures use authority/contract diagnostics at the authority member's stable pointer. | AI delegated by `--auto-design`; independent challenger converged on individually named functions and rejected a handler map/generic dispatcher; resolved during execution | ✅ Resolved |
+| AR-P43 | Provenance contract `(runtime)` | Is `Rd02ReplayProvenanceV1` a new overlapping record, and what exact nested values make a minimal oracle request? | Define `Rd02ReplayProvenanceV1` as the existing identity-verified `ReplayEnvelopeV1`; it already carries the complete campaign, configuration, case path and ordinal. `case` is the exact RD-02 `GeneratedModeledCase`. `memory` and `budget` use the closed shapes in the evaluator specification. Tests obtain a real replay envelope/case from RD-02 factories rather than fabricating identities. | AI delegated by `--auto-design`; single viable compatibility-preserving mapping grounded in existing RD-02 replay contracts; resolved during execution | ✅ Resolved |
+| AR-P44 | Declaration review sequencing `(runtime)` | Who may re-accept the inventory `shared-contracts` review after Phase 1 adds the required unbound semantic-relations declaration, and must the historical unbound publication fixture advance with it? | Pull forward a narrow independent semantics review of only the additive unbound declaration and its generated projections. On acceptance, refresh the real inventory review dependency digests and the historical unbound publication fixture/evidence to their exact new contents; do not accept any RD-03 oracle/evaluator semantics or bind any new handler. Phase 6 retains the full RD-03 semantic acceptance and publication review. | AI delegated by `--auto-design`; accepted without findings by `codex-semantics-reviewer-rd03-p1-arp44`; resolved during execution | ✅ Resolved |
+| AR-P45 | Superseded immutable expectation `(runtime)` | How can the older RD-02 publication specification keep asserting the complete unbound declaration set after RD-03 intentionally adds a fifth unbound transform? | Rebaseline its complete unbound set from four oracle declarations to those four plus `transform.semantic-relations`, while preserving the assertion that exactly four RD-02 handlers become bound. | User authorized; independent challenger found no honest implementation seam; resolved during execution | ✅ Resolved |
+| AR-P46 | Diagnostic authority conflict `(runtime)` | What exact diagnostic authority applies to boolean wrong-type projections and memory-intrinsic wrong-argument-type projections when E10086 is cast-only and the frozen chapters disagree on E10171/E10172? | Distinguish source diagnostic context rather than guess one code per `(ruleId, neighborId)`; use E10152 for initializer/assignment mismatch and E10172 for return-expression and intrinsic-argument mismatch, resolving the Ch 14 E10171 row as superseded by Ch 06 plus F020. | User authorized; semantics review SR-001; exact context-key shape independently hardened during remediation | ✅ Resolved |
+| AR-P47 | Replay registry authenticity `(runtime)` | Does suite construction prove exact six-component freshness without a request envelope? | Require factory-produced `RevisionRegistry` membership at suite construction and snapshot the capability reference; verify the exact six requested revisions and regenerated case per request, where the replay envelope supplies those identities. Reject structural lookalikes before exposing routes. | AI delegated by `--auto-design`; correctness RV-001 and semantics SR-002 converged on the only representation compatible with the existing input shape | ✅ Resolved |
+| AR-P48 | Hostile aggregate bytes `(runtime)` | How is provenance rejected before serialization can allocate from one enormous string/key? | Extend hostile-input snapshot accounting with a fixed aggregate UTF-8 key/value byte limit, charge before retaining each string/key, reject before `JSON.stringify`, and add boundary/oversize tests. | AI delegated by `--auto-design`; correctness RV-002; internal resource-bound mechanism | ✅ Resolved |
 
 ## Systematic Gate Scan
 
@@ -68,6 +75,112 @@
 | Stakeholder conflict | User-owned scope correction and frozen-spec contradiction handling are explicitly authorized |
 | Naming | Oracle, relation, evaluation identity, unmodeled and inapplicable states are closed |
 | Dependencies | No new dependency; RD-01/RD-02 prerequisites and RD-08 continuation are explicit |
+
+## AR-P44 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; review sequencing and exact
+  content-addressed fixture maintenance inside the already approved additive unbound declaration.
+  It changes no product scope, frozen specification, handler binding or selected publication.
+- **Objective:** keep the Phase 1 repository gate green without falsely accepting future oracle,
+  evaluator, relation or publication semantics.
+- **Evidence:** the required declaration adds exactly
+  `transform.semantic-relations` as an unbound `readiness-rd03` transform at contract version
+  `1.0.0`. The independent review recomputed current and historical-unbound review/projection
+  digests and confirmed that all nineteen non-aggregate semantic units remain byte-identical.
+- **Decision:** refresh only every record's `shared-contracts` dependency, the aggregate semantic
+  digest, generated projection digests and appended reviewer attribution in the current and
+  historical-unbound evidence. Phase 3 retains relation behavior; Phase 6 retains full semantic
+  review and publication selection.
+- **Rejected alternatives:** carrying stale evidence fails closed and leaves the repository RED;
+  removing the declaration contradicts the approved Phase 1 deliverable; accepting broader RD-03
+  semantics here would bypass their specification-first phases and final independent review.
+- **Confidence:** High. Reopen if any non-aggregate semantic digest changes, any declaration becomes
+  bound, any rule gains a new transform reference, or the selected publication changes.
+- **Hardening:** `codex-semantics-reviewer-rd03-p1-arp44` independently accepted the narrow delta
+  with no findings and supplied exact current/historical digest values.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260727`.
+
+## AR-P46 User Resolution Record
+
+- **Authority:** user-owned frozen-spec and acceptance-oracle correction, explicitly authorized
+  during execution.
+- **Objective:** remove cast-only `E10086` from non-cast generated programs while preserving exact,
+  independently authored diagnostic authority.
+- **Evidence:** Chapter 02 limits `E10086` to explicit boolean/integer casts. Chapter 06 and F020
+  assign `E10172` to argument/return mismatch while Chapter 14 conflicts with `E10171` for
+  arguments and assigns `E10152` to assignment/initializer mismatch. The boolean wrong-type
+  neighbor reaches both initializer and return sites.
+- **Decision:** add optional
+  `diagnosticContext: "initializer" | "assignment" | "return-expression" |
+  "intrinsic-argument"` to diagnostic-authority records only. Context is derived from regenerated
+  projection structure, never caller input or construction spelling. Split the boolean row into
+  initializer `E10152` and return-expression `E10172`; change memory wrong-argument-type rows to
+  `E10172`; preserve numeric `E10084` and arity `E10041`. Diagnostic observations remain unchanged.
+  The canonical population becomes twenty rows, while the separate binding authority remains its
+  independently defined nine rows.
+- **Rejected alternatives:** one guessed code per rule/neighbor cannot represent the generated
+  contexts; spelling is representation rather than diagnostic site; separate authority families
+  duplicate review truth.
+- **Confidence:** High. Reopen if a generated invalid projection reaches an unlisted diagnostic
+  site or the frozen specification resolves these diagnostic families differently.
+- **Hardening:** independent semantics review identified the conflict; an independent challenger
+  selected the optional context qualifier and identified the binding-slice coupling.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260727`.
+
+## AR-P42 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal TypeScript API naming,
+  result representation and phase sequencing within the already approved oracle behavior. It
+  changes no product scope, acceptance criterion, frozen specification, publication format or
+  external policy.
+- **Objective:** give the implementation-blind Phase 1 specification author a complete stable
+  contract while keeping raw source-authoring capabilities visibly non-authoritative.
+- **Evidence:** adjacent readiness APIs use individually named factories, queries and route-specific
+  callables (`createModeledGeneratorSuite`, `getRuleGenerationDomain`, `generateFrontendCase`,
+  `generateCompilerCase`, `generateRuntimeCase`). The approved design requires two separate
+  authorities, four explicit façades and a resolver-owned published context.
+- **Decision:** use the exact signatures and discriminated unions added to the Phase 1 component
+  specification. Parser success carries the validated manifest and digest. Route success names the
+  exact rule, handler, observable and authority; unsupported routes return a closed unmodeled
+  reason. Raw results use modeled, unmodeled, relation-inapplicable or failure branches and never
+  carry published evidence. Only passive published-context/evidence types exist in Phase 1.
+- **Rejected alternatives:** a public handler record invites enumeration and object-identity
+  coupling; a generic dispatcher duplicates the four-facade surface and weakens route-specific
+  discovery; `Published*` parser/suite names falsely imply selected authority before resolution.
+- **Strongest counterargument:** four exports repeat small wrappers over one internal dispatcher.
+  The repetition is deliberate public clarity; dispatch and validation remain shared internally.
+- **Confidence:** High. Reopen if a façade cannot share the closed result union without losing a
+  handler-specific invariant, or if resolver integration proves the passive context type cannot
+  remain constructor-free.
+- **Hardening:** an independent blind challenger selected individually named functions, rejected
+  the map and generic dispatcher, and identified the wrapper-repetition tradeoff. Its suggested
+  published naming was reconciled against the explicit non-authoritative Phase 1 boundary.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260727`.
+
+## AR-P43 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal type reuse and fixture
+  construction inside the approved complete-replay requirement.
+- **Objective:** make request provenance exact without creating a second representation of RD-02
+  campaign/configuration/path/ordinal identity.
+- **Evidence:** `ReplayEnvelopeV1` already contains schema version, complete campaign identity,
+  campaign digest, `CaseIdentity` with generation path and ordinal, and the complete generation
+  configuration. `GeneratedModeledCase` is the existing immutable semantic case carried separately
+  by the request and checked through regeneration.
+- **Decision:** alias `Rd02ReplayProvenanceV1` to `ReplayEnvelopeV1`; retain
+  `GeneratedModeledCase` unchanged as `case`; use the already specified `MemoryFixtureV1` and
+  `OracleBudgetV1` records. Specification fixtures must use real RD-02 factories.
+- **Rejected alternatives:** a copied provenance interface can drift from replay validation; a
+  digest-only record omits the configuration and replay coordinates the approved requirement
+  explicitly demands.
+- **Strongest counterargument:** the alias couples oracle input to the v1 replay envelope. That is
+  intentional for the v1 compatibility slice; any replay format evolution must be versioned by
+  its owning evolution gate.
+- **Confidence:** High. Reopen if replay provenance needs information not already committed by the
+  envelope, or if deterministic regeneration cannot recover the exact modeled case.
+- **Hardening:** one viable representation survived repository grounding; no materially distinct
+  alternative preserves both compatibility and complete replay.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260727`.
 
 ## AR-P15 Delegated Resolution Record
 

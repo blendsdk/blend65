@@ -180,6 +180,7 @@ const UNBOUND_HANDLER_IDS = [
   "oracle.emitted-program",
   "oracle.frontend-result",
   "oracle.runtime-state",
+  "transform.semantic-relations",
 ] as const;
 const MEMBER_PATHS = [
   "bindings-v1.json",

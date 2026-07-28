@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "manifestVersion": "1.0.0",
+  "policyRevision": "binding-rejection-policy-v1",
+  "records": [
+    {
+      "ruleId": "rule.ch02.2-primitive-types.boolean.range.true",
+      "neighborId": "neighbor.scalar.boolean.wrong-type",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.type-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
+      "neighborId": "neighbor.scalar.byte.above-max",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
+      "neighborId": "neighbor.scalar.byte.below-min",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
+      "neighborId": "neighbor.scalar.sbyte.above-max",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
+      "neighborId": "neighbor.scalar.sbyte.below-min",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
+      "neighborId": "neighbor.scalar.sword.above-max",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
+      "neighborId": "neighbor.scalar.sword.below-min",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
+      "neighborId": "neighbor.scalar.word.above-max",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
+      "neighborId": "neighbor.scalar.word.below-min",
+      "spelling": "parameter",
+      "rejectionCode": "binding.value.range-invalid"
+    }
+  ]
+}

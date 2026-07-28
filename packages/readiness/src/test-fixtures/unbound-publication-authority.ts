@@ -9,9 +9,9 @@ const PROMOTED_HANDLER_IDS = new Set([
 ]);
 
 const BOUND_GENERATION_DIGEST =
-  "sha256:9bbc863c54b77b1c904adae7ca97c4baf0fa0ce5a7eecad92d4464f64978fa33";
+  "sha256:3416cae59b38d211d580015cc80d45905d7345ee124c52afdb3bbca2da10a3f1";
 const UNBOUND_GENERATION_DIGEST =
-  "sha256:d2eb5298c61a9c49a1ee970bb2e8185a9fda3c98901cdd2d736224c013b8b441";
+  "sha256:2e9cf80d73718e6dd52790934ac20f0eab200f73b2bcff2c23d389e637dc2dfd";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

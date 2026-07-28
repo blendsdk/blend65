@@ -185,6 +185,24 @@ export function isResolvedFreshReplayBinding(
   );
 }
 
+/**
+ * Reports whether a value is an exact factory-created revision registry.
+ *
+ * This package-internal capability check uses runtime identity rather than a forgeable structural
+ * shape. Consumers still resolve all six envelope-selected revisions for each replay request.
+ *
+ * @param value Candidate revision registry capability.
+ * @returns Whether the value was produced by `createRevisionRegistry`.
+ *
+ * @example
+ * ```ts
+ * if (!isFactoryRevisionRegistry(value)) return;
+ * ```
+ */
+export function isFactoryRevisionRegistry(value: unknown): value is RevisionRegistry {
+  return typeof value === "object" && value !== null && REVISION_REGISTRIES.has(value);
+}
+
 function registryKey(component: IdentityComponent, revision: Sha256Digest): string {
   return `${component}\u0000${revision}`;
 }
@@ -460,8 +478,7 @@ export function resolveReplayRevisions(
     configuration: envelope.campaign.configurationDigest,
   });
   const values = new Map<IdentityComponent, unknown>();
-  const factoryRegistry =
-    typeof registry === "object" && registry !== null && REVISION_REGISTRIES.has(registry);
+  const factoryRegistry = isFactoryRevisionRegistry(registry);
   const fallbackBudget: ValueBudget = { nodes: 0, bytes: 0 };
   const fallbackClosedObjects = new WeakMap<object, unknown>();
 

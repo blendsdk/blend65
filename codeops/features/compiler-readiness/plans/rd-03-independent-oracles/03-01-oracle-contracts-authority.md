@@ -46,6 +46,11 @@ interface DiagnosticOracleManifestV1 {
 interface DiagnosticOracleRecordV1 {
   readonly ruleId: RuleId;
   readonly neighborId: NeighborId;
+  readonly diagnosticContext?:
+    | "initializer"
+    | "assignment"
+    | "return-expression"
+    | "intrinsic-argument";
   readonly diagnosticCode: string;
   readonly phase: "lexer" | "parser" | "semantic";
   readonly severity: "error";
@@ -69,15 +74,29 @@ interface BindingRejectionRecordV1 {
 }
 ```
 
-Records are lexically ordered by `(ruleId, neighborId)`. They apply only when the RD-02 invalid
+Records are lexically ordered by
+`(ruleId, neighborId, diagnosticContext ?? "")`. A context qualifier exists only when one
+rule/neighbor pair legitimately maps to more than one diagnostic code. A generic and a contextual
+record may not coexist for the same pair. Context is derived from the regenerated invalid
+projection and baseline IR; it is never supplied by the caller and is not part of the diagnostic
+observation. Scalar replacement in a declaration initializer uses `initializer`, assignment RHS
+uses `assignment`, return value uses `return-expression`, and intrinsic argument replacement uses
+`intrinsic-argument`.
+
+Records apply only when the RD-02 invalid
 projection kind is `invalid-source-transform`. The parser rejects unknown or duplicate
 keys, unsupported versions, non-canonical order, unknown phases, blank/unbounded identifiers and
-more than the fixed authority limit. The semantic join requires exactly nineteen records:
+more than the fixed authority limit. The semantic join requires exactly twenty records:
 
-- one boolean wrong-type neighbor;
+- two contextual records for the boolean wrong-type neighbor: initializer `E10152` and
+  return-expression `E10172`;
 - two range neighbors for each of `byte`, `sbyte`, `word` and `sword`;
 - two signature neighbors for `peek` and `peekw`;
 - three signature neighbors for `poke` and `pokew`.
+
+Numeric range rows remain contextless `E10084`; memory
+wrong-address/value-type rows are contextless `E10172`; wrong-arity rows remain contextless
+`E10041`. `E10086` remains cast-only and is not used by this authority.
 
 Each key must exist in the reviewed RD-02 modeled registry and must have at least one
 compiler-invalid source projection. Missing/extra keys, family mismatch, unknown rules/neighbors or
@@ -96,6 +115,14 @@ either one unmatched, rejects suite construction.
 ## Oracle Suite
 
 ```ts
+function parseDiagnosticOracleManifest(
+  bytes: Uint8Array,
+): DiagnosticOracleManifestParseResult;
+
+function parseBindingRejectionManifest(
+  bytes: Uint8Array,
+): BindingRejectionManifestParseResult;
+
 interface OracleSuiteInput {
   readonly modeledSuite: ModeledGeneratorSuite;
   readonly replayRegistry: RevisionRegistry;
@@ -115,7 +142,24 @@ type OracleSuiteResult =
       readonly diagnostics: readonly [];
     }
   | { readonly ok: false; readonly diagnostics: readonly OracleDiagnostic[] };
+
+function createOracleSuite(input: unknown): OracleSuiteResult;
 ```
+
+Both parser results are closed unions. Success is
+`{ ok: true, manifest, digest, diagnostics: readonly [] }`; failure is
+`{ ok: false, diagnostics: readonly OracleDiagnostic[] }`. Parser structure, duplicate-key and
+resource failures use `oracle.input.invalid` or `oracle.input.limit` at the exact offending RFC
+6901 pointer. Suite-level exact-join failures use the following stable policy:
+
+| Mutation | Code | Path |
+|---|---|---|
+| Required authority record removed | `oracle.authority.missing` | `/<authority-member>/records` |
+| Authority record added, duplicated or reordered | `oracle.authority.not-accepted` | `/<authority-member>/records` |
+| Record field contradicts its reviewed family | `oracle.contract.invalid` | `/<authority-member>/records/<index>/<field>` |
+
+`<authority-member>` is exactly `diagnosticManifestBytes` or `bindingRejectionBytes`. Failure
+results never carry a suite or either authority digest.
 
 `OracleSuite` is opaque and module-branded. Construction snapshots all input, validates both
 authorities, verifies the exact route/model join and requires a freshness-verified RD-02 replay
@@ -163,6 +207,8 @@ Every raw oracle façade accepts `(suite: OracleSuite, request: unknown)` and va
 `OracleRequestV1 | SemanticRelationRequestV1`, dispatching only by exact `handlerId`:
 
 ```ts
+type Rd02ReplayProvenanceV1 = ReplayEnvelopeV1;
+
 interface OracleRequestV1 {
   readonly schemaVersion: 1;
   readonly handlerId:
@@ -194,6 +240,80 @@ The validator:
 7. joins the rule to the exact modeled registry route and correct invalid-projection authority;
 8. requires one lexically exact entry-function name and parameter binding per entry parameter;
 9. validates memory and budget limits before any evaluation.
+
+Route inspection and the four raw façade values use these exact Phase 1 exports:
+
+```ts
+interface OracleRouteQueryV1 {
+  readonly handlerId: OracleRequestV1["handlerId"];
+  readonly ruleId: RuleId;
+  readonly observable: OracleRequestV1["observable"];
+  readonly projectionKind:
+    | "valid"
+    | "invalid-source-transform"
+    | "invalid-parameter-binding";
+}
+
+type OracleUnmodeledReason =
+  | "rule-unavailable"
+  | "route-unavailable"
+  | "unsupported-observable"
+  | "unsupported-semantics"
+  | "evaluator-unavailable"
+  | "blocked-errata-division-by-zero";
+
+type OracleRouteResultV1 =
+  | {
+      readonly ok: true;
+      readonly outcome: "routed";
+      readonly ruleId: RuleId;
+      readonly handlerId: OracleRequestV1["handlerId"];
+      readonly observable: OracleRequestV1["observable"]["kind"];
+      readonly authority:
+        | "none"
+        | "diagnostic-manifest"
+        | "binding-rejections";
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: true;
+      readonly outcome: "oracle-unmodeled";
+      readonly reason: OracleUnmodeledReason;
+      readonly diagnostics: readonly [];
+    }
+  | { readonly ok: false; readonly diagnostics: readonly OracleDiagnostic[] };
+
+function resolveOracleRoute(
+  suite: OracleSuite,
+  query: unknown,
+): OracleRouteResultV1;
+
+function evaluateFrontendResultOracle(
+  suite: OracleSuite,
+  request: unknown,
+): OracleResultV1;
+
+function evaluateCompilerResultOracle(
+  suite: OracleSuite,
+  request: unknown,
+): OracleResultV1;
+
+function evaluateEmittedProgramOracle(
+  suite: OracleSuite,
+  request: unknown,
+): OracleResultV1;
+
+function evaluateRuntimeStateOracle(
+  suite: OracleSuite,
+  request: unknown,
+): OracleResultV1;
+```
+
+`resolveOracleRoute` does not normalize, alias or fall back. A valid scalar route reports
+`oracle.frontend-result`; a valid memory route reports `oracle.runtime-state`; compiler-result and
+emitted-program queries return `route-unavailable` for the initial population. Before Phase 2, a
+valid routed value-state request returns `evaluator-unavailable`; diagnostic and external-binding
+projections can already return their manifest-owned observations.
 
 ## Result Protocol
 
@@ -260,6 +380,13 @@ type PublishedOracleEvaluationResultV1 =
 The evidence variant exists only after request validation, replay regeneration and content
 identity derivation succeed. Malformed input returns the failure variant and cannot fabricate
 provenance, content or evaluation identity fields.
+
+Phase 1 exports `PublishedOracleContext`, `PublishedOracleEvidenceV1`,
+`PublishedOracleEvaluationResultV1` and a passive
+`PublishedOracleEvaluator = (context, request) => PublishedOracleEvaluationResultV1` type only.
+It exports no context constructor, context factory, authority-injection value or
+`evaluatePublishedOracle` runtime value. Resolver integration adds that selected callable only
+after exact review reconstruction and snapshot binding.
 
 Stable engine diagnostic families are:
 

@@ -3,48 +3,48 @@
   "reviews": [
     {
       "unitId": "chapter-00",
-      "reviewer": "rd01-p3-implementation",
+      "reviewer": "rd01-p3-implementation + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:007c7e62f34e510b1a9e8e9394a40b21d49694fe5273e90f856f6072b0090321",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-01",
-      "reviewer": "rd01-p3-implementation",
+      "reviewer": "rd01-p3-implementation + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:80b9ca444c4ec5702137b5fc5dbb959a5dad6969e637b06fe0e0d8ae8d58e2d2",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-02",
-      "reviewer": "rd01-p3-implementation",
+      "reviewer": "rd01-p3-implementation + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:c61fc8b8e74ed15eeced83da1882de1298e6492de04c0d4b096a40f0988996ff",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-03",
-      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:0e71ae4d740f997a2ca85fb410c619ff273161c3dc685cb5b68ce44cb27315e0",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [
@@ -56,24 +56,24 @@
     },
     {
       "unitId": "chapter-04",
-      "reviewer": "rd01-p3-implementation",
+      "reviewer": "rd01-p3-implementation + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:be24ec0f6d0d0bc5971252162408cef4264aff303d3c84b96a190f4eb2a86f8e",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-05",
-      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:bac6cb9c78844f4564c8988265981adcea5e446f5355cde2cbd3a49017d0abf3",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [
@@ -85,12 +85,12 @@
     },
     {
       "unitId": "chapter-06",
-      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:4b7edc5ec0f8bdebdc9e0031ce3cd4cbddb4a052a127df48b7e4bc924c4c01a9",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [
@@ -102,12 +102,12 @@
     },
     {
       "unitId": "chapter-07",
-      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:12103f0835695162dd62e822cec935ab34f1c8083f4d43756d3e03ef2be0dfa2",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [
@@ -119,12 +119,12 @@
     },
     {
       "unitId": "chapter-08",
-      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p3-implementation + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:1cffc496cddf83a2febdc23b8962928f0e05b755bd6f9418d259c00e808c80f2",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [
@@ -136,24 +136,24 @@
     },
     {
       "unitId": "chapter-09",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:9991c74bab529dffacddc2b864341088f2bc7d2a19eb597e37168e675cdfce8a",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-10",
-      "reviewer": "rd01-p2-correctness-review + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p2-correctness-review + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:b2c7a1bdf63ae214b417a08fe966c32b86bfd3da0ac438a5e78729db0a0cd17e",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [
@@ -165,93 +165,93 @@
     },
     {
       "unitId": "chapter-11",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:cf114d307233f0453d19e0bf620b41f53f2e6cd8cc930be89c7ed9055fbada1e",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-12",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:e2fbf873db58a481be36c3ac29520785d67e6649ecd7761cb8aba58e068ffbae",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-13",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:5a2f4a548a3c59cd8d9b5ce76cc55d0add42f77246da63b2afa3caaa6d466199",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-14",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:77fcadd84cb4fec9a2ecd6608265fc66d913bf7c2f9de321972fd17d1a20dce0",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "chapter-15",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:aa4263b3140e4ff271c8411f8e3c51ccb0407691fcb082b090501b62c1d0f974",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "grammar",
-      "reviewer": "rd01-p3-implementation",
+      "reviewer": "rd01-p3-implementation + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:8a8477cef07827cec0abef98d589cbd21b6ba23f8045f322ec85903b2bf90fba",
       "dependencyDigests": {
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "c64-target",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:7ade1c5d472056e5464051842d6d2b2948c15ca418d5b65848e31afd76fe095b",
       "dependencyDigests": {
         "chapter-00": "sha256:007c7e62f34e510b1a9e8e9394a40b21d49694fe5273e90f856f6072b0090321",
         "chapter-15": "sha256:aa4263b3140e4ff271c8411f8e3c51ccb0407691fcb082b090501b62c1d0f974",
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "contextual",
-      "reviewer": "rd01-p2-correctness-review",
+      "reviewer": "rd01-p2-correctness-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
       "semanticDigest": "sha256:97e24c6f7f5308d74ed25ea4456351c628f5e694f32ca0d39301afdb4e7cba72",
       "dependencyDigests": {
@@ -274,16 +274,16 @@
         "chapter-15": "sha256:aa4263b3140e4ff271c8411f8e3c51ccb0407691fcb082b090501b62c1d0f974",
         "grammar": "sha256:8a8477cef07827cec0abef98d589cbd21b6ba23f8045f322ec85903b2bf90fba",
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": []
     },
     {
       "unitId": "aggregate",
-      "reviewer": "rd01-p2-correctness-review + t01-focused-correctness-and-semantic-review",
+      "reviewer": "rd01-p2-correctness-review + t01-focused-correctness-and-semantic-review + codex-semantics-reviewer-rd03-p1-arp44",
       "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
-      "semanticDigest": "sha256:2036bf3aa34fb469081eff30e9637158a680860fa9e627f195d910726af740d2",
+      "semanticDigest": "sha256:d1d8f11dc62cc312692575cd59f4070ed7279dee0dd0b23518839d5397163cf0",
       "dependencyDigests": {
         "c64-target": "sha256:7ade1c5d472056e5464051842d6d2b2948c15ca418d5b65848e31afd76fe095b",
         "chapter-00": "sha256:007c7e62f34e510b1a9e8e9394a40b21d49694fe5273e90f856f6072b0090321",
@@ -305,7 +305,7 @@
         "contextual": "sha256:97e24c6f7f5308d74ed25ea4456351c628f5e694f32ca0d39301afdb4e7cba72",
         "grammar": "sha256:8a8477cef07827cec0abef98d589cbd21b6ba23f8045f322ec85903b2bf90fba",
         "identity-ledger": "sha256:60703aa23ae9172510c36fac9ef18f0fe7d3bc977965b8b03a5f01a40ccc9a72",
-        "shared-contracts": "sha256:6127aebb474546835d9144141dee5fe6d351e2a083a7c6e6a731dd777f2b9e26"
+        "shared-contracts": "sha256:ec463278d33a8ec9114243f9a2157401cc8268460a5c2553da293df5fb3784a9"
       },
       "outcome": "accepted",
       "resolvedDisagreementIds": [

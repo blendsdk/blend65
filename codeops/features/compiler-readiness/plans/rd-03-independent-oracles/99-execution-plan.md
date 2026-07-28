@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-27
-> **Progress**: 0/72 tasks (0%)
+> **Last Updated**: 2026-07-28
+> **Progress**: 12/72 tasks (17%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -41,21 +41,22 @@ semantic evidence have been accepted and selected together.
 
 ## Phase 1: Closed Protocol and Separated Authority
 
+> **Phase baseline tree**: 0af20b53a06e785071010a8c661c2d136b55aebc
 > **Lenses**: api-surface, compiler-semantics, security
 > **Reference**: 03-01 · AR-P1–AR-P5, AR-P9, AR-P18, AR-P25–AR-P31 · ST-01–ST-07
 
-- [ ] 1.1.1 [spec-author] Write ST-01–ST-07 in `oracle-contracts.spec.test.ts`; do not open future implementation files
-- [ ] 1.1.2 Run the Phase 1 suite and record expected RED caused only by absent RD-03 contracts
-- [ ] 1.2.1 Add passive oracle values, observations, result/evidence diagnostics and hard limits in `oracle-model.ts`
-- [ ] 1.2.2 Implement hostile-input snapshotting and exhaustive failure classification in `oracle-input.ts`
-- [ ] 1.2.3 Implement full RD-02 replay-provenance snapshot/validation/regeneration in `oracle-provenance.ts`
-- [ ] 1.2.4 Implement bounded compiler-diagnostic parsing and the exact source-projection join
-- [ ] 1.2.5 Implement the separate closed external binding-rejection parser and exact projection join
-- [ ] 1.2.6 Author both canonical authority JSON files from frozen semantics without consulting compiler output
-- [ ] 1.2.7 Add opaque source-authoring suite, exact routing and four raw façades
-- [ ] 1.2.8 Add passive `PublishedOracleContext`/evidence contracts without implementing selected invocation
-- [ ] 1.2.9 Add the unbound transform declaration and regenerate declarations/inventory projections
-- [ ] 1.3.1 Run ST-01–ST-07 GREEN, add implementation-tier parser/route/error cases, then review and full verify
+- [x] 1.1.1 [spec-author] Write ST-01–ST-07 in `oracle-contracts.spec.test.ts`; do not open future implementation files — completed 2026-07-27 21:42 CEST
+- [x] 1.1.2 Run the Phase 1 suite and record expected RED caused only by absent RD-03 contracts — completed 2026-07-27 21:42 CEST (`createOracleSuite` absent after real fixture construction; 14 cases collected)
+- [x] 1.2.1 Add passive oracle values, observations, result/evidence diagnostics and hard limits in `oracle-model.ts` — completed 2026-07-27 22:04 CEST
+- [x] 1.2.2 Implement hostile-input snapshotting and exhaustive failure classification in `oracle-input.ts` — completed 2026-07-27 22:04 CEST
+- [x] 1.2.3 Implement full RD-02 replay-provenance snapshot/validation/regeneration in `oracle-provenance.ts` — completed 2026-07-27 22:04 CEST
+- [x] 1.2.4 Implement bounded compiler-diagnostic parsing and the exact source-projection join — completed 2026-07-27 22:04 CEST
+- [x] 1.2.5 Implement the separate closed external binding-rejection parser and exact projection join — completed 2026-07-27 22:04 CEST
+- [x] 1.2.6 Author both canonical authority JSON files from frozen semantics without consulting compiler output — completed 2026-07-27 22:04 CEST
+- [x] 1.2.7 Add opaque source-authoring suite, exact routing and four raw façades — completed 2026-07-27 22:04 CEST
+- [x] 1.2.8 Add passive `PublishedOracleContext`/evidence contracts without implementing selected invocation — completed 2026-07-27 22:04 CEST
+- [x] 1.2.9 Add the unbound transform declaration, obtain narrow independent acceptance of the additive `shared-contracts` delta, refresh exact current/historical unbound review fixtures, and regenerate declarations/inventory projections — completed 2026-07-28 12:33 CEST
+- [x] 1.3.1 Run ST-01–ST-07 GREEN, add implementation-tier parser/route/error cases, then review and full verify — completed 2026-07-28 13:27 CEST (independent correctness/security and compiler-semantics reviews clean after remediation; exact full gate passed)
 
 **Deliverable:** closed non-authoritative source-authoring capability, separated reviewed-data
 candidates and five unbound RD-03 declarations.
