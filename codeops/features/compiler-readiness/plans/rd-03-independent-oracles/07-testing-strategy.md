@@ -41,7 +41,7 @@ The cases below are immutable after their implementation-blind authoring.
 | ST-12 | Structurally valid constant initialized by memory read/runtime name | Oracle semantic closure rejects before suite/evaluation | AR-P32; PF-008 |
 | ST-13 | Two ordered memory reads/writes affect later expression | Public effect/value witness proves left-to-right volatile order | RD-03 AC-3; 03-02 |
 | ST-14 | Explicit byte/word fixture with overlap | Little-endian reads/writes and complete final memory are exact | RD-03 AC-9; AR-P8 |
-| ST-15 | Absent cell, byte out of range or word at `$ffff` | `oracle-unmodeled`; no invented value or partial effect | RD-03 AC-9; AR-P8 |
+| ST-15 | Absent required byte/word cell, byte at `$ffff`, and word at `$ffff` | Missing cells and the word access are `oracle-unmodeled` with no partial effect; initialized byte access succeeds | RD-03 AC-9; AR-P8/P50 |
 | ST-16 | Every consuming event at `bound-1`, `bound`, `bound+1` | First two fit; next charge returns `oracle-budget` | RD-03 AC-8; AR-P10 |
 | ST-17 | Constant-shaped and runtime-shaped divisor zero | `blocked-errata` and `oracle-unmodeled`; `spec/` unchanged | RD-03 AC-10; AR-P2/P7 |
 | ST-18 | Boundary scanner positive fixture plus forbidden package, relative escape and dynamic import | Immutable boundary oracle and `readiness:source-check` agree exactly | RD-03 AC-1; AR-P41 |

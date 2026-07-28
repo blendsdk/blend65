@@ -57,6 +57,13 @@ Five handler registrations are derived from checked-in complete dependency bytes
 | `oracle.runtime-state` | oracle | `1.0.0` | memory diagnostic/state contracts |
 | `transform.semantic-relations` | transform | `1.0.0` | five closed relation IDs |
 
+The four oracle registrations use new handler-specific adapters
+`evaluateFrontendResultCandidate`, `evaluateCompilerResultCandidate`,
+`evaluateEmittedProgramCandidate` and `evaluateRuntimeStateCandidate`. Each validates its exact
+serialized handler ID and delegates to `evaluateSourceOracleCase`; none contains semantic
+evaluation logic. The immutable Phase 1 bootstrap façade functions are compatibility APIs only and
+must never be registered as these candidates.
+
 The loader accepts a lexical set of handler IDs from the release being prepared/resolved. It
 returns exactly one fresh compatible registration per requested ID and rejects unknown, duplicate
 or unavailable historical IDs.

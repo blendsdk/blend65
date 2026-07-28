@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-28
-> **Progress**: 12/72 tasks (17%)
+> **Progress**: 25/72 tasks (35%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -65,22 +65,23 @@ candidates and five unbound RD-03 declarations.
 
 ## Phase 2: Bounded Evaluator, Semantic Closure and Independence
 
+> **Phase baseline tree**: 60324577c26a684a169565c2311ffd7335fd1df7
 > **Lenses**: compiler-semantics, security, performance
 > **Reference**: 03-02 · AR-P5–AR-P10, AR-P29, AR-P32, AR-P41 · ST-08–ST-18
 
-- [ ] 2.1.1 [spec-author] Write ST-08–ST-17 in `oracle-evaluator.spec.test.ts`
-- [ ] 2.1.2 [spec-author] Write ST-18 in `oracle-boundary.spec.test.ts` with positive and seeded forbidden fixtures
-- [ ] 2.1.3 Run both Phase 2 suites and record expected RED caused only by absent evaluator/boundary modules
-- [ ] 2.2.1 Implement typed scalar normalization and closed operation dispatch
-- [ ] 2.2.2 Implement same-signed widening in both operand orders, exact extension/result typing and narrowing rejection
-- [ ] 2.2.3 Implement structural-following oracle semantic closure, including constant-purity checks
-- [ ] 2.2.4 Implement validation and charge-before-event tracking in `oracle-budget.ts`
-- [ ] 2.2.5 Implement fixture, little-endian access and effects in `oracle-memory.ts`
-- [ ] 2.2.6 Implement constant resolution and one entry frame in `oracle-state.ts`
-- [ ] 2.2.7 Implement expression/statement/return orchestration and exhaustive result categories
-- [ ] 2.2.8 Implement the AST boundary scanner and add its invariant to `readiness:source-check`
-- [ ] 2.2.9 Run ST-08–ST-18 GREEN; fix production implementation only
-- [ ] 2.3.1 Add focused evaluator/closure/boundary tests, update owned roadmap debt T-02, run coverage/review/full verify
+- [x] 2.1.1 [spec-author] Write ST-08–ST-17 in `oracle-evaluator.spec.test.ts` — completed 2026-07-28 13:59 CEST
+- [x] 2.1.2 [spec-author] Write ST-18 in `oracle-boundary.spec.test.ts` with positive and seeded forbidden fixtures — completed 2026-07-28 13:59 CEST
+- [x] 2.1.3 Run both Phase 2 suites and record expected RED caused only by absent evaluator/boundary modules — completed 2026-07-28 13:59 CEST (two suites uncollectable only because `oracle-budget` and `readiness-boundary-scanner` are absent)
+- [x] 2.2.1 Implement typed scalar normalization and closed operation dispatch — completed 2026-07-28 15:20 CEST
+- [x] 2.2.2 Implement same-signed widening in both operand orders, exact extension/result typing and narrowing rejection — completed 2026-07-28 15:20 CEST
+- [x] 2.2.3 Implement structural-following oracle semantic closure, including constant-purity checks — completed 2026-07-28 15:20 CEST
+- [x] 2.2.4 Implement validation and charge-before-event tracking in `oracle-budget.ts` — completed 2026-07-28 15:20 CEST
+- [x] 2.2.5 Implement fixture, little-endian access and effects in `oracle-memory.ts` — completed 2026-07-28 15:20 CEST
+- [x] 2.2.6 Implement constant resolution and one entry frame in `oracle-state.ts` — completed 2026-07-28 15:20 CEST
+- [x] 2.2.7 Implement expression/statement/return orchestration and exhaustive result categories — completed 2026-07-28 15:20 CEST
+- [x] 2.2.8 Implement the AST boundary scanner and add its invariant to `readiness:source-check` — completed 2026-07-28 15:20 CEST
+- [x] 2.2.9 Run ST-08–ST-18 GREEN; fix production implementation only — completed 2026-07-28 15:20 CEST (14/14 immutable specs; 41/41 focused Phase 2 tests)
+- [x] 2.3.1 Add focused evaluator/closure/boundary tests, update owned roadmap debt T-02, run coverage/review/full verify — completed 2026-07-28 16:35 CEST (1041 readiness tests; 90.07% branch coverage; exact full gate green; performance and semantics re-reviews clean; correctness re-review retained RV-003/RV-004, corrected under AR-P54 with direct regression verification and no prohibited third review)
 
 **Deliverable:** pure bounded absolute oracle and immutable package-independence gate for the
 approved scalar/memory IR, candidate-only.

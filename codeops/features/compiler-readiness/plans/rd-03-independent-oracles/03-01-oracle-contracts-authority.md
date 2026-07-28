@@ -315,6 +315,12 @@ emitted-program queries return `route-unavailable` for the initial population. B
 valid routed value-state request returns `evaluator-unavailable`; diagnostic and external-binding
 projections can already return their manifest-owned observations.
 
+The four named Phase 1 functions above are durable bootstrap/protocol compatibility façades. Their
+valid value-state behavior remains `evaluator-unavailable` so the immutable Phase 1 contract stays
+byte-identical. Phase 2 adds the distinct `evaluateSourceOracleCase` replay/evaluator API in 03-02.
+Future selected handler candidates use thin handler-specific adapters around that one shared
+wrapper; they do not bind these legacy functions or implement a second evaluator.
+
 ## Result Protocol
 
 ```ts

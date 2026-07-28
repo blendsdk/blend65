@@ -58,6 +58,12 @@
 | AR-P46 | Diagnostic authority conflict `(runtime)` | What exact diagnostic authority applies to boolean wrong-type projections and memory-intrinsic wrong-argument-type projections when E10086 is cast-only and the frozen chapters disagree on E10171/E10172? | Distinguish source diagnostic context rather than guess one code per `(ruleId, neighborId)`; use E10152 for initializer/assignment mismatch and E10172 for return-expression and intrinsic-argument mismatch, resolving the Ch 14 E10171 row as superseded by Ch 06 plus F020. | User authorized; semantics review SR-001; exact context-key shape independently hardened during remediation | ✅ Resolved |
 | AR-P47 | Replay registry authenticity `(runtime)` | Does suite construction prove exact six-component freshness without a request envelope? | Require factory-produced `RevisionRegistry` membership at suite construction and snapshot the capability reference; verify the exact six requested revisions and regenerated case per request, where the replay envelope supplies those identities. Reject structural lookalikes before exposing routes. | AI delegated by `--auto-design`; correctness RV-001 and semantics SR-002 converged on the only representation compatible with the existing input shape | ✅ Resolved |
 | AR-P48 | Hostile aggregate bytes `(runtime)` | How is provenance rejected before serialization can allocate from one enormous string/key? | Extend hostile-input snapshot accounting with a fixed aggregate UTF-8 key/value byte limit, charge before retaining each string/key, reject before `JSON.stringify`, and add boundary/oversize tests. | AI delegated by `--auto-design`; correctness RV-002; internal resource-bound mechanism | ✅ Resolved |
+| AR-P49 | Phase 2 immutable specification seams `(runtime)` | What exact request/result/IR schemas and callable boundary-scanner contract let an implementation-blind author specify ST-08–ST-18 without consulting production code or inventing interfaces? | Freeze one inline specification-author packet in 03-02: the exact generator IR plus 03-01 request/result contracts; a private `evaluateOracleProgram` conformance entry called by the replay-authenticated wrapper; a private `probeOracleBudgetCharges` entry backed by the same production meter; and a bounded in-memory TypeScript module-graph scanner with one fixed filesystem/source-check adapter. None is exported from the package index or carries publication authority. | AI delegated by `--auto-design`; independent challenger selected inline authority, real private conformance dispatch and the in-memory scanner over a separate drifting document, replay weakening or filesystem-first tests; resolved during execution | ✅ Resolved |
+| AR-P50 | Memory effect/order boundary semantics `(runtime)` | What is the first memory-effect ordinal, and how can ST-15 require an out-of-range byte address when every address is a normalized word? | The first completed logical effect is ordinal `0n` and later effects increment by `1n`. Preserve normalized word-address IR: byte access at initialized `$ffff` succeeds; an absent required cell or word access beginning at `$ffff` is `oracle-unmodeled` before partial access/effect; out-of-range literals remain structural input failures and are not evaluator vectors. | AI delegated by `--auto-design`; independent challenger rejected widening address semantics merely to preserve an impossible test phrase; resolved during execution | ✅ Resolved |
+| AR-P51 | Temporal Phase 1 evaluator expectation `(runtime)` | How can Phase 2 integrate the real evaluator when the frozen Phase 1 contract spec permanently expects `evaluator-unavailable` for the same valid value-state route that 03-01 limits to “Before Phase 2”? | Superseded by AR-P53 after the critical quality gate established that the existing immutable Phase 1 specification must remain byte-identical. | Earlier auto-design ruling was invalidated by correctness RV-001 | ⚪ Superseded |
+| AR-P52 | Shift authority parity `(runtime)` | What exact shift-count types and over-width result must the independent evaluator enforce when its initial immutable vector conflicts with canonical IR and frozen semantics? | Require the right operand to be unsigned `byte` or `word`; signed counts are unsupported by semantic closure. Preserve the left operand/result type without signedness promotion. Before shifting, return typed zero whenever the unsigned count is at least the left type's 8- or 16-bit width, including arithmetic right shift of a negative value. Correct the implementation-blind immutable vector from `sbyte(1)` to `byte(1)` and add exact signed/unsigned left/right boundary vectors. | AI delegated by `--auto-design` under the user's standing authorization; semantics SR-001/SR-002 grounded in canonical validator and frozen Ch04; narrow oracle correction required before production remediation | ✅ Resolved |
+| AR-P53 | Phase 1 immutable façade compatibility `(runtime)` | Must the authorized AR-P51 supersession be replaced after the quality gate classifies any existing immutable spec edit as critical, and if so how does Phase 2 integrate one real evaluator? | Restore the Phase 1 spec byte-for-byte and preserve its four raw bootstrap façades, including `evaluator-unavailable`. Add the distinct public `evaluateSourceOracleCase` Phase 2 replay wrapper, which alone calls the single private evaluator. Future selected handler candidates are thin handler-specific adapters around that wrapper and must never bind the legacy façades or duplicate evaluation semantics. | Critical RV-001 resolved under the user's standing authorization; independent challenger selected versioned evaluator-backed adapters as the only spec-integrity-preserving design | ✅ Resolved |
+| AR-P54 | Scanner load normalization and parser exhaustion `(runtime)` | How must the boundary scanner treat semantically transparent `require`/`module.require` callees and a TypeScript parser/traversal stack overflow discovered by the single fix re-review? | Iteratively unwrap parentheses and TypeScript-only transparent expression wrappers before load classification; recognize bare `require`, direct `module.require`, and literal `module["require"]`; treat a computed `module[...]` callee as a dynamic unresolved load and fail closed. Guard TypeScript parsing and AST collection per module and return one bounded `readiness.boundary.input.invalid` diagnostic on any parser/traversal exception. Add exact bypass and deep-parenthesis regressions. | AI delegated by `--auto-design`; correctness fix re-review RV-003/RV-004; no waiver and no third review permitted | ✅ Resolved |
 
 ## Systematic Gate Scan
 
@@ -71,6 +77,38 @@
 | Data and state | Closed diagnostic authority, immutable state, memory effects and canonical identities resolved |
 | Security | Hostile objects, path/import escapes, resource bounds and dynamic-code exclusion resolved |
 | Non-functional | Determinism, bounded work, freshness, crash consistency and branch coverage resolved |
+
+## AR-P54 Delegated Resolution
+
+- **Authority:** AI — delegated by `--auto-design`.
+- **Eligibility:** internal security mechanism and failure-recovery design within the already
+  approved package-independence policy; no product scope, acceptance criterion, compatibility or
+  external action changes.
+- **Objective:** make the readiness source boundary complete for equivalent CommonJS load syntax
+  and total over hostile bounded TypeScript source.
+- **Decision:** iteratively remove transparent syntax wrappers from call targets; classify bare
+  `require`, direct/literal-element `module.require`, and computed `module[...]` loads; reject
+  unresolved computed loads as dynamic. Catch parser/import-collection exceptions at the module
+  boundary and return the existing bounded invalid-input diagnostic.
+- **Evidence:** the single correctness fix re-review reproduced package-import bypasses through
+  `(require)(...)`, `(module.require)(...)`, and `module["require"](...)`, plus a stack overflow
+  from roughly one thousand nested parentheses in a source well below the byte limit.
+- **Rejected alternatives:** enumerating only the three reproduced spellings leaves equivalent
+  TypeScript wrappers open; symbol-table alias analysis adds a compiler-program dependency and
+  unbounded complexity to a deliberately local AST scanner; allowing parser exceptions to escape
+  violates the closed hostile-input contract.
+- **Strongest counterargument:** conservative rejection of computed `module[...]` calls can reject
+  an unrelated dynamic module helper, but readiness production code is ESM and has no legitimate
+  computed CommonJS loader requirement; failing closed is the boundary's purpose.
+- **Confidence:** High — observable invalidation would be a semantically equivalent loader form
+  that survives transparent unwrapping or a bounded source that still throws.
+- **Hardening:** independent correctness re-review supplied both minimal bypasses and a parser
+  exhaustion reproducer; semantics and performance re-reviews otherwise passed.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd03-20260727-01`.
+- **Reopen triggers:** any loader-equivalent call bypasses the scanner, any accepted current
+  readiness source uses computed `module[...]`, or any bounded scan throws instead of returning a
+  closed result.
 | UX/presentation | Failures-as-data and stable bounded diagnostics resolved; no end-user UI introduced |
 | Stakeholder conflict | User-owned scope correction and frozen-spec contradiction handling are explicitly authorized |
 | Naming | Oracle, relation, evaluation identity, unmodeled and inapplicable states are closed |

@@ -17,6 +17,10 @@ import {
   renderGeneratedProjections,
   type GeneratedProjectionSet,
 } from "./projection.js";
+import {
+  checkReadinessOracleBoundary,
+  type ReadinessBoundaryDiagnosticV1,
+} from "./readiness-boundary-scanner.js";
 
 export const READINESS_PATHS = {
   inventory: "readiness/inventory/compiler-readiness-v1.json",
@@ -27,7 +31,10 @@ export const READINESS_PATHS = {
   lock: "readiness/generated/.generation-lock",
 } as const;
 
-type ReadinessCommandDiagnostic = InventoryDiagnostic | PublicationDiagnostic;
+type ReadinessCommandDiagnostic =
+  | InventoryDiagnostic
+  | PublicationDiagnostic
+  | ReadinessBoundaryDiagnosticV1;
 
 interface ReadinessCommandResult {
   readonly ok: boolean;
@@ -211,12 +218,14 @@ export async function runReadinessCommand(
   repositoryRoot: string,
   hooks?: { readonly publication?: PublicationHooks },
 ): Promise<ReadinessCommandResult> {
-  if (command === "source-check" || command === "generate") {
-    return runSourceAuthoringCommand(
-      command === "source-check" ? "check" : "generate",
-      repositoryRoot,
-      hooks,
-    );
+  if (command === "source-check") {
+    const projection = await runSourceAuthoringCommand("check", repositoryRoot, hooks);
+    if (!projection.ok) return projection;
+    const boundary = await checkReadinessOracleBoundary(repositoryRoot);
+    return { ok: boundary.ok, diagnostics: boundary.diagnostics };
+  }
+  if (command === "generate") {
+    return runSourceAuthoringCommand("generate", repositoryRoot, hooks);
   }
   return runSelectedPublicationCommand(command, repositoryRoot);
 }

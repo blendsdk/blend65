@@ -399,30 +399,30 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:ff177e3d573816f3102301bc0b408effc7e25518c38772dc5a605048805c64f0",
+          "revision": "sha256:9fbd61e517bff060d41657b3961108db2e6392ac7f00c6875540ef9c51a77cc6",
           "upstream": "compiler-readiness/SPEC-RD-03-CONTRACTS",
-          "validatedAt": "2026-07-28T11:27:00Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:ff177e3d573816f3102301bc0b408effc7e25518c38772dc5a605048805c64f0",
+          "revision": "sha256:9fbd61e517bff060d41657b3961108db2e6392ac7f00c6875540ef9c51a77cc6",
           "upstream": "compiler-readiness/SPEC-RD-03-CONTRACTS",
-          "validatedAt": "2026-07-28T11:27:00Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:b34ae1810e0e0e7a79c46c42037033b32375aad7b13bc8587b5586294a626d07",
+          "revision": "sha256:37749adfe63fb7b1ab650ffbd98334dca73f5503d93265bffb0b648769e5fd82",
           "upstream": "compiler-readiness/SPEC-RD-03-EVALUATOR",
-          "validatedAt": "2026-07-27T18:58:44Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:b34ae1810e0e0e7a79c46c42037033b32375aad7b13bc8587b5586294a626d07",
+          "revision": "sha256:37749adfe63fb7b1ab650ffbd98334dca73f5503d93265bffb0b648769e5fd82",
           "upstream": "compiler-readiness/SPEC-RD-03-EVALUATOR",
-          "validatedAt": "2026-07-27T12:30:00Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "execution",
@@ -441,16 +441,16 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:380ca823ab3c8a11f7ee749ecb59052497d592b8fda8a3b16ab393f5e270d6c8",
+          "revision": "sha256:532166382850a5c450dcfc42d1de20114792750d2f8d348abac55c2acb23986a",
           "upstream": "compiler-readiness/SPEC-RD-03-PUBLISH",
-          "validatedAt": "2026-07-27T18:58:44Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:380ca823ab3c8a11f7ee749ecb59052497d592b8fda8a3b16ab393f5e270d6c8",
+          "revision": "sha256:532166382850a5c450dcfc42d1de20114792750d2f8d348abac55c2acb23986a",
           "upstream": "compiler-readiness/SPEC-RD-03-PUBLISH",
-          "validatedAt": "2026-07-27T12:30:00Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "execution",
@@ -2708,7 +2708,7 @@
         "summary:RD-03 Zero-Ambiguity Gate passed with 41 resolved decisions, including 17 user-authorized plan-preflight corrections."
       ],
       "id": "AR-P03",
-      "revision": "sha256:15976818d7ec2dd2e74c4f69b6c4c00253dabd4c2cf415e76f5825b22007f4b0",
+      "revision": "sha256:23c5f2c569202d60c97be55eb85e6af7ca285a570b4a57e40fbfc511162457df",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2766,7 +2766,7 @@
         "summary:Plan preflight passed after all 29 findings were corrected and independently re-verified."
       ],
       "id": "PLAN-RD-03",
-      "revision": "sha256:7465bc14f2e1889b073f8632cad0941918be9a17a97526465b50a8b916852cd3",
+      "revision": "sha256:ad068b30ec4e88cb078d9801a0f0427f9cb9956b0d9d9b8168aa51908a1d4323",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2805,9 +2805,9 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:356fd2467027e447ec3682388e87df25ddeb2fbc50d7827b4d9bb08c0072340e",
+          "revision": "sha256:f5e220d077af3489423cd4479dad2abd144ac017de942976655a1629852ca227",
           "upstream": "compiler-readiness/TASK-RD-03-P2",
-          "validatedAt": "2026-07-27T18:58:44Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "execution",
@@ -2855,7 +2855,7 @@
         }
       ],
       "id": "SPEC-RD-03-CONTRACTS",
-      "revision": "sha256:ff177e3d573816f3102301bc0b408effc7e25518c38772dc5a605048805c64f0",
+      "revision": "sha256:9fbd61e517bff060d41657b3961108db2e6392ac7f00c6875540ef9c51a77cc6",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2909,7 +2909,7 @@
         }
       ],
       "id": "SPEC-RD-03-EVALUATOR",
-      "revision": "sha256:b34ae1810e0e0e7a79c46c42037033b32375aad7b13bc8587b5586294a626d07",
+      "revision": "sha256:37749adfe63fb7b1ab650ffbd98334dca73f5503d93265bffb0b648769e5fd82",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2927,23 +2927,23 @@
         {
           "gate": "execution",
           "relation": "accepted-by",
-          "revision": "sha256:cff912e2a51ff05639b52deb5ef6655a1a95d213d055beceda1360519e95fa26",
+          "revision": "sha256:12640beab1a58d9459c6147705e0c570c95d13004eb0d36ffc607febaf1640b6",
           "upstream": "compiler-readiness/AC-RD-03-EVALUATOR",
-          "validatedAt": "2026-07-27T18:58:44Z"
+          "validatedAt": "2026-07-28T11:56:00Z"
         },
         {
           "gate": "plan",
           "relation": "accepted-by",
-          "revision": "sha256:cff912e2a51ff05639b52deb5ef6655a1a95d213d055beceda1360519e95fa26",
+          "revision": "sha256:12640beab1a58d9459c6147705e0c570c95d13004eb0d36ffc607febaf1640b6",
           "upstream": "compiler-readiness/AC-RD-03-EVALUATOR",
-          "validatedAt": "2026-07-27T12:30:00Z"
+          "validatedAt": "2026-07-28T11:56:00Z"
         },
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:356fd2467027e447ec3682388e87df25ddeb2fbc50d7827b4d9bb08c0072340e",
+          "revision": "sha256:f5e220d077af3489423cd4479dad2abd144ac017de942976655a1629852ca227",
           "upstream": "compiler-readiness/TASK-RD-03-P2",
-          "validatedAt": "2026-07-27T18:58:44Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         }
       ]
     },
@@ -3075,7 +3075,7 @@
         }
       ],
       "id": "SPEC-RD-03-PUBLISH",
-      "revision": "sha256:380ca823ab3c8a11f7ee749ecb59052497d592b8fda8a3b16ab393f5e270d6c8",
+      "revision": "sha256:532166382850a5c450dcfc42d1de20114792750d2f8d348abac55c2acb23986a",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3169,7 +3169,7 @@
         }
       ],
       "id": "AC-RD-03-EVALUATOR",
-      "revision": "sha256:cff912e2a51ff05639b52deb5ef6655a1a95d213d055beceda1360519e95fa26",
+      "revision": "sha256:12640beab1a58d9459c6147705e0c570c95d13004eb0d36ffc607febaf1640b6",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3188,9 +3188,9 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:356fd2467027e447ec3682388e87df25ddeb2fbc50d7827b4d9bb08c0072340e",
+          "revision": "sha256:f5e220d077af3489423cd4479dad2abd144ac017de942976655a1629852ca227",
           "upstream": "compiler-readiness/TASK-RD-03-P2",
-          "validatedAt": "2026-07-27T18:58:44Z"
+          "validatedAt": "2026-07-28T13:36:51Z"
         }
       ]
     },
@@ -3351,8 +3351,14 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:2026-07-28: all 14 immutable Phase 2 specification cases pass unchanged.",
+        "redEvidence:2026-07-28 Phase 2 evaluator and boundary specification suites failed collection only because oracle-budget and readiness-boundary-scanner modules were absent",
+        "summary:Immutable evaluator and boundary specifications pass against the bounded evaluator, semantic closure and package-independence implementation.",
+        "verificationEvidence:All 14 immutable Phase 2 specification cases and 1041 readiness tests pass with 90.07 percent branch coverage; the exact repository gate passes."
+      ],
       "id": "TEST-RD-03-EVALUATOR",
-      "revision": "sha256:cff912e2a51ff05639b52deb5ef6655a1a95d213d055beceda1360519e95fa26",
+      "revision": "sha256:12640beab1a58d9459c6147705e0c570c95d13004eb0d36ffc607febaf1640b6",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3364,7 +3370,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-03 evaluator specification tests",
       "type": "test",
       "validations": []
@@ -3463,8 +3469,14 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "lifecycleEvidence:Execution plan task 2.3.1 is verified complete at 25 of 72 tasks.",
+        "qualityReview:Performance and compiler-semantics re-reviews resolved all findings. The single correctness re-review retained two bypass findings; both were corrected under the recorded auto-design resolution and directly regression-verified without a prohibited third review.",
+        "summary:Phase 2 bounded evaluator, semantic closure and immutable package-independence gate are complete.",
+        "verificationEvidence:Exact frozen-install, build, typecheck, lint and test gate passes: 76 readiness files with 1041 tests, 81 test-harness files with 409 tests, and 8 root files with 33 tests; readiness branch coverage is 90.07 percent and source-check passes."
+      ],
       "id": "TASK-RD-03-P2",
-      "revision": "sha256:356fd2467027e447ec3682388e87df25ddeb2fbc50d7827b4d9bb08c0072340e",
+      "revision": "sha256:f5e220d077af3489423cd4479dad2abd144ac017de942976655a1629852ca227",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3476,7 +3488,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-03 phase 2",
       "type": "task",
       "validations": []
@@ -3562,5 +3574,6 @@
       "validations": []
     }
   ],
-  "schema": 2
+  "schema": 2,
+  "updated": "2026-07-28T14:25:14Z"
 }

@@ -1,4 +1,10 @@
-import { oracleFailure } from "./oracle-input.js";
+import { evaluateOracleProgram } from "./oracle-evaluator.js";
+import {
+  hasExactOracleKeys,
+  isOracleRecord,
+  oracleFailure,
+  snapshotOracleInput,
+} from "./oracle-input.js";
 import type {
   DiagnosticContextV1,
   OracleHandlerIdV1,
@@ -84,6 +90,7 @@ function evaluateOracleHandler(
   suite: OracleSuite,
   expectedHandler: OracleHandlerIdV1,
   input: unknown,
+  evaluateValidProjection: boolean,
 ): OracleResultV1 {
   try {
     const prepared = prepareOracleRequest(suite, expectedHandler, input);
@@ -104,7 +111,21 @@ function evaluateOracleHandler(
     });
     if (!route.ok) return route;
     if (route.outcome === "oracle-unmodeled") return route;
-    if (prepared.projectionKind === "valid") return unmodeled("evaluator-unavailable");
+    if (prepared.projectionKind === "valid") {
+      if (!evaluateValidProjection) return unmodeled("evaluator-unavailable");
+      const module =
+        prepared.modeledCase.projection.kind === "valid"
+          ? prepared.modeledCase.projection.module
+          : prepared.modeledCase.projection.baseline;
+      return evaluateOracleProgram({
+        schemaVersion: 1,
+        module,
+        entryFunction: prepared.request.entryFunction,
+        parameterBindings: prepared.generatedCase.effectiveParameterBindings,
+        memory: prepared.request.memory,
+        budget: prepared.request.budget,
+      });
+    }
     if (prepared.modeledCase.validity.kind !== "invalid") {
       return oracleFailure(
         "oracle.contract.invalid",
@@ -184,7 +205,10 @@ function evaluateOracleHandler(
 }
 
 /**
- * Evaluates a raw frontend-result request as a non-authoritative source capability.
+ * Evaluates a raw frontend-result request through the legacy bootstrap façade.
+ *
+ * Valid value-state routes deliberately remain evaluator-unavailable. Use
+ * {@link evaluateSourceOracleCase} for evaluator-backed source cases.
  *
  * @param suite Factory-created source-authoring suite.
  * @param request Hostile frontend oracle request.
@@ -196,11 +220,14 @@ function evaluateOracleHandler(
  * ```
  */
 export function evaluateFrontendResultOracle(suite: OracleSuite, request: unknown): OracleResultV1 {
-  return evaluateOracleHandler(suite, "oracle.frontend-result", request);
+  return evaluateOracleHandler(suite, "oracle.frontend-result", request, false);
 }
 
 /**
- * Evaluates a raw compiler-result request as a non-authoritative source capability.
+ * Evaluates a raw compiler-result request through the legacy bootstrap façade.
+ *
+ * Valid value-state routes deliberately remain evaluator-unavailable. Use
+ * {@link evaluateSourceOracleCase} for evaluator-backed source cases.
  *
  * @param suite Factory-created source-authoring suite.
  * @param request Hostile compiler oracle request.
@@ -212,11 +239,14 @@ export function evaluateFrontendResultOracle(suite: OracleSuite, request: unknow
  * ```
  */
 export function evaluateCompilerResultOracle(suite: OracleSuite, request: unknown): OracleResultV1 {
-  return evaluateOracleHandler(suite, "oracle.compiler-result", request);
+  return evaluateOracleHandler(suite, "oracle.compiler-result", request, false);
 }
 
 /**
- * Evaluates a raw emitted-program request as a non-authoritative source capability.
+ * Evaluates a raw emitted-program request through the legacy bootstrap façade.
+ *
+ * Valid value-state routes deliberately remain evaluator-unavailable. Use
+ * {@link evaluateSourceOracleCase} for evaluator-backed source cases.
  *
  * @param suite Factory-created source-authoring suite.
  * @param request Hostile emitted-program oracle request.
@@ -228,11 +258,14 @@ export function evaluateCompilerResultOracle(suite: OracleSuite, request: unknow
  * ```
  */
 export function evaluateEmittedProgramOracle(suite: OracleSuite, request: unknown): OracleResultV1 {
-  return evaluateOracleHandler(suite, "oracle.emitted-program", request);
+  return evaluateOracleHandler(suite, "oracle.emitted-program", request, false);
 }
 
 /**
- * Evaluates a raw runtime-state request as a non-authoritative source capability.
+ * Evaluates a raw runtime-state request through the legacy bootstrap façade.
+ *
+ * Valid value-state routes deliberately remain evaluator-unavailable. Use
+ * {@link evaluateSourceOracleCase} for evaluator-backed source cases.
  *
  * @param suite Factory-created source-authoring suite.
  * @param request Hostile runtime oracle request.
@@ -244,5 +277,60 @@ export function evaluateEmittedProgramOracle(suite: OracleSuite, request: unknow
  * ```
  */
 export function evaluateRuntimeStateOracle(suite: OracleSuite, request: unknown): OracleResultV1 {
-  return evaluateOracleHandler(suite, "oracle.runtime-state", request);
+  return evaluateOracleHandler(suite, "oracle.runtime-state", request, false);
+}
+
+/**
+ * Evaluates one replay-authenticated source case through its exact raw façade.
+ *
+ * The wrapper snapshots the request before reading its handler discriminator.
+ * Valid cases then reach the same private evaluator used by conformance tests;
+ * invalid projections retain their independently reviewed authority routes.
+ *
+ * @param suite Factory-created source-authoring suite.
+ * @param request Hostile raw oracle request.
+ * @returns Closed non-authoritative raw result.
+ *
+ * @example
+ * ```ts
+ * const result = evaluateSourceOracleCase(suite, request);
+ * ```
+ */
+export function evaluateSourceOracleCase(suite: OracleSuite, request: unknown): OracleResultV1 {
+  const snapshot = snapshotOracleInput(request);
+  if (!snapshot.ok) return snapshot;
+  if (
+    !isOracleRecord(snapshot.value) ||
+    !hasExactOracleKeys(snapshot.value, [
+      "schemaVersion",
+      "handlerId",
+      "ruleId",
+      "sourceProvenance",
+      "case",
+      "entryFunction",
+      "memory",
+      "budget",
+      "observable",
+    ])
+  ) {
+    return oracleFailure(
+      "oracle.input.invalid",
+      "",
+      "Oracle request must use the exact closed shape.",
+    );
+  }
+  const handlerId = snapshot.value.handlerId;
+  if (
+    handlerId !== "oracle.frontend-result" &&
+    handlerId !== "oracle.compiler-result" &&
+    handlerId !== "oracle.emitted-program" &&
+    handlerId !== "oracle.runtime-state"
+  ) {
+    return oracleFailure(
+      "oracle.input.invalid",
+      "/handlerId",
+      "Oracle handler ID is not supported.",
+    );
+  }
+  return evaluateOracleHandler(suite, handlerId, snapshot.value, true);
 }

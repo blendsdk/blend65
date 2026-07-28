@@ -96,6 +96,7 @@ export {
   evaluateEmittedProgramOracle,
   evaluateFrontendResultOracle,
   evaluateRuntimeStateOracle,
+  evaluateSourceOracleCase,
 } from "./oracle-handlers.js";
 export { ORACLE_V1_LIMITS } from "./oracle-model.js";
 export type {
