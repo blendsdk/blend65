@@ -98,6 +98,7 @@ export {
   evaluateRuntimeStateOracle,
   evaluateSourceOracleCase,
 } from "./oracle-handlers.js";
+export { evaluateSemanticRelation } from "./semantic-relations.js";
 export { ORACLE_V1_LIMITS } from "./oracle-model.js";
 export type {
   FragmentKind,
@@ -404,3 +405,9 @@ export type {
   SemanticRelationId,
   ValueStateObservationV1,
 } from "./oracle-model.js";
+export type {
+  SemanticRelationHandlerV1,
+  SemanticRelationModeledResultV1,
+  SemanticRelationRequestV1,
+  SemanticRelationResultV1,
+} from "./semantic-relation-model.js";

@@ -2,7 +2,7 @@
 
 > **Document**: 03-03-semantic-relations.md
 > **Parent**: [Index](00-index.md)
-> **Implements**: AR-P11–AR-P13, AR-P16–AR-P20, AR-P26–AR-P28, AR-P40
+> **Implements**: AR-P11–AR-P13, AR-P16–AR-P20, AR-P26–AR-P28, AR-P40, AR-P55–AR-P58
 
 ## Responsibility
 
@@ -45,7 +45,42 @@ interface SemanticRelationRequestV1 {
   readonly memory: MemoryFixtureV1;
   readonly budget: OracleBudgetV1;
 }
+
+interface SemanticRelationModeledResultV1 {
+  readonly ok: true;
+  readonly outcome: "modeled";
+  readonly relationId: SemanticRelationId;
+  readonly sourceCase: GeneratedModeledCase;
+  readonly transformedCase: GeneratedModeledCase;
+  readonly sourceObservation: OracleObservationV1;
+  readonly transformedObservation: OracleObservationV1;
+  readonly observation: OracleObservationV1;
+  readonly diagnostics: readonly [];
+}
+
+type SemanticRelationResultV1 =
+  | SemanticRelationModeledResultV1
+  | Exclude<OracleResultV1, { readonly ok: true; readonly outcome: "modeled" }>;
+
+type SemanticRelationHandlerV1 = (
+  suite: OracleSuite,
+  request: unknown,
+) => SemanticRelationResultV1;
+
+function evaluateSemanticRelation(
+  suite: OracleSuite,
+  request: unknown,
+): SemanticRelationResultV1;
 ```
+
+The modeled branch is a structural subtype of the existing `OracleResultV1` modeled branch:
+`observation` is exactly `transformedObservation`, while the additional readonly fields expose the
+source/transformed proof needed for relation specification and Phase 4 content identity. The two
+case values and both observations are immutable non-aliasing snapshots. In particular,
+`transformedCase.parameterBindings` exposes the exact local-to-parameter binding append. The
+non-modeled, inapplicable and failure branches are byte-for-byte the existing raw-result shapes.
+`evaluateSemanticRelation` is exported from the package index as the one candidate source-authoring
+transform; no second detailed transform API exists.
 
 The public source-authoring handler accepts an `OracleSuite` plus `unknown`; the authoritative entry
 receives its reviewed suite through `PublishedOracleContext`. Both validate the closed request and
@@ -151,6 +186,92 @@ the public package API.
 Phase 4 incorporates these stable relation path IDs into the general exhaustive mutation catalog.
 That later generalization may add catalog/worker orchestration but cannot change the already
 immutable relation specification or its production path.
+
+The exact conformance contract is:
+
+```ts
+type SemanticRelationPreconditionPathId =
+  | "relation.identifier-renaming.precondition"
+  | "relation.literal-to-local.precondition"
+  | "relation.local-to-parameter.precondition"
+  | "relation.algebraic-identity.precondition"
+  | "relation.independent-declaration-reordering.precondition";
+
+type SemanticRelationRewritePathId =
+  | "relation.identifier-renaming.rewrite"
+  | "relation.literal-to-local.rewrite"
+  | "relation.local-to-parameter.rewrite"
+  | "relation.algebraic-identity.rewrite"
+  | "relation.independent-declaration-reordering.rewrite";
+
+type SemanticRelationComparatorPathId =
+  | "relation.identifier-renaming.comparator"
+  | "relation.literal-to-local.comparator"
+  | "relation.local-to-parameter.comparator"
+  | "relation.algebraic-identity.comparator"
+  | "relation.independent-declaration-reordering.comparator";
+
+type SemanticRelationPathId =
+  | SemanticRelationPreconditionPathId
+  | SemanticRelationRewritePathId
+  | SemanticRelationComparatorPathId;
+
+type SemanticRelationFaultV1 =
+  | {
+      readonly schemaVersion: 1;
+      readonly pathId: SemanticRelationPreconditionPathId;
+      readonly faultId: "relation.fault.force-precondition-false";
+    }
+  | {
+      readonly schemaVersion: 1;
+      readonly pathId: SemanticRelationRewritePathId;
+      readonly faultId:
+        | "relation.fault.non-preserving-rewrite"
+        | "relation.fault.semantic-closure-invalid-rewrite";
+    }
+  | {
+      readonly schemaVersion: 1;
+      readonly pathId: SemanticRelationComparatorPathId;
+      readonly faultId: "relation.fault.omit-required-observable";
+    };
+
+function runWithSemanticRelationFault<T>(
+  fault: SemanticRelationFaultV1,
+  operation: () => T,
+): T;
+```
+
+`runWithSemanticRelationFault` is exported only from
+`semantic-relation-conformance.ts`, never from the package index. It validates and freezes the
+closed fault record, scopes it with `AsyncLocalStorage.run` for exactly the callback lifetime, and
+returns the callback result unchanged. It never uses `enterWith`, global mutable state or
+caller-supplied executable hooks. Only `evaluateSemanticRelation` reads the active record, and only
+when relation ID and path ID agree.
+
+The force-false fault changes an otherwise true selected precondition to
+`relation-inapplicable`. The non-preserving rewrite fault changes the selected entry's observable
+return using a same-type boolean negation or numeric XOR; a void entry receives a deterministic
+memory write before return. The real comparator must therefore return `oracle.relation.violated`.
+The omitted-observable fault supplies a deterministic mismatch in the observation member owned by
+the selected comparator: numeric type, boolean value, void final memory, diagnostic code or
+binding-rejection code. The deliberately incomplete comparator omits exactly that member while the
+rich result's paired observations let the immutable specification detect the survivor
+independently.
+
+The semantic-closure-invalid rewrite fault runs only after a correct rewrite and before transformed
+revalidation. It appends a uniquely named byte constant initialized by a `memory-read` whose
+address is a canonical `word` literal. This remains structurally valid for every source shape but
+violates compile-time-constant purity, so the exact handler returns a failure whose first diagnostic
+is `oracle.relation.invalid` at `/transformedCase`; transformed evaluation and comparison must not
+run. All path and fault IDs above are stable Phase 4 catalog keys.
+
+## Specification Checkpoint Recovery
+
+The corrected Phase 3 specification was re-established implementation-blind after the original RED
+checkpoint exposed an internal oracle contradiction. In an isolated worktree at Phase 2 commit
+`fa7989c`, with only the corrected specification and fixture added, the suite failed collection
+solely because `semantic-relation-conformance` was absent. Those corrected bytes are the immutable
+Phase 3 oracle; the superseded checkpoint is not accepted as evidence.
 
 ## Comparator Invariants
 

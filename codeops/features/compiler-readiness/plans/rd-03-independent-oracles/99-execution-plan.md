@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-28
-> **Progress**: 25/72 tasks (35%)
+> **Progress**: 36/72 tasks (50%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -90,20 +90,21 @@ approved scalar/memory IR, candidate-only.
 
 ## Phase 3: Semantic Relations and Relation Fault Seam
 
+> **Phase baseline tree**: 37f03a1c7a06a0fd87b72bfd26ac02746bbfa239
 > **Lenses**: compiler-semantics, api-surface, performance
 > **Reference**: 03-03 · AR-P11–AR-P13, AR-P26–AR-P28, AR-P32, AR-P40 · ST-19–ST-28
 
-- [ ] 3.1.1 [spec-author] Write ST-19–ST-28 in `semantic-relations.spec.test.ts`
-- [ ] 3.1.2 Run the Phase 3 suite and record expected RED caused only by absent relation contracts
-- [ ] 3.2.1 Implement request/result contracts, replay provenance and hostile-input validation
-- [ ] 3.2.2 Implement binding, dependency, purity and path analysis
-- [ ] 3.2.3 Introduce the private relation-scoped production fault seam required by ST-28
-- [ ] 3.2.4 Implement identifier renaming and literal-to-local
-- [ ] 3.2.5 Implement local-to-parameter plus the separate external binding update
-- [ ] 3.2.6 Implement algebraic variants and independent declaration reordering
-- [ ] 3.2.7 Implement structural/semantic-closure revalidation and local comparators
-- [ ] 3.2.8 Run ST-19–ST-28 GREEN; fix production implementation only
-- [ ] 3.3.1 Add focused relation/seam implementation cases, then review and full verify
+- [x] 3.1.1 [spec-author] Write ST-19–ST-28 in `semantic-relations.spec.test.ts` — completed 2026-07-28 17:07 CEST (88 expanded cases across 11 named immutable relation declarations; implementation-blind author confirmed no forbidden production file was inspected)
+- [x] 3.1.2 Run the Phase 3 suite and record expected RED caused only by absent relation contracts — restarted and completed 2026-07-28 18:30 CEST under AR-P57 (isolated worktree at Phase 2 commit `fa7989c` plus only the corrected implementation-blind specification/fixture; suite uncollectable solely because `semantic-relation-conformance` is absent)
+- [x] 3.2.1 Implement request/result contracts, replay provenance and hostile-input validation — completed 2026-07-28 17:29 CEST
+- [x] 3.2.2 Implement binding, dependency, purity and path analysis — completed 2026-07-28 17:29 CEST
+- [x] 3.2.3 Introduce the private relation-scoped production fault seam required by ST-28 — completed 2026-07-28 17:29 CEST
+- [x] 3.2.4 Implement identifier renaming and literal-to-local — completed 2026-07-28 17:29 CEST
+- [x] 3.2.5 Implement local-to-parameter plus the separate external binding update — completed 2026-07-28 17:29 CEST
+- [x] 3.2.6 Implement algebraic variants and independent declaration reordering — completed 2026-07-28 17:29 CEST
+- [x] 3.2.7 Implement structural/semantic-closure revalidation and local comparators — completed 2026-07-28 17:29 CEST
+- [x] 3.2.8 Run ST-19–ST-28 GREEN; fix production implementation only — completed 2026-07-28 18:30 CEST (88/88 corrected immutable specification cases pass after the AR-P57 checkpoint restart)
+- [x] 3.3.1 Add focused relation/seam implementation cases, then review and full verify — completed 2026-07-28 19:07 CEST (30 focused implementation cases; 1,159 readiness tests; 90.01% branch coverage; correctness/performance/semantics re-review findings resolved under AR-P57–AR-P58 with direct regressions; 88/88 frozen specification cases and exact Phase 3 hashes preserved)
 
 **Deliverable:** one typed candidate transform with five non-vacuous relations, falsifiable
 comparators and an immutable relation fault oracle.

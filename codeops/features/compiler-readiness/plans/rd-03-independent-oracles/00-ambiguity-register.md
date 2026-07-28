@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-03 Independent Semantic, Diagnostic and Metamorphic Oracles
 
-> **Status**: ✅ GATE PASSED — all 43 items resolved
-> **Last Updated**: 2026-07-27
+> **Status**: ✅ GATE PASSED — all 56 items resolved
+> **Last Updated**: 2026-07-28
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd03-20260727-01`
 > **Policy version**: 1
@@ -64,6 +64,9 @@
 | AR-P52 | Shift authority parity `(runtime)` | What exact shift-count types and over-width result must the independent evaluator enforce when its initial immutable vector conflicts with canonical IR and frozen semantics? | Require the right operand to be unsigned `byte` or `word`; signed counts are unsupported by semantic closure. Preserve the left operand/result type without signedness promotion. Before shifting, return typed zero whenever the unsigned count is at least the left type's 8- or 16-bit width, including arithmetic right shift of a negative value. Correct the implementation-blind immutable vector from `sbyte(1)` to `byte(1)` and add exact signed/unsigned left/right boundary vectors. | AI delegated by `--auto-design` under the user's standing authorization; semantics SR-001/SR-002 grounded in canonical validator and frozen Ch04; narrow oracle correction required before production remediation | ✅ Resolved |
 | AR-P53 | Phase 1 immutable façade compatibility `(runtime)` | Must the authorized AR-P51 supersession be replaced after the quality gate classifies any existing immutable spec edit as critical, and if so how does Phase 2 integrate one real evaluator? | Restore the Phase 1 spec byte-for-byte and preserve its four raw bootstrap façades, including `evaluator-unavailable`. Add the distinct public `evaluateSourceOracleCase` Phase 2 replay wrapper, which alone calls the single private evaluator. Future selected handler candidates are thin handler-specific adapters around that wrapper and must never bind the legacy façades or duplicate evaluation semantics. | Critical RV-001 resolved under the user's standing authorization; independent challenger selected versioned evaluator-backed adapters as the only spec-integrity-preserving design | ✅ Resolved |
 | AR-P54 | Scanner load normalization and parser exhaustion `(runtime)` | How must the boundary scanner treat semantically transparent `require`/`module.require` callees and a TypeScript parser/traversal stack overflow discovered by the single fix re-review? | Iteratively unwrap parentheses and TypeScript-only transparent expression wrappers before load classification; recognize bare `require`, direct `module.require`, and literal `module["require"]`; treat a computed `module[...]` callee as a dynamic unresolved load and fail closed. Guard TypeScript parsing and AST collection per module and return one bounded `readiness.boundary.input.invalid` diagnostic on any parser/traversal exception. Add exact bypass and deep-parenthesis regressions. | AI delegated by `--auto-design`; correctness fix re-review RV-003/RV-004; no waiver and no third review permitted | ✅ Resolved |
+| AR-P55 | Phase 3 relation and conformance interface `(runtime)` | Which exact callable, rich result and fault-seam contracts let an implementation-blind author prove complete rewrites, external binding updates and production-path fault detection without creating a second execution path? | Export `evaluateSemanticRelation(OracleSuite, unknown): SemanticRelationResultV1` from the package index. Its modeled branch structurally preserves `OracleResultV1` and adds the relation ID, immutable source/transformed cases and both observations. Keep `runWithSemanticRelationFault(fault, operation)` module-private from the package index; scope one closed path/fault pair with `AsyncLocalStorage.run`, and let only the exact production handler consult it at stable relation-specific precondition/rewrite/comparator checkpoints. Closed conformance faults force a false precondition, a valid non-preserving rewrite, or a comparator omission paired with a deterministic mismatch witness. | AI delegated by `--auto-design`; independent challenger selected the rich exact-handler/ALS design over adjacent detailed APIs and separate conformance wrappers | ✅ Resolved |
+| AR-P56 | Transformed semantic-closure oracle `(runtime)` | How can ST-27 reach a structurally valid but semantic-closure-invalid transformed case without submitting a source-invalid request or weakening a correct rewrite? | Superseded by AR-P58: replacement is not total when the source has no compatible constant and can produce a signedness mismatch. | Earlier auto-design ruling refined by semantics re-review SR-005 | ⚪ Superseded |
+| AR-P58 | Total transformed semantic-closure oracle `(runtime)` | What structurally valid closure fault works for every applicable transformed module without changing an existing declaration's type? | After a correct rewrite, append one fresh byte constant whose byte-width `memory-read` initializer uses a canonical word address. This is structurally valid for every source shape, always violates constant purity, and is charged by the exact post-fault transformed-node budget before closure validation. Return `oracle.relation.invalid` at `/transformedCase` before transformed evaluation/comparison. | AI delegated by `--auto-design`; semantics re-review SR-005; back-propagated to 03-03 | ✅ Resolved |
 
 ## Systematic Gate Scan
 
@@ -109,6 +112,81 @@
 - **Reopen triggers:** any loader-equivalent call bypasses the scanner, any accepted current
   readiness source uses computed `module[...]`, or any bounded scan throws instead of returning a
   closed result.
+
+## AR-P55 Delegated Resolution
+
+- **Authority:** AI — delegated by `--auto-design`.
+- **Eligibility:** internal TypeScript API, conformance isolation and testing mechanism within the
+  approved five-relation behavior and fault-adequacy criteria. It changes no product scope,
+  frozen specification, publication format, security policy or external action.
+- **Objective:** give the implementation-blind Phase 3 author one exact production callable whose
+  result proves the rewrite itself, while keeping deterministic fault injection isolated and out
+  of the package public index.
+- **Decision:** add the exact rich handler/result and closed path/fault signatures to the relation
+  component specification. The modeled result remains a structural subtype of the existing
+  modeled `OracleResultV1` branch and adds readonly relation, case and paired-observation evidence.
+  A module-only `runWithSemanticRelationFault` uses `AsyncLocalStorage.run`; only
+  `evaluateSemanticRelation` reads its immutable store at one relation-specific precondition,
+  rewrite or comparator checkpoint.
+- **Evidence:** `OracleResultV1` alone cannot expose a complete binding rewrite or the
+  local-to-parameter binding append. The repository already uses callback-scoped
+  `AsyncLocalStorage` production conformance hooks for publication, and the public relation
+  handler is fixed at two arguments. Phase 4 requires stable path/fault IDs rather than ad hoc test
+  callbacks.
+- **Rejected alternatives:** a narrow handler plus separate detailed transformation API can drift
+  from the raw production path; an explicit three-argument conformance wrapper tests a different
+  callable and duplicates dispatch; a global mutable fault switch is race-prone; arbitrary
+  caller-supplied hooks would widen the hostile-input surface.
+- **Strongest counterargument:** ambient async context hides a dependency in otherwise synchronous
+  relation execution. The dependency is confined to a module-private, callback-scoped
+  conformance seam, uses `run` rather than `enterWith`, and preserves the exact two-argument
+  production handler required by publication.
+- **Confidence:** High — reopen if the rich modeled branch cannot remain structurally compatible
+  with `OracleResultV1`, if a relation path bypasses the scoped checkpoint, or if concurrent
+  baseline/fault operations observe each other's store.
+- **Hardening:** a blind independent challenger selected the rich exact-handler plus
+  `AsyncLocalStorage` design and rejected both adjacent detailed APIs and separate conformance
+  wrappers because they weaken proof of the actual production invocation.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd03-20260727-01`.
+- **Reopen triggers:** loss of structural result compatibility, package-index exposure of the
+  conformance seam, path/fault ID drift, mutable source/result aliasing, or cross-operation fault
+  leakage.
+
+## AR-P56 Delegated Resolution
+
+- **Authority:** AI — delegated by `--auto-design`.
+- **Eligibility:** internal testability and failure-stage mechanism inside the already required
+  transformed semantic-closure rejection. It changes no accepted relation, source behavior,
+  product scope, frozen specification or publication contract.
+- **Objective:** prove transformed-output semantic closure specifically, rather than accidentally
+  exercising source-request validation.
+- **Decision:** extend the closed rewrite-fault union with
+  `relation.fault.semantic-closure-invalid-rewrite`. At a selected rewrite checkpoint, after the
+  normal immutable rewrite and before transformed validation, replace one transformed
+  module-constant initializer with a same-typed memory read whose address is a canonical word
+  literal. Structural validation therefore succeeds, semantic closure rejects constant impurity,
+  and the handler returns `oracle.relation.invalid` at `/transformedCase` before evaluation or
+  comparison.
+- **Evidence:** every correct relation rewrite is required to preserve semantic closure, while the
+  existing non-preserving fault is explicitly still semantically valid so its comparator can
+  detect value drift. A source-invalid-closure case would fail before transformation and cannot
+  prove transformed revalidation.
+- **Rejected alternatives:** using source-invalid input tests the wrong stage; weakening a normal
+  rewrite changes approved relation behavior; exposing a separate transformed validator creates
+  the adjacent-path drift AR-P55 rejected; overloading the non-preserving fault prevents its
+  comparator-path witness.
+- **Strongest counterargument:** a fourth fault expands the Phase 4 catalog surface. The new ID is
+  a stable rewrite-path key for an already mandatory rejection branch, so explicit catalog
+  coverage is the intended cost.
+- **Confidence:** High — reopen if the injected node is not structurally valid, can pass constant
+  purity, or reaches transformed evaluation/comparison.
+- **Hardening:** one viable mechanism survived stage analysis; all alternatives either test source
+  validation, mutate approved behavior, or create a second production path.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd03-20260727-01`.
+- **Reopen triggers:** the failure code/path changes, the fault can run before source validation,
+  or any evaluator/comparator event occurs after the injected transformed closure violation.
 | UX/presentation | Failures-as-data and stable bounded diagnostics resolved; no end-user UI introduced |
 | Stakeholder conflict | User-owned scope correction and frozen-spec contradiction handling are explicitly authorized |
 | Naming | Oracle, relation, evaluation identity, unmodeled and inapplicable states are closed |
@@ -251,6 +329,33 @@
   promotion hazards.
 - **Policy / invocation:** policy version 1; root invocation
   `compiler-readiness-rd03-20260727-01`.
+
+## AR-P57 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; specification-process recovery
+  after an implementation-blind specification author identified an internal oracle contradiction.
+  It changes no product behavior, frozen language specification, acceptance scope or public API.
+- **Objective:** restore a trustworthy immutable Phase 3 oracle after the original RED checkpoint
+  was invalidated by one assertion that counted the required algebraic identity operand as a
+  second selected source occurrence.
+- **Evidence:** the specification author rechecked the assertion against the approved relation
+  contract without reading production files and removed only the contradictory whole-subtree
+  occurrence count; all exact AST role assertions remain. An isolated worktree at the verified
+  Phase 2 commit `fa7989c` plus only the corrected specification and fixture failed collection
+  exclusively because `semantic-relation-conformance` was absent. The corrected suite then passed
+  all 88 cases against production.
+- **Decision:** invalidate the superseded RED checkpoint, restart Phase 3 specification-first
+  authoring from the corrected implementation-blind bytes, re-establish RED in the isolated Phase
+  2 snapshot, and freeze those corrected bytes for the remainder of Phase 3.
+- **Rejected alternatives:** waiving the immutable-oracle rule would conceal a broken checkpoint;
+  retaining the contradictory assertion would require deliberately incorrect production
+  structure; discarding the complete suite would lose independently valid coverage.
+- **Confidence:** High. Reopen if either corrected specification file changes again during Phase 3
+  or the isolated failure is shown to depend on any production behavior beyond the absent relation
+  module.
+- **Hardening:** the correctness review raised the checkpoint-integrity finding; the remediation
+  uses a fresh baseline snapshot rather than treating the post-RED edit as an implementation fix.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260728`.
 
 ## Gate
 

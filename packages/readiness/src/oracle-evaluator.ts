@@ -456,7 +456,15 @@ function unmodeledResult(reason: OracleUnmodeledReason): OracleResultV1 {
   });
 }
 
-function executeOracleProgram(input: ParsedOracleProgramInputV1): OracleResultV1 {
+interface OracleProgramExecutionV1 {
+  readonly result: OracleResultV1;
+  readonly capturedValue?: OracleValueV1;
+}
+
+function executeOracleProgram(
+  input: ParsedOracleProgramInputV1,
+  captureLocalStatementIndex?: number,
+): OracleProgramExecutionV1 {
   const closure = input.closure;
   const meter = createOracleBudgetMeter(input.budget);
   const initialCharge = chargeInitialUsage(
@@ -465,21 +473,22 @@ function executeOracleProgram(input: ParsedOracleProgramInputV1): OracleResultV1
     input.memory,
     meter,
   );
-  if (initialCharge !== undefined) return initialCharge;
+  if (initialCharge !== undefined) return Object.freeze({ result: initialCharge });
   const memory = createOracleMutableMemoryState(input.memory);
   const constantState = createOracleMutableEvaluationState();
   const constants = evaluateConstants(closure, meter, memory, constantState);
   if (constants !== undefined && "kind" in constants) {
-    return unmodeledResult(constants.reason);
+    return Object.freeze({ result: unmodeledResult(constants.reason) });
   }
-  if (constants !== undefined) return constants;
+  if (constants !== undefined) return Object.freeze({ result: constants });
   const frame = createOracleEntryFrame(
     closure.entryFunction,
     closure.entryFunctionIndex,
     input.parameterBindings,
     meter,
   );
-  if (!frame.ok) return frame;
+  if (!frame.ok) return Object.freeze({ result: frame });
+  let capturedValue: OracleValueV1 | undefined;
   let runtime: EvaluatorRuntimeV1 = Object.freeze({
     meter,
     state: createOracleMutableEvaluationState(constantState.constants, frame.frame),
@@ -487,20 +496,36 @@ function executeOracleProgram(input: ParsedOracleProgramInputV1): OracleResultV1
   });
   for (let index = 0; index < closure.entryFunction.body.length; index += 1) {
     const statement = closure.entryFunction.body[index];
-    if (statement === undefined) return unmodeledResult("unsupported-semantics");
+    if (statement === undefined) {
+      return Object.freeze({ result: unmodeledResult("unsupported-semantics") });
+    }
     const result = evaluateStatement(
       statement,
       runtime,
       `/functions/${closure.entryFunctionIndex}/body/${index}`,
     );
-    if ("ok" in result) return result;
-    if (result.kind === "unmodeled") return unmodeledResult(result.reason);
-    if (result.kind === "return") return modeledResult(result.value, result.runtime.memory);
+    if ("ok" in result) return Object.freeze({ result });
+    if (result.kind === "unmodeled") {
+      return Object.freeze({ result: unmodeledResult(result.reason) });
+    }
+    if (result.kind === "return") {
+      return Object.freeze({
+        result: modeledResult(result.value, result.runtime.memory),
+        ...(capturedValue === undefined ? {} : { capturedValue }),
+      });
+    }
     runtime = result.runtime;
+    if (index === captureLocalStatementIndex && statement.kind === "local") {
+      capturedValue = getOracleStateValue(runtime.state, statement.name);
+    }
   }
-  return closure.entryFunction.returnType === "void"
-    ? modeledResult(null, runtime.memory)
-    : unmodeledResult("unsupported-semantics");
+  return Object.freeze({
+    result:
+      closure.entryFunction.returnType === "void"
+        ? modeledResult(null, runtime.memory)
+        : unmodeledResult("unsupported-semantics"),
+    ...(capturedValue === undefined ? {} : { capturedValue }),
+  });
 }
 
 /**
@@ -516,12 +541,60 @@ export function evaluateOracleProgram(input: unknown): OracleResultV1 {
   try {
     const parsed = parseOracleProgramInput(input);
     if ("ok" in parsed) return parsed;
-    return "kind" in parsed ? unmodeledResult(parsed.reason) : executeOracleProgram(parsed);
+    return "kind" in parsed ? unmodeledResult(parsed.reason) : executeOracleProgram(parsed).result;
   } catch {
     return oracleFailure(
       "oracle.input.invalid",
       "",
       "Oracle program could not be inspected safely.",
     );
+  }
+}
+
+/** Result of one evaluation that can also capture a selected entry local. */
+export interface OracleProgramLocalCaptureV1 {
+  /** Complete ordinary evaluator result. */
+  readonly result: OracleResultV1;
+  /** Selected local value when execution reached and declared it. */
+  readonly capturedValue?: OracleValueV1;
+}
+
+/**
+ * Evaluates a program once while capturing one entry-local value.
+ *
+ * This private integration seam lets semantics-preserving rewrites reuse the
+ * exact source execution instead of evaluating a synthetic program first.
+ *
+ * @param input Unknown version-one program input.
+ * @param statementIndex Entry-body local declaration index to capture.
+ * @returns Ordinary result plus the captured typed value when available.
+ */
+export function evaluateOracleProgramWithLocalCapture(
+  input: unknown,
+  statementIndex: number,
+): OracleProgramLocalCaptureV1 {
+  try {
+    if (!Number.isSafeInteger(statementIndex) || statementIndex < 0) {
+      return Object.freeze({
+        result: oracleFailure(
+          "oracle.input.invalid",
+          "/statementIndex",
+          "Local capture statement index is invalid.",
+        ),
+      });
+    }
+    const parsed = parseOracleProgramInput(input);
+    if ("ok" in parsed) return Object.freeze({ result: parsed });
+    return "kind" in parsed
+      ? Object.freeze({ result: unmodeledResult(parsed.reason) })
+      : executeOracleProgram(parsed, statementIndex);
+  } catch {
+    return Object.freeze({
+      result: oracleFailure(
+        "oracle.input.invalid",
+        "",
+        "Oracle program could not be inspected safely.",
+      ),
+    });
   }
 }

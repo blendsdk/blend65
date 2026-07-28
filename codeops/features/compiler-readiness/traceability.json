@@ -455,14 +455,14 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:f25a33bc3b3ff93e54f4b8daa30997c55c1a792a37f8f2d5b4134511a58fc434",
+          "revision": "sha256:e73b6c239d83eab44494838153c59e206ad2bf12445b9ba7ac9e518ef98c1648",
           "upstream": "compiler-readiness/SPEC-RD-03-RELATIONS",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:f25a33bc3b3ff93e54f4b8daa30997c55c1a792a37f8f2d5b4134511a58fc434",
+          "revision": "sha256:e73b6c239d83eab44494838153c59e206ad2bf12445b9ba7ac9e518ef98c1648",
           "upstream": "compiler-readiness/SPEC-RD-03-RELATIONS",
           "validatedAt": "2026-07-27T12:30:00Z"
         }
@@ -2708,7 +2708,7 @@
         "summary:RD-03 Zero-Ambiguity Gate passed with 41 resolved decisions, including 17 user-authorized plan-preflight corrections."
       ],
       "id": "AR-P03",
-      "revision": "sha256:23c5f2c569202d60c97be55eb85e6af7ca285a570b4a57e40fbfc511162457df",
+      "revision": "sha256:f27b19be3514202286904345a4944d4bfcc4a39d1ad1ba8526248e6cddd91cf0",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2766,7 +2766,7 @@
         "summary:Plan preflight passed after all 29 findings were corrected and independently re-verified."
       ],
       "id": "PLAN-RD-03",
-      "revision": "sha256:ad068b30ec4e88cb078d9801a0f0427f9cb9956b0d9d9b8168aa51908a1d4323",
+      "revision": "sha256:c783a6642a4edf26eae4d026f7e3c79ad7a2b4929dd8534162fd02650b51eab5",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2812,7 +2812,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d32afb9e36c782a73359b7dd1701a39a6b6a343dd324ab124a11175318e10775",
+          "revision": "sha256:fe8bc85dcadb6d749f18e50f365a405c2c68ef483f296810f798d3f2ff20a67e",
           "upstream": "compiler-readiness/TASK-RD-03-P3",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
@@ -2963,7 +2963,7 @@
         }
       ],
       "id": "SPEC-RD-03-RELATIONS",
-      "revision": "sha256:f25a33bc3b3ff93e54f4b8daa30997c55c1a792a37f8f2d5b4134511a58fc434",
+      "revision": "sha256:e73b6c239d83eab44494838153c59e206ad2bf12445b9ba7ac9e518ef98c1648",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2995,7 +2995,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d32afb9e36c782a73359b7dd1701a39a6b6a343dd324ab124a11175318e10775",
+          "revision": "sha256:fe8bc85dcadb6d749f18e50f365a405c2c68ef483f296810f798d3f2ff20a67e",
           "upstream": "compiler-readiness/TASK-RD-03-P3",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3225,7 +3225,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d32afb9e36c782a73359b7dd1701a39a6b6a343dd324ab124a11175318e10775",
+          "revision": "sha256:fe8bc85dcadb6d749f18e50f365a405c2c68ef483f296810f798d3f2ff20a67e",
           "upstream": "compiler-readiness/TASK-RD-03-P3",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3377,6 +3377,11 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:2026-07-28 focused Vitest executed all 88 immutable semantic-relation specification cases successfully after production implementation.",
+        "redEvidence:2026-07-28: focused Vitest reports one failed suite and zero collected tests because semantic-relation-conformance and semantic-relations do not yet exist; independent typecheck reports only those two missing-module errors.",
+        "summary:The immutable semantic-relation specification oracle is authored implementation-blind and fails collection only at the absent Phase 3 modules."
+      ],
       "id": "TEST-RD-03-RELATIONS",
       "revision": "sha256:b63b23ae5a866fc40475075a60f6d94e839d230d5d9cec96f828b2d15587b4a3",
       "semanticSources": [
@@ -3390,7 +3395,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-03 semantic relation specification tests",
       "type": "test",
       "validations": []
@@ -3495,8 +3500,13 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "summary:Phase 3 semantic relations and fault seam verified after independent review remediation.",
+        "summary:Phase 3 semantic-relation production paths and focused implementation tests are present; independent review and exact full verification remain.",
+        "verificationEvidence:Exact repository verify green; 1,159 readiness tests; 90.01% branch coverage; 88 immutable specs and 30 implementation tests pass."
+      ],
       "id": "TASK-RD-03-P3",
-      "revision": "sha256:d32afb9e36c782a73359b7dd1701a39a6b6a343dd324ab124a11175318e10775",
+      "revision": "sha256:fe8bc85dcadb6d749f18e50f365a405c2c68ef483f296810f798d3f2ff20a67e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3508,7 +3518,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-03 phase 3",
       "type": "task",
       "validations": []
