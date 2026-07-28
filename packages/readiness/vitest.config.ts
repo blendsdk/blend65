@@ -5,7 +5,10 @@ export default defineConfig({
     include: ["src/**/*.{spec,impl}.test.ts"],
     environment: "node",
     passWithNoTests: false,
+    minWorkers: 1,
+    maxWorkers: 2,
     testTimeout: 240_000,
+    hookTimeout: 240_000,
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],

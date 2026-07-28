@@ -99,6 +99,22 @@ export {
   evaluateSourceOracleCase,
 } from "./oracle-handlers.js";
 export { evaluateSemanticRelation } from "./semantic-relations.js";
+export {
+  deriveOracleSourceContentIdentity,
+  deriveOracleTransformedContentIdentity,
+} from "./oracle-content-identity.js";
+export {
+  deriveOracleEvaluationIdentity,
+  deriveOracleInitialMemoryIdentity,
+  validateOracleReplayProvenance,
+} from "./oracle-evaluation-identity.js";
+export { createOracleEvaluationCollisionRegistry } from "./oracle-evaluation-collision.js";
+export {
+  oracleMutationPathRegistry,
+  parseOracleMutationCatalog,
+  validateOracleMutationCatalog,
+} from "./oracle-mutation-model.js";
+export { runOracleMutationCatalog } from "./oracle-mutation-runner.js";
 export { ORACLE_V1_LIMITS } from "./oracle-model.js";
 export type {
   FragmentKind,
@@ -365,6 +381,31 @@ export type {
   PreparedCampaign,
 } from "./campaign-model.js";
 export type { ReplayResult } from "./replay.js";
+export type {
+  OracleEvaluationIdentityInputV1,
+  OracleEvaluationParticipantV1,
+  OracleIdentityResultV1,
+  OraclePolicyRevision,
+  OracleReplayIdentityProvenanceV1,
+  OracleReplayValidationInputV1,
+  OracleValidationResultV1,
+} from "./oracle-evaluation-identity.js";
+export type {
+  OracleEvaluationCollisionRegistry,
+  OracleEvaluationDigest,
+} from "./oracle-evaluation-collision.js";
+export type {
+  OracleMutantV1,
+  OracleMutationCatalogV1,
+  OracleMutationFamilyV1,
+  OracleMutationPathRegistryV1,
+  OracleMutationPathV1,
+  ValidatedOracleMutationCatalogV1,
+} from "./oracle-mutation-model.js";
+export type {
+  OracleMutationRunRequestV1,
+  OracleMutationRunResultV1,
+} from "./oracle-mutation-runner.js";
 export type {
   BindingRejectionCodeV1,
   BindingRejectionManifestParseResult,

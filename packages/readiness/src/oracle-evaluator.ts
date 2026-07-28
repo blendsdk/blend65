@@ -1,4 +1,9 @@
 import { isGenIdentifier } from "./generator-ir.js";
+import {
+  oracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+  type OracleMutationDispatchMarkerV1,
+} from "./oracle-conformance-v1.js";
 import type { GenExpression, GenModule, GenStatement } from "./generator-ir.js";
 import { validateGeneratorIrSyntax } from "./generator-ir-validator.js";
 import type { ParameterValueBinding } from "./modeled-generator-model.js";
@@ -117,6 +122,32 @@ const PROGRAM_KEYS = [
   "memory",
   "budget",
 ] as const;
+
+const ORDER_MUTATIONS: Readonly<
+  Record<
+    "binaryOperands" | "memoryWriteOperands" | "statementEffects",
+    OracleMutationDispatchMarkerV1
+  >
+> = Object.freeze({
+  binaryOperands: oracleMutationDispatchMarker(
+    "evaluator.order",
+    "evaluator.order.binary-operands",
+    "reverse-order-v1",
+  ),
+  memoryWriteOperands: oracleMutationDispatchMarker(
+    "evaluator.order",
+    "evaluator.order.memory-write-operands",
+    "reverse-order-v1",
+  ),
+  statementEffects: oracleMutationDispatchMarker(
+    "evaluator.order",
+    "evaluator.order.statement-effects",
+    "reverse-order-v1",
+  ),
+});
+
+/** Closed observable evaluation-order branches required by mutation conformance. */
+export const ORACLE_ORDER_MUTATION_PATHS = Object.freeze(Object.values(ORDER_MUTATIONS));
 
 function budgetFailure(
   result: Extract<ReturnType<OracleBudgetMeterV1["charge"]>, { readonly ok: false }>,
@@ -251,14 +282,24 @@ function evaluateExpression(
       : unmodeled(operation.reason);
   }
   if (expression.kind === "binary") {
-    const left = evaluateExpression(expression.left, runtime, `${path}/left`);
+    const reverse =
+      selectedOracleMutationVariant(ORDER_MUTATIONS.binaryOperands) === "reverse-order-v1";
+    const first = evaluateExpression(
+      reverse ? expression.right : expression.left,
+      runtime,
+      `${path}/${reverse ? "right" : "left"}`,
+    );
+    if ("ok" in first) return first;
+    if (first.kind !== "value") return first;
+    const second = evaluateExpression(
+      reverse ? expression.left : expression.right,
+      Object.freeze({ ...runtime, memory: first.memory }),
+      `${path}/${reverse ? "left" : "right"}`,
+    );
+    const left = reverse ? second : first;
+    const right = reverse ? first : second;
     if ("ok" in left) return left;
     if (left.kind !== "value") return left;
-    const right = evaluateExpression(
-      expression.right,
-      Object.freeze({ ...runtime, memory: left.memory }),
-      `${path}/right`,
-    );
     if ("ok" in right) return right;
     if (right.kind !== "value") return right;
     const operation = evaluateOracleBinaryOperation(
@@ -333,7 +374,22 @@ function evaluateStatement(
     });
   }
   if (statement.kind === "memory-write") {
-    const address = evaluateExpression(statement.address, runtime, `${path}/address`);
+    const reverse =
+      selectedOracleMutationVariant(ORDER_MUTATIONS.memoryWriteOperands) === "reverse-order-v1";
+    const first = evaluateExpression(
+      reverse ? statement.value : statement.address,
+      runtime,
+      `${path}/${reverse ? "value" : "address"}`,
+    );
+    if ("ok" in first) return first;
+    if (first.kind !== "value") return first;
+    const second = evaluateExpression(
+      reverse ? statement.address : statement.value,
+      Object.freeze({ ...runtime, memory: first.memory }),
+      `${path}/${reverse ? "address" : "value"}`,
+    );
+    const address = reverse ? second : first;
+    const value = reverse ? first : second;
     if ("ok" in address) return address;
     if (
       address.kind !== "value" ||
@@ -342,11 +398,6 @@ function evaluateStatement(
     ) {
       return address.kind === "value" ? unmodeled("unsupported-semantics") : address;
     }
-    const value = evaluateExpression(
-      statement.value,
-      Object.freeze({ ...runtime, memory: address.memory }),
-      `${path}/value`,
-    );
     if ("ok" in value) return value;
     if (value.kind !== "value" || value.value.kind !== "integer") {
       return value.kind === "value" ? unmodeled("unsupported-semantics") : value;
@@ -494,7 +545,10 @@ function executeOracleProgram(
     state: createOracleMutableEvaluationState(constantState.constants, frame.frame),
     memory,
   });
-  for (let index = 0; index < closure.entryFunction.body.length; index += 1) {
+  const reverseStatements =
+    selectedOracleMutationVariant(ORDER_MUTATIONS.statementEffects) === "reverse-order-v1";
+  for (let offset = 0; offset < closure.entryFunction.body.length; offset += 1) {
+    const index = reverseStatements ? closure.entryFunction.body.length - 1 - offset : offset;
     const statement = closure.entryFunction.body[index];
     if (statement === undefined) {
       return Object.freeze({ result: unmodeledResult("unsupported-semantics") });

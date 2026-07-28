@@ -427,14 +427,14 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:d80881edeb81964350531e4effff5fa045424c56f65e029ee797c853affbf6ac",
+          "revision": "sha256:a1254bbcc4ba9e50ec574e0bf612293a64140ef88857c939235b3ea55dfa8961",
           "upstream": "compiler-readiness/SPEC-RD-03-IDENTITY",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:d80881edeb81964350531e4effff5fa045424c56f65e029ee797c853affbf6ac",
+          "revision": "sha256:a1254bbcc4ba9e50ec574e0bf612293a64140ef88857c939235b3ea55dfa8961",
           "upstream": "compiler-readiness/SPEC-RD-03-IDENTITY",
           "validatedAt": "2026-07-27T12:30:00Z"
         },
@@ -2708,7 +2708,7 @@
         "summary:RD-03 Zero-Ambiguity Gate passed with 41 resolved decisions, including 17 user-authorized plan-preflight corrections."
       ],
       "id": "AR-P03",
-      "revision": "sha256:f27b19be3514202286904345a4944d4bfcc4a39d1ad1ba8526248e6cddd91cf0",
+      "revision": "sha256:380cbbf41c23045ac48f923dc124ce53c0b963182d3bdb8579ffd769272a61e5",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2766,7 +2766,7 @@
         "summary:Plan preflight passed after all 29 findings were corrected and independently re-verified."
       ],
       "id": "PLAN-RD-03",
-      "revision": "sha256:c783a6642a4edf26eae4d026f7e3c79ad7a2b4929dd8534162fd02650b51eab5",
+      "revision": "sha256:4f03c1e11534380b57aa26ad4139c440d44ae22d6a09dffda59d200d8d7cf778",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2819,7 +2819,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:fa07d9ab26bbd47025b180f8c09352d50918c4b25b3296130e4aa23a979f2cf1",
+          "revision": "sha256:3ebe4296ef3b1085d4c1e0b94c2b46c6e5b374f10fba31d7efcc47503953a1b5",
           "upstream": "compiler-readiness/TASK-RD-03-P4",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
@@ -3017,7 +3017,7 @@
         }
       ],
       "id": "SPEC-RD-03-IDENTITY",
-      "revision": "sha256:d80881edeb81964350531e4effff5fa045424c56f65e029ee797c853affbf6ac",
+      "revision": "sha256:a1254bbcc4ba9e50ec574e0bf612293a64140ef88857c939235b3ea55dfa8961",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3049,7 +3049,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:fa07d9ab26bbd47025b180f8c09352d50918c4b25b3296130e4aa23a979f2cf1",
+          "revision": "sha256:3ebe4296ef3b1085d4c1e0b94c2b46c6e5b374f10fba31d7efcc47503953a1b5",
           "upstream": "compiler-readiness/TASK-RD-03-P4",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3262,7 +3262,7 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:fa07d9ab26bbd47025b180f8c09352d50918c4b25b3296130e4aa23a979f2cf1",
+          "revision": "sha256:3ebe4296ef3b1085d4c1e0b94c2b46c6e5b374f10fba31d7efcc47503953a1b5",
           "upstream": "compiler-readiness/TASK-RD-03-P4",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3402,6 +3402,10 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "greenEvidence:2026-07-29 exact repository gate passed with 1,232 readiness tests and 33 root tests; all 84 independently asserted mutants were killed with zero survivors.",
+        "redEvidence:Phase 4 immutable identity and mutation specifications failed solely on absent production modules; the additive independent assertion specification was separately re-established RED in snapshot tree ce5c3d8797616206e887555893b3f73f2f0666cd."
+      ],
       "id": "TEST-RD-03-IDENTITY",
       "revision": "sha256:0c7880389bccb16f33af2274a9245b6c708e0076ed5ebd37863cc8bbdcd614e1",
       "semanticSources": [
@@ -3415,7 +3419,7 @@
           }
         }
       ],
-      "status": "planned",
+      "status": "passing",
       "title": "RD-03 identity and mutation specification tests",
       "type": "test",
       "validations": []
@@ -3525,8 +3529,13 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "qualityReview:Correctness, security, semantics and performance reviews completed; all critical and major findings were resolved under auto-design, with no retained major finding after remediation.",
+        "summary:Canonical identities, bounded collision proof, executable marker-backed mutation dispatch, independent assertions, bounded workers and exhaustive source validation are implemented.",
+        "verificationEvidence:Exact full repository gate passed; 90 readiness files and 1,232 tests passed; branch coverage is 90.11%; source-check passed; all 84 independently asserted mutants were killed; immutable Phase 4 hashes and spec/ were preserved."
+      ],
       "id": "TASK-RD-03-P4",
-      "revision": "sha256:fa07d9ab26bbd47025b180f8c09352d50918c4b25b3296130e4aa23a979f2cf1",
+      "revision": "sha256:3ebe4296ef3b1085d4c1e0b94c2b46c6e5b374f10fba31d7efcc47503953a1b5",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3538,7 +3547,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-03 phase 4",
       "type": "task",
       "validations": []

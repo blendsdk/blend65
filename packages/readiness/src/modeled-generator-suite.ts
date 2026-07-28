@@ -54,7 +54,15 @@ interface SuiteState {
   readonly constructions: PreparedModeledConstructionRegistry;
 }
 
-const MAX_AUTHORITY_BYTES = 16_777_216;
+/**
+ * Maximum byte length of each modeled seed, model, or review authority artifact.
+ *
+ * @example
+ * ```ts
+ * if (bytes.byteLength > MODELED_AUTHORITY_MAX_BYTES) return;
+ * ```
+ */
+export const MODELED_AUTHORITY_MAX_BYTES = 16_777_216;
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
 const SUITE_STATES = new WeakMap<object, SuiteState>();
@@ -435,7 +443,7 @@ export function createModeledGeneratorSuite(input: unknown): ModeledGeneratorSui
     if (byteLength === undefined) {
       return failure("modeled.input.invalid", path, "Authority artifact must be a byte array.");
     }
-    if (byteLength > MAX_AUTHORITY_BYTES) {
+    if (byteLength > MODELED_AUTHORITY_MAX_BYTES) {
       return failure("modeled.input.limit", path, "Authority artifact exceeds the byte limit.");
     }
   }

@@ -1,5 +1,10 @@
 import type { ScalarType } from "./generator-ir.js";
 import type { OracleValueV1 } from "./oracle-model.js";
+import {
+  oracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+  type OracleMutationDispatchMarkerV1,
+} from "./oracle-conformance-v1.js";
 
 /** Integer scalar types accepted by the independent evaluator. */
 export type OracleIntegerTypeV1 = Exclude<ScalarType, "boolean">;
@@ -14,6 +19,36 @@ export interface OracleIntegerTypeInfoV1 {
   /** Signedness controlling extension, comparison and right shift. */
   readonly signedness: OracleIntegerSignednessV1;
 }
+
+const NORMALIZATION_MUTATIONS: Readonly<
+  Record<OracleIntegerTypeV1, OracleMutationDispatchMarkerV1>
+> = Object.freeze({
+  byte: oracleMutationDispatchMarker(
+    "evaluator.normalize",
+    "evaluator.normalize.byte",
+    "integer-off-by-one-v1",
+  ),
+  sbyte: oracleMutationDispatchMarker(
+    "evaluator.normalize",
+    "evaluator.normalize.sbyte",
+    "integer-off-by-one-v1",
+  ),
+  sword: oracleMutationDispatchMarker(
+    "evaluator.normalize",
+    "evaluator.normalize.sword",
+    "integer-off-by-one-v1",
+  ),
+  word: oracleMutationDispatchMarker(
+    "evaluator.normalize",
+    "evaluator.normalize.word",
+    "integer-off-by-one-v1",
+  ),
+});
+
+/** Closed normalization branches required by mutation conformance. */
+export const ORACLE_NORMALIZATION_MUTATION_PATHS = Object.freeze(
+  Object.values(NORMALIZATION_MUTATIONS),
+);
 
 /**
  * Returns the fixed-width properties of an integer scalar.
@@ -44,9 +79,20 @@ export function normalizeOracleInteger(type: OracleIntegerTypeV1, value: bigint)
   const { bits, signedness } = oracleIntegerTypeInfo(type);
   const modulus = 1n << BigInt(bits);
   const unsigned = ((value % modulus) + modulus) % modulus;
-  if (signedness === "unsigned") return unsigned;
+  const baseline =
+    signedness === "unsigned"
+      ? unsigned
+      : (() => {
+          const signBit = modulus >> 1n;
+          return unsigned >= signBit ? unsigned - modulus : unsigned;
+        })();
+  if (selectedOracleMutationVariant(NORMALIZATION_MUTATIONS[type]) !== "integer-off-by-one-v1") {
+    return baseline;
+  }
+  const changedUnsigned = (((baseline + 1n) % modulus) + modulus) % modulus;
+  if (signedness === "unsigned") return changedUnsigned;
   const signBit = modulus >> 1n;
-  return unsigned >= signBit ? unsigned - modulus : unsigned;
+  return changedUnsigned >= signBit ? changedUnsigned - modulus : changedUnsigned;
 }
 
 /**

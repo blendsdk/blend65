@@ -1,4 +1,5 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { constants as FILE_OPEN_FLAGS } from "node:fs";
+import { mkdir, open, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { replaceFileAtomically, type PublicationHooks } from "./atomic-writer.js";
@@ -10,6 +11,11 @@ import {
 import { createDiagnostic } from "./diagnostics.js";
 import { acquireGenerationLock } from "./generation-lock.js";
 import type { InventoryDiagnostic, InventoryV1 } from "./model.js";
+import {
+  oracleMutationPathRegistry,
+  parseOracleMutationCatalog,
+  validateOracleMutationCatalog,
+} from "./oracle-mutation-model.js";
 import type { PublicationDiagnostic } from "./publication-model.js";
 import { resolvePublishedSnapshot } from "./publication-resolver.js";
 import {
@@ -28,8 +34,28 @@ export const READINESS_PATHS = {
   reviewEvidence: "readiness/reviews/compiler-readiness-v1-review.json",
   declarations: "packages/readiness/src/generated/declarations.ts",
   markdown: "readiness/generated/compiler-readiness.md",
+  oracleMutations: "readiness/oracles/oracle-mutations-v1.json",
   lock: "readiness/generated/.generation-lock",
 } as const;
+
+const MAX_ORACLE_MUTATION_CATALOG_BYTES = 1_048_576;
+const MAX_ORACLE_MUTATION_SOURCE_BYTES = 1_048_576;
+const ORACLE_MUTATION_DISPATCH_SOURCES = Object.freeze([
+  "packages/readiness/src/oracle-authority-policy.ts",
+  "packages/readiness/src/oracle-evaluator.ts",
+  "packages/readiness/src/oracle-memory.ts",
+  "packages/readiness/src/oracle-operations.ts",
+  "packages/readiness/src/oracle-values.ts",
+  "packages/readiness/src/semantic-relation-conformance.ts",
+  "packages/readiness/src/semantic-relation-compare.ts",
+]);
+const MUTATION_MARKER_START = /\boracleMutationDispatchMarker\s*\(/gu;
+const MUTATION_MARKER_CALL =
+  /\boracleMutationDispatchMarker\(\s*"([A-Za-z][A-Za-z0-9]*(?:[._-][A-Za-z0-9]+)*)"\s*,\s*"([A-Za-z][A-Za-z0-9]*(?:[._-][A-Za-z0-9]+)*)"\s*,\s*"([A-Za-z][A-Za-z0-9]*(?:[._-][A-Za-z0-9]+)*)"\s*,?\s*\)/gu;
+const MUTATION_SELECTOR_START = /\bselectedOracleMutationVariant\s*\(/gu;
+const MUTATION_SELECTOR_CALL =
+  /\bselectedOracleMutationVariant\(\s*(?:(?:[A-Z][A-Z0-9_]*_MUTATIONS)(?:\[[^\]\r\n]+\]|\.[A-Za-z][A-Za-z0-9]*)|requireOracleMutationDispatchMarker\(|marker\b)/gu;
+const ORACLE_MUTATION_SOURCE_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
 type ReadinessCommandDiagnostic =
   | InventoryDiagnostic
@@ -53,6 +79,223 @@ async function optionalBytes(path: string): Promise<Uint8Array | undefined> {
       return undefined;
     }
     throw error;
+  }
+}
+
+async function readBoundedRegularFileNoFollow(
+  path: string,
+  maximumBytes: number,
+): Promise<Uint8Array> {
+  const handle = await open(path, FILE_OPEN_FLAGS.O_RDONLY | FILE_OPEN_FLAGS.O_NOFOLLOW);
+  try {
+    const metadata = await handle.stat();
+    if (
+      !metadata.isFile() ||
+      !Number.isSafeInteger(metadata.size) ||
+      metadata.size < 0 ||
+      metadata.size > maximumBytes
+    ) {
+      throw new TypeError("source is not a bounded regular file");
+    }
+    const bytes = Buffer.allocUnsafe(maximumBytes + 1);
+    let offset = 0;
+    while (offset <= maximumBytes) {
+      const read = await handle.read(bytes, offset, maximumBytes + 1 - offset, offset);
+      if (read.bytesRead === 0) return bytes.subarray(0, offset);
+      offset += read.bytesRead;
+    }
+    throw new TypeError("source exceeds its byte limit");
+  } finally {
+    await handle.close();
+  }
+}
+
+function mutationMarkerKey(marker: {
+  readonly operationId: string;
+  readonly pathId: string;
+  readonly variantId: string;
+}): string {
+  return `${marker.operationId}\u0000${marker.pathId}\u0000${marker.variantId}`;
+}
+
+/**
+ * Checks literal dispatch markers in the package's closed production source set.
+ *
+ * @param sourceRoot Root containing the fixed package source paths.
+ * @returns Exact marker-to-runtime-registry status.
+ *
+ * @example
+ * ```ts
+ * const result = await checkOracleMutationDispatchSources(process.cwd());
+ * ```
+ */
+export async function checkOracleMutationDispatchSources(
+  sourceRoot: string,
+): Promise<{ readonly ok: boolean; readonly diagnostics: readonly InventoryDiagnostic[] }> {
+  const markers = new Map<string, string>();
+  try {
+    for (const path of ORACLE_MUTATION_DISPATCH_SOURCES) {
+      const bytes = await readBoundedRegularFileNoFollow(
+        join(resolve(sourceRoot), path),
+        MAX_ORACLE_MUTATION_SOURCE_BYTES,
+      );
+      const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      const starts = [...text.matchAll(MUTATION_MARKER_START)].length;
+      const calls = [...text.matchAll(MUTATION_MARKER_CALL)];
+      if (starts !== calls.length) {
+        return {
+          ok: false,
+          diagnostics: [
+            diagnostic(
+              "oracle.mutation.dispatch",
+              path,
+              "Production mutation source contains a malformed non-literal dispatch marker.",
+            ),
+          ],
+        };
+      }
+      const selectorStarts = [...text.matchAll(MUTATION_SELECTOR_START)].length;
+      const selectors = [...text.matchAll(MUTATION_SELECTOR_CALL)];
+      if (selectorStarts !== selectors.length || selectors.length < 1) {
+        return {
+          ok: false,
+          diagnostics: [
+            diagnostic(
+              "oracle.mutation.dispatch",
+              path,
+              "Executable mutation dispatch must consume its registered marker manifest.",
+            ),
+          ],
+        };
+      }
+      for (const call of calls) {
+        const operationId = call[1];
+        const pathId = call[2];
+        const variantId = call[3];
+        if (operationId === undefined || pathId === undefined || variantId === undefined) {
+          throw new TypeError("mutation marker capture is incomplete");
+        }
+        const key = mutationMarkerKey({ operationId, pathId, variantId });
+        if (markers.has(key)) {
+          return {
+            ok: false,
+            diagnostics: [
+              diagnostic(
+                "oracle.mutation.dispatch",
+                path,
+                "Production mutation source contains a duplicate dispatch marker.",
+              ),
+            ],
+          };
+        }
+        markers.set(key, path);
+      }
+    }
+
+    const runtimePaths = oracleMutationPathRegistry().paths;
+    const runtimeKeys = new Set(runtimePaths.map(mutationMarkerKey));
+    if (markers.size !== runtimeKeys.size) {
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            "oracle.mutation.dispatch",
+            "packages/readiness/src",
+            "Production dispatch markers do not equal the runtime mutation registry.",
+          ),
+        ],
+      };
+    }
+    for (const [key, path] of markers) {
+      if (!runtimeKeys.has(key)) {
+        return {
+          ok: false,
+          diagnostics: [
+            diagnostic(
+              "oracle.mutation.dispatch",
+              path,
+              "Production source marks an unregistered mutation branch.",
+            ),
+          ],
+        };
+      }
+    }
+    return { ok: true, diagnostics: [] };
+  } catch {
+    return {
+      ok: false,
+      diagnostics: [
+        diagnostic(
+          "oracle.mutation.dispatch",
+          "packages/readiness/src",
+          "Production mutation dispatch sources could not be read or decoded.",
+        ),
+      ],
+    };
+  }
+}
+
+/**
+ * Checks the fixed mutation-catalog source against all live production paths.
+ *
+ * @param repositoryRoot Repository root containing the fixed catalog path.
+ * @returns Exact-join status with bounded source diagnostics.
+ *
+ * @example
+ * ```ts
+ * const result = await checkOracleMutationCatalogSource(process.cwd());
+ * ```
+ */
+export async function checkOracleMutationCatalogSource(
+  repositoryRoot: string,
+): Promise<{ readonly ok: boolean; readonly diagnostics: readonly InventoryDiagnostic[] }> {
+  const path = READINESS_PATHS.oracleMutations;
+  try {
+    const dispatches = await checkOracleMutationDispatchSources(ORACLE_MUTATION_SOURCE_ROOT);
+    if (!dispatches.ok) return dispatches;
+    const bytes = await readBoundedRegularFileNoFollow(
+      join(resolve(repositoryRoot), path),
+      MAX_ORACLE_MUTATION_CATALOG_BYTES,
+    );
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    const parsed = parseOracleMutationCatalog(JSON.parse(text));
+    if (!parsed.ok) {
+      return {
+        ok: false,
+        diagnostics: parsed.diagnostics.map((item) =>
+          diagnostic(
+            "oracle.mutation.catalog",
+            path,
+            `Mutation catalog is invalid at ${item.path || "/"}.`,
+          ),
+        ),
+      };
+    }
+    const validated = validateOracleMutationCatalog(parsed.value, oracleMutationPathRegistry());
+    if (!validated.ok) {
+      return {
+        ok: false,
+        diagnostics: validated.diagnostics.map((item) =>
+          diagnostic(
+            "oracle.mutation.catalog",
+            path,
+            `Mutation catalog does not exactly cover production paths at ${item.path || "/"}.`,
+          ),
+        ),
+      };
+    }
+    return { ok: true, diagnostics: [] };
+  } catch {
+    return {
+      ok: false,
+      diagnostics: [
+        diagnostic(
+          "oracle.mutation.catalog",
+          path,
+          "The fixed mutation catalog could not be read or decoded.",
+        ),
+      ],
+    };
   }
 }
 
@@ -222,7 +465,8 @@ export async function runReadinessCommand(
     const projection = await runSourceAuthoringCommand("check", repositoryRoot, hooks);
     if (!projection.ok) return projection;
     const boundary = await checkReadinessOracleBoundary(repositoryRoot);
-    return { ok: boundary.ok, diagnostics: boundary.diagnostics };
+    if (!boundary.ok) return { ok: false, diagnostics: boundary.diagnostics };
+    return checkOracleMutationCatalogSource(repositoryRoot);
   }
   if (command === "generate") {
     return runSourceAuthoringCommand("generate", repositoryRoot, hooks);

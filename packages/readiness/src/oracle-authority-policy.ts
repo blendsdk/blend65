@@ -1,5 +1,10 @@
 import { isDeepStrictEqual } from "node:util";
 
+import {
+  oracleMutationDispatchMarker,
+  requireOracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+} from "./oracle-conformance-v1.js";
 import { oracleFailure, type OracleFailure } from "./oracle-input.js";
 import type {
   BindingRejectionRecordV1,
@@ -179,6 +184,165 @@ export const EXPECTED_BINDING_AUTHORITY: readonly BindingRejectionRecordV1[] = O
   ),
 ]);
 
+function diagnosticMutationPath(record: DiagnosticOracleRecordV1): string {
+  return `diagnostic.mapping.${record.neighborId}${
+    record.diagnosticContext === undefined ? "" : `.${record.diagnosticContext}`
+  }`;
+}
+
+function bindingMutationPath(record: BindingRejectionRecordV1): string {
+  return `binding-rejection.mapping.${record.neighborId}.${record.spelling}`;
+}
+
+/** Closed authority-mapping branches required by mutation conformance. */
+export const ORACLE_AUTHORITY_MUTATION_PATHS = Object.freeze([
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.boolean.wrong-type.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.byte.above-max.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.byte.below-min.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.sbyte.above-max.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.sbyte.below-min.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.sword.above-max.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.sword.below-min.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.word.above-max.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "binding-rejection.mapping",
+    "binding-rejection.mapping.neighbor.scalar.word.below-min.parameter",
+    "wrong-exact-rejection-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.peek.wrong-address-type",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.peek.wrong-arity",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.peekw.wrong-address-type",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.peekw.wrong-arity",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.poke.wrong-address-type",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.poke.wrong-arity",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.poke.wrong-value-type",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.pokew.wrong-address-type",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.pokew.wrong-arity",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.memory.pokew.wrong-value-type",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.boolean.wrong-type.initializer",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.boolean.wrong-type.return-expression",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.byte.above-max",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.byte.below-min",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.sbyte.above-max",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.sbyte.below-min",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.sword.above-max",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.sword.below-min",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.word.above-max",
+    "wrong-exact-mapping-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "diagnostic.mapping",
+    "diagnostic.mapping.neighbor.scalar.word.below-min",
+    "wrong-exact-mapping-v1",
+  ),
+]);
+
 /**
  * Classifies one structurally valid diagnostic population against reviewed facts.
  *
@@ -203,9 +367,23 @@ export function validateDiagnosticAuthorityCandidate(
     );
   }
   for (let index = 0; index < EXPECTED_DIAGNOSTIC_AUTHORITY.length; index += 1) {
-    const expected = EXPECTED_DIAGNOSTIC_AUTHORITY[index];
+    const baselineExpected = EXPECTED_DIAGNOSTIC_AUTHORITY[index];
     const actual = records[index];
-    if (expected === undefined || actual === undefined) continue;
+    if (baselineExpected === undefined || actual === undefined) continue;
+    const expected =
+      selectedOracleMutationVariant(
+        requireOracleMutationDispatchMarker(
+          ORACLE_AUTHORITY_MUTATION_PATHS,
+          "diagnostic.mapping",
+          diagnosticMutationPath(baselineExpected),
+          "wrong-exact-mapping-v1",
+        ),
+      ) === "wrong-exact-mapping-v1"
+        ? Object.freeze({
+            ...baselineExpected,
+            diagnosticCode: `${baselineExpected.diagnosticCode}.mutated`,
+          })
+        : baselineExpected;
     if (actual.ruleId !== expected.ruleId || actual.neighborId !== expected.neighborId) {
       return oracleFailure(
         "oracle.authority.not-accepted",
@@ -270,9 +448,26 @@ export function validateBindingAuthorityCandidate(
     );
   }
   for (let index = 0; index < EXPECTED_BINDING_AUTHORITY.length; index += 1) {
-    const expected = EXPECTED_BINDING_AUTHORITY[index];
+    const baselineExpected = EXPECTED_BINDING_AUTHORITY[index];
     const actual = records[index];
-    if (expected === undefined || actual === undefined) continue;
+    if (baselineExpected === undefined || actual === undefined) continue;
+    const expected =
+      selectedOracleMutationVariant(
+        requireOracleMutationDispatchMarker(
+          ORACLE_AUTHORITY_MUTATION_PATHS,
+          "binding-rejection.mapping",
+          bindingMutationPath(baselineExpected),
+          "wrong-exact-rejection-v1",
+        ),
+      ) === "wrong-exact-rejection-v1"
+        ? Object.freeze({
+            ...baselineExpected,
+            rejectionCode:
+              baselineExpected.rejectionCode === "binding.value.type-invalid"
+                ? ("binding.value.range-invalid" as const)
+                : ("binding.value.type-invalid" as const),
+          })
+        : baselineExpected;
     if (actual.ruleId !== expected.ruleId || actual.neighborId !== expected.neighborId) {
       return oracleFailure(
         "oracle.authority.not-accepted",

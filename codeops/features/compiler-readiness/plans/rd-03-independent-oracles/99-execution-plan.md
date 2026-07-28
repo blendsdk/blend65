@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-28
-> **Progress**: 36/72 tasks (50%)
+> **Progress**: 49/72 tasks (68%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -113,22 +113,23 @@ comparators and an immutable relation fault oracle.
 
 ## Phase 4: Provenance, Identity and Exhaustive Bounded Mutation
 
+> **Phase baseline tree**: 2c3cd0956d2ca2bd2696a492c30228aeb822bdf3
 > **Lenses**: compiler-semantics, concurrency, security, performance
-> **Reference**: 03-04 · AR-P14, AR-P17, AR-P26–AR-P30, AR-P36, AR-P38 · ST-29–ST-38
+> **Reference**: 03-04 · AR-P14, AR-P17, AR-P26–AR-P30, AR-P36, AR-P38, AR-P59–AR-P72 · ST-29–ST-38
 
-- [ ] 4.1.1 [spec-author] Write ST-29–ST-34 in `oracle-evaluation-identity.spec.test.ts`
-- [ ] 4.1.2 [spec-author] Write ST-35–ST-38 in `oracle-mutation.spec.test.ts`
-- [ ] 4.1.3 Run both Phase 4 suites and record expected RED caused only by absent identity/mutation modules
-- [ ] 4.2.1 Implement canonical source/transformed content preimages and domain-separated digests
-- [ ] 4.2.2 Implement pure evaluation-identity preimage/digest and bounded collision registry
-- [ ] 4.2.3 Implement closed operation/path registries and catalog exact-join parsing
-- [ ] 4.2.4 Author `oracle-mutations-v1.json` for every reachable production operation/path pair
-- [ ] 4.2.5 Generalize the relation seam into AsyncLocalStorage operation/path conformance dispatch
-- [ ] 4.2.6 Implement the stable-ID bounded worker protocol and deadline termination
-- [ ] 4.2.7 Implement exhaustive mutation runner/report semantics
-- [ ] 4.2.8 Add missing/extra/duplicate/unreachable path invariants to `readiness:source-check`
-- [ ] 4.2.9 Run ST-29–ST-38 GREEN with zero survivors and concurrent context isolation
-- [ ] 4.3.1 Add focused identity/mutation/worker implementation tests, then coverage/review/full verify
+- [x] 4.1.1 [spec-author] Write ST-29–ST-34 in `oracle-evaluation-identity.spec.test.ts` — completed 2026-07-28 20:00 CEST (18 immutable cases; implementation-blind author read no forbidden production source; SHA-256 `511b798544b2889753cac408e00b99109b4d48ed2cfeac275f5c7c2ecd354cc3`)
+- [x] 4.1.2 [spec-author] Write ST-35–ST-38 in `oracle-mutation.spec.test.ts` — completed 2026-07-28 20:00 CEST (8 immutable cases over the independently frozen 84-row catalog; SHA-256 `d8174686d4b408a11216bf68fa9fa855194dabed6dcbee48fba3faf34cc56ce1`)
+- [x] 4.1.3 Run both Phase 4 suites and record expected RED caused only by absent identity/mutation modules — completed 2026-07-28 20:00 CEST (2 suites failed collection solely on seven absent Phase 4 modules; authored files otherwise pass type analysis, ESLint and Prettier; AR-P59–AR-P61 closed callable, vector/catalog and policy-revision contradictions before implementation)
+- [x] 4.2.1 Implement canonical source/transformed content preimages and domain-separated digests
+- [x] 4.2.2 Implement pure evaluation-identity preimage/digest and bounded collision registry
+- [x] 4.2.3 Implement closed operation/path registries and catalog exact-join parsing
+- [x] 4.2.4 Author `oracle-mutations-v1.json` for every reachable production operation/path pair
+- [x] 4.2.5 Generalize the relation seam into AsyncLocalStorage operation/path conformance dispatch
+- [x] 4.2.6 Implement the stable-ID bounded worker protocol and deadline termination
+- [x] 4.2.7 Implement exhaustive mutation runner/report semantics
+- [x] 4.2.8 Add missing/extra/duplicate/unreachable path invariants to `readiness:source-check`
+- [x] 4.2.9 Run ST-29–ST-38 GREEN with zero survivors and concurrent context isolation
+- [x] 4.3.1 Add focused identity/mutation/worker implementation tests, then coverage/review/full verify — completed 2026-07-29 00:17 CEST (90 readiness files / 1,232 tests; all 84 independently asserted mutants killed with zero survivors; 90.11% branch coverage; exact repository full gate and source-check green; immutable Phase 4 hashes preserved; correctness, security, semantics and performance findings resolved under AR-P62–AR-P72)
 
 **Deliverable:** pure provenance/content/evaluation identity primitives and exhaustive bounded
 mutation proof. No raw handler yet claims selected participant revisions.

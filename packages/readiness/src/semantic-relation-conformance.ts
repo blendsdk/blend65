@@ -1,5 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import {
+  oracleMutationDispatchMarker,
+  requireOracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+} from "./oracle-conformance-v1.js";
+import type { SemanticRelationId } from "./oracle-model.js";
 /** Stable precondition dispatch points used by relation conformance tests. */
 export type SemanticRelationPreconditionPathId =
   | "relation.identifier-renaming.precondition"
@@ -72,6 +78,125 @@ const RELATIONS = [
   "independent-declaration-reordering",
 ] as const;
 const FAULT_CONTEXT = new AsyncLocalStorage<SemanticRelationFaultV1>();
+
+/** Closed relation branches and variants required by mutation conformance. */
+export const ORACLE_RELATION_MUTATION_PATHS = Object.freeze([
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.comparator",
+    "omit-required-observable-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.precondition",
+    "force-true-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.add-zero-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.and-all-ones-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.divide-one-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.multiply-one-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.or-zero-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.shift-left-zero",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.shift-right-zero",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.subtract-zero-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.algebraic-identity",
+    "relation.algebraic-identity.rewrite",
+    "non-preserving.xor-zero-right",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.identifier-renaming",
+    "relation.identifier-renaming.comparator",
+    "omit-required-observable-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.identifier-renaming",
+    "relation.identifier-renaming.precondition",
+    "force-true-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.identifier-renaming",
+    "relation.identifier-renaming.rewrite",
+    "non-preserving.fresh-sibling-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.independent-declaration-reordering",
+    "relation.independent-declaration-reordering.comparator",
+    "omit-required-observable-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.independent-declaration-reordering",
+    "relation.independent-declaration-reordering.precondition",
+    "force-true-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.independent-declaration-reordering",
+    "relation.independent-declaration-reordering.rewrite",
+    "non-preserving.swap-independent-constants-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.literal-to-local",
+    "relation.literal-to-local.comparator",
+    "omit-required-observable-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.literal-to-local",
+    "relation.literal-to-local.precondition",
+    "force-true-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.literal-to-local",
+    "relation.literal-to-local.rewrite",
+    "non-preserving.introduce-local-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.local-to-parameter",
+    "relation.local-to-parameter.comparator",
+    "omit-required-observable-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.local-to-parameter",
+    "relation.local-to-parameter.precondition",
+    "force-true-v1",
+  ),
+  oracleMutationDispatchMarker(
+    "relation.local-to-parameter",
+    "relation.local-to-parameter.rewrite",
+    "non-preserving.lift-entry-local-v1",
+  ),
+]);
 
 function isPreconditionPath(
   pathId: SemanticRelationPathId,
@@ -222,4 +347,54 @@ export function currentSemanticRelationFault(
 ): SemanticRelationFaultV1 | undefined {
   const fault = FAULT_CONTEXT.getStore();
   return fault?.pathId === pathId ? fault : undefined;
+}
+
+/**
+ * Applies the exact mutation-aware decision at a relation precondition boundary.
+ *
+ * @param relationId Relation that owns the precondition.
+ * @param baseline Result of the real semantic precondition.
+ * @returns Baseline result, forced false for legacy conformance, or forced true for mutation proof.
+ */
+export function semanticRelationPreconditionAccepted(
+  relationId: SemanticRelationId,
+  baseline: boolean,
+): boolean {
+  const pathId = semanticRelationPreconditionPath(relationId);
+  if (currentSemanticRelationFault(pathId)?.faultId === "relation.fault.force-precondition-false") {
+    return false;
+  }
+  return selectedOracleMutationVariant(
+    requireOracleMutationDispatchMarker(
+      ORACLE_RELATION_MUTATION_PATHS,
+      relationId,
+      pathId,
+      "force-true-v1",
+    ),
+  ) === "force-true-v1"
+    ? true
+    : baseline;
+}
+
+/**
+ * Returns the active closed non-preserving rewrite variant for one relation request.
+ *
+ * @param relationId Relation that owns the rewrite.
+ * @param baselineVariantId Exact ordinary rewrite variant being applied.
+ * @returns Whether that exact rewrite branch is selected for mutation.
+ */
+export function semanticRelationRewriteIsMutated(
+  relationId: SemanticRelationId,
+  baselineVariantId: string,
+): boolean {
+  return (
+    selectedOracleMutationVariant(
+      requireOracleMutationDispatchMarker(
+        ORACLE_RELATION_MUTATION_PATHS,
+        relationId,
+        semanticRelationRewritePath(relationId),
+        `non-preserving.${baselineVariantId}`,
+      ),
+    ) === `non-preserving.${baselineVariantId}`
+  );
 }

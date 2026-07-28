@@ -12,11 +12,12 @@ import {
 } from "./semantic-relation-analysis.js";
 import {
   currentSemanticRelationFault,
-  semanticRelationPreconditionPath,
+  semanticRelationPreconditionAccepted,
+  semanticRelationRewriteIsMutated,
   semanticRelationRewritePath,
 } from "./semantic-relation-conformance.js";
 import { createOracleBudgetMeter } from "./oracle-budget.js";
-import type { OracleFailure } from "./oracle-input.js";
+import { oracleFailure, type OracleFailure } from "./oracle-input.js";
 import { isGenIdentifier } from "./generator-ir.js";
 import type {
   BinaryOperator,
@@ -65,6 +66,22 @@ export type SemanticRelationTransformResultV1 =
   | OracleFailure;
 
 const EMPTY_BINDINGS: readonly ParameterValueBinding[] = Object.freeze([]);
+
+function forcedApplicabilityFailure(): OracleFailure {
+  return oracleFailure(
+    "oracle.relation.invalid",
+    "/selectionPath",
+    "Selected relation is not applicable to the requested source location.",
+  );
+}
+
+function sourceProjectionAllowsRelation(prepared: PreparedSemanticRelationRequestV1): boolean {
+  return (
+    prepared.request.sourceCase.projection.kind !== "invalid" ||
+    prepared.request.relationId === "relation.identifier-renaming" ||
+    prepared.request.relationId === "relation.independent-declaration-reordering"
+  );
+}
 
 function expressionNodeCount(expression: GenExpression): bigint {
   switch (expression.kind) {
@@ -432,25 +449,34 @@ function rewriteIdentifier(
     prepared.sourceModule,
     prepared.request.selectionPath,
   );
-  if (selection === undefined) return inapplicable();
   const occupied = declaredRelationNames(prepared.sourceModule);
   let selectedName: string | undefined;
-  if (selection.kind === "constant") {
+  if (selection?.kind === "constant") {
     selectedName = prepared.sourceModule.constants[selection.constantIndex]?.name;
-  } else if (selection.kind === "function") {
+  } else if (selection?.kind === "function") {
     selectedName = prepared.sourceModule.functions[selection.functionIndex]?.name;
-  } else if (selection.kind === "parameter") {
+  } else if (selection?.kind === "parameter") {
     selectedName =
       prepared.sourceModule.functions[selection.functionIndex]?.parameters[selection.parameterIndex]
         ?.name;
-  } else {
+  } else if (selection?.kind === "local") {
     const statement =
       prepared.sourceModule.functions[selection.functionIndex]?.body[selection.statementIndex];
     selectedName = statement?.kind === "local" ? statement.name : undefined;
   }
-  if (selectedName === undefined) return inapplicable();
-  const fresh = freshRelationName(selectedName, occupied);
-  if (!isGenIdentifier(fresh)) return inapplicable();
+  const fresh = selectedName === undefined ? undefined : freshRelationName(selectedName, occupied);
+  const applicable =
+    selection !== undefined &&
+    selectedName !== undefined &&
+    fresh !== undefined &&
+    isGenIdentifier(fresh) &&
+    sourceProjectionAllowsRelation(prepared);
+  if (!semanticRelationPreconditionAccepted(prepared.request.relationId, applicable)) {
+    return inapplicable();
+  }
+  if (!applicable || selection === undefined || selectedName === undefined || fresh === undefined) {
+    return forcedApplicabilityFailure();
+  }
   const budgetFailure = transformedBudgetFailure(prepared, moduleNodeCount(prepared.sourceModule));
   if (budgetFailure !== undefined) return budgetFailure;
 
@@ -529,46 +555,59 @@ function rewriteLiteralToLocal(
   );
   const expression =
     selection === undefined ? undefined : selectedExpression(prepared.sourceModule, selection);
-  if (
+  const occupied = declaredRelationNames(prepared.sourceModule);
+  const name = freshRelationName("introduced", occupied);
+  const applicable =
     selection === undefined ||
     selection.kind !== "statement" ||
     selection.functionIndex !== prepared.entryFunctionIndex ||
-    expression?.kind !== "literal"
-  ) {
+    expression?.kind !== "literal" ||
+    !isGenIdentifier(name) ||
+    !sourceProjectionAllowsRelation(prepared)
+      ? false
+      : true;
+  if (!semanticRelationPreconditionAccepted(prepared.request.relationId, applicable)) {
     return inapplicable();
   }
-  const occupied = declaredRelationNames(prepared.sourceModule);
-  const name = freshRelationName("introduced", occupied);
-  if (!isGenIdentifier(name)) return inapplicable();
+  if (
+    !applicable ||
+    selection?.kind !== "statement" ||
+    expression?.kind !== "literal" ||
+    !isGenIdentifier(name)
+  ) {
+    return forcedApplicabilityFailure();
+  }
+  const statementSelection = selection;
+  const localName = name;
   const budgetFailure = transformedBudgetFailure(
     prepared,
     moduleNodeCount(prepared.sourceModule) + 2n,
   );
   if (budgetFailure !== undefined) return budgetFailure;
   const functions = prepared.sourceModule.functions.map((fn, functionIndex) => {
-    if (functionIndex !== selection.functionIndex) return freezeFunction(fn);
+    if (functionIndex !== statementSelection.functionIndex) return freezeFunction(fn);
     const body: GenStatement[] = [];
     for (let index = 0; index < fn.body.length; index += 1) {
       const statement = fn.body[index];
       if (statement === undefined) continue;
-      if (index === selection.statementIndex) {
+      if (index === statementSelection.statementIndex) {
         body.push(
           Object.freeze({
             kind: "local",
-            name,
+            name: localName,
             type: expression.type,
             initializer: freezeExpression(expression),
           }),
         );
         const replacement = Object.freeze({
           kind: "name" as const,
-          name,
+          name: localName,
           type: expression.type,
         });
         const replaced = replaceStatementExpression(
           statement,
-          selection.field,
-          selection.expressionPath,
+          statementSelection.field,
+          statementSelection.expressionPath,
           replacement,
         );
         if (replaced === undefined) return freezeFunction(fn);
@@ -598,27 +637,39 @@ function rewriteLocalToParameter(
     prepared.sourceModule,
     prepared.request.selectionPath,
   );
-  if (
-    selection?.kind !== "local" ||
-    selection.functionIndex !== prepared.entryFunctionIndex ||
-    liftedValue === undefined
-  ) {
+  const fn =
+    selection?.kind === "local"
+      ? prepared.sourceModule.functions[selection.functionIndex]
+      : undefined;
+  const statement = selection?.kind === "local" ? fn?.body[selection.statementIndex] : undefined;
+  const occupied = declaredRelationNames(prepared.sourceModule);
+  const name =
+    statement?.kind === "local" ? freshRelationName(statement.name, occupied) : undefined;
+  const applicable =
+    selection?.kind === "local" &&
+    selection.functionIndex === prepared.entryFunctionIndex &&
+    liftedValue !== undefined &&
+    fn !== undefined &&
+    statement?.kind === "local" &&
+    isPureRelationExpression(statement.initializer) &&
+    localInitializerDependenciesAreLiftable(prepared.sourceModule, fn, statement.initializer) &&
+    !localIsReassigned(fn, statement.name, selection.statementIndex) &&
+    name !== undefined &&
+    isGenIdentifier(name) &&
+    sourceProjectionAllowsRelation(prepared);
+  if (!semanticRelationPreconditionAccepted(prepared.request.relationId, applicable)) {
     return inapplicable();
   }
-  const fn = prepared.sourceModule.functions[selection.functionIndex];
-  const statement = fn?.body[selection.statementIndex];
   if (
+    !applicable ||
+    selection?.kind !== "local" ||
     fn === undefined ||
     statement?.kind !== "local" ||
-    !isPureRelationExpression(statement.initializer) ||
-    !localInitializerDependenciesAreLiftable(prepared.sourceModule, fn, statement.initializer) ||
-    localIsReassigned(fn, statement.name, selection.statementIndex)
+    liftedValue === undefined ||
+    name === undefined
   ) {
-    return inapplicable();
+    return forcedApplicabilityFailure();
   }
-  const occupied = declaredRelationNames(prepared.sourceModule);
-  const name = freshRelationName(statement.name, occupied);
-  if (!isGenIdentifier(name)) return inapplicable();
   const budgetFailure = transformedBudgetFailure(
     prepared,
     moduleNodeCount(prepared.sourceModule) - expressionNodeCount(statement.initializer),
@@ -687,22 +738,37 @@ function rewriteAlgebraicIdentity(
   const expression =
     selection === undefined ? undefined : selectedExpression(prepared.sourceModule, selection);
   const operator = algebraicOperator(prepared.request.variantId);
-  if (
-    selection === undefined ||
-    expression === undefined ||
-    operator === undefined ||
-    !numericType(expression.type)
-  ) {
-    return inapplicable();
-  }
   const rightValue =
     prepared.request.variantId === "multiply-one-right" ||
     prepared.request.variantId === "divide-one-right"
       ? 1n
-      : prepared.request.variantId === "and-all-ones-right"
+      : prepared.request.variantId === "and-all-ones-right" &&
+          expression !== undefined &&
+          numericType(expression.type)
         ? allOnesForType(expression.type)
         : 0n;
-  if (rightValue === undefined) return inapplicable();
+  const applicable =
+    selection === undefined ||
+    expression === undefined ||
+    operator === undefined ||
+    !numericType(expression.type) ||
+    rightValue === undefined ||
+    !sourceProjectionAllowsRelation(prepared)
+      ? false
+      : true;
+  if (!semanticRelationPreconditionAccepted(prepared.request.relationId, applicable)) {
+    return inapplicable();
+  }
+  if (
+    !applicable ||
+    selection === undefined ||
+    expression === undefined ||
+    operator === undefined ||
+    !numericType(expression.type) ||
+    rightValue === undefined
+  ) {
+    return forcedApplicabilityFailure();
+  }
   const budgetFailure = transformedBudgetFailure(
     prepared,
     moduleNodeCount(prepared.sourceModule) + 2n,
@@ -766,21 +832,12 @@ function rewriteIndependentConstants(
     prepared.sourceModule,
     prepared.request.selectionPath,
   );
-  if (
-    selection?.kind !== "constant" ||
-    !constantsAreIndependent(
-      prepared.sourceModule,
-      selection.constantIndex,
-      selection.constantIndex + 1,
-    )
-  ) {
-    return inapplicable();
-  }
   const constants = [...prepared.sourceModule.constants];
-  const first = constants[selection.constantIndex];
-  const second = constants[selection.constantIndex + 1];
-  if (first === undefined || second === undefined) return inapplicable();
+  const first = selection?.kind === "constant" ? constants[selection.constantIndex] : undefined;
+  const second =
+    selection?.kind === "constant" ? constants[selection.constantIndex + 1] : undefined;
   const projection = prepared.request.sourceCase.projection;
+  let projectionAllows = true;
   if (projection.kind === "invalid") {
     const transformPath =
       projection.transform.kind === "parameter-binding-replace"
@@ -788,16 +845,40 @@ function rewriteIndependentConstants(
         : projection.transform.kind === "scalar-expression-replace"
           ? projection.transform.expressionPath
           : projection.transform.callPath;
-    const selectedPrefix = `/constants/${selection.constantIndex}`;
-    const adjacentPrefix = `/constants/${selection.constantIndex + 1}`;
+    const selectedPrefix =
+      selection?.kind === "constant" ? `/constants/${selection.constantIndex}` : "";
+    const adjacentPrefix =
+      selection?.kind === "constant" ? `/constants/${selection.constantIndex + 1}` : "";
     if (
       transformPath === selectedPrefix ||
       transformPath.startsWith(`${selectedPrefix}/`) ||
       transformPath === adjacentPrefix ||
       transformPath.startsWith(`${adjacentPrefix}/`)
     ) {
-      return inapplicable();
+      projectionAllows = false;
     }
+  }
+  const applicable =
+    selection?.kind === "constant" &&
+    constantsAreIndependent(
+      prepared.sourceModule,
+      selection.constantIndex,
+      selection.constantIndex + 1,
+    ) &&
+    first !== undefined &&
+    second !== undefined &&
+    projectionAllows &&
+    sourceProjectionAllowsRelation(prepared);
+  if (!semanticRelationPreconditionAccepted(prepared.request.relationId, applicable)) {
+    return inapplicable();
+  }
+  if (
+    !applicable ||
+    selection?.kind !== "constant" ||
+    first === undefined ||
+    second === undefined
+  ) {
+    return forcedApplicabilityFailure();
   }
   const budgetFailure = transformedBudgetFailure(prepared, moduleNodeCount(prepared.sourceModule));
   if (budgetFailure !== undefined) return budgetFailure;
@@ -892,6 +973,29 @@ function nonPreservingFault(module: GenModule, entryFunction: string): GenModule
   return freezeModule({ ...module, functions });
 }
 
+/**
+ * Applies the selected non-preserving conformance variant to an already rewritten module.
+ *
+ * The ordinary transform finalizer and the stable-ID worker both use this exact
+ * branch, so adequacy execution cannot substitute a copied rewrite.
+ *
+ * @param relationId Relation that owns the rewrite.
+ * @param variantId Ordinary rewrite variant being finalized.
+ * @param module Real rewritten module.
+ * @param entryFunction Selected transformed entry function.
+ * @returns Unchanged module or the selected non-preserving mutation.
+ */
+export function applySemanticRelationRewriteMutation(
+  relationId: PreparedSemanticRelationRequestV1["request"]["relationId"],
+  variantId: string,
+  module: GenModule,
+  entryFunction: string,
+): GenModule {
+  return semanticRelationRewriteIsMutated(relationId, variantId)
+    ? nonPreservingFault(module, entryFunction)
+    : module;
+}
+
 function finalizeTransform(
   prepared: PreparedSemanticRelationRequestV1,
   module: GenModule,
@@ -906,7 +1010,12 @@ function finalizeTransform(
       ? nonPreservingFault(module, entryFunction)
       : fault?.faultId === "relation.fault.semantic-closure-invalid-rewrite"
         ? semanticClosureFault(module)
-        : module;
+        : applySemanticRelationRewriteMutation(
+            prepared.request.relationId,
+            prepared.request.variantId,
+            module,
+            entryFunction,
+          );
   const meter = createOracleBudgetMeter(prepared.request.budget);
   const charged = meter.charge(
     "transformedNodes",
@@ -954,20 +1063,6 @@ export function applySemanticRelationTransform(
   prepared: PreparedSemanticRelationRequestV1,
   liftedValue?: bigint | boolean,
 ): SemanticRelationTransformResultV1 {
-  const preconditionPath = semanticRelationPreconditionPath(prepared.request.relationId);
-  if (
-    currentSemanticRelationFault(preconditionPath)?.faultId ===
-    "relation.fault.force-precondition-false"
-  ) {
-    return inapplicable();
-  }
-  if (
-    prepared.request.sourceCase.projection.kind === "invalid" &&
-    prepared.request.relationId !== "relation.identifier-renaming" &&
-    prepared.request.relationId !== "relation.independent-declaration-reordering"
-  ) {
-    return inapplicable();
-  }
   switch (prepared.request.relationId) {
     case "relation.identifier-renaming":
       return rewriteIdentifier(prepared);

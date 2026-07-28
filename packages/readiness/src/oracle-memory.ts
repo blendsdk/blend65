@@ -1,5 +1,10 @@
 import type { OracleBudgetMeterV1 } from "./oracle-budget.js";
 import {
+  oracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+  type OracleMutationDispatchMarkerV1,
+} from "./oracle-conformance-v1.js";
+import {
   hasExactOracleKeys,
   isOracleRecord,
   oracleFailure,
@@ -92,6 +97,43 @@ export type OracleMemoryWriteResultV1 =
   | OracleFailure;
 
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
+
+type OracleMemoryMutationPathV1 = "read-byte" | "read-word" | "write-byte" | "write-word";
+
+const MEMORY_MUTATIONS: Readonly<
+  Record<OracleMemoryMutationPathV1, OracleMutationDispatchMarkerV1>
+> = Object.freeze({
+  "read-byte": oracleMutationDispatchMarker(
+    "evaluator.memory",
+    "evaluator.memory.read-byte",
+    "memory-value-xor-one-v1",
+  ),
+  "read-word": oracleMutationDispatchMarker(
+    "evaluator.memory",
+    "evaluator.memory.read-word",
+    "memory-value-xor-one-v1",
+  ),
+  "write-byte": oracleMutationDispatchMarker(
+    "evaluator.memory",
+    "evaluator.memory.write-byte",
+    "memory-value-xor-one-v1",
+  ),
+  "write-word": oracleMutationDispatchMarker(
+    "evaluator.memory",
+    "evaluator.memory.write-word",
+    "memory-value-xor-one-v1",
+  ),
+});
+
+/** Closed memory branches required by mutation conformance. */
+export const ORACLE_MEMORY_MUTATION_PATHS = Object.freeze(Object.values(MEMORY_MUTATIONS));
+
+function mutatedMemoryValue(kind: "read" | "write", width: 1 | 2, value: bigint): bigint {
+  const pathId: OracleMemoryMutationPathV1 = `${kind}-${width === 1 ? "byte" : "word"}`;
+  return selectedOracleMutationVariant(MEMORY_MUTATIONS[pathId]) === "memory-value-xor-one-v1"
+    ? value ^ 1n
+    : value;
+}
 
 function unmodeled(): OracleMemoryUnmodeledV1 {
   return Object.freeze({
@@ -284,7 +326,7 @@ export function readOracleMemory(
   if (low === undefined) return unmodeled();
   const high = width === 2 ? state.cells.get(address + 1n) : 0n;
   if (high === undefined) return unmodeled();
-  const value = low | (high << 8n);
+  const value = mutatedMemoryValue("read", width, low | (high << 8n));
   const effects = appendEffect(
     state,
     Object.freeze({ kind: "read", width, address, value }),
@@ -334,7 +376,7 @@ export function readOracleMutableMemory(
   if (low === undefined) return unmodeled();
   const high = width === 2 ? state.cells.get(address + 1n) : 0n;
   if (high === undefined) return unmodeled();
-  const value = low | (high << 8n);
+  const value = mutatedMemoryValue("read", width, low | (high << 8n));
   const effectFailure = appendMutableEffect(
     state,
     Object.freeze({ kind: "read", width, address, value }),
@@ -370,16 +412,17 @@ export function writeOracleMemory(
   }
   const charged = chargeCells(meter, addresses.length, path);
   if (charged !== undefined) return charged;
+  const selectedValue = mutatedMemoryValue("write", width, value);
   const effects = appendEffect(
     state,
-    Object.freeze({ kind: "write", width, address, value }),
+    Object.freeze({ kind: "write", width, address, value: selectedValue }),
     meter,
     path,
   );
   if (!effects.ok) return effects;
   const cells = new Map(state.cells);
-  cells.set(address, value & 0xffn);
-  if (width === 2) cells.set(address + 1n, (value >> 8n) & 0xffn);
+  cells.set(address, selectedValue & 0xffn);
+  if (width === 2) cells.set(address + 1n, (selectedValue >> 8n) & 0xffn);
   return Object.freeze({
     ok: true,
     state: Object.freeze({ cells, effects: effects.effects }),
@@ -418,15 +461,16 @@ export function writeOracleMutableMemory(
   }
   const charged = chargeCells(meter, addresses.length, path);
   if (charged !== undefined) return charged;
+  const selectedValue = mutatedMemoryValue("write", width, value);
   const effectFailure = appendMutableEffect(
     state,
-    Object.freeze({ kind: "write", width, address, value }),
+    Object.freeze({ kind: "write", width, address, value: selectedValue }),
     meter,
     path,
   );
   if (effectFailure !== undefined) return effectFailure;
-  state.cells.set(address, value & 0xffn);
-  if (width === 2) state.cells.set(address + 1n, (value >> 8n) & 0xffn);
+  state.cells.set(address, selectedValue & 0xffn);
+  if (width === 2) state.cells.set(address + 1n, (selectedValue >> 8n) & 0xffn);
   return Object.freeze({ ok: true, diagnostics: EMPTY_DIAGNOSTICS });
 }
 

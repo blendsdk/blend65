@@ -15,6 +15,7 @@ export const MODELED_GENERATOR_REVISION: GeneratedCandidateRevision = Object.fre
   entryPath: "packages/readiness/src/modeled-generators.ts",
   dependencyPaths: Object.freeze([
     "packages/readiness/src/boundary-variants.ts",
+    "packages/readiness/src/bounded-regular-file.ts",
     "packages/readiness/src/canonical-identity.ts",
     "packages/readiness/src/fragment-model.ts",
     "packages/readiness/src/generation-budget.ts",
@@ -36,7 +37,7 @@ export const MODELED_GENERATOR_REVISION: GeneratedCandidateRevision = Object.fre
     "packages/readiness/src/rule-model-validator.ts",
     "packages/readiness/src/strict-json.ts",
   ]),
-  claimedRevision: "sha256:b71530380c60b5b2bb7dbe778a4c5a17045fa05840bf569ed7ac652f6019dfdb",
+  claimedRevision: "sha256:d3bf06430e3b12b44879cf9582d1ad1777e5745dee0986eb6a795b3dd53d8847",
 });
 
 /** Generated revision authority for the boundary-transform callable. */

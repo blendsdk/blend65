@@ -2,8 +2,13 @@ import { isDeepStrictEqual } from "node:util";
 
 import {
   currentSemanticRelationFault,
+  ORACLE_RELATION_MUTATION_PATHS,
   semanticRelationComparatorPath,
 } from "./semantic-relation-conformance.js";
+import {
+  requireOracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+} from "./oracle-conformance-v1.js";
 import type { OracleValueV1, OracleObservationV1, SemanticRelationId } from "./oracle-model.js";
 
 function alternateNumericType(
@@ -38,7 +43,19 @@ export function semanticRelationComparatorWitness(
 ): OracleObservationV1 {
   const pathId = semanticRelationComparatorPath(relationId);
   const fault = currentSemanticRelationFault(pathId);
-  if (fault?.faultId !== "relation.fault.omit-required-observable") return observation;
+  if (
+    fault?.faultId !== "relation.fault.omit-required-observable" &&
+    selectedOracleMutationVariant(
+      requireOracleMutationDispatchMarker(
+        ORACLE_RELATION_MUTATION_PATHS,
+        relationId,
+        pathId,
+        "omit-required-observable-v1",
+      ),
+    ) !== "omit-required-observable-v1"
+  ) {
+    return observation;
+  }
   if (observation.kind === "diagnostic") {
     return Object.freeze({ ...observation, code: `${observation.code}.omitted-witness` });
   }
@@ -172,7 +189,17 @@ export function compareSemanticRelationObservations(
 ): boolean {
   const pathId = semanticRelationComparatorPath(relationId);
   const fault = currentSemanticRelationFault(pathId);
-  if (fault?.faultId === "relation.fault.omit-required-observable") {
+  if (
+    fault?.faultId === "relation.fault.omit-required-observable" ||
+    selectedOracleMutationVariant(
+      requireOracleMutationDispatchMarker(
+        ORACLE_RELATION_MUTATION_PATHS,
+        relationId,
+        pathId,
+        "omit-required-observable-v1",
+      ),
+    ) === "omit-required-observable-v1"
+  ) {
     return compareFaultWitness(source, transformed);
   }
   switch (relationId) {

@@ -1,0 +1,950 @@
+{
+  "schemaVersion": 1,
+  "packetVersion": "1.0.0",
+  "canonicalEncoding": {
+    "lengthEncoding": "u32-be",
+    "textEncoding": "utf-8",
+    "digestAlgorithm": "sha256",
+    "digestSpelling": "sha256:<64-lowercase-hex>",
+    "optionalAbsentHex": "00",
+    "optionalPresentHex": "01",
+    "domains": {
+      "sourceContent": "blend65-oracle-source-content-v1",
+      "transformedContent": "blend65-oracle-transformed-content-v1",
+      "initialMemory": "blend65-oracle-initial-memory-v1",
+      "evaluation": "blend65-oracle-evaluation-v1"
+    }
+  },
+  "authorityDigests": {
+    "diagnosticManifest": "sha256:52e3b2e55f112f5ffdcdb9b3e7284af08a67426b8c7eeb6027f8e5bbf2c9c335",
+    "bindingRejections": "sha256:dbb7de1c32c39876319cce7426f85d9700d63c1e2bb33943f9f84330b759024e"
+  },
+  "identityVectors": [
+    {
+      "vectorId": "identity.source-content.v1",
+      "kind": "source-content",
+      "input": {
+        "contentHex": "7b2263617365223a22736f75726365222c2276616c7565223a2231227d0a"
+      },
+      "fieldNames": [
+        "content"
+      ],
+      "preimageHex": "00000020626c656e6436352d6f7261636c652d736f757263652d636f6e74656e742d76310000000100000007636f6e74656e740000001e7b2263617365223a22736f75726365222c2276616c7565223a2231227d0a",
+      "sha256": "sha256:add938cb04f8efc3171efbff6a5d7f5f00f9a3e45eef4b1b77fda6c3ed52681a"
+    },
+    {
+      "vectorId": "identity.transformed-content.v1",
+      "kind": "transformed-content",
+      "input": {
+        "contentHex": "7b2263617365223a227472616e73666f726d6564222c2276616c7565223a22312b30227d0a"
+      },
+      "fieldNames": [
+        "content"
+      ],
+      "preimageHex": "00000025626c656e6436352d6f7261636c652d7472616e73666f726d65642d636f6e74656e742d76310000000100000007636f6e74656e74000000257b2263617365223a227472616e73666f726d6564222c2276616c7565223a22312b30227d0a",
+      "sha256": "sha256:437aba703668d086f61f8bfca9520dba026c61e363bda57b44ebbf302ad3c946"
+    },
+    {
+      "vectorId": "identity.initial-memory.v1",
+      "kind": "initial-memory",
+      "input": {
+        "schemaVersion": 1,
+        "cells": [
+          {
+            "address": "0",
+            "value": "1"
+          },
+          {
+            "address": "4096",
+            "value": "52"
+          },
+          {
+            "address": "4097",
+            "value": "18"
+          },
+          {
+            "address": "65535",
+            "value": "255"
+          }
+        ]
+      },
+      "fieldNames": [
+        "schemaVersion",
+        "cellCount",
+        "cells.0.address",
+        "cells.0.value",
+        "cells.1.address",
+        "cells.1.value",
+        "cells.2.address",
+        "cells.2.value",
+        "cells.3.address",
+        "cells.3.value"
+      ],
+      "preimageHex": "00000020626c656e6436352d6f7261636c652d696e697469616c2d6d656d6f72792d76310000000a0000000d736368656d6156657273696f6e00000001310000000963656c6c436f756e7400000001340000000f63656c6c732e302e6164647265737300000001300000000d63656c6c732e302e76616c756500000001310000000f63656c6c732e312e6164647265737300000004343039360000000d63656c6c732e312e76616c75650000000235320000000f63656c6c732e322e6164647265737300000004343039370000000d63656c6c732e322e76616c75650000000231380000000f63656c6c732e332e616464726573730000000536353533350000000d63656c6c732e332e76616c756500000003323535",
+      "sha256": "sha256:5de5deb6d5497e4d809d43425475cf11c496ac85e4b9048d8b9fe51466116729"
+    },
+    {
+      "vectorId": "identity.evaluation.v1",
+      "kind": "evaluation",
+      "input": {
+        "schemaVersion": 1,
+        "sourceProvenance": {
+          "schemaVersion": 1,
+          "campaign": {
+            "inventorySchemaVersion": 1,
+            "inventoryVersion": "inventory-v1",
+            "inventoryDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "specRevision": "spec-v3.0",
+            "ruleModelVersion": "rule-models-v1",
+            "ruleModelDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "generator": {
+              "handlerId": "generator.frontend-cases",
+              "contractVersion": "1.0.0",
+              "implementationRevision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "boundaryTransform": {
+              "handlerId": "transform.boundary-variants",
+              "contractVersion": "1.0.0",
+              "implementationRevision": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            "rendererRevision": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "target": "c64",
+            "prngAlgorithm": "blend65-sha256-ctr-v1",
+            "seed": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "configurationDigest": "sha256:91b75fcac727ac6cdece9e55a347f78195ef08b2f5b05adf57928e30f6a3afbd"
+          },
+          "campaignDigest": "sha256:afb1717039f93cbe1911a7a8277a319bfcf6ac4ebe6ed90753521c3212bbcf4d",
+          "caseIdentity": {
+            "campaignDigest": "sha256:afb1717039f93cbe1911a7a8277a319bfcf6ac4ebe6ed90753521c3212bbcf4d",
+            "generationPath": [
+              2,
+              7
+            ],
+            "ordinal": 3,
+            "digest": "sha256:29e10746065e9410bfc3a9b902d3df65c0772806d89728d30308447b4da4b872"
+          },
+          "configuration": {
+            "caseCount": 2,
+            "maxInvalidCases": 1,
+            "enabledRuleIds": [
+              "rule.ch02.2-primitive-types.byte.range.0-255",
+              "rule.ch02.2-primitive-types.word.range.0-65535"
+            ],
+            "spellings": [
+              "const",
+              "literal",
+              "local",
+              "parameter"
+            ],
+            "budget": {
+              "maxModules": 2,
+              "maxDeclarations": 8,
+              "maxIrNodes": 64,
+              "maxStatements": 32,
+              "maxExpressionDepth": 6,
+              "maxLoopWork": "64",
+              "maxSourceBytes": 4096,
+              "maxAttempts": 128
+            }
+          }
+        },
+        "sourceContentIdentity": "sha256:add938cb04f8efc3171efbff6a5d7f5f00f9a3e45eef4b1b77fda6c3ed52681a",
+        "transformedContentIdentity": "sha256:437aba703668d086f61f8bfca9520dba026c61e363bda57b44ebbf302ad3c946",
+        "relationId": "relation.algebraic-identity",
+        "entryFunction": "main",
+        "initialMemoryIdentity": "sha256:5de5deb6d5497e4d809d43425475cf11c496ac85e4b9048d8b9fe51466116729",
+        "diagnosticManifestDigest": "sha256:52e3b2e55f112f5ffdcdb9b3e7284af08a67426b8c7eeb6027f8e5bbf2c9c335",
+        "bindingRejectionDigest": "sha256:dbb7de1c32c39876319cce7426f85d9700d63c1e2bb33943f9f84330b759024e",
+        "budget": {
+          "inputNodes": "128",
+          "expressionDepth": "16",
+          "evaluationSteps": "1024",
+          "frames": "1",
+          "memoryCells": "4",
+          "effects": "16",
+          "transformedNodes": "256"
+        },
+        "policyRevision": "oracle-policy-v1",
+        "observableProjectionId": "projection.value-state.exact-v1",
+        "participants": [
+          {
+            "handlerId": "oracle.frontend-result",
+            "contractVersion": "1.0.0",
+            "implementationRevision": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "handlerId": "transform.semantic-relations",
+            "contractVersion": "1.0.0",
+            "implementationRevision": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "fieldNames": [
+        "schemaVersion",
+        "sourceProvenance.schemaVersion",
+        "sourceProvenance.campaign.inventorySchemaVersion",
+        "sourceProvenance.campaign.inventoryVersion",
+        "sourceProvenance.campaign.inventoryDigest",
+        "sourceProvenance.campaign.specRevision",
+        "sourceProvenance.campaign.ruleModelVersion",
+        "sourceProvenance.campaign.ruleModelDigest",
+        "sourceProvenance.campaign.generator.handlerId",
+        "sourceProvenance.campaign.generator.contractVersion",
+        "sourceProvenance.campaign.generator.implementationRevision",
+        "sourceProvenance.campaign.boundaryTransform.handlerId",
+        "sourceProvenance.campaign.boundaryTransform.contractVersion",
+        "sourceProvenance.campaign.boundaryTransform.implementationRevision",
+        "sourceProvenance.campaign.rendererRevision",
+        "sourceProvenance.campaign.target",
+        "sourceProvenance.campaign.prngAlgorithm",
+        "sourceProvenance.campaign.seed",
+        "sourceProvenance.campaign.configurationDigest",
+        "sourceProvenance.campaignDigest",
+        "sourceProvenance.caseIdentity.campaignDigest",
+        "sourceProvenance.caseIdentity.generationPath.count",
+        "sourceProvenance.caseIdentity.generationPath.0",
+        "sourceProvenance.caseIdentity.generationPath.1",
+        "sourceProvenance.caseIdentity.ordinal",
+        "sourceProvenance.caseIdentity.digest",
+        "sourceProvenance.configuration.caseCount",
+        "sourceProvenance.configuration.maxInvalidCases",
+        "sourceProvenance.configuration.enabledRuleIds.count",
+        "sourceProvenance.configuration.enabledRuleIds.0",
+        "sourceProvenance.configuration.enabledRuleIds.1",
+        "sourceProvenance.configuration.spellings.count",
+        "sourceProvenance.configuration.spellings.0",
+        "sourceProvenance.configuration.spellings.1",
+        "sourceProvenance.configuration.spellings.2",
+        "sourceProvenance.configuration.spellings.3",
+        "sourceProvenance.configuration.budget.maxModules",
+        "sourceProvenance.configuration.budget.maxDeclarations",
+        "sourceProvenance.configuration.budget.maxIrNodes",
+        "sourceProvenance.configuration.budget.maxStatements",
+        "sourceProvenance.configuration.budget.maxExpressionDepth",
+        "sourceProvenance.configuration.budget.maxLoopWork",
+        "sourceProvenance.configuration.budget.maxSourceBytes",
+        "sourceProvenance.configuration.budget.maxAttempts",
+        "sourceContentIdentity",
+        "transformedContentIdentity",
+        "relationId",
+        "entryFunction",
+        "initialMemoryIdentity",
+        "diagnosticManifestDigest",
+        "bindingRejectionDigest",
+        "budget.inputNodes",
+        "budget.expressionDepth",
+        "budget.evaluationSteps",
+        "budget.frames",
+        "budget.memoryCells",
+        "budget.effects",
+        "budget.transformedNodes",
+        "policyRevision",
+        "observableProjectionId",
+        "participantCount",
+        "participants.0.handlerId",
+        "participants.0.contractVersion",
+        "participants.0.implementationRevision",
+        "participants.1.handlerId",
+        "participants.1.contractVersion",
+        "participants.1.implementationRevision"
+      ],
+      "preimageHex": "0000001c626c656e6436352d6f7261636c652d6576616c756174696f6e2d7631000000430000000d736368656d6156657273696f6e00000001310000001e736f7572636550726f76656e616e63652e736368656d6156657273696f6e000000013100000030736f7572636550726f76656e616e63652e63616d706169676e2e696e76656e746f7279536368656d6156657273696f6e00000001310000002a736f7572636550726f76656e616e63652e63616d706169676e2e696e76656e746f727956657273696f6e0000000c696e76656e746f72792d763100000029736f7572636550726f76656e616e63652e63616d706169676e2e696e76656e746f7279446967657374000000477368613235363a6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616100000026736f7572636550726f76656e616e63652e63616d706169676e2e737065635265766973696f6e00000009737065632d76332e300000002a736f7572636550726f76656e616e63652e63616d706169676e2e72756c654d6f64656c56657273696f6e0000000e72756c652d6d6f64656c732d763100000029736f7572636550726f76656e616e63652e63616d706169676e2e72756c654d6f64656c446967657374000000477368613235363a626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262620000002d736f7572636550726f76656e616e63652e63616d706169676e2e67656e657261746f722e68616e646c657249640000001867656e657261746f722e66726f6e74656e642d636173657300000033736f7572636550726f76656e616e63652e63616d706169676e2e67656e657261746f722e636f6e747261637456657273696f6e00000005312e302e300000003a736f7572636550726f76656e616e63652e63616d706169676e2e67656e657261746f722e696d706c656d656e746174696f6e5265766973696f6e000000477368613235363a6363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636300000035736f7572636550726f76656e616e63652e63616d706169676e2e626f756e646172795472616e73666f726d2e68616e646c657249640000001b7472616e73666f726d2e626f756e646172792d76617269616e74730000003b736f7572636550726f76656e616e63652e63616d706169676e2e626f756e646172795472616e73666f726d2e636f6e747261637456657273696f6e00000005312e302e3000000042736f7572636550726f76656e616e63652e63616d706169676e2e626f756e646172795472616e73666f726d2e696d706c656d656e746174696f6e5265766973696f6e000000477368613235363a646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464640000002a736f7572636550726f76656e616e63652e63616d706169676e2e72656e64657265725265766973696f6e000000477368613235363a6565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656565656500000020736f7572636550726f76656e616e63652e63616d706169676e2e7461726765740000000363363400000027736f7572636550726f76656e616e63652e63616d706169676e2e70726e67416c676f726974686d00000015626c656e6436352d7368613235362d6374722d76310000001e736f7572636550726f76656e616e63652e63616d706169676e2e73656564000000477368613235363a666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666660000002d736f7572636550726f76656e616e63652e63616d706169676e2e636f6e66696775726174696f6e446967657374000000477368613235363a393162373566636163373237616336636465636539653535613334376637383139356566303862326635623035616466353739323865333066366133616662640000001f736f7572636550726f76656e616e63652e63616d706169676e446967657374000000477368613235363a616662313731373033396639336362653139313161376138323737613331396266636636616334656265366564393037353335323163333231326262636634640000002c736f7572636550726f76656e616e63652e636173654964656e746974792e63616d706169676e446967657374000000477368613235363a6166623137313730333966393363626531393131613761383237376133313962666366366163346562653665643930373533353231633332313262626366346400000032736f7572636550726f76656e616e63652e636173654964656e746974792e67656e65726174696f6e506174682e636f756e7400000001320000002e736f7572636550726f76656e616e63652e636173654964656e746974792e67656e65726174696f6e506174682e3000000001320000002e736f7572636550726f76656e616e63652e636173654964656e746974792e67656e65726174696f6e506174682e31000000013700000025736f7572636550726f76656e616e63652e636173654964656e746974792e6f7264696e616c000000013300000024736f7572636550726f76656e616e63652e636173654964656e746974792e646967657374000000477368613235363a3239653130373436303635653934313062666333613962393032643364663635633037373238303664383937323864333033303834343762346461346238373200000028736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e63617365436f756e7400000001320000002e736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6d6178496e76616c69644361736573000000013100000033736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e656e61626c656452756c654964732e636f756e7400000001320000002f736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e656e61626c656452756c654964732e300000002c72756c652e636830322e322d7072696d69746976652d74797065732e627974652e72616e67652e302d3235350000002f736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e656e61626c656452756c654964732e310000002e72756c652e636830322e322d7072696d69746976652d74797065732e776f72642e72616e67652e302d36353533350000002e736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e7370656c6c696e67732e636f756e7400000001340000002a736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e7370656c6c696e67732e3000000005636f6e73740000002a736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e7370656c6c696e67732e31000000076c69746572616c0000002a736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e7370656c6c696e67732e32000000056c6f63616c0000002a736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e7370656c6c696e67732e3300000009706172616d6574657200000030736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d61784d6f64756c6573000000013200000035736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d61784465636c61726174696f6e73000000013800000030736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d617849724e6f64657300000002363400000033736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d617853746174656d656e747300000002333200000038736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d617845787072657373696f6e4465707468000000013600000031736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d61784c6f6f70576f726b00000002363400000034736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d6178536f757263654279746573000000043430393600000031736f7572636550726f76656e616e63652e636f6e66696775726174696f6e2e6275646765742e6d6178417474656d7074730000000331323800000015736f75726365436f6e74656e744964656e74697479000000477368613235363a616464393338636230346638656663333137316566626666366135643766356630306639613365343565656634623162373766646136633365643532363831610000001a7472616e73666f726d6564436f6e74656e744964656e7469747900000048017368613235363a343337616261373033363638643038366636316638626663613935323064626130323663363165333633626461353762343465626266333032616433633934360000000a72656c6174696f6e49640000001c0172656c6174696f6e2e616c676562726169632d6964656e746974790000000d656e74727946756e6374696f6e000000046d61696e00000015696e697469616c4d656d6f72794964656e74697479000000477368613235363a3564653564656236643534393765346438303964343334323534373563663131633439366163383565346239303438643862396665353134363631313637323900000018646961676e6f737469634d616e6966657374446967657374000000477368613235363a353265336232653535663131326635666664636462396233653732383461663038613637343236623863376565623630323766386535626266326339633333350000001662696e64696e6752656a656374696f6e446967657374000000477368613235363a64626237646531633332633339383736333139636365373432366638356439373030643633633165326262333339343366396638343333306237353930323465000000116275646765742e696e7075744e6f64657300000003313238000000166275646765742e65787072657373696f6e4465707468000000023136000000166275646765742e6576616c756174696f6e537465707300000004313032340000000d6275646765742e6672616d65730000000131000000126275646765742e6d656d6f727943656c6c7300000001340000000e6275646765742e65666665637473000000023136000000176275646765742e7472616e73666f726d65644e6f646573000000033235360000000e706f6c6963795265766973696f6e000000106f7261636c652d706f6c6963792d7631000000166f627365727661626c6550726f6a656374696f6e49640000001f70726f6a656374696f6e2e76616c75652d73746174652e65786163742d7631000000107061727469636970616e74436f756e740000000132000000187061727469636970616e74732e302e68616e646c65724964000000166f7261636c652e66726f6e74656e642d726573756c740000001e7061727469636970616e74732e302e636f6e747261637456657273696f6e00000005312e302e30000000257061727469636970616e74732e302e696d706c656d656e746174696f6e5265766973696f6e000000477368613235363a31313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131000000187061727469636970616e74732e312e68616e646c657249640000001c7472616e73666f726d2e73656d616e7469632d72656c6174696f6e730000001e7061727469636970616e74732e312e636f6e747261637456657273696f6e00000005312e302e30000000257061727469636970616e74732e312e696d706c656d656e746174696f6e5265766973696f6e000000477368613235363a32323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232",
+      "sha256": "sha256:a570eee0ab2be9b6bc73c62fe962eda0a588b65c5dcc07b95f03045cddcf7aec"
+    }
+  ],
+  "mutationCatalog": {
+    "schemaVersion": 1,
+    "catalogVersion": "1.0.0",
+    "policyRevision": "oracle-mutation-policy-v1",
+    "requiredCount": 84,
+    "familyCounts": {
+      "evaluator-operation": 32,
+      "diagnostic-mapping": 29,
+      "transform-precondition": 5,
+      "transform-rewrite": 13,
+      "relation-comparator": 5
+    },
+    "columns": [
+      "mutantId",
+      "family",
+      "operationId",
+      "pathId",
+      "variantId",
+      "vectorId"
+    ],
+    "rows": [
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.boolean.wrong-type.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.boolean.wrong-type.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.boolean.wrong-type.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.byte.above-max.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.byte.above-max.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.byte.above-max.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.byte.below-min.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.byte.below-min.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.byte.below-min.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.sbyte.above-max.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.sbyte.above-max.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.sbyte.above-max.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.sbyte.below-min.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.sbyte.below-min.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.sbyte.below-min.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.sword.above-max.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.sword.above-max.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.sword.above-max.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.sword.below-min.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.sword.below-min.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.sword.below-min.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.word.above-max.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.word.above-max.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.word.above-max.parameter.v1"
+      ],
+      [
+        "mutant.binding-rejection.mapping.neighbor.scalar.word.below-min.parameter",
+        "diagnostic-mapping",
+        "binding-rejection.mapping",
+        "binding-rejection.mapping.neighbor.scalar.word.below-min.parameter",
+        "wrong-exact-rejection-v1",
+        "vector.binding-rejection.mapping.neighbor.scalar.word.below-min.parameter.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.peek.wrong-address-type",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.peek.wrong-address-type",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.peek.wrong-address-type.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.peek.wrong-arity",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.peek.wrong-arity",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.peek.wrong-arity.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.peekw.wrong-address-type",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.peekw.wrong-address-type",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.peekw.wrong-address-type.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.peekw.wrong-arity",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.peekw.wrong-arity",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.peekw.wrong-arity.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.poke.wrong-address-type",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.poke.wrong-address-type",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.poke.wrong-address-type.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.poke.wrong-arity",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.poke.wrong-arity",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.poke.wrong-arity.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.poke.wrong-value-type",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.poke.wrong-value-type",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.poke.wrong-value-type.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.pokew.wrong-address-type",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.pokew.wrong-address-type",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.pokew.wrong-address-type.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.pokew.wrong-arity",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.pokew.wrong-arity",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.pokew.wrong-arity.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.memory.pokew.wrong-value-type",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.memory.pokew.wrong-value-type",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.memory.pokew.wrong-value-type.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.boolean.wrong-type.initializer",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.boolean.wrong-type.initializer",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.boolean.wrong-type.initializer.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.boolean.wrong-type.return-expression",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.boolean.wrong-type.return-expression",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.boolean.wrong-type.return-expression.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.byte.above-max",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.byte.above-max",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.byte.above-max.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.byte.below-min",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.byte.below-min",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.byte.below-min.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.sbyte.above-max",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.sbyte.above-max",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.sbyte.above-max.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.sbyte.below-min",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.sbyte.below-min",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.sbyte.below-min.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.sword.above-max",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.sword.above-max",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.sword.above-max.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.sword.below-min",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.sword.below-min",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.sword.below-min.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.word.above-max",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.word.above-max",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.word.above-max.v1"
+      ],
+      [
+        "mutant.diagnostic.mapping.neighbor.scalar.word.below-min",
+        "diagnostic-mapping",
+        "diagnostic.mapping",
+        "diagnostic.mapping.neighbor.scalar.word.below-min",
+        "wrong-exact-mapping-v1",
+        "vector.diagnostic.mapping.neighbor.scalar.word.below-min.v1"
+      ],
+      [
+        "mutant.evaluator.binary.boolean.equal",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.boolean.equal",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.boolean.equal.v1"
+      ],
+      [
+        "mutant.evaluator.binary.boolean.not-equal",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.boolean.not-equal",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.boolean.not-equal.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.add",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.add",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.add.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.bitwise-and",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.bitwise-and",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.bitwise-and.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.bitwise-or",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.bitwise-or",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.bitwise-or.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.bitwise-xor",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.bitwise-xor",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.bitwise-xor.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.divide",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.divide",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.divide.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.equal",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.equal",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.integer.equal.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.greater",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.greater",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.integer.greater.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.greater-equal",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.greater-equal",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.integer.greater-equal.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.less",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.less",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.integer.less.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.less-equal",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.less-equal",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.integer.less-equal.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.multiply",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.multiply",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.multiply.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.not-equal",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.not-equal",
+        "boolean-negate-v1",
+        "vector.evaluator.binary.integer.not-equal.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.remainder",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.remainder",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.remainder.v1"
+      ],
+      [
+        "mutant.evaluator.binary.integer.subtract",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.integer.subtract",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.integer.subtract.v1"
+      ],
+      [
+        "mutant.evaluator.binary.shift-left",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.shift-left",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.shift-left.v1"
+      ],
+      [
+        "mutant.evaluator.binary.shift-right",
+        "evaluator-operation",
+        "evaluator.binary",
+        "evaluator.binary.shift-right",
+        "integer-xor-one-v1",
+        "vector.evaluator.binary.shift-right.v1"
+      ],
+      [
+        "mutant.evaluator.memory.read-byte",
+        "evaluator-operation",
+        "evaluator.memory",
+        "evaluator.memory.read-byte",
+        "memory-value-xor-one-v1",
+        "vector.evaluator.memory.read-byte.v1"
+      ],
+      [
+        "mutant.evaluator.memory.read-word",
+        "evaluator-operation",
+        "evaluator.memory",
+        "evaluator.memory.read-word",
+        "memory-value-xor-one-v1",
+        "vector.evaluator.memory.read-word.v1"
+      ],
+      [
+        "mutant.evaluator.memory.write-byte",
+        "evaluator-operation",
+        "evaluator.memory",
+        "evaluator.memory.write-byte",
+        "memory-value-xor-one-v1",
+        "vector.evaluator.memory.write-byte.v1"
+      ],
+      [
+        "mutant.evaluator.memory.write-word",
+        "evaluator-operation",
+        "evaluator.memory",
+        "evaluator.memory.write-word",
+        "memory-value-xor-one-v1",
+        "vector.evaluator.memory.write-word.v1"
+      ],
+      [
+        "mutant.evaluator.normalize.byte",
+        "evaluator-operation",
+        "evaluator.normalize",
+        "evaluator.normalize.byte",
+        "integer-off-by-one-v1",
+        "vector.evaluator.normalize.byte.v1"
+      ],
+      [
+        "mutant.evaluator.normalize.sbyte",
+        "evaluator-operation",
+        "evaluator.normalize",
+        "evaluator.normalize.sbyte",
+        "integer-off-by-one-v1",
+        "vector.evaluator.normalize.sbyte.v1"
+      ],
+      [
+        "mutant.evaluator.normalize.sword",
+        "evaluator-operation",
+        "evaluator.normalize",
+        "evaluator.normalize.sword",
+        "integer-off-by-one-v1",
+        "vector.evaluator.normalize.sword.v1"
+      ],
+      [
+        "mutant.evaluator.normalize.word",
+        "evaluator-operation",
+        "evaluator.normalize",
+        "evaluator.normalize.word",
+        "integer-off-by-one-v1",
+        "vector.evaluator.normalize.word.v1"
+      ],
+      [
+        "mutant.evaluator.order.binary-operands",
+        "evaluator-operation",
+        "evaluator.order",
+        "evaluator.order.binary-operands",
+        "reverse-order-v1",
+        "vector.evaluator.order.binary-operands.v1"
+      ],
+      [
+        "mutant.evaluator.order.memory-write-operands",
+        "evaluator-operation",
+        "evaluator.order",
+        "evaluator.order.memory-write-operands",
+        "reverse-order-v1",
+        "vector.evaluator.order.memory-write-operands.v1"
+      ],
+      [
+        "mutant.evaluator.order.statement-effects",
+        "evaluator-operation",
+        "evaluator.order",
+        "evaluator.order.statement-effects",
+        "reverse-order-v1",
+        "vector.evaluator.order.statement-effects.v1"
+      ],
+      [
+        "mutant.evaluator.unary.bitwise-not",
+        "evaluator-operation",
+        "evaluator.unary",
+        "evaluator.unary.bitwise-not",
+        "integer-xor-one-v1",
+        "vector.evaluator.unary.bitwise-not.v1"
+      ],
+      [
+        "mutant.evaluator.unary.logical-not",
+        "evaluator-operation",
+        "evaluator.unary",
+        "evaluator.unary.logical-not",
+        "boolean-negate-v1",
+        "vector.evaluator.unary.logical-not.v1"
+      ],
+      [
+        "mutant.evaluator.unary.negate",
+        "evaluator-operation",
+        "evaluator.unary",
+        "evaluator.unary.negate",
+        "integer-xor-one-v1",
+        "vector.evaluator.unary.negate.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.comparator.omit-required-observable",
+        "relation-comparator",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.comparator",
+        "omit-required-observable-v1",
+        "vector.relation.algebraic-identity.comparator.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.precondition.force-true",
+        "transform-precondition",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.precondition",
+        "force-true-v1",
+        "vector.relation.algebraic-identity.precondition.inapplicable.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.add-zero-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.add-zero-right",
+        "vector.relation.algebraic-identity.rewrite.add-zero-right.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.and-all-ones-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.and-all-ones-right",
+        "vector.relation.algebraic-identity.rewrite.and-all-ones-right.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.divide-one-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.divide-one-right",
+        "vector.relation.algebraic-identity.rewrite.divide-one-right.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.multiply-one-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.multiply-one-right",
+        "vector.relation.algebraic-identity.rewrite.multiply-one-right.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.or-zero-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.or-zero-right",
+        "vector.relation.algebraic-identity.rewrite.or-zero-right.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.shift-left-zero",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.shift-left-zero",
+        "vector.relation.algebraic-identity.rewrite.shift-left-zero.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.shift-right-zero",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.shift-right-zero",
+        "vector.relation.algebraic-identity.rewrite.shift-right-zero.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.subtract-zero-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.subtract-zero-right",
+        "vector.relation.algebraic-identity.rewrite.subtract-zero-right.v1"
+      ],
+      [
+        "mutant.relation.algebraic-identity.rewrite.xor-zero-right",
+        "transform-rewrite",
+        "relation.algebraic-identity",
+        "relation.algebraic-identity.rewrite",
+        "non-preserving.xor-zero-right",
+        "vector.relation.algebraic-identity.rewrite.xor-zero-right.v1"
+      ],
+      [
+        "mutant.relation.identifier-renaming.comparator.omit-required-observable",
+        "relation-comparator",
+        "relation.identifier-renaming",
+        "relation.identifier-renaming.comparator",
+        "omit-required-observable-v1",
+        "vector.relation.identifier-renaming.comparator.v1"
+      ],
+      [
+        "mutant.relation.identifier-renaming.precondition.force-true",
+        "transform-precondition",
+        "relation.identifier-renaming",
+        "relation.identifier-renaming.precondition",
+        "force-true-v1",
+        "vector.relation.identifier-renaming.precondition.inapplicable.v1"
+      ],
+      [
+        "mutant.relation.identifier-renaming.rewrite.fresh-sibling-v1",
+        "transform-rewrite",
+        "relation.identifier-renaming",
+        "relation.identifier-renaming.rewrite",
+        "non-preserving.fresh-sibling-v1",
+        "vector.relation.identifier-renaming.rewrite.fresh-sibling-v1.v1"
+      ],
+      [
+        "mutant.relation.independent-declaration-reordering.comparator.omit-required-observable",
+        "relation-comparator",
+        "relation.independent-declaration-reordering",
+        "relation.independent-declaration-reordering.comparator",
+        "omit-required-observable-v1",
+        "vector.relation.independent-declaration-reordering.comparator.v1"
+      ],
+      [
+        "mutant.relation.independent-declaration-reordering.precondition.force-true",
+        "transform-precondition",
+        "relation.independent-declaration-reordering",
+        "relation.independent-declaration-reordering.precondition",
+        "force-true-v1",
+        "vector.relation.independent-declaration-reordering.precondition.inapplicable.v1"
+      ],
+      [
+        "mutant.relation.independent-declaration-reordering.rewrite.swap-independent-constants-v1",
+        "transform-rewrite",
+        "relation.independent-declaration-reordering",
+        "relation.independent-declaration-reordering.rewrite",
+        "non-preserving.swap-independent-constants-v1",
+        "vector.relation.independent-declaration-reordering.rewrite.swap-independent-constants-v1.v1"
+      ],
+      [
+        "mutant.relation.literal-to-local.comparator.omit-required-observable",
+        "relation-comparator",
+        "relation.literal-to-local",
+        "relation.literal-to-local.comparator",
+        "omit-required-observable-v1",
+        "vector.relation.literal-to-local.comparator.v1"
+      ],
+      [
+        "mutant.relation.literal-to-local.precondition.force-true",
+        "transform-precondition",
+        "relation.literal-to-local",
+        "relation.literal-to-local.precondition",
+        "force-true-v1",
+        "vector.relation.literal-to-local.precondition.inapplicable.v1"
+      ],
+      [
+        "mutant.relation.literal-to-local.rewrite.introduce-local-v1",
+        "transform-rewrite",
+        "relation.literal-to-local",
+        "relation.literal-to-local.rewrite",
+        "non-preserving.introduce-local-v1",
+        "vector.relation.literal-to-local.rewrite.introduce-local-v1.v1"
+      ],
+      [
+        "mutant.relation.local-to-parameter.comparator.omit-required-observable",
+        "relation-comparator",
+        "relation.local-to-parameter",
+        "relation.local-to-parameter.comparator",
+        "omit-required-observable-v1",
+        "vector.relation.local-to-parameter.comparator.v1"
+      ],
+      [
+        "mutant.relation.local-to-parameter.precondition.force-true",
+        "transform-precondition",
+        "relation.local-to-parameter",
+        "relation.local-to-parameter.precondition",
+        "force-true-v1",
+        "vector.relation.local-to-parameter.precondition.inapplicable.v1"
+      ],
+      [
+        "mutant.relation.local-to-parameter.rewrite.lift-entry-local-v1",
+        "transform-rewrite",
+        "relation.local-to-parameter",
+        "relation.local-to-parameter.rewrite",
+        "non-preserving.lift-entry-local-v1",
+        "vector.relation.local-to-parameter.rewrite.lift-entry-local-v1.v1"
+      ]
+    ]
+  }
+}

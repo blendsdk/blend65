@@ -67,6 +67,20 @@
 | AR-P55 | Phase 3 relation and conformance interface `(runtime)` | Which exact callable, rich result and fault-seam contracts let an implementation-blind author prove complete rewrites, external binding updates and production-path fault detection without creating a second execution path? | Export `evaluateSemanticRelation(OracleSuite, unknown): SemanticRelationResultV1` from the package index. Its modeled branch structurally preserves `OracleResultV1` and adds the relation ID, immutable source/transformed cases and both observations. Keep `runWithSemanticRelationFault(fault, operation)` module-private from the package index; scope one closed path/fault pair with `AsyncLocalStorage.run`, and let only the exact production handler consult it at stable relation-specific precondition/rewrite/comparator checkpoints. Closed conformance faults force a false precondition, a valid non-preserving rewrite, or a comparator omission paired with a deterministic mismatch witness. | AI delegated by `--auto-design`; independent challenger selected the rich exact-handler/ALS design over adjacent detailed APIs and separate conformance wrappers | ✅ Resolved |
 | AR-P56 | Transformed semantic-closure oracle `(runtime)` | How can ST-27 reach a structurally valid but semantic-closure-invalid transformed case without submitting a source-invalid request or weakening a correct rewrite? | Superseded by AR-P58: replacement is not total when the source has no compatible constant and can produce a signedness mismatch. | Earlier auto-design ruling refined by semantics re-review SR-005 | ⚪ Superseded |
 | AR-P58 | Total transformed semantic-closure oracle `(runtime)` | What structurally valid closure fault works for every applicable transformed module without changing an existing declaration's type? | After a correct rewrite, append one fresh byte constant whose byte-width `memory-read` initializer uses a canonical word address. This is structurally valid for every source shape, always violates constant purity, and is charged by the exact post-fault transformed-node budget before closure validation. Return `oracle.relation.invalid` at `/transformedCase` before transformed evaluation/comparison. | AI delegated by `--auto-design`; semantics re-review SR-005; back-propagated to 03-03 | ✅ Resolved |
+| AR-P59 | Phase 4 callable contract `(runtime)` | Which exact callable/export seams let an implementation-blind author specify ST-29–ST-38 without coupling pure identity work to mutable mutation-runner state? | Use module-level pure validation/identity/catalog functions, an opaque bounded collision registry, package-private AsyncLocalStorage activation/lookup, and one async worker-backed runner. Keep replay regeneration explicit, keep Phase 6 snapshot participant selection out of Phase 4, and expose a finite worker-failure probe rather than accepting executable callbacks or filesystem paths. | AI delegated by `--auto-design`; independent API challenge recommended the pure-module organization over service and ports/adapters façades | ✅ Resolved |
+| AR-P60 | Phase 4 independent oracle values `(runtime)` | Which exact canonical bytes, digests and mutation operation/path/vector rows independently anchor ST-30/ST-31 and ST-35/ST-36? | Freeze a plan-owned canonical-vector packet that completely specifies the byte encoding and literal input/preimage/digest vectors, plus the lexical exact-join mutation catalog and stable vector IDs for every reachable Phase 2/3 semantic branch. Specs consume this packet as authority; production must match it and may not generate the expected inventory. | AI delegated by `--auto-design`; implementation-blind spec-author checkpoint blocker; bounded oracle-packet authoring dispatched | ✅ Resolved |
+| AR-P61 | Policy revision identity domain `(runtime)` | How can ST-32/ST-33 prove that a policy revision change changes evaluation identity when the input type admits only the current v1 literal? | Identity derivation accepts the bounded canonical `OraclePolicyRevision` form `oracle-policy-v[1-9][0-9]{0,8}` and commits its exact bytes. Evaluation/publication compatibility separately requires the currently supported `oracle-policy-v1`; deriving a future-version identity grants no authority to execute it. | AI delegated by `--auto-design`; implementation-blind spec-author contradiction; only viable resolution preserves ST-33 without weakening current compatibility | ✅ Resolved |
+| AR-P62 | Independent mutation assertions `(runtime)` | What immutable authority proves a mutant violates specification behavior rather than merely differing from a possibly broken production baseline? | Freeze a separate data-only assertion packet keyed by all 84 vector IDs. Each row carries canonical fixture input, literal expected baseline observation and assertion kind. The worker resolves only those stable IDs, executes the complete real production path, requires the baseline assertion to pass, returns `harness-failure` otherwise, and awards kill credit only when the same assertion rejects the mutant. Establish a fresh implementation-blind RED checkpoint for this additive oracle before remediation. | AI delegated by `--auto-design`; correctness RV-001 and semantics SR-001/SR-002; central Phase 4 adequacy checkpoint reopened | ✅ Resolved |
+| AR-P63 | Assertion callable and mismatch probe `(runtime)` | Which closed row/result shapes let the additive spec invoke the independent assertion and prove baseline failure without injecting an 85th vector or caller behavior? | Use a closed data-only fixture union, a closed canonical observation union, exact-equality assertions, typed vector/assertion result unions, and extend the finite worker probe modes with `"baseline-mismatch"`. The probe substitutes a module-owned impossible expected observation after resolving a real canonical vector, so it exercises harness-failure/no-credit without accepting caller assertions, callbacks or paths. | AI delegated by `--auto-design`; implementation-blind additive spec-author blocker; no materially viable injection-based alternative | ✅ Resolved |
+| AR-P64 | Data-only semantic suite hydration `(runtime)` | How can 15 semantic-relation vectors carry a complete suite when `OracleSuite` contains an opaque executable revision registry that JSON cannot represent? | Replace the suite value with one closed `OracleMutationSuiteDescriptorV1` carrying the exact suite ID, inventory/diagnostic/binding authority digests and all required participant revisions. Package-owned hydration reads only the fixed checked-in authority files and resolves only exact factory-owned revisions; any byte, digest, ID or revision mismatch is a vector failure. No registry, function, module name or path crosses the packet/worker protocol. | AI delegated by `--auto-design`; implementation-blind assertion-packet blocker; preserves data-only worker inputs | ✅ Resolved |
+| AR-P65 | Relation assertion projection `(runtime)` | How can exact mutation assertions remain implementation-blind when full modeled relation results contain deliberately unspecified fresh transformed identifiers? | Project relation results to a closed canonical assertion observation: modeled relation ID plus exact source/transformed semantic observations; inapplicable relation ID; unmodeled reason; or exact bounded failure diagnostics. Exclude source/transformed syntax and generated names. The complete production path still runs, and rewrite/comparator mutants remain observable through the semantic projection. | AI delegated by `--auto-design`; implementation-blind assertion author blocker; preserves Phase 3 capture-avoidance freedom | ✅ Resolved |
+| AR-P66 | Evaluator assertion altitude `(runtime)` | Should evaluator mutation rows assert undefined scalar-helper results or the already specified complete program result? | Every evaluator vector uses `program-evaluation` with a complete `OracleProgramInputV1` and asserts the frozen `OracleResultV1`. Remove scalar-operation fixtures and `OracleOperationResultV1` from the packet. This executes the real evaluator orchestration and avoids inventing a second helper-level oracle. | AI delegated by `--auto-design`; implementation-blind assertion author blocker; strengthens RV-001 remediation | ✅ Resolved |
+| AR-P67 | Optional diagnostic context `(runtime)` | How do diagnostic assertion fixtures represent the 18 authority rows that have no diagnostic context without inventing a sentinel? | `diagnosticContext` is optional and absent exactly when the authority row omits it; the two contextual rows carry their literal strings. Empty strings and synthetic sentinel values are invalid. | AI delegated by `--auto-design`; implementation-blind exact-join blocker | ✅ Resolved |
+| AR-P68 | Additive data-only guard restart `(runtime)` | How should the additive spec treat canonical `bigint` values when its own fixture hydrates decimal JSON strings to `bigint` but the first RED guard omitted that primitive? | Treat `bigint` as data-only alongside null/boolean/number/string, keep functions/symbols/paths/module names forbidden, invalidate the superseded additive RED hash, and re-establish RED with the corrected implementation-blind spec in an isolated pre-assertion-module tree. | AI delegated by `--auto-design`; implementation-independent frozen-oracle contradiction | ✅ Resolved |
+| AR-P69 | Worker startup versus execution deadline `(runtime)` | How can the frozen 50 ms crash/protocol probes classify the intended worker event when host process startup can itself exceed 50 ms, while synchronous mutant nontermination still needs a hard deadline? | Use two explicit bounds: a fixed 1,000 ms startup/ready-handshake cap classified as `worker-startup`, then the caller's 1–60,000 ms execution deadline starting at ready and classified by the selected probe/mutant outcome. Runner fail-fast remains per completed batch. The requested deadline is an execution deadline, not an unbounded combined lifetime. | AI delegated by `--auto-design`; performance PE-003 and load-sensitive frozen probe conflict | ✅ Resolved |
+| AR-P70 | Heavy fixture hook timeout `(runtime)` | How should the immutable assertion suite construct exact inventory/model/replay authority when full-suite contention can exceed Vitest's unrelated default 10-second hook limit, while mutation execution deadlines must remain strict? | Set readiness `hookTimeout` to the existing package `testTimeout` of 240,000 ms. This bounds authority-fixture construction consistently with other heavy readiness tests and does not change the worker startup cap, caller execution deadlines, assertions or production behavior. | AI delegated by `--auto-design`; full-gate integration failure after AR-P62 | ✅ Resolved |
+| AR-P71 | Readiness file-level test concurrency `(runtime)` | How should the full readiness suite avoid nested oversubscription when one mutation file already owns bounded worker parallelism and passes focused but fails only while many Vitest files compete? | Cap readiness Vitest `maxWorkers` at 2. Keep mutation-runner concurrency at 2 and all 1 s startup / caller execution deadlines unchanged. Two files remain parallel; the package is not globally serialized. | AI delegated by `--auto-design`; repeated focused-green/full-suite-red host contention | ✅ Resolved |
+| AR-P72 | Executable dispatch coverage `(runtime)` | How can the source gate prove that mutation metadata covers executable semantic dispatch rather than only proving agreement among independent metadata lists? | Make each closed executable branch/operator table carry its exact immutable dispatch marker object and derive the runtime registry from those same marker values. Dynamic authority and relation routes must exact-resolve a marker and fail loudly when absent. Production source validation rejects legacy string dispatch, and a negative regression replaces a live route with metadata-free dispatch and requires failure. | AI delegated by `--auto-design`; semantics re-review SR-004; retained major resolved without changing the 84-row independent catalog | ✅ Resolved |
 
 ## Systematic Gate Scan
 
@@ -355,6 +369,68 @@
   module.
 - **Hardening:** the correctness review raised the checkpoint-integrity finding; the remediation
   uses a fresh baseline snapshot rather than treating the post-RED edit as an implementation fix.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260728`.
+
+## AR-P59 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal callable organization
+  inside the already approved Phase 4 identity and mutation-proof scope. It changes no language
+  behavior, frozen specification, publication format, deployment or outward-facing integration.
+- **Objective:** give the implementation-blind specification author exact callable seams for
+  ST-29–ST-38 while preserving pure deterministic identities, bounded retained state, isolated
+  async mutation contexts and a non-executable worker protocol.
+- **Evidence:** existing readiness identity code uses module-level pure derivation functions and
+  opaque factory-produced collision registries. The Phase 4 component requires pure identity
+  primitives, a private `AsyncLocalStorage` seam and workers that accept stable IDs and canonical
+  fixture inputs rather than caller code or paths. A single stateful service would couple these
+  unrelated lifecycles; injected ports would add an external dependency boundary the phase does
+  not have.
+- **Decision:** freeze the callable packet in 03-04. Public package APIs are pure replay/content/
+  memory/evaluation identity derivation, collision-registry creation, catalog parsing/validation,
+  the immutable operation/path registry snapshot and the async catalog runner. The conformance
+  activation and branch lookup remain package-private module exports. Worker fault coverage uses
+  a closed finite probe mode and never an injected callback, command or filesystem path. Phase 4
+  accepts participant revisions as identity input but does not select or bind a release snapshot.
+- **Rejected alternatives:** a stateful all-in-one service obscures which operations are pure and
+  couples collision disposal to worker/context lifetime; a ports/adapters façade introduces
+  injectable behavior where the security contract requires closed production dispatch.
+- **Strongest counterargument:** several small functions create more exported names. Explicit
+  names are preferable here because each function owns one domain separator or validation
+  boundary and can be specified independently without manufacturing shared mutable state.
+- **Confidence:** High.
+- **Hardening:** an independent bounded API challenge recommended the same pure-module
+  organization and rejected the service and ports/adapters alternatives for lifecycle coupling
+  and unnecessary injection risk.
+- **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260728`.
+
+## AR-P60 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; internal oracle fixtures and
+  stable conformance identifiers within the already approved exhaustive Phase 4 proof. It changes
+  no frozen language behavior, publication format, deployment or outward-facing integration.
+- **Objective:** prevent production from becoming its own oracle for canonical identity bytes or
+  mutation-path coverage.
+- **Evidence:** ST-30/ST-31 require exact published digest vectors, but prose describing tags and
+  lengths does not determine literal preimage bytes. ST-35/ST-36 require an exact join against
+  independently known paths, but querying the production registry for expected rows would make a
+  missing production branch invisible. The reachable Phase 2/3 surface grounds 84 required
+  triples: 32 evaluator, 29 diagnostic/binding, 5 relation precondition, 13 relation rewrite and
+  5 relation comparator paths.
+- **Decision:** freeze a plan-owned JSON packet containing four literal canonical identity
+  vectors and all 84 lexical operation/path/variant/vector rows. Every vector carries its expected
+  preimage hex and SHA-256 where applicable; the component document fixes the u32-BE framing and
+  explicit option bytes. Specification fixtures copy this plan authority, while production owns
+  only the implementation and actual registry. Source-check compares the two exact sets.
+- **Rejected alternatives:** computing expected hashes through production only tests
+  self-consistency; deriving the expected catalog from the production registry cannot detect
+  omissions; broad family rows violate the requirement that every reachable branch be named.
+- **Strongest counterargument:** a literal catalog is maintenance-heavy. That cost is the
+  deliberate independent-review pressure: every added semantic branch must update production,
+  plan authority and immutable specification evidence together.
+- **Confidence:** High. Reopen if any reachable Phase 2/3 operation cannot be addressed by one of
+  the frozen triples, or if recomputation disagrees with a published preimage/digest.
+- **Hardening:** the implementation-blind spec author rejected both underspecified digests and a
+  production-derived expected registry before any Phase 4 test or implementation was written.
 - **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260728`.
 
 ## Gate

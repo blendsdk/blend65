@@ -1,0 +1,595 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "1.0.0",
+  "policyRevision": "oracle-mutation-policy-v1",
+  "mutants": [
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.boolean.wrong-type.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.boolean.wrong-type.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.byte.above-max.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.byte.above-max.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.byte.below-min.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.byte.below-min.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.sbyte.above-max.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.sbyte.above-max.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.sbyte.below-min.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.sbyte.below-min.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.sword.above-max.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.sword.above-max.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.sword.below-min.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.sword.below-min.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.word.above-max.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.word.above-max.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.binding-rejection.mapping.neighbor.scalar.word.below-min.parameter",
+      "family": "diagnostic-mapping",
+      "operationId": "binding-rejection.mapping",
+      "pathId": "binding-rejection.mapping.neighbor.scalar.word.below-min.parameter",
+      "variantId": "wrong-exact-rejection-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.peek.wrong-address-type",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.peek.wrong-address-type",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.peek.wrong-arity",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.peek.wrong-arity",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.peekw.wrong-address-type",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.peekw.wrong-address-type",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.peekw.wrong-arity",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.peekw.wrong-arity",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.poke.wrong-address-type",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.poke.wrong-address-type",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.poke.wrong-arity",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.poke.wrong-arity",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.poke.wrong-value-type",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.poke.wrong-value-type",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.pokew.wrong-address-type",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.pokew.wrong-address-type",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.pokew.wrong-arity",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.pokew.wrong-arity",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.memory.pokew.wrong-value-type",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.memory.pokew.wrong-value-type",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.boolean.wrong-type.initializer",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.boolean.wrong-type.initializer",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.boolean.wrong-type.return-expression",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.boolean.wrong-type.return-expression",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.byte.above-max",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.byte.above-max",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.byte.below-min",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.byte.below-min",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.sbyte.above-max",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.sbyte.above-max",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.sbyte.below-min",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.sbyte.below-min",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.sword.above-max",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.sword.above-max",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.sword.below-min",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.sword.below-min",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.word.above-max",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.word.above-max",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.diagnostic.mapping.neighbor.scalar.word.below-min",
+      "family": "diagnostic-mapping",
+      "operationId": "diagnostic.mapping",
+      "pathId": "diagnostic.mapping.neighbor.scalar.word.below-min",
+      "variantId": "wrong-exact-mapping-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.boolean.equal",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.boolean.equal",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.boolean.not-equal",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.boolean.not-equal",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.add",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.add",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.bitwise-and",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.bitwise-and",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.bitwise-or",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.bitwise-or",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.bitwise-xor",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.bitwise-xor",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.divide",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.divide",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.equal",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.equal",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.greater",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.greater",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.greater-equal",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.greater-equal",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.less",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.less",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.less-equal",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.less-equal",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.multiply",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.multiply",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.not-equal",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.not-equal",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.remainder",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.remainder",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.integer.subtract",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.integer.subtract",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.shift-left",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.shift-left",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.binary.shift-right",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.binary",
+      "pathId": "evaluator.binary.shift-right",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.memory.read-byte",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.memory",
+      "pathId": "evaluator.memory.read-byte",
+      "variantId": "memory-value-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.memory.read-word",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.memory",
+      "pathId": "evaluator.memory.read-word",
+      "variantId": "memory-value-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.memory.write-byte",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.memory",
+      "pathId": "evaluator.memory.write-byte",
+      "variantId": "memory-value-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.memory.write-word",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.memory",
+      "pathId": "evaluator.memory.write-word",
+      "variantId": "memory-value-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.normalize.byte",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.normalize",
+      "pathId": "evaluator.normalize.byte",
+      "variantId": "integer-off-by-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.normalize.sbyte",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.normalize",
+      "pathId": "evaluator.normalize.sbyte",
+      "variantId": "integer-off-by-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.normalize.sword",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.normalize",
+      "pathId": "evaluator.normalize.sword",
+      "variantId": "integer-off-by-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.normalize.word",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.normalize",
+      "pathId": "evaluator.normalize.word",
+      "variantId": "integer-off-by-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.order.binary-operands",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.order",
+      "pathId": "evaluator.order.binary-operands",
+      "variantId": "reverse-order-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.order.memory-write-operands",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.order",
+      "pathId": "evaluator.order.memory-write-operands",
+      "variantId": "reverse-order-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.order.statement-effects",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.order",
+      "pathId": "evaluator.order.statement-effects",
+      "variantId": "reverse-order-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.unary.bitwise-not",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.unary",
+      "pathId": "evaluator.unary.bitwise-not",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.unary.logical-not",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.unary",
+      "pathId": "evaluator.unary.logical-not",
+      "variantId": "boolean-negate-v1"
+    },
+    {
+      "mutantId": "mutant.evaluator.unary.negate",
+      "family": "evaluator-operation",
+      "operationId": "evaluator.unary",
+      "pathId": "evaluator.unary.negate",
+      "variantId": "integer-xor-one-v1"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.comparator.omit-required-observable",
+      "family": "relation-comparator",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.comparator",
+      "variantId": "omit-required-observable-v1"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.precondition.force-true",
+      "family": "transform-precondition",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.precondition",
+      "variantId": "force-true-v1"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.add-zero-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.add-zero-right"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.and-all-ones-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.and-all-ones-right"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.divide-one-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.divide-one-right"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.multiply-one-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.multiply-one-right"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.or-zero-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.or-zero-right"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.shift-left-zero",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.shift-left-zero"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.shift-right-zero",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.shift-right-zero"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.subtract-zero-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.subtract-zero-right"
+    },
+    {
+      "mutantId": "mutant.relation.algebraic-identity.rewrite.xor-zero-right",
+      "family": "transform-rewrite",
+      "operationId": "relation.algebraic-identity",
+      "pathId": "relation.algebraic-identity.rewrite",
+      "variantId": "non-preserving.xor-zero-right"
+    },
+    {
+      "mutantId": "mutant.relation.identifier-renaming.comparator.omit-required-observable",
+      "family": "relation-comparator",
+      "operationId": "relation.identifier-renaming",
+      "pathId": "relation.identifier-renaming.comparator",
+      "variantId": "omit-required-observable-v1"
+    },
+    {
+      "mutantId": "mutant.relation.identifier-renaming.precondition.force-true",
+      "family": "transform-precondition",
+      "operationId": "relation.identifier-renaming",
+      "pathId": "relation.identifier-renaming.precondition",
+      "variantId": "force-true-v1"
+    },
+    {
+      "mutantId": "mutant.relation.identifier-renaming.rewrite.fresh-sibling-v1",
+      "family": "transform-rewrite",
+      "operationId": "relation.identifier-renaming",
+      "pathId": "relation.identifier-renaming.rewrite",
+      "variantId": "non-preserving.fresh-sibling-v1"
+    },
+    {
+      "mutantId": "mutant.relation.independent-declaration-reordering.comparator.omit-required-observable",
+      "family": "relation-comparator",
+      "operationId": "relation.independent-declaration-reordering",
+      "pathId": "relation.independent-declaration-reordering.comparator",
+      "variantId": "omit-required-observable-v1"
+    },
+    {
+      "mutantId": "mutant.relation.independent-declaration-reordering.precondition.force-true",
+      "family": "transform-precondition",
+      "operationId": "relation.independent-declaration-reordering",
+      "pathId": "relation.independent-declaration-reordering.precondition",
+      "variantId": "force-true-v1"
+    },
+    {
+      "mutantId": "mutant.relation.independent-declaration-reordering.rewrite.swap-independent-constants-v1",
+      "family": "transform-rewrite",
+      "operationId": "relation.independent-declaration-reordering",
+      "pathId": "relation.independent-declaration-reordering.rewrite",
+      "variantId": "non-preserving.swap-independent-constants-v1"
+    },
+    {
+      "mutantId": "mutant.relation.literal-to-local.comparator.omit-required-observable",
+      "family": "relation-comparator",
+      "operationId": "relation.literal-to-local",
+      "pathId": "relation.literal-to-local.comparator",
+      "variantId": "omit-required-observable-v1"
+    },
+    {
+      "mutantId": "mutant.relation.literal-to-local.precondition.force-true",
+      "family": "transform-precondition",
+      "operationId": "relation.literal-to-local",
+      "pathId": "relation.literal-to-local.precondition",
+      "variantId": "force-true-v1"
+    },
+    {
+      "mutantId": "mutant.relation.literal-to-local.rewrite.introduce-local-v1",
+      "family": "transform-rewrite",
+      "operationId": "relation.literal-to-local",
+      "pathId": "relation.literal-to-local.rewrite",
+      "variantId": "non-preserving.introduce-local-v1"
+    },
+    {
+      "mutantId": "mutant.relation.local-to-parameter.comparator.omit-required-observable",
+      "family": "relation-comparator",
+      "operationId": "relation.local-to-parameter",
+      "pathId": "relation.local-to-parameter.comparator",
+      "variantId": "omit-required-observable-v1"
+    },
+    {
+      "mutantId": "mutant.relation.local-to-parameter.precondition.force-true",
+      "family": "transform-precondition",
+      "operationId": "relation.local-to-parameter",
+      "pathId": "relation.local-to-parameter.precondition",
+      "variantId": "force-true-v1"
+    },
+    {
+      "mutantId": "mutant.relation.local-to-parameter.rewrite.lift-entry-local-v1",
+      "family": "transform-rewrite",
+      "operationId": "relation.local-to-parameter",
+      "pathId": "relation.local-to-parameter.rewrite",
+      "variantId": "non-preserving.lift-entry-local-v1"
+    }
+  ]
+}

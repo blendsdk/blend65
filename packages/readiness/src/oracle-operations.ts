@@ -1,6 +1,11 @@
 import type { BinaryOperator, ScalarType, UnaryOperator } from "./generator-ir.js";
 import type { OracleUnmodeledReason, OracleValueV1 } from "./oracle-model.js";
 import {
+  oracleMutationDispatchMarker,
+  selectedOracleMutationVariant,
+  type OracleMutationDispatchMarkerV1,
+} from "./oracle-conformance-v1.js";
+import {
   normalizeOracleInteger,
   oracleIntegerTypeInfo,
   promoteOracleIntegerTypes,
@@ -38,6 +43,135 @@ const COMPARISON_OPERATORS: ReadonlySet<BinaryOperator> = new Set([
   ">=",
 ]);
 
+const BOOLEAN_BINARY_MUTATIONS: Readonly<Record<"==" | "!=", OracleMutationDispatchMarkerV1>> =
+  Object.freeze({
+    "==": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.boolean.equal",
+      "boolean-negate-v1",
+    ),
+    "!=": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.boolean.not-equal",
+      "boolean-negate-v1",
+    ),
+  });
+
+const INTEGER_BINARY_MUTATIONS: Readonly<Record<BinaryOperator, OracleMutationDispatchMarkerV1>> =
+  Object.freeze({
+    "+": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.add",
+      "integer-xor-one-v1",
+    ),
+    "&": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.bitwise-and",
+      "integer-xor-one-v1",
+    ),
+    "|": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.bitwise-or",
+      "integer-xor-one-v1",
+    ),
+    "^": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.bitwise-xor",
+      "integer-xor-one-v1",
+    ),
+    "/": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.divide",
+      "integer-xor-one-v1",
+    ),
+    "==": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.equal",
+      "boolean-negate-v1",
+    ),
+    ">": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.greater",
+      "boolean-negate-v1",
+    ),
+    ">=": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.greater-equal",
+      "boolean-negate-v1",
+    ),
+    "<": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.less",
+      "boolean-negate-v1",
+    ),
+    "<=": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.less-equal",
+      "boolean-negate-v1",
+    ),
+    "*": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.multiply",
+      "integer-xor-one-v1",
+    ),
+    "!=": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.not-equal",
+      "boolean-negate-v1",
+    ),
+    "%": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.remainder",
+      "integer-xor-one-v1",
+    ),
+    "-": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.integer.subtract",
+      "integer-xor-one-v1",
+    ),
+    "<<": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.shift-left",
+      "integer-xor-one-v1",
+    ),
+    ">>": oracleMutationDispatchMarker(
+      "evaluator.binary",
+      "evaluator.binary.shift-right",
+      "integer-xor-one-v1",
+    ),
+  });
+
+const UNARY_MUTATIONS: Readonly<Record<UnaryOperator, OracleMutationDispatchMarkerV1>> =
+  Object.freeze({
+    "~": oracleMutationDispatchMarker(
+      "evaluator.unary",
+      "evaluator.unary.bitwise-not",
+      "integer-xor-one-v1",
+    ),
+    "!": oracleMutationDispatchMarker(
+      "evaluator.unary",
+      "evaluator.unary.logical-not",
+      "boolean-negate-v1",
+    ),
+    "-": oracleMutationDispatchMarker(
+      "evaluator.unary",
+      "evaluator.unary.negate",
+      "integer-xor-one-v1",
+    ),
+  });
+
+/** Closed scalar-operation branches required by mutation conformance. */
+export const ORACLE_SCALAR_MUTATION_PATHS = Object.freeze([
+  ...Object.values(BOOLEAN_BINARY_MUTATIONS),
+  ...Object.values(INTEGER_BINARY_MUTATIONS),
+  ...Object.values(UNARY_MUTATIONS),
+]);
+
+/*
+  The complete operator maps above are both executable routing and registry
+  metadata. Adding an operator branch therefore requires adding its marker.
+*/
+
 function unsupported(): OracleOperationUnmodeledResultV1 {
   return Object.freeze({ kind: "unmodeled", reason: "unsupported-semantics" });
 }
@@ -58,6 +192,21 @@ function booleanValue(value: boolean): OracleOperationValueResultV1 {
     kind: "value",
     value: Object.freeze({ kind: "boolean", type: "boolean", value }),
   });
+}
+
+function mutateValue(
+  marker: OracleMutationDispatchMarkerV1,
+  result: OracleOperationResultV1,
+): OracleOperationResultV1 {
+  if (result.kind !== "value") return result;
+  const variant = selectedOracleMutationVariant(marker);
+  if (variant === "boolean-negate-v1" && result.value.kind === "boolean") {
+    return booleanValue(!result.value.value);
+  }
+  if (variant === "integer-xor-one-v1" && result.value.kind === "integer") {
+    return integerValue(result.value.type, result.value.value ^ 1n);
+  }
+  return result;
 }
 
 function compareIntegers(operator: BinaryOperator, left: bigint, right: bigint): boolean {
@@ -131,16 +280,19 @@ export function evaluateOracleUnaryOperation(
   operand: OracleValueV1,
 ): OracleOperationResultV1 {
   if (operator === "!") {
-    return operand.kind === "boolean" && resultType === "boolean"
-      ? booleanValue(!operand.value)
-      : unsupported();
+    return mutateValue(
+      UNARY_MUTATIONS[operator],
+      operand.kind === "boolean" && resultType === "boolean"
+        ? booleanValue(!operand.value)
+        : unsupported(),
+    );
   }
   if (operand.kind !== "integer" || operand.type !== resultType) return unsupported();
   if (operator === "-") {
     if (resultType !== "sbyte" && resultType !== "sword") return unsupported();
-    return integerValue(resultType, -operand.value);
+    return mutateValue(UNARY_MUTATIONS[operator], integerValue(resultType, -operand.value));
   }
-  return integerValue(operand.type, ~operand.value);
+  return mutateValue(UNARY_MUTATIONS[operator], integerValue(operand.type, ~operand.value));
 }
 
 /**
@@ -170,8 +322,9 @@ export function evaluateOracleBinaryOperation(
     ) {
       return unsupported();
     }
-    return booleanValue(
-      operator === "==" ? left.value === right.value : left.value !== right.value,
+    return mutateValue(
+      BOOLEAN_BINARY_MUTATIONS[operator],
+      booleanValue(operator === "==" ? left.value === right.value : left.value !== right.value),
     );
   }
 
@@ -184,10 +337,10 @@ export function evaluateOracleBinaryOperation(
       return unsupported();
     }
     if (right.value >= BigInt(oracleIntegerTypeInfo(left.type).bits)) {
-      return integerValue(left.type, 0n);
+      return mutateValue(INTEGER_BINARY_MUTATIONS[operator], integerValue(left.type, 0n));
     }
     const shifted = operator === "<<" ? left.value << right.value : left.value >> right.value;
-    return integerValue(left.type, shifted);
+    return mutateValue(INTEGER_BINARY_MUTATIONS[operator], integerValue(left.type, shifted));
   }
 
   const promotedType = promoteOracleIntegerTypes(left.type, right.type);
@@ -195,11 +348,17 @@ export function evaluateOracleBinaryOperation(
   const widenedLeft = widenOracleInteger(left, promotedType);
   const widenedRight = widenOracleInteger(right, promotedType);
   if (COMPARISON_OPERATORS.has(operator)) {
-    return resultType === "boolean"
-      ? booleanValue(compareIntegers(operator, widenedLeft.value, widenedRight.value))
-      : unsupported();
+    return mutateValue(
+      INTEGER_BINARY_MUTATIONS[operator],
+      resultType === "boolean"
+        ? booleanValue(compareIntegers(operator, widenedLeft.value, widenedRight.value))
+        : unsupported(),
+    );
   }
-  return resultType === promotedType
-    ? evaluateIntegerArithmetic(operator, promotedType, widenedLeft.value, widenedRight.value)
-    : unsupported();
+  return mutateValue(
+    INTEGER_BINARY_MUTATIONS[operator],
+    resultType === promotedType
+      ? evaluateIntegerArithmetic(operator, promotedType, widenedLeft.value, widenedRight.value)
+      : unsupported(),
+  );
 }
