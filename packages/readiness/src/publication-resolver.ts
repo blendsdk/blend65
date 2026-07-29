@@ -23,12 +23,18 @@ import {
 } from "./publication-candidates.js";
 import { currentPublicationConformance } from "./publication-conformance-v1.js";
 import {
+  isVerifiedSelectedPointerReplacement,
   pinPublicationDirectory,
   readPublicationRegularFile,
+  readSelectedPublicationPointer,
   verifyPublicationDirectory,
   type PublicationBoundedRead,
   type PublicationDirectoryIdentity,
 } from "./publication-filesystem.js";
+import {
+  publicationResolutionObservation,
+  type PublicationResolutionObservation,
+} from "./publication-conformance-v1.js";
 import { readPublicationAuthorityFiles } from "./publication-authority-loader.js";
 import {
   publicationImplementationAuthorityFromBytes,
@@ -177,18 +183,37 @@ async function readBoundedRegularFile(
   path: string,
   limit: number,
   directories: readonly PublicationDirectoryIdentity[],
+  selectedPointer = false,
 ): Promise<PublicationResult<PublicationBoundedRead>> {
   for (const directory of directories) {
     const verified = await verifyPublicationDirectory(directory);
     if (!verified.ok) return verified;
   }
-  const read = await readPublicationRegularFile(path, limit);
+  const read = selectedPointer
+    ? await readSelectedPublicationPointer(path, limit, directories)
+    : await readPublicationRegularFile(path, limit);
   if (!read.ok) return read;
   for (const directory of directories) {
     const verified = await verifyPublicationDirectory(directory);
     if (!verified.ok) return verified;
   }
   return read;
+}
+
+async function observeSelectedResolution(
+  observation: PublicationResolutionObservation,
+): Promise<PublicationResult<true>> {
+  try {
+    await publicationResolutionObservation(observation);
+    return publicationSuccess(true);
+  } catch {
+    return publicationFailure(
+      "io",
+      "publication.io",
+      PUBLICATION_POINTER_PATH,
+      "Selected publication resolution observation failed.",
+    );
+  }
 }
 
 function createSnapshot(state: PublishedSnapshotState): PublishedSnapshot {
@@ -594,40 +619,94 @@ export async function resolvePublishedReleaseDigest(
 export async function resolvePublishedSnapshot(
   input: ResolvePublishedSnapshotInput,
 ): Promise<PublicationResult<PublishedSnapshot>> {
+  const first = await resolvePublishedSnapshotAttempt(input, 1);
+  if (first.ok || !isVerifiedSelectedPointerReplacement(first)) return first;
+  const retry = await observeSelectedResolution({
+    operation: "selected-resolution",
+    attempt: 1,
+    event: "retry",
+    reason: "verified-pointer-replacement",
+  });
+  if (!retry.ok) return retry;
+  return resolvePublishedSnapshotAttempt(input, 2);
+}
+
+async function resolvePublishedSnapshotAttempt(
+  input: ResolvePublishedSnapshotInput,
+  attempt: 1 | 2,
+): Promise<PublicationResult<PublishedSnapshot>> {
+  const started = await observeSelectedResolution({
+    operation: "selected-resolution",
+    attempt,
+    event: "start",
+  });
+  if (!started.ok) return started;
   const root = await canonicalRepositoryRoot(input.repositoryRoot);
-  if (!root.ok) return root;
+  if (!root.ok) return finishSelectedResolution(root, attempt);
   const directories = await rejectDirectoryLinks(root.value);
-  if (!directories.ok) return directories;
+  if (!directories.ok) return finishSelectedResolution(directories, attempt);
   const pointerRead = await readBoundedRegularFile(
     join(root.value, PUBLICATION_POINTER_PATH),
     PUBLICATION_V1_LIMITS.maxPointerBytes,
     directories.value,
+    true,
   );
-  if (!pointerRead.ok) return pointerRead;
+  if (!pointerRead.ok) return finishSelectedResolution(pointerRead, attempt);
   const pointer = parsePublicationPointer(pointerRead.value.bytes);
-  if (!pointer.ok) return pointer;
+  if (!pointer.ok) return finishSelectedResolution(pointer, attempt);
   if (
     !equalBytes(pointerRead.value.bytes, renderPublicationPointer(pointer.value.publicationDigest))
   ) {
-    return publicationFailure(
-      "invalid",
-      "publication.input.invalid",
-      PUBLICATION_POINTER_PATH,
-      "Publication pointer is not in canonical wire form.",
+    return finishSelectedResolution(
+      publicationFailure<PublishedSnapshot>(
+        "invalid",
+        "publication.input.invalid",
+        PUBLICATION_POINTER_PATH,
+        "Publication pointer is not in canonical wire form.",
+      ),
+      attempt,
     );
   }
   const snapshot = await resolvePublishedReleaseDigest(root.value, pointer.value.publicationDigest);
-  if (!snapshot.ok) return snapshot;
+  if (!snapshot.ok) return finishSelectedResolution(snapshot, attempt);
   const metadata = getPublishedMetadata(snapshot.value);
   if (metadata?.publicationDigest !== pointer.value.publicationDigest) {
-    return publicationFailure(
-      "invalid",
-      "publication.digest.mismatch",
-      PUBLICATION_POINTER_PATH,
-      "Selected pointer and resolved publication disagree.",
+    return finishSelectedResolution(
+      publicationFailure<PublishedSnapshot>(
+        "invalid",
+        "publication.digest.mismatch",
+        PUBLICATION_POINTER_PATH,
+        "Selected pointer and resolved publication disagree.",
+      ),
+      attempt,
     );
   }
-  return snapshot;
+  const succeeded = await observeSelectedResolution({
+    operation: "selected-resolution",
+    attempt,
+    event: "success",
+  });
+  return succeeded.ok ? snapshot : succeeded;
+}
+
+async function finishSelectedResolution<T>(
+  failure: PublicationResult<T>,
+  attempt: 1 | 2,
+): Promise<PublicationResult<T>> {
+  if (failure.ok) return failure;
+  const observed = await observeSelectedResolution({
+    operation: "selected-resolution",
+    attempt,
+    event: "failure",
+  });
+  return observed.ok
+    ? failure
+    : publicationFailure(
+        "io",
+        "publication.io",
+        PUBLICATION_POINTER_PATH,
+        observed.diagnostics[0]?.message ?? "Selected publication resolution observation failed.",
+      );
 }
 
 function namedSnapshotInput(

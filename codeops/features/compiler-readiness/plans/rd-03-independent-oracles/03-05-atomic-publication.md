@@ -450,6 +450,278 @@ byte-identical and regenerate exact revision `b715303…`. SharedArrayBuffer rej
 Phase 4 identity, assertion, mutation and replay regression remain mandatory. If exact bytes or
 hardening coverage cannot both be proved, an authentic versioned historical closure is required.
 
+## Final Publication Conformance Contract
+
+Phase 6 extends the existing package-private `publication-conformance-v1.ts` seam; it does not add
+fault controls to the package root or `published-oracle` subpath. Existing
+`runWithPublicationConformance` scopes remain isolated with `AsyncLocalStorage`. The complete
+closed fault contract available to the specification is:
+
+```ts
+type PublicationFaultPoint =
+  | "after-publication-directory-sync"
+  | "after-member-sync"
+  | "after-staging-directory-sync"
+  | "before-release-rename"
+  | "after-release-rename"
+  | "after-releases-directory-sync"
+  | "before-staged-validation"
+  | "after-staged-validation"
+  | "after-pointer-temporary-sync"
+  | "after-pointer-rename"
+  | "after-publication-root-sync";
+
+type PublicationFilesystemFaultPoint =
+  | "after-directory-lstat"
+  | "before-directory-sync"
+  | "after-file-lstat"
+  | "after-file-open"
+  | "before-file-read"
+  | "after-file-read"
+  | "before-selected-pointer-replacement-lstat"
+  | "after-output-open"
+  | "after-file-sync"
+  | "after-directory-enumeration"
+  | "before-remove";
+
+type PublicationResolutionObservation =
+  | {
+      readonly operation: "selected-resolution";
+      readonly attempt: 1 | 2;
+      readonly event: "start" | "success" | "failure";
+    }
+  | {
+      readonly operation: "selected-resolution";
+      readonly attempt: 1;
+      readonly event: "retry";
+      readonly reason: "verified-pointer-replacement";
+    };
+
+interface PublicationConformanceHooks {
+  readonly atFaultPoint?: (
+    point: PublicationFaultPoint,
+    context: {
+      readonly publicationDigest?: Sha256Digest;
+      readonly memberPath?: string;
+    },
+  ) => void | Promise<void>;
+  readonly atFilesystemPoint?: (
+    point: PublicationFilesystemFaultPoint,
+    context: { readonly path: string },
+  ) => void | Promise<void>;
+  readonly atResolutionObservation?: (
+    observation: PublicationResolutionObservation,
+  ) => void | Promise<void>;
+  readonly digest?: (domain: string, bytes: Uint8Array) => Sha256Digest;
+  readonly forceDurabilityUnsupported?: boolean;
+  readonly forceStagedValidationFailure?: boolean;
+}
+
+function runWithPublicationConformance<T>(
+  hooks: PublicationConformanceHooks,
+  operation: () => Promise<T>,
+): Promise<T>;
+```
+
+Every observation is frozen and supplies no path, bytes, digest, snapshot, candidate, registry,
+capability or substitution directive. Attempt one always emits `start`; a successful or terminal
+attempt emits exactly one `success` or `failure`. A verified pointer-replacement result emits
+attempt-one `failure`, then `retry`, then attempt-two `start`. No other failure emits `retry`.
+Fault callbacks may return or await normally. Throwing a bounded test-owned `Error` stops that
+boundary and is converted by the owning production operation into its normal closed failure;
+throwing never substitutes bytes or simulates process termination. The final-publication
+specification injects publication faults only at the following points that are unconditional in
+incremental commit:
+
+```ts
+const INCREMENTAL_PRE_POINTER_FAULT_POINTS = [
+  "after-member-sync",
+  "after-staging-directory-sync",
+  "before-release-rename",
+  "after-release-rename",
+  "after-releases-directory-sync",
+  "before-staged-validation",
+  "after-staged-validation",
+  "after-pointer-temporary-sync",
+] as const;
+
+const INCREMENTAL_AT_OR_POST_POINTER_FAULT_POINTS = [
+  "after-pointer-rename",
+  "after-publication-root-sync",
+] as const;
+```
+
+The pre-pointer branch returns the ordinary injected publication failure with the exact old digest
+still selected. The at/post-pointer branch reconciles and returns committed success when the exact
+new digest resolves. The test uses `before-file-read` on the selected pointer as its unrelated
+filesystem failure; it returns ordinary `publication.io` and emits no retry.
+
+`publication-filesystem.ts` internally brands only the result produced when the already-opened
+canonical selected-pointer regular file fails its device/inode/size/link identity revalidation.
+The brand is unforgeable, absent from diagnostics and accepted only with the exact canonical
+`readiness/publications/current-publication.json` path. Before branding, every retained directory
+identity is revalidated both before and after inspecting the canonical replacement path; the old
+opened inode must retain its regular-file device/inode/size and have exactly zero links after
+overwrite rename; and the canonical path inspected between those passes must be a distinct regular
+single-link replacement with the exact bounded pointer size. The brand is minted synchronously
+after the second pass with no awaited boundary. A positive old-handle link count, symlink,
+non-regular file, directory replacement, release/member mutation or arbitrary I/O is never
+branded.
+`resolvePublishedSnapshot` performs at most two complete attempts. Attempt two restarts at
+canonical-root validation and reopens and revalidates the pointer, release, review, implementation
+revisions and candidates without retaining bytes, directories or partial snapshot state from
+attempt one. A second branded replacement returns the ordinary closed pointer-identity failure.
+
+The incremental result union adds one dedicated terminal branch:
+
+```ts
+interface CommitIndeterminatePublicationResult {
+  readonly ok: false;
+  readonly kind: "commit-indeterminate";
+  readonly expectedOldPublicationDigest: Sha256Digest;
+  readonly expectedNewPublicationDigest: Sha256Digest;
+  readonly diagnostics: readonly [
+    {
+      readonly code: "publication.commit.indeterminate";
+      readonly path: "readiness/publications/current-publication.json";
+      readonly message: string;
+    },
+  ];
+}
+
+type CompatiblePublicationResult<T> =
+  | CompatiblePublicationSuccess<T>
+  | CompatiblePublicationOrdinaryFailure
+  | CommitIndeterminatePublicationResult;
+```
+
+The message is bounded by the existing publication diagnostic limit. Recovery data contains no
+root, temporary path, capability, bytes, untrusted observed digest or callable. After any pointer
+commit-attempt failure, and after a failed final selected resolution, incremental publication
+performs one full selected-state reconciliation: exact new selected returns normal committed
+success; exact old selected returns the original ordinary failure; unreadable authority or any
+state that cannot establish either exact result returns `commit-indeterminate`.
+
+The Phase 6 specification owns its worker fixture and this closed serializable protocol:
+
+```ts
+interface FinalPublicationReaderWorkerInput {
+  readonly schemaVersion: 1;
+  readonly repositoryRoot: string;
+  readonly pauseAfterPointerReadAttempts: readonly (1 | 2)[];
+}
+
+type FinalPublicationReaderWorkerMessage =
+  | { readonly schemaVersion: 1; readonly kind: "ready" }
+  | {
+      readonly schemaVersion: 1;
+      readonly kind: "barrier";
+      readonly barrier: "pointer-read";
+      readonly attempt: 1 | 2;
+    }
+  | {
+      readonly schemaVersion: 1;
+      readonly kind: "continue";
+      readonly barrier: "pointer-read";
+      readonly attempt: 1 | 2;
+    }
+  | {
+      readonly schemaVersion: 1;
+      readonly kind: "result";
+      readonly attempts: readonly PublicationResolutionObservation[];
+      readonly result: FinalPublicationReaderResult;
+    };
+
+type FinalPublicationReaderResult =
+  | {
+      readonly ok: true;
+      readonly publicationDigest: Sha256Digest;
+      readonly inventoryGenerationDigest: Sha256Digest;
+      readonly bindingRows: readonly PublicationBindingRow[];
+      readonly handlerDeclarations: readonly HandlerDeclaration[];
+    }
+  | {
+      readonly ok: false;
+      readonly kind:
+        | "invalid"
+        | "not-found"
+        | "stale"
+        | "collision"
+        | "contended"
+        | "durability-unsupported"
+        | "acceptance-failed"
+        | "io";
+      readonly diagnostics: readonly PublicationDiagnostic[];
+    };
+```
+
+The worker fixes and validates one canonical repository root at startup. The `pointer-read`
+barrier is the existing `after-file-read` filesystem point for the exact selected pointer, before
+final identity revalidation. The fixture transfers no snapshots, callables, registries,
+capabilities or authority bytes. Success projects complete lexical binding rows and complete
+lexical handler declarations, which is sufficient to prove the exact four-row old state or
+nine-row new state and reject every mixed revision/binding/transform state. Pausing attempt one
+forces one replacement and retry; pausing attempts one and two forces a second replacement and a
+closed failure. Throwing at a different filesystem point proves unrelated failures do not retry.
+
+The specification creates the worker exactly as:
+
+```ts
+new Worker(
+  new URL("../dist/test-fixtures/final-publication-reader-spec-fixture.js", import.meta.url),
+  { workerData: input },
+);
+```
+
+The fixture entry imports only
+`runWithPublicationConformance` from `../publication-conformance-v1.js` and
+`resolvePublishedSnapshot`, `getPublishedBindingRows`, `getPublishedInventory` and
+`getPublishedMetadata` from `../publication-resolver.js`. It validates `workerData`, posts
+`{ schemaVersion: 1, kind: "ready" }`, runs one resolution inside the conformance scope, exchanges
+only exact barrier messages, posts one result and closes. `yarn workspace @blend65/readiness build`
+must precede the focused run so this fixture exists in `dist/test-fixtures/`.
+
+The resolver getter contracts used by that projection are exactly:
+
+```ts
+interface PublishedMetadata {
+  readonly publicationDigest: Sha256Digest;
+  readonly inventoryGenerationDigest: Sha256Digest;
+}
+
+interface InventoryV1 {
+  readonly handlerDeclarations: readonly HandlerDeclaration[];
+  // Other inventory fields exist but are not read or transferred by this fixture.
+}
+
+function getPublishedMetadata(snapshot: PublishedSnapshot): PublishedMetadata | undefined;
+function getPublishedBindingRows(
+  snapshot: PublishedSnapshot,
+): readonly PublicationBindingRow[] | undefined;
+function getPublishedInventory(snapshot: PublishedSnapshot): InventoryV1 | undefined;
+```
+
+The new specification may reuse, without modifying, these already frozen implementation-blind
+Phase 5 fixture exports:
+
+```ts
+interface OraclePublicationSpecFixture {
+  readonly repositoryRoot: string;
+  readonly publicationDigest: `sha256:${string}`;
+  readonly pointerBytes: Uint8Array;
+  readonly legacySemanticReviewBytes: Uint8Array;
+  cleanup(): Promise<void>;
+}
+
+function createOraclePublicationSpecFixture(): Promise<OraclePublicationSpecFixture>;
+function createAcceptedReviewBytes(request: PublicationReviewRequest): Uint8Array;
+```
+
+They are imported from `./test-fixtures/oracle-publication-spec-fixture.js`; no existing fixture or
+specification bytes are edited. The final specification obtains a fresh base snapshot, reconstructs
+the incremental review request, creates accepted bytes with the frozen fixture helper and prepares
+a fresh one-use capability for each publication-fault case.
+
 ## Commit Point and Crash Safety
 
 Publication retains the RD-02 protocol:

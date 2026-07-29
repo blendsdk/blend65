@@ -86,6 +86,8 @@ export interface ReviewFailureVariant {
 }
 
 const SOURCE_REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const RD02_BASE_PUBLICATION_DIGEST =
+  "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -141,10 +143,14 @@ async function copyRepositoryAuthority(prefix: string): Promise<string> {
 
 export async function createOraclePublicationSpecFixture(): Promise<OraclePublicationSpecFixture> {
   const repositoryRoot = await copyRepositoryAuthority("blend65-oracle-publication-spec-");
-  const pointerBytes = await readFile(
-    join(repositoryRoot, "readiness/publications/current-publication.json"),
-  );
-  const { publicationDigest } = parsePointer(pointerBytes);
+  const pointerPath = join(repositoryRoot, "readiness/publications/current-publication.json");
+  const pointerBytes = encodeJson({
+    schemaVersion: 1,
+    publicationDigest: RD02_BASE_PUBLICATION_DIGEST,
+  });
+  await writeFile(pointerPath, pointerBytes);
+  const retainedPointerBytes = await readFile(pointerPath);
+  const { publicationDigest } = parsePointer(retainedPointerBytes);
   const legacySemanticReviewBytes = await readFile(
     join(
       repositoryRoot,
@@ -157,7 +163,7 @@ export async function createOraclePublicationSpecFixture(): Promise<OraclePublic
   return {
     repositoryRoot,
     publicationDigest,
-    pointerBytes,
+    pointerBytes: retainedPointerBytes,
     legacySemanticReviewBytes,
     cleanup: () => rm(repositoryRoot, { recursive: true }),
   };

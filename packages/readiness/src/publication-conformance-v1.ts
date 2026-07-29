@@ -29,10 +29,25 @@ export type PublicationFilesystemFaultPoint =
   | "after-file-open"
   | "before-file-read"
   | "after-file-read"
+  | "before-selected-pointer-replacement-lstat"
   | "after-output-open"
   | "after-file-sync"
   | "after-directory-enumeration"
   | "before-remove";
+
+/** Output-only lifecycle observation for one selected-publication resolution. */
+export type PublicationResolutionObservation =
+  | {
+      readonly operation: "selected-resolution";
+      readonly attempt: 1 | 2;
+      readonly event: "start" | "success" | "failure";
+    }
+  | {
+      readonly operation: "selected-resolution";
+      readonly attempt: 1;
+      readonly event: "retry";
+      readonly reason: "verified-pointer-replacement";
+    };
 
 /** Operation-scoped conformance hooks for publication fault injection. */
 export interface PublicationConformanceHooks {
@@ -48,6 +63,10 @@ export interface PublicationConformanceHooks {
   readonly atFilesystemPoint?: (
     point: PublicationFilesystemFaultPoint,
     context: { readonly path: string },
+  ) => void | Promise<void>;
+  /** Observes bounded selected-resolution progress without receiving authority or control input. */
+  readonly atResolutionObservation?: (
+    observation: PublicationResolutionObservation,
   ) => void | Promise<void>;
   /** Optional deterministic digest replacement used only by collision specifications. */
   readonly digest?: (domain: string, bytes: Uint8Array) => Sha256Digest;
@@ -77,7 +96,9 @@ export interface PublicationBoundaryFile {
 const CONFORMANCE = new AsyncLocalStorage<PublicationConformanceHooks>();
 const ALLOWED_PUBLICATION_MODULES: ReadonlySet<string> = new Set([
   "binding-publication.ts",
+  "compatible-publication-model.ts",
   "publication-conformance-v1.ts",
+  "publication-filesystem.ts",
   "publication-model.ts",
   "publication-pointer.ts",
   "publication-resolver.ts",
@@ -124,6 +145,25 @@ export async function publicationFilesystemFaultPoint(
   path: string,
 ): Promise<void> {
   await CONFORMANCE.getStore()?.atFilesystemPoint?.(point, { path });
+}
+
+/**
+ * Emits one frozen output-only selected-resolution lifecycle observation.
+ *
+ * @param observation Closed attempt lifecycle event.
+ * @example
+ * ```ts
+ * await publicationResolutionObservation({
+ *   operation: "selected-resolution",
+ *   attempt: 1,
+ *   event: "start",
+ * });
+ * ```
+ */
+export async function publicationResolutionObservation(
+  observation: PublicationResolutionObservation,
+): Promise<void> {
+  await CONFORMANCE.getStore()?.atResolutionObservation?.(Object.freeze({ ...observation }));
 }
 
 /**

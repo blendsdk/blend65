@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open, opendir, rename, rm, type FileHandle } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, normalize, sep } from "node:path";
 
 import { publicationFilesystemFaultPoint } from "./publication-conformance-v1.js";
 import {
@@ -15,6 +15,14 @@ const NO_FOLLOW = "O_NOFOLLOW" in constants ? constants.O_NOFOLLOW : 0;
 const DIRECTORY_ONLY = "O_DIRECTORY" in constants ? constants.O_DIRECTORY : 0;
 /* v8 ignore next -- the fallback is exercised only on hosts that omit this platform constant. */
 const NON_BLOCKING = "O_NONBLOCK" in constants ? constants.O_NONBLOCK : 0;
+const SELECTED_POINTER_SUFFIX = join("readiness", "publications", "current-publication.json");
+const VERIFIED_POINTER_REPLACEMENTS = new WeakSet<object>();
+
+interface DetachedSelectedPointer {
+  readonly device: bigint;
+  readonly inode: bigint;
+  readonly size: bigint;
+}
 
 /** Stable identity retained for one verified real directory. */
 export interface PublicationDirectoryIdentity {
@@ -112,6 +120,25 @@ function sameIdentity(
   right: PublicationDirectoryIdentity,
 ): boolean {
   return left.device === right.device && left.inode === right.inode;
+}
+
+function isCanonicalSelectedPointerPath(path: string): boolean {
+  return (
+    isAbsolute(path) &&
+    normalize(path) === path &&
+    path.endsWith(`${sep}${SELECTED_POINTER_SUFFIX}`)
+  );
+}
+
+function verifiedPointerReplacement<T>(path: string): PublicationResult<T> {
+  const result = publicationFailure<T>(
+    "invalid",
+    "publication.path.invalid",
+    path,
+    "Selected publication pointer identity changed during verification.",
+  );
+  VERIFIED_POINTER_REPLACEMENTS.add(result);
+  return result;
 }
 
 async function openedDirectoryIdentity(
@@ -299,11 +326,12 @@ export async function ensurePublicationChildDirectory(
  * @param limit Maximum allocation and read length.
  * @param expectedSize Optional exact length known from trusted staged bytes.
  */
-export async function readPublicationRegularFile(
+async function readPublicationRegularFileInternal(
   path: string,
   limit: number,
   expectedSize?: number,
-): Promise<PublicationResult<PublicationBoundedRead>> {
+  selectedPointer = false,
+): Promise<PublicationResult<PublicationBoundedRead> | DetachedSelectedPointer> {
   let handle: FileHandle | undefined;
   try {
     const before = await lstat(path, { bigint: true });
@@ -366,10 +394,10 @@ export async function readPublicationRegularFile(
     await publicationFilesystemFaultPoint("after-file-read", path);
     const completed = await handle.stat({ bigint: true });
     if (
+      !completed.isFile() ||
       completed.dev !== opened.dev ||
       completed.ino !== opened.ino ||
-      completed.size !== opened.size ||
-      completed.nlink !== 1n
+      completed.size !== opened.size
     ) {
       return publicationFailure(
         "io",
@@ -378,14 +406,31 @@ export async function readPublicationRegularFile(
         "Publication artifact changed while it was being verified.",
       );
     }
+    if (selectedPointer && completed.nlink === 0n) {
+      return Object.freeze({
+        device: completed.dev,
+        inode: completed.ino,
+        size: completed.size,
+      });
+    }
+    if (completed.nlink !== 1n) {
+      return publicationFailure(
+        "invalid",
+        "publication.path.invalid",
+        path,
+        "Publication artifact must remain a single-link regular file.",
+      );
+    }
     const after = await lstat(path, { bigint: true });
-    if (
-      after.isSymbolicLink() ||
-      after.dev !== opened.dev ||
-      after.ino !== opened.ino ||
-      after.size !== opened.size ||
-      after.nlink !== 1n
-    ) {
+    const exactIdentity =
+      !after.isSymbolicLink() &&
+      after.isFile() &&
+      after.dev === opened.dev &&
+      after.ino === opened.ino &&
+      after.size === opened.size &&
+      after.nlink === 1n &&
+      completed.nlink === 1n;
+    if (!exactIdentity) {
       return publicationFailure(
         "invalid",
         "publication.path.invalid",
@@ -404,6 +449,112 @@ export async function readPublicationRegularFile(
   } finally {
     await handle?.close().catch(() => undefined);
   }
+}
+
+/**
+ * Reads one ordinary bounded regular file without pointer-replacement retry authority.
+ *
+ * @param path Absolute file path.
+ * @param limit Maximum allocation and read length.
+ * @param expectedSize Optional exact length known from trusted staged bytes.
+ * @returns Exact stable bytes or a closed ordinary filesystem failure.
+ */
+export async function readPublicationRegularFile(
+  path: string,
+  limit: number,
+  expectedSize?: number,
+): Promise<PublicationResult<PublicationBoundedRead>> {
+  const result = await readPublicationRegularFileInternal(path, limit, expectedSize);
+  return "device" in result
+    ? publicationFailure(
+        "invalid",
+        "publication.path.invalid",
+        path,
+        "Publication artifact path was substituted during verification.",
+      )
+    : result;
+}
+
+/**
+ * Reads the canonical selected pointer and privately marks only verified identity replacement.
+ *
+ * @param path Canonical absolute selected-pointer path.
+ * @param limit Maximum allocation and read length.
+ * @param directories Every retained directory identity that led to the selected pointer.
+ * @returns Exact stable pointer bytes or a closed filesystem failure.
+ *
+ * @example
+ * ```ts
+ * const pointer = await readSelectedPublicationPointer(canonicalPointerPath, 256, directories);
+ * ```
+ */
+export async function readSelectedPublicationPointer(
+  path: string,
+  limit: number,
+  directories: readonly PublicationDirectoryIdentity[],
+): Promise<PublicationResult<PublicationBoundedRead>> {
+  if (!isCanonicalSelectedPointerPath(path)) {
+    return publicationFailure(
+      "invalid",
+      "publication.path.invalid",
+      path,
+      "Selected publication pointer path is not canonical.",
+    );
+  }
+  const result = await readPublicationRegularFileInternal(path, limit, undefined, true);
+  if (!("device" in result)) return result;
+  for (const directory of directories) {
+    const verified = await verifyPublicationDirectory(directory);
+    if (!verified.ok) return verified;
+  }
+  try {
+    await publicationFilesystemFaultPoint("before-selected-pointer-replacement-lstat", path);
+    const replacement = await lstat(path, { bigint: true });
+    if (
+      replacement.isSymbolicLink() ||
+      !replacement.isFile() ||
+      replacement.nlink !== 1n ||
+      replacement.size !== result.size ||
+      replacement.size > BigInt(limit) ||
+      (replacement.dev === result.device && replacement.ino === result.inode)
+    ) {
+      return publicationFailure(
+        "invalid",
+        "publication.path.invalid",
+        path,
+        "Selected publication pointer replacement is not an exact single-link regular file.",
+      );
+    }
+  } catch {
+    return publicationFailure(
+      "io",
+      "publication.io",
+      path,
+      "Selected publication pointer replacement could not be inspected safely.",
+    );
+  }
+  for (const directory of directories) {
+    const verified = await verifyPublicationDirectory(directory);
+    if (!verified.ok) return verified;
+  }
+  return verifiedPointerReplacement(path);
+}
+
+/**
+ * Tests whether a closed filesystem failure carries private verified pointer-replacement authority.
+ *
+ * @param result Closed filesystem result.
+ * @returns `true` only for the exact privately branded result object.
+ *
+ * @example
+ * ```ts
+ * if (isVerifiedSelectedPointerReplacement(result)) {
+ *   // Restart the complete selected resolution once.
+ * }
+ * ```
+ */
+export function isVerifiedSelectedPointerReplacement(result: unknown): boolean {
+  return typeof result === "object" && result !== null && VERIFIED_POINTER_REPLACEMENTS.has(result);
 }
 
 /** Creates, completely writes and synchronizes one direct regular-file child. */

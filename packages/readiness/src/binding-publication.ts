@@ -10,6 +10,7 @@ import type { FreshCandidateRegistration } from "./binding-model.js";
 import type { PublishedSnapshot } from "./binding-model.js";
 import {
   type CompatiblePublicationDiagnostic,
+  type CompatiblePublicationOrdinaryFailure,
   type CompatiblePublicationResult,
   type PrepareIncrementalBindingPublicationInput,
   type PrepareIncrementalBindingPublicationReviewInput,
@@ -32,6 +33,7 @@ import type { Sha256Digest } from "./model-registry-model.js";
 import { commitPublicationPointer, promotePublicationRelease } from "./publication-pointer.js";
 import {
   PUBLICATION_MEMBER_PATHS,
+  PUBLICATION_POINTER_PATH,
   PUBLICATION_ROOT_PATH,
   PUBLICATION_V1_LIMITS,
   createPreparedPublicationReview,
@@ -449,12 +451,12 @@ function compatibleSuccess<T>(value: T): CompatiblePublicationResult<T> {
   return Object.freeze({ ok: true, value, diagnostics: EMPTY_COMPATIBLE_DIAGNOSTICS });
 }
 
-function compatibleFailure<T>(
+function compatibleFailure(
   code: CompatiblePublicationDiagnostic["code"],
   path: string,
   message: string,
-  kind: Extract<CompatiblePublicationResult<T>, { readonly ok: false }>["kind"] = "invalid",
-): CompatiblePublicationResult<T> {
+  kind: CompatiblePublicationOrdinaryFailure["kind"] = "invalid",
+): CompatiblePublicationOrdinaryFailure {
   return Object.freeze({
     ok: false,
     kind,
@@ -462,17 +464,72 @@ function compatibleFailure<T>(
   });
 }
 
-function compatiblePublicationFailure<T>(
+function compatiblePublicationFailure(
   result: Extract<
-    PublicationResult<unknown> | CompatiblePublicationResult<unknown>,
+    PublicationResult<unknown> | CompatiblePublicationOrdinaryFailure,
     { readonly ok: false }
   >,
-): CompatiblePublicationResult<T> {
+): CompatiblePublicationOrdinaryFailure {
   return Object.freeze({
     ok: false,
     kind: result.kind,
     diagnostics: result.diagnostics,
   });
+}
+
+function commitIndeterminate(
+  expectedOldPublicationDigest: Sha256Digest,
+  expectedNewPublicationDigest: Sha256Digest,
+): CompatiblePublicationResult<never> {
+  return Object.freeze({
+    ok: false,
+    kind: "commit-indeterminate",
+    expectedOldPublicationDigest,
+    expectedNewPublicationDigest,
+    diagnostics: Object.freeze([
+      Object.freeze({
+        code: "publication.commit.indeterminate" as const,
+        path: PUBLICATION_POINTER_PATH,
+        message: "Selected publication state could not be established after the commit attempt.",
+      }),
+    ] as const),
+  });
+}
+
+function committedIncrementalPublication(
+  publicationDigest: Sha256Digest,
+  snapshot: PublishedSnapshot,
+  reusedExistingRelease: boolean,
+): CompatiblePublicationResult<PublishedBindingTransaction> {
+  return compatibleSuccess(
+    Object.freeze({
+      publicationDigest,
+      snapshot,
+      reusedExistingRelease,
+    }),
+  );
+}
+
+async function reconcileIncrementalPublication(
+  state: PreparedIncrementalState,
+  reusedExistingRelease: boolean,
+  originalFailure: CompatiblePublicationOrdinaryFailure,
+): Promise<CompatiblePublicationResult<PublishedBindingTransaction>> {
+  const selected = await resolvePublishedSnapshot({ repositoryRoot: state.root });
+  if (selected.ok) {
+    const metadata = getPublishedMetadata(selected.value);
+    if (metadata?.publicationDigest === state.publicationDigest) {
+      return committedIncrementalPublication(
+        state.publicationDigest,
+        selected.value,
+        reusedExistingRelease,
+      );
+    }
+    if (metadata?.publicationDigest === state.basePublicationDigest) {
+      return originalFailure;
+    }
+  }
+  return commitIndeterminate(state.basePublicationDigest, state.publicationDigest);
 }
 
 function exactIncrementalTargets(value: readonly string[]): boolean {
@@ -757,27 +814,85 @@ export async function publishIncrementalBindingPublication(
     }
     const promoted = await promotePublicationRelease(state.root, release.value);
     if (!promoted.ok) return compatiblePublicationFailure(promoted);
-    const committed = await commitPublicationPointer(state.root, release.value);
-    if (!committed.ok) return compatiblePublicationFailure(committed);
-    const selected = await resolvePublishedSnapshotByDigest({
-      repositoryRoot: state.root,
-      publicationDigest: release.value.publicationDigest,
-    });
-    if (!selected.ok) return compatiblePublicationFailure(selected);
-    const exactMetadata = getPublishedMetadata(selected.value);
-    if (exactMetadata?.publicationDigest !== release.value.publicationDigest) {
+    try {
+      await publicationFaultPoint("before-staged-validation", {
+        publicationDigest: release.value.publicationDigest,
+      });
+      if (currentPublicationConformance()?.forceStagedValidationFailure === true) {
+        return compatibleFailure(
+          "publication.acceptance.failed",
+          PUBLICATION_ROOT_PATH,
+          "Package-owned staged invariant validation was forced to fail.",
+          "acceptance-failed",
+        );
+      }
+      const staged = await resolvePublishedReleaseDigest(
+        state.root,
+        release.value.publicationDigest,
+      );
+      if (!staged.ok) return compatiblePublicationFailure(staged);
+      const stagedMetadata = getPublishedMetadata(staged.value);
+      if (stagedMetadata?.publicationDigest !== release.value.publicationDigest) {
+        return compatibleFailure(
+          "publication.snapshot.invalid",
+          "/publicationDigest",
+          "Staged publication did not resolve to the exact prepared snapshot.",
+        );
+      }
+      await publicationFaultPoint("after-staged-validation", {
+        publicationDigest: release.value.publicationDigest,
+      });
+    } catch {
       return compatibleFailure(
-        "publication.snapshot.invalid",
-        "/publicationDigest",
-        "Committed publication did not resolve to the exact staged snapshot.",
+        "publication.io",
+        PUBLICATION_ROOT_PATH,
+        "Staged publication validation was interrupted.",
+        "io",
       );
     }
-    return compatibleSuccess(
-      Object.freeze({
-        publicationDigest: release.value.publicationDigest,
-        snapshot: selected.value,
-        reusedExistingRelease: promoted.value.reusedExistingRelease,
-      }),
+
+    let committed: Awaited<ReturnType<typeof commitPublicationPointer>>;
+    try {
+      committed = await commitPublicationPointer(state.root, release.value);
+    } catch {
+      committed = publicationFailure(
+        "io",
+        "publication.io",
+        PUBLICATION_POINTER_PATH,
+        "Publication pointer commit attempt failed.",
+      );
+    }
+    if (!committed.ok) {
+      return reconcileIncrementalPublication(
+        state,
+        promoted.value.reusedExistingRelease,
+        compatiblePublicationFailure(committed),
+      );
+    }
+    const selected = await resolvePublishedSnapshot({ repositoryRoot: state.root });
+    if (!selected.ok) {
+      return reconcileIncrementalPublication(
+        state,
+        promoted.value.reusedExistingRelease,
+        compatiblePublicationFailure(selected),
+      );
+    }
+    const exactMetadata = getPublishedMetadata(selected.value);
+    if (exactMetadata?.publicationDigest !== release.value.publicationDigest) {
+      return reconcileIncrementalPublication(
+        state,
+        promoted.value.reusedExistingRelease,
+        compatibleFailure(
+          "publication.snapshot.invalid",
+          "/publicationDigest",
+          "Committed publication did not resolve to the exact staged snapshot.",
+        ),
+      );
+    }
+    return committedIncrementalPublication(
+      release.value.publicationDigest,
+      selected.value,
+      promoted.value.reusedExistingRelease,
     );
   } finally {
     await lock.release();

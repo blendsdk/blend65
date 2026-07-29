@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   getPublishedBinding,
+  getPublishedBindingRows,
   getPublishedInventory,
   getPublishedMetadata,
   prepareBindingPublicationReview,
@@ -56,7 +57,12 @@ import {
   type PublicationRelease,
 } from "./publication-model.js";
 import { commitPublicationPointer, promotePublicationRelease } from "./publication-pointer.js";
-import { resolvePublishedReleaseDigest, resolvePublishedSnapshot } from "./publication-resolver.js";
+import {
+  resolvePublishedReleaseDigest,
+  resolvePublishedSnapshot,
+  resolvePublishedSnapshotByDigest,
+  getPublishedSnapshotAuthority,
+} from "./publication-resolver.js";
 import type { InventoryV1 } from "./model.js";
 
 const encoder = new TextEncoder();
@@ -1108,9 +1114,98 @@ describe("publication capability and module-boundary guards", () => {
     expect(Reflect.apply(getPublishedBinding, undefined, [{}, 1])).toBeUndefined();
     expect(Reflect.apply(getPublishedInventory, undefined, [null])).toBeUndefined();
     expect(Reflect.apply(getPublishedMetadata, undefined, [null])).toBeUndefined();
+    expect(Reflect.apply(getPublishedBindingRows, undefined, [null])).toBeUndefined();
+    expect(Reflect.apply(getPublishedSnapshotAuthority, undefined, [null])).toBeUndefined();
+    expect(Reflect.apply(getPublishedBindingRows, undefined, [{}])).toBeUndefined();
+    expect(Reflect.apply(getPublishedSnapshotAuthority, undefined, [{}])).toBeUndefined();
     expect(() => installPublishedBindingLookup(() => undefined)).toThrow(
       "Published binding lookup is already installed.",
     );
+  });
+
+  it("rejects hostile and absent named-release inputs without reading the selected pointer", async () => {
+    const root = await temporaryRoot();
+    await mkdir(join(root, "readiness/publications/releases"), { recursive: true });
+    const invalidInputs: readonly unknown[] = [
+      null,
+      [],
+      {},
+      { repositoryRoot: root },
+      { repositoryRoot: root, publicationDigest: "invalid" },
+      { repositoryRoot: root, publicationDigest: DIGEST, extra: true },
+      Object.defineProperty(
+        { repositoryRoot: root, publicationDigest: DIGEST },
+        "publicationDigest",
+        {
+          enumerable: true,
+          get(): never {
+            throw new Error("must not execute");
+          },
+        },
+      ),
+    ];
+    const revoked = Proxy.revocable({ repositoryRoot: root, publicationDigest: DIGEST }, {});
+    revoked.revoke();
+    for (const input of invalidInputs) {
+      const result = await Reflect.apply(resolvePublishedSnapshotByDigest, undefined, [input]);
+      expect(result).toMatchObject({
+        ok: false,
+        kind: "invalid",
+        diagnostics: [{ code: "publication.input.invalid" }],
+      });
+    }
+    expect(
+      await Reflect.apply(resolvePublishedSnapshotByDigest, undefined, [revoked.proxy]),
+    ).toMatchObject({
+      ok: false,
+      kind: "invalid",
+      diagnostics: [{ code: "publication.input.invalid" }],
+    });
+    expect(
+      await resolvePublishedSnapshotByDigest({
+        repositoryRoot: ".",
+        publicationDigest: DIGEST,
+      }),
+    ).toMatchObject({
+      ok: false,
+      kind: "invalid",
+      diagnostics: [{ code: "publication.path.invalid" }],
+    });
+
+    expect(
+      await resolvePublishedSnapshotByDigest({
+        repositoryRoot: root,
+        publicationDigest: DIGEST,
+      }),
+    ).toMatchObject({
+      ok: false,
+      kind: "not-found",
+      diagnostics: [{ code: "publication.release.not-found" }],
+    });
+    const nonDirectoryRoot = await temporaryRoot();
+    await mkdir(join(nonDirectoryRoot, "readiness/publications"), { recursive: true });
+    await writeFile(join(nonDirectoryRoot, "readiness/publications/releases"), new Uint8Array());
+    expect(
+      await resolvePublishedSnapshotByDigest({
+        repositoryRoot: nonDirectoryRoot,
+        publicationDigest: DIGEST,
+      }),
+    ).toMatchObject({
+      ok: false,
+      kind: "not-found",
+      diagnostics: [{ code: "publication.release.not-found" }],
+    });
+    await symlink(root, join(root, "readiness/publications/releases", DIGEST));
+    expect(
+      await resolvePublishedSnapshotByDigest({
+        repositoryRoot: root,
+        publicationDigest: DIGEST,
+      }),
+    ).toMatchObject({
+      ok: false,
+      kind: "invalid",
+      diagnostics: [{ code: "publication.path.invalid" }],
+    });
   });
 
   it("rejects unbounded, duplicate and authority-leaking production-file records", () => {

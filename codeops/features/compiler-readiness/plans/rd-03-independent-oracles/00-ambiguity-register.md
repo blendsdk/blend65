@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-03 Independent Semantic, Diagnostic and Metamorphic Oracles
 
-> **Status**: ✅ GATE PASSED — all 56 items resolved
-> **Last Updated**: 2026-07-28
+> **Status**: ✅ GATE PASSED — all 91 items resolved
+> **Last Updated**: 2026-07-29
 > **Mode**: Auto-design
 > **Root Invocation ID**: `compiler-readiness-rd03-20260727-01`
 > **Policy version**: 1
@@ -93,6 +93,13 @@
 | AR-P82 | Invoked participant identity `(runtime)` | Should evidence infer its required oracle participant from the source generator family or bind the façade actually invoked? | Require exactly the oracle participant actually invoked, independently of whether the source case came from the frontend or runtime generator. Generator identity proves replay provenance; the modeled/unmodeled raw result records route compatibility. | AI delegated by `--auto-design`; semantics re-review SR-003; removes invalid cross-domain inference | ✅ Resolved |
 | AR-P83 | Legacy review diagnostic compatibility `(runtime)` | How does the legacy four-row wrapper preserve diagnostic classification and paths while incremental publication uses its newer precedence contract? | Keep separate mapping adapters over shared review validation: legacy uses the first sorted diagnostic and preserves its JSON path exactly; incremental/named publication retains the new closed precedence and artifact path. | AI delegated by `--auto-design`; semantics re-review SR-010; preserves immutable legacy behavior without duplicating validation | ✅ Resolved |
 | AR-P84 | Isolated package-export authority fixture `(runtime)` | How can isolated Phase 5 repositories validate the newly reviewed package export map when their fixture omitted `packages/readiness/package.json`? | Re-freeze the implementation-blind publication fixture to copy the exact package manifest into its isolated repository alongside readiness/spec/source authority. No manifest bytes are synthesized or rewritten. Keep package export bytes in the publication implementation closure; omitting them would reopen SR-001. | AI delegated by `--auto-design`; post-review integrity checkpoint; mechanical fixture authority completion | ✅ Resolved |
+| AR-P85 | Final publication conformance contract `(runtime)` | Which exact closed fault, reconciliation, retry and worker-observation interfaces let an implementation-blind author specify ST-48–ST-49 without guessing production behavior? | Extend only the existing internal operation-scoped publication conformance seam with frozen output-only selected-resolution observations. Brand the exact canonical-pointer identity-replacement result internally and retry only that brand once from canonical-root validation. Add a dedicated `commit-indeterminate` result carrying only expected old/new digests and one bounded diagnostic. Keep the worker protocol specification-owned: one canonical root at startup, closed pointer-read barriers, complete serialized metadata/binding/declaration projection, and no snapshot/callable/capability/authority transfer. | AI delegated by `--auto-design`; Phase 6 implementation-blind spec-author blocker; independent semantics challenger selected the smallest real-path seam over a second state machine or timing inference | ✅ Resolved |
+| AR-P86 | Pointer-replacement brand issuance `(runtime)` | When may the private selected-pointer replacement result receive one-retry authority after terminal file identity changes? | Revalidate every retained repository/readiness/publication directory identity before minting or returning the private brand. Require the opened pointer handle to retain its original regular-file device/inode/size and reach exactly zero links after overwrite rename, while the canonical path becomes a distinct regular single-link replacement of the exact bounded pointer size. A publication-directory replacement, positive terminal old-handle link count or invalid replacement path returns an ordinary closed path failure with no retry. Add deterministic regressions for the directory and hard-link counterexamples. | AI delegated by `--auto-design`; correctness RV-001 and semantics SR-001; corrected by AR-P87 for POSIX overwrite-rename semantics | ✅ Resolved |
+| AR-P87 | Detached pointer handle link count `(runtime)` | Which terminal link state distinguishes legitimate atomic pointer overwrite from hard-link mutation? | Accept only the POSIX overwrite-rename shape: the verified old opened inode remains otherwise unchanged but has `nlink === 0`, and after retained-directory revalidation the canonical pointer path is a different regular file with `nlink === 1` and the exact bounded pointer size. Reject every positive old-handle link count. Do not replace the established atomic rename protocol with exchange or retained-old-entry machinery. | AI delegated by `--auto-design`; AR-P86 remediation blocker; preserves ST-49 real publisher crossing with the smallest security-tight correction | ✅ Resolved |
+| AR-P88 | Replacement-path validation sandwich `(runtime)` | Can directory substitution occur after retained identities validate but before the canonical replacement path is inspected? | Sandwich replacement-path inspection between two complete retained-directory validation passes. Mint the private retry brand only when the pre-inspection pass, exact canonical replacement `lstat`, and post-inspection pass all succeed without an awaited boundary afterward. Add a deterministic regression that swaps the publications directory between the first pass and replacement inspection and requires an ordinary unbranded failure with no retry. | AI delegated by `--auto-design`; semantics re-review SR-002; final retained-major remediation with direct verification and no prohibited third review | ✅ Resolved |
+| AR-P89 | Replacement seam failure closure `(runtime)` | How does the new between-pass deterministic seam preserve the closed publication-result contract when its callback throws? | Include `before-selected-pointer-replacement-lstat` in the complete internal filesystem-point union and invoke it inside the same closed `try` boundary as replacement inspection. A throwing callback becomes an ordinary bounded `publication.io` result and never rejects the resolver promise or receives retry authority. Add a direct throwing-callback regression before regenerating review authority. | AI delegated by `--auto-design`; independent acceptance blocker after AR-P88; exact conformance-closure correction | ✅ Resolved |
+| AR-P90 | Test scheduling `(runtime)` | How does the full readiness suite keep the bounded mutation-worker proof deterministic after the final-publication suite adds long-lived reader workers? | Run readiness test files sequentially while retaining each file's ordinary test concurrency and the existing two-worker ceiling. The all-readiness run demonstrated that concurrent files can starve one 5-second mutation worker and produce a typed harness failure even though the same immutable 84-mutant suite immediately passes in isolation. Do not weaken the immutable mutation deadline or retry a failed mutant. | AI delegated by `--auto-design`; internal reversible test-scheduling mechanism; direct full-suite failure and focused green reproduction | ✅ Resolved |
+| AR-P91 | Post-selection fixture base `(runtime)` | How do the immutable incremental-publication expectations keep exercising a four-binding base after the repository's selected pointer advances to nine bindings? | Make the shared isolated publication fixture explicitly select the immutable RD-02 base digest it is designed to promote. Continue copying the complete repository authority, but replace only the fixture's temporary pointer with the named historical four-binding release before resolving review or publication inputs. Do not make incremental promotion idempotently accept duplicate targets and do not verify the final repository by temporarily rolling back its real pointer. | AI delegated by `--auto-design`; post-publication coverage failure; internal test-fixture correction preserving every immutable expectation | ✅ Resolved |
 
 ## Systematic Gate Scan
 
@@ -444,6 +451,67 @@
 - **Hardening:** the implementation-blind spec author rejected both underspecified digests and a
   production-derived expected registry before any Phase 4 test or implementation was written.
 - **Policy / invocation:** policy version 1; root invocation `rd03-exec-20260728`.
+
+## AR-P90 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; reversible internal test
+  scheduling within the approved verification strategy. It changes no product behavior, semantic
+  authority, immutable specification, acceptance scope, publication format or external action.
+- **Objective:** make the all-readiness gate reliably prove the existing bounded 84-mutant
+  campaign after long-lived final-publication reader workers joined the same package run.
+- **Evidence:** the 98-file run passed 1,281 of 1,282 tests but returned the mutation runner's
+  typed harness-failure branch. Its immutable 5-second-per-worker campaign passed all 84 mutants
+  immediately afterward in a focused 54-second run. The package already caps Vitest at two file
+  workers, so the final-publication and mutation suites can overlap and contend for worker-thread
+  scheduling despite both being correct in isolation.
+- **Decision:** set readiness Vitest `fileParallelism: false`. Preserve the two-worker ceiling,
+  every immutable test byte, the mutation deadline, the no-retry kill-credit rule and all
+  production behavior.
+- **Rejected alternatives:** increasing the immutable mutation deadline would weaken a frozen
+  oracle; retrying harness failures could conceal nondeterminism; allowing the two worker-heavy
+  files to race again leaves the repository gate scheduling-dependent. File-specific pools add
+  more configuration while failing to protect later worker-heavy suites.
+- **Strongest counterargument:** sequential files increase wall-clock time. The suite already
+  spent over twelve minutes under contention, and deterministic proof is more important than
+  speculative parallel speed at this correctness gate.
+- **Confidence:** High. Reopen if a sequential all-readiness run reproduces the same harness
+  failure or measured wall time becomes operationally unacceptable.
+- **Hardening:** the failure envelope, complete full-run summary and isolated reproduction were
+  compared before changing configuration; no production or immutable specification byte changed.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd03-20260727-01`.
+
+## AR-P91 Delegated Resolution Record
+
+- **Authority / eligibility:** AI, delegated by `--auto-design`; reversible isolated test-fixture
+  construction within the approved compatibility verification strategy. It changes no product
+  behavior, public contract, semantic expectation, selected repository state or external action.
+- **Objective:** keep the immutable incremental-publication specifications meaningful after the
+  real selected pointer advances from the four-binding RD-02 base to the nine-binding RD-03
+  release.
+- **Evidence:** after selection, the coverage run failed final-publication setup because the
+  fixture copied the repository's current nine-row pointer and then attempted to promote the same
+  five handler IDs. Production correctly rejected duplicate handler identities. Every immutable
+  expectation assumes the fixture's old state has four rows, and the named RD-02 release remains
+  checked in and independently resolvable.
+- **Decision:** after copying repository authority into its temporary root, write that root's
+  pointer to the exact immutable RD-02 digest
+  `sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403`.
+  Resolve all fixture review and promotion inputs from that historical release. Leave the real
+  repository pointer on the nine-binding release.
+- **Rejected alternatives:** accepting duplicate promotions would weaken the incremental API and
+  contradict its exact-target contract; temporarily rolling back the real pointer would make the
+  final gate verify the wrong selected state; scanning for any four-row release is less
+  deterministic than naming the immutable compatibility base.
+- **Strongest counterargument:** the fixture now names one digest. That digest is the compatibility
+  contract under test, already asserted throughout the publication tier, and therefore should be
+  explicit rather than ambient.
+- **Confidence:** High. Reopen if the named RD-02 release is intentionally removed or a future
+  publication format requires multiple independently supported bases.
+- **Hardening:** the failure was reproduced only after actual selection; the correction touches
+  fixture setup rather than production duplicate rejection or immutable expectation bytes.
+- **Policy / invocation:** policy version 1; root invocation
+  `compiler-readiness-rd03-20260727-01`.
 
 ## Gate
 

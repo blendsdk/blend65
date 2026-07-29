@@ -64,29 +64,57 @@ export interface CompatiblePublicationDiagnostic {
     | "publication.base.stale"
     | "publication.targets.invalid"
     | "publication.capability.invalid"
-    | "publication.snapshot.invalid";
+    | "publication.snapshot.invalid"
+    | "publication.commit.indeterminate";
   /** RFC 6901 pointer or canonical repository-relative artifact path. */
   readonly path: string;
   /** Bounded non-sensitive explanation. */
   readonly message: string;
 }
 
+/** Closed terminal recovery result when selected state cannot be established after commit. */
+export interface CommitIndeterminatePublicationResult {
+  /** Failure discriminator. */
+  readonly ok: false;
+  /** Dedicated recovery branch. */
+  readonly kind: "commit-indeterminate";
+  /** Exact release selected before the commit attempt. */
+  readonly expectedOldPublicationDigest: Sha256Digest;
+  /** Exact staged release supplied to the commit attempt. */
+  readonly expectedNewPublicationDigest: Sha256Digest;
+  /** Single bounded non-sensitive recovery diagnostic. */
+  readonly diagnostics: readonly [
+    {
+      readonly code: "publication.commit.indeterminate";
+      readonly path: "readiness/publications/current-publication.json";
+      readonly message: string;
+    },
+  ];
+}
+
+/** Ordinary deterministic failure before or after compatible publication staging. */
+export interface CompatiblePublicationOrdinaryFailure {
+  /** Failure discriminator. */
+  readonly ok: false;
+  /** Existing publication failure category. */
+  readonly kind:
+    | "invalid"
+    | "not-found"
+    | "stale"
+    | "collision"
+    | "contended"
+    | "durability-unsupported"
+    | "acceptance-failed"
+    | "io";
+  /** Bounded deterministic diagnostics. */
+  readonly diagnostics: readonly CompatiblePublicationDiagnostic[];
+}
+
 /** Success-or-failure envelope for additive compatible publication operations. */
 export type CompatiblePublicationResult<T> =
   | { readonly ok: true; readonly value: T; readonly diagnostics: readonly [] }
-  | {
-      readonly ok: false;
-      readonly kind:
-        | "invalid"
-        | "not-found"
-        | "stale"
-        | "collision"
-        | "contended"
-        | "durability-unsupported"
-        | "acceptance-failed"
-        | "io";
-      readonly diagnostics: readonly CompatiblePublicationDiagnostic[];
-    };
+  | CompatiblePublicationOrdinaryFailure
+  | CommitIndeterminatePublicationResult;
 
 /** Successful selected result of committing one incremental capability. */
 export type PublishedIncrementalBindingPublication = PublishedBindingTransaction;

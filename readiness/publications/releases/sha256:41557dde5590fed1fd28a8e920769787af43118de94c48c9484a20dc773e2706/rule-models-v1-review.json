@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "review": {
+    "reviewId": "rule-model-seed-v1",
+    "reviewer": "codeops-semantics-reviewer-rd02-p5",
+    "outcome": "accepted",
+    "seedContractDigest": "sha256:8842c37a6e630fbd71c204818576a9be9c622ba33ecabc5faba6a4fc3d61f955",
+    "ruleModelDigest": "sha256:53510190ec17fd81a2517e3872639a1d7197afe89aa02c5029f9a18f11dc2a8e",
+    "inventoryCitationDigest": "sha256:7243175be18f6c2ded9d4972c7210de1c33a1ce84a5cb413f732e2cbbf1fbf14",
+    "citations": [
+      {
+        "ruleId": "rule.ch02.2-primitive-types.boolean.range.true",
+        "sourcePath": "spec/02-type-system.md",
+        "contentHash": "sha256:96674f97b973e268e23b84eb2d3a5979ac30ecf0695df9710ccece117727e167"
+      },
+      {
+        "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
+        "sourcePath": "spec/02-type-system.md",
+        "contentHash": "sha256:6528f235728cf0ce57055a6d39df6c856d17f8849cc2430d7980624cb31d3706"
+      },
+      {
+        "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
+        "sourcePath": "spec/02-type-system.md",
+        "contentHash": "sha256:61e3ac07609636a18b15169bf9041ecd90332e722e519e6c03d3e952c26394b5"
+      },
+      {
+        "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
+        "sourcePath": "spec/02-type-system.md",
+        "contentHash": "sha256:6e18bfb36377f51573d8d0e1479bd2de05a5f111cd27ea3c7b98cac85f8341f8"
+      },
+      {
+        "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
+        "sourcePath": "spec/02-type-system.md",
+        "contentHash": "sha256:48f02a69e784cc6a0c30df65926f6543d7a6c269e3c82fad68afa7fd03dd192d"
+      },
+      {
+        "ruleId": "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+        "sourcePath": "spec/12-intrinsics.md",
+        "contentHash": "sha256:5203f50dc427587f1265fd4e38e25b0e5331599b193095470b069e3c50fc55f4"
+      },
+      {
+        "ruleId": "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+        "sourcePath": "spec/12-intrinsics.md",
+        "contentHash": "sha256:c5c95f18692ac78969a98b0999ac56505d93eb7cabd80c18f412a57f331c3e95"
+      },
+      {
+        "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+        "sourcePath": "spec/12-intrinsics.md",
+        "contentHash": "sha256:4993f2b87162fe86a07349b38d520b1c13375264303fa4ee1d632c3455e5832f"
+      },
+      {
+        "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+        "sourcePath": "spec/12-intrinsics.md",
+        "contentHash": "sha256:cefdb9b88af00e21788a9d13ce5763a9ca60c2f7e62c885a98d9e9bfe3cefab5"
+      }
+    ],
+    "resolvedDisagreementIds": []
+  }
+}

@@ -4,7 +4,15 @@ import { describe, expect, it } from "vitest";
 
 import type { InventoryV1 } from "./model.js";
 import { createModeledGeneratorSuite, getRuleGenerationDomain } from "./modeled-generator-suite.js";
-import { applyModeledRuleNeighbor, generateFrontendCase } from "./modeled-generators.js";
+import {
+  applyModeledRuleNeighbor,
+  constructModeledCase,
+  evaluateModeledRule,
+  executeModeledNeighborOperation,
+  generateCompilerCase,
+  generateFrontendCase,
+  generateRuntimeCase,
+} from "./modeled-generators.js";
 import { INVENTORY_V1_LIMITS, parseInventoryJson, validateInventorySchema } from "./index.js";
 import { isGenIdentifier, type GenerationBudget } from "./generator-ir.js";
 import { validateGeneratorIr } from "./generator-ir-validator.js";
@@ -105,6 +113,113 @@ function choiceKey(choice: ModeledCaseChoice): string {
 }
 
 describe("modeled generator invariants", () => {
+  it("closes malformed modeled requests at every public boundary", async () => {
+    const { suite } = await suiteFixture();
+    const scalarFact = [...MODELED_RULE_FACTS.values()].find(
+      (candidate) => candidate.kind === "scalar",
+    );
+    const memoryFact = [...MODELED_RULE_FACTS.values()].find(
+      (candidate) => candidate.kind === "memory",
+    );
+    if (scalarFact?.kind !== "scalar" || memoryFact?.kind !== "memory") {
+      throw new TypeError("Reviewed scalar and memory facts must exist.");
+    }
+    const scalarChoice = createModeledChoices(scalarFact)[0];
+    const memoryChoice = createModeledChoices(memoryFact)[0];
+    if (scalarChoice?.kind !== "scalar" || memoryChoice?.kind !== "memory") {
+      throw new TypeError("Reviewed scalar and memory choices must exist.");
+    }
+    const scalarRequest = validRequest(scalarChoice);
+    const malformedChoices: readonly unknown[] = [
+      null,
+      {},
+      { ...scalarChoice, extra: true },
+      { ...scalarChoice, spelling: "invalid" },
+      { ...scalarChoice, value: "invalid" },
+      { ...scalarChoice, ruleId: "rule.unknown" },
+      { ...memoryChoice, addressSpelling: "invalid" },
+      { ...memoryChoice, addressForm: "invalid" },
+      { ...memoryChoice, valueSpelling: "invalid" },
+      { ...memoryChoice, extra: true },
+    ];
+    const malformedRequests: readonly unknown[] = [
+      null,
+      [],
+      {},
+      { ...scalarRequest, extra: true },
+      { ...scalarRequest, handlerId: "generator.invalid" },
+      { ...scalarRequest, modulePath: [] },
+      { ...scalarRequest, modulePath: Array.from({ length: 9 }, () => "Nested") },
+      { ...scalarRequest, modulePath: ["../escape"] },
+      { ...scalarRequest, validity: null },
+      { ...scalarRequest, validity: { kind: "other" } },
+      { ...scalarRequest, validity: { kind: "valid", extra: true } },
+      { ...scalarRequest, validity: { kind: "invalid" } },
+      { ...scalarRequest, validity: { kind: "invalid", neighborId: 1 } },
+      { ...scalarRequest, budget: { ...BUDGET, maxAttempts: 0 } },
+      ...malformedChoices.map((choice) => ({ ...scalarRequest, choice })),
+    ];
+
+    for (const request of malformedRequests) {
+      expect(constructModeledCase(suite, request)).toMatchObject({
+        ok: false,
+        diagnostics: [{ code: "modeled.choice.invalid" }],
+      });
+    }
+
+    const forgedSuite = structuredClone(suite);
+    expect(constructModeledCase(forgedSuite, scalarRequest)).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "modeled.input.invalid" }],
+    });
+    expect(
+      applyModeledRuleNeighbor(suite, {
+        ...scalarRequest,
+        validity: { kind: "valid" },
+      }),
+    ).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "modeled.choice.invalid" }],
+    });
+    expect(
+      constructModeledCase(suite, {
+        ...scalarRequest,
+        validity: { kind: "invalid", neighborId: "neighbor.unknown" },
+      }),
+    ).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "modeled.choice.invalid" }],
+    });
+    expect(generateCompilerCase(suite, scalarRequest)).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "modeled.handler.route" }],
+    });
+    expect(generateRuntimeCase(suite, scalarRequest)).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "modeled.handler.route" }],
+    });
+    expect(
+      generateFrontendCase(suite, {
+        ...validRequest(memoryChoice),
+        handlerId: "generator.runtime-cases",
+      }),
+    ).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "modeled.handler.route" }],
+    });
+    expect(evaluateModeledRule(suite, scalarRequest)).toMatchObject({
+      ok: true,
+      valid: true,
+    });
+
+    expect(executeModeledNeighborOperation(memoryFact, memoryChoice, "neighbor.unknown")).toBe(
+      false,
+    );
+    expect(executeModeledNeighborOperation(scalarFact, scalarChoice, "neighbor.unknown")).toBe(
+      false,
+    );
+  });
+
   it("expands the reviewed seed to a deterministic duplicate-free 120-case distribution", () => {
     const first = [...MODELED_RULE_FACTS.values()].flatMap(createModeledChoices);
     const second = [...MODELED_RULE_FACTS.values()].flatMap(createModeledChoices);

@@ -217,6 +217,9 @@ export async function promotePublicationRelease(
       );
       if (!removed.ok) return removed;
       keepStaging = false;
+      await publicationFaultPoint("after-release-rename", {
+        publicationDigest: release.publicationDigest,
+      });
       const releasesSynced = await syncPublicationDirectory(directories.value.releases);
       if (!releasesSynced.ok) return releasesSynced;
       await publicationFaultPoint("after-releases-directory-sync", {

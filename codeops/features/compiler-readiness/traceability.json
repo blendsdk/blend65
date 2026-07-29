@@ -339,7 +339,7 @@
         "summary:RD-03 preflight PF-001 through PF-013 were resolved under explicit user authorization and auto-design."
       ],
       "id": "RD-03",
-      "revision": "sha256:170a9038f7f55e2f3cde3853a90e1b6f25a319f02c6cfa7413c188b24e0c8060",
+      "revision": "sha256:dd42bc468a2210efae1d052812a1826d4921af3bda34f22d7b81a4e1f37ad8ba",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -441,14 +441,14 @@
         {
           "gate": "execution",
           "relation": "specified-by",
-          "revision": "sha256:fddf8937f3737db03e237bdf49ea5ce824e5feddd58b6a6de41f42f6c0a9e7a3",
+          "revision": "sha256:30be7f1eee7a89a405f8dc7f08da73e6539b0b9f2d11496baa78e756547406c6",
           "upstream": "compiler-readiness/SPEC-RD-03-PUBLISH",
           "validatedAt": "2026-07-28T13:36:51Z"
         },
         {
           "gate": "plan",
           "relation": "specified-by",
-          "revision": "sha256:fddf8937f3737db03e237bdf49ea5ce824e5feddd58b6a6de41f42f6c0a9e7a3",
+          "revision": "sha256:30be7f1eee7a89a405f8dc7f08da73e6539b0b9f2d11496baa78e756547406c6",
           "upstream": "compiler-readiness/SPEC-RD-03-PUBLISH",
           "validatedAt": "2026-07-28T13:36:51Z"
         },
@@ -2708,7 +2708,7 @@
         "summary:RD-03 Zero-Ambiguity Gate passed with 41 resolved decisions, including 17 user-authorized plan-preflight corrections."
       ],
       "id": "AR-P03",
-      "revision": "sha256:44cbd5d1cf4c1f989a96fc5f975157f3a352fe06b253c48672f5b0c89136ce1b",
+      "revision": "sha256:b578ed013da639fef15545dee3d2adb8ca4b3aa8625dbdf743e40e88b845517f",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2766,7 +2766,7 @@
         "summary:Plan preflight passed after all 29 findings were corrected and independently re-verified."
       ],
       "id": "PLAN-RD-03",
-      "revision": "sha256:b1e32d5477bb490c9f5df67316345a1097555df1bc24bf2d7ad9aa1d3032b9fd",
+      "revision": "sha256:0fadbea8d5e920d3977ca12399e19876fe0efdf96f5bcda1763aba8f9f87c838",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -2784,14 +2784,14 @@
         {
           "gate": "execution",
           "relation": "depends-on",
-          "revision": "sha256:170a9038f7f55e2f3cde3853a90e1b6f25a319f02c6cfa7413c188b24e0c8060",
+          "revision": "sha256:dd42bc468a2210efae1d052812a1826d4921af3bda34f22d7b81a4e1f37ad8ba",
           "upstream": "compiler-readiness/RD-03",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
         {
           "gate": "plan",
           "relation": "depends-on",
-          "revision": "sha256:170a9038f7f55e2f3cde3853a90e1b6f25a319f02c6cfa7413c188b24e0c8060",
+          "revision": "sha256:dd42bc468a2210efae1d052812a1826d4921af3bda34f22d7b81a4e1f37ad8ba",
           "upstream": "compiler-readiness/RD-03",
           "validatedAt": "2026-07-26T23:10:48Z"
         },
@@ -2826,14 +2826,14 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:f3534d41c7a0aab778200cbead5cbbfc9f09da2433fb3be8fc78aa1f37ba3bb8",
+          "revision": "sha256:e16764d59b15bc5f00174445a6260183250543da8562e02416818d690c365d2e",
           "upstream": "compiler-readiness/TASK-RD-03-P5",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d59b9e41f93d9fb66ac9b5d0143844a9dbeef9c3040eda0a4a3c8c206bb43ac9",
+          "revision": "sha256:497bcbd4ad6be25b5b8198df1ca2275f067805d5bb8738d7fb3a4be0dbc9491b",
           "upstream": "compiler-readiness/TASK-RD-03-P6",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3075,7 +3075,7 @@
         }
       ],
       "id": "SPEC-RD-03-PUBLISH",
-      "revision": "sha256:c12c733a96bfd405bbc614d2f5c5e76c6903994093ea49a14a606b4e42b85cbf",
+      "revision": "sha256:30be7f1eee7a89a405f8dc7f08da73e6539b0b9f2d11496baa78e756547406c6",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3107,14 +3107,14 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:f3534d41c7a0aab778200cbead5cbbfc9f09da2433fb3be8fc78aa1f37ba3bb8",
+          "revision": "sha256:e16764d59b15bc5f00174445a6260183250543da8562e02416818d690c365d2e",
           "upstream": "compiler-readiness/TASK-RD-03-P5",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d59b9e41f93d9fb66ac9b5d0143844a9dbeef9c3040eda0a4a3c8c206bb43ac9",
+          "revision": "sha256:497bcbd4ad6be25b5b8198df1ca2275f067805d5bb8738d7fb3a4be0dbc9491b",
           "upstream": "compiler-readiness/TASK-RD-03-P6",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3275,6 +3275,10 @@
           "target": "compiler-readiness/TEST-RD-03-PUBLISH"
         },
         {
+          "relation": "tested-by",
+          "target": "compiler-readiness/TEST-RD-03-FINAL"
+        },
+        {
           "relation": "implemented-by",
           "target": "compiler-readiness/TASK-RD-03-P5"
         },
@@ -3312,14 +3316,14 @@
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:f3534d41c7a0aab778200cbead5cbbfc9f09da2433fb3be8fc78aa1f37ba3bb8",
+          "revision": "sha256:e16764d59b15bc5f00174445a6260183250543da8562e02416818d690c365d2e",
           "upstream": "compiler-readiness/TASK-RD-03-P5",
           "validatedAt": "2026-07-27T18:58:44Z"
         },
         {
           "gate": "execution",
           "relation": "implemented-by",
-          "revision": "sha256:d59b9e41f93d9fb66ac9b5d0143844a9dbeef9c3040eda0a4a3c8c206bb43ac9",
+          "revision": "sha256:497bcbd4ad6be25b5b8198df1ca2275f067805d5bb8738d7fb3a4be0dbc9491b",
           "upstream": "compiler-readiness/TASK-RD-03-P6",
           "validatedAt": "2026-07-27T18:58:44Z"
         }
@@ -3431,7 +3435,7 @@
         "redEvidence:Phase 5 focused run produced eight expected failures solely on absent candidate, named-resolution, incremental-publication and published-context modules/exports; the unchanged legacy four-handler compatibility guard passed."
       ],
       "id": "TEST-RD-03-PUBLISH",
-      "revision": "sha256:c4dbda7766be6874def2fde2afc6e13ae40d5fc14a147cb620eb573df52e35f9",
+      "revision": "sha256:73dbf5a4ee71def6cb6f2134aa4b5375406cbffb506bda26b9086bac83e379cf",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3441,7 +3445,22 @@
             "kind": "heading",
             "value": "Bindings and compatible staging"
           }
-        },
+        }
+      ],
+      "status": "passing",
+      "title": "RD-03 binding and compatible-staging specification tests",
+      "type": "test",
+      "validations": []
+    },
+    {
+      "edges": [],
+      "evidence": [
+        "greenEvidence:All 14 immutable final-publication cases pass; the sequential all-readiness gate passes 98 files and 1,282 tests, with all 84 required mutants killed and source/publication checks green.",
+        "redEvidence:Implementation-blind Phase 6 focused run executed 14 final-publication cases: 9 failed only on absent staged-validation boundaries, reconciliation, commit-indeterminate recovery, one-retry reader, second-replacement closure and unrelated-fault no-retry behavior; 5 existing pre-pointer safety controls passed."
+      ],
+      "id": "TEST-RD-03-FINAL",
+      "revision": "sha256:24812b42e0dbf57cbbc716bb5e1a609f164b52249ddf9f290999c42ff5e4856a",
+      "semanticSources": [
         {
           "digest": "sha256",
           "normalization": "utf8-lf-trim-trailing-v1",
@@ -3453,7 +3472,7 @@
         }
       ],
       "status": "passing",
-      "title": "RD-03 binding and publication specification tests",
+      "title": "RD-03 final publication and authoritative-evidence specification tests",
       "type": "test",
       "validations": []
     },
@@ -3564,7 +3583,7 @@
         "verificationEvidence:Exact frozen install, build, typecheck, lint and test gate passes: 96 readiness files with 1,258 tests, 8 root files with 33 tests, source-check and readiness-check pass, all 84 mutation cases are killed, and the real publication pointer remains unchanged."
       ],
       "id": "TASK-RD-03-P5",
-      "revision": "sha256:12c72ae698b366cf98d048658ae387e567a950663fbe948eb79013d1f1bed6bc",
+      "revision": "sha256:e16764d59b15bc5f00174445a6260183250543da8562e02416818d690c365d2e",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3583,8 +3602,13 @@
     },
     {
       "edges": [],
+      "evidence": [
+        "qualityReview:Independent semantic acceptance covers 22 exact authority, evaluator, relation, identity, mutation, binding and publication units with no unresolved findings; correctness re-review reported no findings.",
+        "summary:Phase 6 final publication recovery, bounded reader retry, independent semantic acceptance, nine-binding atomic selection and closeout evidence are implemented.",
+        "verificationEvidence:Exact frozen install, build, typecheck, lint and test gate passes; readiness coverage passes 101 files and 1,316 tests at 90.11% branches; all 84 mutants are killed; source-check, selected-publication validation, frozen-spec and traceability checks pass."
+      ],
       "id": "TASK-RD-03-P6",
-      "revision": "sha256:d59b9e41f93d9fb66ac9b5d0143844a9dbeef9c3040eda0a4a3c8c206bb43ac9",
+      "revision": "sha256:497bcbd4ad6be25b5b8198df1ca2275f067805d5bb8738d7fb3a4be0dbc9491b",
       "semanticSources": [
         {
           "digest": "sha256",
@@ -3596,7 +3620,7 @@
           }
         }
       ],
-      "status": "pending",
+      "status": "verified",
       "title": "Execute RD-03 phase 6",
       "type": "task",
       "validations": []

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-28
-> **Progress**: 60/72 tasks (83%)
+> **Last Updated**: 2026-07-29
+> **Progress**: 72/72 tasks (100%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -147,7 +147,7 @@ mutation proof. No raw handler yet claims selected participant revisions.
 > **Reference**: 03-05 · AR-P15–AR-P16, AR-P33–AR-P34 · ST-39–ST-45
 
 - [x] 5.1.1 [spec-author] Write ST-39–ST-42 in `oracle-bindings.spec.test.ts` — completed 2026-07-29 00:42 CEST (implementation-blind; SHA-256 `caa54674958d024f30fd1f317d586ab1c3ddf4ea0b2242d5014c7ce5beed348b`)
-- [x] 5.1.2 [spec-author] Write ST-43–ST-45 in `oracle-publication.spec.test.ts` and ST-46–ST-47 in separate `oracle-published-evidence.spec.test.ts` — final re-freeze 2026-07-29 after AR-P84 with exact package export-map authority copied into isolated repositories (spec hashes unchanged; publication fixture SHA-256 `56e825f4e28d31e4cb037cd33e60fe0e2eb7c1e73dcf4079a8ec695997854429`; semantic-intent fixture `9b942377fe2a7d6c7c4e1ca49e0e53505278ba373bfead414a6abc58683c9de8`)
+- [x] 5.1.2 [spec-author] Write ST-43–ST-45 in `oracle-publication.spec.test.ts` and ST-46–ST-47 in separate `oracle-published-evidence.spec.test.ts` — final post-selection fixture re-freeze 2026-07-29 after AR-P91; immutable spec hashes unchanged; the isolated fixture now names the historical RD-02 base instead of inheriting the advanced selected pointer (publication fixture SHA-256 `4b8e0c0c02761391edf55a0c866053f3536f702e2b85f779e3d40f29b197f719`; semantic-intent fixture `9b942377fe2a7d6c7c4e1ca49e0e53505278ba373bfead414a6abc58683c9de8`)
 - [x] 5.1.3 Run all three Phase 5 suites and record expected RED caused only by absent candidate/staging/evidence behavior — implementation checkpoint GREEN 2026-07-29 after AR-P84 for all Phase 5 specs 9/9; original RED remains recorded and typecheck/lint/Prettier are green
 - [x] 5.2.1 Implement snapshot-bound invocation/evidence composition and resolver context factory over staged snapshots — completed 2026-07-29 with retained authority buffers and evaluation identities bound to the invoked oracle
 - [x] 5.2.2 Preserve the legacy four-handler no-pointer preparation wrapper unchanged — completed 2026-07-29 with exact b715 generator and d163 boundary closure evidence
@@ -168,18 +168,18 @@ publication remains the four-binding RD-02 authority.
 > **Lenses**: compiler-semantics, concurrency, security, compatibility
 > **Reference**: 03-05 · AR-P35, AR-P37, AR-P39 · ST-48–ST-49
 
-- [ ] 6.1.1 [spec-author] Write ST-48–ST-49 in new `oracle-final-publication.spec.test.ts`; never reopen Phase 5 specs
-- [ ] 6.1.2 Run the Phase 6 suite and record expected RED before pointer integration
-- [ ] 6.2.1 Resolve the staged accepted `PublishedOracleContext` without changing the real selected pointer
-- [ ] 6.2.2 Implement post-pointer resolve/reconciliation and closed `commit-indeterminate`
-- [ ] 6.2.3 Implement one bounded verified-pointer-replacement retry plus deterministic worker-reader barriers
-- [ ] 6.2.4 Prepare the exact staged release/review request without changing the selected pointer
-- [ ] 6.2.5 [semantics-reviewer] Independently review all authority/evaluator/relation/identity/mutation/binding/publication units
-- [ ] 6.2.6 Record accepted evidence; any subsequent semantic byte change invalidates this task
-- [ ] 6.2.7 Regenerate projections, validate the staged release and run ST-01–ST-49 plus all focused gates
-- [ ] 6.2.8 Publish through the incremental capability; reconcile faults and resolve nine current/four historical bindings
-- [ ] 6.3.1 Record selected-publication, traceability, `spec/` and deferral-expiry evidence
-- [ ] 6.3.2 Update RD/roadmaps/opted-in techdocs, run final verify and create the green local closeout commit without pushing
+- [x] 6.1.1 [spec-author] Write ST-48–ST-49 in new `oracle-final-publication.spec.test.ts`; never reopen Phase 5 specs — completed 2026-07-29 implementation-blind; spec SHA-256 `18de911ed7d6dcf222c914e3cbf2a995a0a0ebd845c37432d271a3459e09b9a1`, worker fixture SHA-256 `69463153896ade7993e04dc6375b6901aa690686277898547c085068e3a1cae8`
+- [x] 6.1.2 Run the Phase 6 suite and record expected RED before pointer integration — completed 2026-07-29; 14 cases ran, 9 expected failures cover absent Phase 6 boundaries/reconciliation/retry behavior and 5 existing pre-pointer safety controls pass
+- [x] 6.2.1 Resolve the staged accepted `PublishedOracleContext` without changing the real selected pointer — completed 2026-07-29 06:48 CEST
+- [x] 6.2.2 Implement post-pointer resolve/reconciliation and closed `commit-indeterminate` — completed 2026-07-29 06:48 CEST
+- [x] 6.2.3 Implement one bounded verified-pointer-replacement retry plus deterministic worker-reader barriers — completed 2026-07-29 06:48 CEST
+- [x] 6.2.4 Prepare the exact staged release/review request without changing the selected pointer — completed 2026-07-29 06:48 CEST
+- [x] 6.2.5 [semantics-reviewer] Independently review all authority/evaluator/relation/identity/mutation/binding/publication units — completed 2026-07-29 06:48 CEST (22 exact lexical units accepted with no findings)
+- [x] 6.2.6 Record accepted evidence; any subsequent semantic byte change invalidates this task — completed 2026-07-29 06:48 CEST (accepted review digest `sha256:f966b1db2c5fb9ee497b79b3668958f87dc3a93fcddf1936d827abf28b683d6c`)
+- [x] 6.2.7 Regenerate projections, validate the staged release and run ST-01–ST-49 plus all focused gates — completed 2026-07-29 07:18 CEST (98 readiness files / 1,282 tests pass sequentially; all 84 mutants killed; source-check and selected-publication check green)
+- [x] 6.2.8 Publish through the incremental capability; reconcile faults and resolve nine current/four historical bindings — completed 2026-07-29 07:19 CEST (selected `sha256:41557dde5590fed1fd28a8e920769787af43118de94c48c9484a20dc773e2706`; historical `sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403` remains four-row resolvable)
+- [x] 6.3.1 Record selected-publication, traceability, `spec/` and deferral-expiry evidence — completed 2026-07-29 07:19 CEST (traceability valid; frozen `spec/` clean; deferral rationales remain live and RD-08-owned)
+- [x] 6.3.2 Update RD/roadmaps/opted-in techdocs, run final verify and create the green local closeout commit without pushing — completed 2026-07-29 10:21 CEST (readiness coverage: 101 files / 1,316 tests, 90.11% branches; exact repository full gate green; no opted-in VitePress techdocs set; local closeout commit prepared without push)
 
 **Deliverable:** five RD-03 handlers atomically selected with non-substitutable authority,
 revision-complete evidence, backward compatibility and complete closeout proof.
