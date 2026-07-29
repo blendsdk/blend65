@@ -1,10 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 
 import {
-  copyUint8Array,
-  encodeCanonicalIdentity,
   isSha256Digest,
-  uint8ArrayByteLength,
   type CanonicalIdentityField,
   type GenerationConfiguration,
 } from "./canonical-identity.js";
@@ -19,6 +16,11 @@ import {
   deriveOracleEvaluationDigest,
   type OracleEvaluationCollisionRegistry,
 } from "./oracle-evaluation-collision.js";
+import {
+  copyOracleUint8Array,
+  encodeOracleCanonicalIdentity,
+  oracleUint8ArrayByteLength,
+} from "./oracle-canonical-identity.js";
 import { validateOracleBudget } from "./oracle-budget.js";
 import { hasExactOracleKeys, isOracleRecord, snapshotOracleInput } from "./oracle-input.js";
 import { validateOracleMemoryFixture } from "./oracle-memory.js";
@@ -563,7 +565,6 @@ function evaluationFields(
 function normalizeParticipants(
   input: unknown,
   transformed: boolean,
-  generatorHandlerId: string,
 ): OracleValidationResultV1<readonly OracleEvaluationParticipantV1[]> {
   if (!Array.isArray(input) || input.length < 1 || input.length > 5) {
     return failure("/participants", "Evaluation requires one to five participants.");
@@ -603,12 +604,14 @@ function normalizeParticipants(
       );
     }
   }
-  const requiredOracle =
-    generatorHandlerId === "generator.runtime-cases"
-      ? "oracle.runtime-state"
-      : "oracle.frontend-result";
-  if (!sorted.some(({ handlerId }) => handlerId === requiredOracle)) {
-    return failure("/participants", "The source route's oracle participant is missing.");
+  const oracleHandlerIds = new Set([
+    "oracle.compiler-result",
+    "oracle.emitted-program",
+    "oracle.frontend-result",
+    "oracle.runtime-state",
+  ]);
+  if (sorted.filter(({ handlerId }) => oracleHandlerIds.has(handlerId)).length !== 1) {
+    return failure("/participants", "Evaluation requires exactly one invoked oracle participant.");
   }
   if (
     transformed &&
@@ -642,15 +645,15 @@ export function validateOracleReplayProvenance(
     if (closed === undefined) {
       return failure("", "Replay validation input must use the exact closed data shape.");
     }
-    const envelopeLength = uint8ArrayByteLength(closed.envelopeBytes);
+    const envelopeLength = oracleUint8ArrayByteLength(closed.envelopeBytes);
     if (envelopeLength === undefined || envelopeLength > REPLAY_V1_LIMITS.maxInputBytes) {
       return failure(
         "/envelopeBytes",
         "Replay envelope bytes are invalid or exceed the fixed byte limit.",
       );
     }
-    const envelopeBytes = copyUint8Array(closed.envelopeBytes, envelopeLength);
-    const sourceLength = uint8ArrayByteLength(closed.expectedSourceContent);
+    const envelopeBytes = copyOracleUint8Array(closed.envelopeBytes, envelopeLength);
+    const sourceLength = oracleUint8ArrayByteLength(closed.expectedSourceContent);
     if (
       envelopeBytes === undefined ||
       sourceLength === undefined ||
@@ -661,7 +664,7 @@ export function validateOracleReplayProvenance(
         "Expected source bytes are invalid or exceed the fixed byte limit.",
       );
     }
-    const expectedSourceContent = copyUint8Array(closed.expectedSourceContent, sourceLength);
+    const expectedSourceContent = copyOracleUint8Array(closed.expectedSourceContent, sourceLength);
     if (expectedSourceContent === undefined) {
       return failure("/expectedSourceContent", "Expected source bytes could not be copied.");
     }
@@ -727,7 +730,7 @@ export function deriveOracleInitialMemoryIdentity(
       );
     });
     return deriveOracleEvaluationDigest(
-      encodeCanonicalIdentity("blend65-oracle-initial-memory-v1", fields),
+      encodeOracleCanonicalIdentity("blend65-oracle-initial-memory-v1", fields),
       registry,
     );
   } catch {
@@ -806,11 +809,7 @@ export function deriveOracleEvaluationIdentity(
     if (!provenance.ok) return provenance;
     const budget = validateOracleBudget(closed.budget);
     if (!budget.ok) return budget;
-    const participants = normalizeParticipants(
-      closed.participants,
-      paired,
-      provenance.value.campaign.generator.handlerId,
-    );
+    const participants = normalizeParticipants(closed.participants, paired);
     if (!participants.ok) return participants;
     const normalized: OracleEvaluationIdentityInputV1 = Object.freeze({
       schemaVersion: 1,
@@ -832,7 +831,7 @@ export function deriveOracleEvaluationIdentity(
       participants: participants.value,
     });
     return deriveOracleEvaluationDigest(
-      encodeCanonicalIdentity("blend65-oracle-evaluation-v1", evaluationFields(normalized)),
+      encodeOracleCanonicalIdentity("blend65-oracle-evaluation-v1", evaluationFields(normalized)),
       registry,
     );
   } catch {

@@ -1,14 +1,22 @@
-import { createHash } from "node:crypto";
-import { readFile, realpath } from "node:fs/promises";
+import { realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
 import {
   loadPublicationAuthorityContext,
-  parseSemanticReviewEvidence,
   type AuthorityPaths,
   type PublicationAuthorityContext,
 } from "./authority-loader.js";
 import type { FreshCandidateRegistration } from "./binding-model.js";
+import type { PublishedSnapshot } from "./binding-model.js";
+import {
+  type CompatiblePublicationDiagnostic,
+  type CompatiblePublicationResult,
+  type PrepareIncrementalBindingPublicationInput,
+  type PrepareIncrementalBindingPublicationReviewInput,
+  type PreparedIncrementalBindingPublication,
+  type PreparedIncrementalBindingPublicationPreview,
+  type PreparedIncrementalBindingPublicationReview,
+} from "./compatible-publication-model.js";
 import {
   isFreshCandidateRegistration,
   validateCandidateBindings,
@@ -44,19 +52,29 @@ import {
   type PublicationRelease,
   type PublicationResult,
   type PublicationReviewRequestV1,
-  type PublicationReviewUnitV1,
   type PublishBindingTransactionInput,
   type PublishedBindingTransaction,
 } from "./publication-model.js";
+import { readPublicationAuthorityFiles } from "./publication-authority-loader.js";
+import { loadPublicationImplementationAuthority } from "./publication-implementation-authority.js";
 import {
+  getPublishedBindingRows,
   getPublishedMetadata,
+  getPublishedSnapshotAuthority,
   resolvePublishedReleaseDigest,
+  resolvePublishedSnapshotByDigest,
   resolvePublishedSnapshot,
 } from "./publication-resolver.js";
-import { loadPublicationCandidateCatalog } from "./publication-candidates.js";
+import {
+  RD03_PUBLICATION_HANDLER_IDS,
+  loadPublicationCandidateCatalog,
+  loadPublicationCandidatesForHandlerIds,
+} from "./publication-candidates.js";
 import { computeGenerationDigest, renderGeneratedProjections } from "./projection.js";
-import { computeInventoryReviewDigests, INVENTORY_REVIEW_UNIT_IDS } from "./review-digests.js";
-import { validateReviewEvidence, type SemanticReviewRecord } from "./review-evidence.js";
+import {
+  reconstructPublicationReviewRequest,
+  validatePublicationReviewEvidence,
+} from "./publication-review.js";
 import { parseRuleModelRegistry } from "./rule-model-input.js";
 import { readInventoryVersioned } from "./versioning.js";
 
@@ -68,8 +86,6 @@ const AUTHORITY_PATHS: AuthorityPaths = Object.freeze({
 const RULE_MODEL_PATH = "readiness/rule-models/rule-models-v1.json";
 const RULE_MODEL_REVIEW_PATH = "readiness/reviews/rule-models-v1-review.json";
 const GENERATION_LOCK_PATH = "readiness/generated/.generation-lock";
-const PUBLICATION_BINDINGS_UNIT = "publication-bindings";
-const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 
 /** Fixed independently authored semantic-review input consumed by the publish CLI. */
 export const PUBLICATION_SEMANTIC_REVIEW_SOURCE_PATH = "readiness/reviews/semantic-review-v1.json";
@@ -90,30 +106,6 @@ interface PreparedReleaseAuthority {
 
 function digest(domain: string, bytes: Uint8Array): Sha256Digest {
   return currentPublicationConformance()?.digest?.(domain, bytes) ?? digestPublicationBytes(bytes);
-}
-
-function reviewSemanticDigest(
-  specRevision: string,
-  dependencyDigests: PublicationReviewRequestV1["dependencyDigests"],
-  promotedHandlerIds: readonly string[],
-  inventoryUnits: readonly PublicationReviewUnitV1[],
-): Sha256Digest {
-  const bytes = renderPublicationJson({
-    schemaVersion: 1,
-    specRevision,
-    dependencyDigests,
-    promotedHandlerIds,
-    reviewUnits: inventoryUnits,
-  });
-  return `sha256:${createHash("sha256")
-    .update("blend65.publication-review.v1")
-    .update(Uint8Array.of(0))
-    .update(bytes)
-    .digest("hex")}`;
-}
-
-function isDigest(value: string | undefined): value is Sha256Digest {
-  return value !== undefined && SHA256_PATTERN.test(value);
 }
 
 async function validateRepositoryRoot(repositoryRoot: string): Promise<PublicationResult<string>> {
@@ -205,10 +197,19 @@ function normalizedCandidates(
 function stageInventory(
   authority: PublicationAuthorityContext,
   candidates: readonly FreshCandidateRegistration[],
+  allowAlreadyBoundCandidates: boolean,
 ): PublicationResult<InventoryV1> {
+  const declarationById = new Map(
+    authority.inventory.handlerDeclarations.map((declaration) => [declaration.id, declaration]),
+  );
+  const candidatesToValidate = allowAlreadyBoundCandidates
+    ? candidates.filter(
+        ({ binding }) => declarationById.get(binding.handlerId)?.binding === "unbound",
+      )
+    : candidates;
   const candidateValidation = validateCandidateBindings(
     authority.inventory.handlerDeclarations,
-    candidates.map(({ binding }) => binding),
+    candidatesToValidate.map(({ binding }) => binding),
   );
   if (!candidateValidation.ok) {
     const first = candidateValidation.diagnostics[0];
@@ -254,63 +255,27 @@ function stageInventory(
   return publicationSuccess(Object.freeze(inventory));
 }
 
-function inventoryReviewUnits(
-  context: PublicationAuthorityContext,
-  stagedInventory: InventoryV1,
-): PublicationResult<readonly PublicationReviewUnitV1[]> {
-  const digests = computeInventoryReviewDigests(
-    stagedInventory,
-    context.fragments,
-    context.identityLedgerBytes,
-  );
-  const units: PublicationReviewUnitV1[] = [];
-  for (const unitId of [...INVENTORY_REVIEW_UNIT_IDS].sort()) {
-    const semanticDigest = digests.currentDigests[unitId];
-    const dependencies = digests.requiredDependencyIdsByUnit[unitId];
-    if (!isDigest(semanticDigest) || dependencies === undefined) {
-      return publicationFailure(
-        "invalid",
-        "publication.input.invalid",
-        `/reviewUnits/${unitId}`,
-        "Staged inventory review digests are incomplete.",
-      );
-    }
-    const dependencyDigests: Record<string, Sha256Digest> = {};
-    for (const dependency of [...dependencies].sort()) {
-      const dependencyDigest = digests.currentDigests[dependency];
-      if (!isDigest(dependencyDigest)) {
-        return publicationFailure(
-          "invalid",
-          "publication.input.invalid",
-          `/reviewUnits/${unitId}/dependencyDigests/${dependency}`,
-          "Staged inventory dependency digest is incomplete.",
-        );
-      }
-      dependencyDigests[dependency] = dependencyDigest;
-    }
-    units.push(
-      Object.freeze({
-        unitId,
-        semanticDigest,
-        dependencyDigests: Object.freeze(dependencyDigests),
-      }),
-    );
-  }
-  return publicationSuccess(Object.freeze(units));
-}
-
 async function prepareReleaseAuthority(
   input: PrepareBindingPublicationReviewInput,
+  candidateOverride?: readonly FreshCandidateRegistration[],
+  promotedHandlerIdOverride?: readonly string[],
 ): Promise<PublicationResult<PreparedReleaseAuthority>> {
   const root = await validateRepositoryRoot(input.repositoryRoot);
   if (!root.ok) return root;
-  const catalog = await loadPublicationCandidateCatalog(root.value);
+  const catalog =
+    candidateOverride === undefined
+      ? await loadPublicationCandidateCatalog(root.value)
+      : { ok: true as const, candidates: candidateOverride, diagnostics: [] as const };
   if (!catalog.ok) return authorityFailure(catalog.diagnostics);
   const candidates = normalizedCandidates(catalog.candidates);
   if (!candidates.ok) return candidates;
   const authority = await loadPublicationAuthorityContext(root.value, AUTHORITY_PATHS);
   if (!authority.ok) return authorityFailure(authority.diagnostics);
-  const inventory = stageInventory(authority.context, candidates.value);
+  const inventory = stageInventory(
+    authority.context,
+    candidates.value,
+    promotedHandlerIdOverride !== undefined,
+  );
   if (!inventory.ok) return inventory;
   const inventoryBytes = renderPublicationJson(inventory.value);
   const inventoryRoundTrip = readInventoryVersioned(inventoryBytes);
@@ -322,12 +287,14 @@ async function prepareReleaseAuthority(
     return authorityFailure(projections.diagnostics);
   }
 
-  let ruleModelBytes: Uint8Array;
-  let ruleModelReviewBytes: Uint8Array;
-  try {
-    ruleModelBytes = await readFile(join(root.value, RULE_MODEL_PATH));
-    ruleModelReviewBytes = await readFile(join(root.value, RULE_MODEL_REVIEW_PATH));
-  } catch {
+  const ruleModelAuthority = await readPublicationAuthorityFiles(
+    root.value,
+    [RULE_MODEL_PATH, RULE_MODEL_REVIEW_PATH].sort(),
+  );
+  if (!ruleModelAuthority.ok) return ruleModelAuthority;
+  const ruleModelBytes = ruleModelAuthority.value.get(RULE_MODEL_PATH);
+  const ruleModelReviewBytes = ruleModelAuthority.value.get(RULE_MODEL_REVIEW_PATH);
+  if (ruleModelBytes === undefined || ruleModelReviewBytes === undefined) {
     return publicationFailure(
       "io",
       "publication.io",
@@ -355,46 +322,33 @@ async function prepareReleaseAuthority(
     }),
   );
   const bindingBytes = renderPublicationBindings(bindingRows);
-  const dependencyDigests = Object.freeze({
-    bindings: digest("publication-member:bindings-v1.json", bindingBytes),
-    inventory: digest("publication-member:compiler-readiness-v1.json", inventoryBytes),
-    "rule-model": digest("publication-member:rule-models-v1.json", ruleModelBytes),
-    "rule-model-review": digest(
-      "publication-member:rule-models-v1-review.json",
-      ruleModelReviewBytes,
-    ),
-  });
-  const units = inventoryReviewUnits(authority.context, inventoryRoundTrip.inventory);
-  if (!units.ok) return units;
-  const promotedHandlerIds = Object.freeze(bindingRows.map(({ handlerId }) => handlerId));
-  const semanticDigest = reviewSemanticDigest(
-    inventory.value.specRevision,
-    dependencyDigests,
-    promotedHandlerIds,
-    units.value,
+  const promotedHandlerIds = Object.freeze(
+    promotedHandlerIdOverride === undefined
+      ? bindingRows.map(({ handlerId }) => handlerId)
+      : [...promotedHandlerIdOverride],
   );
-  const reviewUnits = Object.freeze(
-    [
-      ...units.value,
-      Object.freeze({
-        unitId: PUBLICATION_BINDINGS_UNIT,
-        semanticDigest,
-        dependencyDigests,
-      }),
-    ].sort((left, right) => left.unitId.localeCompare(right.unitId)),
-  );
-  const request: PublicationReviewRequestV1 = Object.freeze({
-    schemaVersion: 1,
-    semanticDigest,
-    specRevision: inventory.value.specRevision,
-    dependencyDigests,
+  const implementationAuthority =
+    promotedHandlerIdOverride === undefined
+      ? undefined
+      : await loadPublicationImplementationAuthority(root.value);
+  if (implementationAuthority !== undefined && !implementationAuthority.ok) {
+    return implementationAuthority;
+  }
+  const reconstructed = reconstructPublicationReviewRequest({
+    context: authority.context,
+    inventory: inventoryRoundTrip.inventory,
+    bindingBytes,
+    inventoryBytes,
+    ruleModelBytes,
+    ruleModelReviewBytes,
     promotedHandlerIds,
-    reviewUnits,
+    publicationImplementationAuthority: implementationAuthority?.value,
   });
+  if (!reconstructed.ok) return reconstructed;
   return publicationSuccess(
     Object.freeze({
-      request,
-      requestBytes: renderPublicationJson(request),
+      request: reconstructed.value.request,
+      requestBytes: reconstructed.value.requestBytes,
       inventory: inventoryRoundTrip.inventory,
       inventoryBytes,
       bindingRows: Object.freeze(bindingRows),
@@ -408,85 +362,12 @@ async function prepareReleaseAuthority(
   );
 }
 
-function renderSemanticReview(records: readonly SemanticReviewRecord[]): Uint8Array {
-  return renderPublicationJson({
-    schemaVersion: 1,
-    reviews: records.map((record) => ({
-      unitId: record.unitId,
-      reviewer: record.reviewer,
-      specRevision: record.specRevision,
-      semanticDigest: record.semanticDigest,
-      dependencyDigests: Object.fromEntries(
-        Object.entries(record.dependencyDigests).sort(([left], [right]) =>
-          left.localeCompare(right),
-        ),
-      ),
-      outcome: record.outcome,
-      resolvedDisagreementIds: record.resolvedDisagreementIds,
-    })),
-  });
-}
-
 function validateSemanticReview(
   bytes: Uint8Array,
   request: PublicationReviewRequestV1,
+  diagnosticProfile: "compatible" | "legacy" = "compatible",
 ): PublicationResult<Uint8Array> {
-  if (bytes.byteLength > PUBLICATION_V1_LIMITS.maxSemanticReviewBytes) {
-    return publicationFailure(
-      "invalid",
-      "publication.input.limit",
-      "semantic-review-v1.json",
-      "Semantic review evidence exceeds the version-one byte limit.",
-    );
-  }
-  const strict = parsePublicationJson(bytes);
-  if (!strict.ok) {
-    return publicationFailure(
-      "invalid",
-      "publication.review.invalid",
-      "semantic-review-v1.json",
-      strict.diagnostics[0]?.message ?? "Semantic review evidence is invalid.",
-    );
-  }
-  const records = parseSemanticReviewEvidence(bytes);
-  if (records === undefined) {
-    return publicationFailure(
-      "invalid",
-      "publication.review.invalid",
-      "semantic-review-v1.json",
-      "Semantic review evidence does not satisfy its closed schema.",
-    );
-  }
-  const sorted = [...records].sort((left, right) => left.unitId.localeCompare(right.unitId));
-  const requiredDependencyIdsByUnit: Record<string, readonly string[]> = {};
-  const currentDigests: Record<string, string> = {};
-  for (const unit of request.reviewUnits) {
-    requiredDependencyIdsByUnit[unit.unitId] = Object.keys(unit.dependencyDigests).sort();
-    currentDigests[unit.unitId] = unit.semanticDigest;
-    Object.assign(currentDigests, unit.dependencyDigests);
-  }
-  const evidence = validateReviewEvidence(sorted, {
-    expectedSpecRevision: request.specRevision,
-    requiredUnitIds: request.reviewUnits.map(({ unitId }) => unitId),
-    requiredDependencyIdsByUnit,
-    currentDigests,
-  });
-  if (!evidence.ok) {
-    const first = evidence.diagnostics[0];
-    const code =
-      first?.code === "review.not-accepted"
-        ? "publication.review.not-accepted"
-        : first?.code.includes("stale") === true
-          ? "publication.review.stale"
-          : "publication.review.invalid";
-    return publicationFailure(
-      "invalid",
-      code,
-      first?.path ?? "semantic-review-v1.json",
-      first?.message ?? "Semantic review evidence does not match the staged request.",
-    );
-  }
-  return publicationSuccess(renderSemanticReview(sorted));
+  return validatePublicationReviewEvidence(bytes, request, diagnosticProfile);
 }
 
 function buildRelease(
@@ -543,6 +424,364 @@ function buildRelease(
       publicationDigest,
     }),
   );
+}
+
+interface IncrementalPublicationAssembly {
+  readonly root: string;
+  readonly baseSnapshot: PublishedSnapshot;
+  readonly basePublicationDigest: Sha256Digest;
+  readonly prepared: PreparedReleaseAuthority;
+}
+
+interface PreparedIncrementalState {
+  readonly root: string;
+  readonly basePublicationDigest: Sha256Digest;
+  readonly publicationDigest: Sha256Digest;
+  readonly acceptedReviewDigest: Sha256Digest;
+  readonly targetHandlerIds: readonly string[];
+  readonly semanticReviewBytes: Uint8Array;
+}
+
+const PREPARED_INCREMENTAL_STATES = new WeakMap<object, PreparedIncrementalState>();
+const EMPTY_COMPATIBLE_DIAGNOSTICS: readonly [] = Object.freeze([]);
+
+function compatibleSuccess<T>(value: T): CompatiblePublicationResult<T> {
+  return Object.freeze({ ok: true, value, diagnostics: EMPTY_COMPATIBLE_DIAGNOSTICS });
+}
+
+function compatibleFailure<T>(
+  code: CompatiblePublicationDiagnostic["code"],
+  path: string,
+  message: string,
+  kind: Extract<CompatiblePublicationResult<T>, { readonly ok: false }>["kind"] = "invalid",
+): CompatiblePublicationResult<T> {
+  return Object.freeze({
+    ok: false,
+    kind,
+    diagnostics: Object.freeze([Object.freeze({ code, path, message })]),
+  });
+}
+
+function compatiblePublicationFailure<T>(
+  result: Extract<
+    PublicationResult<unknown> | CompatiblePublicationResult<unknown>,
+    { readonly ok: false }
+  >,
+): CompatiblePublicationResult<T> {
+  return Object.freeze({
+    ok: false,
+    kind: result.kind,
+    diagnostics: result.diagnostics,
+  });
+}
+
+function exactIncrementalTargets(value: readonly string[]): boolean {
+  try {
+    return (
+      Array.isArray(value) &&
+      value.length === RD03_PUBLICATION_HANDLER_IDS.length &&
+      value.every((handlerId, index) => handlerId === RD03_PUBLICATION_HANDLER_IDS[index])
+    );
+  } catch {
+    return false;
+  }
+}
+
+function equalBindingRows(
+  left: readonly PublicationBindingRow[],
+  right: readonly PublicationBindingRow[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((row, index) => {
+      const candidate = right[index];
+      return (
+        candidate !== undefined &&
+        row.handlerId === candidate.handlerId &&
+        row.kind === candidate.kind &&
+        row.contractVersion === candidate.contractVersion &&
+        row.implementationRevision === candidate.implementationRevision
+      );
+    })
+  );
+}
+
+async function assembleIncrementalPublication(
+  input: PrepareIncrementalBindingPublicationReviewInput,
+): Promise<CompatiblePublicationResult<IncrementalPublicationAssembly>> {
+  const root = await validateRepositoryRoot(input.repositoryRoot);
+  if (!root.ok) return compatiblePublicationFailure(root);
+  if (!exactIncrementalTargets(input.targetHandlerIds)) {
+    return compatibleFailure(
+      "publication.targets.invalid",
+      "/targetHandlerIds",
+      "Incremental publication requires the exact lexical five-handler target set.",
+    );
+  }
+  const baseAuthority = getPublishedSnapshotAuthority(input.baseSnapshot);
+  if (baseAuthority === undefined || baseAuthority.repositoryRoot !== root.value) {
+    return compatibleFailure(
+      "publication.base.invalid",
+      "/baseSnapshot",
+      "Incremental publication requires a genuine snapshot from the same repository.",
+    );
+  }
+  const currentBase = await resolvePublishedSnapshotByDigest({
+    repositoryRoot: root.value,
+    publicationDigest: baseAuthority.publicationDigest,
+  });
+  if (!currentBase.ok) {
+    return compatibleFailure(
+      "publication.base.invalid",
+      "/baseSnapshot",
+      "Incremental publication base is absent or no longer authentic.",
+    );
+  }
+  const currentBaseRows = getPublishedBindingRows(currentBase.value);
+  const suppliedBaseRows = getPublishedBindingRows(input.baseSnapshot);
+  if (
+    currentBaseRows === undefined ||
+    suppliedBaseRows === undefined ||
+    !equalBindingRows(currentBaseRows, suppliedBaseRows)
+  ) {
+    return compatibleFailure(
+      "publication.base.invalid",
+      "/baseSnapshot",
+      "Incremental publication base metadata does not match its immutable release.",
+    );
+  }
+  const targetCatalog = await loadPublicationCandidatesForHandlerIds({
+    repositoryRoot: root.value,
+    handlerIds: input.targetHandlerIds,
+  });
+  if (!targetCatalog.ok) {
+    return compatibleFailure(
+      "publication.targets.invalid",
+      "/targetHandlerIds",
+      targetCatalog.diagnostics[0]?.message ?? "Target candidates could not be reconstructed.",
+    );
+  }
+  const refreshedBase = getPublishedSnapshotAuthority(currentBase.value);
+  if (refreshedBase === undefined) {
+    return compatibleFailure(
+      "publication.base.invalid",
+      "/baseSnapshot",
+      "Resolved base authority is unavailable.",
+    );
+  }
+  const combined = Object.freeze([...refreshedBase.candidates, ...targetCatalog.candidates]);
+  const prepared = await prepareReleaseAuthority(
+    { repositoryRoot: root.value },
+    combined,
+    input.targetHandlerIds,
+  );
+  if (!prepared.ok) return compatiblePublicationFailure(prepared);
+  return compatibleSuccess(
+    Object.freeze({
+      root: root.value,
+      baseSnapshot: currentBase.value,
+      basePublicationDigest: baseAuthority.publicationDigest,
+      prepared: prepared.value,
+    }),
+  );
+}
+
+/**
+ * Reconstructs the exact incremental semantic-review request without issuing commit authority.
+ *
+ * @param input Genuine named base and exact five-handler target set.
+ * @returns Deeply immutable request and defensive canonical bytes.
+ *
+ * @example
+ * ```ts
+ * const review = await prepareIncrementalBindingPublicationReview(input);
+ * ```
+ */
+export async function prepareIncrementalBindingPublicationReview(
+  input: PrepareIncrementalBindingPublicationReviewInput,
+): Promise<CompatiblePublicationResult<PreparedIncrementalBindingPublicationReview>> {
+  const assembly = await assembleIncrementalPublication(input);
+  if (!assembly.ok) return assembly;
+  return compatibleSuccess(
+    Object.freeze({
+      request: assembly.value.prepared.request,
+      requestBytes: Uint8Array.prototype.slice.call(
+        assembly.value.prepared.requestBytes,
+      ) as Uint8Array,
+    }),
+  );
+}
+
+/**
+ * Validates independent review and stages one immutable nine-binding release.
+ *
+ * @param input Genuine base, exact target set and current semantic-review evidence.
+ * @returns Readable staged evidence and opaque future commit authority.
+ *
+ * @example
+ * ```ts
+ * const preview = await prepareIncrementalBindingPublication(input);
+ * ```
+ */
+export async function prepareIncrementalBindingPublication(
+  input: PrepareIncrementalBindingPublicationInput,
+): Promise<CompatiblePublicationResult<PreparedIncrementalBindingPublicationPreview>> {
+  const assembly = await assembleIncrementalPublication(input);
+  if (!assembly.ok) return assembly;
+  const review = validateSemanticReview(input.semanticReviewBytes, assembly.value.prepared.request);
+  if (!review.ok) {
+    const first = review.diagnostics[0];
+    return compatibleFailure(
+      first?.code ?? "publication.review.invalid",
+      "semantic-review-v1.json",
+      first?.message ?? "Semantic review evidence was rejected.",
+    );
+  }
+  const release = buildRelease(assembly.value.prepared, review.value);
+  if (!release.ok) return compatiblePublicationFailure(release);
+  const promoted = await promotePublicationRelease(assembly.value.root, release.value);
+  if (!promoted.ok) return compatiblePublicationFailure(promoted);
+  const staged = await resolvePublishedReleaseDigest(
+    assembly.value.root,
+    release.value.publicationDigest,
+  );
+  if (!staged.ok) return compatiblePublicationFailure(staged);
+  const prepared = Object.freeze({}) as PreparedIncrementalBindingPublication;
+  const acceptedReviewDigest = digestPublicationBytes(review.value);
+  PREPARED_INCREMENTAL_STATES.set(
+    prepared,
+    Object.freeze({
+      root: assembly.value.root,
+      basePublicationDigest: assembly.value.basePublicationDigest,
+      publicationDigest: release.value.publicationDigest,
+      acceptedReviewDigest,
+      targetHandlerIds: Object.freeze([...input.targetHandlerIds]),
+      semanticReviewBytes: Uint8Array.prototype.slice.call(review.value) as Uint8Array,
+    }),
+  );
+  return compatibleSuccess(
+    Object.freeze({
+      prepared,
+      basePublicationDigest: assembly.value.basePublicationDigest,
+      publicationDigest: release.value.publicationDigest,
+      acceptedReviewDigest,
+      promotedHandlerIds: Object.freeze([...input.targetHandlerIds]),
+      stagedSnapshot: staged.value,
+    }),
+  );
+}
+
+/**
+ * Selects one previously issued incremental publication after complete authority revalidation.
+ *
+ * @param prepared Opaque staging capability.
+ * @returns Selected transaction result or a closed compatibility failure.
+ *
+ * @example
+ * ```ts
+ * const selected = await publishIncrementalBindingPublication(preview.prepared);
+ * ```
+ */
+export async function publishIncrementalBindingPublication(
+  prepared: PreparedIncrementalBindingPublication,
+): Promise<CompatiblePublicationResult<PublishedBindingTransaction>> {
+  const state =
+    typeof prepared === "object" && prepared !== null
+      ? PREPARED_INCREMENTAL_STATES.get(prepared)
+      : undefined;
+  if (state === undefined) {
+    return compatibleFailure(
+      "publication.capability.invalid",
+      "/prepared",
+      "Incremental publication capability was not issued by this process.",
+    );
+  }
+  PREPARED_INCREMENTAL_STATES.delete(prepared);
+  let lock: Awaited<ReturnType<typeof acquireGenerationLock>>;
+  try {
+    lock = await acquireGenerationLock(join(state.root, GENERATION_LOCK_PATH));
+  } catch {
+    return compatibleFailure(
+      "publication.io",
+      GENERATION_LOCK_PATH,
+      "Publication generation lock could not be acquired safely.",
+      "io",
+    );
+  }
+  if (lock === undefined) {
+    return compatibleFailure(
+      "publication.lock.contended",
+      GENERATION_LOCK_PATH,
+      "Another live publisher owns the readiness generation lock.",
+      "contended",
+    );
+  }
+  try {
+    const selectedBase = await resolvePublishedSnapshot({ repositoryRoot: state.root });
+    if (!selectedBase.ok) return compatiblePublicationFailure(selectedBase);
+    const selectedMetadata = getPublishedMetadata(selectedBase.value);
+    if (selectedMetadata?.publicationDigest !== state.basePublicationDigest) {
+      return compatibleFailure(
+        "publication.base.stale",
+        "/baseSnapshot/publicationDigest",
+        "Selected publication changed after incremental staging.",
+        "stale",
+      );
+    }
+    const rebuilt = await assembleIncrementalPublication({
+      repositoryRoot: state.root,
+      baseSnapshot: selectedBase.value,
+      targetHandlerIds: state.targetHandlerIds,
+    });
+    if (!rebuilt.ok) return rebuilt;
+    const review = validateSemanticReview(
+      state.semanticReviewBytes,
+      rebuilt.value.prepared.request,
+    );
+    if (!review.ok || digestPublicationBytes(review.value) !== state.acceptedReviewDigest) {
+      return compatibleFailure(
+        "publication.review.stale",
+        "semantic-review-v1.json",
+        "Accepted review no longer matches current publication authority.",
+        "stale",
+      );
+    }
+    const release = buildRelease(rebuilt.value.prepared, review.value);
+    if (!release.ok) return compatiblePublicationFailure(release);
+    if (release.value.publicationDigest !== state.publicationDigest) {
+      return compatibleFailure(
+        "publication.snapshot.invalid",
+        "/prepared",
+        "Rebuilt staged release does not match the issued capability.",
+      );
+    }
+    const promoted = await promotePublicationRelease(state.root, release.value);
+    if (!promoted.ok) return compatiblePublicationFailure(promoted);
+    const committed = await commitPublicationPointer(state.root, release.value);
+    if (!committed.ok) return compatiblePublicationFailure(committed);
+    const selected = await resolvePublishedSnapshotByDigest({
+      repositoryRoot: state.root,
+      publicationDigest: release.value.publicationDigest,
+    });
+    if (!selected.ok) return compatiblePublicationFailure(selected);
+    const exactMetadata = getPublishedMetadata(selected.value);
+    if (exactMetadata?.publicationDigest !== release.value.publicationDigest) {
+      return compatibleFailure(
+        "publication.snapshot.invalid",
+        "/publicationDigest",
+        "Committed publication did not resolve to the exact staged snapshot.",
+      );
+    }
+    return compatibleSuccess(
+      Object.freeze({
+        publicationDigest: release.value.publicationDigest,
+        snapshot: selected.value,
+        reusedExistingRelease: promoted.value.reusedExistingRelease,
+      }),
+    );
+  } finally {
+    await lock.release();
+  }
 }
 
 /**
@@ -608,7 +847,11 @@ export async function publishBindingTransaction(
       repositoryRoot: root.value,
     });
     if (!prepared.ok) return prepared;
-    const review = validateSemanticReview(input.semanticReviewBytes, prepared.value.request);
+    const review = validateSemanticReview(
+      input.semanticReviewBytes,
+      prepared.value.request,
+      "legacy",
+    );
     if (!review.ok) return review;
     const release = buildRelease(prepared.value, review.value);
     if (!release.ok) return release;
@@ -629,7 +872,6 @@ export async function publishBindingTransaction(
     const accepted = await resolvePublishedReleaseDigest(
       root.value,
       release.value.publicationDigest,
-      prepared.value.candidates,
     );
     if (!accepted.ok) {
       return publicationFailure(

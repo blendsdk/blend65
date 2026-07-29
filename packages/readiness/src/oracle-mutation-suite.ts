@@ -18,14 +18,12 @@ import {
 import { INVENTORY_V1_LIMITS } from "./limits.js";
 import { parseInventoryJson } from "./json-input.js";
 import type { Sha256Digest } from "./model-registry-model.js";
-import {
-  createModeledGeneratorSuite,
-  MODELED_AUTHORITY_MAX_BYTES,
-} from "./modeled-generator-suite.js";
+import { createModeledGeneratorSuite } from "./modeled-generator-suite.js";
 import type { GeneratorHandlerV1, ModeledCaseRequest } from "./modeled-generator-model.js";
 import { boundaryVariantsHandler, generateFrontendCase } from "./modeled-generators.js";
 import { oracleFailure, snapshotOracleInput, type OracleFailure } from "./oracle-input.js";
 import { ORACLE_V1_LIMITS, type OracleSuite } from "./oracle-model.js";
+import { ORACLE_MUTATION_AUTHORITY_MAX_BYTES } from "./oracle-mutation-policy.js";
 import type { OracleMutationSuiteDescriptorV1 } from "./oracle-mutation-packet.js";
 import { createOracleSuite } from "./oracle-suite.js";
 import { createRevisionRegistry, type RevisionEntry } from "./revision-registry.js";
@@ -306,9 +304,9 @@ export async function hydrateOracleMutationSuite(
     const [inventoryBytes, seedBytes, modelBytes, reviewBytes, diagnosticBytes, bindingBytes] =
       await Promise.all([
         readBoundedRegularFileNoFollow(INVENTORY_URL, INVENTORY_V1_LIMITS.maxInputBytes),
-        readBoundedRegularFileNoFollow(SEED_URL, MODELED_AUTHORITY_MAX_BYTES),
-        readBoundedRegularFileNoFollow(MODEL_URL, MODELED_AUTHORITY_MAX_BYTES),
-        readBoundedRegularFileNoFollow(REVIEW_URL, MODELED_AUTHORITY_MAX_BYTES),
+        readBoundedRegularFileNoFollow(SEED_URL, ORACLE_MUTATION_AUTHORITY_MAX_BYTES),
+        readBoundedRegularFileNoFollow(MODEL_URL, ORACLE_MUTATION_AUTHORITY_MAX_BYTES),
+        readBoundedRegularFileNoFollow(REVIEW_URL, ORACLE_MUTATION_AUTHORITY_MAX_BYTES),
         readBoundedRegularFileNoFollow(DIAGNOSTIC_URL, ORACLE_V1_LIMITS.authorityBytes),
         readBoundedRegularFileNoFollow(BINDING_URL, ORACLE_V1_LIMITS.authorityBytes),
       ]);

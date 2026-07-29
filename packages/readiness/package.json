@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./published-oracle": {
+      "types": "./dist/published-oracle.d.ts",
+      "import": "./dist/published-oracle.js"
     }
   },
   "scripts": {

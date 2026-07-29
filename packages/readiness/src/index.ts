@@ -27,14 +27,19 @@ export {
   validatePublishedBindings,
 } from "./binding-validator.js";
 export {
+  prepareIncrementalBindingPublication,
+  prepareIncrementalBindingPublicationReview,
   prepareBindingPublicationReview,
+  publishIncrementalBindingPublication,
   publishBindingTransaction,
 } from "./binding-publication.js";
 export {
   getPublishedBinding,
+  getPublishedBindingRows,
   getPublishedInventory,
   getPublishedMetadata,
   resolvePublishedSnapshot,
+  resolvePublishedSnapshotByDigest,
 } from "./publication-resolver.js";
 export { PUBLICATION_V1_LIMITS } from "./publication-model.js";
 export { parseRuleModelRegistry, validateRuleModelRegistry } from "./rule-model-input.js";
@@ -54,6 +59,7 @@ export {
 } from "./modeled-generators.js";
 export { createModeledGeneratorSuite, getRuleGenerationDomain } from "./modeled-generator-suite.js";
 export { registerModeledCandidateBindings } from "./modeled-candidate-bindings.js";
+export { registerOracleCandidateBindings } from "./oracle-candidate-bindings.js";
 export { createGenerationBudgetTracker, validateGenerationBudget } from "./generation-budget.js";
 export {
   createIdentityCollisionRegistry,
@@ -200,6 +206,16 @@ export type {
   PublishedMetadata,
   ResolvePublishedSnapshotInput,
 } from "./publication-model.js";
+export type {
+  CompatiblePublicationDiagnostic,
+  CompatiblePublicationResult,
+  PreparedIncrementalBindingPublication,
+  PreparedIncrementalBindingPublicationPreview,
+  PreparedIncrementalBindingPublicationReview,
+  PrepareIncrementalBindingPublicationInput,
+  PrepareIncrementalBindingPublicationReviewInput,
+  PublishedIncrementalBindingPublication,
+} from "./compatible-publication-model.js";
 export type {
   CampaignIdentityInput,
   CaseIdentity,
@@ -359,6 +375,11 @@ export type {
   ModeledCandidateDiagnostic,
   ModeledCandidateRegistrationResult,
 } from "./modeled-candidate-bindings.js";
+export type {
+  OracleCandidateDependencyInput,
+  OracleCandidateDiagnostic,
+  OracleCandidateRegistrationResult,
+} from "./oracle-candidate-bindings.js";
 export type {
   CampaignBoundaryBindingV1,
   CampaignCollisionIndex,

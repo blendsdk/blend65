@@ -1,8 +1,8 @@
 import {
-  copyUint8Array,
-  encodeCanonicalIdentity,
-  uint8ArrayByteLength,
-} from "./canonical-identity.js";
+  copyOracleUint8Array,
+  encodeOracleCanonicalIdentity,
+  oracleUint8ArrayByteLength,
+} from "./oracle-canonical-identity.js";
 import {
   deriveOracleEvaluationDigest,
   type OracleEvaluationCollisionRegistry,
@@ -31,19 +31,19 @@ function deriveContentIdentity(
   registry?: OracleEvaluationCollisionRegistry,
 ): OracleIdentityResultV1 {
   try {
-    const byteLength = uint8ArrayByteLength(content);
+    const byteLength = oracleUint8ArrayByteLength(content);
     if (byteLength === undefined || byteLength > MAX_CONTENT_BYTES) {
       return failure(
         byteLength === undefined ? "oracle.input.invalid" : "oracle.input.limit",
         "Content must be a bounded byte array.",
       );
     }
-    const isolated = copyUint8Array(content, byteLength);
+    const isolated = copyOracleUint8Array(content, byteLength);
     if (isolated === undefined) {
       return failure("oracle.input.invalid", "Content could not be copied safely.");
     }
     return deriveOracleEvaluationDigest(
-      encodeCanonicalIdentity(domain, [{ name: "content", value: isolated }]),
+      encodeOracleCanonicalIdentity(domain, [{ name: "content", value: isolated }]),
       registry,
     );
   } catch {

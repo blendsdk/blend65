@@ -1,8 +1,8 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 
-import { copyUint8Array, uint8ArrayByteLength } from "./canonical-identity.js";
 import type { Sha256Digest } from "./model-registry-model.js";
+import { copyOracleUint8Array, oracleUint8ArrayByteLength } from "./oracle-canonical-identity.js";
 import {
   ORACLE_V1_LIMITS,
   type OracleDiagnostic,
@@ -359,7 +359,7 @@ export function snapshotOracleBytes(
   value: unknown,
   path: string,
 ): { readonly ok: true; readonly bytes: Uint8Array } | OracleFailure {
-  const length = uint8ArrayByteLength(value);
+  const length = oracleUint8ArrayByteLength(value);
   if (length === undefined) {
     return oracleFailure("oracle.input.invalid", path, "Authority artifact must be a byte array.");
   }
@@ -370,7 +370,7 @@ export function snapshotOracleBytes(
       `Authority artifact exceeds ${ORACLE_V1_LIMITS.authorityBytes} bytes.`,
     );
   }
-  const bytes = copyUint8Array(value, length);
+  const bytes = copyOracleUint8Array(value, length);
   return bytes === undefined
     ? oracleFailure("oracle.input.invalid", path, "Authority artifact could not be copied safely.")
     : Object.freeze({ ok: true, bytes });

@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-28
-> **Progress**: 49/72 tasks (68%)
+> **Progress**: 60/72 tasks (83%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -138,20 +138,25 @@ mutation proof. No raw handler yet claims selected participant revisions.
 
 ## Phase 5: Compatible Staging and Resolution Revalidation
 
+> **Phase baseline tree**: 5993dd83ee5b96c505a0adc8b7e1b37d4f788d87
+> **Expected modification set**: Phase 5 specification/fixture files; readiness candidate,
+> publication, resolver, review and published-context modules; generated candidate revisions;
+> implementation tests; Phase 5 plan/traceability/roadmap state. The real selected publication
+> pointer is excluded until Phase 6.
 > **Lenses**: concurrency, security, api-surface, compatibility
 > **Reference**: 03-05 · AR-P15–AR-P16, AR-P33–AR-P34 · ST-39–ST-45
 
-- [ ] 5.1.1 [spec-author] Write ST-39–ST-42 in `oracle-bindings.spec.test.ts`
-- [ ] 5.1.2 [spec-author] Write ST-43–ST-45 in `oracle-publication.spec.test.ts` and ST-46–ST-47 in separate `oracle-published-evidence.spec.test.ts`
-- [ ] 5.1.3 Run all three Phase 5 suites and record expected RED caused only by absent candidate/staging/evidence behavior
-- [ ] 5.2.1 Implement snapshot-bound invocation/evidence composition and resolver context factory over staged snapshots
-- [ ] 5.2.2 Preserve the legacy four-handler no-pointer preparation wrapper unchanged
-- [ ] 5.2.3 Add explicit incremental prepare/publish capability APIs with named base and exact target set
-- [ ] 5.2.4 Factor release-derived review-unit reconstruction and `validateReviewEvidence`
-- [ ] 5.2.5 Revalidate exact review units during historical/current resolution before snapshot creation
-- [ ] 5.2.6 Generate five final candidate revisions, then implement typed registration and handler-ID-directed loading
-- [ ] 5.2.7 Run ST-39–ST-47 GREEN and resolve isolated four-row/nine-row releases
-- [ ] 5.3.1 Add binding/publication implementation tests, then review/full verify without selecting the real pointer
+- [x] 5.1.1 [spec-author] Write ST-39–ST-42 in `oracle-bindings.spec.test.ts` — completed 2026-07-29 00:42 CEST (implementation-blind; SHA-256 `caa54674958d024f30fd1f317d586ab1c3ddf4ea0b2242d5014c7ce5beed348b`)
+- [x] 5.1.2 [spec-author] Write ST-43–ST-45 in `oracle-publication.spec.test.ts` and ST-46–ST-47 in separate `oracle-published-evidence.spec.test.ts` — final re-freeze 2026-07-29 after AR-P84 with exact package export-map authority copied into isolated repositories (spec hashes unchanged; publication fixture SHA-256 `56e825f4e28d31e4cb037cd33e60fe0e2eb7c1e73dcf4079a8ec695997854429`; semantic-intent fixture `9b942377fe2a7d6c7c4e1ca49e0e53505278ba373bfead414a6abc58683c9de8`)
+- [x] 5.1.3 Run all three Phase 5 suites and record expected RED caused only by absent candidate/staging/evidence behavior — implementation checkpoint GREEN 2026-07-29 after AR-P84 for all Phase 5 specs 9/9; original RED remains recorded and typecheck/lint/Prettier are green
+- [x] 5.2.1 Implement snapshot-bound invocation/evidence composition and resolver context factory over staged snapshots — completed 2026-07-29 with retained authority buffers and evaluation identities bound to the invoked oracle
+- [x] 5.2.2 Preserve the legacy four-handler no-pointer preparation wrapper unchanged — completed 2026-07-29 with exact b715 generator and d163 boundary closure evidence
+- [x] 5.2.3 Add explicit incremental prepare/publish capability APIs with named base and exact target set — completed 2026-07-29 with atomic single-use capabilities and generation locking
+- [x] 5.2.4 Factor release-derived review-unit reconstruction and `validateReviewEvidence` — completed 2026-07-29 with content-bound publication implementation authority
+- [x] 5.2.5 Revalidate exact review units during historical/current resolution before snapshot creation — completed 2026-07-29 for current, named and compatible resolution
+- [x] 5.2.6 Generate five final candidate revisions, then implement typed registration and handler-ID-directed loading — completed 2026-07-29 with fixed-ID adapters and generated freshness authorities
+- [x] 5.2.7 Run ST-39–ST-47 GREEN and resolve isolated four-row/nine-row releases — completed 2026-07-29; 9/9 frozen Phase 5 specifications pass
+- [x] 5.3.1 Add binding/publication implementation tests, then review/full verify without selecting the real pointer — completed 2026-07-29; quality remediation and exact repository gate pass while the real pointer remains unchanged
 
 **Deliverable:** an independently reviewable compatible release request; the real selected
 publication remains the four-binding RD-02 authority.

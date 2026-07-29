@@ -256,19 +256,6 @@ describe("oracle identity internals", () => {
       },
       {
         ...valid,
-        sourceProvenance: {
-          ...valid.sourceProvenance,
-          campaign: {
-            ...valid.sourceProvenance.campaign,
-            generator: {
-              ...valid.sourceProvenance.campaign.generator,
-              handlerId: "generator.runtime-cases",
-            },
-          },
-        },
-      },
-      {
-        ...valid,
         participants: valid.participants.filter(
           ({ handlerId }) => handlerId !== "transform.semantic-relations",
         ),
@@ -322,6 +309,28 @@ describe("oracle identity internals", () => {
       ...untransformed
     } = transformed;
     expect(deriveOracleEvaluationIdentity(untransformed)).toMatchObject({ ok: true });
+    for (const handlerId of ["oracle.compiler-result", "oracle.emitted-program"] as const) {
+      expect(
+        deriveOracleEvaluationIdentity({
+          ...untransformed,
+          sourceProvenance: {
+            ...untransformed.sourceProvenance,
+            campaign: {
+              ...untransformed.sourceProvenance.campaign,
+              generator: {
+                ...untransformed.sourceProvenance.campaign.generator,
+                handlerId: "generator.runtime-cases",
+              },
+            },
+          },
+          participants: untransformed.participants.map((participant) =>
+            participant.handlerId === "oracle.frontend-result"
+              ? { ...participant, handlerId }
+              : participant,
+          ),
+        }),
+      ).toMatchObject({ ok: true });
+    }
     expect(
       deriveOracleEvaluationIdentity({
         ...untransformed,
@@ -366,6 +375,17 @@ describe("oracle identity internals", () => {
             handlerId: "oracle.frontend-result",
             contractVersion: "1.0.0",
             implementationRevision: "sha256:invalid",
+          },
+        ],
+      },
+      {
+        ...untransformed,
+        participants: [
+          ...untransformed.participants,
+          {
+            handlerId: "oracle.runtime-state",
+            contractVersion: "1.0.0",
+            implementationRevision: `sha256:${"6".repeat(64)}`,
           },
         ],
       },

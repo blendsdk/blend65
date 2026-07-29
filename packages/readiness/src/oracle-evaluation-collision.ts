@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 
-import { copyUint8Array, isSha256Digest, uint8ArrayByteLength } from "./canonical-identity.js";
+import { isSha256Digest } from "./canonical-identity.js";
 import type { Sha256Digest } from "./model-registry-model.js";
+import { copyOracleUint8Array, oracleUint8ArrayByteLength } from "./oracle-canonical-identity.js";
 import type {
   OracleIdentityResultV1,
   OracleValidationResultV1,
@@ -103,7 +104,7 @@ function registerPreimage(
   if (!Number.isSafeInteger(nextBytes) || nextBytes > MAX_RETAINED_BYTES) {
     return failure("oracle.input.limit", "/registry", "Collision registry byte limit exceeded.");
   }
-  const isolated = copyUint8Array(preimage, preimage.byteLength);
+  const isolated = copyOracleUint8Array(preimage, preimage.byteLength);
   if (isolated === undefined) {
     return failure("oracle.input.invalid", "/preimage", "Canonical preimage is not a byte array.");
   }
@@ -144,7 +145,7 @@ export function createOracleEvaluationCollisionRegistry(
         if (!isSha256Digest(registeredDigest)) {
           return failure("oracle.input.invalid", "/identity", "Digest spelling is not canonical.");
         }
-        const byteLength = uint8ArrayByteLength(preimage);
+        const byteLength = oracleUint8ArrayByteLength(preimage);
         if (byteLength === undefined || byteLength > MAX_RETAINED_BYTES) {
           return failure(
             byteLength === undefined ? "oracle.input.invalid" : "oracle.input.limit",
@@ -183,7 +184,7 @@ export function deriveOracleEvaluationDigest(
   registry?: OracleEvaluationCollisionRegistry,
 ): OracleIdentityResultV1 {
   try {
-    const byteLength = uint8ArrayByteLength(preimage);
+    const byteLength = oracleUint8ArrayByteLength(preimage);
     if (byteLength === undefined || byteLength > MAX_RETAINED_BYTES) {
       return failure(
         byteLength === undefined ? "oracle.input.invalid" : "oracle.input.limit",
@@ -191,7 +192,7 @@ export function deriveOracleEvaluationDigest(
         "Canonical preimage is invalid or exceeds the fixed byte limit.",
       );
     }
-    const isolated = copyUint8Array(preimage, byteLength);
+    const isolated = copyOracleUint8Array(preimage, byteLength);
     if (isolated === undefined) {
       return failure(
         "oracle.input.invalid",
@@ -207,9 +208,9 @@ export function deriveOracleEvaluationDigest(
       if (state === undefined || state.disposed) {
         return failure("oracle.input.invalid", "/registry", "Collision registry is not active.");
       }
-      const digestInput = copyUint8Array(isolated, isolated.byteLength);
+      const digestInput = copyOracleUint8Array(isolated, isolated.byteLength);
       const digestBytes =
-        digestInput === undefined ? undefined : copyUint8Array(state.digest(digestInput), 32);
+        digestInput === undefined ? undefined : copyOracleUint8Array(state.digest(digestInput), 32);
       if (digestBytes === undefined) {
         return failure(
           "oracle.input.invalid",

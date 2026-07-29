@@ -111,6 +111,33 @@ describe("binding publication implementation invariants", () => {
     }
   });
 
+  it("preserves the legacy first-diagnostic classification and source path", async () => {
+    const root = await fixtureRoot();
+    const prepared = await prepare(root);
+    const records = prepared.request.reviewUnits.slice(1).map((unit, index) => ({
+      unitId: unit.unitId,
+      reviewer: "phase7-implementation-reviewer",
+      specRevision: prepared.request.specRevision,
+      semanticDigest: unit.semanticDigest,
+      dependencyDigests: unit.dependencyDigests,
+      outcome: index === 0 ? ("blocked" as const) : ("accepted" as const),
+      resolvedDisagreementIds: [],
+    }));
+
+    expect(
+      await publishBindingTransaction({
+        repositoryRoot: root,
+        semanticReviewBytes: encoder.encode(
+          `${JSON.stringify({ schemaVersion: 1, reviews: records })}\n`,
+        ),
+      }),
+    ).toMatchObject({
+      ok: false,
+      kind: "invalid",
+      diagnostics: [{ code: "publication.review.invalid", path: "$.reviews" }],
+    });
+  });
+
   it("returns a typed failure when generation-lock acquisition rejects a linked lock path", async () => {
     const root = await fixtureRoot();
     const lockPath = join(root, "readiness/generated/.generation-lock");

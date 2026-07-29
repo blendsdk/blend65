@@ -81,6 +81,7 @@ const ALLOWED_PUBLICATION_MODULES: ReadonlySet<string> = new Set([
   "publication-model.ts",
   "publication-pointer.ts",
   "publication-resolver.ts",
+  "publication-review.ts",
 ]);
 const PUBLICATION_LITERAL =
   /(?:readiness\/publications|current-publication\.json|bindings-v1\.json|semantic-review-v1\.json|manifest\.json)/u;

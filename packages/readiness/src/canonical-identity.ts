@@ -11,11 +11,7 @@ export type CanonicalIdentityDomain =
   | "blend65-campaign-v1"
   | "blend65-counter-draw-v1"
   | "blend65-case-v1"
-  | "blend65-handler-implementation-v1"
-  | "blend65-oracle-source-content-v1"
-  | "blend65-oracle-transformed-content-v1"
-  | "blend65-oracle-initial-memory-v1"
-  | "blend65-oracle-evaluation-v1";
+  | "blend65-handler-implementation-v1";
 
 /** One fixed-order name/value pair in a canonical identity preimage. */
 export interface CanonicalIdentityField {
@@ -91,7 +87,6 @@ const BYTE_LENGTH_GETTER = Reflect.getOwnPropertyDescriptor(
   TYPED_ARRAY_PROTOTYPE,
   "byteLength",
 )?.get;
-const BUFFER_GETTER = Reflect.getOwnPropertyDescriptor(TYPED_ARRAY_PROTOTYPE, "buffer")?.get;
 
 function problem(path: string, message: string): CanonicalInputProblem {
   return Object.freeze({ path, message });
@@ -155,18 +150,8 @@ function u32Bytes(value: number): Uint8Array {
  * ```
  */
 export function uint8ArrayByteLength(value: unknown): number | undefined {
-  if (
-    !(value instanceof Uint8Array) ||
-    BYTE_LENGTH_GETTER === undefined ||
-    BUFFER_GETTER === undefined
-  ) {
-    return undefined;
-  }
+  if (!(value instanceof Uint8Array) || BYTE_LENGTH_GETTER === undefined) return undefined;
   try {
-    const buffer: unknown = BUFFER_GETTER.call(value);
-    if (typeof SharedArrayBuffer !== "undefined" && buffer instanceof SharedArrayBuffer) {
-      return undefined;
-    }
     const byteLength: unknown = BYTE_LENGTH_GETTER.call(value);
     return typeof byteLength === "number" && Number.isSafeInteger(byteLength) && byteLength >= 0
       ? byteLength
