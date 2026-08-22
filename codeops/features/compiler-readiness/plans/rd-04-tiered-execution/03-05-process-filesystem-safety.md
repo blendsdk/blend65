@@ -21,11 +21,12 @@ tool returns. Cleanup removes only the positively owned case root on every outco
 The VICE lease is intentionally outside the case root. Linux uses one host-wide target-keyed root
 under the effective user's runtime directory, canonicalized and proven owned by the effective UID
 with mode `0700`. Every path component is opened without following links and must be a directory
-with one link and the retained device/inode/UID identity. Lease files are regular single-link files
-with mode `0600`; bounded reads and writes use no-follow handles, atomic same-directory replacement
-and directory sync. A symlink, hard link, special file, ownership/mode mismatch or replacement race
-fails closed. Repository-local or per-case lease paths are forbidden because they do not coordinate
-other clones on the same host.
+with a positive raw link count and retained device/inode/UID/mode identity; directory link-count
+changes alone are topology churn, not identity changes. Lease files are regular files with exactly
+one link and mode `0600`; bounded reads and writes use no-follow handles, atomic same-directory
+replacement and directory sync. A symlink, hard-linked lease file, special file, ownership/mode
+mismatch or replacement race fails closed. Repository-local or per-case lease paths are forbidden
+because they do not coordinate other clones on the same host.
 
 ## Child supervision
 

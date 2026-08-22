@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./vice-control": {
+      "types": "./dist/emulator/vice/vice-control.d.ts",
+      "default": "./dist/emulator/vice/vice-control.js"
     }
   },
   "publishConfig": {

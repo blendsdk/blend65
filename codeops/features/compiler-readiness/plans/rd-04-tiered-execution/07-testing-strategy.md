@@ -104,15 +104,15 @@ optional-evidence form return identical exit code, stdout, stderr and artifacts;
 | # | Input / scenario | Expected output / behavior | Source |
 |---|---|---|---|
 | ST-34 | Existing `ViceDriver` suites through refactored control | Root API behavior remains byte-for-byte compatible | Plan AC-2; AR-P4 |
-| ST-35 | Instruction totals around 65,535 and 10,000,000 | Wire chunks always `1..65535`; no wrap/truncation | RD-04 AC-8; 03-06 |
-| ST-36 | Two concurrent lease acquisitions plus a plain/copy-forged handle | Exactly one runtime-backed owner; structural impostors cannot launch or control VICE | RD-04 AC-9; AR-P11 |
+| ST-35 | Low-level counts at 0/1/65,535/65,536 plus readiness totals around 65,535 and 10,000,000 | Low-level rejects outside `1..65535`; readiness greedily emits full 65,535 chunks plus one remainder; no wrap/truncation | RD-04 AC-8; 03-06; AR-P32 |
+| ST-36 | Two concurrent lease acquisitions, two runtime coordinators, one in-runtime concurrent mutation plus a plain/copy-forged handle | Exactly one host-wide runtime-backed owner; each coordinator rejects queued mutation, and structural/foreign impostors cannot launch or control VICE | RD-04 AC-9; AR-P11/P33 |
 | ST-37 | Launcher crash before record, after record, after exec and each later lease lifecycle state | VICE cannot exist without recorded same-PID identity; next owner recovers only after generation/identity proof | RD-04 AC-9; AR-P11 |
 | ST-38 | Reused PID, changed boot/start/token, absent `process.execve` or unreadable identity | Recovery blocked and lease retained, or tier unavailable before spawn; unrelated process unsignaled | RD-04 AC-9; AR-P11 |
 | ST-39 | Record changes between validation and signal | Pre-signal revalidation blocks the signal | RD-04 AC-9; AR-P11 |
 | ST-40 | Cleanup with wrong generation/nonce, foreign coordinator, concurrent reuse or second use | Lease remains; matching owner alone can clear it; a genuine handle is single-active and single-use | RD-04 AC-9; AR-P11 |
 | ST-41 | Non-Linux/restricted identity provider | VICE is `tier-unavailable`, never PID-only fallback | AR-P11; 03-06 |
-| ST-42 | Endpoint collision, wrong target/version or dead child | Bounded retry then stable launch/handshake result | RD-04 Lifecycle; AR-P4 |
-| ST-43 | STORE checkpoint midway through a chunk, wrong event/address/readback, post-return mutation and instruction/cycle/wall races | Full chunk is charged; only exact committed `$A5` completes; no later mutation; stable precedence and cancellation | RD-04 AC-7/8; AR-P9 |
+| ST-42 | Low-level endpoint owner/collision, wrong C64 probe/version or dead child; readiness fresh-endpoint retry | One low-level child attempt returns a stable reason after bounded connect; readiness performs at most eight fresh attempts under the cumulative deadline | RD-04 Lifecycle; AR-P4/P32 |
+| ST-43 | Fragmented/late correlated frames, explicit cancellation/close races, pre-aborted route, STORE checkpoint midway through a chunk, wrong event/address/readback, defensive byte ownership, post-return machine mutation and instruction/cycle/wall races | First pending-map removal wins; cancelled late frames discard while the session remains usable; close is terminal; pre-abort performs no host mutation; full chunk is charged without refund; only exact committed `$A5` completes; no later mutation; stable precedence | RD-04 AC-7/8; AR-P9/P32/P33 |
 | ST-44 | Real VICE fixture proof and `peek`/`peekw`/`poke`/`pokew` | Projection plus one selected case per rule passes locally | RD-04 AC-5/12; AR-P8/P13 |
 
 ### Publication and orchestration
@@ -134,7 +134,7 @@ optional-evidence form return identical exit code, stdout, stderr and artifacts;
 | ST-57 | Guarded child inspect/select old→new→old plus pointer/reconciliation faults | Every selection fully revalidates and original bytes/blockers reproduce; raw pointer editing is unnecessary | RD-04 AC-11; 03-03 |
 | ST-58 | Local command valid run, invalid/duplicate/traversing args and absent tools | Exact grammar, exits 0/1/2/3/4, bounded deterministic stdout/stderr and no machine paths | RD-04 AC-12; 03-07 |
 | ST-59 | Report rerun, differing result, existing different bytes and atomic-write faults | Canonical bytes/digest reproduce; no overwrite or partial report; semantic review names exact digest | RD-04 AC-12; 03-07 |
-| ST-60 | Trusted lease directory/file modes, owner, links, device/inode and replacement races | Every mismatch fails closed; exact trusted host-wide namespace succeeds | RD-04 AC-9/10; 03-05/03-06 |
+| ST-60 | Trusted lease directory/file modes, owner, type-specific links, device/inode and replacement races | Directory raw links must be positive but exact topology count is non-authoritative; lease-file links must equal one; every identity/replacement mismatch fails closed | RD-04 AC-9/10; 03-05/03-06; AR-P36 |
 | ST-61 | Read-only recovery inspection followed by changed/stale/clearable generations | Inspection never mutates; guarded exact-generation clear only after positive child absence | RD-04 AC-9; 03-06 |
 | ST-62 | Execution-side seam consumes low-level VICE control without reverse import | Package boundary remains acyclic and one integration spec proves lease/policy ownership | Plan AC-1/2; 03-04/03-06 |
 
@@ -145,8 +145,8 @@ optional-evidence form return identical exit code, stdout, stderr and artifacts;
 | `execution-contracts-routing.spec.test.ts` | ST-01–ST-10 | Phase 1 production |
 | `execution-envelope-evidence.spec.test.ts` | ST-11–ST-22 | Phase 2 production |
 | `execution-adapters-safety.spec.test.ts` plus immutable `test-fixtures/execution-adapters-safety-spec-fixture.ts` | ST-23–ST-33 | Phase 3 production |
-| `packages/test-harness/src/emulator/vice/vice-control.spec.test.ts` | ST-34–ST-35, ST-42 and low-level portion of ST-43 | Phase 4 test-harness production |
-| `packages/readiness-execution/src/execution-vice-lease.spec.test.ts` | ST-36–ST-41, ST-60–ST-62 and lease/policy portion of ST-43 | Phase 4 readiness-execution production |
+| `packages/test-harness/src/emulator/vice/vice-control.spec.test.ts` | ST-35 low-level validation, ST-42 one-attempt handshake classification and ST-43 raw-frame/cancellation/copy ownership; ST-34 remains the unchanged existing `ViceDriver` specification suite | Phase 4 test-harness production |
+| `packages/readiness-execution/src/execution-vice-lease.spec.test.ts` | ST-35 aggregate decomposition, ST-36–ST-41, ST-42 eight-attempt route policy, ST-60–ST-62 and lease/policy portion of ST-43 through the AR-P33 raw host/runtime factory | Phase 4 readiness-execution production |
 | `execution-runtime-acceptance.spec.test.ts` | ST-44 | Phase 5 production |
 | `packages/readiness/src/execution-publication.spec.test.ts` | ST-45–ST-50, readiness-owned portion of ST-55, ST-57 | Phase 6 readiness production |
 | `packages/readiness-execution/src/execution-publication-catalog.spec.test.ts` | readiness-execution-owned portion of ST-55 and ST-56 | Phase 6 live-catalog production |

@@ -318,6 +318,216 @@ describe("process anchor kernel", () => {
     ).resolves.toMatchObject({ ok: false });
   });
 
+  it("should retain authenticated group control through fresh bounded termination cleanup", async () => {
+    const nonce = "00".repeat(32);
+    const targetIdentity: ExecutionHostProcessIdentityV1 = {
+      ...anchorIdentity,
+      pid: 101,
+      startTicks: 2n,
+    };
+    let sequence = 0;
+    const frame = (fields: AnchorFrameFields): ExecutionControlReadV1 =>
+      encodeAnchorFrame({
+        revision: "execution-process-anchor-frame-v1",
+        direction: "anchor-to-parent",
+        nonce,
+        sequence: sequence++,
+        ...fields,
+      } as ExecutionProcessAnchorFrameV1);
+    const queued: ExecutionControlReadV1[] = [
+      frame({
+        kind: "anchor-ready",
+        identity: {
+          bootId: anchorIdentity.bootId,
+          pid: anchorIdentity.pid,
+          startTicks: anchorIdentity.startTicks.toString(),
+          processGroupId: anchorIdentity.processGroupId,
+          sessionId: anchorIdentity.sessionId,
+        },
+      }),
+      frame({
+        kind: "target-started",
+        identity: {
+          bootId: targetIdentity.bootId,
+          pid: targetIdentity.pid,
+          startTicks: targetIdentity.startTicks.toString(),
+          processGroupId: targetIdentity.processGroupId,
+          sessionId: targetIdentity.sessionId,
+        },
+      }),
+    ];
+    const readers: Array<(read: ExecutionControlReadV1) => void> = [];
+    const deliver = (read: ExecutionControlReadV1): void => {
+      const reader = readers.shift();
+      if (reader === undefined) queued.push(read);
+      else reader(read);
+    };
+    const host: ExecutionProcessParentHostV1 = {
+      randomBytes: () => new Uint8Array(32),
+      async spawnAnchor() {
+        return {
+          ok: true,
+          value: {
+            identity: anchorIdentity,
+            completion: new Promise<ExecutionHostProcessExitV1>(() => undefined),
+            control: {
+              async sendFrame(bytes) {
+                const decoded = JSON.parse(new TextDecoder().decode(bytes)) as { kind?: string };
+                if (decoded.kind === "terminate") deliver(frame({ kind: "term-applied" }));
+                return { ok: true, value: undefined };
+              },
+              async receiveFrame() {
+                return queued.shift() ?? new Promise((resolve) => readers.push(resolve));
+              },
+              async close() {
+                return { ok: true, value: undefined };
+              },
+            },
+          },
+        };
+      },
+      async observeGroup() {
+        return { kind: "present", witness: anchorIdentity };
+      },
+    };
+    const started = await createExecutionProcessRuntimeV1(host).start(
+      processRequest,
+      processSink,
+      cancellation,
+    );
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+    expect(await started.value.revalidateIdentity()).toBe("present");
+    await expect(started.value.terminate("SIGHUP")).rejects.toThrow("Unsupported");
+    const cleanup = new AbortController();
+    await started.value.terminate("SIGTERM", {
+      signal: cleanup.signal,
+      deadlineMonotonicMs: performance.now() + 1_000,
+    });
+    expect(await started.value.waitForGroupExit?.(performance.now())).toBe(false);
+    deliver(frame({ kind: "target-exit", exitCode: 0, signal: null }));
+    deliver(frame({ kind: "group-empty" }));
+    await expect(started.value.completion).resolves.toEqual({ exitCode: 0, signal: null });
+    expect(await started.value.revalidateIdentity()).toBe("absent");
+    expect(await started.value.waitForGroupExit?.(performance.now())).toBe(true);
+  });
+
+  it("should recover termination serialization after a cancelled TERM acknowledgement", async () => {
+    const nonce = "00".repeat(32);
+    const targetIdentity: ExecutionHostProcessIdentityV1 = {
+      ...anchorIdentity,
+      pid: 101,
+      startTicks: 2n,
+    };
+    let sequence = 0;
+    const frame = (fields: AnchorFrameFields): ExecutionControlReadV1 =>
+      encodeAnchorFrame({
+        revision: "execution-process-anchor-frame-v1",
+        direction: "anchor-to-parent",
+        nonce,
+        sequence: sequence++,
+        ...fields,
+      } as ExecutionProcessAnchorFrameV1);
+    const queued: ExecutionControlReadV1[] = [
+      frame({
+        kind: "anchor-ready",
+        identity: {
+          bootId: anchorIdentity.bootId,
+          pid: anchorIdentity.pid,
+          startTicks: anchorIdentity.startTicks.toString(),
+          processGroupId: anchorIdentity.processGroupId,
+          sessionId: anchorIdentity.sessionId,
+        },
+      }),
+      frame({
+        kind: "target-started",
+        identity: {
+          bootId: targetIdentity.bootId,
+          pid: targetIdentity.pid,
+          startTicks: targetIdentity.startTicks.toString(),
+          processGroupId: targetIdentity.processGroupId,
+          sessionId: targetIdentity.sessionId,
+        },
+      }),
+    ];
+    const readers: Array<(read: ExecutionControlReadV1) => void> = [];
+    const deliver = (read: ExecutionControlReadV1): void => {
+      const reader = readers.shift();
+      if (reader === undefined) queued.push(read);
+      else reader(read);
+    };
+    const signals: string[] = [];
+    const host: ExecutionProcessParentHostV1 = {
+      randomBytes: () => new Uint8Array(32),
+      async spawnAnchor() {
+        return {
+          ok: true,
+          value: {
+            identity: anchorIdentity,
+            completion: new Promise<ExecutionHostProcessExitV1>(() => undefined),
+            control: {
+              async sendFrame(bytes) {
+                const decoded = JSON.parse(new TextDecoder().decode(bytes)) as {
+                  kind?: string;
+                  signal?: string;
+                };
+                if (decoded.kind === "terminate" && decoded.signal !== undefined) {
+                  signals.push(decoded.signal);
+                  if (decoded.signal === "SIGKILL") {
+                    deliver(frame({ kind: "term-applied" }));
+                    deliver(frame({ kind: "kill-armed" }));
+                    deliver(frame({ kind: "target-exit", exitCode: null, signal: "SIGKILL" }));
+                    deliver(frame({ kind: "group-empty" }));
+                  }
+                }
+                return { ok: true, value: undefined };
+              },
+              async receiveFrame() {
+                return queued.shift() ?? new Promise((resolve) => readers.push(resolve));
+              },
+              async close() {
+                return { ok: true, value: undefined };
+              },
+            },
+          },
+        };
+      },
+      async observeGroup() {
+        return { kind: "absent" };
+      },
+    };
+    const started = await createExecutionProcessRuntimeV1(host).start(
+      processRequest,
+      processSink,
+      cancellation,
+    );
+    expect(started.ok).toBe(true);
+    if (!started.ok) return;
+
+    const termCancellation = new AbortController();
+    const term = started.value.terminate("SIGTERM", {
+      signal: termCancellation.signal,
+      deadlineMonotonicMs: performance.now() + 1_000,
+    });
+    for (let turn = 0; turn < 10 && signals.length === 0; turn += 1) await Promise.resolve();
+    expect(signals).toEqual(["SIGTERM"]);
+    termCancellation.abort();
+    await expect(term).rejects.toThrow("cancelled");
+
+    await expect(
+      started.value.terminate("SIGKILL", {
+        signal: new AbortController().signal,
+        deadlineMonotonicMs: performance.now() + 1_000,
+      }),
+    ).resolves.toBeUndefined();
+    expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+    await expect(started.value.completion).resolves.toEqual({
+      exitCode: null,
+      signal: "SIGKILL",
+    });
+    expect(await started.value.waitForGroupExit?.(performance.now())).toBe(true);
+  });
+
   it("should fail closed on hostile readiness and target-start proofs", async () => {
     const nonce = "00".repeat(32);
     const wireAnchor = {

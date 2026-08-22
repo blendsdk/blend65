@@ -23,6 +23,8 @@ export default defineConfig({
         "src/execution-worker-entry.ts",
         // The process anchor entry runs in a dedicated child V8 isolate for the same reason.
         "src/execution-process-anchor-entry.ts",
+        // The record-then-exec launcher is exercised in its dedicated child V8 isolate.
+        "src/execution-vice-launcher-entry.ts",
       ],
       thresholds: {
         branches: 90,

@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-08-22
-> **Progress**: 35/88 tasks (40%)
+> **Progress**: 48/88 tasks (55%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -111,21 +111,27 @@ process trees remain bounded and clean on every outcome.
 ## Phase 4: Cancellable VICE Control and Durable Lease
 
 > **Lenses**: security, concurrency, compatibility, performance
-> **Reference**: 03-06 · AR-P4, AR-P10, AR-P11 · ST-34–ST-43, ST-60–ST-62
+> **Reference**: 03-06 · AR-P4, AR-P10, AR-P11, AR-P32, AR-P33 · ST-34–ST-43, ST-60–ST-62
+> **Phase baseline tree**: b790f7ce67cfe7b5bba4480bd7d5f7b71f746b98
+> **Scope mode**: strict
+> **Expected modification set**: `packages/test-harness/src/emulator/vice/**`, additive test-harness
+> exports/configuration needed for `@blend65/test-harness/vice-control`,
+> `packages/readiness-execution/src/**`, readiness-execution package configuration, and RD-04
+> plan/roadmap state
 
-- [ ] 4.1.1 [spec-author] Write the test-harness-owned low-level portions of ST-34–ST-35, ST-42–ST-43 in new `packages/test-harness/src/emulator/vice/vice-control.spec.test.ts`; forbid inspection of new control implementation files
-- [ ] 4.1.2 [spec-author] Write readiness-execution-owned ST-36–ST-41, ST-60–ST-62 and the lease/policy portion of ST-43 in new `packages/readiness-execution/src/execution-vice-lease.spec.test.ts`; forbid inspection of new lease/runtime implementation files
-- [ ] 4.1.3 Run both Phase 4 specification suites and record RED caused only by absent owner-specific control and lease contracts
-- [ ] 4.2.1 Factor binary/text transports, validated `1..65535` instruction codec and target/version handshake behind additive `@blend65/test-harness/vice-control`
-- [ ] 4.2.2 Refactor existing `ViceDriver` as a compatibility wrapper and prove all pre-existing emulator suites unchanged
-- [ ] 4.2.3 Implement the trusted host-wide effective-UID/target lease namespace, checksummed generation/nonce records, no-follow mode/owner/link/device/inode validation, atomic acquisition/fencing state transitions and runtime-backed single-active/single-use lease handles that reject forgery, foreign coordinators and reuse before launch
-- [ ] 4.2.4 Implement Linux boot ID and `/proc/<pid>/stat` start-time identity provider with fail-closed unsupported-host result
-- [ ] 4.2.5 Implement the feature-gated same-PID record-then-`process.execve` launcher, durable pre-exec child record and immediate pre-signal identity revalidation; unavailable runtime support must prevent spawn
-- [ ] 4.2.6 Implement two distinct loopback endpoints, bounded collision retry, child-liveness and dual-protocol C64/version handshake
-- [ ] 4.2.7 Implement cancellable monitor pending-command/checkpoint registry, exact completion STORE checkpoint/readback, full requested-chunk charging and per-child stopwatch baselines with route-cumulative instruction/cycle/wall behavior
-- [ ] 4.2.8 Run ST-34–ST-43 and ST-60–ST-62 GREEN; fix production implementation only
-- [ ] 4.3.1 Add launcher/lease lifecycle crash matrix, trusted-filesystem and PID-reuse/token/generation races, guarded inspect/exact-generation clear, process-tree, stopwatch and codec implementation tests with coverage floors
-- [ ] 4.3.2 Run configured security/concurrency/correctness/performance review, resolve required findings, update plan/roadmap state, run full verification and auto-commit without pushing
+- [x] 4.1.1 [spec-author] Write the test-harness-owned low-level portions of ST-34–ST-35, ST-42–ST-43 in new `packages/test-harness/src/emulator/vice/vice-control.spec.test.ts`; forbid inspection of new control implementation files — verified 2026-08-22 14:47 CEST; 29 scenarios; immutable SHA-256 `c48953c2a1237ea03016a3ef185be4944c95ff4c413e02cecd3d32ebfffdaf2a` after AR-P34's semantics-neutral typed-array annotation; RED solely on absent `./vice-control.js`
+- [x] 4.1.2 [spec-author] Write readiness-execution-owned aggregate ST-35, ST-36–ST-41, route-retry ST-42, ST-60–ST-62 and the lease/policy portion of ST-43 in new `packages/readiness-execution/src/execution-vice-lease.spec.test.ts`; forbid inspection of new lease/runtime implementation files — verified 2026-08-22 15:08 CEST after AR-P33 and the raw-wire packet; 35 scenarios; immutable SHA-256 `124fcdac4cfe681a58b17122cb37a81513f8efed25bdd5a33cfaaa45e4705897` after AR-P35–P37 corrected retained inode, POSIX directory-link and matching-STOPPED facts; RED solely on absent VICE execution runtime exports
+- [x] 4.1.3 Run both Phase 4 specification suites and record RED caused only by absent owner-specific control and lease contracts — verified 2026-08-22 15:08 CEST; test-harness 0 collected at absent `./vice-control.js`; readiness-execution 32/32 RED at absent planned runtime exports; replacement control hash after AR-P34 and the lease hash are frozen
+- [x] 4.2.1 Factor binary/text transports, validated `1..65535` instruction codec, AR-P32 raw host/runtime factory and composite owned-endpoint/C64/version handshake behind additive `@blend65/test-harness/vice-control` — verified 2026-08-22; immutable control suite 29/29 GREEN
+- [x] 4.2.2 Refactor existing `ViceDriver` as a compatibility wrapper and prove all pre-existing emulator suites unchanged — verified 2026-08-22; full test-harness 451/451 GREEN and legacy real-VICE behavior preserved
+- [x] 4.2.3 Implement the AR-P33 runtime factory and singleton facade, trusted host-wide effective-UID/target lease namespace, checksummed generation/nonce records, no-follow mode/owner/link/device/inode validation, atomic acquisition/fencing state transitions and runtime-backed single-active/single-use lease handles that reject forgery, foreign coordinators, concurrent mutation and reuse before launch — verified 2026-08-22
+- [x] 4.2.4 Implement Linux boot ID and `/proc/<pid>/stat` start-time identity provider with fail-closed unsupported-host result — verified 2026-08-22
+- [x] 4.2.5 Implement the feature-gated same-PID record-then-`process.execve` launcher, durable pre-exec child record and immediate pre-signal identity revalidation; unavailable runtime support must prevent spawn — verified 2026-08-22; real same-PID VICE route GREEN with clean process/lease teardown
+- [x] 4.2.6 Implement fresh distinct loopback endpoints, at-most-eight route attempts, child liveness and the AR-P32 owned-endpoint dual-protocol C64/version handshake — verified 2026-08-22
+- [x] 4.2.7 Implement cancellable monitor pending-command/checkpoint registry, exact completion STORE checkpoint/readback, full requested-chunk charging and per-child stopwatch baselines with route-cumulative instruction/cycle/wall behavior — verified 2026-08-22
+- [x] 4.2.8 Run ST-34–ST-43 and ST-60–ST-62 GREEN; fix production implementation only — verified 2026-08-22; control 29/29 and lease 35/35 GREEN at frozen hashes
+- [x] 4.3.1 Add launcher/lease lifecycle crash matrix, trusted-filesystem and PID-reuse/token/generation races, guarded inspect/exact-generation clear, process-tree, stopwatch and codec implementation tests with coverage floors — verified 2026-08-22; readiness-execution 274/274 GREEN; 92.23% statements/lines, 90.06% branches and 92.27% functions
+- [x] 4.3.2 Run configured security/concurrency/correctness/performance review, resolve required findings, update plan/roadmap state, run full verification and auto-commit without pushing — verified 2026-08-22; correctness/concurrency RV-001–RV-016, security SA-001–SA-006 and performance PE-001–PE-005 resolved with all three closure reviews reporting no findings; exact repository verification GREEN (install, 10-package build/typecheck/lint, 297 readiness-execution tests, 461 test-harness tests and 33 root boundary tests); frozen spec hashes and `spec/` cleanliness confirmed
 
 **Deliverable:** one reusable live-verified VICE control substrate and an exclusive Linux lease that
 never signals an ambiguously identified process.

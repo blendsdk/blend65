@@ -1,59 +1,23 @@
 /**
- * `ViceDriver` — the MVP {@link EmulatorDriver} over VICE `x64sc`'s binary-monitor
- * protocol.
+ * Backward-compatible emulator driver over the production VICE control runtime.
  *
- * Composes the pure {@link ./protocol.js codec} with a loopback `net.Socket` and a
- * spawned `x64sc` child process. Security: the monitor binds `127.0.0.1` only,
- * VICE is spawned via an argv ARRAY (no shell string — injection-safe), and
- * the only runtime deps are Node built-ins (`net`, `child_process`, `zlib` via
- * `png.ts`).
- *
- * Register ids are resolved dynamically from `REGISTERS_AVAILABLE` at connect
- * rather than hardcoded — robust across VICE versions.
+ * The compatibility layer retains the historic argv ordering and public
+ * `EmulatorDriver` behavior while one shared runtime now owns spawning,
+ * framing, response correlation, version/target probes, cancellation, and
+ * cleanup. VICE is always spawned with an argv array and both monitors bind
+ * to loopback-only endpoints.
  */
 
-import { type ChildProcess, spawn } from "node:child_process";
-import net from "node:net";
 import type { BreakReason, EmulatorDriver, LaunchOptions, Registers } from "../driver.js";
 import { encodePng } from "./png.js";
-import { TextMonitorClient } from "./text-monitor.js";
-import {
-  advanceInstructionsBody,
-  CMD,
-  checkpointDeleteBody,
-  decodeResponses,
-  displayGetBody,
-  encodeCommand,
-  EVENT_REQUEST_ID,
-  executeUntilReturnBody,
-  memoryGetBody,
-  memorySetBody,
-  paletteGetBody,
-  parseCheckpointInfo,
-  parseDisplayGet,
-  parseMemoryGet,
-  parsePaletteGet,
-  parseRegistersAvailable,
-  parseRegistersGet,
-  parseViceInfo,
-  checkpointSetBody,
-  registersAvailableBody,
-  registersGetBody,
-  registersSetBody,
-  RESP,
-  viceInfoBody,
-  type ResponseFrame,
-} from "./protocol.js";
+import { NodeViceControlHost } from "./vice-control-host.js";
+import { createViceControlRuntimeV1 } from "./vice-control.js";
+import { ViceControlSession } from "./vice-control-session.js";
 
-/** Default monitor port — overridable via {@link LaunchOptions}. */
+/** Historic default binary-monitor port. */
 const DEFAULT_MONITOR_PORT = 6502;
-/** Bounded connect-retry window while VICE binds its monitor socket. */
-const CONNECT_MAX_ATTEMPTS = 60;
-const CONNECT_RETRY_MS = 250;
-/** Grace period for the child to exit after QUIT before a hard kill. */
-const SHUTDOWN_GRACE_MS = 2000;
 
-/** The 6502 status (P) register bit positions, mapped to {@link Registers.flags}. */
+/** 6502 status-register bit positions exposed through the legacy flags shape. */
 const FLAG_BIT = {
   carry: 0,
   zero: 1,
@@ -64,148 +28,113 @@ const FLAG_BIT = {
   negative: 7,
 } as const;
 
-/** A pending request awaiting its response frame. */
-interface Pending {
-  resolve: (frame: ResponseFrame) => void;
-  reject: (err: Error) => void;
+/** Throws a bounded compatibility error for one failed control operation. */
+function requireControl<T>(
+  result:
+    | { readonly ok: true; readonly value: T }
+    | { readonly ok: false; readonly issue: { readonly message: string } },
+): T {
+  if (!result.ok) throw new Error(result.issue.message);
+  return result.value;
 }
 
+/**
+ * Existing public VICE driver, implemented as a compatibility wrapper.
+ *
+ * @example
+ * ```ts
+ * const driver = new ViceDriver();
+ * await driver.launch({ executablePath: "x64sc" });
+ * const registers = await driver.readRegisters();
+ * await driver.shutdown();
+ * ```
+ */
 export class ViceDriver implements EmulatorDriver {
-  private child: ChildProcess | undefined;
-  private socket: net.Socket | undefined;
-  private accumulator: Uint8Array = new Uint8Array(0);
-  private readonly pending = new Map<number, Pending>();
-  private nextRequestId = 1;
-  /** VICE register name → numeric id, from `REGISTERS_AVAILABLE`. */
-  private registerIds = new Map<string, number>();
+  /** Handshaken production control session, present only between launch and shutdown. */
+  private session: ViceControlSession | undefined;
 
-  /** The active `resume()` waiter and whether a checkpoint was hit since resuming. */
-  private resumeWaiter: ((reason: BreakReason) => void) | undefined;
-  private resumeHitCheckpoint = false;
-
-  /** One-shot waiters for the next STOPPED event (stepping-completion sync). */
-  private stoppedWaiters: Array<() => void> = [];
-
-  /** The remote text-monitor client — the stopwatch transport. */
-  private textMonitor: TextMonitorClient | undefined;
-
-  /** Build the emulator argv (array — never a shell string; injection-safe). */
+  /** Builds the exact historic process argument order. */
   private buildArgs(options: LaunchOptions): {
-    exe: string;
-    args: string[];
-    port: number;
-    remotePort: number;
+    readonly executable: string;
+    readonly argv: readonly string[];
+    readonly binaryPort: number;
+    readonly textPort: number;
   } {
-    const port = options.monitorPort ?? DEFAULT_MONITOR_PORT;
-    const remotePort = options.remoteMonitorPort ?? port + 1;
-    const args = [
+    const binaryPort = options.monitorPort ?? DEFAULT_MONITOR_PORT;
+    const textPort = options.remoteMonitorPort ?? binaryPort + 1;
+    const argv: string[] = [
       "-binarymonitor",
       "-binarymonitoraddress",
-      `127.0.0.1:${port}`,
+      `127.0.0.1:${binaryPort}`,
       "-remotemonitor",
       "-remotemonitoraddress",
-      `127.0.0.1:${remotePort}`,
+      `127.0.0.1:${textPort}`,
       "+sound",
     ];
-    if (options.gui !== true) {
-      // Headless: console mode (no video window) + warp speed for a fast local run.
-      args.push("-warp", "-console", "-silent");
-    }
-    if (options.extraArgs !== undefined) {
-      args.push(...options.extraArgs);
-    }
-    return { exe: options.executablePath, args, port, remotePort };
+    if (options.gui !== true) argv.push("-warp", "-console", "-silent");
+    if (options.extraArgs !== undefined) argv.push(...options.extraArgs);
+    return { executable: options.executablePath, argv, binaryPort, textPort };
   }
 
+  /** Launches one VICE child through the compatibility handshake profile. */
   async launch(options: LaunchOptions): Promise<void> {
-    const { exe, args, port, remotePort } = this.buildArgs(options);
-    this.child = spawn(exe, args, { stdio: ["ignore", "ignore", "ignore"] });
-    this.child.on("error", () => {
-      /* surfaced by the connect-retry rejecting; also rejects pending on close */
-    });
-    this.child.on("close", () => this.failAllPending(new Error("VICE process exited")));
-
-    try {
-      this.socket = await this.connectWithRetry(port);
-      this.socket.on("data", (chunk) => this.onData(chunk));
-      this.socket.on("close", () => this.failAllPending(new Error("monitor socket closed")));
-      this.socket.on("error", () => {
-        /* close handler performs the rejection */
-      });
-
-      // Resolve register ids up-front; fail fast if the core set is absent.
-      const frame = await this.send(CMD.REGISTERS_AVAILABLE, registersAvailableBody());
-      this.registerIds = parseRegistersAvailable(frame.body);
-      for (const name of ["A", "X", "Y", "SP", "PC", "FL"]) {
-        if (!this.registerIds.has(name)) {
-          throw new Error(
-            `VICE REGISTERS_AVAILABLE is missing register '${name}'. ` +
-              `Available: ${[...this.registerIds.keys()].join(", ")}`,
-          );
-        }
-      }
-
-      // Version gate: the stepping/stopwatch semantics this driver relies on
-      // are validated against the VICE 3.x monitors — refuse anything else
-      // loudly rather than mis-measure quietly.
-      const info = parseViceInfo((await this.send(CMD.VICE_INFO, viceInfoBody())).body);
-      if (info.major !== 3 || info.minor < 5) {
-        throw new Error(
-          `unsupported VICE version ${info.major}.${info.minor} — this driver is validated against VICE 3.5+`,
-        );
-      }
-
-      // The stopwatch transport. A failed connect is a launch failure:
-      // cycle measurement being unavailable is never silent.
-      this.textMonitor = new TextMonitorClient();
-      await this.textMonitor.connect(remotePort);
-    } catch (error) {
-      await this.shutdown();
-      throw error;
+    if (this.session !== undefined) throw new Error("ViceDriver is already launched");
+    const request = this.buildArgs(options);
+    const launched = await createViceControlRuntimeV1(new NodeViceControlHost()).launch(
+      {
+        executable: request.executable,
+        argv: request.argv,
+        cwd: process.cwd(),
+        endpoints: {
+          binaryPort: request.binaryPort,
+          textPort: request.textPort,
+        },
+        handshake: {
+          target: "c64",
+          version: { major: 3, minimumMinor: 6, maximumMinor: 255 },
+          endpointOwnership: "compatibility",
+        },
+      },
+      new AbortController().signal,
+    );
+    const session = requireControl(launched);
+    if (!(session instanceof ViceControlSession)) {
+      await session.close();
+      throw new Error("VICE control runtime returned an incompatible session");
     }
+    this.session = session;
   }
 
+  /** Retains the historic relaunch-per-binary behavior. */
   async loadBinary(_binaryPath: string): Promise<void> {
-    // MVP relaunch-per-binary lifecycle: the binary is autostarted at
-    // launch via `extraArgs`, so there is nothing to load mid-session.
     return;
   }
 
+  /** Sets one stopping execute checkpoint. */
   async setBreakpoint(address: number): Promise<void> {
     await this.setCheckpoint(address);
   }
 
-  /**
-   * Set an execution checkpoint and return its VICE checkpoint number so the
-   * caller can delete it later. A driver-specific extension beyond the
-   * {@link EmulatorDriver} contract — the cycle-measurement helpers use the
-   * number to clean their checkpoints up on every exit path.
-   */
+  /** Sets one stopping execute checkpoint and returns its VICE id. */
   async setCheckpoint(address: number): Promise<number> {
-    const frame = await this.send(CMD.CHECKPOINT_SET, checkpointSetBody(address));
-    return parseCheckpointInfo(frame.body).number;
+    return requireControl(await this.requireSession().setCheckpoint(address, "execute"));
   }
 
-  /** Delete a checkpoint by its VICE checkpoint number (driver-specific extension). */
+  /** Deletes one exact checkpoint. */
   async deleteCheckpoint(checkpointNumber: number): Promise<void> {
-    await this.send(CMD.CHECKPOINT_DELETE, checkpointDeleteBody(checkpointNumber));
+    requireControl(await this.requireSession().deleteLegacyCheckpoint(checkpointNumber));
   }
 
-  resume(): Promise<BreakReason> {
-    return new Promise<BreakReason>((resolve) => {
-      this.resumeHitCheckpoint = false;
-      this.resumeWaiter = resolve;
-      // EXIT (0xaa) leaves the monitor and continues the CPU. Fire-and-forget: the
-      // stop is reported asynchronously via the STOPPED/CHECKPOINT_INFO events.
-      this.writeFrame(CMD.EXIT, new Uint8Array(0));
-    });
+  /** Continues until VICE reports the next stopped state. */
+  async resume(): Promise<BreakReason> {
+    return requireControl(await this.requireSession().continueLegacy());
   }
 
+  /** Reads and maps all named main-CPU registers. */
   async readRegisters(): Promise<Registers> {
-    const frame = await this.send(CMD.REGISTERS_GET, registersGetBody());
-    const values = parseRegistersGet(frame.body);
-    const read = (name: string): number => values.get(this.registerIds.get(name)!) ?? 0;
-    const p = read("FL");
+    const values = requireControl(await this.requireSession().readLegacyRegisters());
+    const read = (name: string): number => values.get(name) ?? 0;
+    const flags = read("FL");
     return {
       a: read("A") & 0xff,
       x: read("X") & 0xff,
@@ -213,234 +142,81 @@ export class ViceDriver implements EmulatorDriver {
       sp: read("SP") & 0xff,
       pc: read("PC") & 0xffff,
       flags: {
-        carry: (p & (1 << FLAG_BIT.carry)) !== 0,
-        zero: (p & (1 << FLAG_BIT.zero)) !== 0,
-        interrupt: (p & (1 << FLAG_BIT.interrupt)) !== 0,
-        decimal: (p & (1 << FLAG_BIT.decimal)) !== 0,
-        break_: (p & (1 << FLAG_BIT.break_)) !== 0,
-        overflow: (p & (1 << FLAG_BIT.overflow)) !== 0,
-        negative: (p & (1 << FLAG_BIT.negative)) !== 0,
+        carry: (flags & (1 << FLAG_BIT.carry)) !== 0,
+        zero: (flags & (1 << FLAG_BIT.zero)) !== 0,
+        interrupt: (flags & (1 << FLAG_BIT.interrupt)) !== 0,
+        decimal: (flags & (1 << FLAG_BIT.decimal)) !== 0,
+        break_: (flags & (1 << FLAG_BIT.break_)) !== 0,
+        overflow: (flags & (1 << FLAG_BIT.overflow)) !== 0,
+        negative: (flags & (1 << FLAG_BIT.negative)) !== 0,
       },
     };
   }
 
+  /** Reads a fresh memory snapshot. */
   async readMemory(start: number, length: number): Promise<Uint8Array> {
-    const frame = await this.send(CMD.MEMORY_GET, memoryGetBody(start, start + length - 1));
-    return parseMemoryGet(frame.body);
+    return requireControl(await this.requireSession().readMemory(start, length));
   }
 
+  /** Writes a defensive copy into emulator memory. */
   async writeMemory(address: number, data: Uint8Array): Promise<void> {
-    await this.send(CMD.MEMORY_SET, memorySetBody(address, data));
+    requireControl(await this.requireSession().writeMemory(address, data));
   }
 
+  /** Captures the indexed display and encodes it as a PNG. */
   async captureScreenshot(): Promise<Buffer> {
-    const display = await this.send(CMD.DISPLAY_GET, displayGetBody());
-    const palette = await this.send(CMD.PALETTE_GET, paletteGetBody());
-    return encodePng(parseDisplayGet(display.body), parsePaletteGet(palette.body));
+    const captured = requireControl(await this.requireSession().readLegacyDisplay());
+    return encodePng(captured.display, captured.palette);
   }
 
+  /** Idempotently closes monitors and the owned child. */
   async shutdown(): Promise<void> {
-    if (this.socket !== undefined) {
-      this.writeFrame(CMD.QUIT, new Uint8Array(0));
-    }
-    const child = this.child;
-    await new Promise<void>((resolve) => {
-      if (child === undefined || child.exitCode !== null || child.killed) {
-        resolve();
-        return;
-      }
-      const timer = setTimeout(() => {
-        child.kill("SIGKILL");
-        resolve();
-      }, SHUTDOWN_GRACE_MS);
-      child.once("close", () => {
-        clearTimeout(timer);
-        resolve();
-      });
-    });
-    this.textMonitor?.close();
-    this.textMonitor = undefined;
-    this.socket?.destroy();
-    this.socket = undefined;
-    this.child = undefined;
+    const session = this.session;
+    this.session = undefined;
+    if (session !== undefined) requireControl(await session.close());
   }
 
+  /** Advances by an exact validated instruction count and waits for stop. */
   async advanceInstructions(count: number): Promise<void> {
-    // VICE acknowledges ADVANCE_INSTRUCTIONS immediately and performs the
-    // stepping asynchronously; any follow-up command aborts it. Completion is
-    // the STOPPED event that ends the stepping — awaited in either arrival
-    // order relative to the response frame.
-    const stopped = this.waitForStopped();
-    await this.send(CMD.ADVANCE_INSTRUCTIONS, advanceInstructionsBody(count));
-    await stopped;
+    requireControl(await this.requireSession().advanceInstructions(count));
   }
 
-  /**
-   * Write CPU registers by name (a/x/y/sp/pc/fl) via REGISTERS_SET, resolving
-   * ids through the REGISTERS_AVAILABLE map. A driver-specific extension beyond
-   * the {@link EmulatorDriver} contract — used by the runtime routine vectors to
-   * seed a routine's ABI inputs and entry PC, and by the quiesce helper to set
-   * the status register's interrupt-disable flag (not part of the published API).
-   */
+  /** Writes a supported subset of named CPU registers. */
   async writeRegisters(
     values: Partial<Record<"a" | "x" | "y" | "sp" | "pc" | "fl", number>>,
   ): Promise<void> {
-    const nameForKey: Record<string, string> = { a: "A", x: "X", y: "Y", sp: "SP", pc: "PC", fl: "FL" };
-    const items: Array<{ id: number; value: number }> = [];
+    const names: Readonly<Record<string, string>> = {
+      a: "A",
+      x: "X",
+      y: "Y",
+      sp: "SP",
+      pc: "PC",
+      fl: "FL",
+    };
+    const registers = new Map<string, number>();
     for (const [key, value] of Object.entries(values)) {
-      if (value === undefined) continue;
-      const id = this.registerIds.get(nameForKey[key]);
-      if (id === undefined) {
-        throw new Error(`writeRegisters: register '${key}' is not available on this VICE`);
-      }
-      items.push({ id, value });
+      if (value !== undefined) registers.set(names[key], value);
     }
-    if (items.length > 0) {
-      await this.send(CMD.REGISTERS_SET, registersSetBody(items));
-    }
+    requireControl(await this.requireSession().writeLegacyRegisters(registers));
   }
 
-  /**
-   * Run the EXECUTE_UNTIL_RETURN command (used by the runtime routine
-   * vectors). Same asynchronous-stepping contract as
-   * {@link advanceInstructions}: completion is the STOPPED event.
-   */
+  /** Executes until VICE observes a subroutine return. */
   async executeUntilReturn(): Promise<void> {
-    const stopped = this.waitForStopped();
-    await this.send(CMD.EXECUTE_UNTIL_RETURN, executeUntilReturnBody());
-    await stopped;
+    requireControl(await this.requireSession().executeUntilReturnLegacy());
   }
 
-  /**
-   * Read the absolute machine-cycle stopwatch through the remote text monitor.
-   * Valid only while the machine is stopped (a text command to a running
-   * machine halts it) — the measurement helpers uphold that invariant.
-   */
+  /** Reads the absolute machine-cycle stopwatch as a safe JavaScript number. */
   async readStopwatch(): Promise<number> {
-    if (this.textMonitor === undefined) {
-      throw new Error("ViceDriver: the text monitor is not connected");
+    const value = requireControl(await this.requireSession().readStopwatch());
+    if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new RangeError("VICE stopwatch exceeds JavaScript's safe integer range");
     }
-    return this.textMonitor.readStopwatch();
+    return Number(value);
   }
 
-  // ─────────────────────────── transport internals ───────────────────────────
-
-  /** A one-shot promise for the next STOPPED event (register BEFORE sending). */
-  private waitForStopped(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      this.stoppedWaiters.push(resolve);
-    });
-  }
-
-  private connectWithRetry(port: number): Promise<net.Socket> {
-    return new Promise<net.Socket>((resolve, reject) => {
-      let attempts = 0;
-      const attempt = (): void => {
-        const socket = net.connect(port, "127.0.0.1");
-        socket.once("connect", () => resolve(socket));
-        socket.once("error", () => {
-          socket.destroy();
-          attempts += 1;
-          if (attempts >= CONNECT_MAX_ATTEMPTS) {
-            reject(new Error(`could not connect to the VICE monitor on 127.0.0.1:${port}`));
-          } else {
-            setTimeout(attempt, CONNECT_RETRY_MS);
-          }
-        });
-      };
-      attempt();
-    });
-  }
-
-  /** Write a framed command without registering a response waiter (fire-and-forget). */
-  private writeFrame(type: number, body: Uint8Array): void {
-    const id = this.takeRequestId();
-    this.socket?.write(Buffer.from(encodeCommand(type, id, body)));
-  }
-
-  /** Send a command and resolve with its correlated response frame. */
-  private send(type: number, body: Uint8Array): Promise<ResponseFrame> {
-    return new Promise<ResponseFrame>((resolve, reject) => {
-      if (this.socket === undefined) {
-        reject(new Error("ViceDriver is not connected"));
-        return;
-      }
-      const id = this.takeRequestId();
-      this.pending.set(id, { resolve, reject });
-      this.socket.write(Buffer.from(encodeCommand(type, id, body)));
-    });
-  }
-
-  private takeRequestId(): number {
-    const id = this.nextRequestId;
-    // Stay in [1, 0xfffffe] — 0xffffffff is reserved for unsolicited events.
-    this.nextRequestId = this.nextRequestId >= 0xfffffe ? 1 : this.nextRequestId + 1;
-    return id;
-  }
-
-  private onData(chunk: Buffer): void {
-    const merged = new Uint8Array(this.accumulator.length + chunk.length);
-    merged.set(this.accumulator, 0);
-    merged.set(chunk, this.accumulator.length);
-    const { frames, consumed } = decodeResponses(merged);
-    this.accumulator = merged.slice(consumed);
-    for (const frame of frames) {
-      if (frame.requestId === EVENT_REQUEST_ID) {
-        this.handleEvent(frame);
-        continue;
-      }
-      const waiter = this.pending.get(frame.requestId);
-      if (waiter === undefined) {
-        continue;
-      }
-      this.pending.delete(frame.requestId);
-      if (frame.errorCode !== 0) {
-        waiter.reject(new Error(`VICE command failed (type 0x${frame.type.toString(16)}, error ${frame.errorCode})`));
-      } else {
-        waiter.resolve(frame);
-      }
-    }
-  }
-
-  private handleEvent(frame: ResponseFrame): void {
-    switch (frame.type) {
-      case RESP.CHECKPOINT_INFO:
-        if (parseCheckpointInfo(frame.body).hit) {
-          this.resumeHitCheckpoint = true;
-        }
-        break;
-      case RESP.STOPPED: {
-        const waiter = this.resumeWaiter;
-        if (waiter !== undefined) {
-          this.resumeWaiter = undefined;
-          waiter(this.resumeHitCheckpoint ? "breakpoint" : "exit");
-        }
-        // Stepping-completion sync (advance / execute-until-return).
-        for (const stopped of this.stoppedWaiters.splice(0)) {
-          stopped();
-        }
-        break;
-      }
-      default:
-        // RESUMED / JAM and other events are informational for the MVP.
-        break;
-    }
-  }
-
-  private failAllPending(err: Error): void {
-    for (const [, waiter] of this.pending) {
-      waiter.reject(err);
-    }
-    this.pending.clear();
-    if (this.resumeWaiter !== undefined) {
-      const waiter = this.resumeWaiter;
-      this.resumeWaiter = undefined;
-      waiter("exit");
-    }
-    // Release stepping waiters so a dead process cannot hang an advance; the
-    // caller's next command surfaces the failure.
-    for (const stopped of this.stoppedWaiters.splice(0)) {
-      stopped();
-    }
+  /** Returns the active internal session or rejects use before launch. */
+  private requireSession(): ViceControlSession {
+    if (this.session === undefined) throw new Error("ViceDriver is not connected");
+    return this.session;
   }
 }

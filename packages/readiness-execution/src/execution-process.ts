@@ -98,7 +98,7 @@ export interface ExecutionProcessHandleV1 {
   readonly identity: ExecutionChildIdentityV1;
   readonly completion: Promise<ExecutionProcessExitV1>;
   revalidateIdentity(): Promise<ExecutionProcessOwnershipV1 | boolean>;
-  terminate(signal: NodeJS.Signals): Promise<void>;
+  terminate(signal: NodeJS.Signals, cancellation?: ExecutionCancellationV1): Promise<void>;
   waitForGroupExit?(deadlineMonotonicMs: number): Promise<boolean>;
 }
 

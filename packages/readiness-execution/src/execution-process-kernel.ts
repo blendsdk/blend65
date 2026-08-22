@@ -365,16 +365,18 @@ export function createExecutionProcessRuntimeV1(
         const completion = deferred<ExecutionProcessExitV1>();
         let provisionalExit: ExecutionProcessExitV1 | undefined;
         let completionSettled = false;
-        let pendingAcknowledgement:
-          | { readonly kind: "term-applied" | "kill-armed"; readonly deferred: Deferred<void> }
-          | undefined;
-        let sendChain = Promise.resolve();
+        const pendingAcknowledgements: Array<{
+          readonly kind: "term-applied" | "kill-armed";
+          readonly deferred: Deferred<void>;
+        }> = [];
+        let sendTail: Promise<void> = Promise.resolve();
         let controlClosed = false;
         const failClosed = async (error: unknown): Promise<void> => {
           if (completionSettled) return;
           completionSettled = true;
-          pendingAcknowledgement?.deferred.reject(new TypeError(message(error)));
-          pendingAcknowledgement = undefined;
+          for (const acknowledgement of pendingAcknowledgements.splice(0)) {
+            acknowledgement.deferred.reject(new TypeError(message(error)));
+          }
           try {
             await host.observeGroup(
               {
@@ -411,11 +413,14 @@ export function createExecutionProcessRuntimeV1(
                 completion.resolve(provisionalExit);
                 return;
               } else if (frame.kind === "term-applied" || frame.kind === "kill-armed") {
-                if (pendingAcknowledgement?.kind !== frame.kind) {
+                const index = pendingAcknowledgements.findIndex(
+                  (acknowledgement) => acknowledgement.kind === frame.kind,
+                );
+                if (index < 0) {
                   throw new TypeError("Unexpected termination acknowledgement.");
                 }
-                pendingAcknowledgement.deferred.resolve(undefined);
-                pendingAcknowledgement = undefined;
+                const [acknowledgement] = pendingAcknowledgements.splice(index, 1);
+                acknowledgement.deferred.resolve(undefined);
               } else if (frame.kind === "failure") {
                 throw new TypeError(`${frame.code}: ${frame.message}`);
               } else {
@@ -455,26 +460,54 @@ export function createExecutionProcessRuntimeV1(
             }
             return "unknown" as const;
           },
-          async terminate(signal: NodeJS.Signals) {
+          async terminate(
+            signal: NodeJS.Signals,
+            controlCancellation: ExecutionCancellationV1 = cancellation,
+          ) {
             if (signal !== "SIGTERM" && signal !== "SIGKILL") {
               throw new TypeError("Unsupported process-group signal.");
             }
             const expected = signal === "SIGTERM" ? "term-applied" : "kill-armed";
             const acknowledgement = deferred<void>();
-            sendChain = sendChain.then(async () => {
-              if (completionSettled || pendingAcknowledgement !== undefined) {
+            void acknowledgement.promise.catch(() => undefined);
+            const operation = sendTail.then(async () => {
+              if (completionSettled) {
                 throw new TypeError("Process control is no longer available.");
               }
-              pendingAcknowledgement = { kind: expected, deferred: acknowledgement };
-              await sendParentFrame(
-                spawned!.control,
-                outgoing,
-                parentFrame(nonce, parentSequence++, { kind: "terminate", signal }),
-                cancellation,
-              );
-              await acknowledgement.promise;
+              const pending = { kind: expected, deferred: acknowledgement } as const;
+              pendingAcknowledgements.push(pending);
+              try {
+                await sendParentFrame(
+                  spawned!.control,
+                  outgoing,
+                  parentFrame(nonce, parentSequence++, { kind: "terminate", signal }),
+                  controlCancellation,
+                );
+              } catch (error) {
+                const index = pendingAcknowledgements.indexOf(pending);
+                if (index >= 0) pendingAcknowledgements.splice(index, 1);
+                throw error;
+              }
+              if (controlCancellation.signal.aborted) {
+                throw new TypeError("Process termination was cancelled.");
+              }
+              let abort: (() => void) | undefined;
+              try {
+                await Promise.race([
+                  acknowledgement.promise,
+                  new Promise<never>((_resolve, reject) => {
+                    abort = (): void => reject(new TypeError("Process termination was cancelled."));
+                    controlCancellation.signal.addEventListener("abort", abort, { once: true });
+                  }),
+                ]);
+              } finally {
+                if (abort !== undefined) {
+                  controlCancellation.signal.removeEventListener("abort", abort);
+                }
+              }
             });
-            return sendChain;
+            sendTail = operation.catch(() => undefined);
+            return operation;
           },
           async waitForGroupExit(deadlineMonotonicMs: number) {
             if (completionSettled && provisionalExit !== undefined) return true;

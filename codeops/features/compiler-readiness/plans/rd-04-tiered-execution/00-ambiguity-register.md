@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-04 Tiered Compiler, ACME and VICE Execution
 
-> **Status**: ✅ GATE PASSED — all 31 items resolved
+> **Status**: ✅ GATE PASSED — all 37 items resolved; AR-P32–AR-P37 added during execution
 > **Last Updated**: 2026-08-22
 > **Mode**: Auto-design
 > **Root Invocation ID**: `make-plan-rd04-20260821-01`
@@ -50,6 +50,12 @@
 | AR-P29 | Security & compliance | How can Phase 3 terminate a descendant process group without a validate-to-signal PGID-reuse race? | Persistent in-group ownership anchor / pidfd group signal / delegated cgroup / parent negative-PGID signal | Trusted detached Node anchor self-signals its pinned group over authenticated IPC; parent never sends a negative-PGID signal; challenger converged | ✅ Resolved |
 | AR-P30 | Integration points | Which production-shaped seam lets an implementation-blind spec prove the real anchor protocol without exporting debug authority? | Raw host/transport ports around the real parent and anchor kernels / fake abstract handle / debug snapshots | Export one runtime factory plus the real anchor runner over bounded raw OS/transport ports; no parent signal port or parsed-message injection | ✅ Resolved |
 | AR-P31 | Integration points | How does the anchor learn the parent nonce before emitting authenticated `anchor-ready`? | Raw bootstrap frame / spawn environment or argv / hidden transport state | Parent sequence-zero bootstrap frame carries the nonce; anchor adopts it before sequence-zero ready; launch is parent sequence one | ✅ Resolved |
+| AR-P32 | Integration points (runtime) | Which exact observable kernel and protocol semantics let immutable Phase 4 tests prove low-level VICE control without guessing or injecting parsed outcomes? | Raw production host/runtime factory plus default-adapter smoke / black-box fake VICE executable / pure codec-planner exports plus smaller integration | Versioned raw host/runtime factory, named endpoints, exact one-child-attempt handshake/cancellation/copy semantics and split low-level/route retry ownership; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P33 | Integration points (runtime) | Which production boundary lets immutable Phase 4 tests prove lease, identity, retry and budget policy without unsafe real-host mutation or test-only authority? | Public lease-runtime factory over a narrow domain host / package-private factory / black-box subprocess matrix | Versioned public runtime factory over raw lease/process/endpoint facts and constrained record-then-exec/termination operations; global facade delegates one singleton; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P34 | Behavioral gaps (runtime) | How is the frozen low-level oracle corrected when its default `Uint8Array` parameter infers an `ArrayBuffer` backing narrower than the raw handshake helper's `ArrayBufferLike` bytes? | Add the declared `Uint8Array` parameter annotation / weaken package typechecking / alter runtime bytes | Add the semantics-neutral helper annotation, preserve every assertion, rerun GREEN and freeze the replacement hash; AI delegated by `--auto-design` | ✅ Resolved |
+| AR-P35 | Behavioral gaps (runtime) | How can the immutable lease oracle prove a replaced inode when its first snapshot originally named the new inode as both observed and expected? | Retain the prior inode in the snapshot reference / invent a fixed inode relation / reject every first observation | Correct the mutant so the retained reference names the prior inode while the observed file names the replacement; AI delegated by `--auto-design` | ✅ Resolved |
+| AR-P36 | Security & compliance (runtime) | Does POSIX directory `st_nlink` need to equal one like the regular lease file's link count? | Retain positive raw directory count but exclude its exact value from identity / ignore it / normalize it / require one | Positive safe-integer raw directory count; exact count non-authoritative; regular lease file remains exactly one link; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P37 | Behavioral gaps (runtime) | How can the route oracle model an exact checkpoint hit after quality review requires execution to settle only after VICE also reports STOPPED? | Emit the matching STOPPED event while preserving adversarial response order / settle on checkpoint alone / weaken completion cases | Correct the raw fake to emit checkpoint metadata, correlated acknowledgement, then STOPPED; production waits for both; AI delegated by `--auto-design` | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -901,6 +907,238 @@ launch boundary; hidden transport state prevents implementation-blind testing.<b
 **Reopen trigger:** the production IPC channel is not private to parent/anchor or cannot deliver the
 bootstrap frame before anchor identity observation.
 
+### AR-P32 — Observable VICE control kernel and exact protocol ownership
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal architecture, protocol validation, cancellation and testing strategy
+inside the approved additive C64 VICE-control subpath; no target, acceptance, publication or public
+legacy behavior changes.<br>
+**Objective:** Let an implementation-blind oracle drive the real control state machine through raw
+process, socket, time and identity facts while preserving the existing `ViceDriver` surface and
+making every launch/runtime failure deterministic and bounded.<br>
+**Decision:** Export a versioned `createViceControlRuntimeV1(host?)` beside the default
+`launchViceControlV1`. The host owns only raw spawn/owned-child lifecycle, fragmented binary/text
+loopback byte channels, monotonic time/delay and positive child-to-listener ownership facts;
+production owns framing, parsing, correlation, handshake, state and retry policy. Replace the
+anonymous endpoint tuple with named `binaryPort`/`textPort` fields. Pass `executable`, `argv` and
+`cwd` to the host byte-for-byte; the compatibility wrapper alone builds the current fixed
+binary-then-text monitor flags and preserves their ordering.
+
+One low-level call performs exactly one child launch. It may make at most 60 connection rounds,
+250 ms apart under the inclusive 15-second launch-attempt deadline, but never respawns or selects
+new ports. The readiness-execution owner allocates fresh distinct endpoints and performs at most
+eight child attempts under the cumulative route deadline. Issues retain the four public classes
+and add a closed stable reason discriminator for request, spawn, connect, child-exit,
+endpoint-owner, binary-handshake, text-handshake, C64-target, version, frame, cancellation, closed
+and transport failures.
+
+The composite handshake requires API-v2 binary framing; core `A/X/Y/SP/PC/FL` registers;
+`VICE_INFO` major 3 inside the caller's closed minor range; successful integer
+`RESOURCE_GET("VICIIModel")` as the C64-specific live probe; one anchored text-monitor stopwatch
+reply; and, for readiness authority, Linux proof that both listener socket inodes belong to the
+positively identified owned child. The legacy wrapper may use compatibility ownership mode but
+still performs the live protocol/target/version checks. Its effective supported floor is VICE 3.6,
+because the official binary-monitor contract introduced `VICE_INFO` in 3.6; readiness authority
+requires exactly 3.10.
+
+`advanceInstructions` accepts only integers `1..65535` and never masks an out-of-range value. The
+readiness loop greedily decomposes larger totals, including 10,000,000, into full 65,535 chunks and
+one remainder and charges each whole requested chunk before submission. Correlated response/event
+arrival is linearized by the first transition that removes the pending operation. Explicit
+`cancelPending()` settles current operations as `vice.cancelled`, discards their late frames and
+keeps the session usable; `close()` is idempotent, permanently closes the session and settles
+pending work as `vice.closed`. Read/write byte ownership is by defensive copies: write inputs are
+snapshotted before the first await, each read returns fresh bytes, and transport activity never
+mutates a resolved buffer.<br>
+**Evidence:** The planned API exposed aggregate operations but no observable raw boundary, endpoint
+roles, retry owner or stable failure reasons. Existing `advanceInstructionsBody` masks through a
+u16 writer without validation; `ViceDriver` already fixes binary-before-text argv order and gates
+on `VICE_INFO`; the official installed VICE manual states `VICE_INFO` reports versions only and is
+available from 3.6. Local VICE 3.10 configuration dumps show `VICIIModel` in x64sc and absent from
+x128 and xvic. The Phase 3 raw-kernel pattern already proves that least-authority ports can expose
+OS facts without exporting parsed authority.<br>
+**Rejected alternatives:** A black-box fake executable duplicates a second VICE implementation,
+makes race scheduling nondeterministic and cannot prove all late-frame interleavings. Pure exported
+planners can pass while real correlation, cancellation and fragmented transport are wrong. Inferring
+C64 from argv, filename, generic registers or `VICE_INFO` is not a live target proof; protocol-only
+authentication is unavailable, so readiness also requires owned-listener identity.<br>
+**Strongest counterargument:** The host factory exposes raw transport concepts as a supported
+versioned subpath API and increases the surface that must remain stable.<br>
+**Resolution:** Keep the host least-authority, versioned and confined to `vice-control`; pair its
+deterministic oracle with one real-process loopback default-adapter smoke test and the unchanged
+real-VICE suites. This cost is smaller than an untestable concurrency state machine or a second
+fake protocol implementation.<br>
+**Confidence:** High; a supported VICE release changing or removing the `VICIIModel` resource would
+invalidate the target probe.<br>
+**Hardening:** The implementation-blind spec author stopped on the missing contract. An independent
+challenger converged on the raw-host factory, named endpoints, single low-level attempt, stable
+reasons, cancellation linearization and defensive-copy semantics, and rejected protocol-only C64
+inference. Local wrong-target 3.10 resource evidence closed the challenger's remaining probe
+condition.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a supported VICE release lacks a stable integer `VICIIModel` resource, endpoint
+ownership cannot be proven before readiness accepts a socket, the host needs parsed messages or
+arbitrary PID/signal authority, or compatibility tests show the wrapper changed observable behavior.
+
+### AR-P33 — Observable VICE lease coordinator and raw host boundary
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal composition-package architecture and cancellation semantics inside the
+approved Linux-only VICE lease; no target, publication, expectation or legacy behavior change.<br>
+**Objective:** Let an implementation-blind oracle deterministically prove every crash, identity,
+trusted-filesystem, retry, budget and no-signal case without mutating the developer's real lease or
+injecting parsed monitor/policy outcomes.<br>
+**Decision:** Export `createViceExecutionRuntimeV1(host?)`. Each runtime owns one private
+coordinator and private opaque-handle registry; the existing global acquire/inspect/clear/execute
+functions delegate to exactly one module singleton. Handles are bound to their creating runtime,
+admitted once and transition `fresh → executing → consumed`; every terminal execution outcome
+consumes them. The fixed host-wide filesystem claim, rather than process-local state, provides
+cross-runtime exclusion. A concurrent mutation never queues: it fails with the existing
+`execution.stale-authority` operation code so scheduling cannot choose authority.
+
+The host exposes only the fixed namespace's raw bounded bytes and directory/file identity facts,
+cryptographic random bytes, Linux boot/process facts, monotonic time/delay, fresh loopback endpoint
+facts, and narrowly atomic compare-create/replace/remove outcomes. It creates one constrained raw
+`ViceControlHostV1` for a declared attempt: that host's one `spawn` first durably replaces the exact
+claim with a same-PID child record, then `execve`s the byte-exact VICE request without changing PID.
+It can signal only through `revalidateAndTerminateVice`, which reopens the exact lease, rereads
+boot/PID/start/token immediately before a fixed TERM or KILL and returns changed/ambiguous rather
+than accepting an arbitrary PID or signal. Production retains record parsing, lifecycle decisions,
+authority, retry, budget and expectation policy; low-level VICE control retains framing,
+correlation and handshake. Raw bytes and token facts are defensively copied.
+
+All public runtime operations take an `AbortSignal`. A pre-aborted operation performs no lease,
+endpoint, spawn or control mutation. After cancellation no new ordinary work starts; pending
+control commands are cancelled, while owned cleanup uses a private bounded cleanup signal and exact
+generation/identity revalidation. Each attempt receives a distinct endpoint pair and a freshly
+constructed constrained raw control host; no more than eight low-level one-child launches occur.
+One route-wide budget scope charges instructions and cycles before work and never refunds failed,
+cancelled or unanswered work; retries never reset attempts, instruction, cycle or monotonic wall
+totals. Unsupported or restricted identity reports `tier-unavailable` before lease reads or
+process operations, with no PID-only fallback.<br>
+**Evidence:** Task 4.1.2 could not safely express ST-35–ST-43/ST-60–ST-62 through global functions
+whose environment was hidden. Phase 3 and AR-P32 already establish the public versioned raw-host
+factory pattern. The accepted API is new, so adding cancellation does not break an existing caller.<br>
+**Rejected alternatives:** A package-private factory leaves the public singleton path unprovable and
+is effectively a test-only seam. Black-box subprocess tests remain valuable integration evidence
+but cannot deterministically schedule replacement, cancellation and exact-bound races or safely
+prove that an unrelated process is never signalled.<br>
+**Strongest counterargument:** A domain-specific host port is broad and can accidentally become a
+second implementation of lease policy.<br>
+**Resolution:** Restrict it to immutable raw facts, exact compare-and-swap outcomes, a fixed
+namespace, one single-use record-then-exec attempt host and fixed TERM/KILL revalidation; it exposes
+no parsed lease validity, retry decision, expectation truth, arbitrary path, PID or signal.<br>
+**Confidence:** High.<br>
+**Hardening:** The implementation-blind spec owner stopped at the missing seam. An independent
+challenger compared the public factory, package-private factory and black-box process matrix and
+converged on the public least-authority runtime factory with singleton facade and immediate
+admission semantics.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a mandatory lease state cannot be proved through raw facts, the default host
+cannot make record-before-exec durable under the same PID, or any port would need arbitrary
+filesystem/process authority or parsed policy injection.
+
+### AR-P34 — Typed-array backing annotation in the immutable control oracle
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Type-only correction to a specification-local frame helper; no expectation,
+scenario, production contract, runtime byte or public behavior changes.<br>
+**Decision:** Explicitly annotate `responseFrame`'s optional body parameter as `Uint8Array`. The
+original default expression inferred `Uint8Array<ArrayBuffer>` while `TextEncoder.encode` supplied
+the valid wider `Uint8Array<ArrayBufferLike>`, causing TS2345 only after the absent module was
+implemented. Preserve all 29 assertions and replace the immutable hash with
+`c48953c2a1237ea03016a3ef185be4944c95ff4c413e02cecd3d32ebfffdaf2a`.<br>
+**Evidence:** Before correction the runtime suite was 29/29 GREEN but package typecheck failed at
+the helper call; afterward the same 29/29 pass and package typecheck is GREEN.<br>
+**Rejected alternatives:** Weakening/excluding spec typechecking violates the repository gate;
+altering production or handshake bytes to accommodate an inference artifact changes the wrong
+owner.<br>
+**Confidence:** High; this changes only the compile-time generic annotation.<br>
+**Hardening:** Proportional local recheck of formatting, package typecheck, unchanged scenario
+count and runtime GREEN; an architecture challenger is not warranted for a type-only helper fix.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** any expectation, emitted byte, scenario count or runtime result differs after
+the annotation.
+
+### AR-P35 — Retained identity for the replaced-inode oracle mutant
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Specification-fixture correction that restores the already approved
+compare-and-swap identity invariant; no production rule or expected failure changes.<br>
+**Decision:** In the `replaced inode` case, keep the prior file identity in
+`ViceLeaseReferenceV1.file` and expose the new inode only in the observed snapshot file. Other
+owner/mode/link mutants retain matching references. Production therefore rejects an observable
+reference inconsistency, not an arbitrary inode value.<br>
+**Evidence:** The original first snapshot named inode 13 in both positions, leaving no trusted
+historical identity and making inode 13 indistinguishable from any legitimate first lease file.
+The corrected pair directly models the replacement race required by ST-60.<br>
+**Rejected alternatives:** A hard-coded inode relationship is not a filesystem guarantee; rejecting
+every first observation would make stale-lease inspection impossible.<br>
+**Confidence:** High; the correction supplies the missing prior fact without changing the expected
+fail-closed result.<br>
+**Hardening:** The implementation owner challenged the impossible premise before adding an unsafe
+rule; proportional fixture review confirmed existing guarded-clear and pre-signal race coverage.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** production would still need a fabricated inode relation, or a matching
+reference/observation pair is rejected solely because its inode differs from the fixture constant.
+
+### AR-P36 — Type-specific POSIX link-count authority
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Linux filesystem validation semantics inside the approved fixed lease namespace;
+no path, target, authority or recovery-safety expansion.<br>
+**Decision:** Retain the unmodified raw link count in `ViceLeaseNodeIdentityV1`. For directories,
+require a positive safe integer but exclude the exact count from trust and identity comparison;
+compare type, device, inode, UID and mode under no-follow opens. For the regular lease file, require
+and compare `links === 1`. Correct the immutable oracle to accept representative directory counts
+1, 2 and 276, reject zero, and preserve the file-hard-link rejection.<br>
+**Evidence:** The actual mode-0700 effective-UID runtime directory reports `st_nlink=276`, while a
+new POSIX directory normally reports at least two. Directory link count reflects `.` and child
+`..` topology and can also use filesystem-specific sentinel behavior; it does not provide the
+regular-file anti-hard-link proof. No-follow type validation and retained device/inode detect
+replacement.<br>
+**Rejected alternatives:** Ignoring the raw field loses a useful malformed-fact check. Requiring
+one rejects normal Linux namespaces. Normalizing to one fabricates OS evidence and could later be
+mistaken for a security fact.<br>
+**Strongest counterargument:** A directory count change can reveal same-UID namespace mutation.<br>
+**Resolution:** Treat it as non-authoritative topology churn; if child-name policy is later needed,
+express it through bounded enumeration rather than a count that causes false recovery blocks.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent security challenger converged and required separate directory/file
+comparators, positive safe-integer validation and preservation of the raw fact.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a supported Linux filesystem yields no positive raw directory count, no-follow
+directory identity cannot detect replacement, or a regular lease file with more than one link is
+accepted.
+
+### AR-P37 — Matching STOPPED event in the checkpoint-hit oracle
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Raw fake-sequence correction required by the accepted concurrency review; no
+checkpoint identity, completion marker, expected result or public API change.<br>
+**Decision:** The successful hit script emits unsolicited exact checkpoint metadata, then the
+correlated ADVANCE acknowledgement, then unsolicited STOPPED. Production retains the checkpoint
+metadata but resolves `advanceInstructions` only after both acknowledgement and the matching stop,
+so a later command cannot consume a stale stop or touch a still-running machine.<br>
+**Evidence:** The prior fake never emitted STOPPED on its hit path, contradicting real VICE's
+asynchronous advance completion contract and making a safe implementation fail two otherwise valid
+completion-marker scenarios.<br>
+**Rejected alternatives:** Resolving on checkpoint alone preserves the reviewed race; weakening the
+completion scenarios would remove STORE/readback authority.<br>
+**Confidence:** High; the corrected order deliberately exercises event-before-ack and
+stop-after-ack correlation.<br>
+**Hardening:** Correctness/concurrency review RV-004 supplied the stop-gating requirement; the
+implementation owner stopped instead of weakening production.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** real VICE completes a checkpointed advance without STOPPED, or a later advance
+can consume an event from the prior execution epoch.
+
 ## Systematic 12-Category Closure
 
 | Category | Closure evidence |
@@ -910,7 +1148,7 @@ bootstrap frame before anchor identity observation.
 | Scope ambiguities | Planning target and modification set are explicit; no optional expansion was accepted (AR-P1). |
 | Technical unknowns | Package, provenance, VICE, process and publication mechanisms are selected (AR-P2–AR-P5, AR-P10–AR-P12). |
 | Edge cases | Fixture cells, exact limits, retries, PID reuse, crash states, stale sentinel and cleanup are owned (AR-P8–AR-P11). |
-| Integration points | Frontend/compiler/CLI/emit/ACME/VICE boundaries and opaque authority seams are explicit (AR-P2–AR-P5). |
+| Integration points | Frontend/compiler/CLI/emit/ACME/VICE boundaries and opaque authority seams are explicit (AR-P2–AR-P5, AR-P32–AR-P33). |
 | Data & state | Two-stage identity, observation layout, child publication and lease generations are closed (AR-P5, AR-P7, AR-P11). |
 | Security & compliance | Canonical paths, argv-only processes, bounded evidence and fail-closed identity are required; there is no auth, credential, PII or remote-network surface (AR-P10–AR-P11). |
 | Non-functional gaps | Finite budgets, deterministic output, coverage and local/CI tiers are fixed (AR-P6, AR-P9–AR-P10, AR-P13). |

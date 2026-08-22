@@ -204,6 +204,9 @@ export function registersSetBody(items: Array<{ id: number; value: number }>): U
  * the CPU by `count` instructions, then re-stops (validated live against VICE 3.10).
  */
 export function advanceInstructionsBody(count: number, stepOverSubroutines = false): Uint8Array {
+  if (!Number.isInteger(count) || count < 1 || count > 0xffff) {
+    throw new RangeError("VICE instruction count must be an integer from 1 through 65535");
+  }
   const b: number[] = [stepOverSubroutines ? 0x01 : 0x00];
   putU16(b, count);
   return new Uint8Array(b);
@@ -238,7 +241,13 @@ function getU16(body: Uint8Array, offset: number): number {
 
 /** Read a u32 LE from `body` at `offset`. */
 function getU32(body: Uint8Array, offset: number): number {
-  return (body[offset] | (body[offset + 1] << 8) | (body[offset + 2] << 16) | (body[offset + 3] << 24)) >>> 0;
+  return (
+    (body[offset] |
+      (body[offset + 1] << 8) |
+      (body[offset + 2] << 16) |
+      (body[offset + 3] << 24)) >>>
+    0
+  );
 }
 
 /** Parse a `MEMORY_GET` response body: strip the 2-byte length prefix, return the data. */

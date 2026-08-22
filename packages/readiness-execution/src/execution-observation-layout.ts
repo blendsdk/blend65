@@ -36,6 +36,15 @@ const OBSERVATION_STORE_KEYS = [
   "byteIndex",
 ] as const;
 const COMPLETION_STORE_KEYS = ["instructionAddress", "targetAddress", "kind", "value"] as const;
+const CLOSED_LAYOUT_KEYS = [
+  "revision",
+  "resultSymbols",
+  "resultAddresses",
+  "completionSymbol",
+  "completionAddress",
+  "postEntryStores",
+  "proofDigest",
+] as const;
 
 interface ClosedLayoutInput {
   readonly labels: ReadonlyMap<string, number>;
@@ -376,6 +385,66 @@ function closeLayout(
     postEntryStores,
     proofDigest: proofDigest(input, resolved, postEntryStores),
   });
+}
+
+/**
+ * Validates and defensively closes an already-proved observation layout.
+ *
+ * This parser protects execution boundaries that receive a stored proof rather
+ * than the compiler reports used to derive that proof.
+ *
+ * @example
+ * ```ts
+ * const parsed = parseExecutionObservationLayoutV1(layout);
+ * ```
+ */
+export function parseExecutionObservationLayoutV1(
+  input: unknown,
+): ExecutionOperationResultV1<ExecutionObservationLayoutV1> {
+  const record = readRecord(input, CLOSED_LAYOUT_KEYS);
+  const symbols = readArray(record?.resultSymbols, 2);
+  const addresses = readArray(record?.resultAddresses, 2);
+  const storeInputs = readArray(record?.postEntryStores, MAX_STORES);
+  if (
+    record === undefined ||
+    record.revision !== "execution-observation-layout-v1" ||
+    symbols === undefined ||
+    addresses === undefined ||
+    symbols.length !== addresses.length ||
+    symbols.some((symbol) => !validSymbol(symbol)) ||
+    new Set(symbols).size !== symbols.length ||
+    addresses.some((address) => !validAddress(address)) ||
+    new Set(addresses).size !== addresses.length ||
+    !validSymbol(record.completionSymbol) ||
+    !validAddress(record.completionAddress) ||
+    addresses.includes(record.completionAddress) ||
+    storeInputs === undefined ||
+    typeof record.proofDigest !== "string" ||
+    !/^(?:sha256:)?[0-9a-f]{64}$/.test(record.proofDigest)
+  ) {
+    return failure("/", "Observation layout must use the exact bounded closed shape.");
+  }
+  const stores: ExecutionEmittedStoreV1[] = [];
+  let previousInstruction = -1;
+  for (const storeInput of storeInputs) {
+    const store = readStore(storeInput);
+    if (store === undefined || store.instructionAddress <= previousInstruction) {
+      return failure("/postEntryStores", "Observation stores are invalid or unordered.");
+    }
+    previousInstruction = store.instructionAddress;
+    stores.push(store);
+  }
+  return success(
+    Object.freeze({
+      revision: "execution-observation-layout-v1",
+      resultSymbols: Object.freeze(symbols as string[]),
+      resultAddresses: Object.freeze(addresses as number[]),
+      completionSymbol: record.completionSymbol as string,
+      completionAddress: record.completionAddress as number,
+      postEntryStores: Object.freeze(stores),
+      proofDigest: record.proofDigest,
+    }),
+  );
 }
 
 /** Validates a bounded passive historical layout without granting live execution authority. */

@@ -10,6 +10,7 @@
     { "path": "../frontend" },
     { "path": "../compiler" },
     { "path": "../cli" },
-    { "path": "../readiness" }
+    { "path": "../readiness" },
+    { "path": "../test-harness" }
   ]
 }

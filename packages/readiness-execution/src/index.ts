@@ -18,6 +18,7 @@ export {
 export {
   resolveExecutionCaseObservationLayoutV1,
   resolveExecutionObservationLayoutV1,
+  parseExecutionObservationLayoutV1,
 } from "./execution-observation-layout.js";
 export {
   classifyExecutionDiagnosticEvidenceV1,
@@ -136,3 +137,26 @@ export type {
   ExecutionWorkerSourceV1,
   ExecutionWorkerTierV1,
 } from "./execution-worker-protocol.js";
+export {
+  acquireViceLeaseV1,
+  clearViceLeaseGenerationV1,
+  createViceExecutionRuntimeV1,
+  executeViceRouteV1,
+  inspectViceLeaseV1,
+} from "./execution-vice.js";
+export { VICE_LEASE_HANDLE_BRAND } from "./execution-vice-types.js";
+export type {
+  ManualLeaseRecoveryV1,
+  ViceExecutionHostV1,
+  ViceExecutionRuntimeV1,
+  ViceLeaseHandleV1,
+  ViceLeaseMutationV1,
+  ViceLeaseNodeIdentityV1,
+  ViceLeaseReferenceV1,
+  ViceLeaseSnapshotV1,
+  ViceLoopbackEndpointsV1,
+  ViceProcessIdentityFactV1,
+  ViceRecordedAttemptV1,
+  ViceRouteRequestV1,
+  ViceTerminationRequestV1,
+} from "./execution-vice-types.js";
