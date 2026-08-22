@@ -6,6 +6,7 @@ import {
   createExecutionCaseV1,
   generateCampaignCase,
   getExecutionCaseProjectionV1,
+  projectC64InitialStateV1,
   type ExecutionCaseLayoutProofInputV1,
   type ExecutionCaseV1,
   type ExecutionLayoutProofInputV1,
@@ -185,6 +186,12 @@ describe("execution identity implementation", () => {
       handlers: [...input.handlers].reverse(),
     });
     expect(reversed).toBe(forward);
+    expect(
+      derivePrebuildExecutionIdentityV1({
+        ...input,
+        handlers: [input.handlers[0]!, input.handlers[0]!],
+      }),
+    ).toMatch(/^sha256:[0-9a-f]{64}$/u);
 
     const accepted = resolveExecutionObservationLayoutV1(layout());
     expect(accepted.ok).toBe(true);
@@ -383,6 +390,7 @@ describe("observation layout implementation", () => {
 
   it("fails closed for hostile top-level, map and bounded collection inputs", () => {
     class DerivedMap extends Map<string, number> {}
+    class DerivedArray extends Array<unknown> {}
     const base = layout();
     const sparseRanges: unknown[] = [];
     sparseRanges.length = 1;
@@ -404,13 +412,28 @@ describe("observation layout implementation", () => {
     };
     const revoked = Proxy.revocable(base, {});
     revoked.revoke();
+    const revokedRanges = Proxy.revocable([], {});
+    revokedRanges.revoke();
+    const accessorRanges: unknown[] = [{ start: 1, length: 1 }];
+    Object.defineProperty(accessorRanges, "0", {
+      enumerable: true,
+      configurable: true,
+      get: () => ({ start: 1, length: 1 }),
+    });
     for (const hostile of [
       null,
+      [],
       revoked.proxy,
       accessor,
+      Object.assign(Object.create({ inherited: true }), base),
       { ...base, labels: new DerivedMap(base.labels) },
       { ...base, labels: new Proxy(new Map(base.labels), {}) },
       { ...base, labels: oversizedLabels },
+      { ...base, codeRanges: new DerivedArray() },
+      { ...base, codeRanges: revokedRanges.proxy },
+      { ...base, codeRanges: accessorRanges },
+      { ...base, codeRanges: [{ start: "bad", length: 1 }] },
+      { ...base, observationSymbols: {} },
       { ...base, codeRanges: sparseRanges },
       { ...base, codeRanges: oversizedRanges },
     ]) {
@@ -517,11 +540,23 @@ describe("evidence classifier implementation", () => {
     };
     const revoked = Proxy.revocable(observed, {});
     revoked.revoke();
+    class DerivedArray extends Array<unknown> {}
+    const accessorEntries: unknown[] = [entry];
+    Object.defineProperty(accessorEntries, "0", {
+      enumerable: true,
+      configurable: true,
+      get: () => entry,
+    });
+    const revokedEntries = Proxy.revocable([], {});
+    revokedEntries.revoke();
     const mutants: readonly unknown[] = [
       revoked.proxy,
       accessorEvidence,
       { ...observed, extra: true },
       { ...observed, entries: sparse },
+      { ...observed, entries: new DerivedArray() },
+      { ...observed, entries: accessorEntries },
+      { ...observed, entries: revokedEntries.proxy },
       { ...observed, entries: oversized },
       { ...observed, entries: [accessorEntry] },
       { ...observed, entries: [{ ...entry, acceptedEntryId: digest("A") }] },
@@ -660,6 +695,50 @@ describe("envelope validation implementation", () => {
       expect(Reflect.apply(validateExecutionFixtureReadbackV1, undefined, [{}, readback])).toBe(
         "invalid-evidence-input",
       );
+    }
+  });
+
+  it("validates genuine fixture readback while rejecting hostile cell containers and values", () => {
+    const projection = getExecutionCaseProjectionV1(directCase);
+    if (!projection.ok) throw new TypeError("Expected genuine execution case projection.");
+    const cells = projection.value.fixture.cells.map((cell) => {
+      const projected = projectC64InitialStateV1(cell.address, cell.logicalValue);
+      if (!projected.ok) throw new TypeError("Expected projectable fixture cell.");
+      return { address: cell.address, projectedValue: projected.value };
+    });
+    const readback = {
+      revision: "execution-fixture-readback-v1",
+      cells,
+      completionValueBeforeEntry: 0,
+    };
+    expect(validateExecutionFixtureReadbackV1(directCase, readback)).toBe("pass");
+
+    class DerivedArray extends Array<unknown> {}
+    const accessorCells = [...cells] as unknown[];
+    Object.defineProperty(accessorCells, "0", {
+      enumerable: true,
+      configurable: true,
+      get: () => cells[0],
+    });
+    for (const mutant of [
+      Object.assign(Object.create({ inherited: true }), readback),
+      { ...readback, cells: new DerivedArray(...cells) },
+      { ...readback, cells: accessorCells },
+      { ...readback, cells: cells.map((cell, index) => (index === 0 ? null : cell)) },
+      {
+        ...readback,
+        cells: cells.map((cell, index) =>
+          index === 0 ? { ...cell, address: cell.address + 1 } : cell,
+        ),
+      },
+      {
+        ...readback,
+        cells: cells.map((cell, index) =>
+          index === 0 ? { ...cell, projectedValue: cell.projectedValue ^ 0xff } : cell,
+        ),
+      },
+    ]) {
+      expect(validateExecutionFixtureReadbackV1(directCase, mutant)).toBe("invalid-evidence-input");
     }
   });
 });

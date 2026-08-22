@@ -280,3 +280,54 @@ export function deriveFinalExecutionIdentityV1(
   layout: ExecutionObservationLayoutV1,
 ): string;
 ```
+
+## Invalid diagnostic sibling authority
+
+`ExecutionCaseV1` remains valid-only: rejected source is never wrapped as an executable envelope.
+For frontend/compiler/CLI diagnostic routes, `@blend65/readiness/published-oracle` exports a sibling
+opaque capability created only by jointly authenticating the selected oracle and genuine campaign:
+
+```ts
+export interface PublishedDiagnosticCaseV1 {
+  readonly [PUBLISHED_DIAGNOSTIC_CASE_V1]: true;
+}
+export interface PublishedDiagnosticCaseProjectionV1 {
+  readonly schemaVersion: 1;
+  readonly kind: 'invalid-source-transform';
+  readonly sourceCaseDigest: Sha256Digest;
+  readonly sourceBytes: Uint8Array;
+  readonly expectedDiagnostic: DiagnosticObservationV1;
+  readonly authority: Readonly<{
+    readonly joinPolicyRevision: "published-diagnostic-case-equivalence-v1";
+    readonly selectedReleaseDigest: Sha256Digest;
+    readonly selectedCampaignDigest: Sha256Digest;
+    readonly selectedSourceCaseDigest: Sha256Digest;
+    readonly evaluationIdentity: Sha256Digest;
+    readonly sourceContentIdentity: Sha256Digest;
+  }>;
+}
+export function createPublishedDiagnosticCaseV1(
+  context: PublishedOracleContext,
+  campaign: PreparedCampaign,
+  ordinal: number,
+): OracleValidationResultV1<PublishedDiagnosticCaseV1>;
+export function getPublishedDiagnosticCaseProjectionV1(
+  value: PublishedDiagnosticCaseV1,
+): OracleValidationResultV1<PublishedDiagnosticCaseProjectionV1>;
+```
+
+The constructor regenerates the ordinal, requires `invalid-source-transform`, and authenticates a
+versioned cross-authority case-equivalence join. It retains the caller's genuine source-case digest
+and separately retains the selected release/campaign/case provenance. The join requires equal
+inventory schema/version/digest, spec revision, rule-model version/digest, target, PRNG algorithm,
+and generator/boundary handler IDs and contract versions. Seed and normalized configuration are
+authenticated caller-campaign replay inputs: selected replay must echo them exactly, and both enter
+caller/selected campaign, case and evaluation identities. Participant implementation revisions may
+differ only when the complete modeled case and exact rendered source are equal. The selected rule
+route privately determines the oracle handler; callers cannot supply
+one. Evaluation must prove exact rule, neighbor, modeled error diagnostic and source-content
+identity. Callers provide no expectation fields. The guarded projection is passive rendering/
+reporting data and is never accepted by an evidence-classification seam; workers receive source
+bytes and case kind but never expected truth. Both provenances and the join-policy revision enter
+downstream execution/publication identity. The symbols export only from the published-oracle
+subpath, not the readiness root barrel.

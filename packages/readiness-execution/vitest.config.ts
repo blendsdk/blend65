@@ -13,7 +13,17 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/test-fixtures/**", "src/index.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/test-fixtures/**",
+        "src/index.ts",
+        // The worker entry is exercised through real worker threads. Vitest's parent V8 provider
+        // cannot merge worker-isolate coverage, so counting it here would report the proven path
+        // as zero and distort the production-core threshold.
+        "src/execution-worker-entry.ts",
+        // The process anchor entry runs in a dedicated child V8 isolate for the same reason.
+        "src/execution-process-anchor-entry.ts",
+      ],
       thresholds: {
         branches: 90,
       },

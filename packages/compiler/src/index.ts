@@ -22,11 +22,14 @@ export {
 } from "./acme/discover-acme.js";
 export {
   invokeAcme,
+  invokeBoundedAcmeV1,
   defaultAcmeRunner,
+  type AcmeProcessControlsV1,
   type AcmeInvocation,
   type AcmeResult,
   type AcmeRunner,
   type AcmeRunOutput,
+  type BoundedAcmeRunnerV1,
 } from "./acme/invoke-acme.js";
 export { parseLabelFile } from "./acme/label-file.js";
 export { parseReportFile, cycleRange, type ReportInstruction } from "./acme/report-file.js";

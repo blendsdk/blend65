@@ -2,7 +2,7 @@
 
 > **Document**: 03-01-execution-contracts-routing.md
 > **Parent**: [Index](00-index.md)
-> **Decisions**: AR-P2, AR-P6, AR-P9
+> **Decisions**: AR-P2, AR-P6, AR-P9, AR-P20
 
 ## Responsibility
 
@@ -74,14 +74,23 @@ Version 1 requires `cleanupGraceMs === 3000`; it reserves 2,000 ms for graceful 
 `execution-selector-v1` performs these deterministic steps:
 
 1. Strictly validate the guarded composite and campaign projections, selected oracle digest and
-   policy share compatible parent, campaign, generator and oracle identities.
-2. Assign every case its cheapest declared decisive tier.
+   policy share compatible parent, campaign, generator and oracle identities. For a diagnostic
+   route, compatibility is the closed `published-diagnostic-case-equivalence-v1` relation: retain
+   caller and selected provenance separately; require equal publication-owned inventory/spec/
+   rule-model/target facts plus generator/boundary handler IDs and contract versions. Seed and
+   normalized configuration come only from the authenticated caller campaign and must echo exactly
+   through selected replay and both identity chains. Permit implementation-revision differences
+   only when the full modeled case and rendered source are exactly equal.
+2. Assign every case its cheapest declared decisive tier. Invalid-source cases may terminate only
+   at frontend, compiler-API or CLI; they are excluded from emit/ACME/VICE candidate sets.
 3. For each additional obligation, group candidates by rule, obligation, validity, spelling tuple
    and boundary family.
 4. Rank each candidate by a domain-separated SHA-256 digest over parent digest, campaign identity,
    case identity, selector revision and obligation.
 5. Visit non-empty strata in lexical round-robin order and select at least one candidate from each.
-6. Guarantee one valid VICE selection for every modeled mandatory-C64 runtime rule declaring VICE.
+6. Guarantee one valid VICE selection for every modeled mandatory-C64 runtime rule declaring VICE;
+   every emit/ACME/VICE obligation must have a valid candidate and fails capacity rather than using
+   an invalid case as a false witness.
 7. Enforce 16 selections per rule/expensive obligation and 256 expensive selections per campaign.
    If required minima do not fit, return `execution-plan-capacity`; never silently truncate.
 

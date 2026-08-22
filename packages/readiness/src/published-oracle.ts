@@ -11,6 +11,16 @@ export {
   createPublishedOracleRequest,
   evaluatePublishedOracle,
 } from "./published-oracle-context.js";
+export { deriveOracleSourceContentIdentity } from "./oracle-content-identity.js";
+export {
+  PUBLISHED_DIAGNOSTIC_CASE_V1,
+  createPublishedDiagnosticCaseV1,
+  getPublishedDiagnosticCaseProjectionV1,
+} from "./published-diagnostic-case.js";
+export type {
+  PublishedDiagnosticCaseProjectionV1,
+  PublishedDiagnosticCaseV1,
+} from "./published-diagnostic-case.js";
 export type {
   PublishedOracleContextResult,
   PublishedOracleRequestIntentV1,

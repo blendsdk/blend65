@@ -66,6 +66,24 @@ export interface AcmeRunOutput {
   readonly stderr: string;
 }
 
+/** Cancellation and streaming controls for one bounded ACME invocation. */
+export interface AcmeProcessControlsV1 {
+  /** Abort signal owned by the enclosing execution route. */
+  readonly signal: AbortSignal;
+  /** Monotonic deadline enforced by the injected runner. */
+  readonly deadlineMonotonicMs: number;
+  /** Continuously drains standard output. */
+  readonly onStdout: (bytes: Uint8Array) => void;
+  /** Continuously drains standard error. */
+  readonly onStderr: (bytes: Uint8Array) => void;
+}
+
+/** Additive process seam for ACME callers that own cancellation and output bounds. */
+export interface BoundedAcmeRunnerV1 {
+  /** Runs one complete invocation under caller-owned controls. */
+  run(request: AcmeInvocation, controls: AcmeProcessControlsV1): Promise<AcmeRunOutput>;
+}
+
 /**
  * Injected process/FS seam — keeps {@link invokeAcme} testable without a real
  * ACME binary. Production wiring uses {@link defaultAcmeRunner}.
@@ -100,13 +118,7 @@ function acmeArgv(inv: AcmeInvocation): string[] {
   // `<name> = $<addr>` format, which `parseLabelFile` cannot read, leaving the
   // symbol map empty for every real build. --vicelabels emits
   // `al C:xxxx .name` — exactly the VICE format `parseLabelFile` parses.
-  return [
-    "--vicelabels",
-    inv.labelPath,
-    "--report",
-    inv.reportPath,
-    inv.asmPath,
-  ];
+  return ["--vicelabels", inv.labelPath, "--report", inv.reportPath, inv.asmPath];
 }
 
 /**
@@ -147,6 +159,30 @@ export async function invokeAcme(
   };
 }
 
+/**
+ * Invokes an injected bounded ACME runner without changing the legacy API.
+ *
+ * The runner receives the complete invocation record so it can validate every output path against
+ * its parent-owned workspace before and after the child exits.
+ *
+ * @param request Complete ACME input and artifact paths.
+ * @param runner Cancellation-aware process runner.
+ * @param controls Route-owned deadline, signal and streaming sinks.
+ * @returns The runner's raw ACME outcome.
+ *
+ * @example
+ * ```ts
+ * await invokeBoundedAcmeV1(invocation, runner, controls);
+ * ```
+ */
+export function invokeBoundedAcmeV1(
+  request: AcmeInvocation,
+  runner: BoundedAcmeRunnerV1,
+  controls: AcmeProcessControlsV1,
+): Promise<AcmeRunOutput> {
+  return runner.run(request, controls);
+}
+
 /** Bytes stripped from a `.prg` file size to get the content size (load header). */
 const PRG_LOAD_HEADER_BYTES = 2;
 
@@ -162,7 +198,7 @@ export const defaultAcmeRunner: AcmeRunner = {
         // `error.code` is the non-zero exit status when ACME fails; absent on success.
         const exitCode =
           error && typeof (error as { code?: unknown }).code === "number"
-            ? ((error as { code: number }).code)
+            ? (error as { code: number }).code
             : error
               ? 1
               : 0;

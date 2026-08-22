@@ -26,7 +26,7 @@ import {
 import { validateOracleBudget } from "./oracle-budget.js";
 import { validateOracleMemoryFixture } from "./oracle-memory.js";
 import { prepareOracleRequest } from "./oracle-request.js";
-import { createOracleSuite } from "./oracle-suite.js";
+import { createOracleSuite, getOracleSuiteState } from "./oracle-suite.js";
 import {
   getPublishedSnapshotAuthority,
   type PublishedSnapshotAuthority,
@@ -118,6 +118,7 @@ interface RequestAuthority {
 
 const CONTEXT_STATES = new WeakMap<object, PublishedContextState>();
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
+const CAMPAIGN_SPEC_REVISION_V1 = "spec-v3.0";
 const INTENT_KEYS = [
   "schemaVersion",
   "handlerId",
@@ -148,10 +149,6 @@ function handlerId(value: unknown): value is OracleHandlerIdV1 {
     value === "oracle.emitted-program" ||
     value === "oracle.runtime-state"
   );
-}
-
-function campaignSpecRevision(revision: string): string {
-  return isSha256Digest(revision) ? revision.slice("sha256:".length) : revision;
 }
 
 function requestAuthority(
@@ -202,7 +199,7 @@ function requestAuthority(
     );
   }
   const inventoryDigest = digestPublicationBytes(inventoryBytes);
-  const specRevision = campaignSpecRevision(state.authority.inventory.specRevision);
+  const specRevision = CAMPAIGN_SPEC_REVISION_V1;
   const entries: RevisionEntry[] = [
     {
       component: "inventory",
@@ -434,7 +431,7 @@ export function createPublishedOracleRequest(
       schemaVersion: 1,
       inventoryVersion: state.authority.inventory.inventoryVersion,
       inventoryDigest: digestPublicationBytes(inventoryBytes),
-      specRevision: campaignSpecRevision(state.authority.inventory.specRevision),
+      specRevision: CAMPAIGN_SPEC_REVISION_V1,
     },
     ruleModel: {
       schemaVersion: 1,
@@ -524,6 +521,50 @@ export function createPublishedOracleRequest(
     observable: Object.freeze({ kind: value.observable.kind }),
   });
   return Object.freeze({ ok: true, value: request, diagnostics: EMPTY_DIAGNOSTICS });
+}
+
+/** Semantic intent whose oracle handler is selected from private publication state. */
+export type PublishedDiagnosticOracleIntentV1 = Omit<PublishedOracleRequestIntentV1, "handlerId">;
+
+/**
+ * Constructs a diagnostic replay request using the selected rule's private oracle route.
+ *
+ * This package-internal seam prevents callers from choosing a diagnostic handler while retaining
+ * the ordinary published request validator as the single request-construction boundary.
+ *
+ * @param context Opaque selected publication authority.
+ * @param intent Diagnostic semantics without a caller-selected handler.
+ * @returns Replay-complete request or a closed authority/route failure.
+ *
+ * @example
+ * ```ts
+ * const request = createPublishedDiagnosticOracleRequest(context, intent);
+ * ```
+ */
+export function createPublishedDiagnosticOracleRequest(
+  context: PublishedOracleContext,
+  intent: PublishedDiagnosticOracleIntentV1,
+): OracleValidationResultV1<OracleRequestV1> {
+  const state =
+    typeof context === "object" && context !== null ? CONTEXT_STATES.get(context) : undefined;
+  if (state === undefined) {
+    return oracleFailure(
+      "oracle.authority.missing",
+      "/context",
+      "Published oracle context is not authentic.",
+    );
+  }
+  const selected = requestAuthority(state, intent.ruleId, intent.configuration);
+  if ("ok" in selected) return selected;
+  const route = getOracleSuiteState(selected.suite)?.routesByRuleId.get(intent.ruleId);
+  if (route === undefined) {
+    return oracleFailure(
+      "oracle.route.invalid",
+      "/intent/ruleId",
+      "Selected rule has no published diagnostic route.",
+    );
+  }
+  return createPublishedOracleRequest(context, { ...intent, handlerId: route });
 }
 
 /**

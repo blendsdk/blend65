@@ -17,6 +17,7 @@ import {
 } from "@blend65/readiness";
 
 import { planExecutionRoutesV1 } from "./execution-route-planner.js";
+import { compareExecutionTierV1 } from "./execution-route-tiers.js";
 
 const TIERS: readonly ExecutionTierV1[] = [
   "frontend",
@@ -31,6 +32,18 @@ const POLICY: ExecutionPolicyV1 = {
   revision: "execution-policy-v1",
   budget: EXECUTION_MAXIMUM_BUDGET_V1,
 };
+
+describe("execution tier ordering", () => {
+  it("sorts known tiers and remains total for hostile runtime values", () => {
+    expect(compareExecutionTierV1("frontend", "vice")).toBeLessThan(0);
+    expect(
+      Reflect.apply(compareExecutionTierV1, undefined, ["future", "frontend"]),
+    ).toBeGreaterThan(0);
+    expect(Reflect.apply(compareExecutionTierV1, undefined, ["frontend", "future"])).toBeLessThan(
+      0,
+    );
+  });
+});
 
 function digest(character: string): string {
   return `sha256:${character.repeat(64)}`;

@@ -2,7 +2,7 @@
 
 > **Document**: 03-04-toolchain-adapters.md
 > **Parent**: [Index](00-index.md)
-> **Decisions**: AR-P2, AR-P3, AR-P9
+> **Decisions**: AR-P2, AR-P3, AR-P9, AR-P18
 
 ## Responsibility
 
@@ -62,19 +62,24 @@ are validated as regular files under the case root before hashing or parsing.
 ## Worker protocol
 
 Compiler, CLI and emit operations run in Node worker threads because their synchronous CPU work
-cannot be stopped reliably with an in-process promise timeout. The request and response are closed,
-versioned, structured-clone-safe records. One all-tier worker executor is the only parent-side
-dependency for frontend, compiler-API, CLI and emit handlers. Production worker entry modules
-import the real frontend/compiler/CLI facades inside the worker; functions are never cloned or
-invoked synchronously in the parent. Test executors implement the same closed request/response
-boundary. The parent owns deadline, termination and evidence; a worker crash or invalid response
-maps deterministically to compiler ICE or the route's stage error.
+cannot be stopped reliably with an in-process promise timeout. Requests and tier-specific evidence
+responses are closed, versioned, structured-clone-safe records. A response is never a terminal
+`ExecutionResultV1`: the parent alone validates evidence, charges usage, classifies the result and
+owns cleanup. One all-tier worker executor is the only parent-side dependency for frontend,
+compiler-API, CLI and emit handlers. Production worker entry modules import the real frontend/
+compiler/CLI facades inside the worker; functions are never cloned or invoked synchronously in the
+parent. Test executors implement the same start/completion/termination boundary. A worker crash or
+invalid response maps deterministically to compiler ICE or the route's stage error.
 
 ## Compatibility checks
 
 Specification tests pin unchanged ordinary diagnostics, compiler result shape, CLI rendering/exit
-behavior, default ACME caller behavior and root `ViceDriver` API. New evidence APIs are additive and
-documented; no source or JSDoc mentions workflow artifact identifiers.
+behavior, default ACME caller behavior and root `ViceDriver` API. Compiler compatibility uses an
+exact behavioral projection because source-map, semantic-model and call-graph query methods are
+fresh closures on every ordinary invocation; it pins all stable data and query results while
+excluding only callable identity. A promoted lexer warning additionally binds same-invocation
+evidence code/final severity to final diagnostics. New evidence APIs are additive and documented;
+no source or JSDoc mentions workflow artifact identifiers.
 
 ## Specification-visible TypeScript interface
 
@@ -167,40 +172,142 @@ export interface ExecutionCancellationV1 {
   readonly signal: AbortSignal;
   readonly deadlineMonotonicMs: number;
 }
-export interface ExecutionRouteRequestBaseV1<TTier extends ExecutionTierV1> {
+export interface ValidExecutionRouteRequestV1<TTier extends ExecutionTierV1> {
+  readonly kind: 'valid-envelope';
   readonly route: ExecutionRoutePlanItemV1 & { readonly terminalTier: TTier };
   readonly executionCase: ExecutionCaseV1;
   readonly oracle: PublishedOracleContext;
   readonly policy: ExecutionPolicyV1;
 }
+export type ExecutionDiagnosticTierV1 = 'frontend' | 'compiler-api' | 'cli';
+export interface DiagnosticExecutionRouteRequestV1<TTier extends ExecutionDiagnosticTierV1> {
+  readonly kind: 'invalid-diagnostic';
+  readonly route: ExecutionRoutePlanItemV1 & { readonly terminalTier: TTier };
+  readonly diagnosticCase: PublishedDiagnosticCaseV1;
+  readonly policy: ExecutionPolicyV1;
+}
 export type ExecutionRouteRequestV1 =
-  | ExecutionRouteRequestBaseV1<'frontend'>
-  | ExecutionRouteRequestBaseV1<'compiler-api'>
-  | ExecutionRouteRequestBaseV1<'cli'>
-  | ExecutionRouteRequestBaseV1<'emit'>
-  | ExecutionRouteRequestBaseV1<'acme'>
-  | ExecutionRouteRequestBaseV1<'vice'>;
+  | ValidExecutionRouteRequestV1<'frontend'>
+  | ValidExecutionRouteRequestV1<'compiler-api'>
+  | ValidExecutionRouteRequestV1<'cli'>
+  | ValidExecutionRouteRequestV1<'emit'>
+  | ValidExecutionRouteRequestV1<'acme'>
+  | ValidExecutionRouteRequestV1<'vice'>
+  | DiagnosticExecutionRouteRequestV1<'frontend'>
+  | DiagnosticExecutionRouteRequestV1<'compiler-api'>
+  | DiagnosticExecutionRouteRequestV1<'cli'>;
+export type CreateExecutionRouteRequestInputV1 = ExecutionRouteRequestV1;
+export function createExecutionRouteRequestV1(
+  input: CreateExecutionRouteRequestInputV1,
+): ExecutionOperationResultV1<ExecutionRouteRequestV1>;
 export interface ExecutionRouteHandlerV1 {
   execute(
     request: ExecutionRouteRequestV1,
     cancellation: ExecutionCancellationV1,
   ): Promise<ExecutionResultV1>;
 }
-export interface ExecutionWorkerRequestV1 {
-  readonly revision: 'execution-worker-request-v1';
-  readonly tier: 'frontend' | 'compiler-api' | 'cli' | 'emit';
-  readonly caseRoot: string;
-  readonly sourceBytes: Uint8Array;
+export type ExecutionWorkerTierV1 = 'frontend' | 'compiler-api' | 'cli' | 'emit';
+export interface ExecutionWorkerSourceV1 {
+  readonly revision: 'execution-worker-source-v1';
+  readonly relativePath: string;
+  readonly bytes: Uint8Array;
+  readonly digest: string;
 }
-export interface ExecutionWorkerResponseV1 {
-  readonly revision: 'execution-worker-response-v1';
-  readonly result: ExecutionResultV1;
+export interface ExecutionWorkerRequestBaseV1<TTier extends ExecutionWorkerTierV1> {
+  readonly revision: 'execution-worker-request-v1';
+  readonly tier: TTier;
+  readonly caseKind: 'valid-envelope' | 'invalid-diagnostic';
+  readonly caseIdentity: string;
+  readonly caseRoot: string;
+  readonly source: ExecutionWorkerSourceV1;
+}
+export type ExecutionWorkerRequestV1 =
+  | (ExecutionWorkerRequestBaseV1<'frontend'> & { readonly contract: 'frontend-pipeline-v1' })
+  | (ExecutionWorkerRequestBaseV1<'compiler-api'> & {
+      readonly contract: 'compiler-evidence-facade-v1';
+    })
+  | (ExecutionWorkerRequestBaseV1<'cli'> & {
+      readonly contract: 'blendc-cli-v1';
+      readonly argv: readonly string[];
+    })
+  | (ExecutionWorkerRequestBaseV1<'emit'> & { readonly contract: 'assembly-emitter-v1' });
+export interface ExecutionWorkerEmissionV1 {
+  readonly il: boolean;
+  readonly assembly: boolean;
+  readonly binary: boolean;
+}
+export interface DirectDiagnosticEvidenceV1 {
+  readonly revision: 'direct-diagnostic-evidence-v1';
+  readonly sourceCaseDigest: string;
+  readonly diagnostics: CompilerDiagnosticEvidenceV1;
+  readonly emission: ExecutionWorkerEmissionV1;
+}
+export type DiagnosticExecutionResultV1 =
+  | { readonly status: 'pass'; readonly code: 'pass' }
+  | {
+      readonly status: 'failure';
+      readonly code: 'diagnostic-mismatch' | 'unexpected-emission';
+    };
+export function classifyDiagnosticRouteEvidenceV1(
+  authority: PublishedDiagnosticCaseV1,
+  observed: unknown,
+): ExecutionOperationResultV1<DiagnosticExecutionResultV1>;
+export type ExecutionWorkerResponseV1 =
+  | {
+      readonly revision: 'execution-worker-response-v1';
+      readonly tier: 'frontend';
+      readonly contract: 'frontend-pipeline-v1';
+      readonly caseIdentity: string;
+      readonly diagnostics: CompilerDiagnosticEvidenceV1;
+      readonly semanticModelPresent: boolean;
+      readonly allocationPlanPresent: boolean;
+      readonly emission: ExecutionWorkerEmissionV1;
+    }
+  | {
+      readonly revision: 'execution-worker-response-v1';
+      readonly tier: 'compiler-api';
+      readonly contract: 'compiler-evidence-facade-v1';
+      readonly caseIdentity: string;
+      readonly hasErrors: boolean;
+      readonly diagnostics: CompilerDiagnosticEvidenceV1;
+      readonly emission: ExecutionWorkerEmissionV1;
+    }
+  | {
+      readonly revision: 'execution-worker-response-v1';
+      readonly tier: 'cli';
+      readonly contract: 'blendc-cli-v1';
+      readonly caseIdentity: string;
+      readonly exitCode: 0 | 1 | 2 | 3;
+      readonly stdout: Uint8Array;
+      readonly stderr: Uint8Array;
+      readonly diagnostics: CompilerDiagnosticEvidenceV1;
+      readonly emission: ExecutionWorkerEmissionV1;
+    }
+  | {
+      readonly revision: 'execution-worker-response-v1';
+      readonly tier: 'emit';
+      readonly contract: 'assembly-emitter-v1';
+      readonly caseIdentity: string;
+      readonly assemblyBytes: Uint8Array;
+      readonly diagnostics: CompilerDiagnosticEvidenceV1;
+      readonly emission: ExecutionWorkerEmissionV1;
+    };
+export function parseExecutionWorkerResponseV1(
+  request: ExecutionWorkerRequestV1,
+  input: unknown,
+): ExecutionOperationResultV1<ExecutionWorkerResponseV1>;
+export type ExecutionWorkerCompletionV1 =
+  | { readonly kind: 'message'; readonly value: unknown }
+  | { readonly kind: 'crash'; readonly exitCode: number | null };
+export interface ExecutionWorkerHandleV1 {
+  readonly completion: Promise<ExecutionWorkerCompletionV1>;
+  terminate(): Promise<void>;
 }
 export interface ExecutionWorkerExecutorV1 {
-  execute(
+  start(
     request: ExecutionWorkerRequestV1,
     cancellation: ExecutionCancellationV1,
-  ): Promise<ExecutionWorkerResponseV1>;
+  ): Promise<ExecutionOperationResultV1<ExecutionWorkerHandleV1>>;
 }
 export interface ExecutionAdapterDependenciesV1 {
   readonly worker: { readonly executor: ExecutionWorkerExecutorV1 };
@@ -222,6 +329,11 @@ export interface BoundedAcmeRunnerV1 {
     controls: AcmeProcessControlsV1,
   ): Promise<AcmeRunOutput>;
 }
+export function invokeBoundedAcmeV1(
+  request: AcmeInvocation,
+  runner: BoundedAcmeRunnerV1,
+  controls: AcmeProcessControlsV1,
+): Promise<AcmeRunOutput>;
 export interface AcmeProcessControlsV1 {
   readonly signal: AbortSignal;
   readonly deadlineMonotonicMs: number;
@@ -229,3 +341,26 @@ export interface AcmeProcessControlsV1 {
   readonly onStderr: (bytes: Uint8Array) => void;
 }
 ```
+
+`classifyDiagnosticRouteEvidenceV1` is hostile-total over `unknown`. It re-authenticates the opaque
+diagnostic case, requires the same source-case digest and exactly one accepted diagnostic entry with
+the authority's code, phase and final severity. A diagnostic mismatch wins before later-artifact
+classification; otherwise any IL, assembly or binary presence returns `unexpected-emission` in the
+existing IL→assembly→binary precedence. Only an exact diagnostic with no later artifact passes.
+Malformed evidence returns `invalid-evidence-input` through the outer operation result. No expected
+field is accepted on `DirectDiagnosticEvidenceV1` or any worker request/response.
+
+The diagnostic capability itself uses the closed
+`published-diagnostic-case-equivalence-v1` join. Its passive authority projection preserves the
+caller's `sourceCaseDigest` and separately carries the join revision, selected release digest,
+selected campaign digest, selected source-case digest, evaluation identity and source-content
+identity. These fields are parent-side identity inputs only and never enter the worker wire.
+Construction validates the complete ambient compatibility tuple and full modeled case/source, and
+privately derives the oracle handler from the selected rule route; callers cannot choose a handler
+or assert that distinct caller/selected provenance digests are equal.
+
+The bounded entry point is additive. Legacy `invokeAcme(inv, bag, runner)` retains its exact argv,
+result and diagnostic behavior; it is not overloaded with cancellation semantics. The immutable
+Phase 3 fixture constructs route requests through genuine campaign, execution-case and selected
+oracle capabilities. Scripted workers and ownership probes remain local to that fixture and never
+export from production.

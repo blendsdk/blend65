@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-08-22
-> **Progress**: 23/88 tasks (26%)
+> **Progress**: 35/88 tasks (40%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -88,20 +88,20 @@ diagnostic phase, without public diagnostic or source-case compatibility changes
 ## Phase 3: Real Adapters and Bounded Lifecycle
 
 > **Lenses**: security, concurrency, performance, compatibility
-> **Reference**: 03-04, 03-05 · AR-P2, AR-P3, AR-P9, AR-P10 · ST-23–ST-33
+> **Reference**: 03-04, 03-05 · AR-P2, AR-P3, AR-P9, AR-P10, AR-P18 · ST-23–ST-33
 
-- [ ] 3.1.1 [spec-author] Write ST-23–ST-33 in new `execution-adapters-safety.spec.test.ts` using only route/lifecycle contracts
-- [ ] 3.1.2 Run the Phase 3 suite and record RED caused only by absent adapters/supervisor
-- [ ] 3.2.1 Define closed structured-clone worker requests/responses and one all-tier worker executor; production worker entry modules import the real frontend/compiler/CLI facades inside terminable workers, while the parent exchanges data records only
-- [ ] 3.2.2 Implement real frontend, compiler-API and CLI adapters with distinct contract evidence and strict later-artifact absence checks
-- [ ] 3.2.3 Implement real emit adapter and additive bounded ACME runner seam; distinguish discovery absence, invocation failure and missing artifacts
-- [ ] 3.2.4 Implement canonical mode-0700 case workspaces, lexical path allowlist, pinned containment and regular-file revalidation
-- [ ] 3.2.5 Implement argv-only owned process groups, positive child-start identity and graceful/forced cleanup inside a fixed reserved grace; preserve the first operational result and attach mandatory cleanup blockers
-- [ ] 3.2.6 Implement continuously drained stdout/stderr with one monotonic aggregate selected limit, independent bounded head/tail/count/hash records and fixed stdout-then-stderr serialization; never impose per-stream failure budgets or authorize callback arrival order, and exclude every scheduler-dependent flood stream field from authority
-- [ ] 3.2.7 Implement lazy 16 MiB evidence ledger, hard/work deadlines with policy validation, the 15-second launch-attempt cap and reserved cleanup grace, stage limits and cumulative counters under one cancellation scope
-- [ ] 3.2.8 Run ST-23–ST-33 GREEN; fix production implementation only
-- [ ] 3.3.1 Add process/worker/path/output/race implementation tests including all four tier-to-worker mappings and explicit absence of parent-side real-facade calls, default API regressions and coverage floors
-- [ ] 3.3.2 Run configured security/correctness/performance review, resolve required findings, update plan/roadmap state, run full verification and auto-commit without pushing
+- [x] 3.1.1 [spec-author] Write ST-23–ST-33 in new `execution-adapters-safety.spec.test.ts` plus its immutable spec-owned genuine fixture using only the AR-P18 production contract kernel; freeze both hashes — verified 2026-08-22 after AR-P20/AR-P22–P31 corrections; 24 immutable scenarios; spec `b767bb7dd3405037f95107d817b7a1bc92dbefb6c116be26e57d465a83e61517`, fixture `3bba5811bec2dfd4ad3315bc081607272d58c28c1120da21ce9d55fd081f42f1`
+- [x] 3.1.2 Run the Phase 3 suite and record RED caused only by absent adapters/supervisor — verified 2026-08-22; AR-P29 correction characterizes 18 passed / 6 RED: five solely on absent process-anchor kernel exports and one preserved output-exhaustion case exposing production accounting regression; every genuine fixture and raw kernel boundary executes
+- [x] 3.2.1 Define the opaque published diagnostic-case authority and valid/invalid route union, prevent invalid cases satisfying emit/ACME/VICE obligations, then implement strict tier/case-kind structured-clone worker requests/evidence responses, parser and one all-tier start/completion/termination executor; production workers import the real facades while the parent alone owns expectations and terminal classification — baseline verified 2026-08-22 07:25 CEST; opaque dual-provenance authority and caller-campaign replay-input hardening completed under AR-P20/P23/P28
+- [x] 3.2.2 Implement real frontend, compiler-API and CLI adapters with distinct contract evidence and strict later-artifact absence checks — verified 2026-08-22 07:25 CEST
+- [x] 3.2.3 Implement real emit adapter and additive bounded ACME runner seam; distinguish discovery absence, invocation failure and missing artifacts — verified 2026-08-22 07:25 CEST; legacy ACME compatibility green
+- [x] 3.2.4 Implement the production workspace-provider port plus canonical mode-0700 case workspaces, lexical path allowlist, pinned containment and regular-file revalidation — verified 2026-08-22 07:25 CEST
+- [x] 3.2.5 Implement the production process/time ports, argv-only owned process groups, positive child-start identity and graceful/forced cleanup inside a fixed reserved grace; preserve the first operational result and attach mandatory cleanup blockers — verified 2026-08-22 07:25 CEST
+- [x] 3.2.6 Implement continuously drained stdout/stderr with one monotonic aggregate selected limit, independent bounded head/tail/count/hash records and fixed stdout-then-stderr serialization; never impose per-stream failure budgets or authorize callback arrival order, and exclude every scheduler-dependent flood stream field from authority — verified 2026-08-22 07:25 CEST
+- [x] 3.2.7 Implement the callable lazy 16 MiB evidence ledger and cumulative budget scope: hard/work deadlines with policy validation, the 15-second launch-attempt cap, reserved cleanup grace, stage limits, retries and per-child absolute stopwatch baselines under one cancellation scope — verified 2026-08-22 07:25 CEST
+- [x] 3.2.8 Run ST-23–ST-33 GREEN; fix production implementation only — verified 2026-08-22 07:25 CEST; immutable 11/11 green
+- [x] 3.3.1 Add process/worker/path/output/race implementation tests including all four tier-to-worker mappings, strict response mutants, explicit absence of parent-side real-facade calls, default API regressions and coverage floors; keep all scripted fakes and ownership probes test-local — verified 2026-08-22 07:25 CEST; 93 focused tests green; 90.28% branch coverage
+- [x] 3.3.2 Run configured security/correctness/performance review, resolve required findings, update plan/roadmap state, run full verification and auto-commit without pushing — verified 2026-08-22 14:22 CEST; final review found no criticals and 11 consolidated majors, all fixed; AR-P29–P31 introduced the persistent process-group anchor and raw bootstrap kernel; immutable 24/24 specification scenarios and 159/159 package tests pass at 90.18% branch coverage; exact full gate green with 1,339 readiness, 159 readiness-execution, 409 test-harness and 33 root boundary tests
 
 **Deliverable:** real frontend-through-ACME routes whose synchronous work, filesystem, output and
 process trees remain bounded and clean on every outcome.

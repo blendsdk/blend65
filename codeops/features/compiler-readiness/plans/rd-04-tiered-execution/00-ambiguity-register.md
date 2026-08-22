@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-04 Tiered Compiler, ACME and VICE Execution
 
-> **Status**: ✅ GATE PASSED — all 14 items resolved
-> **Last Updated**: 2026-08-21 23:21
+> **Status**: ✅ GATE PASSED — all 31 items resolved
+> **Last Updated**: 2026-08-22
 > **Mode**: Auto-design
 > **Root Invocation ID**: `make-plan-rd04-20260821-01`
 > **Policy Version**: 1
@@ -33,6 +33,23 @@
 | AR-P12 | Naming & terminology | What stable package, artifact, type and file vocabulary will execution use? | `readiness-execution`, `execution-publication-v1`, `ExecutionRoutePlanV1`, `ExecutionResultV1`, focused kebab-case modules / extend overloaded campaign/publication names | Dedicated execution vocabulary and focused modules | ✅ Resolved |
 | AR-P13 | Non-functional gaps | What verification tiers and coverage targets make the plan executable in CI and locally? | Per-component 90% branch target; CI-safe fake/process tiers plus mandatory local real ACME/VICE acceptance; exact repository verify / emulator-required CI / unit-only | 90% branch floors for readiness cores; CI-safe tiers plus mandatory local ACME/VICE proof | ✅ Resolved |
 | AR-P14 | Technical unknowns | What exact command fills every execution-plan Verify line? | Repository-mandated frozen install + Turbo build/typecheck/lint + full test command / package-only shortcuts | Exact repository verify command from `AGENTS.md` | ✅ Resolved |
+| AR-P15 | Integration points | Which serializable boundary makes deterministic planning testable without forging opaque authority? | Passive guarded projections / counterfeit opaque fixtures / adapter-coupled planner | Serializable passive planning projections; AI delegated during execution | ✅ Resolved |
+| AR-P16 | Behavioral gaps | Which Phase 2 seams expose envelope and evidence behavior without inventing execution authority? | Focused pure validators / composite producer / execution callback | Focused phase-aligned validators; AI delegated; challenger converged | ✅ Resolved |
+| AR-P17 | Data & state | How is completion-last preserved through lowering and assembly? | Genuine-case report-backed store proof / source-order trust / runtime inference | Live report-backed store-order layout proof; semantic review resolution | ✅ Resolved |
+| AR-P18 | Integration points | Which closed construction, fault-injection and inspection seams let an implementation-blind oracle prove ST-23–ST-33 without counterfeit authority or production-detail guesses? | Production contract kernel plus spec-owned genuine fixtures / exported testkit / testing-only supervisor hooks | Production ports and strict parsers; immutable local fixtures own fakes/probes; challenger converged | ✅ Resolved |
+| AR-P19 | Behavioral gaps | How does ST-24 prove ordinary compiler compatibility when two ordinary results contain fresh closure-bearing graph/source-map objects and are not deep-equal? | Exact stable public projection plus behavioral probes / generic function-stripping serialization / cross-call caching | Behavioral projection plus same-invocation evidence linkage; challenger converged | ✅ Resolved |
+| AR-P20 | Data & state | Which genuine authority supplies exact invalid-case diagnostic expectations to frontend/compiler/CLI routes when `ExecutionCaseV1` is valid-only and `PublishedOracleContext` is opaque? | Additive joint campaign+oracle diagnostic capability / broaden executable case / caller-supplied expectation | Opaque `PublishedDiagnosticCaseV1` plus closed valid/invalid request union; challenger converged | ✅ Resolved |
+| AR-P21 | Data & state | How does the selected parent publication authenticate the new published-diagnostic authority source after its implementation digest becomes stale? | Deterministically refresh the existing implementation-authority source closure / bypass freshness / omit the new authority source / select a new release | Refresh only the content-bound implementation-authority metadata; preserve the selected release pointer and semantics | ✅ Resolved |
+| AR-P22 | Behavioral gaps | How can the immutable diagnostic fixture request an `invalid-source-transform` when its genuine campaign enables only parameter spelling? | Add a source spelling to the fixture campaign / change generator semantics / weaken authority expectations | Correct the spec-owned genuine campaign configuration; keep production generation and expectations unchanged | ✅ Resolved |
+| AR-P23 | Data & state | Must diagnostic authority require exact campaign/case identity across caller and selected replay when their freshness-proven handler participants differ? | Exact selected identity / semantic case-content join across separately authenticated authorities | Versioned cross-authority case-equivalence join with dual provenance and a closed ambient-compatibility tuple; challenger converged | ✅ Resolved |
+| AR-P24 | Integration points | How can immutable tests mutate join fields that genuine campaign construction fixes and never exposes? | Test mutable axes through genuine authorities and fixed axes at their owning constructors / export a forging seam / use structural copies | Layered genuine construction-gate coverage; no test-only authority seam | ✅ Resolved |
+| AR-P25 | Behavioral gaps | Why do all new diagnostic-equivalence scenarios stop while constructing the fixture's ambient-mismatch campaign? | Diagnose/correct genuine fixture input / change production join / weaken scenarios | Route fixed rule-model fields to preparation rejection and handler contracts to freshness registration; genuine join cases now reach production | ✅ Resolved |
+| AR-P26 | Data & state | Why does the selected replay expose a stripped inventory content digest as campaign `specRevision` while genuine campaigns use semantic `spec-v3.0`? | Map authenticated selected inventory to the frozen semantic revision / alias in join / retain stripped digest | Fix the published-context projection to semantic `spec-v3.0`; keep content digest separate and join equality exact | ✅ Resolved |
+| AR-P27 | Data & state | Which inventory bytes must the genuine diagnostic fixture use when workspace inventory and selected-release member digests differ? | Selected release member / workspace bytes / relax digest equality / select another release | Build the fixture campaign from the authenticated selected-release inventory member; preserve selection and exact join equality | ✅ Resolved |
+| AR-P28 | Data & state | Does the selected oracle publication own one campaign seed/configuration, or replay each authenticated caller campaign's inputs? | Caller-authenticated replay inputs / add selected fixed seed and configuration / weaken identity binding | Seed and normalized configuration are caller-campaign replay inputs with exact echo and identity binding; challenger converged | ✅ Resolved |
+| AR-P29 | Security & compliance | How can Phase 3 terminate a descendant process group without a validate-to-signal PGID-reuse race? | Persistent in-group ownership anchor / pidfd group signal / delegated cgroup / parent negative-PGID signal | Trusted detached Node anchor self-signals its pinned group over authenticated IPC; parent never sends a negative-PGID signal; challenger converged | ✅ Resolved |
+| AR-P30 | Integration points | Which production-shaped seam lets an implementation-blind spec prove the real anchor protocol without exporting debug authority? | Raw host/transport ports around the real parent and anchor kernels / fake abstract handle / debug snapshots | Export one runtime factory plus the real anchor runner over bounded raw OS/transport ports; no parent signal port or parsed-message injection | ✅ Resolved |
+| AR-P31 | Integration points | How does the anchor learn the parent nonce before emitting authenticated `anchor-ready`? | Raw bootstrap frame / spawn environment or argv / hidden transport state | Parent sequence-zero bootstrap frame carries the nonce; anchor adopts it before sequence-zero ready; launch is parent sequence one | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -433,6 +450,456 @@ alias counterexamples.<br>
 **Root invocation ID:** `exec-rd04-20260822-01`.<br>
 **Reopen trigger:** emitted store targets cannot be reconstructed unambiguously from accepted ACME
 report evidence for one of the selected envelope shapes.
+
+### AR-P18 — Phase 3 production contract kernel
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Additive internal contracts required to make the already-approved worker, process,
+filesystem and budget behavior testable before implementation; no product scope or authority policy
+changes.<br>
+**Objective:** Let an implementation-blind oracle prove ST-23–ST-33 without forging an opaque
+execution case, guessing OS implementation details or exporting a testing-only debug surface.<br>
+**Decision:** Export only production-shaped ports and strict parsers: a genuine-case route-request
+constructor; tier-discriminated structured-clone worker requests and evidence responses; start/
+completion/termination worker ownership; workspace, process and monotonic-time drivers; an
+independently callable bounded evidence ledger; and a cumulative budget scope for deadlines,
+launch attempts, output, evidence, instructions and per-child absolute stopwatch cycles. Workers
+return tier evidence, never `ExecutionResultV1`; the parent alone classifies terminal results,
+charges usage and owns cleanup. Flood authority retains only the stable exhaustion code, selected
+limit and cleanup digest. Immutable specification-owned fixtures construct genuine campaign/case/
+oracle inputs and own scripted fakes plus resource probes; no testkit, fault hook or ownership
+snapshot is exported by production. The bounded ACME route uses an additive entry point and leaves
+legacy `invokeAcme` behavior unchanged.<br>
+**Evidence:** The first implementation-blind author could not construct genuine route requests or
+drive/observe worker, process, ledger and counter failures from the planned interfaces. Repository
+grounding found no existing process-group supervisor, abortable ACME runner, bounded stream
+collector or reusable resource-inspection contract. Existing worker precedent already separates
+closed messages from parent termination, and existing path/publication code uses injected OS
+boundaries.<br>
+**Rejected alternatives:** an exported conformance testkit freezes fake behavior as quasi-public
+API; supervisor `faultAt` and `inspectOwnedResources` hooks leak test-only state and can perturb
+cleanup ordering; weakening or deferring immutable coverage violates the phase gate.<br>
+**Strongest counterargument:** the production kernel introduces more types than a private
+implementation strictly requires.<br>
+**Resolution:** every exported port corresponds to a real replaceable OS/protocol boundary also
+needed by later VICE ownership; all fake scripting and ownership inspection remains local to the
+immutable specification fixture.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent design challenger selected this option and corrected the worker response
+from terminal results to tier-specific evidence.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a required safety property cannot be observed through production semantics, or
+one of these ports would need to expose authority not held by its genuine opaque input.
+
+### AR-P19 — Compiler-result behavioral compatibility
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Correction of an impossible immutable compatibility assertion; no compiler API or
+runtime behavior change.<br>
+**Objective:** Prove ordinary/evidence-facade compatibility without requiring fresh closure-bearing
+public objects from separate invocations to share function identity.<br>
+**Decision:** Replace whole-graph deep equality with a test-local exact behavioral projection that
+pins own result keys, error state, canonical diagnostics, resolved config, public source-map
+lookups, stable semantic collections and query results, call-graph contents/cycles and the complete
+allocation plan. Assert the results and source maps are fresh objects and the ordinary result has
+no `evidence` member. Use the fixed leading-zero fixture with warning promotion and separately
+assert that the evidence entries' code/final severity match the same invocation's final diagnostics
+and retain lexer phase. Exclude only callable object identity; do not cache results, drop functions
+through generic serialization or refactor compiler/core APIs.<br>
+**Evidence:** Two ordinary `compile(options)` calls differ only at nine freshly constructed public
+function fields: five source-map methods, three semantic query methods and
+`callGraph.findCycles`. No scalar, collection, diagnostic, config, allocation, AST/span or evidence
+shape differs.<br>
+**Rejected alternatives:** cross-call caching changes execution semantics; a generic serializer can
+silently erase future observable data and mishandle cycles/Maps/Sets; a closure-free compiler API
+refactor is out of RD-04 scope.<br>
+**Strongest counterargument:** the explicit semantic projection is longer than comparing a few
+selected fields.<br>
+**Resolution:** its length makes every compatibility-significant public behavior explicit and
+prevents a broad serializer from concealing a real regression.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent design challenger selected the behavioral projection and same-invocation
+sidecar linkage.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** `CompileResult` becomes a pure data record or adds another public callable query
+whose behavior is not captured by the projection.
+
+### AR-P20 — Genuine invalid-case diagnostic authority
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Additive authority contract required to implement the approved invalid frontend/
+compiler/CLI routes; no scope expansion beyond RD-04.<br>
+**Objective:** Compare observed diagnostic code, real phase and final severity against genuine
+campaign/oracle truth without wrapping invalid source, exposing expectation to a worker or accepting
+caller-supplied passive truth.<br>
+**Decision:** Keep `ExecutionCaseV1` valid-only. Add opaque `PublishedDiagnosticCaseV1` under the
+readiness published-oracle boundary, constructed only from a genuine `PublishedOracleContext`,
+`PreparedCampaign` and ordinal. The constructor regenerates the case, requires
+`invalid-source-transform`, derives all request inputs from authenticated private campaign state,
+evaluates the published oracle, verifies rule/neighbor/source provenance/content and stores the
+joined authority in a private WeakMap. Its guarded projection exposes fresh source bytes, exact
+code/phase/error severity and evaluation/source-content identities for parent-side comparison only.
+`ExecutionRouteRequestV1` becomes a closed `valid-envelope` or `invalid-diagnostic` union; the
+invalid branch is legal only for frontend/compiler-API/CLI and carries no duplicate oracle context.
+Worker messages carry case kind and source bytes but never the expectation. Parent adapters apply
+the existing exact diagnostic and invalid-emission classifiers to the authenticated projection.
+Emit/ACME/VICE planning must select valid cases; an invalid case cannot satisfy a later-tier
+obligation.<br>
+**Evidence:** `ExecutionCaseV1` correctly rejects non-valid generation and its projection has no
+diagnostic truth. Published oracle requests need private campaign seed/configuration/handler facts
+not present in the route. The published diagnostic observation already binds exact rule, neighbor,
+code, phase, severity, evaluation identity and source-content identity.<br>
+**Rejected alternatives:** broadening `ExecutionCaseV1` collapses executable and rejected-source
+invariants; accepting caller fields permits internally consistent counterfeit truth; two opaque
+tokens add cross-pair mismatch and replay surface; treating current routes as valid-only silently
+drops explicit RD-04 invalid-route behavior.<br>
+**Strongest counterargument:** readiness gains an execution-adjacent authority type.<br>
+**Resolution:** it owns only the join between campaign and oracle authority, not toolchain/process
+behavior; no downstream package can derive the private campaign inputs honestly.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent design challenger selected the joint opaque capability and rejected all
+passive/downstream constructions.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** invalid parameter-binding cases become executable evidence routes or the
+published oracle context exposes a different authenticated diagnostic-case constructor.
+
+### AR-P21 — Parent implementation-authority freshness
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Deterministic content-identity maintenance required by the already-approved
+published-oracle source addition; it changes neither publication selection nor product behavior.<br>
+**Objective:** Keep the genuine selected parent authority fail-closed while allowing it to
+authenticate every implementation byte that now participates in diagnostic-case construction.<br>
+**Decision:** Use the repository's canonical deterministic regeneration path to add the new
+published-diagnostic source to the existing implementation-authority closure and refresh only its
+content-bound metadata. Do not change the selected publication pointer, review semantics, oracle
+truth, immutable execution specification, or any external state.<br>
+**Evidence:** The focused immutable suite stops during genuine publication preparation with
+`publication.review.stale` at `/publicationImplementation` immediately after the new source is
+added; the resolver intentionally compares the retained authority with current implementation
+bytes before exposing an opaque context.<br>
+**Rejected alternatives:** bypassing the stale gate destroys the authority boundary; omitting a
+participating source makes the retained digest incomplete; selecting a new release prematurely
+changes durable state reserved for the final reviewed campaign.<br>
+**Strongest counterargument:** touching retained publication metadata during adapter work expands
+the apparent Phase 3 file set.<br>
+**Resolution:** this is the minimum necessary content-identity consequence of the authorized
+upstream source addition, and it is constrained to deterministic metadata with the pointer held
+fixed.<br>
+**Confidence:** High — the resolver's exact stale diagnostic and source-closure mechanism make the
+required correction unambiguous.<br>
+**Hardening:** The existing fail-closed publication freshness check rejects every alternative that
+does not bind the new source bytes; no separate architectural choice is introduced.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** canonical regeneration would alter the selected pointer, accepted semantic
+review, or any publication behavior rather than only implementation-authority content identity.
+
+### AR-P22 — Genuine diagnostic fixture source stratum
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Immutable-oracle construction correction required to exercise the already-approved
+invalid-source authority; it does not change product behavior or acceptance criteria.<br>
+**Objective:** Build the diagnostic capability from a genuine campaign case whose generated kind
+is exactly `invalid-source-transform`.<br>
+**Decision:** Reopen only the spec-owned fixture and include a source spelling in its diagnostic
+campaign (or an equivalent separate genuine source-invalid campaign if required for deterministic
+strata). Preserve every assertion and production generator/rendering rule, then re-freeze both
+immutable hashes after the focused characterization run.<br>
+**Evidence:** With `spellings: ["parameter"]`, the scalar word-range campaign filters every choice
+to parameter spelling and can generate only `parameter-binding-replace`, rendered as
+`invalid-parameter-binding`; therefore its scan cannot find the source-invalid ordinal it requires.<br>
+**Rejected alternatives:** changing generation semantics would contradict the explicit campaign
+configuration and published diagnostic contract; accepting a parameter-invalid case would weaken
+the authority kind the execution route is required to prove.<br>
+**Strongest counterargument:** reopening a frozen fixture after implementation begins risks making
+the oracle implementation-aware.<br>
+**Resolution:** the spec author remains forbidden from production and changes only the impossible
+input configuration; all output assertions remain immutable and unchanged.<br>
+**Confidence:** High — the configured spelling allowlist makes the missing stratum mechanically
+unreachable.<br>
+**Hardening:** The correction is routed back to the implementation-blind spec author and must
+reproduce a genuine expected RED/green characterization before new hashes are accepted.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** adding source spelling changes any expectation rather than only making the
+required genuine case reachable, or deterministic generation still lacks the source-invalid kind.
+
+### AR-P23 — Versioned diagnostic case-equivalence join
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal authority-join semantics between two already-authenticated capabilities;
+the decision preserves the approved genuine-case behavior, passive boundary and selected release.<br>
+**Objective:** Prove a caller's genuine RD-02 case and the selected oracle's replay describe the
+same diagnostic input without falsely requiring their intentionally distinct provenance identities
+to collapse.<br>
+**Decision:** Use `published-diagnostic-case-equivalence-v1`. Retain the caller
+`sourceCaseDigest`, and separately retain selected release, campaign and case digests plus
+evaluation/source-content identities. Require equality of inventory schema/version/digest, spec
+revision, rule-model version/digest, target, PRNG algorithm, seed, configuration digest, and
+generator/boundary handler IDs and contract versions. Generator/boundary implementation revisions
+may differ only when the complete modeled case and exact rendered source are equal. Require exact
+validity, transform, bindings, rule and neighbor; require modeled error diagnostic truth. Derive
+the oracle handler privately from the selected rule route, including runtime-domain handlers.
+Include the join-policy revision and both provenances in downstream execution/publication identity.<br>
+**Evidence:** Campaign identity deliberately includes generator/boundary implementation revisions,
+while published replay deliberately substitutes the selected release participants. Consequently,
+equal genuine semantics can and should have different campaign/case provenance digests.<br>
+**Rejected alternatives:** exact digest equality conflates provenance with semantics and would
+require a new selected-private campaign factory; an unversioned model/source comparison can omit
+future ambient inputs and become an incomplete ad hoc predicate.<br>
+**Strongest counterargument:** equivalence joins are vulnerable when a future semantic ambient
+field is added without updating the tuple.<br>
+**Resolution:** close and version the compatibility tuple, fail closed on unrecognized campaign
+shape, preserve dual provenance, and reopen this decision whenever diagnostics gain another input.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger grounded the intentional identity divergence in campaign
+identity and published replay code, attacked the equivalence predicate, and required the closed
+ambient tuple, dual provenance, selected-route handler derivation and immutable mutants.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** diagnostic semantics gain any input beyond the closed ambient tuple, exact
+modeled case/source and selected diagnostic publication, or downstream identity omits either
+provenance or the join-policy revision.
+
+### AR-P24 — Layered coverage for closed authority fields
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Test-observability mechanism for an approved authority invariant; it neither
+changes behavior nor exposes additional authority.<br>
+**Objective:** Prove every ambient compatibility axis fails closed at the earliest genuine public
+boundary without manufacturing an impossible opaque campaign state.<br>
+**Decision:** Exercise axes that public inputs can vary by joining two independently genuine
+authorities. For schema, PRNG and handler identity/contract fields fixed by public campaign
+construction, prove the owning public preparation/parser rejects the mutant before a
+`PreparedCampaign` exists. Retain plain/copy/proxy capability-rejection cases. Do not export a
+test-only constructor, debug hook or structural authority seam.<br>
+**Evidence:** `createPublishedDiagnosticCaseV1` accepts only opaque `PreparedCampaign`; public
+preparation fixes inventory schema version, PRNG algorithm and generator/boundary handler IDs and
+contract versions, so a genuine token with those mismatches is unconstructable.<br>
+**Rejected alternatives:** a forging seam weakens the opacity being tested; a structural copy tests
+only authentication and cannot prove field-specific compatibility; silently dropping coverage
+would leave no proof that the owning constructor enforces the closed value.<br>
+**Strongest counterargument:** layered tests do not execute every comparison inside the final join
+function.<br>
+**Resolution:** unreachable states are proved at their owner boundary, while every reachable
+mismatch is exercised at the join; this follows the actual capability graph and avoids dishonest
+test states.<br>
+**Confidence:** High.<br>
+**Hardening:** The implementation-blind spec author identified the impossible genuine mutants and
+the resolution preserves authority opacity rather than adding a test-only escape hatch.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a fixed ambient field becomes caller-configurable or any public path can create
+a genuine campaign carrying a previously unreachable mismatch.
+
+### AR-P25 — Ambient-mutant fixture construction ownership
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Correction of spec-owned test setup to follow the layered genuine-boundary policy
+already resolved in AR-P24; no behavioral or acceptance change.<br>
+**Objective:** Ensure each ambient mutant reaches the earliest public owner that can genuinely
+observe it and allow all diagnostic join scenarios to reach production.<br>
+**Decision:** Treat rule-model version/digest mutants as campaign-preparation rejection cases and
+generator/boundary contract mutants as freshness-registration rejection cases. Use only genuinely
+constructible campaigns for final join mismatches. Preserve all authority, source, route, worker
+and classifier expectations.<br>
+**Evidence:** Forcing either fixed rule-model field through campaign creation caused the shared
+fixture to fail before any scenario; handler contract mismatches are rejected earlier by freshness
+registration. After routing those axes to their owners, all 19 tests construct and the eight new
+scenarios reach the production diagnostic constructor.<br>
+**Rejected alternatives:** relaxing production construction would admit invalid ambient state;
+weakening or dropping mutants would lose closed-field evidence.<br>
+**Strongest counterargument:** distributed boundary tests make the equivalence proof less visually
+centralized.<br>
+**Resolution:** explicit axis-to-owner scenario names keep the complete proof auditable while
+respecting the actual opaque capability graph.<br>
+**Confidence:** High.<br>
+**Hardening:** The implementation-blind spec author reproduced the failure, isolated exact axes and
+proved the corrected fixture reaches production without reading implementation files.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** an owner boundary begins accepting one of these fixed mutants or a join scenario
+again fails before invoking the production diagnostic constructor.
+
+### AR-P26 — Semantic spec revision versus content digest
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal correction of two conflated identity dimensions inside the selected
+published-context adapter; product scope and accepted language revision remain frozen.<br>
+**Objective:** Make genuine caller and selected replay campaigns compare the same semantic language
+revision while retaining the inventory bytes' content digest as an independent authority field.<br>
+**Decision:** Replace digest-prefix stripping with a private named campaign semantic revision
+`spec-v3.0` at every selected campaign construction/projection site in this frozen-v3.0 release.
+Keep the authenticated inventory content digest separate and retain exact `specRevision` equality
+inside `published-diagnostic-case-equivalence-v1`; do not add aliases or comparison exceptions.<br>
+**Evidence:** The caller campaign consistently carries `spec-v3.0`; selected replay carried bare
+`518601…` only because `campaignSpecRevision()` removed `sha256:` from the publication inventory's
+content digest. That value is neither a semantic revision nor the original content identity.<br>
+**Rejected alternatives:** join aliasing weakens a closed ambient invariant; retaining the stripped
+digest preserves a lossy type error; changing caller campaigns would rewrite established RD-02
+semantic identity.<br>
+**Strongest counterargument:** a private v3.0 constant must change when a future spec revision is
+selected.<br>
+**Resolution:** this project and plan explicitly target frozen spec-v3.0; reopening is mandatory
+when publication metadata gains or selects another semantic revision.<br>
+**Confidence:** High.<br>
+**Hardening:** The exact mismatch was isolated with every other ambient field equal, and the
+correction preserves rather than relaxes the independent challenger's closed join predicate.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** selected publication authority supports a semantic revision other than v3.0 or
+exposes a dedicated authenticated semantic-revision field.
+
+### AR-P27 — Selected-release inventory provenance in the diagnostic fixture
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Spec-owned authority-fixture correction that preserves the selected release and
+exact join policy.<br>
+**Decision:** Construct diagnostic campaigns from the resolver-validated selected release's
+`compiler-readiness-v1.json` member, not the different workspace inventory bytes. Keep exact
+inventory-digest equality; do not select another release or substitute workspace state.<br>
+**Evidence:** The selected member hashes to `e7e341eb…`, while the current workspace inventory
+hashes to `19863d38…`; the release is the authority the context authenticates.<br>
+**Confidence:** High.<br>
+**Hardening:** The implementation-blind fixture owner proved all baseline and mutant paths use the
+resolver-validated release member and retained every negative expectation.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** the selected pointer changes or the resolver no longer exposes the exact
+authenticated release member used by campaign construction.
+
+### AR-P28 — Caller-campaign seed and configuration authority
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal authority ownership inside the approved diagnostic replay join; no
+product, publication or campaign-selection policy changes.<br>
+**Objective:** Bind reproducible campaign inputs without making an implementation publication own
+one arbitrary campaign instance.<br>
+**Decision:** A runtime-authenticated `PreparedCampaign` is the sole source of seed and normalized
+generation configuration. Pass both unchanged into selected-context replay and require exact
+normalized echo as replay-integrity postconditions. Keep both in caller and selected campaign/case
+identities and in selected evaluation identity. Treat publication-owned inventory/spec/rule-model/
+target and handler contracts as ambient authority. Distinct genuine seed/configuration campaigns
+may join the same context when each independently reproduces its full modeled case and source;
+cross-paired route identities and hostile serialized mutations reject. Keep join revision v1
+because it has not shipped.<br>
+**Evidence:** RD-02 defines seed/configuration per campaign, and RD-03 accepts both as caller
+semantic intent while `PublishedOracleContext` owns selected implementations. The context contains
+no selected campaign instance; comparing caller values to replayed copies cannot be an independent
+allowlist.<br>
+**Rejected alternatives:** adding a fixed selected seed/configuration conflates implementation and
+campaign authority, reduces generative diversity and requires republishing for each campaign;
+dropping replay/identity checks would weaken reproducibility.<br>
+**Strongest counterargument:** caller-selected seeds can cherry-pick easy cases.<br>
+**Resolution:** coverage minima and orchestration own campaign selection; oracle truth must remain
+valid for every authenticated campaign input.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger grounded the ownership split in RD-02/RD-03 and required
+positive distinct-input, deterministic replay, hostile mutation and cross-pair tests; the final
+immutable suite passes 19/19.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a future orchestration policy introduces canonical campaign seeds/configuration
+or publication authority explicitly selects a campaign instance.
+
+### AR-P29 — Race-free process-group ownership anchor
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Linux/Node process-ownership mechanism inside the approved argv-only bounded child
+supervisor; no compatibility, platform-policy or product-scope change.<br>
+**Objective:** Terminate a target and every descendant without ever signaling a recycled or
+otherwise unrelated numeric process group.<br>
+**Decision:** Launch a package-owned Node anchor as the detached PID/PGID/SID leader. After
+installing signal handlers and positively validating its own boot/start/group/session identity, it
+authenticates a bounded exact-key parent IPC protocol with nonce and sequence, then spawns the
+requested target non-detached into its group. Only the live anchor may signal the group, using
+`process.kill(0, signal)` from inside its pinned membership. The parent never calls a negative-PGID
+signal. The anchor stays alive after target exit until a bounded membership check proves the group
+empty; forced kill is preceded by an authenticated flushed `kill-armed` event and includes the
+anchor. Control loss, malformed/order/nonce failure or ambiguous post-anchor membership fails closed
+with a cleanup blocker and no fallback signal. Public request, handle and relayed target outcome
+remain compatible.<br>
+**Evidence:** Parent-side identity validation followed by `kill(-pgid)` has an unavoidable reuse
+window. Node 22 exposes no public pidfd API, process-group pidfd signaling requires newer Linux and
+native syscall glue, and cgroup kill requires a delegated writable subtree unavailable by default.
+The live in-group anchor turns sampled identity into a capability held at the signal syscall.<br>
+**Rejected alternatives:** immediate revalidation cannot close the race; per-member pidfds miss
+fork/enumeration gaps; child-only signaling leaks descendants; cgroups and native pidfds add
+unsupported host/dependency assumptions.<br>
+**Strongest counterargument:** the anchor adds one trusted Node process and a non-trivial protocol
+per external tool launch.<br>
+**Resolution:** the protocol is closed, bounded and testable, retains the public API, and fails
+closed on every anchor/control failure; no simpler viable mechanism meets descendant cleanup and
+unrelated-process safety together.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger compared wrapper, pidfd, cgroup and fail-closed child-only
+designs, corrected the design so the parent never group-signals, and specified crash/reuse/protocol
+tests.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Node gains a portable process-group pidfd capability, a trusted cgroup subtree
+becomes a declared prerequisite, or the anchor cannot remain live until descendant absence proof.
+
+### AR-P30 — Observable production anchor kernel
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Production-shaped dependency inversion needed to test the approved anchor; it
+preserves the public process runtime and exports no additional execution authority.<br>
+**Objective:** Let an implementation-blind oracle drive the actual parent parser/state machine and
+actual anchor parser/state machine while controlling and observing only raw operating-system facts.<br>
+**Decision:** Export `createExecutionProcessRuntimeV1(parentHost?)`,
+`runExecutionProcessAnchorV1(anchorHost, transport, cancellation)` and the default runtime. Inject
+raw bounded control transport, spawn identities/exits, stream bytes and group-membership outcomes.
+The parent host has no signal method; the anchor host accepts only a closed
+`self-process-group` TERM/KILL signal with no PID/PGID field. Frames are canonical UTF-8 JSON plus
+one LF, exact-key, nonce-bound and independently sequenced per direction. Limits are fixed: 8 MiB
+per frame, 16 MiB/16 frames per direction, 32-byte nonce, 1,024 argv items, 64 KiB/item/path,
+512 KiB argv aggregate and 128 KiB environment aggregate. The exact child environment is
+`LANG=C`, `LC_ALL=C`, `TZ=UTC`; executable resolution and cwd remain explicit. Fakes may supply raw
+frames/EOF/crash, OS identity/exit/membership and recorded closed signals only; they cannot inject
+parsed messages, state, parser behavior or policy overrides.<br>
+**Evidence:** The prior abstract handle hides anchor identity, IPC, signal target and membership
+facts, so a fake handle could only restate the behavior under test. Raw ports keep both protocol
+halves production-owned and make negative-PGID signaling structurally unavailable.<br>
+**Rejected alternatives:** debug snapshots and parsed-message injection expose quasi-authority;
+testing only the abstract handle cannot distinguish a safe anchor from the rejected parent
+validate→signal implementation.<br>
+**Strongest counterargument:** the exported kernel surface is larger than the runtime factory alone.<br>
+**Resolution:** every port maps to a real OS/transport boundary needed by production, uses closed
+bounded data, and grants no caller access to process authority beyond the existing runtime.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger supplied exact types, discriminators, bounds and authority
+separation; the environment was narrowed to the three deterministic variables required by this
+toolchain, avoiding a synthetic HOME override.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** the immutable spec cannot prove a required anchor state through raw OS facts,
+or a port would need to expose parsed state, arbitrary signal targets or test-only mutation hooks.
+
+### AR-P31 — Anchor nonce bootstrap
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal ordering of the approved raw anchor protocol; no public behavior or
+authority expansion.<br>
+**Decision:** After spawning the anchor, the parent sends a canonical parent-to-anchor
+sequence-zero `bootstrap` frame whose base contains the newly generated nonce. The private channel
+is the bootstrap authenticity boundary. The anchor accepts no other first frame, validates/adopts
+the nonce, then emits its independently sequenced zero `anchor-ready`; parent launch is sequence
+one. The nonce never enters environment, argv or hidden test state.<br>
+**Evidence:** Without a bootstrap message or explicit spawn field, the anchor runner has no input
+from which to authenticate its first event.<br>
+**Rejected alternatives:** environment/argv transport exposes protocol material to the target
+launch boundary; hidden transport state prevents implementation-blind testing.<br>
+**Confidence:** High.<br>
+**Hardening:** The implementation-blind spec owner found the contradiction before authoring.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** the production IPC channel is not private to parent/anchor or cannot deliver the
+bootstrap frame before anchor identity observation.
 
 ## Systematic 12-Category Closure
 

@@ -5,5 +5,11 @@
     "outDir": "dist"
   },
   "include": ["src"],
-  "references": [{ "path": "../core" }, { "path": "../compiler" }, { "path": "../readiness" }]
+  "references": [
+    { "path": "../core" },
+    { "path": "../frontend" },
+    { "path": "../compiler" },
+    { "path": "../cli" },
+    { "path": "../readiness" }
+  ]
 }

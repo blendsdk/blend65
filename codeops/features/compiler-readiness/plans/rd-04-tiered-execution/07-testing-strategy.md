@@ -52,10 +52,10 @@ execution publication may be selected; missing tools produce blockers rather tha
 
 | # | Input / scenario | Expected output / behavior | Source |
 |---|---|---|---|
-| ST-23 | Frontend/compiler/CLI/emit fixtures through one injected `ExecutionWorkerExecutorV1` | Each tier emits exactly one closed tier-specific structured-clone request through that executor, observes its distinct real worker-side contract, and never invokes a real facade in the parent | RD-04 MH-7; AR-P3/P9 |
+| ST-23 | Genuine valid frontend/compiler/CLI/emit requests and genuine invalid diagnostic frontend/compiler/CLI requests through one injected `ExecutionWorkerExecutorV1`, including equivalent caller/selected participants with distinct implementation revisions, distinct genuine seed/configuration campaigns and a runtime-domain rule | Each tier emits exactly one closed tier/case-kind-specific structured-clone request without oracle truth, observes its distinct real worker-side contract, and never invokes a real facade in the parent; invalid requests cannot target emit/ACME/VICE; the versioned join preserves dual provenance, validates every publication-owned ambient/model/source/rule/neighbor field, exactly echoes caller-authenticated seed/configuration through both identity chains and privately derives the selected route's oracle handler | RD-04 MH-7; AR-P3/P9/P20/P23/P28 |
 | ST-24 | Existing compiler, renderer, CLI and ACME callers | Ordinary result/output/default behavior stays compatible | Plan AC-2; 03-04 |
 | ST-25 | Missing ACME versus discovered failing ACME | `tier-unavailable` versus `assembler-failure` | RD-04 MH-13/16; 03-04 |
-| ST-26 | Each frontend/compiler/CLI/emit worker hangs, crashes or sends a malformed tier response | Deadline/ICE result; exactly the owned worker and case root are cleaned; no synchronous parent fallback occurs | RD-04 AC-7/9; AR-P10 |
+| ST-26 | Each frontend/compiler/CLI/emit worker hangs, crashes or sends a malformed tier/case-kind response | Deadline/ICE result; exactly the owned worker and case root are cleaned; no synchronous parent fallback occurs | RD-04 AC-7/9; AR-P10/P20 |
 | ST-27 | Relative path with `..`, absolute, symlink or special file | Reject before file access or child launch | RD-04 AC-10; AR-P10 |
 | ST-28 | Shell metacharacters in valid argv data | Passed as one argv value; never evaluated by a shell | RD-04 Security; AR-P10 |
 | ST-29 | Finite independently varied/interleaved stdout/stderr at and beyond selected aggregate limits, plus a non-terminating flood | Both pipes drain/count/hash independently; the exact aggregate bound passes and first excess byte irreversibly exhausts without per-stream budgets; finite evidence serializes stably stdout-then-stderr, while flood authority contains only the stable code, configured limit and cleanup proof and excludes all scheduler-dependent stream evidence | RD-04 AC-8; AR-P10 |
@@ -63,6 +63,41 @@ execution publication may be selected; missing tools produce blockers rather tha
 | ST-31 | Exact operation/launch-attempt/work/hard-route bounds, undersized grace and next tick | Fixed cleanup grace is reserved, each launch attempt is capped at 15 seconds, undersized child policy rejects, exact bound passes and next event exhausts deterministically | RD-04 AC-8; AR-P9 |
 | ST-32 | Retries/restarts consume attempts, time, instructions and absolute stopwatch cycles | Per-child baselines yield monotonic deltas; route totals remain cumulative; decreases, missing samples and identity changes fail closed | RD-04 AC-8; AR-P9/P10 |
 | ST-33 | Failure injected at each owned-resource boundary | No worker, child, monitor, checkpoint or temp root remains | RD-04 AC-9; AR-P10 |
+
+Phase 3 also freezes
+`test-fixtures/execution-adapters-safety-spec-fixture.ts`. That fixture constructs a genuine
+prepared campaign, selected oracle context, opaque execution cases and route requests through the
+declared production constructors. It builds both valid envelope requests and genuine published
+diagnostic cases. Its scripted worker/process/time/workspace drivers and ownership probe are
+specification-local and are never exported from production. Invalid-route mutants cover wrong
+code, phase and final severity; any IL/assembly/binary presence; expectation leakage on the worker
+wire; attempts to target emit/ACME/VICE; every closed case-equivalence ambient field; full modeled
+case/source/rule/neighbor mismatches; distinct-but-equivalent implementation revisions; distinct
+genuine seed/configuration campaigns, deterministic replay, hostile serialized replay-input
+mutations and cross-paired route identities; and runtime-domain oracle-handler derivation. Scripts
+also cover unresolved, crashed and malformed
+workers; finite/interleaved/flooding process streams; and every acquisition/release fault named by
+ST-26–ST-33.
+
+ST-24 uses this exact source:
+
+```blend65
+module Main;
+function main(): void {
+  poke(0xD020, 05);
+}
+```
+
+With warning promotion enabled, the compatibility assertions are exact: ordinary and evidence
+results have the same own keys, error state, canonical diagnostics, config, source-map behavior,
+stable semantic collections/query results/call graph and complete allocation plan while remaining
+fresh objects; only callable identity is excluded and the ordinary result has no `evidence` member.
+The evidence entries' code/final severity equal that same invocation's diagnostics and retain lexer
+phase. `emitIl`/`emitAsm` text matches the corresponding evidence facade; `runCli(argv, io)` and its
+optional-evidence form return identical exit code, stdout, stderr and artifacts; legacy
+`invokeAcme` retains its signature/result/non-zero ICE and passes exactly
+`["--vicelabels", labelPath, "--report", reportPath, asmPath]`. The bounded route uses the separate
+`invokeBoundedAcmeV1` entry point.
 
 ### VICE control, lease and runtime
 
@@ -109,7 +144,7 @@ execution publication may be selected; missing tools produce blockers rather tha
 |---|---|---|
 | `execution-contracts-routing.spec.test.ts` | ST-01–ST-10 | Phase 1 production |
 | `execution-envelope-evidence.spec.test.ts` | ST-11–ST-22 | Phase 2 production |
-| `execution-adapters-safety.spec.test.ts` | ST-23–ST-33 | Phase 3 production |
+| `execution-adapters-safety.spec.test.ts` plus immutable `test-fixtures/execution-adapters-safety-spec-fixture.ts` | ST-23–ST-33 | Phase 3 production |
 | `packages/test-harness/src/emulator/vice/vice-control.spec.test.ts` | ST-34–ST-35, ST-42 and low-level portion of ST-43 | Phase 4 test-harness production |
 | `packages/readiness-execution/src/execution-vice-lease.spec.test.ts` | ST-36–ST-41, ST-60–ST-62 and lease/policy portion of ST-43 | Phase 4 readiness-execution production |
 | `execution-runtime-acceptance.spec.test.ts` | ST-44 | Phase 5 production |
