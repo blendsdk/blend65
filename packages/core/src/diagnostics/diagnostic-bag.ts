@@ -69,6 +69,22 @@ export interface DiagnosticBag {
   isErrorLimitReached(): boolean;
 }
 
+/** Accepted diagnostic plus its stable insertion ordinal before severity policy. */
+export interface DiagnosticBagAcceptedEntry {
+  /** Zero-based order among diagnostics accepted by this bag. */
+  readonly acceptanceOrdinal: number;
+  /** Immutable diagnostic accepted after deduplication and cap handling. */
+  readonly diagnostic: Diagnostic;
+}
+
+/** Additive construction options for a diagnostic bag. */
+export interface DiagnosticBagOptions {
+  /** Maximum naturally emitted errors retained before the truncation sentinel. */
+  readonly maxErrors?: number;
+  /** Optional evidence observer called only after a diagnostic is accepted. */
+  readonly onAccepted?: (entry: DiagnosticBagAcceptedEntry) => void;
+}
+
 /** Default `--max-errors` value when the caller supplies none. */
 const DEFAULT_MAX_ERRORS = 20;
 
@@ -90,6 +106,26 @@ function dedupKey(code: string, span: SourceSpan | null): string {
   return `${code}|${sourceId}|${start}`;
 }
 
+function closeSpan(span: SourceSpan): SourceSpan {
+  return Object.freeze({ sourceId: span.sourceId, start: span.start, end: span.end });
+}
+
+function closeDiagnosticSnapshot(diagnostic: Diagnostic): Diagnostic {
+  return Object.freeze({
+    code: diagnostic.code,
+    severity: diagnostic.severity,
+    message: diagnostic.message,
+    primarySpan: diagnostic.primarySpan === null ? null : closeSpan(diagnostic.primarySpan),
+    secondarySpans: Object.freeze(
+      diagnostic.secondarySpans.map((secondary) =>
+        Object.freeze({ span: closeSpan(secondary.span), label: secondary.label }),
+      ),
+    ),
+    notes: Object.freeze([...diagnostic.notes]),
+    ...(diagnostic.help !== undefined ? { help: diagnostic.help } : {}),
+  });
+}
+
 /**
  * Creates a fresh, empty {@link DiagnosticBag}.
  *
@@ -98,8 +134,8 @@ function dedupKey(code: string, span: SourceSpan | null): string {
  *   suppresses all errors after the truncation sentinel).
  * @returns A new bag with no diagnostics recorded.
  */
-export function createDiagnosticBag(options?: { maxErrors?: number }): DiagnosticBag {
-  const maxErrors = options?.maxErrors ?? DEFAULT_MAX_ERRORS;
+export function createDiagnosticBag(factoryOptions?: DiagnosticBagOptions): DiagnosticBag {
+  const maxErrors = factoryOptions?.maxErrors ?? DEFAULT_MAX_ERRORS;
 
   // Insertion-ordered store; getAll() returns a sorted copy of this.
   const diagnostics: Diagnostic[] = [];
@@ -120,7 +156,7 @@ export function createDiagnosticBag(options?: { maxErrors?: number }): Diagnosti
     message: string,
     options?: DiagnosticOptions,
   ): void {
-    diagnostics.push({
+    const diagnostic: Diagnostic = {
       code,
       severity,
       message,
@@ -128,7 +164,18 @@ export function createDiagnosticBag(options?: { maxErrors?: number }): Diagnosti
       secondarySpans: options?.secondarySpans ?? [],
       notes: options?.notes ?? [],
       ...(options?.help !== undefined ? { help: options.help } : {}),
-    });
+    };
+    diagnostics.push(diagnostic);
+    try {
+      factoryOptions?.onAccepted?.(
+        Object.freeze({
+          acceptanceOrdinal: diagnostics.length - 1,
+          diagnostic: closeDiagnosticSnapshot(diagnostic),
+        }),
+      );
+    } catch {
+      // Evidence observation is additive and can never destabilize compilation.
+    }
   }
 
   /** Appends the single truncation sentinel if not already emitted. */

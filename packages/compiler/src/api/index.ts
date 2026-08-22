@@ -12,3 +12,18 @@ export type { CompileResult, EmitResult, BuildResult } from "./results.js";
 export { compile } from "./compile.js";
 export { emitIl, emitAsm } from "./emit.js";
 export { build, defaultBuildDeps, type BuildDeps } from "./build.js";
+export {
+  buildWithEvidence,
+  compileWithEvidence,
+  defaultCompilerEvidenceFacadeV1,
+  emitAsmWithEvidence,
+  emitIlWithEvidence,
+  type CompileWithEvidenceResultV1,
+  type CompilerEvidenceFacadeV1,
+} from "./evidence-facade.js";
+export type {
+  CompilerDiagnosticEvidenceEntryV1,
+  CompilerDiagnosticEvidenceV1,
+  CompilerDiagnosticPhaseV1,
+  CompilerEvidenceObserverV1,
+} from "./diagnostic-evidence.js";

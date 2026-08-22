@@ -364,12 +364,82 @@ exists, so executable authority is never delegated to the pure planner.<br>
 **Reopen trigger:** a route plan itself becomes executable authority or a future modeled rule needs
 more than one case-specific boundary-family witness under selector v1.
 
+### AR-P16 — Phase-aligned envelope and evidence validation seams
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Additive internal validation interfaces needed to make already-approved Phase 2
+behavior testable; no product scope, execution authority or public diagnostic behavior changes.<br>
+**Objective:** Let immutable tests prove expectation-leakage rejection, completion-last structure,
+fixture mismatch, diagnostic provenance and unexpected-emission classification without inventing a
+Phase 2 adapter or callback.<br>
+**Decision:** Add an exact post-entry store sequence to `ExecutionEnvelopeIrV1`: scalar envelopes
+contain each observation-byte store in byte order followed by exactly one `$A5` completion store;
+direct-MMIO envelopes contain only that completion store. Add focused pure seams in
+`@blend65/readiness-execution` for canonical rendered-source validation against a genuine opaque
+execution case, fixture digest derivation, passive fixture-readback validation, diagnostic
+code/real-phase/final-severity classification and invalid-case artifact-presence classification.
+The source validator regenerates canonical bytes and compares them exactly; it never accepts oracle
+text or values. Fixture mismatch returns non-passing evidence in Phase 2. Literal proof that VICE
+case entry was not reached remains in Phase 5, where entry authority first exists. Do not add an
+execution callback or a composite evidence record to a pure validator.<br>
+**Evidence:** the accepted design prose already promised actual stores and completion-last but the
+declared IR could not represent their order; ST-13, ST-17 and ST-19–ST-21 otherwise had no callable
+seam, while adapters and VICE entry are deliberately owned by later phases.<br>
+**Rejected alternatives:** one composite Phase 2 evidence record freezes producers that do not yet
+exist; callback injection manufactures execution authority solely for a test; substring leakage
+checks expose oracle material and admit false positives.<br>
+**Strongest counterargument:** several focused public seams increase API surface.<br>
+**Resolution:** later adapters must call these same predicates rather than duplicate them; every
+output remains passive data or a closed result code and cannot execute a case.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent design challenger selected this phase-aligned shape and rejected both a
+composite evidence record and a Phase 2 callback.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a later adapter cannot reuse a predicate without giving its return value
+execution authority, or runtime store-order evidence becomes independently observable.
+
+### AR-P17 — Report-backed store-order layout proof
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal proof-record completion discovered by the configured semantic review; it
+preserves the approved completion-last requirement and does not change product scope.<br>
+**Objective:** Prevent lowering, optimization or assembly from moving completion `0xA5` before an
+actual observation store while binding the final identity to the exact chosen symbols.<br>
+**Decision:** Preserve `resolveExecutionObservationLayoutV1` as the already-frozen passive
+structural/historical layout validator. Add
+`resolveExecutionCaseObservationLayoutV1(executionCase, input)` as the only live acceptance seam;
+its report input adds an ordered `ExecutionEmittedStoreV1[]` containing instruction address, target
+address, store kind, exact completion value `0xA5`, and observation byte index where applicable. The live resolver obtains the
+guarded case projection, requires zero result symbols for direct-MMIO or exactly the scalar byte
+width, requires the emitted store sequence to match the envelope's exact post-entry sequence,
+requires strictly increasing instruction addresses inside code, and requires each target to equal
+the resolved result/completion address. `ExecutionObservationLayoutV1` retains the selected result
+symbol names, completion symbol and emitted stores; all enter its proof digest and final execution
+identity. Later orchestration must never accept the structural resolver as live evidence.<br>
+**Evidence:** the first Phase 2 semantic review showed that passive IR ordering alone cannot prove
+the emitted assembly preserved the order, and address-only hashing aliases two symbol names at the
+same address.<br>
+**Rejected alternatives:** trusting source order ignores optimizer/codegen behavior; runtime-only
+temporal evidence cannot reliably reconstruct store order after completion is observed.<br>
+**Strongest counterargument:** the pure resolver receives a passive report projection that a direct
+caller can forge.<br>
+**Resolution:** the record grants no execution authority; later adapters derive it from genuine
+compiler/ACME report evidence before the guarded orchestration path accepts it.<br>
+**Confidence:** High.<br>
+**Hardening:** The independent semantics reviewer supplied both optimizer-reordering and symbol-
+alias counterexamples.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** emitted store targets cannot be reconstructed unambiguously from accepted ACME
+report evidence for one of the selected envelope shapes.
+
 ## Systematic 12-Category Closure
 
 | Category | Closure evidence |
 |---|---|
 | Feature gaps | RD-04 owns all six routes, selected modeled population, publication and local acceptance; RD-08 remains outside scope (AR-P1). |
-| Behavioral gaps | Selector, passive projection boundary, stage order, failure precedence and tool absence are closed (AR-P6, AR-P9, AR-P15). |
+| Behavioral gaps | Selector, passive projection boundary, stage order, failure precedence, Phase 2 evidence seams and tool absence are closed (AR-P6, AR-P9, AR-P15, AR-P16). |
 | Scope ambiguities | Planning target and modification set are explicit; no optional expansion was accepted (AR-P1). |
 | Technical unknowns | Package, provenance, VICE, process and publication mechanisms are selected (AR-P2–AR-P5, AR-P10–AR-P12). |
 | Edge cases | Fixture cells, exact limits, retries, PID reuse, crash states, stale sentinel and cleanup are owned (AR-P8–AR-P11). |

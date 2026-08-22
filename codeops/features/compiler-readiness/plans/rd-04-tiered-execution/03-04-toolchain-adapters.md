@@ -29,6 +29,12 @@ separate evidence façade; ordinary `Diagnostic`, `CompileResult` and renderer J
 observes its exit status, rendered diagnostics, artifact behavior and sidecar from that same
 invocation. Default callers and output remain compatible.
 
+Phase 2 also exposes focused passive classifiers used unchanged by later adapters. Diagnostic
+classification compares exact accepted code, real phase and final severity and returns only
+`pass` or `diagnostic-mismatch`. Invalid-case artifact classification accepts closed IL/assembly/
+binary presence flags and returns only `pass` or `unexpected-emission`; its precedence is IL,
+assembly, then binary. Neither classifier invokes a compiler or grants route authority.
+
 ## Route adapters
 
 | Terminal tier | Required real behavior | Evidence |
@@ -116,6 +122,28 @@ export interface CompilerEvidenceFacadeV1 {
   readonly emitAsm: typeof emitAsmWithEvidence;
   readonly build: typeof buildWithEvidence;
 }
+```
+
+`@blend65/readiness-execution` exports these passive compatibility classifiers:
+
+```ts
+export interface ExecutionDiagnosticExpectationV1 {
+  readonly code: string;
+  readonly phase: CompilerDiagnosticPhaseV1;
+  readonly severity: DiagnosticSeverity;
+}
+export interface ExecutionEmissionPresenceV1 {
+  readonly il: boolean;
+  readonly assembly: boolean;
+  readonly binary: boolean;
+}
+export function classifyExecutionDiagnosticEvidenceV1(
+  expected: ExecutionDiagnosticExpectationV1,
+  observed: CompilerDiagnosticEvidenceV1,
+): 'pass' | 'diagnostic-mismatch';
+export function classifyInvalidCaseEmissionV1(
+  presence: unknown,
+): 'pass' | 'unexpected-emission';
 ```
 
 The CLI adds only optional dependencies; `runCli(args)` remains source compatible:

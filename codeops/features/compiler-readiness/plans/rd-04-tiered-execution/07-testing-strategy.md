@@ -43,7 +43,7 @@ execution publication may be selected; missing tools produce blockers rather tha
 | ST-16 | Missing/overlapping label, stack/MMIO/footprint collision | Layout proof rejects before runtime acceptance | RD-04 AC-5; AR-P7 |
 | ST-17 | Stale success byte or completion-before-result mutant | Evidence rejects even when observed value matches | RD-04 AC-5; 03-02 |
 | ST-18 | `$D020..$D022` fixture, logical `$20`/`$2000` writes, low-nibble mutants and both word starts | Input and actual projections use `F0|nibble`; words are little-endian; logical RD-03 effects stay unchanged | RD-04 MH-10/11; AR-P8 |
-| ST-19 | Missing fixture cell or pre-entry mismatch | Stable non-passing fixture result; no case entry | RD-04 AC-5; AR-P8 |
+| ST-19 | Missing fixture cell or pre-entry mismatch | Phase 2 returns a stable non-passing fixture result; Phase 5 proves no VICE case entry | RD-04 AC-5; AR-P8/P16 |
 | ST-20 | Same diagnostic code from wrong phase or severity | Diagnostic mismatch | RD-04 AC-6; AR-P3 |
 | ST-21 | Invalid case emits IL, assembly or binary | `unexpected-emission` | RD-04 AC-6; AR-P3 |
 | ST-22 | Deduplicated/capped and severity-adjusted diagnostics | Sidecar contains only accepted entries joined to final severity | AR-P3; 03-04 |

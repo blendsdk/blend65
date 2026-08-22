@@ -8,5 +8,6 @@
  */
 
 export { runCli } from "./main.js";
+export type { CliEvidenceDependenciesV1 } from "./main.js";
 export type { CliIo } from "./io.js";
 export { VERSION } from "./version.js";

@@ -14,8 +14,10 @@ state through the compiler, and prove the final layout before runtime evidence i
 
 `ExecutionEnvelopeIrV1` is distinct from RD-02 `GenModule`. It contains the source-case digest,
 complete typed external argument literals, one entry call, actual-observation declarations, a
-non-success completion initializer and one completion-last store. Its validator accepts only the
-closed primitive set required by the nine modeled rules.
+non-success completion initializer and an exact post-entry store sequence. Scalar envelopes store
+each actual observation byte in byte order and then store completion `0xA5`; direct-MMIO envelopes
+contain only the completion store. Its validator accepts only the closed primitive set required by
+the nine modeled rules and rejects duplicate, missing or out-of-order stores.
 
 Fresh construction never trusts those structural fields. `createExecutionCaseV1` accepts a
 genuine opaque `PreparedCampaign` plus ordinal, regenerates the factory-owned case, rejects every
@@ -36,7 +38,10 @@ The renderer emits a deterministic `main(): void` for valid cases. Scalar-return
 actual bytes into compiler-allocated module globals. Memory-write intrinsics use the narrowly
 declared direct MMIO observable when mirroring into RAM would change semantics. The completion byte
 starts at `0x00` and is written `0xA5` only after every actual store. Invalid diagnostic cases keep
-their exact original source and cannot be enveloped.
+their exact original source and cannot be enveloped. A focused source validator regenerates bytes
+from the genuine opaque execution case and requires an exact match before compile; seeded oracle
+text or values therefore change the bytes and reject without exposing oracle material to the
+renderer.
 
 ## Initial and actual-observation projections
 
@@ -62,6 +67,11 @@ therefore observe `$F0`, and the `$2000` word case must observe `$F0F0`; low-nib
 still fail. Input fixture projection and post-write observation projection share one immutable
 register-behavior table so their address and nibble rules cannot drift.
 
+Fixture validation is passive in this phase: it verifies complete unique projected cells and a
+zero completion byte before entry, returning a closed non-passing result for missing cells,
+readback mismatch or a stale success sentinel. Phase 5 proves the corresponding VICE entry is not
+reached; Phase 2 does not manufacture execution authority through a callback.
+
 ## Two-stage execution identity
 
 1. The pre-build identity hashes the immutable source-case identity, rendered source digest,
@@ -77,11 +87,17 @@ identity remains byte-identical.
 
 ## Layout proof
 
-`ExecutionObservationLayoutV1` records compiler symbols for result bytes and completion. A verifier
-uses emitted labels and compiler build metadata to prove that each range is unique and disjoint
+`ExecutionObservationLayoutV1` records compiler symbols for result bytes and completion. The
+passive `resolveExecutionObservationLayoutV1` remains the frozen structural/historical validator.
+The live `resolveExecutionCaseObservationLayoutV1` additionally uses the genuine execution case,
+emitted labels and compiler build metadata to prove that each range is unique and disjoint
 from code, constants/data, semantic memory footprint, stack, MMIO and every other observation
-range. It also proves the completion store occurs after actual stores in the accepted envelope IR.
-Fixed absolute ordinary-RAM addresses and post-build binary patching are forbidden.
+range. It resolves against the genuine execution case, requiring zero result symbols for direct
+MMIO or exactly the scalar byte width. Ordered report-derived store records must match the exact
+envelope store sequence, target the resolved observation/completion cells and increase by
+instruction address, proving completion remains last after lowering and assembly. Selected symbol
+names, addresses and store records all enter the proof digest. Fixed absolute ordinary-RAM
+addresses and post-build binary patching are forbidden.
 
 ## Failure behavior
 
@@ -109,6 +125,9 @@ export interface ExecutionObservationRequestV1 {
   readonly address?: number;
   readonly projectionRevision?: ExecutionProjectionRevisionV1;
 }
+export type ExecutionEnvelopePostEntryStoreV1 =
+  | { readonly kind: 'observation-byte'; readonly byteIndex: 0 | 1 }
+  | { readonly kind: 'completion'; readonly value: 165 };
 export interface ExecutionEnvelopeIrV1 {
   readonly revision: 'execution-envelope-ir-v1';
   readonly sourceCaseDigest: string;
@@ -117,6 +136,7 @@ export interface ExecutionEnvelopeIrV1 {
   readonly observation: ExecutionObservationRequestV1;
   readonly completionInitialValue: 0;
   readonly completionSuccessValue: 165;
+  readonly postEntryStores: readonly ExecutionEnvelopePostEntryStoreV1[];
 }
 export interface ExecutionInitialStateFixtureV1 {
   readonly revision: 'c64-vic-color-readback-v1';
@@ -135,10 +155,26 @@ export interface ExecutionCaseProjectionV1 {
 }
 export interface ExecutionObservationLayoutV1 {
   readonly revision: 'execution-observation-layout-v1';
+  readonly resultSymbols: readonly string[];
   readonly resultAddresses: readonly number[];
+  readonly completionSymbol: string;
   readonly completionAddress: number;
+  readonly postEntryStores: readonly ExecutionEmittedStoreV1[];
   readonly proofDigest: string;
 }
+export type ExecutionEmittedStoreV1 =
+  | {
+      readonly instructionAddress: number;
+      readonly targetAddress: number;
+      readonly kind: 'observation-byte';
+      readonly byteIndex: 0 | 1;
+    }
+  | {
+      readonly instructionAddress: number;
+      readonly targetAddress: number;
+      readonly kind: 'completion';
+      readonly value: 165;
+    };
 export interface ExecutionAddressRangeV1 {
   readonly start: number;
   readonly length: number;
@@ -171,9 +207,15 @@ export interface ExecutionLayoutProofInputV1 {
   readonly observationSymbols: readonly string[];
   readonly completionSymbol: string;
 }
+export interface ExecutionCaseLayoutProofInputV1 extends ExecutionLayoutProofInputV1 {
+  readonly postEntryStores: readonly ExecutionEmittedStoreV1[];
+}
 export function parseExecutionEnvelopeIrV1(
   input: unknown,
 ): ExecutionOperationResultV1<ExecutionEnvelopeIrV1>;
+export function parseExecutionInitialStateFixtureV1(
+  input: unknown,
+): ExecutionOperationResultV1<ExecutionInitialStateFixtureV1>;
 export function createExecutionCaseV1(
   campaign: PreparedCampaign,
   ordinal: number,
@@ -202,9 +244,36 @@ The following declarations are exported from `@blend65/readiness-execution`:
 export function renderExecutionEnvelopeV1(
   executionCase: ExecutionCaseV1,
 ): ExecutionOperationResultV1<string>;
+export interface ExecutionValidatedSourceV1 {
+  readonly revision: 'execution-validated-source-v1';
+  readonly sourceDigest: string;
+}
+export interface ExecutionFixtureReadbackV1 {
+  readonly revision: 'execution-fixture-readback-v1';
+  readonly cells: readonly {
+    readonly address: number;
+    readonly projectedValue: number;
+  }[];
+  readonly completionValueBeforeEntry: number;
+}
+export function validateRenderedExecutionSourceV1(
+  executionCase: ExecutionCaseV1,
+  sourceBytes: Uint8Array,
+): ExecutionOperationResultV1<ExecutionValidatedSourceV1>;
+export function deriveExecutionFixtureDigestV1(
+  fixture: ExecutionInitialStateFixtureV1,
+): ExecutionOperationResultV1<string>;
+export function validateExecutionFixtureReadbackV1(
+  executionCase: ExecutionCaseV1,
+  readback: unknown,
+): 'pass' | 'invalid-evidence-input';
 export function derivePrebuildExecutionIdentityV1(input: ExecutionPrebuildIdentityInputV1): string;
 export function resolveExecutionObservationLayoutV1(
   input: ExecutionLayoutProofInputV1,
+): ExecutionOperationResultV1<ExecutionObservationLayoutV1>;
+export function resolveExecutionCaseObservationLayoutV1(
+  executionCase: ExecutionCaseV1,
+  input: ExecutionCaseLayoutProofInputV1,
 ): ExecutionOperationResultV1<ExecutionObservationLayoutV1>;
 export function deriveFinalExecutionIdentityV1(
   prebuildIdentity: string,

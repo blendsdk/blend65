@@ -17,6 +17,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@blend65/compiler": "0.1.0",
+    "@blend65/core": "0.1.0",
     "@blend65/readiness": "0.1.0"
   }
 }

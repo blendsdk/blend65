@@ -66,7 +66,11 @@ export function toShimVariant(
  * @returns The {@link EmitResult} with `text` = the IL, absent on a pre-emit error.
  */
 export function emitIl(options: CompilerOptions, host?: CompilerHost): EmitResult {
-  const run = runFrontend(options, host);
+  return emitIlFromRun(runFrontend(options, host));
+}
+
+/** Completes IL emission from one already-run frontend invocation. */
+export function emitIlFromRun(run: FrontendRun): EmitResult {
   const il = lowerProgram(run);
   const text = il !== undefined ? printIL(il) : undefined;
   return withText(assembleCompileResult(run), text);
@@ -82,7 +86,11 @@ export function emitIl(options: CompilerOptions, host?: CompilerHost): EmitResul
  *   pre-emit error.
  */
 export function emitAsm(options: CompilerOptions, host?: CompilerHost): EmitResult {
-  const run = runFrontend(options, host);
+  return emitAsmFromRun(runFrontend(options, host));
+}
+
+/** Completes assembly emission from one already-run frontend invocation. */
+export function emitAsmFromRun(run: FrontendRun): EmitResult {
   const assembled = assembleAsmText(run);
   return withText(assembleCompileResult(run), assembled?.text);
 }

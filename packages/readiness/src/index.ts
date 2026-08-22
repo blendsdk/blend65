@@ -135,6 +135,16 @@ export {
 } from "./execution-contracts.js";
 export { projectExecutionCampaignV1 } from "./execution-campaign-projection.js";
 export {
+  parseExecutionEnvelopeIrV1,
+  parseExecutionInitialStateFixtureV1,
+} from "./execution-envelope-contracts.js";
+export {
+  createExecutionCaseV1,
+  getExecutionCaseProjectionV1,
+  resolveExecutionEnvelopeReplayV1,
+} from "./execution-case.js";
+export { projectC64ActualWriteV1, projectC64InitialStateV1 } from "./execution-vic-projection.js";
+export {
   serializeExecutionRoutePlanPreimageV1,
   serializeExecutionRoutePlanV1,
 } from "./execution-route-plan.js";
@@ -509,6 +519,22 @@ export type {
   ExecutionUsageV1,
 } from "./execution-contracts.js";
 export type { ExecutionRoutePlanPreimageV1 } from "./execution-route-plan.js";
+export type {
+  ExecutionAddressRangeV1,
+  ExecutionArgumentLiteralV1,
+  ExecutionCaseLayoutProofInputV1,
+  ExecutionEmittedStoreV1,
+  ExecutionEnvelopeIrV1,
+  ExecutionEnvelopePostEntryStoreV1,
+  ExecutionHandlerIdentityV1,
+  ExecutionInitialStateFixtureV1,
+  ExecutionLayoutProofInputV1,
+  ExecutionObservationLayoutV1,
+  ExecutionObservationRequestV1,
+  ExecutionPrebuildIdentityInputV1,
+  ExecutionProjectionRevisionV1,
+} from "./execution-envelope-contracts.js";
+export type { ExecutionCaseProjectionV1, ExecutionCaseV1 } from "./execution-case.js";
 export type {
   SemanticRelationHandlerV1,
   SemanticRelationModeledResultV1,

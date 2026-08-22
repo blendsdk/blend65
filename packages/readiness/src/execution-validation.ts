@@ -13,8 +13,9 @@ export function readExecutionRecord(
   input: unknown,
   expectedKeys: readonly string[],
 ): Readonly<Record<string, unknown>> | undefined {
-  if (typeof input !== "object" || input === null || Array.isArray(input)) return undefined;
+  if (typeof input !== "object" || input === null) return undefined;
   try {
+    if (Array.isArray(input)) return undefined;
     const prototype = Object.getPrototypeOf(input);
     if (prototype !== Object.prototype && prototype !== null) return undefined;
     const ownKeys = Reflect.ownKeys(input);
@@ -49,8 +50,8 @@ export function readExecutionArray(
   input: unknown,
   maximumLength: number,
 ): readonly unknown[] | undefined {
-  if (!Array.isArray(input)) return undefined;
   try {
+    if (!Array.isArray(input)) return undefined;
     if (Object.getPrototypeOf(input) !== Array.prototype) return undefined;
     const lengthDescriptor = Reflect.getOwnPropertyDescriptor(input, "length");
     if (
@@ -82,7 +83,7 @@ export function readExecutionArray(
 
 /** Returns whether a value is a canonical lowercase SHA-256 digest. */
 export function isExecutionDigest(value: unknown): value is `sha256:${string}` {
-  return typeof value === "string" && /^sha256:[0-9a-f]{64}$/u.test(value);
+  return typeof value === "string" && value.length === 71 && /^sha256:[0-9a-f]{64}$/u.test(value);
 }
 
 /** Returns whether a value is a bounded non-empty execution identifier. */
@@ -90,6 +91,7 @@ export function isExecutionIdentifier(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.length > 0 &&
+    value.length <= EXECUTION_IDENTIFIER_MAX_BYTES &&
     TEXT_ENCODER.encode(value).byteLength <= EXECUTION_IDENTIFIER_MAX_BYTES &&
     /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(value)
   );

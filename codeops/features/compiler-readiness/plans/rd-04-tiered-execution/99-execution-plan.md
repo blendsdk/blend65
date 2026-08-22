@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-08-22
-> **Progress**: 11/88 tasks (13%)
+> **Progress**: 23/88 tasks (26%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -67,18 +67,18 @@ every selected obligation before any external work.
 > **Lenses**: compiler-semantics, api-surface, compatibility
 > **Reference**: 03-02, 03-04 · AR-P3, AR-P7, AR-P8 · ST-11–ST-22
 
-- [ ] 2.1.1 [spec-author] Write ST-11–ST-22 in new `execution-envelope-evidence.spec.test.ts`; derive only from requirements and planned interfaces
-- [ ] 2.1.2 Run the Phase 2 suite and record RED caused only by absent envelope/evidence APIs
-- [ ] 2.2.1 Add documented `ExecutionEnvelopeIrV1`, argument, fixture, observation and layout contracts with closed validation
-- [ ] 2.2.2 Implement runtime-backed opaque `ExecutionCaseV1` construction from a genuine prepared campaign and ordinal, a readiness-owned guarded frozen passive-record projection accessor with fresh caller-owned source-byte copies for cross-package rendering, deterministic valid-only envelope rendering with actual stores and completion `0xA5` last, and historical structural replay resolution through its named campaign; reject structural forgery, copied/proxied handles, expectation leakage and invalid-case wrapping and prove copy mutation cannot affect registered state
-- [ ] 2.2.3 Implement the shared register-behavior table, `c64-vic-color-readback-v1` input projection and separate identity-bound `c64-vic-color-observation-v1` logical-write projection for `$D020..$D022` and little-endian words without changing RD-03 effects
-- [ ] 2.2.4 Implement pre-build and label-resolved execution identity preimages including canonical fixture-content digest and lexically sorted `{capabilityId, contractVersion, implementationRevision}` handler participants without changing source-case identity
-- [ ] 2.2.5 Extend compiler diagnostic-bag construction with accepted-entry identity, active real phase and final-severity sidecar while leaving ordinary diagnostics unchanged
-- [ ] 2.2.6 Add an evidence compiler façade and optional same-invocation CLI façade/observer injection without altering default CLI output or exit behavior
-- [ ] 2.2.7 Implement label/report observation-layout proof across code/data, semantic footprint, stack, MMIO, result and completion ranges
-- [ ] 2.2.8 Run ST-11–ST-22 GREEN; fix production implementation only
-- [ ] 2.3.1 Add implementation/compatibility tests for bag dedup/caps, severity policy, renderer JSON, CLI output, identity collisions, stale sentinel and layout mutants; meet coverage floors
-- [ ] 2.3.2 Run configured semantics/correctness/compatibility review, resolve required findings, update plan/roadmap state, run full verification and auto-commit without pushing
+- [x] 2.1.1 [spec-author] Write ST-11–ST-22 in new `execution-envelope-evidence.spec.test.ts`; derive only from requirements and planned interfaces — verified 2026-08-22 04:20 CEST; 12 scenarios; immutable SHA-256 `9a38885e2b13bf09010cec4d7ce61071c111917ff97caf61d7647cf0ba25c257`
+- [x] 2.1.2 Run the Phase 2 suite and record RED caused only by absent envelope/evidence APIs — verified 2026-08-22 04:20 CEST; 12/12 RED only for 17 absent planned exports
+- [x] 2.2.1 Add documented `ExecutionEnvelopeIrV1`, exact post-entry store sequence, argument, fixture, observation and layout contracts with closed validation — verified 2026-08-22 04:51 CEST
+- [x] 2.2.2 Implement runtime-backed opaque `ExecutionCaseV1` construction from a genuine prepared campaign and ordinal, a readiness-owned guarded frozen passive-record projection accessor with fresh caller-owned source-byte copies for cross-package rendering, deterministic valid-only envelope rendering with actual stores and completion `0xA5` last, and historical structural replay resolution through its named campaign; reject structural forgery, copied/proxied handles, expectation leakage and invalid-case wrapping and prove copy mutation cannot affect registered state — verified 2026-08-22 04:51 CEST
+- [x] 2.2.3 Implement the shared register-behavior table, `c64-vic-color-readback-v1` input projection and separate identity-bound `c64-vic-color-observation-v1` logical-write projection for `$D020..$D022` and little-endian words without changing RD-03 effects — verified 2026-08-22 04:51 CEST
+- [x] 2.2.4 Implement canonical rendered-source validation, passive fixture-readback validation, pre-build and label-resolved execution identity preimages including canonical fixture-content digest and lexically sorted `{capabilityId, contractVersion, implementationRevision}` handler participants without changing source-case identity — verified 2026-08-22 04:51 CEST
+- [x] 2.2.5 Extend compiler diagnostic-bag construction with accepted-entry identity, active real phase and final-severity sidecar while leaving ordinary diagnostics unchanged; add pure exact diagnostic and invalid-case emission classifiers — verified 2026-08-22 04:51 CEST
+- [x] 2.2.6 Add an evidence compiler façade and optional same-invocation CLI façade/observer injection without altering default CLI output or exit behavior — verified 2026-08-22 04:51 CEST
+- [x] 2.2.7 Implement genuine-case-bound label/report observation-layout proof across code/data, semantic footprint, stack, MMIO, result and completion ranges, retaining exact selected symbols and emitted completion-last store order in the final identity — verified 2026-08-22 04:51 CEST; strengthened during quality review under AR-P17
+- [x] 2.2.8 Run ST-11–ST-22 GREEN; fix production implementation only — verified 2026-08-22 04:51 CEST; 12/12 immutable scenarios pass
+- [x] 2.3.1 Add implementation/compatibility tests for bag dedup/caps, severity policy, renderer JSON, CLI output, identity collisions, stale sentinel and layout mutants; meet coverage floors — verified 2026-08-22 04:51 CEST; 90.40% execution branch coverage; core/compiler/CLI compatibility suites green
+- [x] 2.3.2 Run configured semantics/correctness/compatibility review, resolve required findings, update plan/roadmap state, run full verification and auto-commit without pushing — verified 2026-08-22 06:11 CEST; all review majors closed on re-review; immutable spec preserved; 91.34% execution branch coverage; exact full gate green with 1,336 readiness, 53 execution, 409 test-harness and 33 root boundary tests
 
 **Deliverable:** replayable valid programs with independent actual observation and directly observed
 diagnostic phase, without public diagnostic or source-case compatibility changes.

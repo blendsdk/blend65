@@ -58,7 +58,14 @@ export async function build(
   host?: CompilerHost,
   deps: BuildDeps = defaultBuildDeps,
 ): Promise<BuildResult> {
-  const run = runFrontend(options, host);
+  return buildFromRun(runFrontend(options, host), deps);
+}
+
+/** Completes binary emission from one already-run frontend invocation. */
+export async function buildFromRun(
+  run: ReturnType<typeof runFrontend>,
+  deps: BuildDeps = defaultBuildDeps,
+): Promise<BuildResult> {
   const assembled = assembleAsmText(run);
 
   // Pre-emit error (config/discovery/frontend/codegen): no ACME, no report.
@@ -112,8 +119,7 @@ export async function build(
   checkBinaryBudget(report, run.bag);
 
   // Read the binary back when ACME produced one (success or over-budget artifact).
-  const binary =
-    emit.binaryPath !== undefined ? deps.readBinary(emit.binaryPath) : undefined;
+  const binary = emit.binaryPath !== undefined ? deps.readBinary(emit.binaryPath) : undefined;
 
   // Mandatory code/data overlap check: the PRG header's first two bytes are
   // the load address (little-endian); the size excludes that header. The data

@@ -43,6 +43,7 @@ import { basename, extname, relative, resolve, sep } from "node:path";
 import { createDiskCompilerHost } from "../host/index.js";
 import { createDiskAssetReader } from "./asset-reader.js";
 import { optionsToOverrides, type CompilerOptions } from "./options.js";
+import type { CompilerDiagnosticCaptureV1 } from "./diagnostic-evidence.js";
 
 /** The accumulated result of the shared frontend pipeline. */
 export interface FrontendRun {
@@ -80,7 +81,11 @@ export interface FrontendRun {
  *   is built from config.
  * @returns The {@link FrontendRun} — never throws.
  */
-export function runFrontend(options: CompilerOptions, host?: CompilerHost): FrontendRun {
+export function runFrontend(
+  options: CompilerOptions,
+  host?: CompilerHost,
+  diagnosticCapture?: CompilerDiagnosticCaptureV1,
+): FrontendRun {
   // 1. Config (bootstrap bag at the default cap 20).
   const configBag = createDiagnosticBag();
   const { config, hasErrors: configFailed } = loadConfig({
@@ -93,7 +98,12 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
   const configDiagnostics = configBag.getAll();
 
   // 2. Pipeline bag at the config's `maxErrors`.
-  const bag = createDiagnosticBag({ maxErrors: config.maxErrors });
+  const bag = createDiagnosticBag({
+    maxErrors: config.maxErrors,
+    ...(diagnosticCapture === undefined
+      ? {}
+      : { onAccepted: (entry) => diagnosticCapture.onAccepted(entry) }),
+  });
   const sourceMap = createSourceMap();
 
   // Config error short-circuits before the pipeline (exit-2 class).
@@ -151,12 +161,15 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     const displayPath = toDisplayPath(config.projectRoot, path);
     const sourceId = sourceMap.intern(displayPath, content);
     sourcePaths.set(sourceId, resolve(path));
+    diagnosticCapture?.setPhase("lexer");
     const { tokens } = lex(sourceId, content, bag);
+    diagnosticCapture?.setPhase("parser");
     const { ast } = parse({ tokens, source: content, sourceId, bag });
     programs.push(ast);
   }
 
   // 8. Semantic analysis.
+  diagnosticCapture?.setPhase("semantic");
   const semanticModel = analyze({
     programs,
     bag,
@@ -178,6 +191,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
   // `PlatformProfile` types differ, and per-platform semantics profiles land
   // later. The canonical `maxBinarySize` reaches the budget check via
   // `build.ts`.
+  diagnosticCapture?.setPhase("sfa");
   const allocationPlan = bag.hasErrors()
     ? undefined
     : planAllocation(
@@ -193,6 +207,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
         bag,
       );
 
+  diagnosticCapture?.deactivate();
   return {
     config,
     configDiagnostics,

@@ -10,11 +10,15 @@
 import {
   build,
   compile,
+  defaultCompilerEvidenceFacadeV1,
   emitAsm,
   emitIl,
   type BuildResult,
   type CompileResult,
   type CompilerOptions,
+  type CompilerDiagnosticEvidenceV1,
+  type CompilerEvidenceFacadeV1,
+  type CompilerEvidenceObserverV1,
   type EmitResult,
 } from "@blend65/compiler";
 import { DiagCode, isIceCode, renderReportJson, type Diagnostic } from "@blend65/core";
@@ -41,6 +45,14 @@ const EXIT2_CODES: ReadonlySet<string> = new Set<string>([
   DiagCode.DriverNoSourceFiles,
 ]);
 
+/** Optional same-invocation compiler evidence dependencies for readiness adapters. */
+export interface CliEvidenceDependenciesV1 {
+  /** Evidence-producing compiler façade; defaults to the shipped compiler façade. */
+  readonly compilerFacade?: CompilerEvidenceFacadeV1;
+  /** Observer notified with the sidecar from the invocation rendered by this CLI call. */
+  readonly evidenceObserver?: CompilerEvidenceObserverV1;
+}
+
 /**
  * Run the CLI end-to-end.
  *
@@ -48,7 +60,11 @@ const EXIT2_CODES: ReadonlySet<string> = new Set<string>([
  * @param io The injectable process surface.
  * @returns The exit code (0 success / 1 compile errors / 2 config / 3 ICE).
  */
-export async function runCli(argv: string[], io: CliIo): Promise<number> {
+export async function runCli(
+  argv: string[],
+  io: CliIo,
+  evidenceDependencies?: CliEvidenceDependenciesV1,
+): Promise<number> {
   const outcome = parseArgs(argv);
   if (outcome.kind === "fail") {
     // Usage/flag error → stderr, exit 2.
@@ -67,45 +83,93 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
 
   try {
     if (parsed.command === "check") {
-      return finishCompile(io, compile(options), color);
+      if (evidenceDependencies === undefined) return finishCompile(io, compile(options), color);
+      const observed = (
+        evidenceDependencies.compilerFacade ?? defaultCompilerEvidenceFacadeV1
+      ).compile(options);
+      notifyEvidence(evidenceDependencies.evidenceObserver, observed.evidence);
+      return finishCompile(io, observed.result, color);
     }
     if (parsed.emitIl === true) {
-      return finishEmit(io, emitIl(options), color, "il");
+      if (evidenceDependencies === undefined) return finishEmit(io, emitIl(options), color, "il");
+      const observed = (
+        evidenceDependencies.compilerFacade ?? defaultCompilerEvidenceFacadeV1
+      ).emitIl(options);
+      notifyEvidence(evidenceDependencies.evidenceObserver, observed.evidence);
+      return finishEmit(io, observed.result, color, "il");
     }
     if (parsed.emitAsm === true) {
-      return finishEmit(io, emitAsm(options), color, "asm");
+      if (evidenceDependencies === undefined) return finishEmit(io, emitAsm(options), color, "asm");
+      const observed = (
+        evidenceDependencies.compilerFacade ?? defaultCompilerEvidenceFacadeV1
+      ).emitAsm(options);
+      notifyEvidence(evidenceDependencies.evidenceObserver, observed.evidence);
+      return finishEmit(io, observed.result, color, "asm");
+    }
+    if (evidenceDependencies !== undefined) {
+      const observed = await (
+        evidenceDependencies.compilerFacade ?? defaultCompilerEvidenceFacadeV1
+      ).build(options, undefined, io.buildDeps);
+      notifyEvidence(evidenceDependencies.evidenceObserver, observed.evidence);
+      return finishBuild(io, observed.result, parsed, color);
     }
     return finishBuild(io, await build(options, undefined, io.buildDeps), parsed, color);
   } catch (err) {
     // Artifact-write failure (bad --out-dir, etc.) — invocation-class → exit 2.
-    io.writeErr(ensureTrailingNewline(`blendc: ${err instanceof Error ? err.message : String(err)}`));
+    io.writeErr(
+      ensureTrailingNewline(`blendc: ${err instanceof Error ? err.message : String(err)}`),
+    );
     return 2;
+  }
+}
+
+function notifyEvidence(
+  observer: CompilerEvidenceObserverV1 | undefined,
+  evidence: CompilerDiagnosticEvidenceV1,
+): void {
+  try {
+    observer?.onDiagnosticEvidence(evidence);
+  } catch {
+    // Evidence observation is additive and cannot change CLI output or exit behavior.
   }
 }
 
 /** `check`: render diagnostics, no artifacts, no summary. */
 function finishCompile(io: CliIo, result: CompileResult, color: boolean): number {
-  renderDiagnostics(io, result.diagnostics, result.sourceMap, result.config.diagnosticsFormat, color);
+  renderDiagnostics(
+    io,
+    result.diagnostics,
+    result.sourceMap,
+    result.config.diagnosticsFormat,
+    color,
+  );
   return classifyExit(result.diagnostics);
 }
 
 /** `--emit-il`/`--emit-asm`: write the artifact (if produced), render diagnostics. */
-function finishEmit(
-  io: CliIo,
-  result: EmitResult,
-  color: boolean,
-  ext: "il" | "asm",
-): number {
+function finishEmit(io: CliIo, result: EmitResult, color: boolean, ext: "il" | "asm"): number {
   if (result.text !== undefined) {
     writeTextArtifact(result.config.outDir, `${result.config.outName}.${ext}`, result.text);
   }
-  renderDiagnostics(io, result.diagnostics, result.sourceMap, result.config.diagnosticsFormat, color);
+  renderDiagnostics(
+    io,
+    result.diagnostics,
+    result.sourceMap,
+    result.config.diagnosticsFormat,
+    color,
+  );
   return classifyExit(result.diagnostics);
 }
 
 /** Full `build`: diagnostics, then summary/report/emit-report on success. */
 function finishBuild(io: CliIo, result: BuildResult, parsed: ParsedArgs, color: boolean): number {
-  renderDiagnostics(io, result.diagnostics, result.sourceMap, result.config.diagnosticsFormat, color);
+  renderDiagnostics(
+    io,
+    result.diagnostics,
+    result.sourceMap,
+    result.config.diagnosticsFormat,
+    color,
+  );
   const exit = classifyExit(result.diagnostics);
 
   if (exit === 0 && result.resourceReport !== undefined) {
@@ -159,7 +223,9 @@ function toOptions(parsed: ParsedArgs, cwd: string): CompilerOptions {
     ...(parsed.maxErrors !== undefined ? { maxErrors: parsed.maxErrors } : {}),
     ...(parsed.warnAsError !== undefined ? { warnAsError: parsed.warnAsError } : {}),
     ...(parsed.suppressWarnings !== undefined ? { suppressWarnings: parsed.suppressWarnings } : {}),
-    ...(parsed.diagnosticsFormat !== undefined ? { diagnosticsFormat: parsed.diagnosticsFormat } : {}),
+    ...(parsed.diagnosticsFormat !== undefined
+      ? { diagnosticsFormat: parsed.diagnosticsFormat }
+      : {}),
     ...(parsed.optimize !== undefined ? { optimize: parsed.optimize } : {}),
     ...(parsed.quiet !== undefined ? { quiet: parsed.quiet } : {}),
     ...(parsed.startup !== undefined ? { startup: parsed.startup } : {}),

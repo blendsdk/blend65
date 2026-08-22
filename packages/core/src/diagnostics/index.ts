@@ -28,5 +28,9 @@ export { renderJson } from "./render-json.js";
 export type { DiagCodeValue, IceCodeValue } from "./diagnostic-codes.js";
 export { DiagCode, IceCode, isIceCode } from "./diagnostic-codes.js";
 
-export type { DiagnosticBag } from "./diagnostic-bag.js";
+export type {
+  DiagnosticBag,
+  DiagnosticBagAcceptedEntry,
+  DiagnosticBagOptions,
+} from "./diagnostic-bag.js";
 export { createDiagnosticBag } from "./diagnostic-bag.js";

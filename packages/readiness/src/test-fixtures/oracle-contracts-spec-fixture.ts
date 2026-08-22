@@ -551,5 +551,7 @@ export async function createOracleContractsSpecFixture() {
     booleanInitializer: caseFixture(frontend, booleanInitializer),
     booleanReturnExpression: caseFixture(frontend, booleanReturnExpression),
     runtimeValid: caseFixture(runtime, runtimeCase),
+    frontendCampaign: frontend.prepared,
+    runtimeCampaign: runtime.prepared,
   });
 }

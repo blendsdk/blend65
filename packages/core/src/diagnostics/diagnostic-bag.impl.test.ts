@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createDiagnosticBag } from "./diagnostic-bag.js";
+import { createDiagnosticBag, type DiagnosticBagAcceptedEntry } from "./diagnostic-bag.js";
 import { DiagCode, IceCode } from "./diagnostic-codes.js";
 import { makeSpan } from "./source-span.js";
 
@@ -184,5 +184,68 @@ describe("DiagnosticBag never throws (ST-27)", () => {
       bag.addICE("anything", null, "");
     }).not.toThrow();
     expect(bag.count()).toBeGreaterThan(0);
+  });
+});
+
+describe("DiagnosticBag accepted-entry observation", () => {
+  it("observes only entries retained after deduplication and the error cap", () => {
+    const accepted: string[] = [];
+    const bag = createDiagnosticBag({
+      maxErrors: 1,
+      onAccepted(entry): void {
+        accepted.push(`${entry.acceptanceOrdinal}:${entry.diagnostic.code}`);
+      },
+    });
+    const span = makeSpan(0, 0, 1);
+    bag.addError(DiagCode.UndeclaredIdentifier, span, "first");
+    bag.addError(DiagCode.UndeclaredIdentifier, span, "duplicate");
+    bag.addError(DiagCode.AssignToConst, makeSpan(0, 2, 3), "capped");
+
+    expect(accepted).toEqual([`0:${DiagCode.UndeclaredIdentifier}`, `1:${DiagCode.TooManyErrors}`]);
+  });
+
+  it("keeps accepted diagnostics when an additive observer throws", () => {
+    const bag = createDiagnosticBag({
+      onAccepted(): void {
+        throw new Error("observer failure");
+      },
+    });
+    expect(() => bag.addWarning(DiagCode.UnusedVariable, null, "unused")).not.toThrow();
+    expect(bag.getWarnings()).toHaveLength(1);
+  });
+
+  it("isolates deeply frozen observer snapshots from stored diagnostics", () => {
+    let observed: DiagnosticBagAcceptedEntry | undefined;
+    const bag = createDiagnosticBag({
+      onAccepted(entry): void {
+        observed = entry;
+        Reflect.set(entry.diagnostic, "code", "E99999");
+        Reflect.set(entry.diagnostic.primarySpan ?? {}, "start", 999);
+        Reflect.set(entry.diagnostic.secondarySpans[0] ?? {}, "label", "mutated");
+        Reflect.set(entry.diagnostic.secondarySpans[0]?.span ?? {}, "end", 999);
+        Reflect.set(entry.diagnostic.notes, "0", "mutated");
+      },
+    });
+    bag.addError(DiagCode.AssignToConst, makeSpan(1, 2, 3), "immutable", {
+      secondarySpans: [{ span: makeSpan(1, 4, 5), label: "related" }],
+      notes: ["original note"],
+      help: "original help",
+    });
+
+    const stored = bag.getErrors()[0];
+    expect(stored).toMatchObject({
+      code: DiagCode.AssignToConst,
+      primarySpan: { sourceId: 1, start: 2, end: 3 },
+      secondarySpans: [{ span: { sourceId: 1, start: 4, end: 5 }, label: "related" }],
+      notes: ["original note"],
+    });
+    expect(bag.hasErrors()).toBe(true);
+    expect(observed?.diagnostic).not.toBe(stored);
+    expect(Object.isFrozen(observed?.diagnostic)).toBe(true);
+    expect(Object.isFrozen(observed?.diagnostic.primarySpan)).toBe(true);
+    expect(Object.isFrozen(observed?.diagnostic.secondarySpans)).toBe(true);
+    expect(Object.isFrozen(observed?.diagnostic.secondarySpans[0])).toBe(true);
+    expect(Object.isFrozen(observed?.diagnostic.secondarySpans[0]?.span)).toBe(true);
+    expect(Object.isFrozen(observed?.diagnostic.notes)).toBe(true);
   });
 });
