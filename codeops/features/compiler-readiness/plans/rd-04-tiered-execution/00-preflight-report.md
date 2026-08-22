@@ -1,11 +1,10 @@
 # Preflight Report: RD-04 Tiered Compiler, ACME and VICE Execution Plan
 
-> **Status**: ❌ PREFLIGHT BLOCKED — 14 major findings unresolved
-> **Iteration**: 1 (first scan)
+> **Status**: ✅ PREFLIGHT PASSED — 0 critical or major findings unresolved
+> **Iteration**: 5 (final exact verification)
 > **Artifact**: full implementation plan at `codeops/features/compiler-readiness/plans/rd-04-tiered-execution/`
-> **Audited Git Commit**: `29f8bd66265cbaef60aa55ca0c88765974ef6635`
-> **Audited Git Tree**: `7b6df04da7b9cc9e4ccf4ac133f4f5c9f2ec305f`
-> **Audited Content Hash**: `sha256:524ab8cb585a874f9d3b832b0bf894865e87c2cc563f8844bd063e6285cf3678`
+> **Audited Baseline Commit**: `db2a91bc753850f33c06ebda0f10c9e60f7efd8c`
+> **Audited Content Hash**: `sha256:f2a40d6a65ee0d40e5637247ac1e44916357e3ec73c1cc3f44e9ebfe93b036c7`
 > **Codebase Grounded**: 31 source/test/config files examined; 42 plan-to-code references verified
 > **Last Updated**: 2026-08-22
 >
@@ -57,14 +56,22 @@ explicit inference from those separate transports, not a claimed Node ordering r
 
 Counts overlap where one root cause spans dimensions; the finding total is deduplicated below.
 
-## Summary by Severity
+## Final Summary by Severity
 
-| Severity | Count | Status |
-|---|---:|---|
-| CRITICAL | 0 | None |
-| MAJOR | 14 | Remediations selected; fixes not applied |
-| MINOR | 3 | Remediations selected; fixes not applied |
-| OBSERVATION | 0 | None |
+| Severity | Encountered | Unresolved | Status |
+|---|---:|---:|---|
+| CRITICAL | 0 | 0 | None |
+| MAJOR | 30 | 0 | All remediated and verified |
+| MINOR | 6 | 0 | All remediated and verified |
+| OBSERVATION | 0 | 0 | None |
+
+| Iteration | Frozen hash | Result |
+|---:|---|---|
+| 1 | `524ab8cb…3678` | 14 major and 3 minor findings; auto-design rulings recorded below |
+| 2 | `cc207b1c…d3aa6` | 9 major and 1 minor residual/new findings; challenger-converged fixes applied |
+| 3 | `9dfd6a8e…9e60` | 5 major and 1 minor dependency-surface findings; fixes applied |
+| 4 | `5fbc85d4…484d` | 2 major and 1 minor exact-contract findings; fixes applied |
+| 5 | `f2a40d6a…36c7` | Two independent exact rechecks: no findings |
 
 ## Findings
 
@@ -91,7 +98,7 @@ subsequent `$A5` readback. Add midway-through-chunk, post-return mutation, final
 cleanup tests. Single-stepping was rejected as incompatible with the
 10,000,000-instruction/120-second envelope.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; Option B selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; Option B selected, applied and verified.
 
 ### PF-002: Cleanup failure precedence contradicts first-terminal semantics 🟠 MAJOR
 
@@ -108,7 +115,7 @@ structured cleanup blocker; treat pass as provisional so cleanup failure becomes
 earlier failure exists. Every recovery ambiguity prevents authority and retains the lease. Always
 replacing the primary result was rejected because it hides the original deterministic failure.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-003: Write cases lack a post-write C64 MMIO projection 🟠 MAJOR
 
@@ -126,7 +133,7 @@ and leave RD-03 logical effects unchanged. Test the existing `$20`/`$2000` value
 mutants. Changing RD-03 expectations was rejected because it would conflate logical semantics with
 target readback.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-004: Specification-visible TypeScript interfaces are incomplete 🟠 MAJOR
 
@@ -143,7 +150,7 @@ signatures for every spec-visible constructor, validator, planner, envelope/evid
 supervisor seam, VICE control/lease operation, publication/composite resolver and orchestrator.
 Leave internal helpers undesigned.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-005: Phase 4 specification placement creates a reverse dependency 🟠 MAJOR
 
@@ -159,7 +166,7 @@ The test cannot turn green without a dependency cycle or an ownership reversal.
 compatibility stay in test-harness; lease, identity, launch policy, cumulative budgets and cleanup
 move to readiness-execution. Update the RED/GREEN tasks and testing table together.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-006: Child-publication authority is absent from the source-boundary gate 🟠 MAJOR
 
@@ -176,7 +183,7 @@ complete-source tests. Preserve the existing publication-v1 owner set and immuta
 unchanged; prove ordinary modules cannot access either authority family. A shared broad allowlist
 was rejected because it weakens historical ownership.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-007: Cross-workspace content-derived route authority is undefined 🟠 MAJOR
 
@@ -200,7 +207,7 @@ violate the package boundary.
 revision rejection and one-byte mutation tests. Arbitrary registration and current-handler fallback
 are forbidden.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; Option A selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; Option A selected, applied and verified.
 
 ### PF-008: Evidence freeze and publication selection precede code-changing reviews 🟠 MAJOR
 
@@ -217,7 +224,7 @@ candidate generation. In final closeout: review/fix → full CI-safe verify → 
 closure generation → semantic acceptance → candidate resolution → atomic selection → non-mutating
 post-selection source/resolution checks.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-009: Durable VICE lease namespace and filesystem trust are unspecified 🟠 MAJOR
 
@@ -234,7 +241,7 @@ retained device/inode/UID identity; bounded no-follow reads/writes; atomic repla
 sync. Fail closed when trust cannot be proven. Repository-local locking was rejected because it
 does not satisfy host-wide exclusivity.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-010: Spawn-before-child-record recovery cannot identify the child 🟠 MAJOR
 
@@ -259,7 +266,7 @@ a recorded identity. Feature-gate `process.execve` (present in the audited Node 
 report VICE unavailable when the pinned runtime cannot provide it. Add real crashes before record,
 after record and after exec. Command-substring or PID-only discovery remains forbidden.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; Option B selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; Option B selected, applied and verified.
 
 ### PF-011: Route deadline reserves no time for mandatory cleanup 🟠 MAJOR
 
@@ -275,7 +282,7 @@ the configured grace.
 child-capable limits that cannot contain the fixed grace, and reserve the interval for cleanup.
 Unproven safe termination at the hard deadline retains the lease and blocks authority.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-012: Combined stdout/stderr ordering cannot be deterministic over separate pipes 🟠 MAJOR
 
@@ -293,7 +300,7 @@ retain independent head/tail/count/hash/truncation records, and serialize them i
 non-authoritative. Treating observed callback order as authoritative was rejected because it is not
 reproducible.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-013: Local execution command, report and durable evidence sink are undefined 🟠 MAJOR
 
@@ -310,7 +317,7 @@ stdout/stderr contract, canonical bounded report schema, atomic durable output/o
 the digest handoff to semantic review. Test invalid usage, unavailable tools, semantic failure,
 atomic-write faults, deterministic reruns and absence of machine-specific temporary paths.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-014: Ambiguous lease recovery has no safe operator workflow 🟠 MAJOR
 
@@ -327,7 +334,7 @@ and a separately guarded exact-generation clear operation after positive confirm
 child is absent. Never instruct raw file deletion or PID-only signaling. Test changed/stale records,
 restricted hosts, bounded output and no unrelated signal.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-015: Stable result-code spellings conflict 🟡 MINOR
 
@@ -342,7 +349,7 @@ restricted hosts, bounded output and no unrelated signal.
 **Recommendation:** Add one canonical result-code table and use RD-04's exact public literals. If
 adapter-internal subcodes remain useful, define their separate field and normalization explicitly.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-016: Absolute VICE stopwatch accounting is undefined across retries 🟡 MINOR
 
@@ -358,7 +365,7 @@ and deltas.
 monotonic deltas, and add them to a route total retained across retries. Counter decrease, missing
 sample or child-identity change fails closed. Test restart and exact-bound cases.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
 
 ### PF-017: Historical child reselection has no guarded operational surface 🟡 MINOR
 
@@ -374,7 +381,19 @@ republishing current code.
 child bytes, exact parent and accepted review before atomic pointer replacement. Test old→new→old
 and reconciliation faults; never document manual pointer editing.
 
-**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected; fix pending.
+**User Decision:** `Authority: AI — delegated by --auto-design`; recommendation selected, applied and verified.
+
+## Corrective Iteration Findings
+
+| IDs | Iteration | Severity | Deduplicated root causes | Resolution |
+|---|---:|---|---|---|
+| PF-018–PF-027 | 2 | 9 major, 1 minor | Composite opacity; aggregate output arbitration; Phase 6 spec ownership; missing adapter contracts; incomplete fixture/handler identity; missing callable parser/reducer; missing launch-attempt budget; untrusted envelope construction; forgeable lease handle; `pass` admitted as an operation issue | Challenger-converged remedies applied |
+| PF-028–PF-033 | 3 | 5 major, 1 minor | Future composite required by Phase 1; opaque case unreadable across package boundary; flood samples scheduler-dependent; reducer lacked a provisional pass base; parent-thread facade dependencies contradicted worker isolation; composite forgery lacked immutable coverage | Remedies applied |
+| PF-034–PF-036 | 4 | 2 major, 1 minor | Provisional base omitted pass stage; specs did not pin all four worker mappings; detached mutable bytes were overstated as deeply immutable | Remedies applied |
+
+Iteration 5 independently rechecked only PF-034–PF-036 and returned no findings. Earlier corrective
+surfaces were frozen between scans, and each subsequent iteration was bounded to the prior fixes
+plus their direct dependency surfaces. The final plan contains 88 tasks and ST-01–ST-62.
 
 ## Auto-Design Resolution Provenance
 
@@ -420,10 +439,12 @@ for PF-009/PF-010/PF-014 and empirical VICE binary-monitor expertise for PF-001/
 
 ## Verdict and Required Follow-up
 
-The remediation decisions are complete, but `--auto-design` does not authorize applying fixes.
-Because 14 major defects remain in the audited documents, the plan is **blocked** and the roadmap
-must remain at **Plan Created**. Apply the selected plan-document fixes, then run Iteration 2 against
-the unchanged target to verify every fix, check regressions and re-scan all 13 dimensions.
+**PASS.** All 36 encountered findings were remediated under delegated auto-design authority; the
+final exact verification returned no findings at
+`sha256:f2a40d6a65ee0d40e5637247ac1e44916357e3ec73c1cc3f44e9ebfe93b036c7`.
+The implementation plan may advance to **Plan Preflighted** and execution may begin at Phase 1.
 
-No source file, existing immutable specification, requirement or frozen `spec/` file was modified by
-this audit.
+No source file, existing immutable specification, requirement or frozen `spec/` file was modified
+by this audit. The optional human Linux process-lifecycle and VICE monitor review remains prudent
+but is not a blocking gate because the implementation plan already requires empirical crash,
+identity and STORE-watchpoint proof before publication authority can be selected.

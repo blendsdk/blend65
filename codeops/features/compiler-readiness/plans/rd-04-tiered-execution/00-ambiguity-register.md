@@ -125,7 +125,8 @@ second emulator proves the control contract is genuinely cross-platform.
 digest-named releases. Each release contains a closed six-row binding member, exact parent
 publication digest, manifest and accepted semantic-review evidence. Resolution revalidates review,
 parent digest, declarations and content-derived implementations before creating opaque
-`PublishedExecutionContext`; a composite resolver projects exactly accepted parent `unbound`
+`PublishedExecutionRelease`; readiness-execution separately creates a branded
+`LiveExecutionContextV1` after fixed-catalog freshness proof, and a composite resolver projects exactly accepted parent `unbound`
 capabilities as bound. Pointer replacement uses existing hardened publication primitives and
 reconciliation semantics.<br>
 **Evidence:** existing publication-v1 is immutable and its filesystem/resolver already implements
@@ -152,7 +153,7 @@ boundary family. It ranks each candidate by a domain-separated digest over paren
 selector revision and obligation, takes one per non-empty stratum in lexical round-robin order,
 and guarantees at least one valid VICE case per modeled mandatory-C64 runtime rule. V1 caps are 16
 selected cases per rule/expensive obligation and 256 expensive selections per campaign. If required
-minima cannot fit, planning fails `execution.plan.capacity`; it never truncates an obligation.
+minima cannot fit, planning fails `execution-plan-capacity`; it never truncates an obligation.
 **Evidence:** campaign items already expose stable lane/path/case identities; RD-04 requires
 pre-execution, stratified, revision-bound selection.<br>
 **Rejected alternatives:** ordinal-first selection biases generation order; failure-triggered
@@ -220,7 +221,8 @@ stable code, cumulative usage and bounded evidence. Stages are input → capabil
 compiler-api/CLI → emit → ACME → VICE launch → handshake → fixture → run → observe →
 compare → cleanup. The first terminal stage wins. Within one VICE checkpoint, instruction
 exhaustion precedes cycle exhaustion while recording both; a fired wall watchdog is terminal before
-route return. Missing tools are `tier-unavailable`, not launch failures.<br>
+route return. Missing tools are `tier-unavailable`, not launch failures. Public results use only
+the canonical RD-compatible literals in `03-01`; adapter detail stays in `adapterSubcode`.<br>
 **Evidence:** RD-04 enumerates required categories and precedence.<br>
 **Rejected alternatives:** exceptions/free-form strings are not closed or replay-stable.<br>
 **Strongest counterargument:** a large union adds maintenance overhead when stages evolve.<br>
@@ -283,7 +285,7 @@ actual acceptance environment.
 **Objective:** Keep RD-04 concepts distinct from RD-02 campaigns and parent publications.<br>
 **Decision:** Use package `@blend65/readiness-execution`; artifact root
 `readiness/execution-publications`; core types `ExecutionRoutePlanV1`, `ExecutionEnvelopeIrV1`,
-`ExecutionBudgetV1`, `ExecutionResultV1`, `PublishedExecutionContext` and
+`ExecutionBudgetV1`, `ExecutionResultV1`, `PublishedExecutionRelease`, `LiveExecutionContextV1` and
 `CompositeReadinessSnapshot`; focused kebab-case `execution-*` modules. Only passive contracts and
 opaque capabilities export from readiness; real adapters export from the composition package;
 low-level monitor control exports only from test-harness's `./vice-control` subpath.<br>

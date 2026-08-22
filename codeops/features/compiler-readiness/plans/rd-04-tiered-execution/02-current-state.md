@@ -110,4 +110,4 @@ revalidation. (AR-P4, AR-P10, AR-P11)
 | PID reuse signals unrelated process | Low | Critical | Boot/start/token identity and pre-signal revalidation (AR-P11) |
 | Output cap deadlocks child pipe | Low | High | Continue draining while retaining bounded head/tail/hash only (AR-P10) |
 | CI silently misses VICE | Certain | High | Missing tier is a blocker; publication requires recorded local proof (AR-P13) |
-| Selector caps hide obligations | Low | Critical | Fail `execution.plan.capacity`; never truncate required minima (AR-P6) |
+| Selector caps hide obligations | Low | Critical | Fail `execution-plan-capacity`; never truncate required minima (AR-P6) |

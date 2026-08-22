@@ -12,9 +12,12 @@ replayable campaign result. Preserve every blocker outside the executed modeled 
 ## Entry point
 
 `executeReadinessCampaign` accepts opaque selected parent/execution/oracle contexts, a prepared
-campaign, target, selector revision, policy and an explicit environment capability probe. It first
-derives and serializes the complete `ExecutionRoutePlanV1`; only then may it create a case workspace
-or call an adapter.
+campaign, target, selector revision, policy and an explicit environment capability probe. The live
+context's private state supplies its already validated passive release; the orchestrator resolves
+that release with the selected parent, obtains the guarded composite projection and passes only
+that projection to the pure planner. It then derives and serializes the complete
+`ExecutionRoutePlanV1`; only then may it create a case workspace or call an adapter. A failed or
+forged composite/projection handoff cannot reach planning or execution.
 
 For each planned selection it builds a valid-only envelope when required, executes prerequisite
 stages in order, captures the actual diagnostic/value/effect, and asks the selected RD-03 evaluator
@@ -52,9 +55,96 @@ The workspace exposes a documented local execution command through the new packa
 but CI does not pretend to provide emulator authority. Reports must state tool versions and evidence
 digests without embedding machine-specific temporary paths.
 
+The exact local command is:
+
+```text
+yarn readiness:execute -- --target c64 --seed <64-lowercase-hex> [--report readiness/execution-evidence/rd-04-local-v1.json]
+```
+
+`--target c64` and `--seed` occur exactly once; the only optional flag is `--report`, whose value
+must be the exact repository-relative default path shown above. Unknown, duplicate, absolute,
+traversing or alternate-output arguments exit `2` and print the one-line grammar to stderr. The
+command resolves the selected parent/oracle authority, prepares the deterministic modeled campaign,
+probes ACME and VICE and executes every selected route. Exit `0` means every selected case passed
+and the report was atomically persisted; `1` means a semantic/execution blocker with a valid report;
+`3` means a required local tool is unavailable; `4` means trusted report publication or cleanup
+failed. Stdout contains only the canonical JSON summary plus newline. Stderr contains bounded
+human diagnostics sorted by code/path and no temporary path.
+
+The mode-`0600` report is written to a sibling temporary file under a verified mode-`0700`
+`readiness/execution-evidence` directory, file-synced, renamed without overwrite unless existing
+bytes are identical, and directory-synced. A fault preserves the prior report. The canonical
+`ExecutionAuthorityReportV1` contains schema revision, parent/oracle/campaign/plan/final execution
+digests, target, seed, normalized tool names/versions, projection revisions, per-route result and
+evidence digests, cumulative usage, cleanup blockers and overall result; it contains no cwd,
+absolute path, PID, port or timestamp. Its byte digest is the mandatory input to semantic review.
+Identical authority, seed, tools and results reproduce identical report bytes.
+
 ## Closeout
 
 At completion, update the feature roadmap and closeout evidence. Before marking RD-04 complete,
 walk ambiguity registers, Won't Have clauses and `spec/future-considerations.md` and answer whether
 any deliverable expired a deferral rationale. Reopen every expired restriction as an owned backlog
 or expressiveness-ledger row; no future-slice owner may become orphaned.
+
+## Specification-visible TypeScript interface
+
+The following declarations are exported from `@blend65/readiness-execution`:
+
+```ts
+export interface ExecuteReadinessCampaignInputV1 {
+  readonly parent: PublishedSnapshot;
+  readonly execution: LiveExecutionContextV1;
+  readonly oracle: PublishedOracleContext;
+  readonly campaign: PreparedCampaign;
+  readonly target: 'c64';
+  readonly policy: ExecutionPolicyV1;
+  readonly capabilities: ExecutionEnvironmentCapabilitiesV1;
+}
+export interface ExecutionEnvironmentCapabilitiesV1 {
+  readonly acme: { readonly available: boolean; readonly version?: string };
+  readonly vice: { readonly available: boolean; readonly version?: string };
+}
+export interface ExecutionToolVersionV1 {
+  readonly tool: 'node' | 'acme' | 'vice';
+  readonly version: string;
+}
+export interface ExecutionCampaignSummaryV1 {
+  readonly status: 'pass' | 'failure' | 'unavailable';
+  readonly selectedCases: number;
+  readonly passedCases: number;
+  readonly blockers: readonly string[];
+}
+export interface ExecutionAuthorityReportV1 {
+  readonly revision: 'execution-authority-report-v1';
+  readonly parentDigest: string;
+  readonly oracleDigest: string;
+  readonly campaignDigest: string;
+  readonly routePlanDigest: string;
+  readonly target: 'c64';
+  readonly seed: string;
+  readonly toolVersions: readonly ExecutionToolVersionV1[];
+  readonly projectionRevisions: readonly ExecutionProjectionRevisionV1[];
+  readonly results: readonly ExecutionResultV1[];
+  readonly summary: ExecutionCampaignSummaryV1;
+}
+export function executeReadinessCampaign(
+  input: ExecuteReadinessCampaignInputV1,
+): Promise<ExecutionOperationResultV1<ExecutionAuthorityReportV1>>;
+export function serializeExecutionAuthorityReportV1(
+  report: ExecutionAuthorityReportV1,
+): Uint8Array;
+export function writeExecutionAuthorityReportV1(
+  repositoryRoot: string,
+  report: ExecutionAuthorityReportV1,
+): Promise<ExecutionOperationResultV1<string>>;
+export interface ExecutionCliIoV1 {
+  readonly cwd: string;
+  writeOut(text: string): void;
+  writeErr(text: string): void;
+}
+export function runReadinessExecutionCliV1(
+  argv: readonly string[],
+  io: ExecutionCliIoV1,
+): Promise<0 | 1 | 2 | 3 | 4>;
+```

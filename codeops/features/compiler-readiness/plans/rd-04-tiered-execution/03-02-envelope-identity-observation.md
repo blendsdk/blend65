@@ -17,16 +17,31 @@ complete typed external argument literals, one entry call, actual-observation de
 non-success completion initializer and one completion-last store. Its validator accepts only the
 closed primitive set required by the nine modeled rules.
 
+Fresh construction never trusts those structural fields. `createExecutionCaseV1` accepts a
+genuine opaque `PreparedCampaign` plus ordinal, regenerates the factory-owned case, rejects every
+non-valid case and derives the source digest, entry, ordered typed arguments and observation into
+a module-private-brand `ExecutionCaseV1` whose regenerated case and envelope live in a
+module-private `WeakMap`. The structural parser exists only for historical replay;
+parsed bytes must resolve through the named historical campaign before rendering or execution.
+Plain or copied envelope objects are never executable authority.
+The readiness-owned guarded `getExecutionCaseProjectionV1` verifies that opaque handle against the
+private registry and returns a frozen passive record graph whose returned source bytes are a fresh,
+caller-owned mutable copy. Mutating that copy can never affect registered state or a later
+projection. The execution package's
+renderer and adapters pass the original handle to that accessor; they never inspect or duplicate
+the private registry. A projection is data for rendering and identity only, never execution
+authority, and cannot be passed where an `ExecutionCaseV1` is required.
+
 The renderer emits a deterministic `main(): void` for valid cases. Scalar-returning cases store the
 actual bytes into compiler-allocated module globals. Memory-write intrinsics use the narrowly
 declared direct MMIO observable when mirroring into RAM would change semantics. The completion byte
 starts at `0x00` and is written `0xA5` only after every actual store. Invalid diagnostic cases keep
 their exact original source and cannot be enveloped.
 
-## Initial state projection
+## Initial and actual-observation projections
 
-`ExecutionInitialStateFixtureV1` and projection `c64-vic-color-readback-v1` establish the current
-C64 fixture:
+`ExecutionInitialStateFixtureV1` and input projection `c64-vic-color-readback-v1` establish the
+current C64 fixture:
 
 | Cell | Before entry | Oracle-visible value |
 |---|---|---|
@@ -39,11 +54,20 @@ before entry and gives the identical host fixture to RD-03 evaluation. A missing
 projection, or readback mismatch is non-passing. The projection cannot become selectable authority
 until real VICE proves all three registers plus direct `$D020` and computed `$D021` word starts.
 
+Actual memory writes use the separate versioned projection
+`c64-vic-color-observation-v1`. It leaves RD-03's logical effects unchanged and maps every logical
+write byte observed at `$D020..$D022` to `0xF0 | (logicalByte & 0x0F)` before comparing it with
+VICE readback. Both projection revisions enter the execution identity. The direct `$20` case must
+therefore observe `$F0`, and the `$2000` word case must observe `$F0F0`; low-nibble mutants must
+still fail. Input fixture projection and post-write observation projection share one immutable
+register-behavior table so their address and nibble rules cannot drift.
+
 ## Two-stage execution identity
 
 1. The pre-build identity hashes the immutable source-case identity, rendered source digest,
-   argument bindings, envelope/selector/fixture revisions, target, budgets, handler revisions and
-   declared observation request.
+   argument bindings, envelope/selector/fixture revisions, canonical fixture-content digest,
+   target, budgets, the lexically sorted handler participant tuples
+   `{capabilityId, contractVersion, implementationRevision}` and declared observation request.
 2. The final identity additionally hashes ACME label/report-derived addresses and the accepted
    layout proof.
 
@@ -65,3 +89,125 @@ Envelope validation, expectation-text leakage, incomplete arguments, stale senti
 labels, overlapping ranges, unsupported direct observables and fixture mismatches return stable
 pre-runtime failures. No such failure may be converted into partial passing evidence or allowed to
 launch VICE.
+
+## Specification-visible TypeScript interface
+
+The following declarations are exported from `@blend65/readiness`:
+
+```ts
+export type ExecutionProjectionRevisionV1 =
+  | 'c64-vic-color-readback-v1'
+  | 'c64-vic-color-observation-v1';
+export interface ExecutionArgumentLiteralV1 {
+  readonly name: string;
+  readonly type: 'boolean' | 'byte' | 'sbyte' | 'word' | 'sword';
+  readonly value: number | boolean;
+}
+export interface ExecutionObservationRequestV1 {
+  readonly kind: 'scalar-bytes' | 'direct-mmio';
+  readonly byteLength: 1 | 2;
+  readonly address?: number;
+  readonly projectionRevision?: ExecutionProjectionRevisionV1;
+}
+export interface ExecutionEnvelopeIrV1 {
+  readonly revision: 'execution-envelope-ir-v1';
+  readonly sourceCaseDigest: string;
+  readonly arguments: readonly ExecutionArgumentLiteralV1[];
+  readonly entryFunction: string;
+  readonly observation: ExecutionObservationRequestV1;
+  readonly completionInitialValue: 0;
+  readonly completionSuccessValue: 165;
+}
+export interface ExecutionInitialStateFixtureV1 {
+  readonly revision: 'c64-vic-color-readback-v1';
+  readonly cells: readonly { readonly address: number; readonly logicalValue: number }[];
+}
+declare const EXECUTION_CASE_BRAND: unique symbol;
+export interface ExecutionCaseV1 {
+  readonly [EXECUTION_CASE_BRAND]: true;
+}
+export interface ExecutionCaseProjectionV1 {
+  readonly sourceCaseDigest: string;
+  readonly sourceBytes: Uint8Array;
+  readonly envelope: ExecutionEnvelopeIrV1;
+  readonly fixture: ExecutionInitialStateFixtureV1;
+  readonly observation: ExecutionObservationRequestV1;
+}
+export interface ExecutionObservationLayoutV1 {
+  readonly revision: 'execution-observation-layout-v1';
+  readonly resultAddresses: readonly number[];
+  readonly completionAddress: number;
+  readonly proofDigest: string;
+}
+export interface ExecutionAddressRangeV1 {
+  readonly start: number;
+  readonly length: number;
+}
+export interface ExecutionPrebuildIdentityInputV1 {
+  readonly sourceCaseDigest: string;
+  readonly renderedSourceDigest: string;
+  readonly argumentsDigest: string;
+  readonly envelopeRevision: 'execution-envelope-ir-v1';
+  readonly selectorRevision: string;
+  readonly fixtureRevision: 'c64-vic-color-readback-v1';
+  readonly fixtureDigest: string;
+  readonly observationProjectionRevision?: 'c64-vic-color-observation-v1';
+  readonly target: 'c64';
+  readonly policyDigest: string;
+  readonly handlers: readonly ExecutionHandlerIdentityV1[];
+  readonly observation: ExecutionObservationRequestV1;
+}
+export interface ExecutionHandlerIdentityV1 {
+  readonly capabilityId: ExecutionCapabilityIdV1;
+  readonly contractVersion: string;
+  readonly implementationRevision: string;
+}
+export interface ExecutionLayoutProofInputV1 {
+  readonly labels: ReadonlyMap<string, number>;
+  readonly codeRanges: readonly ExecutionAddressRangeV1[];
+  readonly dataRanges: readonly ExecutionAddressRangeV1[];
+  readonly semanticRanges: readonly ExecutionAddressRangeV1[];
+  readonly stackRanges: readonly ExecutionAddressRangeV1[];
+  readonly observationSymbols: readonly string[];
+  readonly completionSymbol: string;
+}
+export function parseExecutionEnvelopeIrV1(
+  input: unknown,
+): ExecutionOperationResultV1<ExecutionEnvelopeIrV1>;
+export function createExecutionCaseV1(
+  campaign: PreparedCampaign,
+  ordinal: number,
+  observation: ExecutionObservationRequestV1,
+): ExecutionOperationResultV1<ExecutionCaseV1>;
+export function resolveExecutionEnvelopeReplayV1(
+  campaign: PreparedCampaign,
+  envelope: ExecutionEnvelopeIrV1,
+): ExecutionOperationResultV1<ExecutionCaseV1>;
+export function getExecutionCaseProjectionV1(
+  executionCase: ExecutionCaseV1,
+): ExecutionOperationResultV1<ExecutionCaseProjectionV1>;
+export function projectC64InitialStateV1(
+  address: number,
+  logicalByte: number,
+): ExecutionOperationResultV1<number>;
+export function projectC64ActualWriteV1(
+  address: number,
+  logicalByte: number,
+): ExecutionOperationResultV1<number>;
+```
+
+The following declarations are exported from `@blend65/readiness-execution`:
+
+```ts
+export function renderExecutionEnvelopeV1(
+  executionCase: ExecutionCaseV1,
+): ExecutionOperationResultV1<string>;
+export function derivePrebuildExecutionIdentityV1(input: ExecutionPrebuildIdentityInputV1): string;
+export function resolveExecutionObservationLayoutV1(
+  input: ExecutionLayoutProofInputV1,
+): ExecutionOperationResultV1<ExecutionObservationLayoutV1>;
+export function deriveFinalExecutionIdentityV1(
+  prebuildIdentity: string,
+  layout: ExecutionObservationLayoutV1,
+): string;
+```

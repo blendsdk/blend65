@@ -3,7 +3,7 @@
 > **Feature-Set**: Compiler Readiness
 > **Status**: In Progress
 > **Created**: 2026-07-23
-> **Last Updated**: 2026-08-21
+> **Last Updated**: 2026-08-22
 > **Progress**: 3 / 8 (38%)
 > **CodeOps Artifact Schema**: 1
 
@@ -18,7 +18,7 @@
 | RD-01 | Specification inventory and rule schema | [RD-01](requirements/RD-01-specification-inventory.md) | [Plan](plans/rd-01-specification-inventory/00-index.md) | Done | ✅ | 2026-07-24 | 69/69 tasks; 351 readiness tests; 95.17% branch coverage; quality gate resolved |
 | RD-02 | Typed generative cases and deterministic replay | [RD-02](requirements/RD-02-generative-cases.md) | [Plan](plans/rd-02-generative-cases/00-index.md) | Done | ✅ | 2026-07-26 | 71/71 tasks; atomic publication selected; filesystem hardening independently accepted; 952 readiness tests and exact full verify green |
 | RD-03 | Independent semantic, diagnostic and metamorphic oracles | [RD-03](requirements/RD-03-independent-oracles.md) | [Plan](plans/rd-03-independent-oracles/00-index.md) | Done | ✅ | 2026-07-29 | 72/72 tasks; nine-binding publication selected at `sha256:41557dde…e2706`; historical four-binding authority remains resolvable; 1,316 readiness tests; 90.11% branch coverage; exact full verify green |
-| RD-04 | Tiered compiler, ACME and VICE execution | [RD-04](requirements/RD-04-tiered-execution.md) | [Plan](plans/rd-04-tiered-execution/00-index.md) | Plan Created | 📋 | 2026-08-21 | depends on RD-02, RD-03; 7 phases / 79 tasks; ambiguity gate passed with 14 resolved decisions |
+| RD-04 | Tiered compiler, ACME and VICE execution | [RD-04](requirements/RD-04-tiered-execution.md) | [Plan](plans/rd-04-tiered-execution/00-index.md) | Plan Preflighted | 🔬 | 2026-08-22 | depends on RD-02, RD-03; 7 phases / 88 tasks; preflight passed after 5 iterations with 36 findings resolved and final exact recheck clean |
 | RD-05 | Failure classification, shrinking and regression promotion | [RD-05](requirements/RD-05-failure-reduction.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-02, RD-04 |
 | RD-08 | Complete C64 rule models, generator coverage and oracle-contract expansion | — | — | Backlog | ⬜ | 2026-07-27 | depends on RD-02, RD-03; owns arrays, nested calls, branches, loops, loop-unrolling relations and the remaining 2,103 rule models |
 | RD-06 | Readiness matrix, release gate and legacy evidence | [RD-06](requirements/RD-06-readiness-gate.md) | — | RD Drafted | ✏️ | 2026-07-23 | depends on RD-01–RD-05 and RD-08 |
