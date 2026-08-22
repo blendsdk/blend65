@@ -45,5 +45,5 @@ export const COMPATIBLE_PUBLICATION_AUTHORITY_REVISION: GeneratedCandidateRevisi
     "packages/readiness/src/strict-json.ts",
     "packages/readiness/src/versioning.ts",
   ]),
-  claimedRevision: "sha256:4c307fe2cf9e1af11a213b168ff604523fbba10d49cc1930fb522f87ad64adc6",
+  claimedRevision: "sha256:43fbd0b5a5c38b562f2ef32659fd868c97af9bd808b870818878681aa11a7b21",
 });

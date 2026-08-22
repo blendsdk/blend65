@@ -122,6 +122,22 @@ export {
 } from "./oracle-mutation-model.js";
 export { runOracleMutationCatalog } from "./oracle-mutation-runner.js";
 export { ORACLE_V1_LIMITS } from "./oracle-model.js";
+export {
+  EXECUTION_MAXIMUM_BUDGET_V1,
+  EXECUTION_RESULT_CODES_V1,
+  EXECUTION_STAGES_V1,
+  EXECUTION_TIERS_V1,
+  isExecutionDigestV1,
+  isExecutionTierV1,
+  parseExecutionContractsV1,
+  parseExecutionPolicyV1,
+  reduceExecutionTerminalV1,
+} from "./execution-contracts.js";
+export { projectExecutionCampaignV1 } from "./execution-campaign-projection.js";
+export {
+  serializeExecutionRoutePlanPreimageV1,
+  serializeExecutionRoutePlanV1,
+} from "./execution-route-plan.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -467,6 +483,32 @@ export type {
   SemanticRelationId,
   ValueStateObservationV1,
 } from "./oracle-model.js";
+export type {
+  CompositeReadinessProjectionV1,
+  ExecutionBudgetV1,
+  ExecutionCampaignProjectionV1,
+  ExecutionCapabilityIdV1,
+  ExecutionCapabilityProjectionV1,
+  ExecutionCleanupBlockerV1,
+  ExecutionContractsV1,
+  ExecutionEvidenceSummaryV1,
+  ExecutionIssueV1,
+  ExecutionOperationIssueCodeV1,
+  ExecutionOperationResultV1,
+  ExecutionPlanningCaseV1,
+  ExecutionPolicyV1,
+  ExecutionResultCodeV1,
+  ExecutionResultV1,
+  ExecutionRoutePlanItemV1,
+  ExecutionRoutePlanV1,
+  ExecutionRuleProjectionV1,
+  ExecutionStageV1,
+  ExecutionTerminalBaseV1,
+  ExecutionTerminalCandidateV1,
+  ExecutionTierV1,
+  ExecutionUsageV1,
+} from "./execution-contracts.js";
+export type { ExecutionRoutePlanPreimageV1 } from "./execution-route-plan.js";
 export type {
   SemanticRelationHandlerV1,
   SemanticRelationModeledResultV1,

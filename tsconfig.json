@@ -11,6 +11,7 @@
     { "path": "packages/language-server" },
     { "path": "packages/vscode" },
     { "path": "packages/test-harness" },
-    { "path": "packages/readiness" }
+    { "path": "packages/readiness" },
+    { "path": "packages/readiness-execution" }
   ]
 }

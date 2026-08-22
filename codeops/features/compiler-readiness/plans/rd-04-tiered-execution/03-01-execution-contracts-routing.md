@@ -73,8 +73,8 @@ Version 1 requires `cleanupGraceMs === 3000`; it reserves 2,000 ms for graceful 
 
 `execution-selector-v1` performs these deterministic steps:
 
-1. Validate the guarded composite projection, prepared campaign and selected oracle context share
-   compatible parent, campaign, generator and oracle identities.
+1. Strictly validate the guarded composite and campaign projections, selected oracle digest and
+   policy share compatible parent, campaign, generator and oracle identities.
 2. Assign every case its cheapest declared decisive tier.
 3. For each additional obligation, group candidates by rule, obligation, validity, spelling tuple
    and boundary family.
@@ -94,9 +94,11 @@ prior execution outcome is an input.
 - `@blend65/readiness` owns validation schemas and passive types only; its workspace-import ban is
   unchanged.
 - `@blend65/readiness-execution` owns route selection and later execution.
-- RD-02 source-case identity is consumed, never rewritten.
+- RD-02 source-case identity is consumed through a passive campaign projection, never rewritten.
 - RD-03 expectations remain opaque host-side inputs and never enter the selector ranking beyond
-  their accepted context identity.
+  their accepted publication digest.
+- The structural projections and route plan convey no execution authority. Phase 7 alone obtains
+  them from genuine opaque capabilities before invoking this pure planner.
 
 ## Failure behavior
 
@@ -251,6 +253,29 @@ export interface CompositeReadinessProjectionV1 {
   readonly parentDigest: string;
   readonly executionDigest: string;
   readonly capabilities: readonly ExecutionCapabilityProjectionV1[];
+  readonly rules: readonly ExecutionRuleProjectionV1[];
+}
+export interface ExecutionRuleProjectionV1 {
+  readonly ruleId: string;
+  readonly applicability:
+    | 'mandatory-c64'
+    | 'not-applicable-c64'
+    | 'out-of-claim-target'
+    | 'blocked-errata';
+  readonly evidenceObligations: readonly ExecutionTierV1[];
+  readonly boundaryFamilyIds: readonly string[];
+}
+export interface ExecutionPlanningCaseV1 {
+  readonly caseIdentity: string;
+  readonly ruleId: string;
+  readonly validity: 'valid' | 'invalid';
+  readonly spellingTuple: readonly string[];
+  readonly boundaryFamilyId: string;
+}
+export interface ExecutionCampaignProjectionV1 {
+  readonly revision: 'execution-campaign-projection-v1';
+  readonly campaignDigest: string;
+  readonly cases: readonly ExecutionPlanningCaseV1[];
 }
 export interface ExecutionContractsV1 {
   readonly revision: 'execution-contracts-v1';
@@ -282,6 +307,9 @@ export function reduceExecutionTerminalV1(
   candidates: readonly ExecutionTerminalCandidateV1[],
 ): ExecutionResultV1;
 export function serializeExecutionRoutePlanV1(plan: ExecutionRoutePlanV1): Uint8Array;
+export function projectExecutionCampaignV1(
+  campaign: PreparedCampaign,
+): ExecutionOperationResultV1<ExecutionCampaignProjectionV1>;
 ```
 
 The following declarations are exported from `@blend65/readiness-execution`:
@@ -289,8 +317,8 @@ The following declarations are exported from `@blend65/readiness-execution`:
 ```ts
 export interface PlanExecutionRoutesInputV1 {
   readonly parent: CompositeReadinessProjectionV1;
-  readonly campaign: PreparedCampaign;
-  readonly oracle: PublishedOracleContext;
+  readonly campaign: ExecutionCampaignProjectionV1;
+  readonly oracleDigest: string;
   readonly policy: ExecutionPolicyV1;
 }
 export function planExecutionRoutesV1(

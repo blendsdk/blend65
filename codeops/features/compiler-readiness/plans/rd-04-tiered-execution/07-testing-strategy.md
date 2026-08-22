@@ -23,12 +23,12 @@ execution publication may be selected; missing tools produce blockers rather tha
 | ST-01 | Call `parseExecutionContractsV1` with each six-tier capability and one complete policy | Exact closed contracts accept and canonicalize | RD-04 MH-1; 03-01 |
 | ST-02 | Call `parseExecutionContractsV1` with an unknown tier/code/stage, extra property or duplicate capability | Input rejects before route planning | RD-04 MH-1/2; 03-01 |
 | ST-03 | Each operation, launch-attempt, route, cleanup, output, evidence, instruction, cycle and attempt budget at `0`, fraction, unsafe integer, max and max+1 | Only positive safe values through each inclusive maximum accept | RD-04 Technical Requirements; AR-P9 |
-| ST-04 | Same authority/campaign in two fresh processes | Byte-identical route plan and digest | RD-04 AC-2; AR-P6 |
-| ST-05 | Frontend, ACME and VICE terminal cases | Exact prerequisite order; no later adapter invoked | RD-04 AC-1; 03-01 |
+| ST-04 | Same serializable composite/campaign projections, oracle digest and policy in two fresh processes | Byte-identical route plan and digest without constructing opaque authority | RD-04 AC-2; AR-P6/P15 |
+| ST-05 | Frontend, ACME and VICE terminal cases | Exact prerequisite order; the pure planner exposes no adapter invocation seam, while Phase 3 proves real no-later-adapter behavior | RD-04 AC-1; 03-01; AR-P15 |
 | ST-06 | Valid/invalid, spelling and boundary strata in shuffled input | Same digest-ranked lexical round-robin selections | RD-04 MH-5; AR-P6 |
 | ST-07 | Four runtime rules with VICE obligation | At least one valid VICE case selected for each | RD-04 AC-3; AR-P6 |
 | ST-08 | Required minima exceed per-obligation or campaign cap | `execution-plan-capacity`; no partial plan/work | AR-P6; 03-01 |
-| ST-09 | Prior outcome data changes but authority/campaign do not | Selection is unchanged; no heuristic escalation | RD-04 MH-5; AR-P6 |
+| ST-09 | External prior outcome data changes while planner input stays identical, then an outcome field is added to the strict input | Selection is unchanged because outcomes are not inputs; the extra field rejects rather than enabling heuristic escalation | RD-04 MH-5; AR-P6/P15 |
 | ST-10 | Call `reduceExecutionTerminalV1` with an explicit provisional tier/stage/usage/evidence base, then no candidates, simultaneous staged failures, cleanup blocker and exhausted counters | Empty candidates preserve the exact base stage and evidence as pass; first operational result stays primary, cleanup blocker prevents authority, provisional pass becomes recovery-blocked, and instruction precedes cycle | RD-04 AC-7/8; AR-P9 |
 
 ### Envelope, identity and diagnostic evidence

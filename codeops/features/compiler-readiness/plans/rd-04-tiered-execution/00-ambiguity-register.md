@@ -333,12 +333,43 @@ checkpoints without asking and never push.<br>
 **Rejected alternative:** package-only shortcuts cannot establish repository-wide compatibility.<br>
 **Reopen trigger:** `AGENTS.md` or root manifests change the authoritative verify command.
 
+### AR-P15 — Serializable pure-planning boundary
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal API correction required to make an already-approved pure selector
+specifiable and implementable; no product scope or authority policy changes.<br>
+**Objective:** Let immutable tests prove fresh-process determinism without forging opaque campaign
+or oracle capabilities, while giving the selector all rule/obligation/case strata it needs.<br>
+**Decision:** `planExecutionRoutesV1` accepts only strict serializable passive projections: the
+guarded composite projection (including lexical rule obligations and boundary families), a guarded
+campaign projection (including case identity, validity, spelling tuple and exact boundary family),
+the selected oracle digest and policy. A readiness-owned `projectExecutionCampaignV1` derives the
+campaign projection from a genuine `PreparedCampaign`; Phase 7 derives the composite projection
+from genuine selected authority. The route plan conveys no authority and has no adapter dependency.
+ST-05 therefore proves prerequisite structure and that planning exposes no invocation seam; Phase 3
+owns real invocation absence. ST-09 proves outcomes are not an input and extra outcome fields reject.<br>
+**Evidence:** the original opaque inputs were not serializable across the two fresh processes
+required by ST-04, no public oracle-context fixture exists, and the selector could not read
+obligations or boundary families from the declared inputs.<br>
+**Rejected alternatives:** public test-only opaque factories would create counterfeit authority;
+making the planner invoke adapters would violate pre-execution purity; hard-coding current rule
+obligations would make RD-08 evolution unsafe.<br>
+**Strongest counterargument:** passive projections can be forged by direct callers.<br>
+**Resolution:** a forged projection can produce only a non-authoritative plan. The Phase 7
+orchestrator alone obtains projections through guarded accessors before any workspace or adapter
+exists, so executable authority is never delegated to the pure planner.<br>
+**Confidence:** High.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a route plan itself becomes executable authority or a future modeled rule needs
+more than one case-specific boundary-family witness under selector v1.
+
 ## Systematic 12-Category Closure
 
 | Category | Closure evidence |
 |---|---|
 | Feature gaps | RD-04 owns all six routes, selected modeled population, publication and local acceptance; RD-08 remains outside scope (AR-P1). |
-| Behavioral gaps | Selector, stage order, failure precedence and tool absence are closed (AR-P6, AR-P9). |
+| Behavioral gaps | Selector, passive projection boundary, stage order, failure precedence and tool absence are closed (AR-P6, AR-P9, AR-P15). |
 | Scope ambiguities | Planning target and modification set are explicit; no optional expansion was accepted (AR-P1). |
 | Technical unknowns | Package, provenance, VICE, process and publication mechanisms are selected (AR-P2–AR-P5, AR-P10–AR-P12). |
 | Edge cases | Fixture cells, exact limits, retries, PID reuse, crash states, stale sentinel and cleanup are owned (AR-P8–AR-P11). |

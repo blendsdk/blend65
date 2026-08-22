@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-08-22
-> **Progress**: 0/88 tasks (0%)
+> **Progress**: 11/88 tasks (13%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -45,17 +45,17 @@ ACME/VICE evidence is accepted.
 > **Lenses**: compiler-semantics, api-surface, performance
 > **Reference**: 03-01 · AR-P2, AR-P6, AR-P9 · ST-01–ST-10
 
-- [ ] 1.1.1 Create the behavior-free `@blend65/readiness-execution` package/test scaffold so its first immutable specification is discoverable; add no production source or readiness-core workspace import
-- [ ] 1.1.2 [spec-author] Write ST-01–ST-10 in new `packages/readiness-execution/src/execution-contracts-routing.spec.test.ts` from the declared interfaces only; do not open future implementation files
-- [ ] 1.1.3 Run the Phase 1 specification suite and record RED caused only by absent contracts/planner
-- [ ] 1.2.1 Connect the scaffold to the root TypeScript build, then add the exact documented passive execution tier, capability, composite-planning projection, stage, result, cleanup-blocker, policy and budget interfaces plus callable `parseExecutionContractsV1` and pure `reduceExecutionTerminalV1` seams in `packages/readiness/src/execution-contracts.ts`; use only canonical RD-compatible result codes
-- [ ] 1.2.2 Implement positive-safe-integer validation, inclusive canonical maxima and canonical serialization in focused readiness modules
-- [ ] 1.2.3 Implement pure passive-projection cheapest-tier assignment and independent prerequisite/obligation expansion in `execution-route-planner.ts`; the route plan conveys no execution authority
-- [ ] 1.2.4 Implement domain-separated candidate ranking, lexical strata and round-robin selection in `execution-selector.ts`
-- [ ] 1.2.5 Implement mandatory per-runtime-rule VICE minima and fail-closed 16/256 capacity accounting
-- [ ] 1.2.6 Run ST-01–ST-10 GREEN; fix production implementation only
-- [ ] 1.3.1 Add implementation tests for validation paths, canonical bytes, adversarial ordering, 10× population and budget/result precedence; prove ≥90% branch coverage for touched readiness cores
-- [ ] 1.3.2 Run configured correctness/semantics/performance review, resolve required findings, update plan/roadmap state, run full verification and auto-commit the green phase without pushing
+- [x] 1.1.1 Create the behavior-free `@blend65/readiness-execution` package/test scaffold so its first immutable specification is discoverable; add no production source or readiness-core workspace import — verified 2026-08-22 02:38 CEST
+- [x] 1.1.2 [spec-author] Write ST-01–ST-10 in new `packages/readiness-execution/src/execution-contracts-routing.spec.test.ts` from the declared interfaces only; do not open future implementation files — verified 2026-08-22 02:48 CEST; 13 assertions cover all 10 scenarios
+- [x] 1.1.3 Run the Phase 1 specification suite and record RED caused only by absent contracts/planner — verified 2026-08-22 02:49 CEST; 13/13 RED at missing `./index.js`
+- [x] 1.2.1 Connect the scaffold to the root TypeScript build, then add the exact documented passive execution tier, capability, composite-planning projection, stage, result, cleanup-blocker, policy and budget interfaces plus callable `parseExecutionContractsV1` and pure `reduceExecutionTerminalV1` seams in `packages/readiness/src/execution-contracts.ts`; use only canonical RD-compatible result codes — verified 2026-08-22 03:05 CEST
+- [x] 1.2.2 Implement positive-safe-integer validation, inclusive canonical maxima, canonical serialization and readiness-owned genuine-campaign → serializable planning projection in focused readiness modules — verified 2026-08-22 03:05 CEST
+- [x] 1.2.3 Implement strict serializable composite/campaign projection validation, cheapest-tier assignment and independent prerequisite/obligation expansion in `execution-route-planner.ts`; the route plan conveys no execution authority and exposes no adapter seam — verified 2026-08-22 03:05 CEST
+- [x] 1.2.4 Implement domain-separated candidate ranking, lexical strata and round-robin selection in `execution-selector.ts` — verified 2026-08-22 03:05 CEST
+- [x] 1.2.5 Implement mandatory per-runtime-rule VICE minima and fail-closed 16/256 capacity accounting — verified 2026-08-22 03:05 CEST
+- [x] 1.2.6 Run ST-01–ST-10 GREEN; fix production implementation only — verified 2026-08-22 03:05 CEST; 13/13 specification assertions pass
+- [x] 1.3.1 Add implementation tests for validation paths, canonical bytes, adversarial ordering, 10× population and budget/result precedence; prove ≥90% branch coverage for touched readiness cores — verified 2026-08-22 03:05 CEST; 22/22 implementation assertions pass; branch coverage 92.34% execution and 91.42% readiness core
+- [x] 1.3.2 Run configured correctness/semantics/performance review, resolve required findings, update plan/roadmap state, run full verification and auto-commit the green phase without pushing — verified 2026-08-22 04:04 CEST; all correctness, semantic and performance majors closed on re-review; immutable spec hash preserved; exact full gate green with 1,328 readiness tests, 26 readiness-execution tests and 33 root boundary tests
 
 **Deliverable:** pure closed execution vocabulary and a byte-deterministic, capacity-safe plan for
 every selected obligation before any external work.
@@ -185,7 +185,7 @@ deferred to final campaign acceptance.
 
 - [ ] 7.1.1 [spec-author] Write ST-51–ST-54 and ST-58–ST-59 in new `packages/readiness-execution/src/execution-orchestration.spec.test.ts`; never reopen prior specifications
 - [ ] 7.1.2 Run the Phase 7 suite and record RED caused only by absent campaign orchestrator/publication gate
-- [ ] 7.2.1 Implement `executeReadinessCampaign` over opaque parent/execution/oracle contexts, recover the validated passive release from live-context private state, resolve and guard the composite projection, and require complete route-plan serialization before work
+- [ ] 7.2.1 Implement `executeReadinessCampaign` over opaque parent/execution/oracle contexts, recover the validated passive release from live-context private state, resolve and guard the composite projection, derive the campaign projection, pass the selected oracle digest, and require complete route-plan serialization before work
 - [ ] 7.2.2 Implement canonical per-case results and per-rule/obligation summaries with unavailable and residual blockers preserved
 - [ ] 7.2.3 Add exact `readiness:execute` root/local command grammar, closed exit taxonomy and canonical machine-neutral `ExecutionAuthorityReportV1` serializer with trusted atomic durable sink
 - [ ] 7.2.4 Run ST-51–ST-54 and ST-58–ST-59 GREEN; fix production implementation only and preserve every prior specification

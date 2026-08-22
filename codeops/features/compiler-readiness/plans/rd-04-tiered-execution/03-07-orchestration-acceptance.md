@@ -14,8 +14,9 @@ replayable campaign result. Preserve every blocker outside the executed modeled 
 `executeReadinessCampaign` accepts opaque selected parent/execution/oracle contexts, a prepared
 campaign, target, selector revision, policy and an explicit environment capability probe. The live
 context's private state supplies its already validated passive release; the orchestrator resolves
-that release with the selected parent, obtains the guarded composite projection and passes only
-that projection to the pure planner. It then derives and serializes the complete
+that release with the selected parent, obtains the guarded composite projection, derives the
+passive campaign projection from the genuine prepared campaign, and passes only those projections
+plus the selected oracle digest to the pure planner. It then derives and serializes the complete
 `ExecutionRoutePlanV1`; only then may it create a case workspace or call an adapter. A failed or
 forged composite/projection handoff cannot reach planning or execution.
 
