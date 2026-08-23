@@ -646,7 +646,9 @@ export function createExecutionSupervisorV1(
             ? { hasErrors: response.hasErrors }
             : response.tier === "cli"
               ? { exitCode: response.exitCode }
-              : {}),
+              : response.tier === "emit"
+                ? { layoutBasis: response.layoutBasis ?? null }
+                : {}),
       }),
     );
     const chunks =

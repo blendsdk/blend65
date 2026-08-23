@@ -334,6 +334,40 @@ describe("aggregate process evidence", () => {
     expect(requireSuccess(await supervisor.cleanup())).toMatchObject({ ok: true });
   });
 
+  it.skipIf(process.platform !== "linux")(
+    "should retain exact identities for immediately exiting real targets",
+    async () => {
+      const workspace = await trackedWorkspace();
+      roots.push(workspace.root);
+      for (let iteration = 0; iteration < 8; iteration += 1) {
+        const now = performance.now();
+        const started = requireSuccess(
+          await defaultExecutionProcessRuntimeV1.start(
+            {
+              executable: "/bin/true",
+              argv: [],
+              cwd: workspace.root,
+              deadline: {
+                hardDeadlineMs: now + 4_000,
+                workDeadlineMs: now + 3_000,
+                cleanupGraceMs: 1_000,
+              },
+            },
+            { onStdout: () => undefined, onStderr: () => undefined },
+            {
+              signal: new AbortController().signal,
+              deadlineMonotonicMs: now + 4_000,
+            },
+          ),
+        );
+        expect(started.identity.pid).toBeGreaterThan(0);
+        await expect(started.completion).resolves.toEqual({ exitCode: 0, signal: null });
+        expect(await started.revalidateIdentity()).toBe("absent");
+      }
+    },
+    30_000,
+  );
+
   it("should reject invalid or pre-cancelled process launches without a child", async () => {
     const cancellation = new AbortController();
     cancellation.abort();

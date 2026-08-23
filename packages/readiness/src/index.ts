@@ -145,6 +145,11 @@ export {
 } from "./execution-case.js";
 export { projectC64ActualWriteV1, projectC64InitialStateV1 } from "./execution-vic-projection.js";
 export {
+  createPublishedRuntimeEvaluationAuthorityV1,
+  evaluatePublishedRuntimeObservationV1,
+  getPublishedRuntimeEvaluationProjectionV1,
+} from "./published-runtime-evaluation.js";
+export {
   serializeExecutionRoutePlanPreimageV1,
   serializeExecutionRoutePlanV1,
 } from "./execution-route-plan.js";
@@ -535,6 +540,12 @@ export type {
   ExecutionProjectionRevisionV1,
 } from "./execution-envelope-contracts.js";
 export type { ExecutionCaseProjectionV1, ExecutionCaseV1 } from "./execution-case.js";
+export type {
+  PublishedRuntimeEvaluationAuthorityV1,
+  PublishedRuntimeEvaluationDecisionV1,
+  PublishedRuntimeEvaluationProjectionV1,
+  RuntimeActualObservationV1,
+} from "./published-runtime-evaluation.js";
 export type {
   SemanticRelationHandlerV1,
   SemanticRelationModeledResultV1,

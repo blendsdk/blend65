@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import type { Readable, Writable } from "node:stream";
 
@@ -87,6 +88,14 @@ function parseLinuxStat(pid: number, statText: string, currentBootId: string): L
 async function observePid(pid: number): Promise<LinuxProcessRecord> {
   const currentBootId = await bootId();
   return parseLinuxStat(pid, await readFile(`/proc/${pid}/stat`, "utf8"), currentBootId);
+}
+
+function observePidSynchronously(pid: number): LinuxProcessRecord {
+  return parseLinuxStat(
+    pid,
+    readFileSync(`/proc/${pid}/stat`, "utf8"),
+    readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim(),
+  );
 }
 
 function sameIdentity(
@@ -345,6 +354,37 @@ async function spawnAnchor(
   }
 }
 
+async function cleanFailedTargetGroup(): Promise<boolean> {
+  let anchor: ExecutionHostProcessIdentityV1;
+  try {
+    anchor = observePidSynchronously(process.pid);
+    process.kill(0, "SIGTERM");
+  } catch {
+    return false;
+  }
+  const deadline = performance.now() + 1_000;
+  for (;;) {
+    const membership = await scanGroup({
+      revision: "execution-group-membership-query-v1",
+      anchor,
+      scope: "excluding-anchor",
+    });
+    if (membership.kind === "absent") return true;
+    if (membership.kind !== "present" || performance.now() >= deadline) return false;
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+}
+
+async function cleanOrEscalateFailedTargetGroup(): Promise<void> {
+  if (await cleanFailedTargetGroup()) return;
+  try {
+    process.kill(0, "SIGKILL");
+  } catch {
+    throw new TypeError("Target process-group cleanup could not be proven.");
+  }
+  throw new TypeError("Target process-group cleanup required forced anchor retirement.");
+}
+
 async function spawnTarget(
   input: ExecutionTargetSpawnInputV1,
   sink: ExecutionProcessSinkV1,
@@ -365,14 +405,32 @@ async function spawnTarget(
   }
   const completion = completionFor(child);
   attachStreams(child, sink);
+  const pid = child.pid;
+  let capturedIdentity: LinuxProcessRecord | undefined;
+  let captureError: unknown;
+  if (pid === undefined) {
+    captureError = new TypeError("Target PID is unavailable.");
+  } else {
+    try {
+      capturedIdentity = observePidSynchronously(pid);
+    } catch (error) {
+      captureError = error;
+    }
+  }
   try {
     await waitForSpawn(child, cancellation.signal);
-    if (child.pid === undefined) throw new TypeError("Target PID is unavailable.");
-    return success({ identity: await observePid(child.pid), completion });
   } catch (error) {
+    if (pid !== undefined && !missing(error)) {
+      await cleanOrEscalateFailedTargetGroup();
+    }
     child.kill("SIGKILL");
-    return issue(error instanceof Error ? error.message : "Target identity failed.");
+    return issue(error instanceof Error ? error.message : "Target spawn failed.");
   }
+  if (capturedIdentity === undefined) {
+    await cleanOrEscalateFailedTargetGroup();
+    return issue(captureError instanceof Error ? captureError.message : "Target identity failed.");
+  }
+  return success({ identity: capturedIdentity, completion });
 }
 
 /** Default Linux parent host for the persistent process-anchor runtime. */

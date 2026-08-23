@@ -8,7 +8,7 @@ import type {
 } from "@blend65/test-harness/vice-control";
 
 import type { RouteUsage } from "./execution-vice-policy.js";
-import { runViceSessionV1 } from "./execution-vice-session.js";
+import { runEvaluatedViceSessionV1, runViceSessionV1 } from "./execution-vice-session.js";
 import type { ViceRouteRequestV1 } from "./execution-vice-types.js";
 
 const ok = <T>(value: T): ViceControlResultV1<T> => ({ ok: true, value });
@@ -54,6 +54,8 @@ function routeRequest(): ViceRouteRequestV1 {
 
 function controlSession(overrides: Partial<ViceControlSessionV1> = {}): ViceControlSessionV1 {
   let stopwatchCalls = 0;
+  let completionCleared = false;
+  let completionReads = 0;
   const hit: ViceCheckpointHitV1 = {
     checkpointId: 9,
     address: 0x0201,
@@ -61,8 +63,16 @@ function controlSession(overrides: Partial<ViceControlSessionV1> = {}): ViceCont
   };
   return {
     loadBinary: async () => ok(true),
-    readMemory: async (address) => ok(Uint8Array.of(address === 0x0201 ? 0xa5 : 0)),
-    writeMemory: async () => ok(true),
+    readMemory: async (address) =>
+      ok(
+        Uint8Array.of(
+          address === 0x0201 ? (!completionCleared || completionReads++ > 0 ? 0xa5 : 0) : 0,
+        ),
+      ),
+    writeMemory: async (address) => {
+      if (address === 0x0201) completionCleared = true;
+      return ok(true);
+    },
     setProgramCounter: async () => ok(true),
     setCheckpoint: async () => ok(9),
     advanceInstructions: async () => ok(hit),
@@ -82,6 +92,22 @@ async function execute(
   const usage: RouteUsage = { instructions: 0, cycles: 0, launchAttempts: 1 };
   const result = await runViceSessionV1(request, session, signal, usage, () => wall);
   return { code: result.code, usage };
+}
+
+async function executeEvaluated(
+  session: ViceControlSessionV1,
+  request = routeRequest(),
+  wall = 0,
+): Promise<{ readonly code: string; readonly usage: RouteUsage }> {
+  const usage: RouteUsage = { instructions: 0, cycles: 0, launchAttempts: 1 };
+  const result = await runEvaluatedViceSessionV1(
+    request,
+    session,
+    new AbortController().signal,
+    usage,
+    () => wall,
+  );
+  return { code: result.result.code, usage };
 }
 
 describe("VICE session policy implementation", () => {
@@ -161,6 +187,32 @@ describe("VICE session policy implementation", () => {
     expect((await execute(controlSession(override), mutant)).code).toBe(expected);
   });
 
+  it("classifies an evaluated fixture mismatch as invalid evidence", async () => {
+    const request = routeRequest();
+    expect(
+      (
+        await executeEvaluated(controlSession({ readMemory: async () => ok(Uint8Array.of(0)) }), {
+          ...request,
+          fixture: {
+            revision: "c64-vic-color-readback-v1",
+            cells: [{ address: 0xd020, logicalValue: 1 }],
+          },
+        })
+      ).code,
+    ).toBe("invalid-evidence-input");
+  });
+
+  it.each([
+    ["completion clear", { writeMemory: async () => failed<true>() }, "emulator-handshake-failure"],
+    [
+      "completion clear readback",
+      { readMemory: async () => failed<Uint8Array>() },
+      "semantic-mismatch",
+    ],
+  ] as const)("fails closed on evaluated %s failure", async (_name, overrides, expected) => {
+    expect((await executeEvaluated(controlSession(overrides))).code).toBe(expected);
+  });
+
   it("enforces the route work deadline before an instruction is sent", async () => {
     expect((await execute(controlSession(), routeRequest(), 200_000)).code).toBe(
       "wall-time-exhaustion",
@@ -184,6 +236,19 @@ describe("VICE session policy implementation", () => {
       readMemory: async (address) => (address === 0x0201 ? marker : ok(Uint8Array.of(0))),
     });
     expect((await execute(session)).code).toBe("semantic-mismatch");
+  });
+
+  it("rejects a stale success marker before setting the entry point", async () => {
+    let entries = 0;
+    const session = controlSession({
+      readMemory: async (address) => ok(Uint8Array.of(address === 0x0201 ? 0xa5 : 0)),
+      setProgramCounter: async () => {
+        entries += 1;
+        return ok(true);
+      },
+    });
+    expect((await executeEvaluated(session)).code).toBe("semantic-mismatch");
+    expect(entries).toBe(0);
   });
 
   it("rejects a decreasing stopwatch", async () => {
@@ -259,12 +324,35 @@ describe("VICE session policy implementation", () => {
       },
     };
 
-    const result = await execute(session, mutant);
+    const result = await executeEvaluated(session, mutant);
 
     expect(result).toEqual({
       code: "instruction-exhaustion",
       usage: { instructions: 1, cycles: 10, launchAttempts: 1 },
     });
+  });
+
+  it("accepts committed completion before simultaneous instruction, cycle and wall limits", async () => {
+    const request = routeRequest();
+    const usage: RouteUsage = { instructions: 0, cycles: 0, launchAttempts: 1 };
+    let wallReads = 0;
+
+    const result = await runEvaluatedViceSessionV1(
+      {
+        ...request,
+        policy: {
+          ...request.policy,
+          budget: { ...request.policy.budget, cycles: 5 },
+        },
+      },
+      controlSession(),
+      new AbortController().signal,
+      usage,
+      () => (wallReads++ === 0 ? 0 : request.policy.budget.routeMs),
+    );
+
+    expect(result.result).toMatchObject({ status: "pass", code: "pass" });
+    expect(usage).toEqual({ instructions: 1, cycles: 10, launchAttempts: 1 });
   });
 
   it("reports cumulative cycle exhaustion between null-hit instruction chunks", async () => {
@@ -281,7 +369,7 @@ describe("VICE session policy implementation", () => {
         budget: { ...request.policy.budget, instructions: 65_536, cycles: 5 },
       },
     };
-    expect((await execute(session, mutant)).code).toBe("cycle-exhaustion");
+    expect((await executeEvaluated(session, mutant)).code).toBe("cycle-exhaustion");
   });
 
   it("fails closed when an internal caller bypasses the positive instruction parser", async () => {
@@ -296,12 +384,112 @@ describe("VICE session policy implementation", () => {
     expect((await execute(controlSession(), mutant)).code).toBe("instruction-exhaustion");
   });
 
-  it("rejects an unreadable observation byte after completion", async () => {
+  it("rejects an unreadable raw observation byte after completion", async () => {
     const session = controlSession({
       readMemory: async (address) =>
         address === 0x0201 ? ok(Uint8Array.of(0xa5)) : failed<Uint8Array>(),
     });
     expect((await execute(session)).code).toBe("semantic-mismatch");
+  });
+
+  it("rejects an unreadable evaluated observation byte after completion", async () => {
+    let completionReads = 0;
+    const session = controlSession({
+      readMemory: async (address) =>
+        address === 0x0201
+          ? ok(Uint8Array.of(completionReads++ === 0 ? 0 : 0xa5))
+          : failed<Uint8Array>(),
+    });
+    const usage: RouteUsage = { instructions: 0, cycles: 0, launchAttempts: 1 };
+    const result = await runEvaluatedViceSessionV1(
+      routeRequest(),
+      session,
+      new AbortController().signal,
+      usage,
+      () => 0,
+    );
+    expect(result.result.code).toBe("semantic-mismatch");
+  });
+
+  it("rejects an evaluated direct observation without an address", async () => {
+    const request = routeRequest();
+    expect(
+      (
+        await executeEvaluated(controlSession(), {
+          ...request,
+          observation: { kind: "direct-mmio", byteLength: 1 },
+          layout: { ...request.layout, resultSymbols: [], resultAddresses: [] },
+        })
+      ).code,
+    ).toBe("invalid-evidence-input");
+  });
+
+  it("rejects an unreadable evaluated direct observation", async () => {
+    let completionReads = 0;
+    const session = controlSession({
+      readMemory: async (address) =>
+        address === 0x0201
+          ? ok(Uint8Array.of(completionReads++ === 0 ? 0 : 0xa5))
+          : failed<Uint8Array>(),
+    });
+    const request = routeRequest();
+    expect(
+      (
+        await executeEvaluated(session, {
+          ...request,
+          observation: {
+            kind: "direct-mmio",
+            byteLength: 1,
+            address: 0xd020,
+            projectionRevision: "c64-vic-color-observation-v1",
+          },
+          layout: { ...request.layout, resultSymbols: [], resultAddresses: [] },
+        })
+      ).code,
+    ).toBe("semantic-mismatch");
+  });
+
+  it("rejects a missing internal scalar observation address", async () => {
+    const request = routeRequest();
+    expect(
+      (
+        await executeEvaluated(controlSession(), {
+          ...request,
+          observation: { kind: "scalar-bytes", byteLength: 2 },
+          layout: {
+            ...request.layout,
+            resultSymbols: ["result-low", "result-high"],
+            resultAddresses: [0x0200, undefined as unknown as number],
+          },
+        })
+      ).code,
+    ).toBe("invalid-evidence-input");
+  });
+
+  it("returns an owned evaluated scalar observation after committed completion", async () => {
+    const returned = Uint8Array.of(0x7f);
+    let completionReads = 0;
+    const session = controlSession({
+      readMemory: async (address) => {
+        if (address === 0x0201) {
+          return ok(Uint8Array.of(completionReads++ === 0 ? 0 : 0xa5));
+        }
+        return ok(returned);
+      },
+    });
+    const usage: RouteUsage = { instructions: 0, cycles: 0, launchAttempts: 1 };
+    const result = await runEvaluatedViceSessionV1(
+      routeRequest(),
+      session,
+      new AbortController().signal,
+      usage,
+      () => 0,
+    );
+    returned[0] = 0;
+    expect(result).toMatchObject({
+      result: { status: "pass" },
+      actual: { kind: "scalar-bytes", bytes: Uint8Array.of(0x7f) },
+    });
   });
 
   it("returns pass and charges the exact instruction and cycle totals", async () => {

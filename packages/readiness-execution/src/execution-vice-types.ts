@@ -1,11 +1,13 @@
 import type { ViceControlHostV1 } from "@blend65/test-harness/vice-control";
 import type {
+  ExecutionEmittedStoreV1,
   ExecutionInitialStateFixtureV1,
   ExecutionObservationLayoutV1,
   ExecutionObservationRequestV1,
   ExecutionOperationResultV1,
   ExecutionPolicyV1,
   ExecutionResultV1,
+  PublishedRuntimeEvaluationAuthorityV1,
 } from "@blend65/readiness";
 
 /** Private nominal discriminator present only on genuine runtime-issued lease handles. */
@@ -47,6 +49,46 @@ export interface ViceRouteRequestV1 {
   readonly observation: ExecutionObservationRequestV1;
   /** Cumulative execution budgets. */
   readonly policy: ExecutionPolicyV1;
+}
+
+/** One raw VICE route paired with readiness-owned comparison authority. */
+export interface EvaluatedViceRouteRequestV1 {
+  /** Non-authorizing binary, fixture, layout and budget request. */
+  readonly route: ViceRouteRequestV1;
+  /** Opaque single-use authority for the selected expected semantics. */
+  readonly evaluation: PublishedRuntimeEvaluationAuthorityV1;
+}
+
+/** Private nominal discriminator present only on post-build route bindings. */
+export const BOUND_EVALUATED_VICE_ROUTE_BRAND: unique symbol = Symbol("BoundEvaluatedViceRouteV1");
+
+/** Opaque one-shot post-build binding for one genuine execution/evaluation pair. */
+export interface BoundEvaluatedViceRouteRequestV1 {
+  /** Nominal runtime brand; structural route records cannot manufacture a production binding. */
+  readonly [BOUND_EVALUATED_VICE_ROUTE_BRAND]: true;
+}
+
+/** Passive proof emitted beside a sealed route without exposing mintable artifacts. */
+export interface PreparedViceBuildEvidenceV1 {
+  /** Digest of the cumulative bounded build evidence sealed into the production route. */
+  readonly buildEvidenceDigest: string;
+  readonly sourceCaseDigest: string;
+  readonly binaryDigest: string;
+  readonly loadAddress: number;
+  readonly entryAddress: number;
+  readonly layoutDigest: string;
+  readonly prebuildIdentity: string;
+  readonly finalExecutionIdentity: string;
+  readonly routeIdentity: string;
+  readonly postEntryStores: readonly ExecutionEmittedStoreV1[];
+  readonly completionValueLoadInstructionAddress: number;
+  readonly finalPostCallStoreInstructionAddress: number;
+}
+
+/** Sealed production request paired only with passive build evidence. */
+export interface PreparedEvaluatedViceRouteV1 {
+  readonly request: BoundEvaluatedViceRouteRequestV1;
+  readonly evidence: PreparedViceBuildEvidenceV1;
 }
 
 /** Raw identity facts for one trusted filesystem node. */
@@ -246,6 +288,12 @@ export interface ViceExecutionRuntimeV1 {
   /** Consumes a genuine fresh handle to run one cumulative-budget VICE route. */
   executeViceRoute(
     request: ViceRouteRequestV1,
+    lease: ViceLeaseHandleV1,
+    signal: AbortSignal,
+  ): Promise<ExecutionResultV1>;
+  /** Executes one route and privately compares its actual bytes through readiness authority. */
+  executeEvaluatedViceRoute(
+    request: EvaluatedViceRouteRequestV1,
     lease: ViceLeaseHandleV1,
     signal: AbortSignal,
   ): Promise<ExecutionResultV1>;

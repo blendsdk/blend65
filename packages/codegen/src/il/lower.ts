@@ -23,6 +23,7 @@ import {
   createIntrinsicRegistry,
   DiagCode,
   IceCode,
+  isInteger,
   primitive,
   walkChildren,
   walkNode,
@@ -273,12 +274,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
     constData.push({
       symbol,
       data: value.bytes,
-      type:
-        value.source === "embed"
-          ? "embed"
-          : sym.type.kind === "struct"
-            ? "struct"
-            : "array",
+      type: value.source === "embed" ? "embed" : sym.type.kind === "struct" ? "struct" : "array",
       ...(boundary !== undefined ? { boundary } : {}),
     });
   }
@@ -409,8 +405,7 @@ function lowerFunction(
     moduleInit: false,
     scCounter: 0,
     alignmentDemands,
-    scratchPair:
-      plan.irqOnlyFunctions?.has(fqName) === true ? IRQ_SCRATCH_PAIR : SCRATCH_PAIR,
+    scratchPair: plan.irqOnlyFunctions?.has(fqName) === true ? IRQ_SCRATCH_PAIR : SCRATCH_PAIR,
   };
 
   if (fn.kind === "FunctionDecl") emitPairPrologue(fn, ctx);
@@ -1097,7 +1092,11 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
       if (argSym !== null && argSym.kind === "parameter" && argSym.byRef) {
         // Whole pass-through: forward the caller's own frame word.
         const t = ctx.builder.newTemp(IL_WORD);
-        ctx.builder.emit({ op: "load", a: t, b: loc(frameSymbol(ctx.fqName, argSym.name), IL_WORD) });
+        ctx.builder.emit({
+          op: "load",
+          a: t,
+          b: loc(frameSymbol(ctx.fqName, argSym.name), IL_WORD),
+        });
         ctx.builder.emit({ op: "store", a: t, b: calleeSlot });
         continue;
       }
@@ -1126,7 +1125,11 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
     // An address-of argument feeds the argument store directly.
     const value = isAddressOfExpr(arg) ? lowerAddressOf(arg, ctx, true) : lowerExpr(arg, ctx);
     const slotType = slotIlType(calleeFrame, param.name);
-    ctx.builder.emit({ op: "store", a: value, b: loc(frameSymbol(calleeFq, param.name), slotType) });
+    ctx.builder.emit({
+      op: "store",
+      a: value,
+      b: loc(frameSymbol(calleeFq, param.name), slotType),
+    });
   }
 
   // The bare transfer + result binding.
@@ -1423,8 +1426,7 @@ function coerce(value: ILOperand, from: Type, to: Type, ctx: LowerCtx): ILOperan
  */
 function reencodeImmediate(pattern: number, from: ILType, to: ILType): number {
   const fromModulus = from.width === 8 ? 0x100 : 0x10000;
-  const interpreted =
-    from.signed && pattern >= fromModulus / 2 ? pattern - fromModulus : pattern;
+  const interpreted = from.signed && pattern >= fromModulus / 2 ? pattern - fromModulus : pattern;
   const toModulus = to.width === 8 ? 0x100 : 0x10000;
   return ((interpreted % toModulus) + toModulus) % toModulus;
 }
@@ -1637,8 +1639,7 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   // Element/field targets resolve through the place machinery.
   if (
     targetExpr.kind === "IndexExpr" ||
-    (targetExpr.kind === "FieldAccessExpr" &&
-      ctx.model.typeOf(targetExpr.object).kind === "struct")
+    (targetExpr.kind === "FieldAccessExpr" && ctx.model.typeOf(targetExpr.object).kind === "struct")
   ) {
     const place = lowerPlace(targetExpr, ctx);
     if (place === null) return iceUnsupported(expr, ctx, "assignment target");
@@ -1787,8 +1788,7 @@ function lowerPlace(expr: ExprNode, ctx: LowerCtx): Place | null {
 
       if (byteDomainSafe && inner.wordIndex === null) {
         const scaled = inner.baseKind === "direct" ? scaleIndex(idx, elemSize, ctx) : idx;
-        const combined =
-          inner.index === null ? scaled : addByteOffsets(inner.index, scaled, ctx);
+        const combined = inner.index === null ? scaled : addByteOffsets(inner.index, scaled, ctx);
         return { ...inner, index: combined };
       }
       if (inner.index !== null || inner.wordIndex !== null) {
@@ -1872,7 +1872,8 @@ function isAddressOfExpr(e: ExprNode): e is UnaryExprNode {
 function functionEntryLabel(sym: Symbol): string {
   if (sym.name === "main") return "_main";
   const node = sym.scope.node;
-  const moduleName = node !== null && node.kind === "ModuleDecl" ? (node as ModuleDeclNode).name : "";
+  const moduleName =
+    node !== null && node.kind === "ModuleDecl" ? (node as ModuleDeclNode).name : "";
   return `${moduleName}_${sym.name}`;
 }
 
@@ -1938,7 +1939,8 @@ function lowerAddressOf(
 /** The in-image data label of a const aggregate: `__data_<Module>_<name>`. */
 function constDataSymbol(sym: Symbol): string {
   const node = sym.scope.node;
-  const moduleName = node !== null && node.kind === "ModuleDecl" ? (node as ModuleDeclNode).name : "";
+  const moduleName =
+    node !== null && node.kind === "ModuleDecl" ? (node as ModuleDeclNode).name : "";
   return `__data_${moduleName}_${sym.name}`;
 }
 
@@ -2080,9 +2082,7 @@ function resolveIndirectAccess(
   if (place.baseKind === "pair") {
     const baseVal = ctx.builder.newTemp(IL_WORD);
     ctx.builder.emit({ op: "load", a: baseVal, b: pairPtr });
-    const rhs = indexInScratch
-      ? emitScratchLoad(ctx)
-      : imm(place.constOffset, IL_WORD);
+    const rhs = indexInScratch ? emitScratchLoad(ctx) : imm(place.constOffset, IL_WORD);
     ctx.builder.emit({ op: "add", dest: eff, left: baseVal, right: rhs, type: IL_WORD });
     ctx.builder.emit({ op: "store", a: eff, b: scratch });
     // A pair base with an index still owes its const offset — small offsets
@@ -2118,9 +2118,7 @@ function resolveIndirectAccess(
   }
 
   const residual =
-    place.baseKind === "pair" && indexInScratch && place.constOffset <= 255
-      ? place.constOffset
-      : 0;
+    place.baseKind === "pair" && indexInScratch && place.constOffset <= 255 ? place.constOffset : 0;
   return { ptr: scratch, offset: imm(residual, IL_BYTE) };
 }
 
@@ -2320,7 +2318,12 @@ function lowerElementInit(
  */
 type RmwTarget =
   | ILOperand
-  | { readonly indirect: true; readonly ptr: ILOperand; readonly offset: ILOperand; readonly type: ILType };
+  | {
+      readonly indirect: true;
+      readonly ptr: ILOperand;
+      readonly offset: ILOperand;
+      readonly type: ILType;
+    };
 
 /** The indirect RMW view of a pair-base place (no runtime index). */
 function indirectRmwTarget(place: Place): RmwTarget {
@@ -2416,7 +2419,11 @@ function lowerIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
       emitIntrinsicOp(expr.name, descriptor, ctx);
       return imm(0, IL_BYTE); // void result, discarded by the ExpressionStmt
     default:
-      return iceUnsupported(expr, ctx, `intrinsic strategy '${String(descriptor.loweringStrategy)}'`);
+      return iceUnsupported(
+        expr,
+        ctx,
+        `intrinsic strategy '${String(descriptor.loweringStrategy)}'`,
+      );
   }
 }
 
@@ -2479,7 +2486,8 @@ function sizeOfType(node: TypeNode, ctx: LowerCtx): number {
     }
     case "ArrayType": {
       const element = sizeOfType(node.elementType, ctx);
-      const length = node.size !== null && node.size.kind === "NumericLitExpr" ? node.size.value : 0;
+      const length =
+        node.size !== null && node.size.kind === "NumericLitExpr" ? node.size.value : 0;
       return element * length;
     }
     default:
@@ -2522,6 +2530,28 @@ function lengthOfArray(arg: ExprNode | undefined, ctx: LowerCtx): number {
 /** An inline T2 emitter: lowers the call to IL load/store/immediate operands. */
 type InlineEmitter = (expr: IntrinsicCallExprNode, ctx: LowerCtx) => ILOperand;
 
+/**
+ * Emit an observable direct-memory read for a hardware-access intrinsic.
+ *
+ * @param dest Temporary receiving the read value.
+ * @param source Direct hardware location to read.
+ * @param ctx Active lowering context.
+ */
+function emitIntrinsicLoad(dest: ILOperand, source: ILOperand, ctx: LowerCtx): void {
+  ctx.builder.emit({ op: "load", a: dest, b: source, volatile: true });
+}
+
+/**
+ * Emit an observable direct-memory write for a hardware-access intrinsic.
+ *
+ * @param value Value to write.
+ * @param target Direct hardware location to update.
+ * @param ctx Active lowering context.
+ */
+function emitIntrinsicStore(value: ILOperand, target: ILOperand, ctx: LowerCtx): void {
+  ctx.builder.emit({ op: "store", a: value, b: target, volatile: true });
+}
+
 /** Dispatch a `'inline'`-strategy intrinsic through the keyed emitter map. */
 function inlineIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const emitter = INLINE_EMITTERS.get(expr.name);
@@ -2533,28 +2563,28 @@ function inlineIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand 
 
 /** `peek(addr)` → one byte `load` from the constant address. */
 function emitPeek(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
-  const base = constAddress(expr.args[0], "peek", ctx);
+  const base = constAddress(expr, "peek", ctx);
   if (base === null) return imm(0, IL_BYTE);
   const dest = ctx.builder.newTemp(IL_BYTE);
-  ctx.builder.emit({ op: "load", a: dest, b: loc(hexAddr(base), IL_WORD) });
+  emitIntrinsicLoad(dest, loc(hexAddr(base), IL_WORD), ctx);
   return dest;
 }
 
 /** `poke(addr, val)` → one byte `store` to the constant address. */
 function emitPoke(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
-  const base = constAddress(expr.args[0], "poke", ctx);
+  const base = constAddress(expr, "poke", ctx);
   if (base === null) return imm(0, IL_BYTE);
   const value = lowerExpr(expr.args[1] ?? errorExpr(), ctx);
-  ctx.builder.emit({ op: "store", a: value, b: loc(hexAddr(base), IL_WORD) });
+  emitIntrinsicStore(value, loc(hexAddr(base), IL_WORD), ctx);
   return imm(0, IL_BYTE); // void result
 }
 
 /** `peekw(addr)` → one word `load` (translate splits it into addr / addr+1). */
 function emitPeekw(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
-  const base = constAddress(expr.args[0], "peekw", ctx);
+  const base = constAddress(expr, "peekw", ctx);
   if (base === null) return imm(0, IL_WORD);
   const dest = ctx.builder.newTemp(IL_WORD);
-  ctx.builder.emit({ op: "load", a: dest, b: loc(hexAddr(base), IL_WORD) });
+  emitIntrinsicLoad(dest, loc(hexAddr(base), IL_WORD), ctx);
   return dest;
 }
 
@@ -2564,13 +2594,13 @@ function emitPeekw(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
  * word `store` translate splits.
  */
 function emitPokew(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
-  const base = constAddress(expr.args[0], "pokew", ctx);
+  const base = constAddress(expr, "pokew", ctx);
   if (base === null) return imm(0, IL_BYTE);
   const valueExpr = expr.args[1];
   if (valueExpr !== undefined && valueExpr.kind === "NumericLitExpr") {
     const value = valueExpr.value;
-    ctx.builder.emit({ op: "store", a: imm(value & 0xff, IL_BYTE), b: loc(hexAddr(base), IL_BYTE) });
-    ctx.builder.emit({ op: "store", a: imm((value >> 8) & 0xff, IL_BYTE), b: loc(hexAddr(base + 1), IL_BYTE) });
+    emitIntrinsicStore(imm(value & 0xff, IL_BYTE), loc(hexAddr(base), IL_BYTE), ctx);
+    emitIntrinsicStore(imm((value >> 8) & 0xff, IL_BYTE), loc(hexAddr(base + 1), IL_BYTE), ctx);
     return imm(0, IL_BYTE);
   }
   const wordArg = valueExpr ?? errorExpr();
@@ -2579,7 +2609,7 @@ function emitPokew(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const value = isAddressOfExpr(wordArg)
     ? lowerAddressOf(wordArg, ctx, true)
     : lowerExpr(wordArg, ctx);
-  ctx.builder.emit({ op: "store", a: value, b: loc(hexAddr(base), IL_WORD) });
+  emitIntrinsicStore(value, loc(hexAddr(base), IL_WORD), ctx);
   return imm(0, IL_BYTE);
 }
 
@@ -2592,9 +2622,14 @@ function constantOperandValue(e: ExprNode, ctx: LowerCtx): number | null {
   if (e.kind === "NumericLitExpr") return e.value;
   if (e.kind !== "IdentExpr" && e.kind !== "FieldAccessExpr") return null;
   const sym = ctx.model.symbolOf(e);
-  if (sym === null || sym.kind !== "constant") return null;
+  if (sym === null || sym.kind !== "constant" || !isInteger(sym.type)) return null;
   const value = ctx.model.constValues.get(sym);
-  return value !== undefined && typeof value.value === "number" ? value.value : null;
+  return value !== undefined &&
+    isInteger(value.type) &&
+    typeof value.value === "number" &&
+    value.bytes === undefined
+    ? value.value
+    : null;
 }
 
 /** The unit the VIC dereferences a sprite in. */
@@ -2710,8 +2745,10 @@ function emitLo(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
  * storage location at offset +1 — the high byte of a little-endian word,
  * which for `sword` is also the sign-carrying byte, so no shift machinery is
  * needed. An unsigned 8-bit value's widened high byte is always 0. A
- * computed 16-bit argument or a signed 8-bit argument (whose widened high
- * byte would need sign extension) is rejected loudly for now.
+ * computed 16-bit value lowers to a dedicated byte-selection operation so
+ * instruction selection can use its existing memory home or A:X result
+ * directly. A signed 8-bit argument (whose widened high byte would need sign
+ * extension) remains rejected loudly.
  */
 function emitHi(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const arg = expr.args[0];
@@ -2758,7 +2795,13 @@ function emitHi(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
       return dest;
     }
   }
-  return iceUnsupported(expr, ctx, "hi() of a computed 16-bit value");
+  const value = lowerExpr(arg, ctx);
+  if (value.kind === "immediate") {
+    return imm((value.value >> 8) & 0xff, IL_BYTE);
+  }
+  const dest = ctx.builder.newTemp(IL_BYTE);
+  ctx.builder.emit({ op: "high_byte", dest, src: value });
+  return dest;
 }
 
 /** The inline T2 emitter table — keyed once, not a per-name switch. */
@@ -2772,20 +2815,31 @@ const INLINE_EMITTERS: ReadonlyMap<string, InlineEmitter> = new Map<string, Inli
 ]);
 
 /**
- * Resolve a compile-time-constant intrinsic address. A numeric literal yields its
- * value; anything else emits **E10045** and returns `null` so the
- * caller poisons the statement — NOT an ICE.
+ * Resolve a compile-time-constant intrinsic address. Numeric literals and
+ * resolved scalar-integer constants retain their direct paths. Composed
+ * expressions require the semantic fact recorded for this exact call site;
+ * malformed, unsafe, or out-of-range facts are rejected defensively.
+ * Everything else emits **E10045** and returns `null` so the caller poisons
+ * the statement — NOT an ICE.
  */
-function constAddress(arg: ExprNode | undefined, name: string, ctx: LowerCtx): number | null {
-  if (arg !== undefined && arg.kind === "NumericLitExpr") {
-    return arg.value;
-  }
+function constAddress(expr: IntrinsicCallExprNode, name: string, ctx: LowerCtx): number | null {
+  const arg = expr.args[0];
+  const direct = arg === undefined ? null : constantOperandValue(arg, ctx);
+  const analyzed = ctx.model.constantIntrinsicAddresses.get(expr);
+  const value = direct ?? analyzed ?? null;
+  if (value !== null && isAbsoluteAddress(value)) return value;
+
   ctx.bag.addError(
     DiagCode.NonConstantIntrinsicAddress,
     arg?.span ?? ZERO_SPAN,
     `'${name}' requires a compile-time-constant address in this version`,
   );
   return null;
+}
+
+/** Whether a compile-time number is a complete 16-bit absolute address. */
+function isAbsoluteAddress(value: number): boolean {
+  return Number.isSafeInteger(value) && value >= 0 && value <= 0xffff;
 }
 
 /** Render a numeric address as the `$HEX` symbol kept symbolic through the IL. */

@@ -1,14 +1,6 @@
 import { createHash } from "node:crypto";
 
-import {
-  discoverAcme,
-  invokeBoundedAcmeV1,
-  type AcmeInvocation,
-  type AcmeProcessControlsV1,
-  type AcmeRunOutput,
-  type BoundedAcmeRunnerV1,
-} from "@blend65/compiler";
-import { createDiagnosticBag } from "@blend65/core";
+import type { BoundedAcmeRunnerV1 } from "@blend65/compiler";
 import {
   getExecutionCaseProjectionV1,
   isExecutionDigestV1,
@@ -30,10 +22,10 @@ import {
 } from "@blend65/readiness/published-oracle";
 
 import { createExecutionBudgetScopeV1 } from "./execution-budget.js";
+import { executeAcmeArtifactPipelineV1 } from "./execution-acme-artifacts.js";
 import { renderExecutionEnvelopeV1 } from "./execution-envelope.js";
 import { classifyInvalidCaseEmissionV1 } from "./execution-evidence-classifiers.js";
 import { getExecutionPrerequisiteTiersV1 } from "./execution-route-tiers.js";
-import type { ExecutionProcessOutcomeV1 } from "./execution-process.js";
 import {
   executionSupervisorOwnsWorkerExecutorV1,
   type ExecutionSupervisorV1,
@@ -599,71 +591,7 @@ function validWorkerSuccess(response: ExecutionWorkerResponseV1): boolean {
   }
 }
 
-class SupervisedAcmeError extends Error {
-  readonly code: string;
-
-  constructor(code: string, message: string) {
-    super(message);
-    this.name = "SupervisedAcmeError";
-    this.code = code;
-  }
-}
-
-function boundedStderr(outcome: ExecutionProcessOutcomeV1): string {
-  const evidence = outcome.diagnosticStreams.stderr;
-  return new TextDecoder().decode(evidence.head);
-}
-
-/**
- * Creates the production ACME runner over the supervisor's owned argv-only process boundary.
- *
- * @example
- * ```ts
- * const runner = createSupervisedAcmeRunnerV1(supervisor);
- * ```
- */
-export function createSupervisedAcmeRunnerV1(
-  supervisor: ExecutionSupervisorV1,
-): BoundedAcmeRunnerV1 {
-  return Object.freeze({
-    async run(request: AcmeInvocation, controls: AcmeProcessControlsV1): Promise<AcmeRunOutput> {
-      const outcome = await supervisor.runProcess(
-        {
-          executable: request.acmeExe,
-          argv: [
-            "--vicelabels",
-            request.labelPath,
-            "--report",
-            request.reportPath,
-            request.asmPath,
-          ],
-          cwd: request.cwd,
-          deadline: {
-            hardDeadlineMs: supervisor.deadline.hardDeadlineMs,
-            workDeadlineMs: Math.min(
-              supervisor.deadline.workDeadlineMs,
-              controls.deadlineMonotonicMs,
-            ),
-            cleanupGraceMs: supervisor.deadline.cleanupGraceMs,
-          },
-        },
-        controls,
-        { onStdout: controls.onStdout, onStderr: controls.onStderr },
-      );
-      if (!outcome.ok) {
-        const observed = outcome.issues[0];
-        throw new SupervisedAcmeError(observed.code, observed.message);
-      }
-      if (outcome.value.authority.kind === "terminated-output-exhaustion") {
-        throw new SupervisedAcmeError("output-exhaustion", "Assembler output limit was exceeded.");
-      }
-      return {
-        exitCode: outcome.value.exitCode ?? 1,
-        stderr: boundedStderr(outcome.value),
-      };
-    },
-  });
-}
+export { createSupervisedAcmeRunnerV1 } from "./execution-acme-artifacts.js";
 
 /** Builds the six route handlers over injected production boundaries. */
 export function createExecutionRouteHandlersV1(
@@ -749,205 +677,29 @@ export function createExecutionRouteHandlersV1(
       ) {
         return failed("acme", "input", "invalid-evidence-input", request.route.caseIdentity);
       }
-      const workspace = await supervisor.createWorkspace(cancellation);
-      if (!workspace.ok)
-        return failed("acme", "acme", "assembler-failure", request.route.caseIdentity, supervisor);
-      try {
-        const injectedRunner = dependencies.acme.runner;
-        const acmeExe =
-          injectedRunner === undefined
-            ? (dependencies.acme.executable ?? discoverAcme({}, createDiagnosticBag()))
-            : "acme";
-        if (acmeExe === null) {
-          return failed("acme", "acme", "tier-unavailable", request.route.caseIdentity, supervisor);
-        }
-        const emitterRequest = workerRequest(request, "emit", workspace.value.root);
-        if (emitterRequest === undefined) {
-          return failed("acme", "emit", "emission-failure", request.route.caseIdentity, supervisor);
-        }
-        const emitted = await supervisor.runWorker(emitterRequest, cancellation);
-        if (!emitted.ok || emitted.value.tier !== "emit" || !validWorkerSuccess(emitted.value)) {
-          const code =
-            !emitted.ok &&
-            (emitted.issues[0].code === "wall-time-exhaustion" ||
-              emitted.issues[0].code === "output-exhaustion" ||
-              emitted.issues[0].code === "evidence-exhaustion")
-              ? emitted.issues[0].code
-              : "emission-failure";
-          return failed("acme", "emit", code, request.route.caseIdentity, supervisor);
-        }
-        if (workspace.value.writeFileExclusive === undefined) {
-          return failed("acme", "emit", "emission-failure", request.route.caseIdentity, supervisor);
-        }
-        await workspace.value.writeFileExclusive("main.asm", emitted.value.assemblyBytes);
-        if (workspace.value.retainRegularFile === undefined) {
-          return failed("acme", "emit", "emission-failure", request.route.caseIdentity, supervisor);
-        }
-        const retainedAssembly = await workspace.value.retainRegularFile("main.asm");
-        try {
-          await retainedAssembly.revalidate();
-          const invocation: AcmeInvocation = {
-            acmeExe,
-            asmPath: retainedAssembly.externalPath,
-            binaryPath: `${workspace.value.root}/main.prg`,
-            labelPath: `${workspace.value.root}/main.lbl`,
-            reportPath: `${workspace.value.root}/main.report`,
-            cwd: workspace.value.root,
-          };
-          const outputHash = createHash("sha256");
-          const outputCapacity = supervisor.remainingOutputBytes();
-          let streamedBytes = 0;
-          let outputExhausted = false;
-          const observe = (bytes: Uint8Array): void => {
-            if (outputExhausted) return;
-            if (
-              !(bytes instanceof Uint8Array) ||
-              bytes.byteLength > outputCapacity - streamedBytes
-            ) {
-              outputExhausted = true;
-              return;
-            }
-            streamedBytes += bytes.byteLength;
-            outputHash.update(bytes);
-          };
-          let outcome: AcmeRunOutput;
-          try {
-            outcome = await invokeBoundedAcmeV1(
-              invocation,
-              injectedRunner ?? createSupervisedAcmeRunnerV1(supervisor),
-              {
-                signal: cancellation.signal,
-                deadlineMonotonicMs: Math.min(
-                  cancellation.deadlineMonotonicMs,
-                  supervisor.deadline.workDeadlineMs,
-                ),
-                onStdout: observe,
-                onStderr: observe,
-              },
-            );
-          } catch (error) {
-            const observedCode =
-              error instanceof Error && "code" in error && typeof error.code === "string"
-                ? error.code
-                : undefined;
-            const code =
-              observedCode === "ENOENT" ||
-              (observedCode === "execution.io" &&
-                error instanceof Error &&
-                /ENOENT/u.test(error.message))
-                ? "tier-unavailable"
-                : observedCode === "output-exhaustion" ||
-                    observedCode === "evidence-exhaustion" ||
-                    observedCode === "wall-time-exhaustion"
-                  ? observedCode
-                  : "assembler-failure";
-            return failed("acme", "acme", code, request.route.caseIdentity, supervisor);
-          }
-          await retainedAssembly.revalidate();
-          if (outputExhausted) {
-            return failed(
-              "acme",
-              "acme",
-              "output-exhaustion",
-              request.route.caseIdentity,
-              supervisor,
-            );
-          }
-          if (injectedRunner !== undefined) {
-            const charged = supervisor.recordOutput(streamedBytes);
-            if (!charged.ok) {
-              return failed(
-                "acme",
-                "acme",
-                "output-exhaustion",
-                request.route.caseIdentity,
-                supervisor,
-              );
-            }
-            const streamEvidence = supervisor.recordEvidence(
-              ENCODER.encode(`${streamedBytes}\u0000${outputHash.digest("hex")}`),
-            );
-            if (!streamEvidence.ok) {
-              return failed(
-                "acme",
-                "acme",
-                "evidence-exhaustion",
-                request.route.caseIdentity,
-                supervisor,
-              );
-            }
-          }
-          if (outcome.exitCode !== 0) {
-            return failed(
-              "acme",
-              "acme",
-              "assembler-failure",
-              request.route.caseIdentity,
-              supervisor,
-            );
-          }
-          if (workspace.value.readRegularFile === undefined) {
-            return failed(
-              "acme",
-              "acme",
-              "assembler-failure",
-              request.route.caseIdentity,
-              supervisor,
-            );
-          }
-          for (const [artifactName, minimumBytes] of [
-            ["main.prg", 2],
-            ["main.lbl", 1],
-            ["main.report", 1],
-          ] as const) {
-            const remaining = supervisor.remainingEvidenceBytes();
-            if (remaining <= 0) {
-              return failed(
-                "acme",
-                "acme",
-                "evidence-exhaustion",
-                request.route.caseIdentity,
-                supervisor,
-              );
-            }
-            const artifact = await workspace.value.readRegularFile(artifactName, remaining);
-            if (artifact.byteLength < minimumBytes) {
-              return failed(
-                "acme",
-                "acme",
-                "assembler-failure",
-                request.route.caseIdentity,
-                supervisor,
-              );
-            }
-            const recorded = supervisor.recordEvidence(artifact);
-            if (!recorded.ok) {
-              return failed(
-                "acme",
-                "acme",
-                "evidence-exhaustion",
-                request.route.caseIdentity,
-                supervisor,
-              );
-            }
-          }
-          return pass("acme", supervisor, request.route.caseIdentity);
-        } finally {
-          await retainedAssembly.close();
-        }
-      } catch {
-        return failed(
-          "acme",
-          "acme",
-          cancellation.signal.aborted ? "wall-time-exhaustion" : "assembler-failure",
-          request.route.caseIdentity,
-          supervisor,
-        );
-      } finally {
-        await workspace.value
-          .dispose(performance.now() + supervisor.deadline.cleanupGraceMs)
-          .catch(() => undefined);
+      const outcome = await executeAcmeArtifactPipelineV1(
+        supervisor,
+        (caseRoot) => workerRequest(request, "emit", caseRoot),
+        cancellation,
+        dependencies.acme,
+      );
+      if (!outcome.ok) {
+        const issue = outcome.issues[0];
+        const stage = issue.path === "/emit" ? "emit" : "acme";
+        const code =
+          issue.code === "wall-time-exhaustion" ||
+          issue.code === "output-exhaustion" ||
+          issue.code === "evidence-exhaustion" ||
+          issue.code === "tier-unavailable" ||
+          issue.code === "emission-failure" ||
+          issue.code === "assembler-failure"
+            ? issue.code
+            : stage === "emit"
+              ? "emission-failure"
+              : "assembler-failure";
+        return failed("acme", stage, code, request.route.caseIdentity, supervisor);
       }
+      return pass("acme", supervisor, request.route.caseIdentity);
     },
   });
 

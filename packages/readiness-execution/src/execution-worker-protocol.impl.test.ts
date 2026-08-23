@@ -140,6 +140,53 @@ describe("execution worker response parser", () => {
     );
   });
 
+  it("should copy a canonical allocation basis and reject malformed or overlapping ranges", () => {
+    const emit = request("emit");
+    const ranges = [
+      { start: 0x0002, length: 2 },
+      { start: 0x2000, length: 4 },
+    ];
+    const valid = {
+      ...response(emit),
+      layoutBasis: { revision: "execution-worker-layout-basis-v1", dataRanges: ranges },
+    };
+    const parsed = parseExecutionWorkerResponseV1(emit, valid);
+    expect(parsed).toMatchObject({
+      ok: true,
+      value: { layoutBasis: { dataRanges: ranges } },
+    });
+    ranges[0]!.start = 0x3000;
+    if (parsed.ok && parsed.value.tier === "emit") {
+      expect(parsed.value.layoutBasis?.dataRanges[0]).toEqual({ start: 0x0002, length: 2 });
+    }
+    for (const dataRanges of [
+      [{ start: 0x2000, length: 0 }],
+      [{ start: -1, length: 1 }],
+      [{ start: 0xffff, length: 2 }],
+      [
+        { start: 0x2000, length: 4 },
+        { start: 0x2002, length: 2 },
+      ],
+      [
+        { start: 0x2000, length: 4 },
+        { start: 0x0002, length: 2 },
+      ],
+    ]) {
+      expectFailure(
+        parseExecutionWorkerResponseV1(emit, {
+          ...response(emit),
+          layoutBasis: { revision: "execution-worker-layout-basis-v1", dataRanges },
+        }),
+      );
+    }
+    expectFailure(
+      parseExecutionWorkerResponseV1(emit, {
+        ...response(emit),
+        layoutBasis: { revision: "wrong", dataRanges: [] },
+      }),
+    );
+  });
+
   it("should validate accepted diagnostic identities, codes, phases, severities, and uniqueness", () => {
     const selected = request("frontend");
     const entry = {

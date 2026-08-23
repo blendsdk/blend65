@@ -79,6 +79,15 @@ export interface RegisterBinder {
   operandFor(temp: ILOperand): InstrOperand;
 
   /**
+   * Return one byte of a spilled temp's zero-page home.
+   *
+   * @param temp The spilled byte or word temp to address.
+   * @param byteIndex Low (`0`) or high (`1`) byte.
+   * @returns The selected zero-page operand, or an ICE-marked inert operand.
+   */
+  operandForByte(temp: ILOperand, byteIndex: 0 | 1): InstrOperand;
+
+  /**
    * Record that an emitted instruction has just produced `temp` in A.
    *
    * @param temp The temp now resident in the accumulator.
@@ -102,6 +111,22 @@ export interface RegisterBinder {
    * @param emit Sink for the emitted `STA`.
    */
   spill(temp: ILOperand, emit: (e: StreamEntry) => void): void;
+
+  /**
+   * Spill an A:X word coherently into two distinct zero-page temp slots.
+   *
+   * @param temp The word temp whose low byte is in A and high byte is in X.
+   * @param emit Sink for the emitted stores.
+   * @returns Whether both bytes were stored successfully.
+   */
+  spillWord(temp: ILOperand, emit: (e: StreamEntry) => void): boolean;
+
+  /**
+   * Release a spilled temp's zero-page home after its final read.
+   *
+   * @param temp The temp whose live interval has ended.
+   */
+  release(temp: ILOperand): void;
 
   /**
    * Clear all register knowledge at a block boundary. Memory homes survive;
@@ -142,8 +167,8 @@ export function createRegisterBinder(
 
   const state: RegisterState = { a: null, x: null, y: null };
   // Each temp's surviving memory home (set on spill); registers tracked in state.
-  const homes = new Map<number, string>();
-  let nextSlot = 0;
+  const homes = new Map<number, readonly string[]>();
+  const occupied = tempSlots.map(() => false);
 
   function tempId(op: ILOperand): number {
     if (!isTemp(op)) {
@@ -163,7 +188,7 @@ export function createRegisterBinder(
     if (state.a === id) return { kind: "reg", reg: "A" };
     if (state.x === id) return { kind: "reg", reg: "X" };
     if (state.y === id) return { kind: "reg", reg: "Y" };
-    const home = homes.get(id);
+    const home = homes.get(id)?.[0];
     if (home !== undefined) return { kind: "zp", slot: home };
     // No known location: treat as accumulator-resident default (the producing
     // instruction is expected to have bound it). Conservative, total.
@@ -180,6 +205,18 @@ export function createRegisterBinder(
     );
 
     // Total fallback: an inert slot reference; the ICE already failed the build.
+    return zpSlot("__zp_invalid");
+  }
+
+  function operandForByte(op: ILOperand, byteIndex: 0 | 1): InstrOperand {
+    const id = tempId(op);
+    const slot = homes.get(id)?.[byteIndex];
+    if (slot !== undefined) return zpSlot(slot);
+    bag.addICE(
+      IceCode.Unexpected,
+      null,
+      `register binder: temp %${id} has no spilled byte ${byteIndex} home`,
+    );
     return zpSlot("__zp_invalid");
   }
 
@@ -210,7 +247,8 @@ export function createRegisterBinder(
 
   function spill(op: ILOperand, emit: (e: StreamEntry) => void): void {
     const id = tempId(op);
-    if (nextSlot >= tempSlots.length) {
+    const slotIndex = occupied.findIndex((used) => !used);
+    if (slotIndex < 0) {
       bag.addICE(
         IceCode.Unexpected,
         null,
@@ -219,13 +257,65 @@ export function createRegisterBinder(
       );
       return;
     }
-    const slot = tempSlots[nextSlot++];
+    const slot = tempSlots[slotIndex];
+    if (slot === undefined) return;
+    occupied[slotIndex] = true;
     emit(instr("STA", "ZeroPage", zpSlot(slot)));
-    homes.set(id, slot);
+    homes.set(id, [slot]);
     // The temp leaves the register file; clear whichever register held it.
     if (state.a === id) state.a = null;
     if (state.x === id) state.x = null;
     if (state.y === id) state.y = null;
+  }
+
+  function spillWord(op: ILOperand, emit: (e: StreamEntry) => void): boolean {
+    const id = tempId(op);
+    if (op.type.width !== 16 || state.a !== id || state.x !== id) {
+      bag.addICE(
+        IceCode.Unexpected,
+        null,
+        `register binder: word spill requires temp %${id} coherently resident in A:X`,
+      );
+      return false;
+    }
+    const slotIndices = occupied
+      .map((used, index) => (used ? -1 : index))
+      .filter((index) => index >= 0)
+      .slice(0, 2);
+    if (slotIndices.length < 2) {
+      bag.addICE(
+        IceCode.Unexpected,
+        null,
+        `register binder: word spill demand exceeds the plan's ZP '${pool}' runs ` +
+          `(${tempSlots.length} available) — raise the profile's pool size`,
+      );
+      return false;
+    }
+    const lowIndex = slotIndices[0];
+    const highIndex = slotIndices[1];
+    if (lowIndex === undefined || highIndex === undefined) return false;
+    const low = tempSlots[lowIndex];
+    const high = tempSlots[highIndex];
+    if (low === undefined || high === undefined) return false;
+    occupied[lowIndex] = true;
+    occupied[highIndex] = true;
+    emit(instr("STA", "ZeroPage", zpSlot(low)));
+    emit(instr("STX", "ZeroPage", zpSlot(high)));
+    homes.set(id, [low, high]);
+    state.a = null;
+    state.x = null;
+    return true;
+  }
+
+  function release(op: ILOperand): void {
+    const id = tempId(op);
+    const slots = homes.get(id);
+    if (slots === undefined) return;
+    for (const slot of slots) {
+      const index = tempSlots.indexOf(slot);
+      if (index >= 0) occupied[index] = false;
+    }
+    homes.delete(id);
   }
 
   function reset(): void {
@@ -238,9 +328,12 @@ export function createRegisterBinder(
     ensureInA,
     locationOf,
     operandFor,
+    operandForByte,
     bindResultToA,
     bindResultToX,
     spill,
+    spillWord,
+    release,
     reset,
   };
 }

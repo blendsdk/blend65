@@ -71,6 +71,11 @@ instructions and cycles are cumulative across retries. Exact-bound consumption s
 consuming event fails. A fired asynchronous wall watchdog is terminal before return even if another
 result becomes ready concurrently. Work never starts when the cleanup reserve cannot still fit.
 
+Sealed build preparation and later VICE control are one route for these limits. The opaque handoff
+retains the original absolute deadlines, cumulative output/evidence use and build-evidence digest;
+it never grants a fresh policy allowance. A caller cancellation may shorten the remaining time but
+cannot extend it. Final public usage and evidence combine both halves of the route.
+
 ## Ownership state machine
 
 The top-level scope owns resources in acquisition order and releases them in reverse order:
@@ -82,8 +87,9 @@ case root → evidence ledger → workers/ACME → VICE lease → endpoints → 
 Cleanup is idempotent and records bounded cleanup evidence without replacing an earlier operational
 terminal stage. Inability to prove safe VICE termination retains the lease and attaches a mandatory
 `cleanupBlocker`; a provisional pass is replaced by `emulator-lease-recovery-blocked`, while an
-earlier failure remains primary. Any cleanup blocker prevents authority. Pending monitor promises
-and checkpoints are actively cancelled.
+earlier failure remains primary. Build-supervisor cleanup follows the same precedence: its bounded
+cleanup issue is appended after an earlier operational issue rather than discarded. Any cleanup
+blocker prevents authority. Pending monitor promises and checkpoints are actively cancelled.
 
 ## Security validation
 

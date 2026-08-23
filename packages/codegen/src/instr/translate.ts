@@ -162,6 +162,8 @@ const T1_OPCODES: ReadonlyMap<string, Opcode> = new Map<string, Opcode>([
   ["asm_wai", "WAI"],
 ]);
 
+/** The current hardware-stack byte, addressed through a saved stack pointer. */
+const STACK_PUSH_SLOT = "$0100";
 
 /** Per-function translation state. One instance per `translateFunction`. */
 class FunctionTranslator {
@@ -188,6 +190,8 @@ class FunctionTranslator {
    * byte as the constant 0 — a zext of a memory-resident byte costs nothing.
    */
   private readonly convSource = new Map<number, ILOperand>();
+  /** Word temps coherently snapshotted from A:X into two ZP temp slots. */
+  private readonly wordSpills = new Set<number>();
 
   /** Temp id currently resident in A (byte value or word low byte), or null. */
   private regA: number | null = null;
@@ -199,8 +203,10 @@ class FunctionTranslator {
    * Y; the mirror lets same-offset runs share one `LDY` and is invalidated
    * by every Y-touching sequence (`INY`), every `JSR`, and block boundaries.
    */
-  private regY: { readonly kind: "imm"; readonly value: number } | { readonly kind: "temp"; readonly id: number } | null =
-    null;
+  private regY:
+    | { readonly kind: "imm"; readonly value: number }
+    | { readonly kind: "temp"; readonly id: number }
+    | null = null;
   /** Span to attach to the next emitted lead instruction. */
   private leadSpan: SourceSpan | undefined = undefined;
   /** Instruction index whose `store` has been folded into a word ALU (skip it). */
@@ -366,7 +372,9 @@ class FunctionTranslator {
   private consumeReads(reads: readonly ILOperand[]): void {
     for (const op of reads) {
       if (isTemp(op)) {
-        this.remainingUses.set(op.id, (this.remainingUses.get(op.id) ?? 0) - 1);
+        const remaining = (this.remainingUses.get(op.id) ?? 0) - 1;
+        this.remainingUses.set(op.id, remaining);
+        if (remaining === 0) this.binder.release(op);
       }
     }
   }
@@ -411,10 +419,10 @@ class FunctionTranslator {
         this.leadSpan = ins.span; // provenance: attach to the next lead instr
         return;
       case "const":
-        this.translateConst(ins.dest, ins.src);
+        this.translateConst(ins.dest, ins.src, index, all);
         return;
       case "load":
-        this.translateLoad(ins.a, ins.b);
+        this.translateLoad(ins.a, ins.b, ins.volatile === true, index, all);
         return;
       case "store":
         this.translateStore(ins.a, ins.b);
@@ -453,7 +461,7 @@ class FunctionTranslator {
         this.translateNot(ins.dest, ins.src, ins.type, index, all);
         return;
       case "zext":
-        this.translateZext(ins.dest, ins.src);
+        this.translateZext(ins.dest, ins.src, index, all);
         return;
       case "sext":
         this.translateSext(ins.dest, ins.src, index, all);
@@ -461,8 +469,11 @@ class FunctionTranslator {
       case "trunc":
         this.translateTrunc(ins.dest, ins.src);
         return;
+      case "high_byte":
+        this.translateHighByte(ins.dest, ins.src);
+        return;
       case "copy":
-        this.translateCopy(ins.dest, ins.src);
+        this.translateCopy(ins.dest, ins.src, index, all);
         return;
       case "mul":
         this.translateMul(ins.dest, ins.left, ins.right, ins.type, index, all);
@@ -475,7 +486,7 @@ class FunctionTranslator {
         this.translateIntrinsic(ins.name, ins.descriptor);
         return;
       case "call":
-        this.translateCall(ins.dest, ins.target);
+        this.translateCall(ins.dest, ins.target, index, all);
         return;
       case "load_indexed":
         this.translateLoadIndexed(ins.value, ins.base, ins.index, index, all);
@@ -514,12 +525,27 @@ class FunctionTranslator {
    * shape (`f() + g()`) is rejected loudly before emitting anything;
    * evaluating each call into a variable first compiles fine.
    */
-  private translateCall(dest: ILOperand | undefined, target: string): void {
+  private translateCall(
+    dest: ILOperand | undefined,
+    target: string,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
     const destId = dest !== undefined && isTemp(dest) ? dest.id : null;
     for (const id of this.producedThisBlock) {
       if (id === destId) continue;
       if ((this.remainingUses.get(id) ?? 0) <= 0) continue;
       if (this.loadSource.has(id)) continue; // memory-homed → survives the call
+      if (this.wordSpills.has(id)) continue;
+      if (this.regA === id && this.regX === id) {
+        const word = { kind: "temp", id, type: { width: 16, signed: false } } as const;
+        if (this.binder.spillWord(word, (entry) => this.out.push(entry))) {
+          this.wordSpills.add(id);
+          this.clearRegs();
+          continue;
+        }
+        return;
+      }
       this.bag.addICE(
         IceCode.Unexpected,
         null,
@@ -535,6 +561,7 @@ class FunctionTranslator {
       this.bindA(destId); // byte result in A; word low byte in A
       if (widthOf(dest) === 16) {
         this.bindX(destId); // word high byte in X
+        this.consumeAdjacentRegisterHighByte(dest, index, all);
       }
     }
   }
@@ -653,7 +680,12 @@ class FunctionTranslator {
 
   // ── const / load / store ─────────────────────────────────────────────────────
 
-  private translateConst(dest: ILOperand, src: ILOperand): void {
+  private translateConst(
+    dest: ILOperand,
+    src: ILOperand,
+    index?: number,
+    all?: readonly ILInstruction[],
+  ): void {
     // Only a store source takes a lowered value raw; every other expression
     // position wraps it in a `const` first, so this is where an address byte
     // arrives when it initialises a variable, feeds an assignment, or reaches
@@ -671,6 +703,15 @@ class FunctionTranslator {
     }
     this.protectA(); // a live index/value in A survives the immediate load
     const width = dest.type.width;
+    const selected =
+      width === 16 && index !== undefined && all !== undefined
+        ? this.takeAdjacentHighByte(dest, index, all)
+        : null;
+    if (selected !== null) {
+      this.emit("LDA", "Immediate", imm8((src.value >> 8) & 0xff));
+      this.bindA(selected.id);
+      return;
+    }
     this.emit("LDA", "Immediate", imm8(src.value & 0xff));
     this.bindA(dest.id);
     if (width === 16) {
@@ -679,9 +720,41 @@ class FunctionTranslator {
     }
   }
 
-  private translateLoad(dest: ILOperand, source: ILOperand): void {
+  /**
+   * Translate a direct load.
+   *
+   * Ordinary loads keep the existing consumer-folding behavior. Volatile
+   * loads execute at this exact point even when their result is unused. A
+   * volatile word therefore performs both little-endian reads; the one safe
+   * fusion is an adjacent, single-use high-byte selection, where two `LDA`s
+   * preserve the reads and naturally leave the selected byte in A.
+   *
+   * @param dest Temporary receiving the value.
+   * @param source Direct memory location to read.
+   * @param volatile Whether the load is an observable sequence point.
+   * @param index Instruction index within the current block.
+   * @param all Current block's complete instruction list.
+   */
+  private translateLoad(
+    dest: ILOperand,
+    source: ILOperand,
+    volatile: boolean,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
     if (!isTemp(dest) || !isLocation(source)) {
       this.iceUnsupported("load (non-temp dest or non-location source)");
+      return;
+    }
+    if (volatile) {
+      this.translateVolatileLoad(dest, source, index, all);
+      return;
+    }
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy();
+      this.emit("LDA", "Absolute", symHome(source, 1));
+      this.bindA(selected.id);
       return;
     }
     // Single-use load results are deferred and folded at the consumer.
@@ -699,10 +772,67 @@ class FunctionTranslator {
     }
   }
 
+  /**
+   * Execute an effectful load without permitting deferred re-reads.
+   *
+   * @param dest Temporary receiving the value.
+   * @param source Direct memory location to read.
+   * @param index Instruction index within the current block.
+   * @param all Current block's complete instruction list.
+   */
+  private translateVolatileLoad(
+    dest: Extract<ILOperand, { kind: "temp" }>,
+    source: Extract<ILOperand, { kind: "location" }>,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
+    this.protectA();
+    const uses = this.useCount.get(dest.id) ?? 0;
+
+    if (dest.type.width === 8) {
+      this.emit("LDA", "Absolute", symHome(source, 0));
+      if (uses === 0) {
+        this.clearRegs();
+      } else {
+        this.bindA(dest.id);
+      }
+      return;
+    }
+
+    const next = all[index + 1];
+    if (
+      uses === 1 &&
+      next !== undefined &&
+      next.op === "high_byte" &&
+      isValidHighByte(next.dest, next.src) &&
+      isTemp(next.src) &&
+      next.src.id === dest.id
+    ) {
+      this.emit("LDA", "Absolute", symHome(source, 0));
+      this.emit("LDA", "Absolute", nextAbsoluteByte(source));
+      this.bindA(next.dest.id);
+      this.skipIndex = index + 1;
+      return;
+    }
+
+    this.emit("LDA", "Absolute", symHome(source, 0));
+    if (uses === 0) {
+      this.emit("LDA", "Absolute", symHome(source, 1));
+      this.clearRegs();
+      return;
+    }
+    this.bindA(dest.id);
+    this.emit("LDX", "Absolute", symHome(source, 1));
+    this.bindX(dest.id);
+  }
+
   private translateStore(value: ILOperand, target: ILOperand): void {
     if (!isLocation(target)) {
       this.iceUnsupported("store (non-location target)");
       return;
+    }
+    if (!isTemp(value) || value.id !== this.regA) {
+      this.protectA();
     }
     // An address-of source stores the symbol's link-time address byte by
     // byte (`#<sym+off` / `#>sym+off`) — argument marshalling and the
@@ -710,17 +840,9 @@ class FunctionTranslator {
     if (isAddr(value)) {
       this.protectA();
       const opts = value.offset !== undefined ? { offset: value.offset } : {};
-      this.emit(
-        "LDA",
-        "Immediate",
-        symbolRef(value.symbol, { ...opts, byteSelect: "low" }),
-      );
+      this.emit("LDA", "Immediate", symbolRef(value.symbol, { ...opts, byteSelect: "low" }));
       this.emit("STA", "Absolute", symHome(target, 0));
-      this.emit(
-        "LDA",
-        "Immediate",
-        symbolRef(value.symbol, { ...opts, byteSelect: "high" }),
-      );
+      this.emit("LDA", "Immediate", symbolRef(value.symbol, { ...opts, byteSelect: "high" }));
       this.emit("STA", "Absolute", symHome(target, 1));
       this.clearRegs();
       return;
@@ -747,11 +869,41 @@ class FunctionTranslator {
     const setCarry: Opcode = op === "add" ? "CLC" : "SEC";
     const aluOp: Opcode = op === "add" ? "ADC" : "SBC";
     if (type.width === 8) {
-      this.leftIntoA(left);
+      if (op === "add" && isTemp(left) && isTemp(right) && left.id === right.id) {
+        this.leftIntoA(left);
+        this.emit("ASL", "Accumulator", none());
+        this.bindA(asTempId(dest));
+        return;
+      }
+      const byteLeft = op === "add" && isTemp(right) && this.regA === right.id ? right : left;
+      const byteRight = byteLeft === right ? left : right;
+      this.leftIntoA(byteLeft);
       this.emit(setCarry, "Implied", none());
-      const r = this.rightSource(right, 0);
+      const r = this.rightSource(byteRight, 0);
       this.emit(aluOp, r.mode, r.operand);
       this.bindA(asTempId(dest));
+      return;
+    }
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(left, right);
+      if (op === "sub" && this.isWordInRegisters(right)) {
+        this.translateSelectedSubWithRegisterRight(left, selected);
+        return;
+      }
+      // The low-byte operation is still required because its carry/borrow is
+      // the input to the selected high-byte operation. The low result itself
+      // never needs a home.
+      const selectedLeft = op === "add" && this.isWordInRegisters(right) ? right : left;
+      const selectedRight = selectedLeft === right ? left : right;
+      this.wordLeftByteIntoA(selectedLeft, 0);
+      this.emit(setCarry, "Implied", none());
+      const rLo = this.rightSource(selectedRight, 0);
+      this.emit(aluOp, rLo.mode, rLo.operand);
+      this.wordLeftByteIntoA(selectedLeft, 1);
+      const rHi = this.rightSource(selectedRight, 1);
+      this.emit(aluOp, rHi.mode, rHi.operand);
+      this.bindA(selected.id);
       return;
     }
     // 16-bit: write each byte inline to the consuming store's target.
@@ -787,6 +939,19 @@ class FunctionTranslator {
       const r = this.rightSource(right, 0);
       this.emit(aluOp, r.mode, r.operand);
       this.bindA(asTempId(dest));
+      return;
+    }
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(left, right);
+      // Each bitwise byte is independent, so selecting the high result can
+      // omit the low-byte operation entirely.
+      const selectedLeft = this.isWordInRegisters(right) ? right : left;
+      const selectedRight = selectedLeft === right ? left : right;
+      this.wordLeftByteIntoA(selectedLeft, 1);
+      const rHi = this.rightSource(selectedRight, 1);
+      this.emit(aluOp, rHi.mode, rHi.operand);
+      this.bindA(selected.id);
       return;
     }
     const home = this.foldStoreHome(dest, index, all);
@@ -847,6 +1012,13 @@ class FunctionTranslator {
       return;
     }
 
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(left, right);
+      this.translateSelectedWordShift(op, left, right, signedShr, selected);
+      return;
+    }
+
     // 16-bit: in place at the consuming store's home.
     const home = this.foldStoreHome(dest, index, all);
     if (home === null) {
@@ -872,6 +1044,261 @@ class FunctionTranslator {
     this.emit("BNE", "Relative", labelRef(loopL));
     this.out.push(label(doneL));
     this.clearRegs();
+  }
+
+  /**
+   * Compute only a word shift's selected high byte.
+   *
+   * Right shifts never move low-byte bits into the high byte, so they reduce
+   * to the native byte shift. Left shifts must preserve the low-to-high carry;
+   * A:X carries the full word and the hardware stack briefly preserves each
+   * intermediate low byte without consuming zero-page scratch.
+   */
+  private translateSelectedWordShift(
+    op: "shl" | "shr",
+    left: ILOperand,
+    right: ILOperand,
+    signedShr: boolean,
+    selected: Extract<ILOperand, { kind: "temp" }>,
+  ): void {
+    if (op === "shr") {
+      if (isImmediate(right)) {
+        const count = right.value & 0xff;
+        if (count >= 8 && !signedShr) {
+          this.emit("LDA", "Immediate", imm8(0x00));
+          this.bindA(selected.id);
+          return;
+        }
+        this.translateHighByte(selected, left);
+        if (count >= 8) {
+          this.emit("ASL", "Accumulator", none());
+          this.emit("LDA", "Immediate", imm8(0x00));
+          this.emit("ADC", "Immediate", imm8(0xff));
+          this.emit("EOR", "Immediate", imm8(0xff));
+          this.bindA(selected.id);
+          return;
+        }
+        for (let i = 0; i < count; i++) {
+          this.emitByteShiftStep("shr", signedShr);
+        }
+        this.bindA(selected.id);
+        return;
+      }
+      this.shiftCountIntoY(right);
+      const leftInRegisters = this.isWordInRegisters(left);
+      const largeL = `_sh${this.nextLabelNumber()}`;
+      const loopL = `_sh${this.nextLabelNumber()}`;
+      const doneL = `_sh${this.nextLabelNumber()}`;
+      this.emit("CPY", "Immediate", imm8(0x08));
+      this.emit("BCS", "Relative", labelRef(largeL));
+      this.emitSelectedHighSource(left, leftInRegisters);
+      this.emit("CPY", "Immediate", imm8(0x00));
+      this.emit("BEQ", "Relative", labelRef(doneL));
+      this.out.push(label(loopL));
+      this.emitByteShiftStep("shr", signedShr);
+      this.emit("DEY", "Implied", none());
+      this.emit("BNE", "Relative", labelRef(loopL));
+      this.emit("JMP", "Absolute", labelRef(doneL));
+      this.out.push(label(largeL));
+      if (signedShr) {
+        this.emitSelectedHighSource(left, leftInRegisters);
+        this.emit("ASL", "Accumulator", none());
+        this.emit("LDA", "Immediate", imm8(0x00));
+        this.emit("ADC", "Immediate", imm8(0xff));
+        this.emit("EOR", "Immediate", imm8(0xff));
+      } else {
+        this.emit("LDA", "Immediate", imm8(0x00));
+      }
+      this.out.push(label(doneL));
+      this.regY = null;
+      this.bindA(selected.id);
+      return;
+    }
+
+    if (isImmediate(right)) {
+      const count = right.value & 0xff;
+      if (count === 0) {
+        this.translateHighByte(selected, left);
+        return;
+      }
+      if (count >= 16) {
+        this.emit("LDA", "Immediate", imm8(0x00));
+        this.bindA(selected.id);
+        return;
+      }
+      if (count >= 8) {
+        this.wordLeftByteIntoA(left, 0);
+        for (let i = 8; i < count; i++) {
+          this.emit("ASL", "Accumulator", none());
+        }
+        this.bindA(selected.id);
+        return;
+      }
+      if (count === 1) {
+        this.wordLeftByteIntoA(left, 0);
+        this.emit("ASL", "Accumulator", none());
+        this.wordLeftByteIntoA(left, 1);
+        this.emit("ROL", "Accumulator", none());
+        this.bindA(selected.id);
+        return;
+      }
+      if (count >= 4) {
+        this.translateSelectedSplitLeftShift(left, count, selected);
+        return;
+      }
+      this.bringValueIntoRegisters(left, 16);
+      for (let i = 0; i < count; i++) {
+        this.emit("ASL", "Accumulator", none());
+        if (i + 1 < count) {
+          this.emit("PHA", "Implied", none());
+        }
+        this.emit("TXA", "Implied", none());
+        this.emit("ROL", "Accumulator", none());
+        if (i + 1 < count) {
+          this.emit("TAX", "Implied", none());
+          this.emit("PLA", "Implied", none());
+        }
+      }
+      this.bindA(selected.id);
+      return;
+    }
+
+    this.shiftCountIntoY(right);
+    const zeroL = `_sh${this.nextLabelNumber()}`;
+    const highL = `_sh${this.nextLabelNumber()}`;
+    const fullLoopL = `_sh${this.nextLabelNumber()}`;
+    const fullDoneL = `_sh${this.nextLabelNumber()}`;
+    const highLoopL = `_sh${this.nextLabelNumber()}`;
+    const doneL = `_sh${this.nextLabelNumber()}`;
+    this.emit("CPY", "Immediate", imm8(0x10));
+    this.emit("BCS", "Relative", labelRef(zeroL));
+    this.emit("CPY", "Immediate", imm8(0x08));
+    this.emit("BCS", "Relative", labelRef(highL));
+    this.bringValueIntoRegisters(left, 16);
+    this.emit("CPY", "Immediate", imm8(0x00));
+    this.emit("BEQ", "Relative", labelRef(fullDoneL));
+    this.out.push(label(fullLoopL));
+    this.emit("ASL", "Accumulator", none());
+    this.emit("PHA", "Implied", none());
+    this.emit("TXA", "Implied", none());
+    this.emit("ROL", "Accumulator", none());
+    this.emit("TAX", "Implied", none());
+    this.emit("PLA", "Implied", none());
+    this.emit("DEY", "Implied", none());
+    this.emit("BNE", "Relative", labelRef(fullLoopL));
+    this.out.push(label(fullDoneL));
+    this.emit("TXA", "Implied", none());
+    this.emit("JMP", "Absolute", labelRef(doneL));
+    this.out.push(label(zeroL));
+    this.emit("LDA", "Immediate", imm8(0x00));
+    this.emit("JMP", "Absolute", labelRef(doneL));
+    this.out.push(label(highL));
+    this.wordLeftByteIntoA(left, 0);
+    this.emit("CPY", "Immediate", imm8(0x08));
+    this.emit("BEQ", "Relative", labelRef(doneL));
+    this.out.push(label(highLoopL));
+    this.emit("ASL", "Accumulator", none());
+    this.emit("DEY", "Implied", none());
+    this.emit("CPY", "Immediate", imm8(0x08));
+    this.emit("BNE", "Relative", labelRef(highLoopL));
+    this.out.push(label(doneL));
+    this.regY = null;
+    this.bindA(selected.id);
+  }
+
+  /** Emit a word's high byte for one internally branched selected-shift path. */
+  private emitSelectedHighSource(left: ILOperand, fromRegisters: boolean): void {
+    if (fromRegisters) {
+      this.emit("TXA", "Implied", none());
+      return;
+    }
+    const ref = this.byteRefOf(left, 1);
+    if (ref === null) {
+      this.iceUnsupported("selected word shift without a high-byte source");
+      return;
+    }
+    this.emit("LDA", ref.mode, ref.operand);
+  }
+
+  /** Compute `hi(word << count)` for counts 4..7 with one stack byte. */
+  private translateSelectedSplitLeftShift(
+    left: ILOperand,
+    count: number,
+    selected: Extract<ILOperand, { kind: "temp" }>,
+  ): void {
+    const fromRegisters = this.isWordInRegisters(left);
+    if (fromRegisters) {
+      this.emit("TAY", "Implied", none());
+      this.emit("TXA", "Implied", none());
+    } else {
+      this.emit("TSX", "Implied", none());
+      this.wordLeftByteIntoA(left, 1);
+    }
+    for (let i = 0; i < count; i++) this.emit("ASL", "Accumulator", none());
+    this.emit("PHA", "Implied", none());
+    if (fromRegisters) {
+      this.emit("TYA", "Implied", none());
+    } else {
+      this.wordLeftByteIntoA(left, 0);
+    }
+    for (let i = count; i < 8; i++) this.emit("LSR", "Accumulator", none());
+    if (fromRegisters) {
+      this.emit("TSX", "Implied", none());
+      this.emit("INX", "Implied", none());
+      this.emit("ORA", "AbsoluteX", symbolRef(STACK_PUSH_SLOT));
+    } else {
+      this.emit("ORA", "AbsoluteX", symbolRef(STACK_PUSH_SLOT));
+    }
+    this.emit("TXS", "Implied", none());
+    this.regY = null;
+    this.bindA(selected.id);
+  }
+
+  /** Load a variable shift count into Y without destroying an A-resident count. */
+  private shiftCountIntoY(count: ILOperand): void {
+    if (isTemp(count) && this.regA === count.id) {
+      this.emit("TAY", "Implied", none());
+      this.regY = { kind: "temp", id: count.id };
+      return;
+    }
+    const ref = this.rightSource(count, 0);
+    this.emit("LDY", ref.mode, ref.operand);
+    this.regY = isTemp(count) ? { kind: "temp", id: count.id } : null;
+  }
+
+  /** Whether a word temp's low and high bytes are both live in A:X. */
+  private isWordInRegisters(value: ILOperand): value is Extract<ILOperand, { kind: "temp" }> {
+    return isTemp(value) && this.regA === value.id && this.regX === value.id;
+  }
+
+  /**
+   * Select the high byte of `left - right` when `right` is live in A:X.
+   *
+   * The right operand is negated in registers, briefly preserving its low
+   * byte on the hardware stack, then added to the memory-readable left side.
+   * This is exact two's-complement subtraction and keeps the low-byte carry
+   * that determines the selected high result.
+   */
+  private translateSelectedSubWithRegisterRight(
+    left: ILOperand,
+    selected: Extract<ILOperand, { kind: "temp" }>,
+  ): void {
+    this.emit("EOR", "Immediate", imm8(0xff));
+    this.emit("CLC", "Implied", none());
+    this.emit("ADC", "Immediate", imm8(0x01));
+    this.emit("PHA", "Implied", none());
+    this.emit("TXA", "Implied", none());
+    this.emit("EOR", "Immediate", imm8(0xff));
+    this.emit("ADC", "Immediate", imm8(0x00));
+    this.emit("TAX", "Implied", none());
+    this.emit("PLA", "Implied", none());
+    this.emit("CLC", "Implied", none());
+    const leftLow = this.rightSource(left, 0);
+    this.emit("ADC", leftLow.mode, leftLow.operand);
+    this.emit("TXA", "Implied", none());
+    const leftHigh = this.rightSource(left, 1);
+    this.emit("ADC", leftHigh.mode, leftHigh.operand);
+    this.bindA(selected.id);
   }
 
   /** One byte shift step in A (`ASL`/`LSR`; signed right = sign-seeded `ROR`). */
@@ -1061,11 +1488,15 @@ class FunctionTranslator {
       return { operand: symAt(home, byteIndex), mode: "Absolute" };
     }
     if (isTemp(op)) {
+      if (this.wordSpills.has(op.id)) {
+        return {
+          operand: this.binder.operandForByte(op, byteIndex === 0 ? 0 : 1),
+          mode: "ZeroPage",
+        };
+      }
       const conv = this.convSource.get(op.id);
       if (conv !== undefined) {
-        return byteIndex === 0
-          ? this.byteRefOf(conv, 0)
-          : { operand: imm8(0), mode: "Immediate" };
+        return byteIndex === 0 ? this.byteRefOf(conv, 0) : { operand: imm8(0), mode: "Immediate" };
       }
     }
     return null;
@@ -1146,6 +1577,48 @@ class FunctionTranslator {
       return { name: next.b.symbol, offset: next.b.offset ?? 0 };
     }
     return null;
+  }
+
+  /**
+   * Claim an adjacent single-use high-byte selection for a word producer.
+   *
+   * The source temp must have exactly one read and that read must be the next
+   * instruction. This keeps the fold local and ensures no consumer can still
+   * require the producer's discarded low byte.
+   */
+  private takeAdjacentHighByte(
+    source: ILOperand,
+    index: number,
+    all: readonly ILInstruction[],
+  ): Extract<ILOperand, { kind: "temp" }> | null {
+    if (!isTemp(source) || source.type.width !== 16 || this.useCount.get(source.id) !== 1) {
+      return null;
+    }
+    const next = all[index + 1];
+    if (
+      next === undefined ||
+      next.op !== "high_byte" ||
+      !isValidHighByte(next.dest, next.src) ||
+      !isTemp(next.src) ||
+      next.src.id !== source.id
+    ) {
+      return null;
+    }
+    this.skipIndex = index + 1;
+    return next.dest;
+  }
+
+  /** Select an adjacent high byte from a word result already resident in A:X. */
+  private consumeAdjacentRegisterHighByte(
+    source: ILOperand,
+    index: number,
+    all: readonly ILInstruction[],
+  ): boolean {
+    const selected = this.takeAdjacentHighByte(source, index, all);
+    if (selected === null) return false;
+    this.emit("TXA", "Implied", none());
+    this.bindA(selected.id);
+    return true;
   }
 
   // ── comparisons — byte/word × unsigned/signed framings ─────────────────────
@@ -1490,6 +1963,31 @@ class FunctionTranslator {
       this.bindA(asTempId(dest));
       return;
     }
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(src);
+      if (this.isWordInRegisters(src)) {
+        this.emit("EOR", "Immediate", imm8(0xff));
+        this.emit("CLC", "Implied", none());
+        this.emit("ADC", "Immediate", imm8(0x01));
+        this.emit("TXA", "Implied", none());
+        this.emit("EOR", "Immediate", imm8(0xff));
+        this.emit("ADC", "Immediate", imm8(0x00));
+        this.bindA(selected.id);
+        return;
+      }
+      // Negation must execute the low subtraction to seed the borrow that
+      // enters the selected high-byte subtraction.
+      this.emit("SEC", "Implied", none());
+      this.emit("LDA", "Immediate", imm8(0x00));
+      const lo = this.rightSource(src, 0);
+      this.emit("SBC", lo.mode, lo.operand);
+      this.emit("LDA", "Immediate", imm8(0x00));
+      const hi = this.rightSource(src, 1);
+      this.emit("SBC", hi.mode, hi.operand);
+      this.bindA(selected.id);
+      return;
+    }
     const home = this.foldStoreHome(dest, index, all);
     if (home === null) {
       this.iceUnsupported("word negation result not consumed by a store");
@@ -1521,6 +2019,14 @@ class FunctionTranslator {
       this.bindA(asTempId(dest));
       return;
     }
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(src);
+      this.wordLeftByteIntoA(src, 1);
+      this.emit("EOR", "Immediate", imm8(0xff));
+      this.bindA(selected.id);
+      return;
+    }
     const home = this.foldStoreHome(dest, index, all);
     if (home === null) {
       this.iceUnsupported("word complement result not consumed by a store");
@@ -1540,8 +2046,20 @@ class FunctionTranslator {
    * as the constant 0 (see {@link byteRefOf}). An A-resident source binds
    * A:X with a zero high byte for the store/return consumers.
    */
-  private translateZext(dest: ILOperand, src: ILOperand): void {
+  private translateZext(
+    dest: ILOperand,
+    src: ILOperand,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
     const destId = asTempId(dest);
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(src);
+      this.emit("LDA", "Immediate", imm8(0x00));
+      this.bindA(selected.id);
+      return;
+    }
     if (this.byteRefOf(src, 0) !== null) {
       this.convSource.set(destId, src);
       return; // zero instructions — the fold serves every per-byte reader
@@ -1564,6 +2082,17 @@ class FunctionTranslator {
     index: number,
     all: readonly ILInstruction[],
   ): void {
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(src);
+      this.leftIntoA(src);
+      this.emit("ASL", "Accumulator", none());
+      this.emit("LDA", "Immediate", imm8(0x00));
+      this.emit("ADC", "Immediate", imm8(0xff));
+      this.emit("EOR", "Immediate", imm8(0xff));
+      this.bindA(selected.id);
+      return;
+    }
     const home = this.foldStoreHome(dest, index, all);
     if (home === null) {
       this.iceUnsupported("word sign-extension result not consumed by a store");
@@ -1595,12 +2124,51 @@ class FunctionTranslator {
     this.bindA(destId);
   }
 
+  /**
+   * Select the high byte of a word without arithmetic or scratch traffic.
+   * Memory-homed values read their `+1` byte directly; register-returned words
+   * use `TXA`, which is the 6502's native A:X high-byte selection.
+   *
+   * @param dest Byte temporary receiving the selected value.
+   * @param src Word value whose high byte is selected.
+   */
+  private translateHighByte(dest: ILOperand, src: ILOperand): void {
+    if (!isValidHighByte(dest, src)) {
+      this.iceUnsupported("high_byte (expected byte temp destination and word source)");
+      return;
+    }
+    this.protectAUnlessConsumedBy(src);
+    if (isTemp(src) && this.regX === src.id) {
+      this.emit("TXA", "Implied", none());
+      this.bindA(dest.id);
+      return;
+    }
+    const ref = this.byteRefOf(src, 1);
+    if (ref === null) {
+      this.iceUnsupported("high_byte of a value without a high-byte source");
+      return;
+    }
+    this.emit("LDA", ref.mode, ref.operand);
+    this.bindA(dest.id);
+  }
+
   /** Same-width re-type: bring the value into A (byte) or A:X (word), re-bind. */
-  private translateCopy(dest: ILOperand, src: ILOperand): void {
+  private translateCopy(
+    dest: ILOperand,
+    src: ILOperand,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
     const destId = asTempId(dest);
     if (widthOf(dest) === 8) {
       this.leftIntoA(src);
       this.bindA(destId);
+      return;
+    }
+    const selected = this.takeAdjacentHighByte(dest, index, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(src);
+      this.translateHighByte(selected, src);
       return;
     }
     this.bringValueIntoRegisters(src, 16);
@@ -1618,12 +2186,42 @@ class FunctionTranslator {
     index: number,
     all: readonly ILInstruction[],
   ): void {
-    this.protectA();
+    if (type.width === 8) this.protectA();
+    const selected = type.width === 16 ? this.takeAdjacentHighByte(dest, index, all) : null;
+    if (selected !== null) this.protectAUnlessConsumedBy(left, right);
     // (1) Both operands constant → fold at compile time, emit as a const.
     if (isImmediate(left) && isImmediate(right)) {
       const product = (left.value * right.value) & (type.width === 16 ? 0xffff : 0xff);
+      if (selected !== null) {
+        this.emit("LDA", "Immediate", imm8((product >> 8) & 0xff));
+        this.bindA(selected.id);
+        return;
+      }
       this.translateConst(dest, { kind: "immediate", value: product, type });
       return;
+    }
+    if (selected !== null) {
+      const constant = isImmediate(right) ? right : isImmediate(left) ? left : null;
+      const value = isImmediate(right) ? left : right;
+      if (constant !== null) {
+        const factor = constant.value & 0xffff;
+        if (factor === 0) {
+          this.emit("LDA", "Immediate", imm8(0x00));
+          this.bindA(selected.id);
+          return;
+        }
+        const shift = log2Exact(factor);
+        if (shift !== null) {
+          this.translateSelectedWordShift(
+            "shl",
+            value,
+            { kind: "immediate", value: shift, type: { width: 8, signed: false } },
+            false,
+            selected,
+          );
+          return;
+        }
+      }
     }
     // (2) One operand a constant power-of-two → shift sequence (byte only here).
     const constSide = isImmediate(right) ? right : isImmediate(left) ? left : null;
@@ -1641,7 +2239,14 @@ class FunctionTranslator {
     }
     // (3) Runtime multiply → JSR __rt_mul8/16 with full operand marshalling.
     const routine = RT_BY_NAME.get(type.width === 16 ? "__rt_mul16" : "__rt_mul8");
-    if (routine !== undefined && this.marshalAndCall(routine, left, right, dest, "value", type.width)) {
+    if (
+      routine !== undefined &&
+      this.marshalAndCall(routine, left, right, dest, "value", type.width)
+    ) {
+      if (selected !== null) {
+        this.emit("TXA", "Implied", none());
+        this.bindA(selected.id);
+      }
       this.bag.addWarning(
         DiagCode.RuntimeMultiply,
         null,
@@ -1661,11 +2266,45 @@ class FunctionTranslator {
     index: number,
     all: readonly ILInstruction[],
   ): void {
+    const selected = type.width === 16 ? this.takeAdjacentHighByte(dest, index, all) : null;
+    if (selected !== null) this.protectAUnlessConsumedBy(left, right);
+    if (selected !== null && !type.signed && isImmediate(right)) {
+      const divisor = right.value & 0xffff;
+      const shift = log2Exact(divisor);
+      if (shift !== null) {
+        if (op === "div") {
+          this.translateSelectedWordShift(
+            "shr",
+            left,
+            { kind: "immediate", value: shift, type: { width: 8, signed: false } },
+            false,
+            selected,
+          );
+          return;
+        }
+        if (shift <= 8) {
+          this.emit("LDA", "Immediate", imm8(0x00));
+          this.bindA(selected.id);
+          return;
+        }
+        this.translateHighByte(selected, left);
+        this.emit("AND", "Immediate", imm8((1 << (shift - 8)) - 1));
+        this.bindA(selected.id);
+        return;
+      }
+    }
     // div takes the quotient return, mod the remainder return; both call the same
     // runtime routine (no separate __rt_mod* symbols exist).
     const routine = RT_BY_NAME.get(type.width === 16 ? "__rt_div16" : "__rt_div8");
-    const result = op === "mod" ? "remainder" : "value";
-    if (routine !== undefined && this.marshalAndCall(routine, left, right, dest, result, type.width)) {
+    const result = op === "mod" ? (selected === null ? "remainder" : "high-remainder") : "value";
+    if (
+      routine !== undefined &&
+      this.marshalAndCall(routine, left, right, dest, result, type.width)
+    ) {
+      if (selected !== null) {
+        if (result !== "high-remainder") this.emit("TXA", "Implied", none());
+        this.bindA(selected.id);
+      }
       this.bag.addWarning(
         DiagCode.RuntimeDivide,
         null,
@@ -1673,8 +2312,6 @@ class FunctionTranslator {
           `(~150-200 cycles for ${type.width}-bit)`,
       );
     }
-    void index;
-    void all;
   }
 
   /**
@@ -1720,7 +2357,7 @@ class FunctionTranslator {
    * @param left The first operand (register-passed).
    * @param right The second operand (register or ZP arg-block).
    * @param dest The IL destination temp the result binds to.
-   * @param result Which return value binds: the primary value or the remainder.
+   * @param result Which return value binds, including a selected remainder high byte.
    * @param width The operation width (8 or 16).
    * @returns Whether the call was emitted (`false` → E10044 poison).
    */
@@ -1729,7 +2366,7 @@ class FunctionTranslator {
     left: ILOperand,
     right: ILOperand,
     dest: ILOperand,
-    result: "value" | "remainder",
+    result: "value" | "remainder" | "high-remainder",
     width: 8 | 16,
   ): boolean {
     if (!this.checkZpArgBlock(descriptor)) {
@@ -1752,24 +2389,57 @@ class FunctionTranslator {
       }
       return true;
     }
-    // Word: second operand through the ZP arg-block FIRST (the loads clobber A).
-    this.clearRegs();
-    for (const i of [0, 1] as const) {
-      const r = this.rightSource(right, i);
-      this.emit("LDA", r.mode, r.operand);
-      this.emit("STA", "Absolute", symbolRef(`__zp_arg_${i}`));
+    // Word: second operand travels through the ZP arg block, while the first
+    // must reach the call in A:X. Register-produced operands get dedicated
+    // paths so marshalling never destroys half of a coherent call result.
+    const rightInRegisters = this.isWordInRegisters(right);
+    const leftInRegisters = this.isWordInRegisters(left);
+    if (rightInRegisters) {
+      this.emit("STA", "Absolute", symbolRef("__zp_arg_0"));
+      this.emit("STX", "Absolute", symbolRef("__zp_arg_1"));
+      if (isTemp(left) && left.id === right.id) {
+        // A:X already holds the identical first operand; the stores above do
+        // not clobber either register, so no reload is needed.
+      } else {
+        this.clearRegs();
+        const hi = this.rightSource(left, 1);
+        this.emit("LDX", hi.mode, hi.operand);
+        const lo = this.rightSource(left, 0);
+        this.emit("LDA", lo.mode, lo.operand);
+      }
+    } else if (leftInRegisters) {
+      // Y preserves the low byte while A stages the second operand. X keeps
+      // the high byte untouched, so a one-sided nested expression needs no
+      // zero-page spill at all.
+      this.emit("TAY", "Implied", none());
+      for (const i of [0, 1] as const) {
+        const r = this.rightSource(right, i);
+        this.emit("LDA", r.mode, r.operand);
+        this.emit("STA", "Absolute", symbolRef(`__zp_arg_${i}`));
+      }
+      this.emit("TYA", "Implied", none());
+    } else {
+      this.clearRegs();
+      for (const i of [0, 1] as const) {
+        const r = this.rightSource(right, i);
+        this.emit("LDA", r.mode, r.operand);
+        this.emit("STA", "Absolute", symbolRef(`__zp_arg_${i}`));
+      }
+      const hi = this.rightSource(left, 1);
+      this.emit("LDX", hi.mode, hi.operand);
+      const lo = this.rightSource(left, 0);
+      this.emit("LDA", lo.mode, lo.operand);
     }
-    // First operand into A(lo)/X(hi) — direct loads, X is not otherwise needed.
-    const hi = this.rightSource(left, 1);
-    this.emit("LDX", hi.mode, hi.operand);
-    const lo = this.rightSource(left, 0);
-    this.emit("LDA", lo.mode, lo.operand);
     this.emit("JSR", "Absolute", labelRef(descriptor.name));
     this.clearRegs();
     if (result === "remainder") {
       // div16 leaves the remainder in the arg-block (overwriting b).
       this.emit("LDA", "Absolute", symbolRef("__zp_arg_0"));
       this.emit("LDX", "Absolute", symbolRef("__zp_arg_1"));
+    }
+    if (result === "high-remainder") {
+      this.emit("LDA", "Absolute", symbolRef("__zp_arg_1"));
+      return true;
     }
     this.bindA(asTempId(dest)); // word result lo→A, hi→X
     this.bindX(asTempId(dest));
@@ -1789,10 +2459,30 @@ class FunctionTranslator {
     if (id === null) return;
     if ((this.remainingUses.get(id) ?? 0) <= 0) return; // dead — nothing to save
     if (this.loadSource.has(id)) return; // memory-homed — reloadable
+    if (this.wordSpills.has(id)) return;
+    if (this.regX === id) {
+      const word = { kind: "temp", id, type: { width: 16, signed: false } } as const;
+      if (this.binder.spillWord(word, (entry) => this.out.push(entry))) {
+        this.wordSpills.add(id);
+        this.clearRegs();
+      }
+      return;
+    }
     this.binder.spill({ kind: "temp", id, type: { width: 8, signed: false } }, (e) =>
       this.out.push(e),
     );
     this.regA = null;
+  }
+
+  /** Preserve a live accumulator value beyond this producer's own reads. */
+  private protectAUnlessConsumedBy(...operands: readonly ILOperand[]): void {
+    const id = this.regA;
+    if (id === null) return;
+    const currentOccurrences = operands.filter(
+      (operand) => isTemp(operand) && operand.id === id,
+    ).length;
+    if ((this.remainingUses.get(id) ?? 0) <= currentOccurrences) return;
+    this.protectA();
   }
 
   /**
@@ -1861,7 +2551,7 @@ class FunctionTranslator {
       this.iceUnsupported("load_indexed (non-temp value or non-location base)");
       return;
     }
-    this.protectA();
+    this.protectAUnlessConsumedBy(index);
     this.indexIntoX(index);
 
     if (value.type.width === 8) {
@@ -1876,6 +2566,13 @@ class FunctionTranslator {
         this.binder.spill(value, (e) => this.out.push(e));
         this.regA = null;
       }
+      return;
+    }
+
+    const selected = this.takeAdjacentHighByte(value, at, all);
+    if (selected !== null) {
+      this.emit("LDA", "AbsoluteX", symHome(base, 1));
+      this.bindA(selected.id);
       return;
     }
 
@@ -2057,6 +2754,16 @@ class FunctionTranslator {
       this.iceUnsupported("word indirect load at an offset beyond the INY-safe range");
       return;
     }
+    const selected = this.takeAdjacentHighByte(value, at, all);
+    if (selected !== null) {
+      this.protectAUnlessConsumedBy(offset);
+      this.offsetIntoY(offset);
+      this.emit("INY", "Implied", none());
+      this.regY = null;
+      this.emit("LDA", "IndirectY", symbolRef(pair.symbol));
+      this.bindA(selected.id);
+      return;
+    }
     const home = this.foldStoreHome(value, at, all);
     if (home === null) {
       this.iceUnsupported("word indirect load not consumed by a store");
@@ -2136,7 +2843,6 @@ class FunctionTranslator {
   }
 
   // ── Register-state mirror (the binder is the allocation seam) ─────────────────
-
 
   private bindA(id: number | null): void {
     this.regA = id;
@@ -2275,6 +2981,25 @@ function symHome(locOp: ILOperand, byteIndex: number): InstrOperand {
   return off === 0 ? symbolRef(locOp.symbol) : symbolRef(locOp.symbol, { offset: off });
 }
 
+/**
+ * The adjacent byte after a direct absolute location.
+ *
+ * Hardware intrinsics name literal addresses as `$HHHH`. Folding the `+1`
+ * here keeps the selected-byte sequence identical to the two direct reads an
+ * assembly programmer writes. Symbolic locations retain the ordinary
+ * `symbol+1` form because their address is not known until assembly.
+ *
+ * @param locOp Direct location naming the low byte.
+ * @returns Instruction operand for its adjacent high byte.
+ */
+function nextAbsoluteByte(locOp: ILOperand): InstrOperand {
+  if (!isLocation(locOp)) return none();
+  const match = /^\$([0-9A-Fa-f]{4})$/.exec(locOp.symbol);
+  if (match?.[1] === undefined) return symHome(locOp, 1);
+  const next = (Number.parseInt(match[1], 16) + 1) & 0xffff;
+  return symbolRef(`$${next.toString(16).toUpperCase().padStart(4, "0")}`);
+}
+
 /** A `symbolRef` for a resolved {@link MemHome} at the given byte offset. */
 function symAt(home: MemHome, byteIndex: number): InstrOperand {
   const off = home.offset + byteIndex;
@@ -2306,6 +3031,7 @@ function readOperands(ins: ILInstruction): readonly ILOperand[] {
     case "zext":
     case "sext":
     case "trunc":
+    case "high_byte":
     case "copy":
     case "const":
       return [ins.src];
@@ -2327,6 +3053,20 @@ function readOperands(ins: ILInstruction): readonly ILOperand[] {
     case "source_span":
       return [];
   }
+}
+
+/**
+ * Whether a `high_byte` operand pair satisfies its typed IL contract.
+ *
+ * @param dest Proposed byte-temporary destination.
+ * @param src Proposed word source.
+ * @returns Whether both operands have the required kinds and widths.
+ */
+function isValidHighByte(
+  dest: ILOperand,
+  src: ILOperand,
+): dest is Extract<ILOperand, { kind: "temp" }> {
+  return isTemp(dest) && dest.type.width === 8 && src.type.width === 16;
 }
 
 /** The unqualified entry-point function name (spec Ch 10 — exactly one `main`). */

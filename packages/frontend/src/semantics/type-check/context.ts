@@ -19,6 +19,7 @@ import type {
   ExprNode,
   ForLoopInfo,
   ForStmtNode,
+  IntrinsicCallExprNode,
   IntrinsicRegistry,
   Scope,
   SourceSpan,
@@ -93,6 +94,12 @@ export interface TypeCheckContext {
    * order independent). Frozen into the model's `constValues` afterwards.
    */
   readonly constValues: Map<Symbol, ConstValue>;
+  /**
+   * Constant memory addresses proven at their exact intrinsic call sites.
+   * Analysis records only fully typed integer expressions in the hardware
+   * address range; lowering treats absence as non-constant.
+   */
+  readonly constantIntrinsicAddresses: Map<IntrinsicCallExprNode, number>;
   /**
    * The intrinsic registry. Platform-contributed intrinsics parse as plain
    * calls without being scope symbols; call typing consults the registry so

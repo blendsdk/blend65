@@ -505,6 +505,84 @@ describe.skipIf(process.platform !== "linux")("production VICE execution host", 
     }
   });
 
+  it("retires an identity-recorded artifact after its exact uncommitted child is absent", async () => {
+    const uid = process.geteuid?.();
+    if (uid === undefined) return;
+    const host = defaultViceExecutionHostV1;
+    const removeArtifact = host.compareRemoveLaunchArtifact;
+    if (removeArtifact === undefined) return;
+    const observed = await host.observeLease("c64", liveSignal());
+    expect(observed).toMatchObject({ ok: true, value: { kind: "absent" } });
+    if (!observed.ok || observed.value.kind !== "absent") return;
+    const token = new Uint8Array(32).fill(9);
+    const tokenPath = viceLaunchTokenPathV1(uid, token);
+    const initialParsed = parseViceLeaseRecordV1(
+      encodeViceLeaseRecordV1(initialRecord(uid, "c".repeat(64), 1, null)),
+    );
+    if (initialParsed === undefined) return;
+    const attemptBytes = encodeViceLeaseRecordV1(
+      withAttempt(initialParsed, token, 20_004, 20_005, tokenPath, 2),
+    );
+    const created = await host.tryCreateLease(
+      "c64",
+      observed.value.directory,
+      attemptBytes,
+      liveSignal(),
+    );
+    expect(created).toMatchObject({ ok: true, value: { kind: "created" } });
+    if (
+      !created.ok ||
+      created.value.kind !== "created" ||
+      created.value.snapshot.kind !== "present"
+    ) {
+      return;
+    }
+    const retained = created.value.snapshot.reference;
+    try {
+      await createViceLaunchArtifactV1(
+        {
+          target: "c64",
+          claim: retained,
+          generation: 1,
+          nonce: "c".repeat(64),
+          launchToken: token,
+          launchTokenPath: tokenPath,
+          endpoints: { binaryPort: 20_004, textPort: 20_005 },
+          executable: "x64sc",
+          argv: [],
+          cwd: process.cwd(),
+        },
+        uid,
+        process.execPath,
+      );
+      const absentProcess: ViceProcessIdentityFactV1 = {
+        bootId: "absent-process",
+        pid: Number.MAX_SAFE_INTEGER,
+        startTicks: 1n,
+        processGroupId: Number.MAX_SAFE_INTEGER,
+        launchToken: token,
+        launchTokenPath: tokenPath,
+      };
+      await recordViceLauncherIdentityV1(tokenPath, uid, absentProcess);
+      expect(
+        await removeArtifact.call(
+          host,
+          "c64",
+          retained,
+          tokenPath,
+          { ...absentProcess, startTicks: 2n },
+          liveSignal(),
+        ),
+      ).toEqual({ ok: true, value: "changed" });
+      expect(
+        await removeArtifact.call(host, "c64", retained, tokenPath, absentProcess, liveSignal()),
+      ).toEqual({ ok: true, value: "removed" });
+    } finally {
+      await host.compareRemoveLease("c64", retained, liveSignal());
+      await unlink(tokenPath).catch(() => undefined);
+    }
+  });
+
   it("rejects mismatched prepared, recorded and observed artifact process identities", async () => {
     const uid = process.geteuid?.();
     if (uid === undefined) return;

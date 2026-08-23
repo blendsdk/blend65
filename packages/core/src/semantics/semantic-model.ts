@@ -13,7 +13,7 @@
  * The real four-pass checker, not yet implemented, will populate these.
  */
 
-import type { ExprNode, AstNode, ForStmtNode } from "../ast/index.js";
+import type { AstNode, ExprNode, ForStmtNode, IntrinsicCallExprNode } from "../ast/index.js";
 import type { Type, StructType, EnumType } from "./type.js";
 import { ERROR_TYPE } from "./type.js";
 import type { Scope } from "./scope.js";
@@ -62,6 +62,12 @@ export interface SemanticModel {
   /** Module/global initialiser execution order. */
   readonly initOrder: ReadonlyArray<Symbol>;
   readonly constValues: ReadonlyMap<Symbol, ConstValue>;
+  /**
+   * Validated constant addresses for memory-intrinsic call sites. The key is
+   * the call node, rather than its address expression, so a downstream phase
+   * can consume the fact only at the exact use site analysis approved.
+   */
+  readonly constantIntrinsicAddresses: ReadonlyMap<IntrinsicCallExprNode, number>;
   /**
    * The by-reference parameters accessed THROUGH their pointer — an element
    * or field access rooted at the parameter, or a whole-struct copy with the
@@ -123,6 +129,7 @@ export function createEmptyModel(): SemanticModel {
     callGraph: emptyCallGraph(),
     initOrder: [],
     constValues: new Map(),
+    constantIntrinsicAddresses: new Map(),
     pairAccessedParams: new Set(),
     addressTakenFunctions: new Set(),
     structTypes: new Map(),

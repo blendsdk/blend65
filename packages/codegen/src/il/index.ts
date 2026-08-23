@@ -43,6 +43,7 @@ export type { LowerInput } from "./lower.js";
 export { lowerToIL } from "./lower.js";
 
 // Textual form
+export type { PrintILOptions } from "./print-il.js";
 export { printIL, ilTypeTag } from "./print-il.js";
 
 // Optimizer pipeline

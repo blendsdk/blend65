@@ -16,6 +16,7 @@ import type { AllocationPlan } from "@blend65/core";
 import { IL_BYTE, IL_SBYTE, IL_SWORD, IL_WORD } from "./il-type.js";
 import { imm, loc, temp } from "./operand.js";
 import type { ILFunction, ILProgram } from "./cfg.js";
+import type { PrintILOptions } from "./index.js";
 import { ilTypeTag, printIL } from "./print-il.js";
 
 const EMPTY_PLAN = {
@@ -59,7 +60,10 @@ function prog(...functions: ILFunction[]): ILProgram {
   return { functions, initCode: [], initTempCount: 0, constData: [], allocationPlan: EMPTY_PLAN };
 }
 
-function voidFn(name: string, instructions: ILFunction["blocks"][number]["instructions"]): ILFunction {
+function voidFn(
+  name: string,
+  instructions: ILFunction["blocks"][number]["instructions"],
+): ILFunction {
   return {
     name,
     params: [],
@@ -86,8 +90,50 @@ describe("printIL — operand & instruction rendering", () => {
   });
 
   it("should render store with no destination (just `store a, b`)", () => {
-    const fn = voidFn("Main.main", [{ op: "store", a: imm(5, IL_BYTE), b: loc("__var_x", IL_BYTE) }]);
+    const fn = voidFn("Main.main", [
+      { op: "store", a: imm(5, IL_BYTE), b: loc("__var_x", IL_BYTE) },
+    ]);
     expect(printIL(prog(fn))).toContain("  store 5, __var_x");
+  });
+
+  it("should expose volatile memory effects and the high-byte selector", () => {
+    const fn = voidFn("Main.main", [
+      { op: "load", a: temp(0, IL_WORD), b: loc("DEVICE", IL_WORD), volatile: true },
+      { op: "high_byte", dest: temp(1, IL_BYTE), src: temp(0, IL_WORD) },
+      { op: "store", a: temp(1, IL_BYTE), b: loc("RESULT", IL_BYTE), volatile: true },
+    ]);
+
+    const options: PrintILOptions = { exposeEffects: true };
+    expect(printIL(prog(fn), options)).toContain(
+      [
+        "  %0 = load volatile i16u DEVICE",
+        "  %1 = high_byte %0",
+        "  store volatile %1, RESULT",
+      ].join("\n"),
+    );
+  });
+
+  it("should keep effect visibility deterministic, isolated by call, and non-mutating", () => {
+    const instruction = {
+      op: "store",
+      a: imm(5, IL_BYTE),
+      b: loc("DEVICE", IL_BYTE),
+      volatile: true,
+    } as const;
+    const program = prog(voidFn("Main.main", [instruction]));
+    const original = { ...instruction };
+
+    const exposedFirst = printIL(program, { exposeEffects: true });
+    const legacyAfter = printIL(program);
+    const explicitFalse = printIL(program, { exposeEffects: false });
+    const exposedAgain = printIL(program, { exposeEffects: true });
+
+    expect(exposedFirst).toBe(exposedAgain);
+    expect(exposedFirst).toContain("store volatile 5, DEVICE");
+    expect(legacyAfter).toBe(explicitFalse);
+    expect(legacyAfter).toContain("store 5, DEVICE");
+    expect(legacyAfter).not.toContain("volatile");
+    expect(instruction).toEqual(original);
   });
 
   it("should render a location without an offset as the bare symbol", () => {
@@ -117,7 +163,12 @@ describe("printIL — operand & instruction rendering", () => {
     expect(printIL(prog(voidCall))).toContain("  call M.helper(1)");
 
     const valCall = voidFn("M.g", [
-      { op: "call", dest: temp(0, IL_BYTE), target: "M.helper", args: [imm(1, IL_BYTE), temp(2, IL_BYTE)] },
+      {
+        op: "call",
+        dest: temp(0, IL_BYTE),
+        target: "M.helper",
+        args: [imm(1, IL_BYTE), temp(2, IL_BYTE)],
+      },
     ]);
     expect(printIL(prog(valCall))).toContain("%0 = call M.helper(1, %2)");
   });

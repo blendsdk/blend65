@@ -12,25 +12,6 @@
       "note": "The frozen spec mandates this form at spec/12-intrinsics.md:159."
     },
     {
-      "id": "X-02",
-      "idiom": "Name a hardware register instead of a magic number",
-      "source": "module Main;\nconst BORDER: word = $D020;\nfunction main(): void {\n  poke(BORDER, 5);\n}\n",
-      "expect": "diagnostic",
-      "code": "E10045",
-      "governedBy": "none — drift. No decision authorised rejecting a named constant",
-      "owner": "blend65-conformance T-01",
-      "note": "Violates Prime Directive clause 3. The diagnostic text claims to require a compile-time constant and then rejects one."
-    },
-    {
-      "id": "X-03",
-      "idiom": "Use a constant expression as an address",
-      "source": "module Main;\nfunction main(): void {\n  poke($0400 + 5, 1);\n}\n",
-      "expect": "diagnostic",
-      "code": "E10045",
-      "governedBy": "none — drift",
-      "owner": "blend65-conformance T-01"
-    },
-    {
       "id": "X-04",
       "idiom": "Call code at an address — a tracker-authored SID player, or a KERNAL routine",
       "source": "module Main;\nconst PLAY: word = $1003;\nfunction main(): void {\n  let f: word = PLAY;\n  f();\n}\n",

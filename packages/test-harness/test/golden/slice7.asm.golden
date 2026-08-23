@@ -96,8 +96,7 @@ Main_main_L3:
     STA __frame_Main_main_j
     LDA __frame_Main_main_j
     ASL
-    STA __zp_tmp_1
-    LDX __zp_tmp_1
+    TAX
     LDA __frame_Main_main_pts,X
     STA $C002
     LDA #$03

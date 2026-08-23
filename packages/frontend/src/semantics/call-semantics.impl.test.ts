@@ -6,12 +6,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  createDiagnosticBag,
-  createScope,
-  DEFAULT_PROFILE,
-  DiagCode,
-} from "@blend65/core";
+import { createDiagnosticBag, createScope, DEFAULT_PROFILE, DiagCode } from "@blend65/core";
 import type {
   AstNode,
   ConstValue,
@@ -65,6 +60,7 @@ describe("call typing internals", () => {
       callSiteSpans: new Map<Symbol, Map<Symbol, SourceSpan>>(),
       moduleScopes: tables.moduleScopeByName,
       constValues: new Map<Symbol, ConstValue>(),
+      constantIntrinsicAddresses: new Map(),
       addressTakenFunctions: new Set<Symbol>(),
     });
 
@@ -97,9 +93,7 @@ describe("call typing internals", () => {
 describe("import precedence and module-name collision", () => {
   it("resolves an import from a user module named like a platform id (user wins)", () => {
     const diags = analyzeMulti([
-      "module Main;\n" +
-        "import { probe } from c64;\n" +
-        "function main(): void { probe(); }\n",
+      "module Main;\n" + "import { probe } from c64;\n" + "function main(): void { probe(); }\n",
       "module c64;\n" + "export function probe(): void {}\n",
     ]);
     expect(diags).toEqual([]);

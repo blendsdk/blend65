@@ -69,8 +69,8 @@ Main_copyPoint:
     STA (__zp_ptr_Main_copyPoint_dst),Y
     LDY #$01
     LDA (__zp_ptr_Main_copyPoint_src),Y
-    STA __zp_tmp_1
-    LDA __zp_tmp_1
+    STA __zp_tmp_0
+    LDA __zp_tmp_0
     STA (__zp_ptr_Main_copyPoint_dst),Y
     RTS
 ; --- function: Main.main ---

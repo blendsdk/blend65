@@ -59,6 +59,11 @@ failure maps to `tier-unavailable`; a discovered executable returning non-zero, 
 out or omitting declared artifacts maps to its assembler-stage code. Binary, label and report files
 are validated as regular files under the case root before hashing or parsing.
 
+For sealed production evidence, the single ACME report source header must name the exact retained
+assembly descriptor path used for invocation. Evidence hashing replaces that validated header with
+one fixed domain-tagged line so host PID/descriptor allocation cannot change authority; raw report
+bytes still drive parsing and layout proof. The generic compatibility adapter retains raw hashing.
+
 ## Worker protocol
 
 Compiler, CLI and emit operations run in Node worker threads because their synchronous CPU work

@@ -46,6 +46,24 @@ interface ExecutionCaseState {
   readonly fixture: ExecutionInitialStateFixtureV1;
 }
 
+/** Evaluator-only facts retained behind one genuine execution-case capability. */
+export interface ExecutionCaseEvaluationInputV1 {
+  /** Stable source identity shared with the executable envelope. */
+  readonly sourceCaseDigest: string;
+  /** Genuine campaign retaining deterministic seed and generation configuration. */
+  readonly campaign: PreparedCampaign;
+  /** Zero-based campaign ordinal regenerated into this case. */
+  readonly ordinal: number;
+  /** Exact generated case, including ordered external parameter bindings. */
+  readonly generatedCase: GeneratedCase;
+  /** Entry function selected by the executable envelope. */
+  readonly entryFunction: string;
+  /** Logical target fixture selected for the case. */
+  readonly fixture: ExecutionInitialStateFixtureV1;
+  /** Exact runtime observation requested for the case. */
+  readonly observation: ExecutionObservationRequestV1;
+}
+
 const EXECUTION_CASE_STATES = new WeakMap<object, ExecutionCaseState>();
 // The non-zero low nibble makes a missing modeled write observably different from its result.
 const INITIAL_VIC_LOGICAL_BYTE = 0x21;
@@ -288,6 +306,28 @@ export function getExecutionCaseProjectionV1(
       observation: state.envelope.observation,
     }),
   );
+}
+
+/**
+ * Resolves evaluator-only state for a genuine execution case.
+ *
+ * This package-internal seam keeps generated semantics behind the same opaque capability used by
+ * rendering and execution. It is intentionally not re-exported from the package entry point.
+ */
+export function getExecutionCaseEvaluationInputV1(
+  executionCase: ExecutionCaseV1,
+): ExecutionCaseEvaluationInputV1 | undefined {
+  const state = getExecutionCaseStateV1(executionCase);
+  if (state === undefined) return undefined;
+  return Object.freeze({
+    sourceCaseDigest: state.generatedCase.identity.digest,
+    campaign: state.campaign,
+    ordinal: state.ordinal,
+    generatedCase: state.generatedCase,
+    entryFunction: state.envelope.entryFunction,
+    fixture: state.fixture,
+    observation: state.envelope.observation,
+  });
 }
 
 function getExecutionCaseStateV1(executionCase: ExecutionCaseV1): ExecutionCaseState | undefined {

@@ -113,7 +113,7 @@ optional-evidence form return identical exit code, stdout, stderr and artifacts;
 | ST-41 | Non-Linux/restricted identity provider | VICE is `tier-unavailable`, never PID-only fallback | AR-P11; 03-06 |
 | ST-42 | Low-level endpoint owner/collision, wrong C64 probe/version or dead child; readiness fresh-endpoint retry | One low-level child attempt returns a stable reason after bounded connect; readiness performs at most eight fresh attempts under the cumulative deadline | RD-04 Lifecycle; AR-P4/P32 |
 | ST-43 | Fragmented/late correlated frames, explicit cancellation/close races, pre-aborted route, STORE checkpoint midway through a chunk, wrong event/address/readback, defensive byte ownership, post-return machine mutation and instruction/cycle/wall races | First pending-map removal wins; cancelled late frames discard while the session remains usable; close is terminal; pre-abort performs no host mutation; full chunk is charged without refund; only exact committed `$A5` completes; no later mutation; stable precedence | RD-04 AC-7/8; AR-P9/P32/P33 |
-| ST-44 | Real VICE fixture proof and `peek`/`peekw`/`poke`/`pokew` | Projection plus one selected case per rule passes locally | RD-04 AC-5/12; AR-P8/P13 |
+| ST-44 | Evaluated VICE fixture proof and `peek`/`peekw`/`poke`/`pokew`, with a genuine single-use runtime-evaluation authority | CI-safe fake control proves exact completion/actual-byte comparison and rejects forged, replayed or route-mismatched authority; module-constant addresses compile with literal parity, volatile word reads preserve both bytes with expert instruction selection, and one selected case per rule passes locally | RD-04 AC-5/12; AR-P8/P13/P38/P47–P49 |
 
 ### Publication and orchestration
 
@@ -160,7 +160,9 @@ publication and orchestration concerns.
 
 Focused gates include package tests, package branch coverage, readiness source/boundary checks,
 targeted Prettier, execution-publication resolution, local ACME/VICE acceptance when selecting, and
-`git status --porcelain spec/` remaining empty.
+`git status --porcelain spec/` remaining empty. The Linux process gate includes a real short-lived
+target regression proving that exact non-null identity is captured before Node delivers its spawn
+event.
 
 Every phase also runs:
 

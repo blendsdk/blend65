@@ -19,6 +19,7 @@ import { deriveOracleSourceContentIdentity } from "@blend65/readiness/published-
 import { isExecutionRelativePathV1 } from "./execution-workspace.js";
 import type {
   ExecutionWorkerRequestV1,
+  ExecutionWorkerLayoutBasisV1,
   ExecutionWorkerResponseV1,
 } from "./execution-worker-protocol.js";
 
@@ -295,6 +296,28 @@ function encodeAssembly(text: string, limit: number): Uint8Array {
   return ENCODER.encode(text);
 }
 
+function layoutBasis(
+  plan: NonNullable<ReturnType<typeof emitAsmWithEvidence>["result"]["allocationPlan"]>,
+): ExecutionWorkerLayoutBasisV1 {
+  const dataRanges: Array<{ readonly start: number; readonly length: number }> = [];
+  for (const variable of plan.moduleVariables) {
+    if (!variable.variableName.startsWith("__execution_")) {
+      dataRanges.push(Object.freeze({ start: variable.address, length: variable.size }));
+    }
+  }
+  if (plan.frameRegionSize > 0) {
+    dataRanges.push(Object.freeze({ start: plan.frameRegionBase, length: plan.frameRegionSize }));
+  }
+  for (const allocation of plan.zpAllocations) {
+    dataRanges.push(Object.freeze({ start: allocation.address, length: allocation.size }));
+  }
+  dataRanges.sort((left, right) => left.start - right.start || left.length - right.length);
+  return Object.freeze({
+    revision: "execution-worker-layout-basis-v1",
+    dataRanges: Object.freeze(dataRanges),
+  });
+}
+
 function enforceEvidenceBound(response: ExecutionWorkerResponseV1, limit: number): void {
   const projection = {
     tier: response.tier,
@@ -309,7 +332,9 @@ function enforceEvidenceBound(response: ExecutionWorkerResponseV1, limit: number
         ? { hasErrors: response.hasErrors }
         : response.tier === "cli"
           ? { exitCode: response.exitCode }
-          : {}),
+          : response.tier === "emit"
+            ? { layoutBasis: response.layoutBasis ?? null }
+            : {}),
   };
   const metadataBytes = Buffer.byteLength(JSON.stringify(projection), "utf8");
   const outputBytes =
@@ -359,12 +384,16 @@ async function execute(job: WorkerJobV1): Promise<ExecutionWorkerResponseV1> {
   } else if (request.tier === "emit") {
     const observed = emitAsmWithEvidence(options, prepared.host);
     const assemblyBytes = encodeAssembly(observed.result.text ?? "", job.outputLimitBytes);
+    if (observed.result.allocationPlan === undefined) {
+      throw new TypeError("evidence-exhaustion: emitter allocation facts are unavailable");
+    }
     response = {
       revision: "execution-worker-response-v1",
       tier: "emit",
       contract: "assembly-emitter-v1",
       caseIdentity: request.caseIdentity,
       assemblyBytes,
+      layoutBasis: layoutBasis(observed.result.allocationPlan),
       diagnostics: observed.evidence,
       emission: { il: false, assembly: false, binary: false },
     };

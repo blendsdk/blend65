@@ -299,11 +299,7 @@ function typeIntegerBinary(expr: BinaryExprNode, scope: Scope, ctx: TypeCheckCon
  * support only `==`/`!=` — an ordered comparison on booleans, or a
  * boolean/integer mix, is E10080.
  */
-function typeComparisonBinary(
-  expr: BinaryExprNode,
-  scope: Scope,
-  ctx: TypeCheckContext,
-): Type {
+function typeComparisonBinary(expr: BinaryExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   const { lt, rt } = typeAdaptedOperands(expr, scope, ctx);
   if (isError(lt) || isError(rt)) return ERROR_TYPE; // cascade suppression
 
@@ -924,11 +920,7 @@ function typeCompoundAssign(
  * references are a future feature, so the shape is rejected loudly rather
  * than silently miscompiled.
  */
-function typeFieldAccess(
-  expr: FieldAccessExprNode,
-  scope: Scope,
-  ctx: TypeCheckContext,
-): Type {
+function typeFieldAccess(expr: FieldAccessExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   // Head classification for a bare-identifier object: a value symbol makes
   // this struct-field access; an enum TYPE makes it member access; an
   // unresolved head falls to the qualified `Module.member` ladder.
@@ -985,11 +977,7 @@ function typeEnumMemberAccess(
 }
 
 /** Struct-field access on an already-typed object. */
-function typeStructFieldOn(
-  objType: Type,
-  expr: FieldAccessExprNode,
-  ctx: TypeCheckContext,
-): Type {
+function typeStructFieldOn(objType: Type, expr: FieldAccessExprNode, ctx: TypeCheckContext): Type {
   if (isError(objType)) return ERROR_TYPE; // cascade suppression
   if (objType.kind !== "struct") {
     ctx.bag.addError(
@@ -1012,11 +1000,7 @@ function typeStructFieldOn(
 }
 
 /** The 5b qualified `Module.member` value surface (heads that resolve to nothing local). */
-function typeQualifiedAccess(
-  expr: FieldAccessExprNode,
-  scope: Scope,
-  ctx: TypeCheckContext,
-): Type {
+function typeQualifiedAccess(expr: FieldAccessExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   const res = resolveQualified(expr, scope, ctx.moduleScopes, ctx.bag);
   if (res.status !== "resolved") {
     // not-qualified → nothing local and no module: already impossible here
@@ -1065,8 +1049,7 @@ function typeIndexExpr(expr: IndexExprNode, scope: Scope, ctx: TypeCheckContext)
 
   // The index's contextual hint follows the tier: literals on a >256-byte
   // array type as `word`, everything else (incl. unsized) as `byte`.
-  const knownTotal =
-    objType.kind === "array" && objType.size !== null ? byteSize(objType) : null;
+  const knownTotal = objType.kind === "array" && objType.size !== null ? byteSize(objType) : null;
   const hint = knownTotal !== null && knownTotal > 256 ? primitive("word") : primitive("byte");
   const indexType = typeOfExpr(expr.index, scope, ctx, hint);
 
@@ -1083,8 +1066,7 @@ function typeIndexExpr(expr: IndexExprNode, scope: Scope, ctx: TypeCheckContext)
   if (!isError(indexType)) {
     const indexIsWord = indexType.kind === "primitive" && indexType.name === "word";
     const indexIsByte =
-      (indexType.kind === "primitive" && indexType.name === "byte") ||
-      indexType.kind === "enum"; // an enum index reads as its byte backing
+      (indexType.kind === "primitive" && indexType.name === "byte") || indexType.kind === "enum"; // an enum index reads as its byte backing
     if (indexIsWord && knownTotal !== null && knownTotal <= 256) {
       // A byte index fully covers this array; a word index would silently
       // drop its high byte.
@@ -1351,8 +1333,7 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
     ctx.bag.addError(
       DiagCode.CallingMainDirectly,
       span,
-      `Cannot call 'main()' directly — it is the program entry point, not a ` +
-        `callable function`,
+      `Cannot call 'main()' directly — it is the program entry point, not a ` + `callable function`,
     );
     return walkArgsAndPoison(expr, scope, ctx);
   }
@@ -1547,11 +1528,7 @@ function recordCallEdge(
  * diagnostic (the intrinsic-validation pass owns their errors); arity errors
  * are that pass's job too.
  */
-function typeIntrinsicCall(
-  expr: IntrinsicCallExprNode,
-  scope: Scope,
-  ctx: TypeCheckContext,
-): Type {
+function typeIntrinsicCall(expr: IntrinsicCallExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   if (expr.name === "lo" || expr.name === "hi") {
     for (const arg of expr.args) {
       const argType = typeOfExpr(arg, scope, ctx, primitive("word"));
@@ -1607,18 +1584,78 @@ function typeIntrinsicCall(
 
   for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
 
+  let result: Type;
   switch (expr.name) {
     case "peek":
-      return primitive("byte");
+      result = primitive("byte");
+      break;
     case "peekw":
-      return primitive("word");
+      result = primitive("word");
+      break;
     case "poke":
     case "pokew":
       checkPokeValueWidth(expr, expr.name === "pokew" ? 16 : 8, ctx);
-      return primitive("void");
+      result = primitive("void");
+      break;
     default:
       return ERROR_TYPE; // embed/etc. — not yet supported here
   }
+
+  recordConstantIntrinsicAddress(expr, scope, ctx);
+  return result;
+}
+
+/** The exact argument count of each direct-memory intrinsic. */
+const MEMORY_INTRINSIC_ARITY: ReadonlyMap<string, number> = new Map([
+  ["peek", 1],
+  ["peekw", 1],
+  ["poke", 2],
+  ["pokew", 2],
+]);
+
+/**
+ * Records a constant hardware address only after the whole call has been
+ * typed. The resolver accepts evaluated scalar constants, rejects runtime
+ * symbols, and preserves poison without adding another diagnostic. Keeping
+ * the fact on the call node prevents a value proved in one context from being
+ * reused at a different intrinsic use site.
+ */
+function recordConstantIntrinsicAddress(
+  expr: IntrinsicCallExprNode,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): void {
+  if (expr.args.length !== MEMORY_INTRINSIC_ARITY.get(expr.name)) return;
+
+  const address = expr.args[0];
+  const addressType = address === undefined ? undefined : ctx.typeMap.get(address);
+  if (addressType?.kind !== "primitive" || !isInteger(addressType)) return;
+
+  const resolveRef: ConstRefResolver = (ref) => {
+    const symbol = ctx.symbolMap.get(ref);
+    if (symbol === undefined) return { kind: "poisoned" };
+    if (symbol.kind !== "constant") return { kind: "nonconst" };
+
+    const value = ctx.constValues.get(symbol);
+    if (value === undefined || value.bytes !== undefined) return { kind: "poisoned" };
+    return { kind: "value", value: value.value };
+  };
+  const folded = evalConst(
+    address,
+    resolveRef,
+    (candidate) => ctx.typeMap.get(candidate),
+    ctx.engine?.intrinsicFolder(scope),
+  );
+  if (
+    folded.kind !== "value" ||
+    typeof folded.value !== "number" ||
+    !Number.isSafeInteger(folded.value) ||
+    folded.value < 0 ||
+    folded.value > 0xffff
+  ) {
+    return;
+  }
+  ctx.constantIntrinsicAddresses.set(expr, folded.value);
 }
 
 /**

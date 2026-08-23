@@ -30,6 +30,15 @@ ticks when known, two endpoints and timestamps. Acquisition uses an atomic creat
 Recovery first fences the observed generation, proves the owner dead in the same boot, and handles
 the child according to its recorded lifecycle.
 
+Record-v1 bytes are canonical security state. The payload is compact UTF-8 JSON with no BOM,
+whitespace or trailing newline and keys in this exact order: `schema`, `target`, `generation`,
+`nonce`, `uid`, `acquiredAtMs`, `updatedAtMs`, `lifecycle`, `owner`, `attempt`, `child`. Nullable
+fields remain present. A process record orders `bootId`, `pid`, decimal-string `startTicks`,
+`processGroupId`, `launchToken`, `launchTokenPath`; an attempt orders `launchToken`, `binaryPort`,
+`textPort`, `launchTokenPath`. `checksum` is lower-case SHA-256 of those exact payload JSON bytes
+without a checksum field. Final bytes serialize the same ordered payload followed by `checksum` as
+the last key. Any incompatible field/order/checksum change requires a new record schema revision.
+
 VICE starts through a same-PID record-then-exec launcher. After fork, the launcher durably records
 its own PID, start ticks, process group, generation, nonce and token, then calls `process.execve` to
 replace itself with VICE. VICE therefore cannot exist without the exact child identity already on
@@ -120,6 +129,13 @@ pending control work is cancelled, but exact-generation cleanup runs under a pri
 cleanup signal rather than the aborted caller signal. Attempts, requested instruction chunks,
 stopwatch deltas and monotonic wall time are charged before work and are never refunded or reset by
 failure, cancellation or retry.
+
+Short-lived supervised tools retain the same exact non-null Linux identity contract. The dedicated
+anchor captures boot ID, PID, start ticks, process group and session synchronously from procfs
+immediately after `spawn()` returns, before yielding to the event loop, and then confirms the normal
+spawn result. Spawn errors discard the capture. Any later identity or cancellation failure cleans
+the whole anchor-owned group and proves descendant absence; killing only the direct child is not a
+sufficient cleanup result.
 
 ## Local authority proof
 
@@ -257,6 +273,10 @@ export interface ViceRouteRequestV1 {
   readonly observation: ExecutionObservationRequestV1;
   readonly policy: ExecutionPolicyV1;
 }
+export interface EvaluatedViceRouteRequestV1 {
+  readonly route: ViceRouteRequestV1;
+  readonly evaluation: PublishedRuntimeEvaluationAuthorityV1;
+}
 export interface ViceLeaseNodeIdentityV1 {
   readonly device: bigint;
   readonly inode: bigint;
@@ -378,6 +398,11 @@ export interface ViceExecutionRuntimeV1 {
     lease: ViceLeaseHandleV1,
     signal: AbortSignal,
   ): Promise<ExecutionResultV1>;
+  executeEvaluatedViceRoute(
+    request: EvaluatedViceRouteRequestV1,
+    lease: ViceLeaseHandleV1,
+    signal: AbortSignal,
+  ): Promise<ExecutionResultV1>;
 }
 export function createViceExecutionRuntimeV1(
   host?: ViceExecutionHostV1,
@@ -401,4 +426,16 @@ export function executeViceRouteV1(
   lease: ViceLeaseHandleV1,
   signal: AbortSignal,
 ): Promise<ExecutionResultV1>;
+export function executeEvaluatedViceRouteV1(
+  request: EvaluatedViceRouteRequestV1,
+  lease: ViceLeaseHandleV1,
+  signal: AbortSignal,
+): Promise<ExecutionResultV1>;
 ```
+
+`executeViceRouteV1` remains the non-authorizing Phase 4 control substrate and never establishes a
+semantic pass for publication. The evaluated entrypoint first authenticates that the opaque
+authority's passive fixture and observation equal the route, then privately collects actual bytes,
+invokes readiness evaluation exactly once and maps only `match` to a pass. Any invalid authority,
+projection mismatch or evaluation failure is terminal; raw observations never cross the public
+result boundary.

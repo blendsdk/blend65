@@ -126,11 +126,13 @@ export {
 } from "./execution-worker-executor.js";
 export { parseExecutionWorkerResponseV1 } from "./execution-worker-protocol.js";
 export type {
+  ExecutionWorkerAddressRangeV1,
   ExecutionCancellationV1,
   ExecutionWorkerCompletionV1,
   ExecutionWorkerEmissionV1,
   ExecutionWorkerExecutorV1,
   ExecutionWorkerHandleV1,
+  ExecutionWorkerLayoutBasisV1,
   ExecutionWorkerRequestBaseV1,
   ExecutionWorkerRequestV1,
   ExecutionWorkerResponseV1,
@@ -141,12 +143,18 @@ export {
   acquireViceLeaseV1,
   clearViceLeaseGenerationV1,
   createViceExecutionRuntimeV1,
+  executeEvaluatedViceRouteV1,
   executeViceRouteV1,
   inspectViceLeaseV1,
+  prepareEvaluatedViceRouteV1,
 } from "./execution-vice.js";
 export { VICE_LEASE_HANDLE_BRAND } from "./execution-vice-types.js";
 export type {
+  BoundEvaluatedViceRouteRequestV1,
+  EvaluatedViceRouteRequestV1,
   ManualLeaseRecoveryV1,
+  PreparedEvaluatedViceRouteV1,
+  PreparedViceBuildEvidenceV1,
   ViceExecutionHostV1,
   ViceExecutionRuntimeV1,
   ViceLeaseHandleV1,

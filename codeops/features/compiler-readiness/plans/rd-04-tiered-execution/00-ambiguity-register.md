@@ -1139,6 +1139,570 @@ implementation owner stopped instead of weakening production.<br>
 **Reopen trigger:** real VICE completes a checkpointed advance without STOPPED, or a later advance
 can consume an event from the prior execution epoch.
 
+### AR-P38 — Runtime actual-observation authority join
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal cross-package runtime-evidence boundary; no language semantics, modeled
+population, target, public CLI behavior or expected result changes.<br>
+**Status:** Resolved.<br>
+**Question:** Which exact opaque interface joins VICE's actual scalar/direct-MMIO observation to
+the selected RD-03 host evaluator while keeping expected values out of rendered source, child
+requests and producer evidence?<br>
+**Grounding:** `ViceRouteRequestV1` carries only binary/layout/fixture/observation/policy and
+`executeViceRouteV1` returns only `ExecutionResultV1`; neither transports evaluator authority or
+actual observation. `ExecutionCaseV1` and `PublishedOracleContext` are opaque readiness-owned
+authorities, so a structural callback or invented request shape would weaken the existing
+authority boundary.<br>
+**Decision:** `@blend65/readiness` mints a non-callable, module-private-`WeakMap`-backed
+`PublishedRuntimeEvaluationAuthorityV1` from one genuine `ExecutionCaseV1` and selected
+`PublishedOracleContext`. Its passive projection exposes only source identity, fixture,
+observation, selected-release identity and evaluation identity. The readiness-owned evaluator
+accepts one exact `RuntimeActualObservationV1`, consumes the authority before validating hostile
+actual input, retains expected value/effect/final-memory truth only in private state and returns
+only `match` or `semantic-mismatch`. `@blend65/readiness-execution` adds an evaluated VICE
+entrypoint that authenticates projection equality, collects raw scalar/direct-MMIO bytes privately,
+calls that evaluator exactly once and returns only the existing closed `ExecutionResultV1`.<br>
+**Compatibility:** The Phase 4 `ViceRouteRequestV1` and `executeViceRouteV1` remain unchanged as a
+non-authorizing control/observation substrate. Phase 5/7 route handlers and the selectable live
+catalog may use only `executeEvaluatedViceRouteV1`; raw actual observations are never public return
+values or publication evidence.<br>
+**Rejected alternatives:** A caller-injected structural callback can manufacture success and is
+not identity-bound. A public raw-actual evidence result is forgeable/replayable across an unowned
+trust boundary and expands the API before any provenance-authentication requirement exists.<br>
+**Strongest counterargument:** Public actual evidence would simplify replay and debugging.<br>
+**Resolution:** Keep the same C-shaped record package-private and digest its authoritative facts;
+add public replay only if a later requirement supplies a provenance authority instead of exposing
+an unauthenticated structural value now.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent design challenger recommended the opaque-authority design with the raw
+actual record kept private, specifically preserving the Phase 4 compatibility surface and package
+dependency direction.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** readiness cannot reproduce the selected runtime oracle from genuine execution
+authority, or local debugging requires a provenance-authenticated replay artifact rather than the
+bounded evidence digest.<br>
+
+### AR-P39 — Valid simultaneous-budget oracle policy
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Specification-fixture correction that preserves the approved simultaneous budget
+precedence and existing closed policy; no expected result or production behavior changes.<br>
+**Decision:** Change ST-44's simultaneous-budget policy from `routeMs: 1` to `routeMs: 3001` while
+retaining `cleanupGraceMs: 3000` and `wallStepMs: 2`. The usable work window remains exactly one
+millisecond, so instruction, cycle and wall exhaustion still coincide and instruction exhaustion
+must remain primary.<br>
+**Evidence:** `parseExecutionPolicyV1` requires the fixed 3,000 ms cleanup reserve and rejects
+`routeMs <= cleanupGraceMs`; the frozen value could never reach runtime precedence. `3001 - 3000`
+recreates the intended one-millisecond work window through a valid policy.<br>
+**Rejected alternatives:** Weakening the policy parser contradicts the approved cleanup reserve;
+changing the expected result would remove the precedence oracle; lowering cleanup grace violates
+the exact revision-one contract.<br>
+**Confidence:** High; this is arithmetic preservation of the authored work window.<br>
+**Hardening:** Root post-freeze audit compared the new oracle against the existing public policy
+parser before production implementation relied on it.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** the corrected policy does not produce simultaneous instruction, cycle and wall
+exhaustion under the fake monotonic clock.
+
+### AR-P40 — Projected C64 read-case fixed answers
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Fixed-oracle correction restoring the already approved input projection; no
+runtime rule, expected evaluator behavior or production API changes.<br>
+**Decision:** ST-44's fixed `peek` answer is `F1` and fixed `peekw` answer is little-endian
+`F1 F1`. The `poke` and `pokew` post-write answers remain `F0` and `F0 F0`.<br>
+**Evidence:** Genuine `ExecutionCaseV1` fixtures seed logical `0x21` at the selected VIC cells.
+`c64-vic-color-readback-v1` maps each cell to `0xF0 | (0x21 & 0x0F) = 0xF1`; direct evaluation of
+the genuine selected cases returns 241 for `peek` and 61937 (`0xF1F1`) for `peekw`. Write cases
+store a generated low nibble of zero and therefore correctly observe `F0` through the separate
+post-write projection. The prior fixed read answers contradicted both 03-02's table and real target
+semantics.<br>
+**Rejected alternatives:** Changing the initial logical fixture to `0x20` removes the deliberate
+non-zero nibble that makes a missing modeled write observable. Teaching production to accept `F0`
+would contradict both the host evaluator and real VICE. Changing write answers would erase the
+read-versus-write projection distinction.<br>
+**Confidence:** High; arithmetic, genuine evaluator output and the documented projection converge.<br>
+**Hardening:** The implementation owner stopped before coding around the oracle and reproduced all
+four genuine cases through the selected host evaluator.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** real VICE 3.10 does not read back `F1` after writing logical `0x21`, or the
+selected evaluator ceases to use the declared projected fixture.
+
+### AR-P41 — VIC-aware fake fixture readback
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** CI-safe fake-control correction restoring the approved C64 input projection; no
+production behavior or acceptance expectation changes.<br>
+**Decision:** ST-44's fake monitor applies `projectC64InitialStateV1` when a write targets the
+closed `$D020..$D022` fixture cells, stores the projected physical byte and then applies the
+existing deliberate mismatch mutation after projection. Ordinary binary/RAM writes remain exact.<br>
+**Evidence:** The fake stored raw `0x21` in a plain map and read raw `0x21` back, while the approved
+target contract and real VICE read `0xF1`. Faithful production therefore rejected every happy case
+at fixture establishment before entry.<br>
+**Rejected alternatives:** Accepting raw `0x21` in production contradicts real hardware; changing
+the fixture to `0x20` removes the deliberate non-zero-nibble signal; hard-coding `0xF1` duplicates
+the projection table and can drift.<br>
+**Confidence:** High; the shared projection function is the declared single source of target
+semantics.<br>
+**Hardening:** Implementation traced the first happy case to exact monitor frames before requesting
+an oracle correction.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** the corrected fake differs from a real VICE write/read probe for any closed
+fixture cell.
+
+### AR-P42 — Suite-scoped authority fixture lifecycle
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Specification-fixture lifecycle correction; no authority freshness rule,
+production cache or expected result changes.<br>
+**Decision:** Retain one immutable suite-scoped `fixturePromise`, remove per-test cleanup and dispose
+that fixture exactly once in `afterAll`. Every scenario still mints its own single-use runtime
+evaluation authority. Do not cache expected oracle truth in production or make genuine authority
+survive deletion of its reviewed backing files merely to support the test harness.<br>
+**Evidence:** The first runtime test called `cleanup()` on the cached fixture, deleting its reviewed
+authority root; later tests reused the same resolved promise and failed with `ENOENT` before the
+runtime API. The fixture's context, campaign and execution cases are immutable; only the newly
+minted evaluation authority is consumed per scenario. Rebuilding the reviewed fixture per test
+would multiply the suite's dominant publication-validation cost across every repository gate.<br>
+**Rejected alternatives:** One global fixture with repeated cleanup is invalid. Suppressing final
+cleanup leaks test resources. Per-test reconstruction is correct but needlessly repeats immutable
+authority preparation. Production memoization would hide stale/deleted authority and weaken the
+freshness boundary to repair a test lifecycle bug.<br>
+**Confidence:** High; suite ownership matches immutable fixture lifetime while preserving
+single-use authority per scenario.<br>
+**Hardening:** Root rejected the proposed production cache, then second-guessed the initially safe
+per-test reconstruction against the measured publication-fixture cost and selected the smaller
+suite-scoped lifetime.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** any scenario mutates shared fixture state, a test can observe another test's
+consumed evaluation authority, or the suite fails to dispose its authority root exactly once.
+
+### AR-P43 — One staged release for ST-44 context and campaign
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Specification-fixture provenance correction restoring the approved opaque
+authority join; no production equivalence rule, selected semantics or expected result changes.<br>
+**Decision:** The Phase 5 fixture creates its own staged oracle context through the existing public
+publication/review seams, reads that staged release's `compiler-readiness-v1.json` bytes and builds
+its runtime campaign from those exact bytes. It does not borrow the Phase 3 route fixture's context,
+hash ambient repository inventory for the other side of the join, or modify the older fixture.
+The suite-scoped cleanup removes this one authority root after all scenarios.<br>
+**Evidence:** The mixed fixture reached `oracle.contract.invalid` at `/executionCase` before monitor
+access because its context and campaign did not reproduce one selected published replay. Existing
+diagnostic-authority fixtures deliberately pass staged release inventory bytes into their campaign
+for the same equivalence invariant.<br>
+**Rejected alternatives:** Weakening production's environment/replay/configuration/modeled-case or
+source-content equality permits authority from one publication to bless a case from another.
+Extending the frozen Phase 3 fixture creates cross-phase ownership. Retrying with ambient files
+leaves the provenance mismatch nondeterministic under publication changes.<br>
+**Confidence:** High; both authorities now derive from one content-addressed release.<br>
+**Hardening:** Spec owner independently confirmed the smallest correction through public seams;
+implementation retained the diagnostic-authority-grade join and stopped before monitor access.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** the context and campaign can name different inventory bytes or a staged release
+mutation does not invalidate the join.
+
+### AR-P44 — Advance-triggered simultaneous wall clock
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** CI-safe fake-clock correction preserving the approved simultaneous exhaustion
+window and all expectations; no production budget or precedence changes.<br>
+**Decision:** Keep the fake monotonic clock stable through lease, launch, handshake and fixture
+setup. The fake ADVANCE event moves it by the scenario's existing two milliseconds immediately as
+the full instruction chunk completes, so instruction, cycle and wall exhaustion are observed at the
+same decision point. Retain `routeMs: 3001`, `cleanupGraceMs: 3000`, `wallStepMs: 2` and the
+instruction-primary expectation.<br>
+**Evidence:** Incrementing on every `nowMonotonicMilliseconds()` call exhausted the one-millisecond
+work window during setup, before any ADVANCE or cycle sample, so the test did not exercise the
+declared three-way precedence.<br>
+**Rejected alternatives:** Enlarging the route budget makes setup call counts part of the oracle.
+Changing the expected wall result removes precedence coverage. Delaying production checks weakens
+real deadlines to suit a fake.<br>
+**Confidence:** High; the clock now advances on the modeled resource-consuming event.<br>
+**Hardening:** Focused ST-44 convergence separated fixture time modeling from three independent
+production failures instead of reconciling the aggregate result.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** setup consumes simulated wall time or the corrected case does not record all
+three exhausted totals at one terminal decision.
+
+### AR-P45 — Three-sample fake stopwatch sequence
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** CI-safe fake-protocol correction preserving the existing public control API and
+per-child delta rule; no production timing semantics or expectation changes.<br>
+**Decision:** The fake text monitor provides three absolute samples: a handshake-validation sample,
+the Phase 5 stopped-machine baseline and the post-ADVANCE sample. For the existing expected delta,
+the latter two remain 100 and 160. Do not extend the control API with handshake timing or treat the
+handshake probe as the execution baseline.<br>
+**Evidence:** The low-level composite handshake legitimately consumes one stopwatch response.
+ST-44 supplied only `[100, 160]`, so Phase 5 saw 160 as its baseline and the fake fallback returned
+160 again, producing a zero delta. Real execution explicitly takes a fresh baseline after entry and
+checkpoint setup.<br>
+**Rejected alternatives:** Exposing handshake timing couples runtime accounting to connection
+validation and samples too early. Adding 60 artificially in production ignores the absolute clock.
+Weakening the cycle expectation loses the per-child delta proof.<br>
+**Confidence:** High; three protocol reads require three absolute responses.<br>
+**Hardening:** Implementation traced each text-monitor read and stopped before expanding the public
+surface.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** real control no longer samples during handshake or Phase 5 no longer samples
+immediately before execution.
+
+### AR-P46 — Durable child identity in the cancellation fake
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** CI-safe raw-host lifecycle correction restoring the approved record-then-exec and
+terminate-before-remove contract; no fabricated production identity or weaker cleanup rule.<br>
+**Decision:** During fake spawn, the raw host durably replaces the exact lease with a checksummed
+child record matching the attempt's generation, nonce, token, token path, endpoints and a fixed
+positive boot/PID/start/group identity. `observeProcess` returns that exact fact while live;
+compare-remove refuses the live child. Exact revalidated termination marks it absent, after which
+the matching lease removal succeeds. The fake uses a spec-local independent encoder for the exact
+record-v1 compact-JSON key order and payload-only SHA-256 contract back-propagated into 03-06; it
+does not call or expose production's encoder. Production cleanup must observe/terminate a matching
+live child under its private signal and remove only afterward.<br>
+**Evidence:** The prior fake returned an owned control child but left the durable lease child null
+and `observeProcess` always absent. No secure `ViceTerminationRequestV1` could be constructed, so
+requiring a terminate call would force production to invent identity. The plan requires the launcher
+to record identity before exec and runtime cleanup to terminate the owned child before clearing the
+lease.<br>
+**Rejected alternatives:** Unconditional termination fabricates PID authority. Removing a live
+child's lease first abandons ownership. Dropping the terminate expectation removes cancellation
+cleanup proof.<br>
+**Confidence:** High; the fake now models the exact approved launcher lifecycle.<br>
+**Hardening:** Implementation refused to signal without a durable child record; an independent
+design challenger selected plan-visible canonical bytes plus a spec-local encoder over exposing the
+production encoder or adding a mutation seam, preserving oracle independence and the root API.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** a cancellation case can remove the lease while its recorded child remains live,
+or cleanup signals without matching record and process facts.
+
+### AR-P47 — Module-constant intrinsic addresses block real acceptance
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Compiler-internal constant-recognition correction needed to execute the immutable
+genuine Phase 5 cases; no source-oracle, public-language or frozen-spec change.<br>
+**Decision:** Keep literal recognition, then accept only bare or qualified identifiers whose
+resolved symbol is a scalar integer `constant` with an evaluated numeric `SemanticModel.constValues`
+entry and no aggregate byte image. Reuse the existing symbol/constant lookup rather than rewriting
+the typed AST or introducing a new lowering-time expression evaluator. Keep E10045 for module/local
+runtime variables, missing/boolean/aggregate constant values and composed expressions such as
+`ADDR + 1`; broader constant-expression support remains separate language work.<br>
+**Evidence:** The mandatory local ACME/VICE run fails before VICE on the immutable generated source
+`const modeledAddress: word = 53280; ... peek(modeledAddress)`. Frontend analysis already evaluates
+module constants into `SemanticModel.constValues`, but codegen's `constAddress` accepts only a
+`NumericLitExpr` and emits E10045 for the identifier. Literal-only use is an input-language
+restriction with no output-quality benefit and contradicts the module-constant contract.<br>
+**Rejected alternatives:** Rewriting constant references earlier would invalidate identity-keyed
+typed-AST maps or require a new normalization stage. Generalizing constant-expression evaluation in
+lowering would silently broaden syntax and error/range semantics beyond the blocker. Keeping the
+literal-only restriction would force unidiomatic source with no machine-code benefit.<br>
+**Confidence:** High; the semantic model already supplies the exact evaluated symbol value and all
+four intrinsic emitters retain direct absolute locations.<br>
+**Hardening:** An independent design challenger selected the narrow symbol-value seam and added the
+integer-scalar/no-image guard because aggregate constant images also carry a numeric sentinel value.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A module `const` address adds a runtime load/storage symbol, a non-integer or
+aggregate constant is accepted as an address, or a runtime variable no longer receives E10045.
+
+### AR-P48 — High-byte extraction from a computed word blocks `peekw`
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Compiler/codegen correction required by the immutable word-observation envelope;
+no source-oracle, frozen-spec or expected-value change.<br>
+**Decision:** Add a dedicated typed `high_byte dest, src` IL instruction for computed 16-bit
+values. Preserve the compatible `load`/`store` opcode names but add an optional literal-true
+`volatile` effect marker; centralized intrinsic helpers mark every `peek`, `peekw`, `poke` and
+`pokew` memory operation. Volatile loads remain at their source sequence point. The adjacent
+single-use `volatile word load → high_byte` pair fuses to exact low-then-high reads (`LDA source;
+LDA source+1`), preserving both observable reads while leaving the high byte in A. Zero-use and
+other volatile loads also execute fully; ordinary loads retain existing deferral. The printer
+renders the volatile qualifier, while ordinary IL text and existing opcode-shape contracts remain
+unchanged. Keep constants, address bytes, stored words and unsigned-byte handling unchanged and
+retain the signed-byte rejection.<br>
+**Evidence:** After AR-P47, the real `peek` case reaches VICE, but genuine `peekw` compilation fails
+with E90001: `unsupported hi() of a computed 16-bit value node 'IntrinsicCallExpr'`. The envelope
+records `memoryCase()` into a word-shaped observation and must publish its two bytes; lowering can
+extract a stored word's high byte but rejects the computed word exposed by value substitution.
+The existing `peekw` emitter already produces a word temporary and instruction lowering already
+tracks per-byte homes for word temporaries, so materializing a general shift would risk code worse
+than the expert byte-select idiom.<br>
+**Rejected alternatives:** A synthetic frame slot adds RAM traffic and allocation ownership.
+Shift-then-truncate emits roughly sixteen RMW instructions because no optimizer can recover a byte
+select. Selecting only the deferred high-byte reference would erase the low read of volatile
+`peekw`; the frozen oracle correctly refuted that initial optimization. Distinct volatile opcodes
+would be stronger but break immutable specifications and typed IL fixtures that require the
+compatible `load`/`store` names; a literal-true marker plus centralized constructors preserves both
+compatibility and explicit effect semantics.<br>
+**Confidence:** High; the corrected design exactly matches the manual volatile-read sequence with
+no scratch, shift or address heuristic.<br>
+**Hardening:** Independent review was challenged twice: first by the volatile full-word-read oracle,
+then by immutable opcode compatibility. The final ruling covers zero-use, ordering, printer and
+ordinary-versus-volatile cases explicitly.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A `peek`/`peekw` read or `poke`/`pokew` write lacks the volatile marker, any
+volatile byte is optimized away/reordered, or computed high-byte extraction introduces scratch,
+shift or extra memory traffic beyond the expert sequence.
+
+### AR-P49 — Effect-visible IL text versus immutable legacy goldens
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Additive diagnostic/printer compatibility decision; the volatile IL semantics and
+immutable legacy specifications are both already authoritative.<br>
+**Decision:** Add an optional `PrintILOptions` parameter to the existing single renderer:
+`printIL(program, { exposeEffects: true })`. Default, empty-options and explicit-false calls retain
+the byte-identical legacy dialect. Effect-aware mode renders `volatile` for marked loads/stores and
+leaves ordinary operations unchanged. Export the options type through the existing IL/package
+barrels; do not change compiler/CLI callers in this compatibility repair. Thread one resolved
+boolean through the same renderer rather than create a second implementation.<br>
+**Evidence:** AR-P48's effect semantics and focused tests are green, but the full codegen suite has
+seven failures because existing immutable tests require exact legacy strings such as
+`store 5, $D020`, while unconditional rendering produces `store volatile 5, $D020`. Editing those
+oracles is forbidden and hiding the marker by target-address heuristic would make printer behavior
+incomplete and misleading.<br>
+**Rejected alternatives:** A second printer API creates a parallel dialect that can drift. Structured
+IL alone leaves semantic effects unavailable to textual audit/snapshot tooling. Unconditional
+qualifiers violate the immutable compatibility contract.<br>
+**Confidence:** High; every current caller passes one argument, so the optional mode preserves source
+and output compatibility while making effects explicit on demand.<br>
+**Hardening:** Independent API/caller review selected the additive option and required determinism,
+non-mutation, default/empty/false parity and public-barrel coverage.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Default `printIL` bytes change, effect-aware output hides a marked access, or the
+two modes mutate/share state such that call order changes output.
+
+### AR-P50 — Folded address expressions block the computed `pokew` case
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Compiler semantic-model/codegen correction required by the immutable genuine
+computed-address case; no oracle, generated-source or frozen-spec change.<br>
+**Decision:** Add a frontend-populated, use-site-specific semantic fact map
+`constantIntrinsicAddresses: ReadonlyMap<IntrinsicCallExprNode, number>` to `SemanticModel`, following
+the existing `forLoopInfo` precedent. During fully typed intrinsic-call analysis, record a fact only
+for `peek`/`peekw`/`poke`/`pokew` when the address argument has a primitive integer type, the existing
+frontend evaluator returns a numeric constant through constant-symbol/type/intrinsic resolvers, and
+the result is a safe integer in `0..0xffff`. Nonconstant, poisoned, divide-by-zero, boolean,
+aggregate-image and out-of-range inputs record no fact and emit no new diagnostic there; lowering
+remains the single E10045 owner. Codegen defensively validates the fact and otherwise retains its
+literal/named-constant paths, then uses the existing absolute-location emission unchanged.<br>
+**Evidence:** After AR-P47–AR-P49, real `peek`, `peekw` and `poke` compile and execute, but the genuine
+computed `pokew` case fails E10045 because `constAddress` accepts literal or constant-symbol nodes,
+not a `BinaryExpr`. The generated address is a module `const` plus literal and frontend constant
+evaluation already supports binary expressions with resolved constant references. Rewriting the
+immutable case or accepting runtime expressions is forbidden.<br>
+**Rejected alternatives:** A general constant-expression query/map creates a broader completeness
+and lifecycle contract than needed. Exporting the evaluator makes codegen reconstruct frontend
+resolver policy and risks drift around poisoned references and query intrinsics. AST normalization
+erases source structure relied on by downstream identity-keyed maps. Keeping expression rejection
+would make the mandated computed case inexpressible despite an already-proven compile-time value.<br>
+**Confidence:** High; the fact is produced at the one fully typed use site with complete frontend
+context and consumed through the existing absolute-address path.<br>
+**Hardening:** Independent semantic/API/lifecycle review introduced the narrower intrinsic-call fact
+map over the three broader candidate designs and fixed the exact presence/range/type contract.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A runtime/poisoned/out-of-range expression gains a fact, a valid constant address
+expression lacks one, or codegen emits anything other than literal-equivalent absolute access.
+
+### AR-P51 — Post-build route binding versus the frozen fake-host contract
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Security/correctness repair required by independent Phase 5 review; the user has
+delegated design decisions, while immutable specification oracles and the production trust boundary
+remain fixed.<br>
+**Decision:** Add an opaque one-shot post-build binding capability that binds the genuine published
+runtime-evaluation authority to the exact finalized route before production monitor access. The
+binding commits to source/evaluation identity, binary digest and load/entry addresses, observation
+layout proof, fixture/observation projection, policy and participating handler identities available
+at this layer. The default production runtime and exported production facade require that bound
+capability and reject missing or cross-paired binary/layout/entry identity before allocating endpoints
+or opening monitor control. Preserve immutable ST-44 through its explicitly injected, caller-owned
+host seam only: an unbound authority may exercise that isolated host because it has no production
+process or monitor authority, but it must remain one-shot and fixture/observation-bound. Do not add a
+boolean bypass, ambient fallback or production-host compatibility path.<br>
+**Evidence:** Independent review proved that `{ route, evaluation }` currently joins two genuine but
+unrelated inputs: authority construction precedes build/layout, and the runtime checks only fixture
+and observation shape. A different binary with the same shape can therefore receive the original
+case digest and potentially pass. Frozen ST-44 intentionally uses a synthetic one-byte RTS plus an
+injected fake host, so requiring post-build production identity on that isolated seam would rewrite
+the immutable oracle without improving the real trust boundary.<br>
+**Rejected alternatives:** Trust-on-first-use authenticates only replay, not provenance. Rebuilding
+inside the runtime duplicates the compiler worker and still lacks the accepted build identity.
+Allowing unbound production execution preserves the vulnerability. Editing ST-44 violates the
+specification-first immutability contract. A public bypass flag can leak into production and is
+therefore forbidden.<br>
+**Confidence:** Medium-high; the additive binder closes the real monitor boundary while preserving
+the already-frozen fake-control oracle, but its exact field vocabulary must reuse existing canonical
+identity serializers rather than create a parallel digest dialect.<br>
+**Hardening:** The correctness reviewer supplied the cross-paired-route counterexample, and the
+implementation executor independently stopped when it proved that pre-build authority cannot derive
+binary/layout/entry authenticity. The ruling narrows compatibility to an injected caller-owned host,
+not merely a test mode.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any default/production path accepts unbound authority, a bound field can change
+without rejection before monitor access, or the injected-host compatibility seam can acquire a
+production process/monitor capability.
+
+### AR-P52 — Genuine build provenance for production evaluated VICE
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Security/correctness closure of independent finding RV-002; the existing raw-route
+binder was proven trust-on-first-use and cannot remain in production.<br>
+**Decision:** Remove public raw-route minting. Add one sealed asynchronous production preparation
+path inside `readiness-execution` that accepts only a genuine execution case, its one-shot published
+evaluation authority, a closed policy and cancellation. It renders from genuine case authority,
+runs the default worker under the default supervisor, retains/revalidates assembly, invokes supervised
+ACME, reads the exact PRG/labels/report through pinned workspace descriptors, derives load/entry and
+the observation layout from those artifacts plus a strictly validated worker-produced allocation
+range projection, then mints an opaque one-shot bound request from private state. No public
+`BuildResult`, route, binary, address, layout or handler array can mint authority. Pull forward only a
+private fixed evaluated-VICE handler-set capability/revision tuple needed by this sealed path; Phase 6
+must reuse and freshness-bind it when building the complete six-handler generated catalog rather than
+introduce a second identity dialect. The bound request no longer structurally exposes the raw request.
+Default production accepts only the sealed capability. An injected caller-owned coordinator rejects
+sealed production capability and accepts only its isolated unbound one-shot request, preserving
+frozen ST-44 without a production bypass.<br>
+**Evidence:** Closure review showed the prior binder merely hashed caller-supplied binary/load/entry/
+layout fields and then registered them; its own implementation test successfully blessed a synthetic
+one-byte RTS. The existing genuine artifact chain already exists in the worker, supervisor, pinned
+workspace and ACME adapter, but currently records and discards PRG/label/report bytes. The emit worker
+also observes the compiler allocation plan but does not return the bounded data-range projection
+needed by the layout proof.<br>
+**Rejected alternatives:** Hashing a raw `BuildResult` or route remains TOFU. Minting inside
+`createExecutionRouteHandlersV1` is invalid because that factory accepts injected worker, ACME,
+supervisor and VICE implementations. Rebuilding in the VICE runtime duplicates resource ownership.
+Pulling the whole Phase 6 publication/catalog forward violates specification-first order; disabling
+all production execution would fail the Phase 5 real-authority deliverable. The narrow private
+handler-set capability closes current provenance and deliberately becomes a Phase 6 dependency.<br>
+**Confidence:** Medium-high; the trusted artifact chain is already implemented and independently
+tested, but factoring it to return private artifacts must preserve every existing budget, inode,
+cleanup and failure-classification guarantee.<br>
+**Hardening:** The original correctness reviewer rejected trust-on-first-use after the first AR-P51
+repair. A demanding executor then traced every existing mint candidate and refuted the public adapter
+factory, raw `BuildResult` and pre-catalog handler-array alternatives before recommending the sealed
+default path.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Caller-supplied build/layout data can mint authority; injected dependencies can
+mint or consume production authority; any artifact changes after validation without rejection; the
+worker layout basis is unbounded/malformed; or Phase 6 creates a competing handler identity dialect.
+
+### AR-P53 — Exact identity capture for short-lived supervised tools
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Linux process-supervision correctness repair discovered by the mandatory real ACME
+acceptance run; the existing exact non-null process-identity contract remains authoritative.<br>
+**Decision:** In the dedicated Linux anchor, install completion and stream listeners, capture the
+allocated child PID, and synchronously read the boot ID plus `/proc/<pid>/stat` immediately after
+`spawn()` returns and before any `await` or event-loop yield. Then await the normal Node spawn/error
+result and discard the captured identity if spawn reports an error. Preserve the existing exact
+non-null target identity and authenticated anchor protocol. If an allocated PID encounters a
+post-spawn identity or cancellation failure, terminate the anchor-owned group, prove the
+excluding-anchor group empty, and escalate to group KILL when absence cannot be proven; never rely
+on `child.kill()` alone.<br>
+**Evidence:** Real sealed ACME preparation exposed `ESRCH` because ACME can exit between Node's
+`spawn` event and the later asynchronous procfs read. An independent pinned-Node-22 challenge ran
+2,000 `/bin/true` launches per strategy: the current wait-then-async read failed 2,000/2,000,
+an immediate async read also failed 2,000/2,000, and the immediate synchronous read failed 0/2,000.
+The focused repository regression then retained a non-null exact identity across eight consecutive
+real short-lived launches.<br>
+**Rejected alternatives:** A terminal-before-identity state weakens positive identity into nullable
+public evidence and expands the authenticated protocol. Merely starting the asynchronous read
+earlier retains the race. A fixed wrapper/handshake is a viable fallback but adds another trusted
+executable and protocol, startup cost, signal/exit forwarding and a wrapper-versus-tool identity
+distinction that the narrow host-local repair avoids.<br>
+**Confidence:** High; the behavior is confined to the already Linux-specific dedicated anchor,
+grounded in the pinned Node 22 runtime and guarded by a real short-lived-process regression.<br>
+**Hardening:** An independent design challenger rejected the initial terminal-before-identity
+ruling after measuring all three capture strategies. The superseded nullable protocol patch was
+fully removed before final acceptance.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A successfully spawned short-lived target lacks exact identity, a spawn error
+can retain captured identity, procfs capture yields before reading, or a post-spawn failure can
+return without proving the anchor-owned descendant group absent.
+
+### AR-P54 — Route-wide budget and cleanup continuity across sealed preparation
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Correctness closure of independent findings RV-004 and RV-005; the plan already
+requires one cumulative route lifecycle and cleanup evidence that never hides behind an earlier
+failure.<br>
+**Decision:** The sealed build retains a private baseline containing the supervisor's original
+absolute start/work/hard deadlines, cumulative output/evidence usage and build-evidence digest.
+Only after cleanup is positively confirmed may that baseline enter the opaque one-shot request.
+Bound VICE execution uses the original absolute deadline, so a later caller signal can shorten but
+never restart or extend the route. Its public result adds build output/evidence and elapsed wall time
+from the original start to VICE launch/instruction/cycle usage; final evaluation evidence
+domain-binds the build-evidence digest and charges its retained bytes against the remaining route
+allowance. The isolated injected-host compatibility path retains its current-start, zero-build
+baseline. Preparation always reports cleanup failure: after a successful operation it becomes the
+terminal cleanup failure, while after an operational failure it is appended as bounded cleanup
+evidence with the operational issue kept first.<br>
+**Evidence:** Independent closure review showed that preparation spent the full selected policy in
+one supervisor, disposed it, sealed the original unspent policy and let VICE start a second full
+deadline and byte allowance. It also showed that a failed operation plus failed supervisor cleanup
+returned only the operational issue even though a worker, process or workspace could remain.<br>
+**Rejected alternatives:** Treating preparation and VICE as separate routes contradicts the
+route-wide budget contract and understates public evidence. Requiring callers to reuse one
+`AbortSignal` is neither sealed nor sufficient for output/evidence continuity. Keeping a live
+supervisor across the public prepare/execute gap expands resource lifetime and gives the opaque
+request unnecessary mutable ownership; a sealed immutable baseline preserves the required
+continuity with less authority.<br>
+**Confidence:** High; this is a direct preservation of the existing route-wide deadline, evidence
+and cleanup semantics across the newly introduced sealed seam.<br>
+**Hardening:** The original correctness reviewer supplied both counterexamples after closing the
+raw-route provenance finding. Focused tests cover delayed execution, reduced remaining byte
+allowances, cumulative public evidence, non-extending caller cancellation and dual operational plus
+cleanup failure reporting.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any bound execution restarts wall/output/evidence allowances, omits build usage
+or evidence identity, a caller extends the sealed deadline, or cleanup failure is discarded on any
+operational outcome.
+
+### AR-P55 — Canonical ACME report source identity in sealed evidence
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Determinism repair discovered by repeating the mandatory real sealed route; raw
+ACME report semantics and the generic adapter's byte-for-byte evidence behavior remain fixed.<br>
+**Decision:** The production-sealed ACME profile validates that the report's single source header
+names the exact retained assembly descriptor path used for invocation, then replaces that complete
+validated header with one fixed domain-tagged byte string only for evidence hashing. Parsing,
+instruction/layout proof and passive artifact reads continue to use the raw descriptor-read report.
+The generic ACME adapter continues to hash raw bytes. Near matches, unexpected or multiple source
+headers fail closed. Canonicalization replaces the whole header rather than zeroing digits in place,
+because PID and descriptor digit widths are themselves volatile.<br>
+**Evidence:** Two semantically identical real builds produced different build/result digests because
+ACME writes `; ******** Source: /proc/<child-pid>/fd/<fd>` into `main.report`; the PID and descriptor
+are lifecycle facts, not compiler evidence. Semantics and cumulative usage remained identical.<br>
+**Rejected alternatives:** Hashing raw report bytes preserves host-scheduling nondeterminism.
+Length-preserving digit replacement still varies when PID or descriptor widths change. Excluding the
+whole report loses instruction/layout evidence. Rewriting the retained artifact would violate raw
+artifact identity and parsing provenance.<br>
+**Confidence:** High; the normalization is limited to one positively validated non-semantic header
+and is tested across differing digit widths.<br>
+**Hardening:** The initial digit-zeroing proposal was refuted before acceptance because it retained
+variable header length; the final ruling requires a fixed replacement and hostile-header tests.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Equivalent sealed builds differ only because of the report source descriptor,
+an unvalidated header is normalized, raw parsing stops using the descriptor-read bytes, or generic
+adapter evidence changes.
+
 ## Systematic 12-Category Closure
 
 | Category | Closure evidence |

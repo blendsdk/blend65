@@ -2,7 +2,7 @@
 
 > **Document**: 03-02-envelope-identity-observation.md
 > **Parent**: [Index](00-index.md)
-> **Decisions**: AR-P7, AR-P8
+> **Decisions**: AR-P7, AR-P8, AR-P47, AR-P48, AR-P49
 
 ## Responsibility
 
@@ -42,6 +42,14 @@ their exact original source and cannot be enveloped. A focused source validator 
 from the genuine opaque execution case and requires an exact match before compile; seeded oracle
 text or values therefore change the bytes and reject without exposing oracle material to the
 renderer.
+
+Compiler lowering treats a scalar integer module `const` as the same compile-time intrinsic address
+as its literal spelling, with direct absolute output and no runtime storage. Every
+`peek`/`peekw`/`poke`/`pokew` memory byte carries an explicit volatile effect in IL. The word
+observation envelope's computed `hi()` uses a typed high-byte selection; when it consumes a volatile
+word read, translation preserves both reads in low-then-high order and emits the expert sequence
+without shifts or scratch storage. Default `printIL` text remains the historical compatibility
+dialect; `{ exposeEffects: true }` makes volatile qualifiers visible for audit tooling.
 
 ## Initial and actual-observation projections
 
@@ -236,7 +244,55 @@ export function projectC64ActualWriteV1(
   address: number,
   logicalByte: number,
 ): ExecutionOperationResultV1<number>;
+declare const PUBLISHED_RUNTIME_EVALUATION_AUTHORITY_V1: unique symbol;
+export interface PublishedRuntimeEvaluationAuthorityV1 {
+  readonly [PUBLISHED_RUNTIME_EVALUATION_AUTHORITY_V1]: true;
+}
+export interface PublishedRuntimeEvaluationProjectionV1 {
+  readonly schemaVersion: 1;
+  readonly sourceCaseDigest: string;
+  readonly fixture: ExecutionInitialStateFixtureV1;
+  readonly observation: ExecutionObservationRequestV1;
+  readonly selectedReleaseDigest: string;
+  readonly evaluationIdentity: string;
+}
+export type RuntimeActualObservationV1 =
+  | {
+      readonly revision: 'runtime-actual-observation-v1';
+      readonly sourceCaseDigest: string;
+      readonly kind: 'scalar-bytes';
+      readonly bytes: Uint8Array;
+    }
+  | {
+      readonly revision: 'runtime-actual-observation-v1';
+      readonly sourceCaseDigest: string;
+      readonly kind: 'direct-mmio';
+      readonly address: number;
+      readonly projectionRevision: 'c64-vic-color-observation-v1';
+      readonly bytes: Uint8Array;
+    };
+export interface PublishedRuntimeEvaluationDecisionV1 {
+  readonly revision: 'published-runtime-evaluation-v1';
+  readonly outcome: 'match' | 'semantic-mismatch';
+  readonly evaluationIdentity: string;
+}
+export function createPublishedRuntimeEvaluationAuthorityV1(
+  context: PublishedOracleContext,
+  executionCase: ExecutionCaseV1,
+): OracleValidationResultV1<PublishedRuntimeEvaluationAuthorityV1>;
+export function getPublishedRuntimeEvaluationProjectionV1(
+  authority: PublishedRuntimeEvaluationAuthorityV1,
+): OracleValidationResultV1<PublishedRuntimeEvaluationProjectionV1>;
+export function evaluatePublishedRuntimeObservationV1(
+  authority: PublishedRuntimeEvaluationAuthorityV1,
+  actual: unknown,
+): OracleValidationResultV1<PublishedRuntimeEvaluationDecisionV1>;
 ```
+
+The runtime evaluation authority is single-use and readiness-owned. Its private state retains the
+selected expected value/effects/final memory; neither the passive projection nor runtime producer
+evidence exposes that truth. Evaluation consumes genuine authority before validating hostile actual
+input, so malformed or replayed observations cannot be retried against the same capability.
 
 The following declarations are exported from `@blend65/readiness-execution`:
 

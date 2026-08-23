@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import type { ExecutionOperationResultV1 } from "@blend65/readiness";
+import type {
+  ExecutionOperationResultV1,
+  ExecutionResultV1,
+  ExecutionTerminalCandidateV1,
+  PublishedRuntimeEvaluationAuthorityV1,
+} from "@blend65/readiness";
 import type { ViceControlHostV1, ViceControlResultV1 } from "@blend65/test-harness/vice-control";
 
 import {
@@ -11,6 +16,13 @@ import {
   processFactToRecordV1,
 } from "./execution-vice-record.js";
 import { createViceExecutionRuntimeV1 } from "./execution-vice.js";
+import {
+  attachViceEvaluationEvidenceV1,
+  claimUnboundViceEvaluationV1,
+  deriveActualObservationDigestV1,
+  finalizeViceEvaluationEvidenceV1,
+} from "./execution-vice-evaluation.js";
+import { mergeViceCleanupCandidateV1 } from "./execution-vice-runtime.js";
 import type {
   ViceExecutionHostV1,
   ViceLeaseMutationV1,
@@ -149,10 +161,17 @@ function routeRequest(): ViceRouteRequestV1 {
   };
 }
 
-function failedControlHost(onSpawn: () => void): ViceControlHostV1 {
+function failedControlHost(
+  onSpawn: () => void,
+  reason: "vice.spawn" | "vice.closed" = "vice.spawn",
+): ViceControlHostV1 {
   const unavailable = <T>(): ViceControlResultV1<T> => ({
     ok: false,
-    issue: { code: "vice.io", reason: "vice.spawn", message: "launch failed" },
+    issue: {
+      code: reason === "vice.closed" ? "vice.closed" : "vice.io",
+      reason,
+      message: "launch failed",
+    },
   });
   return {
     nowMilliseconds: () => 0,
@@ -171,7 +190,7 @@ function childRecordedSnapshot(
   fixture: HostFixture,
   attempt: ViceRecordedAttemptV1,
   inode: bigint,
-): void {
+): ViceProcessIdentityFactV1 {
   if (fixture.snapshot.kind !== "present") throw new TypeError("Expected a present lease.");
   const record = parseViceLeaseRecordV1(fixture.snapshot.bytes);
   if (record === undefined) throw new TypeError("Expected a valid lease record.");
@@ -181,6 +200,7 @@ function childRecordedSnapshot(
     startTicks: 12n,
     processGroupId: 789,
     launchToken: attempt.launchToken.slice(),
+    launchTokenPath: attempt.launchTokenPath,
   };
   fixture.snapshot = present(
     encodeViceLeaseRecordV1({
@@ -198,9 +218,227 @@ function childRecordedSnapshot(
     }),
     { ...FILE, inode },
   );
+  return child;
 }
 
 describe("VICE runtime fail-closed implementation branches", () => {
+  it("closes injected-host evaluation claim state", () => {
+    const routeFingerprint = `sha256:${"3".repeat(64)}`;
+    const authority = {} as PublishedRuntimeEvaluationAuthorityV1;
+
+    expect(claimUnboundViceEvaluationV1(authority, routeFingerprint)).toBe(routeFingerprint);
+    expect(claimUnboundViceEvaluationV1(authority, routeFingerprint)).toBeUndefined();
+    expect(
+      Reflect.apply(claimUnboundViceEvaluationV1, undefined, [null, routeFingerprint]),
+    ).toBeUndefined();
+  });
+
+  it("charges canonical evidence bound to actual, decision, route, and runtime facts", () => {
+    const actual = {
+      revision: "runtime-actual-observation-v1" as const,
+      sourceCaseDigest: `sha256:${"1".repeat(64)}`,
+      kind: "scalar-bytes" as const,
+      bytes: Uint8Array.of(0xf1),
+    };
+    const base: ExecutionResultV1 = {
+      status: "pass",
+      tier: "vice",
+      stage: "compare",
+      code: "pass",
+      usage: {
+        wallMs: 10,
+        outputBytes: 0,
+        evidenceBytes: 0,
+        instructions: 65_535,
+        cycles: 60,
+        launchAttempts: 1,
+      },
+      evidence: { digest: "0".repeat(64), retainedBytes: 0, truncated: false },
+    };
+    const context = {
+      routeIdentity: `sha256:${"2".repeat(64)}`,
+      evaluationIdentity: `sha256:${"3".repeat(64)}`,
+      actualObservationDigest: deriveActualObservationDigestV1(actual),
+      outcome: "match" as const,
+    };
+    const finalized = finalizeViceEvaluationEvidenceV1(
+      attachViceEvaluationEvidenceV1(base, context),
+      32,
+    );
+    const differentActual = finalizeViceEvaluationEvidenceV1(
+      attachViceEvaluationEvidenceV1(base, {
+        ...context,
+        actualObservationDigest: deriveActualObservationDigestV1({
+          ...actual,
+          bytes: Uint8Array.of(0xf0),
+        }),
+      }),
+      32,
+    );
+    const differentRuntime = finalizeViceEvaluationEvidenceV1(
+      attachViceEvaluationEvidenceV1({ ...base, usage: { ...base.usage, cycles: 61 } }, context),
+      32,
+    );
+
+    expect(finalized).toMatchObject({
+      usage: { evidenceBytes: 32 },
+      evidence: { digest: expect.stringMatching(/^[0-9a-f]{64}$/u), retainedBytes: 32 },
+    });
+    expect(differentActual.evidence.digest).not.toBe(finalized.evidence.digest);
+    expect(differentRuntime.evidence.digest).not.toBe(finalized.evidence.digest);
+    expect(finalized).not.toHaveProperty("actual");
+    expect(Object.keys(finalized).sort()).toEqual([
+      "code",
+      "evidence",
+      "stage",
+      "status",
+      "tier",
+      "usage",
+    ]);
+    expect(Object.keys(finalized.evidence).sort()).toEqual([
+      "digest",
+      "retainedBytes",
+      "truncated",
+    ]);
+    expect(
+      finalizeViceEvaluationEvidenceV1(attachViceEvaluationEvidenceV1(base, context), 31),
+    ).toMatchObject({
+      status: "failure",
+      stage: "compare",
+      code: "evidence-exhaustion",
+      usage: { evidenceBytes: 0 },
+    });
+  });
+
+  it("chains sealed build evidence into cumulative evaluated evidence", () => {
+    const base: ExecutionResultV1 = {
+      status: "pass",
+      tier: "vice",
+      stage: "compare",
+      code: "pass",
+      usage: {
+        wallMs: 23,
+        outputBytes: 17,
+        evidenceBytes: 10,
+        instructions: 5,
+        cycles: 9,
+        launchAttempts: 1,
+      },
+      evidence: {
+        digest: `sha256:${"a".repeat(64)}`,
+        retainedBytes: 10,
+        truncated: false,
+      },
+    };
+    const context = {
+      routeIdentity: `sha256:${"2".repeat(64)}`,
+      evaluationIdentity: `sha256:${"3".repeat(64)}`,
+      actualObservationDigest: `sha256:${"4".repeat(64)}`,
+      outcome: "match" as const,
+      buildEvidenceDigest: `sha256:${"5".repeat(64)}`,
+    };
+    const finalized = finalizeViceEvaluationEvidenceV1(
+      attachViceEvaluationEvidenceV1(base, context),
+      42,
+    );
+    const differentBuild = finalizeViceEvaluationEvidenceV1(
+      attachViceEvaluationEvidenceV1(base, {
+        ...context,
+        buildEvidenceDigest: `sha256:${"6".repeat(64)}`,
+      }),
+      42,
+    );
+
+    expect(finalized).toMatchObject({
+      status: "pass",
+      usage: { outputBytes: 17, evidenceBytes: 42 },
+      evidence: { retainedBytes: 42, truncated: false },
+    });
+    expect(differentBuild.evidence.digest).not.toBe(finalized.evidence.digest);
+    expect(
+      finalizeViceEvaluationEvidenceV1(attachViceEvaluationEvidenceV1(base, context), 41),
+    ).toMatchObject({
+      status: "failure",
+      stage: "compare",
+      code: "evidence-exhaustion",
+      usage: { outputBytes: 17, evidenceBytes: 10 },
+      evidence: { retainedBytes: 10 },
+    });
+  });
+
+  it("makes cleanup primary only for a provisional pass", () => {
+    const evidence = { digest: "a".repeat(64), retainedBytes: 0, truncated: false } as const;
+    const usage = {
+      wallMs: 1,
+      outputBytes: 0,
+      evidenceBytes: 0,
+      instructions: 1,
+      cycles: 2,
+      launchAttempts: 1,
+    } as const;
+    const cleanup: Extract<ExecutionTerminalCandidateV1, { readonly stage: "cleanup" }> = {
+      stage: "cleanup",
+      code: "emulator-lease-recovery-blocked",
+      usage,
+      evidence,
+      cleanupBlocker: {
+        code: "emulator-lease-recovery-blocked",
+        evidenceDigest: evidence.digest,
+      },
+    };
+    const pass: ExecutionResultV1 = {
+      status: "pass",
+      tier: "vice",
+      stage: "compare",
+      code: "pass",
+      usage,
+      evidence,
+    };
+    const operational: ExecutionResultV1 = {
+      status: "failure",
+      tier: "vice",
+      stage: "run",
+      code: "instruction-exhaustion",
+      usage,
+      evidence,
+    };
+
+    expect(mergeViceCleanupCandidateV1(pass, cleanup)).toMatchObject({
+      status: "failure",
+      stage: "cleanup",
+      code: "emulator-lease-recovery-blocked",
+      cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
+    });
+    expect(mergeViceCleanupCandidateV1(operational, cleanup)).toMatchObject({
+      status: "failure",
+      stage: "run",
+      code: "instruction-exhaustion",
+      cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
+    });
+  });
+
+  it("retains the exact lease when compare-remove does not report removed", async () => {
+    const fixture = hostFixture({
+      compareRemoveLease: async () => ok({ kind: "changed" }),
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+    const cancelled = new AbortController();
+    cancelled.abort();
+
+    const result = await runtime.executeViceRoute(routeRequest(), acquired.value, cancelled.signal);
+
+    expect(result).toMatchObject({
+      status: "failure",
+      stage: "vice-launch",
+      code: "wall-time-exhaustion",
+      cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
+    });
+    expect(fixture.snapshot.kind).toBe("present");
+  });
+
   it("rejects pre-aborted inspect and clear without host observation", async () => {
     const fixture = hostFixture();
     const runtime = createViceExecutionRuntimeV1(fixture.host);
@@ -333,6 +571,38 @@ describe("VICE runtime fail-closed implementation branches", () => {
     ).toBe(false);
   });
 
+  it("removes a pre-launch lease without treating its coordinator owner as a child", async () => {
+    const ownerFact: ViceProcessIdentityFactV1 = {
+      bootId: "boot",
+      pid: process.pid,
+      startTicks: 10n,
+      processGroupId: process.pid,
+      launchToken: null,
+    };
+    const terminations: string[] = [];
+    const fixture = hostFixture({
+      observeProcess: async () => ok(ownerFact),
+      revalidateAndTerminateVice: async () => {
+        terminations.push("terminate");
+        return ok("identity-changed");
+      },
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+    const controller = new AbortController();
+    controller.abort();
+
+    expect(
+      await runtime.executeViceRoute(routeRequest(), acquired.value, controller.signal),
+    ).toMatchObject({
+      code: "wall-time-exhaustion",
+    });
+    expect(terminations).toEqual([]);
+    expect(fixture.snapshot.kind).toBe("absent");
+  });
+
   it("reconciles a durable child record before retry and exact cleanup", async () => {
     let allocations = 0;
     let replacements = 0;
@@ -383,6 +653,110 @@ describe("VICE runtime fail-closed implementation branches", () => {
     expect(matchedReplacementReferences).toEqual([true, true]);
     expect(removedCurrentReference).toBe(true);
     expect(fixture.snapshot.kind).toBe("absent");
+  });
+
+  it("terminates an exact durable child before confirming absence and removing its lease", async () => {
+    const events: string[] = [];
+    let child: ViceProcessIdentityFactV1 | undefined;
+    let childLive = true;
+    const fixture = hostFixture({
+      compareReplaceLease: async (_target, _expected, bytes) => {
+        fixture.snapshot = present(bytes, { ...FILE, inode: FILE.inode + 1n });
+        return ok({ kind: "replaced", snapshot: fixture.snapshot });
+      },
+      createControlAttempt: async (attempt) =>
+        ok(
+          failedControlHost(() => {
+            child = childRecordedSnapshot(fixture, attempt, FILE.inode + 2n);
+          }),
+        ),
+      observeProcess: async () => {
+        if (child === undefined) return ok(null);
+        events.push(childLive ? "observe-live" : "confirm-absent");
+        return ok(childLive ? child : null);
+      },
+      revalidateAndTerminateVice: async (request) => {
+        events.push("terminate");
+        expect(request.process).toEqual(child);
+        childLive = false;
+        return ok("signalled");
+      },
+      compareRemoveLease: async () => {
+        events.push("remove");
+        expect(childLive).toBe(false);
+        fixture.snapshot = { kind: "absent", directory: DIRECTORY };
+        return ok({ kind: "removed" });
+      },
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+    const route = routeRequest();
+
+    await runtime.executeViceRoute(
+      {
+        ...route,
+        policy: { ...route.policy, budget: { ...route.policy.budget, launchAttempts: 1 } },
+      },
+      acquired.value,
+      liveSignal(),
+    );
+
+    expect(events).toEqual(["observe-live", "terminate", "confirm-absent", "remove"]);
+    expect(fixture.snapshot.kind).toBe("absent");
+  });
+
+  it("retains the lease when durable child identity becomes ambiguous during cleanup", async () => {
+    let child: ViceProcessIdentityFactV1 | undefined;
+    const events: string[] = [];
+    const fixture = hostFixture({
+      compareReplaceLease: async (_target, _expected, bytes) => {
+        fixture.snapshot = present(bytes, { ...FILE, inode: FILE.inode + 1n });
+        return ok({ kind: "replaced", snapshot: fixture.snapshot });
+      },
+      createControlAttempt: async (attempt) =>
+        ok(
+          failedControlHost(() => {
+            child = childRecordedSnapshot(fixture, attempt, FILE.inode + 2n);
+          }),
+        ),
+      observeProcess: async () => {
+        if (child === undefined) return ok(null);
+        events.push("observe-changed");
+        return ok({ ...child, startTicks: child.startTicks + 1n });
+      },
+      revalidateAndTerminateVice: async () => {
+        events.push("terminate");
+        return ok("identity-changed");
+      },
+      compareRemoveLease: async () => {
+        events.push("remove");
+        return ok({ kind: "removed" });
+      },
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+    const route = routeRequest();
+
+    const result = await runtime.executeViceRoute(
+      {
+        ...route,
+        policy: { ...route.policy, budget: { ...route.policy.budget, launchAttempts: 1 } },
+      },
+      acquired.value,
+      liveSignal(),
+    );
+
+    expect(result).toMatchObject({
+      status: "failure",
+      code: "emulator-launch-failure",
+      cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
+    });
+    expect(events).toEqual(["observe-changed"]);
+    expect(fixture.snapshot.kind).toBe("present");
   });
 
   it("retires each pre-capability attempt artifact before allocating the next retry", async () => {
@@ -612,6 +986,34 @@ describe("VICE runtime fail-closed implementation branches", () => {
     expect(
       await runtime.executeViceRoute(routeRequest(), acquired.value, controller.signal),
     ).toMatchObject({ code: "wall-time-exhaustion" });
+  });
+
+  it("keeps caller cancellation primary when launch cleanup is blocked", async () => {
+    const controller = new AbortController();
+    const fixture = hostFixture({
+      compareReplaceLease: async (_target, _expected, bytes) => {
+        fixture.snapshot = present(bytes, { ...FILE, inode: FILE.inode + 1n });
+        return ok({ kind: "replaced", snapshot: fixture.snapshot });
+      },
+      createControlAttempt: async () =>
+        ok(
+          failedControlHost(() => {
+            controller.abort();
+          }, "vice.closed"),
+        ),
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+
+    expect(
+      await runtime.executeViceRoute(routeRequest(), acquired.value, controller.signal),
+    ).toMatchObject({
+      status: "failure",
+      code: "wall-time-exhaustion",
+      cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
+    });
   });
 
   it("rejects an invalid record returned from attempt replacement", async () => {

@@ -71,6 +71,18 @@ export interface ExecutionWorkerEmissionV1 {
   readonly binary: boolean;
 }
 
+/** Closed compiler-owned address range used by live observation-layout proof. */
+export interface ExecutionWorkerAddressRangeV1 {
+  readonly start: number;
+  readonly length: number;
+}
+
+/** Allocation facts projected by the real emitter without granting execution authority. */
+export interface ExecutionWorkerLayoutBasisV1 {
+  readonly revision: "execution-worker-layout-basis-v1";
+  readonly dataRanges: readonly ExecutionWorkerAddressRangeV1[];
+}
+
 /** Strict tier-specific evidence returned by a compiler worker. */
 export type ExecutionWorkerResponseV1 =
   | {
@@ -109,6 +121,8 @@ export type ExecutionWorkerResponseV1 =
       readonly contract: "assembly-emitter-v1";
       readonly caseIdentity: string;
       readonly assemblyBytes: Uint8Array;
+      /** Present on the real emitter; legacy injected workers may omit this non-authorizing fact. */
+      readonly layoutBasis?: ExecutionWorkerLayoutBasisV1;
       readonly diagnostics: CompilerDiagnosticEvidenceV1;
       readonly emission: ExecutionWorkerEmissionV1;
     };
@@ -171,7 +185,10 @@ const RESPONSE_COMMON_KEYS = [
 const DIAGNOSTIC_KEYS = ["revision", "entries"] as const;
 const DIAGNOSTIC_ENTRY_KEYS = ["acceptedEntryId", "code", "phase", "finalSeverity"] as const;
 const EMISSION_KEYS = ["il", "assembly", "binary"] as const;
+const LAYOUT_BASIS_KEYS = ["revision", "dataRanges"] as const;
+const ADDRESS_RANGE_KEYS = ["start", "length"] as const;
 const MAX_DIAGNOSTICS = 4_096;
+const MAX_LAYOUT_RANGES = 4_096;
 const MAX_ACCEPTED_ENTRY_ID_BYTES = 256;
 const ENCODER = new TextEncoder();
 
@@ -333,6 +350,39 @@ function parseBytes(input: unknown): Uint8Array | undefined {
   }
 }
 
+function parseLayoutBasis(input: unknown): ExecutionWorkerLayoutBasisV1 | undefined {
+  const record = readRecord(input, LAYOUT_BASIS_KEYS);
+  const rows = record === undefined ? undefined : readArray(record.dataRanges, MAX_LAYOUT_RANGES);
+  if (record?.revision !== "execution-worker-layout-basis-v1" || rows === undefined)
+    return undefined;
+  const dataRanges: ExecutionWorkerAddressRangeV1[] = [];
+  for (const row of rows) {
+    const range = readRecord(row, ADDRESS_RANGE_KEYS);
+    if (
+      range === undefined ||
+      typeof range.start !== "number" ||
+      !Number.isSafeInteger(range.start) ||
+      range.start < 0 ||
+      range.start > 0xffff ||
+      typeof range.length !== "number" ||
+      !Number.isSafeInteger(range.length) ||
+      range.length <= 0 ||
+      range.start + range.length > 0x1_0000
+    ) {
+      return undefined;
+    }
+    const previous = dataRanges.at(-1);
+    if (previous !== undefined && range.start < previous.start + previous.length) {
+      return undefined;
+    }
+    dataRanges.push(Object.freeze({ start: range.start, length: range.length }));
+  }
+  return Object.freeze({
+    revision: "execution-worker-layout-basis-v1",
+    dataRanges: Object.freeze(dataRanges),
+  });
+}
+
 /**
  * Validates an untrusted worker message against the exact request contract.
  *
@@ -352,7 +402,10 @@ export function parseExecutionWorkerResponseV1(
         : request.tier === "cli"
           ? [...RESPONSE_COMMON_KEYS, "exitCode", "stdout", "stderr"]
           : [...RESPONSE_COMMON_KEYS, "assemblyBytes"];
-  const record = readRecord(input, tierKeys);
+  let record = readRecord(input, tierKeys);
+  if (record === undefined && request.tier === "emit") {
+    record = readRecord(input, [...tierKeys, "layoutBasis"]);
+  }
   const diagnostics = record === undefined ? undefined : parseDiagnostics(record.diagnostics);
   const emission = record === undefined ? undefined : parseEmission(record.emission);
   if (
@@ -431,7 +484,12 @@ export function parseExecutionWorkerResponseV1(
     }
     case "emit": {
       const assemblyBytes = parseBytes(record.assemblyBytes);
-      if (assemblyBytes === undefined) {
+      const layoutBasis =
+        record.layoutBasis === undefined ? undefined : parseLayoutBasis(record.layoutBasis);
+      if (
+        assemblyBytes === undefined ||
+        (record.layoutBasis !== undefined && layoutBasis === undefined)
+      ) {
         return failure("/response", "Emitter worker evidence is malformed.");
       }
       return success(
@@ -441,6 +499,7 @@ export function parseExecutionWorkerResponseV1(
           contract: "assembly-emitter-v1",
           caseIdentity: request.caseIdentity,
           assemblyBytes,
+          ...(layoutBasis === undefined ? {} : { layoutBasis }),
           diagnostics,
           emission,
         }),

@@ -44,6 +44,7 @@ export const IL_OPS = [
   "not",
   ...COMPARISON_OPS,
   ...CONVERSION_OPS,
+  "high_byte",
   "load",
   "store",
   "load_indexed",
@@ -69,11 +70,14 @@ export type ILOp = (typeof IL_OPS)[number];
  *   `right`, and the operation `type`; the `neg`/`not` unary forms carry `dest`,
  *   `src`, `type`.
  * - **conversion** (`zext`/`sext`/`trunc`) carries `dest`+`src`; the widths are
- *   read from the operands' own `ILType`s.
+ *   read from the operands' own `ILType`s. `high_byte` uses the same operand
+ *   names but is a byte-selection operation rather than a numeric conversion.
  * - **`load`/`store`** use neutral `a`/`b` positions to avoid a `dest`/`src`
  *   footgun (the roles swap between load and store). Convention: `load` —
  *   `a` = destination temp, `b` = source location; `store` — `a` = source value,
  *   `b` = destination location. (A deliberate naming choice; behavior-neutral.)
+ *   The optional literal-true `volatile` marker makes the memory access an
+ *   observable sequence point that must execute exactly where it appears.
  * - **indexed/indirect** memory forms name their `value`/`base`/`index` or
  *   `value`/`ptr`/`offset` operands explicitly.
  * - **`call`/`intrinsic`** have an optional `dest` (absent for void calls).
@@ -108,9 +112,21 @@ export type ILInstruction =
       readonly type: ILType;
     }
   // Conversion
-  | { readonly op: (typeof CONVERSION_OPS)[number]; readonly dest: ILOperand; readonly src: ILOperand }
+  | {
+      readonly op: (typeof CONVERSION_OPS)[number];
+      readonly dest: ILOperand;
+      readonly src: ILOperand;
+    }
+  // Word byte selection
+  | { readonly op: "high_byte"; readonly dest: ILOperand; readonly src: ILOperand }
   // Memory — direct; neutral a/b positions (see doc above)
-  | { readonly op: "load" | "store"; readonly a: ILOperand; readonly b: ILOperand }
+  | {
+      readonly op: "load" | "store";
+      readonly a: ILOperand;
+      readonly b: ILOperand;
+      /** Marks an observable memory effect that must retain its sequence point. */
+      readonly volatile?: true;
+    }
   // Memory — indexed
   | {
       readonly op: "load_indexed" | "store_indexed";

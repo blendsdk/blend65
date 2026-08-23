@@ -3,12 +3,15 @@ import type { ExecutionOperationResultV1, ExecutionResultV1 } from "@blend65/rea
 import { defaultViceExecutionHostV1 } from "./execution-vice-host.js";
 import { ViceExecutionCoordinator } from "./execution-vice-runtime.js";
 import type {
+  BoundEvaluatedViceRouteRequestV1,
   ManualLeaseRecoveryV1,
   ViceExecutionHostV1,
   ViceExecutionRuntimeV1,
   ViceLeaseHandleV1,
   ViceRouteRequestV1,
 } from "./execution-vice-types.js";
+
+export { prepareEvaluatedViceRouteV1 } from "./execution-vice-build.js";
 
 /**
  * Creates an isolated VICE lease coordinator over a raw fixed-namespace host.
@@ -23,10 +26,14 @@ import type {
  * ```
  */
 export function createViceExecutionRuntimeV1(host?: ViceExecutionHostV1): ViceExecutionRuntimeV1 {
-  return Object.freeze(new ViceExecutionCoordinator(host ?? defaultViceExecutionHostV1));
+  return Object.freeze(
+    new ViceExecutionCoordinator(host ?? defaultViceExecutionHostV1, host !== undefined),
+  );
 }
 
-const DEFAULT_VICE_EXECUTION_RUNTIME = createViceExecutionRuntimeV1();
+const DEFAULT_VICE_EXECUTION_RUNTIME = Object.freeze(
+  new ViceExecutionCoordinator(defaultViceExecutionHostV1),
+);
 
 /** Acquires a VICE lease through the process-wide singleton coordinator. */
 export function acquireViceLeaseV1(
@@ -61,4 +68,26 @@ export function executeViceRouteV1(
   signal: AbortSignal,
 ): Promise<ExecutionResultV1> {
   return DEFAULT_VICE_EXECUTION_RUNTIME.executeViceRoute(request, lease, signal);
+}
+
+/**
+ * Consumes a singleton-issued handle and privately evaluates one VICE route.
+ *
+ * @example
+ * ```ts
+ * const prepared = await prepareEvaluatedViceRouteV1(executionCase, evaluation, policy, signal);
+ * if (!prepared.ok) throw new TypeError("The evaluated route could not be prepared.");
+ * const result = await executeEvaluatedViceRouteV1(
+ *   prepared.value.request,
+ *   lease,
+ *   AbortSignal.timeout(120_000),
+ * );
+ * ```
+ */
+export function executeEvaluatedViceRouteV1(
+  request: BoundEvaluatedViceRouteRequestV1,
+  lease: ViceLeaseHandleV1,
+  signal: AbortSignal,
+): Promise<ExecutionResultV1> {
+  return DEFAULT_VICE_EXECUTION_RUNTIME.executeBoundEvaluatedViceRoute(request, lease, signal);
 }

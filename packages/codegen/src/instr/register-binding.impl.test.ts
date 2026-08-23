@@ -15,7 +15,7 @@ import {
   type ZpAllocation,
 } from "@blend65/core";
 import { temp } from "../il/operand.js";
-import { IL_BYTE } from "../il/il-type.js";
+import { IL_BYTE, IL_WORD } from "../il/il-type.js";
 import type { StreamEntry } from "./stream.js";
 import { isInstr } from "./stream.js";
 import { zpSlot } from "./operand.js";
@@ -90,6 +90,67 @@ describe("register binder — multi-slot spill sequencing", () => {
       zpSlot("__zp_tmp_0"),
       zpSlot("__zp_tmp_1"),
     ]);
+    expect(bag.hasErrors()).toBe(false);
+  });
+
+  it("stores a word's A:X bytes in distinct addressable slots", () => {
+    const bag = createDiagnosticBag();
+    const binder = createRegisterBinder(makePlan(["__zp_tmp_0", "__zp_tmp_1"]), bag);
+    const { out, emit } = collector();
+    const word = temp(0, IL_WORD);
+    binder.bindResultToA(word);
+    binder.bindResultToX(word);
+
+    expect(binder.spillWord(word, emit)).toBe(true);
+    expect(out.filter(isInstr).map((entry) => (isInstr(entry) ? entry.opcode : null))).toEqual([
+      "STA",
+      "STX",
+    ]);
+    expect(binder.operandForByte(word, 0)).toEqual(zpSlot("__zp_tmp_0"));
+    expect(binder.operandForByte(word, 1)).toEqual(zpSlot("__zp_tmp_1"));
+    expect(bag.hasErrors()).toBe(false);
+  });
+
+  it("rejects a word spill before emitting when two slots are unavailable", () => {
+    const bag = createDiagnosticBag();
+    const binder = createRegisterBinder(makePlan(["__zp_tmp_0"]), bag);
+    const { out, emit } = collector();
+    const word = temp(0, IL_WORD);
+    binder.bindResultToA(word);
+    binder.bindResultToX(word);
+
+    expect(binder.spillWord(word, emit)).toBe(false);
+    expect(out).toEqual([]);
+    expect(bag.getErrors()[0]?.code).toBe(IceCode.Unexpected);
+  });
+
+  it("reuses a released word's slots but keeps overlapping words distinct", () => {
+    const bag = createDiagnosticBag();
+    const binder = createRegisterBinder(
+      makePlan(["__zp_tmp_0", "__zp_tmp_1", "__zp_tmp_2", "__zp_tmp_3"]),
+      bag,
+    );
+    const { emit } = collector();
+    const first = temp(0, IL_WORD);
+    const overlap = temp(1, IL_WORD);
+    const reused = temp(2, IL_WORD);
+
+    binder.bindResultToA(first);
+    binder.bindResultToX(first);
+    expect(binder.spillWord(first, emit)).toBe(true);
+    binder.bindResultToA(overlap);
+    binder.bindResultToX(overlap);
+    expect(binder.spillWord(overlap, emit)).toBe(true);
+    expect(binder.operandForByte(first, 0)).toEqual(zpSlot("__zp_tmp_0"));
+    expect(binder.operandForByte(overlap, 0)).toEqual(zpSlot("__zp_tmp_2"));
+
+    binder.release(first);
+    binder.bindResultToA(reused);
+    binder.bindResultToX(reused);
+    expect(binder.spillWord(reused, emit)).toBe(true);
+    expect(binder.operandForByte(reused, 0)).toEqual(zpSlot("__zp_tmp_0"));
+    expect(binder.operandForByte(reused, 1)).toEqual(zpSlot("__zp_tmp_1"));
+    expect(binder.operandForByte(overlap, 1)).toEqual(zpSlot("__zp_tmp_3"));
     expect(bag.hasErrors()).toBe(false);
   });
 });

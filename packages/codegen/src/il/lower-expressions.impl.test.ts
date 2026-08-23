@@ -168,6 +168,15 @@ describe("coercion quadrants", () => {
     expect(hasErrors).toBe(false);
     expect(text).not.toContain("zext");
   });
+
+  it("continues to reject high-byte selection from a signed byte", () => {
+    const { diags, hasErrors } = lowerRealSource(
+      inMain("let s: sbyte = -1; let high: byte = hi(s);"),
+    );
+
+    expect(hasErrors).toBe(true);
+    expect(diags.map(({ code }) => code)).toContain("E90001");
+  });
 });
 
 describe("compound assignment internals", () => {
@@ -193,9 +202,7 @@ describe("compound assignment internals", () => {
   });
 
   it("rejects a signed div-compound loudly", () => {
-    const { diags } = lowerRealSource(
-      inMain("let s: sbyte = -8; let d: sbyte = 2; s /= d;"),
-    );
+    const { diags } = lowerRealSource(inMain("let s: sbyte = -8; let d: sbyte = 2; s /= d;"));
     const ice = diags.find((d) => d.code === "E90001");
     expect(ice?.message).toContain("signed division");
   });

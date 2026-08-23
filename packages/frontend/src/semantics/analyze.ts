@@ -28,6 +28,7 @@ import type {
   ForLoopInfo,
   ForStmtNode,
   IntrinsicRegistry,
+  IntrinsicCallExprNode,
   PlatformProfile,
   ProgramNode,
   Scope,
@@ -169,7 +170,12 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   // expression/statement type engine, which populates the maps and records
   // the call-graph edges.
   const registry = input.registry ?? createIntrinsicRegistry();
-  checkBodies(input, functionTables.moduleScopeByProgram, functionTables.moduleScopeByName, registry);
+  checkBodies(
+    input,
+    functionTables.moduleScopeByProgram,
+    functionTables.moduleScopeByName,
+    registry,
+  );
 
   const typeMap = new Map<ExprNode, Type>();
   const symbolMap = new Map<AstNode, Symbol>();
@@ -177,26 +183,33 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   const callEdges = new Map<Symbol, Set<Symbol>>();
   const callSiteSpans = new Map<Symbol, Map<Symbol, SourceSpan>>();
   const constValues = new Map<Symbol, ConstValue>();
+  const constantIntrinsicAddresses = new Map<IntrinsicCallExprNode, number>();
   const addressTakenFunctions = new Set<Symbol>();
   const embeddedAssets = new Map<string, string>();
-  typeCheckPrograms(input.programs, functionTables.scopeByNode, functionTables.moduleScopeByProgram, {
-    bag: input.bag,
-    typeMap,
-    symbolMap,
-    forLoopInfo,
-    blockScopeByNode: functionTables.blockScopeByNode,
-    signatures: new Map<Symbol, FnSignature>(),
-    mainFunction: functionTables.mainFunction,
-    callEdges,
-    callSiteSpans,
-    moduleScopes: functionTables.moduleScopeByName,
-    constValues,
-    addressTakenFunctions,
-    registry,
-    engine,
-    ...(input.assetReader === undefined ? {} : { assetReader: input.assetReader }),
-    embeddedAssets,
-  });
+  typeCheckPrograms(
+    input.programs,
+    functionTables.scopeByNode,
+    functionTables.moduleScopeByProgram,
+    {
+      bag: input.bag,
+      typeMap,
+      symbolMap,
+      forLoopInfo,
+      blockScopeByNode: functionTables.blockScopeByNode,
+      signatures: new Map<Symbol, FnSignature>(),
+      mainFunction: functionTables.mainFunction,
+      callEdges,
+      callSiteSpans,
+      moduleScopes: functionTables.moduleScopeByName,
+      constValues,
+      constantIntrinsicAddresses,
+      addressTakenFunctions,
+      registry,
+      engine,
+      ...(input.assetReader === undefined ? {} : { assetReader: input.assetReader }),
+      embeddedAssets,
+    },
+  );
 
   // The module-variable initialization order (spec Ch 10 §5.4) — needs the
   // symbol map typing just filled; one E10194 per dependency cycle.
@@ -225,10 +238,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   // The pair-access classification: which by-ref parameters are accessed
   // THROUGH their pointer (element/field access or whole-copy endpoint).
   // Frame planning and lowering both consume this one set.
-  const pairAccessedParams = computePairAccessedParams(
-    input.programs,
-    functionTables.scopeByNode,
-  );
+  const pairAccessedParams = computePairAccessedParams(input.programs, functionTables.scopeByNode);
 
   const functions = functionTables.functions;
   const model: SemanticModel = {
@@ -247,6 +257,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     },
     initOrder,
     constValues,
+    constantIntrinsicAddresses,
     embeddedAssets,
     mainFunction: functionTables.mainFunction,
     scopeOf: (node) => functionTables.scopeByNode.get(node) ?? empty.globalScope,

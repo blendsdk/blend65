@@ -18,6 +18,15 @@ import type { ILOperand } from "./operand.js";
 import type { ILInstruction, ILTerminator } from "./instruction.js";
 import type { BasicBlock, ILFunction, ILProgram } from "./cfg.js";
 
+/** Options controlling additive detail in the stable IL text. */
+export interface PrintILOptions {
+  /**
+   * Show observable direct-memory accesses with a `volatile` qualifier.
+   * Omitted or false preserves the established canonical IL byte-for-byte.
+   */
+  readonly exposeEffects?: boolean;
+}
+
 /**
  * Map an {@link ILType} to its textual tag. The **single** place this
  * mapping lives — width + signedness → `i8u` / `i8s` / `i16u` / `i16s`.
@@ -73,9 +82,10 @@ function renderOperand(o: ILOperand): string {
  * `const`/conversion forms print their operands without a redundant tag.
  *
  * @param ins The instruction.
+ * @param exposeEffects Whether effect qualifiers are visible.
  * @returns The textual body of the instruction line.
  */
-function renderInstruction(ins: ILInstruction): string {
+function renderInstruction(ins: ILInstruction, exposeEffects: boolean): string {
   switch (ins.op) {
     // Binary arithmetic/bitwise/comparison — `%d = op <type> %l, %r`
     case "add":
@@ -108,11 +118,14 @@ function renderInstruction(ins: ILInstruction): string {
     case "sext":
     case "trunc":
       return `${renderOperand(ins.dest)} = ${ins.op} ${renderOperand(ins.src)}`;
+    // Word byte selection — `%d = high_byte %s`.
+    case "high_byte":
+      return `${renderOperand(ins.dest)} = high_byte ${renderOperand(ins.src)}`;
     // Direct memory: `load` writes a dest temp (typed); `store` has no dest.
     case "load":
-      return `${renderOperand(ins.a)} = load ${ilTypeTag(ins.a.type)} ${renderOperand(ins.b)}`;
+      return `${renderOperand(ins.a)} = load${exposeEffects && ins.volatile === true ? " volatile" : ""} ${ilTypeTag(ins.a.type)} ${renderOperand(ins.b)}`;
     case "store":
-      return `store ${renderOperand(ins.a)}, ${renderOperand(ins.b)}`;
+      return `store${exposeEffects && ins.volatile === true ? " volatile" : ""} ${renderOperand(ins.a)}, ${renderOperand(ins.b)}`;
     // Indexed memory — `op %value, %base, %index`
     case "load_indexed":
     case "store_indexed":
@@ -208,12 +221,13 @@ function renderTerminator(term: ILTerminator): string {
  * instruction lines and the terminator line.
  *
  * @param block The basic block.
+ * @param exposeEffects Whether effect qualifiers are visible.
  * @returns The block's lines (no trailing newline).
  */
-function renderBlock(block: BasicBlock): string {
+function renderBlock(block: BasicBlock, exposeEffects: boolean): string {
   const lines: string[] = [`${block.label}:`];
   for (const ins of block.instructions) {
-    lines.push(`  ${renderInstruction(ins)}`);
+    lines.push(`  ${renderInstruction(ins, exposeEffects)}`);
   }
   lines.push(`  ${renderTerminator(block.terminator)}`);
   return lines.join("\n");
@@ -235,14 +249,15 @@ function renderParam(p: ILOperand): string {
  * block (entry first, in array order), then the closing `}`.
  *
  * @param fn The IL function.
+ * @param exposeEffects Whether effect qualifiers are visible.
  * @returns The function's textual form (no trailing newline).
  */
-function renderFunction(fn: ILFunction): string {
+function renderFunction(fn: ILFunction, exposeEffects: boolean): string {
   const params = fn.params.map(renderParam).join(", ");
   const ret = fn.returnType === "void" ? "void" : ilTypeTag(fn.returnType);
   const lines: string[] = [`function ${fn.name}(${params}): ${ret} {`];
   for (const block of fn.blocks) {
-    lines.push(renderBlock(block));
+    lines.push(renderBlock(block, exposeEffects));
   }
   lines.push("}");
   return lines.join("\n");
@@ -259,22 +274,32 @@ function renderFunction(fn: ILFunction): string {
  * no trailing newline.
  *
  * @param program The IL program to print.
+ * @param options Additive display options. Omission preserves legacy text.
  * @returns The deterministic textual representation.
+ *
+ * @example
+ * ```ts
+ * const detailed = printIL(program, { exposeEffects: true });
+ * ```
  */
-export function printIL(program: ILProgram): string {
+export function printIL(program: ILProgram, options: PrintILOptions = {}): string {
+  const exposeEffects = options.exposeEffects === true;
   const parts: string[] = [];
   if (program.initCode.length > 0) {
     parts.push(
-      renderFunction({
-        name: "__init",
-        params: [],
-        returnType: "void",
-        blocks: program.initCode,
-        tempCount: program.initTempCount,
-        isInterrupt: false,
-      }),
+      renderFunction(
+        {
+          name: "__init",
+          params: [],
+          returnType: "void",
+          blocks: program.initCode,
+          tempCount: program.initTempCount,
+          isInterrupt: false,
+        },
+        exposeEffects,
+      ),
     );
   }
-  parts.push(...program.functions.map(renderFunction));
+  parts.push(...program.functions.map((fn) => renderFunction(fn, exposeEffects)));
   return parts.join("\n\n");
 }

@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-08-22
-> **Progress**: 48/88 tasks (55%)
+> **Progress**: 50/88 tasks (57%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -141,19 +141,19 @@ never signals an ambiguously identified process.
 ## Phase 5: Runtime Observation and Local Authority Proof
 
 > **Lenses**: compiler-semantics, security, performance
-> **Reference**: 03-02, 03-06 · AR-P7, AR-P8, AR-P9 · ST-44
+> **Reference**: 03-02, 03-06 · AR-P7, AR-P8, AR-P9, AR-P38 · ST-44
 
-- [ ] 5.1.1 [spec-author] Write ST-44 in new `packages/readiness-execution/src/execution-runtime-acceptance.spec.test.ts` plus fixed source/oracle fixtures; do not inspect runtime adapter implementation
-- [ ] 5.1.2 Run the CI-safe portion RED for absent VICE runtime adapter and record the local-suite prerequisite
-- [ ] 5.2.1 Implement VICE binary loading, fixture establishment/readback, entry setup, exact completion STORE checkpoint/readback and actual-byte/direct-MMIO observation through the versioned post-write projection
-- [ ] 5.2.2 Implement full-chunk charging, per-child stopwatch deltas, exact completion/instruction/cycle/wall precedence and all-outcomes cancellation/cleanup integration
-- [ ] 5.2.3 Join actual runtime observations to the selected RD-03 host evaluator without serializing expected values into source or producer evidence
-- [ ] 5.2.4 Run the CI-safe ST-44 contract GREEN with the fake control seam; fix production implementation only
-- [ ] 5.2.5 Add fake-monitor implementation tests for exact/mismatched checkpoint, committed readback, post-return mutation, wrong byte, stale/missing completion, fixture mismatch, restart baselines and simultaneous budgets
-- [ ] 5.3.1 Run focused coverage, expert-6502 output review and configured semantics/security/performance/correctness review; resolve every code-changing finding and file any meet-only measured parity gap with its path to beat
-- [ ] 5.3.2 Run exact full verification after review fixes and auto-commit the reviewed implementation without pushing
-- [ ] 5.3.3 Run all ST-44 cases GREEN through real ACME and VICE 3.10 for STORE-checkpoint timing, committed `$A5`, no post-return mutation, `$D020..$D022`, both word starts and one selected `peek`, `peekw`, `poke`, `pokew` case
-- [ ] 5.3.4 Freeze accepted local evidence digests/tool versions only after the reviewed real rerun; any participating semantic byte change invalidates and reopens this task
+- [x] 5.1.1 [spec-author] Write ST-44 in new `packages/readiness-execution/src/execution-runtime-acceptance.spec.test.ts` plus fixed source/oracle fixtures; do not inspect runtime adapter implementation — verified 2026-08-22; 10 immutable scenarios frozen at final SHA-256 `8ed1ab9c2d2df76704c302d5e4e13dce54a520677b15137c329a0b1b56176f32`; fixture SHA-256 `4cb63caa59df653be63f7d0222d327955153efbd7380929afead37d02f49ac33` after AR-P39–AR-P46 restored valid policy, projected read truth, VIC-aware fake readback, suite-scoped authority lifetime, single-release provenance, advance-triggered simultaneous timing and the independent canonical durable-child lifecycle
+- [x] 5.1.2 Run the CI-safe portion RED for absent VICE runtime adapter and record the local-suite prerequisite — verified 2026-08-22; 10/10 RED solely on absent readiness runtime-evaluation authority and evaluated VICE runtime exports; local prerequisite remains ACME plus VICE 3.10 for the same four fixed cases, both word starts and STORE timing
+- [x] 5.2.1 Implement VICE binary loading, fixture establishment/readback, entry setup, exact completion STORE checkpoint/readback and actual-byte/direct-MMIO observation through the versioned post-write projection — verified 2026-08-23; immutable ST-44 GREEN 10/10 and real four-case acceptance GREEN
+- [x] 5.2.2 Implement full-chunk charging, per-child stopwatch deltas, exact completion/instruction/cycle/wall precedence and all-outcomes cancellation/cleanup integration — verified 2026-08-23; instruction-before-cycle-before-wall precedence, cancellation and private exact-child cleanup covered
+- [x] 5.2.3 Join actual runtime observations to the selected RD-03 host evaluator without serializing expected values into source or producer evidence — verified 2026-08-23; genuine authority implementation 28/28 GREEN and hostile/replay inputs consume authority safely
+- [x] 5.2.4 Run the CI-safe ST-44 contract GREEN with the fake control seam; fix production implementation only — verified 2026-08-23; frozen ST-44 SHA-256 unchanged at `8ed1ab9c2d2df76704c302d5e4e13dce54a520677b15137c329a0b1b56176f32`
+- [x] 5.2.5 Add fake-monitor implementation tests for exact/mismatched checkpoint, committed readback, post-return mutation, wrong byte, stale/missing completion, fixture mismatch, restart baselines and simultaneous budgets — verified 2026-08-23; readiness-execution 348/348 GREEN at 90.02% branch coverage
+- [x] 5.3.1 Run focused coverage, expert-6502 output review and configured semantics/security/performance/correctness review; resolve every code-changing finding and file any meet-only measured parity gap with its path to beat — verified 2026-08-23; semantics and performance reviewers report no findings after PE-001–PE-004 closure; correctness reviewer reports no findings after RV-001–RV-005 closure; readiness-execution 386/386 coverage tests GREEN at 90.00% branches; no meet-only parity gap remains
+- [x] 5.3.2 Run exact full verification after review fixes and auto-commit the reviewed implementation without pushing — verified 2026-08-23; exact install/build/typecheck/lint/test gate GREEN after refreshing the reviewed Slice7/Slice7b generated artifacts; root boundary and scoreboard tiers 33/33 GREEN; local commit follows this plan transition without pushing
+- [x] 5.3.3 Run all ST-44 cases GREEN through real ACME and VICE 3.10 for STORE-checkpoint timing, committed `$A5`, no post-return mutation, `$D020..$D022`, both word starts and one selected `peek`, `peekw`, `poke`, `pokew` case — verified 2026-08-23 after final AR-P55 bytes; repeated sealed runs GREEN for all four cases on ACME 0.97 and VICE 3.10 with stable build/result digests
+- [x] 5.3.4 Freeze accepted local evidence digests/tool versions only after the reviewed real rerun; any participating semantic byte change invalidates and reopens this task — verified 2026-08-23 after final correctness closure; exact four-case source/binary/layout/build/result digests, cumulative usage, observed bytes and completion STORE instruction proofs asserted in the local suite; repeated builds reproduce byte-identical authority
 
 **Deliverable:** bounded real C64 execution with authoritative input projection, completion-last
 observation and locally accepted evidence for all four modeled runtime rules.

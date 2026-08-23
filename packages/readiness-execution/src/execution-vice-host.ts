@@ -698,9 +698,10 @@ class LinuxViceExecutionHost implements ViceExecutionHostV1, RecordedViceAttempt
       } else {
         const artifactProcess = processFactFromViceLaunchArtifactV1(artifact, launchTokenPath);
         if (
-          record.child === null ||
           artifactProcess === undefined ||
-          !processFactMatchesRecordV1(expectedProcess, record.child) ||
+          (record.child === null
+            ? artifact.state !== "identity-recorded"
+            : !processFactMatchesRecordV1(expectedProcess, record.child)) ||
           !processFactMatchesRecordV1(artifactProcess, processFactToRecordV1(expectedProcess))
         ) {
           return success("changed");
