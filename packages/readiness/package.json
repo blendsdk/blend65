@@ -11,6 +11,14 @@
     "./published-oracle": {
       "types": "./dist/published-oracle.d.ts",
       "import": "./dist/published-oracle.js"
+    },
+    "./execution-publication-internals": {
+      "types": "./dist/execution-publication-internals.d.ts",
+      "import": "./dist/execution-publication-internals.js"
+    },
+    "./execution-runtime": {
+      "types": "./dist/execution-runtime.d.ts",
+      "import": "./dist/execution-runtime.js"
     }
   },
   "scripts": {

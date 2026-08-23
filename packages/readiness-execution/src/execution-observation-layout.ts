@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
 
-import {
-  getExecutionCaseProjectionV1,
-  type ExecutionAddressRangeV1,
-  type ExecutionCaseV1,
-  type ExecutionEmittedStoreV1,
-  type ExecutionEnvelopePostEntryStoreV1,
-  type ExecutionObservationLayoutV1,
-  type ExecutionOperationResultV1,
+import type {
+  ExecutionAddressRangeV1,
+  ExecutionCaseV1,
+  ExecutionEmittedStoreV1,
+  ExecutionEnvelopePostEntryStoreV1,
+  ExecutionObservationLayoutV1,
+  ExecutionOperationResultV1,
 } from "@blend65/readiness";
+import { getExecutionCaseProjectionV1 } from "@blend65/readiness/execution-runtime";
 
 const TEXT_ENCODER = new TextEncoder();
 const ADDRESS_LIMIT = 0x1_0000;

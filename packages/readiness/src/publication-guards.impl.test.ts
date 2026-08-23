@@ -28,6 +28,7 @@ import {
   runWithPublicationConformance,
   validatePublicationModuleBoundary,
 } from "./publication-conformance-v1.js";
+import { validateExecutionPublicationModuleBoundaryV1 } from "./execution-publication-conformance-v1.js";
 import {
   ensurePublicationChildDirectory,
   pinPublicationDirectory,
@@ -1249,6 +1250,13 @@ describe("publication capability and module-boundary guards", () => {
   });
 
   it("validates the complete real production source closure", async () => {
+    const executionPublicationOwners = new Set([
+      "execution-publication-conformance-v1.ts",
+      "execution-publication-model.ts",
+      "execution-publication-pointer.ts",
+      "execution-publication-resolver.ts",
+      "execution-publication-transaction.ts",
+    ]);
     const sourceRoot = join(REPOSITORY_ROOT, "packages/readiness/src");
     const entries = await readdir(sourceRoot, { recursive: true, withFileTypes: true });
     const paths = entries
@@ -1270,7 +1278,19 @@ describe("publication capability and module-boundary guards", () => {
 
     expect(files.length).toBeGreaterThan(50);
     expect(files.map(({ path }) => path)).toContain("publication-model.ts");
-    expect(validatePublicationModuleBoundary(files)).toMatchObject({ ok: true });
+    expect(
+      files.filter(({ path }) => executionPublicationOwners.has(path)).map(({ path }) => path),
+    ).toEqual([...executionPublicationOwners]);
+    expect(
+      validateExecutionPublicationModuleBoundaryV1(
+        files.filter(({ path }) => executionPublicationOwners.has(path)),
+      ),
+    ).toMatchObject({ ok: true });
+    expect(
+      validatePublicationModuleBoundary(
+        files.filter(({ path }) => !executionPublicationOwners.has(path)),
+      ),
+    ).toMatchObject({ ok: true });
   });
 
   it("fails closed for invalid preparation roots and missing package source closure", async () => {

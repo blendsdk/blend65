@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
+import { access, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -96,6 +99,70 @@ describe("production compiler worker executor", () => {
     });
     expect(result).toMatchObject({ ok: false, issues: [{ code: "execution.io" }] });
   });
+
+  it("should not forward ambient preload, loader, or NODE_OPTIONS authority into production workers", async () => {
+    const workspace = requireSuccess(await defaultExecutionWorkspaceProviderV1.create());
+    roots.push(workspace);
+    const importMarker = join(workspace.root, "ambient-import-executed");
+    const loaderMarker = join(workspace.root, "ambient-loader-executed");
+    const nodeOptionsMarker = join(workspace.root, "ambient-node-options-executed");
+    const importModule = join(workspace.root, "ambient-import.mjs");
+    const loaderModule = join(workspace.root, "ambient-loader.mjs");
+    const nodeOptionsModule = join(workspace.root, "ambient-node-options.mjs");
+    await writeFile(
+      importModule,
+      `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(importMarker)}, "executed");\n`,
+    );
+    await writeFile(
+      loaderModule,
+      [
+        'import { writeFileSync } from "node:fs";',
+        `writeFileSync(${JSON.stringify(loaderMarker)}, "executed");`,
+        "export async function resolve(specifier, context, nextResolve) { return nextResolve(specifier, context); }",
+        "export async function load(url, context, nextLoad) { return nextLoad(url, context); }",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      nodeOptionsModule,
+      `import { writeFileSync } from "node:fs"; writeFileSync(${JSON.stringify(nodeOptionsMarker)}, "executed");\n`,
+    );
+
+    const retainedExecArgv = [...process.execArgv];
+    const retainedNodeOptions = process.env.NODE_OPTIONS;
+    const executor = createExecutionWorkerExecutorV1();
+    process.execArgv.splice(
+      0,
+      process.execArgv.length,
+      "--import",
+      pathToFileURL(importModule).href,
+      "--loader",
+      pathToFileURL(loaderModule).href,
+    );
+    process.env.NODE_OPTIONS = `--import=${pathToFileURL(nodeOptionsModule).href}`;
+    try {
+      const selected = request("frontend", workspace.root);
+      const handle = requireSuccess(
+        await executor.start(selected, {
+          signal: new AbortController().signal,
+          deadlineMonotonicMs: performance.now() + 10_000,
+        }),
+      );
+      expect(await handle.completion).toMatchObject({
+        kind: "message",
+        value: { caseIdentity: selected.caseIdentity },
+      });
+      await handle.release?.();
+      await expect(access(importMarker)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(access(loaderMarker)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(access(nodeOptionsMarker)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      process.execArgv.splice(0, process.execArgv.length, ...retainedExecArgv);
+      if (retainedNodeOptions === undefined) delete process.env.NODE_OPTIONS;
+      else process.env.NODE_OPTIONS = retainedNodeOptions;
+      await executor.shutdown?.();
+    }
+  }, 60_000);
 
   it("should reuse a prewarmed worker without crossing case roots or response identities", async () => {
     const executor = createExecutionWorkerExecutorV1();

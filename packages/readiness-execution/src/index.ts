@@ -2,6 +2,13 @@
 export { planExecutionRoutesV1 } from "./execution-route-planner.js";
 export type { PlanExecutionRoutesInputV1 } from "./execution-route-planner.js";
 export {
+  assertGeneratedExecutionBindingsFreshV1,
+  getPublishedExecutionHandlersV1,
+  resolveLiveExecutionContextV1,
+  selectExecutionPublicationByDigestV1,
+} from "./execution-publication-catalog.js";
+export type { LiveExecutionContextV1 } from "./execution-publication-catalog.js";
+export {
   deriveExecutionFixtureDigestV1,
   renderExecutionEnvelopeV1,
   validateExecutionFixtureReadbackV1,

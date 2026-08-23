@@ -1,15 +1,17 @@
 import { createHash } from "node:crypto";
 
+import type {
+  ExecutionCaseV1,
+  ExecutionInitialStateFixtureV1,
+  ExecutionObservationRequestV1,
+  ExecutionOperationResultV1,
+  ScalarType,
+} from "@blend65/readiness";
 import {
   getExecutionCaseProjectionV1,
   parseExecutionInitialStateFixtureV1,
   projectC64InitialStateV1,
-  type ExecutionCaseV1,
-  type ExecutionInitialStateFixtureV1,
-  type ExecutionObservationRequestV1,
-  type ExecutionOperationResultV1,
-  type ScalarType,
-} from "@blend65/readiness";
+} from "@blend65/readiness/execution-runtime";
 
 /** Canonical source validation proof produced before a compiler is invoked. */
 export interface ExecutionValidatedSourceV1 {

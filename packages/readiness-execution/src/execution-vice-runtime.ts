@@ -1,15 +1,17 @@
 import { createViceControlRuntimeV1 } from "@blend65/test-harness/vice-control";
+import type {
+  ExecutionOperationResultV1,
+  ExecutionResultV1,
+  ExecutionTerminalCandidateV1,
+  PublishedRuntimeEvaluationProjectionV1,
+} from "@blend65/readiness";
 import {
   evaluatePublishedRuntimeObservationV1,
   getPublishedRuntimeEvaluationProjectionV1,
   parseExecutionEnvelopeIrV1,
   parseExecutionInitialStateFixtureV1,
   parseExecutionPolicyV1,
-  type ExecutionOperationResultV1,
-  type ExecutionResultV1,
-  type ExecutionTerminalCandidateV1,
-  type PublishedRuntimeEvaluationProjectionV1,
-} from "@blend65/readiness";
+} from "@blend65/readiness/execution-runtime";
 
 import {
   digestViceLeaseBytesV1,

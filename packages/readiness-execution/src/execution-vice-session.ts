@@ -1,5 +1,6 @@
 import type { ViceControlSessionV1 } from "@blend65/test-harness/vice-control";
-import { projectC64InitialStateV1, type ExecutionResultV1 } from "@blend65/readiness";
+import type { ExecutionResultV1 } from "@blend65/readiness";
+import { projectC64InitialStateV1 } from "@blend65/readiness/execution-runtime";
 
 import {
   mapControlIssue,

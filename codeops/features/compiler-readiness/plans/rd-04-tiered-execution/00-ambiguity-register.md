@@ -1703,6 +1703,285 @@ variable header length; the final ruling requires a fixed replacement and hostil
 an unvalidated header is normalized, raw parsing stops using the descriptor-read bytes, or generic
 adapter evidence changes.
 
+### AR-P56 — Implementation-blind execution-publication oracle contract
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal persistence, testability and authority-containment design inside the
+approved child-publication mechanism.<br>
+**Decision:** Keep the planned public APIs unchanged and add package-private conformance seams plus
+independent specification fixtures. The passive child uses canonical UTF-8 JSON, one LF and exact
+closed shapes recorded in `03-03`. Child-unique members are `execution-manifest-v1.json`,
+`execution-parent-v1.json`, `execution-bindings-v1.json` and
+`execution-semantic-review-v1.json`; this avoids broadening the immutable historical
+publication-v1 literal family. Member digests are raw SHA-256, binding revisions domain-separate
+`blend65-execution-binding-v1`, and release digests domain-separate
+`blend65-execution-publication-v1`. Passive failures use `execution.invalid-schema` for closed-shape,
+ordering and value errors, `execution.stale-authority` for content/review/parent/catalog mismatch,
+`execution.identity` for forged opaque capabilities or digest mismatch, `execution.io` for bounded
+filesystem failures and `execution.reconciliation` only when state cannot be classified safely;
+the issue path names the first rejected field or member.
+
+The exact readiness owners are `execution-publication-model.ts`,
+`execution-publication-resolver.ts`, `execution-publication-transaction.ts`,
+`execution-publication-pointer.ts` and `execution-publication-conformance-v1.ts`. Their distinct
+literal family is `readiness/execution-publications`, `current-execution-publication.json`, the four
+child-unique member names, `execution-publication-v1` and corresponding constant identifiers. The
+historical `readiness/publications` validator and its eight-owner set remain byte-identical. The
+exact readiness-execution owners are `execution-publication-catalog.ts`,
+`execution-handler-catalog.generated.ts` and
+`execution-publication-catalog-conformance-v1.ts`; only generated-catalog path/domain identifiers,
+not the shared six tier words, form its literal family.
+
+`runWithExecutionPublicationConformanceV1` is package-private `AsyncLocalStorage` over the closed
+fault points `after-member-sync`, `after-staging-sync`, `before-review-validation`,
+`after-review-validation`, `before-release-rename`, `after-release-rename`,
+`after-releases-sync`, `before-pointer-write`, `after-pointer-file-sync`,
+`before-pointer-rename`, `after-pointer-rename`, `after-pointer-directory-sync` and
+`during-reconciliation`, with bounded passive reconciliation observations. The package-private
+catalog seam exposes defensive participant/dependency metadata and can replace exactly one
+dependency byte during an operation; it exposes no handler, registration or authority mint. The
+catalog authority is generated TypeScript. Specification fixtures independently encode bytes and
+copy the committed four-row parent
+`sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403` and fresh nine-row parent
+`sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597`
+into isolated repositories. `resolvePublishedSnapshotByDigest` is the approved parent-capability
+constructor; opaque child/composite/live capabilities have no structural substitute.<br>
+**Evidence:** Both implementation-blind Phase 6 authors independently stopped before guessing the
+same missing wire, fixture and fault contracts. Existing publication-v1 already uses scoped
+package-private conformance and generated TypeScript revision authority.<br>
+**Rejected alternatives:** Public builders or fault hooks enlarge the authority surface; public
+serializers and metadata accessors make internal wire machinery a permanent API. Reusing generic
+`manifest.json` and `semantic-review-v1.json` weakens the historical path-family separation.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger selected the package-private seam, required independent
+fixtures and recommended generated TypeScript. Its proposal to treat the six shared tier words as
+catalog-only literals was narrowed because those words legitimately occur throughout execution
+production; only catalog-specific domains and paths are confined.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A spec requires implementation inspection, a conformance seam can mint or
+register live authority, historical publication boundary bytes change, or a child artifact can
+resolve without exact canonical review/parent/catalog reconstruction.
+
+### AR-P57 — Live-gated child selection ownership
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal cross-package authority handoff required to satisfy the already-approved
+freshness-at-selection rule.<br>
+**Decision:** Move public `selectExecutionPublicationByDigestV1` to
+`@blend65/readiness-execution`. Readiness retains only a package-private durable selection primitive
+that accepts a closed synchronous freshness callback. The live package resolves the exact passive
+release, pins and validates its fixed generated closure, enters the transaction and revalidates the
+same closure through that callback immediately before pointer rename. Any change aborts with the
+old pointer intact. No public passive selector or pre-minted freshness proof exists.<br>
+**Evidence:** Readiness cannot import the live catalog without reversing the package dependency;
+two separate public calls leave a time-of-check/time-of-use window before pointer replacement.<br>
+**Rejected alternatives:** A minted opaque proof can stale after minting; independent freshness and
+selection calls cannot meet the immediate revalidation requirement.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger selected live-package ownership and required the exact
+pre-commit callback.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Readiness gains a dependency-safe way to verify live closures itself, or any
+selection path can replace the pointer without same-transaction live-catalog revalidation.
+
+### AR-P58 — Exact modeled rule projection in the composite oracle
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Correction of a specification-fixture contradiction against the already-approved
+pure planner contract; product scope and execution semantics remain unchanged.<br>
+**Decision:** The composite projects exactly AR-P1's nine selected modeled rules. It joins each
+modeled fact to the exact parent inventory row for reviewed `applicability` and
+`evidenceObligations`, and returns only
+`{ruleId,applicability,evidenceObligations,boundaryFamilyIds}`. The boundary list is the single ID
+already derived by campaign projection: `boundary.scalar.<scalarType>` for the five scalar facts or
+`boundary.memory.<intrinsic>` for `peek`, `peekw`, `poke` and `pokew`. Rows and both string sets are
+lexical, unique and immutable; missing, duplicate or incompatible facts fail closed. The Phase 6
+fixture independently encodes the fixed nine rule IDs/kinds and derives that projection from parent
+bytes. It does not import production mapping code.<br>
+**Evidence:** The first RED fixture incorrectly returned all 2,112 raw inventory rule objects, while
+`CompositeReadinessProjectionV1` and the Phase 1 planner strictly accept only the four-field shape
+and require non-empty boundary IDs. The selected parent has zero raw `boundaryFamilies` across all
+2,112 rows, so direct field renaming cannot satisfy the planner. AR-P1 already limits RD-04 to nine
+modeled rules, and readiness's campaign projection already derives the exact boundary vocabulary
+from the same modeled facts.<br>
+**Rejected alternatives:** Expanding the planner to raw inventory couples it to unrelated evolving
+authority and breaks strict input validation. Passing extra fields is a type lie. Projecting every
+inventory row would invent boundary IDs for 2,103 unmodeled rules and absorb RD-08 scope.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger required preservation of the four-field contract and
+identified the non-empty-boundary risk; repository measurement then proved the raw parent cannot be
+mapped directly and AR-P1 supplies the exact selection predicate.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** The modeled fact set changes revision, a fact lacks an exact parent rule, a
+campaign boundary ID is not present in the composite row, or unmodeled inventory rules enter the
+Phase 7 planner without a new scope decision.
+
+### AR-P59 — Isolated parent-authority fixture materialization
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Test-fixture provenance correction required to exercise the unchanged hardened
+parent resolver.<br>
+**Decision:** Both Phase 6 isolated repository fixtures copy only four exact allowlisted authority
+roots from the checked-out repository: `readiness/`, `spec/`, `packages/readiness/src/` and
+`packages/readiness/package.json`. Before copying they recursively reject symbolic links and
+non-regular/non-directory nodes, cap the union at 512 files and 64 MiB, and then copy into a fresh
+per-test temporary root while excluding `readiness/execution-publications`, `dist`, `node_modules`
+and other workspace output. Parent releases
+remain byte-identical; the real resolver reads only its generated lexical dependency closure.
+There is no production fixture bypass and no duplicated implementation-owned path list in the
+specification.<br>
+**Evidence:** The unchanged parent resolver correctly rejected the initial publication-only temp
+root because `<fixture>/packages` and oracle authority were absent. The allowlisted source contains
+366 files and about 32 MiB at the ruling point, inside the fixed cap.<br>
+**Rejected alternatives:** Embedding roughly one hundred generated paths duplicates
+implementation-owned closure knowledge and drifts with legitimate dependency changes. A resolver
+bypass defeats the provenance property under test. Copying the repository root is overbroad.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger selected bounded authority-tree copying and required
+symlink/special-file rejection plus explicit exclusion of build/dependency output.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** The allowlisted authority exceeds either bound, the parent resolver needs a new
+root, a copied special node is accepted, or resolution reads any file outside its generated
+closure.
+
+### AR-P60 — Refresh stale selected parent before child publication
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Runtime authority correction required by the already approved content-fresh parent
+invariant; no product-scope or public-interface choice.<br>
+**Decision:** Rebuild the nine-binding parent from the still-fresh immutable four-binding base and
+the current five generated oracle revisions, accept it using the completed Phase 3 semantic-review
+closure, and select
+`sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597`
+before preparing any execution child. Existing parent releases remain byte-identical. Phase 6
+fixtures exercise the fresh four-binding and refreshed nine-binding shapes; the superseded
+nine-binding release remains immutable evidence but correctly fails executable freshness after its
+dependency closure changed.<br>
+**Evidence:** Both the checked-out repository and the bounded fixture rejected the previously
+selected nine-binding parent at `/bindings/3`: Phase 3 commit `4e7a60f` regenerated all five oracle
+implementation revisions, while its selected parent still serialized the older revisions. The
+four-binding base resolves against current authority, and the incremental publication transaction
+reproduced and selected the refreshed nine-binding release without editing either prior release.<br>
+**Rejected alternatives:** Weakening parent freshness would permit stale executable handlers.
+Treating the fixture as exceptional would hide the same failure in the real repository. Rewriting
+the old release would violate immutable publication identity.<br>
+**Confidence:** High.<br>
+**Hardening:** The ruling follows the existing immutable incremental-publication path and was
+validated against both real and isolated resolution; no new mechanism or bypass was introduced.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** The refreshed parent fails exact candidate freshness, any prior release byte
+changes, or child preparation can name the superseded stale parent.
+
+### AR-P61 — Phase 6 authority, durability and generated-closure quality closure
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Mandatory correctness, security and performance repairs within the approved child
+publication scope after independent Phase 6 review.<br>
+**Decision:** Retain `@blend65/readiness/execution-publication-internals` as a defensive passive
+descriptor accessor that accepts a genuine opaque release and exports no raw commit, selection or
+freshness callback. The relative internal transaction remains available solely to the frozen
+readiness conformance specification. The operational durable selector is co-located in
+`@blend65/readiness-execution`, reachable only through public
+`selectExecutionPublicationByDigestV1`, so the live owner performs the final catalog guard and
+pointer rename itself. All authority owner gates compare normalized package-relative paths and
+reject absolute, traversing or duplicate records.
+
+Review acceptance joins `specRevision` to the exact parent inventory revision. Passive preparation
+accepts any exact fresh named parent so immutable historical candidates remain reproducible; the
+authority-bearing final commit alone requires that parent to be the currently selected exact fresh
+parent. Child resolution uses canonical
+containment and a pinned repository/readiness/publication/releases/release ancestor chain, verifies
+that chain around reads and parent-resolution awaits and before minting, and permits exactly one
+complete retry only when a private verified selected-pointer replacement marker proves a concurrent
+pointer change. Inputs are bounded before their byte arrays are copied and are snapshotted once.
+
+Selection performs all asynchronous fault hooks, directory validation, bounded catalog scanning and
+pointer-file synchronization before a final synchronous commit section. That section rechecks the
+already pinned secure catalog snapshot, selected-parent pointer, exact child directory/member
+identities and bytes, and retained temporary pointer inode and bytes, then invokes the rename
+syscall without an intervening await or callback. The renamed pointer must retain that exact inode
+and bytes. Post-rename directory synchronization is retried to a closed bound; a visible pointer
+without proven directory durability never resolves as success and returns
+reconciliation-indeterminate instead. Success returns a newly resolved selected-child authority,
+not the precommit passive object. Cleanup failures are retained as diagnostics rather than
+discarded.
+
+The generated handler catalog is derived with a real JavaScript/TypeScript module parser, including
+literal dynamic imports and `new URL(..., import.meta.url)` runtime assets. Its explicit roots cover
+the live handler plus worker, process-anchor and VICE-launcher entries, and its identity binds the
+emitted distribution JavaScript/assets Node executes. Generation is a deterministic
+build→generate→build→check cycle with no self-digest. The live freshness scan opens every emitted
+dependency through descriptor-backed no-follow/nonblocking reads, requires a single-link regular
+file inside the canonical distribution root, reverifies inode identity, and applies file-count,
+per-file and aggregate-byte bounds. One unique scan/hash result is shared by all six rows and the
+final guard; mutation conformance copies only its target file.
+
+Inspection pins and revalidates the complete repository/readiness/publication/releases chain,
+lstat-validates every bounded release, staging and pointer-temporary entry, diagnoses malformed
+digest names, links, special nodes and cleanup residue, and never treats a selected name as healthy
+without release validation. The historical publication owner set stays unchanged while
+its complete-source implementation gate explicitly recognizes the new isolated owners. Full
+noncoverage specifications remain mandatory; branch coverage at or above 90% is measured on the
+new publication/catalog cores with focused implementation/conformance runs rather than combining
+V8 coverage with the large copied-authority end-to-end fixture. Full repository verification still
+runs before commit.<br>
+**Evidence:** Independent correctness, security and performance review found a review-revision join
+gap, an async freshness window, basename-only owner checks, unproven post-rename durability,
+incomplete ancestor pinning and inspection, regex-only source closure, path-following catalog reads,
+duplicate scans and a pathological readiness coverage run. The instrumented full readiness worker
+reached about 3.97 GiB RSS after fourteen minutes without completing, while the same frozen suite
+was bounded in its noncoverage run.<br>
+**Rejected alternatives:** Exporting a raw cross-package commit subpath preserves an avoidable
+authority surface. An async callback immediately before rename still admits an event-loop turn.
+Treating a visible renamed pointer as committed ignores directory durability. Regex source closure
+cannot prove runtime edges, and source-byte hashes do not identify emitted code. Weakening the
+coverage threshold or omitting full noncoverage specifications would hide rather than fix the
+instrumentation pathology.<br>
+**Confidence:** High.<br>
+**Hardening:** Every independent major/security/performance finding is accepted as mandatory; the
+operational authority is narrowed while the passive frozen interfaces remain compatible.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any raw commit primitive becomes package-exported, a yield can occur between the
+final guard and rename, directory durability is inferred from visibility, a dependency/runtime edge
+is unresolved, a path-following catalog read is reintroduced, or focused core branch coverage falls
+below 90%.
+
+### AR-P62 — Isolate live execution from the broad readiness barrel
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Runtime dependency-authority correction within the approved fixed-handler catalog;
+no product scope or public execution semantics change.<br>
+**Decision:** Add the minimal `@blend65/readiness/execution-runtime` subpath containing only the
+leaf runtime values required by the four generated execution roots. Live runtime modules import
+those values directly and retain root-package imports only for erased types. The generator must
+reject any closure containing the readiness root index or `node_modules/typescript/**`, continue to
+fail closed on unresolved runtime edges, and bind every reached third-party runtime module together
+with its package manifest/export map under the secure count and byte bounds. This authority change
+requires publishing and selecting one new reviewed parent before the child fixtures can be
+refrozen; prior releases remain immutable. The selected refreshed parent is
+`sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597`.<br>
+**Evidence:** Binding the readiness root barrel instantiated unrelated boundary tooling and reached
+TypeScript's nonliteral plugin loader even though no live handler calls that API. A call-site
+allowlist would silently turn unresolved executable edges into generator policy. The leaf subpath
+removes the accidental graph while keeping the generator fail-closed.<br>
+**Rejected alternatives:** Allowlisting TypeScript's nonliteral `require(modulePath)` cannot prove
+the target bytes. Binding the whole dependency tree is overbroad and still cannot bind an arbitrary
+plugin path. Retaining the broad barrel preserves authority for code the fixed handlers never use.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenge selected the leaf subpath and required both generated-graph
+negative assertions and a reviewed parent refresh rather than weakening runtime-edge validation.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A live emitted root imports a runtime value through `@blend65/readiness`, the
+generated closure reaches the readiness index or TypeScript, or a reached third-party executable or
+package manifest is not bound.
+
 ## Systematic 12-Category Closure
 
 | Category | Closure evidence |

@@ -16,7 +16,9 @@
     "pretest": "tsc --build",
     "test": "vitest run",
     "pretest:coverage": "tsc --build",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate:execution-bindings": "tsc --build && node ../../scripts/gen-execution-bindings.mjs --write && tsc --build",
+    "check:execution-bindings": "node ../../scripts/gen-execution-bindings.mjs --check"
   },
   "dependencies": {
     "@blend65/cli": "0.1.0",

@@ -2,7 +2,8 @@ import { constants } from "node:fs";
 import { lstat, open, realpath } from "node:fs/promises";
 import { Worker } from "node:worker_threads";
 
-import { EXECUTION_MAXIMUM_BUDGET_V1, type ExecutionOperationResultV1 } from "@blend65/readiness";
+import type { ExecutionOperationResultV1 } from "@blend65/readiness";
+import { EXECUTION_MAXIMUM_BUDGET_V1 } from "@blend65/readiness/execution-runtime";
 
 import type {
   ExecutionCancellationV1,
@@ -121,6 +122,15 @@ function workerEntryUrl(): URL {
   );
 }
 
+function workerEnvironment(): NodeJS.ProcessEnv {
+  const environment = { ...process.env };
+  // NODE_OPTIONS is Node's environment-level startup channel for --import and --require preloads.
+  // Other NODE_* variables do not independently inject an arbitrary startup module.
+  // Tool lookup and real route subprocesses still need the remaining production environment.
+  delete environment.NODE_OPTIONS;
+  return environment;
+}
+
 async function boundedShutdown(operation: Promise<unknown>): Promise<void> {
   let timeout: NodeJS.Timeout | undefined;
   let timedOut = false;
@@ -226,7 +236,8 @@ export function createExecutionWorkerExecutorV1(): ExecutionWorkerExecutorV1 {
     });
     void ready.catch(() => undefined);
     const worker = new Worker(workerEntryUrl(), {
-      execArgv: process.execArgv.filter((argument) => !argument.startsWith("--input-type")),
+      execArgv: [],
+      env: workerEnvironment(),
       resourceLimits: {
         maxOldGenerationSizeMb: 96,
         maxYoungGenerationSizeMb: 16,

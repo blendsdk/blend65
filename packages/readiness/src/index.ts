@@ -153,6 +153,15 @@ export {
   serializeExecutionRoutePlanPreimageV1,
   serializeExecutionRoutePlanV1,
 } from "./execution-route-plan.js";
+export {
+  getCompositeReadinessProjectionV1,
+  resolveCompositeReadinessSnapshot,
+  resolvePublishedExecutionRelease,
+} from "./execution-publication-resolver.js";
+export {
+  inspectExecutionPublicationV1,
+  prepareExecutionPublicationCandidateV1,
+} from "./execution-publication-transaction.js";
 export type {
   FragmentKind,
   FragmentationResult,
@@ -524,6 +533,16 @@ export type {
   ExecutionUsageV1,
 } from "./execution-contracts.js";
 export type { ExecutionRoutePlanPreimageV1 } from "./execution-route-plan.js";
+export type {
+  CompositeReadinessSnapshot,
+  PublishedExecutionRelease,
+} from "./execution-publication-resolver.js";
+export type {
+  ExecutionPublicationCandidateV1,
+  ExecutionPublicationDiagnosticV1,
+  ExecutionPublicationInspectionV1,
+  PrepareExecutionPublicationInputV1,
+} from "./execution-publication-transaction.js";
 export type {
   ExecutionAddressRangeV1,
   ExecutionArgumentLiteralV1,

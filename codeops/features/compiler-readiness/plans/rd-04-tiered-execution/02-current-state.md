@@ -10,8 +10,9 @@
 RD-01 through RD-03 already supply the authority substrate: immutable selected publications,
 content-derived generator/oracle/transform bindings, deterministic random-access campaigns,
 rendered/replayable cases, independent diagnostic and runtime oracles, and opaque selected oracle
-contexts. The selected parent release is the nine-binding digest
-`sha256:41557dde5590fed1fd28a8e920769787af43118de94c48c9484a20dc773e2706`.
+contexts. Phase 6 refreshed the selected nine-binding parent after the Phase 3 implementation
+closure changed its five oracle revisions; the selected digest is
+`sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597`.
 
 The compiler exposes distinct `compile`, `emitAsm` and `build` façades; the CLI exposes injectable
 `runCli`; ACME discovery/invocation returns assembly/binary/label/report artifacts; test-harness

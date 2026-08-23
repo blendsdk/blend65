@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
 
-import {
-  isExecutionDigestV1,
-  type ExecutionCleanupBlockerV1,
-  type ExecutionEvidenceSummaryV1,
-  type ExecutionOperationIssueCodeV1,
-  type ExecutionOperationResultV1,
-  type ExecutionPolicyV1,
-  type ExecutionUsageV1,
+import type {
+  ExecutionCleanupBlockerV1,
+  ExecutionEvidenceSummaryV1,
+  ExecutionOperationIssueCodeV1,
+  ExecutionOperationResultV1,
+  ExecutionPolicyV1,
+  ExecutionUsageV1,
 } from "@blend65/readiness";
+import { isExecutionDigestV1 } from "@blend65/readiness/execution-runtime";
 
 import {
   createExecutionBudgetScopeV1,
