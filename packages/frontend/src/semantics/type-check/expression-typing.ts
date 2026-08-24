@@ -1524,9 +1524,11 @@ function recordCallEdge(
  * width-aware lowering); a `lo`/`hi` argument types in a `word` context (the
  * signature is `lo(value: word): byte` — narrower integers widen implicitly,
  * `sword` reinterprets at the same width, and a boolean argument is the
- * standard argument-mismatch error). Unknown intrinsics poison without a
- * diagnostic (the intrinsic-validation pass owns their errors); arity errors
- * are that pass's job too.
+ * standard argument-mismatch error). Direct-memory calls additionally reject
+ * boolean addresses, and `pokew` rejects a boolean word value, at the narrow
+ * diagnostic boundary assigned to those signatures. Unknown intrinsics poison
+ * without a diagnostic (the intrinsic-validation pass owns their errors);
+ * arity errors are that pass's job too.
  */
 function typeIntrinsicCall(expr: IntrinsicCallExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   if (expr.name === "lo" || expr.name === "hi") {
@@ -1583,6 +1585,11 @@ function typeIntrinsicCall(expr: IntrinsicCallExprNode, scope: Scope, ctx: TypeC
   }
 
   for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+  const expectedArity = MEMORY_INTRINSIC_ARITY.get(expr.name);
+  const hasExpectedArity = expectedArity !== undefined && expr.args.length === expectedArity;
+  const booleanPokewValue = hasExpectedArity
+    ? checkMemoryIntrinsicBooleanArguments(expr, ctx)
+    : false;
 
   let result: Type;
   switch (expr.name) {
@@ -1594,7 +1601,9 @@ function typeIntrinsicCall(expr: IntrinsicCallExprNode, scope: Scope, ctx: TypeC
       break;
     case "poke":
     case "pokew":
-      checkPokeValueWidth(expr, expr.name === "pokew" ? 16 : 8, ctx);
+      if (hasExpectedArity && !booleanPokewValue) {
+        checkPokeValueWidth(expr, expr.name === "pokew" ? 16 : 8, ctx);
+      }
       result = primitive("void");
       break;
     default:
@@ -1612,6 +1621,49 @@ const MEMORY_INTRINSIC_ARITY: ReadonlyMap<string, number> = new Map([
   ["poke", 2],
   ["pokew", 2],
 ]);
+
+/**
+ * The frozen diagnostic tables assign E10172 both to missing return values
+ * and to direct-memory intrinsic argument mismatches. The shared registry's
+ * descriptive name reflects the former use, while this narrow boundary must
+ * retain the latter numeric contract. General user-function argument typing
+ * remains on E10171.
+ */
+const MEMORY_INTRINSIC_ARG_TYPE_MISMATCH = DiagCode.MissingReturnValue;
+
+/** True when a resolved type is the non-numeric boolean primitive. */
+function isBooleanType(type: Type | undefined): boolean {
+  return type?.kind === "primitive" && type.name === "boolean";
+}
+
+/**
+ * Rejects boolean addresses for every direct-memory operation and a boolean
+ * word value for `pokew`. A one-byte `poke` value keeps its established kind-
+ * mismatch diagnostic, so this helper reports whether the ordinary width
+ * checker must be skipped for `pokew` to avoid a duplicate root cause.
+ */
+function checkMemoryIntrinsicBooleanArguments(
+  expr: IntrinsicCallExprNode,
+  ctx: TypeCheckContext,
+): boolean {
+  const address = expr.args[0];
+  if (address !== undefined && isBooleanType(ctx.typeMap.get(address))) {
+    ctx.bag.addError(
+      MEMORY_INTRINSIC_ARG_TYPE_MISMATCH,
+      address.span,
+      `Argument type mismatch — parameter 'addr' of '${expr.name}()' expects 'word', found 'boolean'`,
+    );
+  }
+
+  const value = expr.name === "pokew" ? expr.args[1] : undefined;
+  if (value === undefined || !isBooleanType(ctx.typeMap.get(value))) return false;
+  ctx.bag.addError(
+    MEMORY_INTRINSIC_ARG_TYPE_MISMATCH,
+    value.span,
+    "Argument type mismatch — parameter 'val' of 'pokew()' expects 'word', found 'boolean'",
+  );
+  return true;
+}
 
 /**
  * Records a constant hardware address only after the whole call has been
@@ -1665,11 +1717,12 @@ function recordConstantIntrinsicAddress(
  * would silently split into a second store that clobbers the neighbouring
  * address, so it is rejected with E10154. A value that is not a byte-width
  * integer or enum at all — a `boolean`, a struct, an array, a `void` call
- * result — is a KIND mismatch (E10152): a `boolean` is one byte but non-numeric,
- * and a struct/array is a multi-byte aggregate that would spill stores past the
- * target just the same. `byte`/`sbyte`/enum values and numeric literals (whose
- * range the literal-argument check already owns) fit a single byte and are
- * accepted.
+ * result — is a KIND mismatch (E10152): a `boolean` passed to one-byte `poke`
+ * is one byte but non-numeric, and a struct/array is a multi-byte aggregate
+ * that would spill stores past the target just the same. A boolean `pokew`
+ * value is rejected earlier by its word-parameter signature check. `byte`/
+ * `sbyte`/enum values and numeric literals (whose range the literal-argument
+ * check already owns) fit a single byte and are accepted.
  */
 function checkPokeValueWidth(
   expr: IntrinsicCallExprNode,
@@ -1704,10 +1757,10 @@ function checkPokeValueWidth(
 }
 
 /**
- * The storage width in bits of a `poke` value type: an integer's own width, or
- * 8 for an enum (a one-byte identity backing). `null` for every other type —
- * boolean, struct, array, void — none of which is a valid single-byte store
- * value; the caller rejects those as a kind mismatch.
+ * The storage width in bits of a memory-write value type: an integer's own
+ * width, or 8 for an enum (a one-byte identity backing). `null` for every
+ * other type — boolean, struct, array, void. The caller rejects those as a
+ * kind mismatch after signature-specific checks have run.
  */
 function pokeValueWidth(t: Type): 8 | 16 | null {
   if (t.kind === "enum") return 8;

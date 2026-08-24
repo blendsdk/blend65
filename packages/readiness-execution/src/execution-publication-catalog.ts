@@ -3,12 +3,18 @@ import { renameSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import {
+  resolvePublishedSnapshot,
   resolvePublishedExecutionRelease,
+  type CompositeReadinessProjectionV1,
   type ExecutionOperationResultV1,
   type PublishedExecutionRelease,
+  type PublishedSnapshot,
 } from "@blend65/readiness";
 import {
+  createExecutionReviewCandidateProjectionV1,
+  getExecutionReviewCandidateProjectionDescriptorV1,
   getPublishedExecutionReleaseDescriptorV1,
+  type ExecutionReviewCandidateProjectionV1,
   type PublishedExecutionReleaseDescriptorV1,
 } from "@blend65/readiness/execution-publication-internals";
 
@@ -41,16 +47,39 @@ import {
 import type { PublishedExecutionHandlersV1 } from "./execution-route-adapters.js";
 
 declare const LIVE_EXECUTION_CONTEXT_BRAND: unique symbol;
+declare const EXECUTION_REVIEW_CONTEXT_BRAND: unique symbol;
 
 /** Opaque live capability created only after passive bytes match the fixed generated catalog. */
 export interface LiveExecutionContextV1 {
   readonly [LIVE_EXECUTION_CONTEXT_BRAND]: true;
 }
 
-interface LiveExecutionContextStateV1 {
-  readonly release: PublishedExecutionRelease;
-  readonly handlers: PublishedExecutionHandlersV1;
+/** Opaque, non-selectable authority for executing exact current bindings during review. */
+export interface ExecutionReviewContextV1 {
+  readonly [EXECUTION_REVIEW_CONTEXT_BRAND]: true;
 }
+
+/** Either reviewed published handlers or purpose-limited prepublication review handlers. */
+export type ExecutionAuthorityContextV1 = LiveExecutionContextV1 | ExecutionReviewContextV1;
+
+export type LiveExecutionContextStateV1 =
+  | {
+      readonly kind: "published";
+      readonly release: PublishedExecutionRelease;
+      readonly handlers: PublishedExecutionHandlersV1;
+    }
+  | {
+      readonly kind: "review-candidate";
+      readonly parent: PublishedSnapshot;
+      readonly candidate: ExecutionReviewCandidateProjectionV1;
+      readonly repositoryRoot: string;
+      readonly parentDigest: string;
+      readonly bindingDigest: string;
+      readonly runnerRevision: string;
+      readonly executionDigest: string;
+      readonly projection: CompositeReadinessProjectionV1;
+      readonly handlers: PublishedExecutionHandlersV1;
+    };
 
 const LIVE_CONTEXTS = new WeakMap<object, LiveExecutionContextStateV1>();
 const FIXED_HANDLERS = createLiveExecutionHandlersV1();
@@ -269,8 +298,93 @@ export function resolveLiveExecutionContextV1(
   const exact = validateExactExecutionCatalogRowsV1(passive.bindings, current.value.rows);
   if (!exact.ok) return exact;
   const context = Object.freeze({}) as LiveExecutionContextV1;
-  LIVE_CONTEXTS.set(context, Object.freeze({ release, handlers: FIXED_HANDLERS }));
+  LIVE_CONTEXTS.set(
+    context,
+    Object.freeze({ kind: "published", release, handlers: FIXED_HANDLERS }),
+  );
   return success(context);
+}
+
+/**
+ * Mints review-only execution authority from the selected parent and exact current catalog.
+ *
+ * The result has no release descriptor, selection API, or conversion path. It can only be consumed
+ * by campaign orchestration, which revalidates the parent and dependency closure around execution.
+ */
+export function resolveExecutionReviewContextV1(
+  parent: PublishedSnapshot,
+): ExecutionOperationResultV1<ExecutionReviewContextV1> {
+  const current = computeExecutionCatalogStateV1();
+  if (!current.ok) return current;
+  const projected = createExecutionReviewCandidateProjectionV1(
+    parent,
+    current.value.bindingBytes,
+    current.value.runnerRevision,
+  );
+  if (!projected.ok) return projected;
+  const descriptor = getExecutionReviewCandidateProjectionDescriptorV1(projected.value);
+  if (descriptor === undefined) {
+    return failure("/execution", "Execution review candidate identity could not be retained.");
+  }
+  const context = Object.freeze({}) as ExecutionReviewContextV1;
+  LIVE_CONTEXTS.set(
+    context,
+    Object.freeze({
+      kind: "review-candidate",
+      parent,
+      candidate: projected.value,
+      repositoryRoot: descriptor.repositoryRoot,
+      parentDigest: descriptor.parentDigest,
+      bindingDigest: descriptor.bindingDigest,
+      runnerRevision: descriptor.runnerRevision,
+      executionDigest: descriptor.projection.executionDigest,
+      projection: descriptor.projection,
+      handlers: FIXED_HANDLERS,
+    }),
+  );
+  return success(context);
+}
+
+/** Revalidates a review candidate against the selected parent and current dependency bytes. */
+export async function revalidateExecutionReviewContextV1(
+  context: ExecutionReviewContextV1,
+): Promise<ExecutionOperationResultV1<true>> {
+  const retained =
+    typeof context === "object" && context !== null ? LIVE_CONTEXTS.get(context) : undefined;
+  if (retained === undefined || retained.kind !== "review-candidate") {
+    return failure("/execution", "A genuine execution review candidate is required.");
+  }
+  const selected = await resolvePublishedSnapshot({ repositoryRoot: retained.repositoryRoot });
+  const current = computeExecutionCatalogStateV1();
+  if (!current.ok) return current;
+  const selectedProjection = selected.ok
+    ? createExecutionReviewCandidateProjectionV1(
+        selected.value,
+        current.value.bindingBytes,
+        current.value.runnerRevision,
+      )
+    : undefined;
+  const selectedDescriptor =
+    selectedProjection?.ok === true
+      ? getExecutionReviewCandidateProjectionDescriptorV1(selectedProjection.value)
+      : undefined;
+  if (selectedDescriptor?.parentDigest !== retained.parentDigest) {
+    return failure("/parentDigest", "The selected parent changed during review execution.");
+  }
+  const projected = createExecutionReviewCandidateProjectionV1(
+    retained.parent,
+    current.value.bindingBytes,
+    current.value.runnerRevision,
+  );
+  const descriptor = projected.ok
+    ? getExecutionReviewCandidateProjectionDescriptorV1(projected.value)
+    : undefined;
+  return descriptor !== undefined &&
+    descriptor.bindingDigest === retained.bindingDigest &&
+    descriptor.runnerRevision === retained.runnerRevision &&
+    descriptor.projection.executionDigest === retained.executionDigest
+    ? success(true)
+    : failure("/execution", "Execution candidate could not be reauthenticated.");
 }
 
 /**
@@ -279,12 +393,21 @@ export function resolveLiveExecutionContextV1(
  * @throws {TypeError} When the value was not minted by the live catalog resolver.
  */
 export function getPublishedExecutionHandlersV1(
-  context: LiveExecutionContextV1,
+  context: ExecutionAuthorityContextV1,
 ): PublishedExecutionHandlersV1 {
   const state =
     typeof context === "object" && context !== null ? LIVE_CONTEXTS.get(context) : undefined;
   if (state === undefined) throw new TypeError("A genuine live execution context is required.");
   return state.handlers;
+}
+
+/** Resolves package-private live state only for a catalog-minted context. */
+export function getLiveExecutionContextStateV1(
+  context: ExecutionAuthorityContextV1,
+): LiveExecutionContextStateV1 | undefined {
+  const state =
+    typeof context === "object" && context !== null ? LIVE_CONTEXTS.get(context) : undefined;
+  return state;
 }
 
 /**

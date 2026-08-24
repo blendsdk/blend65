@@ -59,6 +59,7 @@ function canonicalPlan(
   return {
     revision: plan.revision,
     parentDigest: plan.parentDigest,
+    executionDigest: plan.executionDigest,
     campaignDigest: plan.campaignDigest,
     oracleDigest: plan.oracleDigest,
     policy: canonicalPolicy(plan.policy),

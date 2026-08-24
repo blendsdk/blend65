@@ -4,14 +4,21 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { ExecutionOperationResultV1, ExecutionResultV1 } from "@blend65/readiness";
+import {
+  createPublishedDiagnosticCaseV1,
+  getPublishedDiagnosticCaseProjectionV1,
+} from "@blend65/readiness/published-oracle";
 
 import {
   SPEC_POLICY,
+  createGenuineDiagnosticFixture,
   createGenuineRouteFixture,
   createOwnershipProbe,
   scriptedWorker,
+  type DiagnosticRouteRequest,
   successfulWorkerResponse,
   type GenuineRouteFixture,
+  type GenuineDiagnosticFixture,
   type RouteRequest,
   type WorkerExecutor,
 } from "./test-fixtures/execution-adapters-safety-spec-fixture.js";
@@ -29,6 +36,7 @@ const cancellation = {
 };
 
 let genuine: GenuineRouteFixture;
+let diagnostic: GenuineDiagnosticFixture;
 
 function requireSuccess<T>(result: ExecutionOperationResultV1<T>): T {
   expect(result.ok).toBe(true);
@@ -95,20 +103,61 @@ function handlers(
 }
 
 beforeAll(async () => {
-  genuine = await createGenuineRouteFixture({
-    createExecutionRouteRequestV1(input) {
-      return execution.createExecutionRouteRequestV1(
-        input,
-      ) as ExecutionOperationResultV1<RouteRequest>;
-    },
-  });
+  [genuine, diagnostic] = await Promise.all([
+    createGenuineRouteFixture({
+      createExecutionRouteRequestV1(input) {
+        return execution.createExecutionRouteRequestV1(
+          input,
+        ) as ExecutionOperationResultV1<RouteRequest>;
+      },
+    }),
+    createGenuineDiagnosticFixture(
+      {
+        createExecutionRouteRequestV1(input: unknown) {
+          return execution.createExecutionRouteRequestV1(
+            input as never,
+          ) as ExecutionOperationResultV1<DiagnosticRouteRequest>;
+        },
+      },
+      {
+        createPublishedDiagnosticCaseV1(context, campaign, ordinal) {
+          return createPublishedDiagnosticCaseV1(context as never, campaign, ordinal) as never;
+        },
+        getPublishedDiagnosticCaseProjectionV1(value) {
+          return getPublishedDiagnosticCaseProjectionV1(value as never) as never;
+        },
+      },
+    ),
+  ]);
 }, 120_000);
 
 afterAll(async () => {
-  await genuine.cleanup();
+  await Promise.all([genuine.cleanup(), diagnostic.cleanup()]);
 });
 
 describe("execution route adapter classifications", () => {
+  it("should accept only the exact invalid expensive-obligation projection", () => {
+    const base = diagnostic.requests["compiler-api"];
+    for (const obligation of ["emit", "acme", "vice"] as const) {
+      expect(
+        execution.createExecutionRouteRequestV1({
+          ...base,
+          route: { ...base.route, obligation },
+        } as never),
+      ).toMatchObject({
+        ok: true,
+        value: { route: { obligation, terminalTier: "compiler-api" } },
+      });
+    }
+    for (const route of [
+      { ...base.route, obligation: "vice", terminalTier: "frontend", prerequisiteTiers: [] },
+      { ...base.route, obligation: "vice", terminalTier: "emit" },
+      { ...base.route, obligation: "frontend" },
+    ]) {
+      expect(execution.createExecutionRouteRequestV1({ ...base, route } as never).ok).toBe(false);
+    }
+  });
+
   it("should reject route, policy, case, and oracle authority mutants", () => {
     const base = genuine.requests.frontend;
     expect(
@@ -239,7 +288,7 @@ describe("execution route adapter classifications", () => {
                 ? { ...response, hasErrors: true }
                 : response.tier === "cli"
                   ? { ...response, exitCode: 1 as const }
-                  : { ...response, assemblyBytes: new Uint8Array() };
+                  : { ...response, hasErrors: true };
           return {
             ok: true,
             value: {
@@ -365,6 +414,35 @@ describe("execution route adapter classifications", () => {
           ok: true,
           value: {
             completion: Promise.resolve({ kind: "message", value: { revision: "wrong" } }),
+            terminate: async () => undefined,
+          },
+        };
+      },
+    };
+    const lifecycle = supervisor(worker);
+    expect(
+      await handlers(worker, lifecycle, {
+        run: async () => {
+          runnerCalled = true;
+          return { exitCode: 0, stderr: "" };
+        },
+      }).acme.execute(route("acme"), cancellation),
+    ).toMatchObject({ status: "failure", stage: "emit", code: "emission-failure" });
+    expect(runnerCalled).toBe(false);
+    await lifecycle.cleanup();
+  });
+
+  it("should stop ACME before invocation when the emitter reports compiler errors", async () => {
+    let runnerCalled = false;
+    const worker: WorkerExecutor = {
+      async start(request) {
+        return {
+          ok: true,
+          value: {
+            completion: Promise.resolve({
+              kind: "message",
+              value: { ...successfulWorkerResponse(request), hasErrors: true },
+            }),
             terminate: async () => undefined,
           },
         };

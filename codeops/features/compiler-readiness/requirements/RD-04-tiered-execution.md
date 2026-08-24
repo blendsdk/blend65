@@ -1,9 +1,9 @@
 # RD-04: Tiered Compiler, ACME and VICE Execution
 
 > **Document**: RD-04-tiered-execution.md
-> **Status**: Approved
+> **Status**: Complete
 > **Created**: 2026-07-23
-> **Amended**: 2026-08-21 — execution population, envelope, publication and runtime safety closed by preflight
+> **Amended**: 2026-08-24 — implemented, independently reviewed, selected and closed
 > **Project**: Compiler Readiness
 > **Depends On**: RD-02, RD-03
 > **CodeOps Artifact Schema**: 1
@@ -26,46 +26,46 @@ remaining C64 denominator.
 
 ### Must Have
 
-- [ ] Support capability-defined tiers `frontend`, `compiler-api`, `cli`, `emit`, `acme` and
+- [x] Support capability-defined tiers `frontend`, `compiler-api`, `cli`, `emit`, `acme` and
   `vice`, with a closed versioned execution-capability registry. Unknown tiers fail validation;
   future tiers require an explicit compatible version or migration. (AR-7)
-- [ ] Bind all six executable routes to their RD-01 capability declarations with content-derived
+- [x] Bind all six executable routes to their RD-01 capability declarations with content-derived
   implementation revisions. Reject unreviewed, undeclared, duplicate, stale and
   contract-incompatible bindings.
-- [ ] Publish route bindings as one independently reviewed, content-addressed execution
+- [x] Publish route bindings as one independently reviewed, content-addressed execution
   publication that references one exact immutable compiler-readiness publication digest. Select
   it atomically, resolve capabilities only through its opaque snapshot, and preserve the prior
   selection on validation, review, staging or commit failure. Existing four-binding and
   nine-binding compiler-readiness releases remain byte-identical and independently resolvable.
-- [ ] Treat each parent evidence declaration's `unbound` value as its required pre-binding state.
+- [x] Treat each parent evidence declaration's `unbound` value as its required pre-binding state.
   The composite resolver projects that declaration as bound only when the selected child execution
   publication supplies its exact accepted binding. Parent-only resolution, or a missing, stale or
   rejected child binding, retains the corresponding `unbound-evidence-capability` blocker; an
   accepted child clears exactly the blockers for the bindings it contains without changing parent
   bytes or making the child authoritative outside execution resolution.
-- [ ] Derive a deterministic route plan before execution. The plan stratifies valid/invalid,
+- [x] Derive a deterministic route plan before execution. The plan stratifies valid/invalid,
   spelling and boundary families, binds selection to campaign/case and selector revisions, and
   records the exact cases chosen for every rule/obligation. Every case reaches its cheapest
   decisive tier; selected subsets satisfy additional expensive obligations without heuristic
   failure-triggered escalation.
-- [ ] Treat each declared obligation as independently required: a rule is incomplete until every
+- [x] Treat each declared obligation as independently required: a rule is incomplete until every
   obligation has passing selected evidence. Each selected route runs its declared prerequisite
   stages in order and records the terminal tier actually reached.
-- [ ] Preserve the distinct public contracts of the frontend, compiler API and CLI routes. The CLI
+- [x] Preserve the distinct public contracts of the frontend, compiler API and CLI routes. The CLI
   route observes exit status and rendered diagnostics; it is not treated as an alias for the
   programmatic compiler result.
-- [ ] Require diagnostic cases to match RD-03's exact `code`, directly observed compiler `phase`
+- [x] Require diagnostic cases to match RD-03's exact `code`, directly observed compiler `phase`
   and `severity`, and prove that no IL, assembly or executable artifact was produced at or after
   the rejecting stage. Phase evidence must come from compiler pipeline provenance, never be
   inferred from the expected code or diagnostic manifest. Invalid cases retain their original
   generated source and are never wrapped in an executable envelope.
-- [ ] Transform every selected valid executable case through a closed, versioned execution
+- [x] Transform every selected valid executable case through a closed, versioned execution
   envelope. Preserve the RD-02 source-case identity; derive a separate execution identity over the
   source digest, complete external parameter bindings, envelope and selector revisions, target,
   route budgets, initial-machine-state fixture, observation layout and participating
   handler/capability revisions. The envelope adds a valid `main(): void`, invokes the generated case
   and never embeds an RD-03 expected value.
-- [ ] Supply every executable case that reads pre-existing machine state with a closed, versioned
+- [x] Supply every executable case that reads pre-existing machine state with a closed, versioned
   initial-machine-state fixture. Establish and verify the fixture before entry, and evaluate RD-03's
   expectation from the identical fixture. Missing cells, unsupported fixture semantics or a seeded
   state mismatch remain non-passing. For the current C64 `$D020..$D022` read set, an independently
@@ -73,20 +73,20 @@ remaining C64 denominator.
   as `0xF0 | lowNibble`; `peekw(address)` combines the projected byte at `address` with the projected
   byte at `address + 1` in little-endian order. A touched cell without authoritative target
   semantics remains oracle-unmodeled rather than assuming RAM or zero behavior.
-- [ ] Publish actual computed values/effects into a deterministic ordinary-RAM observation layout.
+- [x] Publish actual computed values/effects into a deterministic ordinary-RAM observation layout.
   Prove the allocation is disjoint from generated code/data, the case's semantic memory footprint,
   stack, MMIO and the completion cell. Initialize a non-success state, write observed values first
   and commit a distinct completion marker last. When projecting an observable into RAM would
   change the rule's semantics, declare and compare the exact direct memory/register observable
   instead; the independent expectation always remains host-side.
-- [ ] Require every currently modeled, mandatory-C64 rule in the selected composite publication with a
+- [x] Require every currently modeled, mandatory-C64 rule in the selected composite publication with a
   `vice` obligation to contribute at least one bounded executable case that reaches ACME and VICE,
   regardless of cheaper-tier success. Preserve every population record that remains unmodeled or
   effectively unbound after composite resolution as a non-passing blocker for RD-06.
-- [ ] Require `acme` cases to assemble successfully and expose the declared binary, label and
+- [x] Require `acme` cases to assemble successfully and expose the declared binary, label and
   report artifacts. Missing ACME is `tier-unavailable`; a discovered ACME process that fails is an
   assembler-stage failure.
-- [ ] Run VICE behind one crash-recoverable cross-process C64 execution lease. Durable lease
+- [x] Run VICE behind one crash-recoverable cross-process C64 execution lease. Durable lease
   metadata uses checksummed generations and records the host boot/session identity, owner PID and
   process-start identity, lease nonce, child PID and process-start identity, endpoint pair and
   lifecycle state. A durable pre-launch intent carries a unique child token in a canonical launch
@@ -98,13 +98,13 @@ remaining C64 denominator.
   checks; otherwise VICE is unavailable. Use two distinct loopback-only monitor endpoints, bounded
   collision retry, child-liveness plus protocol/target/version handshakes. No two readiness campaigns
   may concurrently control VICE through this route.
-- [ ] Normalize execution into a closed discriminated stage/result state machine with stable
+- [x] Normalize execution into a closed discriminated stage/result state machine with stable
   stage-scoped codes. It distinguishes invalid evidence input, invalid/unbound capability,
   unavailable tier, diagnostic mismatch, unexpected emission, compiler ICE, emission failure,
   assembler failure, emulator launch/handshake failure, instruction/cycle/wall-time exhaustion,
   emulator-lease-recovery-blocked, semantic mismatch and pass. The first terminal state in the
   declared pipeline wins; budget exhaustion uses the deterministic precedence defined below.
-- [ ] Make missing ACME/VICE a `tier-unavailable` result that blocks the relevant readiness gate,
+- [x] Make missing ACME/VICE a `tier-unavailable` result that blocks the relevant readiness gate,
   never a pass, skip or launch failure.
 
 ### Won't Have
@@ -218,42 +218,42 @@ network, authentication, credential, PII, encryption or rate-limiting surface.
 
 ## Acceptance Criteria
 
-1. [ ] A frontend-only case invokes neither compiler API, CLI, emit, ACME nor VICE; compiler-API
+1. [x] A frontend-only case invokes neither compiler API, CLI, emit, ACME nor VICE; compiler-API
    and CLI fixtures observe their distinct public contracts; an ACME-terminal route invokes its
    declared prerequisite stages and ACME but not VICE; a VICE-terminal route reaches both in order.
-2. [ ] The route plan is byte-identical for the same selected publication, campaign and selector
+2. [x] The route plan is byte-identical for the same selected publication, campaign and selector
    revision in two fresh processes; it covers every declared obligation and stratifies validity,
    spelling and boundary families without inspecting prior outcomes.
-3. [ ] Every currently modeled, mandatory-C64 rule whose selected inventory record declares a
+3. [x] Every currently modeled, mandatory-C64 rule whose selected inventory record declares a
    `vice` obligation has at least one generated executable case whose recorded terminal tier is
    `vice`. Every remaining unmodeled, not-generatable, oracle-unmodeled or effectively
    capability-unbound rule remains visible and cannot satisfy RD-06.
-4. [ ] Replaying a selected valid runtime case produces a valid `main(): void`, complete recorded
+4. [x] Replaying a selected valid runtime case produces a valid `main(): void`, complete recorded
     arguments and the same execution identity. Changing the envelope revision, argument binding,
     initial-machine-state cell or fixture revision, observation allocation, route budget, selector
     revision or capability revision changes that identity or returns explicit
     historical-unavailable; the RD-02 source-case identity is unchanged.
-5. [ ] A seeded expected-value leak into executable source, observation/code/data collision, stale
+5. [x] A seeded expected-value leak into executable source, observation/code/data collision, stale
     success sentinel, completion-before-result write, absent required input cell, pre-entry fixture
     mismatch or wrapper around an invalid case fails before readiness evidence is accepted. `peek`
     and `peekw` cases independently match the declared `$D020..$D022` write/read projection. Real
     VICE acceptance proves the unused-high-nibble behavior for each touched register and both direct
     and computed word-read start addresses before the projection can be authoritative.
-6. [ ] A diagnostic case compares directly observed code/phase/severity. The correct code from the
+6. [x] A diagnostic case compares directly observed code/phase/severity. The correct code from the
    wrong phase, the wrong severity, or any IL/assembly/binary artifact fails; emitted executable
    output is classified `unexpected-emission`.
-7. [ ] Deliberate invalid evidence input, unbound route, compiler throw, invalid assembly, missing
+7. [x] Deliberate invalid evidence input, unbound route, compiler throw, invalid assembly, missing
    VICE executable, monitor-handshake failure, never-reached completion marker and wrong memory
    byte produce distinct stable stage-scoped result codes. Seeded multi-symptom cases follow the
    declared pipeline and budget precedence identically in repeated runs.
-8. [ ] Exact-limit instruction, cycle, wall-time and output-capture tests pass at the bound and
+8. [x] Exact-limit instruction, cycle, wall-time and output-capture tests pass at the bound and
     fail immediately beyond it. Every policy maximum accepts its exact bound and rejects the next
     integer before work. Retries share cumulative route time, attempts, instructions and cycles;
     totals above 65,535 use only validated `1..65535` wire chunks and cannot wrap or truncate.
     Captured stdout/stderr continues draining after its combined retention cap and records stable
     head/tail, count, hash and truncation metadata; every serialized artifact counts toward the
     per-case cap and overflow can never retain partial passing evidence.
-9. [ ] A VICE timeout or injected failure at each launch/run/observation boundary leaves no child
+9. [x] A VICE timeout or injected failure at each launch/run/observation boundary leaves no child
     process, pending monitor command, checkpoint, leased port pair, cross-process lease or temporary
     directory. A concurrent readiness process cannot acquire the VICE lease. A subprocess killed
     after recording each lifecycle state, including pre-launch intent and pre-child-record, is
@@ -262,9 +262,9 @@ network, authentication, credential, PII, encryption or rate-limiting surface.
     signaling; ambiguous identity or termination returns `emulator-lease-recovery-blocked`, retains
     the lease and never terminates an unrelated process. Cleanup can clear only its matching
     generation and nonce.
-10. [ ] A generated path containing `..`, an absolute prefix, a symlink component or a non-regular
+10. [x] A generated path containing `..`, an absolute prefix, a symlink component or a non-regular
     input is rejected before any file or subprocess operation.
-11. [ ] A six-route candidate rejects undeclared, duplicate, stale and contract-incompatible
+11. [x] A six-route candidate rejects undeclared, duplicate, stale and contract-incompatible
     bindings. Failed review/publication leaves the previous execution publication selected; a
     successful selection resolves all six routes only with the exact referenced nine-binding
     compiler-readiness publication, while both historical compiler-readiness releases remain
@@ -272,6 +272,6 @@ network, authentication, credential, PII, encryption or rate-limiting surface.
     `unbound-evidence-capability` blockers; the valid child clears exactly those six without changing
     parent bytes, while each missing, stale or rejected child binding retains its corresponding
     blocker.
-12. [ ] Local acceptance runs at least one selected runtime case through real ACME and VICE. In an
+12. [x] Local acceptance runs at least one selected runtime case through real ACME and VICE. In an
     environment without either tool, the same campaign reports the exact unavailable capabilities
     and the readiness gate remains blocked rather than skipped or passed.

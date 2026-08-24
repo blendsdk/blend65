@@ -19,6 +19,30 @@ const RUNTIME_ROOT_PATHS = Object.freeze([
   "packages/readiness-execution/dist/execution-vice-launcher-entry.js",
   "packages/readiness-execution/dist/execution-worker-entry.js",
 ]);
+const RUNNER_ROOT_PATHS = Object.freeze([
+  "packages/readiness/dist/execution-campaign-identity.js",
+  "packages/readiness-execution/dist/execution-authority-report.js",
+  "packages/readiness-execution/dist/execution-campaign-factory.js",
+  "packages/readiness-execution/dist/execution-orchestration.js",
+]);
+const RUNNER_BOUNDARY_PATHS = Object.freeze([
+  "packages/readiness-execution/dist/execution-live-handlers.js",
+  "node_modules/typescript/lib/typescript.js",
+]);
+const RUNNER_EXCLUDED_PATHS = Object.freeze([
+  "packages/readiness-execution/dist/execution-handler-catalog.generated.js",
+]);
+const REQUIRED_RUNNER_DEPENDENCY_PATHS = Object.freeze([
+  "packages/readiness/dist/index.js",
+  "packages/readiness/dist/execution-campaign-projection.js",
+  "packages/readiness/dist/execution-case.js",
+  "packages/readiness/dist/generate-case.js",
+  "packages/readiness/dist/execution-route-plan.js",
+  "packages/readiness-execution/dist/execution-authority-report.js",
+  "packages/readiness-execution/dist/execution-campaign-factory.js",
+  "packages/readiness-execution/dist/execution-orchestration.js",
+  "packages/readiness-execution/dist/execution-route-planner.js",
+]);
 const RUNTIME_ASSET_DIRECTORIES = Object.freeze(["packages/codegen/runtime"]);
 const CAPABILITY_IDS = ["acme", "cli", "compiler-api", "emit", "frontend", "vice"];
 const BUILTIN_MODULES = new Set(
@@ -326,7 +350,16 @@ async function runtimeAssetPaths() {
   return paths;
 }
 
-async function dependencyClosure(rootPaths) {
+async function dependencyClosure(
+  rootPaths,
+  {
+    boundaryPaths = Object.freeze([]),
+    excludedPaths = Object.freeze([]),
+    forbiddenPrefixes = FORBIDDEN_RUNTIME_AUTHORITY_PATHS,
+  } = {},
+) {
+  const boundaries = new Set(boundaryPaths.map((path) => join(REPOSITORY_ROOT, path)));
+  const exclusions = new Set(excludedPaths.map((path) => join(REPOSITORY_ROOT, path)));
   const pending = [
     ...rootPaths.map((path) => join(REPOSITORY_ROOT, path)),
     ...(await runtimeAssetPaths()),
@@ -336,11 +369,13 @@ async function dependencyClosure(rootPaths) {
     const path = pending.pop();
     if (path === undefined) break;
     const canonical = resolve(path);
+    if (exclusions.has(canonical)) continue;
     if (visited.has(canonical)) continue;
     if (!canonical.startsWith(`${REPOSITORY_ROOT}/`) || !(await exists(canonical))) {
       throw new Error(`Dependency escaped the emitted repository closure: ${canonical}`);
     }
     visited.add(canonical);
+    if (boundaries.has(canonical)) continue;
     if (![".js", ".mjs", ".cjs"].includes(extname(canonical))) continue;
     const source = await readFile(canonical, "utf8");
     const commonJs = await isCommonJsModule(canonical);
@@ -353,7 +388,7 @@ async function dependencyClosure(rootPaths) {
     .map((path) => relative(REPOSITORY_ROOT, path).replaceAll("\\", "/"))
     .sort();
   const forbidden = paths.find((path) =>
-    FORBIDDEN_RUNTIME_AUTHORITY_PATHS.some((prefix) =>
+    forbiddenPrefixes.some((prefix) =>
       prefix.endsWith("/") ? path.startsWith(prefix) : path === prefix,
     ),
   );
@@ -375,6 +410,14 @@ async function dependencyClosure(rootPaths) {
     }
   }
   return paths;
+}
+
+function runnerRevision(dependencies) {
+  const preimage = Buffer.from(`${JSON.stringify({ dependencies })}\n`, "utf8");
+  return `sha256:${createHash("sha256")
+    .update(Buffer.from("blend65-execution-runner-v1\0", "utf8"))
+    .update(preimage)
+    .digest("hex")}`;
 }
 
 function implementationRevision(capabilityId, contractVersion, entryPath, dependencies) {
@@ -406,7 +449,32 @@ async function generatedRows() {
   }));
 }
 
-function renderGeneratedSource(rows) {
+async function generatedRunner() {
+  const dependencyPaths = await dependencyClosure(RUNNER_ROOT_PATHS, {
+    boundaryPaths: RUNNER_BOUNDARY_PATHS,
+    excludedPaths: RUNNER_EXCLUDED_PATHS,
+    forbiddenPrefixes: Object.freeze([]),
+  });
+  const missingRequiredPath = REQUIRED_RUNNER_DEPENDENCY_PATHS.find(
+    (path) => !dependencyPaths.includes(path),
+  );
+  if (missingRequiredPath !== undefined) {
+    throw new Error(`Execution runner closure omitted required value code: ${missingRequiredPath}`);
+  }
+  const dependencies = await Promise.all(
+    dependencyPaths.map(async (path) => ({
+      path,
+      digest: sha256(await readFile(join(REPOSITORY_ROOT, path))),
+    })),
+  );
+  return {
+    revision: runnerRevision(dependencies),
+    dependencyPaths,
+    dependencyDigests: Object.fromEntries(dependencies.map(({ path, digest }) => [path, digest])),
+  };
+}
+
+function renderGeneratedSource(rows, runner) {
   const first = rows[0];
   const participants = rows.map(
     ({ capabilityId, contractVersion, implementationRevision, entryPath }) => ({
@@ -435,6 +503,14 @@ export const GENERATED_EXECUTION_HANDLER_CATALOG_V1 = Object.freeze({
     dependencyDigests: GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1,
   }))),
 });
+
+/** Content-derived closure for campaign, orchestration, planning and report authority. */
+export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
+  catalogKind: "execution-runner-catalog-v1" as const,
+  revision: ${JSON.stringify(runner.revision)},
+  dependencyPaths: Object.freeze(${JSON.stringify(runner.dependencyPaths, null, 2)}),
+  dependencyDigests: Object.freeze(${JSON.stringify(runner.dependencyDigests, null, 2)}),
+});
 `;
 }
 
@@ -443,10 +519,13 @@ if (mode !== "--write" && mode !== "--check") {
   throw new Error("Usage: gen-execution-bindings.mjs --write|--check");
 }
 const prettierConfig = (await resolveConfig(GENERATED_PATH)) ?? {};
-const expected = await format(renderGeneratedSource(await generatedRows()), {
-  ...prettierConfig,
-  filepath: GENERATED_PATH,
-});
+const expected = await format(
+  renderGeneratedSource(await generatedRows(), await generatedRunner()),
+  {
+    ...prettierConfig,
+    filepath: GENERATED_PATH,
+  },
+);
 if (mode === "--check") {
   const actual = await readFile(GENERATED_PATH, "utf8").catch(() => "");
   if (actual !== expected) {

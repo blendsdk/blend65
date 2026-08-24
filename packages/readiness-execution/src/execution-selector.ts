@@ -13,6 +13,7 @@ import {
   compareExecutionTierV1,
   getExecutionPrerequisiteTiersV1,
 } from "./execution-route-tiers.js";
+import { EXECUTION_AUTHORITY_REPORT_ROUTE_LIMIT_V1 } from "./execution-orchestration-types.js";
 
 /** Pure, already-validated input consumed by the deterministic selector. */
 export interface ExecutionSelectorInputV1 {
@@ -48,6 +49,7 @@ interface RankedSelection {
 
 const SELECTOR_REVISION = "execution-selector-v1";
 const EXPENSIVE_TIERS: ReadonlySet<ExecutionTierV1> = new Set(["acme", "vice"]);
+const POST_DIAGNOSTIC_TIERS: ReadonlySet<ExecutionTierV1> = new Set(["emit", "acme", "vice"]);
 
 /** Performs a locale-independent UTF-16 ordinal comparison. */
 function compareText(left: string, right: string): number {
@@ -146,6 +148,16 @@ function countRequiredStrata(cases: readonly IndexedCase[]): number {
   return strata.size;
 }
 
+/** Counts route-producing strata only until the shared report limit is exceeded. */
+function countRouteStrata(cases: readonly IndexedCase[], remaining: number): number {
+  const strata = new Set<string>();
+  for (const indexedCase of cases) {
+    strata.add(indexedCase.stratum);
+    if (strata.size > remaining) return strata.size;
+  }
+  return strata.size;
+}
+
 /**
  * Proves all expensive minima fit before any candidate digest or result item is materialized.
  *
@@ -158,6 +170,7 @@ function preflightSelectionCapacityV1(
   casesByRule: ReadonlyMap<string, readonly IndexedCase[]>,
 ): ExecutionOperationResultV1<true> {
   let campaignExpensive = 0;
+  let campaignRoutes = 0;
   for (let ruleIndex = 0; ruleIndex < input.rules.length; ruleIndex += 1) {
     const rule = input.rules[ruleIndex];
     if (rule === undefined) continue;
@@ -178,9 +191,30 @@ function preflightSelectionCapacityV1(
       obligationIndex += 1
     ) {
       const obligation = rule.evidenceObligations[obligationIndex];
-      if (obligation === undefined || !EXPENSIVE_TIERS.has(obligation)) continue;
-      const required = obligationIndex === 0 ? cases.length : countRequiredStrata(cases);
+      if (obligation === undefined) continue;
       const path = obligationSourcePath(input, rule, obligation, ruleIndex, obligationIndex);
+      const routeCount =
+        obligationIndex === 0
+          ? cases.length
+          : countRouteStrata(cases, EXECUTION_AUTHORITY_REPORT_ROUTE_LIMIT_V1 - campaignRoutes);
+      campaignRoutes += routeCount;
+      if (campaignRoutes > EXECUTION_AUTHORITY_REPORT_ROUTE_LIMIT_V1) {
+        return failure(
+          path,
+          `Selected routes exceed the inclusive report capacity of ${EXECUTION_AUTHORITY_REPORT_ROUTE_LIMIT_V1}.`,
+        );
+      }
+      if (
+        POST_DIAGNOSTIC_TIERS.has(obligation) &&
+        !cases.some((entry) => entry.projection.validity === "valid")
+      ) {
+        return failure(
+          path,
+          `Execution obligation ${obligation} for ${rule.ruleId} has no valid terminal witness.`,
+        );
+      }
+      if (!EXPENSIVE_TIERS.has(obligation)) continue;
+      const required = obligationIndex === 0 ? cases.length : countRequiredStrata(cases);
       if (required > 16) {
         return failure(
           path,
@@ -207,13 +241,17 @@ function appendPlanItem(
   indexedCase: IndexedCase,
   rankDigest: string,
 ): void {
+  const terminalTier =
+    indexedCase.projection.validity === "invalid" && POST_DIAGNOSTIC_TIERS.has(obligation)
+      ? ("compiler-api" as const)
+      : obligation;
   items.push(
     Object.freeze({
       caseIdentity: indexedCase.projection.caseIdentity,
       ruleId: rule.ruleId,
       obligation,
-      terminalTier: obligation,
-      prerequisiteTiers: getExecutionPrerequisiteTiersV1(obligation),
+      terminalTier,
+      prerequisiteTiers: getExecutionPrerequisiteTiersV1(terminalTier),
       rankDigest,
     }),
   );

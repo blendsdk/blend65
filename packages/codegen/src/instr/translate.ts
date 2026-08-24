@@ -843,7 +843,7 @@ class FunctionTranslator {
       this.emit("LDA", "Immediate", symbolRef(value.symbol, { ...opts, byteSelect: "low" }));
       this.emit("STA", "Absolute", symHome(target, 0));
       this.emit("LDA", "Immediate", symbolRef(value.symbol, { ...opts, byteSelect: "high" }));
-      this.emit("STA", "Absolute", symHome(target, 1));
+      this.emit("STA", "Absolute", nextStoreByte(target));
       this.clearRegs();
       return;
     }
@@ -851,7 +851,7 @@ class FunctionTranslator {
     this.bringValueIntoRegisters(value, width);
     this.emit("STA", "Absolute", symHome(target, 0));
     if (width === 16) {
-      this.emit("STX", "Absolute", symHome(target, 1));
+      this.emit("STX", "Absolute", nextStoreByte(target));
     }
   }
 
@@ -2986,8 +2986,9 @@ function symHome(locOp: ILOperand, byteIndex: number): InstrOperand {
  *
  * Hardware intrinsics name literal addresses as `$HHHH`. Folding the `+1`
  * here keeps the selected-byte sequence identical to the two direct reads an
- * assembly programmer writes. Symbolic locations retain the ordinary
- * `symbol+1` form because their address is not known until assembly.
+ * assembly programmer writes. The result is intentionally unpadded so a wrap
+ * to page zero retains the shorter zero-page instruction. Symbolic locations
+ * keep `symbol+1` because their address is not known until assembly.
  *
  * @param locOp Direct location naming the low byte.
  * @returns Instruction operand for its adjacent high byte.
@@ -2997,7 +2998,16 @@ function nextAbsoluteByte(locOp: ILOperand): InstrOperand {
   const match = /^\$([0-9A-Fa-f]{4})$/.exec(locOp.symbol);
   if (match?.[1] === undefined) return symHome(locOp, 1);
   const next = (Number.parseInt(match[1], 16) + 1) & 0xffff;
-  return symbolRef(`$${next.toString(16).toUpperCase().padStart(4, "0")}`);
+  return symbolRef(`$${next.toString(16).toUpperCase()}`);
+}
+
+/**
+ * Returns the high-byte destination for a word store without perturbing
+ * established symbolic `base+1` output. Only `$FFFF` needs numeric folding:
+ * its adjacent byte wraps to zero and should use the zero-page instruction.
+ */
+function nextStoreByte(locOp: ILOperand): InstrOperand {
+  return isLocation(locOp) && /^\$FFFF$/iu.test(locOp.symbol) ? symbolRef("$0") : symHome(locOp, 1);
 }
 
 /** A `symbolRef` for a resolved {@link MemHome} at the given byte offset. */

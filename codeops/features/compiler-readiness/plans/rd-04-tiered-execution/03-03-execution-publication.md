@@ -8,7 +8,7 @@
 
 Publish the six route implementations as one independently reviewed child release bound to the
 exact selected fresh parent digest
-`sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597`.
+`sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5`.
 Historical compiler-readiness publications remain byte-identical.
 
 ## Artifact layout

@@ -57,6 +57,7 @@ import { resolveImports } from "./import-resolution.js";
 import { computeInitOrder } from "./init-order.js";
 import { typeCheckPrograms } from "./type-check/statement-typing.js";
 import type { FnSignature } from "./type-check/context.js";
+import { propagateSingleCallIntrinsicAddresses } from "./single-call-intrinsic-addresses.js";
 
 /**
  * Everything the semantic analyzer needs.
@@ -210,6 +211,21 @@ export function analyze(input: AnalyzeInput): SemanticModel {
       embeddedAssets,
     },
   );
+
+  // A non-entry function reached through one visible, same-module call may
+  // specialize a direct-memory address parameter from that call's constant
+  // actual. The pass runs only after body typing has closed the call graph and
+  // reference maps; every ambiguous/escaping shape remains non-constant.
+  propagateSingleCallIntrinsicAddresses({
+    mainFunction: functionTables.mainFunction,
+    callEdges,
+    symbolMap,
+    typeMap,
+    constValues,
+    addressTakenFunctions,
+    scopeByNode: functionTables.scopeByNode,
+    constantIntrinsicAddresses,
+  });
 
   // The module-variable initialization order (spec Ch 10 §5.4) — needs the
   // symbol map typing just filled; one E10194 per dependency cycle.

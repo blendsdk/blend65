@@ -1,7 +1,7 @@
 # RD-04 Tiered Compiler, ACME and VICE Execution Implementation Plan
 
 > **Feature**: Deterministic compiler-readiness execution through frontend, compiler, CLI, emit, ACME and VICE tiers
-> **Status**: Planning Complete
+> **Status**: Complete
 > **Created**: 2026-08-21
 > **Implements**: compiler-readiness/RD-04
 > **CodeOps Artifact Schema**: 1
@@ -35,6 +35,7 @@ AR-P2, AR-P5)
 | 03-06 | [VICE Control and Lease](03-06-vice-control-lease.md) | Monitor substrate, positive identity and crash recovery |
 | 03-07 | [Orchestration and Acceptance](03-07-orchestration-acceptance.md) | End-to-end execution, comparison, blockers and publication |
 | 07 | [Testing Strategy](07-testing-strategy.md) | Immutable ST cases and verification tiers |
+| 08 | [Closeout](08-closeout.md) | Final authority, deferral-expiry and ledger audit |
 | 99 | [Execution Plan](99-execution-plan.md) | Seven phases and task checklist |
 
 ## Quick Reference

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
 import { lstatSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
@@ -70,6 +71,27 @@ export interface CompositeReadinessSnapshot {
   readonly [COMPOSITE_READINESS_SNAPSHOT_BRAND]: true;
 }
 
+declare const EXECUTION_REVIEW_CANDIDATE_PROJECTION_BRAND: unique symbol;
+
+/** Opaque parent/candidate projection that authorizes execution for review but not publication. */
+export interface ExecutionReviewCandidateProjectionV1 {
+  readonly [EXECUTION_REVIEW_CANDIDATE_PROJECTION_BRAND]: true;
+}
+
+/** Defensive facts retained for one genuine prepublication review projection. */
+export interface ExecutionReviewCandidateProjectionDescriptorV1 {
+  /** Canonical repository containing the selected parent. */
+  readonly repositoryRoot: string;
+  /** Exact selected parent digest used to validate the candidate bindings. */
+  readonly parentDigest: string;
+  /** Digest of the canonical six-row binding document. */
+  readonly bindingDigest: string;
+  /** Content-derived identity of campaign, orchestration, planning and report code. */
+  readonly runnerRevision: string;
+  /** Closed planner projection whose execution digest identifies the candidate. */
+  readonly projection: CompositeReadinessProjectionV1;
+}
+
 /** Package-private passive release facts consumed by the live catalog owner. */
 export interface PublishedExecutionReleaseDescriptorV1 {
   readonly repositoryRoot: string;
@@ -111,6 +133,10 @@ interface CompositeReadinessSnapshotState {
 
 const RELEASES = new WeakMap<object, PublishedExecutionReleaseState>();
 const COMPOSITES = new WeakMap<object, CompositeReadinessSnapshotState>();
+const REVIEW_CANDIDATE_PROJECTIONS = new WeakMap<
+  object,
+  ExecutionReviewCandidateProjectionDescriptorV1
+>();
 const EXECUTION_SELECTED_POINTER_SUFFIX = join(
   EXECUTION_PUBLICATIONS_ROOT,
   CURRENT_EXECUTION_PUBLICATION_FILENAME,
@@ -840,6 +866,34 @@ function projectModeledRules(
   return executionPublicationSuccess(Object.freeze(projections));
 }
 
+/** Builds the common closed planner projection after parent and binding authentication. */
+function createExecutionProjection(
+  parent: PublishedSnapshotAuthority,
+  bindings: readonly ExecutionPublicationBindingV1[],
+  executionDigest: string,
+): ExecutionOperationResultV1<CompositeReadinessProjectionV1> {
+  const joined = exactParentBindings(parent, bindings);
+  if (!joined.ok) return joined;
+  const rules = projectModeledRules(parent);
+  if (!rules.ok) return rules;
+  const capabilities: ExecutionCapabilityProjectionV1[] = [];
+  for (const declaration of parent.inventory.evidenceCapabilityDeclarations) {
+    const binding = bindings.find((row) => row.capabilityId === declaration.id);
+    if (binding === undefined || declaration.binding !== "unbound") {
+      return parentFailure(`/capabilities/${declaration.id}`);
+    }
+    capabilities.push(Object.freeze({ capabilityId: binding.capabilityId, state: "bound" }));
+  }
+  return executionPublicationSuccess(
+    Object.freeze({
+      parentDigest: parent.publicationDigest,
+      executionDigest,
+      capabilities: Object.freeze(capabilities),
+      rules: rules.value,
+    }),
+  );
+}
+
 /** Resolves an exact parent-child pair into opaque passive composite authority. */
 export function resolveCompositeReadinessSnapshot(
   parent: PublishedSnapshot,
@@ -861,27 +915,73 @@ export function resolveCompositeReadinessSnapshot(
   ) {
     return parentFailure("/parentDigest");
   }
-  const joined = exactParentBindings(parentState, childState.bindings);
-  if (!joined.ok) return joined;
-  const rules = projectModeledRules(parentState);
-  if (!rules.ok) return rules;
-  const capabilities: ExecutionCapabilityProjectionV1[] = [];
-  for (const declaration of parentState.inventory.evidenceCapabilityDeclarations) {
-    const binding = childState.bindings.find((row) => row.capabilityId === declaration.id);
-    if (binding === undefined || declaration.binding !== "unbound") {
-      return parentFailure(`/capabilities/${declaration.id}`);
-    }
-    capabilities.push(Object.freeze({ capabilityId: binding.capabilityId, state: "bound" }));
-  }
-  const projection: CompositeReadinessProjectionV1 = Object.freeze({
-    parentDigest: parentState.publicationDigest,
-    executionDigest: childState.digest,
-    capabilities: Object.freeze(capabilities),
-    rules: rules.value,
-  });
+  const projected = createExecutionProjection(parentState, childState.bindings, childState.digest);
+  if (!projected.ok) return projected;
   const composite = Object.freeze({}) as CompositeReadinessSnapshot;
-  COMPOSITES.set(composite, Object.freeze({ projection }));
+  COMPOSITES.set(composite, Object.freeze({ projection: projected.value }));
   return executionPublicationSuccess(composite);
+}
+
+/**
+ * Authenticates exact candidate binding bytes against a genuine parent for review execution only.
+ *
+ * The returned capability is deliberately distinct from a published release and cannot be passed
+ * to composite resolution or publication selection.
+ */
+export function createExecutionReviewCandidateProjectionV1(
+  parent: PublishedSnapshot,
+  bindingBytes: Uint8Array,
+  runnerRevision: string,
+): ExecutionOperationResultV1<ExecutionReviewCandidateProjectionV1> {
+  const parentState = getPublishedSnapshotAuthority(parent);
+  if (
+    parentState === undefined ||
+    !(bindingBytes instanceof Uint8Array) ||
+    !isExecutionDigest(runnerRevision)
+  ) {
+    return executionPublicationFailure(
+      "execution.identity",
+      "",
+      "A genuine parent and canonical execution review candidate are required.",
+    );
+  }
+  const retainedBytes = new Uint8Array(bindingBytes);
+  const parsed = parseExecutionBindingsV1(retainedBytes);
+  if (!parsed.ok) return parsed;
+  const bindingDigest = digestExecutionPublicationBytes(retainedBytes);
+  const candidateDigest = `sha256:${createHash("sha256")
+    .update("blend65-execution-review-candidate-v1\0")
+    .update(parentState.publicationDigest)
+    .update("\0")
+    .update(bindingDigest)
+    .update("\0")
+    .update(runnerRevision)
+    .digest("hex")}`;
+  const projection = createExecutionProjection(parentState, parsed.value.bindings, candidateDigest);
+  if (!projection.ok) return projection;
+  const candidate = Object.freeze({}) as ExecutionReviewCandidateProjectionV1;
+  REVIEW_CANDIDATE_PROJECTIONS.set(
+    candidate,
+    Object.freeze({
+      repositoryRoot: parentState.repositoryRoot,
+      parentDigest: parentState.publicationDigest,
+      bindingDigest,
+      runnerRevision,
+      projection: projection.value,
+    }),
+  );
+  return executionPublicationSuccess(candidate);
+}
+
+/** Returns defensive candidate facts only for a genuine review-only projection. */
+export function getExecutionReviewCandidateProjectionDescriptorV1(
+  candidate: ExecutionReviewCandidateProjectionV1,
+): ExecutionReviewCandidateProjectionDescriptorV1 | undefined {
+  const state =
+    typeof candidate === "object" && candidate !== null
+      ? REVIEW_CANDIDATE_PROJECTIONS.get(candidate)
+      : undefined;
+  return state;
 }
 
 /** Returns the immutable closed planner projection only for a genuine composite capability. */

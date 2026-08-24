@@ -120,6 +120,8 @@ export type ExecutionWorkerResponseV1 =
       readonly tier: "emit";
       readonly contract: "assembly-emitter-v1";
       readonly caseIdentity: string;
+      /** Whether the full emitter result contains any error-severity diagnostic. */
+      readonly hasErrors: boolean;
       readonly assemblyBytes: Uint8Array;
       /** Present on the real emitter; legacy injected workers may omit this non-authorizing fact. */
       readonly layoutBasis?: ExecutionWorkerLayoutBasisV1;
@@ -401,7 +403,7 @@ export function parseExecutionWorkerResponseV1(
         ? [...RESPONSE_COMMON_KEYS, "hasErrors"]
         : request.tier === "cli"
           ? [...RESPONSE_COMMON_KEYS, "exitCode", "stdout", "stderr"]
-          : [...RESPONSE_COMMON_KEYS, "assemblyBytes"];
+          : [...RESPONSE_COMMON_KEYS, "hasErrors", "assemblyBytes"];
   let record = readRecord(input, tierKeys);
   if (record === undefined && request.tier === "emit") {
     record = readRecord(input, [...tierKeys, "layoutBasis"]);
@@ -487,6 +489,7 @@ export function parseExecutionWorkerResponseV1(
       const layoutBasis =
         record.layoutBasis === undefined ? undefined : parseLayoutBasis(record.layoutBasis);
       if (
+        typeof record.hasErrors !== "boolean" ||
         assemblyBytes === undefined ||
         (record.layoutBasis !== undefined && layoutBasis === undefined)
       ) {
@@ -498,6 +501,7 @@ export function parseExecutionWorkerResponseV1(
           tier: "emit",
           contract: "assembly-emitter-v1",
           caseIdentity: request.caseIdentity,
+          hasErrors: record.hasErrors,
           assemblyBytes,
           ...(layoutBasis === undefined ? {} : { layoutBasis }),
           diagnostics,

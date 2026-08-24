@@ -297,6 +297,19 @@ function authenticOracle(context: PublishedOracleContext): boolean {
   return !probe.ok && probe.diagnostics[0]?.code !== "oracle.authority.missing";
 }
 
+/** Validates the only supported obligation-to-terminal projection for invalid source. */
+function diagnosticObligationMatchesTerminal(
+  obligation: string,
+  terminalTier: ExecutionDiagnosticTierV1,
+): boolean {
+  return terminalTier === "compiler-api"
+    ? obligation === "compiler-api" ||
+        obligation === "emit" ||
+        obligation === "acme" ||
+        obligation === "vice"
+    : obligation === terminalTier;
+}
+
 /**
  * Binds a route item to genuine generated-case and published-oracle authority.
  *
@@ -321,7 +334,7 @@ export function createExecutionRouteRequestV1(
     if (
       input.route.caseIdentity !== projection.value.sourceCaseDigest ||
       input.route.ruleId !== projection.value.expectedDiagnostic.ruleId ||
-      input.route.obligation !== tier ||
+      !diagnosticObligationMatchesTerminal(input.route.obligation, tier) ||
       !isExecutionDigestV1(input.route.rankDigest) ||
       !sameTiers(input.route.prerequisiteTiers, getExecutionPrerequisiteTiersV1(tier))
     ) {
@@ -585,6 +598,7 @@ function validWorkerSuccess(response: ExecutionWorkerResponseV1): boolean {
       );
     case "emit":
       return (
+        !response.hasErrors &&
         response.assemblyBytes.byteLength > 0 &&
         !response.emission.il &&
         !response.emission.assembly &&

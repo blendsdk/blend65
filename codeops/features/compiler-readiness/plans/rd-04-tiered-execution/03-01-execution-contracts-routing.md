@@ -43,6 +43,13 @@ retain a separate bounded `adapterSubcode` but must normalize it before returnin
 | unsafe lease recovery | `emulator-lease-recovery-blocked` |
 | actual/oracle mismatch | `semantic-mismatch` |
 
+The emit worker's closed response includes the full compiler result's `hasErrors` boolean in
+addition to accepted-entry diagnostic provenance. Direct emit success and the shared ACME/VICE
+artifact prerequisite both require it to be false; recovery assembly can never authorize a later
+tier. Invalid-diagnostic workers compile the exact authenticated invalid module together with one
+fixed runner-owned entrypoint module, avoiding an unrelated missing-main cascade without changing
+the invalid source bytes or loosening exact-one diagnostic comparison. (AR-P85–AR-P86)
+
 The first operational terminal stage wins. A cleanup failure is always attached as a structured
 `cleanupBlocker`; it becomes the primary result only when no earlier operational failure exists.
 A provisional pass becomes `emulator-lease-recovery-blocked` when safe VICE termination cannot
@@ -88,6 +95,9 @@ Version 1 requires `cleanupGraceMs === 3000`; it reserves 2,000 ms for graceful 
 4. Rank each candidate by a domain-separated SHA-256 digest over parent digest, campaign identity,
    case identity, selector revision and obligation.
 5. Visit non-empty strata in lexical round-robin order and select at least one candidate from each.
+   Invalid cases retain the selected obligation for coverage identity, but `emit`, `acme` and
+   `vice` obligations terminate truthfully at `compiler-api`, the final pre-emission diagnostic
+   boundary. At least one valid case must still reach every declared expensive obligation.
 6. Guarantee one valid VICE selection for every modeled mandatory-C64 runtime rule declaring VICE;
    every emit/ACME/VICE obligation must have a valid candidate and fails capacity rather than using
    an invalid case as a false witness.

@@ -52,7 +52,7 @@ execution publication may be selected; missing tools produce blockers rather tha
 
 | # | Input / scenario | Expected output / behavior | Source |
 |---|---|---|---|
-| ST-23 | Genuine valid frontend/compiler/CLI/emit requests and genuine invalid diagnostic frontend/compiler/CLI requests through one injected `ExecutionWorkerExecutorV1`, including equivalent caller/selected participants with distinct implementation revisions, distinct genuine seed/configuration campaigns and a runtime-domain rule | Each tier emits exactly one closed tier/case-kind-specific structured-clone request without oracle truth, observes its distinct real worker-side contract, and never invokes a real facade in the parent; invalid requests cannot target emit/ACME/VICE; the versioned join preserves dual provenance, validates every publication-owned ambient/model/source/rule/neighbor field, exactly echoes caller-authenticated seed/configuration through both identity chains and privately derives the selected route's oracle handler | RD-04 MH-7; AR-P3/P9/P20/P23/P28 |
+| ST-23 | Genuine valid frontend/compiler/CLI/emit requests and genuine invalid diagnostic frontend/compiler/CLI requests through one injected `ExecutionWorkerExecutorV1`, including equivalent caller/selected participants with distinct implementation revisions, distinct genuine seed/configuration campaigns and a runtime-domain rule | Each tier emits exactly one closed tier/case-kind-specific structured-clone request without oracle truth, observes its distinct real worker-side contract, and never invokes a real facade in the parent; invalid requests cannot target emit/ACME/VICE, and invalid emit/ACME/VICE obligations retain that obligation while terminating at compiler-api; the versioned join preserves dual provenance, validates every publication-owned ambient/model/source/rule/neighbor field, exactly echoes caller-authenticated seed/configuration through both identity chains and privately derives the selected route's oracle handler | RD-04 MH-7; AR-P3/P9/P20/P23/P28/P78 |
 | ST-24 | Existing compiler, renderer, CLI and ACME callers | Ordinary result/output/default behavior stays compatible | Plan AC-2; 03-04 |
 | ST-25 | Missing ACME versus discovered failing ACME | `tier-unavailable` versus `assembler-failure` | RD-04 MH-13/16; 03-04 |
 | ST-26 | Each frontend/compiler/CLI/emit worker hangs, crashes or sends a malformed tier/case-kind response | Deadline/ICE result; exactly the owned worker and case root are cleaned; no synchronous parent fallback occurs | RD-04 AC-7/9; AR-P10/P20 |
@@ -126,15 +126,16 @@ optional-evidence form return identical exit code, stdout, stderr and artifacts;
 | ST-49 | Fault at every staging/review/pointer operation | Prior child selection remains or committed state reconciles | RD-04 AC-11; AR-P5 |
 | ST-50 | Historical four-row/nine-row parents and child release | Every named release resolves byte-identically | RD-04 AC-11; 03-03 |
 | ST-51 | Campaign with unavailable ACME/VICE | Exact capability blockers remain; outcome cannot pass | RD-04 AC-12; AR-P9 |
-| ST-52 | Modeled and residual population after full execution | Every obligation has selected result; residual blockers preserved | RD-04 AC-3; AR-P1 |
-| ST-53 | Actual value/effect differs from host oracle | Semantic mismatch; expectation absent from source/evidence producer | RD-04 MH-9/11; AR-P7 |
+| ST-52 | Modeled and residual population after full execution | Every case in the genuine 40-case campaign prepared from the exact selected parent reaches its cheapest tier, every additional obligation covers each tuple stratum, and authority residual blockers remain preserved; loose inventory or synthetic participant revisions cannot enter campaign identity | RD-04 AC-3; AR-P1/P70/P79 |
+| ST-53 | Actual value/effect differs from host oracle | Semantic mismatch; expectation absent from source/evidence producer | RD-04 MH-9/11; AR-P7/P63 |
 | ST-54 | Attempt selection without accepted local VICE proof | Publication gate rejects even though CI-safe tests pass | RD-04 AC-12; AR-P13 |
 | ST-55 | Execution-publication/root/pointer literals in every source file plus absolute/traversing/basename-alias owner paths | Only exact normalized package-relative owners in readiness and readiness-execution pass; historical owner set is unchanged | RD-04 AC-11; AR-P61; 03-03 |
 | ST-56 | Generated six-handler emitted-runtime catalog with static/literal-dynamic/worker/anchor/launcher edges, bounded secure scan, third-party executable/manifests, one-byte target mutation and historical revision | Exact fresh row reconstructs from emitted bytes without readiness root index or TypeScript; missing/nonliteral/runtime-edge, participant/closure mutation, path substitution, stale/current fallback and arbitrary registration reject with one unique scan/hash per dependency | RD-04 AC-11; AR-P61–P62; 03-03 |
 | ST-57 | Guarded child inspect/select old→new→old, ancestor/pointer replacement, selected-parent change, cleanup residue and pointer/reconciliation faults | Every selection fully revalidates with no final guard/rename yield and proven directory durability; inspection diagnoses malformed/special/residual entries; original bytes/blockers reproduce; raw pointer editing is unnecessary | RD-04 AC-11; AR-P61; 03-03 |
 | ST-63 | Parent inventory/review revision mismatch, oversized byte input, post-rename sync failure and secure descriptor replacement | Preparation rejects before copy, resolution never mints across an ancestor race, and selection returns indeterminate unless final catalog/parent and directory durability all prove exact | RD-04 AC-11; AR-P61; 03-03 |
-| ST-58 | Local command valid run, invalid/duplicate/traversing args and absent tools | Exact grammar, exits 0/1/2/3/4, bounded deterministic stdout/stderr and no machine paths | RD-04 AC-12; 03-07 |
-| ST-59 | Report rerun, differing result, existing different bytes and atomic-write faults | Canonical bytes/digest reproduce; no overwrite or partial report; semantic review names exact digest | RD-04 AC-12; 03-07 |
+| ST-58 | Local command valid run, invalid/duplicate/traversing args and absent tools | Exact grammar, exits 0/1/2/3/4, bounded deterministic stdout/stderr and no machine paths | RD-04 AC-12; AR-P63; 03-07 |
+| ST-59 | Report rerun, differing result, existing different bytes and atomic-write faults | Canonical bytes/digest reproduce; no overwrite or partial report; semantic review names exact digest | RD-04 AC-12; AR-P63; 03-07 |
+| ST-64 | 4,096/4,097 selected routes, generated runner mutation, structural report copy/subset and repeated obligations for one case identity | 4,096 is admitted; 4,097 fails capacity before materialization or handler work; runner mutation changes/rejects candidate identity; only orchestrator-minted complete reports serialize/write; each unique case prepares authority once while route-local process authority remains single-use | AR-P80–P81; 03-07 |
 | ST-60 | Trusted lease directory/file modes, owner, type-specific links, device/inode and replacement races | Directory raw links must be positive but exact topology count is non-authoritative; lease-file links must equal one; every identity/replacement mismatch fails closed | RD-04 AC-9/10; 03-05/03-06; AR-P36 |
 | ST-61 | Read-only recovery inspection followed by changed/stale/clearable generations | Inspection never mutates; guarded exact-generation clear only after positive child absence | RD-04 AC-9; 03-06 |
 | ST-62 | Execution-side seam consumes low-level VICE control without reverse import | Package boundary remains acyclic and one integration spec proves lease/policy ownership | Plan AC-1/2; 03-04/03-06 |
@@ -156,6 +157,14 @@ optional-evidence form return identical exit code, stdout, stderr and artifacts;
 No existing `*.spec.test.ts` is modified. New implementation tests are split by validation,
 selector, identity, evidence, worker/process supervision, filesystem, lease, monitor runtime,
 publication and orchestration concerns.
+
+Runtime-acceptance repairs add implementation-only coverage for: fail-closed single-call address
+specialization (including multi-call, recursion, address-taken and imported exclusions); exact
+direct `LDA`/`STA` and little-endian word instruction sequences; the narrow F020 E10172 boundary
+while preserving E10152/E10041; a real invalid-source worker with one trusted companion entrypoint;
+and emitter `hasErrors` rejection both at direct emit and before ACME invocation. The immutable
+codegen runtime-address rejection specifications and all Phase 7 specification files remain
+unchanged. (AR-P84–AR-P87)
 
 ## Verification
 

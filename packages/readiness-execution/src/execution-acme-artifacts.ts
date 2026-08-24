@@ -93,6 +93,7 @@ function validEmit(
 ): response is Extract<ExecutionWorkerResponseV1, { readonly tier: "emit" }> {
   return (
     response.tier === "emit" &&
+    !response.hasErrors &&
     response.assemblyBytes.byteLength > 0 &&
     !response.emission.il &&
     !response.emission.assembly &&

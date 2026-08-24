@@ -410,6 +410,7 @@ describe("passive execution contracts", () => {
     const plan = (items: ExecutionRoutePlanV1["items"]): ExecutionRoutePlanV1 => ({
       revision: "execution-route-plan-v1",
       parentDigest: digest("3"),
+      executionDigest: digest("7"),
       campaignDigest: digest("4"),
       oracleDigest: digest("5"),
       policy: POLICY,

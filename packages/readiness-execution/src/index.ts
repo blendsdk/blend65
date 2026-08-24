@@ -4,10 +4,35 @@ export type { PlanExecutionRoutesInputV1 } from "./execution-route-planner.js";
 export {
   assertGeneratedExecutionBindingsFreshV1,
   getPublishedExecutionHandlersV1,
+  resolveExecutionReviewContextV1,
   resolveLiveExecutionContextV1,
   selectExecutionPublicationByDigestV1,
 } from "./execution-publication-catalog.js";
-export type { LiveExecutionContextV1 } from "./execution-publication-catalog.js";
+export type {
+  ExecutionAuthorityContextV1,
+  ExecutionReviewContextV1,
+  LiveExecutionContextV1,
+} from "./execution-publication-catalog.js";
+export { executeReadinessCampaign } from "./execution-orchestration.js";
+export type {
+  ExecuteReadinessCampaignInputV1,
+  ExecutionAuthorityReportV1,
+  ExecutionCampaignSummaryV1,
+} from "./execution-orchestration.js";
+export {
+  serializeExecutionAuthorityReportV1,
+  writeExecutionAuthorityReportV1,
+} from "./execution-authority-report.js";
+export { runReadinessExecutionCliV1 } from "./execution-readiness-cli.js";
+export type {
+  ReadinessExecutionCliExitV1,
+  ReadinessExecutionCliIoV1,
+} from "./execution-readiness-cli.js";
+export type {
+  ExecutionCliIoV1,
+  ExecutionEnvironmentCapabilitiesV1,
+  ExecutionToolVersionV1,
+} from "./execution-orchestration-types.js";
 export {
   deriveExecutionFixtureDigestV1,
   renderExecutionEnvelopeV1,

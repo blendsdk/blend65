@@ -174,9 +174,12 @@ function sameIdentity(
 }
 
 interface PreparedSource {
-  readonly sourcePath: string;
+  readonly sourcePaths: readonly string[];
   readonly host: CompilerHost;
 }
+
+const DIAGNOSTIC_ENTRY_RELATIVE_PATH = "execution-diagnostic-entry.blend";
+const DIAGNOSTIC_ENTRY_SOURCE = "module ExecutionDiagnosticEntry;\nfunction main(): void {}\n";
 
 /** Verifies the parent-pinned root and exposes only retained source bytes to the compiler. */
 async function prepareSource(request: ExecutionWorkerRequestV1): Promise<PreparedSource> {
@@ -231,12 +234,23 @@ async function prepareSource(request: ExecutionWorkerRequestV1): Promise<Prepare
     await rootHandle.close();
   }
   const sourceText = DECODER.decode(request.source.bytes);
+  const diagnosticEntryPath = resolve(root, DIAGNOSTIC_ENTRY_RELATIVE_PATH);
+  const sourcePaths =
+    request.caseKind === "invalid-diagnostic"
+      ? Object.freeze([sourcePath, diagnosticEntryPath])
+      : Object.freeze([sourcePath]);
   const host: CompilerHost = Object.freeze({
-    listSourceFiles: () => [sourcePath],
-    readFile: (path: string) => (resolve(path) === sourcePath ? sourceText : undefined),
+    listSourceFiles: () => [...sourcePaths],
+    readFile: (path: string) => {
+      const resolvedPath = resolve(path);
+      if (resolvedPath === sourcePath) return sourceText;
+      return resolvedPath === diagnosticEntryPath && request.caseKind === "invalid-diagnostic"
+        ? DIAGNOSTIC_ENTRY_SOURCE
+        : undefined;
+    },
     resolvePath: (path: string) => resolve(root, path),
   });
-  return Object.freeze({ sourcePath, host });
+  return Object.freeze({ sourcePaths, host });
 }
 
 class BoundedTextOutput {
@@ -333,7 +347,7 @@ function enforceEvidenceBound(response: ExecutionWorkerResponseV1, limit: number
         : response.tier === "cli"
           ? { exitCode: response.exitCode }
           : response.tier === "emit"
-            ? { layoutBasis: response.layoutBasis ?? null }
+            ? { hasErrors: response.hasErrors, layoutBasis: response.layoutBasis ?? null }
             : {}),
   };
   const metadataBytes = Buffer.byteLength(JSON.stringify(projection), "utf8");
@@ -355,7 +369,7 @@ async function execute(job: WorkerJobV1): Promise<ExecutionWorkerResponseV1> {
   const options = {
     platform: "c64",
     cwd: request.caseRoot,
-    sourceFiles: [prepared.sourcePath],
+    sourceFiles: [...prepared.sourcePaths],
   };
   let response: ExecutionWorkerResponseV1;
   if (request.tier === "frontend") {
@@ -384,7 +398,7 @@ async function execute(job: WorkerJobV1): Promise<ExecutionWorkerResponseV1> {
   } else if (request.tier === "emit") {
     const observed = emitAsmWithEvidence(options, prepared.host);
     const assemblyBytes = encodeAssembly(observed.result.text ?? "", job.outputLimitBytes);
-    if (observed.result.allocationPlan === undefined) {
+    if (!observed.result.hasErrors && observed.result.allocationPlan === undefined) {
       throw new TypeError("evidence-exhaustion: emitter allocation facts are unavailable");
     }
     response = {
@@ -392,8 +406,11 @@ async function execute(job: WorkerJobV1): Promise<ExecutionWorkerResponseV1> {
       tier: "emit",
       contract: "assembly-emitter-v1",
       caseIdentity: request.caseIdentity,
+      hasErrors: observed.result.hasErrors,
       assemblyBytes,
-      layoutBasis: layoutBasis(observed.result.allocationPlan),
+      ...(observed.result.allocationPlan === undefined
+        ? {}
+        : { layoutBasis: layoutBasis(observed.result.allocationPlan) }),
       diagnostics: observed.evidence,
       emission: { il: false, assembly: false, binary: false },
     };
@@ -405,16 +422,21 @@ async function execute(job: WorkerJobV1): Promise<ExecutionWorkerResponseV1> {
     };
     const facade: CompilerEvidenceFacadeV1 = Object.freeze({
       compile: (selected: Parameters<CompilerEvidenceFacadeV1["compile"]>[0]) =>
-        compileWithEvidence(selected, prepared.host),
+        compileWithEvidence({ ...selected, sourceFiles: [...prepared.sourcePaths] }, prepared.host),
       emitIl: (selected: Parameters<CompilerEvidenceFacadeV1["emitIl"]>[0]) =>
-        emitIlWithEvidence(selected, prepared.host),
+        emitIlWithEvidence({ ...selected, sourceFiles: [...prepared.sourcePaths] }, prepared.host),
       emitAsm: (selected: Parameters<CompilerEvidenceFacadeV1["emitAsm"]>[0]) =>
-        emitAsmWithEvidence(selected, prepared.host),
+        emitAsmWithEvidence({ ...selected, sourceFiles: [...prepared.sourcePaths] }, prepared.host),
       build: (
         selected: Parameters<CompilerEvidenceFacadeV1["build"]>[0],
         _host: Parameters<CompilerEvidenceFacadeV1["build"]>[1],
         dependencies: Parameters<CompilerEvidenceFacadeV1["build"]>[2],
-      ) => buildWithEvidence(selected, prepared.host, dependencies),
+      ) =>
+        buildWithEvidence(
+          { ...selected, sourceFiles: [...prepared.sourcePaths] },
+          prepared.host,
+          dependencies,
+        ),
     });
     const exitCode = await runCli(
       [...request.argv],

@@ -19,6 +19,10 @@
     "./execution-runtime": {
       "types": "./dist/execution-runtime.d.ts",
       "import": "./dist/execution-runtime.js"
+    },
+    "./execution-campaign-identity": {
+      "types": "./dist/execution-campaign-identity.d.ts",
+      "import": "./dist/execution-campaign-identity.js"
     }
   },
   "scripts": {

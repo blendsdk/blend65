@@ -12,7 +12,7 @@ import type { PublishedExecutionRelease } from "@blend65/readiness";
 import { getExecutionCatalogFixtureDescriptorV1 } from "../execution-publication-catalog-conformance-v1.js";
 
 export const CURRENT_EXECUTION_PARENT_DIGEST =
-  "sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597";
+  "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
 export const EXECUTION_SPEC_REVISION =
   "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd";
 

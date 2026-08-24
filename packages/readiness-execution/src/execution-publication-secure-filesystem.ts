@@ -3,6 +3,7 @@ import {
   constants,
   fstatSync,
   fsyncSync,
+  linkSync,
   lstatSync,
   openSync,
   readSync,
@@ -35,6 +36,9 @@ export interface SecureSelectionFileIdentityV1 {
   readonly inode: bigint;
   readonly size: number;
 }
+
+/** Outcome of one exclusive no-clobber regular-file commit. */
+export type SecureNoClobberCommitStateV1 = "committed" | "existing";
 
 function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });
@@ -254,6 +258,85 @@ export function writeSecureSelectionFileV1(
         // A synced temporary remains non-authoritative until it is renamed.
       }
     }
+  }
+}
+
+/**
+ * Exclusively links one verified temporary into its final name without replacing existing bytes.
+ *
+ * The temporary and directory identities are revalidated immediately before the hard-link commit.
+ * A successful link is followed by removal of the temporary name and exact target revalidation.
+ *
+ * @param repositoryRoot Canonical repository root containing both names.
+ * @param directory Pinned identity of their common parent directory.
+ * @param temporary Verified, synchronized temporary file.
+ * @param target Canonical final path in the same directory.
+ * @param bytes Exact bytes expected in both names.
+ * @returns Whether this operation committed or observed an existing target.
+ */
+export function commitSecureSelectionFileNoClobberV1(
+  repositoryRoot: string,
+  directory: SecureSelectionDirectoryIdentityV1,
+  temporary: SecureSelectionFileIdentityV1,
+  target: string,
+  bytes: Uint8Array,
+): ExecutionOperationResultV1<SecureNoClobberCommitStateV1> {
+  if (
+    dirname(temporary.path) !== directory.path ||
+    dirname(target) !== directory.path ||
+    temporary.size !== bytes.byteLength ||
+    !verifySecureSelectionDirectoryV1(directory)
+  ) {
+    return failure("execution.identity", target, "Selection commit directory changed.");
+  }
+  const retainedTemporary = readSecureSelectionFileV1(
+    repositoryRoot,
+    temporary.path,
+    bytes.byteLength,
+    temporary,
+  );
+  if (!retainedTemporary.ok) return retainedTemporary;
+  if (
+    retainedTemporary.value.byteLength !== bytes.byteLength ||
+    retainedTemporary.value.some((value, index) => value !== bytes[index])
+  ) {
+    return failure("execution.identity", target, "Selection temporary bytes changed.");
+  }
+  try {
+    linkSync(temporary.path, target);
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "EEXIST") {
+      return success("existing");
+    }
+    return failure("execution.io", target, "Selection no-clobber commit failed safely.");
+  }
+  try {
+    unlinkSync(temporary.path);
+    const retainedTarget = readSecureSelectionFileV1(
+      repositoryRoot,
+      target,
+      bytes.byteLength,
+      temporary,
+    );
+    if (
+      !retainedTarget.ok ||
+      retainedTarget.value.byteLength !== bytes.byteLength ||
+      retainedTarget.value.some((value, index) => value !== bytes[index]) ||
+      !verifySecureSelectionDirectoryV1(directory)
+    ) {
+      return failure(
+        "execution.reconciliation",
+        target,
+        "Committed selection file could not be revalidated.",
+      );
+    }
+    return success("committed");
+  } catch {
+    return failure(
+      "execution.reconciliation",
+      target,
+      "Committed selection file requires reconciliation.",
+    );
   }
 }
 

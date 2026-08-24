@@ -607,6 +607,7 @@ export function planExecutionRoutesV1(
   const preimage: ExecutionRoutePlanPreimageV1 = Object.freeze({
     revision: "execution-route-plan-v1",
     parentDigest: parent.value.projection.parentDigest,
+    executionDigest: parent.value.projection.executionDigest,
     campaignDigest: campaign.value.campaignDigest,
     oracleDigest: record.oracleDigest,
     policy: policy.value,

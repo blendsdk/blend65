@@ -19,6 +19,7 @@
     "readiness:check": "yarn workspace @blend65/readiness build && node packages/readiness/dist/cli.js check",
     "readiness:generate": "yarn workspace @blend65/readiness build && node packages/readiness/dist/cli.js generate",
     "readiness:publish": "yarn workspace @blend65/readiness build && node packages/readiness/dist/cli.js publish",
+    "readiness:execute": "yarn workspace @blend65/readiness-execution build && node packages/readiness-execution/dist/execution-cli-entry.js",
     "gen:matrix": "node scripts/gen-capability-matrix.mjs",
     "twin:diff": "node scripts/twin-diff.mjs",
     "annotate:cycles": "node scripts/annotate-cycles.mjs",

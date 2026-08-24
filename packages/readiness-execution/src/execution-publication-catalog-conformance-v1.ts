@@ -13,7 +13,10 @@ import { isAbsolute, posix, relative, resolve, sep } from "node:path";
 
 import type { ExecutionOperationResultV1 } from "@blend65/readiness";
 
-import { GENERATED_EXECUTION_HANDLER_CATALOG_V1 } from "./execution-handler-catalog.generated.js";
+import {
+  GENERATED_EXECUTION_HANDLER_CATALOG_V1,
+  GENERATED_EXECUTION_RUNNER_CATALOG_V1,
+} from "./execution-handler-catalog.generated.js";
 
 /** One generated participant and its exact deterministic dependency closure. */
 export interface ExecutionCatalogDescriptorRowV1 {
@@ -29,6 +32,10 @@ export interface ExecutionCatalogDescriptorRowV1 {
 export interface ExecutionCatalogFixtureDescriptorV1 {
   readonly rows: readonly ExecutionCatalogDescriptorRowV1[];
   readonly bindingBytes: Uint8Array;
+  /** Content-derived revision for the evidence-deciding runner closure. */
+  readonly runnerRevision: string;
+  /** Exact generated dependency paths covered by the runner revision. */
+  readonly runnerDependencyPaths: readonly string[];
 }
 
 /** Exactly one scoped dependency-byte mutation. */
@@ -80,6 +87,8 @@ export interface ExecutionCatalogBoundaryFileV1 {
 export interface CurrentExecutionCatalogStateV1 {
   readonly rows: readonly ExecutionCatalogDescriptorRowV1[];
   readonly bindingBytes: Uint8Array;
+  /** Content-derived revision for the evidence-deciding runner closure. */
+  readonly runnerRevision: string;
 }
 
 declare global {
@@ -160,6 +169,17 @@ function implementationRevision(
   );
   return `sha256:${createHash("sha256")
     .update(ENCODER.encode("blend65-execution-binding-v1\0"))
+    .update(preimage)
+    .digest("hex")}`;
+}
+
+/** Reconstructs the generated runner revision from exact current dependency bytes. */
+function runnerRevision(
+  dependencies: readonly { readonly path: string; readonly digest: string }[],
+): string {
+  const preimage = ENCODER.encode(`${JSON.stringify({ dependencies })}\n`);
+  return `sha256:${createHash("sha256")
+    .update(ENCODER.encode("blend65-execution-runner-v1\0"))
     .update(preimage)
     .digest("hex")}`;
 }
@@ -284,10 +304,13 @@ export function validateExecutionCatalogDependencyPathForConformanceV1(
 function applyScopedMutation(path: string, bytes: Uint8Array): ExecutionOperationResultV1<true> {
   const mutation = CONFORMANCE.getStore()?.mutateDependency;
   if (mutation === undefined || mutation.path !== path) return success(true);
-  const participant = GENERATED_EXECUTION_HANDLER_CATALOG_V1.rows.find(
-    (row) => row.capabilityId === mutation.capabilityId,
-  );
-  if (participant === undefined || !participant.dependencyPaths.includes(path)) {
+  const participantPaths =
+    mutation.capabilityId === "runner"
+      ? GENERATED_EXECUTION_RUNNER_CATALOG_V1.dependencyPaths
+      : GENERATED_EXECUTION_HANDLER_CATALOG_V1.rows.find(
+          (row) => row.capabilityId === mutation.capabilityId,
+        )?.dependencyPaths;
+  if (participantPaths === undefined || !participantPaths.includes(path)) {
     return failure(
       `/dependencies/${path}`,
       "Scoped dependency mutation is outside its participant.",
@@ -310,7 +333,9 @@ function applyScopedMutation(path: string, bytes: Uint8Array): ExecutionOperatio
 function generatedDependencyPaths(): readonly string[] {
   return [
     ...new Set(
-      GENERATED_EXECUTION_HANDLER_CATALOG_V1.rows.flatMap((row) => [...row.dependencyPaths]),
+      GENERATED_EXECUTION_HANDLER_CATALOG_V1.rows
+        .flatMap((row) => [...row.dependencyPaths])
+        .concat([...GENERATED_EXECUTION_RUNNER_CATALOG_V1.dependencyPaths]),
     ),
   ].sort();
 }
@@ -383,8 +408,24 @@ export function computeExecutionCatalogStateImmediatelyV1(): ExecutionOperationR
     );
   }
   const closedRows = Object.freeze(rows);
+  const runnerDependencies: { path: string; digest: string }[] = [];
+  for (const path of GENERATED_EXECUTION_RUNNER_CATALOG_V1.dependencyPaths) {
+    const digest = currentDigests.get(path);
+    if (digest === undefined) {
+      return failure(`/dependencies/${path}`, "Generated runner dependency closure is incomplete.");
+    }
+    runnerDependencies.push({ path, digest });
+  }
+  const currentRunnerRevision = runnerRevision(runnerDependencies);
+  if (currentRunnerRevision !== GENERATED_EXECUTION_RUNNER_CATALOG_V1.revision) {
+    return failure("/runnerRevision", "Generated execution runner closure is stale.");
+  }
   return success(
-    Object.freeze({ rows: closedRows, bindingBytes: canonicalBindingBytes(closedRows) }),
+    Object.freeze({
+      rows: closedRows,
+      bindingBytes: canonicalBindingBytes(closedRows),
+      runnerRevision: currentRunnerRevision,
+    }),
   );
 }
 
@@ -413,6 +454,10 @@ export function getExecutionCatalogFixtureDescriptorV1(): ExecutionCatalogFixtur
       ),
     ),
     bindingBytes: new Uint8Array(state.value.bindingBytes),
+    runnerRevision: state.value.runnerRevision,
+    runnerDependencyPaths: Object.freeze([
+      ...GENERATED_EXECUTION_RUNNER_CATALOG_V1.dependencyPaths,
+    ]),
   });
 }
 

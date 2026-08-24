@@ -170,6 +170,8 @@ interface LowerCtx {
   readonly bag: DiagnosticBag;
   /** The semantic model (symbol resolution, call graph, sizeof/offsetof folds). */
   readonly model: SemanticModel;
+  /** Per-callee cache of parameters whose specialized uses need no runtime store. */
+  readonly elidableAddressParams: Map<FunctionDeclNode, ReadonlySet<Symbol>>;
   /** The intrinsic registry (descriptor lookup for strategy dispatch). */
   readonly registry: IntrinsicRegistry;
   /** The enclosing-loop stack for `break`/`continue`. */
@@ -230,6 +232,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   // because a program's function bodies and its module initializers lower
   // through separate contexts and both can contain a `&`.
   const alignmentDemands = new Map<string, AlignBoundary>();
+  const elidableAddressParams = new Map<FunctionDeclNode, ReadonlySet<Symbol>>();
 
   const functions: ILFunction[] = [];
   for (const program of input.program) {
@@ -240,7 +243,16 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
           continue; // skip functions tainted by an ErrorType/error node
         }
         functions.push(
-          lowerFunction(item, moduleName, input.plan, input.model, registry, bag, alignmentDemands),
+          lowerFunction(
+            item,
+            moduleName,
+            input.plan,
+            input.model,
+            registry,
+            bag,
+            alignmentDemands,
+            elidableAddressParams,
+          ),
         );
       }
     }
@@ -252,7 +264,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
   // empty, so their output is byte-identical to before.
   const init =
     input.model.initOrder.length > 0
-      ? lowerInitCode(input, registry, bag, alignmentDemands)
+      ? lowerInitCode(input, registry, bag, alignmentDemands, elidableAddressParams)
       : { blocks: Object.freeze([] as const), tempCount: 0 };
 
   // Const aggregates carry fully-evaluated memory images — each becomes an
@@ -301,6 +313,7 @@ function lowerInitCode(
   registry: IntrinsicRegistry,
   bag: DiagnosticBag,
   alignmentDemands: Map<string, AlignBoundary>,
+  elidableAddressParams: Map<FunctionDeclNode, ReadonlySet<Symbol>>,
 ): { blocks: readonly BasicBlock[]; tempCount: number } {
   // Initializer expressions, keyed by their declared symbol (typing records
   // the declaration-node → symbol entry).
@@ -331,6 +344,7 @@ function lowerInitCode(
     frame: input.plan.frames.get("__init")?.frame,
     bag,
     model: input.model,
+    elidableAddressParams,
     registry,
     loopStack: [],
     plan: input.plan,
@@ -381,6 +395,7 @@ function lowerFunction(
   registry: IntrinsicRegistry,
   bag: DiagnosticBag,
   alignmentDemands: Map<string, AlignBoundary>,
+  elidableAddressParams: Map<FunctionDeclNode, ReadonlySet<Symbol>>,
 ): ILFunction {
   const fqName = `${moduleName}.${fn.name}`;
   const frame = plan.frames.get(fqName)?.frame;
@@ -399,6 +414,7 @@ function lowerFunction(
     frame,
     bag,
     model,
+    elidableAddressParams,
     registry,
     loopStack: [],
     plan,
@@ -1079,6 +1095,13 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
       return iceUnsupported(expr, ctx, "call with unexpected argument count");
     }
     const arg = expr.args[i];
+    const paramSymbol = ctx.model.scopeOf(decl).symbols.get(param.name);
+    if (
+      paramSymbol?.kind === "parameter" &&
+      elidableSpecializedParameters(decl, ctx).has(paramSymbol)
+    ) {
+      continue;
+    }
     const paramSlot = calleeFrame?.slots.find(
       (s) => s.name === param.name && s.kind === "parameter",
     );
@@ -1143,6 +1166,56 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
+/**
+ * Returns the parameters whose every read belongs to a proven constant
+ * memory-intrinsic address. They have no runtime consumer after lowering, so
+ * their call-site stores would waste bytes and cycles. The result is cached
+ * once per callee because a widely called helper must not rescan its body for
+ * every argument at every call site.
+ */
+function elidableSpecializedParameters(
+  declaration: FunctionDeclNode,
+  ctx: LowerCtx,
+): ReadonlySet<Symbol> {
+  const cached = ctx.elidableAddressParams.get(declaration);
+  if (cached !== undefined) return cached;
+  const specializedReferences = new Map<Symbol, Set<AstNode>>();
+  for (const intrinsic of collectNodes(
+    declaration.body,
+    (node): node is IntrinsicCallExprNode => node.kind === "IntrinsicCallExpr",
+  )) {
+    if (!ctx.model.constantIntrinsicAddresses.has(intrinsic)) continue;
+    const address = intrinsic.args[0];
+    if (address === undefined) continue;
+    for (const identifier of collectNodes(
+      address,
+      (node): node is IdentExprNode => node.kind === "IdentExpr",
+    )) {
+      const symbol = ctx.model.symbolOf(identifier);
+      if (symbol?.kind !== "parameter") continue;
+      const references = specializedReferences.get(symbol) ?? new Set<AstNode>();
+      references.add(identifier);
+      specializedReferences.set(symbol, references);
+    }
+  }
+
+  const runtimeReferences = new Set<Symbol>();
+  for (const identifier of collectNodes(
+    declaration.body,
+    (node): node is IdentExprNode => node.kind === "IdentExpr",
+  )) {
+    const symbol = ctx.model.symbolOf(identifier);
+    if (symbol?.kind !== "parameter") continue;
+    if (!(specializedReferences.get(symbol)?.has(identifier) ?? false))
+      runtimeReferences.add(symbol);
+  }
+  const elidable = new Set(
+    [...specializedReferences.keys()].filter((symbol) => !runtimeReferences.has(symbol)),
+  );
+  ctx.elidableAddressParams.set(declaration, elidable);
+  return elidable;
+}
+
 /** Narrows a symbol's declaring node to a {@link FunctionDeclNode}. */
 function isFunctionDecl(node: AstNode): node is FunctionDeclNode {
   return node.kind === "FunctionDecl";
@@ -1166,6 +1239,21 @@ function collectCallExprs(root: AstNode): CallExprNode[] {
     if (node.kind === "CallExpr") {
       found.push(node as CallExprNode);
     }
+    walkChildren(node, visitor);
+  };
+  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
+  walkNode(root, visitor);
+  return found;
+}
+
+/** Collects all nodes matching a type guard from one AST subtree. */
+function collectNodes<T extends AstNode>(
+  root: AstNode,
+  guard: (node: AstNode) => node is T,
+): readonly T[] {
+  const found: T[] = [];
+  const visit = (node: AstNode): void => {
+    if (guard(node)) found.push(node);
     walkChildren(node, visitor);
   };
   const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
@@ -2600,7 +2688,11 @@ function emitPokew(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   if (valueExpr !== undefined && valueExpr.kind === "NumericLitExpr") {
     const value = valueExpr.value;
     emitIntrinsicStore(imm(value & 0xff, IL_BYTE), loc(hexAddr(base), IL_BYTE), ctx);
-    emitIntrinsicStore(imm((value >> 8) & 0xff, IL_BYTE), loc(hexAddr(base + 1), IL_BYTE), ctx);
+    emitIntrinsicStore(
+      imm((value >> 8) & 0xff, IL_BYTE),
+      loc(hexAddr((base + 1) & 0xffff), IL_BYTE),
+      ctx,
+    );
     return imm(0, IL_BYTE);
   }
   const wordArg = valueExpr ?? errorExpr();

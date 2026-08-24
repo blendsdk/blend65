@@ -55,7 +55,7 @@ function response(selected: ExecutionWorkerRequestV1): object {
     case "cli":
       return { ...common, exitCode: 0, stdout: new Uint8Array(), stderr: new Uint8Array() };
     case "emit":
-      return { ...common, assemblyBytes: Uint8Array.of(1) };
+      return { ...common, hasErrors: false, assemblyBytes: Uint8Array.of(1) };
   }
 }
 
@@ -130,6 +130,7 @@ describe("execution worker response parser", () => {
     expectFailure(parseExecutionWorkerResponseV1(cli, { ...response(cli), stdout: "text" }));
     const emit = request("emit");
     expectFailure(parseExecutionWorkerResponseV1(emit, { ...response(emit), assemblyBytes: [] }));
+    expectFailure(parseExecutionWorkerResponseV1(emit, { ...response(emit), hasErrors: 0 }));
     const revokedBytes = Proxy.revocable(new Uint8Array(), {});
     revokedBytes.revoke();
     expectFailure(

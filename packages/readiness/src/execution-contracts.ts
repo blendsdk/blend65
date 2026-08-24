@@ -195,6 +195,8 @@ export interface ExecutionRoutePlanV1 {
   readonly revision: "execution-route-plan-v1";
   /** Exact selected parent publication digest. */
   readonly parentDigest: string;
+  /** Exact published child or prepublication candidate whose handlers are authorized. */
+  readonly executionDigest: string;
   /** Exact prepared campaign digest. */
   readonly campaignDigest: string;
   /** Exact selected oracle publication digest. */

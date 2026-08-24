@@ -12,7 +12,7 @@ content-derived generator/oracle/transform bindings, deterministic random-access
 rendered/replayable cases, independent diagnostic and runtime oracles, and opaque selected oracle
 contexts. Phase 6 refreshed the selected nine-binding parent after the Phase 3 implementation
 closure changed its five oracle revisions; the selected digest is
-`sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597`.
+`sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5`.
 
 The compiler exposes distinct `compile`, `emitAsm` and `build` façades; the CLI exposes injectable
 `runCli`; ACME discovery/invocation returns assembly/binary/label/report artifacts; test-harness
@@ -53,6 +53,15 @@ rules currently require `frontend`; the memory rules require `compiler-api`, `em
 parameters, and have no `main`. Memory addresses start at `$D020` or computed `$D021`; word reads
 therefore touch `$D022`. The existing renderer emits only module constants and functions, so the
 execution envelope must be separate from RD-02 generator IR. (AR-P6–AR-P8)
+
+Final real-campaign acceptance exposed two compiler facts that the synthetic tiers did not: the
+emitter may return recovery assembly while its full result still has errors, and a sole
+literal-bound call into a parameter-address memory case was not propagated to the callee. The live
+worker now carries the full emitter error bit, and the frontend safely specializes only a
+main-reachable, same-module, non-recursive, non-address-taken callee with exactly one visible call.
+That preserves direct absolute instruction selection for the selected cases. General runtime
+addresses remain executable ledger row X-01 under conformance RD-02 rather than being hidden here.
+(AR-P84–AR-P87)
 
 ### Diagnostic provenance gap
 

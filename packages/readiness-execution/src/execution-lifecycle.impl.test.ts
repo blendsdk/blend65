@@ -1077,6 +1077,51 @@ describe("supervisor cleanup blockers", () => {
     await hostile.cleanup();
   });
 
+  it("should bind emitter error state into retained evidence", async () => {
+    const selected: ExecutionWorkerRequestV1 = {
+      ...workerRequest(),
+      tier: "emit",
+      contract: "assembly-emitter-v1",
+    };
+    const run = async (hasErrors: boolean): Promise<string> => {
+      const supervisor = requireSuccess(
+        createExecutionSupervisorV1(POLICY, {
+          time: { monotonicNow: () => 0, waitUntil: async () => "deadline" },
+          workerExecutor: {
+            start: async (request) => ({
+              ok: true,
+              value: {
+                completion: Promise.resolve({
+                  kind: "message" as const,
+                  value: {
+                    revision: "execution-worker-response-v1" as const,
+                    tier: "emit" as const,
+                    contract: "assembly-emitter-v1" as const,
+                    caseIdentity: request.caseIdentity,
+                    hasErrors,
+                    assemblyBytes: new Uint8Array(),
+                    diagnostics: {
+                      revision: "compiler-diagnostic-evidence-v1" as const,
+                      entries: [],
+                    },
+                    emission: { il: false, assembly: false, binary: false },
+                  },
+                }),
+                terminate: async () => undefined,
+              },
+            }),
+          },
+        }),
+      );
+      requireSuccess(await supervisor.runWorker(selected));
+      const digest = requireSuccess(supervisor.snapshot()).evidence.digest;
+      await supervisor.cleanup();
+      return digest;
+    };
+
+    expect(await run(true)).not.toBe(await run(false));
+  });
+
   it("should accept completion exactly at the operation deadline and reject a later completion", async () => {
     const runAt = async (completionTime: number) => {
       let now = 0;

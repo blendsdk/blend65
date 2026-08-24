@@ -140,7 +140,12 @@ const PARENT_EVIDENCE_KEYS = [
   "sourceContentIdentity",
 ] as const;
 
-function acquireWorkerExecutorOwnership(
+/**
+ * Acquires one reference-counted ownership lease for a worker executor.
+ * Shutting down the returned facade releases only this lease; the underlying
+ * pool stops after its final owner releases it.
+ */
+export function acquireExecutionWorkerExecutorOwnershipV1(
   executor: ExecutionWorkerExecutorV1 | undefined,
 ): ExecutionWorkerExecutorV1 | undefined {
   if (executor === undefined) return undefined;
@@ -298,7 +303,7 @@ export function createExecutionSupervisorV1(
   const workspaceProvider = dependencies.workspaceProvider ?? defaultExecutionWorkspaceProviderV1;
   const processRuntime = dependencies.processRuntime ?? defaultExecutionProcessRuntimeV1;
   const suppliedWorkerExecutor = dependencies.workerExecutor;
-  const workerExecutor = acquireWorkerExecutorOwnership(suppliedWorkerExecutor);
+  const workerExecutor = acquireExecutionWorkerExecutorOwnershipV1(suppliedWorkerExecutor);
   const workspaces: ExecutionCaseWorkspaceV1[] = [];
   const workers: OwnedWorker[] = [];
   const processes: OwnedProcess[] = [];
@@ -647,7 +652,10 @@ export function createExecutionSupervisorV1(
             : response.tier === "cli"
               ? { exitCode: response.exitCode }
               : response.tier === "emit"
-                ? { layoutBasis: response.layoutBasis ?? null }
+                ? {
+                    hasErrors: response.hasErrors,
+                    layoutBasis: response.layoutBasis ?? null,
+                  }
                 : {}),
       }),
     );

@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-04 Tiered Compiler, ACME and VICE Execution
 
-> **Status**: ✅ GATE PASSED — all 37 items resolved; AR-P32–AR-P37 added during execution
-> **Last Updated**: 2026-08-22
+> **Status**: ✅ GATE PASSED — all 81 items resolved; AR-P32–AR-P81 added during execution
+> **Last Updated**: 2026-08-24
 > **Mode**: Auto-design
 > **Root Invocation ID**: `make-plan-rd04-20260821-01`
 > **Policy Version**: 1
@@ -56,6 +56,16 @@
 | AR-P35 | Behavioral gaps (runtime) | How can the immutable lease oracle prove a replaced inode when its first snapshot originally named the new inode as both observed and expected? | Retain the prior inode in the snapshot reference / invent a fixed inode relation / reject every first observation | Correct the mutant so the retained reference names the prior inode while the observed file names the replacement; AI delegated by `--auto-design` | ✅ Resolved |
 | AR-P36 | Security & compliance (runtime) | Does POSIX directory `st_nlink` need to equal one like the regular lease file's link count? | Retain positive raw directory count but exclude its exact value from identity / ignore it / normalize it / require one | Positive safe-integer raw directory count; exact count non-authoritative; regular lease file remains exactly one link; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
 | AR-P37 | Behavioral gaps (runtime) | How can the route oracle model an exact checkpoint hit after quality review requires execution to settle only after VICE also reports STOPPED? | Emit the matching STOPPED event while preserving adversarial response order / settle on checkpoint alone / weaken completion cases | Correct the raw fake to emit checkpoint metadata, correlated acknowledgement, then STOPPED; production waits for both; AI delegated by `--auto-design` | ✅ Resolved |
+| AR-P63 | Integration points (runtime) | Which deterministic, implementation-blind seam can prove orchestration mismatch, CLI exit and report-crash behavior without real tools or authority-forging public ports? | Package-private operation-scoped declarative conformance / public dependency ports / external subprocess and filesystem manipulation only | Closed `AsyncLocalStorage` conformance controls outside public exports and live-handler authority; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P64 | Data & state (runtime) | How does the report obtain the exact genuine campaign seed when the approved orchestration input and opaque campaign summary omit it? | Dedicated passive campaign-identity subpath / caller seed plus validator / broaden campaign summary or existing projection / derive or omit | WeakMap-authenticated frozen `{campaignDigest,seed,target}` identity projection on a dedicated readiness subpath; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P65 | Behavioral gaps (runtime) | How does the frozen oracle construct a successful VICE result when `vice` is a tier but not a legal pipeline stage? | Map VICE success to its declared terminal `compare` stage / widen the production stage union / defer typechecking | Correct only the spec helper to use `tier === 'vice' ? 'compare' : tier`, preserve assertions, rerun RED and refreeze; AI delegated by `--auto-design` | ✅ Resolved |
+| AR-P66 | Data & state (runtime) | How is genuine parent authority restored after AR-P64 necessarily changes a bound readiness manifest and source closure? | Immutable reviewed parent refresh / exclude changed bytes / caller or ambient seed / defer freshness | Rebuild/select a new nine-binding parent from the fresh immutable base and current revisions; preserve all prior releases and child pointer; refreeze identity constants only; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P67 | Data & state (runtime) | Which guarded transition can select the fresh immutable base when the current stale parent cannot mint a normal incremental capability? | One-shot locked internal maintenance transaction / add public historical selector / raw pointer edit / stop | Exact hard-coded stale→fresh-base internal commit under full resolution, lock, snapshot and reconciliation guards, followed by normal public incremental publication; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P68 | Behavioral gaps (runtime) | Why does the frozen Phase 7 campaign stop at policy validation before orchestration? | Correct cleanup grace to the fixed protocol value / weaken parser / bypass policy validation | Change only spec fixture `cleanupGraceMs` from 1,000 to 3,000, preserve assertions, rerun and refreeze; AI delegated by `--auto-design` | ✅ Resolved |
+| AR-P69 | Behavioral gaps (runtime) | How does the complete 120-case component campaign enter the selector when the reviewed cheapest-obligation cap is 16 cases per rule? | Revisioned preselection / lexical truncation / raise cap / dedicated selected campaign | Initial v2 preselection ruling disproved by measured 22-stratum write rules and superseded by AR-P70 before execution | ✅ Superseded |
+| AR-P70 | Behavioral gaps (runtime) | Which genuine selected Phase 7 campaign lets every case reach its cheapest tier while preserving v1 caps and broader Phase 5 evidence? | Dedicated 40-case two-spelling campaign / raise cap to 42 / truncate 120-case campaign / reduce four-spelling campaign below its coverage minimum | Genuine 40-case `literal|parameter` campaign with 16 invalid cases; exact per-rule totals 8/8/12/12 and strata 3/3/7/6; retain selector v1 and the separate 120-case component campaign; AI delegated by `--auto-design`; challenger converged | ✅ Resolved |
+| AR-P71 | Behavioral gaps (runtime) | Why do the last two frozen Phase 7 assertions fail after four scenarios reach GREEN? | Use an actually uppercase hex seed and normalize Node Buffer bytes / distort CLI or serializer behavior | Replace digit-only uppercase no-op with `A`×64 and wrap report `readFile` bytes in `Uint8Array`; preserve assertions and refreeze; AI delegated by `--auto-design` | ✅ Resolved |
+| AR-P72 | Data & state (runtime) | How is Phase 5 accepted local evidence restored after AR-P66 changes the exact selected parent identity while runtime bytes remain stable? | Repeat real sealed runs and refreeze identity-bound values / weaken identity binding / retain stale expectations | Require two matching real ACME/VICE runs, update only changed evaluation/route/result identities after proving source/binary/layout/usage/completion stability, then rerun again after final review; AI delegated by `--auto-design` | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -1981,6 +1991,836 @@ negative assertions and a reviewed parent refresh rather than weakening runtime-
 **Reopen trigger:** A live emitted root imports a runtime value through `@blend65/readiness`, the
 generated closure reaches the readiness index or TypeScript, or a reached third-party executable or
 package manifest is not bound.
+
+### AR-P63 — Operation-scoped orchestration conformance
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Deterministic specification observability inside the approved orchestration,
+command and durable-report contracts; no public API, product-scope or authority change.<br>
+**Decision:** Add one package-private `execution-orchestration-conformance-v1` module backed by an
+operation-scoped `AsyncLocalStorage`. It accepts only deeply copied, frozen and bounded declarative
+controls: single-use closed handler-result substitutions keyed by exact planned execution identity
+and tier, normalized capability facts without executable paths, and a closed set of report fault
+points spanning temporary creation/write, file synchronization, pre/post rename, directory
+synchronization and reconciliation. Substituted results must pass the normal closed
+`ExecutionResultV1` validation and can prove only orchestration aggregation and serialization;
+the frozen Phase 5 evaluator oracle remains the proof that actual runtime observations reach the
+genuine selected oracle comparison. The seam never receives an expectation, opaque authority,
+live handler, raw observation callback or caller-selected path.
+Duplicate, unmatched or unused substitutions reject. Nested scopes reject, all work and cleanup
+settles before scope return, and observations are returned only as a bounded frozen transcript.
+The module is absent from the root barrel and package exports, production behavior without a scope
+uses genuine handlers, probes and filesystem operations, and the six-handler generated authority
+closure must not reach the conformance module. Prefer one package-private module instance; use the
+repository's established global singleton bridge only if source/build dual loading otherwise
+splits the async scope.<br>
+**Evidence:** Phase 7's immutable oracle must deterministically force a semantic mismatch, all five
+CLI exits and post-rename report reconciliation. The declared public signatures expose no ports,
+and black-box host mutation cannot prove those states without real-tool and filesystem races. The
+accepted publication conformance modules already use operation-local `AsyncLocalStorage` outside
+public barrels.<br>
+**Rejected alternatives:** Public dependency ports enlarge production authority and change the
+approved API. Subprocess/environment/filesystem manipulation alone is nondeterministic for
+semantic mismatch and post-rename reconciliation. A private explicit kernel can supplement
+implementation tests but cannot prove the declared public wrappers by itself.<br>
+**Strongest counterargument:** Hidden async state can leak across nested work or split across
+source and built module instances.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger selected the package-private operation scope and required
+declarative-only controls, single-use identity binding, return-only observations, nested-scope
+rejection and exclusion from live-handler authority.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A control can bypass genuine planning, is used as proof of evaluator behavior,
+mint or receive live authority, alter behavior outside its async scope, escape through package
+exports, or enter the generated six-handler closure.
+
+### AR-P64 — Genuine campaign report identity
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Minimal passive identity projection required to populate the already approved
+canonical report; no campaign semantics, caller input or product scope change.<br>
+**Decision:** Add a dedicated `@blend65/readiness/execution-campaign-identity` subpath exporting
+`getPreparedCampaignExecutionIdentityV1(campaign)`. It authenticates only through the existing
+private prepared-campaign state and returns a new deeply frozen
+`{revision:'prepared-campaign-execution-identity-v1',campaignDigest,seed,target}` value. Structural
+copies and forged summaries reject. It exposes no configuration, dependencies, cases, callbacks or
+execution authority. The orchestrator must join `campaignDigest` to
+`projectExecutionCampaignV1(campaign)`, require `target` to equal the fixed orchestration target and
+serialize `seed` verbatim. There is no caller seed, ambient fallback or digest derivation. The
+subpath stays separate from `execution-runtime`; final catalog regeneration must prove it did not
+enter the six-handler closure merely because the readiness package manifest changed.<br>
+**Evidence:** `PreparedCampaignState` retains the exact seed/target behind `PREPARED_STATES`, while
+the public summary and existing execution campaign projection intentionally omit seed. A digest is
+one-way and cannot reproduce the generating seed. Existing readiness projections already
+authenticate genuine capabilities through the same private state pattern.<br>
+**Rejected alternatives:** A caller seed plus private validation is redundant and adds a mismatch
+axis while changing the frozen orchestration input. Broadening every campaign summary or the
+existing planning projection has a larger compatibility blast radius. Omitting or deriving seed
+violates exact report reproducibility.<br>
+**Strongest counterargument:** Seed is not secret and could be simpler on the existing projection;
+the dedicated subpath nevertheless keeps planning wire shape and ordinary campaign summaries
+unchanged.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger selected the dedicated passive subpath and required exact
+digest/target joins plus final proof that the live-handler authority closure did not absorb it.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** The accessor accepts a structural lookalike, returns retained private state,
+the orchestrator fails to cross-check digest/target, or the subpath enters the generated live
+handler closure without a real runtime import.
+
+### AR-P65 — VICE success stage in the frozen orchestration oracle
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Semantics-preserving specification helper correction required for the immutable
+oracle to typecheck; no assertion, product behavior or production contract change.<br>
+**Decision:** In the Phase 7 specification's `terminalResult` helper, map a successful `vice` tier
+to stage `compare` and retain the tier itself for every other tier. Preserve all six scenarios and
+assertions, rerun the expected RED classification, then freeze the replacement hash.<br>
+**Evidence:** `ExecutionTierV1` contains `vice`, while `ExecutionStageV1` contains the concrete VICE
+pipeline stages and not `vice`. The accepted production `routePass` already uses stage `compare`.
+TypeScript rejects the unqualified `stage: tier` helper before tests can run.<br>
+**Rejected alternatives:** Adding `vice` to the stage union weakens a production semantic contract
+to accommodate a test typo. Deferring typechecking leaves the oracle uncompilable.<br>
+**Confidence:** High.<br>
+**Hardening:** Direct union and accepted route-constructor evidence make an independent design
+challenge disproportionate; the correction is the unique existing production mapping.<br>
+**Policy version:** 1.<br>
+**Root invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any assertion or scenario changes, RED fails for a reason other than missing
+Phase 7 APIs, or production no longer defines successful VICE completion at `compare`.
+
+### AR-P66 — Refresh content-bound parent after campaign-identity authority
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Mandatory immutable authority maintenance after an approved readiness API changes
+bytes already bound by the selected parent; no modeled population or semantic-review scope change.<br>
+**Decision:** Regenerate compatible-publication implementation authority, start from the exact
+fresh immutable four-binding base, reconstruct the nine-binding parent with the current five oracle
+revisions, produce fresh accepted review bytes for that exact reconstructed request, publish a new
+immutable release and select it through the guarded transaction. Reuse prior semantic conclusions
+as rationale but never reuse stale review or implementation-authority digests. Every former parent
+and base release remains byte-identical. Leave the execution-child pointer untouched; no child may
+be prepared, reviewed or selected until it names the new parent. Refreeze only cryptographically
+identity-bound fixture constants, then rerun parent/current-five/isolated resolution, Phase 6 and 7
+specifications, generated catalog freshness and the mandatory real ACME/VICE evidence before final
+child review and selection.<br>
+**Evidence:** The readiness manifest is in the generated parent implementation closure. AR-P64's
+new export therefore makes the old selected parent correctly stale. The guarded incremental
+publication path requires review bytes bound to the current request and has already completed this
+same immutable transition for AR-P60 and AR-P62.<br>
+**Rejected alternatives:** Excluding the manifest or source weakens content authority. Caller or
+ambient seed reintroduces unauthenticated identity. Deferring freshness blocks genuine child
+preparation and knowingly leaves selected authority stale.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger converged on the established immutable refresh and
+required fresh review/implementation digests, exact-base reconstruction, child-pointer preservation
+and full identity-bound reruns.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any old release byte changes, the child pointer changes, the new parent is not
+derived from the exact fresh base/current revisions, or an identity-bound fixture/evidence remains
+on the superseded parent.
+
+### AR-P67 — One-shot guarded transition to the fresh base
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal maintenance transition needed because the stale selected parent cannot
+mint the normal incremental capability; no reusable API or public authority is added.<br>
+**Decision:** In one bounded maintenance process, hard-code the exact expected stale parent and
+target fresh base, regenerate current implementation authority, hold the publication generation
+lock, snapshot the parent and complete child publication trees, resolve the exact base through the
+genuine named resolver, reconstruct its release solely from authenticated canonical bytes and
+independently verify member set/lengths/digests/publication digest. Immediately revalidate the
+current pointer identity and bytes, invoke the existing package-internal
+`commitPublicationPointer`, then resolve the selected snapshot as the exact base and prove all
+release bytes, child state and temporary-entry cleanliness. Release the lock before the ordinary
+public incremental prepare/publish flow takes its own lock and selects the reviewed new parent.
+No digest or release object is caller-selected and no raw commit function becomes public.<br>
+**Failure recovery:** A pre-rename failure must leave the old pointer and stops. A post-rename
+failure is reconciliation-indeterminate: reacquire the lock, inspect pointer and trees, and rerun
+the exact guarded base commit only when the pointer is the expected old digest or verified base.
+Never raw-restore the stale parent. A third/malformed state or child-tree change hard-stops. A later
+incremental failure may safely leave the fresh base selected.<br>
+**Evidence:** The internal commit already exists and is explicitly absent from the package index;
+AR-P61 prohibits exporting reusable raw commit authority, not a one-shot fully verified
+maintenance transition. The normal public flow rechecks the selected base and owns final review,
+promotion and selection.<br>
+**Rejected alternatives:** A new public historical selector changes the authority closure and adds
+reusable surface for one recovery. Raw pointer editing omits durability and identity guards.
+Stopping is unnecessary because a valid immutable base exists.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger accepted the internal path only with hard-coded digests,
+generation locking, authenticated byte reconstruction, immediate pre/post resolution, complete
+child snapshots and closed reconciliation behavior.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** The maintenance code accepts caller-selected authority, runs without the lock,
+uses unauthenticated release bytes, exposes the commit publicly, raw-restores stale authority, or
+observes any child-tree mutation.
+
+### AR-P68 — Fixed cleanup-grace policy in the frozen orchestration oracle
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Assertion-neutral specification fixture correction to the already approved fixed
+policy contract; no production or product behavior change.<br>
+**Decision:** Change only the Phase 7 specification's `cleanupGraceMs` fixture value from 1,000 to
+3,000 milliseconds, retain all scenarios/assertions, rerun the focused oracle and freeze the
+replacement hash.<br>
+**Evidence:** The accepted production policy parser requires exactly 3,000 milliseconds and the
+first genuine orchestration body rejects 1,000 at `/policy/budget/cleanupGraceMs` before any route
+work. The same failure reproduces independently in the new implementation diagnostic test.<br>
+**Rejected alternatives:** Weakening or bypassing validation changes the closed resource protocol
+to accommodate an invalid test fixture.<br>
+**Confidence:** High.<br>
+**Hardening:** Parser contract and independent reproduction identify one exact correction; an
+independent architecture challenge is disproportionate.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any assertion/scenario changes, a different policy field fails, or the accepted
+protocol no longer fixes cleanup grace at 3,000 milliseconds.
+
+### AR-P69 — Revisioned bounded population selection
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal deterministic execution resource policy needed to reconcile the complete
+genuine campaign with the already approved per-rule expensive-work cap; campaign semantics and
+modeled rule scope remain unchanged.<br>
+**Decision:** Implement `execution-selector-v2` inside the pure readiness-execution planner. Keep
+the complete genuine campaign projection and original campaign digest. For each modeled rule,
+group cases by the existing canonical `(validity,spellingTuple,boundaryFamilyId)` stratum, compute a
+domain-separated population rank over selector revision, parent digest, campaign digest, rule ID,
+case identity and `population`, sort candidates in each lexical stratum by rank then case identity,
+and take one per stratum per pass until 16 unique cases are selected or the population is exhausted.
+More than 16 non-empty strata fails `execution-plan-capacity`; no stratum is silently omitted. Run
+the existing per-obligation selection over that bounded population, retaining mandatory valid-VICE
+and aggregate 256-route gates. Use v2 in every population/obligation rank and prebuild identity.
+Derive residual population from unique planned case identities, not route count, and serialize one
+lexically sorted `residual:case:<ruleId>:<caseIdentity>` blocker per omitted case. Capacity failure
+precedes every workspace, handler and partial report.<br>
+**Evidence:** The genuine runtime campaign has 120 cases while the approved v1 cheapest obligation
+requires every planner-input case and caps a rule at 16. AR-P6 already rejects ordinal-first
+selection and requires digest-ranked coverage across validity, spelling and boundary strata.
+Lexical truncation can systematically discard hardware-boundary variants.<br>
+**Rejected alternatives:** First-case selection reintroduces generation/identity-order bias.
+Raising the cap expands ACME/VICE work and weakens the reviewed resource policy. Shrinking RD-02's
+campaign configuration changes genuine campaign identity and discards broader evidence.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger required a new selector revision, whole-stratum coverage,
+unique-case residual accounting and execution-package ownership rather than orchestration-local
+filtering.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Current or future strata cannot fit 16, a residual case is not named exactly,
+v1 identity remains on a v2-produced route, or filtering occurs outside the pure planner.
+
+**Execution correction:** Read-only measurement disproved this ruling before any route executed:
+the 120-case component campaign contains 22 non-empty tuple strata for both `poke` and `pokew`, so
+full-stratum preselection cannot fit 16. Raising the preselection cap to 32 would still discard
+campaign cases before their cheapest tier, contradicting the approved every-case invariant. AR-P70
+supersedes this attempted v2 design; no v2 plan or evidence is accepted.
+
+### AR-P70 — Dedicated genuine Phase 7 campaign
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Exact selected-campaign configuration within the approved four-rule C64 scope;
+selector resource policy and the separate Phase 5 component-evidence campaign remain unchanged.<br>
+**Decision:** Retain `execution-selector-v1` and its inclusive 16-per-rule/expensive-obligation and
+256-campaign caps. Construct the Phase 7 selected campaign genuinely with `caseCount:40`,
+`maxInvalidCases:16`, the four runtime rule IDs, spellings `literal` and `parameter`, the unchanged
+runtime generator/boundary/renderer authorities, target, seed and budgets. Mandatory coverage
+occupies 24 valid cases and the invalid lane contributes four per rule. Exact measured totals are
+`peek=8`, `peekw=8`, `poke=12`, `pokew=12`; valid totals `4/4/8/8`; invalid totals `4/4/4/4`;
+full tuple strata `3/3/7/6`. Every selected campaign case receives its cheapest tier, every
+additional obligation covers each non-empty tuple stratum, all mandatory rules retain valid VICE
+witnesses and total expensive accounting is 59. The existing 120-case, four-spelling campaign
+remains Phase 5 component evidence and is not reported as omitted Phase 7 population. Residual
+blockers continue to represent only unmodeled, not-generatable, oracle-unmodeled or capability-
+unbound authority.<br>
+**Evidence:** Genuine construction with four spellings requires at least 80 cases even with zero
+invalid cases; measured 32/48/64 candidates all reject `campaign.coverage.insufficient`. The exact
+40-case two-spelling configuration constructs genuinely and plans within every v1 cap. Literal and
+parameter retain the compile-time/runtime-binding extremes; Phase 5 retains const/local evidence.<br>
+**Rejected alternatives:** Truncating a genuine campaign violates every-case execution. Raising the
+cap to 42 supersedes reviewed resource policy and drives 120 cheapest routes plus 54 VICE minima.
+Shrinking the four-spelling campaign below 80 is not a genuine configuration.<br>
+**Confidence:** High.<br>
+**Hardening:** An independent challenger selected the dedicated campaign; a separate read-only
+measurement reproduced its counts/strata and refuted every smaller four-spelling candidate.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any measured total/stratum changes, a selected case lacks its cheapest route,
+the production CLI and specification construct different campaign identities, v1 caps change, or
+the 120-case component fixture is misreported as Phase 7 residual population.
+
+### AR-P71 — Effective uppercase seed and byte-type normalization
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Two semantics-preserving specification-oracle corrections; no assertion intent,
+production contract or product behavior changes.<br>
+**Decision:** Replace the alleged uppercase-invalid `SEED.toUpperCase()` input, which remains the
+same all-digit string, with exactly 64 uppercase `A` hex characters. Normalize Node's `Buffer`
+returned by `readFile` to the declared `Uint8Array` byte oracle before equality. Preserve every
+scenario and expectation, rerun the focused suite and freeze the replacement hash.<br>
+**Evidence:** Primitive-equal strings cannot receive different grammar outcomes. Vitest v2 treats
+`Buffer` and `Uint8Array` as distinct constructors even when bytes match; the serializer correctly
+returns the planned `Uint8Array`.<br>
+**Rejected alternatives:** Making CLI reject a valid all-digit seed violates grammar. Returning a
+Node-specific `Buffer` violates the public serializer type and machine-neutral contract.<br>
+**Confidence:** High.<br>
+**Hardening:** Both failures are directly reproducible type/value identities with one exact
+requirement-preserving correction each; an independent design challenge is disproportionate.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any other assertion/token changes, the uppercase-A seed is accepted, or equal
+normalized report bytes still differ.
+
+### AR-P72 — Refreeze parent-bound real execution evidence
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Content-identity maintenance required by the already approved immutable parent
+refresh; runtime semantics, test scenarios and accepted toolchain remain unchanged.<br>
+**Decision:** Run the fixed four-case local suite through real ACME and VICE at least twice from the
+sealed current bytes. Require identical evaluation, route, result, source, binary, build and layout
+digests, observed/completion bytes and usage across both runs except declared launch-attempt result
+variants. Refreeze only identity-bound accepted values that changed because the selected parent is
+now `e5796e…cd3e5`; preserve every semantic/layout/usage assertion. Rerun the focused real suite
+GREEN. Because tasks 7.2.6–7.2.9 may still change participating bytes, task 7.2.8 must repeat and
+refreeze this evidence again after final review before child review or selection.<br>
+**Evidence:** The bounded full execution suite reached 454/455 GREEN. The only failure retained
+identical source, binary, build, layout, completion and usage evidence while the parent-bound
+evaluation and route identities changed, exactly as AR-P66 predicts.<br>
+**Rejected alternatives:** Weakening identity binding would accept evidence against another parent.
+Keeping stale constants leaves the package knowingly red. A single run is insufficient for local
+emulator evidence stability.<br>
+**Confidence:** High.<br>
+**Hardening:** This repeats the already accepted Phase 5/6 identity-refreeze protocol and keeps a
+mandatory post-review rerun; independent architecture challenge is unnecessary. The declared
+two-launch variants were reconstructed from the public canonical evidence preimage only after that
+formula reproduced all eight previously accepted one- and two-launch digests byte-for-byte. The
+new one-launch derivations then matched both genuine current runs exactly; only the parent-bound
+evaluation and route identities were substituted when deriving the retained two-launch variants.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any non-identity evidence changes, repeated runs disagree, tool versions differ,
+or post-review bytes/evidence are not rerun before child review.
+
+### AR-P73 — Phase 7 review remediation architecture
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal provenance, report, concurrency, persistence, compatibility and resource
+mechanisms required to resolve RV-001–RV-008 and PE-001 without changing accepted product scope,
+route semantics, report revision, frozen specification expectations or publication policy.<br>
+**Objective:** Make the final local authority independently attributable, content-bound,
+race-resistant and reproducible while continuing every route whose own prerequisites are present.<br>
+**Decision:** Reuse the existing generated execution dependency-closure catalog as the sole source
+of real participating implementation bytes and project its exact validated closure into genuine
+campaign construction; remove synthetic fixture revisions. Preserve the required positional
+`results` and add canonical per-route records binding case/execution identity, rule, obligation,
+terminal tier and result. Derive and validate summary status, counts and blockers from those route
+records. Gate unavailability per route rather than globally. Close conformance state before an
+authorized async scope returns and reject detached access. Execute only the planner's frozen policy
+snapshot. Rebuild report publication from the existing pinned-directory/no-follow/exclusive-write
+primitives and guarded commit pattern. Export the exact promised public type names with complete
+property documentation. Remove the redundant final report decode/parse. Add focused mutation,
+partial-capability, hostile-summary, detached-work, directory-replacement and policy-mutation tests;
+preserve every frozen specification file and hash.<br>
+**Evidence:** RV-001 found that synthetic `fixtures/*.ts` bytes could attest unrelated real
+generator, boundary and renderer functions. RV-002–RV-008 demonstrated missing standalone route
+attribution, global tool short-circuiting, forgeable aggregates, detached async-state reuse,
+pathname replacement races, post-plan policy mutation and incomplete named exports. PE-001 found
+one redundant full report parse. The generated catalog already owns exact dependency paths/digests
+and freshness generation; the publication package already owns pinned directory and exclusive
+file primitives. At 10× campaign size, one shared bounded provenance and persistence system avoids
+duplicated large closures and heap graphs; under obsolescence, generated projections can evolve
+behind the same validators; a contrarian security review favors one hardened filesystem boundary;
+pre-emptive mutation tests make stale closure claims fail before evidence execution.<br>
+**Rejected alternatives:** A dedicated campaign catalog plus dedicated report sink duplicates both
+provenance and security-critical persistence and can drift. A campaign-only generated projection is
+a viable fallback only if direct exact catalog projection proves impossible; it must still be
+generated by the same owner and prove equality with the source catalog. Keeping positional results
+alone cannot make a standalone report attributable; removing them breaks the frozen public oracle.<br>
+**Strongest counterargument:** The six-route handler catalog was not originally a campaign schema;
+using it without also binding the genuine campaign descriptor would repeat the freshness defect.
+The implementation must therefore bind both the exact closure and the independently canonical
+campaign configuration/seed/cases and fail closed on missing, duplicate or mismatched participants.<br>
+**Confidence:** High.<br>
+**Hardening:** A blind independent design challenger recommended this shared-authority architecture,
+identified campaign-descriptor omission as its strongest risk, and retained a same-generator
+campaign projection as the only viable fallback.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Direct catalog projection cannot prove generator/boundary/renderer bytes,
+additive route records conflict with a frozen assertion, pinned primitives cannot protect the report
+commit, any required fix changes public product behavior, or focused adversarial tests remain red.
+
+### AR-P74 — Assertion-neutral orchestration fixture provenance refreeze
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Specification-oracle fixture maintenance caused solely by the mandatory content-
+freshness correction; test scenarios, assertions, campaign configuration and product behavior stay
+unchanged.<br>
+**Decision:** The implementation-blind spec author may replace only the orchestration campaign's
+synthetic generator/boundary/renderer revision inputs in
+`test-fixtures/genuine-execution-campaign.ts` with the approved data-only generated closure
+descriptor used by the public campaign-authority boundary. Frontend and runtime component campaigns
+remain byte-identical. No specification-test token or assertion may change. Refreeze the fixture
+hash, require the Phase 7 oracle to remain 6/6 GREEN, and propagate only genuinely derived campaign,
+case, plan, parent and evidence identities through the ordinary freshness chain.<br>
+**Evidence:** The frozen oracle discovers exact substitution identities from its genuine
+orchestration fixture and supplies them to the production CLI. Correct content binding necessarily
+changes those identities. Retaining the synthetic fixture makes valid substitutions stale; silently
+translating stale identities in production violates the exact single-use conformance contract and
+would mask the critical provenance defect.<br>
+**Rejected alternatives:** Preserving the old campaign digest while adding a separate report-only
+closure digest leaves the canonical campaign identity falsely code-independent. Translating or
+loosening substitution identities breaks fail-closed conformance. Editing assertions is neither
+necessary nor authorized.<br>
+**Strongest counterargument:** Sharing a generated data descriptor reduces fixture independence.
+The fixture therefore consumes only closed revision/closure data through the planned authority
+interface and independently retains all configuration, dependencies and assertions; it never calls
+the production campaign factory.<br>
+**Confidence:** High.<br>
+**Hardening:** RV-001 independently established that synthetic revisions were unsound; the AR-P73
+challenger independently required canonical campaign descriptor plus exact closure binding and
+identified omission as the strongest risk.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Closure evidence:** The final independently constructed fixture SHA-256 is
+`20f981a67019ce6beba5801c458d82cfbee1454377ba1647c90a4aeb528c8c84`; the Phase 7 oracle remains
+6/6 GREEN in 305.3 seconds. The intermediate callable-resolver refreeze
+`14b52453680e9ad091d4e1d4612e0a8e417009fdb6006d29f01c71c5c3a45966` is superseded and is not
+accepted closure evidence. The final fixture consumes only the data descriptor, independently
+validates its exact participants and revisions through public readiness APIs, and binds only
+fixture-owned known functions. Frontend remains
+`6723c61e3c691ea79c33703f7ad08710f0092e45cbc6c1fc20a27181e7ab69c8` at 72/48/24 and runtime
+remains `1eef551294781cddd6077027baa011b5f3c52fe77e753d7ad5e7a0e381dc01bd` at 120/88/32. Only the
+orchestration campaign changed, to code-bound digest
+`4b8c2c79b30ad2dab2d85776f0924f198460e67d7cf420d832c4dd433ce76f71` at 40/24/16.<br>
+**Reopen trigger:** Any assertion/test token changes, frontend or runtime fixture identities change,
+the fixture calls the production factory, or the data descriptor can claim bytes without freshness
+validation.
+
+### AR-P75 — Canonical report wall-time normalization
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Deterministic machine-evidence serialization mechanism; route budgets, execution
+ordering, pass/failure semantics and accepted report schema remain unchanged.<br>
+**Decision:** Preserve measured wall time for live budget enforcement and adapter-local diagnostics,
+but normalize `usage.wallMs` to zero in every retained canonical campaign result and route record
+before aggregation or serialization. Retain deterministic output/evidence byte, instruction, cycle
+and launch-attempt counters exactly. Validate finite non-negative measured wall values at the
+conformance boundary, including fractional monotonic durations. Add focused fractional-duration
+and repeated partial-capability report tests.<br>
+**Evidence:** Per-route tool gating correctly executes unaffected compiler routes when ACME/VICE are
+missing, but their monotonic wall measurements made two otherwise identical unavailable reports
+differ and caused immutable no-clobber publication to reject the second command. The Phase 7 oracle
+requires repeatable stdout/stderr, and the design requires canonical machine-neutral report bytes.
+The existing evaluated-VICE evidence identity already omits wall time because host scheduling is
+nondeterministic while retaining all deterministic resource counters.<br>
+**Rejected alternatives:** Restoring the global tool short-circuit violates RV-003. Reusing a prior
+report without re-execution would attest stale capability/tool state. Quantizing wall time remains
+host-dependent. Including raw wall time under a new field or revision contradicts the current
+deterministic report contract and expands public schema.<br>
+**Strongest counterargument:** The report no longer carries observed elapsed time. That value cannot
+be stable authority evidence; enforcement still uses it live, while deterministic counters and
+terminal results retain the auditable resource proof.<br>
+**Confidence:** High.<br>
+**Hardening:** The independent reviewer required per-route execution, and the existing VICE evidence
+canonicalization supplies a previously reviewed equivalent treatment of host wall time.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any budget check consumes normalized rather than measured time, deterministic
+counters change, repeated identical commands still differ, or a frozen assertion requires measured
+wall time in the authority report.
+
+### AR-P76 — Final review-closure identity and persistence invariants
+
+**Authority:** AI — delegated by `--auto-design` during execution.<br>
+**Eligibility:** Internal identity, deterministic serialization and race-resistant persistence
+corrections required by the one permitted review recheck; frozen behavior, route selection,
+publication policy and product scope remain unchanged.<br>
+**Decision:** Close the four surviving review findings as one invariant set. The specification
+fixture consumes a data-only campaign-authority descriptor and independently owns every callable
+registration. Each planned route receives a distinct execution identity derived from the complete
+route-plan digest plus case identity, rule, obligation, terminal tier and required tools; the
+serializer independently rederives that identity from the retained route record and rejects any
+mismatch. Every public report serialization path normalizes nondeterministic wall time to zero.
+Reading an existing report revalidates the pinned directory immediately after the read, in addition
+to the existing before/after absence and commit checks, so directory replacement cannot authorize
+bytes read through a stale path. Focused adversarial tests must prove all four properties before the
+review gate closes.<br>
+**Evidence:** The re-review found that a callable production resolver made the fixture circular,
+`executionIdentity` duplicated `caseIdentity`, positional public results could retain nonzero wall
+time, and an existing-report read lacked a post-read directory identity check. The data descriptor
+fixture is independently GREEN 6/6 at the unchanged specification hash. Route identity now binds
+the whole frozen plan and remains total for diagnostic and unavailable routes where no later
+compiler/build identity can exist. The report validator recomputes it rather than trusting the
+producer. The hostile filesystem test replaces the directory immediately after an identical read
+and requires fail-closed rejection.<br>
+**Rejected alternatives:** Binding only successful routes to final build evidence leaves
+unavailable and diagnostic routes without a total report key. Reusing case identity cannot
+distinguish cheapest and obligation routes for the same case. Normalizing only the orchestrator
+leaves a public serializer bypass. A pre-read check alone cannot detect replacement during the
+read.<br>
+**Confidence:** High.<br>
+**Hardening:** The configured independent re-review supplied the four counterexamples. CodeOps
+permits only one re-review cycle, so closure is established by independent rederivation plus focused
+adversarial tests and the full verification gates; no third review is substituted.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Closure evidence:** The frozen Phase 7 specification remains 6/6 GREEN. The combined review-
+closure suite is 31/31 GREEN. Source ownership and anti-minting guards are GREEN after confining the
+generated read to its existing catalog owner. The full readiness-execution coverage gate is 34/34
+files and 460/460 tests GREEN, including real ACME/VICE, at 90.03% branches and 93.08% statements.
+Campaign-authority validation is 92.59% branches; the report suite explicitly rejects substitution
+of case identity for route execution identity. `spec/` remains unchanged.<br>
+**Reopen trigger:** The fixture resolves production callables, any route identity equals its case
+identity or fails independent rederivation, any public canonical report retains nonzero wall time,
+directory replacement after an existing read is accepted, or a required verification gate fails.
+
+**Supersession note (AR-P79):** The data-only synthetic campaign descriptor was later proven to
+conflict with the selected publication's exact inventory and participant authority. AR-P79 replaces
+only that fixture/campaign-provenance mechanism with a genuine selected-snapshot campaign; AR-P76's
+route-identity, report-normalization and persistence invariants remain authoritative.
+
+### AR-P77 — Prepublication execution authority and content attribution
+
+| Field | Resolution |
+|---|---|
+| Category | Data & state; integration points; security; compatibility |
+| Runtime ambiguity | Task 7.2.8 requires the real authority report before task 7.2.10 can accept that report digest and task 7.2.11 can prepare the reviewed child. The existing orchestrator accepts only a reviewed `PublishedExecutionRelease`, so using the final child is circular. The frozen specification fixture avoids the cycle with a bootstrap child, but selecting such a child in the real repository would prematurely clear the six parent blockers. Inspection also found that the planner validates `executionDigest` but drops it from the route-plan digest and report, so current evidence does not identify the executable authority whose handlers ran. |
+| Recommended ruling | Add a purpose-limited opaque `execution-review-candidate-v1` authority. Its candidate digest is domain-separated over the exact selected parent digest and canonical six-binding digest. Mint it only after generated closure freshness and parent/binding compatibility checks; expose execution-for-review only; never make it a `PublishedExecutionRelease`, a selectable value, or a published composite. Bind the exact candidate or selected-child execution digest into the route-plan preimage and canonical authority report. Revalidate parent selection and dependency closure before and after execution. The final semantic review accepts the resulting report digest and the same parent/binding digest; final child preparation cross-checks those joins before selection. |
+| Authority | Auto-design delegation authorized by the user; high-stakes recommendation independently challenged and converged |
+| Status | ✅ Resolved |
+
+**Evidence:** Published execution contexts currently require a fully reviewed release, while the
+semantic review requires the real report digest. The route planner accepts the composite
+`executionDigest` but its version-one preimage omits it. A separate candidate digest makes the
+executable parent plus six dependency closures stable before review while keeping the final child
+digest free to bind the review bytes.<br>
+**Rejected alternatives:** A provisional accepted child weakens review truth; selecting a bootstrap
+child mutates readiness before acceptance; a detached-attestation/pointer-v2 migration is valid but
+disproportionate; a digest fixed point is computationally infeasible.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger inspected the publication, planner, report and catalog
+boundaries and recommended the same candidate-only authority, with explicit anti-conversion,
+freshness and attribution tests.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Candidate authority becomes selectable or convertible to a published release;
+the selected pointer changes before final selection; candidate identity omits parent or binding
+bytes; route/report identity omits the candidate digest; or dependency/parent mutation during the
+review execution is accepted.
+
+**Supersession note (AR-P80):** Final review proved that parent plus binding identity covered the
+six handlers but not the evidence-deciding runner. AR-P80 strengthens, without replacing, this
+candidate-only authority by adding the generated runner revision to the candidate preimage.
+
+### AR-P78 — Invalid expensive obligations and real-command policy
+
+| Field | Resolution |
+|---|---|
+| Category | Behavioral gaps; edge cases; non-functional constraints |
+| Runtime ambiguity | The real candidate-bound command selected invalid validity strata for additional emit/ACME/VICE obligations, as ST-06/ST-52 require, but the genuine diagnostic request boundary correctly forbids invalid source from targeting those stages under ST-23. Because the selector made `terminalTier` identical to `obligation`, 49 routes failed before diagnostic execution. The command also used a 64-byte, 100-instruction test policy, causing 24 genuine valid routes to fail output exhaustion. |
+| Recommended ruling | Preserve each selected obligation and its rank, but map invalid-source `emit`, `acme` and `vice` obligations to truthful `terminalTier: compiler-api`; valid cases still terminate at their obligation, and invalid frontend/compiler-api/CLI cases retain that supported terminal. Derive prerequisites/tools from the mapped terminal and require at least one valid witness for every emit/ACME/VICE obligation. Accept only this exact mapping at the diagnostic request boundary. Replace the CLI's test-sized limits with the already real-verified local profile: 60,000 ms operation, 15,000 ms launch attempt, 120,000 ms route, 3,000 ms cleanup, 1,048,576 output bytes, 16,777,216 evidence bytes, 65,535 instructions, 100,000,000 cycles and 2 launch attempts. |
+| Authority | Auto-design delegation authorized by the user; high-stakes semantics independently challenged and converged |
+| Status | ✅ Resolved |
+
+**Evidence:** The frozen selector oracle requires invalid strata for every additional obligation,
+while the frozen adapter safety contract forbids invalid emit/ACME/VICE requests. Compiler API is
+the final real prerequisite before emission and its direct diagnostic evidence proves exact
+provenance plus absence of IL, assembly and binary artifacts. Obligation and terminal tier are
+already independently identity-bound. The first real report measured the artificial policy
+failures exactly: 49 invalid-input routes and 24 output-exhausted routes.<br>
+**Rejected alternatives:** Executing invalid source at emit violates ST-23; launching ACME/VICE
+falsely claims expensive work and risks producing forbidden artifacts; dropping invalid expensive
+strata violates ST-52; using parser maxima instead of the real-verified profile weakens the
+accepted bounded operating contract.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger cross-checked the frozen tests, design documents, selector,
+request validator, orchestration identity, diagnostic classifier, tier graph and local real policy
+and converged on the compiler-API projection.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** An invalid route targets emit/ACME/VICE, loses its original obligation/rank,
+requires an external tool, lacks exact no-artifact diagnostic proof, or any expensive obligation
+lacks a genuine valid terminal-tier witness; or the authority command uses unreviewed limits.
+
+### AR-P79 — Selected campaign authority versus current execution attribution
+
+| Field | Resolution |
+|---|---|
+| Category | Data & state; integration points; security; compatibility |
+| Runtime ambiguity | The real command's synthetic local campaign authority derived generator, boundary and renderer revisions from the current execution package's shared 492-file dependency closure. The selected parent instead authenticates the exact reviewed publication inventory and participant revisions. Every diagnostic route and genuine VICE route therefore failed the published oracle's exact-environment join even though both authorities independently resolved. The initial publication command correctly refused to replace already-bound declarations, so refreshing the parent is neither an available nor a semantically valid shortcut. |
+| Recommended ruling | Add a closed semantic-only `createPublishedExecutionCampaignV1` API to the existing `@blend65/readiness/execution-campaign-identity` boundary. It accepts only a genuine resolver-created `PublishedSnapshot`, the fixed target, seed and normalized generation configuration; sources inventory, rule-model, generator, boundary and renderer authority exclusively from that snapshot's private selected authority; verifies every enabled rule maps to the same selected generator route; and rejects caller authority bytes, revisions or implementations. `createLocalExecutionCampaignV1` consumes that snapshot and the fixed 40-case configuration instead of repository source files or the synthetic campaign descriptor. Keeping this adapter outside the already-sealed oracle/publication dependency closures preserves the selected parent's exact implementation authority. The prepublication `executionDigest` remains the sole attribution for current executable route/campaign code. Refreeze only the assertion-neutral orchestration fixture provenance against the same selected parent; the frozen specification assertions remain unchanged. |
+| Authority | Auto-design delegation authorized by the user; high-stakes architecture independently challenged and converged |
+| Status | ✅ Resolved |
+
+**Evidence:** The selected parent and loose workspace inventory have different content digests, and
+the synthetic local participant revisions also differ from the selected generator, boundary and
+renderer revisions. The published diagnostic join correctly rejects that mixed authority. The
+selected snapshot reconstructs callables only after validating the current workspace implementation
+bytes against the publication's claimed revisions, while AR-P77's execution digest independently
+binds the current six-route closure. These are complementary, not competing, authorities.<br>
+**Rejected alternatives:** Republishing or replacing the parent rewrites reviewed history and is
+correctly forbidden for bound declarations. Relaxing the published-environment equality would let
+one campaign execute under another campaign's oracle authority. Keeping a second synthetic
+campaign identity duplicates authority and recreates the mismatch on any unrelated closure change.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent challenger inspected campaign construction, publication resolution,
+candidate freshness, frozen fixture provenance and the failed real reports and converged on the
+selected-context campaign factory with separate executable-content attribution.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Campaign identity consumes loose repository bytes, caller-supplied participant
+authority or a synthetic revision; enabled rules span incompatible selected generators; fixture and
+production campaign identities diverge; the campaign adapter changes an already-sealed parent
+dependency closure; or current executable bytes are no longer bound by the execution digest.
+
+### AR-P80 — Evidence-deciding runner closure and report completeness authority
+
+| Field | Resolution |
+|---|---|
+| Category | Data & state; integration points; security; compatibility |
+| Runtime ambiguity | Final review proved that the six handler revisions did not cover campaign, orchestration, planning and report code, so those bytes could change without changing the prepublication execution digest. It also proved that the public structural report serializer could accept a self-consistent subset under a caller-invented plan digest. |
+| Recommended ruling | Generate and revalidate a separate content-derived runner closure rooted at campaign construction, orchestration and report authority, with the generated handler catalog treated as the binding-digest boundary. Include its revision in the domain-separated review-candidate digest; route-plan, report and accepted semantic-review report digest then retain that exact execution identity end to end. Mint every report as a process-local opaque capability only after orchestration has planned and executed the complete route set; keep the mint function internal to the package and require that capability at serialization, digest and durable-write boundaries. Structural copies inherit no authority. |
+| Authority | Auto-design delegation authorized by the user; independent correctness review identified both gaps and supplied the accepted closure constraints |
+| Status | ✅ Resolved |
+
+**Evidence:** The generated handler closure was rooted at `execution-live-handlers`, while the
+review candidate preimage contained only parent and binding digests. The report parser could prove
+internal route/result consistency but could not reconstruct a route plan it was not given. A
+separate generated runner revision preserves the fixed six-row publication format and avoids a
+self-hash through the generated handler module. Opaque report minting makes plan completeness an
+orchestrator invariant instead of a caller assertion. The semantic review already accepts the
+canonical report byte digest, so the candidate identity carried by that report closes the final
+review join without changing the published review schema.<br>
+**Rejected alternatives:** Expanding every handler closure duplicates unrelated runner bytes and
+creates a generated-file self-cycle. Adding complete route-plan items to the report is viable but
+duplicates an already authenticated plan and leaves every serializer caller responsible for the
+join. Trusting the production CLI alone leaves alternate public writer callers unsafe.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent correctness review reproduced both failures and required a content
+closure plus either opaque reports or an exact serialized plan join; this ruling takes its stronger
+opaque-capability option.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Runner code can change without changing candidate identity; route/report review
+can lose that identity; a structural report or route subset can be serialized, digested or written;
+or the report mint becomes part of the public package surface.
+
+### AR-P81 — Bounded route materialization and per-case authority preparation
+
+| Field | Resolution |
+|---|---|
+| Category | Non-functional constraints; data & state; integration points |
+| Runtime ambiguity | Performance review proved that a 4,097-route plan could execute for days before the 4,096-record report boundary rejected it, and that repeated obligation routes regenerated the same campaign case and diagnostic/runtime authorities. The real 97-route seed repeated 16 invalid cases across 37 routes, accounting for roughly 57 seconds of redundant diagnostic preparation. |
+| Recommended ruling | Define one shared inclusive 4,096-route/report limit and enforce it in selector capacity preflight before rank or route materialization. During orchestration, generate each campaign ordinal once and memoize one genuine diagnostic or execution-case authority per case identity for reuse across that case's obligation routes; unavailable and substituted routes remain preparation-free. Preserve single-use VICE process/runtime authority inside each handler invocation rather than caching process handles. |
+| Authority | Auto-design delegation authorized by the user; independent performance audit measured both costs and supplied the accepted boundary constraints |
+| Status | ✅ Resolved |
+
+**Evidence:** The selector already has a pre-materialization capacity pass, making exact route-count
+accounting the smallest safe insertion point. `PublishedDiagnosticCaseV1` and `ExecutionCaseV1` are
+immutable case authorities; route requests and VICE runtime handles are minted later, so reusing the
+case authority removes campaign-wide regeneration without reusing consumable process authority.
+The generated runner revision covers this orchestration behavior.<br>
+**Rejected alternatives:** Letting the report reject after execution has an unbounded cost gap.
+Raising the report cap increases memory and persistence exposure without a product need. Caching
+VICE sessions or runtime comparison authorities would violate their consumption model. Editing the
+selected parent's sealed oracle implementation solely to add a cache would invalidate publication
+freshness and is unnecessary once orchestration deduplicates by case identity.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent performance audit reproduced the 4,097-route boundary and measured
+per-route preparation; the resolution retains its early-capacity and unique-case requirements.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A plan larger than the report can materialize; any handler runs before capacity
+failure; the same case identity regenerates diagnostic/execution authority for multiple routes; or
+a consumable VICE/process authority becomes shared across routes.
+
+### AR-P82 — Opaque report authority at reconciliation fault boundaries
+
+| Field | Resolution |
+|---|---|
+| Category | Security; compatibility; testing boundary |
+| Runtime ambiguity | Opaque report minting correctly rejected structural copies, but the frozen reconciliation oracle deliberately supplies a different structurally valid report inside a closed fault scope so every atomic filesystem boundary can be reached while prior canonical bytes remain immutable. Rejecting the copy before filesystem work left the configured boundary unconsumed and made the frozen oracle fail. |
+| Recommended ruling | Preserve opaque authority for every public serializer, digest and ordinary durable-write call. Add one private writer-only fallback that may snapshot a structurally valid alternate report only while the package-private conformance context owns an unconsumed report fault. Do not register or return authority for that snapshot; the structural object must remain rejected before and after the scope. Include the fallback in the generated runner closure and independently re-review it before evidence generation. |
+| Authority | Auto-design delegation authorized by the user; frozen specification failure supplied the compatibility constraint |
+| Status | ✅ Resolved |
+
+**Evidence:** The isolated frozen canonical-report case reproduced the failure after competing test
+processes were removed. The corrected implementation test uses an unauthorized structural copy at
+all seven fault boundaries and proves it remains unauthorized after each scope. The focused report
+suite passes 10/10, the isolated frozen case passes 1/1, and the complete frozen suite passes 6/6
+at unchanged specification and fixture hashes. The regenerated runner revision is
+`sha256:1971920b5f53511d5b41b0330ee895aca068ba910ab391754ea2851b8d9cc379`.<br>
+**Rejected alternatives:** Re-authorizing structural reports globally reopens the completeness
+forgery closed by AR-P80. Silently consuming a named fault during schema rejection would claim a
+transaction boundary that was never reached. Changing the frozen specification would weaken the
+immutable oracle.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent re-review found no critical or major findings and confirmed that the
+fallback is private, fault-scope-only, non-authorizing and content-bound by the runner revision.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** An ordinary structural report can serialize, digest or persist; a fault-scope
+snapshot receives reusable authority; the conformance context becomes public; or the fallback is
+absent from execution-candidate freshness.
+
+### AR-P83 — Canonical report spelling for evaluated VICE evidence digests
+
+| Field | Resolution |
+|---|---|
+| Category | Data & state; compatibility; integration points |
+| Runtime ambiguity | The mandatory real campaign completed its routes but report minting rejected evaluated VICE evidence. General execution evidence carries `sha256:<64-hex>`, while the frozen runtime-evaluation contract intentionally exposes a bare 64-hex evidence digest. The report snapshot validator accepted only the prefixed spelling, so genuine VICE results could not become canonical authority. |
+| Recommended ruling | Preserve both existing producer contracts. At the private orchestration/report snapshot join, accept exactly either `sha256:<64-lowercase-hex>` or bare `<64-lowercase-hex>` for route and cleanup evidence, normalize the latter to the prefixed report spelling, and continue rejecting every other value. Bind the normalization code into the generated runner revision and rerun review, full verification and real evidence generation. |
+| Authority | Auto-design delegation authorized by the user; the mandatory real campaign supplied the integration constraint |
+| Status | ✅ Resolved |
+
+**Evidence:** The real command resolved the parent, oracle, candidate and campaign and ran for about
+88 seconds before throwing from `snapshotEvidence` during opaque report minting. An instrumented
+stage-local rerun produced the same stack after route execution. Frozen runtime specifications pin
+the evaluated digest to lowercase 64-hex, while other execution producers and publication identity
+use the prefixed form. Independent review also found that genuine cleanup-blocker lease evidence
+uses the bare spelling; the same normalizer now covers both fields and rejects malformed,
+uppercase and wrong-length values. Focused report/conformance tests pass 16/16 and prove one
+canonical report spelling; generated freshness passes at runner revision
+`sha256:be77abdac54197499b98b7a39deb8fc8412e6fc8fe0d94d780a9158e54ff724e`.<br>
+**Rejected alternatives:** Changing evaluated VICE evidence would violate the frozen runtime oracle.
+Allowing arbitrary text would weaken report identity validation. Retaining two spellings in durable
+reports would make semantically identical SHA-256 evidence byte-distinct.<br>
+**Confidence:** High.<br>
+**Hardening:** Independent correctness re-review found the adjacent raw VICE cleanup-evidence
+spelling, then closed RV-001 with no remaining critical or major findings after the shared exact
+normalizer and negative cases landed.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any non-SHA-256 spelling is accepted; normalized report bytes cease to be
+prefixed; a producer's evidence identity changes silently; or normalization escapes the private
+report snapshot boundary.
+
+### AR-P84 — Runtime memory addresses in the mandatory selected campaign
+
+| Field | Resolution |
+|---|---|
+| Category | Compiler semantics; code generation; expressiveness; acceptance |
+| Runtime ambiguity | The first canonical real authority report reached every route but six parameter-spelling VICE cases failed. Their envelopes contain the correct external bindings, while the compiler emits E10045 and replaces each runtime-address memory intrinsic with a zero/no-op stub. RD-04's reviewed campaign deliberately retains literal and parameter spellings, and publication acceptance requires real proof for all four memory rules. |
+| Recommended ruling | Preserve the immutable current codegen oracle that rejects genuinely dynamic addresses until its owned conformance RD-02 lands. For the selected externally bound cases, add bounded whole-program constant propagation: when a non-entry function has exactly one reachable call site and an address parameter is bound by a compile-time constant, resolve that parameter (including constant arithmetic) through the existing direct-address path. Multi-call, recursive, imported-unknown and genuinely dynamic cases fail closed under E10045. This makes the selected case semantically faithful while emitting the exact expert literal sequence, and leaves ledger X-01 active for the unimplemented general runtime form. Preserve the campaign and published oracle unchanged; add implementation tests and rerun semantic/codegen review plus real VICE authority. |
+| Authority | Auto-design delegation authorized by the user; mandatory real acceptance and the frozen language contract supplied the constraint |
+| Status | ✅ Resolved |
+
+**Evidence:** The failed report contains six VICE semantic mismatches and all are parameter-address
+cases. Re-rendering the genuine cases proves the calls carry `53280` and the modeled values in
+parameter order. Direct compiler reproduction emits E10045 and a `memoryCase` body that returns
+zero, while the plan's ST-11 and publication gate require complete-parameter cases to execute.
+Treating them as residual or removing parameter spelling would weaken reviewed acceptance. The
+general runtime-address failure is already executable ledger row X-01, owned by conformance RD-02;
+three immutable codegen specifications currently pin E10045 for that genuinely dynamic form.<br>
+**Rejected alternatives:** Removing parameter spelling contradicts AR-P70 and the acceptance
+contract. Accepting the failed report would select authority known to miscompile valid source.
+Expanding the envelope into literals would test different source semantics and make external
+parameter bindings decorative. Implementing general `(zp),Y` in RD-04 would contradict immutable
+codegen oracles and duplicate the already-planned conformance RD-02, whose expert bar also requires
+absolute-indexed selection for `BASE + i` rather than uniform indirect access.<br>
+**Confidence:** High.<br>
+**Hardening:** Compiler-semantics and correctness review must inspect the final lowering and exact
+instruction sequences before evidence freeze.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** A single-call constant argument is rejected or stubbed; constant propagation
+crosses a multi-call/recursive/unknown boundary; direct addressing regresses; or ledger X-01 loses
+its conformance RD-02 owner before general runtime addressing ships.
+
+**Measured parity debt:** The accepted seam removes every dead address-parameter store, but a
+constant write wrapper still retains value marshalling plus `JSR`/`RTS` (about 15 bytes / 26 cycles
+versus the expert inline 5 bytes / 6 cycles) and its unused address frame slot. GitHub issue #79
+owns constant-value specialization, sole-call leaf inlining, dead-frame elimination and whole-call
+byte/cycle goldens. This keeps the local direct-memory sequence at the expert floor while tracking
+the concrete path to beat it at whole-program scale.
+
+### AR-P85 — Full emitter error authority at the worker boundary
+
+| Field | Resolution |
+|---|---|
+| Category | Evidence integrity; integration points; fail-closed execution |
+| Runtime ambiguity | The same real run showed emit and downstream ACME/VICE routes proceeding after E10045. `emitAsmWithEvidence` reported `result.hasErrors = true`, but its diagnostic evidence sidecar contains only frontend-accepted entries; the emit worker returned neither the full result flag nor an error entry, and the adapter classified non-empty recovery assembly as success. |
+| Recommended ruling | Add the real emitter result's `hasErrors` boolean to the exact emit-worker response contract, validate and evidence-bound it, and require `false` before emit success or downstream artifact authority. Keep the diagnostic sidecar unchanged as provenance for accepted entries; do not infer full compiler success from that narrower sidecar. |
+| Authority | Auto-design delegation authorized by the user; mandatory real acceptance supplied the integration constraint |
+| Status | ✅ Resolved |
+
+**Evidence:** A direct reproduction returns `hasErrors: true`, an empty evidence-entry list and
+non-empty recovery assembly whose intrinsic body is a zero stub. The current emit success predicate
+checks only assembly length and the sidecar, so the bad artifact reaches VICE and is reported as a
+semantic mismatch rather than being stopped at emission.<br>
+Binding `hasErrors` adds 18 canonical retained bytes to each sealed local build. The four accepted
+ACME/VICE build and one-/two-attempt result digests were independently remeasured on ACME 0.97 and
+VICE 3.10; binary, layout, instruction, cycle and completion-timing evidence remained byte-for-byte
+unchanged.<br>
+**Rejected alternatives:** Extending the frontend-only capture after the fact conflates diagnostic
+acceptance provenance with later codegen diagnostics. Treating non-empty recovery output as success
+is fail-open. A worker-local throw would stop execution but discard the precise full-result fact
+needed by the typed response contract.<br>
+**Confidence:** High.<br>
+**Hardening:** Focused protocol and adapter tests must reject missing, malformed and true emitter
+error flags; final correctness review must confirm downstream ACME/VICE cannot consume such output.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** Any emitter result with `hasErrors` can pass the emit adapter or enter ACME; the
+flag is not covered by response validation/evidence limits; or the diagnostic sidecar is treated as
+a complete replacement for the compiler result.
+
+### AR-P86 — Exact invalid source plus a trusted diagnostic-only entrypoint
+
+| Field | Resolution |
+|---|---|
+| Category | Diagnostic evidence; source authority; integration points |
+| Runtime ambiguity | Every selected invalid source intentionally contains only `memoryCase`, so the real compiler adds E10020 (`main` missing) alongside the expected intrinsic diagnostic. The published diagnostic join correctly requires exactly one diagnostic and exact invalid source bytes. Appending `main` would mutate those authority bytes; accepting extra diagnostics would weaken exactness. |
+| Recommended ruling | For `invalid-diagnostic` worker requests only, compile the exact authenticated invalid source as one module together with one fixed package-owned companion module containing only `function main(): void {}`. The companion bytes and filename are constants inside the generated runner closure, are unavailable to valid-source routes, and add no diagnostic or artifact truth. Pass both exact paths explicitly to the compiler and retain the invalid case digest as the classified source identity. |
+| Authority | Auto-design delegation authorized by the user; mandatory real acceptance supplied the integration constraint |
+| Status | ✅ Resolved |
+
+**Evidence:** A two-module compiler probe produces exactly the expected E10041 for `peek()` and no
+E10020, while leaving the invalid module bytes unchanged. The worker already owns a package-fixed
+host and explicit file list; the generated runner revision binds changes to that boundary.<br>
+**Rejected alternatives:** Appending or rewriting `main` changes authenticated source content.
+Ignoring E10020 makes the exact diagnostic oracle permissive. Relaxing the compiler's global entry
+contract for diagnostic runs introduces a new compiler mode solely for the harness.<br>
+**Confidence:** High.<br>
+**Hardening:** A real worker-thread implementation test must prove one accepted diagnostic and no
+missing-main cascade; final correctness review must confirm the companion cannot enter valid routes.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** The invalid bytes are modified; valid routes see the companion; the companion
+is caller-controlled or absent from runner freshness; or extra diagnostics are accepted.
+
+### AR-P87 — Published direct-memory type diagnostics across frozen code assignments
+
+| Field | Resolution |
+|---|---|
+| Category | Compiler diagnostics; compatibility; oracle integration |
+| Runtime ambiguity | The selected RD-03 oracle correctly expects F020's E10172 for boolean direct-memory arguments, but the compiler registry also uses E10172 for a missing return value and its general argument mismatch is E10171. A separate immutable poke-width oracle requires `poke(addr, boolean)` to remain E10152 as a byte-width kind mismatch. The selected seed's only invalid value case is `pokew(addr, false)`; its other boolean cases are address operands. |
+| Recommended ruling | Preserve all established general-call and one-byte `poke` diagnostics. At the narrow direct-memory boundary, emit the frozen F020 numeric contract E10172 for boolean address operands of all four operations and for a boolean `pokew` value, using the existing unique registry value with an explicit durable collision comment. Wrong arity remains E10041; `poke` boolean values remain E10152; never emit a duplicate cascade. Track the broader diagnostic-number drift for eventual spec errata rather than renumbering unrelated frozen behavior inside RD-04. |
+| Authority | Auto-design delegation authorized by the user; conflicting immutable oracles and the exact selected campaign supplied the constraint |
+| Status | ✅ Resolved |
+
+**Evidence:** The selected ordinals 24/25/27/30/33/36/37 use boolean addresses and ordinal 39 uses
+a boolean `pokew` value; their published expectation is exactly one semantic E10172. The immutable
+poke-width test pins E10152 only for `poke($D020, true)`, while general user-call tests pin E10171.
+The diagnostic registry enforces unique values, so adding a second E10172 name is invalid.<br>
+**Rejected alternatives:** Globally renumbering argument or return diagnostics breaks immutable
+language tests. Emitting both codes fails the exact-one diagnostic authority and reports one root
+cause twice. Context-dependent codes based on function names or missing `main` are semantically
+indefensible. Changing the selected oracle rewrites reviewed RD-03 truth.<br>
+**Confidence:** High.<br>
+**Hardening:** Focused compiler implementation tests must cover each retained boundary, and the
+real selected diagnostic routes must all pass exact code/phase/severity comparison.<br>
+**Policy version:** 1.<br>
+**Root Invocation ID:** `exec-rd04-20260822-01`.<br>
+**Reopen trigger:** General user calls or `poke` boolean values change code; a selected invalid
+memory case emits zero/multiple diagnostics; or E10172's broader registry drift is silently claimed
+resolved by this narrow compatibility seam.
 
 ## Systematic 12-Category Closure
 

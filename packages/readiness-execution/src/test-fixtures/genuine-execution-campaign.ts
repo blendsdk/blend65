@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   INVENTORY_V1_LIMITS,
@@ -13,6 +15,7 @@ import {
   parseInventoryJson,
   registerFreshCandidateBinding,
   renderGeneratedCase,
+  resolvePublishedSnapshotByDigest,
   validateImplementationRevision,
   validateInventorySchema,
   type CampaignDependenciesV1,
@@ -23,9 +26,13 @@ import {
   type PreparedCampaign,
   type Sha256Digest,
 } from "@blend65/readiness";
+import { createPublishedExecutionCampaignV1 } from "@blend65/readiness/execution-campaign-identity";
+
+import { CURRENT_EXECUTION_PARENT_DIGEST } from "./execution-publication-catalog-spec-fixture.js";
 
 const ENCODER = new TextEncoder();
 const REPOSITORY_ROOT_URL = new URL("../../../../", import.meta.url);
+const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const INVENTORY_URL = new URL(
   "readiness/inventory/compiler-readiness-v1.json",
   REPOSITORY_ROOT_URL,
@@ -80,15 +87,20 @@ function freshRegistration(
   return registered.registration;
 }
 
-function configuration(route: "frontend" | "runtime"): GenerationConfiguration {
+type GenuineCampaignKind = "frontend" | "runtime" | "orchestration";
+
+function configuration(route: GenuineCampaignKind): GenerationConfiguration {
   return {
-    caseCount: route === "frontend" ? 72 : 120,
-    maxInvalidCases: route === "frontend" ? 24 : 32,
+    caseCount: route === "frontend" ? 72 : route === "runtime" ? 120 : 40,
+    maxInvalidCases: route === "frontend" ? 24 : route === "runtime" ? 32 : 16,
     enabledRuleIds:
       route === "frontend"
         ? [RULES.boolean, RULES.byte, RULES.sbyte, RULES.sword, RULES.word].sort()
         : [RULES.peek, RULES.peekw, RULES.poke, RULES.pokew].sort(),
-    spellings: ["const", "literal", "local", "parameter"],
+    spellings:
+      route === "orchestration"
+        ? ["literal", "parameter"]
+        : ["const", "literal", "local", "parameter"],
     budget: {
       maxModules: 4,
       maxDeclarations: 128,
@@ -133,11 +145,30 @@ async function loadAuthorities() {
   };
 }
 
-function createCampaign(
-  route: "frontend" | "runtime",
+async function createCampaign(
+  route: GenuineCampaignKind,
   authorities: Awaited<ReturnType<typeof loadAuthorities>>,
-): PreparedCampaign {
+): Promise<PreparedCampaign> {
   const configurationValue = configuration(route);
+  if (route === "orchestration") {
+    const selected = await resolvePublishedSnapshotByDigest({
+      repositoryRoot: REPOSITORY_ROOT,
+      publicationDigest: CURRENT_EXECUTION_PARENT_DIGEST,
+    });
+    if (!selected.ok) {
+      throw new TypeError("Expected the selected execution parent publication.");
+    }
+    const prepared = createPublishedExecutionCampaignV1(selected.value, {
+      schemaVersion: 1,
+      target: "c64",
+      seed: `sha256:${"7".repeat(64)}`,
+      configuration: configurationValue,
+    });
+    if (!prepared.ok) {
+      throw new TypeError("Expected a genuine published oracle campaign.");
+    }
+    return prepared.value;
+  }
   const configurationIdentity = deriveConfigurationIdentity(configurationValue);
   if (!configurationIdentity.ok) throw new TypeError("Expected configuration identity.");
   const generator = freshRegistration(`execution-${route}-generator`, {
@@ -152,7 +183,10 @@ function createCampaign(
     contractVersion: "1.0.0",
     implementation: boundaryVariantsHandler,
   });
-  const rendererRevision = deriveRevision(`execution-${route}-renderer`).revision;
+  const renderer: CampaignDependenciesV1["renderer"] = {
+    implementationRevision: deriveRevision(`execution-${route}-renderer`).revision,
+    implementation: renderGeneratedCase,
+  };
   const dependencies: CampaignDependenciesV1 = {
     inventory: {
       schemaVersion: 1,
@@ -168,10 +202,7 @@ function createCampaign(
     },
     generator,
     boundaryTransform,
-    renderer: {
-      implementationRevision: rendererRevision,
-      implementation: renderGeneratedCase,
-    },
+    renderer,
   };
   const campaign: CampaignIdentityInput = {
     inventorySchemaVersion: 1,
@@ -190,7 +221,7 @@ function createCampaign(
       contractVersion: boundaryTransform.binding.contractVersion,
       implementationRevision: boundaryTransform.binding.implementationRevision,
     },
-    rendererRevision,
+    rendererRevision: renderer.implementationRevision,
     target: "c64",
     prngAlgorithm: "blend65-sha256-ctr-v1",
     seed: `sha256:${(route === "frontend" ? "6" : "7").repeat(64)}`,
@@ -205,14 +236,16 @@ function createCampaign(
   return prepared.value;
 }
 
-/** Creates genuine scalar and runtime campaigns for implementation-only integration tests. */
+/** Creates genuine scalar, runtime, and bounded orchestration campaigns for integration tests. */
 export async function createGenuineExecutionCampaigns(): Promise<{
   readonly frontend: PreparedCampaign;
   readonly runtime: PreparedCampaign;
+  readonly orchestration: PreparedCampaign;
 }> {
   const authorities = await loadAuthorities();
   return Object.freeze({
-    frontend: createCampaign("frontend", authorities),
-    runtime: createCampaign("runtime", authorities),
+    frontend: await createCampaign("frontend", authorities),
+    runtime: await createCampaign("runtime", authorities),
+    orchestration: await createCampaign("orchestration", authorities),
   });
 }

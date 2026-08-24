@@ -133,6 +133,75 @@ function expectFailure(result: ExecutionOperationResultV1<unknown>, code?: strin
 }
 
 describe("route planner input closure", () => {
+  it("rejects the first route beyond report capacity before materializing a plan", () => {
+    const cases = Array.from({ length: 4_097 }, (_, index) =>
+      planningCase(indexedDigest(index + 1)),
+    );
+    const planned = planExecutionRoutesV1(input([rule()], cases));
+
+    expectFailure(planned, "execution-plan-capacity");
+    if (!planned.ok) {
+      expect(planned.issues[0].message).toContain("inclusive report capacity of 4096");
+    }
+  });
+
+  it("should bind the exact executable authority into the canonical route plan", () => {
+    const first = requireSuccess(planExecutionRoutesV1(input()));
+    const secondInput = input();
+    const second = requireSuccess(
+      planExecutionRoutesV1({
+        ...secondInput,
+        parent: { ...secondInput.parent, executionDigest: digest("e") },
+      }),
+    );
+
+    expect(first.executionDigest).toBe(digest("b"));
+    expect(second.executionDigest).toBe(digest("e"));
+    expect(second.digest).not.toBe(first.digest);
+  });
+
+  it("should retain invalid expensive obligations at the last diagnostic terminal", () => {
+    const ruleId = "rule.runtime";
+    const valid = planningCase(digest("1"), ruleId);
+    const invalid = planningCase(digest("2"), ruleId, { validity: "invalid" });
+    const planned = requireSuccess(
+      planExecutionRoutesV1(
+        input([rule(ruleId, ["frontend", "emit", "acme", "vice"])], [valid, invalid]),
+      ),
+    );
+
+    for (const obligation of ["emit", "acme", "vice"] as const) {
+      expect(
+        planned.items.find(
+          (item) => item.caseIdentity === invalid.caseIdentity && item.obligation === obligation,
+        ),
+      ).toMatchObject({
+        obligation,
+        terminalTier: "compiler-api",
+        prerequisiteTiers: ["frontend"],
+      });
+      expect(
+        planned.items.find(
+          (item) => item.caseIdentity === valid.caseIdentity && item.obligation === obligation,
+        ),
+      ).toMatchObject({ obligation, terminalTier: obligation });
+    }
+  });
+
+  it("should require a valid terminal witness for every post-diagnostic obligation", () => {
+    for (const obligation of ["emit", "acme", "vice"] as const) {
+      expectFailure(
+        planExecutionRoutesV1(
+          input(
+            [rule("rule.invalid-only", [obligation])],
+            [planningCase(digest("2"), "rule.invalid-only", { validity: "invalid" })],
+          ),
+        ),
+        "execution-plan-capacity",
+      );
+    }
+  });
+
   it("should reject hostile top-level records without invoking accessors", () => {
     let invoked = false;
     const accessor = {
@@ -411,13 +480,13 @@ describe("route planner deterministic selection", () => {
   });
 
   it("should retain linear uniqueness and one-pass rule indexing at campaign scale", async () => {
-    const cases = Array.from({ length: 10_000 }, (_, index) =>
-      planningCase(indexedDigest(index + 10_000), "rule.scale"),
+    const cases = Array.from({ length: 4_096 }, (_, index) =>
+      planningCase(indexedDigest(index + 4_096), "rule.scale"),
     );
     const plan = requireSuccess(
       planExecutionRoutesV1(input([rule("rule.scale", ["frontend"])], cases)),
     );
-    expect(plan.items).toHaveLength(10_000);
+    expect(plan.items).toHaveLength(4_096);
 
     const selectorSource = await readFile(
       new URL("./execution-selector.ts", import.meta.url),

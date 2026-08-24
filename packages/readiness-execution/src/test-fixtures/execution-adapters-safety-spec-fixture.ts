@@ -123,6 +123,7 @@ export type WorkerResponse =
       readonly tier: "emit";
       readonly contract: "assembly-emitter-v1";
       readonly caseIdentity: string;
+      readonly hasErrors: boolean;
       readonly assemblyBytes: Uint8Array;
       readonly diagnostics: DiagnosticEvidence;
       readonly emission: WorkerEmission;
@@ -1449,6 +1450,7 @@ export function successfulWorkerResponse(request: WorkerRequest): WorkerResponse
         ...common,
         tier: "emit",
         contract: "assembly-emitter-v1",
+        hasErrors: false,
         assemblyBytes: ENCODER.encode("!cpu 6510\n"),
       };
   }

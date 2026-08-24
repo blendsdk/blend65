@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { ExecutionOperationResultV1 } from "@blend65/readiness";
+import { deriveOracleSourceContentIdentity } from "@blend65/readiness/published-oracle";
 
 import { defaultExecutionWorkspaceProviderV1 } from "./execution-workspace.js";
 import {
@@ -88,6 +89,126 @@ describe("production compiler worker executor", () => {
       await handle.terminate();
       await handle.terminate();
     }
+  }, 60_000);
+
+  it("should compile invalid diagnostic source with one trusted entrypoint and no missing-main cascade", async () => {
+    const workspace = requireSuccess(await defaultExecutionWorkspaceProviderV1.create());
+    roots.push(workspace);
+    const bytes = ENCODER.encode(
+      "module InvalidCase;\nfunction memoryCase(): byte { return peek(); }\n",
+    );
+    const sourceIdentity = deriveOracleSourceContentIdentity(bytes);
+    expect(sourceIdentity.ok).toBe(true);
+    if (!sourceIdentity.ok) throw new TypeError("Expected diagnostic source identity.");
+    const selected: ExecutionWorkerRequestV1 = {
+      revision: "execution-worker-request-v1",
+      tier: "compiler-api",
+      contract: "compiler-evidence-facade-v1",
+      caseKind: "invalid-diagnostic",
+      caseIdentity: `sha256:${"9".repeat(64)}`,
+      caseRoot: workspace.root,
+      source: {
+        revision: "execution-worker-source-v1",
+        relativePath: "main.blend",
+        bytes,
+        digest: sourceIdentity.identity,
+      },
+    };
+    const handle = requireSuccess(
+      await defaultExecutionWorkerExecutorV1.start(selected, {
+        signal: new AbortController().signal,
+        deadlineMonotonicMs: performance.now() + 10_000,
+      }),
+    );
+    const completion = await handle.completion;
+    expect(completion).toMatchObject({
+      kind: "message",
+      value: {
+        hasErrors: true,
+        diagnostics: { entries: [{ code: "E10041", phase: "semantic" }] },
+      },
+    });
+    if (completion.kind === "message") {
+      const parsed = requireSuccess(parseExecutionWorkerResponseV1(selected, completion.value));
+      expect(parsed.diagnostics.entries).toHaveLength(1);
+    }
+    await handle.terminate();
+  }, 60_000);
+
+  it("should preserve exact invalid diagnostics through the real CLI worker", async () => {
+    const workspace = requireSuccess(await defaultExecutionWorkspaceProviderV1.create());
+    roots.push(workspace);
+    const bytes = ENCODER.encode(
+      "module InvalidCase;\nfunction memoryCase(): byte { return peek(); }\n",
+    );
+    const sourceIdentity = deriveOracleSourceContentIdentity(bytes);
+    expect(sourceIdentity.ok).toBe(true);
+    if (!sourceIdentity.ok) throw new TypeError("Expected diagnostic source identity.");
+    const selected: ExecutionWorkerRequestV1 = {
+      revision: "execution-worker-request-v1",
+      tier: "cli",
+      contract: "blendc-cli-v1",
+      caseKind: "invalid-diagnostic",
+      caseIdentity: `sha256:${"8".repeat(64)}`,
+      caseRoot: workspace.root,
+      source: {
+        revision: "execution-worker-source-v1",
+        relativePath: "main.blend",
+        bytes,
+        digest: sourceIdentity.identity,
+      },
+      argv: ["check", "main.blend", "--platform", "c64"],
+    };
+    const handle = requireSuccess(
+      await defaultExecutionWorkerExecutorV1.start(selected, {
+        signal: new AbortController().signal,
+        deadlineMonotonicMs: performance.now() + 10_000,
+      }),
+    );
+    const completion = await handle.completion;
+    expect(completion).toMatchObject({
+      kind: "message",
+      value: {
+        exitCode: 1,
+        diagnostics: { entries: [{ code: "E10041", phase: "semantic" }] },
+      },
+    });
+    if (completion.kind === "message") {
+      const parsed = requireSuccess(parseExecutionWorkerResponseV1(selected, completion.value));
+      expect(parsed.diagnostics.entries).toHaveLength(1);
+    }
+    await handle.terminate();
+  }, 60_000);
+
+  it("should return emitter diagnostics even when allocation facts are unavailable", async () => {
+    const workspace = requireSuccess(await defaultExecutionWorkspaceProviderV1.create());
+    roots.push(workspace);
+    const bytes = ENCODER.encode("module Main;\nfunction main(): void { peek(); }\n");
+    const selected = request("emit", workspace.root);
+    const invalid: ExecutionWorkerRequestV1 = {
+      ...selected,
+      source: {
+        ...selected.source,
+        bytes,
+        digest: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
+      },
+    };
+    const handle = requireSuccess(
+      await defaultExecutionWorkerExecutorV1.start(invalid, {
+        signal: new AbortController().signal,
+        deadlineMonotonicMs: performance.now() + 10_000,
+      }),
+    );
+    const completion = await handle.completion;
+    expect(completion).toMatchObject({
+      kind: "message",
+      value: { tier: "emit", hasErrors: true, diagnostics: { entries: [{ code: "E10041" }] } },
+    });
+    if (completion.kind === "message") {
+      const parsed = requireSuccess(parseExecutionWorkerResponseV1(invalid, completion.value));
+      expect(parsed).not.toHaveProperty("layoutBasis");
+    }
+    await handle.terminate();
   }, 60_000);
 
   it("should reject a launch whose cancellation already fired", async () => {

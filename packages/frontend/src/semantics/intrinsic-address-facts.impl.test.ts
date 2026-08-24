@@ -93,7 +93,7 @@ describe("constant memory-intrinsic address facts", () => {
       ["E10100"],
     ],
     ["constant division by zero", "module Main;\nfunction main(): void { peek(1 / 0); }", []],
-    ["a boolean", "module Main;\nfunction main(): void { peek(true); }", []],
+    ["a boolean", "module Main;\nfunction main(): void { peek(true); }", ["E10172"]],
     [
       "an aggregate constant",
       [

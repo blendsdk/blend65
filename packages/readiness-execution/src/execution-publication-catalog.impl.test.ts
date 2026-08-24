@@ -347,7 +347,11 @@ describe("execution publication catalog implementation", () => {
       () => computeExecutionCatalogStateV1(),
     );
     expect(result.ok).toBe(true);
-    expect([...counts]).toHaveLength(descriptor.rows[0]!.dependencyPaths.length);
+    const expectedPaths = new Set([
+      ...descriptor.rows.flatMap((row) => row.dependencyPaths),
+      ...descriptor.runnerDependencyPaths,
+    ]);
+    expect([...counts]).toHaveLength(expectedPaths.size);
     expect([...counts.values()].every((count) => count === 1)).toBe(true);
   });
 
