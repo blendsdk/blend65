@@ -12,10 +12,11 @@
   code/tier/stage disposition matrix and separate cleanup classification.
 - Typed-valid, typed-invalid, and raw-malformed reduction with exact family invariants and a
   deterministic non-empty V1 catalog.
-- Historical failure envelopes, truthful reduction-candidate authority, same-route execution,
-  fresh confirmation, and stateful-sequence classification.
-- Immutable cores, provenance events, activation markers, secure publication, deduplication, and a
-  manifest-driven specification regression tier.
+- Durable historical failure envelopes and every run/summary outcome, truthful reusable
+  reduction-candidate authority with single-use invocation tokens, same-route execution, fresh
+  confirmation, and stateful-sequence classification.
+- Immutable cores, provenance events, activation markers, secure publication, deduplication, and an
+  activation-rooted specification regression tier.
 - Compatibility-safe refresh of the selected RD-04 execution publication when participating bytes
   change. (AR-P13)
 
@@ -37,8 +38,8 @@
 |---|---|---|
 | Component ownership | Existing readiness/readiness-execution dependency direction | AR-P1 |
 | Reduction control | Pure readiness state machine driven by execution orchestration | AR-P1, AR-P4 |
-| Regression discovery | Tracked manifest graph read by one fail-closed spec runner | AR-P8 |
-| Quality floor | Focused ≥90% new-core branch coverage plus exact full verify | AR-P10, AR-P12 |
+| Regression discovery | Activation-rooted tracked graph read by one fail-closed spec runner | AR-P8 |
+| Quality floor | Checked exact source lists with per-file ≥90% new-core branch coverage plus exact full verify | AR-P10, AR-P12 |
 | Publication invalidation | Refresh and reselect the genuine execution child at closeout | AR-P13 |
 
 ## Acceptance Criteria
@@ -47,7 +48,8 @@ The RD owns all behavioral acceptance criteria. Plan-local completion additional
 
 1. [ ] Every RD-05 acceptance criterion maps to at least one concrete ST case in
    `07-testing-strategy.md`.
-2. [ ] New RD-05 core modules in each affected package retain at least 90% branch coverage.
+2. [ ] Every module in the checked RD-05 source-owner lists retains at least 90% per-file branch
+   coverage and the ownership freshness guards pass.
 3. [ ] The unchanged RD-04 V1 report remains readable and byte-compatible.
 4. [ ] The final selected execution child resolves the exact reviewed post-RD-05 handler bytes.
 5. [ ] The exact project verification command passes and `spec/` remains untouched.

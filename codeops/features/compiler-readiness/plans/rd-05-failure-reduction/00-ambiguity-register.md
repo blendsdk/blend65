@@ -20,10 +20,10 @@
 | AR-P4 | Behavioral gaps | Which deterministic algorithm and file seam implement catalog-wide one-minimal reduction? | Ordered restart-to-fixed-point reducer; worklist reducer; global search | Ordered first-preserving edit with restart and final complete catalog pass | ✅ Resolved |
 | AR-P5 | Integration points | How does a reduced candidate traverse the original RD-04 route contract with a new identity? | Dedicated candidate request arm; mutate/reuse case identity; direct compiler call | Dedicated authenticated candidate request arm through published handlers | ✅ Resolved |
 | AR-P6 | Security & compliance | Where do immutable cores/events/activations publish, and which secure filesystem boundary owns writes? | Execution-owned secure publisher using generalized primitives; readiness-owned Node writer; mutable merged record | Readiness schemas/encodings plus execution-owned generalized secure publisher | ✅ Resolved |
-| AR-P7 | Behavioral gaps | How are fresh confirmation and stateful-sequence reproduction scheduled? | Dedicated bounded fresh-worker coordinator; reuse campaign pool; always persist source alone | Dedicated bounded coordinator with a new worker/workspace per confirmation and sequence step | ✅ Resolved |
+| AR-P7 | Behavioral gaps | How are fresh confirmation and stateful-sequence reproduction scheduled? | Dedicated bounded fresh-worker coordinator; reuse campaign pool; always persist source alone | Fresh worker per standalone confirmation and per complete sequence attempt; ordered cases share only their attempt worker | ✅ Resolved |
 | AR-P8 | Integration points | How are inactive candidates activated into immutable specification tests while commits stay green? | Repository activation manifest plus implementation-blind spec runner; generated test files; expected-failure tests | Fail-closed repository activation manifests consumed by one implementation-blind spec runner | ✅ Resolved |
 | AR-P9 | Integration points | How does RD-05 consume RD-04 results without changing the selected RD-04 authority-report format? | Join a genuine report to live authorities/campaign in a new orchestrator; extend report wire format; scrape report-only evidence | Join genuine live authority and immediately materialize a separate complete failure envelope | ✅ Resolved |
-| AR-P10 | Non-functional gaps | What coverage and verification thresholds govern the new security/identity core? | Exact verify plus ≥90% branch coverage for new cores; exact verify only; whole-package threshold increase | Exact verify plus focused ≥90% branch coverage for new RD-05 cores in both packages | ✅ Resolved |
+| AR-P10 | Non-functional gaps | What coverage and verification thresholds govern the new security/identity core? | Exact verify plus ≥90% branch coverage for new cores; exact verify only; whole-package threshold increase | Exact verify plus checked per-file ≥90% branch coverage for every RD-05-owned core | ✅ Resolved |
 | AR-P11 | Naming & terminology | What stable file/API names and plan component boundaries will execution use? | Five focused components with `failure-*`/`reduction-*` names; fewer large modules; many micro-modules | Five component specifications and focused kebab-case modules below 500 lines where practical | ✅ Resolved |
 | AR-P12 | Technical unknowns | What command is authoritative for every plan verification checkpoint? | Exact AGENTS.md verify command; package-only checks; CI workflow approximation | Exact AGENTS.md install/build/typecheck/lint/test command | ✅ Resolved |
 | AR-P13 | Integration points | How does RD-05 handle invalidation of the content-bound selected RD-04 execution-handler publication when route bytes change? | Extend then regenerate/review/rerun/reselect; bypass published authority; leave selected authority stale | Extend genuine handlers, then regenerate, run real acceptance, independently review, prepare, and atomically reselect | ✅ Resolved |
@@ -110,7 +110,10 @@ under bounded execution.
 **Objective:** Execute transformed bytes through unchanged obligation/tier/policy/fixture/oracle.
 **Decision:** Add a dedicated discriminated candidate request arm derived from genuine
 `ReductionCandidateAuthorityV1`; published tier handlers accept it only after original route-contract
-and new candidate identity validation.
+and new candidate identity validation. A closed family-specific payload and purpose-limited
+candidate runtime authority adapt transformed source/semantics to route, live-handler, ACME, VICE,
+and runtime-evaluation consumers without forging `ExecutionCaseV1` or reusing original expected
+runtime bytes.
 **Evidence:** Current handlers already consume a closed request union and are the only reviewed path
 through workers, ACME, VICE, and oracle evaluation.
 **Rejected alternatives:** Reusing identity falsifies provenance; direct invocation bypasses route
@@ -143,12 +146,15 @@ lost-update and crash hazards.
 **Authority:** AI — delegated by `--auto-design`
 **Eligibility:** Concurrency and recovery mechanism.
 **Objective:** Distinguish standalone, sequence-dependent, and flaky failures.
-**Decision:** A bounded coordinator acquires a fresh worker and workspace for each of two
-confirmations and every sequence attempt; it never uses the campaign pool for final proof.
+**Decision:** A bounded coordinator acquires a fresh worker-thread/V8 isolate/root for each of two
+standalone confirmations and for each complete sequence attempt; ordered cases reuse their dedicated
+attempt worker through the selected maximum of 64 so cross-case state can reproduce while ordinary
+per-case workspaces still clean up. Independent attempts never share state, the coordinator bypasses
+the campaign pool's eight-case retirement, and external tool subprocesses remain route-isolated.
 **Evidence:** The current executor intentionally reuses workers for up to eight cases.
 **Rejected alternatives:** Pool reuse preserves contamination; source-only persistence misclassifies
 stateful defects.
-**Strongest counterargument:** Fresh processes are expensive.
+**Strongest counterargument:** Fresh isolates and external subprocesses are expensive.
 **Confidence:** High — the cost applies only to final confirmation/sequence reproduction.
 **Hardening:** Performance reframing retained isolation at the final boundary.
 **Policy version:** 1 · **Root invocation ID:** `make-plan-rd05-20260826-0856`
@@ -160,9 +166,10 @@ stateful defects.
 **Eligibility:** Complex test architecture inside approved inactive/active behavior.
 **Objective:** Make active regressions immutable and green without manufacturing mutable tests.
 **Decision:** Store inactive cores under tracked readiness evidence; activation adds one immutable
-marker. A co-located readiness-execution spec runner validates the complete core/event/activation
-graph and registers one stable test per active key; malformed, duplicate, missing, or forged
-authority fails the suite.
+marker. A co-located readiness-execution spec runner traverses from activation roots, validates the
+complete reachable activation/core graph, and registers one stable test per active key;
+malformed, duplicate, missing, or forged reachable authority fails the suite. Valid unreferenced
+events remain inactive reconciliation evidence and emit only a diagnostic.
 **Evidence:** The repo tracks readiness authorities and uses implementation-blind co-located spec
 tests; execution owns compiler/tool routes.
 **Rejected alternatives:** Generated tests drift and duplicate harnesses; expected-failure tests
@@ -179,8 +186,10 @@ approve defects.
 **Eligibility:** Complex compatibility/integration mechanism.
 **Objective:** Obtain complete shrink authority without changing `ExecutionAuthorityReportV1`.
 **Decision:** A new orchestrator validates an existing report against genuine parent, execution,
-oracle, campaign, route, and result authority, then immediately creates a separate complete
-`FailureEnvelopeV1`; all later work uses the envelope.
+oracle, campaign, route, and result authority. Report authorization privately binds an ordered
+handler-minted predicate-sidecar map without changing V1 bytes. The orchestrator creates a complete
+`FailureEnvelopeV1` only when all authority is resolvable; otherwise it creates a closed durable
+unavailable-source run without pretending an envelope exists.
 **Evidence:** The report retains digests/results but not source, IR, route bytes, or replay envelope;
 its V1 serializer is exact and content-bound.
 **Rejected alternatives:** Extending V1 breaks compatibility; report-only processing cannot replay
@@ -196,8 +205,11 @@ or authenticate candidate bytes.
 **Authority:** AI — delegated by `--auto-design`
 **Eligibility:** Testing and verification strategy.
 **Objective:** Hold new identity/security cores to the established readiness quality floor.
-**Decision:** Require focused branch coverage of at least 90% for new RD-05 core files in both
-packages plus the exact repository verification command.
+**Decision:** Require checked exact RD-05 source lists and Vitest `perFile` branch coverage of at
+least 90% in both packages. A Git-baseline freshness command independently derives every changed
+production participant, classifies new cores versus legacy hosts/generated/barrels, and prevents a
+self-declared allowlist from omitting a touched file. The exact repository verification command
+remains mandatory.
 **Evidence:** RD-04 used focused 90% branch floors; package scripts already expose coverage.
 **Rejected alternatives:** Exact verify alone has no branch floor; raising whole-package floors
 would expand unrelated remediation.
@@ -243,9 +255,10 @@ candidate execution, evidence/regressions, orchestration/closeout—and focused 
 **Authority:** AI — delegated by `--auto-design`
 **Eligibility:** Complex compatibility/recovery sequencing required by current authority design.
 **Objective:** Keep the selected execution child truthful after handler bytes change.
-**Decision:** After final code review, regenerate/check handler closures, rerun genuine ACME/VICE
-acceptance, independently review exact bytes/evidence, prepare a new immutable child, atomically
-select it, and run only non-mutating post-selection checks.
+**Decision:** Regenerate/check handler closures after every phase's final participating-byte change
+before verification/commit. After final code review, rerun genuine ACME/VICE acceptance,
+independently review exact bytes/evidence, prepare a new immutable child, atomically select it, and
+run only non-mutating post-selection checks. Earlier phases never prepare or select a child.
 **Evidence:** `execution-route-adapters` participates in all six generated handler closures and the
 selected pointer names one exact immutable child.
 **Rejected alternatives:** A bypass violates route authority; stale selection claims obsolete bytes.
@@ -261,8 +274,9 @@ selected pointer names one exact immutable child.
 **Eligibility:** Internal lifecycle and immutable-record mechanism within approved green activation.
 **Objective:** Record a truthful immutable commit identity without circular self-reference.
 **Decision:** The compiler fix or already-passing proof lands and verifies first. A later activation
-commit adds the immutable marker containing that existing green commit hash, proves the current HEAD
-descends from it, reruns the unchanged candidate, and remains green.
+commit adds the immutable marker containing that exact lowercase 40-hex commit ID, proves with fixed
+argv-only Git probes that current `HEAD` descends from it, reruns the unchanged candidate, and
+remains green. CI fetches full history so the proof is available for detached pull-request heads.
 **Evidence:** A Git commit cannot contain its own final hash; activation may not mutate candidate or
 marker bytes after publication.
 **Rejected alternatives:** A placeholder is not authority; a post-commit rewrite violates

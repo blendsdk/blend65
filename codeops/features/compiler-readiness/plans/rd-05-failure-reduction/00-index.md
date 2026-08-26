@@ -1,7 +1,7 @@
 # RD-05 Failure Reduction Implementation Plan
 
 > **Feature**: Classify, minimize, confirm, persist, and promote compiler-readiness failures
-> **Status**: Planning Complete
+> **Status**: Plan Preflighted
 > **Created**: 2026-08-26
 > **Implements**: compiler-readiness/RD-05
 > **CodeOps Artifact Schema**: 1
@@ -15,8 +15,9 @@ to be source-dependent. The deterministic engine supports typed valid cases, com
 tuples, and separately authenticated raw malformed source. (AR-P1–AR-P5)
 
 Confirmed failures publish as immutable campaign-independent cores with append-only discovery
-events. An inactive candidate becomes an active specification regression only through a fail-closed
-activation manifest referencing an already-green commit. Final route changes refresh the selected
+events; every envelope, outcome, sequence, and summary also has an immutable content-addressed
+record so replay survives restart. An inactive candidate becomes an active specification regression only through a fail-closed
+activation-rooted manifest referencing an already-green commit. Final route changes refresh the selected
 content-bound execution child instead of bypassing or leaving stale authority. (AR-P6–AR-P9,
 AR-P13–AR-P14)
 
@@ -51,9 +52,10 @@ const reduced = await reduceReadinessFailuresV1({
 });
 ```
 
-The orchestrator validates the join, materializes complete envelopes, applies the closed
-disposition policy, drives deterministic reduction through published route handlers, confirms in
-fresh workers, and passes authorized canonical records to the secure publisher. (AR-P4–AR-P9)
+The orchestrator validates the join, chooses and embeds policy once, materializes and publishes
+complete envelopes, applies the closed disposition policy, charges one shared campaign budget,
+drives deterministic reduction through published route handlers, confirms in isolated workers, and
+passes authorized canonical run/core/event/summary records to the secure publisher. (AR-P4–AR-P9)
 
 ### Key Decisions
 
@@ -62,9 +64,9 @@ fresh workers, and passes authorized canonical records to the secure publisher. 
 | Package ownership | Domain in readiness; host execution/publication in readiness-execution (AR-P1) |
 | RD-04 compatibility | Separate joined failure envelope; unchanged V1 report (AR-P9) |
 | Candidate execution | New authenticated request arm through existing published handlers (AR-P5) |
-| Persistence | Immutable core/event/activation graph with execution-owned secure writes (AR-P6) |
-| Regression activation | Fail-closed manifest runner and two-checkpoint commit protocol (AR-P8, AR-P14) |
-| Handler publication | Final regenerate/review/real-rerun/reselect sequence (AR-P13) |
+| Persistence | Immutable envelope/run/summary/core/event/activation graph with execution-owned secure writes (AR-P6) |
+| Regression activation | Activation-rooted fail-closed runner and two-checkpoint commit protocol (AR-P8, AR-P14) |
+| Handler publication | Regenerate/check each participating phase; final review/real-rerun/reselect only at closeout (AR-P13) |
 
 ## Related Files
 

@@ -67,12 +67,14 @@ primary result. (AR-P2)
 
 ```ts
 export interface FailureReductionBudgetV1 {
+  readonly campaignOperations: number;
   readonly transformationAttempts: number;
   readonly routeExecutions: number;
   readonly oracleEvaluations: number;
   readonly diagnosticBytes: number;
   readonly provenanceEvents: number;
   readonly sequenceCases: number;
+  readonly durableWrites: number;
   readonly coreBytes: number;
   readonly runBytes: number;
 }
@@ -90,12 +92,30 @@ export const FAILURE_REDUCTION_MAXIMUM_BUDGET_V1: Readonly<FailureReductionBudge
 export function parseFailureReductionPolicyV1(
   input: unknown,
 ): ExecutionOperationResultV1<FailureReductionPolicyV1>;
+
+export interface FailureCampaignBudgetAuthorityV1 {
+  readonly [FAILURE_CAMPAIGN_BUDGET_AUTHORITY_V1]: true;
+}
 ```
 
-Every value is a positive safe integer. Defaults and hard maxima are the exact RD values. The
-selected policy belongs to the run envelope/event/candidate identity, never the campaign-independent
-core or promotion key. Exact selected limits succeed; the next consuming operation returns a closed
-exhaustion outcome. (AR-P2, AR-P4)
+Every value is a positive safe integer. The eight RD-owned category limits retain their exact RD
+defaults and maxima. The aggregate additions selected during preflight are
+`campaignOperations: 16_384` with hard maximum `65_536`, and `durableWrites: 32_768` with hard
+maximum `65_536`. One
+orchestrator-owned `FailureCampaignBudgetAuthorityV1` enforces the selected budget across the whole
+report in canonical case order. Reduction edits, candidate routes, predicate evaluations,
+confirmations, controls, sequence cases, diagnostic capture, evidence reads, and durable writes each
+charge the single capability plus their applicable category/byte counters. At construction the
+capability derives a mandatory terminal-audit reservation from the authenticated report: one run
+for every non-pass, at most one envelope for every resolvable non-pass, and one campaign summary.
+If `durableWrites` cannot cover that worst-case reservation, policy validation rejects before any
+campaign side effect. Ordinary reduction and optional core/event publication cannot consume the
+reservation. Terminal envelope/run/summary writes consume it while still charging the durable-write
+and per-record byte caps. Per-session counters are attribution only and cannot mint independent
+capacity. Exact discretionary limits succeed; the next ordinary operation returns a closed
+exhaustion outcome whose run/summary can still use the reserve. The selected policy belongs to the
+envelope/run/event/candidate identity, never the campaign-independent core or promotion key. (AR-P2,
+AR-P4)
 
 ### Predicate and Promotion Identity
 
@@ -112,6 +132,7 @@ export type FailureObservationIdentityV1 =
     };
 
 export interface FailureRouteContractV1 {
+  readonly originalRouteKind: "valid-envelope" | "invalid-diagnostic";
   readonly terminalTier: ExecutionTierV1;
   readonly obligation: string;
   readonly prerequisiteTiers: readonly ExecutionTierV1[];
@@ -147,7 +168,10 @@ Canonical predicate fields exclude campaign, case, candidate, execution, route-p
 workspace, host-path, and non-authoritative prose identities. `not-reached` terminal-reason
 normalization retains only stable category and bounded predicate-bearing typed evidence. The
 promotion key includes the complete canonical predicate digest and minimized content digest; equal
-keys must derive byte-identical core inputs. (AR-P2, AR-P6)
+keys must derive byte-identical core inputs. The omitted legacy valid-request discriminator
+normalizes to `valid-envelope`; `invalid-diagnostic` remains distinct. Route-kind equality is
+field-by-field and participates in every canonical domain that embeds the route contract. (AR-P2,
+AR-P6)
 
 Canonical identity domains are additive and explicit, including at minimum
 `failure-predicate-v1`, `promoted-failure-key-v1`, `failure-envelope-v1`,
@@ -167,7 +191,6 @@ export type FailureReplayAuthorityV1 =
   | {
       readonly kind: "raw-malformed";
       readonly envelope: MalformedReplayEnvelopeV1;
-      readonly sourceBytes: Uint8Array;
     };
 
 export interface FailureEnvelopeV1 {
@@ -201,6 +224,12 @@ authority used by the original result. Resolvers accept only the named digest/re
 `historical-authority-unavailable` when absent; current content is never substituted. The envelope
 contains canonical closed oracle projections, not raw streams or unstructured prose. (AR-P9)
 
+Typed replay retains its separately rendered source because `ReplayEnvelopeV1` does not own those
+bytes. Raw replay derives its only authoritative source from the authenticated
+`MalformedReplayEnvelopeV1`; no outer copy or equality rule exists. The orchestrator chooses the
+policy once, embeds it in the envelope before authorization, and all reducer/execution sessions
+derive it solely from that envelope. (AR-P3, AR-P9)
+
 `authorizeFailureEnvelopeV1` is reachable only after the orchestration join in 03-05 validates the
 V1 report against genuine live authority. The cross-package value is opaque and module-private
 state retains the canonical bytes so execution cannot brand caller-supplied bytes as authorized.
@@ -222,7 +251,12 @@ state retains the canonical bytes so execution cannot brand caller-supplied byte
 - Exhaust the complete result-code × tier × stage cross product and the current production tuples.
 - Use fixed canonical vectors for every identity domain, including collision injection.
 - Prove selected policy values alter run/candidate identity but not an equal promotion core.
+- Mutate `originalRouteKind` independently and prove legacy omitted valid routes normalize only to
+  `valid-envelope`, never to diagnostic authority.
 - Parse typed and raw envelopes after authority revisions; prove unavailable content never falls
   back to current state.
 - Inject accessors, proxies, extra keys, oversized bytes/arrays, invalid UTF-8, and digest collisions.
+- Prove one shared campaign budget reaches every operation category in canonical case order,
+  rejects an undersized terminal reservation before work, allows exact discretionary exhaustion
+  followed by terminal run/summary persistence, and rejects work beyond the reserve.
 - Preserve the exact existing `ExecutionAuthorityReportV1` serialization vectors.
