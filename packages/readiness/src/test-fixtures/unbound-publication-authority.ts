@@ -1,6 +1,8 @@
 import { copyFile, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { restoreHistoricalReadinessAuthority } from "./historical-readiness-authority.js";
+
 const PROMOTED_HANDLER_IDS = new Set([
   "generator.compiler-cases",
   "generator.frontend-cases",
@@ -42,6 +44,7 @@ export async function restoreUnboundPublicationAuthority(
   repositoryRoot: string,
   fixtureRoot: string,
 ): Promise<void> {
+  await restoreHistoricalReadinessAuthority(fixtureRoot);
   await rm(join(fixtureRoot, "readiness/publications"), { recursive: true, force: true });
 
   const inventoryPath = join(fixtureRoot, "readiness/inventory/compiler-readiness-v1.json");

@@ -23,7 +23,8 @@
     "gen:matrix": "node scripts/gen-capability-matrix.mjs",
     "twin:diff": "node scripts/twin-diff.mjs",
     "annotate:cycles": "node scripts/annotate-cycles.mjs",
-    "gen:scoreboard": "node scripts/gen-parity-scoreboard.mjs"
+    "gen:scoreboard": "node scripts/gen-parity-scoreboard.mjs",
+    "check:coverage:rd05": "yarn workspace @blend65/readiness build && yarn workspace @blend65/readiness-execution build && node scripts/check-rd05-coverage.mjs"
   },
   "devDependencies": {
     "turbo": "^2",

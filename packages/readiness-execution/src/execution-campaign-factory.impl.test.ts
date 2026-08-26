@@ -1,11 +1,7 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   generateCampaignCase,
   projectExecutionCampaignV1,
-  resolvePublishedSnapshot,
   type PublishedSnapshot,
 } from "@blend65/readiness";
 import {
@@ -21,8 +17,11 @@ import {
   createLocalExecutionCampaignV1,
   LOCAL_EXECUTION_CAMPAIGN_CONFIGURATION_V1,
 } from "./execution-campaign-factory.js";
+import {
+  createHistoricalExecutionParentFixtureV1,
+  type HistoricalExecutionParentFixtureV1,
+} from "./test-fixtures/execution-publication-catalog-spec-fixture.js";
 
-const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const SEED = "7".repeat(64);
 const ORACLE_BUDGET = Object.freeze({
   inputNodes: 512n,
@@ -34,15 +33,23 @@ const ORACLE_BUDGET = Object.freeze({
   transformedNodes: 512n,
 });
 
+let historicalParent: HistoricalExecutionParentFixtureV1;
+
+beforeAll(async () => {
+  historicalParent = await createHistoricalExecutionParentFixtureV1();
+});
+
+afterAll(async () => {
+  await historicalParent.cleanup();
+});
+
 async function selectedAuthority(): Promise<{
   readonly snapshot: PublishedSnapshot;
   readonly context: PublishedOracleContext;
 }> {
-  const selected = await resolvePublishedSnapshot({ repositoryRoot: REPOSITORY_ROOT });
-  if (!selected.ok) throw new TypeError(JSON.stringify(selected.diagnostics));
-  const context = createPublishedOracleContext(selected.value);
+  const context = createPublishedOracleContext(historicalParent.parent);
   if (!context.ok) throw new TypeError("Expected the selected oracle context.");
-  return { snapshot: selected.value, context: context.value };
+  return { snapshot: historicalParent.parent, context: context.value };
 }
 
 describe("local execution campaign factory", () => {

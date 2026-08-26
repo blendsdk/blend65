@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFile, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import {
   INVENTORY_V1_LIMITS,
@@ -45,6 +43,8 @@ import {
   type Sha256Digest,
 } from "@blend65/readiness";
 import { createPublishedOracleContext } from "@blend65/readiness/published-oracle";
+
+import { createHistoricalReadinessAuthorityFixtureV1 } from "./execution-publication-catalog-spec-fixture.js";
 
 type WorkerTier = "frontend" | "compiler-api" | "cli" | "emit";
 
@@ -547,7 +547,6 @@ export interface ProcessKernelHarness {
 }
 
 const ENCODER = new TextEncoder();
-const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const BASE_PUBLICATION_DIGEST =
   "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
 const ORACLE_HANDLER_IDS = [
@@ -1126,55 +1125,55 @@ async function createOracleAuthority(): Promise<{
   readonly context: PublishedOracleContext;
   readonly inventoryBytes: Uint8Array;
 }> {
-  const root = await mkdtemp(join(tmpdir(), "blend65-adapter-authority-"));
-  await cp(join(REPOSITORY_ROOT, "readiness"), join(root, "readiness"), { recursive: true });
-  await cp(join(REPOSITORY_ROOT, "spec"), join(root, "spec"), { recursive: true });
-  await cp(join(REPOSITORY_ROOT, "packages/readiness/src"), join(root, "packages/readiness/src"), {
-    recursive: true,
-  });
-  await cp(
-    join(REPOSITORY_ROOT, "packages/readiness/package.json"),
-    join(root, "packages/readiness/package.json"),
-  );
-  await writeFile(
-    join(root, "readiness/publications/current-publication.json"),
-    ENCODER.encode(
-      `${JSON.stringify({ schemaVersion: 1, publicationDigest: BASE_PUBLICATION_DIGEST })}\n`,
-    ),
-  );
-  const base = await resolvePublishedSnapshotByDigest({
-    repositoryRoot: root,
-    publicationDigest: BASE_PUBLICATION_DIGEST,
-  });
-  if (!base.ok) throw new TypeError(`base publication failed: ${JSON.stringify(base.diagnostics)}`);
-  const review = await prepareIncrementalBindingPublicationReview({
-    repositoryRoot: root,
-    baseSnapshot: base.value,
-    targetHandlerIds: ORACLE_HANDLER_IDS,
-  });
-  if (!review.ok)
-    throw new TypeError(`publication review failed: ${JSON.stringify(review.diagnostics)}`);
-  const prepared = await prepareIncrementalBindingPublication({
-    repositoryRoot: root,
-    baseSnapshot: base.value,
-    targetHandlerIds: ORACLE_HANDLER_IDS,
-    semanticReviewBytes: acceptedReviewBytes(review.value.request),
-  });
-  if (!prepared.ok) {
-    throw new TypeError(`publication preparation failed: ${JSON.stringify(prepared.diagnostics)}`);
+  const historical = await createHistoricalReadinessAuthorityFixtureV1();
+  const root = historical.repositoryRoot;
+  try {
+    await writeFile(
+      join(root, "readiness/publications/current-publication.json"),
+      ENCODER.encode(
+        `${JSON.stringify({ schemaVersion: 1, publicationDigest: BASE_PUBLICATION_DIGEST })}\n`,
+      ),
+    );
+    const base = await resolvePublishedSnapshotByDigest({
+      repositoryRoot: root,
+      publicationDigest: BASE_PUBLICATION_DIGEST,
+    });
+    if (!base.ok)
+      throw new TypeError(`base publication failed: ${JSON.stringify(base.diagnostics)}`);
+    const review = await prepareIncrementalBindingPublicationReview({
+      repositoryRoot: root,
+      baseSnapshot: base.value,
+      targetHandlerIds: ORACLE_HANDLER_IDS,
+    });
+    if (!review.ok)
+      throw new TypeError(`publication review failed: ${JSON.stringify(review.diagnostics)}`);
+    const prepared = await prepareIncrementalBindingPublication({
+      repositoryRoot: root,
+      baseSnapshot: base.value,
+      targetHandlerIds: ORACLE_HANDLER_IDS,
+      semanticReviewBytes: acceptedReviewBytes(review.value.request),
+    });
+    if (!prepared.ok) {
+      throw new TypeError(
+        `publication preparation failed: ${JSON.stringify(prepared.diagnostics)}`,
+      );
+    }
+    const inventoryBytes = await readFile(
+      join(
+        root,
+        "readiness/publications/releases",
+        prepared.value.publicationDigest,
+        "compiler-readiness-v1.json",
+      ),
+    );
+    const context = createPublishedOracleContext(prepared.value.stagedSnapshot);
+    if (!context.ok)
+      throw new TypeError(`oracle context failed: ${JSON.stringify(context.diagnostics)}`);
+    return { root, context: context.value, inventoryBytes };
+  } catch (error) {
+    await historical.cleanup();
+    throw error;
   }
-  const inventoryBytes = await readFile(
-    join(
-      root,
-      "readiness/publications/releases",
-      prepared.value.publicationDigest,
-      "compiler-readiness-v1.json",
-    ),
-  );
-  const context = createPublishedOracleContext(prepared.value.stagedSnapshot);
-  if (!context.ok)
-    throw new TypeError(`oracle context failed: ${JSON.stringify(context.diagnostics)}`);
-  return { root, context: context.value, inventoryBytes };
 }
 
 const PREREQUISITES: Readonly<Record<ExecutionTierV1, readonly ExecutionTierV1[]>> = {

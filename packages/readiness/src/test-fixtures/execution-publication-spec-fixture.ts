@@ -1,17 +1,8 @@
 import { createHash } from "node:crypto";
-import {
-  cp,
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+
+import { createHistoricalReadinessAuthorityRepository } from "./historical-readiness-authority.js";
 
 export const CURRENT_PARENT_DIGEST =
   "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
@@ -91,72 +82,7 @@ export interface ExpectedExecutionPublicationV1 {
   memberBytes: Readonly<Record<string, Uint8Array>>;
 }
 
-const SOURCE_REPOSITORY_ROOT = resolve(import.meta.dirname, "../../../..");
-const AUTHORITY_RELATIVE_PATHS = [
-  "readiness",
-  "spec",
-  join("packages", "readiness", "src"),
-  join("packages", "readiness", "package.json"),
-] as const;
-const EXCLUDED_EXECUTION_PUBLICATIONS = join("readiness", "execution-publications");
-const MAX_AUTHORITY_FILES = 512;
-const MAX_AUTHORITY_BYTES = 64 * 1024 * 1024;
 const encoder = new TextEncoder();
-
-interface AuthorityTreeSize {
-  files: number;
-  bytes: number;
-}
-
-function isExcludedAuthorityPath(path: string): boolean {
-  const relativePath = relative(SOURCE_REPOSITORY_ROOT, path);
-  return (
-    relativePath === EXCLUDED_EXECUTION_PUBLICATIONS ||
-    relativePath.startsWith(`${EXCLUDED_EXECUTION_PUBLICATIONS}${sep}`)
-  );
-}
-
-async function inspectAuthorityPath(path: string, size: AuthorityTreeSize): Promise<void> {
-  if (isExcludedAuthorityPath(path)) return;
-  const metadata = await lstat(path);
-  if (metadata.isSymbolicLink()) {
-    throw new Error(`authority fixture source must not contain a symbolic link: ${path}`);
-  }
-  if (metadata.isDirectory()) {
-    const names = (await readdir(path)).sort();
-    for (const name of names) await inspectAuthorityPath(join(path, name), size);
-    return;
-  }
-  if (!metadata.isFile() || metadata.nlink !== 1) {
-    throw new Error(
-      `authority fixture source must contain only single-link regular files: ${path}`,
-    );
-  }
-  size.files += 1;
-  size.bytes += metadata.size;
-  if (size.files > MAX_AUTHORITY_FILES || size.bytes > MAX_AUTHORITY_BYTES) {
-    throw new Error("authority fixture source exceeds its file or byte bound");
-  }
-}
-
-async function copyParentAuthority(repositoryRoot: string): Promise<void> {
-  const size: AuthorityTreeSize = { files: 0, bytes: 0 };
-  for (const relativePath of AUTHORITY_RELATIVE_PATHS) {
-    await inspectAuthorityPath(join(SOURCE_REPOSITORY_ROOT, relativePath), size);
-  }
-  for (const relativePath of AUTHORITY_RELATIVE_PATHS) {
-    const source = join(SOURCE_REPOSITORY_ROOT, relativePath);
-    const destination = join(repositoryRoot, relativePath);
-    await mkdir(dirname(destination), { recursive: true });
-    await cp(source, destination, {
-      recursive: true,
-      force: false,
-      errorOnExist: true,
-      dereference: false,
-      filter: (path) => !isExcludedAuthorityPath(path),
-    });
-  }
-}
 
 export function digestBytes(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -267,9 +193,7 @@ export function expectedPublication(
 }
 
 export async function createIsolatedRepository(): Promise<string> {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), "blend65-execution-spec-"));
-  await copyParentAuthority(repositoryRoot);
-  return repositoryRoot;
+  return createHistoricalReadinessAuthorityRepository("blend65-execution-spec-");
 }
 
 export async function removeIsolatedRepository(repositoryRoot: string): Promise<void> {

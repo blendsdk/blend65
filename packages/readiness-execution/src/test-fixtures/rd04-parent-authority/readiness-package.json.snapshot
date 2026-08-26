@@ -30,8 +30,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:coverage:rd05": "vitest run --config vitest.rd05.config.ts --coverage"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "ajv": "^8.17.1",

@@ -26,7 +26,7 @@ import {
   validateExecutionFixtureReadbackV1,
   validateRenderedExecutionSourceV1,
 } from "./index.js";
-import { createGenuineExecutionCampaigns } from "./test-fixtures/genuine-execution-campaign.js";
+import { createGenuineFrontendRuntimeCampaigns } from "./test-fixtures/genuine-execution-campaign.js";
 
 const digest = (character: string): string => `sha256:${character.repeat(64)}`;
 
@@ -36,7 +36,7 @@ let scalarCases: ReadonlyMap<ScalarType, ExecutionCaseV1>;
 let directCase: ExecutionCaseV1;
 
 beforeAll(async () => {
-  const campaigns = await createGenuineExecutionCampaigns();
+  const campaigns = await createGenuineFrontendRuntimeCampaigns();
   frontendCampaign = campaigns.frontend;
   runtimeCampaign = campaigns.runtime;
   scalarCases = findScalarCases();

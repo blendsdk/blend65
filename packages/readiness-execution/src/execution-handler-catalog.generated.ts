@@ -1465,7 +1465,7 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/node_modules/json-schema-traverse/package.json":
     "sha256:156fb24af02845c190701360d06dfda35ef04282e34a734289ea9535ad9819ae",
   "packages/readiness/package.json":
-    "sha256:82a0b97f00640aa6cf05dfc13d8fc8bb9c33706dcbee9f037793441bbdc04a30",
+    "sha256:e98f28130815e0d4b97f978bb2883cc8313f585f189abef39e215c34b5d7596a",
   "packages/test-harness/dist/emulator/vice/protocol.js":
     "sha256:c39c80261a3f3491e0ba304de7174b98bbb3e54d232fd9cab5315aebb99436d5",
   "packages/test-harness/dist/emulator/vice/vice-control-cleanup.js":
@@ -1498,42 +1498,42 @@ export const GENERATED_EXECUTION_HANDLER_CATALOG_V1 = Object.freeze({
         capabilityId: "acme",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:d31da8dddf868a03a87bab82a75bd95dbeef7eb75e70bb239b351c3a7b51147c",
+          "sha256:1b0a05cc31429882d44a91f8e44f4b0b91ac317c532650e2865477537b671a0a",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "cli",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:c7633be2c8fdc4051b51b1ccc17e67ac97c6c2a8f177b67bd5c7a389eac46cbc",
+          "sha256:f87d88d715e3ab80c765b435210bbf7d283752deb86480336aa648dcbbb14c87",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "compiler-api",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:23d656719bb1d62e4df0de3f819f57945ec0dfdd3114c99970cf5cf366bbcd4e",
+          "sha256:f93d20b241d70a695b03dc0694e8b8c6c1a076013778a1c9583b5f2f653ffc58",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "emit",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:b5d6dee4a8dacb623f5f9eecf8b1cd13c0f5ceac13bd331936c9207c1b20248f",
+          "sha256:e6ad920365896491a56cda4f0400d5ddee85b93925fad8d18a586a43cfd530ab",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "frontend",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:420157216e10524f9c97965f8f7e26f25f9cef9ea1fcf66cf53b0a885ba5d1db",
+          "sha256:833788959cd215ef87694edb4ceab1ce821a10ec4a304f4ba2a449232d4a6278",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "vice",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:e5a53d31a7fa787de58f60758ab2bf0cef1dbc27914144274e89f01909f6878d",
+          "sha256:4bae9057e8b355b9c7caed6a1282576ba0bd870bebe4209f8cf85cf6aae47500",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
     ].map((participant) =>
@@ -1549,7 +1549,7 @@ export const GENERATED_EXECUTION_HANDLER_CATALOG_V1 = Object.freeze({
 /** Content-derived closure for campaign, orchestration, planning and report authority. */
 export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
   catalogKind: "execution-runner-catalog-v1" as const,
-  revision: "sha256:20a174b5383e07fefe03eac980e8c7fae4f2ad28c0d8a735c68514277aa93535",
+  revision: "sha256:944e905a807254225665673faecf5a6e003c6baa45171c5134ea220c248db97f",
   dependencyPaths: Object.freeze([
     "node_modules/cliui/build/lib/index.js",
     "node_modules/cliui/build/lib/string-utils.js",
@@ -1861,6 +1861,9 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/execution-validation.js",
     "packages/readiness/dist/execution-vic-projection.js",
     "packages/readiness/dist/expression-renderer.js",
+    "packages/readiness/dist/failure-campaign-budget.js",
+    "packages/readiness/dist/failure-contracts.js",
+    "packages/readiness/dist/failure-identity.js",
     "packages/readiness/dist/fragmenter.js",
     "packages/readiness/dist/generate-case.js",
     "packages/readiness/dist/generation-budget.js",
@@ -2687,6 +2690,12 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
       "sha256:d0183254b6b567ceb0608ddecf78e208a882c1dfdb9583b014694d4435047595",
     "packages/readiness/dist/expression-renderer.js":
       "sha256:3607963282982029f28dd548b95d8f5af35b942c805d1541ce0ba5a2432e6981",
+    "packages/readiness/dist/failure-campaign-budget.js":
+      "sha256:dec2c43a5518670cfb906e63113c94e9f690667bf886cf13652c3e13a37e937f",
+    "packages/readiness/dist/failure-contracts.js":
+      "sha256:ab1985df24989149b7a8238ec8837704cbe9d305201185738d4aa7bd6b43fdc1",
+    "packages/readiness/dist/failure-identity.js":
+      "sha256:d1c05e5cbe572908c094e400ca1fdd3a702fa50df08046b76b6b6f93ea309fba",
     "packages/readiness/dist/fragmenter.js":
       "sha256:4d42e92edd5e4a66a0cf42c6fbd21ed3eb6d419fca5130a091595c413f94452c",
     "packages/readiness/dist/generate-case.js":
@@ -2706,7 +2715,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/implementation-revision.js":
       "sha256:8d5008cf9d337184ec0e05a6b07f56c76526499f5652b80246d34ba1b3788223",
     "packages/readiness/dist/index.js":
-      "sha256:22f4784204350fae0796cb555d5903e09d4df5015eff964d7c0223429d3f6d85",
+      "sha256:7712632049e9aa8286af957fda21a6f35bb0d131668a7130906bc80098cdf9d7",
     "packages/readiness/dist/invalid-neighbor.js":
       "sha256:2503f5520d7f27faaa9ac55b79180ecb73fdeddd68a2d2f78177373d8a5f697c",
     "packages/readiness/dist/invalid-roundtrip-projection.js":
@@ -3088,7 +3097,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/node_modules/json-schema-traverse/package.json":
       "sha256:156fb24af02845c190701360d06dfda35ef04282e34a734289ea9535ad9819ae",
     "packages/readiness/package.json":
-      "sha256:82a0b97f00640aa6cf05dfc13d8fc8bb9c33706dcbee9f037793441bbdc04a30",
+      "sha256:e98f28130815e0d4b97f978bb2883cc8313f585f189abef39e215c34b5d7596a",
     "readiness/oracles/oracle-mutation-assertions-v1.json":
       "sha256:25aea6790993092b8cb75cbe42777acce64a73cb3eb8bccbd5b0353cbd413727",
     "readiness/schema/inventory-v1.schema.json":

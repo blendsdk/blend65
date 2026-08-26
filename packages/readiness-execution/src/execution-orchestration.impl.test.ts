@@ -75,7 +75,7 @@ describe("execution campaign orchestration", () => {
       if (!selected.ok) throw new TypeError(JSON.stringify(selected.issues));
       const live = resolveLiveExecutionContextV1(selected.value);
       if (!live.ok) throw new TypeError(JSON.stringify(live.issues));
-      const campaigns = await createGenuineExecutionCampaigns();
+      const campaigns = await createGenuineExecutionCampaigns(parent.value);
       const campaign = campaigns.orchestration;
       const unavailableCapabilities = {
         acme: { available: false },

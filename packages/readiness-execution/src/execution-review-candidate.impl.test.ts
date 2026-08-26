@@ -109,7 +109,7 @@ describe("prepublication execution review authority", () => {
         ).ok,
       ).toBe(false);
 
-      const campaigns = await createGenuineExecutionCampaigns();
+      const campaigns = await createGenuineExecutionCampaigns(parent.value);
       const executed = await executeReadinessCampaign({
         parent: parent.value,
         execution: candidate.value,

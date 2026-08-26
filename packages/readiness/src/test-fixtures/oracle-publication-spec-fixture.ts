@@ -1,9 +1,9 @@
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { restoreUnboundPublicationAuthority } from "./unbound-publication-authority.js";
+import { createHistoricalReadinessAuthorityRepository } from "./historical-readiness-authority.js";
 
 export type SpecDigest = `sha256:${string}`;
 
@@ -124,21 +124,7 @@ function encodeJson(value: unknown): Uint8Array {
 }
 
 async function copyRepositoryAuthority(prefix: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), prefix));
-  await cp(join(SOURCE_REPOSITORY_ROOT, "readiness"), join(root, "readiness"), {
-    recursive: true,
-  });
-  await cp(join(SOURCE_REPOSITORY_ROOT, "spec"), join(root, "spec"), { recursive: true });
-  await cp(
-    join(SOURCE_REPOSITORY_ROOT, "packages/readiness/src"),
-    join(root, "packages/readiness/src"),
-    { recursive: true },
-  );
-  await cp(
-    join(SOURCE_REPOSITORY_ROOT, "packages/readiness/package.json"),
-    join(root, "packages/readiness/package.json"),
-  );
-  return root;
+  return createHistoricalReadinessAuthorityRepository(prefix);
 }
 
 export async function createOraclePublicationSpecFixture(): Promise<OraclePublicationSpecFixture> {

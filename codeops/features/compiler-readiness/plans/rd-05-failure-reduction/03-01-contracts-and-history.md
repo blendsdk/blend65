@@ -44,24 +44,40 @@ export type ReductionOutcomeCodeV1 =
   | "reduction-exhausted"
   | "historical-authority-unavailable";
 
-export interface ClassifiedFailureV1 {
-  readonly revision: "failure-disposition-v1";
-  readonly disposition: FailureDispositionV1;
-  readonly cleanup: CleanupDispositionV1;
-  readonly result: ExecutionResultV1;
-}
+export type ClassifiedFailureV1 =
+  | {
+      readonly revision: "failure-disposition-v1";
+      readonly disposition: Exclude<FailureDispositionV1, "unsupported">;
+      readonly cleanup: CleanupDispositionV1;
+      readonly result: Extract<ExecutionResultV1, { readonly status: "failure" }>;
+    }
+  | {
+      readonly revision: "failure-disposition-v1";
+      readonly disposition: "unsupported";
+      readonly cleanup: CleanupDispositionV1;
+      readonly result: ExecutionResultV1;
+    }
+  | {
+      readonly revision: "failure-disposition-v1";
+      readonly disposition: "unsupported";
+      readonly cleanup: "cleanup-clear";
+      readonly result?: never;
+    };
 
 export function classifyExecutionFailureV1(
-  route: ExecutionRoutePlanItemV1,
-  result: ExecutionResultV1,
+  route: unknown,
+  result: unknown,
 ): ExecutionOperationResultV1<ClassifiedFailureV1>;
 ```
 
 The implementation encodes the RD-05 exhaustive tuple matrix as data, validates the authenticated
-terminal tier and reachable prefix, and returns exactly one initial disposition. Fresh-confirm
+terminal tier and reachable prefix, and returns exactly one initial disposition. Valid execution
+results are defensively normalized and retained even when their route tuple is unsupported. An
+invalid/open route or result returns only the closed unsupported arm, without retaining or
+fabricating an `ExecutionResultV1`. Fresh-confirm
 transition decisions consume two fresh results plus the required same-route known-good control;
 they are not inferred from prose or adapter subcodes. Cleanup classification never overwrites the
-primary result. (AR-P2)
+primary result. (AR-P2, AR-P16)
 
 ### Reduction Policy
 
@@ -96,6 +112,51 @@ export function parseFailureReductionPolicyV1(
 export interface FailureCampaignBudgetAuthorityV1 {
   readonly [FAILURE_CAMPAIGN_BUDGET_AUTHORITY_V1]: true;
 }
+
+export interface FailureCampaignBudgetReservationV1 {
+  readonly nonPassResults: number;
+  readonly resolvableNonPassResults: number;
+}
+
+export type FailureCampaignBudgetChargeV1 =
+  | { readonly kind: "transformation-attempt" }
+  | {
+      readonly kind: "route-execution";
+      readonly purpose: "reduction" | "confirmation" | "control";
+    }
+  | { readonly kind: "oracle-evaluation" }
+  | { readonly kind: "diagnostic-capture"; readonly bytes: number }
+  | { readonly kind: "provenance-event-read" }
+  | { readonly kind: "provenance-event-write" }
+  | { readonly kind: "sequence-case" }
+  | { readonly kind: "core-write"; readonly bytes: number }
+  | { readonly kind: "terminal-envelope-write" }
+  | { readonly kind: "terminal-run-write"; readonly bytes: number }
+  | { readonly kind: "terminal-summary-write" };
+
+export interface FailureCampaignBudgetSnapshotV1 {
+  readonly revision: "failure-campaign-budget-snapshot-v1";
+  readonly used: FailureReductionBudgetV1;
+  readonly terminalRemaining: {
+    readonly campaignOperations: number;
+    readonly durableWrites: number;
+    readonly envelopes: number;
+    readonly runs: number;
+    readonly summaries: number;
+  };
+}
+
+export function createFailureCampaignBudgetAuthorityV1(
+  policy: unknown,
+  reservation: unknown,
+): ExecutionOperationResultV1<FailureCampaignBudgetAuthorityV1>;
+export function chargeFailureCampaignBudgetV1(
+  authority: FailureCampaignBudgetAuthorityV1,
+  charge: unknown,
+): ExecutionOperationResultV1<FailureCampaignBudgetSnapshotV1>;
+export function getFailureCampaignBudgetSnapshotV1(
+  authority: FailureCampaignBudgetAuthorityV1,
+): ExecutionOperationResultV1<FailureCampaignBudgetSnapshotV1>;
 ```
 
 Every value is a positive safe integer. The eight RD-owned category limits retain their exact RD
@@ -108,14 +169,17 @@ confirmations, controls, sequence cases, diagnostic capture, evidence reads, and
 charge the single capability plus their applicable category/byte counters. At construction the
 capability derives a mandatory terminal-audit reservation from the authenticated report: one run
 for every non-pass, at most one envelope for every resolvable non-pass, and one campaign summary.
-If `durableWrites` cannot cover that worst-case reservation, policy validation rejects before any
-campaign side effect. Ordinary reduction and optional core/event publication cannot consume the
-reservation. Terminal envelope/run/summary writes consume it while still charging the durable-write
-and per-record byte caps. Per-session counters are attribution only and cannot mint independent
-capacity. Exact discretionary limits succeed; the next ordinary operation returns a closed
-exhaustion outcome whose run/summary can still use the reserve. The selected policy belongs to the
-envelope/run/event/candidate identity, never the campaign-independent core or promotion key. (AR-P2,
-AR-P4)
+Both `campaignOperations` and `durableWrites` must cover that worst-case reservation or policy
+validation rejects before any campaign side effect. Ordinary reduction and optional core/event
+publication cannot consume either reserved aggregate. Terminal envelope/run/summary writes consume
+the reserve while still charging the aggregate-operation, durable-write, and applicable run-byte
+caps. Core and run byte ceilings apply to each complete record, while the snapshot retains the
+largest observed record size; they are not campaign-total byte counters. Per-session counters are
+attribution only and cannot mint independent capacity. Exact
+discretionary limits succeed; the next ordinary operation returns a closed exhaustion outcome whose
+terminal records can still use the reserve. The selected policy belongs to the
+envelope/run/event/candidate identity, never the campaign-independent core or promotion key.
+(AR-P2, AR-P4, AR-P15)
 
 ### Predicate and Promotion Identity
 
@@ -162,6 +226,39 @@ export interface PromotedFailureKeyV1 {
   readonly predicateDigest: Sha256Digest;
   readonly digest: Sha256Digest;
 }
+
+export interface FailurePredicateIdentityV1 {
+  readonly revision: "failure-predicate-identity-v1";
+  readonly predicate: FailurePredicateV1;
+  readonly canonicalBytes: Uint8Array;
+  readonly digest: Sha256Digest;
+}
+
+export interface FailureReductionRunIdentityInputV1 {
+  readonly historicalEnvelopeDigest: Sha256Digest;
+  readonly predicateDigest: Sha256Digest;
+  readonly policy: FailureReductionPolicyV1;
+  readonly traceDigest: Sha256Digest;
+}
+
+export interface FailureReductionRunIdentityV1 {
+  readonly revision: "failure-reduction-run-identity-v1";
+  readonly digest: Sha256Digest;
+}
+
+export function deriveFailurePredicateIdentityV1(
+  input: unknown,
+  registry?: IdentityCollisionRegistry,
+): ExecutionOperationResultV1<FailurePredicateIdentityV1>;
+export function derivePromotedFailureKeyV1(
+  minimizedContentDigest: unknown,
+  predicate: unknown,
+  registry?: IdentityCollisionRegistry,
+): ExecutionOperationResultV1<PromotedFailureKeyV1>;
+export function deriveFailureReductionRunIdentityV1(
+  input: unknown,
+  registry?: IdentityCollisionRegistry,
+): ExecutionOperationResultV1<FailureReductionRunIdentityV1>;
 ```
 
 Canonical predicate fields exclude campaign, case, candidate, execution, route-plan, timing,
@@ -239,7 +336,8 @@ state retains the canonical bytes so execution cannot brand caller-supplied byte
 
 | Error Case | Handling Strategy | AR Ref |
 |---|---|---|
-| Unknown result or illegal tier/stage tuple | `unsupported-non-pass-disposition`; no shrink/promotion | AR-P2 |
+| Unknown/open result or route | Result-free `unsupported` arm; no shrink/promotion | AR-P2, AR-P16 |
+| Valid but illegal tier/stage tuple | Normalized result with `unsupported`; no shrink/promotion | AR-P2 |
 | Invalid/over-hard-max policy | Closed input issue before state or execution | AR-P2 |
 | Missing historical resolver content | `historical-authority-unavailable`; no current fallback | AR-P9 |
 | Digest/preimage mismatch | Identity failure; preserve prior evidence | AR-P2, AR-P6 |
@@ -260,3 +358,7 @@ state retains the canonical bytes so execution cannot brand caller-supplied byte
   rejects an undersized terminal reservation before work, allows exact discretionary exhaustion
   followed by terminal run/summary persistence, and rejects work beyond the reserve.
 - Preserve the exact existing `ExecutionAuthorityReportV1` serialization vectors.
+- Freeze ST-12 from the recorded preimplementation RD-04 report bytes/digest and pair it with the
+  Phase 1 guard that forbids report serializer/orchestration production changes while allowing the
+  generated binding refresh; do not rebuild a current-source report against an intentionally stale
+  content-bound parent. (AR-P17)

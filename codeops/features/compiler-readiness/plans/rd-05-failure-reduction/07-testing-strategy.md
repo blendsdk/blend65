@@ -22,13 +22,13 @@ and orchestration cores must each retain at least 90% branch coverage. (AR-P10)
 | # | Input / scenario | Expected output / behavior | Source |
 |---|---|---|---|
 | ST-01 | Exhaustive RD-04 code/tier/stage cross-product plus every known result with a mismatched authenticated terminal tier | Exactly one allowed primary disposition or `unsupported`; route-relative tier mismatch fails closed | RD-05 AC-1 |
-| ST-02 | Unknown code/stage/tier, extra keys, and a globally allowed stage absent from the authenticated route prefix | Fail closed as unsupported input; no shrink | RD-05 AC-1 |
+| ST-02 | Unknown code/stage/tier, extra keys, and a globally allowed stage absent from the authenticated route prefix | Invalid/open shapes return the result-free `unsupported` arm; valid route-relative mismatches retain only their normalized result; no shrink | RD-05 AC-1 |
 | ST-03 | Cleanup absent/present beside every primary class | Separate `cleanup-clear`/`cleanup-blocked`; primary unchanged | RD-05 AC-1 |
 | ST-04 | Mutate each predicate field independently | Predicate canonical bytes differ for every semantic field | RD-05 AC-2 |
 | ST-05 | Same minimized content/predicate across campaigns | One equal promotion key despite distinct provenance | RD-05 AC-2/11 |
 | ST-06 | Change selected policy/run identity only | Predicate and promotion key stable; run identity changes (event/core consequences are owned by ST-37) | RD-05 Policy |
 | ST-11 | Each selected limit at exact/max/next and unsafe values | Exact allowed; next exhausts; hard/unsafe rejects before work | RD-05 AC-9 |
-| ST-12 | Serialize an existing RD-04 report before/after RD-05 | Canonical bytes and digest remain byte-identical | RD-05 Historical authority |
+| ST-12 | Observe RD-05 around the exact preimplementation RD-04 report vector while Phase 1 forbids report-production changes | Frozen canonical bytes and digest remain byte-identical; the generated binding refresh is review-only and genuine current-source execution waits for reviewed publication refresh | RD-05 Historical authority, AR-P17 |
 
 ### Deterministic Reduction
 
@@ -117,6 +117,11 @@ constructors, but they never inspect production implementation or import private
 recorded RED checkpoint, expectations and fixtures are frozen; later failures are fixed in
 production code only.
 
+Historical RD-04 publication fixtures reconstruct the exact parent they name. When RD-05 changes a
+current authority file before the final publication refresh, the temporary fixture overlays only
+that parent's exact preimplementation bytes from bounded test-owned snapshots; production freshness
+and selection remain unchanged. (AR-P18)
+
 The two Phase 4 authors have disjoint assertion ownership. Cross-package behavior is named only in
 the execution-owned ST-45/ST-47 dynamic-runner assertions; the readiness file supplies canonical
 fixtures solely through its declared public API and contains no duplicate integration oracle. The
@@ -162,7 +167,7 @@ readiness-owned `published-runtime-evaluation.ts` are recorded in a separate che
 `participatingExistingFiles` list: their new RD-05 branches receive explicit tests and remain under
 the package aggregate gate, while unrelated pre-existing branches do not become RD-05 scope.
 
-`failure-coverage-ownership.spec.test.ts` in each package scans the closed `failure-*`/`reduction-*`
+`failure-coverage-ownership.impl.test.ts` in each package scans the closed `failure-*`/`reduction-*`
 production namespace plus the explicit touched-existing-file allowlist and proves every RD-05-owned
 source appears exactly once in either `coverageFiles` or `participatingExistingFiles`, never both. A
 newly introduced or renamed core therefore fails before aggregate coverage can conceal it.

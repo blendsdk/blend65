@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-08-26
-> **Progress**: 0/70 tasks (0%)
+> **Progress**: 11/70 tasks (16%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -49,18 +49,47 @@ RD only after the deferral-expiry audit.
 
 > **Lenses**: compiler-semantics, api-surface, compatibility, security
 > **Reference**: 03-01 · AR-P1–AR-P3, AR-P9 · ST-01–ST-12
+> **Phase baseline tree**: `b7ae44abe54c7fd9089f0bd50336267f6aa52873`
+> **Scope mode**: strict
+> **Expected modification set**: Phase 1 readiness contract/identity/policy/budget/history modules,
+> the two named specification files and two named implementation-test files, readiness exports and
+> package/coverage configuration, generated execution bindings affected by participating readiness
+> bytes, this execution plan, the RD-05 review evidence, and the compiler-readiness roadmap.
 
-- [ ] 1.1.1 [spec-author] Write readiness-owned ST-01–ST-06, ST-11 and the ST-22 terminal-reserve/minimum facet in new `packages/readiness/src/failure-contracts.spec.test.ts`, and execution-owned ST-12 in new `packages/readiness-execution/src/failure-report-compatibility.spec.test.ts`, from RD-05 and declared public interfaces only
-- [ ] 1.1.2 Record the readiness specification RED only for absent Phase 1 contracts, record ST-12 baseline GREEN against existing RD-04 V1 bytes, freeze both hashes, and record/validate the exact pre-implementation ancestor commit before production changes
-- [ ] 1.2.1 Add closed failure result/stage/disposition/cleanup and family contracts plus exhaustive allowed-tuple validation in focused `failure-contracts.ts` modules
-- [ ] 1.2.2 Implement canonical `FailurePredicateV1`, closed original-route-kind normalization, required-claim freezing, normalized observation identity and complete field-by-field equality in `failure-identity.ts`
-- [ ] 1.2.3 Implement separate `PromotedFailureKeyV1`, campaign-independent core-key normalization and fatal canonical-byte collision validation without conflating predicate/run identities
-- [ ] 1.2.4 Implement selected/hard `FailureReductionPolicyV1` parsing and domain-separated reduction-run identity
-- [ ] 1.2.5 Implement one shared campaign-budget capability with canonical-order discretionary charging, report-cardinality-derived terminal envelope/run/summary reservation, pre-side-effect minimum validation and exact/next exhaustion persistence
-- [ ] 1.2.6 Add unchanged-RD-04-report compatibility fixtures/canonical guards; create Phase 1 readiness exports/package entries and the baseline-derived RD-05 coverage manifest/config/scripts/ownership guard before GREEN (ST-12 adds no execution production core)
-- [ ] 1.3.1 Run the frozen Phase 1 readiness cases GREEN and ST-12 unchanged GREEN; fix production only and preserve both specification hashes
-- [ ] 1.3.2 Add `failure-contracts.impl.test.ts` and `failure-history.impl.test.ts` for tuple and route-relative mismatch matrices, every identity field including route kind, required/incidental claims, canonical collisions, historical corruption/revision drift, aggregate exact/next limits, extra keys and hostile proxy/accessor input; pass the readiness per-file 90% RD-05 coverage command
-- [ ] 1.3.3 Run configured correctness/semantics/security/performance review, resolve required findings, regenerate/check all execution bindings after participating-byte changes, update plan/roadmap state, run exact full verification and auto-commit the green phase without pushing
+- [x] 1.1.1 [spec-author] Write readiness-owned ST-01–ST-06, ST-11 and the ST-22 terminal-reserve/minimum facet in new `packages/readiness/src/failure-contracts.spec.test.ts`, and execution-owned ST-12 in new `packages/readiness-execution/src/failure-report-compatibility.spec.test.ts`, from RD-05 and declared public interfaces only — verified 2026-08-26 16:55
+- [x] 1.1.2 Record the readiness specification RED only for absent Phase 1 contracts, record ST-12 baseline GREEN against existing RD-04 V1 bytes, freeze both hashes, and record/validate the exact pre-implementation ancestor commit before production changes — verified 2026-08-26 16:56
+
+### Phase 1 Specification Checkpoint
+
+- Pre-implementation ancestor: `7f1f9944890143c4e381173b055b42f048f0666f` (validated as the
+  current commit and a commit object before production changes)
+- Readiness oracle: 8/8 expected RED, solely because the ten declared RD-05 public exports are
+  absent; SHA-256 `82775fda16f16d6f4978b1a0b15eda84fac549f3dcc841b74e828dc585a6b8f9`
+- RD-04 report compatibility: 1/1 baseline GREEN; initial genuine-fixture SHA-256
+  `41aa2b9b3abbabfc2a176f85cbf700ccec416ca3d65d8852b5a71c757ac22f9b`. AR-P17 replaced
+  only the source-bound fixture with the exact 96,934-byte preimplementation report vector at
+  digest `sha256:b129e3764011c061050df8d0eb88198382b9a9fbab2a335f4e8c8da62345f0ba`;
+  corrected frozen specification SHA-256
+  `b80a778ef01042732841e288b305a449cfa634df98c21222aaec4812abbb1d86` remains 1/1 GREEN.
+- [x] 1.2.1 Add closed failure result/stage/disposition/cleanup and family contracts plus exhaustive allowed-tuple validation in focused `failure-contracts.ts` modules — verified 2026-08-26 17:08; frozen exhaustive classification/cleanup cases 3/3 GREEN after AR-P16
+- [x] 1.2.2 Implement canonical `FailurePredicateV1`, closed original-route-kind normalization, required-claim freezing, normalized observation identity and complete field-by-field equality in `failure-identity.ts` — verified 2026-08-26 17:22; frozen predicate cases GREEN
+- [x] 1.2.3 Implement separate `PromotedFailureKeyV1`, campaign-independent core-key normalization and fatal canonical-byte collision validation without conflating predicate/run identities — verified 2026-08-26 17:22; frozen promotion/collision cases GREEN
+- [x] 1.2.4 Implement selected/hard `FailureReductionPolicyV1` parsing and domain-separated reduction-run identity — verified 2026-08-26 17:22; frozen policy/run cases GREEN
+- [x] 1.2.5 Implement one shared campaign-budget capability with canonical-order discretionary charging, report-cardinality-derived terminal envelope/run/summary reservation, pre-side-effect minimum validation and exact/next exhaustion persistence — verified 2026-08-26 17:22; frozen exact/next/reserve cases GREEN
+- [x] 1.2.6 Add unchanged-RD-04-report compatibility fixtures/canonical guards; create Phase 1 readiness exports/package entries and the baseline-derived RD-05 coverage manifest/config/scripts/ownership guard before GREEN (ST-12 adds no execution production core) — verified 2026-08-26 17:51; corrected ST-12 and both ownership suites GREEN, exact baseline-derived root gate owns all 5 changed production files, generated bindings fresh; AR-P18 historical-parent fixture correction keeps catalog 20/20, orchestration 6/6 and shared implementation callers 19/19 GREEN without production/publication mutation
+- [x] 1.3.1 Run the frozen Phase 1 readiness cases GREEN and ST-12 unchanged GREEN; fix production only and preserve both specification hashes — verified 2026-08-26 17:22; readiness 8/8 GREEN at `82775fda16f16d6f4978b1a0b15eda84fac549f3dcc841b74e828dc585a6b8f9`, ST-12 1/1 GREEN at AR-P17-corrected `b80a778ef01042732841e288b305a449cfa634df98c21222aaec4812abbb1d86`
+- [x] 1.3.2 Add `failure-contracts.impl.test.ts` and `failure-history.impl.test.ts` for tuple and route-relative mismatch matrices, every identity field including route kind, required/incidental claims, canonical collisions, historical corruption/revision drift, aggregate exact/next limits, extra keys and hostile proxy/accessor input; pass the readiness per-file 90% RD-05 coverage command — verified 2026-08-26 21:37; 27 readiness focused tests GREEN, per-file branches 96.38%/95.49%/91.66%; execution compatibility/ownership 3/3 GREEN
+- [x] 1.3.3 Run configured correctness/semantics/security/performance review, resolve required findings, regenerate/check all execution bindings after participating-byte changes, update plan/roadmap state, run exact full verification and auto-commit the green phase without pushing — verified 2026-08-26 21:34; generated bindings fresh, exact full verification GREEN, no unresolved review findings
+
+### Phase 1 Quality Evidence
+
+| Lens | Result |
+|---|---|
+| Correctness | One critical test-tier ownership finding and four major contract/identity findings fixed; immutable specification files preserved; single permitted fix re-review found no unresolved critical or major issues |
+| Semantics | Per-record byte accounting and the provenance-event durable-write budget arm corrected; exact predicate/promotion/run contracts synchronized with the plan |
+| Security | Historical overlays reject links, enforce bounded single-link regular files and verify SHA-256 before use; coverage path parsing is NUL-safe |
+| Performance | Genuine execution campaigns reuse one resolved historical parent instead of rebuilding publication authority per consumer |
+| Verification | Exact repository command GREEN: 22/22 Turbo tasks, readiness 1,425/1,425, readiness-execution 474/474 and root boundary 33/33; frozen specification hashes unchanged |
 
 **Deliverable:** exhaustive non-pass classification, separate predicate/promotion identities,
 versioned policy/shared campaign budget and enforceable source ownership without altering RD-04 V1.

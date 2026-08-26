@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 14 items resolved
-> **Last Updated**: 2026-08-26 09:01
+> **Status**: ✅ GATE PASSED — all 18 items resolved; 4 added during execution
+> **Last Updated**: 2026-08-26 17:29
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -28,6 +28,10 @@
 | AR-P12 | Technical unknowns | What command is authoritative for every plan verification checkpoint? | Exact AGENTS.md verify command; package-only checks; CI workflow approximation | Exact AGENTS.md install/build/typecheck/lint/test command | ✅ Resolved |
 | AR-P13 | Integration points | How does RD-05 handle invalidation of the content-bound selected RD-04 execution-handler publication when route bytes change? | Extend then regenerate/review/rerun/reselect; bypass published authority; leave selected authority stale | Extend genuine handlers, then regenerate, run real acceptance, independently review, prepare, and atomically reselect | ✅ Resolved |
 | AR-P14 | Data & state | How can an immutable activation record name a green verification commit when it is itself introduced by a commit? | Reference an already-green fix commit from a later activation commit; self-hash placeholder; mutable post-commit rewrite | Two-checkpoint activation referencing an already-green ancestor commit | ✅ Resolved |
+| AR-P15 | Runtime — API surface | Which exact Phase 1 identity and campaign-budget operations let immutable specifications exercise the approved contracts without inventing implementation details? | Closed validating constructors plus free operations over opaque state; method-bearing authority; generic counter-by-name mutation | Closed identity constructors and a closed operation union over a WeakMap-backed budget authority | ✅ Resolved |
+| AR-P16 | Runtime — invalid classification shape | How can ST-02 return `unsupported` for hostile/open tuples without retaining or fabricating an `ExecutionResultV1`? | Discriminated unsupported-input arm without `result`; retain unsafe input; fabricate a safe result | Discriminated unsupported-input arm omits `result`; valid tuples retain a normalized result | ✅ Resolved |
+| AR-P17 | Runtime — compatibility fixture authority | How can ST-12 prove RD-04 V1 bytes stay unchanged after readiness source truthfully invalidates the old source-bound parent? | Frozen preimplementation report vector; weaken parent freshness; refresh/select publication in Phase 1 | Frozen exact preimplementation report bytes/digest plus unchanged execution-production guard | ✅ Resolved |
+| AR-P18 | Runtime — inherited historical parent fixture | How can existing RD-04 catalog/orchestration specs keep exercising the exact parent they name after RD-05 changes current readiness authority bytes? | Exact test-owned parent-authority overlay; weaken resolver freshness; refresh/select current publications every phase | Overlay only the named historical parent's changed authority files inside its temporary fixture | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -286,3 +290,132 @@ immutability and changes the commit again.
 **Hardening:** Forced self-reference analysis eliminated single-commit encodings.
 **Policy version:** 1 · **Root invocation ID:** `make-plan-rd05-20260826-0856`
 **Reopen trigger:** Activation authority moves to an external append-only store with its own commit identity.
+
+### AR-P15 — Phase 1 identity and budget operations (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Internal API and data-structure design inside approved disposition, identity, and
+resource-policy behavior; it changes no product scope or acceptance criterion.
+**Objective:** Give implementation-blind specifications a complete closed interface without
+exposing mutable state or allowing callers to bypass coupled resource charges.
+**Decision:** Add validating `deriveFailurePredicateIdentityV1`, `derivePromotedFailureKeyV1`, and
+`deriveFailureReductionRunIdentityV1` constructors using the existing optional
+`IdentityCollisionRegistry`. Add `createFailureCampaignBudgetAuthorityV1`,
+`chargeFailureCampaignBudgetV1`, and `getFailureCampaignBudgetSnapshotV1` as free operations over
+one opaque WeakMap-backed authority. Charges use a closed purpose union—transformation, route by
+reduction/confirmation/control purpose, oracle evaluation, diagnostic capture, provenance read or
+write, sequence case, core write, terminal envelope/run write, and terminal summary write—so every
+operation atomically increments campaign plus applicable category/byte counters. Construction
+accepts only non-pass/resolvable cardinalities and rejects an insufficient terminal reserve.
+Core and run byte limits apply per complete record, with the accounting snapshot retaining the
+largest observed record size rather than an invalid campaign-total sum.
+**Evidence:** Existing readiness identities use validating free constructors plus the bounded
+`IdentityCollisionRegistry`; execution capabilities use module-private state and closed passive
+results. The resource contract couples campaign, category, byte, and terminal-reserve charges, so a
+generic counter mutation could undercharge a real operation.
+**Rejected alternatives:** A method-bearing branded value exposes more operational surface and is
+easier to proxy incorrectly. A generic `charge(key, amount)` lets callers omit a coupled counter or
+consume terminal capacity as discretionary work. Separate authority per counter recreates the
+unbounded multiplication the shared campaign budget prevents.
+**Strongest counterargument:** A closed operation union must grow if a later approved operation has
+new accounting semantics.
+**Confidence:** High — the union already covers every operation named by the approved plan; a new
+accounting class is an objective reopen trigger.
+**Hardening:** Forced 10×-load and hostile-caller reframing retained atomic closed operations and
+rejected caller-selected counters.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260826-1642`
+**Reopen trigger:** A required Phase 2–5 operation cannot be represented without either undercharge
+or a semantically false existing purpose.
+
+### AR-P16 — Unsupported hostile classification input (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Internal closed-result representation inside the already approved fail-closed
+`unsupported` behavior; it changes no product scope or acceptance criterion.
+**Objective:** Satisfy ST-02 without allowing malformed, accessor-bearing, copied, extended, or
+future-version execution input to become trusted evidence.
+**Decision:** Make `ClassifiedFailureV1` a discriminated union. A structurally valid execution
+result—including `pass` or a known but route-disallowed tuple—is defensively normalized and retained
+in a classification whose disposition may be `unsupported`. If either input has an invalid/open
+shape, classification still succeeds as the required fail-closed `unsupported` arm, sets cleanup
+to `cleanup-clear`, and omits `result` entirely. Downstream reduction can therefore persist an
+unsupported outcome without reading, retaining, or fabricating execution evidence.
+**Evidence:** Frozen ST-02 requires a successful `unsupported` classification for unknown code,
+stage, tier, extra keys, and route mismatch. The declared `ExecutionResultV1` cannot truthfully
+represent unknown/open input, while retaining it would export unvalidated caller state and
+fabricating a replacement would create false historical evidence.
+**Rejected alternatives:** Retaining the caller value violates the hostile-input boundary;
+fabricating a valid result violates evidence truth; returning an operation failure contradicts the
+frozen specification's closed unsupported outcome.
+**Strongest counterargument:** Consumers must handle an unsupported arm without a result projection.
+**Confidence:** High — the union makes that obligation explicit and prevents unsafe evidence use.
+**Hardening:** Hostile-input, authority-truth, and downstream-persistence reframing eliminated both
+retention and fabrication.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260826-1642`
+**Reopen trigger:** A durable unsupported record requires a bounded canonical projection of the
+rejected shape; add a separate diagnostic projection, never widen `ExecutionResultV1`.
+
+### AR-P17 — Historical report compatibility fixture authority (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Test-fixture representation for an already approved byte-compatibility assertion;
+it changes no report schema, production authority, publication lifecycle, or acceptance criterion.
+**Objective:** Keep ST-12 executable after the intended readiness source additions without
+weakening content-bound publication freshness or selecting an unreviewed child.
+**Decision:** Freeze the exact canonical RD-04 V1 report bytes and digest obtained at the recorded
+preimplementation commit, then assert those historical bytes remain byte-identical while the new
+RD-05 public surface is observed. Pair that vector with the Phase 1 source-ownership/freshness gate,
+which rejects any report serializer/orchestration production change while allowing the required
+review-only generated binding refresh. Do not reconstruct a new report from the current source
+during this historical-compatibility case. Genuine current-authority campaign
+execution remains in the later integration and publication phases after the reviewed authority is
+refreshed.
+**Evidence:** The ST-12 baseline was GREEN before production. Adding the required readiness root
+exports changes bytes bound by the committed readiness parent; the genuine fixture then correctly
+fails `execution.stale-authority /parentDigest`. Refreshing/selecting publication in Phase 1 would
+contradict the reviewed Phase 6 lifecycle, while weakening freshness would make the authority lie.
+**Rejected alternatives:** Ignoring parent staleness violates content-bound authority; refreshing
+or selecting early bypasses final review/real acceptance; dropping ST-12 loses the compatibility
+gate.
+**Strongest counterargument:** A frozen byte vector does not alone exercise the serializer after
+the source change.
+**Confidence:** High — existing serializer implementation tests still exercise authorization and
+canonical serialization, while the independent source guard proves Phase 1 does not alter that
+report production path.
+**Hardening:** Authority-truth and lifecycle-order reframing ruled out both bypass and early
+publication.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260826-1642`
+**Reopen trigger:** The execution report serializer or report schema becomes an authorized RD-05
+production participant; then a new versioned report compatibility vector and publication review
+are required.
+
+### AR-P18 — Inherited historical-parent fixture authority (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Test-fixture reconstruction of an already immutable published parent; it changes no
+resolver, publication, selection, or product behavior.
+**Objective:** Keep inherited RD-04 catalog and orchestration specifications truthful while RD-05
+intentionally changes current readiness authority bytes before final publication refresh.
+**Decision:** The temporary RD-04 catalog fixture continues to name parent
+`sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5` and overlays only
+the exact test-owned preimplementation bytes for authority files changed by RD-05. All other
+authority and publication bytes still come from the repository and retain the existing bounded,
+no-symlink copy checks. The production resolver remains strict. Current-source publication refresh,
+review, real acceptance, and selection remain Phase 6 work.
+**Evidence:** The inherited fixture currently copies the current `packages/readiness` authority
+tree, then asks the resolver to validate the old named parent. RD-05 changes the readiness package
+manifest, root barrel, and canonical identity domain, so the resolver correctly returns
+`execution.stale-authority /parentDigest`. The exact old bytes exist at the recorded Phase 1
+ancestor and are the authority that the immutable parent review actually accepted.
+**Rejected alternatives:** Weakening the resolver would make stale authority live; refreshing and
+selecting on every intermediate phase would bypass the reviewed final lifecycle and make historical
+tests stop testing their named parent; skipping inherited tests violates the full verification gate.
+**Strongest counterargument:** Test-owned source snapshots duplicate a small amount of historical
+authority.
+**Confidence:** High — the overlay is bounded to exact changed files and is hash-reviewed as part of
+the inherited fixture; it reconstructs rather than substitutes authority.
+**Hardening:** Historical-identity and source-archive portability checks rejected a Git-history
+runtime dependency and a resolver bypass.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260826-1642`
+**Reopen trigger:** Another current-source change touches a dependency in the named parent's exact
+authority closure; add its preimplementation bytes to the same bounded fixture overlay.

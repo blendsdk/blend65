@@ -1,7 +1,6 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { rm } from "node:fs/promises";
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { PublishedSnapshot } from "./binding-model.js";
 import type { GenerationConfiguration } from "./canonical-identity.js";
@@ -13,6 +12,7 @@ import {
   getPreparedCampaignExecutionIdentityV1,
 } from "./execution-campaign-identity.js";
 import { resolvePublishedSnapshot } from "./publication-resolver.js";
+import { createHistoricalReadinessAuthorityRepository } from "./test-fixtures/historical-readiness-authority.js";
 
 const CAMPAIGN_DIGEST = `sha256:${"a".repeat(64)}` as `sha256:${string}`;
 const SEED = `sha256:${"b".repeat(64)}` as `sha256:${string}`;
@@ -20,7 +20,6 @@ const SELECTED_PARENT_DIGEST =
   "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
 const HISTORICAL_PARENT_DIGEST =
   "sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597";
-const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const CONFIGURATION: GenerationConfiguration = {
   caseCount: 40,
   maxInvalidCases: 16,
@@ -44,11 +43,19 @@ const CONFIGURATION: GenerationConfiguration = {
 };
 
 let selectedSnapshot: PublishedSnapshot;
+let historicalRepositoryRoot: string;
 
 beforeAll(async () => {
-  const selected = await resolvePublishedSnapshot({ repositoryRoot: REPOSITORY_ROOT });
+  historicalRepositoryRoot = await createHistoricalReadinessAuthorityRepository(
+    "blend65-execution-campaign-identity-",
+  );
+  const selected = await resolvePublishedSnapshot({ repositoryRoot: historicalRepositoryRoot });
   if (!selected.ok) throw new TypeError(JSON.stringify(selected.diagnostics));
   selectedSnapshot = selected.value;
+});
+
+afterAll(async () => {
+  await rm(historicalRepositoryRoot, { recursive: true, force: true });
 });
 
 function genuineCampaign(): PreparedCampaign {

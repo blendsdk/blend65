@@ -133,22 +133,6 @@ export {
   parseExecutionPolicyV1,
   reduceExecutionTerminalV1,
 } from "./execution-contracts.js";
-export {
-  classifyExecutionFailureV1,
-  FAILURE_REDUCTION_DEFAULT_POLICY_V1,
-  FAILURE_REDUCTION_MAXIMUM_BUDGET_V1,
-  parseFailureReductionPolicyV1,
-} from "./failure-contracts.js";
-export {
-  deriveFailurePredicateIdentityV1,
-  deriveFailureReductionRunIdentityV1,
-  derivePromotedFailureKeyV1,
-} from "./failure-identity.js";
-export {
-  chargeFailureCampaignBudgetV1,
-  createFailureCampaignBudgetAuthorityV1,
-  getFailureCampaignBudgetSnapshotV1,
-} from "./failure-campaign-budget.js";
 export { projectExecutionCampaignV1 } from "./execution-campaign-projection.js";
 export {
   parseExecutionEnvelopeIrV1,
@@ -548,29 +532,6 @@ export type {
   ExecutionTierV1,
   ExecutionUsageV1,
 } from "./execution-contracts.js";
-export type {
-  ClassifiedFailureV1,
-  CleanupDispositionV1,
-  FailureDispositionV1,
-  FailureReductionBudgetV1,
-  FailureReductionPolicyV1,
-  ReductionOutcomeCodeV1,
-} from "./failure-contracts.js";
-export type {
-  FailureObservationIdentityV1,
-  FailurePredicateIdentityV1,
-  FailurePredicateV1,
-  FailureReductionRunIdentityInputV1,
-  FailureReductionRunIdentityV1,
-  FailureRouteContractV1,
-  PromotedFailureKeyV1,
-} from "./failure-identity.js";
-export type {
-  FailureCampaignBudgetAuthorityV1,
-  FailureCampaignBudgetChargeV1,
-  FailureCampaignBudgetReservationV1,
-  FailureCampaignBudgetSnapshotV1,
-} from "./failure-campaign-budget.js";
 export type { ExecutionRoutePlanPreimageV1 } from "./execution-route-plan.js";
 export type {
   CompositeReadinessSnapshot,

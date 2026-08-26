@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   INVENTORY_V1_LIMITS,
@@ -15,7 +13,6 @@ import {
   parseInventoryJson,
   registerFreshCandidateBinding,
   renderGeneratedCase,
-  resolvePublishedSnapshotByDigest,
   validateImplementationRevision,
   validateInventorySchema,
   type CampaignDependenciesV1,
@@ -24,15 +21,15 @@ import {
   type FreshCandidateRegistration,
   type GenerationConfiguration,
   type PreparedCampaign,
+  type PublishedSnapshot,
   type Sha256Digest,
 } from "@blend65/readiness";
 import { createPublishedExecutionCampaignV1 } from "@blend65/readiness/execution-campaign-identity";
 
-import { CURRENT_EXECUTION_PARENT_DIGEST } from "./execution-publication-catalog-spec-fixture.js";
+import { createHistoricalExecutionParentFixtureV1 } from "./execution-publication-catalog-spec-fixture.js";
 
 const ENCODER = new TextEncoder();
 const REPOSITORY_ROOT_URL = new URL("../../../../", import.meta.url);
-const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const INVENTORY_URL = new URL(
   "readiness/inventory/compiler-readiness-v1.json",
   REPOSITORY_ROOT_URL,
@@ -148,17 +145,14 @@ async function loadAuthorities() {
 async function createCampaign(
   route: GenuineCampaignKind,
   authorities: Awaited<ReturnType<typeof loadAuthorities>>,
+  orchestrationParent?: PublishedSnapshot,
 ): Promise<PreparedCampaign> {
   const configurationValue = configuration(route);
   if (route === "orchestration") {
-    const selected = await resolvePublishedSnapshotByDigest({
-      repositoryRoot: REPOSITORY_ROOT,
-      publicationDigest: CURRENT_EXECUTION_PARENT_DIGEST,
-    });
-    if (!selected.ok) {
-      throw new TypeError("Expected the selected execution parent publication.");
+    if (orchestrationParent === undefined) {
+      throw new TypeError("Expected the historical execution parent publication.");
     }
-    const prepared = createPublishedExecutionCampaignV1(selected.value, {
+    const prepared = createPublishedExecutionCampaignV1(orchestrationParent, {
       schemaVersion: 1,
       target: "c64",
       seed: `sha256:${"7".repeat(64)}`,
@@ -236,16 +230,46 @@ async function createCampaign(
   return prepared.value;
 }
 
-/** Creates genuine scalar, runtime, and bounded orchestration campaigns for integration tests. */
-export async function createGenuineExecutionCampaigns(): Promise<{
+/** Creates genuine scalar and runtime campaigns without resolving publication authority. */
+export async function createGenuineFrontendRuntimeCampaigns(): Promise<{
   readonly frontend: PreparedCampaign;
   readonly runtime: PreparedCampaign;
-  readonly orchestration: PreparedCampaign;
 }> {
   const authorities = await loadAuthorities();
   return Object.freeze({
     frontend: await createCampaign("frontend", authorities),
     runtime: await createCampaign("runtime", authorities),
-    orchestration: await createCampaign("orchestration", authorities),
   });
+}
+
+/**
+ * Creates genuine scalar, runtime, and bounded orchestration campaigns for integration tests.
+ *
+ * @param orchestrationParent Resolved parent already owned by the caller's catalog fixture.
+ */
+export async function createGenuineExecutionCampaigns(
+  orchestrationParent?: PublishedSnapshot,
+): Promise<{
+  readonly frontend: PreparedCampaign;
+  readonly runtime: PreparedCampaign;
+  readonly orchestration: PreparedCampaign;
+}> {
+  const authorities = await loadAuthorities();
+  const frontend = await createCampaign("frontend", authorities);
+  const runtime = await createCampaign("runtime", authorities);
+  if (orchestrationParent !== undefined) {
+    const orchestration = await createCampaign("orchestration", authorities, orchestrationParent);
+    return Object.freeze({ frontend, runtime, orchestration });
+  }
+  const historicalParent = await createHistoricalExecutionParentFixtureV1();
+  try {
+    const orchestration = await createCampaign(
+      "orchestration",
+      authorities,
+      historicalParent.parent,
+    );
+    return Object.freeze({ frontend, runtime, orchestration });
+  } finally {
+    await historicalParent.cleanup();
+  }
 }

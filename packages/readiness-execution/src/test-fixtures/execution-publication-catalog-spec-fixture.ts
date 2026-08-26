@@ -1,13 +1,25 @@
 import { createHash } from "node:crypto";
-import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { constants } from "node:fs";
+import {
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 
 import {
   prepareExecutionPublicationCandidateV1,
   resolvePublishedExecutionRelease,
+  resolvePublishedSnapshotByDigest,
 } from "@blend65/readiness";
-import type { PublishedExecutionRelease } from "@blend65/readiness";
+import type { PublishedExecutionRelease, PublishedSnapshot } from "@blend65/readiness";
 
 import { getExecutionCatalogFixtureDescriptorV1 } from "../execution-publication-catalog-conformance-v1.js";
 
@@ -25,6 +37,27 @@ const CURRENT_POINTER_RELATIVE_PATH = join(
 type Sha256Digest = `sha256:${string}`;
 
 const SOURCE_REPOSITORY_ROOT = resolve(import.meta.dirname, "../../../..");
+const HISTORICAL_PARENT_AUTHORITY_SNAPSHOT_ROOT = join(
+  import.meta.dirname,
+  "rd04-parent-authority",
+);
+const HISTORICAL_PARENT_AUTHORITY_OVERLAYS = [
+  {
+    snapshot: "readiness-package.json.snapshot",
+    destination: join("packages", "readiness", "package.json"),
+    sha256: "82a0b97f00640aa6cf05dfc13d8fc8bb9c33706dcbee9f037793441bbdc04a30",
+  },
+  {
+    snapshot: "canonical-identity.ts.snapshot",
+    destination: join("packages", "readiness", "src", "canonical-identity.ts"),
+    sha256: "2cf3638dbd7dd921bc7c31d0dcd9905085d84d5e3306fe0fc22232a18e1437a0",
+  },
+  {
+    snapshot: "index.ts.snapshot",
+    destination: join("packages", "readiness", "src", "index.ts"),
+    sha256: "9ac3267c455476edfc3555c549417331bd2a859061b12d5098aa1820ca4a442a",
+  },
+] as const;
 const AUTHORITY_RELATIVE_PATHS = [
   "readiness",
   "spec",
@@ -89,6 +122,34 @@ async function copyParentAuthority(repositoryRoot: string): Promise<void> {
   }
 }
 
+async function restoreHistoricalParentAuthority(repositoryRoot: string): Promise<void> {
+  let restoredBytes = 0;
+  for (const overlay of HISTORICAL_PARENT_AUTHORITY_OVERLAYS) {
+    const source = join(HISTORICAL_PARENT_AUTHORITY_SNAPSHOT_ROOT, overlay.snapshot);
+    const handle = await open(source, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const metadata = await handle.stat();
+      if (!metadata.isFile() || metadata.nlink !== 1) {
+        throw new Error(
+          `historical authority overlay must be a single-link regular file: ${source}`,
+        );
+      }
+      restoredBytes += metadata.size;
+      if (restoredBytes > MAX_AUTHORITY_BYTES) {
+        throw new Error("historical authority overlays exceed their byte bound");
+      }
+      const bytes = await handle.readFile();
+      const digest = createHash("sha256").update(bytes).digest("hex");
+      if (digest !== overlay.sha256) {
+        throw new Error(`historical authority overlay digest mismatch: ${source}`);
+      }
+      await writeFile(join(repositoryRoot, overlay.destination), bytes);
+    } finally {
+      await handle.close();
+    }
+  }
+}
+
 export interface ExecutionPublicationCatalogFixtureV1 {
   readonly repositoryRoot: string;
   readonly parentDigest: Sha256Digest;
@@ -99,6 +160,19 @@ export interface ExecutionPublicationCatalogFixtureV1 {
   createChild(
     options?: CreateExecutionPublicationChildOptionsV1,
   ): Promise<ExecutionPublicationCatalogChildV1>;
+  cleanup(): Promise<void>;
+}
+
+/** Exact historical parent authority resolved inside an isolated test repository. */
+export interface HistoricalExecutionParentFixtureV1 {
+  readonly repositoryRoot: string;
+  readonly parent: PublishedSnapshot;
+  cleanup(): Promise<void>;
+}
+
+/** Bounded temporary repository containing exact historical readiness authority bytes. */
+export interface HistoricalReadinessAuthorityFixtureV1 {
+  readonly repositoryRoot: string;
   cleanup(): Promise<void>;
 }
 
@@ -123,6 +197,58 @@ interface OperationIssueV1 {
 
 export function resolveCatalogSpecRepositoryRootV1(): string {
   return SOURCE_REPOSITORY_ROOT;
+}
+
+/** Copies exact hash-pinned historical readiness authority into an isolated repository. */
+export async function createHistoricalReadinessAuthorityFixtureV1(): Promise<HistoricalReadinessAuthorityFixtureV1> {
+  const sourceRepositoryRoot = resolveCatalogSpecRepositoryRootV1();
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "blend65-historical-readiness-authority-"));
+  try {
+    if (sourceRepositoryRoot !== SOURCE_REPOSITORY_ROOT) {
+      throw new Error("catalog fixture repository root changed unexpectedly");
+    }
+    await copyParentAuthority(repositoryRoot);
+    await restoreHistoricalParentAuthority(repositoryRoot);
+    return {
+      repositoryRoot,
+      cleanup: async () => {
+        await rm(repositoryRoot, { recursive: true, force: true });
+      },
+    };
+  } catch (error) {
+    await rm(repositoryRoot, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+/**
+ * Copies and resolves the exact historical parent authority in a bounded temporary repository.
+ *
+ * @returns The isolated repository, genuine resolved parent, and its cleanup operation.
+ */
+export async function createHistoricalExecutionParentFixtureV1(): Promise<HistoricalExecutionParentFixtureV1> {
+  const authority = await createHistoricalReadinessAuthorityFixtureV1();
+  try {
+    const selected = await resolvePublishedSnapshotByDigest({
+      repositoryRoot: authority.repositoryRoot,
+      publicationDigest: CURRENT_EXECUTION_PARENT_DIGEST,
+    });
+    if (!selected.ok) {
+      throw new Error(
+        selected.diagnostics
+          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
+          .join("; "),
+      );
+    }
+    return {
+      repositoryRoot: authority.repositoryRoot,
+      parent: selected.value,
+      cleanup: authority.cleanup,
+    };
+  } catch (error) {
+    await authority.cleanup();
+    throw error;
+  }
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -213,32 +339,29 @@ async function createChild(
 export async function createExecutionPublicationCatalogFixtureV1(
   options: CreateExecutionPublicationChildOptionsV1 = {},
 ): Promise<ExecutionPublicationCatalogFixtureV1> {
-  const sourceRepositoryRoot = resolveCatalogSpecRepositoryRootV1();
-  const repositoryRoot = await mkdtemp(join(tmpdir(), "blend65-execution-publication-catalog-"));
-  if (sourceRepositoryRoot !== SOURCE_REPOSITORY_ROOT) {
-    throw new Error("catalog fixture repository root changed unexpectedly");
+  const historicalParent = await createHistoricalExecutionParentFixtureV1();
+  try {
+    const child = await createChild(historicalParent.repositoryRoot, options);
+    const parentDigest = options.parentDigest ?? CURRENT_EXECUTION_PARENT_DIGEST;
+
+    return {
+      repositoryRoot: historicalParent.repositoryRoot,
+      parentDigest,
+      childDigest: child.childDigest,
+      release: child.release,
+      bindingBytes: child.bindingBytes,
+      semanticReviewBytes: child.semanticReviewBytes,
+      createChild: async (childOptions = {}) =>
+        createChild(historicalParent.repositoryRoot, {
+          parentDigest,
+          ...childOptions,
+        }),
+      cleanup: historicalParent.cleanup,
+    };
+  } catch (error) {
+    await historicalParent.cleanup();
+    throw error;
   }
-  await copyParentAuthority(repositoryRoot);
-
-  const child = await createChild(repositoryRoot, options);
-  const parentDigest = options.parentDigest ?? CURRENT_EXECUTION_PARENT_DIGEST;
-
-  return {
-    repositoryRoot,
-    parentDigest,
-    childDigest: child.childDigest,
-    release: child.release,
-    bindingBytes: child.bindingBytes,
-    semanticReviewBytes: child.semanticReviewBytes,
-    createChild: async (childOptions = {}) =>
-      createChild(repositoryRoot, {
-        parentDigest,
-        ...childOptions,
-      }),
-    cleanup: async () => {
-      await rm(repositoryRoot, { recursive: true, force: true });
-    },
-  };
 }
 
 export async function readCurrentPublicationPointerBytesV1(
