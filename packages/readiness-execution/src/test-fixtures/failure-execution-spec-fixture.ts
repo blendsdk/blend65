@@ -176,6 +176,7 @@ const PROCESS_ENTRY = fileURLToPath(
   new URL("./failure-execution-process-spec-entry.js", import.meta.url),
 );
 const ENCODER = new TextEncoder();
+const FAILURE_OBSERVATION_LABEL = "failure-observation";
 let activeController: ControllerV1 | undefined;
 const activeExecutors = new Set<WorkerExecutorV1>();
 
@@ -535,7 +536,7 @@ export async function createFailureExecutionSpecFixtureV1(
         resultCode: "compiler-ice",
         terminalTier: "frontend",
         terminalStage: "frontend",
-        observation: { kind: "observed", digest: digest("failure-observation") },
+        observation: { kind: "observed", digest: digest(FAILURE_OBSERVATION_LABEL) },
         cleanup: "cleanup-clear",
         primaryRuleId: ruleId,
         requiredClaimedRuleIds: [ruleId],
@@ -561,7 +562,7 @@ export async function createFailureExecutionSpecFixtureV1(
         routePlanDigest: digest(new TextDecoder().decode(routePlanBytes)),
         predicate,
         policy: failurePolicy,
-        observationBytes: new Uint8Array(),
+        observationBytes: ENCODER.encode(FAILURE_OBSERVATION_LABEL),
         toolVersions: [],
       }),
     );

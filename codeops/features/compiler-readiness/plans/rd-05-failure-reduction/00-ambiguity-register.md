@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 24 items resolved; 10 added during execution
-> **Last Updated**: 2026-08-30 11:46
+> **Status**: ✅ GATE PASSED — all 25 items resolved; 11 added during execution
+> **Last Updated**: 2026-08-30 12:54
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -38,6 +38,7 @@
 | AR-P22 | Runtime — current parent publication lifecycle | How do Phase 2 tests use current five-binding oracle authority when the selected RD-04 nine-binding release is source-stale and real reselection belongs to Phase 6? | Materialize a current five-over-four test parent; reselect production now; forge the old release as current | Materialize and pin the deterministic current test parent over the immutable four-binding base; leave real review/selection to Phase 6 | ✅ Resolved |
 | AR-P23 | Runtime — Phase 2 re-review integrity and boundedness | How must the reducer close surviving authority, identity, handoff and cost-model defects without widening Phase 3 scope? | Repair all Phase 2 invariants and expose only terminal candidate authority; defer them; move confirmation into Phase 2 | Repair all Phase 2 invariants, meter descriptor preparation, bound inspection, and expose a terminal-only authority handoff while retaining execution/confirmation in Phase 3 | ✅ Resolved |
 | AR-P24 | Runtime — Phase 3 callable authority protocol | Which exact callable interfaces let the immutable Phase 3 specification exercise genuine isolation lifecycles, report-sidecar association, ordered sequence positions, controls and worker observations without exposing caller-selected handlers or inventing test hooks? | Package-private protocol session; exported internal subpath; high-level public coordinator; widened public mechanism APIs | Package-private `failure-execution-internals.ts` protocol session with opaque WeakMap authorities and authenticated observation projections | ✅ Resolved |
+| AR-P25 | Runtime — Phase 3 fixture observation authority | How should the frozen Phase 3 fixture correct a predicate observation digest that does not match its supplied observation bytes, after the initial RED stopped before fixture construction? | Align fixture bytes to the named observation; replace the predicate with the empty-byte digest; weaken production validation | Preserve the authored named observation, supply its exact UTF-8 bytes, and freeze the complete four-file oracle bundle | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -664,3 +665,34 @@ ruling adopts that tighter boundary with closed result types and path-free obser
 fixed handlers cannot report root/worker/isolate checkpoints without exposing a caller-selected
 execution dependency, or the shared confirmation machine cannot classify every approved outcome
 from handler-authenticated evaluations alone.
+
+### AR-P25 — Phase 3 fixture observation authority (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Correcting contradictory specification-fixture evidence inside the already approved
+Phase 3 oracle; production validation, product behavior and scope remain unchanged.
+**Objective:** Restore a truthful join between the fixture's named observation predicate and the
+observation bytes authenticated by the failure envelope after the initial RED stopped before fixture
+construction and therefore failed to exercise that join.
+**Decision:** Retain the authored `failure-observation` meaning and derive both its predicate digest
+and envelope bytes from one shared label. The envelope receives the exact 19 UTF-8 bytes for that
+label. The specification file stays byte-identical; the corrected fixture and the other two support
+fixtures join it in a newly frozen four-file oracle-bundle hash.
+**Evidence:** Envelope authorization correctly requires the predicate observation digest to equal
+the SHA-256 digest of the supplied bytes. UTF-8 encoding of the ASCII label produces the same digest
+preimage as the fixture helper and was verified directly. The previous empty byte array contradicted
+the predicate and was rejected before any Phase 3 production operation ran.
+**Rejected alternatives:** Replacing the named observation with the empty-byte digest discards
+authored semantic evidence to accommodate an accidental placeholder; weakening envelope validation
+would admit false historical authority and violate the approved security boundary.
+**Strongest counterargument:** Confirmation currently classifies reproduction from status, code,
+tier and stage, so empty observation bytes would not change that result. That does not make an
+authenticated predicate/byte contradiction truthful and would optimize the oracle around an
+implementation detail.
+**Confidence:** High — the correction is a single-source derivation of the fixture author's existing
+meaning and leaves production authority checks untouched.
+**Hardening:** Independent design challenge selected the same correction, required a complete
+transitive-oracle bundle freeze, and rejected both semantic erasure and production weakening.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
+**Reopen trigger:** The corrected fixture cannot construct genuine envelope authority, or future
+predicate evaluation requires different observation bytes for this scenario.

@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-30 12:16
+> **Last Updated**: 2026-08-30 12:54
 > **Progress**: 25/70 tasks (36%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
@@ -163,7 +163,22 @@ reducer for all three families, with no compiler, worker or filesystem access.
 
 - [x] 3.1.1 [spec-author] Write the ST-10 report-sidecar facet, execution facet of ST-18, ST-23 route/isolation facet and ST-25–ST-35 in new `packages/readiness-execution/src/failure-candidate-execution.spec.test.ts` using genuine published-handler authority and independent worker-thread/subprocess fixtures ✅ (completed: 2026-08-30 12:12); 14 implementation-blind cases, real worker/process scenario fixtures, 691-line oracle, TypeScript/Prettier/documentation checks clean
 - [x] 3.1.2 Run the Phase 3 specification file and record RED caused only by absent candidate-route and confirmation APIs; freeze its content hash ✅ (completed: 2026-08-30 12:16); 14/14 expected failures solely from absent `failure-execution-internals.js`; frozen SHA-256 `b8b6fc7a52c34d7c8ac258b59a2372d6fe11de28a5fa9744ec405c0a0cd3f903`
-- [ ] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload
+
+### Phase 3 Specification Checkpoint
+
+- The initial RED froze the specification file at SHA-256
+  `b8b6fc7a52c34d7c8ac258b59a2372d6fe11de28a5fa9744ec405c0a0cd3f903`, but stopped at the
+  intentionally absent internal module before constructing its transitive fixture.
+- AR-P25 corrected the fixture-only contradiction between its named observation digest and empty
+  observation bytes without changing the specification or production validation. Corrected fixture
+  SHA-256: `6a98d23bb767e4a4fa99c4aa842255f0d8e50822bdbe5cc98d6174a3de62f152`.
+- The authoritative four-file oracle bundle is frozen at SHA-256
+  `f83e73869d98ee268f2551b94713bea39453ffcb362d37e6b4f2eb8538f0b0cc`, computed from each
+  repository-relative bundle path followed by a NUL byte and its exact file bytes in specification,
+  fixture, worker-entry, process-entry order. The worker and process fixture hashes remain
+  `fb3e6b0827f0da1af770d450243cb2a68ecadecb049566649731150e08a50cd0` and
+  `2e7603439f97deb5d109d1fee4ea3a28357c53847dc7d37d807b670753232bf1`.
+- [~] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload — started 2026-08-30 12:18; AR-P25 fixture-only blocker resolved 2026-08-30 12:54 without production weakening
 - [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
 - [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards
 - [ ] 3.2.4 Implement authenticated predicate sidecars before aggregate hashing and bind their exact ordered collection into private `execution-authority-report.ts` state through `execution-orchestration.ts`; preserve RD-04 V1 bytes and fail missing/reordered/copied/pre-RD-05 sidecars closed
