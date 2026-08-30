@@ -677,7 +677,7 @@ describe("failure candidate execution oracle", () => {
       }),
     );
     expect(overLimit.activity.workerThreads).toEqual(before);
-  });
+  }, 900_000);
 
   // Fresh-run or sequence disagreement is flaky and never promotable beyond the campaign.
   it("should classify unstable fresh or sequence runs as flaky and keep them campaign-only", async () => {

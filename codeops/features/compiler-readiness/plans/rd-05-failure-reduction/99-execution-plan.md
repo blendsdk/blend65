@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-30 14:08
+> **Last Updated**: 2026-08-30 14:27
 > **Progress**: 25/70 tasks (36%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
@@ -196,6 +196,11 @@ reducer for all three families, with no compiler, worker or filesystem access.
   corrected main fixture SHA-256:
   `a6c94941982aa2f8d952be6f0b290319cdaa71e511a68fbb82ec63b7b474e910`; final authoritative
   bundle SHA-256: `237344b0108bade0e7aeb8e7743cb660422a16a62c44fe0b682155fd649d231c`.
+- AR-P29 applied a measured 900-second watchdog only to the ten-independent-fixture sequence test
+  after the unchanged case reached the package's 240-second timeout before an assertion. No case,
+  expectation or global timeout changed. Final specification SHA-256:
+  `c36750f96de9cefdc789c1d9628df974d8d07ad4689dcaa549576dde53b3b415`; authoritative bundle
+  SHA-256: `b68dd8b7776348064fe06f83b73a362ba4d59c664b76abe49f19dd8e7fdc4a1b`.
 - [~] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload — started 2026-08-30 12:18; AR-P25/AR-P26 fixture-only blockers resolved by 2026-08-30 13:08 without production weakening
 - [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
 - [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards

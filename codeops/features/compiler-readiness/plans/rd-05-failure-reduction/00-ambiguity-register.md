@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 28 items resolved; 14 added during execution
-> **Last Updated**: 2026-08-30 14:08
+> **Status**: ✅ GATE PASSED — all 29 items resolved; 15 added during execution
+> **Last Updated**: 2026-08-30 14:27
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -42,6 +42,7 @@
 | AR-P26 | Runtime — Phase 3 fixture module graph | How should the oracle ensure its APIs and genuine WeakMap-backed fixture authorities come from one module graph after controlled adapter installation? | Construct each fixture before importing its APIs; redesign fixture/API loading; accept cross-registry authorities | Construct each fixture first, then load APIs inside that same reset epoch; keep production authority registries strict | ✅ Resolved |
 | AR-P27 | Runtime — Phase 3 raw fixture authority | How should raw-malformed oracle cases satisfy the approved invalid-diagnostic predicate, exact route-plan digest and strict UTF-8 ingress while retaining zero/nonzero raw coverage? | Derive a genuine raw predicate/digest and use valid malformed-language UTF-8; weaken production validation; admit invalid UTF-8 | Explicitly derive the raw predicate and exact byte digests; use `@` as valid UTF-8 malformed-language input | ✅ Resolved |
 | AR-P28 | Runtime — Phase 3 external fixture entrypoints | How should true Worker/subprocess fixtures resolve executable JavaScript when Vitest imports their TypeScript controller from `src/`? | Bind to prebuilt `dist/test-fixtures` entries; add a runtime TypeScript loader; treat module-load crashes as scenario outcomes | Resolve both true-external adapters from the package's build-before-test `dist/test-fixtures` output | ✅ Resolved |
+| AR-P29 | Runtime — Phase 3 sequence oracle time bound | How should the ten-independent-fixture sequence matrix fit a truthful bounded test when measured fixture setup already exceeds the global 240-second timeout? | Set a case-local measured timeout; raise the package/global timeout; reduce fixture independence or matrix coverage | Apply a measured 900-second timeout only to the complete ten-fixture sequence test | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -786,3 +787,30 @@ alternatives, required both worker and subprocess correction, and required a new
 **Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
 **Reopen trigger:** A build-before-test run cannot load either compiled entry, intentional pass
 ordinal still crashes before response, or subprocess activity cannot be observed through the entry.
+
+### AR-P29 — Phase 3 sequence oracle time bound (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Correcting one specification-test watchdog from measured genuine-fixture cost;
+production behavior, fixture independence, cases, expectations and package-wide timeouts remain
+unchanged.
+**Objective:** Let the complete positions 2–9, 64 and pre-launch 65 matrix reach semantic assertions
+without allowing unrelated package tests to hide behind a larger hang threshold.
+**Decision:** Set only this test's timeout to 900,000 ms. Ten independent fixtures at the measured
+60-second upper setup cost require about 600 seconds; a bounded 1.5 multiplier covers scheduling,
+process launch and teardown variance while retaining a finite watchdog.
+**Evidence:** The unchanged test stopped at the global 240,000 ms boundary before an assertion, which
+can cover only about four measured fixtures. Named genuine fixture cases consistently take 53–60
+seconds, and this test intentionally owns ten distinct publication/module epochs.
+**Rejected alternatives:** A global timeout increase weakens hang detection across the package;
+sharing fixtures or dropping positions violates authority independence and boundary coverage;
+fixture-performance redesign is broader than the correctness gate and could change what is tested.
+**Strongest counterargument:** A genuine deadlock now takes up to 15 minutes to report. The exception
+is case-local, the healthy measured ceiling is about ten minutes, and approaching 15 minutes is an
+explicit investigation trigger rather than permission to raise it again.
+**Confidence:** High — the bound follows directly from measured fixture count and cost.
+**Hardening:** Independent design challenge derived the same 900-second case-local limit, rejected
+global/coverage changes, and required a superseding complete-bundle freeze.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
+**Reopen trigger:** A healthy named run approaches 900 seconds, times out again, or any fixture or
+sequence expectation is removed to reduce runtime.
