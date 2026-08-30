@@ -171,9 +171,13 @@ interface WorkerExecutorV1 {
 
 const WORKER_MODULE = "../execution-worker-executor.js";
 const PROCESS_MODULE = "../execution-process.js";
-const WORKER_ENTRY = new URL("./failure-execution-worker-spec-entry.js", import.meta.url);
+// Package tests build first, so true external runtimes execute the compiled fixture entries.
+const WORKER_ENTRY = new URL(
+  "../../dist/test-fixtures/failure-execution-worker-spec-entry.js",
+  import.meta.url,
+);
 const PROCESS_ENTRY = fileURLToPath(
-  new URL("./failure-execution-process-spec-entry.js", import.meta.url),
+  new URL("../../dist/test-fixtures/failure-execution-process-spec-entry.js", import.meta.url),
 );
 const ENCODER = new TextEncoder();
 const FAILURE_OBSERVATION_LABEL = "failure-observation";

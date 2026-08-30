@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 27 items resolved; 13 added during execution
-> **Last Updated**: 2026-08-30 13:34
+> **Status**: ✅ GATE PASSED — all 28 items resolved; 14 added during execution
+> **Last Updated**: 2026-08-30 14:08
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -41,6 +41,7 @@
 | AR-P25 | Runtime — Phase 3 fixture observation authority | How should the frozen Phase 3 fixture correct a predicate observation digest that does not match its supplied observation bytes, after the initial RED stopped before fixture construction? | Align fixture bytes to the named observation; replace the predicate with the empty-byte digest; weaken production validation | Preserve the authored named observation, supply its exact UTF-8 bytes, and freeze the complete four-file oracle bundle | ✅ Resolved |
 | AR-P26 | Runtime — Phase 3 fixture module graph | How should the oracle ensure its APIs and genuine WeakMap-backed fixture authorities come from one module graph after controlled adapter installation? | Construct each fixture before importing its APIs; redesign fixture/API loading; accept cross-registry authorities | Construct each fixture first, then load APIs inside that same reset epoch; keep production authority registries strict | ✅ Resolved |
 | AR-P27 | Runtime — Phase 3 raw fixture authority | How should raw-malformed oracle cases satisfy the approved invalid-diagnostic predicate, exact route-plan digest and strict UTF-8 ingress while retaining zero/nonzero raw coverage? | Derive a genuine raw predicate/digest and use valid malformed-language UTF-8; weaken production validation; admit invalid UTF-8 | Explicitly derive the raw predicate and exact byte digests; use `@` as valid UTF-8 malformed-language input | ✅ Resolved |
+| AR-P28 | Runtime — Phase 3 external fixture entrypoints | How should true Worker/subprocess fixtures resolve executable JavaScript when Vitest imports their TypeScript controller from `src/`? | Bind to prebuilt `dist/test-fixtures` entries; add a runtime TypeScript loader; treat module-load crashes as scenario outcomes | Resolve both true-external adapters from the package's build-before-test `dist/test-fixtures` output | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -758,3 +759,30 @@ superseding complete-bundle freeze.
 **Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
 **Reopen trigger:** Either corrected raw case still fails before its intended assertion, or raw
 execution requires a route contract not represented by the approved invalid-diagnostic arm.
+
+### AR-P28 — Phase 3 external fixture entrypoints (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Correcting true-external test runtime paths inside the approved fixture architecture;
+production worker/process behavior, crash classification and package API remain unchanged.
+**Objective:** Execute the fixture's intentional pass/crash outcomes in real Node workers and
+subprocesses instead of accidentally treating missing source-relative JavaScript as a scenario crash.
+**Decision:** Resolve both entrypoints from `../../dist/test-fixtures/`, whose JavaScript is produced
+by the package's mandatory build-before-test scripts. Keep TypeScript sources authoritative and add
+no loader, source-side JavaScript duplicate, conditional fallback or package export.
+**Evidence:** The source tree contains only `.ts` entries, both compiled `.js` files exist under
+`dist/test-fixtures`, and exact tracing proved ordinal two selected `pass` before its Worker failed to
+load the absent source-relative path. Standalone crash scenarios had masked the same defect.
+**Rejected alternatives:** A TypeScript runtime loader diverges from production execution and adds
+configuration; committed JavaScript wrappers duplicate generated code; package subpaths widen API
+solely for tests; treating module-load failure as an intentional crash falsifies scenario evidence.
+**Strongest counterargument:** Direct `vitest` without a build can now fail. The package's `test` and
+coverage paths already run `tsc --build`, making compiled entry availability an explicit enforced
+contract rather than an implicit fallback.
+**Confidence:** High — both source and compiled import locations resolve the same package-local dist
+entries, and no production byte or decision changes.
+**Hardening:** Independent design challenge selected the dist path, rejected loader/duplicate/export
+alternatives, required both worker and subprocess correction, and required a new bundle freeze.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
+**Reopen trigger:** A build-before-test run cannot load either compiled entry, intentional pass
+ordinal still crashes before response, or subprocess activity cannot be observed through the entry.
