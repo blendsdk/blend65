@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-30 11:19
-> **Progress**: 23/70 tasks (33%)
+> **Last Updated**: 2026-08-30 12:16
+> **Progress**: 25/70 tasks (36%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -152,9 +152,17 @@ reducer for all three families, with no compiler, worker or filesystem access.
 
 > **Lenses**: compiler-semantics, distributed/concurrency, security, compatibility
 > **Reference**: 03-03 · AR-P1, AR-P5, AR-P7 · ST-25–ST-35
+> **Phase baseline tree**: `a4c30a014ed65074f79448a7dd1cecb0e65546f6`
+> **Scope mode**: strict
+> **Expected modification set**: Phase 3 specification/implementation tests and fixtures in
+> `packages/readiness-execution/src/`; candidate payload, route, handler, report-sidecar,
+> isolation, confirmation, worker, runtime-evaluation, exports, coverage and generated-binding
+> files in `packages/readiness-execution/` and `packages/readiness/`; this execution plan,
+> ambiguity register and compiler-readiness roadmap. `spec/` and the portfolio roadmap remain
+> read-only.
 
-- [ ] 3.1.1 [spec-author] Write the ST-10 report-sidecar facet, execution facet of ST-18, ST-23 route/isolation facet and ST-25–ST-35 in new `packages/readiness-execution/src/failure-candidate-execution.spec.test.ts` using genuine published-handler authority and independent worker-thread/subprocess fixtures
-- [ ] 3.1.2 Run the Phase 3 specification file and record RED caused only by absent candidate-route and confirmation APIs; freeze its content hash
+- [x] 3.1.1 [spec-author] Write the ST-10 report-sidecar facet, execution facet of ST-18, ST-23 route/isolation facet and ST-25–ST-35 in new `packages/readiness-execution/src/failure-candidate-execution.spec.test.ts` using genuine published-handler authority and independent worker-thread/subprocess fixtures ✅ (completed: 2026-08-30 12:12); 14 implementation-blind cases, real worker/process scenario fixtures, 691-line oracle, TypeScript/Prettier/documentation checks clean
+- [x] 3.1.2 Run the Phase 3 specification file and record RED caused only by absent candidate-route and confirmation APIs; freeze its content hash ✅ (completed: 2026-08-30 12:16); 14/14 expected failures solely from absent `failure-execution-internals.js`; frozen SHA-256 `b8b6fc7a52c34d7c8ac258b59a2372d6fe11de28a5fa9744ec405c0a0cd3f903`
 - [ ] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload
 - [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
 - [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards

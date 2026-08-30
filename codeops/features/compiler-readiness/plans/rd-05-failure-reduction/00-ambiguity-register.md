@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 23 items resolved; 9 added during execution
-> **Last Updated**: 2026-08-30 09:57
+> **Status**: ✅ GATE PASSED — all 24 items resolved; 10 added during execution
+> **Last Updated**: 2026-08-30 11:46
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -37,6 +37,7 @@
 | AR-P21 | Runtime — Phase 2 candidate-authority boundary and review remediation | Which authority belongs in Phase 2, and which review blockers must close before the phase completes? | Candidate/token core now and route/control/sequence in Phase 3; claim all execution authority now; defer review blockers | Keep reusable candidate/token authority in Phase 2, retain route/control/sequence authority in Phase 3, and fix every fail-closed/boundedness blocker now | ✅ Resolved |
 | AR-P22 | Runtime — current parent publication lifecycle | How do Phase 2 tests use current five-binding oracle authority when the selected RD-04 nine-binding release is source-stale and real reselection belongs to Phase 6? | Materialize a current five-over-four test parent; reselect production now; forge the old release as current | Materialize and pin the deterministic current test parent over the immutable four-binding base; leave real review/selection to Phase 6 | ✅ Resolved |
 | AR-P23 | Runtime — Phase 2 re-review integrity and boundedness | How must the reducer close surviving authority, identity, handoff and cost-model defects without widening Phase 3 scope? | Repair all Phase 2 invariants and expose only terminal candidate authority; defer them; move confirmation into Phase 2 | Repair all Phase 2 invariants, meter descriptor preparation, bound inspection, and expose a terminal-only authority handoff while retaining execution/confirmation in Phase 3 | ✅ Resolved |
+| AR-P24 | Runtime — Phase 3 callable authority protocol | Which exact callable interfaces let the immutable Phase 3 specification exercise genuine isolation lifecycles, report-sidecar association, ordered sequence positions, controls and worker observations without exposing caller-selected handlers or inventing test hooks? | Package-private protocol session; exported internal subpath; high-level public coordinator; widened public mechanism APIs | Package-private `failure-execution-internals.ts` protocol session with opaque WeakMap authorities and authenticated observation projections | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -616,3 +617,50 @@ authority and boundedness seams; all critical/major findings are resolved in sco
 **Reopen trigger:** Phase 3 cannot consume the terminal authority without changing its candidate or
 trace identity, or an allowed candidate can perform unmetered work above the inspection/campaign
 bounds.
+
+### AR-P24 — Phase 3 callable authority protocol (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Internal capability, lifecycle and implementation-blind test interfaces inside the
+approved candidate execution, isolation and confirmation behavior; no product, retention, public
+compatibility or scope decision changes.
+**Objective:** Make every Phase 3 oracle executable through genuine authority while keeping handler,
+worker, path and isolation selection outside caller control.
+**Decision:** Add one co-located production module, `failure-execution-internals.ts`, that opens an
+opaque protocol session only from a genuine selected parent, execution context, ordinary route and
+failure envelope. Session-bound WeakMap operations mint the three fixed isolation modes, genuine
+known-good control authority, attempt/position authority and authenticated path-free execution
+observations; they own shutdown and reject copied, foreign, replayed, stale or cross-mode values.
+The sequence state machine issues its own next position and rejects case 65 before recording any
+launch checkpoint. A package-private report-sidecar accessor returns only the exact ordered
+handler-minted collection retained beside a genuine report. The module is not exported by the root
+barrel or package manifest. A second opaque session/step pair is the sole binder between genuine
+standalone, control and sequence evaluations and the final confirmation disposition; the public
+`confirmReducedFailureV1` drives that same state machine internally, while the co-located oracle can
+step it without injecting execution behavior. Fixed co-located scenario fixtures replace only true
+worker/process adapter modules in a fresh test module graph before genuine context resolution; they
+run independent worker threads/subprocesses and never replace the fixed handler chain or enter a
+caller-facing API.
+**Evidence:** Candidate invocation creation/consumption already uses purpose-bound WeakMap authority;
+live execution contexts already retain fixed handler tables behind genuine review/published
+contexts; authority reports already separate private WeakMap authenticity from unchanged serialized
+bytes; and all Phase 3 specifications are co-located in the execution package. The first independent
+spec-author dispatch proved that the earlier prose-only mint/lifecycle descriptions were
+insufficient to stage success and hostile cases without guessing.
+**Rejected alternatives:** Exporting an internal package subpath is viable but lets every workspace
+consumer import mechanism APIs; a second public coordinator duplicates the existing orchestration
+state machine and makes hostile capability substitution less direct; widening the root API exposes
+lifecycle machinery solely for test convenience.
+**Strongest counterargument:** Package-private operations cannot support an immutable specification
+owned by another package. Phase 3's oracle is intentionally co-located, while later public workflow
+tests use the root create/execute/confirm APIs and do not need the mechanics.
+**Confidence:** High — the selected seam matches current authority patterns and is the narrowest
+interface that makes every approved Phase 3 behavior independently observable.
+**Hardening:** An independent challenger rejected all three initial candidates as stated and
+strengthened the internal-subpath option into a non-exported module-private protocol session; the
+ruling adopts that tighter boundary with closed result types and path-free observations.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
+**Reopen trigger:** A required Phase 3 oracle must execute from outside the package, the genuine
+fixed handlers cannot report root/worker/isolate checkpoints without exposing a caller-selected
+execution dependency, or the shared confirmation machine cannot classify every approved outcome
+from handler-authenticated evaluations alone.

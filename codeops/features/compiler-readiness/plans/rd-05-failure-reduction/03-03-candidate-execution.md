@@ -28,6 +28,248 @@ publication refresh in the closeout phase. (AR-P13)
 
 ## Dedicated Candidate Route
 
+### Package-private execution protocol
+
+The immutable co-located specification and the production coordinator share one declared
+package-private protocol at `failure-execution-internals.ts`. It is deliberately absent from the
+package manifest and root barrel. The protocol accepts only a genuine selected parent, genuine
+execution context, genuine original route request and genuine envelope; it never accepts a handler,
+handler identifier, callback, worker factory, path or isolation-mode discriminator.
+
+```ts
+export interface FailureExecutionProtocolV1 {
+  readonly [FAILURE_EXECUTION_PROTOCOL_V1]: true;
+}
+
+export interface ReductionExecutionIsolationV1 {
+  readonly [REDUCTION_EXECUTION_ISOLATION_V1]: true;
+}
+
+export interface FailureExecutionControlAuthorityV1 {
+  readonly [FAILURE_EXECUTION_CONTROL_AUTHORITY_V1]: true;
+}
+
+export interface StatefulSequenceAttemptAuthorityV1 {
+  readonly [STATEFUL_SEQUENCE_ATTEMPT_AUTHORITY_V1]: true;
+}
+
+export interface StatefulSequencePositionAuthorityV1 {
+  readonly [STATEFUL_SEQUENCE_POSITION_AUTHORITY_V1]: true;
+}
+
+export interface FailureConfirmationSessionV1 {
+  readonly [FAILURE_CONFIRMATION_SESSION_V1]: true;
+}
+
+export interface FailureConfirmationStepAuthorityV1 {
+  readonly [FAILURE_CONFIRMATION_STEP_AUTHORITY_V1]: true;
+}
+
+export interface FailureExecutionStepEvaluationV1 {
+  readonly [FAILURE_EXECUTION_STEP_EVALUATION_V1]: true;
+}
+
+export interface FailureExecutionObservationV1 {
+  readonly revision: "failure-execution-observation-v1";
+  readonly mode: "campaign-shared" | "standalone" | "sequence-attempt";
+  readonly admitted: boolean;
+  readonly launched: boolean;
+  readonly attemptOrdinal: number;
+  readonly position: number;
+  readonly rootIdentity?: Sha256Digest;
+  readonly workerIdentity?: number;
+  readonly isolateIdentity?: Sha256Digest;
+}
+
+export function openFailureExecutionProtocolV1(input: {
+  readonly parent: PublishedSnapshot;
+  readonly execution: ExecutionAuthorityContextV1;
+  readonly originalRequest: ExecutionRouteRequestV1;
+  readonly origin: AuthorizedFailureEnvelopeV1;
+}): ExecutionOperationResultV1<FailureExecutionProtocolV1>;
+
+export function mintCampaignFailureExecutionIsolationV1(
+  protocol: FailureExecutionProtocolV1,
+): ExecutionOperationResultV1<ReductionExecutionIsolationV1>;
+
+export function mintStandaloneFailureExecutionIsolationV1(
+  protocol: FailureExecutionProtocolV1,
+  subject: ReductionCandidateInvocationV1 | FailureExecutionControlAuthorityV1,
+): ExecutionOperationResultV1<ReductionExecutionIsolationV1>;
+
+export function createFailureExecutionControlV1(
+  protocol: FailureExecutionProtocolV1,
+  request: ExecutionRouteRequestV1,
+): ExecutionOperationResultV1<FailureExecutionControlAuthorityV1>;
+
+export function beginStatefulSequenceAttemptV1(
+  protocol: FailureExecutionProtocolV1,
+  input: {
+    readonly attemptOrdinal: number;
+    readonly precedingOriginals: readonly ExecutionRouteRequestV1[];
+    readonly terminalCandidate: ReductionCandidateInvocationV1;
+    readonly failingPosition: number;
+    readonly caseLimit: number;
+  },
+): ExecutionOperationResultV1<StatefulSequenceAttemptAuthorityV1>;
+
+export function nextStatefulSequencePositionV1(
+  protocol: FailureExecutionProtocolV1,
+  attempt: StatefulSequenceAttemptAuthorityV1,
+): ExecutionOperationResultV1<
+  | { readonly kind: "execute"; readonly position: StatefulSequencePositionAuthorityV1 }
+  | { readonly kind: "complete" }
+>;
+
+export function recordStatefulSequencePositionV1(
+  protocol: FailureExecutionProtocolV1,
+  attempt: StatefulSequenceAttemptAuthorityV1,
+  position: StatefulSequencePositionAuthorityV1,
+  evaluation: ReductionCandidateEvaluationV1 | ExecutionResultV1,
+): ExecutionOperationResultV1<true>;
+
+export function createFailureConfirmationSessionV1(
+  protocol: FailureExecutionProtocolV1,
+  candidate: ReductionCandidateAuthorityV1,
+  origin: AuthorizedFailureEnvelopeV1,
+  campaignBudget: FailureCampaignBudgetAuthorityV1,
+): ExecutionOperationResultV1<FailureConfirmationSessionV1>;
+
+export function nextFailureConfirmationStepV1(
+  protocol: FailureExecutionProtocolV1,
+  session: FailureConfirmationSessionV1,
+): ExecutionOperationResultV1<
+  | {
+      readonly kind: "execute-candidate" | "execute-control";
+      readonly authority: FailureConfirmationStepAuthorityV1;
+    }
+  | {
+      readonly kind: "execute-sequence-position";
+      readonly authority: FailureConfirmationStepAuthorityV1;
+      readonly attempt: StatefulSequenceAttemptAuthorityV1;
+      readonly position: StatefulSequencePositionAuthorityV1;
+    }
+  | { readonly kind: "complete"; readonly result: FailureConfirmationResultV1 }
+>;
+
+export function executeFailureConfirmationStepV1(
+  protocol: FailureExecutionProtocolV1,
+  session: FailureConfirmationSessionV1,
+  authority: FailureConfirmationStepAuthorityV1,
+): Promise<ExecutionOperationResultV1<FailureExecutionStepEvaluationV1>>;
+
+export function recordFailureConfirmationStepV1(
+  protocol: FailureExecutionProtocolV1,
+  session: FailureConfirmationSessionV1,
+  authority: FailureConfirmationStepAuthorityV1,
+  evaluation: FailureExecutionStepEvaluationV1,
+): ExecutionOperationResultV1<true>;
+
+export function getFailureExecutionObservationV1(
+  protocol: FailureExecutionProtocolV1,
+  subject:
+    | ReductionExecutionIsolationV1
+    | StatefulSequenceAttemptAuthorityV1
+    | StatefulSequencePositionAuthorityV1,
+): ExecutionOperationResultV1<FailureExecutionObservationV1>;
+
+export function getExecutionAuthorityReportPredicateSidecarsV1(
+  report: ExecutionAuthorityReportV1,
+): ExecutionOperationResultV1<readonly FailurePredicateEvidenceV1[]>;
+
+export function shutdownFailureExecutionIsolationV1(
+  protocol: FailureExecutionProtocolV1,
+  isolation: ReductionExecutionIsolationV1,
+): Promise<ExecutionOperationResultV1<true>>;
+
+export function closeFailureExecutionProtocolV1(
+  protocol: FailureExecutionProtocolV1,
+): Promise<ExecutionOperationResultV1<true>>;
+```
+
+The sequence state machine, rather than a caller-selected position, issues the only next legal
+subject. Position capabilities are attempt-bound and single-use. The exact limit is 64; an
+over-limit attempt or next position rejects before any root, worker or isolate checkpoint exists.
+Each execution layer records its own checkpoint, and the observation projection reports only
+authenticated checkpoints instead of synthesizing missing activity. Root identities are
+path-free digests, worker identities are Node worker-thread identities, and isolate identities are
+domain-separated from the worker launch.
+
+The confirmation state machine is the sole binder between authenticated standalone, control and
+sequence observations and the final disposition. It issues one opaque step at a time, accepts only
+the exact opaque evaluation returned by its fixed published-handler executor, charges the shared
+budget before admission,
+and exposes the result only from its terminal arm. `confirmReducedFailureV1` drives this same
+protocol to completion internally; the co-located immutable specification may drive it explicitly
+to exercise substitution, ordering, limit and classification boundaries without a handler callback
+or fabricated result. A copied, foreign, repeated or out-of-order step rejects before advancing the
+session.
+
+### Immutable confirmation fixtures
+
+The co-located specification owns fixed external-boundary fixtures in
+`test-fixtures/failure-execution-spec-fixture.ts` plus dedicated worker-thread and subprocess entry
+files. The fixture may replace only the worker-executor and process-runtime adapter modules before
+the genuine execution catalog is loaded in a fresh Vitest module graph. It must not replace the
+live handlers, publication catalog, route adapters, protocol, confirmation logic or authority
+constructors. The resolved review context and fixed published handler chain therefore remain
+genuine while the true external worker/process behavior is controlled.
+
+The exact Vitest substitutions are closed: `./execution-worker-executor.js` retains every actual
+export but replaces `defaultExecutionWorkerExecutorV1`, `createExecutionWorkerExecutorV1()` and the
+new package-private `createDedicatedExecutionWorkerExecutorV1(caseLimit)` with fixed fixture
+executors implementing `start(request, cancellation)` and `shutdown()`; `./execution-process.js`
+retains every actual export but replaces `defaultExecutionProcessRuntimeV1` and
+`createExecutionProcessRuntimeV1(...)` with the fixed fixture runtime implementing
+`start(request, sink, cancellation)`. The fixture installs both through `vi.doMock` before importing
+the execution catalog/protocol and restores modules/environment during `cleanup`. No other module
+specifier or export may be substituted.
+
+```ts
+export type FailureExecutionSpecScenarioV1 =
+  | "standalone-stable"
+  | "sequence-only"
+  | "flaky"
+  | "infrastructure-with-passing-control";
+
+export function createFailureExecutionSpecFixtureV1(
+  scenario: FailureExecutionSpecScenarioV1,
+  options?: { readonly failingPosition?: number; readonly sequenceLength?: number },
+): Promise<{
+  readonly parent: PublishedSnapshot;
+  readonly execution: ExecutionAuthorityContextV1;
+  readonly originalRequest: ExecutionRouteRequestV1;
+  readonly origin: AuthorizedFailureEnvelopeV1;
+  readonly candidate: ReductionCandidateAuthorityV1;
+  readonly budget: FailureCampaignBudgetAuthorityV1;
+  readonly expectedDisposition: FailureConfirmationResultV1["disposition"];
+  readonly expectedFailingPosition?: number;
+  readonly activity: {
+    readonly workerThreads: readonly number[];
+    readonly isolateIdentities: readonly Sha256Digest[];
+    readonly rootIdentities: readonly Sha256Digest[];
+    readonly processLaunches: number;
+  };
+  readonly cleanup: () => Promise<void>;
+}>;
+```
+
+The four scenarios are fixed contracts, not callbacks. `standalone-stable` returns the same
+predicate failure from two independent workers; `sequence-only` retains state only inside one
+attempt worker and fails at the requested position after authenticated preceding originals;
+`flaky` deterministically disagrees across fresh/sequence runs; and
+`infrastructure-with-passing-control` returns the same infrastructure-like candidate failure twice
+while the distinct same-route control passes. The fixture records actual worker-thread, isolate,
+root and subprocess checkpoints. Unsupported scenario names and out-of-range positions reject
+before loading production modules. No fixture API or asset is emitted from a production barrel or
+package export.
+
+`authorizeExecutionAuthorityReportV1` accepts the ordered handler-minted predicate sidecars as a
+private second input. It validates their route/result association before retaining them beside the
+authorized report in WeakMap state. Serialization continues to use only the unchanged report
+snapshot. Calls that omit the private input create compatible pre-RD-05 report authority which
+still serializes but returns `historical-authority-unavailable` from the accessor above.
+
 ```ts
 export interface ReductionExecutionRouteRequestV1 {
   readonly kind: "reduction-candidate";
