@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -17,6 +19,10 @@ import {
 
 const openFixtures = new Set<FailureExecutionSpecFixtureV1>();
 const ENCODER = new TextEncoder();
+
+function digestBytes(bytes: Uint8Array): string {
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
 
 function call<T>(api: Api, name: string, ...arguments_: readonly unknown[]): T {
   const callable = api[name];
@@ -326,16 +332,48 @@ describe("failure candidate execution oracle", () => {
     const source = success(
       call<Result<Data>>(api.readiness, "getFailureEnvelopeProjectionV1", value.origin),
     );
-    const rawBytes = ENCODER.encode('{"kind":"invalid-diagnostic","obligation":"frontend"}\n');
+    const typedPredicate = record(source.predicate, "typed predicate");
+    const typedRoute = record(typedPredicate.routeContract, "typed route contract");
+    const observationBytes = new Uint8Array();
+    const routePlanBytes = ENCODER.encode(
+      '{"kind":"invalid-diagnostic","obligation":"frontend"}\n',
+    );
+    const rawPredicate = success(
+      call<Result<{ readonly predicate: Data }>>(
+        api.readiness,
+        "deriveFailurePredicateIdentityV1",
+        {
+          revision: "failure-predicate-v1",
+          resultCode: typedPredicate.resultCode,
+          terminalTier: typedPredicate.terminalTier,
+          terminalStage: typedPredicate.terminalStage,
+          observation: { kind: "observed", digest: digestBytes(observationBytes) },
+          cleanup: typedPredicate.cleanup,
+          primaryRuleId: "diagnostic.malformed-source",
+          requiredClaimedRuleIds: ["diagnostic.malformed-source"],
+          target: typedPredicate.target,
+          routeContract: {
+            originalRouteKind: "invalid-diagnostic",
+            terminalTier: typedRoute.terminalTier,
+            obligation: typedRoute.obligation,
+            prerequisiteTiers: typedRoute.prerequisiteTiers,
+            policyDigest: typedRoute.policyDigest,
+            fixtureDigest: typedRoute.fixtureDigest,
+            oracleContractDigest: typedRoute.oracleContractDigest,
+            toolContractDigests: typedRoute.toolContractDigests,
+          },
+        },
+      ),
+    ).predicate;
     const rawOrigin = success(
       call<Result<object>>(api.readiness, "authorizeFailureEnvelopeV1", {
         revision: "failure-envelope-authorization-input-v1",
         source: { kind: "raw-malformed", authority: malformed },
-        routePlanBytes: rawBytes,
-        routePlanDigest: `sha256:${"6".repeat(64)}`,
-        predicate: source.predicate,
+        routePlanBytes,
+        routePlanDigest: digestBytes(routePlanBytes),
+        predicate: rawPredicate,
         policy: source.policy,
-        observationBytes: new Uint8Array(),
+        observationBytes,
         toolVersions: [],
       }),
     );
@@ -531,7 +569,7 @@ describe("failure candidate execution oracle", () => {
         value.parent,
       ),
     );
-    for (const sourceBytes of [new Uint8Array(), Uint8Array.of(0xff, 0x00)]) {
+    for (const sourceBytes of [new Uint8Array(), ENCODER.encode("@")]) {
       const malformed = success(
         call<Result<object>>(api.readiness, "createMalformedDiagnosticCaseV1", context, {
           revision: "malformed-diagnostic-case-input-v1",

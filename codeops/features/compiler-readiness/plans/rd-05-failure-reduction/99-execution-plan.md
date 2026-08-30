@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-30 13:08
+> **Last Updated**: 2026-08-30 13:34
 > **Progress**: 25/70 tasks (36%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
@@ -184,6 +184,12 @@ reducer for all three families, with no compiler, worker or filesystem access.
   fixture, worker-entry, process-entry order. The worker and process fixture hashes remain
   `fb3e6b0827f0da1af770d450243cb2a68ecadecb049566649731150e08a50cd0` and
   `2e7603439f97deb5d109d1fee4ea3a28357c53847dc7d37d807b670753232bf1`.
+- AR-P27 corrected the two raw inputs to satisfy the already frozen invalid-diagnostic predicate,
+  exact-byte digest and strict UTF-8 contracts. The 14 expectations remain unchanged. Final
+  corrected specification SHA-256: `fe13e7f7b6793b725ed9469b8fb6b8c93063829cc2b13a0f25987f9ab9cd614e`;
+  authoritative bundle SHA-256:
+  `523f28af6fd604e1476647a89c21e9ae8f002d57213c14cc2fd95172c8742c62`, superseding the
+  AR-P26 checkpoint while retaining the same three support-file hashes above.
 - [~] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload — started 2026-08-30 12:18; AR-P25/AR-P26 fixture-only blockers resolved by 2026-08-30 13:08 without production weakening
 - [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
 - [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards

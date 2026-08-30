@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 26 items resolved; 12 added during execution
-> **Last Updated**: 2026-08-30 13:08
+> **Status**: ✅ GATE PASSED — all 27 items resolved; 13 added during execution
+> **Last Updated**: 2026-08-30 13:34
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -40,6 +40,7 @@
 | AR-P24 | Runtime — Phase 3 callable authority protocol | Which exact callable interfaces let the immutable Phase 3 specification exercise genuine isolation lifecycles, report-sidecar association, ordered sequence positions, controls and worker observations without exposing caller-selected handlers or inventing test hooks? | Package-private protocol session; exported internal subpath; high-level public coordinator; widened public mechanism APIs | Package-private `failure-execution-internals.ts` protocol session with opaque WeakMap authorities and authenticated observation projections | ✅ Resolved |
 | AR-P25 | Runtime — Phase 3 fixture observation authority | How should the frozen Phase 3 fixture correct a predicate observation digest that does not match its supplied observation bytes, after the initial RED stopped before fixture construction? | Align fixture bytes to the named observation; replace the predicate with the empty-byte digest; weaken production validation | Preserve the authored named observation, supply its exact UTF-8 bytes, and freeze the complete four-file oracle bundle | ✅ Resolved |
 | AR-P26 | Runtime — Phase 3 fixture module graph | How should the oracle ensure its APIs and genuine WeakMap-backed fixture authorities come from one module graph after controlled adapter installation? | Construct each fixture before importing its APIs; redesign fixture/API loading; accept cross-registry authorities | Construct each fixture first, then load APIs inside that same reset epoch; keep production authority registries strict | ✅ Resolved |
+| AR-P27 | Runtime — Phase 3 raw fixture authority | How should raw-malformed oracle cases satisfy the approved invalid-diagnostic predicate, exact route-plan digest and strict UTF-8 ingress while retaining zero/nonzero raw coverage? | Derive a genuine raw predicate/digest and use valid malformed-language UTF-8; weaken production validation; admit invalid UTF-8 | Explicitly derive the raw predicate and exact byte digests; use `@` as valid UTF-8 malformed-language input | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -725,3 +726,35 @@ changed.
 **Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
 **Reopen trigger:** Any scenario creates or resets a fixture between API loading and authority use,
 or same-epoch genuine authorities remain unavailable.
+
+### AR-P27 — Phase 3 raw fixture authority (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Correcting raw specification inputs to the already approved raw-malformed,
+invalid-diagnostic and strict UTF-8 contracts; production behavior and test expectations remain
+unchanged.
+**Objective:** Make the empty raw envelope and nonempty raw projection cases exercise genuine raw
+authority instead of contradicting Phase 1/2 validation.
+**Decision:** The empty case explicitly derives an `invalid-diagnostic` predicate with
+`diagnostic.malformed-source` as its primary and sole required claim, hashes its exact empty
+observation bytes, and hashes its exact JSON route-plan bytes. The projection-only nonempty case uses
+UTF-8 `@`, retaining an exact unknown-token byte span and malformed-language meaning without
+introducing invalid encoding.
+**Evidence:** Envelope authorization requires source family and original route kind to agree, rule
+claims to match, observation digest to bind exact bytes, and route-plan digest to bind exact bytes.
+Malformed ingress separately requires complete strict UTF-8, an invariant already verified and
+accepted in Phase 2. Both prior inputs failed before Phase 3 routing.
+**Rejected alternatives:** Reusing the typed-valid predicate fabricates route authority; a hardcoded
+route digest does not bind its bytes; weakening strict UTF-8 reopens an explicitly closed Phase 2
+contract; moving this single semantic construction into shared fixture support hides the normative
+raw differences.
+**Strongest counterargument:** The projection-only case originally used visibly invalid bytes. Its
+asserted purpose is raw zero/nonzero separation without typed IR, not encoding rejection; `@` keeps
+that exact purpose while respecting the separately tested ingress boundary.
+**Confidence:** High — every corrected field derives from the exact authority bytes it claims.
+**Hardening:** Independent design challenge required an allowlisted predicate construction, exact
+observation/route hashing, valid malformed-language UTF-8, unchanged production validation, and a
+superseding complete-bundle freeze.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
+**Reopen trigger:** Either corrected raw case still fails before its intended assertion, or raw
+execution requires a route contract not represented by the approved invalid-diagnostic arm.
