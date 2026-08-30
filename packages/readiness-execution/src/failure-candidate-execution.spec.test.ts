@@ -57,6 +57,7 @@ async function fixture(
   scenario: FailureExecutionSpecScenarioV1,
   options?: { readonly failingPosition?: number; readonly sequenceLength?: number },
 ): Promise<FailureExecutionSpecFixtureV1> {
+  // Load APIs only after this helper: adapter installation resets the WeakMap authority registry.
   const created = await createFailureExecutionSpecFixtureV1(scenario, options);
   openFixtures.add(created);
   return created;
@@ -237,8 +238,8 @@ afterEach(async () => {
 describe("failure candidate execution oracle", () => {
   // Predicate evidence is private authority bound one-to-one to unchanged report result order.
   it("should bind ordered predicate sidecars without changing report bytes and reject unavailable or substituted associations", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const first = await executeCandidate(api, value, value.candidate);
     const second = await executeCandidate(api, value, value.candidate);
     const reportResults = [first.evaluation.result, second.evaluation.result] as const;
@@ -299,8 +300,8 @@ describe("failure candidate execution oracle", () => {
 
   // Empty bytes are a legal raw diagnostic payload but never a typed program payload.
   it("should execute an empty raw malformed candidate and reject empty typed candidates", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const context = success(
       call<Result<object>>(
         await vi.importActual<Api>("@blend65/readiness/published-oracle"),
@@ -367,8 +368,8 @@ describe("failure candidate execution oracle", () => {
 
   // Route and isolation capabilities are single-use, ordered, subject-bound, and mode-bound.
   it("should reject foreign, replayed, out-of-order, cross-subject, cross-purpose, and cross-mode route capabilities", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const session = protocol(api, value);
     const first = invocation(api, value.candidate);
     const second = invocation(api, value.candidate);
@@ -433,8 +434,8 @@ describe("failure candidate execution oracle", () => {
 
   // Candidate identity is derived in a new domain while the authenticated original stays immutable.
   it("should leave the original immutable and derive a new identity for every candidate", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const before = success(
       call<Result<Data>>(api.readiness, "getFailureEnvelopeProjectionV1", value.origin),
     );
@@ -465,8 +466,8 @@ describe("failure candidate execution oracle", () => {
 
   // Execution replaces only source-bound identity and preserves the authenticated route contract.
   it("should execute through the original route with obligation, tier, policy, fixture, oracle, tools, and predicate unchanged", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const origin = success(
       call<Result<Data>>(api.readiness, "getFailureEnvelopeProjectionV1", value.origin),
     );
@@ -485,8 +486,8 @@ describe("failure candidate execution oracle", () => {
 
   // No callback, handler, path, or extra field may enter the authenticated route boundary.
   it("should reject callbacks, forged authority, caller handlers, and extra keys before activity", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const before = [...value.activity.workerThreads];
     const forgedInputs = [
       { ...record(value.originalRequest, "request") },
@@ -509,8 +510,8 @@ describe("failure candidate execution oracle", () => {
 
   // Both typed validity families use the already-published frontend handler chain.
   it("should route typed-valid and typed-invalid candidates through the existing published chain", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const valid = await executeCandidate(api, value, value.candidate);
     expect(valid.evaluation.result).toMatchObject({ tier: "frontend" });
     expect(value.activity.workerThreads.length).toBeGreaterThan(0);
@@ -521,8 +522,8 @@ describe("failure candidate execution oracle", () => {
 
   // Raw diagnostic bytes never acquire a typed execution-case or typed intermediate representation.
   it("should route zero and nonzero raw diagnostic bytes without typed intermediate representation", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const context = success(
       call<Result<object>>(
         await vi.importActual<Api>("@blend65/readiness/published-oracle"),
@@ -559,8 +560,8 @@ describe("failure candidate execution oracle", () => {
 
   // Observing candidate support must not alter the canonical ordinary route representation.
   it("should keep equivalent ordinary generated-route behavior byte-compatible", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const before = ENCODER.encode(`${JSON.stringify(value.originalRequest)}\n`);
     await executeCandidate(api, value, value.candidate);
     const after = ENCODER.encode(`${JSON.stringify(value.originalRequest)}\n`);
@@ -569,8 +570,8 @@ describe("failure candidate execution oracle", () => {
 
   // Standalone confirmation owns two distinct workers, roots, and V8 isolates.
   it("should confirm stable predicates twice in genuinely distinct standalone isolates", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const driven = await driveConfirmation(api, value);
     expect(driven.result).toMatchObject({
       revision: "failure-confirmation-result-v1",
@@ -588,11 +589,11 @@ describe("failure candidate execution oracle", () => {
   // A sequence attempt authenticates ordered originals and exactly one terminal candidate.
   it("should bind failures at positions two through nine, isolate attempts, accept 64, and reject 65 before launch", async () => {
     for (const failingPosition of [2, 3, 4, 5, 6, 7, 8, 9, 64]) {
-      const api = await apis();
       const value = await fixture("sequence-only", {
         failingPosition,
         sequenceLength: failingPosition,
       });
+      const api = await apis();
       const driven = await driveConfirmation(api, value);
       const positions: number[] = [];
       for (const step of driven.steps) {
@@ -621,11 +622,11 @@ describe("failure candidate execution oracle", () => {
       openFixtures.delete(value);
     }
 
-    const api = await apis();
     const overLimit = await fixture("sequence-only", {
       failingPosition: 64,
       sequenceLength: 64,
     });
+    const api = await apis();
     const session = protocol(api, overLimit);
     const before = [...overLimit.activity.workerThreads];
     failure(
@@ -642,8 +643,8 @@ describe("failure candidate execution oracle", () => {
 
   // Fresh-run or sequence disagreement is flaky and never promotable beyond the campaign.
   it("should classify unstable fresh or sequence runs as flaky and keep them campaign-only", async () => {
-    const api = await apis();
     const value = await fixture("flaky");
+    const api = await apis();
     const direct = success(
       await call<Promise<Result<ConfirmationResultV1>>>(
         api.execution,
@@ -662,8 +663,8 @@ describe("failure candidate execution oracle", () => {
 
   // Infrastructure-like candidate failure is confirmed only after a passing same-route control.
   it("should require two infrastructure reproductions and a distinct passing same-route control", async () => {
-    const api = await apis();
     const value = await fixture("infrastructure-with-passing-control");
+    const api = await apis();
     const driven = await driveConfirmation(api, value);
     expect(driven.result.disposition).toBe("confirmed-source-failure");
     expect(driven.steps.filter((step) => step.kind === "execute-candidate")).toHaveLength(2);
@@ -673,8 +674,8 @@ describe("failure candidate execution oracle", () => {
 
   // Missing retained handler or tool authority is closed and never replaced by current authority.
   it("should fail closed without current handler or tool fallback when historical authority is missing", async () => {
-    const api = await apis();
     const value = await fixture("standalone-stable");
+    const api = await apis();
     const before = [...value.activity.workerThreads];
     const copiedParent = { ...record(value.parent, "parent") };
     failure(

@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-30 12:54
+> **Last Updated**: 2026-08-30 13:08
 > **Progress**: 25/70 tasks (36%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
@@ -172,13 +172,19 @@ reducer for all three families, with no compiler, worker or filesystem access.
 - AR-P25 corrected the fixture-only contradiction between its named observation digest and empty
   observation bytes without changing the specification or production validation. Corrected fixture
   SHA-256: `6a98d23bb767e4a4fa99c4aa842255f0d8e50822bdbe5cc98d6174a3de62f152`.
-- The authoritative four-file oracle bundle is frozen at SHA-256
-  `f83e73869d98ee268f2551b94713bea39453ffcb362d37e6b4f2eb8538f0b0cc`, computed from each
+- AR-P26 then corrected setup order so each fixture installs controlled adapters and constructs
+  authority before APIs load from that same module-reset epoch. All 14 expectations remain
+  unchanged. Corrected specification SHA-256:
+  `a4314e6810dd4a7069293208cdcee1ee8b2b40c451568de359ef95681f135492`.
+- The authoritative four-file oracle bundle is therefore frozen at SHA-256
+  `9d6f2ee31961993bf1305ec9fa78d65873bfee1ac00d0b5562cd3d4d9a71d667`, superseding the
+  AR-P25-only bundle checkpoint `f83e73869d98ee268f2551b94713bea39453ffcb362d37e6b4f2eb8538f0b0cc`.
+  It is computed from each
   repository-relative bundle path followed by a NUL byte and its exact file bytes in specification,
   fixture, worker-entry, process-entry order. The worker and process fixture hashes remain
   `fb3e6b0827f0da1af770d450243cb2a68ecadecb049566649731150e08a50cd0` and
   `2e7603439f97deb5d109d1fee4ea3a28357c53847dc7d37d807b670753232bf1`.
-- [~] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload — started 2026-08-30 12:18; AR-P25 fixture-only blocker resolved 2026-08-30 12:54 without production weakening
+- [~] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload — started 2026-08-30 12:18; AR-P25/AR-P26 fixture-only blockers resolved by 2026-08-30 13:08 without production weakening
 - [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
 - [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards
 - [ ] 3.2.4 Implement authenticated predicate sidecars before aggregate hashing and bind their exact ordered collection into private `execution-authority-report.ts` state through `execution-orchestration.ts`; preserve RD-04 V1 bytes and fail missing/reordered/copied/pre-RD-05 sidecars closed

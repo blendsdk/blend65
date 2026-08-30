@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 25 items resolved; 11 added during execution
-> **Last Updated**: 2026-08-30 12:54
+> **Status**: ✅ GATE PASSED — all 26 items resolved; 12 added during execution
+> **Last Updated**: 2026-08-30 13:08
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -39,6 +39,7 @@
 | AR-P23 | Runtime — Phase 2 re-review integrity and boundedness | How must the reducer close surviving authority, identity, handoff and cost-model defects without widening Phase 3 scope? | Repair all Phase 2 invariants and expose only terminal candidate authority; defer them; move confirmation into Phase 2 | Repair all Phase 2 invariants, meter descriptor preparation, bound inspection, and expose a terminal-only authority handoff while retaining execution/confirmation in Phase 3 | ✅ Resolved |
 | AR-P24 | Runtime — Phase 3 callable authority protocol | Which exact callable interfaces let the immutable Phase 3 specification exercise genuine isolation lifecycles, report-sidecar association, ordered sequence positions, controls and worker observations without exposing caller-selected handlers or inventing test hooks? | Package-private protocol session; exported internal subpath; high-level public coordinator; widened public mechanism APIs | Package-private `failure-execution-internals.ts` protocol session with opaque WeakMap authorities and authenticated observation projections | ✅ Resolved |
 | AR-P25 | Runtime — Phase 3 fixture observation authority | How should the frozen Phase 3 fixture correct a predicate observation digest that does not match its supplied observation bytes, after the initial RED stopped before fixture construction? | Align fixture bytes to the named observation; replace the predicate with the empty-byte digest; weaken production validation | Preserve the authored named observation, supply its exact UTF-8 bytes, and freeze the complete four-file oracle bundle | ✅ Resolved |
+| AR-P26 | Runtime — Phase 3 fixture module graph | How should the oracle ensure its APIs and genuine WeakMap-backed fixture authorities come from one module graph after controlled adapter installation? | Construct each fixture before importing its APIs; redesign fixture/API loading; accept cross-registry authorities | Construct each fixture first, then load APIs inside that same reset epoch; keep production authority registries strict | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -696,3 +697,31 @@ transitive-oracle bundle freeze, and rejected both semantic erasure and producti
 **Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
 **Reopen trigger:** The corrected fixture cannot construct genuine envelope authority, or future
 predicate evaluation requires different observation bytes for this scenario.
+
+### AR-P26 — Phase 3 fixture module graph (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Correcting test setup order so approved opaque authority semantics are exercised in
+one module registry; production behavior, expectations and scope remain unchanged.
+**Objective:** Ensure every fixture authority is consumed only by APIs loaded in the same module
+epoch after controlled worker/process adapter installation resets the Vitest module graph.
+**Decision:** In every scenario and every sequence-loop iteration, construct the fixture first and
+then load the API set immediately afterward. No intervening fixture creation or reset may occur.
+Keep all 14 expectations unchanged and retain strict WeakMap-backed production authority checks.
+**Evidence:** The fixture installs controlled true-external adapters with `vi.resetModules()` before
+constructing its genuine parent, execution, origin and candidate. APIs loaded before that reset
+necessarily reference a different private registry and correctly reject the fresh candidate.
+**Rejected alternatives:** Accepting cross-registry authorities defeats the capability boundary; a
+combined fixture/API loader is viable but expands support interfaces and changes every call shape
+when a mechanical ordering correction restores the intended single-epoch semantics.
+**Strongest counterargument:** Repeated temporal ordering can regress. A durable invariant comment
+now sits beside the fixture wrapper, each loop reloads APIs inside its fixture epoch, and the complete
+bundle hash detects later drift.
+**Confidence:** High — the correction follows the existing adapter-install lifecycle and preserves
+the exact security behavior the hostile oracle is meant to prove.
+**Hardening:** Independent design challenge selected the same per-epoch ordering, explicitly rejected
+production weakening, and required a new complete-bundle freeze because the specification bytes
+changed.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-1137`
+**Reopen trigger:** Any scenario creates or resets a fixture between API loading and authority use,
+or same-epoch genuine authorities remain unavailable.
