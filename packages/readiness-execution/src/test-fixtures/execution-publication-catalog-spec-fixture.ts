@@ -15,20 +15,36 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 
 import {
+  prepareIncrementalBindingPublication,
+  prepareIncrementalBindingPublicationReview,
   prepareExecutionPublicationCandidateV1,
+  publishIncrementalBindingPublication,
   resolvePublishedExecutionRelease,
   resolvePublishedSnapshotByDigest,
 } from "@blend65/readiness";
-import type { PublishedExecutionRelease, PublishedSnapshot } from "@blend65/readiness";
+import type {
+  PublicationReviewRequestV1,
+  PublishedExecutionRelease,
+  PublishedSnapshot,
+} from "@blend65/readiness";
 
 import { getExecutionCatalogFixtureDescriptorV1 } from "../execution-publication-catalog-conformance-v1.js";
 
 export const CURRENT_EXECUTION_PARENT_DIGEST =
-  "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
+  "sha256:e65b95cdc817a6b2608d6965855ca1013f36b7893424d31d2f04fd18fa0845a5";
 export const EXECUTION_SPEC_REVISION =
   "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd";
 
 const EXECUTION_PUBLICATIONS_RELATIVE_PATH = join("readiness", "execution-publications");
+const READINESS_BASE_PUBLICATION_DIGEST =
+  "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
+const READINESS_ORACLE_HANDLER_IDS = Object.freeze([
+  "oracle.compiler-result",
+  "oracle.emitted-program",
+  "oracle.frontend-result",
+  "oracle.runtime-state",
+  "transform.semantic-relations",
+]);
 const CURRENT_POINTER_RELATIVE_PATH = join(
   EXECUTION_PUBLICATIONS_RELATIVE_PATH,
   "current-execution-publication.json",
@@ -166,6 +182,7 @@ export interface ExecutionPublicationCatalogFixtureV1 {
 /** Exact historical parent authority resolved inside an isolated test repository. */
 export interface HistoricalExecutionParentFixtureV1 {
   readonly repositoryRoot: string;
+  readonly parentDigest: Sha256Digest;
   readonly parent: PublishedSnapshot;
   cleanup(): Promise<void>;
 }
@@ -222,33 +239,89 @@ export async function createHistoricalReadinessAuthorityFixtureV1(): Promise<His
 }
 
 /**
- * Copies and resolves the exact historical parent authority in a bounded temporary repository.
+ * Stages current oracle bindings over the exact historical base in a bounded temporary repository.
  *
  * @returns The isolated repository, genuine resolved parent, and its cleanup operation.
  */
 export async function createHistoricalExecutionParentFixtureV1(): Promise<HistoricalExecutionParentFixtureV1> {
   const authority = await createHistoricalReadinessAuthorityFixtureV1();
   try {
-    const selected = await resolvePublishedSnapshotByDigest({
+    await writeFile(
+      join(authority.repositoryRoot, "readiness/publications/current-publication.json"),
+      encodeCanonicalJsonV1({
+        schemaVersion: 1,
+        publicationDigest: READINESS_BASE_PUBLICATION_DIGEST,
+      }),
+    );
+    const base = await resolvePublishedSnapshotByDigest({
       repositoryRoot: authority.repositoryRoot,
-      publicationDigest: CURRENT_EXECUTION_PARENT_DIGEST,
+      publicationDigest: READINESS_BASE_PUBLICATION_DIGEST,
     });
-    if (!selected.ok) {
+    if (!base.ok) {
       throw new Error(
-        selected.diagnostics
+        base.diagnostics
+          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
+          .join("; "),
+      );
+    }
+    const review = await prepareIncrementalBindingPublicationReview({
+      repositoryRoot: authority.repositoryRoot,
+      baseSnapshot: base.value,
+      targetHandlerIds: READINESS_ORACLE_HANDLER_IDS,
+    });
+    if (!review.ok) {
+      throw new Error(
+        review.diagnostics
+          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
+          .join("; "),
+      );
+    }
+    const staged = await prepareIncrementalBindingPublication({
+      repositoryRoot: authority.repositoryRoot,
+      baseSnapshot: base.value,
+      targetHandlerIds: READINESS_ORACLE_HANDLER_IDS,
+      semanticReviewBytes: createReadinessReviewBytes(review.value.request),
+    });
+    if (!staged.ok) {
+      throw new Error(
+        staged.diagnostics
+          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
+          .join("; "),
+      );
+    }
+    const published = await publishIncrementalBindingPublication(staged.value.prepared);
+    if (!published.ok) {
+      throw new Error(
+        published.diagnostics
           .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
           .join("; "),
       );
     }
     return {
       repositoryRoot: authority.repositoryRoot,
-      parent: selected.value,
+      parentDigest: published.value.publicationDigest,
+      parent: published.value.snapshot,
       cleanup: authority.cleanup,
     };
   } catch (error) {
     await authority.cleanup();
     throw error;
   }
+}
+
+function createReadinessReviewBytes(request: PublicationReviewRequestV1): Uint8Array {
+  return encodeCanonicalJsonV1({
+    schemaVersion: 1,
+    reviews: request.reviewUnits.map((unit) => ({
+      unitId: unit.unitId,
+      reviewer: "execution publication catalog specification fixture",
+      specRevision: request.specRevision,
+      semanticDigest: unit.semanticDigest,
+      dependencyDigests: unit.dependencyDigests,
+      outcome: "accepted",
+      resolvedDisagreementIds: [],
+    })),
+  });
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -341,8 +414,11 @@ export async function createExecutionPublicationCatalogFixtureV1(
 ): Promise<ExecutionPublicationCatalogFixtureV1> {
   const historicalParent = await createHistoricalExecutionParentFixtureV1();
   try {
-    const child = await createChild(historicalParent.repositoryRoot, options);
-    const parentDigest = options.parentDigest ?? CURRENT_EXECUTION_PARENT_DIGEST;
+    const parentDigest = options.parentDigest ?? historicalParent.parentDigest;
+    const child = await createChild(historicalParent.repositoryRoot, {
+      parentDigest,
+      ...options,
+    });
 
     return {
       repositoryRoot: historicalParent.repositoryRoot,

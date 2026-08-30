@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-26
-> **Progress**: 11/70 tasks (16%)
+> **Last Updated**: 2026-08-30 11:19
+> **Progress**: 23/70 tasks (33%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -100,19 +100,48 @@ versioned policy/shared campaign budget and enforceable source ownership without
 
 > **Lenses**: compiler-semantics, algorithms, security, performance
 > **Reference**: 03-02 · AR-P3–AR-P5 · ST-13–ST-24
+> **Phase baseline tree**: `390e45667a8b98dd35cf18d338e2e73bb1714b3e`
+> **Scope mode**: strict
+> **Expected modification set**: Phase 2 readiness malformed-ingress, envelope, invariant,
+> transformation-catalog, candidate-authority and reducer modules; the named specification and
+> implementation-test files; readiness exports, package and RD-05 coverage ownership/configuration;
+> generated execution bindings affected by participating readiness bytes; this execution plan,
+> RD-05 review evidence, and the compiler-readiness roadmap.
 
-- [ ] 2.1.1 [spec-author] Write ST-07, the ST-08 authority-unavailable/no-envelope facet, ST-09, the ST-10 raw/historical-capability facet, ST-13–ST-17, the reducer facet of ST-18, ST-19–ST-21, the ST-22 accounting/exhaustion facet, the ST-23 mint/replay/substitution facet and ST-24 in new `packages/readiness/src/failure-reduction.spec.test.ts` using only declared envelope, reducer, invariant, authority and malformed-ingress interfaces
-- [ ] 2.1.2 Run the Phase 2 specification file and record RED caused only by absent malformed/reducer APIs; freeze its content hash
-- [ ] 2.2.1 Implement bounded opaque `MalformedDiagnosticCaseV1`, then the complete closed typed/raw `FailureEnvelopeV1` union and authorization from genuine historical authority; raw source exists only inside `MalformedReplayEnvelopeV1`, policy is envelope-owned, and unavailable history never fabricates an envelope
-- [ ] 2.2.2 Implement typed-valid invariant validation for syntax/type/semantic family, original primary rule, fail-closed required claims and immutable route predicate
-- [ ] 2.2.3 Implement complete typed-invalid baseline/transform/diagnostic tuple validation, path rebasing, binding reduction, neighbor identity and exactly-one-intentional-violation proof
-- [ ] 2.2.4 Implement raw-malformed exact-byte invariant, code-point-boundary edit validation, strict full-buffer UTF-8 validation after every edit, bounded token metadata and field-aware handling that never rewrites authoritative source
-- [ ] 2.2.5 Implement the closed non-empty V1 transformation catalog with strictly decreasing edits, deterministic filtering/tracing of invalid UTF-8 edits, plus a separate idempotent normalization phase and authenticated evaluation whenever normalization changes executable bytes
-- [ ] 2.2.6 Implement reusable opaque `ReductionCandidateAuthorityV1`, closed typed-valid/typed-invalid/raw `ReductionExecutionPayloadV1`, candidate-relative runtime authority, subject/purpose-bound single-use candidate/control tokens and sequence-position tokens over the closed originating-case/reduced-candidate subject union, passive projection, domain-separated identity, exactly one terminal candidate at its original failing position, and the internal export/manifest entry before its first consumer
-- [ ] 2.2.7 Implement the restart-to-fixed-point `FailureReductionSessionV1` deriving policy only from the envelope, charging the shared campaign budget, rejecting token replay/out-of-order results, accepting fresh-token candidate reuse, and producing one-minimal or exact/next exhaustion
-- [ ] 2.3.1 Run the frozen Phase 2 cases GREEN for known typed-valid, typed-invalid and raw-malformed fixtures; preserve the specification hash
-- [ ] 2.3.2 Add `failure-reduction-catalog.impl.test.ts` and `failure-reducer.impl.test.ts` for envelope replay/unavailability, every catalog arm, normalization idempotence/evaluation, decreasing tuples, path rebasing, collision/cycle/token-substitution faults, multibyte/BOM boundary deletion, strict invalid UTF-8 rejection, zero bytes, huge shallow input and no callback/accessor execution; update ownership lists and pass per-file 90% coverage
-- [ ] 2.3.3 Run configured semantics/correctness/security/performance review, resolve required findings, regenerate/check bindings after participating-byte changes, update state, run exact full verification and auto-commit the green phase without pushing
+- [x] 2.1.1 [spec-author] Write ST-07, the ST-08 authority-unavailable/no-envelope facet, ST-09, the ST-10 raw/historical-capability facet, ST-13–ST-17, the reducer facet of ST-18, ST-19–ST-21, the ST-22 accounting/exhaustion facet, the ST-23 mint/replay/substitution facet and ST-24 in new `packages/readiness/src/failure-reduction.spec.test.ts` using only declared envelope, reducer, invariant, authority and malformed-ingress interfaces — verified 2026-08-29 23:53; AR-P19 completed the callable packet before redispatch; 11 high-signal cases, 700 lines, Prettier/ESLint/documentation-ban checks clean
+- [x] 2.1.2 Run the Phase 2 specification file and record RED caused only by absent malformed/reducer APIs; freeze its content hash — verified 2026-08-29 23:53
+
+### Phase 2 Specification Checkpoint
+
+- Oracle: 11/11 expected RED solely because the eight declared Phase 2 root exports are absent.
+- Initial SHA-256 `cad4568fc047fdccc88ae6babc113370d669ad3ded7ed08717055b47f6153940`
+  was invalidated after implementation exposed two fixture-only defects: the test passed the
+  intentional RD-02 four-binding base directly to a nine-binding context, then supplied an ad hoc
+  campaign to the publication-bound typed-invalid constructor. AR-P20 closed the genuine restart
+  seam; the spec author changed only prerequisite construction and corrected terminal-reserve
+  arithmetic, preserving every behavioral expectation.
+- Corrected frozen SHA-256: `4e66efdbc9d9d1fd3679a658274b55fdee01477ee0518afa2687a67fe76a24d4`.
+- Focused RED log: `/tmp/rd05-phase2-red.log`.
+- [x] 2.2.1 Implement bounded opaque `MalformedDiagnosticCaseV1`, then the complete closed typed/raw `FailureEnvelopeV1` union and authorization from genuine historical authority; raw source exists only inside `MalformedReplayEnvelopeV1`, policy is envelope-owned, and unavailable history never fabricates an envelope — verified 2026-08-30 03:42; role-complete deep reconstruction, identity-before-availability and aggregate bounds GREEN
+- [x] 2.2.2 Implement typed-valid invariant validation for syntax/type/semantic family, original primary rule, fail-closed required claims and immutable route predicate — verified 2026-08-30 03:42; exact family/witness/binding joins GREEN
+- [x] 2.2.3 Implement complete typed-invalid baseline/transform/diagnostic tuple validation, path rebasing, binding reduction, neighbor identity and exactly-one-intentional-violation proof — verified 2026-08-30 03:42; all four closed transform decoders and hostile pointer cases GREEN
+- [x] 2.2.4 Implement raw-malformed exact-byte invariant, code-point-boundary edit validation, strict full-buffer UTF-8 validation after every edit, bounded token metadata and field-aware handling that never rewrites authoritative source — verified 2026-08-30 03:42; strict byte-level UTF-8 index and boundary cases GREEN
+- [x] 2.2.5 Implement the closed non-empty V1 transformation catalog with strictly decreasing edits, deterministic filtering/tracing of invalid UTF-8 edits, plus a separate idempotent normalization phase and authenticated evaluation whenever normalization changes executable bytes — verified 2026-08-30 03:42; lazy bounded catalog, explicit ordering and fail-closed normalization guard GREEN
+- [x] 2.2.6 Implement reusable opaque `ReductionCandidateAuthorityV1`, subject/purpose-bound single-use reduction/confirmation tokens, passive source/original-route/predicate/policy projection, domain-separated identity and a session-owned monotonic proposal sequence; execution payload/runtime authority and control/sequence authority remain Phase 3 work under AR-P21 — verified 2026-08-30 03:42; consume-before-evaluate and session sequence hardening GREEN
+- [x] 2.2.7 Implement the restart-to-fixed-point `FailureReductionSessionV1` deriving policy only from the envelope, charging the shared campaign budget, rejecting token replay/out-of-order results, accepting fresh-token candidate reuse, and producing one-minimal or exact/next exhaustion — verified 2026-08-30 03:42; policy-bound charging and normalization restart accounting GREEN
+- [x] 2.3.1 Run the frozen Phase 2 cases GREEN for known typed-valid, typed-invalid and raw-malformed fixtures; preserve the specification hash — verified 2026-08-30 03:42; 11/11 GREEN at SHA-256 `4e66efdbc9d9d1fd3679a658274b55fdee01477ee0518afa2687a67fe76a24d4`
+- [x] 2.3.2 Add `failure-reduction-catalog.impl.test.ts` and `failure-reducer.impl.test.ts` for envelope replay/unavailability, every catalog arm, normalization idempotence and the admitted V1 precondition of its fail-closed byte-change evaluation guard, decreasing tuples, path rebasing, collision/cycle/token-substitution faults, multibyte/BOM boundary deletion, strict invalid UTF-8 rejection, zero bytes, huge shallow input and no callback/accessor execution; update ownership lists and pass per-file 90% coverage — verified 2026-08-30 11:19; authoritative gate 106/106 GREEN, aggregate branches 93.17%, every covered production file ≥90%
+- [x] 2.3.3 Run configured semantics/correctness/security/performance review, resolve required findings, regenerate/check bindings after participating-byte changes, update state, run exact full verification and auto-commit the green phase without pushing — verified 2026-08-30 11:19; all critical/major correctness, semantics and performance findings fixed and re-reviewed, no configured security profile, generated bindings fresh, real ACME/VICE acceptance GREEN, exact full verification GREEN
+
+### Phase 2 Quality Evidence
+
+| Lens | Result |
+|---|---|
+| Correctness | Raw envelopes and historical replay now require the exact authenticated rule claim; every trace prefix is chained to its genuine predecessor; the permitted fix re-review found no unresolved critical or major issues |
+| Semantics | Malformed ingress rejects unmatched UTF-16 surrogates, observation authority joins both reached and not-reached outcomes, and terminal candidate authority is exposed only after genuine terminal completion; the permitted fix re-review found no unresolved critical or major issues |
+| Security | Hostile tests cover substituted claims, forged history, trace-prefix substitution, malformed Unicode, invalid UTF-8, accessor/proxy input, budget exhaustion and terminal-authority forgery; no project security profile required a separate security agent |
+| Performance | Catalog discovery is lazy and budget-bounded, descriptor preparation is metered once, redundant proposal preparation and full candidate clones were removed, and one accepted minor trace-authentication cost remains bounded to the documented 4,096-step limit |
+| Verification | Frozen specification 11/11 GREEN at SHA-256 `4e66efdbc9d9d1fd3679a658274b55fdee01477ee0518afa2687a67fe76a24d4`; RD-05 coverage 106/106 GREEN at 93.17% aggregate branches with every governed file ≥90%; real ACME/VICE 1/1 GREEN; exact repository command GREEN with 22/22 Turbo tasks, readiness 1,504/1,504, readiness-execution 474/474 and root boundary 33/33 |
 
 **Deliverable:** separately authenticated malformed cases and a pure deterministic one-minimal
 reducer for all three families, with no compiler, worker or filesystem access.
@@ -126,7 +155,7 @@ reducer for all three families, with no compiler, worker or filesystem access.
 
 - [ ] 3.1.1 [spec-author] Write the ST-10 report-sidecar facet, execution facet of ST-18, ST-23 route/isolation facet and ST-25–ST-35 in new `packages/readiness-execution/src/failure-candidate-execution.spec.test.ts` using genuine published-handler authority and independent worker-thread/subprocess fixtures
 - [ ] 3.1.2 Run the Phase 3 specification file and record RED caused only by absent candidate-route and confirmation APIs; freeze its content hash
-- [ ] 3.2.1 Add/export the closed `ReductionExecutionRouteRequestV1` arm using exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload
+- [ ] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload
 - [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
 - [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards
 - [ ] 3.2.4 Implement authenticated predicate sidecars before aggregate hashing and bind their exact ordered collection into private `execution-authority-report.ts` state through `execution-orchestration.ts`; preserve RD-04 V1 bytes and fail missing/reordered/copied/pre-RD-05 sidecars closed

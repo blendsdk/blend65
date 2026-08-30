@@ -4,7 +4,11 @@ import { rd05CoverageFiles } from "./src/test-fixtures/rd05-coverage-sources.js"
 
 export default defineConfig({
   test: {
-    include: ["src/failure-*.{spec,impl}.test.ts", "src/reduction-*.{spec,impl}.test.ts"],
+    include: [
+      "src/failure-*.{spec,impl}.test.ts",
+      "src/reduction-*.{spec,impl}.test.ts",
+      "src/utf8-byte-boundaries.impl.test.ts",
+    ],
     environment: "node",
     passWithNoTests: false,
     minWorkers: 1,

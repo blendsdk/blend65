@@ -12,12 +12,13 @@ import {
   getPreparedCampaignExecutionIdentityV1,
 } from "./execution-campaign-identity.js";
 import { resolvePublishedSnapshot } from "./publication-resolver.js";
-import { createHistoricalReadinessAuthorityRepository } from "./test-fixtures/historical-readiness-authority.js";
+import {
+  createIsolatedRepository,
+  CURRENT_PARENT_DIGEST as SELECTED_PARENT_DIGEST,
+} from "./test-fixtures/execution-publication-spec-fixture.js";
 
 const CAMPAIGN_DIGEST = `sha256:${"a".repeat(64)}` as `sha256:${string}`;
 const SEED = `sha256:${"b".repeat(64)}` as `sha256:${string}`;
-const SELECTED_PARENT_DIGEST =
-  "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
 const HISTORICAL_PARENT_DIGEST =
   "sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597";
 const CONFIGURATION: GenerationConfiguration = {
@@ -46,9 +47,7 @@ let selectedSnapshot: PublishedSnapshot;
 let historicalRepositoryRoot: string;
 
 beforeAll(async () => {
-  historicalRepositoryRoot = await createHistoricalReadinessAuthorityRepository(
-    "blend65-execution-campaign-identity-",
-  );
+  historicalRepositoryRoot = await createIsolatedRepository();
   const selected = await resolvePublishedSnapshot({ repositoryRoot: historicalRepositoryRoot });
   if (!selected.ok) throw new TypeError(JSON.stringify(selected.diagnostics));
   selectedSnapshot = selected.value;

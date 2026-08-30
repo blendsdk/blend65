@@ -14,11 +14,13 @@ export {
 export { deriveOracleSourceContentIdentity } from "./oracle-content-identity.js";
 export {
   PUBLISHED_DIAGNOSTIC_CASE_V1,
+  createPublishedDiagnosticCaseFromIntentV1,
   createPublishedDiagnosticCaseV1,
   getPublishedDiagnosticCaseProjectionV1,
 } from "./published-diagnostic-case.js";
 export type {
   PublishedDiagnosticCaseProjectionV1,
+  PublishedDiagnosticCaseIntentV1,
   PublishedDiagnosticCaseV1,
 } from "./published-diagnostic-case.js";
 export type {

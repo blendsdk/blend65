@@ -84,7 +84,10 @@ const ORACLE_CANDIDATE_DEPENDENCY_PATHS = Object.freeze([
   "packages/readiness/src/publication-model.ts",
   "packages/readiness/src/publication-resolver.ts",
   "packages/readiness/src/publication-review.ts",
+  "packages/readiness/src/published-oracle-campaign.ts",
   "packages/readiness/src/published-oracle-context.ts",
+  "packages/readiness/src/published-oracle-evaluation.ts",
+  "packages/readiness/src/published-oracle-state.ts",
   "packages/readiness/src/published-replay-authority.generated.ts",
   "packages/readiness/src/published-replay-authority.ts",
   "packages/readiness/src/replay-envelope-normalizer.ts",
@@ -127,33 +130,33 @@ const ORACLE_CANDIDATE_DEPENDENCY_PATHS = Object.freeze([
 export const ORACLE_COMPILER_RESULT_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-compiler-result-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:04faf2d60577da8b7d88f56b8ce95b3d882d29dbf5a43a180b59afce1b5d0f74",
+  claimedRevision: "sha256:4498d0e23162f78b2c079df9e68417ba2b337617a80f90ec1896becc0a95761f",
 });
 
 /** Generated dependency authority for the emitted-program candidate. */
 export const ORACLE_EMITTED_PROGRAM_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-emitted-program-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:f408d6edbf2a1126ffdedf3b93a2cebee65896fb5392b51bb36e9d6dfb02ac5d",
+  claimedRevision: "sha256:d96e8110b13f7ac7e7ad7381268f3b1a76e6b76c4e6d16d38ec4b63921cad634",
 });
 
 /** Generated dependency authority for the frontend-result candidate. */
 export const ORACLE_FRONTEND_RESULT_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-frontend-result-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:9aa0eebdd2cebf7b414ce8da1cc6e05bbf0c74a4ce82403697e62a473cd31d38",
+  claimedRevision: "sha256:a617271446126a03b0b64c8339d203c46cf46fca50782f7ac72e1bbc1b42e1ba",
 });
 
 /** Generated dependency authority for the runtime-state candidate. */
 export const ORACLE_RUNTIME_STATE_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-runtime-state-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:e488c0d2337eeccbbdd5058f78c518233970785a2ecae43b293db8e4f7e30580",
+  claimedRevision: "sha256:dc8045951e5aa8fce91b3f4259c8931bb6929057c74606e03d2d1714879bca68",
 });
 
 /** Generated dependency authority for the semantic-relation candidate. */
 export const ORACLE_SEMANTIC_RELATIONS_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-semantic-relations-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:540c7269a3f0823ab2aea0e8345fae49496dababb34c6b34babe990004f844cf",
+  claimedRevision: "sha256:837217d79d5efe20404cec6e04a98a5f4602285daa470048ee9add9fee66e17c",
 });

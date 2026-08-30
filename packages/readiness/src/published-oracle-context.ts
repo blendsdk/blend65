@@ -1,46 +1,45 @@
-import type { FreshCandidateRegistration } from "./binding-model.js";
-import type { CampaignDependenciesV1 } from "./campaign-model.js";
-import { createCampaignPlan } from "./campaign.js";
-import { deriveConfigurationIdentity, type CampaignIdentityInput } from "./case-identity.js";
+import type { GenerationConfiguration } from "./canonical-identity.js";
+import { isSha256Digest } from "./canonical-identity.js";
 import {
   hasExactOracleKeys,
   isOracleRecord,
   oracleFailure,
   snapshotOracleInput,
 } from "./oracle-input.js";
-import { deriveOracleSourceContentIdentity } from "./oracle-content-identity.js";
-import {
-  deriveOracleEvaluationIdentity,
-  deriveOracleInitialMemoryIdentity,
-  type OracleEvaluationParticipantV1,
-  type OracleValidationResultV1,
-} from "./oracle-evaluation-identity.js";
+import type { OracleValidationResultV1 } from "./oracle-evaluation-identity.js";
 import {
   type OracleHandlerIdV1,
   type OracleRequestV1,
-  type OracleResultV1,
-  type OracleSuite,
   type PublishedOracleContext,
   type PublishedOracleEvaluationResultV1,
 } from "./oracle-model.js";
 import { validateOracleBudget } from "./oracle-budget.js";
 import { validateOracleMemoryFixture } from "./oracle-memory.js";
-import { prepareOracleRequest } from "./oracle-request.js";
-import { createOracleSuite, getOracleSuiteState } from "./oracle-suite.js";
-import {
-  getPublishedSnapshotAuthority,
-  type PublishedSnapshotAuthority,
-} from "./publication-resolver.js";
+import { getOracleSuiteState } from "./oracle-suite.js";
+import { getPublishedSnapshotAuthority } from "./publication-resolver.js";
 import { digestPublicationBytes } from "./publication-model.js";
-import { createRevisionRegistry, type RevisionEntry } from "./revision-registry.js";
-import { createModeledGeneratorSuite, getRuleGenerationDomain } from "./modeled-generator-suite.js";
-import type { ModeledGeneratorSuite } from "./modeled-generator-model.js";
-import { generateCampaignCase } from "./generate-case.js";
-import type { GenerationConfiguration } from "./canonical-identity.js";
-import { isSha256Digest, normalizeGenerationConfiguration } from "./canonical-identity.js";
+import { createModeledGeneratorSuite } from "./modeled-generator-suite.js";
 import type { Sha256Digest } from "./model-registry-model.js";
 import type { MemoryFixtureV1, OracleBudgetV1, OracleObservableV1 } from "./oracle-model.js";
 import { isRuleModelId } from "./rule-model-registry.js";
+import {
+  preparePublishedCampaignCaseWithAuthority,
+  selectPublishedRequestAuthority,
+  type PublishedCampaignCaseAuthorityV1,
+} from "./published-oracle-campaign.js";
+import {
+  evaluatePublishedOracleWithAuthority,
+  isPublishedOracleHandlerId,
+} from "./published-oracle-evaluation.js";
+import type {
+  CompletePublishedOracleAuthority,
+  PublishedContextState,
+} from "./published-oracle-state.js";
+
+export type {
+  PublishedCampaignCaseAuthorityV1,
+  PublishedCampaignCaseIntentV1,
+} from "./published-oracle-campaign.js";
 
 /** Semantic-only input accepted by the published request factory. */
 export interface PublishedOracleRequestIntentV1 {
@@ -76,49 +75,16 @@ export type PublishedOracleContextResult =
       readonly diagnostics: ReturnType<typeof oracleFailure>["diagnostics"];
     };
 
-type CompletePublishedOracleAuthority = Omit<
-  PublishedSnapshotAuthority,
-  | "seedContractBytes"
-  | "diagnosticManifestBytes"
-  | "bindingRejectionBytes"
-  | "renderer"
-  | "candidateAuthorityBytes"
-  | "rendererAuthorityBytes"
-  | "publicationImplementationAuthority"
-> & {
-  readonly seedContractBytes: Uint8Array;
-  readonly diagnosticManifestBytes: Uint8Array;
-  readonly bindingRejectionBytes: Uint8Array;
-  readonly renderer: NonNullable<PublishedSnapshotAuthority["renderer"]>;
-  readonly candidateAuthorityBytes: ReadonlyMap<string, Uint8Array>;
-  readonly rendererAuthorityBytes: ReadonlyMap<string, Uint8Array>;
-  readonly publicationImplementationAuthority: NonNullable<
-    PublishedSnapshotAuthority["publicationImplementationAuthority"]
-  >;
-};
-
-interface PublishedContextState {
-  readonly authority: CompletePublishedOracleAuthority;
-  readonly modeledSuite: ModeledGeneratorSuite;
-  readonly ruleModelDigest: Sha256Digest;
-  readonly candidates: ReadonlyMap<string, FreshCandidateRegistration>;
-}
-
-interface RequestAuthority {
-  readonly suite: OracleSuite;
-  readonly configuration: GenerationConfiguration;
-  readonly configurationDigest: Sha256Digest;
-  readonly generator: FreshCandidateRegistration;
-  readonly boundary: FreshCandidateRegistration;
-  readonly authorityDigests: {
-    readonly diagnosticManifest: Sha256Digest;
-    readonly bindingRejections: Sha256Digest;
-  };
+/** Authority facts needed to bind separately authenticated malformed diagnostic source. */
+export interface PublishedOracleReductionAuthorityV1 {
+  /** Exact selected publication whose diagnostic contract is retained. */
+  readonly selectedReleaseDigest: Sha256Digest;
+  /** Digest of the selected diagnostic manifest. */
+  readonly diagnosticAuthorityDigest: Sha256Digest;
 }
 
 const CONTEXT_STATES = new WeakMap<object, PublishedContextState>();
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
-const CAMPAIGN_SPEC_REVISION_V1 = "spec-v3.0";
 const INTENT_KEYS = [
   "schemaVersion",
   "handlerId",
@@ -130,136 +96,26 @@ const INTENT_KEYS = [
   "budget",
   "observable",
 ] as const;
-const REQUEST_KEYS = [
-  "schemaVersion",
-  "handlerId",
-  "ruleId",
-  "sourceProvenance",
-  "case",
-  "entryFunction",
-  "memory",
-  "budget",
-  "observable",
-] as const;
 
-function handlerId(value: unknown): value is OracleHandlerIdV1 {
-  return (
-    value === "oracle.frontend-result" ||
-    value === "oracle.compiler-result" ||
-    value === "oracle.emitted-program" ||
-    value === "oracle.runtime-state"
-  );
-}
-
-function requestAuthority(
-  state: PublishedContextState,
-  ruleId: string,
-  configurationInput: unknown,
-): RequestAuthority | ReturnType<typeof oracleFailure> {
-  const normalized = normalizeGenerationConfiguration(configurationInput);
-  if (!normalized.ok) {
-    return oracleFailure(
-      "oracle.input.invalid",
-      `/configuration${normalized.problem.path}`,
-      normalized.problem.message,
-    );
-  }
-  const configuration = normalized.configuration;
-  const configurationIdentity = deriveConfigurationIdentity(configuration);
-  if (!configurationIdentity.ok) {
-    return oracleFailure(
-      "oracle.input.invalid",
-      "/configuration",
-      "Generation configuration identity could not be derived.",
-    );
-  }
-  const domain = getRuleGenerationDomain(state.modeledSuite, ruleId);
-  if (!domain.ok || domain.state !== "modeled") {
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "/ruleId",
-      "Requested rule has no reviewed modeled source generator.",
-    );
-  }
-  const generator = state.candidates.get(domain.handlerId);
-  const boundary = state.candidates.get("transform.boundary-variants");
-  if (generator === undefined || boundary === undefined) {
-    return oracleFailure(
-      "oracle.authority.missing",
-      "/context",
-      "Published generation participants are unavailable.",
-    );
-  }
-  const inventoryBytes = state.authority.memberBytes.get("compiler-readiness-v1.json");
-  if (inventoryBytes === undefined) {
-    return oracleFailure(
-      "oracle.authority.missing",
-      "/context",
-      "Inventory bytes are unavailable.",
-    );
-  }
-  const inventoryDigest = digestPublicationBytes(inventoryBytes);
-  const specRevision = CAMPAIGN_SPEC_REVISION_V1;
-  const entries: RevisionEntry[] = [
-    {
-      component: "inventory",
-      revision: inventoryDigest,
-      value: Object.freeze({
-        schemaVersion: 1,
-        inventoryVersion: state.authority.inventory.inventoryVersion,
-        inventoryDigest,
-        specRevision,
-      }),
-    },
-    {
-      component: "rule-model",
-      revision: state.ruleModelDigest,
-      value: state.modeledSuite,
-    },
-    {
-      component: "generator",
-      revision: generator.binding.implementationRevision,
-      value: generator,
-    },
-    {
-      component: "boundary-transform",
-      revision: boundary.binding.implementationRevision,
-      value: boundary,
-    },
-    {
-      component: "renderer",
-      revision: state.authority.renderer.implementationRevision,
-      value: state.authority.renderer,
-    },
-    {
-      component: "configuration",
-      revision: configurationIdentity.identity,
-      value: configuration,
-    },
-  ];
-  const registry = createRevisionRegistry(entries);
-  if (!registry.ok) {
-    return oracleFailure(
-      "oracle.authority.not-accepted",
-      "/context",
-      registry.diagnostics[0]?.message ?? "Published replay registry could not be created.",
-    );
-  }
-  const suite = createOracleSuite({
-    modeledSuite: state.modeledSuite,
-    replayRegistry: registry.registry,
-    inventory: state.authority.inventory,
-    diagnosticManifestBytes: state.authority.diagnosticManifestBytes,
-    bindingRejectionBytes: state.authority.bindingRejectionBytes,
-  });
-  if (!suite.ok) return suite;
+/**
+ * Returns the minimal diagnostic authority retained by a genuine published context.
+ *
+ * This package-internal operation deliberately returns no handlers or resolver state. It lets
+ * malformed-source authority bind the selected diagnostic contract without allowing callers to
+ * manufacture a context from passive digest fields.
+ *
+ * @param context Candidate published context.
+ * @returns Selected diagnostic facts, or `undefined` for a plain or copied value.
+ */
+export function getPublishedOracleReductionAuthorityV1(
+  context: PublishedOracleContext,
+): PublishedOracleReductionAuthorityV1 | undefined {
+  const state =
+    typeof context === "object" && context !== null ? CONTEXT_STATES.get(context) : undefined;
+  if (state === undefined) return undefined;
   return Object.freeze({
-    suite: suite.suite,
-    configuration,
-    configurationDigest: configurationIdentity.identity,
-    generator,
-    boundary,
-    authorityDigests: suite.authorityDigests,
+    selectedReleaseDigest: state.authority.publicationDigest,
+    diagnosticAuthorityDigest: digestPublicationBytes(state.authority.diagnosticManifestBytes),
   });
 }
 
@@ -335,6 +191,29 @@ export function createPublishedOracleContext(snapshot: unknown): PublishedOracle
 }
 
 /**
+ * Prepares one publication-bound campaign case without exposing its hidden callables publicly.
+ *
+ * This source-module seam is shared by published request construction and diagnostic joining. It
+ * is intentionally absent from package export maps, so a restart consumer receives only the
+ * narrower diagnostic capability minted by the published façade.
+ */
+export function preparePublishedCampaignCaseV1(
+  context: PublishedOracleContext,
+  intent: unknown,
+): OracleValidationResultV1<PublishedCampaignCaseAuthorityV1> {
+  const state =
+    typeof context === "object" && context !== null ? CONTEXT_STATES.get(context) : undefined;
+  if (state === undefined) {
+    return oracleFailure(
+      "oracle.authority.missing",
+      "/context",
+      "Published oracle context is not authentic.",
+    );
+  }
+  return preparePublishedCampaignCaseWithAuthority(state, intent);
+}
+
+/**
  * Constructs one replay-complete raw oracle request from semantic intent.
  *
  * @param context Opaque published authority.
@@ -374,7 +253,7 @@ export function createPublishedOracleRequest(
   const value = snapshot.value;
   if (
     value.schemaVersion !== 1 ||
-    !handlerId(value.handlerId) ||
+    !isPublishedOracleHandlerId(value.handlerId) ||
     !isRuleModelId(value.ruleId) ||
     !isSha256Digest(value.seed) ||
     typeof value.ordinal !== "number" ||
@@ -385,22 +264,6 @@ export function createPublishedOracleRequest(
       "oracle.input.invalid",
       "/intent",
       "Published oracle intent contains invalid scalar fields.",
-    );
-  }
-  const selected = requestAuthority(state, value.ruleId, value.configuration);
-  if ("ok" in selected) return selected;
-  if (!selected.configuration.enabledRuleIds.includes(value.ruleId)) {
-    return oracleFailure(
-      "oracle.input.invalid",
-      "/intent/ruleId",
-      "Requested rule is not enabled by the generation configuration.",
-    );
-  }
-  if (value.ordinal >= selected.configuration.caseCount) {
-    return oracleFailure(
-      "oracle.input.invalid",
-      "/intent/ordinal",
-      "Requested ordinal exceeds the configured campaign.",
     );
   }
   const memory = validateOracleMemoryFixture(value.memory);
@@ -418,82 +281,15 @@ export function createPublishedOracleRequest(
       "Observable must use the exact supported shape.",
     );
   }
-  const inventoryBytes = state.authority.memberBytes.get("compiler-readiness-v1.json");
-  if (inventoryBytes === undefined) {
-    return oracleFailure(
-      "oracle.authority.missing",
-      "/context",
-      "Inventory bytes are unavailable.",
-    );
-  }
-  const dependencies: CampaignDependenciesV1 = {
-    inventory: {
-      schemaVersion: 1,
-      inventoryVersion: state.authority.inventory.inventoryVersion,
-      inventoryDigest: digestPublicationBytes(inventoryBytes),
-      specRevision: CAMPAIGN_SPEC_REVISION_V1,
-    },
-    ruleModel: {
-      schemaVersion: 1,
-      ruleModelVersion: "rule-model-v1",
-      ruleModelDigest: state.ruleModelDigest,
-      suite: state.modeledSuite,
-    },
-    generator: selected.generator,
-    boundaryTransform: selected.boundary,
-    renderer: state.authority.renderer,
-  };
-  const campaign: CampaignIdentityInput = Object.freeze({
-    inventorySchemaVersion: 1,
-    inventoryVersion: dependencies.inventory.inventoryVersion,
-    inventoryDigest: dependencies.inventory.inventoryDigest,
-    specRevision: dependencies.inventory.specRevision,
-    ruleModelVersion: dependencies.ruleModel.ruleModelVersion,
-    ruleModelDigest: dependencies.ruleModel.ruleModelDigest,
-    generator: Object.freeze({
-      handlerId: selected.generator.binding.handlerId,
-      contractVersion: selected.generator.binding.contractVersion,
-      implementationRevision: selected.generator.binding.implementationRevision,
-    }),
-    boundaryTransform: Object.freeze({
-      handlerId: selected.boundary.binding.handlerId,
-      contractVersion: selected.boundary.binding.contractVersion,
-      implementationRevision: selected.boundary.binding.implementationRevision,
-    }),
-    rendererRevision: state.authority.renderer.implementationRevision,
-    target: "c64",
-    prngAlgorithm: "blend65-sha256-ctr-v1",
+  const preparedCase = preparePublishedCampaignCaseV1(context, {
+    schemaVersion: 1,
+    ruleId: value.ruleId,
     seed: value.seed,
-    configurationDigest: selected.configurationDigest,
+    configuration: value.configuration,
+    ordinal: value.ordinal,
   });
-  const prepared = createCampaignPlan({
-    campaign,
-    configuration: selected.configuration,
-    dependencies,
-  });
-  if (!prepared.ok) {
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "/intent/configuration",
-      prepared.diagnostics[0]?.message ?? "Published campaign could not be prepared.",
-    );
-  }
-  const generated = generateCampaignCase(prepared.value, value.ordinal);
-  if (!generated.ok) {
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "/intent/ordinal",
-      generated.diagnostics[0]?.message ?? "Published case could not be generated.",
-    );
-  }
-  if (generated.value.modeledCase.primaryRuleId !== value.ruleId) {
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "/intent/ordinal",
-      "Generated case does not match the requested primary rule.",
-    );
-  }
-  const projection = generated.value.modeledCase.projection;
+  if (!preparedCase.ok) return preparedCase;
+  const projection = preparedCase.value.generatedCase.modeledCase.projection;
   const module = projection.kind === "valid" ? projection.module : projection.baseline;
   const entryFunction = module.functions[0]?.name;
   if (entryFunction === undefined) {
@@ -509,12 +305,12 @@ export function createPublishedOracleRequest(
     ruleId: value.ruleId,
     sourceProvenance: Object.freeze({
       schemaVersion: 1,
-      campaign,
-      campaignDigest: prepared.value.summary.campaignDigest,
-      caseIdentity: generated.value.identity,
-      configuration: selected.configuration,
+      campaign: preparedCase.value.campaignIdentity,
+      campaignDigest: preparedCase.value.campaign.summary.campaignDigest,
+      caseIdentity: preparedCase.value.generatedCase.identity,
+      configuration: preparedCase.value.configuration,
     }),
-    case: generated.value.modeledCase,
+    case: preparedCase.value.generatedCase.modeledCase,
     entryFunction,
     memory: memory.memory,
     budget: budget.budget,
@@ -554,7 +350,7 @@ export function createPublishedDiagnosticOracleRequest(
       "Published oracle context is not authentic.",
     );
   }
-  const selected = requestAuthority(state, intent.ruleId, intent.configuration);
+  const selected = selectPublishedRequestAuthority(state, intent.ruleId, intent.configuration);
   if ("ok" in selected) return selected;
   const route = getOracleSuiteState(selected.suite)?.routesByRuleId.get(intent.ruleId);
   if (route === undefined) {
@@ -592,107 +388,5 @@ export function evaluatePublishedOracle(
       "Published oracle context is not authentic.",
     );
   }
-  const snapshot = snapshotOracleInput(request);
-  if (
-    !snapshot.ok ||
-    !isOracleRecord(snapshot.value) ||
-    !hasExactOracleKeys(snapshot.value, REQUEST_KEYS) ||
-    !handlerId(snapshot.value.handlerId) ||
-    !isRuleModelId(snapshot.value.ruleId) ||
-    !isOracleRecord(snapshot.value.sourceProvenance)
-  ) {
-    return oracleFailure(
-      "oracle.input.invalid",
-      "",
-      "Published oracle request must use the exact raw request shape.",
-    );
-  }
-  const provenance = snapshot.value.sourceProvenance;
-  const selected = requestAuthority(state, snapshot.value.ruleId, provenance.configuration);
-  if ("ok" in selected) return selected;
-  const campaign = provenance.campaign;
-  if (
-    !isOracleRecord(campaign) ||
-    !isOracleRecord(campaign.generator) ||
-    !isOracleRecord(campaign.boundaryTransform) ||
-    campaign.generator.handlerId !== selected.generator.binding.handlerId ||
-    campaign.generator.implementationRevision !==
-      selected.generator.binding.implementationRevision ||
-    campaign.boundaryTransform.handlerId !== selected.boundary.binding.handlerId ||
-    campaign.boundaryTransform.implementationRevision !==
-      selected.boundary.binding.implementationRevision ||
-    campaign.rendererRevision !== state.authority.renderer.implementationRevision
-  ) {
-    return oracleFailure(
-      "oracle.authority.stale",
-      "/sourceProvenance/campaign",
-      "Request provenance does not match selected published participants.",
-    );
-  }
-  const binding = state.candidates.get(snapshot.value.handlerId);
-  if (binding === undefined) {
-    return oracleFailure(
-      "oracle.authority.missing",
-      "/handlerId",
-      "Selected oracle handler is unavailable.",
-    );
-  }
-  const evaluate = binding.binding.implementation as unknown as (
-    suite: OracleSuite,
-    value: unknown,
-  ) => OracleResultV1;
-  const result = evaluate(selected.suite, snapshot.value);
-  if (!result.ok) {
-    return Object.freeze({
-      ok: false,
-      diagnostics: result.diagnostics,
-    });
-  }
-  const prepared = prepareOracleRequest(selected.suite, snapshot.value.handlerId, snapshot.value);
-  if ("ok" in prepared) {
-    if (!prepared.ok) {
-      return Object.freeze({
-        ok: false,
-        diagnostics: prepared.diagnostics,
-      });
-    }
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "",
-      "Published request preparation returned an unexpected terminal result.",
-    );
-  }
-  const sourceIdentity = deriveOracleSourceContentIdentity(prepared.generatedCase.sourceBytes);
-  if (!sourceIdentity.ok) return sourceIdentity;
-  const memoryIdentity = deriveOracleInitialMemoryIdentity(prepared.request.memory);
-  if (!memoryIdentity.ok) return memoryIdentity;
-  const participants: OracleEvaluationParticipantV1[] = [
-    selected.generator.binding,
-    selected.boundary.binding,
-    binding.binding,
-  ].map(({ handlerId: id, contractVersion, implementationRevision }) =>
-    Object.freeze({ handlerId: id, contractVersion, implementationRevision }),
-  );
-  const evaluationIdentity = deriveOracleEvaluationIdentity({
-    schemaVersion: 1,
-    sourceProvenance: prepared.request.sourceProvenance,
-    sourceContentIdentity: sourceIdentity.identity,
-    entryFunction: prepared.request.entryFunction,
-    initialMemoryIdentity: memoryIdentity.identity,
-    diagnosticManifestDigest: selected.authorityDigests.diagnosticManifest,
-    bindingRejectionDigest: selected.authorityDigests.bindingRejections,
-    budget: prepared.request.budget,
-    policyRevision: "oracle-policy-v1",
-    observableProjectionId: `oracle.${prepared.request.observable.kind}`,
-    participants,
-  });
-  if (!evaluationIdentity.ok) return evaluationIdentity;
-  return Object.freeze({
-    ok: true,
-    result,
-    evaluationIdentity: evaluationIdentity.identity,
-    sourceProvenance: prepared.request.sourceProvenance,
-    contentIdentities: Object.freeze({ source: sourceIdentity.identity }),
-    diagnostics: EMPTY_DIAGNOSTICS,
-  });
+  return evaluatePublishedOracleWithAuthority(state, request);
 }

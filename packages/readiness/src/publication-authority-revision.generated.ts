@@ -37,7 +37,10 @@ export const COMPATIBLE_PUBLICATION_AUTHORITY_REVISION: GeneratedCandidateRevisi
     "packages/readiness/src/publication-resolver.ts",
     "packages/readiness/src/publication-review.ts",
     "packages/readiness/src/published-diagnostic-case.ts",
+    "packages/readiness/src/published-oracle-campaign.ts",
     "packages/readiness/src/published-oracle-context.ts",
+    "packages/readiness/src/published-oracle-evaluation.ts",
+    "packages/readiness/src/published-oracle-state.ts",
     "packages/readiness/src/published-oracle.ts",
     "packages/readiness/src/published-replay-authority.ts",
     "packages/readiness/src/review-digests.ts",
@@ -47,5 +50,5 @@ export const COMPATIBLE_PUBLICATION_AUTHORITY_REVISION: GeneratedCandidateRevisi
     "packages/readiness/src/strict-json.ts",
     "packages/readiness/src/versioning.ts",
   ]),
-  claimedRevision: "sha256:b121d2a801f0c607d6dc2280dc0b1fc257ddec901bd1ff6ef63c06ea9217a7bc",
+  claimedRevision: "sha256:5e810a2c333bd8fa43bfdcc0a1ff19bb6668f0982db1e19ecbc365102a835890",
 });

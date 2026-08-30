@@ -77,6 +77,7 @@ vi.mock("./generate-case.js", () => ({
       modeledCase: FIXTURE.modeledCase,
       sourceBytes: FIXTURE.sourceBytes,
       identity: { digest: FIXTURE.sourceCaseDigest },
+      planItem: { ordinal: 0 },
     },
   }),
 }));

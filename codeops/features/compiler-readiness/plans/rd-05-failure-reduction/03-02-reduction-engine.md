@@ -25,6 +25,395 @@ Purpose-limited candidate projection exports use a package subpath such as
 patterns. Ordinary callers receive opaque capabilities and passive result records only. (AR-P1,
 AR-P5, AR-P11)
 
+## Closed Callable Contract
+
+AR-P19 closes the callable shapes needed by the implementation-blind specification. All operations
+return `ExecutionOperationResultV1<T>`. Structural input uses `execution.invalid-schema`, a plain or
+copied capability uses `unbound-capability`, digest/preimage disagreement uses
+`execution.identity`, and a semantic invariant violation uses `invalid-evidence-input`. Canonical
+failure paths start at `/malformedCase`, `/envelope`, `/resolver`, `/candidate`,
+`/transformation`, `/invocation` or `/evaluation`. No operation accepts a callback, promise,
+filesystem path, timestamp or ambient option.
+
+### Published invalid-case restart seam
+
+```ts
+export interface PublishedDiagnosticCaseIntentV1 {
+  readonly schemaVersion: 1;
+  readonly ruleId: string;
+  readonly seed: Sha256Digest;
+  readonly configuration: GenerationConfiguration;
+  readonly ordinal: number;
+}
+
+export function createPublishedDiagnosticCaseFromIntentV1(
+  context: PublishedOracleContext,
+  intent: unknown,
+): OracleValidationResultV1<PublishedDiagnosticCaseV1>;
+```
+
+This purpose-limited operation lives on the existing published-oracle subpath. It authenticates the
+context and derives the exact historical generator, boundary transform, renderer and modeled suite
+from private selected-publication state. The caller supplies no handler, implementation, expected
+diagnostic, memory, budget or observation. Campaign preparation is shared privately with ordinary
+published request construction; only the opaque diagnostic-case authority escapes. (AR-P20)
+
+### Root authority and history surface
+
+```ts
+export interface MalformedTokenSpanV1 {
+  readonly kind: "token" | "trivia" | "unknown";
+  readonly startByte: number;
+  readonly endByte: number;
+}
+
+export interface MalformedTokenTextProvenanceV1 {
+  readonly revision: "malformed-token-text-provenance-v1";
+  readonly tokenizerRevision: "utf8-byte-spans-v1";
+  readonly tokens: readonly MalformedTokenSpanV1[];
+}
+
+export interface CreateMalformedDiagnosticCaseInputV1 {
+  readonly revision: "malformed-diagnostic-case-input-v1";
+  readonly sourceBytes: Uint8Array;
+  readonly encoding: "utf-8";
+  readonly ruleId: string;
+  readonly obligation: string;
+  readonly provenance: MalformedTokenTextProvenanceV1;
+}
+
+export type FailureEnvelopeSourceAuthorityV1 =
+  | { readonly kind: "typed-valid"; readonly authority: ExecutionCaseV1 }
+  | { readonly kind: "typed-invalid"; readonly authority: PublishedDiagnosticCaseV1 }
+  | { readonly kind: "raw-malformed"; readonly authority: MalformedDiagnosticCaseV1 };
+
+export interface FailureEnvelopeAuthorizationInputV1 {
+  readonly revision: "failure-envelope-authorization-input-v1";
+  readonly source: FailureEnvelopeSourceAuthorityV1;
+  readonly routePlanBytes: Uint8Array;
+  readonly routePlanDigest: Sha256Digest;
+  readonly predicate: FailurePredicateV1;
+  readonly policy: FailureReductionPolicyV1;
+  readonly observationBytes: Uint8Array;
+  readonly toolVersions: readonly FailureToolIdentityV1[];
+}
+
+export interface FailureHistoricalAuthorityRecordV1 {
+  readonly revision: "failure-historical-authority-record-v1";
+  readonly kind:
+    | "campaign"
+    | "generator"
+    | "renderer"
+    | "oracle"
+    | "diagnostic"
+    | "execution-publication"
+    | "fixture";
+  readonly contentRevision: string;
+  readonly bytes: Uint8Array;
+  readonly digest: Sha256Digest;
+}
+
+export interface FailureHistoricalAuthorityResolverV1 {
+  readonly [FAILURE_HISTORICAL_AUTHORITY_RESOLVER_V1]: true;
+}
+
+export type FailureEnvelopeResolutionV1 =
+  | {
+      readonly outcome: "resolved";
+      readonly envelope: AuthorizedFailureEnvelopeV1;
+      readonly missingAuthorityDigests: readonly [];
+    }
+  | {
+      readonly outcome: "historical-authority-unavailable";
+      readonly missingAuthorityDigests: readonly Sha256Digest[];
+    };
+
+export function createMalformedDiagnosticCaseV1(
+  oracle: PublishedOracleContext,
+  input: unknown,
+): ExecutionOperationResultV1<MalformedDiagnosticCaseV1>;
+export function getMalformedDiagnosticCaseProjectionV1(
+  authority: MalformedDiagnosticCaseV1,
+): ExecutionOperationResultV1<MalformedReplayEnvelopeV1>;
+export function authorizeFailureEnvelopeV1(
+  input: unknown,
+): ExecutionOperationResultV1<AuthorizedFailureEnvelopeV1>;
+export function getFailureEnvelopeProjectionV1(
+  envelope: AuthorizedFailureEnvelopeV1,
+): ExecutionOperationResultV1<FailureEnvelopeV1>;
+export function getFailureHistoricalAuthorityRecordsV1(
+  envelope: AuthorizedFailureEnvelopeV1,
+): ExecutionOperationResultV1<readonly FailureHistoricalAuthorityRecordV1[]>;
+export function createFailureHistoricalAuthorityResolverV1(
+  records: unknown,
+): ExecutionOperationResultV1<FailureHistoricalAuthorityResolverV1>;
+export function serializeFailureEnvelopeV1(envelope: AuthorizedFailureEnvelopeV1): Uint8Array;
+export function parseFailureEnvelopeV1(
+  bytes: Uint8Array,
+  resolver: FailureHistoricalAuthorityResolverV1,
+): ExecutionOperationResultV1<FailureEnvelopeResolutionV1>;
+```
+
+The malformed constructor derives its diagnostic-authority digest from a genuine
+`PublishedOracleContext`; callers never supply it. Source is copied before validation, must be at
+most 1,048,576 bytes, and must decode completely through a fatal UTF-8 decoder. Token spans are at
+most 4,096, sorted, non-overlapping, non-empty half-open ranges on code-point boundaries within the
+source; empty source has an empty token list. `textDigest` is derived from the exact bytes and is
+not a caller field. Rule and obligation text must contain no unmatched UTF-16 surrogate; ingress,
+historical normalization and direct replay-digest derivation enforce the same condition so distinct
+JavaScript strings cannot alias through UTF-8 replacement encoding. (AR-P3, AR-P19, AR-P23)
+
+Envelope authorization accepts only a genuine opaque source authority. It derives replay,
+projection, source, authority references and canonical historical records from module-private
+state; the caller supplies only the already-closed route, predicate, policy, observation and tool
+facts. Route kind must be `valid-envelope` for typed-valid and `invalid-diagnostic` for the other
+families. Typed source must be non-empty; raw source may be empty. Route-plan and observation
+digests are checked rather than trusted: `observed.digest` and
+`not-reached.terminalReasonDigest` each bind the exact retained observation bytes. Raw required
+claims equal the source diagnostic rule exactly. Tool identities are lexically ordered,
+duplicate-free and bounded. (AR-P3, AR-P9, AR-P19, AR-P23)
+
+The resolver constructor accepts only a dense bounded array of exact canonical records, verifies
+each digest before minting a WeakMap-backed capability, and rejects duplicate digests with unequal
+bytes. Parsing first closes the envelope schema and digest, then asks the resolver for every named
+record. A complete exact set returns `resolved`; an incomplete exact set returns the sorted
+`historical-authority-unavailable` arm with no envelope. Malformed, oversized, extra-key or
+digest-conflicting input is an operation failure, never an unavailable result, and current content
+is never consulted. (AR-P9, AR-P19)
+
+The specification constructs a genuine oracle context only through
+`createOraclePublicationSpecFixture()` → `resolvePublishedSnapshotByDigest()` →
+`createPublishedOracleContext()`. It may copy the already-established preparation pattern from
+`oracle-published-evidence.spec.test.ts` to obtain genuine typed authorities. No test-only context,
+resolver or branding hook is added.
+
+### Purpose-limited invariant and catalog surface
+
+The following types and operations are exported only from
+`@blend65/readiness/failure-reduction-internals`:
+
+```ts
+export type ReductionCandidateDraftV1 =
+  | {
+      readonly revision: "reduction-candidate-draft-v1";
+      readonly kind: "typed-valid";
+      readonly sourceBytes: Uint8Array;
+      readonly module: GenModule;
+      readonly parameterBindings: readonly ParameterValueBinding[];
+      readonly primaryRuleId: string;
+      readonly claimedRuleIds: readonly string[];
+      readonly claimWitnesses: readonly FailureClaimWitnessV1[];
+    }
+  | {
+      readonly revision: "reduction-candidate-draft-v1";
+      readonly kind: "typed-invalid";
+      readonly sourceBytes: Uint8Array;
+      readonly baseline: GenModule;
+      readonly transform: InvalidSourceTransform;
+      readonly parameterBindings: readonly ParameterValueBinding[];
+      readonly primaryRuleId: string;
+      readonly claimedRuleIds: readonly string[];
+      readonly claimWitnesses: readonly FailureClaimWitnessV1[];
+      readonly neighborId: string;
+      readonly violatedPredicateId: string;
+      readonly diagnosticFamily: string;
+    }
+  | {
+      readonly revision: "reduction-candidate-draft-v1";
+      readonly kind: "raw-malformed";
+      readonly sourceBytes: Uint8Array;
+      readonly tokens: readonly MalformedTokenSpanV1[];
+    };
+
+export interface FailureClaimWitnessV1 {
+  readonly ruleId: string;
+  readonly path: string;
+}
+
+export interface ValidatedReductionCandidateV1 {
+  readonly [VALIDATED_REDUCTION_CANDIDATE_V1]: true;
+}
+
+export interface ValidatedReductionCandidateProjectionV1 {
+  readonly revision: "validated-reduction-candidate-projection-v1";
+  readonly family: ReductionFamilyV1;
+  readonly draft: ReductionCandidateDraftV1;
+  readonly size: ReductionSizeV1;
+  readonly contentDigest: Sha256Digest;
+}
+
+export type FailureTransformationV1 =
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "typed-statement-delete"; readonly path: string }
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "typed-expression-simplify"; readonly path: string; readonly replacement: "zero" | "false" | "left" | "right" | "operand" }
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "typed-literal-simplify"; readonly path: string; readonly value: string }
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "invalid-baseline-delete" | "invalid-baseline-simplify"; readonly path: string }
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "invalid-transform-target-rebase"; readonly path: string }
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "invalid-unused-binding-remove"; readonly parameterPath: string }
+  | { readonly revision: "failure-transformation-v1"; readonly kind: "malformed-token-range-delete" | "malformed-byte-chunk-delete"; readonly startByte: number; readonly endByte: number };
+
+export interface FailureNormalizationResultV1 {
+  readonly revision: "failure-normalization-result-v1";
+  readonly candidate: ValidatedReductionCandidateV1;
+  readonly changed: boolean;
+  readonly beforeDigest: Sha256Digest;
+  readonly afterDigest: Sha256Digest;
+  readonly requiresEvaluation: boolean;
+}
+
+export function createInitialReductionCandidateV1(
+  envelope: AuthorizedFailureEnvelopeV1,
+): ExecutionOperationResultV1<ValidatedReductionCandidateV1>;
+export function validateReductionCandidateInvariantV1(
+  original: AuthorizedFailureEnvelopeV1,
+  candidate: unknown,
+): ExecutionOperationResultV1<ValidatedReductionCandidateV1>;
+export function getValidatedReductionCandidateProjectionV1(
+  candidate: ValidatedReductionCandidateV1,
+): ExecutionOperationResultV1<ValidatedReductionCandidateProjectionV1>;
+export function enumerateFailureTransformationsV1(
+  candidate: ValidatedReductionCandidateV1,
+): readonly FailureTransformationV1[];
+export function applyFailureTransformationV1(
+  original: AuthorizedFailureEnvelopeV1,
+  candidate: ValidatedReductionCandidateV1,
+  transformation: unknown,
+): ExecutionOperationResultV1<ValidatedReductionCandidateV1>;
+export function normalizeFailureReductionCandidateV1(
+  original: AuthorizedFailureEnvelopeV1,
+  candidate: ValidatedReductionCandidateV1,
+): ExecutionOperationResultV1<FailureNormalizationResultV1>;
+```
+
+`validateReductionCandidateInvariantV1` always revalidates the complete family draft and never
+trusts a caller size, digest, path, witness or violation count. Typed modules pass the existing
+generator IR validator. A witness path resolves exactly once to live candidate data. Every required
+predicate claim retains a witness; an incidental claim may disappear only when both its claim and
+witness disappear. Typed-invalid metadata must equal the original neighbor/violation/diagnostic
+tuple, the baseline remains valid, the transform remains exactly one closed invalid operation, all
+transform and binding paths resolve exactly once after rebasing, and no extra violation field is
+accepted. Raw tokens obey the malformed span rules and source identity always uses exact bytes.
+(AR-P3, AR-P4)
+
+Enumeration order is family, lexical RFC-6901 path, closed kind, then encoded replacement. Applying
+a transformation must produce a candidate whose family tuple is lexicographically smaller; an
+equal/increasing result, unknown edit, duplicate/cyclic state or invalid invariant fails at
+`/transformation` before authority minting. Normalization is idempotent and separate: it canonicalizes
+metadata/order only, never source semantics. `requiresEvaluation` is true exactly when executable
+source/module bytes changed, and such a result cannot be adopted by a session before a matching
+authenticated evaluation. Phase 2 canonical candidate validation makes that byte-changing branch
+unreachable for every admitted V1 candidate; the branch is a fail-closed guard for a future
+authenticated ingress that permits non-canonical executable bytes, not a test-only construction
+seam. (AR-P4, AR-P19)
+
+The array-returning enumeration and direct-apply operations are compatibility/inspection surfaces,
+not the reducer's work queue. They inspect at most 4,096 descriptors and at most 16 MiB of aggregate
+source-byte work; enumeration fails closed to an empty frozen list and direct application returns
+`execution-plan-capacity` when proving the requested edit would cross that bound. The reducer uses
+the lazy descriptor cursor directly. Raw descriptors retain only the budget-reachable prefix; typed
+descriptor discovery stops at the envelope's authenticated transformation allowance. Every
+potentially expensive descriptor application/revalidation is charged before work, including an
+inapplicable descriptor, while a cheap end-of-source probe remains uncharged. (AR-P23)
+
+### Candidate invocation and reducer surface
+
+```ts
+export interface ReductionCandidateAuthorityV1 {
+  readonly [REDUCTION_CANDIDATE_AUTHORITY_V1]: true;
+}
+export interface ReductionEvaluationTokenV1 {
+  readonly [REDUCTION_EVALUATION_TOKEN_V1]: true;
+}
+export interface ReductionCandidateInvocationV1 {
+  readonly revision: "reduction-candidate-invocation-v1";
+  readonly subject: "candidate";
+  readonly authority: ReductionCandidateAuthorityV1;
+  readonly token: ReductionEvaluationTokenV1;
+  readonly purpose: "reduction" | "confirmation";
+  readonly proposalKind: "catalog-edit" | "normalization";
+  readonly sequence: number;
+}
+export interface ReductionCandidateEvaluationV1 {
+  readonly revision: "reduction-candidate-evaluation-v1";
+  readonly token: ReductionEvaluationTokenV1;
+  readonly candidateDigest: Sha256Digest;
+  readonly purpose: "reduction" | "confirmation";
+  readonly reproduced: boolean;
+  readonly observation: FailureObservationIdentityV1;
+}
+export interface ConsumedReductionInvocationV1 {
+  readonly revision: "consumed-reduction-invocation-v1";
+  readonly candidate: ReductionCandidateProjectionV1;
+  readonly purpose: "reduction" | "confirmation";
+  readonly proposalKind: "catalog-edit" | "normalization";
+  readonly sequence: number;
+}
+
+export function createReductionCandidateAuthorityV1(
+  envelope: AuthorizedFailureEnvelopeV1,
+  candidate: ValidatedReductionCandidateV1,
+  trace: readonly FailureTransformationTraceEntryV1[],
+): ExecutionOperationResultV1<ReductionCandidateAuthorityV1>;
+export function getReductionCandidateProjectionV1(
+  authority: ReductionCandidateAuthorityV1,
+): ExecutionOperationResultV1<ReductionCandidateProjectionV1>;
+export function createReductionCandidateInvocationV1(
+  authority: ReductionCandidateAuthorityV1,
+  purpose: "reduction" | "confirmation",
+  proposalKind: "catalog-edit" | "normalization",
+): ExecutionOperationResultV1<ReductionCandidateInvocationV1>;
+export function consumeReductionCandidateInvocationV1(
+  invocation: unknown,
+): ExecutionOperationResultV1<ConsumedReductionInvocationV1>;
+
+export interface FailureReductionSessionV1 {
+  readonly [FAILURE_REDUCTION_SESSION_V1]: true;
+}
+export type FailureReductionStepV1 =
+  | { readonly kind: "execute-candidate"; readonly invocation: ReductionCandidateInvocationV1 }
+  | { readonly kind: "complete"; readonly result: FailureReductionResultV1 };
+export type FailureReductionResultV1 =
+  | { readonly revision: "failure-reduction-result-v1"; readonly outcome: "one-minimal"; readonly best: ReductionCandidateProjectionV1; readonly trace: readonly FailureTransformationTraceEntryV1[] }
+  | { readonly revision: "failure-reduction-result-v1"; readonly outcome: "reduction-exhausted"; readonly best: ReductionCandidateProjectionV1; readonly trace: readonly FailureTransformationTraceEntryV1[]; readonly exhaustedAt: "transformation-attempt" | "oracle-evaluation" };
+export function createFailureReductionSessionV1(
+  envelope: AuthorizedFailureEnvelopeV1,
+  campaignBudget: FailureCampaignBudgetAuthorityV1,
+): ExecutionOperationResultV1<FailureReductionSessionV1>;
+export function nextFailureReductionStepV1(
+  session: FailureReductionSessionV1,
+): ExecutionOperationResultV1<FailureReductionStepV1>;
+export function getFailureReductionTerminalCandidateAuthorityV1(
+  session: FailureReductionSessionV1,
+): ExecutionOperationResultV1<ReductionCandidateAuthorityV1>;
+export function recordFailureReductionEvaluationV1(
+  session: FailureReductionSessionV1,
+  evaluation: unknown,
+): ExecutionOperationResultV1<FailureReductionStepV1>;
+```
+
+Candidate authority is immutable and reusable; every invocation receives a fresh WeakMap-backed
+single-use token bound to candidate digest, purpose, proposal kind and monotonic session sequence.
+Consumption is module-private in production and exported only from the internal subpath. Plain,
+copied, replayed, foreign, out-of-order, wrong-purpose or candidate-substituted tokens fail at
+`/invocation` or `/evaluation` before token/session mutation. A failed validation does not consume
+the token. The same candidate may be invoked again only through a newly minted token. Phase 3 adds
+control and sequence subjects without widening this candidate token. (AR-P5, AR-P19)
+
+The session charges `transformation-attempt` before proposing each catalog edit and
+`oracle-evaluation` before accepting each evaluation. It derives policy only from the envelope,
+starts from `createInitialReductionCandidateV1`, performs normalization before each catalog pass,
+accepts only a matching reproduced evaluation, and restarts at catalog ordinal zero after every
+accepted smaller candidate. `next` is idempotent while one invocation is outstanding. A complete
+pass returns `one-minimal`; exact budget use succeeds and the next needed charge returns the
+`reduction-exhausted` result with the retained best and bounded trace rather than an operation
+failure. (AR-P4, AR-P15, AR-P19)
+
+More precisely, one transformation-attempt charge covers each descriptor whose applicability must
+be established, so skipped/inapplicable descriptors cannot hide unmetered render, validation or
+hash work. Completion exposes the current candidate through the terminal-only authority operation;
+an active or forged session fails closed. This hands Phase 3 the genuine final candidate/trace pair
+without moving route execution or confirmation into Phase 2. Private evaluation and trace checks
+reuse retained candidate digests/sizes rather than cloning full public projections. (AR-P23)
+
 ## Raw Malformed Authority
 
 ```ts
@@ -320,7 +709,8 @@ typed IR or runtime authority.
   multibyte and BOM-adjacent deletion boundaries, path-like/secret-like literals, token/byte ties,
   exact-byte round trips, and strict invalid UTF-8 rejection after every edit and before authority
   minting.
-- Session tests cover normalization idempotence, byte-changing normalization evaluation,
+- Session tests cover normalization idempotence, the admitted V1 precondition of the fail-closed
+  byte-changing normalization evaluation guard,
   foreign/replayed/out-of-order evaluation tokens, cross-subject/purpose substitution, legitimate
   fresh-token candidate reuse,
   aggregate exact/next limits, collision injection, huge shallow structures, and no

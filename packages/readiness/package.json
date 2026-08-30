@@ -23,6 +23,10 @@
     "./execution-campaign-identity": {
       "types": "./dist/execution-campaign-identity.d.ts",
       "import": "./dist/execution-campaign-identity.js"
+    },
+    "./failure-reduction-internals": {
+      "types": "./dist/failure-reduction-internals.d.ts",
+      "import": "./dist/failure-reduction-internals.js"
     }
   },
   "scripts": {

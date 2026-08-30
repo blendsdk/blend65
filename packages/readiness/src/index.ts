@@ -149,6 +149,18 @@ export {
   createFailureCampaignBudgetAuthorityV1,
   getFailureCampaignBudgetSnapshotV1,
 } from "./failure-campaign-budget.js";
+export {
+  createMalformedDiagnosticCaseV1,
+  getMalformedDiagnosticCaseProjectionV1,
+} from "./malformed-diagnostic-case.js";
+export {
+  authorizeFailureEnvelopeV1,
+  createFailureHistoricalAuthorityResolverV1,
+  getFailureEnvelopeProjectionV1,
+  getFailureHistoricalAuthorityRecordsV1,
+  parseFailureEnvelopeV1,
+  serializeFailureEnvelopeV1,
+} from "./failure-envelope.js";
 export { projectExecutionCampaignV1 } from "./execution-campaign-projection.js";
 export {
   parseExecutionEnvelopeIrV1,
@@ -571,6 +583,26 @@ export type {
   FailureCampaignBudgetReservationV1,
   FailureCampaignBudgetSnapshotV1,
 } from "./failure-campaign-budget.js";
+export type {
+  AuthorizedFailureEnvelopeV1,
+  FailureClaimWitnessV1,
+  FailureEnvelopeAuthorizationInputV1,
+  FailureEnvelopeInitialCandidateV1,
+  FailureEnvelopeResolutionV1,
+  FailureEnvelopeSourceAuthorityV1,
+  FailureEnvelopeV1,
+  FailureHistoricalAuthorityRecordV1,
+  FailureHistoricalAuthorityResolverV1,
+  FailureReplayAuthorityV1,
+  FailureToolIdentityV1,
+} from "./failure-envelope.js";
+export type {
+  CreateMalformedDiagnosticCaseInputV1,
+  MalformedDiagnosticCaseV1,
+  MalformedReplayEnvelopeV1,
+  MalformedTokenSpanV1,
+  MalformedTokenTextProvenanceV1,
+} from "./malformed-diagnostic-case.js";
 export type { ExecutionRoutePlanPreimageV1 } from "./execution-route-plan.js";
 export type {
   CompositeReadinessSnapshot,

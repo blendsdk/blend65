@@ -429,3 +429,20 @@ export function getFailureCampaignBudgetSnapshotV1(
     ? issue("/authority", "Campaign budget authority was not produced by the factory.")
     : success(snapshot(state));
 }
+
+/**
+ * Resolves the immutable canonical policy behind a genuine campaign budget.
+ *
+ * This purpose-limited seam lets the reduction state machine reject a budget minted for a
+ * different policy before either authority is charged. It intentionally exposes no counters or
+ * mutation access and is not part of the package root API.
+ */
+export function getFailureCampaignBudgetPolicyV1(
+  authority: FailureCampaignBudgetAuthorityV1,
+): FailureReductionPolicyV1 | undefined {
+  const state =
+    typeof authority === "object" && authority !== null
+      ? AUTHORITY_STATES.get(authority)
+      : undefined;
+  return state?.policy;
+}

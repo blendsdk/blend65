@@ -2,10 +2,18 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 
+import {
+  prepareIncrementalBindingPublication,
+  prepareIncrementalBindingPublicationReview,
+  publishIncrementalBindingPublication,
+} from "../binding-publication.js";
+import { resolvePublishedSnapshotByDigest } from "../publication-resolver.js";
 import { createHistoricalReadinessAuthorityRepository } from "./historical-readiness-authority.js";
 
+import type { PublicationReviewRequestV1 } from "../publication-model.js";
+
 export const CURRENT_PARENT_DIGEST =
-  "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
+  "sha256:e65b95cdc817a6b2608d6965855ca1013f36b7893424d31d2f04fd18fa0845a5";
 export const HISTORICAL_PARENT_DIGEST =
   "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
 export const SPEC_REVISION =
@@ -83,6 +91,14 @@ export interface ExpectedExecutionPublicationV1 {
 }
 
 const encoder = new TextEncoder();
+const CURRENT_ORACLE_HANDLER_IDS = Object.freeze([
+  "oracle.compiler-result",
+  "oracle.emitted-program",
+  "oracle.frontend-result",
+  "oracle.runtime-state",
+  "transform.semantic-relations",
+]);
+let currentParentTemplatePromise: Promise<Readonly<Record<string, Uint8Array>>> | undefined;
 
 export function digestBytes(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -192,8 +208,91 @@ export function expectedPublication(
   };
 }
 
+function readinessReviewBytes(request: PublicationReviewRequestV1): Uint8Array {
+  return canonicalJsonBytes({
+    schemaVersion: 1,
+    reviews: request.reviewUnits.map((unit) => ({
+      unitId: unit.unitId,
+      reviewer: "execution publication catalog specification fixture",
+      specRevision: request.specRevision,
+      semanticDigest: unit.semanticDigest,
+      dependencyDigests: unit.dependencyDigests,
+      outcome: "accepted",
+      resolvedDisagreementIds: [],
+    })),
+  });
+}
+
+async function buildCurrentParentTemplate(): Promise<Readonly<Record<string, Uint8Array>>> {
+  const repositoryRoot = await createHistoricalReadinessAuthorityRepository(
+    "blend65-execution-parent-template-",
+  );
+  try {
+    await writeFile(
+      join(repositoryRoot, "readiness/publications/current-publication.json"),
+      canonicalJsonBytes({ schemaVersion: 1, publicationDigest: HISTORICAL_PARENT_DIGEST }),
+    );
+    const base = await resolvePublishedSnapshotByDigest({
+      repositoryRoot,
+      publicationDigest: HISTORICAL_PARENT_DIGEST,
+    });
+    if (!base.ok) throw new Error("expected the historical execution-spec parent to resolve");
+    const review = await prepareIncrementalBindingPublicationReview({
+      repositoryRoot,
+      baseSnapshot: base.value,
+      targetHandlerIds: CURRENT_ORACLE_HANDLER_IDS,
+    });
+    if (!review.ok) throw new Error("expected the current execution-spec review to prepare");
+    const staged = await prepareIncrementalBindingPublication({
+      repositoryRoot,
+      baseSnapshot: base.value,
+      targetHandlerIds: CURRENT_ORACLE_HANDLER_IDS,
+      semanticReviewBytes: readinessReviewBytes(review.value.request),
+    });
+    if (!staged.ok) throw new Error("expected the current execution-spec parent to stage");
+    const published = await publishIncrementalBindingPublication(staged.value.prepared);
+    if (!published.ok || published.value.publicationDigest !== CURRENT_PARENT_DIGEST) {
+      throw new Error(
+        `expected current execution-spec parent ${CURRENT_PARENT_DIGEST}, received ${published.ok ? published.value.publicationDigest : "publication failure"}`,
+      );
+    }
+    return await snapshotTree(
+      join(repositoryRoot, "readiness/publications/releases", CURRENT_PARENT_DIGEST),
+    );
+  } finally {
+    await rm(repositoryRoot, { recursive: true, force: true });
+  }
+}
+
+async function currentParentTemplate(): Promise<Readonly<Record<string, Uint8Array>>> {
+  currentParentTemplatePromise ??= buildCurrentParentTemplate();
+  return currentParentTemplatePromise;
+}
+
 export async function createIsolatedRepository(): Promise<string> {
-  return createHistoricalReadinessAuthorityRepository("blend65-execution-spec-");
+  const template = await currentParentTemplate();
+  const repositoryRoot =
+    await createHistoricalReadinessAuthorityRepository("blend65-execution-spec-");
+  try {
+    const releaseRoot = join(
+      repositoryRoot,
+      "readiness/publications/releases",
+      CURRENT_PARENT_DIGEST,
+    );
+    for (const [path, bytes] of Object.entries(template)) {
+      const outputPath = join(releaseRoot, path);
+      await mkdir(dirname(outputPath), { recursive: true });
+      await writeFile(outputPath, bytes);
+    }
+    await writeFile(
+      join(repositoryRoot, "readiness/publications/current-publication.json"),
+      canonicalJsonBytes({ schemaVersion: 1, publicationDigest: CURRENT_PARENT_DIGEST }),
+    );
+    return repositoryRoot;
+  } catch (error) {
+    await rm(repositoryRoot, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 export async function removeIsolatedRepository(repositoryRoot: string): Promise<void> {

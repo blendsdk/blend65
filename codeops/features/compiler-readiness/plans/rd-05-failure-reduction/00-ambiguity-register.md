@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-05 Failure Reduction
 
-> **Status**: ✅ GATE PASSED — all 18 items resolved; 4 added during execution
-> **Last Updated**: 2026-08-26 17:29
+> **Status**: ✅ GATE PASSED — all 23 items resolved; 9 added during execution
+> **Last Updated**: 2026-08-30 09:57
 > **Planning Target**: compiler-readiness/RD-05
 > **Context Artifacts**: RD-05 and its passing preflight report; RD-02/RD-04 requirements and plans;
 > current `@blend65/readiness` and `@blend65/readiness-execution` source, tests, manifests, and
@@ -32,6 +32,11 @@
 | AR-P16 | Runtime — invalid classification shape | How can ST-02 return `unsupported` for hostile/open tuples without retaining or fabricating an `ExecutionResultV1`? | Discriminated unsupported-input arm without `result`; retain unsafe input; fabricate a safe result | Discriminated unsupported-input arm omits `result`; valid tuples retain a normalized result | ✅ Resolved |
 | AR-P17 | Runtime — compatibility fixture authority | How can ST-12 prove RD-04 V1 bytes stay unchanged after readiness source truthfully invalidates the old source-bound parent? | Frozen preimplementation report vector; weaken parent freshness; refresh/select publication in Phase 1 | Frozen exact preimplementation report bytes/digest plus unchanged execution-production guard | ✅ Resolved |
 | AR-P18 | Runtime — inherited historical parent fixture | How can existing RD-04 catalog/orchestration specs keep exercising the exact parent they name after RD-05 changes current readiness authority bytes? | Exact test-owned parent-authority overlay; weaken resolver freshness; refresh/select current publications every phase | Overlay only the named historical parent's changed authority files inside its temporary fixture | ✅ Resolved |
+| AR-P19 | Runtime — Phase 2 callable contract | Which exact closed API lets an implementation-blind specification prove malformed ingress, historical resolution, family invariants, catalog behavior, candidate tokens and reduction without test-only hooks or caller callbacks? | Layered free-function protocol behind the existing internal subpath; session-only public API; test-only fixture hooks | Layered free-function protocol: root exports genuine authority/session/projection operations; `failure-reduction-internals` exports the closed invariant/catalog mechanics | ✅ Resolved |
+| AR-P20 | Runtime — published invalid-case restart seam | How does a restart consumer mint typed-invalid authority when the selected context hides its exact generator/boundary/renderer capabilities? | Narrow diagnostic-from-intent factory; expose a general prepared campaign; accept semantically equivalent caller campaigns | Narrow `createPublishedDiagnosticCaseFromIntentV1` factory over exact semantic intent and one shared private preparation path | ✅ Resolved |
+| AR-P21 | Runtime — Phase 2 candidate-authority boundary and review remediation | Which authority belongs in Phase 2, and which review blockers must close before the phase completes? | Candidate/token core now and route/control/sequence in Phase 3; claim all execution authority now; defer review blockers | Keep reusable candidate/token authority in Phase 2, retain route/control/sequence authority in Phase 3, and fix every fail-closed/boundedness blocker now | ✅ Resolved |
+| AR-P22 | Runtime — current parent publication lifecycle | How do Phase 2 tests use current five-binding oracle authority when the selected RD-04 nine-binding release is source-stale and real reselection belongs to Phase 6? | Materialize a current five-over-four test parent; reselect production now; forge the old release as current | Materialize and pin the deterministic current test parent over the immutable four-binding base; leave real review/selection to Phase 6 | ✅ Resolved |
+| AR-P23 | Runtime — Phase 2 re-review integrity and boundedness | How must the reducer close surviving authority, identity, handoff and cost-model defects without widening Phase 3 scope? | Repair all Phase 2 invariants and expose only terminal candidate authority; defer them; move confirmation into Phase 2 | Repair all Phase 2 invariants, meter descriptor preparation, bound inspection, and expose a terminal-only authority handoff while retaining execution/confirmation in Phase 3 | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -419,3 +424,195 @@ runtime dependency and a resolver bypass.
 **Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260826-1642`
 **Reopen trigger:** Another current-source change touches a dependency in the named parent's exact
 authority closure; add its preimplementation bytes to the same bounded fixture overlay.
+
+### AR-P19 — Complete Phase 2 callable contract (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Internal API, data-shape and testability design inside the approved Phase 2
+behavior and existing package boundary; it changes no product behavior, acceptance criterion,
+security policy or scope.
+**Objective:** Give the implementation-blind specification author a complete non-guessing packet
+while keeping every executable authority opaque and preventing test-only production seams.
+**Decision:** Use the layered free-function protocol now specified completely in
+`03-02-reduction-engine.md`. Root exports accept only genuine existing typed-valid,
+typed-invalid or malformed authorities, expose opaque historical resolvers/candidates/sessions and
+defensive passive projections, and return closed operation results. The existing purpose-limited
+`@blend65/readiness/failure-reduction-internals` subpath alone exposes family drafts,
+validate/enumerate/apply/normalize operations and single-use invocation consumption needed by the
+specification and the later execution package. Historical parsing consumes a WeakMap-backed
+resolver built from digest-verified canonical authority records and discriminates `resolved` from
+`historical-authority-unavailable`; the unavailable arm contains no envelope. Catalog edits and
+normalization are distinct proposal kinds, so changed executable bytes must be evaluated before
+adoption. The specification may construct a genuine published-oracle context only through the
+existing historical publication fixture, resolver and `createPublishedOracleContext`; no forged
+test context is added.
+**Evidence:** The first specification-author dispatch stopped without editing because the plan
+omitted seven required schema/signature groups. Existing `ExecutionCaseV1`,
+`PublishedDiagnosticCaseV1` and `FailureCampaignBudgetAuthorityV1` already use the selected opaque
+brand plus module-private WeakMap/free-operation pattern. Direct invariant and catalog operations
+are necessary to make the authorized negative cases observable without implementation-specific
+injection hooks.
+**Rejected alternatives:** A session-only API cannot independently exercise invalid candidate
+tuples, illegal non-decreasing edits, normalization cycles or direct token substitution; adding
+test-only hooks would couple the immutable oracle to implementation and create a production bypass.
+**Strongest counterargument:** The internal subpath freezes more mechanical shapes and makes catalog
+evolution deliberately versioned.
+**Confidence:** High — reopen only if the immutable cases are explicitly re-scoped away from direct
+contract verification or a smaller protocol proves the same negative cases without injection.
+**Hardening:** Independent challenger selected the same layered protocol and required genuine source
+authorities, an opaque record resolver, runtime-opaque validated candidates/tokens, and distinct
+catalog-versus-normalization proposals.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260829-resume`
+**Reopen trigger:** A required specification case cannot be expressed from the completed packet, or
+an operation can mint executable authority from passive caller data alone.
+
+### AR-P20 — Published invalid-case restart seam (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Purpose-limited API completion required to exercise the already approved genuine
+typed-invalid authority after restart; it changes no result semantics, route, publication policy or
+scope.
+**Objective:** Let a consumer holding only a genuine selected `PublishedOracleContext` mint the
+existing `PublishedDiagnosticCaseV1` without exposing or accepting executable campaign
+dependencies.
+**Decision:** Add `createPublishedDiagnosticCaseFromIntentV1(context, intent)` to the existing
+published-oracle subpath. Its exact hostile input contains only schema version, rule ID, seed,
+configuration and ordinal. A shared source-private helper authenticates the context, selects the
+historical generator, boundary transform, renderer and modeled suite from WeakMap state, prepares
+the campaign, and regenerates the ordinal. The new factory then uses the existing diagnostic join
+and returns only its opaque capability. `PreparedCampaign` remains private.
+**Evidence:** The first corrected Phase 2 fixture could resolve the selected nine-binding context
+and mint typed-valid `ExecutionCaseV1`, but every typed-invalid ordinal failed at `/campaign`: no
+published API could reconstruct the hidden exact campaign capabilities required by the existing
+diagnostic constructor after restart.
+**Rejected alternatives:** Returning a general `PreparedCampaign` grants generation and valid-case
+execution authority beyond the blocked diagnostic join and duplicates the existing general
+campaign factory. Accepting a caller campaign by semantic output equivalence executes unselected
+implementations before provenance validation and breaks exact historical authority.
+**Strongest counterargument:** A future restart consumer might need the whole prepared campaign;
+no independent approved consumer currently does.
+**Confidence:** High — the narrow factory is sufficient for the established invalid-case join and
+does not widen executable authority.
+**Hardening:** Independent challenger selected the same diagnostic-from-intent seam, rejected both
+general campaign exposure and semantic-equivalence fallback, and required one shared private
+preparation helper.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260829-resume`
+**Reopen trigger:** A separately approved restart workflow proves it needs the full prepared
+campaign rather than a diagnostic authority.
+
+### AR-P21 — Phase 2 candidate-authority boundary and review remediation (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Internal phase ownership and fail-closed repair inside the already approved RD-05
+candidate/reducer design; it changes no product scope, acceptance criterion, public workflow, or
+publication lifecycle.
+**Objective:** Reconcile the overlapping Phase 2 candidate-authority task with the explicit Phase 3
+execution/control/sequence tasks while closing the Phase 2 review's correctness, semantic, and
+performance blockers without silently declaring absent behavior complete.
+**Decision:** Phase 2 owns the reusable validated candidate authority, its passive candidate-source,
+original-route/predicate/policy identity, reduction/confirmation invocation tokens, and a
+session-owned monotonic proposal sequence. Phase 3 owns the family-specific execution payload and
+candidate-relative runtime authority because only its execution join can derive the required fresh
+semantic/fixture/oracle bytes without fabricating them; it also owns route consumption,
+known-good-control authority, sequence-position authority and terminal-position enforcement, worker
+isolation, and fresh confirmation. Task 2.2.6 is narrowed to that Phase 2 boundary; tasks 3.2.1 and
+3.2.6 remain open and authoritative for execution payload/runtime and control/sequence behavior.
+The review's historical reconstruction, witness/binding, catalog ordering and
+applicability, budget binding, normalization accounting, token-consumption, boundedness, and module
+structure findings are mandatory in-scope fixes before Phase 2 may close.
+**Evidence:** The Phase 2 design defines candidate payload and reusable candidate-token authority,
+while Phase 3 tasks 3.2.1–3.2.6 explicitly introduce route adapters, controls, sequence attempts,
+terminal placement, and isolation. The original task text incorrectly claimed both sets at Phase 2
+completion. Independent correctness, semantics, and performance reviews also proved the current
+implementation can mint unrelated historical authority, accept unresolved candidate paths, choose
+the wrong deterministic reducer path, bypass policy/token sequencing, and exhaust memory before
+budget charging.
+**Rejected alternatives:** Marking absent Phase 3 execution behavior complete would make the plan
+false; implementing the entire execution/confirmation layer in Phase 2 would violate dependency
+ordering and the immutable Phase 3 specification-first gate; deferring fail-closed and boundedness
+repairs would leave Phase 2's delivered reducer unsafe.
+**Strongest counterargument:** Defining execution, control, and sequence data types in Phase 2 could
+make the later package easier to implement. The current envelope retains digests, not the canonical
+fixture and fresh semantic/oracle bytes needed to populate those types truthfully; defining an
+unconstructable authority earlier would invite fabrication rather than reduce Phase 3 risk.
+**Confidence:** High — the boundary follows the named Phase 3 tasks and preserves every approved
+RD-05 behavior.
+**Hardening:** Two independent semantic/correctness reviews and a performance audit converged on
+the same missing authority boundary and fail-closed defects; the ruling chooses the smallest phase
+correction that leaves no claimed behavior unowned.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-resume`
+**Reopen trigger:** A Phase 3 specification proves that route/control/sequence authority cannot be
+implemented without changing the Phase 2 candidate payload or its authenticated identity.
+
+### AR-P22 — Current parent publication lifecycle (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Test-fixture authority and lifecycle sequencing inside the already approved
+content-bound publication design; no production publication is selected or pushed.
+**Objective:** Keep Phase 2 historical and current publication tests truthful after readiness source
+changes invalidate the selected RD-04 release, without performing Phase 6 review and selection early.
+**Decision:** Isolated tests retain the immutable four-binding historical base and deterministically
+prepare the five current oracle bindings into parent
+`sha256:e65b95cdc817a6b2608d6965855ca1013f36b7893424d31d2f04fd18fa0845a5`.
+The selected RD-04 nine-binding release remains historical evidence and is not treated as executable
+under current source. Real child review, acceptance, and atomic selection remain owned by Phase 6.
+The regenerated execution catalog and local VICE goldens bind the current source identities while
+preserving binary bytes, layout, cycles, and target-visible results.
+**Evidence:** Current source-derived oracle revisions are fresh, generated execution bindings pass
+their freshness check, the isolated parent reproduces byte-for-byte, and real ACME/VICE acceptance
+is green. Selecting a production release now would bypass the plan's later semantic review and
+two-checkpoint lifecycle.
+**Rejected alternatives:** Early production reselection violates phase ordering; weakening freshness
+or presenting the stale nine-binding release as current falsifies authority; fabricating a current
+release from old bytes defeats the content-derived identity contract.
+**Strongest counterargument:** A test-only parent differs from the eventual nine-binding production
+child. The fixture intentionally proves current five-binding oracle authority only; Phase 6 remains
+responsible for the complete reviewed child and therefore cannot inherit this parent as selection
+evidence.
+**Confidence:** High — the separation matches the existing publication lifecycle and keeps every
+authority claim content-derived.
+**Hardening:** Exact generated-binding freshness, deterministic isolated publication, and real local
+ACME/VICE acceptance converged on the same lifecycle boundary.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-resume`
+**Reopen trigger:** Phase 3 requires a currently selected execution parent before Phase 6, in which
+case the plan must explicitly move review and selection forward rather than weakening freshness.
+
+### AR-P23 — Phase 2 re-review integrity and boundedness (runtime)
+
+**Authority:** AI — delegated by `--auto-design`
+**Eligibility:** Correctness, semantic and performance repair inside the approved malformed-ingress,
+candidate-authority and deterministic-reducer boundary; no user-visible language or publication
+scope changes.
+**Objective:** Close the final independent re-review findings while keeping Phase 3 able to consume
+the terminal reduction result without rebuilding or fabricating authority.
+**Decision:** Raw required claims must equal the source rule exactly; both observation union arms
+must digest-bind their retained bytes; malformed replay text must be well-formed Unicode at ingress,
+history and direct identity derivation; and every supplied trace entry must match its private
+predecessor chain. A completed session exposes one terminal-only candidate-authority operation bound
+to its final trace, while Phase 3 still owns route execution, controls, isolation and confirmation.
+Catalog descriptor preparation consumes the authenticated transformation budget before applying or
+validating a candidate, typed descriptor discovery is capped by that budget, compatibility
+inspection APIs are bounded by descriptor and aggregate source-byte work, and reducer-private
+identity/trace checks use retained state instead of cloning complete source payloads.
+**Evidence:** Correctness re-review reproduced raw-claim and trace-prefix substitution; semantic
+re-review additionally reproduced lone-surrogate digest aliasing, not-reached evidence substitution
+and the absent terminal authority handoff; performance re-review measured unbounded total catalog
+materialization, eager typed allocation, duplicate proposal preparation and multi-gigabyte private
+clone costs at allowed limits. Focused hostile tests now cover each counterexample and the frozen
+specification oracle remains byte-identical.
+**Rejected alternatives:** Deferring the findings leaves minted-but-unusable envelopes and permits
+authority substitution; moving confirmation into Phase 2 violates the specification-first phase
+order; rejecting all large candidate inputs would turn an implementation convenience into a user-
+visible failure instead of returning deterministic campaign exhaustion.
+**Strongest counterargument:** A terminal authority in Phase 2 anticipates a Phase 3 consumer. It is
+the already-approved reusable candidate authority over the reducer's final genuine state, not a new
+execution or confirmation authority, and prevents Phase 3 from reconstructing an opaque capability
+from passive bytes.
+**Confidence:** High — every change is the smallest closed repair for a reproduced counterexample
+and preserves the existing phase boundary.
+**Hardening:** Independent correctness, semantics and performance re-reviews converged on the same
+authority and boundedness seams; all critical/major findings are resolved in scope.
+**Policy version:** 1 · **Root invocation ID:** `exec-plan-rd05-20260830-resume`
+**Reopen trigger:** Phase 3 cannot consume the terminal authority without changing its candidate or
+trace identity, or an allowed candidate can perform unmetered work above the inspection/campaign
+bounds.
