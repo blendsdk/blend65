@@ -1,8 +1,8 @@
 # Ambiguity Register: Compiler Readiness
 
-> **Status**: ✅ GATE PASSED — all 10 items resolved
-> **Last Updated**: 2026-07-23
-> **Mode**: Auto-design
+> **Status**: ✅ GATE PASSED — all 18 items resolved
+> **Last Updated**: 2026-09-02
+> **Mode**: Auto-design for AR-4–AR-9; normal user authority for AR-11–AR-18
 > **Root invocation ID**: `compiler-readiness-20260723-01`
 > **Policy version**: 1
 
@@ -18,8 +18,33 @@
 | AR-8 | Failure recovery | How are generated failures minimized? | Typed-IR-aware shrinking for semantic cases; token/text delta debugging for malformed cases; preserve rule coverage and failure predicate | AI delegated by `--auto-design` | ✅ Resolved |
 | AR-9 | Data lifecycle | Which generated evidence is persistent? | Commit versioned rule/schema data and confirmed minimized regressions; retain campaign manifests/summaries; bulk cases remain reproducible ephemeral data; activate RD-07 evolution gates before the first format upgrade | AI delegated by `--auto-design`, hardened by RD-01 preflight | ✅ Resolved |
 | AR-10 | Product acceptance | What exact scope and threshold earns a readiness claim? | Issue target-scoped claims, beginning with `C64 v3.0 Ready`; require 100% of applicable mandatory rules modeled and passing their declared terminal tier, zero unexplained exclusions, and zero ICE/assembler-failure/timeout outcomes. Never issue an unqualified global “compiler ready” claim while another advertised target is unevaluated. Additional platform readiness is future work. | User approved recommendation | ✅ Resolved |
+| AR-11 | Scope | What must RD-08 do with the remaining 2,103 rule records? | Give every record an explicit terminal disposition; source-generatable rules receive executable cases, while non-source-generatable rules receive named deterministic evidence and cannot silently pass or remain generically unmodeled | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-12 | Technical | How broadly should the independent generator IR grow? | Add only constructs required by owned rule families, beginning with arrays, calls, branches and bounded loops; do not build a second full compiler | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-13 | Scale | Are 2,103 separate generator implementations required? | No; reviewed data-driven family templates retain one traceable disposition and result per inventory rule without bespoke implementations for equivalent shapes | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-14 | Integration | Which pipeline and evidence tiers must generated cases exercise? | Exercise the public compiler pipeline and every rule's existing declared obligations; runtime rules reach ACME/VICE, while frontend-only rules do not pay emulator cost | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-15 | Non-functional | May broad readiness campaigns enter normal development and quick-release tests? | No; root tests retain a bounded deterministic smoke selection, while exhaustive campaigns remain explicit readiness/release work | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-16 | Data lifecycle | How does broader rule-model data evolve? | Use the smallest additive versioned evolution required and preserve byte-identical historical v1 publications and exact replay; never reinterpret existing evidence in place | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-17 | Ownership | Does RD-08 fix compiler or optimizer defects it discovers? | No; it publishes exact evidence and routes semantic defects to compiler recovery and cost defects to parity/optimizer owners. It adds no general failure-harness work beyond what its new cases require | User accepted the complete RD-08 recommendation package | ✅ Resolved |
+| AR-18 | Optimizer handoff | When and how does RD-08 begin helping optimizer development? | Its first vertical slice publishes arrays, calls, branches and loops through the existing provider contracts; optimizer foundations may then proceed while RD-08 coverage expands, and readiness supplies semantics but never cost truth | User accepted the complete RD-08 recommendation package | ✅ Resolved |
 
 ## Delegated Resolution Records
+
+### RD-08 Normal-Mode Resolution — AR-11–AR-18
+
+- **Authority:** User — explicit bulk acceptance on 2026-09-02
+- **Decision:** The user accepted the complete recommended RD-08 scope and sequencing after review
+  of how generated semantic evidence feeds compiler recovery, assembly parity and the commercial
+  optimizer without itself becoming performance authority.
+- **Accepted package:** complete rule dispositions; minimum family-driven IR; arrays/calls/branches/
+  bounded-loops first; declared public execution tiers; bounded smoke versus explicit exhaustive
+  campaigns; additive historical compatibility; evidence-only defect routing; first-publication
+  optimizer handoff.
+- **Rejected direction:** waiting for all 2,103 remaining models before optimizer work. The first
+  vertical publication unlocks optimizer foundations while denominator expansion continues.
+- **Confidence:** High — each choice is grounded in the existing RD-02–RD-04 provider contracts,
+  RD-06 strict gate and the preflighted optimizer translation-validation contract.
+- **Reopen trigger:** an accepted provider contract cannot represent the first vertical families
+  without making readiness depend on compiler internals or performance evidence.
 
 ### AR-4 — Rule inventory representation
 
@@ -150,3 +175,19 @@
 | UX/presentation | Human and machine-readable rule matrix included; exact format is reversible |
 | Stakeholder conflict | Readiness authority separated from optimization evidence |
 | Naming | `compiler-readiness`, rule, case, oracle, terminal tier and readiness claim defined |
+
+## RD-08 Addendum Gate Scan
+
+| Category | Result |
+|---|---|
+| Feature and behavioral gaps | AR-11–AR-14 define denominator closure, family modeling and execution behavior |
+| Scope | AR-12, AR-17 and AR-18 keep the work bounded and separate defect-fix ownership |
+| Technical unknowns | AR-12–AR-14 and AR-18 resolve generator, scaling, execution and optimizer handoff |
+| Edge cases | RD-08 requires declared boundaries, invalid neighbors, loop bounds and proof-incomplete outcomes |
+| Integration | AR-14 and AR-18 bind public execution tiers and the one-way optimizer adapter |
+| Data and state | AR-11, AR-13 and AR-16 resolve per-rule identity, family data and historical compatibility |
+| Security | Existing closed-input, canonical-path, subprocess and execution bounds remain mandatory |
+| Non-functional | AR-15 and AR-16 resolve quick-gate isolation, determinism and evolution |
+| UX and presentation | RD-06 retains human/machine reporting ownership; RD-08 supplies per-rule evidence |
+| Stakeholder conflict | AR-17 separates readiness, conformance, parity and optimizer owners |
+| Naming and terminology | `terminal disposition`, `rule family` and `optimizer handoff` are defined in RD-08 |

@@ -1,7 +1,7 @@
 # Compiler Readiness — Requirements Documents
 
 > **Project**: Blend65 — specification-derived C64 v3.0 compiler readiness
-> **Status**: Complete
+> **Status**: Complete through RD-07; RD-08 approved for denominator expansion
 > **Created**: 2026-07-23
 > **Architecture**: TypeScript rule inventory, independent generator/oracle, ACME and VICE
 > **CodeOps Artifact Schema**: 1
@@ -47,7 +47,8 @@ regressions but never define readiness.
 | [RD-03](RD-03-independent-oracles.md) | Semantic, diagnostic and metamorphic oracles | RD-01 |
 | [RD-04](RD-04-tiered-execution.md) | Compiler, ACME and VICE execution | RD-02, RD-03 |
 | [RD-05](RD-05-failure-reduction.md) | Classification, shrinking and regression promotion | RD-02, RD-04 |
-| [RD-06](RD-06-readiness-gate.md) | Matrix, strict release gate and legacy evidence | RD-01–RD-05 |
+| [RD-08](RD-08-complete-c64-rule-coverage.md) | Complete C64 rule models and generated-program coverage | RD-01–RD-04 |
+| [RD-06](RD-06-readiness-gate.md) | Matrix, strict release gate and legacy evidence | RD-01–RD-05, RD-08 |
 | [RD-07](RD-07-non-functional.md) | Safety, determinism, evolution and operational bounds | RD-01–RD-06 |
 
 ## Dependency Graph
@@ -57,8 +58,9 @@ RD-01 Specification Inventory
 ├── RD-02 Generative Cases
 ├── RD-03 Independent Oracles
 │   └── RD-04 Tiered Execution ← RD-02
-│       └── RD-05 Failure Reduction
-│           └── RD-06 Readiness Gate
+│       ├── RD-05 Failure Reduction
+│       └── RD-08 Complete C64 Coverage ← RD-01, RD-02, RD-03
+│           └── RD-06 Readiness Gate ← RD-05
 └───────────────────────────────┘
                                 └── RD-07 Non-Functional Requirements
 ```
@@ -69,7 +71,7 @@ RD-01 Specification Inventory
 |---|---|---|
 | A: Authority | RD-01 | Known denominator, source precedence and ambiguity status |
 | B: Evidence engine | RD-02 → RD-03 → RD-04 | Generated cases with decisive outcomes |
-| C: Operability | RD-05 | Minimal reproducible failures |
+| C: Coverage and operability | RD-08 first vertical slice → RD-05 remainder → RD-08 denominator closure | Broad real-program evidence and minimal reproducible failures |
 | D: Readiness | RD-06 → RD-07 | Strict C64 claim and durable operation |
 
 RD-01 defines the v1 format and migration interface. RD-07's evolution subset is a conditional
@@ -87,6 +89,8 @@ before RD-07's remaining operational work.
 | Execution | Declared cheapest-sufficient terminal tier | AR-7 |
 | Persistence | Versioned metadata and minimized regressions, not bulk cases | AR-9 |
 | Claim | Strict target-scoped `C64 v3.0 Ready` | AR-10 |
+| Complete coverage | Family-driven rule models with explicit per-rule dispositions | AR-11–AR-14 |
+| Optimizer handoff | First arrays/calls/branches/loops publication unlocks optimizer foundations | AR-18 |
 
 ## Scope
 

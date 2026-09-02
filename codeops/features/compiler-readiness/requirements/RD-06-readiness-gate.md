@@ -4,7 +4,7 @@
 > **Status**: Approved
 > **Created**: 2026-07-23
 > **Project**: Compiler Readiness
-> **Depends On**: RD-01, RD-02, RD-03, RD-04, RD-05
+> **Depends On**: RD-01, RD-02, RD-03, RD-04, RD-05, RD-08
 > **CodeOps Artifact Schema**: 1
 
 ## Feature Overview
