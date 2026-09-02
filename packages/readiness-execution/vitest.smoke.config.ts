@@ -16,7 +16,6 @@ export default defineConfig({
       "src/execution-vice-control-host-start-failure.impl.test.ts",
       "src/execution-vice-control-host.impl.test.ts",
       "src/execution-vice-host.impl.test.ts",
-      "src/execution-vice-production.impl.test.ts",
       "src/execution-vice-runtime-errors.impl.test.ts",
       "src/execution-vice-session.impl.test.ts",
       "src/execution-worker-protocol.impl.test.ts",
