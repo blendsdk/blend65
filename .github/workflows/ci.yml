@@ -39,9 +39,10 @@ jobs:
       - name: Install ACME assembler
         run: sudo apt-get update && sudo apt-get install -y acme
 
-      # Runs both test tiers (AR-P10): turbo per-package unit suites
-      # (ST-1..ST-10) followed by the root `vitest run test/` tier, which
-      # executes the authoritative R15 boundary spec (ST-R15a/b/c).
+      # Runs normal package tests, the bounded readiness smoke tier, and the
+      # root boundary tier. The multi-hour generated-campaign acceptance suite
+      # remains available explicitly through `yarn test:readiness:full`; it is
+      # not part of the quick development/release gate.
       - name: Test
         run: yarn test
 

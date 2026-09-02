@@ -1,0 +1,37 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    include: [
+      "src/execution-authority-report.impl.test.ts",
+      "src/execution-budget.impl.test.ts",
+      "src/execution-diagnostic-route.impl.test.ts",
+      "src/execution-live-handlers.impl.test.ts",
+      "src/execution-orchestration-conformance-v1.impl.test.ts",
+      "src/execution-process-kernel.impl.test.ts",
+      "src/execution-publication-secure-filesystem.impl.test.ts",
+      "src/execution-readiness-cli.impl.test.ts",
+      "src/execution-route-planner.impl.test.ts",
+      "src/execution-tool-discovery.impl.test.ts",
+      "src/execution-vice-control-host-start-failure.impl.test.ts",
+      "src/execution-vice-control-host.impl.test.ts",
+      "src/execution-vice-host.impl.test.ts",
+      "src/execution-vice-production.impl.test.ts",
+      "src/execution-vice-runtime-errors.impl.test.ts",
+      "src/execution-vice-session.impl.test.ts",
+      "src/execution-worker-protocol.impl.test.ts",
+      "src/failure-confirmation-checkpoints.impl.test.ts",
+      "src/failure-confirmation-comparison.impl.test.ts",
+      "src/failure-confirmation-evaluation.impl.test.ts",
+      "src/failure-confirmation-tools.impl.test.ts",
+      "src/failure-execution-observation.impl.test.ts",
+    ],
+    environment: "node",
+    passWithNoTests: false,
+    minWorkers: 1,
+    maxWorkers: 2,
+    fileParallelism: false,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+  },
+});

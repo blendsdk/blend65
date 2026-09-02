@@ -32,8 +32,11 @@ All commands run from the repo root.
   of the tree carry drift. Verify passing does NOT mean the diff is Prettier-clean. Run
   `npx prettier --check <files>` on files you touch and hand-fix what you added; do not
   `--write` whole files you did not otherwise change (it buries the real diff in reformatting).
-- **Test:** `yarn test` (per-package unit tier, THEN the root R15 boundary tier — AR-P10);
-  single package: `yarn workspace @blend65/<pkg> test`
+- **Test:** `yarn test` (normal package tests, bounded readiness smoke tests, THEN the root R15
+  boundary tier — AR-P10); single package: `yarn workspace @blend65/<pkg> test`
+- **Full readiness acceptance:** `yarn test:readiness:full` — intentionally opt-in and potentially
+  multi-hour. Run only when readiness/execution semantics change or at an explicit readiness/release
+  acceptance checkpoint; it is not part of normal development or quick-release verification.
 - **Verify (run before every commit):**
   `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 - **Clean:** TODO — no `clean` script defined (root, packages, or `turbo.json`); clean manually

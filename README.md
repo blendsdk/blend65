@@ -64,7 +64,8 @@ yarn install          # install workspace dependencies
 yarn build            # build all packages (tsc --build across the monorepo)
 yarn typecheck        # type-check
 yarn lint             # ESLint + Prettier
-yarn test             # run the test suites
+yarn test             # run normal tests, readiness smoke tests, and root boundaries
+yarn test:readiness:full # run the opt-in exhaustive readiness acceptance suites
 ```
 
 The compiler is a TypeScript monorepo (`@blend65/*` packages) orchestrated with
