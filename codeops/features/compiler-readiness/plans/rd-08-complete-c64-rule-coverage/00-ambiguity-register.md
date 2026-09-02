@@ -45,14 +45,14 @@ deferred plan.
 | Category | Result |
 |---|---|
 | Feature gaps | Covered by upstream AR-11–AR-18 and plan AR-1–AR-3. |
-| Behavioral gaps | Concrete vertical behavior is pending AR-2; later outcomes follow the RD's pass/fail/block evidence contract. |
-| Scope ambiguities | Pending AR-1 and AR-6; strict scope prohibits optional additions. |
-| Technical unknowns | Pending AR-4. |
+| Behavioral gaps | Resolved by AR-2; later outcomes follow the RD's pass/fail/block evidence contract. |
+| Scope ambiguities | Resolved by AR-1 and AR-6; strict scope prohibits optional additions. |
+| Technical unknowns | Resolved by AR-4 and its focused companion-module boundary. |
 | Edge cases | Exact/over-bound, invalid-neighbor, zero/one/multiple iteration and array-bound distinctions are included in AR-2. |
-| Integration points | Pending AR-5 and AR-8; existing public compiler and publication seams remain authoritative. |
-| Data & state | Pending AR-3 and AR-5; historical v1 bytes remain immutable. |
+| Integration points | Resolved by AR-5 and AR-8; existing public compiler and publication seams remain authoritative. |
+| Data & state | Resolved by AR-3 and AR-5; historical v1 bytes remain immutable. |
 | Security & compliance | Upstream closed-input, canonical-path, subprocess and resource limits remain authoritative; no auth, credentials or PII are involved. |
-| Non-functional gaps | Bounded smoke and explicit exhaustive tiers are pending confirmation in AR-7. |
+| Non-functional gaps | Resolved by AR-7: bounded smoke and explicit exhaustive tiers remain separate. |
 | UX & presentation | No user-facing UI; existing CLI/result vocabulary remains unchanged. |
 | Stakeholder conflicts | Upstream AR-17/AR-18 retain compiler, conformance, parity and optimizer ownership boundaries. |
-| Naming & terminology | Pending AR-8. |
+| Naming & terminology | Resolved by AR-8. |

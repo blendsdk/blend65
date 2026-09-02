@@ -37,6 +37,11 @@ parity without independent cost evidence. (AR-1, AR-6)
 
 ## Closeout
 
+The reusable closeout validator has an early specification case for missing/repaired ownership,
+but that synthetic case is not ST-32 and cannot satisfy RD closeout. Authoritative ST-32 runs last
+against the real `08-closeout.md`, campaign evidence and roadmap state only after all preceding
+acceptance work is complete.
+
 Before RD-08 reaches 100%, execution must:
 
 1. prove all 2,112 inventory IDs have a valid terminal join;
@@ -46,6 +51,8 @@ Before RD-08 reaches 100%, execution must:
    every RD Won't-Have section, `spec/future-considerations.md` and the expressiveness ledger;
 5. reopen every expired item with an explicit owner;
 6. ensure no array/call/branch/loop or loop-unrolling deferral still names RD-08 as future work.
+7. run the readiness and readiness-execution coverage commands and meet the module mappings and
+   thresholds in `07-testing-strategy.md`.
 
 ## Error Handling
 
@@ -59,7 +66,8 @@ Before RD-08 reaches 100%, execution must:
 
 ## Testing Requirements
 
-- ST-28–ST-32 cover smoke ceilings/topology, result ownership and closeout.
+- ST-28–ST-31 cover smoke ceilings/topology and result ownership; the synthetic closeout-validator
+  case proves validation behavior earlier, and authoritative ST-32 alone proves real closeout last.
 - Time the readiness portion of root smoke and record the bounded case count; do not add a broad
   timing framework or flaky wall-clock assertion.
 - Final exact full verification follows AR-7.

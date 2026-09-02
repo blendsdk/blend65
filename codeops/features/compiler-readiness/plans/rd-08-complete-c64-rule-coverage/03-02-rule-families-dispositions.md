@@ -5,9 +5,11 @@
 
 ## Overview
 
-After the vertical slice, RD-08 replaces all 2,103 `outside-initial-slice` entries with reviewed
-family bindings or named non-source routes and computes one fail-closed result per inventory ID.
-Equivalent rules share data and handlers, never identity or result rows. (AR-3, AR-6)
+The first v2 publication already contains one schema-valid disposition row for every inventory ID:
+the exact first-vertical population has modeled evidence and the remaining rows carry the closed
+`family-review-pending` blocker. Later phases replace every blocker with reviewed family bindings
+or named non-source routes and compute one fail-closed result per inventory ID. Equivalent rules
+share data and handlers, never identity or result rows. (AR-3, AR-6)
 
 ## Architecture
 
@@ -21,7 +23,30 @@ export type RuleEvidenceRoute =
 export type RuleEvidenceResult =
   | { readonly kind: "passing"; readonly evidenceDigest: Sha256Digest }
   | { readonly kind: "failing"; readonly evidenceDigest: Sha256Digest; readonly owner: string }
-  | { readonly kind: "blocking"; readonly reason: string };
+  | {
+      readonly kind: "blocking";
+      readonly reason:
+        | "evidence-unavailable"
+        | "evidence-incomplete"
+        | "unreviewed-quality-obligation";
+    };
+
+export type TerminalRuleDispositionV2 =
+  | {
+      readonly state: "pending-review";
+      readonly ruleId: RuleId;
+      readonly result: {
+        readonly kind: "blocking";
+        readonly reason: "family-review-pending";
+      };
+    }
+  | {
+      readonly state: "reviewed";
+      readonly ruleId: RuleId;
+      readonly claimRole: RuleClaimRole;
+      readonly route: RuleEvidenceRoute;
+      readonly result: RuleEvidenceResult;
+    };
 
 export interface RuleFamilyV2 {
   readonly familyId: string;
@@ -35,9 +60,15 @@ export interface RuleFamilyV2 {
 }
 ```
 
+This complete v2 schema is frozen before the first v2 candidate is prepared. A pending row cannot
+carry a claim role, route or non-pending result. A reviewed row requires all three, and cannot carry
+`family-review-pending`. Phase 3 replaces the whole pending row with a reviewed row while preserving
+the same `ruleId`; mixed variants reject at their exact field paths.
+
 Inventory applicability and evidence obligations remain inventory-owned. The reviewed claim role,
 route and result are joined by `ruleId`; missing, duplicate or invalid combinations are blocking.
-`outside-initial-slice` is not valid v2 data. (AR-6)
+`outside-initial-slice` is not valid v2 data, and the pending variant prevents terminal closure
+without creating a second v2 dialect. (AR-6)
 
 ## Family expansion
 
@@ -45,12 +76,30 @@ Family expansion is lexical and deterministic. Validation proves:
 
 1. the selected inventory and disposition authority contain exactly the same 2,112 IDs;
 2. every family member exists once and cites frozen authority;
-3. every declared construction, invalid neighbor, boundary and spelling has a selected case or
-   explicit blocker;
-4. every mandatory semantic row has one source/non-source route and decisive result;
-5. every non-source passing result names an accepted handler result;
-6. cost-only rows retain their inventory IDs in the secondary-quality projection and cannot
+3. every inventory-owned valid domain, invalid neighbor and boundary appears bidirectionally in
+   the family authority and has a selected case or explicit blocker;
+4. every separately reviewed citation-owned construction and spelling obligation appears
+   bidirectionally in the family authority and has a selected case or explicit blocker;
+5. every mandatory semantic row has one source/non-source route and decisive result;
+6. every non-source passing result names an accepted handler result;
+7. cost-only rows retain their inventory IDs in the secondary-quality projection and cannot
    alter semantic readiness.
+
+### Independent family-completeness authority
+
+Family data never validates itself. The validator derives domains, invalid neighbors and boundary
+families directly from the selected frozen inventory. Construction and spelling obligations not
+carried by inventory are stored in a separately reviewed, citation-keyed authority containing only
+those missing axes. Validation requires equality in both directions:
+
+- removing an obligation from family data fails;
+- removing the corresponding selected case fails;
+- inventing a family obligation absent from inventory/citation authority fails; and
+- omitting an obligation from both family data and cases still fails against the independent
+  authority.
+
+The citation-keyed authority is not a second 2,112-row rule manifest and cannot change rule
+identity, applicability or terminal result.
 
 ### Quality-obligation review
 
@@ -68,10 +117,16 @@ compiler internals.
 
 ## Embed fixture mapping
 
-Where valid `embed()` source is required, a case names an allowlisted content digest. The existing
-canonical execution workspace materializes the bounded bytes. Absolute/traversal/symlink/missing/
-over-limit variants are rejection cases. No general asset service or new workspace API is added.
-(AR-1, AR-8)
+Where valid `embed()` source is required, the published execution case carries an immutable list of
+fixture references: allowlisted fixture ID, expected digest and fixed safe relative path. The
+trusted route adapter resolves each ID through the readiness fixture projection, verifies the
+digest, and performs the existing exclusive workspace write before launching the source-only
+worker. The worker request remains limited to `main.blend` and receives no fixture lookup or host
+filesystem authority.
+
+Absolute/traversal/symlink/missing/duplicate/over-limit variants reject before any compiler or
+worker launch. No caller-selected path, ambient lookup, general asset service or new workspace API
+is added. (AR-1, AR-8)
 
 ## Error Handling
 
@@ -88,6 +143,7 @@ over-limit variants are rejection cases. No general asset service or new workspa
 
 - ST-16–ST-21 cover exact denominator equality, family completeness, terminal joins,
   quality classification, non-source evidence and bounded embed mapping.
-- Property tests remove or duplicate one member from each declared category and require a stable
-  failure.
+- Property tests independently remove one authority obligation, one family declaration and one
+  selected case from every category and require a stable failure, including the both-family-and-
+  case omission that previously allowed self-validation.
 - Existing v1 files remain byte-identical throughout data authoring.
