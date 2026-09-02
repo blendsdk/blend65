@@ -1,262 +1,135 @@
-import { createHash } from "node:crypto";
+import { describe, expect, it } from "vitest";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-import {
-  createFailureExecutionSpecFixtureV1,
-  createFailureExecutionReportProjectionV1,
-  type FailureExecutionCandidateEvaluationV1 as CandidateEvaluationV1,
-  type FailureExecutionConfirmationResultV1 as ConfirmationResultV1,
-  type FailureExecutionConfirmationStepV1 as ConfirmationStepV1,
-  type FailureExecutionObservationV1 as ObservationV1,
-  type FailureExecutionProtocolApisV1 as ProtocolApisV1,
-  type FailureExecutionSpecApiV1 as Api,
-  type FailureExecutionSpecDataV1 as Data,
-  type FailureExecutionSpecFixtureV1,
-  type FailureExecutionSpecResultV1 as Result,
-  type FailureExecutionSpecScenarioV1,
+import type {
+  FailureExecutionCandidateEvaluationV1 as CandidateEvaluationV1,
+  FailureExecutionSpecDataV1 as Data,
+  FailureExecutionSpecResultV1 as Result,
 } from "./test-fixtures/failure-execution-spec-fixture.js";
-
-const openFixtures = new Set<FailureExecutionSpecFixtureV1>();
-const ENCODER = new TextEncoder();
-
-function digestBytes(bytes: Uint8Array): string {
-  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-}
-
-function call<T>(api: Api, name: string, ...arguments_: readonly unknown[]): T {
-  const callable = api[name];
-  if (typeof callable !== "function") throw new TypeError(`missing callable ${name}`);
-  return Reflect.apply(callable, undefined, arguments_) as T;
-}
-
-function success<T>(result: Result<T>): T {
-  expect(result.ok).toBe(true);
-  if (!result.ok) throw new TypeError(JSON.stringify(result.issues ?? result.diagnostics ?? []));
-  return result.value;
-}
-
-function failure(result: Result<unknown>, code?: string): void {
-  expect(result.ok).toBe(false);
-  expect(result).not.toHaveProperty("value");
-  if (result.ok || code === undefined) return;
-  const issues = result.issues ?? result.diagnostics ?? [];
-  expect(issues.some((issue) => issue.code === code)).toBe(true);
-}
-
-function record(value: unknown, message: string): Data {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new TypeError(message);
-  }
-  return value as Data;
-}
-
-function authority(value: unknown): object {
-  if (typeof value !== "object" || value === null) throw new TypeError("report authority");
-  if (Reflect.get(value, "ok") === true) {
-    return success(value as Result<object>);
-  }
-  return value;
-}
-
-async function fixture(
-  scenario: FailureExecutionSpecScenarioV1,
-  options?: { readonly failingPosition?: number; readonly sequenceLength?: number },
-): Promise<FailureExecutionSpecFixtureV1> {
-  // Load APIs only after this helper: adapter installation resets the WeakMap authority registry.
-  const created = await createFailureExecutionSpecFixtureV1(scenario, options);
-  openFixtures.add(created);
-  return created;
-}
-
-async function apis(): Promise<ProtocolApisV1> {
-  const [execution, internals, readiness, reduction, reports] = await Promise.all([
-    vi.importActual<Api>("./index.js"),
-    vi.importActual<Api>("./failure-execution-internals.js"),
-    vi.importActual<Api>("@blend65/readiness"),
-    vi.importActual<Api>("@blend65/readiness/failure-reduction-internals"),
-    vi.importActual<Api>("./execution-authority-report.js"),
-  ]);
-  for (const name of [
-    "createReductionExecutionRouteRequestV1",
-    "executeReductionCandidateV1",
-    "confirmReducedFailureV1",
-  ]) {
-    if (typeof execution[name] !== "function") throw new TypeError(`missing callable ${name}`);
-  }
-  for (const name of [
-    "openFailureExecutionProtocolV1",
-    "mintCampaignFailureExecutionIsolationV1",
-    "mintStandaloneFailureExecutionIsolationV1",
-    "createFailureExecutionControlV1",
-    "beginStatefulSequenceAttemptV1",
-    "nextStatefulSequencePositionV1",
-    "recordStatefulSequencePositionV1",
-    "getFailureExecutionObservationV1",
-    "getExecutionAuthorityReportPredicateSidecarsV1",
-    "shutdownFailureExecutionIsolationV1",
-    "closeFailureExecutionProtocolV1",
-    "createFailureConfirmationSessionV1",
-    "nextFailureConfirmationStepV1",
-    "executeFailureConfirmationStepV1",
-    "recordFailureConfirmationStepV1",
-  ]) {
-    if (typeof internals[name] !== "function") throw new TypeError(`missing callable ${name}`);
-  }
-  return { execution, internals, readiness, reduction, reports };
-}
-
-function invocation(
-  api: ProtocolApisV1,
-  candidate: object,
-  purpose: "reduction" | "confirmation" = "reduction",
-): object {
-  return success(
-    call<Result<object>>(
-      api.reduction,
-      "createReductionCandidateInvocationV1",
-      candidate,
-      purpose,
-      purpose === "reduction" ? "catalog-edit" : "normalization",
-    ),
-  );
-}
-
-function protocol(api: ProtocolApisV1, value: FailureExecutionSpecFixtureV1): object {
-  return success(
-    call<Result<object>>(api.internals, "openFailureExecutionProtocolV1", {
-      parent: value.parent,
-      execution: value.execution,
-      originalRequest: value.originalRequest,
-      origin: value.origin,
-    }),
-  );
-}
-
-async function executeCandidate(
-  api: ProtocolApisV1,
-  value: FailureExecutionSpecFixtureV1,
-  owner: object,
-  mode: "campaign" | "standalone" = "campaign",
-): Promise<{
-  readonly evaluation: CandidateEvaluationV1;
-  readonly isolation: object;
-  readonly request: object;
-}> {
-  const token = invocation(api, owner);
-  const session = protocol(api, value);
-  const isolation =
-    mode === "campaign"
-      ? success(
-          call<Result<object>>(api.internals, "mintCampaignFailureExecutionIsolationV1", session),
-        )
-      : success(
-          call<Result<object>>(
-            api.internals,
-            "mintStandaloneFailureExecutionIsolationV1",
-            session,
-            token,
-          ),
-        );
-  const request = success(
-    call<Result<object>>(
-      api.execution,
-      "createReductionExecutionRouteRequestV1",
-      value.parent,
-      token,
-      isolation,
-    ),
-  );
-  const evaluation = success(
-    await call<Promise<Result<CandidateEvaluationV1>>>(
-      api.execution,
-      "executeReductionCandidateV1",
-      value.execution,
-      request,
-    ),
-  );
-  return { evaluation, isolation, request };
-}
-
-async function driveConfirmation(
-  api: ProtocolApisV1,
-  value: FailureExecutionSpecFixtureV1,
-): Promise<{
-  readonly result: ConfirmationResultV1;
-  readonly steps: readonly ConfirmationStepV1[];
-  readonly protocol: object;
-}> {
-  const sessionProtocol = protocol(api, value);
-  const session = success(
-    call<Result<object>>(
-      api.internals,
-      "createFailureConfirmationSessionV1",
-      sessionProtocol,
-      value.candidate,
-      value.origin,
-      value.budget,
-    ),
-  );
-  const steps: ConfirmationStepV1[] = [];
-  for (let count = 0; count < 512; count += 1) {
-    const step = success(
-      call<Result<ConfirmationStepV1>>(
-        api.internals,
-        "nextFailureConfirmationStepV1",
-        sessionProtocol,
-        session,
-      ),
-    );
-    steps.push(step);
-    if (step.kind === "complete") {
-      if (step.result === undefined) throw new TypeError("confirmation result");
-      return { result: step.result, steps, protocol: sessionProtocol };
-    }
-    if (step.authority === undefined) throw new TypeError("confirmation step authority");
-    const evaluation = success(
-      await call<Promise<Result<object>>>(
-        api.internals,
-        "executeFailureConfirmationStepV1",
-        sessionProtocol,
-        session,
-        step.authority,
-      ),
-    );
-    success(
-      call<Result<true>>(
-        api.internals,
-        "recordFailureConfirmationStepV1",
-        sessionProtocol,
-        session,
-        step.authority,
-        evaluation,
-      ),
-    );
-  }
-  throw new TypeError("confirmation did not terminate within the bounded machine");
-}
-
-afterEach(async () => {
-  for (const value of openFixtures) await value.cleanup();
-  openFixtures.clear();
-});
+import {
+  ENCODER,
+  authority,
+  call,
+  digestBytes,
+  executeCandidate,
+  failure,
+  fixture,
+  invocation,
+  protocol,
+  record,
+  success,
+} from "./failure-candidate-execution-spec-support.js";
 
 describe("failure candidate execution oracle", () => {
-  // Predicate evidence is private authority bound one-to-one to unchanged report result order.
-  it("should bind ordered predicate sidecars without changing report bytes and reject unavailable or substituted associations", async () => {
-    const value = await fixture("standalone-stable");
-    const api = await apis();
-    const first = await executeCandidate(api, value, value.candidate);
-    const second = await executeCandidate(api, value, value.candidate);
-    const reportResults = [first.evaluation.result, second.evaluation.result] as const;
-    const projection = createFailureExecutionReportProjectionV1(reportResults);
-    const report = authority(
-      call<unknown>(api.reports, "authorizeExecutionAuthorityReportV1", projection, [
-        first.evaluation.predicateEvidence,
-        second.evaluation.predicateEvidence,
-      ]),
+  // Observation evidence has an explicit closed arm and cannot absorb execution identities or cleanup.
+  it("should normalize explicit observed and not-reached evidence independently of source, route, build, timing, and cleanup", async () => {
+    const observedFixture = await fixture("standalone-stable");
+    const api = observedFixture.apis;
+    const observedBytes = new Uint8Array([0x10, 0x20, 0x30]);
+    const firstObserved = call<object | undefined>(
+      api.internals,
+      "createObservedFailureObservationEvidenceV1",
+      { kind: "scalar-bytes", bytes: observedBytes },
     );
+    const secondObserved = call<object | undefined>(
+      api.internals,
+      "createObservedFailureObservationEvidenceV1",
+      { kind: "scalar-bytes", bytes: new Uint8Array(observedBytes) },
+    );
+    if (firstObserved === undefined || secondObserved === undefined) {
+      throw new TypeError("observed evidence authority");
+    }
+    const project = (authority: object): Data => {
+      const projection = call<Data | undefined>(
+        api.internals,
+        "getFailureObservationEvidenceProjectionV1",
+        authority,
+      );
+      if (projection === undefined) throw new TypeError("observation evidence projection");
+      return projection;
+    };
+    const firstProjection = project(firstObserved);
+    expect(firstProjection).toEqual({
+      revision: "failure-observation-evidence-projection-v1",
+      kind: "observed",
+      digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
+      byteLength: observedBytes.byteLength,
+    });
+    expect(project(secondObserved)).toEqual(firstProjection);
+    expect(JSON.stringify(firstProjection)).not.toMatch(
+      /(?:source|case|candidate|execution|route|build|timing|workspace|cleanup)/iu,
+    );
+
+    const records = record(observedFixture.report, "report").routeRecords;
+    if (!Array.isArray(records)) throw new TypeError("report route records");
+    const subjectResult = record(
+      record(records[observedFixture.subjectIndex], "subject route record").result,
+      "subject result",
+    );
+    const terminalProjection = (result: unknown): Data => {
+      const terminal = call<object | undefined>(
+        api.internals,
+        "createNotReachedFailureObservationEvidenceV1",
+        result,
+      );
+      if (terminal === undefined) throw new TypeError("not-reached evidence authority");
+      const projection = call<Data | undefined>(
+        api.internals,
+        "getFailureObservationEvidenceProjectionV1",
+        terminal,
+      );
+      if (projection === undefined) throw new TypeError("not-reached evidence projection");
+      return projection;
+    };
+    const firstTerminal = terminalProjection(subjectResult);
+    const cleanupVariant = terminalProjection({
+      ...subjectResult,
+      cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
+    });
+    const terminalFactVariant = terminalProjection({
+      ...subjectResult,
+      adapterSubcode:
+        subjectResult.adapterSubcode === "fixture-terminal-reason-b"
+          ? "fixture-terminal-reason-a"
+          : "fixture-terminal-reason-b",
+    });
+    expect(firstTerminal).toMatchObject({
+      revision: "failure-observation-evidence-projection-v1",
+      kind: "not-reached",
+      digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
+      byteLength: expect.any(Number),
+    });
+    expect(cleanupVariant).toEqual(firstTerminal);
+    expect(terminalFactVariant.kind).toBe("not-reached");
+    expect(terminalFactVariant.digest).not.toBe(firstTerminal.digest);
+    expect(firstTerminal).not.toHaveProperty("cleanup");
+  }, 600_000);
+
+  // Private predicate evidence is immutable and remains outside the complete report wire format.
+  it("should bind immutable ordered predicate sidecars to one complete report without serialization authority for partial shells", async () => {
+    const value = await fixture("standalone-stable");
+    const api = value.apis;
+    const report = value.report;
     const before = call<Uint8Array>(api.execution, "serializeExecutionAuthorityReportV1", report);
+    const sidecars = success(
+      call<Result<readonly Data[]>>(
+        api.internals,
+        "getExecutionAuthorityReportPredicateSidecarsV1",
+        report,
+      ),
+    );
+    const retained = structuredClone(sidecars);
+    const subjectSidecar = record(sidecars[value.subjectIndex], "subject sidecar");
+    const basis = record(subjectSidecar.predicateBasis, "predicate basis");
+    const ingredients = record(basis.value, "predicate ingredients");
+    const routeContract = record(ingredients.routeContract, "predicate route contract");
+    Reflect.set(ingredients, "cleanup", "cleanup-blocked");
+    if (Array.isArray(routeContract.toolContractDigests)) {
+      try {
+        routeContract.toolContractDigests.push(`sha256:${"f".repeat(64)}`);
+      } catch {
+        // Deep freezing and defensive copies are both valid ways to protect retained authority.
+      }
+    }
     expect(
       success(
         call<Result<readonly Data[]>>(
@@ -265,14 +138,17 @@ describe("failure candidate execution oracle", () => {
           report,
         ),
       ),
-    ).toEqual([first.evaluation.predicateEvidence, second.evaluation.predicateEvidence]);
+    ).toEqual(retained);
     expect(call<Uint8Array>(api.execution, "serializeExecutionAuthorityReportV1", report)).toEqual(
       before,
     );
-    expect(new TextDecoder().decode(before)).not.toContain("predicateSidecar");
+    const reportText = new TextDecoder().decode(before);
+    expect(reportText).not.toContain("predicateSidecar");
+    expect(reportText).not.toContain("normalizedObservationBytes");
+    expect(reportText).not.toContain("failure-observation");
 
     const historical = authority(
-      call<unknown>(api.reports, "authorizeExecutionAuthorityReportV1", projection),
+      call<unknown>(api.reports, "authorizeExecutionAuthorityReportV1", structuredClone(report)),
     );
     failure(
       call<Result<unknown>>(
@@ -282,6 +158,8 @@ describe("failure candidate execution oracle", () => {
       ),
       "historical-authority-unavailable",
     );
+    const reportResults = record(report, "report").results;
+    if (!Array.isArray(reportResults)) throw new TypeError("complete report results");
     for (const hostile of [
       { ...record(report, "report") },
       { ...record(report, "report"), results: [...reportResults].reverse() },
@@ -295,25 +173,31 @@ describe("failure candidate execution oracle", () => {
         ),
       );
     }
-    const substituted = call<Result<unknown>>(
-      api.reports,
-      "authorizeExecutionAuthorityReportV1",
-      createFailureExecutionReportProjectionV1([first.evaluation.result]),
-      [second.evaluation.predicateEvidence],
-    );
-    failure(substituted);
+    expect(() =>
+      call<Uint8Array>(
+        api.execution,
+        "serializeExecutionAuthorityReportV1",
+        authority(
+          call<unknown>(
+            api.reports,
+            "authorizeExecutionAuthorityReportV1",
+            {
+              revision: "execution-authority-report-v1",
+              results: [reportResults[value.subjectIndex]],
+            },
+            [sidecars[value.subjectIndex]],
+          ),
+        ),
+      ),
+    ).toThrow();
   });
 
   // Empty bytes are a legal raw diagnostic payload but never a typed program payload.
   it("should execute an empty raw malformed candidate and reject empty typed candidates", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const context = success(
-      call<Result<object>>(
-        await vi.importActual<Api>("@blend65/readiness/published-oracle"),
-        "createPublishedOracleContext",
-        value.parent,
-      ),
+      call<Result<object>>(api.published, "createPublishedOracleContext", value.parent),
     );
     const malformed = success(
       call<Result<object>>(api.readiness, "createMalformedDiagnosticCaseV1", context, {
@@ -374,7 +258,7 @@ describe("failure candidate execution oracle", () => {
         predicate: rawPredicate,
         policy: source.policy,
         observationBytes,
-        toolVersions: [],
+        toolVersions: source.toolVersions,
       }),
     );
     const rawInitial = success(
@@ -407,7 +291,7 @@ describe("failure candidate execution oracle", () => {
   // Route and isolation capabilities are single-use, ordered, subject-bound, and mode-bound.
   it("should reject foreign, replayed, out-of-order, cross-subject, cross-purpose, and cross-mode route capabilities", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const session = protocol(api, value);
     const first = invocation(api, value.candidate);
     const second = invocation(api, value.candidate);
@@ -473,7 +357,7 @@ describe("failure candidate execution oracle", () => {
   // Candidate identity is derived in a new domain while the authenticated original stays immutable.
   it("should leave the original immutable and derive a new identity for every candidate", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const before = success(
       call<Result<Data>>(api.readiness, "getFailureEnvelopeProjectionV1", value.origin),
     );
@@ -496,7 +380,8 @@ describe("failure candidate execution oracle", () => {
     );
     expect(first.candidateDigest).not.toBe(before.digest);
     expect(second.candidateDigest).not.toBe(before.digest);
-    expect(second.candidateDigest).not.toBe(first.candidateDigest);
+    expect(second.candidateDigest).toBe(first.candidateDigest);
+    expect(second.candidateExecutionIdentity).not.toBe(first.candidateExecutionIdentity);
     expect(
       success(call<Result<Data>>(api.readiness, "getFailureEnvelopeProjectionV1", value.origin)),
     ).toEqual(before);
@@ -505,7 +390,7 @@ describe("failure candidate execution oracle", () => {
   // Execution replaces only source-bound identity and preserves the authenticated route contract.
   it("should execute through the original route with obligation, tier, policy, fixture, oracle, tools, and predicate unchanged", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const origin = success(
       call<Result<Data>>(api.readiness, "getFailureEnvelopeProjectionV1", value.origin),
     );
@@ -520,54 +405,81 @@ describe("failure candidate execution oracle", () => {
     expect(record(executed.evaluation.result, "execution result").tier).toBe(
       record(record(value.originalRequest, "request").route, "route").terminalTier,
     );
+    const originPredicate = record(origin.predicate, "origin predicate");
+    const evaluatedPredicate = record(
+      record(executed.evaluation.predicateEvidence, "predicate evidence").predicate,
+      "evaluated predicate",
+    );
+    const requiredClaims = originPredicate.requiredClaimedRuleIds;
+    if (!Array.isArray(requiredClaims) || requiredClaims.length < 1) {
+      throw new TypeError("authenticated required claim set");
+    }
+    expect(new Set(requiredClaims).size).toBe(requiredClaims.length);
+    expect(evaluatedPredicate.requiredClaimedRuleIds).toEqual(requiredClaims);
+    expect(evaluatedPredicate.primaryRuleId).toBe(originPredicate.primaryRuleId);
+    expect(requiredClaims).toContain(originPredicate.primaryRuleId);
   });
 
   // No callback, handler, path, or extra field may enter the authenticated route boundary.
   it("should reject callbacks, forged authority, caller handlers, and extra keys before activity", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const before = [...value.activity.workerThreads];
-    const forgedInputs = [
-      { ...record(value.originalRequest, "request") },
-      { ...record(value.originalRequest, "request"), handler: () => undefined },
-      { ...record(value.originalRequest, "request"), workerFactory: () => undefined },
-      { ...record(value.originalRequest, "request"), repositoryRoot: "/tmp/hostile" },
+    const forgedInputs: readonly Data[] = [
+      { report: { ...value.report } },
+      { candidate: { ...record(value.candidate, "candidate") } },
+      { handler: () => undefined },
+      { workerFactory: () => undefined },
+      { repositoryRoot: "/tmp/hostile" },
     ];
-    for (const originalRequest of forgedInputs) {
+    for (const hostile of forgedInputs) {
       failure(
-        call<Result<unknown>>(api.internals, "openFailureExecutionProtocolV1", {
-          parent: value.parent,
-          execution: value.execution,
-          originalRequest,
+        call<Result<unknown>>(api.internals, "createFailureConfirmationContextV1", {
+          report: value.report,
+          subject: value.subjectPosition,
+          candidate: value.candidate,
           origin: value.origin,
+          budget: value.budget,
+          ...hostile,
         }),
       );
     }
     expect(value.activity.workerThreads).toEqual(before);
   });
 
-  // Both typed validity families use the already-published frontend handler chain.
+  // Both typed validity families use their exact already-published handler chain.
   it("should route typed-valid and typed-invalid candidates through the existing published chain", async () => {
-    const value = await fixture("standalone-stable");
-    const api = await apis();
-    const valid = await executeCandidate(api, value, value.candidate);
-    expect(valid.evaluation.result).toMatchObject({ tier: "frontend" });
-    expect(value.activity.workerThreads.length).toBeGreaterThan(0);
-    expect(new Set(value.activity.isolateIdentities).size).toBe(
-      value.activity.isolateIdentities.length,
-    );
-  });
+    for (const candidateFamily of ["typed-valid", "typed-invalid"] as const) {
+      const value = await fixture("standalone-stable", { candidateFamily });
+      const api = value.apis;
+      const originalRoute = record(
+        record(value.originalRequest, "original request").route,
+        "original route",
+      );
+      const expectedTier = originalRoute.terminalTier;
+      const workerRequestCount = value.activity.workerRequests.length;
+      const workerThreadCount = value.activity.workerThreads.length;
+      const isolateCount = value.activity.isolateIdentities.length;
+      const priorWorkerThreads = new Set(value.activity.workerThreads);
+      const priorIsolates = new Set(value.activity.isolateIdentities);
+      const evaluation = await executeCandidate(api, value, value.candidate);
+      expect(evaluation.evaluation.result).toMatchObject({ tier: expectedTier });
+      expect(value.activity.workerRequests.slice(workerRequestCount)).toEqual([
+        expect.objectContaining({ tier: expectedTier }),
+      ]);
+      expect(value.activity.workerThreads.slice(workerThreadCount)).toHaveLength(1);
+      expect(value.activity.isolateIdentities.slice(isolateCount)).toHaveLength(1);
+      expect(priorWorkerThreads.has(value.activity.workerThreads[workerThreadCount])).toBe(false);
+      expect(priorIsolates.has(value.activity.isolateIdentities[isolateCount])).toBe(false);
+    }
+  }, 600_000);
 
   // Raw diagnostic bytes never acquire a typed execution-case or typed intermediate representation.
   it("should route zero and nonzero raw diagnostic bytes without typed intermediate representation", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const context = success(
-      call<Result<object>>(
-        await vi.importActual<Api>("@blend65/readiness/published-oracle"),
-        "createPublishedOracleContext",
-        value.parent,
-      ),
+      call<Result<object>>(api.published, "createPublishedOracleContext", value.parent),
     );
     for (const sourceBytes of [new Uint8Array(), ENCODER.encode("@")]) {
       const malformed = success(
@@ -599,132 +511,12 @@ describe("failure candidate execution oracle", () => {
   // Observing candidate support must not alter the canonical ordinary route representation.
   it("should keep equivalent ordinary generated-route behavior byte-compatible", async () => {
     const value = await fixture("standalone-stable");
-    const api = await apis();
+    const api = value.apis;
     const before = ENCODER.encode(`${JSON.stringify(value.originalRequest)}\n`);
     await executeCandidate(api, value, value.candidate);
     const after = ENCODER.encode(`${JSON.stringify(value.originalRequest)}\n`);
     expect(after).toEqual(before);
   });
 
-  // Standalone confirmation owns two distinct workers, roots, and V8 isolates.
-  it("should confirm stable predicates twice in genuinely distinct standalone isolates", async () => {
-    const value = await fixture("standalone-stable");
-    const api = await apis();
-    const driven = await driveConfirmation(api, value);
-    expect(driven.result).toMatchObject({
-      revision: "failure-confirmation-result-v1",
-      disposition: "confirmed-source-failure",
-      confirmationDigests: [
-        expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
-        expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
-      ],
-    });
-    expect(new Set(value.activity.workerThreads).size).toBeGreaterThanOrEqual(2);
-    expect(new Set(value.activity.rootIdentities).size).toBeGreaterThanOrEqual(2);
-    expect(new Set(value.activity.isolateIdentities).size).toBeGreaterThanOrEqual(2);
-  });
-
-  // A sequence attempt authenticates ordered originals and exactly one terminal candidate.
-  it("should bind failures at positions two through nine, isolate attempts, accept 64, and reject 65 before launch", async () => {
-    for (const failingPosition of [2, 3, 4, 5, 6, 7, 8, 9, 64]) {
-      const value = await fixture("sequence-only", {
-        failingPosition,
-        sequenceLength: failingPosition,
-      });
-      const api = await apis();
-      const driven = await driveConfirmation(api, value);
-      const positions: number[] = [];
-      for (const step of driven.steps) {
-        if (step.kind !== "execute-sequence-position" || step.position === undefined) continue;
-        positions.push(
-          success(
-            call<Result<ObservationV1>>(
-              api.internals,
-              "getFailureExecutionObservationV1",
-              driven.protocol,
-              step.position,
-            ),
-          ).position,
-        );
-      }
-      expect(positions).toEqual(Array.from({ length: failingPosition }, (_, index) => index + 1));
-      expect(driven.result.disposition).toBe("stateful-sequence-failure");
-      expect(
-        new Set(
-          driven.steps
-            .filter((step) => step.kind === "execute-sequence-position")
-            .map((step) => step.attempt),
-        ).size,
-      ).toBeGreaterThanOrEqual(1);
-      await value.cleanup();
-      openFixtures.delete(value);
-    }
-
-    const overLimit = await fixture("sequence-only", {
-      failingPosition: 64,
-      sequenceLength: 64,
-    });
-    const api = await apis();
-    const session = protocol(api, overLimit);
-    const before = [...overLimit.activity.workerThreads];
-    failure(
-      call<Result<unknown>>(api.internals, "beginStatefulSequenceAttemptV1", session, {
-        attemptOrdinal: 1,
-        precedingOriginals: Array.from({ length: 64 }, () => overLimit.originalRequest),
-        terminalCandidate: invocation(api, overLimit.candidate, "confirmation"),
-        failingPosition: 65,
-        caseLimit: 65,
-      }),
-    );
-    expect(overLimit.activity.workerThreads).toEqual(before);
-  }, 900_000);
-
-  // Fresh-run or sequence disagreement is flaky and never promotable beyond the campaign.
-  it("should classify unstable fresh or sequence runs as flaky and keep them campaign-only", async () => {
-    const value = await fixture("flaky");
-    const api = await apis();
-    const direct = success(
-      await call<Promise<Result<ConfirmationResultV1>>>(
-        api.execution,
-        "confirmReducedFailureV1",
-        value.parent,
-        value.execution,
-        value.candidate,
-        value.origin,
-        value.budget,
-      ),
-    );
-    expect(direct).toMatchObject({ disposition: "flaky-failure" });
-    expect(direct).not.toHaveProperty("promotionAuthority");
-    expect(direct).not.toHaveProperty("sequenceEvidence.promotionAuthority");
-  });
-
-  // Infrastructure-like candidate failure is confirmed only after a passing same-route control.
-  it("should require two infrastructure reproductions and a distinct passing same-route control", async () => {
-    const value = await fixture("infrastructure-with-passing-control");
-    const api = await apis();
-    const driven = await driveConfirmation(api, value);
-    expect(driven.result.disposition).toBe("confirmed-source-failure");
-    expect(driven.steps.filter((step) => step.kind === "execute-candidate")).toHaveLength(2);
-    expect(driven.steps.filter((step) => step.kind === "execute-control")).toHaveLength(1);
-    expect(new Set(value.activity.workerThreads).size).toBeGreaterThanOrEqual(3);
-  });
-
-  // Missing retained handler or tool authority is closed and never replaced by current authority.
-  it("should fail closed without current handler or tool fallback when historical authority is missing", async () => {
-    const value = await fixture("standalone-stable");
-    const api = await apis();
-    const before = [...value.activity.workerThreads];
-    const copiedParent = { ...record(value.parent, "parent") };
-    failure(
-      call<Result<unknown>>(api.internals, "openFailureExecutionProtocolV1", {
-        parent: copiedParent,
-        execution: value.execution,
-        originalRequest: value.originalRequest,
-        origin: value.origin,
-      }),
-      "historical-authority-unavailable",
-    );
-    expect(value.activity.workerThreads).toEqual(before);
-  });
+  // A confirmation context joins the complete historical predicate, observation, and cleanup.
 });

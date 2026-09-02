@@ -19,6 +19,10 @@ import {
   type ViceRouteRequestV1,
 } from "./execution-vice-types.js";
 import { FIXED_EVALUATED_VICE_HANDLER_IDENTITY_DIGEST_V1 } from "./execution-vice-handler-identity.js";
+import {
+  createNotReachedFailureObservationEvidenceV1,
+  type FailureObservationEvidenceAuthorityV1,
+} from "./failure-predicate-evidence.js";
 
 const ENCODER = new TextEncoder();
 const EVIDENCE_RETAINED_BYTES = 32;
@@ -73,11 +77,14 @@ export interface ViceEvaluationEvidenceContextV1 {
   readonly outcome: "match" | "semantic-mismatch" | "invalid";
   /** Exact digest of all retained preparation evidence, when production-bound. */
   readonly buildEvidenceDigest?: string;
+  /** Exact private runtime observation authority minted where monitor bytes were read. */
+  readonly observation: FailureObservationEvidenceAuthorityV1;
 }
 
 const BOUND_EVALUATION_ROUTES = new WeakMap<object, BoundEvaluationRouteState>();
 const CLAIMED_EVALUATIONS = new WeakSet<object>();
 const PENDING_EVALUATION_EVIDENCE = new WeakMap<object, ViceEvaluationEvidenceContextV1>();
+const FINAL_RESULT_OBSERVATIONS = new WeakMap<object, FailureObservationEvidenceAuthorityV1>();
 
 function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });
@@ -99,6 +106,15 @@ function sha256Bytes(bytes: Uint8Array): string {
 
 function sha256Json(value: unknown): string {
   return sha256Bytes(ENCODER.encode(JSON.stringify(value)));
+}
+
+/** Returns the exact private observation authority associated with one finalized VICE result. */
+export function getFinalViceResultObservationEvidenceV1(
+  result: ExecutionResultV1,
+): FailureObservationEvidenceAuthorityV1 | undefined {
+  return typeof result === "object" && result !== null
+    ? FINAL_RESULT_OBSERVATIONS.get(result)
+    : undefined;
 }
 
 function sameFixture(
@@ -168,13 +184,14 @@ function sealedBaseline(
   ) {
     return undefined;
   }
-  return Object.freeze({
+  const retained = Object.freeze({
     startedAtMonotonicMs: input.startedAtMonotonicMs,
     workDeadlineMonotonicMs: input.workDeadlineMonotonicMs,
     hardDeadlineMonotonicMs: input.hardDeadlineMonotonicMs,
     usage: Object.freeze({ ...usage }),
     evidence: Object.freeze({ ...evidence }),
   });
+  return retained;
 }
 
 /** Derives the exact assembled-route fingerprint available at both binding and admission. */
@@ -313,7 +330,61 @@ export function propagateViceEvaluationEvidenceV1(
 ): ExecutionResultV1 {
   const context = PENDING_EVALUATION_EVIDENCE.get(source);
   if (context !== undefined) PENDING_EVALUATION_EVIDENCE.set(target, context);
+  const observation = FINAL_RESULT_OBSERVATIONS.get(source);
+  if (observation !== undefined) FINAL_RESULT_OBSERVATIONS.set(target, observation);
   return target;
+}
+
+/** Encodes only closed terminal facts that reproduce across independent VICE builds. */
+function terminalFailureEvidenceBytes(result: ExecutionResultV1): Uint8Array {
+  return ENCODER.encode(
+    JSON.stringify({
+      revision: "vice-terminal-failure-evidence-v1",
+      stage: result.stage,
+      code: result.code,
+      adapterSubcode: result.status === "failure" ? (result.adapterSubcode ?? null) : null,
+      cleanup:
+        result.status === "failure" && result.cleanupBlocker !== undefined ? "blocked" : "clear",
+    }),
+  );
+}
+
+/** Replaces build-specific evidence with a bounded reproducible pre-observation terminal. */
+function finalizeViceTerminalFailureEvidenceV1(
+  result: ExecutionResultV1,
+  evidenceLimitBytes: number,
+): ExecutionResultV1 {
+  const bytes = terminalFailureEvidenceBytes(result);
+  if (bytes.byteLength > evidenceLimitBytes) {
+    const empty = new Uint8Array();
+    const exhausted = Object.freeze({
+      ...result,
+      status: "failure" as const,
+      stage: "compare" as const,
+      code: "evidence-exhaustion" as const,
+      usage: Object.freeze({ ...result.usage, evidenceBytes: 0 }),
+      evidence: Object.freeze({
+        digest: sha256Bytes(empty),
+        retainedBytes: 0,
+        truncated: false,
+      }),
+    });
+    const observation = createNotReachedFailureObservationEvidenceV1(exhausted);
+    if (observation !== undefined) FINAL_RESULT_OBSERVATIONS.set(exhausted, observation);
+    return exhausted;
+  }
+  const finalized = Object.freeze({
+    ...result,
+    usage: Object.freeze({ ...result.usage, evidenceBytes: bytes.byteLength }),
+    evidence: Object.freeze({
+      digest: sha256Bytes(bytes),
+      retainedBytes: bytes.byteLength,
+      truncated: false,
+    }),
+  });
+  const observation = createNotReachedFailureObservationEvidenceV1(finalized);
+  if (observation !== undefined) FINAL_RESULT_OBSERVATIONS.set(finalized, observation);
+  return finalized;
 }
 
 /** Finalizes canonical public evidence after cleanup and complete runtime accounting. */
@@ -322,15 +393,21 @@ export function finalizeViceEvaluationEvidenceV1(
   evidenceLimitBytes: number,
 ): ExecutionResultV1 {
   const context = PENDING_EVALUATION_EVIDENCE.get(result);
-  if (context === undefined) return result;
+  if (context === undefined) {
+    return result.status === "failure"
+      ? finalizeViceTerminalFailureEvidenceV1(result, evidenceLimitBytes)
+      : result;
+  }
   PENDING_EVALUATION_EVIDENCE.delete(result);
   if (result.usage.evidenceBytes + EVIDENCE_RETAINED_BYTES > evidenceLimitBytes) {
-    return Object.freeze({
+    const exhausted = Object.freeze({
       ...result,
       status: "failure" as const,
       stage: "compare" as const,
       code: "evidence-exhaustion" as const,
     });
+    FINAL_RESULT_OBSERVATIONS.set(exhausted, context.observation);
+    return exhausted;
   }
   const evidenceBytes = result.usage.evidenceBytes + EVIDENCE_RETAINED_BYTES;
   // The route identity already commits the wall-clock budget. Measured wall time depends on host
@@ -361,7 +438,7 @@ export function finalizeViceEvaluationEvidenceV1(
       launchAttempts: result.usage.launchAttempts,
     },
   };
-  return Object.freeze({
+  const finalized = Object.freeze({
     ...result,
     usage: Object.freeze({ ...result.usage, evidenceBytes }),
     evidence: Object.freeze({
@@ -372,4 +449,6 @@ export function finalizeViceEvaluationEvidenceV1(
       truncated: false,
     }),
   });
+  FINAL_RESULT_OBSERVATIONS.set(finalized, context.observation);
+  return finalized;
 }

@@ -12,6 +12,7 @@ import {
   parseExecutionInitialStateFixtureV1,
   projectC64InitialStateV1,
 } from "@blend65/readiness/execution-runtime";
+import type { ReductionExecutionPayloadV1 } from "@blend65/readiness/failure-reduction-internals";
 
 /** Canonical source validation proof produced before a compiler is invoked. */
 export interface ExecutionValidatedSourceV1 {
@@ -109,6 +110,47 @@ function insertEnvelopeDeclarations(
   return `${source.slice(0, firstNewline + 1)}${declarations.join("\n")}\n${source.slice(firstNewline + 1)}`;
 }
 
+function renderEnvelopeSource(
+  originalSource: string,
+  entryFunction: string,
+  argumentsValue: readonly { readonly value: number | boolean }[],
+  observation: ExecutionObservationRequestV1,
+  sourcePath: string,
+): ExecutionOperationResultV1<string> {
+  const returnType =
+    observation.kind === "scalar-bytes"
+      ? readEntryReturnType(originalSource, entryFunction)
+      : undefined;
+  if (observation.kind === "scalar-bytes" && returnType === undefined) {
+    return failure(sourcePath, "Generated scalar entry return type is invalid.");
+  }
+  const declarations = Object.freeze([
+    ...(observation.kind === "scalar-bytes" && returnType !== undefined
+      ? scalarDeclarations(observation.byteLength, returnType)
+      : []),
+    "let __execution_completion: byte = 0;",
+  ]);
+  const sourceWithDeclarations = insertEnvelopeDeclarations(originalSource, declarations);
+  if (sourceWithDeclarations === undefined) {
+    return failure(sourcePath, "Generated source has no canonical module header.");
+  }
+  const argumentsText = argumentsValue.map((argument) => renderLiteral(argument.value)).join(", ");
+  const call = `${entryFunction}(${argumentsText})`;
+  const body =
+    observation.kind === "scalar-bytes" && returnType !== undefined
+      ? [
+          `  let __execution_actual: ${returnType} = ${call};`,
+          ...scalarStores(observation, returnType),
+        ]
+      : [`  ${call};`];
+  return success(
+    `${sourceWithDeclarations}function main(): void {\n${[
+      ...body,
+      "  __execution_completion = 165;",
+    ].join("\n")}\n}\n`,
+  );
+}
+
 /** Renders a deterministic valid-only Blend65 program around a genuine execution case. */
 export function renderExecutionEnvelopeV1(
   executionCase: ExecutionCaseV1,
@@ -121,43 +163,37 @@ export function renderExecutionEnvelopeV1(
   } catch {
     return failure("/executionCase/sourceBytes", "Generated source is not canonical UTF-8.");
   }
-  const observation = projected.value.observation;
-  const returnType =
-    observation.kind === "scalar-bytes"
-      ? readEntryReturnType(originalSource, projected.value.envelope.entryFunction)
-      : undefined;
-  if (observation.kind === "scalar-bytes" && returnType === undefined) {
-    return failure("/executionCase/sourceBytes", "Generated scalar entry return type is invalid.");
+  return renderEnvelopeSource(
+    originalSource,
+    projected.value.envelope.entryFunction,
+    projected.value.envelope.arguments,
+    projected.value.observation,
+    "/executionCase/sourceBytes",
+  );
+}
+
+/** Renders the original runtime envelope around one authenticated typed-valid candidate source. */
+export function renderCandidateExecutionEnvelopeV1(
+  executionCase: ExecutionCaseV1,
+  payload: ReductionExecutionPayloadV1,
+): ExecutionOperationResultV1<string> {
+  const projected = getExecutionCaseProjectionV1(executionCase);
+  if (!projected.ok || payload.kind !== "typed-valid") {
+    return failure("/candidate", "Candidate runtime envelope requires valid source authority.");
   }
-  const declarations = Object.freeze([
-    ...(observation.kind === "scalar-bytes" && returnType !== undefined
-      ? scalarDeclarations(observation.byteLength, returnType)
-      : []),
-    "let __execution_completion: byte = 0;",
-  ]);
-  const sourceWithDeclarations = insertEnvelopeDeclarations(originalSource, declarations);
-  if (sourceWithDeclarations === undefined) {
-    return failure(
-      "/executionCase/sourceBytes",
-      "Generated source has no canonical module header.",
-    );
+  let source: string;
+  try {
+    source = new TextDecoder("utf-8", { fatal: true }).decode(payload.sourceBytes);
+  } catch {
+    return failure("/candidate/sourceBytes", "Candidate source is not canonical UTF-8.");
   }
-  const argumentsText = projected.value.envelope.arguments
-    .map((argument) => renderLiteral(argument.value))
-    .join(", ");
-  const call = `${projected.value.envelope.entryFunction}(${argumentsText})`;
-  const body =
-    observation.kind === "scalar-bytes" && returnType !== undefined
-      ? [
-          `  let __execution_actual: ${returnType} = ${call};`,
-          ...scalarStores(observation, returnType),
-        ]
-      : [`  ${call};`];
-  const rendered = `${sourceWithDeclarations}function main(): void {\n${[
-    ...body,
-    "  __execution_completion = 165;",
-  ].join("\n")}\n}\n`;
-  return success(rendered);
+  return renderEnvelopeSource(
+    source,
+    projected.value.envelope.entryFunction,
+    projected.value.envelope.arguments,
+    projected.value.observation,
+    "/candidate/sourceBytes",
+  );
 }
 
 /** Requires exact byte equality with source regenerated from genuine execution authority. */

@@ -10,6 +10,13 @@ import {
 } from "./test-fixtures/rd05-coverage-sources.js";
 
 const SOURCE_DIRECTORY = new URL("./", import.meta.url);
+const EXECUTION_CORE_FILES = new Set([
+  "execution-predicate-contracts.ts",
+  "execution-report-predicate-association.ts",
+  "execution-report-provenance.ts",
+  "execution-route-evidence.ts",
+  "execution-tool-discovery.ts",
+]);
 
 function duplicateEntries(values: readonly string[]): readonly string[] {
   return values.filter((value, index) => values.indexOf(value) !== index);
@@ -20,14 +27,19 @@ describe("failure coverage ownership", () => {
     const productionFiles = readdirSync(SOURCE_DIRECTORY)
       .filter(
         (name) =>
-          (name.startsWith("failure-") || name.startsWith("reduction-")) &&
+          (name.startsWith("failure-") ||
+            name.startsWith("reduction-") ||
+            EXECUTION_CORE_FILES.has(name)) &&
           name.endsWith(".ts") &&
-          !name.includes(".test."),
+          !name.includes(".test.") &&
+          !name.endsWith("-spec-support.ts"),
       )
       .map((name) => `src/${name}`)
       .sort();
 
     expect(rd05CoverageFiles).toEqual(productionFiles);
+    expect(rd05ParticipatingExistingFiles).toEqual([...rd05ParticipatingExistingFiles].sort());
+    expect(rd05ReviewOnlyExclusions).toEqual([...rd05ReviewOnlyExclusions].sort());
     expect(duplicateEntries(rd05CoverageFiles)).toEqual([]);
     expect(duplicateEntries(rd05ParticipatingExistingFiles)).toEqual([]);
     expect(

@@ -1,191 +1,57 @@
-import { createHash } from "node:crypto";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { Worker } from "node:worker_threads";
+import {
+  activateFailureCandidateViceControllerV1,
+  assertFailureCandidateViceLocalVersionsV1,
+  closeFailureCandidateViceControllerV1,
+  type FailureCandidateViceLocalControllerV1,
+} from "./failure-candidate-vice-local-support.js";
+import {
+  cleanupControlledFailureExecutionAdaptersV1,
+  installControlledFailureExecutionAdaptersV1,
+} from "./failure-execution-spec-adapters.js";
+import { finalizeFailureExecutionSpecFixtureV1 } from "./failure-execution-spec-finalizer.js";
+import { createFailureExecutionSpecReportV1 } from "./failure-execution-spec-report.js";
+import type {
+  FailureExecutionSpecActivityV1,
+  FailureExecutionSpecApiV1,
+  FailureExecutionSpecDataV1,
+  FailureExecutionSpecDigestV1,
+  FailureExecutionSpecFixtureOptionsV1,
+  FailureExecutionSpecFixtureV1,
+  FailureExecutionSpecResultV1,
+  FailureExecutionSpecScenarioV1,
+} from "./failure-execution-spec-types.js";
 
-import { vi } from "vitest";
+export type {
+  FailureExecutionCandidateEvaluationV1,
+  FailureExecutionCheckpointReferenceV1,
+  FailureExecutionConfirmationResultV1,
+  FailureExecutionConfirmationStepV1,
+  FailureExecutionObservationV1,
+  FailureExecutionProtocolApisV1,
+  FailureExecutionSpecActivityV1,
+  FailureExecutionSpecApiV1,
+  FailureExecutionSpecDataV1,
+  FailureExecutionSpecDigestV1,
+  FailureExecutionSpecFixtureOptionsV1,
+  FailureExecutionSpecFixtureV1,
+  FailureExecutionSpecMismatchAuthoritiesV1,
+  FailureExecutionSpecResultV1,
+  FailureExecutionSpecScenarioV1,
+  FailureExecutionSpecWorkerRequestV1,
+} from "./failure-execution-spec-types.js";
 
-/** Digest spelling used by the fixture's local protocol projections. */
-export type FailureExecutionSpecDigestV1 = `sha256:${string}`;
-/** Dynamically loaded API surface used before planned modules exist. */
-export type FailureExecutionSpecApiV1 = Readonly<Record<string, unknown>>;
-/** Immutable structural projection used for specification assertions. */
-export type FailureExecutionSpecDataV1 = Readonly<Record<string, unknown>>;
-/** Closed success/failure result used by dynamically loaded operations. */
-export type FailureExecutionSpecResultV1<T> =
-  | { readonly ok: true; readonly value: T }
-  | {
-      readonly ok: false;
-      readonly issues?: readonly { readonly code: string; readonly path: string }[];
-      readonly diagnostics?: readonly { readonly code: string; readonly path: string }[];
-    };
-
-/** Planned public and package-private surfaces exercised by the oracle. */
-export interface FailureExecutionProtocolApisV1 {
-  readonly execution: FailureExecutionSpecApiV1;
-  readonly internals: FailureExecutionSpecApiV1;
-  readonly readiness: FailureExecutionSpecApiV1;
-  readonly reduction: FailureExecutionSpecApiV1;
-  readonly reports: FailureExecutionSpecApiV1;
-}
-
-/** Candidate evaluation projection returned by genuine route execution. */
-export interface FailureExecutionCandidateEvaluationV1 extends FailureExecutionSpecDataV1 {
-  readonly revision: "reduction-candidate-evaluation-v1";
-  readonly evaluationTokenDigest: FailureExecutionSpecDigestV1;
-  readonly result: FailureExecutionSpecDataV1;
-  readonly predicateEvidence: FailureExecutionSpecDataV1;
-  readonly digest: FailureExecutionSpecDigestV1;
-}
-
-/** Terminal confirmation projection returned by the bounded state machine. */
-export interface FailureExecutionConfirmationResultV1 extends FailureExecutionSpecDataV1 {
-  readonly revision: "failure-confirmation-result-v1";
-  readonly disposition: "confirmed-source-failure" | "stateful-sequence-failure" | "flaky-failure";
-  readonly confirmationDigests: readonly FailureExecutionSpecDigestV1[];
-  readonly sequenceEvidence?: FailureExecutionSpecDataV1;
-}
-
-/** Authenticated activity checkpoint visible to isolation specifications. */
-export interface FailureExecutionObservationV1 extends FailureExecutionSpecDataV1 {
-  readonly revision: "failure-execution-observation-v1";
-  readonly mode: "campaign-shared" | "standalone" | "sequence-attempt";
-  readonly admitted: boolean;
-  readonly launched: boolean;
-  readonly attemptOrdinal: number;
-  readonly position: number;
-  readonly rootIdentity?: FailureExecutionSpecDigestV1;
-  readonly workerIdentity?: number;
-  readonly isolateIdentity?: FailureExecutionSpecDigestV1;
-}
-
-/** One opaque step issued by the confirmation state machine. */
-export interface FailureExecutionConfirmationStepV1 extends FailureExecutionSpecDataV1 {
-  readonly kind: "execute-candidate" | "execute-control" | "execute-sequence-position" | "complete";
-  readonly authority?: object;
-  readonly attempt?: object;
-  readonly position?: object;
-  readonly result?: FailureExecutionConfirmationResultV1;
-}
-
-/** Builds a stable authority-report projection for sidecar association tests. */
-export function createFailureExecutionReportProjectionV1(
-  results: readonly FailureExecutionSpecDataV1[],
-): FailureExecutionSpecDataV1 {
-  return {
-    revision: "execution-authority-report-v1",
-    parentDigest: `sha256:${"1".repeat(64)}`,
-    oracleDigest: `sha256:${"2".repeat(64)}`,
-    campaignDigest: `sha256:${"3".repeat(64)}`,
-    routePlanDigest: `sha256:${"4".repeat(64)}`,
-    target: "c64",
-    seed: "5".repeat(64),
-    toolVersions: [{ tool: "node", version: process.version }],
-    projectionRevisions: [],
-    results,
-    summary: {
-      status: results.every((result) => result.status === "pass") ? "pass" : "failure",
-      selectedCases: results.length,
-      passedCases: results.filter((result) => result.status === "pass").length,
-      blockers: [],
-    },
-  };
-}
-
-type Digest = FailureExecutionSpecDigestV1;
 type Api = FailureExecutionSpecApiV1;
+type Data = FailureExecutionSpecDataV1;
+type Digest = FailureExecutionSpecDigestV1;
 type Result<T> = FailureExecutionSpecResultV1<T>;
 
-/** Deterministic confirmation histories available to the failure-execution oracle. */
-export type FailureExecutionSpecScenarioV1 =
-  | "standalone-stable"
-  | "sequence-only"
-  | "flaky"
-  | "infrastructure-with-passing-control";
+type ControllerV1 = FailureCandidateViceLocalControllerV1;
+type ExecutionTierV1 = "frontend" | "compiler-api" | "cli" | "emit" | "acme" | "vice";
 
-/** Optional bounded sequence shape for a controlled confirmation history. */
-export interface FailureExecutionSpecFixtureOptionsV1 {
-  readonly failingPosition?: number;
-  readonly sequenceLength?: number;
-}
-
-/** Activity emitted by real worker threads and child processes owned by one fixture. */
-export interface FailureExecutionSpecActivityV1 {
-  readonly workerThreads: number[];
-  readonly isolateIdentities: Digest[];
-  readonly rootIdentities: Digest[];
-  readonly processLaunches: number[];
-}
-
-/** Genuine authority inputs plus independently observable isolation activity. */
-export interface FailureExecutionSpecFixtureV1 {
-  readonly parent: object;
-  readonly execution: object;
-  readonly originalRequest: object;
-  readonly origin: object;
-  readonly candidate: object;
-  readonly budget: object;
-  readonly expectedDisposition:
-    | "confirmed-source-failure"
-    | "stateful-sequence-failure"
-    | "flaky-failure";
-  readonly expectedFailingPosition?: number;
-  readonly activity: FailureExecutionSpecActivityV1;
-  cleanup(): Promise<void>;
-}
-
-interface ControllerV1 {
-  readonly scenario: FailureExecutionSpecScenarioV1;
-  readonly failingPosition: number;
-  readonly sequenceLength: number;
-  readonly activity: FailureExecutionSpecActivityV1;
-  freshOrdinal: number;
-  candidateIdentity?: string;
-}
-
-interface CancellationV1 {
-  readonly signal: AbortSignal;
-}
-
-interface WorkerRequestV1 {
-  readonly tier: "frontend" | "compiler-api" | "cli" | "emit";
-  readonly contract: string;
-  readonly caseIdentity: string;
-}
-
-interface WorkerCompletionV1 {
-  readonly kind: "message" | "crash";
-  readonly value?: unknown;
-  readonly exitCode?: number | null;
-}
-
-interface WorkerHandleV1 {
-  readonly completion: Promise<WorkerCompletionV1>;
-  terminate(): Promise<void>;
-}
-
-interface WorkerExecutorV1 {
-  start(request: WorkerRequestV1, cancellation: CancellationV1): Promise<Result<WorkerHandleV1>>;
-  shutdown(): Promise<void>;
-}
-
-const WORKER_MODULE = "../execution-worker-executor.js";
-const PROCESS_MODULE = "../execution-process.js";
-// Package tests build first, so true external runtimes execute the compiled fixture entries.
-const WORKER_ENTRY = new URL(
-  "../../dist/test-fixtures/failure-execution-worker-spec-entry.js",
-  import.meta.url,
-);
-const PROCESS_ENTRY = fileURLToPath(
-  new URL("../../dist/test-fixtures/failure-execution-process-spec-entry.js", import.meta.url),
-);
-const ENCODER = new TextEncoder();
-const FAILURE_OBSERVATION_LABEL = "failure-observation";
-let activeController: ControllerV1 | undefined;
-const activeExecutors = new Set<WorkerExecutorV1>();
-
-function digest(label: string): Digest {
-  return `sha256:${createHash("sha256").update(label).digest("hex")}`;
+interface DiagnosticOutcomeV1 {
+  readonly code: string;
+  readonly phase: "lexer" | "parser" | "semantic" | "sfa";
+  readonly severity: "error";
 }
 
 function call<T>(api: Api, name: string, ...arguments_: readonly unknown[]): T {
@@ -201,209 +67,27 @@ function success<T>(result: Result<T>): T {
   return result.value;
 }
 
-function recordValue(value: unknown, message: string): object {
+function recordValue(value: unknown, message: string): Data {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new TypeError(message);
   }
-  return value;
-}
-
-function workerRequest(value: unknown): WorkerRequestV1 {
-  if (typeof value !== "object" || value === null) throw new TypeError("worker request");
-  const tier = Reflect.get(value, "tier");
-  const contract = Reflect.get(value, "contract");
-  const caseIdentity = Reflect.get(value, "caseIdentity");
-  if (
-    !["frontend", "compiler-api", "cli", "emit"].includes(String(tier)) ||
-    typeof contract !== "string" ||
-    typeof caseIdentity !== "string"
-  ) {
-    throw new TypeError("worker request projection");
-  }
-  return { tier: tier as WorkerRequestV1["tier"], contract, caseIdentity };
-}
-
-function outcome(
-  controller: ControllerV1,
-  request: WorkerRequestV1,
-  dedicated: boolean,
-): "pass" | "crash" {
-  if (controller.candidateIdentity === undefined)
-    controller.candidateIdentity = request.caseIdentity;
-  if (controller.scenario === "standalone-stable") return "crash";
-  if (controller.scenario === "sequence-only") {
-    return dedicated && controller.freshOrdinal === controller.failingPosition ? "crash" : "pass";
-  }
-  if (controller.scenario === "flaky") return controller.freshOrdinal % 2 === 1 ? "crash" : "pass";
-  return request.caseIdentity === controller.candidateIdentity ? "crash" : "pass";
-}
-
-function observeWorker(controller: ControllerV1, worker: Worker, label: string): void {
-  controller.activity.workerThreads.push(worker.threadId);
-  controller.activity.isolateIdentities.push(digest(`isolate:${label}:${worker.threadId}`));
-  controller.activity.rootIdentities.push(digest(`root:${label}:${worker.threadId}`));
-}
-
-function freshExecutor(controller: ControllerV1): WorkerExecutorV1 {
-  const workers = new Set<Worker>();
-  const executor: WorkerExecutorV1 = {
-    async start(value, cancellation) {
-      const request = workerRequest(value);
-      controller.freshOrdinal += 1;
-      const selectedOutcome = outcome(controller, request, false);
-      const worker = new Worker(WORKER_ENTRY, {
-        workerData: { request, outcome: selectedOutcome },
-      });
-      workers.add(worker);
-      observeWorker(controller, worker, `fresh:${controller.freshOrdinal}`);
-      const completion = new Promise<WorkerCompletionV1>((resolve) => {
-        worker.once("message", (message: WorkerCompletionV1) => resolve(message));
-        worker.once("error", () => resolve({ kind: "crash", exitCode: 1 }));
-        worker.once("exit", (exitCode) => {
-          workers.delete(worker);
-          if (exitCode !== 0) resolve({ kind: "crash", exitCode });
-        });
-      });
-      if (cancellation.signal.aborted) await worker.terminate();
-      return {
-        ok: true,
-        value: {
-          completion,
-          async terminate() {
-            workers.delete(worker);
-            await worker.terminate();
-          },
-        },
-      };
-    },
-    async shutdown() {
-      await Promise.all([...workers].map((worker) => worker.terminate()));
-      workers.clear();
-    },
-  };
-  activeExecutors.add(executor);
-  return executor;
-}
-
-function dedicatedExecutor(controller: ControllerV1, caseLimit: number): WorkerExecutorV1 {
-  if (!Number.isSafeInteger(caseLimit) || caseLimit < 1 || caseLimit > 64) {
-    throw new TypeError("dedicated executor case limit");
-  }
-  const worker = new Worker(WORKER_ENTRY, { workerData: { persistent: true } });
-  observeWorker(controller, worker, `sequence:${controller.failingPosition}`);
-  let position = 0;
-  let pending: ((completion: WorkerCompletionV1) => void) | undefined;
-  worker.on("message", (message: WorkerCompletionV1) => {
-    pending?.(message);
-    pending = undefined;
-  });
-  const executor: WorkerExecutorV1 = {
-    async start(value, cancellation) {
-      if (pending !== undefined || position >= caseLimit) {
-        return { ok: false, issues: [{ code: "execution-plan-capacity", path: "/worker" }] };
-      }
-      const request = workerRequest(value);
-      position += 1;
-      controller.freshOrdinal = position;
-      const completion = new Promise<WorkerCompletionV1>((resolve) => {
-        pending = resolve;
-      });
-      worker.postMessage({ request, outcome: outcome(controller, request, true) });
-      if (cancellation.signal.aborted) await worker.terminate();
-      return {
-        ok: true,
-        value: { completion, terminate: async () => void (await worker.terminate()) },
-      };
-    },
-    async shutdown() {
-      await worker.terminate();
-    },
-  };
-  activeExecutors.add(executor);
-  return executor;
-}
-
-function fixedProcessRuntime(controller: ControllerV1): object {
-  return {
-    async start(request: unknown, sink: unknown, cancellation: CancellationV1) {
-      if (typeof request !== "object" || request === null) {
-        return { ok: false, issues: [{ code: "execution.invalid-schema", path: "/request" }] };
-      }
-      const child: ChildProcessWithoutNullStreams = spawn(
-        process.execPath,
-        [PROCESS_ENTRY, "pass"],
-        {
-          cwd: String(Reflect.get(request, "cwd")),
-          stdio: ["pipe", "pipe", "pipe"],
-        },
-      );
-      if (child.pid === undefined) {
-        return { ok: false, issues: [{ code: "tier-unavailable", path: "/process" }] };
-      }
-      controller.activity.processLaunches.push(child.pid);
-      child.stdout.on("data", (bytes: Buffer) => {
-        const onStdout =
-          typeof sink === "object" && sink !== null ? Reflect.get(sink, "onStdout") : undefined;
-        if (typeof onStdout === "function") Reflect.apply(onStdout, sink, [new Uint8Array(bytes)]);
-      });
-      child.stderr.on("data", (bytes: Buffer) => {
-        const onStderr =
-          typeof sink === "object" && sink !== null ? Reflect.get(sink, "onStderr") : undefined;
-        if (typeof onStderr === "function") Reflect.apply(onStderr, sink, [new Uint8Array(bytes)]);
-      });
-      if (cancellation.signal.aborted) child.kill("SIGKILL");
-      return {
-        ok: true,
-        value: {
-          identity: {
-            bootId: "failure-execution-spec-boot",
-            pid: child.pid,
-            startTicks: BigInt(child.pid),
-            processGroupId: child.pid,
-          },
-          completion: new Promise((resolve) => {
-            child.once("exit", (exitCode) => resolve({ exitCode, signal: null }));
-          }),
-          revalidateIdentity: async () => child.exitCode === null,
-          terminate: async (signal: NodeJS.Signals) => void child.kill(signal),
-        },
-      };
-    },
-  };
-}
-
-async function installControlledAdapters(controller: ControllerV1): Promise<void> {
-  activeController = controller;
-  vi.resetModules();
-  vi.doMock(WORKER_MODULE, async () => {
-    const actual = await vi.importActual<Api>(WORKER_MODULE);
-    const defaultExecutor = freshExecutor(controller);
-    return {
-      ...actual,
-      defaultExecutionWorkerExecutorV1: defaultExecutor,
-      createExecutionWorkerExecutorV1: () => freshExecutor(controller),
-      createDedicatedExecutionWorkerExecutorV1: (caseLimit: number) =>
-        dedicatedExecutor(controller, caseLimit),
-    };
-  });
-  vi.doMock(PROCESS_MODULE, async () => {
-    const actual = await vi.importActual<Api>(PROCESS_MODULE);
-    const runtime = fixedProcessRuntime(controller);
-    return {
-      ...actual,
-      defaultExecutionProcessRuntimeV1: runtime,
-      createExecutionProcessRuntimeV1: () => runtime,
-    };
-  });
+  return value as Data;
 }
 
 function validateOptions(
   scenario: FailureExecutionSpecScenarioV1,
   options: FailureExecutionSpecFixtureOptionsV1,
-): { readonly failingPosition: number; readonly sequenceLength: number } {
+): {
+  readonly failingPosition: number;
+  readonly sequenceLength: number;
+  readonly subjectTier: "frontend" | "acme" | "vice";
+  readonly candidateFamily: "typed-valid" | "typed-invalid";
+  readonly rejectOwnedShutdownOrdinal?: number;
+} {
   if (
     ![
       "standalone-stable",
+      "direct-shrink-stable",
       "sequence-only",
       "flaky",
       "infrastructure-with-passing-control",
@@ -413,17 +97,35 @@ function validateOptions(
   }
   const failingPosition = options.failingPosition ?? 2;
   const sequenceLength = options.sequenceLength ?? failingPosition;
+  const subjectTier = options.subjectTier ?? "frontend";
+  const candidateFamily =
+    options.candidateFamily ??
+    (scenario === "direct-shrink-stable" ? "typed-invalid" : "typed-valid");
+  const rejectOwnedShutdownOrdinal = options.rejectOwnedShutdownOrdinal;
+  const includeForeignToolOrigin = options.includeForeignToolOrigin ?? false;
   if (
     !Number.isSafeInteger(failingPosition) ||
     !Number.isSafeInteger(sequenceLength) ||
     failingPosition < 1 ||
     failingPosition > 64 ||
     sequenceLength < failingPosition ||
-    sequenceLength > 64
+    sequenceLength > 64 ||
+    !["frontend", "acme", "vice"].includes(subjectTier) ||
+    !["typed-valid", "typed-invalid"].includes(candidateFamily) ||
+    (scenario === "direct-shrink-stable" && candidateFamily !== "typed-invalid") ||
+    typeof includeForeignToolOrigin !== "boolean" ||
+    (rejectOwnedShutdownOrdinal !== undefined &&
+      (!Number.isSafeInteger(rejectOwnedShutdownOrdinal) || rejectOwnedShutdownOrdinal < 1))
   ) {
     throw new TypeError("failure-execution sequence bounds");
   }
-  return { failingPosition, sequenceLength };
+  return {
+    failingPosition,
+    sequenceLength,
+    subjectTier,
+    candidateFamily,
+    ...(rejectOwnedShutdownOrdinal === undefined ? {} : { rejectOwnedShutdownOrdinal }),
+  };
 }
 
 /**
@@ -434,34 +136,75 @@ export async function createFailureExecutionSpecFixtureV1(
   scenario: FailureExecutionSpecScenarioV1,
   options: FailureExecutionSpecFixtureOptionsV1 = {},
 ): Promise<FailureExecutionSpecFixtureV1> {
-  const { failingPosition, sequenceLength } = validateOptions(scenario, options);
+  const {
+    failingPosition,
+    sequenceLength,
+    subjectTier,
+    candidateFamily,
+    rejectOwnedShutdownOrdinal,
+  } = validateOptions(scenario, options);
+  if (options.subjectTier === "vice") {
+    assertFailureCandidateViceLocalVersionsV1();
+  }
   const activity: FailureExecutionSpecActivityV1 = {
     workerThreads: [],
     isolateIdentities: [],
     rootIdentities: [],
     processLaunches: [],
+    workerRequests: [],
+    ownedShutdownAttempts: [],
+    viceLauncherInjections: [],
+    viceLauncherArmTransitions: [],
   };
   const controller: ControllerV1 = {
     scenario,
     failingPosition,
     sequenceLength,
+    subjectTier,
+    ...(rejectOwnedShutdownOrdinal === undefined ? {} : { rejectOwnedShutdownOrdinal }),
     activity,
+    phase: "report",
     freshOrdinal: 0,
+    reportRoutePosition: 0,
+    armedProcessOrdinal: 0,
+    ownedExecutorOrdinal: 0,
+    rejectedOwnedShutdown: false,
+    diagnosticOutcomes: new Map(),
+    viceLauncherInjectionCount: 0,
+    selectedWorkerTiers: [],
+    selectedProcessTrace: [],
   };
-  await installControlledAdapters(controller);
+  if (options.subjectTier === "vice") {
+    activateFailureCandidateViceControllerV1(controller);
+  } else {
+    await installControlledFailureExecutionAdaptersV1(controller);
+  }
 
-  const catalogFixtures = await vi.importActual<Api>(
-    "./execution-publication-catalog-spec-fixture.js",
-  );
-  const campaignFixtures = await vi.importActual<Api>("./genuine-execution-campaign.js");
-  const readiness = await vi.importActual<Api>("@blend65/readiness");
-  const reduction = await vi.importActual<Api>("@blend65/readiness/failure-reduction-internals");
-  const published = await vi.importActual<Api>("@blend65/readiness/published-oracle");
-  const executionApi = await vi.importActual<Api>("../index.js");
+  const catalogFixtures =
+    (await import("./execution-publication-catalog-spec-fixture.js")) as unknown as Api;
+  const campaignFixtures = (await import("./genuine-execution-campaign.js")) as unknown as Api;
+  const readiness = (await import("@blend65/readiness")) as unknown as Api;
+  const reduction =
+    (await import("@blend65/readiness/failure-reduction-internals")) as unknown as Api;
+  const published = (await import("@blend65/readiness/published-oracle")) as unknown as Api;
+  const campaignIdentity =
+    (await import("@blend65/readiness/execution-campaign-identity")) as unknown as Api;
+  const executionApi = (await import("../index.js")) as unknown as Api;
+  const internals = (await import("../failure-execution-internals.js")) as unknown as Api;
+  const reports = (await import("../execution-authority-report.js")) as unknown as Api;
+  controller.protocolApis = Object.freeze({
+    execution: executionApi,
+    internals,
+    readiness,
+    reduction,
+    reports,
+    published,
+  });
   const catalog = await call<
     Promise<{
       readonly repositoryRoot: string;
       readonly parentDigest: Digest;
+      readonly release: object;
       cleanup(): Promise<void>;
     }>
   >(catalogFixtures, "createExecutionPublicationCatalogFixtureV1");
@@ -473,146 +216,439 @@ export async function createFailureExecutionSpecFixtureV1(
       }),
     );
     const execution = success(
-      call<Result<object>>(executionApi, "resolveExecutionReviewContextV1", parent),
+      call<Result<object>>(executionApi, "resolveLiveExecutionContextV1", catalog.release),
     );
     const oracle = success(call<Result<object>>(published, "createPublishedOracleContext", parent));
-    const campaign = (
+    const orchestrationCampaign = (
       await call<Promise<{ readonly orchestration: object }>>(
         campaignFixtures,
         "createGenuineExecutionCampaigns",
         parent,
       )
     ).orchestration;
-    const item = success(
-      call<Result<Record<string, unknown>>>(readiness, "getCampaignPlanItem", campaign, 0),
-    );
-    const executionCase = success(
-      call<Result<object>>(readiness, "createExecutionCaseV1", campaign, 0, {
-        kind: "scalar-bytes",
-        byteLength: 1,
-      }),
-    );
-    const projection = success(
-      call<Result<Record<string, unknown>>>(
-        readiness,
-        "getExecutionCaseProjectionV1",
-        executionCase,
-      ),
-    );
-    const request = recordValue(Reflect.get(item, "request"), "campaign request");
-    const choice = recordValue(Reflect.get(request, "choice"), "campaign choice");
-    const ruleId = String(Reflect.get(choice, "ruleId"));
-    const caseIdentity = String(projection.sourceCaseDigest);
-    const route = {
-      caseIdentity,
-      ruleId,
-      obligation: "frontend",
-      terminalTier: "frontend",
-      prerequisiteTiers: [],
-      rankDigest: digest("failure-execution-route"),
-    };
+    const campaign =
+      scenario === "sequence-only" && options.subjectTier !== "vice"
+        ? success(
+            call<Result<object>>(campaignIdentity, "createPublishedExecutionCampaignV1", parent, {
+              schemaVersion: 1,
+              target: "c64",
+              seed: `sha256:${"8".repeat(64)}`,
+              configuration: {
+                caseCount: 56,
+                maxInvalidCases: 0,
+                enabledRuleIds: [
+                  "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+                  "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+                  "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+                  "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+                ],
+                spellings: ["literal"],
+                budget: {
+                  maxModules: 4,
+                  maxDeclarations: 128,
+                  maxIrNodes: 512,
+                  maxStatements: 256,
+                  maxExpressionDepth: 16,
+                  maxLoopWork: 1n,
+                  maxSourceBytes: 65_536,
+                  maxAttempts: 128,
+                },
+              },
+            }),
+          )
+        : options.subjectTier === "vice"
+          ? success(
+              call<Result<object>>(campaignIdentity, "createPublishedExecutionCampaignV1", parent, {
+                schemaVersion: 1,
+                target: "c64",
+                seed: `sha256:${"7".repeat(64)}`,
+                configuration: {
+                  caseCount: 26,
+                  maxInvalidCases: 0,
+                  enabledRuleIds: [
+                    "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+                    "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+                    "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+                    "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+                  ],
+                  spellings: ["literal", "parameter"],
+                  budget: {
+                    maxModules: 4,
+                    maxDeclarations: 128,
+                    maxIrNodes: 512,
+                    maxStatements: 256,
+                    maxExpressionDepth: 16,
+                    maxLoopWork: 1n,
+                    maxSourceBytes: 65_536,
+                    maxAttempts: 128,
+                  },
+                },
+              }),
+            )
+          : orchestrationCampaign;
     const executionPolicy = Object.freeze({
       revision: "execution-policy-v1",
-      budget: Object.freeze({
-        operationMs: 1_000,
-        launchAttemptMs: 1_000,
-        routeMs: 10_000,
-        cleanupGraceMs: 1_000,
-        outputBytes: 64,
-        evidenceBytes: 16_777_216,
-        instructions: 100,
-        cycles: 1_000,
-        launchAttempts: 2,
-      }),
+      budget: Object.freeze(
+        options.subjectTier === "vice"
+          ? {
+              operationMs: 60_000,
+              launchAttemptMs: 15_000,
+              routeMs: 120_000,
+              cleanupGraceMs: 3_000,
+              outputBytes: 1_048_576,
+              evidenceBytes: 16_777_216,
+              instructions: 65_535,
+              cycles: 100_000_000,
+              launchAttempts: 2,
+            }
+          : {
+              operationMs: 1_000,
+              launchAttemptMs: 1_000,
+              routeMs: 10_000,
+              cleanupGraceMs: 3_000,
+              outputBytes: 64,
+              evidenceBytes: 16_777_216,
+              instructions: 100,
+              cycles: 1_000,
+              launchAttempts: 2,
+            },
+      ),
     });
-    const originalRequest = success(
-      call<Result<object>>(executionApi, "createExecutionRouteRequestV1", {
-        route,
-        executionCase,
-        oracle,
+    const composite = success(
+      call<Result<object>>(readiness, "resolveCompositeReadinessSnapshot", parent, catalog.release),
+    );
+    const parentProjection = success(
+      call<Result<Data>>(readiness, "getCompositeReadinessProjectionV1", composite),
+    );
+    const campaignProjection = success(
+      call<Result<Data>>(readiness, "projectExecutionCampaignV1", campaign),
+    );
+    const routePlan = success(
+      call<Result<Data>>(executionApi, "planExecutionRoutesV1", {
+        parent: parentProjection,
+        campaign: campaignProjection,
+        oracleDigest: catalog.parentDigest,
         policy: executionPolicy,
       }),
     );
-    const routePlanBytes = ENCODER.encode(`${JSON.stringify(route)}\n`);
-    const predicate = success(
-      call<Result<{ readonly predicate: object }>>(readiness, "deriveFailurePredicateIdentityV1", {
-        revision: "failure-predicate-v1",
-        resultCode: "compiler-ice",
-        terminalTier: "frontend",
-        terminalStage: "frontend",
-        observation: { kind: "observed", digest: digest(FAILURE_OBSERVATION_LABEL) },
-        cleanup: "cleanup-clear",
-        primaryRuleId: ruleId,
-        requiredClaimedRuleIds: [ruleId],
-        target: "c64",
-        routeContract: {
-          originalRouteKind: "valid-envelope",
-          terminalTier: "frontend",
-          obligation: "frontend",
-          prerequisiteTiers: [],
-          policyDigest: digest(JSON.stringify(executionPolicy)),
-          fixtureDigest: digest("failure-execution-fixture"),
-          oracleContractDigest: digest("failure-execution-oracle"),
-          toolContractDigests: [],
-        },
-      }),
-    ).predicate;
-    const failurePolicy = readiness.FAILURE_REDUCTION_DEFAULT_POLICY_V1;
-    const origin = success(
-      call<Result<object>>(readiness, "authorizeFailureEnvelopeV1", {
-        revision: "failure-envelope-authorization-input-v1",
-        source: { kind: "typed-valid", authority: executionCase },
-        routePlanBytes,
-        routePlanDigest: digest(new TextDecoder().decode(routePlanBytes)),
-        predicate,
-        policy: failurePolicy,
-        observationBytes: ENCODER.encode(FAILURE_OBSERVATION_LABEL),
-        toolVersions: [],
-      }),
-    );
-    const initial = success(
-      call<Result<object>>(reduction, "createInitialReductionCandidateV1", origin),
-    );
-    const candidate = success(
-      call<Result<object>>(reduction, "createReductionCandidateAuthorityV1", origin, initial, []),
-    );
-    const budget = success(
-      call<Result<object>>(readiness, "createFailureCampaignBudgetAuthorityV1", failurePolicy, {
-        nonPassResults: 0,
-        resolvableNonPassResults: 0,
-      }),
-    );
-    const expectedDisposition =
-      scenario === "standalone-stable" || scenario === "infrastructure-with-passing-control"
-        ? "confirmed-source-failure"
-        : scenario === "sequence-only"
-          ? "stateful-sequence-failure"
-          : "flaky-failure";
-    return {
-      parent,
-      execution,
+    const routeItems = Reflect.get(routePlan, "items");
+    if (!Array.isArray(routeItems) || routeItems.length < failingPosition) {
+      throw new TypeError("fixture route plan does not contain the selected report position");
+    }
+    const campaignSummary = recordValue(Reflect.get(campaign, "summary"), "campaign summary");
+    const totalCaseCount = Number(Reflect.get(campaignSummary, "totalCaseCount"));
+    if (!Number.isSafeInteger(totalCaseCount) || totalCaseCount < 1 || totalCaseCount > 128) {
+      throw new TypeError("fixture bounded campaign case count");
+    }
+    for (let ordinal = 0; ordinal < totalCaseCount; ordinal += 1) {
+      const authorityResult = call<Result<object>>(
+        published,
+        "createPublishedDiagnosticCaseV1",
+        oracle,
+        campaign,
+        ordinal,
+      );
+      if (!authorityResult.ok) continue;
+      const projection = success(
+        call<Result<Data>>(
+          published,
+          "getPublishedDiagnosticCaseProjectionV1",
+          authorityResult.value,
+        ),
+      );
+      const sourceCaseDigest = projection.sourceCaseDigest;
+      const expected = recordValue(
+        projection.expectedDiagnostic,
+        "fixture published diagnostic tuple",
+      );
+      if (
+        typeof sourceCaseDigest !== "string" ||
+        !/^sha256:[0-9a-f]{64}$/u.test(sourceCaseDigest) ||
+        typeof expected.code !== "string" ||
+        !["lexer", "parser", "semantic", "sfa"].includes(String(expected.phase)) ||
+        expected.severity !== "error"
+      ) {
+        throw new TypeError("fixture published diagnostic projection");
+      }
+      const diagnostic: DiagnosticOutcomeV1 = Object.freeze({
+        code: expected.code,
+        phase: expected.phase as DiagnosticOutcomeV1["phase"],
+        severity: "error",
+      });
+      const existing = controller.diagnosticOutcomes.get(sourceCaseDigest);
+      if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(diagnostic)) {
+        throw new TypeError("fixture conflicting published diagnostic tuple");
+      }
+      controller.diagnosticOutcomes.set(sourceCaseDigest, diagnostic);
+      if (controller.diagnosticOutcomes.size > totalCaseCount) {
+        throw new TypeError("fixture diagnostic outcome capacity");
+      }
+    }
+    const resolveSourceAuthority = (
+      selectedRoute: unknown,
+      family: "typed-valid" | "typed-invalid",
+    ): object | undefined => {
+      const selectedCaseIdentity = String(
+        Reflect.get(recordValue(selectedRoute, "candidate-family route"), "caseIdentity"),
+      );
+      for (let ordinal = 0; ordinal < totalCaseCount; ordinal += 1) {
+        const authorityResult =
+          family === "typed-valid"
+            ? call<Result<object>>(readiness, "createExecutionCaseV1", campaign, ordinal, {
+                kind: "scalar-bytes",
+                byteLength: 1,
+              })
+            : call<Result<object>>(
+                published,
+                "createPublishedDiagnosticCaseV1",
+                oracle,
+                campaign,
+                ordinal,
+              );
+        if (!authorityResult.ok) continue;
+        const projectionResult = call<Result<Data>>(
+          family === "typed-valid" ? readiness : published,
+          family === "typed-valid"
+            ? "getExecutionCaseProjectionV1"
+            : "getPublishedDiagnosticCaseProjectionV1",
+          authorityResult.value,
+        );
+        if (
+          !projectionResult.ok ||
+          projectionResult.value.sourceCaseDigest !== selectedCaseIdentity
+        ) {
+          continue;
+        }
+        return authorityResult.value;
+      }
+      return undefined;
+    };
+    const routeMatches = (left: Data, right: Data): boolean =>
+      left.ruleId === right.ruleId &&
+      left.obligation === right.obligation &&
+      left.terminalTier === right.terminalTier &&
+      JSON.stringify(left.prerequisiteTiers) === JSON.stringify(right.prerequisiteTiers);
+    const sameContractPair = (tier: "acme" | "vice") => {
+      const candidates = routeItems.flatMap((item, index) => {
+        if (
+          typeof item !== "object" ||
+          item === null ||
+          Reflect.get(item, "terminalTier") !== tier
+        ) {
+          return [];
+        }
+        const authority = resolveSourceAuthority(item, "typed-valid");
+        if (authority === undefined) return [];
+        const projection = success(
+          call<Result<Data>>(readiness, "getExecutionCaseProjectionV1", authority),
+        );
+        return [
+          { index, route: recordValue(item, "controlled route"), fixture: projection.fixture },
+        ];
+      });
+      return candidates
+        .flatMap((left) =>
+          candidates
+            .map((right) => ({ left, right }))
+            .filter(({ right }) => left.index < 64 && right.index > left.index),
+        )
+        .find(
+          ({ left, right }) =>
+            routeMatches(left.route, right.route) &&
+            JSON.stringify(left.fixture) === JSON.stringify(right.fixture),
+        );
+    };
+    let subjectIndex = failingPosition - 1;
+    let matchedControlIndex: number | undefined;
+    if (scenario === "sequence-only" && options.subjectTier !== "vice") {
+      if (routeItems.length !== 68) {
+        throw new TypeError("fixture fixed sequence route-plan cardinality");
+      }
+      if (![2, 3, 4, 5, 6, 7, 8, 9, 64].includes(failingPosition)) {
+        throw new TypeError("fixture unsupported fixed sequence position");
+      }
+      matchedControlIndex = failingPosition;
+      const subjectRoute = recordValue(routeItems[subjectIndex], "fixed sequence failure route");
+      const controlRoute = recordValue(
+        routeItems[matchedControlIndex],
+        "fixed sequence control route",
+      );
+      const expectedRuleId =
+        failingPosition === 64
+          ? "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word"
+          : "rule.ch12.3-1-memory-access.peek-addr.signature.word";
+      if (
+        subjectRoute.ruleId !== expectedRuleId ||
+        subjectRoute.obligation !== "compiler-api" ||
+        subjectRoute.terminalTier !== "compiler-api" ||
+        JSON.stringify(subjectRoute.prerequisiteTiers) !== JSON.stringify(["frontend"]) ||
+        subjectRoute.caseIdentity === controlRoute.caseIdentity ||
+        !routeMatches(subjectRoute, controlRoute)
+      ) {
+        throw new TypeError("fixture fixed sequence control projection");
+      }
+      controller.failingPosition = subjectIndex + 1;
+    } else if (options.subjectTier === "vice") {
+      if (routeItems.length !== 62)
+        throw new TypeError("fixture fixed VICE route-plan cardinality");
+      subjectIndex = 10;
+      matchedControlIndex = 11;
+      const subjectRoute = recordValue(routeItems[subjectIndex], "fixed VICE failure route");
+      const controlRoute = recordValue(routeItems[matchedControlIndex], "fixed VICE control route");
+      if (
+        subjectRoute.terminalTier !== "vice" ||
+        subjectRoute.caseIdentity === controlRoute.caseIdentity ||
+        !routeMatches(subjectRoute, controlRoute)
+      ) {
+        throw new TypeError("fixture fixed VICE route pair");
+      }
+      controller.failingPosition = subjectIndex + 1;
+    } else if (
+      scenario === "infrastructure-with-passing-control" &&
+      options.subjectTier === "acme"
+    ) {
+      const pair = sameContractPair(options.subjectTier);
+      if (pair === undefined) {
+        throw new TypeError("fixture route plan lacks a distinct same-contract control");
+      }
+      subjectIndex = pair.left.index;
+      matchedControlIndex = pair.right.index;
+      controller.failingPosition = subjectIndex + 1;
+    } else if (
+      scenario === "direct-shrink-stable" ||
+      options.subjectTier !== undefined ||
+      options.candidateFamily !== undefined
+    ) {
+      subjectIndex = routeItems.findIndex((item) => {
+        if (
+          typeof item !== "object" ||
+          item === null ||
+          (options.subjectTier !== undefined &&
+            Reflect.get(item, "terminalTier") !== options.subjectTier)
+        ) {
+          return false;
+        }
+        const authority = resolveSourceAuthority(item, candidateFamily);
+        return authority !== undefined;
+      });
+      if (subjectIndex < 0) throw new TypeError("fixture route plan lacks selected subject tier");
+      controller.failingPosition = subjectIndex + 1;
+    }
+    const selectedSequenceLength = Math.max(sequenceLength, subjectIndex + 1);
+    if (selectedSequenceLength > 64) {
+      throw new TypeError("selected report position exceeds sequence hard maximum");
+    }
+    const route = recordValue(routeItems[subjectIndex], "subject route");
+    const caseIdentity = String(Reflect.get(route, "caseIdentity"));
+    const routeTier = String(Reflect.get(route, "terminalTier"));
+    if (!["frontend", "compiler-api", "cli", "emit", "acme", "vice"].includes(routeTier)) {
+      throw new TypeError("fixture route terminal tier");
+    }
+    controller.subjectTier = routeTier as ExecutionTierV1;
+    controller.reportFailureIdentity = caseIdentity;
+
+    const { report, confirmationControlPosition, localViceEvidence } =
+      await createFailureExecutionSpecReportV1({
+        localVice: options.subjectTier === "vice",
+        controller,
+        executionApi,
+        internals,
+        parent,
+        execution,
+        oracle,
+        campaign,
+        executionPolicy,
+        routeItems,
+        subjectIndex,
+        ...(matchedControlIndex === undefined ? {} : { controlIndex: matchedControlIndex }),
+      });
+    const {
+      reportPositions,
+      reportRecords,
+      subjectPosition,
       originalRequest,
+      controlRequest,
       origin,
       candidate,
       budget,
+      mismatchAuthorities,
       expectedDisposition,
-      ...(scenario === "sequence-only" ? { expectedFailingPosition: failingPosition } : {}),
+    } = await finalizeFailureExecutionSpecFixtureV1({
+      scenario,
+      options,
+      controller,
+      readiness,
+      reduction,
+      internals,
+      executionApi,
+      parent,
+      execution,
+      oracle,
+      campaign,
+      executionPolicy,
+      routePlan,
+      routeItems,
+      report,
+      subjectIndex,
+      ...(matchedControlIndex === undefined ? {} : { matchedControlIndex }),
+      selectedSequenceLength,
+      candidateFamily,
+    });
+    return {
+      get apis() {
+        if (controller.protocolApis === undefined) {
+          throw new TypeError("fixture protocol APIs are closed");
+        }
+        return controller.protocolApis;
+      },
+      parent,
+      execution,
+      originalRequest,
+      ...(controlRequest === undefined ? {} : { controlRequest }),
+      ...(confirmationControlPosition === undefined ? {} : { confirmationControlPosition }),
+      report,
+      reportPositions,
+      subjectPosition,
+      subjectIndex,
+      originatingCaseIdentities: reportRecords
+        .slice(0, subjectIndex + 1)
+        .map((record) => String(recordValue(record, "originating route record").caseIdentity)),
+      origin,
+      candidate,
+      budget,
+      mismatchAuthorities,
+      expectedDisposition,
+      ...(scenario === "sequence-only" ? { expectedFailingPosition: subjectIndex + 1 } : {}),
       activity,
+      ...(localViceEvidence === undefined ? {} : { localViceEvidence }),
       async cleanup() {
-        await Promise.all([...activeExecutors].map((executor) => executor.shutdown()));
-        activeExecutors.clear();
+        if (options.subjectTier === "vice") {
+          await closeFailureCandidateViceControllerV1(controller);
+        } else {
+          await cleanupControlledFailureExecutionAdaptersV1(controller);
+        }
+        controller.diagnosticOutcomes.clear();
+        delete controller.selectedDiagnosticOutcome;
+        controller.selectedWorkerTiers.length = 0;
+        controller.selectedProcessTrace.length = 0;
+        delete controller.selectedEmitCompletion;
+        delete controller.protocolApis;
         await catalog.cleanup();
-        vi.doUnmock(WORKER_MODULE);
-        vi.doUnmock(PROCESS_MODULE);
-        vi.resetModules();
-        if (activeController === controller) activeController = undefined;
       },
     };
   } catch (error) {
+    controller.diagnosticOutcomes.clear();
+    delete controller.selectedDiagnosticOutcome;
+    controller.selectedWorkerTiers.length = 0;
+    controller.selectedProcessTrace.length = 0;
+    delete controller.selectedEmitCompletion;
+    delete controller.protocolApis;
     await catalog.cleanup();
-    vi.doUnmock(WORKER_MODULE);
-    vi.doUnmock(PROCESS_MODULE);
-    vi.resetModules();
+    if (options.subjectTier === "vice") {
+      await closeFailureCandidateViceControllerV1(controller);
+    } else {
+      await cleanupControlledFailureExecutionAdaptersV1(controller);
+    }
     throw error;
   }
 }

@@ -26,6 +26,7 @@ import {
   isCanonicalViceLaunchTokenPathV1,
   processFactFromViceLaunchArtifactV1,
   readViceLaunchArtifactV1,
+  type ViceLaunchArtifactV1,
 } from "./execution-vice-launch-artifact.js";
 import type { ExecutionProcessHandleV1 } from "./execution-process.js";
 import {
@@ -34,6 +35,8 @@ import {
   parseViceLeaseRecordV1,
   processFactMatchesRecordV1,
   processFactToRecordV1,
+  viceHexToBytesV1,
+  type ViceLeaseRecordV1,
 } from "./execution-vice-record.js";
 import type {
   ViceExecutionHostV1,
@@ -133,6 +136,23 @@ function sameReference(left: ViceLeaseReferenceV1, right: ViceLeaseReferenceV1):
     sameDirectory(left.directory, right.directory) &&
     sameFile(left.file, right.file) &&
     left.bytesDigest === right.bytesDigest
+  );
+}
+
+/** Tests whether a launch artifact belongs to the exact attempt retained by a lease. */
+function artifactMatchesLeaseRecord(
+  artifact: ViceLaunchArtifactV1,
+  record: ViceLeaseRecordV1,
+): boolean {
+  const attempt = record.attempt;
+  return (
+    attempt !== null &&
+    artifact.target === record.target &&
+    artifact.generation === record.generation &&
+    artifact.nonce === record.nonce &&
+    artifact.launchToken === attempt.launchToken &&
+    artifact.binaryPort === attempt.binaryPort &&
+    artifact.textPort === attempt.textPort
   );
 }
 
@@ -631,18 +651,81 @@ class LinuxViceExecutionHost implements ViceExecutionHostV1, RecordedViceAttempt
         const current = await observePinnedLease(namespace);
         if (current.kind !== "present") return success({ kind: "missing" });
         if (!sameReference(current.reference, expected)) return success({ kind: "changed" });
-        if (!(await revalidatePinnedNamespace(namespace))) return success({ kind: "changed" });
         const record = parseViceLeaseRecordV1(current.bytes);
-        await unlink(namespace.lease);
         const tokenPath = record?.child?.launchTokenPath ?? record?.attempt?.launchTokenPath;
-        if (
-          tokenPath !== undefined &&
-          tokenPath.startsWith(`${namespace.canonicalDirectory}/launch-`)
-        ) {
-          await unlink(
-            `${namespace.fdDirectory}/${tokenPath.slice(tokenPath.lastIndexOf("/") + 1)}`,
-          ).catch(() => undefined);
+        if (tokenPath !== undefined && record !== undefined) {
+          if (!isCanonicalViceLaunchTokenPathV1(tokenPath, uid)) {
+            return success({ kind: "changed" });
+          }
+          let artifact: ViceLaunchArtifactV1 | undefined;
+          let artifactIdentity: ViceLeaseNodeIdentityV1 | undefined;
+          try {
+            artifact = await readViceLaunchArtifactV1(tokenPath, uid);
+            artifactIdentity = nodeIdentity(await lstat(tokenPath, { bigint: true }));
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+              return success({ kind: "changed" });
+            }
+          }
+          if (artifact !== undefined && artifactIdentity !== undefined) {
+            if (!artifactMatchesLeaseRecord(artifact, record)) {
+              return success({ kind: "changed" });
+            }
+            const artifactProcess = processFactFromViceLaunchArtifactV1(artifact, tokenPath);
+            if (artifactProcess === undefined) {
+              if (
+                record.child !== null ||
+                artifact.state !== "prepared" ||
+                artifact.identity !== null
+              ) {
+                return success({ kind: "changed" });
+              }
+            } else {
+              if (
+                record.child !== null &&
+                !processFactMatchesRecordV1(artifactProcess, record.child)
+              ) {
+                return success({ kind: "changed" });
+              }
+              const observed = await this.observeProcess(artifactProcess.pid, signal, tokenPath);
+              if (!observed.ok) return observed;
+              if (observed.value !== null) return success({ kind: "changed" });
+            }
+            const immediateArtifact = await readViceLaunchArtifactV1(tokenPath, uid);
+            const immediateIdentity = nodeIdentity(await lstat(tokenPath, { bigint: true }));
+            if (
+              !sameFile(immediateIdentity, artifactIdentity) ||
+              JSON.stringify(immediateArtifact) !== JSON.stringify(artifact)
+            ) {
+              return success({ kind: "changed" });
+            }
+            await unlink(
+              `${namespace.fdDirectory}/${tokenPath.slice(tokenPath.lastIndexOf("/") + 1)}`,
+            );
+          } else if (record.child !== null) {
+            const childTokenPath = record.child.launchTokenPath;
+            if (childTokenPath === null) return success({ kind: "changed" });
+            const token = viceHexToBytesV1(record.child.launchToken ?? "");
+            if (token === undefined || token.byteLength !== 32) return success({ kind: "changed" });
+            const expectedProcess: ViceProcessIdentityFactV1 = Object.freeze({
+              bootId: record.child.bootId,
+              pid: record.child.pid,
+              startTicks: BigInt(record.child.startTicks),
+              processGroupId: record.child.processGroupId,
+              launchToken: token,
+              launchTokenPath: childTokenPath,
+            });
+            const observed = await this.observeProcess(expectedProcess.pid, signal, childTokenPath);
+            if (!observed.ok) return observed;
+            if (observed.value !== null) return success({ kind: "changed" });
+          }
         }
+        if (!(await revalidatePinnedNamespace(namespace))) return success({ kind: "changed" });
+        const revalidated = await observePinnedLease(namespace);
+        if (revalidated.kind !== "present" || !sameReference(revalidated.reference, expected)) {
+          return success({ kind: "changed" });
+        }
+        await unlink(namespace.lease);
         await namespace.handle.sync();
         return success({ kind: "removed" });
       } finally {

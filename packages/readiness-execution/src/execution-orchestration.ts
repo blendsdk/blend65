@@ -1,23 +1,15 @@
-import { createHash } from "node:crypto";
-
 import {
-  createExecutionCaseV1,
-  generateCampaignCase,
   getCompositeReadinessProjectionV1,
   projectExecutionCampaignV1,
   resolveCompositeReadinessSnapshot,
-  serializeExecutionRoutePlanV1,
+  serializeExecutionRoutePlanPreimageV1,
   type CompositeReadinessProjectionV1,
   type ExecutionOperationIssueCodeV1,
   type ExecutionOperationResultV1,
   type ExecutionPolicyV1,
   type ExecutionProjectionRevisionV1,
-  type ExecutionResultCodeV1,
   type ExecutionResultV1,
   type ExecutionRoutePlanItemV1,
-  type ExecutionStageV1,
-  type ExecutionCaseV1,
-  type GeneratedCase,
   type PreparedCampaign,
   type PublishedOracleContext,
   type PublishedSnapshot,
@@ -26,11 +18,7 @@ import {
   authenticatePublishedExecutionCampaignParentV1,
   getPreparedCampaignExecutionIdentityV1,
 } from "@blend65/readiness/execution-campaign-identity";
-import {
-  createPublishedDiagnosticCaseV1,
-  createPublishedOracleRequest,
-  type PublishedDiagnosticCaseV1,
-} from "@blend65/readiness/published-oracle";
+import { createPublishedOracleRequest } from "@blend65/readiness/published-oracle";
 
 import { authorizeExecutionAuthorityReportV1 } from "./execution-authority-report.js";
 import {
@@ -43,18 +31,35 @@ import type {
   ExecutionEnvironmentCapabilitiesV1,
   ExecutionToolVersionV1,
 } from "./execution-orchestration-types.js";
-import { deriveCampaignRouteExecutionIdentityV1 } from "./execution-orchestration-identity.js";
+import { inspectViceLeaseV1 } from "./execution-vice.js";
 import {
   getLiveExecutionContextStateV1,
   revalidateExecutionReviewContextV1,
   type ExecutionAuthorityContextV1,
   type ExecutionReviewContextV1,
 } from "./execution-publication-catalog.js";
-import { createExecutionRouteRequestV1 } from "./execution-route-adapters.js";
-import type { PublishedExecutionHandlersV1 } from "./execution-route-adapters.js";
 import { planExecutionRoutesV1 } from "./execution-route-planner.js";
+import {
+  appendExecutionRouteEvidenceV1,
+  createCaughtExecutionResultV1,
+  createGeneratedExecutionCaseIndexV1,
+  createUnavailableExecutionResultV1,
+  derivePlannedExecutionIdentityV1,
+  prepareExecutionRouteEvidenceV1,
+  unavailableExecutionRouteToolsV1,
+  type ExecutionRouteAuthorityRecordV1,
+  type ExecutionRouteSourceAuthorityV1,
+  type ExecutionRouteToolV1,
+} from "./execution-route-evidence.js";
 import { acquireExecutionWorkerExecutorOwnershipV1 } from "./execution-supervisor.js";
 import { defaultExecutionWorkerExecutorV1 } from "./execution-worker-executor.js";
+import type { FailurePredicateEvidenceAuthorityV1 } from "./failure-predicate-evidence.js";
+import type { ExecutionReportOccurrenceProvenanceInputV1 } from "./execution-report-provenance.js";
+
+export type {
+  ExecutionRouteAuthorityRecordV1,
+  ExecutionRouteToolV1,
+} from "./execution-route-evidence.js";
 
 /** Stable campaign aggregate retained in the canonical execution report. */
 export interface ExecutionCampaignSummaryV1 {
@@ -66,29 +71,6 @@ export interface ExecutionCampaignSummaryV1 {
   readonly passedCases: number;
   /** Canonically ordered derived route and residual blockers. */
   readonly blockers: readonly string[];
-}
-
-/** Local external tools that may be prerequisites of one selected route. */
-export type ExecutionRouteToolV1 = "acme" | "vice";
-
-/** Standalone attribution and terminal evidence for one selected route. */
-export interface ExecutionRouteAuthorityRecordV1 {
-  /** Exact prepared-campaign case identity. */
-  readonly caseIdentity: string;
-  /** Exact execution identity used by route dispatch and substitution. */
-  readonly executionIdentity: string;
-  /** Reviewed rule exercised by the route. */
-  readonly ruleId: string;
-  /** Selected evidence obligation. */
-  readonly obligation: string;
-  /** Last tier owned by the route. */
-  readonly terminalTier: ExecutionRoutePlanItemV1["terminalTier"];
-  /** Canonically ordered external tool prerequisites for this route only. */
-  readonly requiredTools: readonly ExecutionRouteToolV1[];
-  /** Canonically ordered prerequisites unavailable during this execution. */
-  readonly unavailableTools: readonly ExecutionRouteToolV1[];
-  /** Closed terminal result attributable to this route. */
-  readonly result: ExecutionResultV1;
 }
 
 /** Canonical machine-neutral evidence produced by one complete campaign orchestration. */
@@ -141,19 +123,40 @@ export interface ExecuteReadinessCampaignInputV1 {
   readonly capabilities: ExecutionEnvironmentCapabilitiesV1;
 }
 
-const EMPTY_USAGE = Object.freeze({
-  wallMs: 0,
-  outputBytes: 0,
-  evidenceBytes: 0,
-  instructions: 0,
-  cycles: 0,
-  launchAttempts: 0,
-});
 const PROJECTION_REVISIONS: readonly ExecutionProjectionRevisionV1[] = Object.freeze([
   "c64-vic-color-observation-v1",
   "c64-vic-color-readback-v1",
 ]);
 const ENCODER = new TextEncoder();
+
+/**
+ * Waits for the process-wide VICE lease to expose completed child retirement.
+ *
+ * A VICE child can exit between its route result becoming available and the host's final durable
+ * lease observation. Campaign reports must not become authoritative during that short interval,
+ * or while a recoverable generation tombstone still occupies the namespace, because their route
+ * results already claim cleanup is complete. This barrier is read-only and inherits the selected
+ * cleanup grace; it never clears or signals an observed generation.
+ */
+async function awaitViceLeaseCleanupV1(cleanupGraceMs: number): Promise<boolean> {
+  const deadline = performance.now() + cleanupGraceMs;
+  for (;;) {
+    const remainingMs = Math.max(1, Math.floor(deadline - performance.now()));
+    const observed = await inspectViceLeaseV1("c64", AbortSignal.timeout(remainingMs));
+    if (
+      observed.ok &&
+      observed.value.state === "clear" &&
+      observed.value.generation === 0 &&
+      observed.value.nonce === "" &&
+      observed.value.childAbsent
+    ) {
+      return true;
+    }
+    const now = performance.now();
+    if (now >= deadline) return false;
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(10, deadline - now)));
+  }
+}
 
 function failure<T>(
   code: ExecutionOperationIssueCodeV1,
@@ -170,6 +173,31 @@ function failure<T>(
 
 function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });
+}
+
+function isReportAuthorizationFailure(
+  value: unknown,
+): value is Extract<ExecutionOperationResultV1<never>, { readonly ok: false }> {
+  if (typeof value !== "object" || value === null) return false;
+  const ok = Reflect.getOwnPropertyDescriptor(value, "ok");
+  const issues = Reflect.getOwnPropertyDescriptor(value, "issues");
+  return ok?.value === false && Array.isArray(issues?.value);
+}
+
+/**
+ * Converts the report authorizer's closed report-or-failure return into one operation result.
+ *
+ * @example
+ * ```ts
+ * const completed = completeExecutionReportAuthorizationV1(authorizedReport);
+ * ```
+ */
+export function completeExecutionReportAuthorizationV1(
+  authorization: ExecutionAuthorityReportV1 | ExecutionOperationResultV1<never>,
+): ExecutionOperationResultV1<ExecutionAuthorityReportV1> {
+  return isReportAuthorizationFailure(authorization)
+    ? authorization
+    : success(authorization as ExecutionAuthorityReportV1);
 }
 
 function exactInput(input: unknown): Readonly<Record<string, unknown>> | undefined {
@@ -263,201 +291,6 @@ function snapshotCapabilities(input: unknown): ExecutionEnvironmentCapabilitiesV
   }
 }
 
-function unavailableResult(
-  route: ExecutionRoutePlanItemV1,
-  blocker: "acme" | "vice",
-): ExecutionResultV1 {
-  const digest = createHash("sha256")
-    .update("blend65-campaign-tier-unavailable-v1\0")
-    .update(route.caseIdentity)
-    .update("\0")
-    .update(route.terminalTier)
-    .update("\0")
-    .update(blocker)
-    .digest("hex");
-  return Object.freeze({
-    status: "failure",
-    tier: route.terminalTier,
-    stage: "capability",
-    code: "tier-unavailable",
-    usage: EMPTY_USAGE,
-    evidence: Object.freeze({
-      digest: `sha256:${digest}`,
-      retainedBytes: 0,
-      truncated: false,
-    }),
-  });
-}
-
-/** Returns the exact external tools required to finish one selected route. */
-function requiredTools(route: ExecutionRoutePlanItemV1): readonly ExecutionRouteToolV1[] {
-  const tiers = [...route.prerequisiteTiers, route.terminalTier];
-  return Object.freeze([
-    ...(tiers.includes("acme") ? (["acme"] as const) : []),
-    ...(tiers.includes("vice") ? (["vice"] as const) : []),
-  ]);
-}
-
-/** Returns only this route's missing external prerequisites. */
-function unavailableTools(
-  route: ExecutionRoutePlanItemV1,
-  capabilities: ExecutionEnvironmentCapabilitiesV1,
-): readonly ExecutionRouteToolV1[] {
-  return Object.freeze(requiredTools(route).filter((tool) => !capabilities[tool].available));
-}
-
-function routeFailure(
-  route: ExecutionRoutePlanItemV1,
-  stage: ExecutionStageV1,
-  code: Exclude<ExecutionResultCodeV1, "pass">,
-): ExecutionResultV1 {
-  const digest = createHash("sha256")
-    .update("blend65-campaign-route-failure-v1\0")
-    .update(route.caseIdentity)
-    .update("\0")
-    .update(code)
-    .digest("hex");
-  return Object.freeze({
-    status: "failure",
-    tier: route.terminalTier,
-    stage,
-    code,
-    usage: EMPTY_USAGE,
-    evidence: Object.freeze({ digest: `sha256:${digest}`, retainedBytes: 0, truncated: false }),
-  });
-}
-
-function observationForGeneratedCase(generated: GeneratedCase):
-  | {
-      readonly kind: "scalar-bytes";
-      readonly byteLength: 1 | 2;
-    }
-  | {
-      readonly kind: "direct-mmio";
-      readonly byteLength: 1 | 2;
-      readonly address: number;
-      readonly projectionRevision: "c64-vic-color-observation-v1";
-    }
-  | undefined {
-  const projection = generated.modeledCase.projection;
-  if (projection.kind !== "valid") return undefined;
-  const fn = projection.module.functions[0];
-  if (fn === undefined) return undefined;
-  if (fn.returnType === "boolean" || fn.returnType === "byte" || fn.returnType === "sbyte") {
-    return Object.freeze({ kind: "scalar-bytes", byteLength: 1 });
-  }
-  if (fn.returnType === "word" || fn.returnType === "sword") {
-    return Object.freeze({ kind: "scalar-bytes", byteLength: 2 });
-  }
-  const choice = generated.planItem.request.choice;
-  if (choice.kind !== "memory") return undefined;
-  const writes = choice.ruleId.includes(".poke-") || choice.ruleId.includes(".pokew-");
-  if (!writes) return undefined;
-  return Object.freeze({
-    kind: "direct-mmio",
-    byteLength: choice.ruleId.includes(".pokew-") ? 2 : 1,
-    address: choice.addressForm === "computed" ? 0xd021 : 0xd020,
-    projectionRevision: "c64-vic-color-observation-v1",
-  });
-}
-
-async function executeGenuineRoute(
-  route: ExecutionRoutePlanItemV1,
-  campaign: PreparedCampaign,
-  oracle: PublishedOracleContext,
-  policy: ExecutionPolicyV1,
-  handlers: PublishedExecutionHandlersV1,
-  generatedCases: ReadonlyMap<
-    string,
-    Readonly<{ readonly ordinal: number; readonly generated: GeneratedCase }>
-  >,
-  authorities: Map<
-    string,
-    | Readonly<{ readonly kind: "diagnostic"; readonly value: PublishedDiagnosticCaseV1 }>
-    | Readonly<{ readonly kind: "execution"; readonly value: ExecutionCaseV1 }>
-  >,
-): Promise<ExecutionResultV1> {
-  const retained = generatedCases.get(route.caseIdentity);
-  if (retained === undefined) return routeFailure(route, "input", "invalid-evidence-input");
-  let authority = authorities.get(route.caseIdentity);
-  if (retained.generated.modeledCase.validity.kind === "invalid") {
-    if (
-      route.terminalTier !== "frontend" &&
-      route.terminalTier !== "compiler-api" &&
-      route.terminalTier !== "cli"
-    ) {
-      return routeFailure(route, "input", "invalid-evidence-input");
-    }
-    if (authority === undefined) {
-      const diagnostic = createPublishedDiagnosticCaseV1(oracle, campaign, retained.ordinal);
-      if (!diagnostic.ok) return routeFailure(route, "input", "invalid-evidence-input");
-      authority = Object.freeze({ kind: "diagnostic" as const, value: diagnostic.value });
-      authorities.set(route.caseIdentity, authority);
-    }
-    if (authority.kind !== "diagnostic") {
-      return routeFailure(route, "input", "invalid-evidence-input");
-    }
-    const request = createExecutionRouteRequestV1({
-      kind: "invalid-diagnostic",
-      route: Object.freeze({ ...route, terminalTier: route.terminalTier }),
-      diagnosticCase: authority.value,
-      policy,
-    });
-    if (!request.ok) return routeFailure(route, "input", "invalid-evidence-input");
-    return handlers[route.terminalTier].execute(request.value, {
-      signal: new AbortController().signal,
-      deadlineMonotonicMs: performance.now() + policy.budget.routeMs,
-      outputLimitBytes: policy.budget.outputBytes,
-      evidenceLimitBytes: policy.budget.evidenceBytes,
-    });
-  }
-  if (authority === undefined) {
-    const observation = observationForGeneratedCase(retained.generated);
-    if (observation === undefined) return routeFailure(route, "input", "invalid-evidence-input");
-    const executionCase = createExecutionCaseV1(campaign, retained.ordinal, observation);
-    if (!executionCase.ok) return routeFailure(route, "input", "invalid-evidence-input");
-    authority = Object.freeze({ kind: "execution" as const, value: executionCase.value });
-    authorities.set(route.caseIdentity, authority);
-  }
-  if (authority.kind !== "execution") {
-    return routeFailure(route, "input", "invalid-evidence-input");
-  }
-  const request = createExecutionRouteRequestV1({
-    route,
-    executionCase: authority.value,
-    oracle,
-    policy,
-  });
-  if (!request.ok) return routeFailure(route, "input", "invalid-evidence-input");
-  return handlers[route.terminalTier].execute(request.value, {
-    signal: new AbortController().signal,
-    deadlineMonotonicMs: performance.now() + policy.budget.routeMs,
-    outputLimitBytes: policy.budget.outputBytes,
-    evidenceLimitBytes: policy.budget.evidenceBytes,
-  });
-}
-
-function generatedCaseIndex(
-  campaign: PreparedCampaign,
-  caseCount: number,
-): ReadonlyMap<string, Readonly<{ readonly ordinal: number; readonly generated: GeneratedCase }>> {
-  const result = new Map<
-    string,
-    Readonly<{ readonly ordinal: number; readonly generated: GeneratedCase }>
-  >();
-  for (let ordinal = 0; ordinal < caseCount; ordinal += 1) {
-    const generated = generateCampaignCase(campaign, ordinal);
-    /* v8 ignore next -- the authenticated projection already reproduced every campaign ordinal. */
-    if (generated.ok) {
-      result.set(
-        generated.value.identity.digest,
-        Object.freeze({ ordinal, generated: generated.value }),
-      );
-    }
-  }
-  return result;
-}
-
 function residualBlockers(
   parentRules: readonly { readonly ruleId: string }[],
   cases: readonly { readonly caseIdentity: string; readonly ruleId: string }[],
@@ -475,54 +308,6 @@ function residualBlockers(
     }
   }
   return blockers.sort();
-}
-
-/** Removes host-scheduling variance after live wall-budget enforcement has completed. */
-function canonicalReportResult(result: ExecutionResultV1): ExecutionResultV1 {
-  return Object.freeze({
-    ...result,
-    usage: Object.freeze({ ...result.usage, wallMs: 0 }),
-  });
-}
-
-/** Binds one selected route to the complete plan authority used for dispatch. */
-function derivePlannedExecutionIdentity(
-  route: ExecutionRoutePlanItemV1,
-  routePlanDigest: string,
-): string {
-  return deriveCampaignRouteExecutionIdentityV1({
-    routePlanDigest,
-    caseIdentity: route.caseIdentity,
-    ruleId: route.ruleId,
-    obligation: route.obligation,
-    terminalTier: route.terminalTier,
-    requiredTools: requiredTools(route),
-  });
-}
-
-/** Builds one immutable standalone route record without relying on array position. */
-function routeRecord(
-  route: ExecutionRoutePlanItemV1,
-  executionIdentity: string,
-  missingTools: readonly ExecutionRouteToolV1[],
-  result: ExecutionResultV1,
-): ExecutionRouteAuthorityRecordV1 {
-  const prerequisites = requiredTools(route);
-  const canonicalResult = canonicalReportResult(result);
-  const attributedUnavailable =
-    canonicalResult.code === "tier-unavailable" && missingTools.length === 0
-      ? prerequisites
-      : missingTools;
-  return Object.freeze({
-    caseIdentity: route.caseIdentity,
-    executionIdentity,
-    ruleId: route.ruleId,
-    obligation: route.obligation,
-    terminalTier: route.terminalTier,
-    requiredTools: prerequisites,
-    unavailableTools: Object.freeze([...attributedUnavailable]),
-    result: canonicalResult,
-  });
 }
 
 /** Derives every aggregate field from closed standalone route evidence. */
@@ -657,30 +442,42 @@ export async function executeReadinessCampaign(
     policy: retained.policy,
   });
   if (!planned.ok) return planned;
-  const completePlanBytes = serializeExecutionRoutePlanV1(planned.value);
+  const routePlanBytes = serializeExecutionRoutePlanPreimageV1({
+    revision: planned.value.revision,
+    parentDigest: planned.value.parentDigest,
+    executionDigest: planned.value.executionDigest,
+    campaignDigest: planned.value.campaignDigest,
+    oracleDigest: planned.value.oracleDigest,
+    policy: planned.value.policy,
+    items: planned.value.items,
+  });
   /* v8 ignore next -- the canonical plan serializer always emits a non-empty schema object. */
-  if (completePlanBytes.byteLength === 0) {
+  if (routePlanBytes.byteLength === 0) {
     return failure("execution.invalid-schema", "/routePlan", "Route plan serialization failed.");
   }
   const executionIdentities = new Map<ExecutionRoutePlanItemV1, string>();
   for (const route of planned.value.items) {
-    const executionIdentity = derivePlannedExecutionIdentity(route, planned.value.digest);
+    const executionIdentity = derivePlannedExecutionIdentityV1(route, planned.value.digest);
     executionIdentities.set(route, executionIdentity);
     recordPlannedExecutionV1(executionIdentity, route.terminalTier, route.ruleId, route.obligation);
   }
 
   const capabilities = getExecutionEnvironmentCapabilitiesOverrideV1() ?? inputCapabilities;
-  const generatedCases = generatedCaseIndex(
+  const generatedCases = createGeneratedExecutionCaseIndexV1(
     retained.campaign as PreparedCampaign,
     campaign.value.cases.length,
   );
-  const routeAuthorities = new Map<
-    string,
-    | Readonly<{ readonly kind: "diagnostic"; readonly value: PublishedDiagnosticCaseV1 }>
-    | Readonly<{ readonly kind: "execution"; readonly value: ExecutionCaseV1 }>
-  >();
+  const routeAuthorities = new Map<string, ExecutionRouteSourceAuthorityV1>();
   const results: ExecutionResultV1[] = [];
   const routeRecords: ExecutionRouteAuthorityRecordV1[] = [];
+  const predicateSidecars: FailurePredicateEvidenceAuthorityV1[] = [];
+  const routeOccurrences: ExecutionReportOccurrenceProvenanceInputV1[] = [];
+  const routeEvidenceCollections = Object.freeze({
+    results,
+    records: routeRecords,
+    sidecars: predicateSidecars,
+    occurrences: routeOccurrences,
+  });
   const campaignWorkerLease = acquireExecutionWorkerExecutorOwnershipV1(
     defaultExecutionWorkerExecutorV1,
   );
@@ -693,47 +490,128 @@ export async function executeReadinessCampaign(
       }
       const plannedPolicy = planned.value.policy;
       observePlannedExecutionPolicyUseV1(plannedPolicy);
-      const missingTools = unavailableTools(route, capabilities);
+      const preparedEvidence = prepareExecutionRouteEvidenceV1(
+        route,
+        retained.parent as PublishedSnapshot,
+        retained.execution as ExecutionAuthorityContextV1,
+        retained.campaign as PreparedCampaign,
+        retained.oracle as PublishedOracleContext,
+        oracleDigest.value,
+        plannedPolicy,
+        generatedCases,
+        routeAuthorities,
+      );
+      if (preparedEvidence === undefined) {
+        return failure(
+          "invalid-evidence-input",
+          "/routePlan",
+          "Planned route lacks authenticated predicate evidence facts.",
+        );
+      }
+      const missingTools = unavailableExecutionRouteToolsV1(route, capabilities);
       if (missingTools.length > 0) {
-        const result = unavailableResult(route, missingTools[0]!);
-        const record = routeRecord(route, executionIdentity, missingTools, result);
-        results.push(record.result);
-        routeRecords.push(record);
+        const result = createUnavailableExecutionResultV1(route, missingTools[0]!);
+        if (
+          !appendExecutionRouteEvidenceV1(
+            route,
+            executionIdentity,
+            missingTools,
+            preparedEvidence,
+            result,
+            routeEvidenceCollections,
+            "tier-unavailable",
+          )
+        ) {
+          return failure(
+            "invalid-evidence-input",
+            "/predicateSidecars",
+            "Unavailable route evidence could not be authenticated.",
+          );
+        }
         continue;
       }
       const substitute = takeExecutionResultSubstitutionV1(executionIdentity, route.terminalTier);
       if (substitute !== undefined) {
-        const record = routeRecord(route, executionIdentity, missingTools, substitute);
-        results.push(record.result);
-        routeRecords.push(record);
+        if (
+          !appendExecutionRouteEvidenceV1(
+            route,
+            executionIdentity,
+            missingTools,
+            preparedEvidence,
+            substitute,
+            routeEvidenceCollections,
+            "injected-substitution",
+          )
+        ) {
+          return failure(
+            "invalid-evidence-input",
+            "/predicateSidecars",
+            "Substituted route evidence could not be authenticated.",
+          );
+        }
         continue;
       }
       try {
-        const result = await executeGenuineRoute(
-          route,
-          retained.campaign as PreparedCampaign,
-          retained.oracle as PublishedOracleContext,
-          plannedPolicy,
-          live.handlers,
-          generatedCases,
-          routeAuthorities,
-        );
-        const record = routeRecord(route, executionIdentity, missingTools, result);
-        results.push(record.result);
-        routeRecords.push(record);
+        const result = await live.handlers[route.terminalTier].execute(preparedEvidence.request, {
+          signal: new AbortController().signal,
+          deadlineMonotonicMs: performance.now() + plannedPolicy.budget.routeMs,
+          outputLimitBytes: plannedPolicy.budget.outputBytes,
+          evidenceLimitBytes: plannedPolicy.budget.evidenceBytes,
+        });
+        if (
+          !appendExecutionRouteEvidenceV1(
+            route,
+            executionIdentity,
+            missingTools,
+            preparedEvidence,
+            result,
+            routeEvidenceCollections,
+          )
+        ) {
+          return failure(
+            "invalid-evidence-input",
+            "/predicateSidecars",
+            "Handled route evidence could not be authenticated.",
+          );
+        }
       } catch {
-        const result = routeFailure(
+        const result = createCaughtExecutionResultV1(
           route,
           route.terminalTier === "vice" ? "vice-launch" : route.terminalTier,
           "compiler-ice",
         );
-        const record = routeRecord(route, executionIdentity, missingTools, result);
-        results.push(record.result);
-        routeRecords.push(record);
+        if (
+          !appendExecutionRouteEvidenceV1(
+            route,
+            executionIdentity,
+            missingTools,
+            preparedEvidence,
+            result,
+            routeEvidenceCollections,
+            "caught-compiler-ice",
+          )
+        ) {
+          return failure(
+            "invalid-evidence-input",
+            "/predicateSidecars",
+            "Caught route evidence could not be authenticated.",
+          );
+        }
       }
     }
   } finally {
     await campaignWorkerLease?.shutdown?.();
+  }
+  if (
+    capabilities.vice.available &&
+    planned.value.items.some((route) => route.terminalTier === "vice") &&
+    !(await awaitViceLeaseCleanupV1(planned.value.policy.budget.cleanupGraceMs))
+  ) {
+    return failure(
+      "emulator-lease-recovery-blocked",
+      "/vice/cleanup",
+      "VICE child retirement is not complete at the campaign report boundary.",
+    );
   }
   const residual = residualBlockers(parent.value.rules, campaign.value.cases, planned.value.items);
   const summary = deriveSummary(routeRecords, residual);
@@ -743,7 +621,7 @@ export async function executeReadinessCampaign(
     );
     if (!fresh.ok) return fresh;
   }
-  return success(
+  return completeExecutionReportAuthorizationV1(
     authorizeExecutionAuthorityReportV1(
       Object.freeze({
         revision: "execution-authority-report-v1" as const,
@@ -775,6 +653,9 @@ export async function executeReadinessCampaign(
         residualBlockers: Object.freeze([...residual]),
         summary,
       }),
-    ),
+      predicateSidecars,
+      routeOccurrences,
+      routePlanBytes,
+    ) as ExecutionAuthorityReportV1 | ExecutionOperationResultV1<never>,
   );
 }

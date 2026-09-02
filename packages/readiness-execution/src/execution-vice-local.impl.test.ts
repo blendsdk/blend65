@@ -86,15 +86,15 @@ const ACCEPTED_EVIDENCE: readonly AcceptedLocalAcceptanceEvidence[] = [
   {
     case: "peek",
     sourceCaseDigest: "sha256:324abcffa2288995f6d553764ab5cb540fcd6a33c349e4e7614262101a168be8",
-    evaluationIdentity: "sha256:8a829694d395d99b55b1b8e0612612b5ab7778f50bc6830599625830b1db2fd2",
-    routeIdentity: "sha256:1e836bafbee261f20349d6bf7e3f8625ee9589955e80b2d40d1024e003e6b972",
+    evaluationIdentity: "sha256:dc1a9292b7f8e84e0713f1af3890f41089c0538e976edd30ad3623681fce1812",
+    routeIdentity: "sha256:5a5dea26bb59066a377e369d42abea6d6bb911a5eafc2e178f67d41b1549a405",
     buildEvidenceDigest: "sha256:c7354d7483993e6c5bbd9a4286eace6e993004790272258ad34a6a11a0b3c596",
     binaryDigest: "7bb8098f1f9fab2e0feaf6fe3b5585fe0bb72dbd8521040a5b634fb23e5807ea",
     layoutDigest: "sha256:564e93ab224b4fa567150b551f3c8176562dd7b852f801a12a81c45d550316a6",
     usage: { outputBytes: 1254, evidenceBytes: 5813, instructions: 65_535, cycles: 34 },
     resultDigestsByLaunchAttempt: [
-      "b10be3124ff14fee857410555e09c79aa55d717ee8c52c6b6a883172a3ad2296",
-      "e89aecc5e83c131f45eab8a2517305ebf76e31d37079c70fd0f98c446d2217c4",
+      "0ec77d964c05be5e53cd7cffa7b064e6eb52d52a6257522580c63b16f17fdcab",
+      "8ef2a49aa0c26775f4f32b67e8e1a39ecbd0d21f2ebe10e5c67d81458f7415fc",
     ],
     completionTiming: {
       visibleStoreInstructionAddresses: [0x0834, 0x0839],
@@ -107,15 +107,15 @@ const ACCEPTED_EVIDENCE: readonly AcceptedLocalAcceptanceEvidence[] = [
   {
     case: "peekw",
     sourceCaseDigest: "sha256:2a38428f820b2e8096f94f9ef1eb6cbe2e8f2db758971369c347e96df512b783",
-    evaluationIdentity: "sha256:d4dccca1591166f19a0160ebd15b0a53ee2b3211b10fe56c51534d25fb24e619",
-    routeIdentity: "sha256:58f330d7c6503865eff78e6a7d46e4dde21c854715b53fdb6d413ca63c950f3a",
+    evaluationIdentity: "sha256:2a4d76b34449b59abc588b4db6b888743483739afd6e74265117e407012641bb",
+    routeIdentity: "sha256:86350a40cf51a5f4bc4d5012d666c032d5944dcebf67f3d2d781bb07e9808f6f",
     buildEvidenceDigest: "sha256:cce01d0dd41caea3ec30e6da2fe0728f415d5e94d35f813a74723814ce2e958b",
     binaryDigest: "bac26289506fc1183987d51d0193647e7de0dc8e8d1b92668a0ecbfe9c900fb5",
     layoutDigest: "sha256:061ac19e139164a5cc0c118afb7ae7732e53fff2fac6ce37d1abf95407536a64",
     usage: { outputBytes: 1551, evidenceBytes: 6703, instructions: 65_535, cycles: 50 },
     resultDigestsByLaunchAttempt: [
-      "650fe96b164eec96b259571175b21087a005b3d441ef12a61102fc0fe3036272",
-      "1b8330332d4f0b34463056ccf18f42bc84574231a98a3a8aa6b0d32dbde604ac",
+      "1d6358675a94ff657d561ac09e35efa52a045cadfdebfb79429cab9118cbfc05",
+      "41d18500346d082d36d20e99d13f32ffcaf697f26b39dceb934d472899f4a96d",
     ],
     completionTiming: {
       visibleStoreInstructionAddresses: [0x083f, 0x0845, 0x084a],
@@ -128,15 +128,15 @@ const ACCEPTED_EVIDENCE: readonly AcceptedLocalAcceptanceEvidence[] = [
   {
     case: "poke",
     sourceCaseDigest: "sha256:68dfc69177f5869ed1353ff4a94e7ad8d93fc2225728fa4690644d4551fc3d10",
-    evaluationIdentity: "sha256:d95345a6c08712cc1c19b5fbc3b9d81625a52bfa28e3ad914199d3bf9637a2af",
-    routeIdentity: "sha256:fcdfd998ef73dc3709a35173d79adc4a56738bb15a1d4d284098be289a3a33cc",
+    evaluationIdentity: "sha256:6e86001a3a9c3d5f76a7d3cff32a87f099e079d7627b7434dd7be3cc261f873e",
+    routeIdentity: "sha256:cb6bf9c3d4d9ee4619bd55666f370177ec2410a4d19c46a3ab84658bbb49b023",
     buildEvidenceDigest: "sha256:7bf76a8f7aa609ee4d368d64f131c85a70ab66413826bde9806cf172b66c39d4",
     binaryDigest: "a38523dd41077a7a3f7042ba23903b179840b6fb3270fc479077fc0d21fbc2b4",
     layoutDigest: "sha256:ea4ecf308e89c1343b21e9521a23c58c2034580ee73b1eb5ea5bdce87ae381f3",
     usage: { outputBytes: 948, evidenceBytes: 4864, instructions: 65_535, cycles: 24 },
     resultDigestsByLaunchAttempt: [
-      "e4fab39475d17d47ea00f8244eb4d31ee6e4469f1b6fcdf1980db0a7d036ac04",
-      "238990af54261e207c0b230fedc39ad6995250c63fda31523583996441dc7f1c",
+      "a2bdf384c5fa8ac02e17cb3434f7bc2f8d5162119d452b0ea89509aa6aec0d4d",
+      "b9b623f149a2e3a31bcdeb4495e345b6c11fa414f72df2e9c96195ab4bf2f4db",
     ],
     completionTiming: {
       visibleStoreInstructionAddresses: [0x082d],
@@ -149,15 +149,15 @@ const ACCEPTED_EVIDENCE: readonly AcceptedLocalAcceptanceEvidence[] = [
   {
     case: "pokew",
     sourceCaseDigest: "sha256:41aeef9e0da37bf308caf25b98181ba691ea0df680e5c81ccd0b88ffbf421853",
-    evaluationIdentity: "sha256:8665b62dbc4ed3fbd910720d25f59c8d561b1e0dc01bfedc762bd91c8aed5222",
-    routeIdentity: "sha256:1dcd5662e5bf7267a67e65fc544f3cf0fd9369e1d2e3c0cf851ae45dff0962a8",
+    evaluationIdentity: "sha256:d154fe7096bc6d1d3f8fc7dcc904cf6d299e63ecf87f2f91a20c4d5b8f2ca175",
+    routeIdentity: "sha256:2bfe238982f022a093d284b5b1dfa4c7c977aa09497ea463a35668fdc9ee269e",
     buildEvidenceDigest: "sha256:817364f456e8271347573a32ff3bd1a0bb7dec6317bbdace38c243e5607f79d0",
     binaryDigest: "b4e571989735bf6328a95b9122d561111991c3957ed886ccf1783d697df14ae2",
     layoutDigest: "sha256:871038834a9aff2cc49915fee18df71e34d4299a3790c2cbcc8cc40abc232868",
     usage: { outputBytes: 977, evidenceBytes: 4991, instructions: 65_535, cycles: 30 },
     resultDigestsByLaunchAttempt: [
-      "49139d8214be5ab95d55091528330b43cfe46166f9d2ea9a3d970f9da5576583",
-      "5d5524f4cb9714c5128638333f15884543b094d8043a3fd1939faa6b8e476b4a",
+      "64af62197111efccf0c28fde5e655ed0d8dd9a7a3ebe9d1c20fa43c8c64cef26",
+      "82c5ff725422e86f47303ddddbbb05aa790c54215d5aef6960913f9db7956b17",
     ],
     completionTiming: {
       visibleStoreInstructionAddresses: [0x0832],

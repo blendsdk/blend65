@@ -6,7 +6,6 @@ export const rd05CoverageFiles = Object.freeze([
   "src/failure-campaign-budget.ts",
   "src/failure-claim-witness.ts",
   "src/failure-contracts.ts",
-  "src/failure-envelope.ts",
   "src/failure-envelope-codec.ts",
   "src/failure-envelope-history.ts",
   "src/failure-envelope-identity.ts",
@@ -14,11 +13,13 @@ export const rd05CoverageFiles = Object.freeze([
   "src/failure-envelope-model.ts",
   "src/failure-envelope-records.ts",
   "src/failure-envelope-transform-history.ts",
+  "src/failure-envelope.ts",
   "src/failure-identity.ts",
+  "src/failure-predicate-ingredients.ts",
   "src/failure-reducer.ts",
   "src/failure-reduction-internals.ts",
-  "src/failure-transform-catalog.ts",
   "src/failure-trace-authority.ts",
+  "src/failure-transform-catalog.ts",
   "src/failure-transformation-drafts.ts",
   "src/failure-transformation-model.ts",
   "src/malformed-diagnostic-case.ts",
@@ -31,11 +32,13 @@ export const rd05CoverageFiles = Object.freeze([
 /** Existing readiness modules with explicitly reviewed failure-reduction changes. */
 export const rd05ParticipatingExistingFiles = Object.freeze([
   "src/canonical-identity.ts",
+  "src/execution-runtime.ts",
   "src/published-diagnostic-case.ts",
   "src/published-oracle-campaign.ts",
   "src/published-oracle-context.ts",
   "src/published-oracle-evaluation.ts",
   "src/published-oracle-state.ts",
+  "src/published-runtime-evaluation.ts",
 ]);
 
 /** Generated or barrel files reviewed through freshness checks instead of runtime coverage. */

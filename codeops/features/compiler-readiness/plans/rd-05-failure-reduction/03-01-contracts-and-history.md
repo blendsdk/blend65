@@ -290,6 +290,13 @@ export type FailureReplayAuthorityV1 =
       readonly envelope: MalformedReplayEnvelopeV1;
     };
 
+export interface FailureToolIdentityV1 {
+  readonly kind: "compiler" | "assembler" | "emulator";
+  readonly name: string;
+  readonly version: string;
+  readonly digest: Sha256Digest;
+}
+
 export interface FailureEnvelopeV1 {
   readonly revision: "failure-envelope-v1";
   readonly replay: FailureReplayAuthorityV1;
@@ -314,6 +321,11 @@ export function parseFailureEnvelopeV1(
   resolvers: FailureAuthorityResolversV1,
 ): ExecutionOperationResultV1<AuthorizedFailureEnvelopeV1>;
 ```
+
+`FailureToolIdentityV1` is an exact enumerable four-field record. `name` and `version` use the
+bounded stable execution-identifier grammar; `digest` names the complete tool contract and is not
+recomputed from those labels. The duplicate-free normalized tool list must contain exactly one
+identity for every sorted `routeContract.toolContractDigests` entry and no extras. (AR-P44)
 
 `FailureAuthorityReferencesV1` content-addresses the exact inventory, rule, generator, boundary,
 oracle, diagnostic, execution-publication, projection, fixture, compiler, assembler, and emulator

@@ -31,7 +31,7 @@ import type {
 import { getExecutionCatalogFixtureDescriptorV1 } from "../execution-publication-catalog-conformance-v1.js";
 
 export const CURRENT_EXECUTION_PARENT_DIGEST =
-  "sha256:e65b95cdc817a6b2608d6965855ca1013f36b7893424d31d2f04fd18fa0845a5";
+  "sha256:e1713db3ca7dc9d624d0f9e9cb064b6fdcfd3a3e2b0e2421b5c482e00f266905";
 export const EXECUTION_SPEC_REVISION =
   "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd";
 

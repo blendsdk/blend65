@@ -28,8 +28,8 @@ import {
   getValidatedReductionCandidateStateV1,
   type ReductionCandidateEvaluationV1,
   type ReductionCandidateAuthorityV1,
+  type ReductionCandidateContentProjectionV1,
   type ReductionCandidateInvocationV1,
-  type ReductionCandidateProjectionV1,
   type ValidatedReductionCandidateV1,
 } from "./reduction-candidate.js";
 import { readExecutionRecord } from "./execution-validation.js";
@@ -51,13 +51,13 @@ export type FailureReductionResultV1 =
   | {
       readonly revision: "failure-reduction-result-v1";
       readonly outcome: "one-minimal";
-      readonly best: ReductionCandidateProjectionV1;
+      readonly best: ReductionCandidateContentProjectionV1;
       readonly trace: readonly FailureTransformationTraceEntryV1[];
     }
   | {
       readonly revision: "failure-reduction-result-v1";
       readonly outcome: "reduction-exhausted";
-      readonly best: ReductionCandidateProjectionV1;
+      readonly best: ReductionCandidateContentProjectionV1;
       readonly trace: readonly FailureTransformationTraceEntryV1[];
       readonly exhaustedAt: "transformation-attempt" | "oracle-evaluation";
     };
@@ -111,7 +111,9 @@ function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });
 }
 
-function bestProjection(state: FailureReductionSessionState): ReductionCandidateProjectionV1 {
+function bestProjection(
+  state: FailureReductionSessionState,
+): ReductionCandidateContentProjectionV1 {
   const authority = createReductionCandidateAuthorityV1(state.envelope, state.current, state.trace);
   // Module-private session state retains a genuine envelope/candidate pair.
   /* v8 ignore next */
@@ -119,7 +121,16 @@ function bestProjection(state: FailureReductionSessionState): ReductionCandidate
   const projection = getReductionCandidateProjectionV1(authority.value);
   /* v8 ignore next */
   if (!projection.ok) throw new TypeError(projection.issues[0].message);
-  return projection.value;
+  return Object.freeze({
+    revision: projection.value.revision,
+    family: projection.value.family,
+    sourceBytes: projection.value.sourceBytes,
+    candidateDigest: projection.value.candidateDigest,
+    originalRoute: projection.value.originalRoute,
+    predicate: projection.value.predicate,
+    policy: projection.value.policy,
+    traceDigest: projection.value.traceDigest,
+  });
 }
 
 function complete(

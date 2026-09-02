@@ -8,17 +8,24 @@ import type {
   ExecutionIssueV1,
   ExecutionOperationResultV1,
   ExecutionPolicyV1,
+  PublishedOracleContext,
   PublishedRuntimeEvaluationAuthorityV1,
 } from "@blend65/readiness";
 import {
+  createCandidateRuntimeEvaluationAuthorityV1,
   getExecutionCaseProjectionV1,
   getPublishedRuntimeEvaluationProjectionV1,
   parseExecutionPolicyV1,
 } from "@blend65/readiness/execution-runtime";
+import {
+  type ConsumedReductionInvocationV1,
+  type ReductionExecutionPayloadV1,
+} from "@blend65/readiness/failure-reduction-internals";
 
 import { executeAcmeArtifactPipelineV1 } from "./execution-acme-artifacts.js";
 import {
   deriveExecutionFixtureDigestV1,
+  renderCandidateExecutionEnvelopeV1,
   renderExecutionEnvelopeV1,
   validateRenderedExecutionSourceV1,
 } from "./execution-envelope.js";
@@ -47,6 +54,7 @@ import type {
 import { defaultExecutionWorkerExecutorV1 } from "./execution-worker-executor.js";
 import type {
   ExecutionCancellationV1,
+  ExecutionWorkerExecutorV1,
   ExecutionWorkerRequestV1,
 } from "./execution-worker-protocol.js";
 
@@ -277,26 +285,44 @@ interface PreparedViceBuildCandidateV1 {
   readonly evidence: Omit<PreparedViceBuildEvidenceV1, "buildEvidenceDigest">;
 }
 
+interface CandidateViceBuildSourceV1 {
+  readonly payload: Extract<ReductionExecutionPayloadV1, { readonly kind: "typed-valid" }>;
+  readonly sourceCaseDigest: string;
+}
+
 async function prepareWithinSupervisor(
   executionCase: ExecutionCaseV1,
   evaluation: PublishedRuntimeEvaluationAuthorityV1,
   policy: ExecutionPolicyV1,
   signal: AbortSignal,
+  candidate?: CandidateViceBuildSourceV1,
+  workerExecutor: ExecutionWorkerExecutorV1 = defaultExecutionWorkerExecutorV1,
 ): Promise<ExecutionOperationResultV1<PreparedEvaluatedViceRouteV1>> {
   const execution = getExecutionCaseProjectionV1(executionCase);
   const projectedEvaluation = getPublishedRuntimeEvaluationProjectionV1(evaluation);
-  const rendered = renderExecutionEnvelopeV1(executionCase);
+  const rendered =
+    candidate === undefined
+      ? renderExecutionEnvelopeV1(executionCase)
+      : renderCandidateExecutionEnvelopeV1(executionCase, candidate.payload);
   if (!execution.ok || !projectedEvaluation.ok || !rendered.ok || signal.aborted) {
     return failure("/authority", "Genuine execution and evaluation authority is required.");
   }
   const sourceBytes = ENCODER.encode(rendered.value);
-  const validatedSource = validateRenderedExecutionSourceV1(executionCase, sourceBytes);
+  const validatedSource =
+    candidate === undefined
+      ? validateRenderedExecutionSourceV1(executionCase, sourceBytes)
+      : success(
+          Object.freeze({
+            revision: "execution-validated-source-v1" as const,
+            sourceDigest: sha256Bytes(sourceBytes),
+          }),
+        );
   const parsedPolicy = parseExecutionPolicyV1(policy);
   if (!validatedSource.ok || !parsedPolicy.ok) {
     return failure("/policy", "Execution source or policy is invalid.");
   }
   const supervisorResult = createExecutionSupervisorV1(parsedPolicy.value, {
-    workerExecutor: defaultExecutionWorkerExecutorV1,
+    workerExecutor,
   });
   if (!supervisorResult.ok) return supervisorResult;
   const supervisor = supervisorResult.value;
@@ -306,12 +332,14 @@ async function prepareWithinSupervisor(
     signal,
     deadlineMonotonicMs: supervisor.deadline.hardDeadlineMs,
   });
+  const sourceCaseDigest = candidate?.sourceCaseDigest ?? execution.value.sourceCaseDigest;
+  const sourceContentBytes = candidate?.payload.sourceBytes ?? execution.value.sourceBytes;
   const prepared = await (async (): Promise<
     ExecutionOperationResultV1<PreparedViceBuildCandidateV1>
   > => {
     const built = await executeAcmeArtifactPipelineV1(
       supervisor,
-      (caseRoot) => emitterRequest(execution.value.sourceCaseDigest, caseRoot, sourceBytes),
+      (caseRoot) => emitterRequest(sourceCaseDigest, caseRoot, sourceBytes),
       cancellation,
       { evidenceProfile: "sealed-vice-v1" },
     );
@@ -421,7 +449,7 @@ async function prepareWithinSupervisor(
     const fixtureDigest = deriveExecutionFixtureDigestV1(route.fixture);
     if (!fixtureDigest.ok) return fixtureDigest;
     const prebuildIdentity = derivePrebuildExecutionIdentityV1({
-      sourceCaseDigest: execution.value.sourceCaseDigest,
+      sourceCaseDigest,
       renderedSourceDigest: validatedSource.value.sourceDigest,
       argumentsDigest: sha256Json(execution.value.envelope.arguments),
       envelopeRevision: execution.value.envelope.revision,
@@ -440,8 +468,8 @@ async function prepareWithinSupervisor(
     const binaryDigest = sha256Bytes(route.binary);
     const routeIdentity = sha256Json({
       domain: "blend65-sealed-evaluated-vice-route-v1",
-      sourceCaseDigest: execution.value.sourceCaseDigest,
-      sourceContentDigest: sha256Bytes(execution.value.sourceBytes),
+      sourceCaseDigest,
+      sourceContentDigest: sha256Bytes(sourceContentBytes),
       renderedSourceDigest: validatedSource.value.sourceDigest,
       selectedReleaseDigest: projectedEvaluation.value.selectedReleaseDigest,
       evaluationIdentity: projectedEvaluation.value.evaluationIdentity,
@@ -452,7 +480,7 @@ async function prepareWithinSupervisor(
       finalExecutionIdentity,
     });
     const evidence: Omit<PreparedViceBuildEvidenceV1, "buildEvidenceDigest"> = Object.freeze({
-      sourceCaseDigest: execution.value.sourceCaseDigest,
+      sourceCaseDigest,
       binaryDigest,
       loadAddress,
       entryAddress,
@@ -466,7 +494,7 @@ async function prepareWithinSupervisor(
     });
     return success(
       Object.freeze({
-        sourceCaseDigest: execution.value.sourceCaseDigest,
+        sourceCaseDigest,
         routeIdentity,
         route,
         evidence,
@@ -531,4 +559,85 @@ export async function prepareEvaluatedViceRouteV1(
   } catch {
     return failure("/prepare", "Production evaluated-route preparation failed closed.");
   }
+}
+
+/**
+ * Builds an ordinary evaluated VICE route with its owning isolation's worker executor.
+ *
+ * Historical route replay uses this package-private seam so the original published case keeps its
+ * runtime evaluation while all compiler work remains inside the dedicated sequence isolation.
+ * Candidate source bytes are accepted only by {@link prepareCandidateEvaluatedViceRouteV1}.
+ *
+ * @example
+ * ```ts
+ * const prepared = await prepareIsolatedEvaluatedViceRouteV1(
+ *   originalCase,
+ *   evaluation,
+ *   policy,
+ *   signal,
+ *   isolatedWorkers,
+ * );
+ * ```
+ */
+export async function prepareIsolatedEvaluatedViceRouteV1(
+  executionCase: ExecutionCaseV1,
+  evaluation: PublishedRuntimeEvaluationAuthorityV1,
+  policy: ExecutionPolicyV1,
+  signal: AbortSignal,
+  workerExecutor: ExecutionWorkerExecutorV1,
+): Promise<ExecutionOperationResultV1<PreparedEvaluatedViceRouteV1>> {
+  try {
+    return await prepareWithinSupervisor(
+      executionCase,
+      evaluation,
+      policy,
+      signal,
+      undefined,
+      workerExecutor,
+    );
+  } catch {
+    return failure("/prepare", "Isolated evaluated-route preparation failed closed.");
+  }
+}
+
+/**
+ * Builds and seals one candidate-relative VICE route from consumed typed-valid authority.
+ *
+ * @example
+ * ```ts
+ * const prepared = await prepareCandidateEvaluatedViceRouteV1(
+ *   originalCase,
+ *   oracle,
+ *   consumedCandidate,
+ *   policy,
+ *   signal,
+ * );
+ * ```
+ */
+export async function prepareCandidateEvaluatedViceRouteV1(
+  executionCase: ExecutionCaseV1,
+  oracle: PublishedOracleContext,
+  consumed: ConsumedReductionInvocationV1,
+  policy: ExecutionPolicyV1,
+  signal: AbortSignal,
+  workerExecutor: ExecutionWorkerExecutorV1,
+): Promise<ExecutionOperationResultV1<PreparedEvaluatedViceRouteV1>> {
+  if (consumed.payload.kind !== "typed-valid") {
+    return failure("/candidate", "VICE candidate execution requires typed-valid source.");
+  }
+  const evaluation = createCandidateRuntimeEvaluationAuthorityV1(oracle, executionCase, consumed);
+  if (!evaluation.ok) {
+    return failure("/candidate/evaluation", "Candidate runtime authority is unavailable.");
+  }
+  return prepareWithinSupervisor(
+    executionCase,
+    evaluation.value,
+    policy,
+    signal,
+    {
+      payload: consumed.payload,
+      sourceCaseDigest: consumed.candidate.candidateExecutionIdentity,
+    },
+    workerExecutor,
+  );
 }

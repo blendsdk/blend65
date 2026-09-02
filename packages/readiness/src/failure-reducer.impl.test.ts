@@ -1,7 +1,11 @@
+import { createHash } from "node:crypto";
+
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createFailureCampaignBudgetAuthorityV1, getFailureEnvelopeProjectionV1 } from "./index.js";
 
+import { authorizeFailureEnvelopeV1 } from "./failure-envelope.js";
+import { deriveFailurePredicateIdentityV1 } from "./failure-identity.js";
 import {
   createFailureReductionSessionV1,
   getFailureReductionTerminalCandidateAuthorityV1,
@@ -26,6 +30,8 @@ import {
   failureTransformationTraceDigestV1,
   validateFailureTransformationTraceV1,
 } from "./failure-trace-authority.js";
+import { createPublishedDiagnosticCaseFromIntentV1 } from "./published-diagnostic-case.js";
+import { preparePublishedCampaignCaseV1 } from "./published-oracle-context.js";
 import { renderSourceModule } from "./source-renderer.js";
 import {
   createRawReductionImplFixture,
@@ -34,8 +40,110 @@ import {
 } from "./test-fixtures/failure-reduction-impl-fixture.js";
 
 import type { RawReductionImplFixture } from "./test-fixtures/failure-reduction-impl-fixture.js";
+import type { Sha256Digest } from "./model-registry-model.js";
 
 let genuine: RawReductionImplFixture;
+
+const MEMORY_RULE_IDS = Object.freeze([
+  "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+  "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+  "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+  "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+]);
+const MEMORY_CONFIGURATION = Object.freeze({
+  caseCount: 40,
+  maxInvalidCases: 16,
+  enabledRuleIds: [...MEMORY_RULE_IDS].sort(),
+  spellings: ["literal", "parameter"] as const,
+  budget: Object.freeze({
+    maxModules: 4,
+    maxDeclarations: 128,
+    maxIrNodes: 512,
+    maxStatements: 256,
+    maxExpressionDepth: 16,
+    maxLoopWork: 1n,
+    maxSourceBytes: 65_536,
+    maxAttempts: 128,
+  }),
+});
+
+function digestBytes(bytes: Uint8Array): Sha256Digest {
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+function createGenuineMemoryInvalidFixture() {
+  const seed = `sha256:${"7".repeat(64)}` as const;
+  const firstInvalidOrdinal = MEMORY_CONFIGURATION.caseCount - MEMORY_CONFIGURATION.maxInvalidCases;
+  for (let ordinal = firstInvalidOrdinal; ordinal < MEMORY_CONFIGURATION.caseCount; ordinal += 1) {
+    for (const ruleId of MEMORY_RULE_IDS) {
+      const prepared = preparePublishedCampaignCaseV1(genuine.context, {
+        schemaVersion: 1,
+        ruleId,
+        seed,
+        configuration: MEMORY_CONFIGURATION,
+        ordinal,
+      });
+      if (
+        !prepared.ok ||
+        prepared.value.generatedCase.modeledCase.projection.kind !== "invalid" ||
+        prepared.value.generatedCase.modeledCase.projection.transform.kind !==
+          "intrinsic-argument-replace"
+      ) {
+        continue;
+      }
+      const diagnostic = createPublishedDiagnosticCaseFromIntentV1(genuine.context, {
+        schemaVersion: 1,
+        ruleId,
+        seed,
+        configuration: MEMORY_CONFIGURATION,
+        ordinal,
+      });
+      if (!diagnostic.ok) continue;
+      const predicate = deriveFailurePredicateIdentityV1({
+        revision: "failure-predicate-v1",
+        resultCode: "semantic-mismatch",
+        terminalTier: "frontend",
+        terminalStage: "frontend",
+        observation: { kind: "observed", digest: digestBytes(new Uint8Array()) },
+        cleanup: "cleanup-clear",
+        primaryRuleId: ruleId,
+        requiredClaimedRuleIds: [ruleId],
+        target: "c64",
+        routeContract: {
+          originalRouteKind: "invalid-diagnostic",
+          terminalTier: "frontend",
+          obligation: "typed-invalid-failure",
+          prerequisiteTiers: [],
+          policyDigest: digestBytes(Uint8Array.from([1])),
+          fixtureDigest: digestBytes(Uint8Array.from([2])),
+          oracleContractDigest: digestBytes(Uint8Array.from([3])),
+          toolContractDigests: [],
+        },
+      });
+      if (!predicate.ok) continue;
+      const routePlanBytes = new TextEncoder().encode(`typed invalid memory route ${ordinal}\n`);
+      const envelope = authorizeFailureEnvelopeV1({
+        revision: "failure-envelope-authorization-input-v1",
+        source: { kind: "typed-invalid", authority: diagnostic.value },
+        routePlanBytes,
+        routePlanDigest: digestBytes(routePlanBytes),
+        predicate: predicate.value.predicate,
+        policy: genuine.policy,
+        observationBytes: new Uint8Array(),
+        toolVersions: [],
+      });
+      if (envelope.ok) {
+        return Object.freeze({
+          envelope: envelope.value,
+          ordinal,
+          ruleId,
+          prepared: prepared.value,
+        });
+      }
+    }
+  }
+  throw new TypeError("Expected a genuine typed-invalid memory replacement fixture.");
+}
 
 beforeAll(async () => {
   genuine = await createRawReductionImplFixture();
@@ -431,8 +539,12 @@ describe("failure reducer authority hardening", () => {
       if (!completed.ok || completed.value.kind !== "complete" || !terminalAuthority.ok) return;
       expect(getReductionCandidateProjectionV1(terminalAuthority.value)).toMatchObject({
         ok: true,
-        value: { candidateDigest: completed.value.result.best.candidateDigest },
+        value: {
+          candidateDigest: completed.value.result.best.candidateDigest,
+          candidateExecutionIdentity: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
+        },
       });
+      expect("candidateExecutionIdentity" in completed.value.result.best).toBe(false);
     } finally {
       await fixture.cleanup();
     }
@@ -548,6 +660,84 @@ describe("failure reducer authority hardening", () => {
         ),
       }),
     ).toMatchObject({ ok: false });
+  });
+
+  it("preserves genuine typed-invalid memory argument types and rejects hostile replacements", () => {
+    const fixture = createGenuineMemoryInvalidFixture();
+    const envelope = getFailureEnvelopeProjectionV1(fixture.envelope);
+    const initial = createInitialReductionCandidateV1(fixture.envelope);
+    expect(envelope).toMatchObject({ ok: true });
+    expect(initial).toMatchObject({ ok: true });
+    if (!envelope.ok || !initial.ok || envelope.value.initialCandidate.kind !== "typed-invalid")
+      return;
+    const projected = getValidatedReductionCandidateProjectionV1(initial.value);
+    expect(projected).toMatchObject({ ok: true });
+    if (!projected.ok || projected.value.draft.kind !== "typed-invalid") return;
+    const draft = projected.value.draft;
+    const generated = fixture.prepared.generatedCase;
+    if (generated.modeledCase.projection.kind !== "invalid") return;
+    expect(draft).toMatchObject({
+      kind: "typed-invalid",
+      transform: {
+        kind: "intrinsic-argument-replace",
+        argument: { kind: "literal", type: "boolean", value: 0n },
+      },
+      primaryRuleId: fixture.ruleId,
+    });
+    expect(draft.sourceBytes).toEqual(generated.sourceBytes);
+    expect(draft.baseline).toEqual(generated.modeledCase.projection.baseline);
+    expect(draft.transform).toEqual(generated.modeledCase.projection.transform);
+    expect(draft.parameterBindings).toEqual(generated.effectiveParameterBindings);
+    expect(draft.claimedRuleIds).toEqual(envelope.value.initialCandidate.claimedRuleIds);
+
+    let accessorReads = 0;
+    const accessorArgument = Object.defineProperties(
+      {},
+      {
+        kind: { enumerable: true, value: "literal" },
+        type: {
+          enumerable: true,
+          get: () => {
+            accessorReads += 1;
+            return "boolean";
+          },
+        },
+        value: { enumerable: true, value: 0n },
+      },
+    );
+    const inheritedArgument = Object.assign(Object.create({ type: "boolean" }), {
+      kind: "literal",
+      value: 0n,
+    });
+    const throwingArgument = new Proxy(
+      {},
+      {
+        getPrototypeOf: () => {
+          throw new TypeError("hostile prototype");
+        },
+      },
+    );
+    const hostileArguments: readonly unknown[] = [
+      accessorArgument,
+      inheritedArgument,
+      throwingArgument,
+      [],
+      null,
+      { kind: "literal", value: 0n },
+      { kind: "literal", type: "not-scalar", value: 0n },
+      { kind: "literal", type: "boolean", value: 2n },
+      { kind: "literal", type: "byte", value: 256n },
+      { kind: "literal", type: "boolean", value: 0n, extra: true },
+    ];
+    for (const argument of hostileArguments) {
+      expect(
+        validateReductionCandidateInvariantV1(fixture.envelope, {
+          ...draft,
+          transform: { ...draft.transform, argument },
+        }),
+      ).toMatchObject({ ok: false });
+    }
+    expect(accessorReads).toBe(0);
   });
 
   it("rejects hostile claim, pointer, binding, and token boundary aliases", () => {

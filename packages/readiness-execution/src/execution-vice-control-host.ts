@@ -326,22 +326,40 @@ class RecordedViceControlHost implements ViceControlHostV1 {
     try {
       const started = this.nowMilliseconds();
       const deadline = started + 15_000;
-      const launched = await defaultExecutionProcessRuntimeV1.start(
-        {
-          executable: process.execPath,
-          argv: [LAUNCHER_ENTRY, this.#attempt.launchTokenPath],
-          cwd: request.cwd,
-          deadline: {
-            hardDeadlineMs: deadline + TERMINATION_GRACE_MS,
-            workDeadlineMs: deadline,
-            cleanupGraceMs: TERMINATION_GRACE_MS,
+      const processLifetime = new AbortController();
+      const abortProcessLifetime = (): void => processLifetime.abort(lifetime.signal.reason);
+      const cancelPendingStart = (): void => processLifetime.abort(signal.reason);
+      lifetime.signal.addEventListener("abort", abortProcessLifetime, { once: true });
+      signal.addEventListener("abort", cancelPendingStart, { once: true });
+      if (signal.aborted) cancelPendingStart();
+      let launched: Awaited<ReturnType<typeof defaultExecutionProcessRuntimeV1.start>>;
+      try {
+        launched = await defaultExecutionProcessRuntimeV1.start(
+          {
+            executable: process.execPath,
+            argv: [LAUNCHER_ENTRY, this.#attempt.launchTokenPath],
+            cwd: request.cwd,
+            deadline: {
+              hardDeadlineMs: deadline + TERMINATION_GRACE_MS,
+              workDeadlineMs: deadline,
+              cleanupGraceMs: TERMINATION_GRACE_MS,
+            },
           },
-        },
-        { onStdout: () => undefined, onStderr: () => undefined },
-        { signal: lifetime.signal, deadlineMonotonicMs: deadline + TERMINATION_GRACE_MS },
-      );
+          { onStdout: () => undefined, onStderr: () => undefined },
+          { signal: processLifetime.signal, deadlineMonotonicMs: deadline + TERMINATION_GRACE_MS },
+        );
+      } finally {
+        signal.removeEventListener("abort", cancelPendingStart);
+      }
       if (!launched.ok) {
         lifetime.abort();
+        if (signal.aborted) {
+          return controlFailure(
+            "vice.closed",
+            "vice.closed",
+            "VICE launcher start was cancelled; route cleanup retains the recorded attempt.",
+          );
+        }
         if (!(await this.#retireArtifact(retainedLease, null))) {
           return controlFailure(
             "vice.closed",

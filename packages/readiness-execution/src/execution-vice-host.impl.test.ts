@@ -500,6 +500,27 @@ describe.skipIf(process.platform !== "linux")("production VICE execution host", 
       expect(
         await removeArtifact.call(host, "c64", retained, tokenPath, null, liveSignal()),
       ).toEqual({ ok: true, value: "removed" });
+      await createViceLaunchArtifactV1(
+        {
+          target: "c64",
+          claim: retained,
+          generation: 1,
+          nonce: "a".repeat(64),
+          launchToken: token,
+          launchTokenPath: tokenPath,
+          endpoints: { binaryPort: 20_000, textPort: 20_001 },
+          executable: "x64sc",
+          argv: [],
+          cwd: process.cwd(),
+        },
+        uid,
+        process.execPath,
+      );
+      expect(await host.compareRemoveLease("c64", retained, liveSignal())).toEqual({
+        ok: true,
+        value: { kind: "removed" },
+      });
+      await expect(readViceLaunchArtifactV1(tokenPath, uid)).rejects.toThrow();
     } finally {
       await host.compareRemoveLease("c64", retained, liveSignal());
     }
@@ -574,12 +595,14 @@ describe.skipIf(process.platform !== "linux")("production VICE execution host", 
           liveSignal(),
         ),
       ).toEqual({ ok: true, value: "changed" });
-      expect(
-        await removeArtifact.call(host, "c64", retained, tokenPath, absentProcess, liveSignal()),
-      ).toEqual({ ok: true, value: "removed" });
+      expect(await host.compareRemoveLease("c64", retained, liveSignal())).toEqual({
+        ok: true,
+        value: { kind: "removed" },
+      });
+      await expect(readViceLaunchArtifactV1(tokenPath, uid)).rejects.toThrow();
     } finally {
-      await host.compareRemoveLease("c64", retained, liveSignal());
       await unlink(tokenPath).catch(() => undefined);
+      await host.compareRemoveLease("c64", retained, liveSignal());
     }
   });
 
@@ -703,8 +726,12 @@ describe.skipIf(process.platform !== "linux")("production VICE execution host", 
         await removeArtifact.call(host, "c64", retained, tokenPath, childFact, liveSignal()),
       ).toEqual({ ok: true, value: "process-present" });
     } finally {
-      await host.compareRemoveLease("c64", retained, liveSignal());
       await unlink(tokenPath).catch(() => undefined);
+      const reset = await host.compareReplaceLease("c64", retained, attemptBytes, liveSignal());
+      if (reset.ok && reset.value.kind === "replaced" && reset.value.snapshot.kind === "present") {
+        retained = reset.value.snapshot.reference;
+      }
+      await host.compareRemoveLease("c64", retained, liveSignal());
     }
   });
 

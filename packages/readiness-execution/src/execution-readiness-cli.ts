@@ -1,6 +1,3 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
 import { resolvePublishedSnapshot, type ExecutionPolicyV1 } from "@blend65/readiness";
 import { createPublishedOracleContext } from "@blend65/readiness/published-oracle";
 
@@ -16,6 +13,7 @@ import type {
 } from "./execution-orchestration-types.js";
 import { executeReadinessCampaign } from "./execution-orchestration.js";
 import { resolveExecutionReviewContextV1 } from "./execution-publication-catalog.js";
+import { discoverExecutionEnvironmentCapabilitiesV1 } from "./execution-tool-discovery.js";
 
 /** Compatibility name for the command I/O boundary. */
 export type ReadinessExecutionCliIoV1 = ExecutionCliIoV1;
@@ -40,7 +38,6 @@ const POLICY: ExecutionPolicyV1 = Object.freeze({
     launchAttempts: 2,
   }),
 });
-const execFileAsync = promisify(execFile);
 
 function parseArguments(argv: readonly string[]): string | undefined {
   if (
@@ -61,36 +58,10 @@ function parseArguments(argv: readonly string[]): string | undefined {
   return argv[3];
 }
 
-function version(text: string): string {
-  const match = /\b\d+(?:\.\d+){1,3}\b/u.exec(text);
-  return match?.[0] ?? "available";
-}
-
-async function probeTool(command: "acme" | "x64sc"): Promise<{
-  readonly available: boolean;
-  readonly version?: string;
-}> {
-  try {
-    const completed = await execFileAsync(command, ["--version"], {
-      encoding: "utf8",
-      timeout: 2_000,
-      maxBuffer: 64 * 1024,
-      windowsHide: true,
-    });
-    return Object.freeze({
-      available: true,
-      version: version(`${completed.stdout}${completed.stderr}`),
-    });
-  } catch {
-    return Object.freeze({ available: false });
-  }
-}
-
 async function discoverCapabilities(): Promise<ExecutionEnvironmentCapabilitiesV1> {
   const scoped = getExecutionEnvironmentCapabilitiesOverrideV1();
   if (scoped !== undefined) return scoped;
-  const [acme, vice] = await Promise.all([probeTool("acme"), probeTool("x64sc")]);
-  return Object.freeze({ acme, vice });
+  return discoverExecutionEnvironmentCapabilitiesV1();
 }
 
 function boundedIssues(

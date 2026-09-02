@@ -159,7 +159,7 @@ function validTransferInput(
   return (
     request.source.bytes instanceof Uint8Array &&
     Object.getPrototypeOf(request.source.bytes) === Uint8Array.prototype &&
-    request.source.bytes.byteLength > 0 &&
+    (request.source.bytes.byteLength > 0 || request.caseKind === "invalid-diagnostic") &&
     request.source.bytes.byteLength <= evidenceLimitBytes &&
     Number.isSafeInteger(outputLimitBytes) &&
     outputLimitBytes > 0 &&
@@ -183,7 +183,9 @@ function validTransferInput(
  * const started = await workers.start(request, cancellation);
  * ```
  */
-export function createExecutionWorkerExecutorV1(): ExecutionWorkerExecutorV1 {
+function createExecutionWorkerExecutorWithLimitV1(
+  maxCasesPerWorker: number,
+): ExecutionWorkerExecutorV1 {
   const slots: WorkerSlot[] = Array.from({ length: POOL_SIZE }, () => ({
     worker: undefined,
     generation: 0,
@@ -424,7 +426,7 @@ export function createExecutionWorkerExecutorV1(): ExecutionWorkerExecutorV1 {
         slot.completedCases += 1;
         slot.leased = false;
         worker.unref();
-        if (slot.completedCases >= MAX_CASES_PER_WORKER) await terminateSlot(slot);
+        if (slot.completedCases >= maxCasesPerWorker) await terminateSlot(slot);
         else notifyWaiter();
       };
       return Object.freeze({
@@ -449,6 +451,21 @@ export function createExecutionWorkerExecutorV1(): ExecutionWorkerExecutorV1 {
       return shutdownPromise;
     },
   });
+}
+
+/** Creates the ordinary bounded worker pool with eight cases per worker. */
+export function createExecutionWorkerExecutorV1(): ExecutionWorkerExecutorV1 {
+  return createExecutionWorkerExecutorWithLimitV1(MAX_CASES_PER_WORKER);
+}
+
+/** Creates a dedicated executor whose worker survives exactly one bounded attempt. */
+export function createDedicatedExecutionWorkerExecutorV1(
+  caseLimit: number,
+): ExecutionWorkerExecutorV1 {
+  if (!Number.isSafeInteger(caseLimit) || caseLimit < 1 || caseLimit > 64) {
+    throw new TypeError("Dedicated worker case limit must be between 1 and 64.");
+  }
+  return createExecutionWorkerExecutorWithLimitV1(caseLimit);
 }
 
 let sharedExecutor: ExecutionWorkerExecutorV1 | undefined;

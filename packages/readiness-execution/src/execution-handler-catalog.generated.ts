@@ -243,6 +243,7 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/platforms/package.json",
   "packages/readiness-execution/dist/execution-acme-artifacts.js",
   "packages/readiness-execution/dist/execution-budget.js",
+  "packages/readiness-execution/dist/execution-diagnostic-classifier.js",
   "packages/readiness-execution/dist/execution-envelope.js",
   "packages/readiness-execution/dist/execution-evidence-classifiers.js",
   "packages/readiness-execution/dist/execution-identity.js",
@@ -254,7 +255,9 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness-execution/dist/execution-process-linux-host.js",
   "packages/readiness-execution/dist/execution-process.js",
   "packages/readiness-execution/dist/execution-route-adapters.js",
+  "packages/readiness-execution/dist/execution-route-authority.js",
   "packages/readiness-execution/dist/execution-route-tiers.js",
+  "packages/readiness-execution/dist/execution-route-worker-request.js",
   "packages/readiness-execution/dist/execution-supervisor.js",
   "packages/readiness-execution/dist/execution-vice-build.js",
   "packages/readiness-execution/dist/execution-vice-control-host.js",
@@ -273,6 +276,10 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness-execution/dist/execution-worker-executor.js",
   "packages/readiness-execution/dist/execution-worker-protocol.js",
   "packages/readiness-execution/dist/execution-workspace.js",
+  "packages/readiness-execution/dist/failure-candidate-route-state.js",
+  "packages/readiness-execution/dist/failure-execution-immutable.js",
+  "packages/readiness-execution/dist/failure-predicate-evidence-model.js",
+  "packages/readiness-execution/dist/failure-predicate-evidence.js",
   "packages/readiness/dist/authority-loader.js",
   "packages/readiness/dist/authority-order.js",
   "packages/readiness/dist/binding-model.js",
@@ -294,6 +301,7 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness/dist/declaration-validator.js",
   "packages/readiness/dist/deterministic-choice.js",
   "packages/readiness/dist/diagnostics.js",
+  "packages/readiness/dist/execution-campaign-identity.js",
   "packages/readiness/dist/execution-case.js",
   "packages/readiness/dist/execution-contracts.js",
   "packages/readiness/dist/execution-envelope-contracts.js",
@@ -302,6 +310,25 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness/dist/execution-validation.js",
   "packages/readiness/dist/execution-vic-projection.js",
   "packages/readiness/dist/expression-renderer.js",
+  "packages/readiness/dist/failure-campaign-budget.js",
+  "packages/readiness/dist/failure-claim-witness.js",
+  "packages/readiness/dist/failure-contracts.js",
+  "packages/readiness/dist/failure-envelope-codec.js",
+  "packages/readiness/dist/failure-envelope-history.js",
+  "packages/readiness/dist/failure-envelope-identity.js",
+  "packages/readiness/dist/failure-envelope-malformed-history.js",
+  "packages/readiness/dist/failure-envelope-model.js",
+  "packages/readiness/dist/failure-envelope-records.js",
+  "packages/readiness/dist/failure-envelope-transform-history.js",
+  "packages/readiness/dist/failure-envelope.js",
+  "packages/readiness/dist/failure-identity.js",
+  "packages/readiness/dist/failure-predicate-ingredients.js",
+  "packages/readiness/dist/failure-reducer.js",
+  "packages/readiness/dist/failure-reduction-internals.js",
+  "packages/readiness/dist/failure-trace-authority.js",
+  "packages/readiness/dist/failure-transform-catalog.js",
+  "packages/readiness/dist/failure-transformation-drafts.js",
+  "packages/readiness/dist/failure-transformation-model.js",
   "packages/readiness/dist/fragmenter.js",
   "packages/readiness/dist/generate-case.js",
   "packages/readiness/dist/generation-budget.js",
@@ -314,6 +341,7 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness/dist/json-input.js",
   "packages/readiness/dist/ledger-validator.js",
   "packages/readiness/dist/limits.js",
+  "packages/readiness/dist/malformed-diagnostic-case.js",
   "packages/readiness/dist/model-registry-model.js",
   "packages/readiness/dist/modeled-candidate-bindings.js",
   "packages/readiness/dist/modeled-candidate-revisions.generated.js",
@@ -373,6 +401,9 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness/dist/published-replay-authority.generated.js",
   "packages/readiness/dist/published-replay-authority.js",
   "packages/readiness/dist/published-runtime-evaluation.js",
+  "packages/readiness/dist/reduction-candidate-validation.js",
+  "packages/readiness/dist/reduction-candidate.js",
+  "packages/readiness/dist/reduction-value.js",
   "packages/readiness/dist/replay-envelope-normalizer.js",
   "packages/readiness/dist/replay-input-model.js",
   "packages/readiness/dist/replay-input.js",
@@ -402,6 +433,7 @@ const GENERATED_EXECUTION_DEPENDENCY_PATHS_V1 = Object.freeze([
   "packages/readiness/dist/source-renderer.js",
   "packages/readiness/dist/source-repository.js",
   "packages/readiness/dist/strict-json.js",
+  "packages/readiness/dist/utf8-byte-boundaries.js",
   "packages/readiness/dist/versioning.js",
   "packages/readiness/node_modules/ajv/dist/2020.js",
   "packages/readiness/node_modules/ajv/dist/compile/codegen/code.js",
@@ -978,14 +1010,16 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
     "sha256:fc8f34e3c615f1393d455dbdc0ad52816d320076004db315549cebe32bf0bfbb",
   "packages/readiness-execution/dist/execution-budget.js":
     "sha256:2c51f88d08201261b819c53bde6cc261e169044545b914a31da3c4a2665a9fc2",
+  "packages/readiness-execution/dist/execution-diagnostic-classifier.js":
+    "sha256:c4f9ca1ddba7504fd5523a959a2bdae5ce3882f2f845f353717b764351f29bb8",
   "packages/readiness-execution/dist/execution-envelope.js":
-    "sha256:ef743f96d109cc1f9657e86b2121188f63a494e9f77cf45595b0ab311b9e1809",
+    "sha256:48fe37b41bff60a02076493418a851aa80f12b6b0ca123ce2d7a10faa3e4065a",
   "packages/readiness-execution/dist/execution-evidence-classifiers.js":
     "sha256:3f8eb639a256cbb577f934c464c9c4066c01fbfe8fea151098ec37d61f51d832",
   "packages/readiness-execution/dist/execution-identity.js":
     "sha256:61a23dd7df3d60871d36521450eb34e50a003b11e4bdcdac5260fdfc1577c05e",
   "packages/readiness-execution/dist/execution-live-handlers.js":
-    "sha256:028bde33a720db419ef7a70e46c04ad5a7815f8f85d8f0ff15003d40112ee886",
+    "sha256:7fe66f71fa7e1c54503f765cc3834292aedc0788ec17a6b7a79c6e7e7d4fc8e8",
   "packages/readiness-execution/dist/execution-observation-layout.js":
     "sha256:01a39991dadc516fac9331e8a18b86715342129e9a0374c2be2546e83dd7fe00",
   "packages/readiness-execution/dist/execution-process-anchor-entry.js":
@@ -999,21 +1033,25 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness-execution/dist/execution-process.js":
     "sha256:1250e27bd656d4376faf24f7c8a1bd11675a13cb52b9ac3b62884df00325897c",
   "packages/readiness-execution/dist/execution-route-adapters.js":
-    "sha256:b537857f3f60002698a80690838e275d5b38c1a3691d3614816a80b5bab54ee9",
+    "sha256:334ba2855fa16044b77b72296bf0f010bdfe83c02fbf937851f8e06921c805f2",
+  "packages/readiness-execution/dist/execution-route-authority.js":
+    "sha256:b0a128199f327ffed34f0ae6edc3f20601caa013fbcea46db602c85cda319626",
   "packages/readiness-execution/dist/execution-route-tiers.js":
     "sha256:242f1a785908d4b86839de984eb10f8bbdcf9cb792cc4dc7b36041ab6c1fcb34",
+  "packages/readiness-execution/dist/execution-route-worker-request.js":
+    "sha256:6b28f2bde975255381d3d700054c616abc5c94111ae34e4dfc2e758fe484fa64",
   "packages/readiness-execution/dist/execution-supervisor.js":
     "sha256:6b853c0c3ebc0b4dd10f8400b66d46e0b7ececebf6e69d4f78ecffe6927ea18d",
   "packages/readiness-execution/dist/execution-vice-build.js":
-    "sha256:92d91cd2df54b8550ca4c565ddcda0565dc26b5da3e1cf020e24c54b7b36f9c1",
+    "sha256:4fb1a2a1944058e67d5fd7cace3d0f0337383e9a00289b56dd79ab2b5d47d7c8",
   "packages/readiness-execution/dist/execution-vice-control-host.js":
-    "sha256:67caac15c0be3674a782ee2c84523af1ac3b998449fab6109ac553999e8d7db8",
+    "sha256:80fbc65a4989032c537b99eace4243955417cc9567bac59be09271241b0f04eb",
   "packages/readiness-execution/dist/execution-vice-evaluation.js":
-    "sha256:add7b9580d8ddb7cf11a145b37e5c76b5722c5e2cfedeb192ec187f7815f585c",
+    "sha256:8537a149472a3ecb0d10f3bff87cde3c81cf11bfcb5d6312bbc35ee4ed4e52de",
   "packages/readiness-execution/dist/execution-vice-handler-identity.js":
     "sha256:8aa84be711b3318a69dec3df491037f9de68749c3cc791dac14876c843dbe6c8",
   "packages/readiness-execution/dist/execution-vice-host.js":
-    "sha256:738f5139c26f3667f305c5a0bdfa948024db58dbfd6b1a8027e88f357e206995",
+    "sha256:68fded8489872e56b94bb5119a71145459c0e81a3e9511ace3ccdd93690f4e7f",
   "packages/readiness-execution/dist/execution-vice-launch-artifact.js":
     "sha256:9a5e368ccce65d9fdc5c42d5f968aa07631f574d18ddd9d3a9266b05065a0789",
   "packages/readiness-execution/dist/execution-vice-launcher-entry.js":
@@ -1023,7 +1061,7 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness-execution/dist/execution-vice-record.js":
     "sha256:1c96073c49a095e7b02ddf16bad7a416b81b381b637acf55188aac9cd283346c",
   "packages/readiness-execution/dist/execution-vice-runtime.js":
-    "sha256:b439a259f9fab7ac5bca67a4425c48bf5e02fd951a60804f3bb4b38a8e8cdd16",
+    "sha256:f9a34d86ba238e2c6f9a40e6f77afa5103044ecb0e25f0e1162907769bd64213",
   "packages/readiness-execution/dist/execution-vice-session.js":
     "sha256:cac06d8ab25833bdb0baa8afccee22c104fdfe019e980f5ccb4e0529ac77e09c",
   "packages/readiness-execution/dist/execution-vice-types.js":
@@ -1033,11 +1071,19 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness-execution/dist/execution-worker-entry.js":
     "sha256:f300ee4e4a6f0f23efd31a8f57248eab0db913a0fee6e24e555c36f4688ddf27",
   "packages/readiness-execution/dist/execution-worker-executor.js":
-    "sha256:ad810641514aa747b6f13c9e14a34d37848f13eb6bb70f856197df8bc4c7e411",
+    "sha256:c557b491e8ad8df1706d3062c1cfe1b3f5d2394d30c077b2c720d56afd47df28",
   "packages/readiness-execution/dist/execution-worker-protocol.js":
     "sha256:5aae47c6ac6068ab74fe15c6a7a1bb6fbaf2130ba8ae597bfdab8d59940eaf9d",
   "packages/readiness-execution/dist/execution-workspace.js":
     "sha256:2f3e07b1e81b643de635765e895ec59236e02850e58c529c05cb33c95bfdc7b7",
+  "packages/readiness-execution/dist/failure-candidate-route-state.js":
+    "sha256:cb14d4e1cd63f2ea247820b8c7042f8619c9e1ddbfa376acbd18ebe0f47ae8ba",
+  "packages/readiness-execution/dist/failure-execution-immutable.js":
+    "sha256:80370b4fe83a37bd3d95aa484462c95ee520a72762966c81375cd6ba43d06695",
+  "packages/readiness-execution/dist/failure-predicate-evidence-model.js":
+    "sha256:c51c837552e26892051fa9ceab00acaaa659b9a00b2e7621520f6da3ef0e3ba1",
+  "packages/readiness-execution/dist/failure-predicate-evidence.js":
+    "sha256:2f36b013c9943a60f58dc3f6257e919528e859236bf7e31698edfe3e80ba6cba",
   "packages/readiness/dist/authority-loader.js":
     "sha256:15ee356c6e7b4b25f67979d90cd014bb4c2dcfe1b71436302af2fe56ccce6d53",
   "packages/readiness/dist/authority-order.js":
@@ -1080,6 +1126,8 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
     "sha256:af4f699fb7479751cf7332d911fa8af1b869cfc28443bf49916935d6df3fa209",
   "packages/readiness/dist/diagnostics.js":
     "sha256:31979d36b29169a453550d2cb05d3a73dd1c2bd338af060d985030469ce5f481",
+  "packages/readiness/dist/execution-campaign-identity.js":
+    "sha256:5130ee48c036b2796d78b5097bfb61b6639f00db6e14cb689ee1cbed950c365c",
   "packages/readiness/dist/execution-case.js":
     "sha256:38a0fc1c2e49d5ba59175efa55f53031e7ce0e410dc62b8f2e45f57d839457c9",
   "packages/readiness/dist/execution-contracts.js":
@@ -1089,13 +1137,51 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/dist/execution-route-plan.js":
     "sha256:c2e08f94d7004ca425653011effc999103cd22138b42aa84aebb65b469f626b9",
   "packages/readiness/dist/execution-runtime.js":
-    "sha256:39c4d6c1f1a944aff5759a210ab9e10250aa312159f77cfa58b8a5a42bd338f2",
+    "sha256:0ce0173a5f84f8edb60752e997a82c8f915cfa37b45e34790b1d64f09db35677",
   "packages/readiness/dist/execution-validation.js":
     "sha256:3580ded83c74df35049f2619c638cadc051e9aac5eb202be2c23a14dd034b9f9",
   "packages/readiness/dist/execution-vic-projection.js":
     "sha256:d0183254b6b567ceb0608ddecf78e208a882c1dfdb9583b014694d4435047595",
   "packages/readiness/dist/expression-renderer.js":
     "sha256:3607963282982029f28dd548b95d8f5af35b942c805d1541ce0ba5a2432e6981",
+  "packages/readiness/dist/failure-campaign-budget.js":
+    "sha256:bf8c602d0498e781d93a70a66b835eab6a850d4155907185d7bf6939ea14a6d9",
+  "packages/readiness/dist/failure-claim-witness.js":
+    "sha256:83ffa22d02d71c1f2bc471fa68d392221ef17972a90feed07b36550631a122d3",
+  "packages/readiness/dist/failure-contracts.js":
+    "sha256:ab1985df24989149b7a8238ec8837704cbe9d305201185738d4aa7bd6b43fdc1",
+  "packages/readiness/dist/failure-envelope-codec.js":
+    "sha256:c65acdcd9d842442f62234022a110850efecc8ba14b45039543be4c1a3434dda",
+  "packages/readiness/dist/failure-envelope-history.js":
+    "sha256:a9e75d9d38844a5bf8a3b369060b1baf4f153ced14cfd348a3f462dfea114728",
+  "packages/readiness/dist/failure-envelope-identity.js":
+    "sha256:4580b5cc6fde4c131405e2dcac033ffc2a255a52eb7b45f78bf457157a60443e",
+  "packages/readiness/dist/failure-envelope-malformed-history.js":
+    "sha256:3bf4b7efaebc9ad297e40f1df5f15481fb452c3b5dcf39ae584060d11816fdda",
+  "packages/readiness/dist/failure-envelope-model.js":
+    "sha256:5270b73c91d4a367f4b1a4b5276a85727f9259d6626616320ee0dcf2eb74eb32",
+  "packages/readiness/dist/failure-envelope-records.js":
+    "sha256:e0da0a58bd43be87b500cf4ba3b4a2308ba9cb8acb6b58e98333309d0de206b5",
+  "packages/readiness/dist/failure-envelope-transform-history.js":
+    "sha256:83a1b686841da83c7172d7be537cd94f274beb904bd6c17738a407f6297f4a72",
+  "packages/readiness/dist/failure-envelope.js":
+    "sha256:ae313637f4cdfa43de5d6a922e8c7dd274feed8590ce7f590c534ca687e82bd8",
+  "packages/readiness/dist/failure-identity.js":
+    "sha256:d1c05e5cbe572908c094e400ca1fdd3a702fa50df08046b76b6b6f93ea309fba",
+  "packages/readiness/dist/failure-predicate-ingredients.js":
+    "sha256:8fce8ea12a252d28d1665cb58a2e654d5870e96ab2cf9fa61f1ac0682662db0c",
+  "packages/readiness/dist/failure-reducer.js":
+    "sha256:d3ace7ee2018fb2a96475d6b7a086823e6d7139664acb993052f10165c9b58bc",
+  "packages/readiness/dist/failure-reduction-internals.js":
+    "sha256:be1162a22fbec980e7ca28840f8f415b4c0635b85c4d00bcf5a0343977404d55",
+  "packages/readiness/dist/failure-trace-authority.js":
+    "sha256:e2893ec7622930069be5203a0f8b71e4f25aa1fde5d9784667cf5dabc439b0b9",
+  "packages/readiness/dist/failure-transform-catalog.js":
+    "sha256:597e7bca34970db8bb40f4a7314efc55dbdb1bb9ac3cbade70addffbda417729",
+  "packages/readiness/dist/failure-transformation-drafts.js":
+    "sha256:0322b8d1d142ea2887c5c9feec37104e38bcf6c98e624726ecf71a72afc1344e",
+  "packages/readiness/dist/failure-transformation-model.js":
+    "sha256:88dcf96f645266c5eb80a1094011fd743307dd0fa7341176ffb652248a39bbbf",
   "packages/readiness/dist/fragmenter.js":
     "sha256:4d42e92edd5e4a66a0cf42c6fbd21ed3eb6d419fca5130a091595c413f94452c",
   "packages/readiness/dist/generate-case.js":
@@ -1120,6 +1206,8 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
     "sha256:83d2f8c1d692c759ec740c6eb1ea347fc580b1e6e23d7f9de77b020b745c9b66",
   "packages/readiness/dist/limits.js":
     "sha256:d29fc51c486512d31df450443c0217b3ebe68e40db199410246daddbc70e1035",
+  "packages/readiness/dist/malformed-diagnostic-case.js":
+    "sha256:a27a55a7150e8ddb9a2f1840e7aa56959c4d16dacee2a04da58dbe5af1e67b8b",
   "packages/readiness/dist/model-registry-model.js":
     "sha256:5cee25566d008503b26191591014e9cba16d44d5c1817fca7b14c84694cb8967",
   "packages/readiness/dist/modeled-candidate-bindings.js":
@@ -1151,7 +1239,7 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/dist/oracle-candidate-bindings.js":
     "sha256:93834db5b71cd96bf998e4a0b0de0be2cc882e440305e2880b259c574bd41287",
   "packages/readiness/dist/oracle-candidate-revisions.generated.js":
-    "sha256:83d153c459a5cd87e203dce9088fe0350eac68ef1e31e40ccb8ab71db90c5c7b",
+    "sha256:5788cf4c8f197ef92edbe6a69a32bac13126fbe1b36902afe31607e4ed2e4934",
   "packages/readiness/dist/oracle-canonical-identity.js":
     "sha256:e829196be4837497c71e5e8c53f9b7aea979d6d98b2fab42cde6c2420c617ec7",
   "packages/readiness/dist/oracle-compiler-result-candidate.js":
@@ -1205,7 +1293,7 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/dist/publication-authority-loader.js":
     "sha256:e6d65228df1c88e42a0a3a1949504d87c78c7e92f8229251c63ee64d53d2574b",
   "packages/readiness/dist/publication-authority-revision.generated.js":
-    "sha256:631513396a4aab6623c2e779665dad3791e94e877e8c0a4dff396dd2b70818ea",
+    "sha256:a79702473f554fd94c71b42025bd105ae17c6738b27f5d8bb299350c8f401020",
   "packages/readiness/dist/publication-binding-lookup.js":
     "sha256:4e6a849ae6cd394299d8a2596a9c0d4f594c0692e00fe1c1b532e5f0251f93c7",
   "packages/readiness/dist/publication-candidates.js":
@@ -1227,7 +1315,7 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/dist/published-oracle-campaign.js":
     "sha256:86152695cbc9f40c1ef9430c830de941135d982f29170c2e8a8d3432932bfc51",
   "packages/readiness/dist/published-oracle-context.js":
-    "sha256:3a1cbe1f15c622eba667985eb138204a2055d4620f655b9370cd5e3b4bb2586c",
+    "sha256:cabc8fa150e1d0df1b3a7207d21a9ad24b3588efbe6a25b6eeb4fad9ddd12616",
   "packages/readiness/dist/published-oracle-evaluation.js":
     "sha256:bdef29c9f6cc2079ad770c8190e049f5fd710485fa5da2771a49dc34016804d0",
   "packages/readiness/dist/published-oracle.js":
@@ -1237,7 +1325,13 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/dist/published-replay-authority.js":
     "sha256:190031b79d16cb4a02e1219d3abaacf5ffeac69a47ed91e26c26dec53c5a83f0",
   "packages/readiness/dist/published-runtime-evaluation.js":
-    "sha256:00e0bb0037f1cdd008be1e08bfd9cfe75f9f73972b44ce4767c76e300234812c",
+    "sha256:2885343c86b90cbdedc18adbae66c0119dd78aec9be0ffef75e5ea24f3b0d17e",
+  "packages/readiness/dist/reduction-candidate-validation.js":
+    "sha256:4daf756d888cde6ef3ad64aa6d1e1603deefb5fefec90d7f33c24475a8c54d25",
+  "packages/readiness/dist/reduction-candidate.js":
+    "sha256:93d16d2fa1ea976a11d013054d87a591fa2f99ec87e042f95738274dfc40809c",
+  "packages/readiness/dist/reduction-value.js":
+    "sha256:28582810e203d9813d88c88096b6db23dadfaeb92a65c54bad80175a007c7835",
   "packages/readiness/dist/replay-envelope-normalizer.js":
     "sha256:3f2faea5c1418e470ed34391a9f12e15195eeb1cbe1c8dc2d42f9e0ee397f50d",
   "packages/readiness/dist/replay-input-model.js":
@@ -1296,6 +1390,8 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
     "sha256:1dbb2d0d24e4e7c124fa7d32cd3113ed0f65d3c1e48db87beb701ac3522f7b84",
   "packages/readiness/dist/strict-json.js":
     "sha256:490ceb6384e1dae7054d0dc13be4428f4801fc1de7d10a77255f7eb21a608dd5",
+  "packages/readiness/dist/utf8-byte-boundaries.js":
+    "sha256:f999f828fe44a2a97bfa9e84be2078baf5a40c10b8f06005fd41eb8b16f22880",
   "packages/readiness/dist/versioning.js":
     "sha256:3b871eed1d088f7f0be8aab78ce7a9156a42fa248473daf68e1cf843bcbd2ba2",
   "packages/readiness/node_modules/ajv/dist/2020.js":
@@ -1471,7 +1567,7 @@ const GENERATED_EXECUTION_DEPENDENCY_DIGESTS_V1 = Object.freeze({
   "packages/readiness/node_modules/json-schema-traverse/package.json":
     "sha256:156fb24af02845c190701360d06dfda35ef04282e34a734289ea9535ad9819ae",
   "packages/readiness/package.json":
-    "sha256:bf8a441bb8ab4783df1c56f86da3e686922003818921c2a70da95a9009db7238",
+    "sha256:a8d73828a5c3776c318eacbd8f95f14a065f47651b4fef42eb4557235b70869e",
   "packages/test-harness/dist/emulator/vice/protocol.js":
     "sha256:c39c80261a3f3491e0ba304de7174b98bbb3e54d232fd9cab5315aebb99436d5",
   "packages/test-harness/dist/emulator/vice/vice-control-cleanup.js":
@@ -1504,42 +1600,42 @@ export const GENERATED_EXECUTION_HANDLER_CATALOG_V1 = Object.freeze({
         capabilityId: "acme",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:ef958de18f22d36919169103e2685bb018a8e71afd612ed4736ac130062afa4d",
+          "sha256:2379546410269425032c176ea55bd1c0e4912e1f77d8b8978eabfee45f421d10",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "cli",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:2207c42c9fd7e7f249d43eb72089d646eebd83505de3a77c367c5a6ee51d9b6e",
+          "sha256:88f937214e66720d08ce6675832363997c88a8a8203ae6e10bfc0c181bc4467f",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "compiler-api",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:ef262996133b02834187adda16c2d7e30cf12c05441e583763539b5020bfd7ef",
+          "sha256:7615d1474feb0de1309744c8affaebf6f317fbd89ee83322d9c0ccd02077b07d",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "emit",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:c59e9a22187d832c65ce06739260516621b67e40899ad81af771b82487da8893",
+          "sha256:7213bf9f8d97bd805d0c799d82da70ee5ba5810e7899d8c3eb884eb101517bdc",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "frontend",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:f18a4041561deef45185c7cc2ad10d3edfc210b859356bbf4ff9f3830315fef9",
+          "sha256:feddd1dbdeecc8ca4a22f349c4e0cfa0af13645285279d30a2b7ada6f5bca01a",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
       {
         capabilityId: "vice",
         contractVersion: "1.0.0",
         implementationRevision:
-          "sha256:6322c38cb9be636cf8d2015510ee12675c3751aff72d493217bb62074f18a7f9",
+          "sha256:b17a7b2049782adc66c331f4a87598237fb9175bdf18ae7ea195be94119652ea",
         entryPath: "packages/readiness-execution/dist/execution-live-handlers.js",
       },
     ].map((participant) =>
@@ -1555,7 +1651,7 @@ export const GENERATED_EXECUTION_HANDLER_CATALOG_V1 = Object.freeze({
 /** Content-derived closure for campaign, orchestration, planning and report authority. */
 export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
   catalogKind: "execution-runner-catalog-v1" as const,
-  revision: "sha256:6709f8f040f295652ee4396a25317691ffa122f2d42a0de4035713bf5ecd97f3",
+  revision: "sha256:b953bc1d9d0d301d04e1b8f4215af45b3412e4b940ec1d9fb8c7acd837d11776",
   dependencyPaths: Object.freeze([
     "node_modules/cliui/build/lib/index.js",
     "node_modules/cliui/build/lib/string-utils.js",
@@ -1796,16 +1892,21 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/platforms/dist/shared-hooks.js",
     "packages/platforms/package.json",
     "packages/readiness-execution/dist/execution-acme-artifacts.js",
+    "packages/readiness-execution/dist/execution-authority-report-publication.js",
     "packages/readiness-execution/dist/execution-authority-report.js",
     "packages/readiness-execution/dist/execution-budget.js",
     "packages/readiness-execution/dist/execution-campaign-factory.js",
+    "packages/readiness-execution/dist/execution-diagnostic-classifier.js",
     "packages/readiness-execution/dist/execution-envelope.js",
     "packages/readiness-execution/dist/execution-evidence-classifiers.js",
+    "packages/readiness-execution/dist/execution-identity.js",
     "packages/readiness-execution/dist/execution-live-handlers.js",
+    "packages/readiness-execution/dist/execution-observation-layout.js",
     "packages/readiness-execution/dist/execution-orchestration-conformance-v1.js",
     "packages/readiness-execution/dist/execution-orchestration-identity.js",
     "packages/readiness-execution/dist/execution-orchestration-types.js",
     "packages/readiness-execution/dist/execution-orchestration.js",
+    "packages/readiness-execution/dist/execution-predicate-contracts.js",
     "packages/readiness-execution/dist/execution-process-anchor-entry.js",
     "packages/readiness-execution/dist/execution-process-kernel-protocol.js",
     "packages/readiness-execution/dist/execution-process-kernel.js",
@@ -1815,15 +1916,39 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness-execution/dist/execution-publication-catalog.js",
     "packages/readiness-execution/dist/execution-publication-secure-filesystem.js",
     "packages/readiness-execution/dist/execution-publication-selection-validation.js",
+    "packages/readiness-execution/dist/execution-report-predicate-association.js",
+    "packages/readiness-execution/dist/execution-report-provenance.js",
     "packages/readiness-execution/dist/execution-route-adapters.js",
+    "packages/readiness-execution/dist/execution-route-authority.js",
+    "packages/readiness-execution/dist/execution-route-evidence.js",
     "packages/readiness-execution/dist/execution-route-planner.js",
     "packages/readiness-execution/dist/execution-route-tiers.js",
+    "packages/readiness-execution/dist/execution-route-worker-request.js",
     "packages/readiness-execution/dist/execution-selector.js",
     "packages/readiness-execution/dist/execution-supervisor.js",
+    "packages/readiness-execution/dist/execution-vice-build.js",
+    "packages/readiness-execution/dist/execution-vice-control-host.js",
+    "packages/readiness-execution/dist/execution-vice-evaluation.js",
+    "packages/readiness-execution/dist/execution-vice-handler-identity.js",
+    "packages/readiness-execution/dist/execution-vice-host.js",
+    "packages/readiness-execution/dist/execution-vice-launch-artifact.js",
+    "packages/readiness-execution/dist/execution-vice-launcher-entry.js",
+    "packages/readiness-execution/dist/execution-vice-policy.js",
+    "packages/readiness-execution/dist/execution-vice-record.js",
+    "packages/readiness-execution/dist/execution-vice-runtime.js",
+    "packages/readiness-execution/dist/execution-vice-session.js",
+    "packages/readiness-execution/dist/execution-vice-types.js",
+    "packages/readiness-execution/dist/execution-vice.js",
     "packages/readiness-execution/dist/execution-worker-entry.js",
     "packages/readiness-execution/dist/execution-worker-executor.js",
     "packages/readiness-execution/dist/execution-worker-protocol.js",
     "packages/readiness-execution/dist/execution-workspace.js",
+    "packages/readiness-execution/dist/failure-candidate-route-state.js",
+    "packages/readiness-execution/dist/failure-execution-immutable.js",
+    "packages/readiness-execution/dist/failure-execution-operation.js",
+    "packages/readiness-execution/dist/failure-execution-types.js",
+    "packages/readiness-execution/dist/failure-predicate-evidence-model.js",
+    "packages/readiness-execution/dist/failure-predicate-evidence.js",
     "packages/readiness/dist/atomic-writer.js",
     "packages/readiness/dist/authority-loader.js",
     "packages/readiness/dist/authority-order.js",
@@ -1879,6 +2004,13 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/failure-envelope-transform-history.js",
     "packages/readiness/dist/failure-envelope.js",
     "packages/readiness/dist/failure-identity.js",
+    "packages/readiness/dist/failure-predicate-ingredients.js",
+    "packages/readiness/dist/failure-reducer.js",
+    "packages/readiness/dist/failure-reduction-internals.js",
+    "packages/readiness/dist/failure-trace-authority.js",
+    "packages/readiness/dist/failure-transform-catalog.js",
+    "packages/readiness/dist/failure-transformation-drafts.js",
+    "packages/readiness/dist/failure-transformation-model.js",
     "packages/readiness/dist/fragmenter.js",
     "packages/readiness/dist/generate-case.js",
     "packages/readiness/dist/generation-budget.js",
@@ -1966,6 +2098,9 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/readiness-boundary-core.js",
     "packages/readiness/dist/readiness-boundary-filesystem.js",
     "packages/readiness/dist/readiness-boundary-scanner.js",
+    "packages/readiness/dist/reduction-candidate-validation.js",
+    "packages/readiness/dist/reduction-candidate.js",
+    "packages/readiness/dist/reduction-value.js",
     "packages/readiness/dist/replay-envelope-normalizer.js",
     "packages/readiness/dist/replay-input-model.js",
     "packages/readiness/dist/replay-input.js",
@@ -2084,6 +2219,14 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/node_modules/json-schema-traverse/index.js",
     "packages/readiness/node_modules/json-schema-traverse/package.json",
     "packages/readiness/package.json",
+    "packages/test-harness/dist/emulator/vice/protocol.js",
+    "packages/test-harness/dist/emulator/vice/vice-control-cleanup.js",
+    "packages/test-harness/dist/emulator/vice/vice-control-host.js",
+    "packages/test-harness/dist/emulator/vice/vice-control-protocol.js",
+    "packages/test-harness/dist/emulator/vice/vice-control-session.js",
+    "packages/test-harness/dist/emulator/vice/vice-control-types.js",
+    "packages/test-harness/dist/emulator/vice/vice-control.js",
+    "packages/test-harness/package.json",
     "readiness/oracles/oracle-mutation-assertions-v1.json",
     "readiness/schema/inventory-v1.schema.json",
     "readiness/schema/rule-models-v1.schema.json",
@@ -2567,18 +2710,26 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
       "sha256:22eb97c1115e47ca8c23765ea1df13b6eb839a1757868ec17c03ab0585b19b9d",
     "packages/readiness-execution/dist/execution-acme-artifacts.js":
       "sha256:fc8f34e3c615f1393d455dbdc0ad52816d320076004db315549cebe32bf0bfbb",
+    "packages/readiness-execution/dist/execution-authority-report-publication.js":
+      "sha256:b06a19e94568a95442ba73bb2a27611a5bbef523f36e37275170a92ad06d66b0",
     "packages/readiness-execution/dist/execution-authority-report.js":
-      "sha256:c4f32c2937f092422f3298ed1fe36f659084fd37350e60432ccba498cd0c91d8",
+      "sha256:e1910114905fa1b0d08608558f4e5dcbb58606120eb69cc07f1ca54ab84fa95d",
     "packages/readiness-execution/dist/execution-budget.js":
       "sha256:2c51f88d08201261b819c53bde6cc261e169044545b914a31da3c4a2665a9fc2",
     "packages/readiness-execution/dist/execution-campaign-factory.js":
       "sha256:2212b95abf13d06c787f715a3579da47749943b2be3a37d9041820e3b894fa0b",
+    "packages/readiness-execution/dist/execution-diagnostic-classifier.js":
+      "sha256:c4f9ca1ddba7504fd5523a959a2bdae5ce3882f2f845f353717b764351f29bb8",
     "packages/readiness-execution/dist/execution-envelope.js":
-      "sha256:ef743f96d109cc1f9657e86b2121188f63a494e9f77cf45595b0ab311b9e1809",
+      "sha256:48fe37b41bff60a02076493418a851aa80f12b6b0ca123ce2d7a10faa3e4065a",
     "packages/readiness-execution/dist/execution-evidence-classifiers.js":
       "sha256:3f8eb639a256cbb577f934c464c9c4066c01fbfe8fea151098ec37d61f51d832",
+    "packages/readiness-execution/dist/execution-identity.js":
+      "sha256:61a23dd7df3d60871d36521450eb34e50a003b11e4bdcdac5260fdfc1577c05e",
     "packages/readiness-execution/dist/execution-live-handlers.js":
-      "sha256:028bde33a720db419ef7a70e46c04ad5a7815f8f85d8f0ff15003d40112ee886",
+      "sha256:7fe66f71fa7e1c54503f765cc3834292aedc0788ec17a6b7a79c6e7e7d4fc8e8",
+    "packages/readiness-execution/dist/execution-observation-layout.js":
+      "sha256:01a39991dadc516fac9331e8a18b86715342129e9a0374c2be2546e83dd7fe00",
     "packages/readiness-execution/dist/execution-orchestration-conformance-v1.js":
       "sha256:219cefc386f76eef047f8acd49d29a7d5eed22cdd8257b670262d4dddc8af443",
     "packages/readiness-execution/dist/execution-orchestration-identity.js":
@@ -2586,7 +2737,9 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness-execution/dist/execution-orchestration-types.js":
       "sha256:8dd062e00d79521e7de405e9e0e0173d68ba6899ccf11f327a04ad2949937e70",
     "packages/readiness-execution/dist/execution-orchestration.js":
-      "sha256:1bae6ef39588ce23d362cd3b9ced5ae1577d57a444f55ef27e8e57f65cb52f9a",
+      "sha256:593d0dccdab9835cd8126760bab0708863fa01b2fd9fc1e009c4d2f04d3d855c",
+    "packages/readiness-execution/dist/execution-predicate-contracts.js":
+      "sha256:b2bfb1840e0a1f92533f5e5683fb38f1b75ca35fc4047efaa1edb33cb6e7f138",
     "packages/readiness-execution/dist/execution-process-anchor-entry.js":
       "sha256:6fd415c8682779bc6e132ff94df52acc7d6d320289c04f9b0daa1f9a6f4e0420",
     "packages/readiness-execution/dist/execution-process-kernel-protocol.js":
@@ -2600,29 +2753,77 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness-execution/dist/execution-publication-catalog-conformance-v1.js":
       "sha256:e531e7560176556d6bbf48ea7866b5d0f79feb17d223bfb0df452392aaa33851",
     "packages/readiness-execution/dist/execution-publication-catalog.js":
-      "sha256:81b0b65698f0f0a4160574e7fb08f747a0f979054566e1ecda067bfed6d4daaa",
+      "sha256:d34c7534abafc0e5fba008ef06d906bb2be22c8331d7ca4c390c0a6e2bbdbfeb",
     "packages/readiness-execution/dist/execution-publication-secure-filesystem.js":
       "sha256:15b361125f09de6b138f348ba17804e6573da5876753e157d9b5cc272764faa0",
     "packages/readiness-execution/dist/execution-publication-selection-validation.js":
       "sha256:1e8e59037eed17eb7397da6c69cdfb68f84e4e978fa285bc39df4262d27c5103",
+    "packages/readiness-execution/dist/execution-report-predicate-association.js":
+      "sha256:b55c466d8557fc9b94f05c8d9bf47af6165b575cbd4c06065568d5f5f549ebc9",
+    "packages/readiness-execution/dist/execution-report-provenance.js":
+      "sha256:f875ddaf1ad5d2ce006c7ffa48e32541fea24742a4362cd04120b35f904f2262",
     "packages/readiness-execution/dist/execution-route-adapters.js":
-      "sha256:b537857f3f60002698a80690838e275d5b38c1a3691d3614816a80b5bab54ee9",
+      "sha256:334ba2855fa16044b77b72296bf0f010bdfe83c02fbf937851f8e06921c805f2",
+    "packages/readiness-execution/dist/execution-route-authority.js":
+      "sha256:b0a128199f327ffed34f0ae6edc3f20601caa013fbcea46db602c85cda319626",
+    "packages/readiness-execution/dist/execution-route-evidence.js":
+      "sha256:6de127c229b843c49aa7f25f0cb33a6219478ea8908079a45d7e5d0e90f14211",
     "packages/readiness-execution/dist/execution-route-planner.js":
       "sha256:ab54b8d987f8e2d8a25995bf88bcf4205eb48b8f2605a9277c2fbb7a832e73d5",
     "packages/readiness-execution/dist/execution-route-tiers.js":
       "sha256:242f1a785908d4b86839de984eb10f8bbdcf9cb792cc4dc7b36041ab6c1fcb34",
+    "packages/readiness-execution/dist/execution-route-worker-request.js":
+      "sha256:6b28f2bde975255381d3d700054c616abc5c94111ae34e4dfc2e758fe484fa64",
     "packages/readiness-execution/dist/execution-selector.js":
       "sha256:c2d4e5247961c2c180b451c8209c122383eb2cceed06d61ebcd3c336280e734d",
     "packages/readiness-execution/dist/execution-supervisor.js":
       "sha256:6b853c0c3ebc0b4dd10f8400b66d46e0b7ececebf6e69d4f78ecffe6927ea18d",
+    "packages/readiness-execution/dist/execution-vice-build.js":
+      "sha256:4fb1a2a1944058e67d5fd7cace3d0f0337383e9a00289b56dd79ab2b5d47d7c8",
+    "packages/readiness-execution/dist/execution-vice-control-host.js":
+      "sha256:80fbc65a4989032c537b99eace4243955417cc9567bac59be09271241b0f04eb",
+    "packages/readiness-execution/dist/execution-vice-evaluation.js":
+      "sha256:8537a149472a3ecb0d10f3bff87cde3c81cf11bfcb5d6312bbc35ee4ed4e52de",
+    "packages/readiness-execution/dist/execution-vice-handler-identity.js":
+      "sha256:8aa84be711b3318a69dec3df491037f9de68749c3cc791dac14876c843dbe6c8",
+    "packages/readiness-execution/dist/execution-vice-host.js":
+      "sha256:68fded8489872e56b94bb5119a71145459c0e81a3e9511ace3ccdd93690f4e7f",
+    "packages/readiness-execution/dist/execution-vice-launch-artifact.js":
+      "sha256:9a5e368ccce65d9fdc5c42d5f968aa07631f574d18ddd9d3a9266b05065a0789",
+    "packages/readiness-execution/dist/execution-vice-launcher-entry.js":
+      "sha256:17a181dbd333090e84bc07b6e32c82c47516e89ab473c6695bbd65ec3081e6d6",
+    "packages/readiness-execution/dist/execution-vice-policy.js":
+      "sha256:3d8e8040e1f36f53d7e9880b60a4605453f7ddf4b0fb315d154d6232a9cfcded",
+    "packages/readiness-execution/dist/execution-vice-record.js":
+      "sha256:1c96073c49a095e7b02ddf16bad7a416b81b381b637acf55188aac9cd283346c",
+    "packages/readiness-execution/dist/execution-vice-runtime.js":
+      "sha256:f9a34d86ba238e2c6f9a40e6f77afa5103044ecb0e25f0e1162907769bd64213",
+    "packages/readiness-execution/dist/execution-vice-session.js":
+      "sha256:cac06d8ab25833bdb0baa8afccee22c104fdfe019e980f5ccb4e0529ac77e09c",
+    "packages/readiness-execution/dist/execution-vice-types.js":
+      "sha256:f369a03cf0fe7885d719dec2decb65d496ddbfa9bd69c4be49f269592d793dc3",
+    "packages/readiness-execution/dist/execution-vice.js":
+      "sha256:b106c426bc300e6e2afb3b091e7fa47fbedc8bde8492467ead86bd00995bcb00",
     "packages/readiness-execution/dist/execution-worker-entry.js":
       "sha256:f300ee4e4a6f0f23efd31a8f57248eab0db913a0fee6e24e555c36f4688ddf27",
     "packages/readiness-execution/dist/execution-worker-executor.js":
-      "sha256:ad810641514aa747b6f13c9e14a34d37848f13eb6bb70f856197df8bc4c7e411",
+      "sha256:c557b491e8ad8df1706d3062c1cfe1b3f5d2394d30c077b2c720d56afd47df28",
     "packages/readiness-execution/dist/execution-worker-protocol.js":
       "sha256:5aae47c6ac6068ab74fe15c6a7a1bb6fbaf2130ba8ae597bfdab8d59940eaf9d",
     "packages/readiness-execution/dist/execution-workspace.js":
       "sha256:2f3e07b1e81b643de635765e895ec59236e02850e58c529c05cb33c95bfdc7b7",
+    "packages/readiness-execution/dist/failure-candidate-route-state.js":
+      "sha256:cb14d4e1cd63f2ea247820b8c7042f8619c9e1ddbfa376acbd18ebe0f47ae8ba",
+    "packages/readiness-execution/dist/failure-execution-immutable.js":
+      "sha256:80370b4fe83a37bd3d95aa484462c95ee520a72762966c81375cd6ba43d06695",
+    "packages/readiness-execution/dist/failure-execution-operation.js":
+      "sha256:8ee2b45583a276ceb11b8e63955a21e0ec662b0df26ef0c88925b9d75a36b609",
+    "packages/readiness-execution/dist/failure-execution-types.js":
+      "sha256:e4428bcebd89209600d1a8fa26f7ab665a440b1f14a88465f021c6988e287d1c",
+    "packages/readiness-execution/dist/failure-predicate-evidence-model.js":
+      "sha256:c51c837552e26892051fa9ceab00acaaa659b9a00b2e7621520f6da3ef0e3ba1",
+    "packages/readiness-execution/dist/failure-predicate-evidence.js":
+      "sha256:2f36b013c9943a60f58dc3f6257e919528e859236bf7e31698edfe3e80ba6cba",
     "packages/readiness/dist/atomic-writer.js":
       "sha256:3fd9a493ee408b9379d50d20314032325dc6aa992c6b35cb739760cc1978bdff",
     "packages/readiness/dist/authority-loader.js":
@@ -2702,7 +2903,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/execution-route-plan.js":
       "sha256:c2e08f94d7004ca425653011effc999103cd22138b42aa84aebb65b469f626b9",
     "packages/readiness/dist/execution-runtime.js":
-      "sha256:39c4d6c1f1a944aff5759a210ab9e10250aa312159f77cfa58b8a5a42bd338f2",
+      "sha256:0ce0173a5f84f8edb60752e997a82c8f915cfa37b45e34790b1d64f09db35677",
     "packages/readiness/dist/execution-validation.js":
       "sha256:3580ded83c74df35049f2619c638cadc051e9aac5eb202be2c23a14dd034b9f9",
     "packages/readiness/dist/execution-vic-projection.js":
@@ -2710,7 +2911,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/expression-renderer.js":
       "sha256:3607963282982029f28dd548b95d8f5af35b942c805d1541ce0ba5a2432e6981",
     "packages/readiness/dist/failure-campaign-budget.js":
-      "sha256:c2a763e1c01c836ef72c3d53c10f0bae164fa6aad8464788ac1c505184ebc1f1",
+      "sha256:bf8c602d0498e781d93a70a66b835eab6a850d4155907185d7bf6939ea14a6d9",
     "packages/readiness/dist/failure-claim-witness.js":
       "sha256:83ffa22d02d71c1f2bc471fa68d392221ef17972a90feed07b36550631a122d3",
     "packages/readiness/dist/failure-contracts.js":
@@ -2730,9 +2931,23 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/failure-envelope-transform-history.js":
       "sha256:83a1b686841da83c7172d7be537cd94f274beb904bd6c17738a407f6297f4a72",
     "packages/readiness/dist/failure-envelope.js":
-      "sha256:acb476f1b6b802db3082708715ffbcee54541020f1aaf8dd0f501ff4234e2e4d",
+      "sha256:ae313637f4cdfa43de5d6a922e8c7dd274feed8590ce7f590c534ca687e82bd8",
     "packages/readiness/dist/failure-identity.js":
       "sha256:d1c05e5cbe572908c094e400ca1fdd3a702fa50df08046b76b6b6f93ea309fba",
+    "packages/readiness/dist/failure-predicate-ingredients.js":
+      "sha256:8fce8ea12a252d28d1665cb58a2e654d5870e96ab2cf9fa61f1ac0682662db0c",
+    "packages/readiness/dist/failure-reducer.js":
+      "sha256:d3ace7ee2018fb2a96475d6b7a086823e6d7139664acb993052f10165c9b58bc",
+    "packages/readiness/dist/failure-reduction-internals.js":
+      "sha256:be1162a22fbec980e7ca28840f8f415b4c0635b85c4d00bcf5a0343977404d55",
+    "packages/readiness/dist/failure-trace-authority.js":
+      "sha256:e2893ec7622930069be5203a0f8b71e4f25aa1fde5d9784667cf5dabc439b0b9",
+    "packages/readiness/dist/failure-transform-catalog.js":
+      "sha256:597e7bca34970db8bb40f4a7314efc55dbdb1bb9ac3cbade70addffbda417729",
+    "packages/readiness/dist/failure-transformation-drafts.js":
+      "sha256:0322b8d1d142ea2887c5c9feec37104e38bcf6c98e624726ecf71a72afc1344e",
+    "packages/readiness/dist/failure-transformation-model.js":
+      "sha256:88dcf96f645266c5eb80a1094011fd743307dd0fa7341176ffb652248a39bbbf",
     "packages/readiness/dist/fragmenter.js":
       "sha256:4d42e92edd5e4a66a0cf42c6fbd21ed3eb6d419fca5130a091595c413f94452c",
     "packages/readiness/dist/generate-case.js":
@@ -2796,7 +3011,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/oracle-candidate-bindings.js":
       "sha256:93834db5b71cd96bf998e4a0b0de0be2cc882e440305e2880b259c574bd41287",
     "packages/readiness/dist/oracle-candidate-revisions.generated.js":
-      "sha256:83d153c459a5cd87e203dce9088fe0350eac68ef1e31e40ccb8ab71db90c5c7b",
+      "sha256:5788cf4c8f197ef92edbe6a69a32bac13126fbe1b36902afe31607e4ed2e4934",
     "packages/readiness/dist/oracle-canonical-identity.js":
       "sha256:e829196be4837497c71e5e8c53f9b7aea979d6d98b2fab42cde6c2420c617ec7",
     "packages/readiness/dist/oracle-compiler-result-candidate.js":
@@ -2866,7 +3081,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/publication-authority-loader.js":
       "sha256:e6d65228df1c88e42a0a3a1949504d87c78c7e92f8229251c63ee64d53d2574b",
     "packages/readiness/dist/publication-authority-revision.generated.js":
-      "sha256:631513396a4aab6623c2e779665dad3791e94e877e8c0a4dff396dd2b70818ea",
+      "sha256:a79702473f554fd94c71b42025bd105ae17c6738b27f5d8bb299350c8f401020",
     "packages/readiness/dist/publication-binding-lookup.js":
       "sha256:4e6a849ae6cd394299d8a2596a9c0d4f594c0692e00fe1c1b532e5f0251f93c7",
     "packages/readiness/dist/publication-candidates.js":
@@ -2890,7 +3105,7 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/published-oracle-campaign.js":
       "sha256:86152695cbc9f40c1ef9430c830de941135d982f29170c2e8a8d3432932bfc51",
     "packages/readiness/dist/published-oracle-context.js":
-      "sha256:3a1cbe1f15c622eba667985eb138204a2055d4620f655b9370cd5e3b4bb2586c",
+      "sha256:cabc8fa150e1d0df1b3a7207d21a9ad24b3588efbe6a25b6eeb4fad9ddd12616",
     "packages/readiness/dist/published-oracle-evaluation.js":
       "sha256:bdef29c9f6cc2079ad770c8190e049f5fd710485fa5da2771a49dc34016804d0",
     "packages/readiness/dist/published-oracle.js":
@@ -2900,13 +3115,19 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/dist/published-replay-authority.js":
       "sha256:190031b79d16cb4a02e1219d3abaacf5ffeac69a47ed91e26c26dec53c5a83f0",
     "packages/readiness/dist/published-runtime-evaluation.js":
-      "sha256:00e0bb0037f1cdd008be1e08bfd9cfe75f9f73972b44ce4767c76e300234812c",
+      "sha256:2885343c86b90cbdedc18adbae66c0119dd78aec9be0ffef75e5ea24f3b0d17e",
     "packages/readiness/dist/readiness-boundary-core.js":
       "sha256:2c1805bcbff523a4b497c392dc2adcce57d674f50af254ab0f9a2a9517a5c2cd",
     "packages/readiness/dist/readiness-boundary-filesystem.js":
       "sha256:17223a1a1635f2c31bcd82893cd452096d41e4f2a41c4fbd2f90e9d07eeb1935",
     "packages/readiness/dist/readiness-boundary-scanner.js":
       "sha256:d8aa8537786802ca391ba3913a9c5a949f018630443d539e5cbc6de19535fe95",
+    "packages/readiness/dist/reduction-candidate-validation.js":
+      "sha256:4daf756d888cde6ef3ad64aa6d1e1603deefb5fefec90d7f33c24475a8c54d25",
+    "packages/readiness/dist/reduction-candidate.js":
+      "sha256:93d16d2fa1ea976a11d013054d87a591fa2f99ec87e042f95738274dfc40809c",
+    "packages/readiness/dist/reduction-value.js":
+      "sha256:28582810e203d9813d88c88096b6db23dadfaeb92a65c54bad80175a007c7835",
     "packages/readiness/dist/replay-envelope-normalizer.js":
       "sha256:3f2faea5c1418e470ed34391a9f12e15195eeb1cbe1c8dc2d42f9e0ee397f50d",
     "packages/readiness/dist/replay-input-model.js":
@@ -3142,7 +3363,23 @@ export const GENERATED_EXECUTION_RUNNER_CATALOG_V1 = Object.freeze({
     "packages/readiness/node_modules/json-schema-traverse/package.json":
       "sha256:156fb24af02845c190701360d06dfda35ef04282e34a734289ea9535ad9819ae",
     "packages/readiness/package.json":
-      "sha256:bf8a441bb8ab4783df1c56f86da3e686922003818921c2a70da95a9009db7238",
+      "sha256:a8d73828a5c3776c318eacbd8f95f14a065f47651b4fef42eb4557235b70869e",
+    "packages/test-harness/dist/emulator/vice/protocol.js":
+      "sha256:c39c80261a3f3491e0ba304de7174b98bbb3e54d232fd9cab5315aebb99436d5",
+    "packages/test-harness/dist/emulator/vice/vice-control-cleanup.js":
+      "sha256:356c241dde3cf2b634851ed50722b5fbeda4955ed2eb1e46c07cf45283dceeda",
+    "packages/test-harness/dist/emulator/vice/vice-control-host.js":
+      "sha256:3281057b8e50f9cfe13cb4be2976593e76c211155b1b40b636da83866ef4da41",
+    "packages/test-harness/dist/emulator/vice/vice-control-protocol.js":
+      "sha256:48bb214a6e3f0ba9cd1fb633d7137b44e0da6bd3ea24fe726a1d1972cfc2404e",
+    "packages/test-harness/dist/emulator/vice/vice-control-session.js":
+      "sha256:ffc180294e12ab3e59f7e8694bef2bc9227ddc04aa95a186c3bdc8cff11f5002",
+    "packages/test-harness/dist/emulator/vice/vice-control-types.js":
+      "sha256:1927c20a53a669a5b680da405a4f2c5de69205fe6beed1199f0d03d02080b2cc",
+    "packages/test-harness/dist/emulator/vice/vice-control.js":
+      "sha256:7e624239ff73c19382865f74ddf1b48eb2df68977f66a838e3443fb91423a884",
+    "packages/test-harness/package.json":
+      "sha256:ffded3b00b68356835b7b1d80f4087b8649b23b3e16b0d04948011a2177a6473",
     "readiness/oracles/oracle-mutation-assertions-v1.json":
       "sha256:25aea6790993092b8cb75cbe42777acce64a73cb3eb8bccbd5b0353cbd413727",
     "readiness/schema/inventory-v1.schema.json":

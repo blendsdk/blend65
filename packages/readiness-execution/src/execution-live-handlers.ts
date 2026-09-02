@@ -12,6 +12,7 @@ import { createPublishedRuntimeEvaluationAuthorityV1 } from "@blend65/readiness/
 
 import {
   createExecutionRouteHandlersV1,
+  getCandidateExecutionRouteStateV1,
   type ExecutionRouteHandlerV1,
   type ExecutionRouteRequestV1,
   type PublishedExecutionHandlersV1,
@@ -23,7 +24,16 @@ import {
   executeEvaluatedViceRouteV1,
   prepareEvaluatedViceRouteV1,
 } from "./execution-vice.js";
+import {
+  prepareCandidateEvaluatedViceRouteV1,
+  prepareIsolatedEvaluatedViceRouteV1,
+} from "./execution-vice-build.js";
+import { getFinalViceResultObservationEvidenceV1 } from "./execution-vice-evaluation.js";
 import type { ExecutionCancellationV1 } from "./execution-worker-protocol.js";
+import {
+  createNotReachedFailureObservationEvidenceV1,
+  registerHandledFailurePredicateEvidenceV1,
+} from "./failure-predicate-evidence.js";
 
 const EMPTY_USAGE: ExecutionUsageV1 = Object.freeze({
   wallMs: 0,
@@ -35,17 +45,19 @@ const EMPTY_USAGE: ExecutionUsageV1 = Object.freeze({
 });
 
 function failureEvidence(caseIdentity: string, code: string): ExecutionEvidenceSummaryV1 {
-  const digest = createHash("sha256")
-    .update("blend65-live-execution-handler-failure-v1\0")
-    .update(caseIdentity)
-    .update("\0")
-    .update(code)
-    .digest("hex");
+  const bytes = failureEvidenceBytes(caseIdentity, code);
+  const digest = createHash("sha256").update(bytes).digest("hex");
   return Object.freeze({
     digest: `sha256:${digest}`,
     retainedBytes: 0,
     truncated: false,
   });
+}
+
+function failureEvidenceBytes(caseIdentity: string, code: string): Uint8Array {
+  return new TextEncoder().encode(
+    `blend65-live-execution-handler-failure-v1\0${caseIdentity}\0${code}`,
+  );
 }
 
 function failed(
@@ -68,26 +80,66 @@ async function executeVice(
   request: ExecutionRouteRequestV1,
   cancellation: ExecutionCancellationV1,
 ): Promise<ExecutionResultV1> {
+  const candidate = getCandidateExecutionRouteStateV1(request);
   if (
     request.kind === "invalid-diagnostic" ||
+    request.kind === "raw-malformed" ||
     request.route.terminalTier !== "vice" ||
     cancellation.signal.aborted
   ) {
     return failed("vice", "input", "invalid-evidence-input", request.route.caseIdentity);
   }
-  const evaluation = createPublishedRuntimeEvaluationAuthorityV1(
-    request.oracle,
-    request.executionCase,
-  );
-  if (!evaluation.ok) {
+  const original = candidate?.originalRequest ?? request;
+  if (original.kind !== "valid-envelope" && original.kind !== undefined) {
     return failed("vice", "input", "invalid-evidence-input", request.route.caseIdentity);
   }
-  const prepared = await prepareEvaluatedViceRouteV1(
-    request.executionCase,
-    evaluation.value,
-    request.policy,
-    cancellation.signal,
-  );
+  let prepared;
+  if (candidate === undefined) {
+    const evaluation = createPublishedRuntimeEvaluationAuthorityV1(
+      original.oracle,
+      original.executionCase,
+    );
+    prepared = evaluation.ok
+      ? await prepareEvaluatedViceRouteV1(
+          original.executionCase,
+          evaluation.value,
+          request.policy,
+          cancellation.signal,
+        )
+      : undefined;
+  } else {
+    const consumed = candidate.consumed;
+    if (candidate.family !== "typed-valid" || candidate.workerExecutor === undefined) {
+      return failed("vice", "input", "invalid-evidence-input", request.route.caseIdentity);
+    }
+    if (consumed === undefined) {
+      const evaluation = createPublishedRuntimeEvaluationAuthorityV1(
+        original.oracle,
+        original.executionCase,
+      );
+      prepared = evaluation.ok
+        ? await prepareIsolatedEvaluatedViceRouteV1(
+            original.executionCase,
+            evaluation.value,
+            request.policy,
+            cancellation.signal,
+            candidate.workerExecutor,
+          )
+        : undefined;
+    } else {
+      prepared = await prepareCandidateEvaluatedViceRouteV1(
+        original.executionCase,
+        original.oracle,
+        consumed,
+        request.policy,
+        cancellation.signal,
+        candidate.workerExecutor,
+      );
+    }
+  }
+  if (prepared === undefined) {
+    return failed("vice", "input", "invalid-evidence-input", request.route.caseIdentity);
+  }
   if (!prepared.ok) {
     return failed("vice", "emit", "emission-failure", request.route.caseIdentity);
   }
@@ -109,14 +161,22 @@ async function executeCompilerRoute(
   request: ExecutionRouteRequestV1,
   cancellation: ExecutionCancellationV1,
 ): Promise<ExecutionResultV1> {
+  const workerExecutor =
+    getCandidateExecutionRouteStateV1(request)?.workerExecutor ?? defaultExecutionWorkerExecutorV1;
   const supervisor = createExecutionSupervisorV1(request.policy, {
-    workerExecutor: defaultExecutionWorkerExecutorV1,
+    workerExecutor,
   });
   if (!supervisor.ok) {
-    return failed(tier, "input", "invalid-evidence-input", request.route.caseIdentity);
+    const result = failed(tier, "input", "invalid-evidence-input", request.route.caseIdentity);
+    registerHandledFailurePredicateEvidenceV1(
+      request,
+      result,
+      createNotReachedFailureObservationEvidenceV1(result),
+    );
+    return result;
   }
   const handlers = createExecutionRouteHandlersV1({
-    worker: { executor: defaultExecutionWorkerExecutorV1 },
+    worker: { executor: workerExecutor },
     acme: {},
     lifecycle: { supervisor: supervisor.value },
     vice: { execute: executeVice },
@@ -136,17 +196,24 @@ async function executeCompilerRoute(
             code: "emulator-lease-recovery-blocked" as const,
             evidenceDigest: failureEvidence(request.route.caseIdentity, "cleanup").digest,
           });
-    if (result.status === "failure") return Object.freeze({ ...result, cleanupBlocker: blocker });
-    return Object.freeze({
-      status: "failure" as const,
-      tier,
-      stage: "cleanup" as const,
-      code: "emulator-lease-recovery-blocked" as const,
-      usage: result.usage,
-      evidence: result.evidence,
-      cleanupBlocker: blocker,
-    });
+    result =
+      result.status === "failure"
+        ? Object.freeze({ ...result, cleanupBlocker: blocker })
+        : Object.freeze({
+            status: "failure" as const,
+            tier,
+            stage: "cleanup" as const,
+            code: "emulator-lease-recovery-blocked" as const,
+            usage: result.usage,
+            evidence: result.evidence,
+            cleanupBlocker: blocker,
+          });
   }
+  registerHandledFailurePredicateEvidenceV1(
+    request,
+    result,
+    result.status === "failure" ? createNotReachedFailureObservationEvidenceV1(result) : undefined,
+  );
   return result;
 }
 
@@ -157,6 +224,22 @@ function compilerHandler(tier: Exclude<ExecutionTierV1, "vice">): ExecutionRoute
   });
 }
 
+async function executePublishedVice(
+  request: ExecutionRouteRequestV1,
+  cancellation: ExecutionCancellationV1,
+): Promise<ExecutionResultV1> {
+  const result = await executeVice(request, cancellation);
+  registerHandledFailurePredicateEvidenceV1(
+    request,
+    result,
+    getFinalViceResultObservationEvidenceV1(result) ??
+      (result.status === "failure"
+        ? createNotReachedFailureObservationEvidenceV1(result)
+        : undefined),
+  );
+  return result;
+}
+
 /** Creates the closed real six-handler table used by reviewed live contexts. */
 export function createLiveExecutionHandlersV1(): PublishedExecutionHandlersV1 {
   return Object.freeze({
@@ -165,6 +248,6 @@ export function createLiveExecutionHandlersV1(): PublishedExecutionHandlersV1 {
     cli: compilerHandler("cli"),
     emit: compilerHandler("emit"),
     acme: compilerHandler("acme"),
-    vice: Object.freeze({ execute: executeVice }),
+    vice: Object.freeze({ execute: executePublishedVice }),
   });
 }

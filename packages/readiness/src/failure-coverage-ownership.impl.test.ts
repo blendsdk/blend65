@@ -31,6 +31,9 @@ describe("failure coverage ownership", () => {
       .sort();
 
     expect(coveredNamespace).toEqual(productionFiles);
+    expect(rd05CoverageFiles).toEqual([...rd05CoverageFiles].sort());
+    expect(rd05ParticipatingExistingFiles).toEqual([...rd05ParticipatingExistingFiles].sort());
+    expect(rd05ReviewOnlyExclusions).toEqual([...rd05ReviewOnlyExclusions].sort());
     expect(duplicateEntries(rd05CoverageFiles)).toEqual([]);
     expect(duplicateEntries(rd05ParticipatingExistingFiles)).toEqual([]);
     expect(

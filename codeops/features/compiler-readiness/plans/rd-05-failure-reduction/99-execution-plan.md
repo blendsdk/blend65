@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-30 14:27
-> **Progress**: 25/70 tasks (36%)
+> **Last Updated**: 2026-09-02 07:48
+> **Progress**: 34/70 tasks (49%)
 > **Commit Mode**: Auto-commit at verified local checkpoints; never push
 > **Design Mode**: Auto-design within the resolved ambiguity register
 > **CodeOps Artifact Schema**: 1
@@ -201,15 +201,172 @@ reducer for all three families, with no compiler, worker or filesystem access.
   expectation or global timeout changed. Final specification SHA-256:
   `c36750f96de9cefdc789c1d9628df974d8d07ad4689dcaa549576dde53b3b415`; authoritative bundle
   SHA-256: `b68dd8b7776348064fe06f83b73a362ba4d59c664b76abe49f19dd8e7fdc4a1b`.
-- [~] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload — started 2026-08-30 12:18; AR-P25/AR-P26 fixture-only blockers resolved by 2026-08-30 13:08 without production weakening
-- [ ] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes
-- [ ] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards
-- [ ] 3.2.4 Implement authenticated predicate sidecars before aggregate hashing and bind their exact ordered collection into private `execution-authority-report.ts` state through `execution-orchestration.ts`; preserve RD-04 V1 bytes and fail missing/reordered/copied/pre-RD-05 sidecars closed
-- [ ] 3.2.5 Implement closed module-private isolation modes consumed by fixed handlers: campaign-shared bound to one authenticated campaign executor for ordinary reduction, standalone owning one fresh worker-thread/V8 isolate/root and invocation, and sequence-attempt owning one dedicated worker independent of campaign-pool retirement; define mint/consume/shutdown rules, reject cross-mode/campaign/attempt substitution, and retain external ACME/VICE route isolation
-- [ ] 3.2.6 Implement two-run confirmation, distinct known-good control authority, ordered sequence-position tokens with authenticated preceding original cases and exactly one terminal reduced candidate at its original failing position, dedicated attempt lifetime through 64 and pre-launch case-65 rejection, shared-budget charging and closed source/sequence/flaky outcomes; create execution exports plus coverage manifest/config/scripts/ownership guard before GREEN
-- [ ] 3.3.1 Run the ST-18 execution facet and ST-25–ST-35 GREEN, then rerun all ordinary generated-route compatibility specifications unchanged
-- [ ] 3.3.2 Add `failure-candidate-execution.impl.test.ts` and `failure-confirmation.impl.test.ts` for candidate/control/sequence subject and position substitution, missing/repeated terminal candidate, payload/runtime authority, report-sidecar association, changed route kind, direct callbacks, raw/typed confusion, all isolation-mode/campaign/attempt/replay/shutdown faults, attempt failures at positions 2–9, exact 64/next 65, cleanup/control/budget limits and stale authority; update baseline-derived ownership lists and pass both per-file/freshness coverage gates
-- [ ] 3.3.3 Run configured correctness/semantics/security/performance/concurrency review, resolve findings, regenerate/check bindings, update state, run exact full verification and auto-commit without pushing; semantic child acceptance/selection remains deferred
+- AR-P32 corrected only the controlled `standalone-stable` fixture so its exact candidate failures
+  retain a genuinely passing distinct control, as RD-05 requires. Production's pass-only control
+  gate and every frozen expectation remain unchanged. Final fixture SHA-256:
+  `826c9cf439651d08a7c6f00417db43f8f5d89879698be7d9c8f3446ab10cce85`. The prior bundle value
+  did not record a reproducible construction, so the superseding authority hashes canonical UTF-8
+  JSON revision `rd05-phase3-oracle-bundle-v1`, with ordered `files` entries containing the exact
+  repository path and lowercase 64-hex SHA-256 for the specification, fixture, worker entry and
+  process entry. Authoritative manifest SHA-256:
+  `d177910443af8ed9a63ee5cef728660a1c836a0458ca3f7e7a784d9c424ca3e4`.
+- AR-P33 restored the Phase 2 deterministic content-identity invariant: equal semantic candidates
+  retain equal `candidateDigest` values while distinct authority instances receive distinct
+  `candidateExecutionIdentity` values. The Phase 3 oracle now asserts the declared execution field,
+  with no production authority weakening. Superseding specification SHA-256:
+  `08d6b654e64160842793758958a9822c41625b1805c479955244d25bc4e6c909`; superseding canonical
+  manifest SHA-256: `b05e39f49cecb63b783f0cc505f863d5437703d0fa2f43cc8ec4eb636fb3067b`.
+- AR-P34 keeps complete reduction results deterministic by returning a content-only `best`
+  projection without per-authority execution identity. The separately retrieved genuine terminal
+  authority retains the full projection and remains the only candidate execution handoff; the
+  frozen Phase 2 byte-equality oracle remains unchanged.
+- AR-P35 split the ten-epoch sequence matrix into nine fixed position cases plus a separate
+  pre-launch-65 case under an explicit sequential suite. Each retains its genuine independent
+  fixture and a measured 300-second watchdog, so ordinary and V8 coverage runs remain bounded
+  without coverage-specific behavior. Superseding specification SHA-256:
+  `8ab612e0f137fec8658cd9dfb3b2831a2e07b69ba7c55ae559d4a3cbc77b355c`; superseding canonical
+  manifest SHA-256: `f3ca9705e92a61e92d97745da76ea1b3e6ab35024c9dc22c95ecce03d99dc980`.
+- AR-P36 reopens the Phase 3 oracle after independent review reproduced incomplete predicate,
+  control, sequence, budget, historical-join, sidecar, report, VICE-worker and shutdown semantics.
+  The corrected implementation-blind oracle must first add those counterexamples, record RED, and
+  freeze a superseding bundle before production remediation. The selected subject-bound context
+  consumes only complete report-position provenance and changes no RD-04 report bytes.
+- AR-P37 requires private, route-budget-bounded canonical observation bytes so confirmation proves
+  literal byte equality rather than digest equivalence. It also fixes aggregate shutdown failure as
+  count-only `execution.io` at `/isolation/shutdown` after every owned executor settles and protocol
+  authority closes. These expectations join the corrected oracle before its superseding RED freeze.
+- The AR-P36/AR-P37 implementation-blind correction now contains 28 cases and is frozen RED solely
+  on absent `getExecutionAuthorityReportPositionsV1`. Package build/lint, Prettier, diff and
+  documentation-ban checks are clean. Superseding specification SHA-256:
+  `7eb59b1b18dc805dc5fbea7ccfab6ab1b47a051e70c5e2edf14929a2a37cd12b`; fixture SHA-256:
+  `5146a80325815a7f3490032dd1eb65eb3e58833190cd6b202bef0d64e25e4987`; canonical ordered bundle
+  SHA-256: `011f51ae9f81290b3281881ae4ab3df7e4dea4d70482e835c3abe51eeb90c58d`.
+- AR-P38 reopens only the fixture hash after the absent context API no longer masks a parent-only
+  composite-projection call. The fixture must resolve its already-created genuine published child,
+  join it to the exact parent, and use that same live context for planning/orchestration; production's
+  composite authority remains strict and all 28 expectations remain unchanged.
+- AR-P39 corrects only the fixture's masked noncanonical cleanup grace from 1000 to the closed policy
+  value 3000. Production validation, all semantic expectations and test watchdogs remain unchanged;
+  the fixture and bundle hashes are superseded again after its semantic rerun.
+- AR-P40 corrects the fixture's masked terminal injection: it preserves the exact selected route tier,
+  lets prerequisites pass, and injects only at the matching worker or ACME/VICE terminal boundary for
+  that case/occurrence. The positions 2–9, 64 and explicit VICE expectations remain unchanged.
+- AR-P41 corrects only the fixture occurrence counter after reverted diagnostics proved genuine
+  execution emits one effective worker start per route, not one frontend start per route. Every worker
+  start advances the exact occurrence; emit arms ACME/VICE process-terminal injection.
+- AR-P42 adds the narrow package-private position-to-envelope bridge needed to complete the genuine
+  report-to-candidate bootstrap. It derives source, exact report-wide route-plan bytes, predicate,
+  private canonical observation bytes and complete tool identities from one genuine non-pass report
+  position, returns only opaque envelope authority, and exposes neither raw bytes nor loose fields.
+- AR-P43 keeps negative mismatch authorities valid without exposing those private bytes: the fixture
+  authorizes closed self-consistent foreign canary tuples and proves their intended public semantic
+  differences, while focused implementation tests retain exact per-comparison branch coverage.
+- AR-P44 completes the previously referenced tool identity contract: each required sorted unique
+  route-contract digest has exactly one valid four-field tool identity and no extra identity.
+- AR-P45 sources the wrong-tool negative authority from one opt-in, same-epoch genuine VICE non-pass
+  report and the AR-P42 bridge; no other oracle case pays for the additional execution.
+- AR-P46 supplies the empty raw-malformed fixture envelope with the exact public tool identities named
+  by its copied route contract; source and observation bytes remain empty.
+- AR-P47 binds the published frontend-chain test to genuine frontend report positions and executes one
+  independent opaque candidate for each typed-valid and typed-invalid source family; its initial joint
+  selector was unsatisfiable in the mixed campaign and is superseded by AR-P48.
+- AR-P48 mints the smallest genuine parent-bound frontend-only campaign for that one cross-family test,
+  proving a candidate-phase frontend worker request and frontend terminal result for both families.
+- AR-P49 supplies that campaign's exact reviewed semantic intent: seed, 72/24 population, five scalar
+  rules, four spellings and all eight fixed generation-budget fields.
+- AR-P50 adds one package-private opaque-position accessor returning the exact frozen retained route
+  request reference, eliminating scalar/direct-MMIO fixture reconstruction without exposing bytes.
+- AR-P51 preserves each preceding sequence original's retained case identity; only the terminal reduced
+  candidate receives candidate execution identity.
+- AR-P52 selects and verifies a distinct passing complete same-route VICE control before the dedicated
+  attempt-worker isolation assertion executes.
+- AR-P53 supersedes the impossible frontend-only campaign objective with ST-28's exact normative rule:
+  each typed family must dispatch its genuine published terminal handler and preserve that route tier.
+- AR-P54 uses a valid position-2 context for the sequence-65 hard-limit assertion while retaining 64
+  hostile preceding inputs, requested position/case-limit 65, and prelaunch/no-charge behavior.
+- AR-P55 fixes typed-invalid intrinsic-replacement revalidation by preserving the exact own closed
+  scalar type instead of hardcoding a temporary `word`, with hostile descriptor/type boundaries intact.
+- AR-P56 freezes the first viable parent-bound VICE-control campaign at 26 valid cases, two spellings
+  and a 62-item plan, with exact matched `peek` VICE positions 11/12 inside the sequence limit.
+- AR-P57 applies a measured 600-second watchdog only to the two-epoch cross-family published-handler
+  case; package/global timeouts and every semantic assertion remain unchanged.
+- AR-P58 makes controlled typed-invalid originals emit their exact published diagnostic pass tuple and
+  the selected historical/candidate subject emit one identical deterministic code-only mismatch,
+  retaining mixed order and direct-shrink semantics without touching raw routes.
+- AR-P59 gives every stateful-sequence position an authentic typed-valid fresh-confirm subject and a
+  distinct later passing same-route control in one fixed 68-position plan; typed-invalid direct-shrink
+  coverage remains separate and can no longer short-circuit the ordered sequence oracle.
+- AR-P60 turns the VICE attempt-worker case into a locally gated real emit/ACME/VICE composition with an
+  exact launcher-only injected failure and reviewed local resource policy, while retaining a CI-safe
+  dedicated-executor handoff assertion.
+- AR-P61 rejects the old VICE pair after real execution, requires the owned launch-failure lease leak and
+  seed-7 emit defect to be corrected first, then admits the first deterministically ranked same-route pair
+  that passes twice and appears as two passes in one complete un-injected report within position 64.
+- AR-P62 isolates the locally gated VICE oracle in a dedicated top-level-mocked specification graph after
+  every reset/dynamic-import variant proved nondeterministic; the remaining 27 controlled cases keep their
+  existing fixture path and all VICE semantics remain unchanged.
+- The corrected 28-case oracle is frozen after AR-P42–AR-P45 at specification SHA-256
+  `17b350d290aabfd2f4d91512637651daf0d532dbd2e707bccdfedc46fe9eb29e`, main fixture SHA-256
+  `760e7f8044edf07d00f64b58faaeec61210cafdb6c82642bbd302aa1c3cbad4e`, unchanged worker-entry
+  SHA-256 `fb3e6b0827f0da1af770d450243cb2a68ecadecb049566649731150e08a50cd0`, unchanged process-entry
+  SHA-256 `2e7603439f97deb5d109d1fee4ea3a28357c53847dc7d37d807b670753232bf1`, and canonical ordered
+  bundle SHA-256 `8ec4cc84f189886da2f44c5673937f3e27acdd644723e0a75804fa690fc2b097`.
+- AR-P73–AR-P82 complete the review-driven oracle without weakening its behavior: the final 30
+  cases are decomposed into candidate execution (10), confirmation (19) and locally gated VICE
+  (1) specification files, with concern-based support and true-external entries. Canonical UTF-8
+  JSON revision `rd05-phase3-oracle-bundle-v2` contains 13 ordered repository-relative path and
+  lowercase SHA-256 entries. The three specification hashes are
+  `b97e23402288b3a974dba8ab4b4d783105e1c3c0aca26d152f53932719030402`,
+  `938bc7483ff952002feb22a6cdbe3252eb7a08525c2a995b564ec9979c89c3ad` and
+  `2b722cf1f263463bf4b309067e6b2ec7a1b720fce3b52ca31d0f6ccfc1762952`;
+  authoritative manifest SHA-256:
+  `806fab43d61efdec6a1fcefb90d2aca62b4d35e956a2d3a214bdeaa1062b0af0`.
+- AR-P85 makes only the local VICE audit handoff asynchronous and bounded while preserving every
+  expectation. The candidate-execution and confirmation specification hashes remain
+  `b97e23402288b3a974dba8ab4b4d783105e1c3c0aca26d152f53932719030402` and
+  `938bc7483ff952002feb22a6cdbe3252eb7a08525c2a995b564ec9979c89c3ad`; the local VICE
+  specification is superseded at
+  `787f8ad2d27868c23cc84a8530b383aca5a80e8694b14cf252eb95a1c19fd09e`. Its changed report
+  support and VICE support hashes are
+  `48a5b2efaecad15397c1202e02a37d4ed1669290466079127ad25361a28b82d8` and
+  `bc010bcad8afdd108b62235bb2db4486aac9cc2b72ef752ea74447a275e573c4`.
+  Canonical manifest order is candidate-execution spec, confirmation spec, local-VICE spec,
+  candidate spec support, fixture, types, adapters, report, finalizer, worker entry, process entry,
+  tool drift and VICE support. Revision `rd05-phase3-oracle-bundle-v2` is superseded at SHA-256
+  `ab781c9c38e94571de46638b02febfd3fe0dce246c20761ba3b7e235a14e12ce`.
+- AR-P86 applies the same measured 600-second case-local watchdog to the two historical-authority
+  cases without changing their behavior. The confirmation specification is superseded at SHA-256
+  `ff9549127ceb20b6f277693185783552efea635ce0979eaebd80f97111b65719`; the other 12 ordered
+  entries remain those frozen by AR-P85. Canonical compact UTF-8 JSON object revision
+  `rd05-phase3-oracle-bundle-v3`, with keys `revision` then `files` and each ordered file entry keyed
+  `path` then `sha256` without a trailing newline, is frozen at SHA-256
+  `ab564ffdbf3c06cdb398e153f90edcc4abdfb269a496b845ba91c2394486c0f3`.
+- AR-P92 applies that case-local watchdog to three further measured confirmation cases without
+  changing their assertions or production behavior. The confirmation specification is superseded
+  at SHA-256 `befa39be3482976d9c3831a6693cc417163c3dc12cfc71b1892e31d3d1a34e81`; the other 12
+  ordered entries remain those frozen by AR-P85. Canonical compact JSON revision
+  `rd05-phase3-oracle-bundle-v4` is frozen at SHA-256
+  `eec3c193bdee8974002dda55b1c34e46be7cd79638dd3a9f665549942cf29907`.
+- [x] 3.2.1 Derive/export the closed family-specific `ReductionExecutionPayloadV1`, candidate-relative runtime authority and `ReductionExecutionRouteRequestV1` arm from exact `PublishedSnapshot`/`ExecutionAuthorityContextV1` authorities; validate subject/purpose token and the private isolation capability before projecting payload ✅ (completed: 2026-09-01 06:30); complete route, source, candidate, handler and tool authority joins GREEN
+- [x] 3.2.2 Adapt `execution-route-adapters.ts`, `execution-live-handlers.ts`, `execution-vice-build.ts` and readiness `published-runtime-evaluation.ts` for the closed candidate payload/runtime authority while preserving route kind, fixture/oracle/tool semantics and never forging `ExecutionCaseV1` or reusing original expected runtime bytes — verified 2026-08-30 23:28; ordinary generated-route compatibility remains byte-compatible
+- [x] 3.2.3 Implement typed-valid, typed-invalid and raw-diagnostic variants through the same published handler chain; allow zero source bytes only in raw diagnostics and add cross-arm compatibility guards — verified 2026-08-30 23:28; all three genuine route arms and hostile cross-arm cases GREEN
+- [x] 3.2.4 Implement authenticated predicate sidecars before aggregate hashing and bind their exact ordered collection into private `execution-authority-report.ts` state through `execution-orchestration.ts`; preserve RD-04 V1 bytes and fail missing/reordered/copied/pre-RD-05 sidecars closed ✅ (completed: 2026-09-01 06:30); nested authority immutability and sidecar-only serialization separation GREEN
+- [x] 3.2.5 Implement closed module-private isolation modes consumed by fixed handlers: campaign-shared bound to one authenticated campaign executor for ordinary reduction, standalone owning one fresh worker-thread/V8 isolate/root and invocation, and sequence-attempt owning one dedicated worker independent of campaign-pool retirement; define mint/consume/shutdown rules, reject cross-mode/campaign/attempt substitution, and retain external ACME/VICE route isolation ✅ (completed: 2026-09-01 06:30); exact attempt/position/subject binding, position-local checkpoints and local VICE isolation GREEN
+- [x] 3.2.6 Implement two-run confirmation, distinct known-good control authority, ordered sequence-position tokens with authenticated preceding original cases and exactly one terminal reduced candidate at its original failing position, dedicated attempt lifetime through 64 and pre-launch case-65 rejection, shared-budget charging and closed source/sequence/flaky outcomes; create execution exports plus coverage manifest/config/scripts/ownership guard before GREEN ✅ (completed: 2026-09-01 06:30); exact predicate reproduction, genuine control, originating order and sequence budget GREEN
+- [x] 3.3.1 Run the ST-18 execution facet and ST-25–ST-35 GREEN, then rerun all ordinary generated-route compatibility specifications unchanged — verified 2026-08-30 23:28; frozen oracle 23/23 and report compatibility 1/1 GREEN
+- [x] 3.3.2 Add `failure-candidate-execution.impl.test.ts` and `failure-confirmation.impl.test.ts` for candidate/control/sequence subject and position substitution, missing/repeated terminal candidate, payload/runtime authority, report-sidecar association, changed route kind, direct callbacks, raw/typed confusion, all isolation-mode/campaign/attempt/replay/shutdown faults, attempt failures at positions 2–9, exact 64/next 65, cleanup/control/budget limits and stale authority; update baseline-derived ownership lists and pass both per-file/freshness coverage gates ✅ (completed: 2026-09-01 06:30); 23 files/63 tests GREEN, 94.11% aggregate branches and every governed production file ≥90%
+- [x] 3.3.3 Run configured correctness/semantics/security/performance/concurrency review, resolve findings, regenerate/check bindings, update state, run exact full verification and auto-commit without pushing; semantic child acceptance/selection remains deferred ✅ (completed: 2026-09-02 07:48); all required findings resolved, bindings fresh, readiness 1,506/1,506, readiness-execution 543/543 and root boundary 33/33 GREEN; generation-zero VICE lease clear with no child
+
+### Phase 3 Quality Evidence
+
+| Lens | Result |
+|---|---|
+| Correctness | Review counterexamples hardened total route authority, exact predicate/control comparison, sidecar association, standalone/sequence isolation, report-bound VICE cleanup and worker capacity; no unresolved critical or major finding remains |
+| Semantics | Candidate content identity stays deterministic while execution identity is authority-specific; confirmation executes the exact original route and tool contract, requires two fresh failures, and preserves sequence position through the hard 64-case limit |
+| Security | Hostile cases cover copied/forged/replayed capabilities, cross-family payloads, wrong routes/tools/positions, accessor input, stale authority, shutdown failure and pre-allocation tool drift without exposing private source or observation bytes |
+| Concurrency | Every owned worker settles before aggregate shutdown classification; sequence attempts use one dedicated executor; report authorization observes but never repairs the process-wide VICE lease and requires generation-zero clear state |
+| Compatibility | Historical RD-04 authority report bytes remain unchanged; ordinary generated-route behavior is byte-compatible; all six generated handler bindings are fresh |
+| Verification | Frozen Phase 3 oracle 30/30 GREEN across candidate execution, confirmation and local VICE; final RD-05 execution coverage 63/63 GREEN in 8,184.44 seconds at 94.10% aggregate branches with every governed production file ≥90%; exact repository tiers GREEN with readiness 1,506/1,506, readiness-execution 543/543 in 6,282.18 seconds and root boundary 33/33; post-run VICE lease is generation-zero clear with empty nonce and no child |
 
 **Deliverable:** every transformed case executes under a truthful new identity through the original
 published route, with isolated two-run confirmation and campaign-only sequence/flaky handling.

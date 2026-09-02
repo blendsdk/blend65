@@ -5,8 +5,10 @@ import { dirname, resolve } from "node:path";
 import {
   resolvePublishedSnapshot,
   resolvePublishedExecutionRelease,
+  isExecutionTierV1,
   type CompositeReadinessProjectionV1,
   type ExecutionOperationResultV1,
+  type ExecutionTierV1,
   type PublishedExecutionRelease,
   type PublishedSnapshot,
 } from "@blend65/readiness";
@@ -85,6 +87,36 @@ const LIVE_CONTEXTS = new WeakMap<object, LiveExecutionContextStateV1>();
 const FIXED_HANDLERS = createLiveExecutionHandlersV1();
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder("utf-8", { fatal: true });
+
+/**
+ * Returns the generated implementation revision owned by one execution tier.
+ *
+ * Keeping this lookup in the catalog owner prevents consumers from importing generated catalog
+ * bytes directly while still letting them bind evidence to the exact current revision.
+ *
+ * @example
+ * ```ts
+ * const revision = getGeneratedExecutionImplementationRevisionV1("frontend");
+ * if (revision === undefined) throw new TypeError("Missing generated execution tier.");
+ * ```
+ */
+export function getGeneratedExecutionImplementationRevisionV1(
+  capabilityId: ExecutionTierV1,
+): string | undefined {
+  return GENERATED_EXECUTION_HANDLER_CATALOG_V1.rows.find(
+    (row) => row.capabilityId === capabilityId,
+  )?.implementationRevision;
+}
+
+/** Returns the execution tier that owns one exact generated implementation revision. */
+export function getGeneratedExecutionCapabilityIdForRevisionV1(
+  implementationRevision: string,
+): ExecutionTierV1 | undefined {
+  const capabilityId = GENERATED_EXECUTION_HANDLER_CATALOG_V1.rows.find(
+    (row) => row.implementationRevision === implementationRevision,
+  )?.capabilityId;
+  return isExecutionTierV1(capabilityId) ? capabilityId : undefined;
+}
 
 function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });

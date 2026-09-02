@@ -17,6 +17,7 @@ original case identity, or substitutes current authorities for historical conten
 |---|---|
 | `failure-route-adapter.ts` | Validate candidate authority and derive the dedicated route request |
 | `failure-confirmation.ts` | Two-run fresh-worker confirmation and bounded sequence reproduction |
+| `failure-confirmation-context.ts` | Join one complete report occurrence to candidate, route, tool, control, order and budget authority |
 | `execution-route-adapters.ts`, `execution-live-handlers.ts` | Route closed candidate payloads and consume private isolation/predicate capabilities |
 | `execution-worker-executor.ts` | Construct isolated standalone and dedicated sequence-attempt workers |
 | `execution-authority-report.ts`, `execution-orchestration.ts` | Bind ordered predicate sidecars to private report authority state |
@@ -32,13 +33,30 @@ publication refresh in the closeout phase. (AR-P13)
 
 The immutable co-located specification and the production coordinator share one declared
 package-private protocol at `failure-execution-internals.ts`. It is deliberately absent from the
-package manifest and root barrel. The protocol accepts only a genuine selected parent, genuine
-execution context, genuine original route request and genuine envelope; it never accepts a handler,
-handler identifier, callback, worker factory, path or isolation-mode discriminator.
+package manifest and root barrel. The protocol opens only from a subject-bound opaque confirmation
+context minted from a complete, normally authorized report and its exact private provenance. It
+never accepts loose requests, route identifiers, handlers, callbacks, worker factories, paths or
+isolation-mode discriminators. (AR-P36)
+
+Envelope authorization uses the same private report-position boundary. A package-private bridge
+accepts only a genuine non-pass position plus the selected reduction policy, derives the complete
+source, route-plan, predicate, observation and tool provenance internally, and returns only the
+existing opaque envelope authority. Report-wide route-plan bytes and tool identities are retained
+once in private report provenance; no caller can retrieve canonical observation bytes or recombine
+loose authorization fields. Forged, copied, foreign or pass positions and incomplete provenance fail
+closed. (AR-P42)
 
 ```ts
 export interface FailureExecutionProtocolV1 {
   readonly [FAILURE_EXECUTION_PROTOCOL_V1]: true;
+}
+
+export interface ExecutionReportPositionAuthorityV1 {
+  readonly [EXECUTION_REPORT_POSITION_AUTHORITY_V1]: true;
+}
+
+export interface FailureConfirmationContextAuthorityV1 {
+  readonly [FAILURE_CONFIRMATION_CONTEXT_AUTHORITY_V1]: true;
 }
 
 export interface ReductionExecutionIsolationV1 {
@@ -76,17 +94,45 @@ export interface FailureExecutionObservationV1 {
   readonly launched: boolean;
   readonly attemptOrdinal: number;
   readonly position: number;
+  readonly reportPosition: number;
   readonly rootIdentity?: Sha256Digest;
   readonly workerIdentity?: number;
   readonly isolateIdentity?: Sha256Digest;
+  readonly checkpointDigest: Sha256Digest;
 }
 
-export function openFailureExecutionProtocolV1(input: {
-  readonly parent: PublishedSnapshot;
-  readonly execution: ExecutionAuthorityContextV1;
-  readonly originalRequest: ExecutionRouteRequestV1;
+export interface FailureObservationEvidenceProjectionV1 {
+  readonly revision: "failure-observation-evidence-projection-v1";
+  readonly kind: "observed" | "not-reached";
+  readonly digest: Sha256Digest;
+  readonly byteLength: number;
+}
+
+export function getExecutionAuthorityReportPositionsV1(
+  report: ExecutionAuthorityReportV1,
+): ExecutionOperationResultV1<readonly ExecutionReportPositionAuthorityV1[]>;
+
+export function getExecutionReportPositionRequestV1(
+  position: ExecutionReportPositionAuthorityV1,
+): ExecutionOperationResultV1<ExecutionRouteRequestV1>;
+
+export function authorizeFailureEnvelopeFromReportPositionV1(
+  position: ExecutionReportPositionAuthorityV1,
+  policy: FailureReductionPolicyV1,
+): ExecutionOperationResultV1<AuthorizedFailureEnvelopeV1>;
+
+export function createFailureConfirmationContextV1(input: {
+  readonly report: ExecutionAuthorityReportV1;
+  readonly subject: ExecutionReportPositionAuthorityV1;
+  readonly control?: ExecutionReportPositionAuthorityV1;
+  readonly candidate: ReductionCandidateAuthorityV1;
   readonly origin: AuthorizedFailureEnvelopeV1;
-}): ExecutionOperationResultV1<FailureExecutionProtocolV1>;
+  readonly budget: FailureCampaignBudgetAuthorityV1;
+}): ExecutionOperationResultV1<FailureConfirmationContextAuthorityV1>;
+
+export function openFailureExecutionProtocolV1(
+  context: FailureConfirmationContextAuthorityV1,
+): ExecutionOperationResultV1<FailureExecutionProtocolV1>;
 
 export function mintCampaignFailureExecutionIsolationV1(
   protocol: FailureExecutionProtocolV1,
@@ -125,7 +171,7 @@ export function recordStatefulSequencePositionV1(
   protocol: FailureExecutionProtocolV1,
   attempt: StatefulSequenceAttemptAuthorityV1,
   position: StatefulSequencePositionAuthorityV1,
-  evaluation: ReductionCandidateEvaluationV1 | ExecutionResultV1,
+  evaluation: FailureExecutionStepEvaluationV1,
 ): ExecutionOperationResultV1<true>;
 
 export function createFailureConfirmationSessionV1(
@@ -187,13 +233,29 @@ export function closeFailureExecutionProtocolV1(
 ): Promise<ExecutionOperationResultV1<true>>;
 ```
 
+The context constructor validates one complete cross-domain join before any execution authority is
+minted. The subject is an exact report occurrence rather than a digest or first registry match. Its
+candidate must belong to the exact historical envelope and parent; its complete predicate, route
+contract, route-plan identity, handler revision and tool contracts must match the retained report
+provenance. Ordered preceding occurrences come from that same report. A control is selected only for
+the existing `fresh-confirm` disposition classes and must be a distinct genuine passing execution
+occurrence under the same complete semantic route configuration: route kind, tier, obligation,
+prerequisites, policy, fixture, oracle, tools and diagnostic semantics. It may come from a separately
+authenticated report under the same parent, route plan and exact tool versions when the subject report
+intentionally injects the failure and therefore cannot contain an exact-fixture pass. Only
+source/campaign and report-occurrence identities are excluded from semantic matching. The complete
+authenticated required-rule subset is retained and must contain the primary rule. Missing exact
+history, tools, claims, order or control returns `historical-authority-unavailable`; current authority
+is never substituted. (AR-P36, AR-P76, AR-P79)
+
 The sequence state machine, rather than a caller-selected position, issues the only next legal
-subject. Position capabilities are attempt-bound and single-use. The exact limit is 64; an
-over-limit attempt or next position rejects before any root, worker or isolate checkpoint exists.
-Each execution layer records its own checkpoint, and the observation projection reports only
-authenticated checkpoints instead of synthesizing missing activity. Root identities are
-path-free digests, worker identities are Node worker-thread identities, and isolate identities are
-domain-separated from the worker launch.
+subject. Position capabilities are context-, attempt-, position- and subject-bound and single-use.
+The selected `sequenceCases` budget is the exact lifetime, capped at 64; an over-limit attempt or
+next position charges nothing and rejects before any root, worker or isolate checkpoint exists.
+Every admitted position charges one `sequence-case` and one route execution before launch. Each
+position retains only checkpoints recorded by its own opaque evaluation; it never inherits the
+shared isolation's preceding activity. Root identities are path-free digests, worker identities are
+Node worker-thread identities, and isolate identities are domain-separated from the worker launch.
 
 The confirmation state machine is the sole binder between authenticated standalone, control and
 sequence observations and the final disposition. It issues one opaque step at a time, accepts only
@@ -236,9 +298,10 @@ export function createFailureExecutionSpecFixtureV1(
   scenario: FailureExecutionSpecScenarioV1,
   options?: { readonly failingPosition?: number; readonly sequenceLength?: number },
 ): Promise<{
-  readonly parent: PublishedSnapshot;
-  readonly execution: ExecutionAuthorityContextV1;
-  readonly originalRequest: ExecutionRouteRequestV1;
+  readonly report: ExecutionAuthorityReportV1;
+  readonly reportPositions: readonly ExecutionReportPositionAuthorityV1[];
+  readonly subjectPosition: ExecutionReportPositionAuthorityV1;
+  readonly confirmationControlPosition?: ExecutionReportPositionAuthorityV1;
   readonly origin: AuthorizedFailureEnvelopeV1;
   readonly candidate: ReductionCandidateAuthorityV1;
   readonly budget: FailureCampaignBudgetAuthorityV1;
@@ -264,11 +327,40 @@ root and subprocess checkpoints. Unsupported scenario names and out-of-range pos
 before loading production modules. No fixture API or asset is emitted from a production barrel or
 package export.
 
-`authorizeExecutionAuthorityReportV1` accepts the ordered handler-minted predicate sidecars as a
-private second input. It validates their route/result association before retaining them beside the
-authorized report in WeakMap state. Serialization continues to use only the unchanged report
-snapshot. Calls that omit the private input create compatible pre-RD-05 report authority which
-still serializes but returns `historical-authority-unavailable` from the accessor above.
+`sequence-only` uses the fixed all-typed-valid 56-case, one-spelling memory campaign from AR-P59.
+Its authentic 68-position route plan supplies a distinct later passing same-route control for every
+required selected position: 2→3 through 9→10, plus 64→65. The historical subject is a
+`compiler-ice`; both standalone candidate attempts pass so the state machine discovers the original
+position, then only the terminal reduced candidate reproduces the failure inside the dedicated ordered
+attempt. Direct-shrink typed-invalid candidates use the same two fresh standalone confirmations but do not
+require a known-good control.
+
+The VICE isolation case from AR-P60 is a locally gated true-external facet. Observing wrappers delegate
+to the real worker executors and process runtime, use the reviewed local VICE resource policy, and inject
+only the exact selected VICE launcher start failure after genuine emit and ACME preparation. A CI-safe
+handoff assertion remains, but the local case must prove the candidate-relative attempt worker, exact
+launch failure, passing control and complete cleanup together. A VICE-bearing campaign cannot authorize
+its report until a bounded read-only inspection observes the process-wide namespace at generation zero,
+with no nonce and the child absent. A still-active child or recoverable generation tombstone therefore
+fails closed instead of producing report authority that precedes durable cleanup. (AR-P82)
+
+AR-P63 supersedes the provisional AR-P61/AR-P62 fixture architecture. Genuine admission retains the
+selected position-11 route. A complete un-injected baseline report supplies a separate passing execution
+of that exact same route as the control; the injected report's position 11 supplies the subject. Position
+12 remains a useful same-tier campaign occurrence but is not exact-fixture control evidence.
+The locally gated case places an exact executable shim named `x64sc` first on the launcher-provided path. The
+shim passes exact version probes and unarmed launches through by `execve`, consumes only owner-only markers
+for the reviewed two-attempt launcher invocation, preserves the launcher's environment allowlist and audits
+each semantic injection. It uses no module mock, facade, reset or dynamic substitution. The separate local
+specification owns only this true external facet; the ordinary oracle retains the other 27 cases.
+
+`authorizeExecutionAuthorityReportV1` accepts the ordered handler-minted predicate sidecars and
+route-occurrence provenance only while authorizing a complete RD-04 report. It validates their
+route/result association before retaining deeply immutable private projections beside that report.
+Serialization continues to use only the unchanged complete report snapshot. Calls that omit the
+private provenance create compatible pre-RD-05 report authority which still serializes but returns
+`historical-authority-unavailable` from the accessors above. A partial sidecar assembly shell uses a
+separate opaque builder authority and can never enter the normal serialization registry. (AR-P36)
 
 ```ts
 export interface ReductionExecutionRouteRequestV1 {
@@ -333,6 +425,16 @@ route-plan, and candidate-specific evaluation identities never enter the sidecar
 result/report bytes remain unchanged; a historical result without a live sidecar is explicitly
 unavailable rather than reverse-engineered from its aggregate digest.
 
+One private evidence authority is the sole owner of canonical normalized observation bytes needed for
+literal equality. The runtime mints an explicit `observed` arm at the actual oracle boundary or a
+`not-reached` arm at the terminal boundary; stage and cleanup never infer the arm. Observed bytes contain
+only oracle facts and not-reached bytes only stable terminal facts, excluding source/candidate/route/build/
+timing identities. Cleanup stays a separate predicate axis. Capture validates digest and bounds against the
+selected `evidenceBytes` limit and execution hard maximum. Provenance stores only the opaque authority and
+returns a defensive copy for the genuine selected occurrence; these bytes never enter the public sidecar,
+report, serializer, diagnostic or log. Confirmation compares exact lengths and contents against history and
+both fresh runs; digest equality alone is insufficient. (AR-P37, AR-P73, AR-P74)
+
 When `authorizeExecutionAuthorityReportV1` snapshots a report, its module-private WeakMap state
 also deep-freezes an ordered one-to-one sidecar collection bound to the exact route/result order and
 report identity. A private RD-05 accessor validates that association during the later join. Missing,
@@ -364,44 +466,67 @@ export interface FailureConfirmationResultV1 {
     | "stateful-sequence-failure"
     | "flaky-failure";
   readonly confirmationDigests: readonly Sha256Digest[];
+  readonly confirmationCheckpoints: readonly FailureExecutionCheckpointReferenceV1[];
   readonly sequenceEvidence?: StatefulSequenceEvidenceV1;
 }
 
+export interface FailureExecutionCheckpointReferenceV1 {
+  readonly digest: Sha256Digest;
+  readonly reportPosition: number;
+  readonly attemptOrdinal: number;
+  readonly position: number;
+}
+
+export interface StatefulSequenceEvidenceV1 {
+  readonly revision: "stateful-sequence-evidence-v1";
+  readonly failingPosition: number;
+  readonly evaluationDigests: readonly Sha256Digest[];
+  readonly checkpoints: readonly FailureExecutionCheckpointReferenceV1[];
+}
+
 export function confirmReducedFailureV1(
-  parent: PublishedSnapshot,
-  execution: ExecutionAuthorityContextV1,
-  candidate: ReductionCandidateAuthorityV1,
-  origin: FailureEnvelopeV1,
-  campaignBudget: FailureCampaignBudgetAuthorityV1,
+  context: FailureConfirmationContextAuthorityV1,
 ): Promise<ExecutionOperationResultV1<FailureConfirmationResultV1>>;
 ```
 
-Each of the two confirmation runs creates a new executor instance, fresh temporary root, fresh
-worker-thread/V8 isolate, and reduced allowlisted environment. The execution package mints a
-module-private `ReductionExecutionIsolationV1` consumed by the fixed content-bound handler resolver;
+The execution package first revalidates the current Node version and every external tool version that
+the complete confirmation route may execute. Only after all subject, preceding-sequence and control
+tools match the authenticated report values does each of the two confirmation runs create a new
+executor instance, fresh temporary root, fresh worker-thread/V8 isolate, and reduced allowlisted
+environment. It then mints a module-private `ReductionExecutionIsolationV1` consumed by the fixed
+content-bound handler resolver;
 callers cannot select an executor. This dedicated path bypasses the campaign pool and its eight-case
-retirement rule. External ACME/VICE subprocesses and leases retain their existing per-route
-isolation. Both runs must reproduce byte-equal normalized predicate observations. A same-route
-known-good control must pass before an infrastructure,
-exhaustion, compiler-ICE, emission, assembler, or emulator-launch failure may become shrinkable.
-(AR-P7)
+retirement rule. A standalone executor has exact one-case capacity, while a sequence executor has
+the exact terminal position as its capacity; neither inherits ordinary pool retirement. External
+ACME/VICE subprocesses and leases retain their existing per-route
+isolation. Both runs must match the complete authenticated predicate and one another's byte-equal
+normalized observation, including cleanup. Every minimized failure, including `direct-shrink`, receives
+these two fresh candidate runs. A distinct same-route known-good control must additionally pass for every
+`fresh-confirm` class—compiler ICE, emission/assembler/emulator failure, handshake failure and
+instruction/cycle/wall/output/evidence exhaustion—before the result may become shrinkable.
+(AR-P7, AR-P36, AR-P75)
 
 Candidate confirmations receive fresh candidate tokens; controls receive tokens bound to a distinct
 genuine known-good authority. A sequence token binds either its exact preceding originating case or
 the reduced candidate at the original failing position, plus the attempt and position. Every
 attempt contains exactly one terminal reduced-candidate subject and therefore proves the minimized
-candidate under the retained state rather than merely replaying the original failure. When
-confirmation differs, each bounded sequence attempt creates one dedicated worker-thread/V8 isolate
+candidate under the retained state rather than merely replaying the original failure. Whenever the
+two-run confirmation does not produce the required exact pair, each bounded sequence attempt creates
+one dedicated worker-thread/V8 isolate
 and reuses it across that authenticated order so cross-case state can reproduce. Its lifetime is
 the validated selected sequence limit, independent of `MAX_CASES_PER_WORKER`, through the exact
 hard maximum of 64; case 65 is rejected before launch. Ordinary per-case workspace creation and
 cleanup still occurs inside that worker. Independent sequence attempts and standalone
 confirmations never share a worker thread, isolate, or temporary root. A stable ordered sequence
 produces `stateful-sequence-failure`;
-otherwise the result is `flaky-failure`. Neither result can mint promotion authority. Ordered case
-identities, batch/worker identity, and the failing position are retained. Every invocation charges
-the shared campaign budget; exact aggregate consumption succeeds and the next case returns closed
-exhaustion before launch.
+otherwise the result is `flaky-failure`. Neither result can mint promotion authority. Ordered
+report-occurrence identities, attempt/position ordinals, checkpoint digests, batch/worker identity, and the
+failing position are retained. Classification requires distinct launched standalone roots/workers/isolates,
+or one invariant sequence worker/isolate with distinct ordered per-case roots. The complete tool-version
+preflight occurs before any root, worker, isolate or controlled process allocation, so late-position or
+control drift cannot leave partial isolation state. Every position charges both the selected sequence-case
+allowance and route execution before launch; exact
+aggregate consumption succeeds and the next case returns closed exhaustion before launch.
 
 ## Error Handling
 
@@ -415,6 +540,7 @@ exhaustion before launch.
 | Fresh worker cannot be established | Campaign-only infrastructure result; never promotion | AR-P7 |
 | Known-good control fails | Campaign-only infrastructure result | AR-P7 |
 | Sequence budget exhausted | Retain bounded campaign evidence; never promotion | AR-P7 |
+| One or more worker shutdowns reject | Settle every owner, close protocol authority, then return one count-only `execution.io` at `/isolation/shutdown` | AR-P37 |
 
 ## Testing Requirements
 
@@ -425,16 +551,27 @@ exhaustion before launch.
 - Route tests exercise compiler, diagnostic, ACME, VICE, timeout/exhaustion, fixture, observation,
   comparison, and cleanup semantics through published handlers.
 - Confirmation tests assert two different standalone executor/workspace/worker-thread identities, no
-  campaign-pool reuse, same-route known-good control, and fresh-token reuse of one candidate.
+  campaign-pool reuse, complete predicate/observation/cleanup equality, a genuinely distinct
+  same-route passing control for every fresh-confirm class, no control for direct-shrink classes,
+  and fresh-token reuse of one candidate. They reject equal code/tier/stage with changed observation
+  or cleanup and reject current, first-match, wrong-envelope, wrong-route-plan, wrong-handler or
+  wrong-tool authority.
   Sequence tests assert one dedicated worker thread per complete attempt, per-case workspace
-  cleanup, isolation between attempts, failures at positions 2–9, exactly one terminal reduced
+  cleanup, isolation between attempts, exact mixed originating report order, failures at positions
+  2–9, exactly one terminal reduced
   candidate at its original failing position, original/candidate and position-substitution
-  rejection, exact 64-case lifetime, pre-launch rejection of case 65, sequence classification, and
-  flaky classification. Isolation-capability tests reject every cross-mode, cross-campaign,
-  cross-attempt, replayed, and post-shutdown use.
+  rejection, foreign authenticated evaluation rejection, position-local checkpoint evidence,
+  selected-limit and exact 64-case lifetime, pre-launch rejection of the next case, sequence
+  classification, and flaky classification. Each probe/replay proves both budget charges occurred
+  before launch. Isolation-capability tests reject every cross-mode, cross-campaign, cross-attempt,
+  replayed, and post-shutdown use. Rejecting shutdown tests prove every later executor is attempted,
+  protocol authority closes, and one deterministic cleanup issue is returned only after settlement.
 - Cross-arm conformance tests prove each handler supplies the stable predicate sidecar before
   aggregate hashing, report authority preserves exact ordered association, and copy/reorder/missing
-  or pre-RD-05 sidecars fail closed. Candidate payload tests cover typed-valid, typed-invalid, raw,
+  or pre-RD-05 sidecars fail closed. They mutate every nested predicate field and prove the retained
+  authority cannot change, and prove a partial sidecar assembly shell has no normal serialization
+  authority. Candidate payload tests cover typed-valid, typed-invalid, raw,
   ACME, and VICE seams and prove transformed runtime expectations derive from the authenticated
-  candidate model rather than original expected bytes.
+  candidate model rather than original expected bytes. VICE sequence cases prove all positions use
+  the attempt-owned worker and cannot queue behind the ordinary global pool.
 - Raw diagnostic tests cover empty input and exact-byte observation without typed IR.

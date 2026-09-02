@@ -37,6 +37,9 @@ export type ReductionSizeV1 =
 /** Passive candidate draft accepted only after full family revalidation. */
 export type ReductionCandidateDraftV1 = FailureEnvelopeInitialCandidateV1;
 
+/** Closed family payload consumed only by the published execution adapter. */
+export type ReductionExecutionPayloadV1 = FailureEnvelopeInitialCandidateV1;
+
 /** Runtime brand for a fully revalidated reduction candidate. */
 export const VALIDATED_REDUCTION_CANDIDATE_V1: unique symbol = Symbol(
   "validated-reduction-candidate-v1",
@@ -116,8 +119,13 @@ export interface ReductionCandidateEvaluationV1 {
   readonly observation: FailureObservationIdentityV1;
 }
 
-/** Passive execution payload derived from candidate authority. */
-export interface ReductionCandidateProjectionV1 {
+/**
+ * Stable semantic content of a reduction candidate.
+ *
+ * This projection is suitable for deterministic reduction results. It deliberately excludes the
+ * per-authority execution identity required when the candidate is launched.
+ */
+export interface ReductionCandidateContentProjectionV1 {
   /** Closed projection schema. */
   readonly revision: "reduction-candidate-projection-v1";
   /** Candidate family. */
@@ -126,8 +134,6 @@ export interface ReductionCandidateProjectionV1 {
   readonly sourceBytes: Uint8Array;
   /** Candidate content and authority digest. */
   readonly candidateDigest: Sha256Digest;
-  /** Distinct execution identity for transformed bytes. */
-  readonly candidateExecutionIdentity: Sha256Digest;
   /** Immutable original published route semantics. */
   readonly originalRoute: FailureRouteContractV1;
   /** Immutable historical failure predicate. */
@@ -138,12 +144,20 @@ export interface ReductionCandidateProjectionV1 {
   readonly traceDigest: Sha256Digest;
 }
 
+/** Passive execution payload derived from one candidate authority instance. */
+export interface ReductionCandidateProjectionV1 extends ReductionCandidateContentProjectionV1 {
+  /** Distinct execution identity for transformed bytes. */
+  readonly candidateExecutionIdentity: Sha256Digest;
+}
+
 /** Passive result of consuming one genuine invocation exactly once. */
 export interface ConsumedReductionInvocationV1 {
   /** Closed consumed projection schema. */
   readonly revision: "consumed-reduction-invocation-v1";
   /** Candidate projection supplied to execution. */
   readonly candidate: ReductionCandidateProjectionV1;
+  /** Complete validated family payload required by the fixed execution route. */
+  readonly payload: ReductionExecutionPayloadV1;
   /** Bound invocation purpose. */
   readonly purpose: "reduction" | "confirmation";
   /** Bound proposal phase. */
@@ -158,9 +172,12 @@ interface CandidateState {
 }
 
 interface CandidateAuthorityState {
+  readonly envelope: AuthorizedFailureEnvelopeV1;
   readonly projection: ReductionCandidateProjectionV1;
+  readonly payload: ReductionExecutionPayloadV1;
   nextSequence: number;
   nextConsumableSequence: number;
+  readonly retiredSequences: Set<number>;
 }
 
 interface InvocationState {
@@ -171,6 +188,13 @@ interface InvocationState {
   readonly sequence: number;
   invocationConsumed: boolean;
   evaluationConsumed: boolean;
+}
+
+interface ConsumedInvocationState {
+  readonly authority: ReductionCandidateAuthorityV1;
+  readonly candidate: ReductionCandidateProjectionV1;
+  readonly payload: ReductionExecutionPayloadV1;
+  runtimeEvaluationClaimed: boolean;
 }
 
 const INVOCATION_KEYS = [
@@ -186,6 +210,8 @@ const STATES = new WeakMap<object, CandidateState>();
 const AUTHORITIES = new WeakMap<object, CandidateAuthorityState>();
 const INVOCATIONS = new WeakMap<object, InvocationState>();
 const TOKENS = new WeakMap<object, InvocationState>();
+const CONSUMED_INVOCATIONS = new WeakMap<object, ConsumedInvocationState>();
+let nextCandidateAuthorityOrdinal = 0;
 
 /** Returns an authority digest without cloning its execution payload. */
 export function getReductionCandidateAuthorityDigestV1(
@@ -349,17 +375,24 @@ function createReductionCandidateAuthorityInternalV1(
   if (traceDigest === undefined) {
     return issue("invalid-evidence-input", "/candidate/trace", "Reduction trace is incomplete.");
   }
+  const authorityOrdinal = nextCandidateAuthorityOrdinal;
+  nextCandidateAuthorityOrdinal += 1;
   const candidateDigest = digestReductionValueV1({
     envelope: envelopeState.projection.digest,
     content: candidateState.projection.contentDigest,
     traceDigest,
   });
+  const payload = candidateState.projection.draft;
   const projection: ReductionCandidateProjectionV1 = Object.freeze({
     revision: "reduction-candidate-projection-v1",
     family: candidateState.projection.family,
-    sourceBytes: candidateState.projection.draft.sourceBytes.slice(),
+    sourceBytes: payload.sourceBytes,
     candidateDigest,
-    candidateExecutionIdentity: digestReductionValueV1({ candidateDigest, purpose: "execution" }),
+    candidateExecutionIdentity: digestReductionValueV1({
+      candidateDigest,
+      authorityOrdinal,
+      purpose: "execution",
+    }),
     originalRoute: envelopeState.projection.predicate.routeContract,
     predicate: envelopeState.projection.predicate,
     policy: envelopeState.projection.policy,
@@ -369,11 +402,26 @@ function createReductionCandidateAuthorityInternalV1(
     [REDUCTION_CANDIDATE_AUTHORITY_V1]: true as const,
   });
   AUTHORITIES.set(authority, {
+    envelope,
     projection,
+    payload,
     nextSequence: initialSequence,
     nextConsumableSequence: initialSequence,
+    retiredSequences: new Set(),
   });
   return success(authority);
+}
+
+/** Reports whether one genuine candidate authority belongs to one exact envelope authority. */
+export function reductionCandidateAuthorityMatchesEnvelopeV1(
+  authority: ReductionCandidateAuthorityV1,
+  envelope: AuthorizedFailureEnvelopeV1,
+): boolean {
+  return (
+    typeof authority === "object" &&
+    authority !== null &&
+    AUTHORITIES.get(authority)?.envelope === envelope
+  );
 }
 
 /** Returns defensive candidate execution data. */
@@ -456,7 +504,6 @@ export function consumeReductionCandidateInvocationV1(
   const authorityState = AUTHORITIES.get(state.authority);
   if (
     authorityState === undefined ||
-    authorityState.nextConsumableSequence !== state.sequence ||
     record.authority !== state.authority ||
     record.token !== state.token ||
     record.purpose !== state.purpose ||
@@ -469,22 +516,101 @@ export function consumeReductionCandidateInvocationV1(
       "Invocation fields or sequence do not match authority.",
     );
   }
+  if (authorityState.nextConsumableSequence !== state.sequence) {
+    return issue(
+      "execution.identity",
+      "/invocation",
+      "Invocation was presented out of candidate sequence.",
+    );
+  }
   state.invocationConsumed = true;
   authorityState.nextConsumableSequence += 1;
-  return success(
-    Object.freeze({
-      revision: "consumed-reduction-invocation-v1",
-      candidate: structuredClone(authorityState.projection),
-      purpose: state.purpose,
-      proposalKind: state.proposalKind,
-      sequence: state.sequence,
-    }),
-  );
+  while (authorityState.retiredSequences.delete(authorityState.nextConsumableSequence)) {
+    authorityState.nextConsumableSequence += 1;
+  }
+  const consumed: ConsumedReductionInvocationV1 = Object.freeze({
+    revision: "consumed-reduction-invocation-v1",
+    candidate: authorityState.projection,
+    payload: authorityState.payload,
+    purpose: state.purpose,
+    proposalKind: state.proposalKind,
+    sequence: state.sequence,
+  });
+  CONSUMED_INVOCATIONS.set(consumed, {
+    authority: state.authority,
+    candidate: authorityState.projection,
+    payload: authorityState.payload,
+    runtimeEvaluationClaimed: false,
+  });
+  return success(consumed);
+}
+
+/** Claims one genuine typed-valid consumed payload for a candidate-relative runtime evaluation. */
+export function claimConsumedCandidateRuntimeInputV1(consumed: ConsumedReductionInvocationV1):
+  | Readonly<{
+      candidate: ReductionCandidateProjectionV1;
+      payload: Extract<ReductionExecutionPayloadV1, { readonly kind: "typed-valid" }>;
+    }>
+  | undefined {
+  const state =
+    typeof consumed === "object" && consumed !== null
+      ? CONSUMED_INVOCATIONS.get(consumed)
+      : undefined;
+  if (
+    state === undefined ||
+    state.runtimeEvaluationClaimed ||
+    state.candidate.family !== "typed-valid" ||
+    state.payload.kind !== "typed-valid"
+  ) {
+    return undefined;
+  }
+  state.runtimeEvaluationClaimed = true;
+  return Object.freeze({ candidate: state.candidate, payload: state.payload });
+}
+
+/** Retires one unused invocation so a rejected capability cannot block later fresh work. */
+export function abandonReductionCandidateInvocationV1(input: unknown): boolean {
+  const state = typeof input === "object" && input !== null ? INVOCATIONS.get(input) : undefined;
+  if (state === undefined || state.invocationConsumed) return false;
+  const authorityState = AUTHORITIES.get(state.authority);
+  if (authorityState === undefined) return false;
+  state.invocationConsumed = true;
+  authorityState.retiredSequences.add(state.sequence);
+  while (authorityState.retiredSequences.delete(authorityState.nextConsumableSequence)) {
+    authorityState.nextConsumableSequence += 1;
+  }
+  return true;
 }
 
 /** Resolves token state for the reducer without exposing token mutation. */
 export function getReductionEvaluationTokenStateV1(token: unknown): InvocationState | undefined {
   return typeof token === "object" && token !== null ? TOKENS.get(token) : undefined;
+}
+
+/** Reports whether an invocation is a genuine, not-yet-consumed candidate capability. */
+export function isFreshReductionCandidateInvocationV1(input: unknown): boolean {
+  const state = typeof input === "object" && input !== null ? INVOCATIONS.get(input) : undefined;
+  return state !== undefined && !state.invocationConsumed;
+}
+
+/** Returns authority-retained facts for one fresh package-internal candidate invocation. */
+export function getFreshReductionCandidateInvocationStateV1(input: unknown):
+  | Readonly<{
+      candidate: ReductionCandidateProjectionV1;
+      purpose: ReductionCandidateInvocationV1["purpose"];
+      proposalKind: ReductionCandidateInvocationV1["proposalKind"];
+      sequence: number;
+    }>
+  | undefined {
+  const state = typeof input === "object" && input !== null ? INVOCATIONS.get(input) : undefined;
+  const authority = state === undefined ? undefined : AUTHORITIES.get(state.authority);
+  if (state === undefined || state.invocationConsumed || authority === undefined) return undefined;
+  return Object.freeze({
+    candidate: authority.projection,
+    purpose: state.purpose,
+    proposalKind: state.proposalKind,
+    sequence: state.sequence,
+  });
 }
 
 /** Marks one matching token evaluation consumed after all session checks pass. */

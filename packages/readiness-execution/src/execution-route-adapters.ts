@@ -10,10 +10,12 @@ import type {
   ExecutionRoutePlanItemV1,
   ExecutionStageV1,
   ExecutionTierV1,
+  MalformedDiagnosticCaseV1,
   PublishedOracleContext,
 } from "@blend65/readiness";
 import {
   getExecutionCaseProjectionV1,
+  getMalformedDiagnosticCaseProjectionV1,
   isExecutionDigestV1,
   isExecutionTierV1,
 } from "@blend65/readiness/execution-runtime";
@@ -24,20 +26,37 @@ import {
 } from "@blend65/readiness/published-oracle";
 
 import { createExecutionBudgetScopeV1 } from "./execution-budget.js";
+import { getCandidateExecutionRouteStateV1 } from "./failure-candidate-route-state.js";
+export {
+  createCandidateExecutionRouteRequestV1,
+  getCandidateExecutionRouteStateV1,
+  type CreateCandidateExecutionRouteRequestInputV1,
+} from "./failure-candidate-route-state.js";
+import { registerExecutionRouteRequestV1 } from "./execution-route-authority.js";
+export {
+  getExecutionRouteRequestForSourceAuthorityV1,
+  isGenuineExecutionRouteRequestV1,
+} from "./execution-route-authority.js";
 import { executeAcmeArtifactPipelineV1 } from "./execution-acme-artifacts.js";
-import { renderExecutionEnvelopeV1 } from "./execution-envelope.js";
-import { classifyInvalidCaseEmissionV1 } from "./execution-evidence-classifiers.js";
+import { classifyDiagnosticRouteEvidenceV1 } from "./execution-diagnostic-classifier.js";
+export {
+  classifyDiagnosticRouteEvidenceV1,
+  type DiagnosticExecutionResultV1,
+  type DirectDiagnosticEvidenceV1,
+} from "./execution-diagnostic-classifier.js";
 import { getExecutionPrerequisiteTiersV1 } from "./execution-route-tiers.js";
 import {
   executionSupervisorOwnsWorkerExecutorV1,
   type ExecutionSupervisorV1,
-  type ExecutionWorkerParentEvidenceIdentityV1,
 } from "./execution-supervisor.js";
+import {
+  createExecutionWorkerRequestV1,
+  getExecutionWorkerDiagnosticParentEvidenceV1,
+  isValidExecutionWorkerSuccessV1,
+} from "./execution-route-worker-request.js";
 import {
   type ExecutionCancellationV1,
   type ExecutionWorkerExecutorV1,
-  type ExecutionWorkerRequestV1,
-  type ExecutionWorkerResponseV1,
   type ExecutionWorkerTierV1,
 } from "./execution-worker-protocol.js";
 
@@ -74,6 +93,28 @@ export interface DiagnosticExecutionRouteRequestV1<TTier extends ExecutionDiagno
   readonly policy: ExecutionPolicyV1;
 }
 
+/** Raw malformed-source route that never acquires typed intermediate representation. */
+export interface RawDiagnosticExecutionRouteRequestV1<TTier extends ExecutionDiagnosticTierV1> {
+  /** Closed raw-source discriminator. */
+  readonly kind: "raw-malformed";
+  /** Selected diagnostic route and exact terminal tier. */
+  readonly route: ExecutionRoutePlanItemV1 & { readonly terminalTier: TTier };
+  /** Opaque exact-byte malformed source authority. */
+  readonly malformedCase: MalformedDiagnosticCaseV1;
+  /** Closed cumulative execution policy. */
+  readonly policy: ExecutionPolicyV1;
+}
+
+/** Candidate-relative request accepted only from the private failure-route adapter. */
+export interface CandidateExecutionRouteRequestV1<TTier extends ExecutionTierV1> {
+  /** Private candidate-route discriminator. */
+  readonly kind: "reduction-candidate-internal";
+  /** Original route semantics with only the case identity replaced. */
+  readonly route: ExecutionRoutePlanItemV1 & { readonly terminalTier: TTier };
+  /** Exact original execution policy. */
+  readonly policy: ExecutionPolicyV1;
+}
+
 /** Genuine valid or invalid route request union accepted by real adapters. */
 export type ExecutionRouteRequestV1 =
   | ValidExecutionRouteRequestV1<"frontend">
@@ -84,7 +125,9 @@ export type ExecutionRouteRequestV1 =
   | ValidExecutionRouteRequestV1<"vice">
   | DiagnosticExecutionRouteRequestV1<"frontend">
   | DiagnosticExecutionRouteRequestV1<"compiler-api">
-  | DiagnosticExecutionRouteRequestV1<"cli">;
+  | DiagnosticExecutionRouteRequestV1<"cli">
+  | RawDiagnosticExecutionRouteRequestV1<ExecutionDiagnosticTierV1>
+  | CandidateExecutionRouteRequestV1<ExecutionTierV1>;
 
 /** Input to the genuine-case route-request constructor. */
 export type CreateExecutionRouteRequestInputV1 =
@@ -95,7 +138,8 @@ export type CreateExecutionRouteRequestInputV1 =
       readonly oracle: PublishedOracleContext;
       readonly policy: ExecutionPolicyV1;
     }
-  | DiagnosticExecutionRouteRequestV1<ExecutionDiagnosticTierV1>;
+  | DiagnosticExecutionRouteRequestV1<ExecutionDiagnosticTierV1>
+  | RawDiagnosticExecutionRouteRequestV1<ExecutionDiagnosticTierV1>;
 
 /** One terminal route adapter. */
 export interface ExecutionRouteHandlerV1 {
@@ -133,27 +177,6 @@ export interface ExecutionAdapterDependenciesV1 {
 }
 
 const ENCODER = new TextEncoder();
-const DIRECT_DIAGNOSTIC_KEYS = ["revision", "sourceCaseDigest", "diagnostics", "emission"] as const;
-const DIAGNOSTIC_KEYS = ["revision", "entries"] as const;
-const DIAGNOSTIC_ENTRY_KEYS = ["acceptedEntryId", "code", "phase", "finalSeverity"] as const;
-const EMISSION_KEYS = ["il", "assembly", "binary"] as const;
-
-/** Direct parent-side classification result for one invalid diagnostic route. */
-export type DiagnosticExecutionResultV1 =
-  | { readonly status: "pass"; readonly code: "pass" }
-  | {
-      readonly status: "failure";
-      readonly code: "diagnostic-mismatch" | "unexpected-emission";
-    };
-
-/** Worker evidence that intentionally carries no expected diagnostic truth. */
-export interface DirectDiagnosticEvidenceV1 {
-  readonly revision: "direct-diagnostic-evidence-v1";
-  readonly sourceCaseDigest: string;
-  readonly diagnostics: ExecutionWorkerResponseV1["diagnostics"];
-  readonly emission: ExecutionWorkerResponseV1["emission"];
-}
-
 function failure<T>(path: string, message: string): ExecutionOperationResultV1<T> {
   return Object.freeze({
     ok: false,
@@ -184,103 +207,11 @@ function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });
 }
 
-function exactRecord(
-  input: unknown,
-  expectedKeys: readonly string[],
-): Readonly<Record<string, unknown>> | undefined {
-  try {
-    if (typeof input !== "object" || input === null || Array.isArray(input)) return undefined;
-    const prototype = Object.getPrototypeOf(input);
-    if (prototype !== Object.prototype && prototype !== null) return undefined;
-    const keys = Reflect.ownKeys(input);
-    if (
-      keys.length !== expectedKeys.length ||
-      keys.some((key) => typeof key !== "string" || !expectedKeys.includes(key))
-    ) {
-      return undefined;
-    }
-    const result: Record<string, unknown> = {};
-    for (const key of expectedKeys) {
-      const descriptor = Reflect.getOwnPropertyDescriptor(input, key);
-      if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) {
-        return undefined;
-      }
-      result[key] = descriptor.value;
-    }
-    return result;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Classifies hostile direct diagnostic evidence against opaque published truth.
- *
- * @param authority Authentic published diagnostic-case authority.
- * @param observed Worker-derived source identity, diagnostics and artifact presence.
- * @returns A closed classification or invalid-input issue.
- *
- * @example
- * ```ts
- * const classified = classifyDiagnosticRouteEvidenceV1(authority, observed);
- * ```
- */
-export function classifyDiagnosticRouteEvidenceV1(
-  authority: unknown,
-  observed: unknown,
-): ExecutionOperationResultV1<DiagnosticExecutionResultV1> {
-  const projection = getPublishedDiagnosticCaseProjectionV1(authority as PublishedDiagnosticCaseV1);
-  if (!projection.ok) {
-    return failure("/authority", "Published diagnostic case authority is invalid.");
-  }
-  const record = exactRecord(observed, DIRECT_DIAGNOSTIC_KEYS);
-  const diagnostics = exactRecord(record?.diagnostics, DIAGNOSTIC_KEYS);
-  const emission = exactRecord(record?.emission, EMISSION_KEYS);
-  if (
-    record?.revision !== "direct-diagnostic-evidence-v1" ||
-    !isExecutionDigestV1(record.sourceCaseDigest) ||
-    diagnostics?.revision !== "compiler-diagnostic-evidence-v1" ||
-    !Array.isArray(diagnostics.entries) ||
-    Object.getPrototypeOf(diagnostics.entries) !== Array.prototype ||
-    Reflect.ownKeys(diagnostics.entries).length !== diagnostics.entries.length + 1 ||
-    emission === undefined ||
-    typeof emission.il !== "boolean" ||
-    typeof emission.assembly !== "boolean" ||
-    typeof emission.binary !== "boolean"
-  ) {
-    return failure("/observed", "Direct diagnostic evidence is malformed.");
-  }
-  const entries: Readonly<Record<string, unknown>>[] = [];
-  for (let index = 0; index < diagnostics.entries.length; index += 1) {
-    const descriptor = Reflect.getOwnPropertyDescriptor(diagnostics.entries, String(index));
-    const entry =
-      descriptor !== undefined && "value" in descriptor && descriptor.enumerable
-        ? exactRecord(descriptor.value, DIAGNOSTIC_ENTRY_KEYS)
-        : undefined;
-    if (
-      entry === undefined ||
-      typeof entry.acceptedEntryId !== "string" ||
-      entry.acceptedEntryId.length === 0 ||
-      typeof entry.code !== "string" ||
-      typeof entry.phase !== "string" ||
-      typeof entry.finalSeverity !== "string"
-    ) {
-      return failure("/observed/diagnostics", "Diagnostic evidence entries are malformed.");
-    }
-    entries.push(entry);
-  }
-  const expected = projection.value.expectedDiagnostic;
-  const exact =
-    record.sourceCaseDigest === projection.value.sourceCaseDigest &&
-    entries.length === 1 &&
-    entries[0]?.code === expected.code &&
-    entries[0]?.phase === expected.phase &&
-    entries[0]?.finalSeverity === expected.severity;
-  if (!exact) return success(Object.freeze({ status: "failure", code: "diagnostic-mismatch" }));
-  const emissionClassification = classifyInvalidCaseEmissionV1(record.emission);
-  return emissionClassification === "pass"
-    ? success(Object.freeze({ status: "pass", code: "pass" }))
-    : success(Object.freeze({ status: "failure", code: "unexpected-emission" }));
+function routeSuccess<T extends ExecutionRouteRequestV1>(
+  value: T,
+): ExecutionOperationResultV1<ExecutionRouteRequestV1> {
+  registerExecutionRouteRequestV1(value);
+  return success<ExecutionRouteRequestV1>(value);
 }
 
 function sameTiers(left: readonly ExecutionTierV1[], right: readonly ExecutionTierV1[]): boolean {
@@ -319,6 +250,36 @@ function diagnosticObligationMatchesTerminal(
 export function createExecutionRouteRequestV1(
   input: CreateExecutionRouteRequestInputV1,
 ): ExecutionOperationResultV1<ExecutionRouteRequestV1> {
+  if (input.kind === "raw-malformed") {
+    const projection = getMalformedDiagnosticCaseProjectionV1(input.malformedCase);
+    const tier = input.route.terminalTier;
+    if (!projection.ok) return projection;
+    if (tier !== "frontend" && tier !== "compiler-api" && tier !== "cli") {
+      return schemaFailure("/route/terminalTier", "Raw diagnostics support compiler tiers only.");
+    }
+    if (
+      input.route.caseIdentity !== projection.value.textDigest ||
+      input.route.ruleId !== projection.value.ruleId ||
+      input.route.obligation !== projection.value.obligation ||
+      !isExecutionDigestV1(input.route.rankDigest) ||
+      !sameTiers(input.route.prerequisiteTiers, getExecutionPrerequisiteTiersV1(tier))
+    ) {
+      return failure("/route", "Raw diagnostic route does not match its exact-byte authority.");
+    }
+    const policy = createExecutionBudgetScopeV1(input.policy, 0);
+    if (!policy.ok) return policy;
+    return routeSuccess(
+      Object.freeze({
+        kind: "raw-malformed" as const,
+        route: Object.freeze({
+          ...input.route,
+          prerequisiteTiers: Object.freeze([...input.route.prerequisiteTiers]),
+        }),
+        malformedCase: input.malformedCase,
+        policy: input.policy,
+      }),
+    );
+  }
   if (input.kind === "invalid-diagnostic") {
     const projection = getPublishedDiagnosticCaseProjectionV1(input.diagnosticCase);
     if (!projection.ok) {
@@ -345,7 +306,7 @@ export function createExecutionRouteRequestV1(
     }
     const policy = createExecutionBudgetScopeV1(input.policy, 0);
     if (!policy.ok) return policy;
-    return success(
+    return routeSuccess(
       Object.freeze({
         kind: "invalid-diagnostic" as const,
         route: Object.freeze({
@@ -386,7 +347,7 @@ export function createExecutionRouteRequestV1(
   });
   switch (input.route.terminalTier) {
     case "frontend":
-      return success<ExecutionRouteRequestV1>(
+      return routeSuccess(
         Object.freeze({
           ...input,
           kind: "valid-envelope" as const,
@@ -394,7 +355,7 @@ export function createExecutionRouteRequestV1(
         }),
       );
     case "compiler-api":
-      return success<ExecutionRouteRequestV1>(
+      return routeSuccess(
         Object.freeze({
           ...input,
           kind: "valid-envelope" as const,
@@ -402,7 +363,7 @@ export function createExecutionRouteRequestV1(
         }),
       );
     case "cli":
-      return success<ExecutionRouteRequestV1>(
+      return routeSuccess(
         Object.freeze({
           ...input,
           kind: "valid-envelope" as const,
@@ -410,7 +371,7 @@ export function createExecutionRouteRequestV1(
         }),
       );
     case "emit":
-      return success<ExecutionRouteRequestV1>(
+      return routeSuccess(
         Object.freeze({
           ...input,
           kind: "valid-envelope" as const,
@@ -418,7 +379,7 @@ export function createExecutionRouteRequestV1(
         }),
       );
     case "acme":
-      return success<ExecutionRouteRequestV1>(
+      return routeSuccess(
         Object.freeze({
           ...input,
           kind: "valid-envelope" as const,
@@ -426,7 +387,7 @@ export function createExecutionRouteRequestV1(
         }),
       );
     case "vice":
-      return success<ExecutionRouteRequestV1>(
+      return routeSuccess(
         Object.freeze({
           ...input,
           kind: "valid-envelope" as const,
@@ -497,116 +458,6 @@ function failed(
 }
 
 /** Renders the canonical executable envelope into one closed tier-specific worker request. */
-function workerRequest(
-  request: ExecutionRouteRequestV1,
-  tier: ExecutionWorkerTierV1,
-  caseRoot: string,
-): ExecutionWorkerRequestV1 | undefined {
-  const diagnosticProjection =
-    request.kind === "invalid-diagnostic"
-      ? getPublishedDiagnosticCaseProjectionV1(request.diagnosticCase)
-      : undefined;
-  if (diagnosticProjection !== undefined && !diagnosticProjection.ok) return undefined;
-  const rendered =
-    request.kind === "invalid-diagnostic"
-      ? undefined
-      : renderExecutionEnvelopeV1(request.executionCase);
-  if (rendered !== undefined && !rendered.ok) return undefined;
-  const sourceBytes =
-    diagnosticProjection?.ok === true
-      ? diagnosticProjection.value.sourceBytes
-      : ENCODER.encode(rendered?.value ?? "");
-  const source = Object.freeze({
-    revision: "execution-worker-source-v1" as const,
-    relativePath: "main.blend",
-    bytes: sourceBytes,
-    digest:
-      diagnosticProjection?.ok === true
-        ? diagnosticProjection.value.authority.sourceContentIdentity
-        : `sha256:${createHash("sha256").update(sourceBytes).digest("hex")}`,
-  });
-  const common = {
-    revision: "execution-worker-request-v1" as const,
-    caseKind:
-      request.kind === "invalid-diagnostic"
-        ? ("invalid-diagnostic" as const)
-        : ("valid-envelope" as const),
-    caseIdentity: request.route.caseIdentity,
-    caseRoot,
-    source,
-  };
-  switch (tier) {
-    case "frontend":
-      return Object.freeze({ ...common, tier, contract: "frontend-pipeline-v1" });
-    case "compiler-api":
-      return Object.freeze({ ...common, tier, contract: "compiler-evidence-facade-v1" });
-    case "cli":
-      return Object.freeze({
-        ...common,
-        tier,
-        contract: "blendc-cli-v1",
-        argv: Object.freeze(["check", "main.blend", "--platform", "c64"]),
-      });
-    case "emit":
-      return Object.freeze({ ...common, tier, contract: "assembly-emitter-v1" });
-  }
-}
-
-function diagnosticParentEvidence(
-  request: ExecutionRouteRequestV1,
-): ExecutionWorkerParentEvidenceIdentityV1 | undefined {
-  if (request.kind !== "invalid-diagnostic") return undefined;
-  const projection = getPublishedDiagnosticCaseProjectionV1(request.diagnosticCase);
-  if (!projection.ok) return undefined;
-  return Object.freeze({
-    revision: "execution-worker-parent-evidence-v1",
-    joinPolicyRevision: projection.value.authority.joinPolicyRevision,
-    callerSourceCaseDigest: projection.value.sourceCaseDigest,
-    selectedReleaseDigest: projection.value.authority.selectedReleaseDigest,
-    selectedCampaignDigest: projection.value.authority.selectedCampaignDigest,
-    selectedSourceCaseDigest: projection.value.authority.selectedSourceCaseDigest,
-    evaluationIdentity: projection.value.authority.evaluationIdentity,
-    sourceContentIdentity: projection.value.authority.sourceContentIdentity,
-  });
-}
-
-/** Requires the tier's positive evidence while rejecting every later artifact. */
-function validWorkerSuccess(response: ExecutionWorkerResponseV1): boolean {
-  if (response.diagnostics.entries.some((entry) => entry.finalSeverity === "error")) return false;
-  switch (response.tier) {
-    case "frontend":
-      return (
-        response.semanticModelPresent &&
-        response.allocationPlanPresent &&
-        !response.emission.il &&
-        !response.emission.assembly &&
-        !response.emission.binary
-      );
-    case "compiler-api":
-      return (
-        !response.hasErrors &&
-        !response.emission.il &&
-        !response.emission.assembly &&
-        !response.emission.binary
-      );
-    case "cli":
-      return (
-        response.exitCode === 0 &&
-        !response.emission.il &&
-        !response.emission.assembly &&
-        !response.emission.binary
-      );
-    case "emit":
-      return (
-        !response.hasErrors &&
-        response.assemblyBytes.byteLength > 0 &&
-        !response.emission.il &&
-        !response.emission.assembly &&
-        !response.emission.binary
-      );
-  }
-}
-
 export { createSupervisedAcmeRunnerV1 } from "./execution-acme-artifacts.js";
 
 /** Builds the six route handlers over injected production boundaries. */
@@ -641,11 +492,15 @@ export function createExecutionRouteHandlersV1(
     const workspace = await supervisor.createWorkspace(cancellation);
     if (!workspace.ok)
       return failed(tier, tier, "compiler-ice", request.route.caseIdentity, supervisor);
-    const worker = workerRequest(request, tier, workspace.value.root);
+    const worker = createExecutionWorkerRequestV1(request, tier, workspace.value.root);
     if (worker === undefined)
       return failed(tier, tier, "compiler-ice", request.route.caseIdentity, supervisor);
-    const parentEvidence = diagnosticParentEvidence(request);
-    if (request.kind === "invalid-diagnostic" && parentEvidence === undefined) {
+    const candidate = getCandidateExecutionRouteStateV1(request);
+    const parentEvidence = getExecutionWorkerDiagnosticParentEvidenceV1(request);
+    if (
+      (request.kind === "invalid-diagnostic" || candidate?.family === "typed-invalid") &&
+      parentEvidence === undefined
+    ) {
       return failed(tier, tier, "diagnostic-mismatch", request.route.caseIdentity, supervisor);
     }
     const response = await supervisor.runWorker(worker, cancellation, parentEvidence);
@@ -672,10 +527,40 @@ export function createExecutionRouteHandlersV1(
         ? pass(tier, supervisor, request.route.caseIdentity)
         : failed(tier, tier, classified.value.code, request.route.caseIdentity, supervisor);
     }
+    if (request.kind === "raw-malformed") {
+      return response.value.diagnostics.entries.length > 0
+        ? pass(tier, supervisor, request.route.caseIdentity)
+        : failed(tier, tier, "diagnostic-mismatch", request.route.caseIdentity, supervisor);
+    }
+    if (candidate?.family === "typed-invalid") {
+      const original = candidate.originalRequest;
+      if (original.kind !== "invalid-diagnostic") {
+        return failed(tier, tier, "invalid-evidence-input", request.route.caseIdentity, supervisor);
+      }
+      const expected = getPublishedDiagnosticCaseProjectionV1(original.diagnosticCase);
+      const entries = response.value.diagnostics.entries;
+      const matched =
+        expected.ok &&
+        entries.length === 1 &&
+        entries[0]?.code === expected.value.expectedDiagnostic.code &&
+        entries[0]?.phase === expected.value.expectedDiagnostic.phase &&
+        entries[0]?.finalSeverity === expected.value.expectedDiagnostic.severity;
+      return matched
+        ? pass(tier, supervisor, request.route.caseIdentity)
+        : failed(tier, tier, "diagnostic-mismatch", request.route.caseIdentity, supervisor);
+    }
+    if (candidate?.family === "raw-malformed") {
+      if (candidate.originalRequest.kind !== "raw-malformed") {
+        return failed(tier, tier, "invalid-evidence-input", request.route.caseIdentity, supervisor);
+      }
+      return response.value.diagnostics.entries.length > 0
+        ? pass(tier, supervisor, request.route.caseIdentity)
+        : failed(tier, tier, "diagnostic-mismatch", request.route.caseIdentity, supervisor);
+    }
     if (response.value.diagnostics.entries.some((entry) => entry.finalSeverity === "error")) {
       return failed(tier, tier, "diagnostic-mismatch", request.route.caseIdentity, supervisor);
     }
-    return validWorkerSuccess(response.value)
+    return isValidExecutionWorkerSuccessV1(response.value)
       ? pass(tier, supervisor, request.route.caseIdentity)
       : failed(tier, tier, "unexpected-emission", request.route.caseIdentity, supervisor);
   };
@@ -688,6 +573,9 @@ export function createExecutionRouteHandlersV1(
       if (
         !workerBoundaryMatches ||
         request.kind === "invalid-diagnostic" ||
+        request.kind === "raw-malformed" ||
+        (request.kind === "reduction-candidate-internal" &&
+          getCandidateExecutionRouteStateV1(request)?.family !== "typed-valid") ||
         request.route.terminalTier !== "acme" ||
         cancellation.signal.aborted
       ) {
@@ -695,7 +583,7 @@ export function createExecutionRouteHandlersV1(
       }
       const outcome = await executeAcmeArtifactPipelineV1(
         supervisor,
-        (caseRoot) => workerRequest(request, "emit", caseRoot),
+        (caseRoot) => createExecutionWorkerRequestV1(request, "emit", caseRoot),
         cancellation,
         dependencies.acme,
       );

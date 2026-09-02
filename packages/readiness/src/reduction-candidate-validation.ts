@@ -8,6 +8,7 @@ import {
   type FailureClaimWitnessV1,
   type FailureEnvelopeInitialCandidateV1,
 } from "./failure-envelope.js";
+import { readFailureEnvelopeDataPropertyV1 } from "./failure-envelope-codec.js";
 import { validateGeneratorIr } from "./generator-ir-validator.js";
 import { isScalarType } from "./generator-ir.js";
 import {
@@ -364,10 +365,12 @@ function integerReplacement(
 }
 
 function normalizeArgumentExpression(input: unknown): GenExpression | undefined {
+  const type = readFailureEnvelopeDataPropertyV1(input, "type");
+  if (!isScalarType(type)) return undefined;
   const validated = validateGeneratorIr({
     kind: "module",
     path: ["ReductionArgument"],
-    constants: [{ kind: "const", name: "argument", type: "word", value: input }],
+    constants: [{ kind: "const", name: "argument", type, value: input }],
     functions: [],
   });
   // Successful validation preserves the single constant constructed above.

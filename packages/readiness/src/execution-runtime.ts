@@ -7,12 +7,14 @@ export {
   parseExecutionPolicyV1,
 } from "./execution-contracts.js";
 export { getExecutionCaseProjectionV1 } from "./execution-case.js";
+export { getMalformedDiagnosticCaseProjectionV1 } from "./malformed-diagnostic-case.js";
 export {
   parseExecutionEnvelopeIrV1,
   parseExecutionInitialStateFixtureV1,
 } from "./execution-envelope-contracts.js";
 export { projectC64InitialStateV1 } from "./execution-vic-projection.js";
 export {
+  createCandidateRuntimeEvaluationAuthorityV1,
   createPublishedRuntimeEvaluationAuthorityV1,
   evaluatePublishedRuntimeObservationV1,
   getPublishedRuntimeEvaluationProjectionV1,

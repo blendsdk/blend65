@@ -19,8 +19,12 @@ import { getOracleSuiteState } from "./oracle-suite.js";
 import { getPublishedSnapshotAuthority } from "./publication-resolver.js";
 import { digestPublicationBytes } from "./publication-model.js";
 import { createModeledGeneratorSuite } from "./modeled-generator-suite.js";
+import { evaluateOracleProgram } from "./oracle-evaluator.js";
+import { resolveOracleRoute } from "./oracle-routing.js";
+import { evaluateRuntimeStateCandidate } from "./oracle-runtime-state-candidate.js";
 import type { Sha256Digest } from "./model-registry-model.js";
 import type { MemoryFixtureV1, OracleBudgetV1, OracleObservableV1 } from "./oracle-model.js";
+import type { GeneratedModeledCase } from "./modeled-generator-model.js";
 import { isRuleModelId } from "./rule-model-registry.js";
 import {
   preparePublishedCampaignCaseWithAuthority,
@@ -96,6 +100,79 @@ const INTENT_KEYS = [
   "budget",
   "observable",
 ] as const;
+
+/** Selected result and handler identity for one authenticated candidate runtime model. */
+export interface PublishedCandidateRuntimeModelEvaluationV1 {
+  readonly result: ReturnType<typeof evaluateOracleProgram>;
+  readonly authorityIdentity: Sha256Digest;
+}
+
+/** Evaluates a previously authenticated candidate model through the selected runtime route. */
+export function evaluatePublishedCandidateRuntimeModelV1(
+  context: PublishedOracleContext,
+  modeledCase: GeneratedModeledCase,
+  configuration: GenerationConfiguration,
+  memory: MemoryFixtureV1,
+  budget: OracleBudgetV1,
+): OracleValidationResultV1<PublishedCandidateRuntimeModelEvaluationV1> {
+  const state =
+    typeof context === "object" && context !== null ? CONTEXT_STATES.get(context) : undefined;
+  const projection = modeledCase.projection;
+  const entry = projection.kind === "valid" ? projection.module.functions[0] : undefined;
+  if (state === undefined || projection.kind !== "valid" || entry === undefined) {
+    return oracleFailure(
+      "oracle.authority.missing",
+      "/candidate",
+      "Candidate runtime evaluation requires selected valid-model authority.",
+    );
+  }
+  const selected = selectPublishedRequestAuthority(state, modeledCase.primaryRuleId, configuration);
+  if ("ok" in selected) return selected;
+  const binding = state.candidates.get("oracle.runtime-state");
+  const route = resolveOracleRoute(selected.suite, {
+    handlerId: "oracle.runtime-state",
+    ruleId: modeledCase.primaryRuleId,
+    observable: Object.freeze({ kind: "value-state" as const }),
+    projectionKind: "valid",
+  });
+  if (
+    binding === undefined ||
+    binding.binding.implementation !== evaluateRuntimeStateCandidate ||
+    !route.ok ||
+    route.outcome !== "routed"
+  ) {
+    return oracleFailure(
+      "oracle.authority.stale",
+      "/candidate",
+      "Selected runtime evaluator cannot authorize this candidate model.",
+    );
+  }
+  const result = evaluateOracleProgram({
+    schemaVersion: 1,
+    module: projection.module,
+    entryFunction: entry.name,
+    parameterBindings: modeledCase.parameterBindings,
+    memory,
+    budget,
+  });
+  const authorityIdentity = digestPublicationBytes(
+    new TextEncoder().encode(
+      JSON.stringify({
+        domain: "blend65-published-candidate-runtime-authority-v1",
+        selectedReleaseDigest: state.authority.publicationDigest,
+        generator: selected.generator.binding.implementationRevision,
+        boundary: selected.boundary.binding.implementationRevision,
+        evaluator: binding.binding.implementationRevision,
+        ruleId: modeledCase.primaryRuleId,
+      }),
+    ),
+  );
+  return Object.freeze({
+    ok: true,
+    value: Object.freeze({ result, authorityIdentity }),
+    diagnostics: EMPTY_DIAGNOSTICS,
+  });
+}
 
 /**
  * Returns the minimal diagnostic authority retained by a genuine published context.

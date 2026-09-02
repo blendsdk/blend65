@@ -397,6 +397,13 @@ export function chargeFailureCampaignBudgetV1(
   if (delta === undefined) {
     return issue("/charge", "Campaign budget charge must use one exact closed operation shape.");
   }
+  return chargeDelta(state, delta);
+}
+
+function chargeDelta(
+  state: CampaignBudgetState,
+  delta: ChargeDelta,
+): ExecutionOperationResultV1<FailureCampaignBudgetSnapshotV1> {
   if (!terminalAvailable(state, delta.terminalKind)) {
     return issue("/charge", "Campaign terminal reservation for this record is exhausted.", true);
   }
@@ -405,6 +412,35 @@ export function chargeFailureCampaignBudgetV1(
   }
   applyCharge(state, delta);
   return success(snapshot(state));
+}
+
+/**
+ * Atomically charges one stateful confirmation position and its route execution.
+ *
+ * The combined charge is package-private so callers cannot consume only half of a sequence step.
+ * A rejected charge leaves both counters unchanged.
+ *
+ * @example
+ * ```ts
+ * const charged = chargeFailureSequenceRouteBudgetV1(authority);
+ * ```
+ */
+export function chargeFailureSequenceRouteBudgetV1(
+  authority: FailureCampaignBudgetAuthorityV1,
+): ExecutionOperationResultV1<FailureCampaignBudgetSnapshotV1> {
+  const state =
+    typeof authority === "object" && authority !== null
+      ? AUTHORITY_STATES.get(authority)
+      : undefined;
+  if (state === undefined) {
+    return issue("/authority", "Campaign budget authority was not produced by the factory.");
+  }
+  return chargeDelta(state, {
+    campaignOperations: 2,
+    ...EMPTY_DELTA,
+    routeExecutions: 1,
+    sequenceCases: 1,
+  });
 }
 
 /**

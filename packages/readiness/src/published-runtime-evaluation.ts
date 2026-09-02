@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
 import { getExecutionCaseEvaluationInputV1, type ExecutionCaseV1 } from "./execution-case.js";
+import {
+  claimConsumedCandidateRuntimeInputV1,
+  type ConsumedReductionInvocationV1,
+} from "./reduction-candidate.js";
 import { getPreparedCampaignState, type PreparedCampaignState } from "./campaign-state.js";
 import type {
   ExecutionInitialStateFixtureV1,
@@ -16,9 +20,11 @@ import {
   type PublishedOracleContext,
   type ValueStateObservationV1,
 } from "./oracle-model.js";
+import type { GeneratedModeledCase } from "./modeled-generator-model.js";
 import type { OracleValidationResultV1 } from "./oracle-evaluation-identity.js";
 import {
   createPublishedOracleRequest,
+  evaluatePublishedCandidateRuntimeModelV1,
   evaluatePublishedOracle,
 } from "./published-oracle-context.js";
 
@@ -345,21 +351,16 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
  * if (!created.ok) throw new Error("Runtime evaluation authority was unavailable.");
  * ```
  */
-export function createPublishedRuntimeEvaluationAuthorityV1(
+function createRuntimeEvaluationAuthorityV1(
   context: PublishedOracleContext,
   executionCase: ExecutionCaseV1,
+  modeledCase: GeneratedModeledCase,
+  sourceBytes: Uint8Array,
+  sourceCaseDigest: string,
 ): OracleValidationResultV1<PublishedRuntimeEvaluationAuthorityV1> {
   const input = getExecutionCaseEvaluationInputV1(executionCase);
-  if (input === undefined) {
-    return oracleFailure(
-      "oracle.authority.missing",
-      "/executionCase",
-      "Runtime evaluation requires a genuine execution case.",
-    );
-  }
-  const projection = input.generatedCase.modeledCase.projection;
-  const campaign = getPreparedCampaignState(input.campaign);
-  if (projection.kind !== "valid" || campaign === undefined) {
+  const campaign = input === undefined ? undefined : getPreparedCampaignState(input.campaign);
+  if (input === undefined || modeledCase.projection.kind !== "valid" || campaign === undefined) {
     return oracleFailure(
       "oracle.contract.invalid",
       "/executionCase",
@@ -380,45 +381,79 @@ export function createPublishedRuntimeEvaluationAuthorityV1(
       Object.freeze({ address: BigInt(cell.address), value: BigInt(projected.value) }),
     );
   }
-  const request = createPublishedOracleRequest(context, {
-    schemaVersion: 1,
-    handlerId: "oracle.runtime-state",
-    ruleId: input.generatedCase.modeledCase.primaryRuleId,
-    seed: campaign.campaign.seed,
-    configuration: campaign.configuration,
-    ordinal: input.ordinal,
-    memory: Object.freeze({ schemaVersion: 1, cells: Object.freeze(memoryCells) }),
-    budget: ORACLE_BUDGET,
-    observable: Object.freeze({ kind: "value-state" }),
-  });
-  if (!request.ok) return request;
-  const selectedProvenance = request.value.sourceProvenance;
-  if (
-    !samePublishedEnvironment(campaign.campaign, selectedProvenance.campaign) ||
-    !sameReplayInput(campaign, selectedProvenance.campaign, selectedProvenance.configuration) ||
-    !isDeepStrictEqual(request.value.case, input.generatedCase.modeledCase)
-  ) {
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "/executionCase",
-      "Runtime execution case does not match the selected published replay.",
+  const memory = Object.freeze({ schemaVersion: 1 as const, cells: Object.freeze(memoryCells) });
+  let expectedObservation: ValueStateObservationV1;
+  let publishedEvaluationIdentity: string;
+  let evaluatedSourceIdentity: string;
+  if (isDeepStrictEqual(modeledCase, input.generatedCase.modeledCase)) {
+    const request = createPublishedOracleRequest(context, {
+      schemaVersion: 1,
+      handlerId: "oracle.runtime-state",
+      ruleId: input.generatedCase.modeledCase.primaryRuleId,
+      seed: campaign.campaign.seed,
+      configuration: campaign.configuration,
+      ordinal: input.ordinal,
+      memory,
+      budget: ORACLE_BUDGET,
+      observable: Object.freeze({ kind: "value-state" }),
+    });
+    if (!request.ok) return request;
+    const selectedProvenance = request.value.sourceProvenance;
+    if (
+      !samePublishedEnvironment(campaign.campaign, selectedProvenance.campaign) ||
+      !sameReplayInput(campaign, selectedProvenance.campaign, selectedProvenance.configuration) ||
+      !isDeepStrictEqual(request.value.case, modeledCase)
+    ) {
+      return oracleFailure(
+        "oracle.contract.invalid",
+        "/executionCase",
+        "Runtime execution case does not match the selected published replay.",
+      );
+    }
+    const evaluated = evaluatePublishedOracle(context, request.value);
+    if (
+      !evaluated.ok ||
+      !evaluated.result.ok ||
+      evaluated.result.outcome !== "modeled" ||
+      evaluated.result.observation.kind !== "value-state"
+    ) {
+      return oracleFailure(
+        "oracle.contract.invalid",
+        "/executionCase",
+        "Selected runtime evaluator did not produce one modeled value-state answer.",
+      );
+    }
+    expectedObservation = evaluated.result.observation;
+    publishedEvaluationIdentity = evaluated.evaluationIdentity;
+    evaluatedSourceIdentity = evaluated.contentIdentities.source;
+  } else {
+    const evaluated = evaluatePublishedCandidateRuntimeModelV1(
+      context,
+      modeledCase,
+      campaign.configuration,
+      memory,
+      ORACLE_BUDGET,
     );
+    if (
+      !evaluated.ok ||
+      !evaluated.value.result.ok ||
+      evaluated.value.result.outcome !== "modeled" ||
+      evaluated.value.result.observation.kind !== "value-state"
+    ) {
+      return oracleFailure(
+        "oracle.contract.invalid",
+        "/candidate",
+        "Selected runtime evaluator did not produce one candidate value-state answer.",
+      );
+    }
+    expectedObservation = evaluated.value.result.observation;
+    publishedEvaluationIdentity = evaluated.value.authorityIdentity;
+    const evaluatedSource = deriveOracleSourceContentIdentity(sourceBytes);
+    if (!evaluatedSource.ok) return evaluatedSource;
+    evaluatedSourceIdentity = evaluatedSource.identity;
   }
-  const evaluated = evaluatePublishedOracle(context, request.value);
-  if (
-    !evaluated.ok ||
-    !evaluated.result.ok ||
-    evaluated.result.outcome !== "modeled" ||
-    evaluated.result.observation.kind !== "value-state"
-  ) {
-    return oracleFailure(
-      "oracle.contract.invalid",
-      "/executionCase",
-      "Selected runtime evaluator did not produce one modeled value-state answer.",
-    );
-  }
-  const sourceIdentity = deriveOracleSourceContentIdentity(input.generatedCase.sourceBytes);
-  if (!sourceIdentity.ok || sourceIdentity.identity !== evaluated.contentIdentities.source) {
+  const sourceIdentity = deriveOracleSourceContentIdentity(sourceBytes);
+  if (!sourceIdentity.ok || sourceIdentity.identity !== evaluatedSourceIdentity) {
     return oracleFailure(
       "oracle.contract.invalid",
       "/executionCase/sourceBytes",
@@ -427,8 +462,8 @@ export function createPublishedRuntimeEvaluationAuthorityV1(
   }
   const expectedBytes =
     input.observation.kind === "scalar-bytes"
-      ? scalarExpectedBytes(evaluated.result.observation, input.observation.byteLength)
-      : directExpectedBytes(evaluated.result.observation, input.observation);
+      ? scalarExpectedBytes(expectedObservation, input.observation.byteLength)
+      : directExpectedBytes(expectedObservation, input.observation);
   if (expectedBytes === undefined) {
     return oracleFailure(
       "oracle.contract.invalid",
@@ -438,14 +473,14 @@ export function createPublishedRuntimeEvaluationAuthorityV1(
   }
   const evaluationIdentity = deriveEvaluationIdentity(
     context.selectedReleaseDigest,
-    evaluated.evaluationIdentity,
-    input.sourceCaseDigest,
-    evaluated.result.observation,
+    publishedEvaluationIdentity,
+    sourceCaseDigest,
+    expectedObservation,
     expectedBytes,
   );
   const passive: PublishedRuntimeEvaluationProjectionV1 = Object.freeze({
     schemaVersion: 1,
-    sourceCaseDigest: input.sourceCaseDigest,
+    sourceCaseDigest,
     fixture: cloneFixture(input.fixture),
     observation: cloneObservation(input.observation),
     selectedReleaseDigest: context.selectedReleaseDigest,
@@ -456,11 +491,82 @@ export function createPublishedRuntimeEvaluationAuthorityV1(
   });
   RUNTIME_EVALUATION_STATES.set(authority, {
     projection: passive,
-    expectedObservation: evaluated.result.observation,
+    expectedObservation,
     expectedBytes: expectedBytes.slice(),
     consumed: false,
   });
   return Object.freeze({ ok: true, value: authority, diagnostics: EMPTY_DIAGNOSTICS });
+}
+
+/**
+ * Mints a single-use runtime comparator from one genuine published execution case.
+ *
+ * @example
+ * ```ts
+ * const created = createPublishedRuntimeEvaluationAuthorityV1(context, executionCase);
+ * if (!created.ok) throw new Error("Runtime evaluation authority was unavailable.");
+ * ```
+ */
+export function createPublishedRuntimeEvaluationAuthorityV1(
+  context: PublishedOracleContext,
+  executionCase: ExecutionCaseV1,
+): OracleValidationResultV1<PublishedRuntimeEvaluationAuthorityV1> {
+  const input = getExecutionCaseEvaluationInputV1(executionCase);
+  if (input === undefined) {
+    return oracleFailure(
+      "oracle.authority.missing",
+      "/executionCase",
+      "Runtime evaluation requires a genuine execution case.",
+    );
+  }
+  return createRuntimeEvaluationAuthorityV1(
+    context,
+    executionCase,
+    input.generatedCase.modeledCase,
+    input.generatedCase.sourceBytes,
+    input.sourceCaseDigest,
+  );
+}
+
+/** Mints a single-use runtime comparator from one genuine consumed typed-valid candidate. */
+export function createCandidateRuntimeEvaluationAuthorityV1(
+  context: PublishedOracleContext,
+  executionCase: ExecutionCaseV1,
+  consumed: ConsumedReductionInvocationV1,
+): OracleValidationResultV1<PublishedRuntimeEvaluationAuthorityV1> {
+  const input = getExecutionCaseEvaluationInputV1(executionCase);
+  if (input === undefined || input.generatedCase.modeledCase.projection.kind !== "valid") {
+    return oracleFailure(
+      "oracle.authority.missing",
+      "/executionCase",
+      "Candidate runtime evaluation requires a genuine valid execution case.",
+    );
+  }
+  const claimed = claimConsumedCandidateRuntimeInputV1(consumed);
+  if (claimed === undefined) {
+    return oracleFailure(
+      "oracle.authority.missing",
+      "/candidate",
+      "Candidate runtime evaluation requires fresh typed-valid candidate authority.",
+    );
+  }
+  const original = input.generatedCase.modeledCase;
+  const modeledCase: GeneratedModeledCase = Object.freeze({
+    projection: Object.freeze({ kind: "valid" as const, module: claimed.payload.module }),
+    parameterBindings: claimed.payload.parameterBindings,
+    primaryRuleId: claimed.payload.primaryRuleId,
+    claimedRuleIds: claimed.payload.claimedRuleIds,
+    spelling: original.spelling,
+    validity: Object.freeze({ kind: "valid" as const }),
+    constructionUsage: original.constructionUsage,
+  });
+  return createRuntimeEvaluationAuthorityV1(
+    context,
+    executionCase,
+    modeledCase,
+    claimed.payload.sourceBytes,
+    claimed.candidate.candidateExecutionIdentity,
+  );
 }
 
 /**

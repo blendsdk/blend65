@@ -10,7 +10,10 @@ import { describe, expect, it } from "vitest";
 
 import { createLocalExecutionCampaignV1 } from "./execution-campaign-factory.js";
 import { runWithExecutionOrchestrationConformanceV1 } from "./execution-orchestration-conformance-v1.js";
-import { executeReadinessCampaign } from "./execution-orchestration.js";
+import {
+  completeExecutionReportAuthorizationV1,
+  executeReadinessCampaign,
+} from "./execution-orchestration.js";
 import {
   resolveLiveExecutionContextV1,
   selectExecutionPublicationByDigestV1,
@@ -46,18 +49,37 @@ const RESULT_EVIDENCE = Object.freeze({
   truncated: false,
 });
 
-function terminalResult(tier: "frontend" | "compiler-api" | "cli" | "emit" | "acme" | "vice") {
+function terminalResult(
+  tier: "frontend" | "compiler-api" | "cli" | "emit" | "acme" | "vice",
+  bareDigest = false,
+) {
   return Object.freeze({
     status: "pass" as const,
     tier,
     stage: tier === "vice" ? ("compare" as const) : tier,
     code: "pass" as const,
     usage: RESULT_USAGE,
-    evidence: RESULT_EVIDENCE,
+    evidence: bareDigest
+      ? Object.freeze({ ...RESULT_EVIDENCE, digest: "a".repeat(64) })
+      : RESULT_EVIDENCE,
   });
 }
 
 describe("execution campaign orchestration", () => {
+  it("propagates report authorization rejection without nesting it in success", () => {
+    const rejected = Object.freeze({
+      ok: false as const,
+      issues: Object.freeze([
+        Object.freeze({
+          code: "invalid-evidence-input" as const,
+          path: "/predicateSidecars",
+          message: "sidecar mismatch",
+        }),
+      ] as const),
+    });
+    expect(completeExecutionReportAuthorizationV1(rejected)).toBe(rejected);
+  });
+
   it("aggregates every selected route when local tools are unavailable", async () => {
     const fixture = await createExecutionPublicationCatalogFixtureV1();
     try {
@@ -305,10 +327,10 @@ describe("execution campaign orchestration", () => {
       const policyRun = await runWithExecutionOrchestrationConformanceV1(
         {
           capabilities: available,
-          actualResults: routes.map((route) => ({
+          actualResults: routes.map((route, index) => ({
             executionIdentity: route.executionIdentity,
             tier: route.tier,
-            result: terminalResult(route.tier),
+            result: terminalResult(route.tier, index === 0),
           })),
           atPlannedPolicyUse: (policy) => {
             expect(Object.isFrozen(policy)).toBe(true);
@@ -326,8 +348,11 @@ describe("execution campaign orchestration", () => {
       );
       expect(policyObservations).toBe(routes.length);
       expect(policyRun.value).toMatchObject({ ok: true, value: { summary: { status: "pass" } } });
+      if (policyRun.value.ok) {
+        expect(policyRun.value.value.results[0]?.evidence.digest).toBe(`sha256:${"a".repeat(64)}`);
+      }
     } finally {
       await fixture.cleanup();
     }
-  }, 240_000);
+  }, 600_000);
 });

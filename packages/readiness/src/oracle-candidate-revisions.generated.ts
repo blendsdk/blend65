@@ -130,33 +130,33 @@ const ORACLE_CANDIDATE_DEPENDENCY_PATHS = Object.freeze([
 export const ORACLE_COMPILER_RESULT_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-compiler-result-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:4498d0e23162f78b2c079df9e68417ba2b337617a80f90ec1896becc0a95761f",
+  claimedRevision: "sha256:aca989ede37ccd7830cc417e1651aa4c974362602992d085f9c007e302654742",
 });
 
 /** Generated dependency authority for the emitted-program candidate. */
 export const ORACLE_EMITTED_PROGRAM_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-emitted-program-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:d96e8110b13f7ac7e7ad7381268f3b1a76e6b76c4e6d16d38ec4b63921cad634",
+  claimedRevision: "sha256:b38f57e20c8b6ae46097314260a860cf8e2ea0e098eae71e3adcfb014cb3ce45",
 });
 
 /** Generated dependency authority for the frontend-result candidate. */
 export const ORACLE_FRONTEND_RESULT_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-frontend-result-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:a617271446126a03b0b64c8339d203c46cf46fca50782f7ac72e1bbc1b42e1ba",
+  claimedRevision: "sha256:073605106d02e8e2c522d09be4d66fd4a780b36cfbd543f084dcab3b0d8d5ebf",
 });
 
 /** Generated dependency authority for the runtime-state candidate. */
 export const ORACLE_RUNTIME_STATE_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-runtime-state-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:dc8045951e5aa8fce91b3f4259c8931bb6929057c74606e03d2d1714879bca68",
+  claimedRevision: "sha256:6a32c4d9982135d73ac0a1e95a9d5bd3552e0ff2c33c8bed9aa5c37ffaf50809",
 });
 
 /** Generated dependency authority for the semantic-relation candidate. */
 export const ORACLE_SEMANTIC_RELATIONS_REVISION: GeneratedCandidateRevision = Object.freeze({
   entryPath: "packages/readiness/src/oracle-semantic-relations-candidate.ts",
   dependencyPaths: ORACLE_CANDIDATE_DEPENDENCY_PATHS,
-  claimedRevision: "sha256:837217d79d5efe20404cec6e04a98a5f4602285daa470048ee9add9fee66e17c",
+  claimedRevision: "sha256:53d7dc31d4bd6a32ef18c129c899318b1159855a581fe92665cf78eb15f6197f",
 });

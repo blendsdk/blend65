@@ -23,6 +23,7 @@ import {
   finalizeViceEvaluationEvidenceV1,
 } from "./execution-vice-evaluation.js";
 import { mergeViceCleanupCandidateV1 } from "./execution-vice-runtime.js";
+import { createObservedFailureObservationEvidenceV1 } from "./failure-predicate-evidence.js";
 import type {
   ViceExecutionHostV1,
   ViceLeaseMutationV1,
@@ -260,6 +261,7 @@ describe("VICE runtime fail-closed implementation branches", () => {
       evaluationIdentity: `sha256:${"3".repeat(64)}`,
       actualObservationDigest: deriveActualObservationDigestV1(actual),
       outcome: "match" as const,
+      observation: createObservedFailureObservationEvidenceV1(actual)!,
     };
     const finalized = finalizeViceEvaluationEvidenceV1(
       attachViceEvaluationEvidenceV1(base, context),
@@ -272,6 +274,10 @@ describe("VICE runtime fail-closed implementation branches", () => {
           ...actual,
           bytes: Uint8Array.of(0xf0),
         }),
+        observation: createObservedFailureObservationEvidenceV1({
+          ...actual,
+          bytes: Uint8Array.of(0xf0),
+        })!,
       }),
       32,
     );
@@ -336,6 +342,10 @@ describe("VICE runtime fail-closed implementation branches", () => {
       actualObservationDigest: `sha256:${"4".repeat(64)}`,
       outcome: "match" as const,
       buildEvidenceDigest: `sha256:${"5".repeat(64)}`,
+      observation: createObservedFailureObservationEvidenceV1({
+        kind: "scalar-bytes",
+        bytes: Uint8Array.of(1),
+      })!,
     };
     const finalized = finalizeViceEvaluationEvidenceV1(
       attachViceEvaluationEvidenceV1(base, context),
@@ -1001,6 +1011,8 @@ describe("VICE runtime fail-closed implementation branches", () => {
             controller.abort();
           }, "vice.closed"),
         ),
+      compareRemoveLaunchArtifact: async () => ok("changed"),
+      compareRemoveLease: async () => ok({ kind: "changed" }),
     });
     const runtime = createViceExecutionRuntimeV1(fixture.host);
     const acquired = await runtime.acquireViceLease("c64", liveSignal());
@@ -1014,6 +1026,122 @@ describe("VICE runtime fail-closed implementation branches", () => {
       code: "wall-time-exhaustion",
       cleanupBlocker: { code: "emulator-lease-recovery-blocked" },
     });
+  });
+
+  it("retires the exact attempt and lease after a cancelled launcher start", async () => {
+    const controller = new AbortController();
+    const events: string[] = [];
+    const fixture = hostFixture({
+      compareReplaceLease: async (_target, _expected, bytes) => {
+        fixture.snapshot = present(bytes, { ...FILE, inode: FILE.inode + 1n });
+        return ok({ kind: "replaced", snapshot: fixture.snapshot });
+      },
+      createControlAttempt: async () =>
+        ok(
+          failedControlHost(() => {
+            controller.abort();
+          }, "vice.closed"),
+        ),
+      compareRemoveLaunchArtifact: async () => {
+        events.push("retire-artifact");
+        return ok("removed");
+      },
+      compareRemoveLease: async () => {
+        events.push("remove-lease");
+        fixture.snapshot = { kind: "absent", directory: DIRECTORY };
+        return ok({ kind: "removed" });
+      },
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+
+    const result = await runtime.executeViceRoute(
+      {
+        ...routeRequest(),
+        policy: {
+          ...routeRequest().policy,
+          budget: { ...routeRequest().policy.budget, launchAttempts: 1 },
+        },
+      },
+      acquired.value,
+      controller.signal,
+    );
+
+    expect(result).toMatchObject({ status: "failure", code: "wall-time-exhaustion" });
+    expect(result).not.toHaveProperty("cleanupBlocker");
+    expect(events).toEqual(["remove-lease"]);
+    expect(fixture.snapshot.kind).toBe("absent");
+  });
+
+  it("retires an exact child whose private handle settles before monitor readiness cleanup", async () => {
+    let child: ViceProcessIdentityFactV1 | undefined;
+    let childObservations = 0;
+    const events: string[] = [];
+    const fixture = hostFixture({
+      compareReplaceLease: async (_target, _expected, bytes) => {
+        fixture.snapshot = present(bytes, { ...FILE, inode: FILE.inode + 1n });
+        return ok({ kind: "replaced", snapshot: fixture.snapshot });
+      },
+      createControlAttempt: async (attempt) =>
+        ok(
+          failedControlHost(() => {
+            child = childRecordedSnapshot(fixture, attempt, FILE.inode + 2n);
+          }, "vice.closed"),
+        ),
+      observeProcess: async (pid) => {
+        if (pid !== child?.pid) return ok(null);
+        childObservations += 1;
+        events.push(childObservations < 3 ? "child-present" : "child-absent");
+        return ok(childObservations < 3 ? child : null);
+      },
+      revalidateAndTerminateVice: async (request) => {
+        events.push("private-handle-settled");
+        expect(request.process).toEqual(child);
+        return ok("identity-changed");
+      },
+      compareRemoveLaunchArtifact: async (_target, _expected, _path, expectedProcess) => {
+        events.push("retire-artifact");
+        expect(expectedProcess).toEqual(child);
+        return ok("removed");
+      },
+      compareRemoveLease: async () => {
+        events.push("remove-lease");
+        fixture.snapshot = { kind: "absent", directory: DIRECTORY };
+        return ok({ kind: "removed" });
+      },
+    });
+    const runtime = createViceExecutionRuntimeV1(fixture.host);
+    const acquired = await runtime.acquireViceLease("c64", liveSignal());
+    expect(acquired.ok).toBe(true);
+    if (!acquired.ok) return;
+
+    const result = await runtime.executeViceRoute(
+      {
+        ...routeRequest(),
+        policy: {
+          ...routeRequest().policy,
+          budget: { ...routeRequest().policy.budget, launchAttempts: 1 },
+        },
+      },
+      acquired.value,
+      liveSignal(),
+    );
+
+    expect(result).toMatchObject({
+      status: "failure",
+      code: "emulator-launch-failure",
+    });
+    expect(result).not.toHaveProperty("cleanupBlocker");
+    expect(events).toEqual([
+      "child-present",
+      "private-handle-settled",
+      "child-present",
+      "child-absent",
+      "remove-lease",
+    ]);
+    expect(fixture.snapshot.kind).toBe("absent");
   });
 
   it("rejects an invalid record returned from attempt replacement", async () => {

@@ -200,3 +200,13 @@ export type {
   ViceRouteRequestV1,
   ViceTerminationRequestV1,
 } from "./execution-vice-types.js";
+export {
+  createReductionExecutionRouteRequestV1,
+  executeReductionCandidateV1,
+} from "./failure-route-adapter.js";
+export { confirmReducedFailureV1 } from "./failure-confirmation.js";
+export type {
+  FailureConfirmationResultV1,
+  ReductionCandidateExecutionEvaluationV1,
+  ReductionExecutionRouteRequestV1,
+} from "./failure-execution-types.js";

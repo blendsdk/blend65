@@ -27,6 +27,10 @@
     "./failure-reduction-internals": {
       "types": "./dist/failure-reduction-internals.d.ts",
       "import": "./dist/failure-reduction-internals.js"
+    },
+    "./failure-predicate-ingredients": {
+      "types": "./dist/failure-predicate-ingredients.d.ts",
+      "import": "./dist/failure-predicate-ingredients.js"
     }
   },
   "scripts": {

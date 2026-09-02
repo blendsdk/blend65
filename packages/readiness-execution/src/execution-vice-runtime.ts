@@ -53,6 +53,7 @@ import {
   propagateViceEvaluationEvidenceV1,
   type SealedViceBuildBaselineV1,
 } from "./execution-vice-evaluation.js";
+import { createObservedFailureObservationEvidenceV1 } from "./failure-predicate-evidence.js";
 import {
   VICE_LEASE_HANDLE_BRAND,
   type BoundEvaluatedViceRouteRequestV1,
@@ -968,7 +969,6 @@ export class ViceExecutionCoordinator implements ViceExecutionRuntimeV1 {
             durableChildRequired ||= launch.ok && !this.#callerOwnedHost;
             if (!launch.ok) {
               if (launch.issue.reason === "vice.closed") {
-                cleanupSafe = false;
                 terminal = routeFailure(
                   signal.aborted || attemptSignal.aborted
                     ? "wall-time-exhaustion"
@@ -1054,17 +1054,33 @@ export class ViceExecutionCoordinator implements ViceExecutionRuntimeV1 {
                         usage,
                         wall(),
                       );
-                sessionResult = attachViceEvaluationEvidenceV1(compared, {
-                  routeIdentity: evaluation.routeIdentity,
-                  evaluationIdentity: decision.ok
-                    ? decision.value.evaluationIdentity
-                    : evaluation.projection.evaluationIdentity,
-                  actualObservationDigest: deriveActualObservationDigestV1(actual),
-                  outcome: decision.ok ? decision.value.outcome : "invalid",
-                  ...(evaluation.baseline === undefined
-                    ? {}
-                    : { buildEvidenceDigest: evaluation.baseline.evidence.digest }),
-                });
+                const observation = createObservedFailureObservationEvidenceV1(
+                  actual.kind === "scalar-bytes"
+                    ? { kind: actual.kind, bytes: actual.bytes }
+                    : {
+                        kind: actual.kind,
+                        ...(actual.address === undefined ? {} : { address: actual.address }),
+                        ...(actual.projectionRevision === undefined
+                          ? {}
+                          : { projectionRevision: actual.projectionRevision }),
+                        bytes: actual.bytes,
+                      },
+                );
+                sessionResult =
+                  observation === undefined
+                    ? routeFailure("invalid-evidence-input", "compare", usage, wall())
+                    : attachViceEvaluationEvidenceV1(compared, {
+                        routeIdentity: evaluation.routeIdentity,
+                        evaluationIdentity: decision.ok
+                          ? decision.value.evaluationIdentity
+                          : evaluation.projection.evaluationIdentity,
+                        actualObservationDigest: deriveActualObservationDigestV1(actual),
+                        outcome: decision.ok ? decision.value.outcome : "invalid",
+                        observation,
+                        ...(evaluation.baseline === undefined
+                          ? {}
+                          : { buildEvidenceDigest: evaluation.baseline.evidence.digest }),
+                      });
               } else {
                 sessionResult = observed.result;
               }
@@ -1232,13 +1248,34 @@ export class ViceExecutionCoordinator implements ViceExecutionRuntimeV1 {
     });
     const terminated = await this.#host.revalidateAndTerminateVice(request, cleanup);
     if (!terminated.ok) return false;
+    if (terminated.value === "identity-changed") {
+      return this.#awaitLeaseProcessAbsent(identityRecord, cleanup, hardDeadlineMonotonicMs);
+    }
     if (terminated.value !== "already-exited" && terminated.value !== "signalled") return false;
-    const confirmed = await this.#host.observeProcess(
-      identityRecord.pid,
-      cleanup,
-      identityRecord.launchTokenPath ?? undefined,
-    );
-    return confirmed.ok && confirmed.value === null;
+    if (terminated.value === "already-exited") return true;
+    return this.#awaitLeaseProcessAbsent(identityRecord, cleanup, hardDeadlineMonotonicMs);
+  }
+
+  /** Waits only for the exact recorded child to disappear within cleanup authority. */
+  async #awaitLeaseProcessAbsent(
+    identityRecord: NonNullable<ViceLeaseRecordV1["child"]>,
+    signal: AbortSignal,
+    hardDeadlineMonotonicMs: number,
+  ): Promise<boolean> {
+    for (;;) {
+      const observed = await this.#host.observeProcess(
+        identityRecord.pid,
+        signal,
+        identityRecord.launchTokenPath ?? undefined,
+      );
+      if (!observed.ok) return false;
+      if (observed.value === null) return true;
+      if (!processFactMatchesRecordV1(observed.value, identityRecord)) return false;
+      const now = this.#host.nowMonotonicMilliseconds();
+      if (signal.aborted || now >= hardDeadlineMonotonicMs) return false;
+      const delayed = await this.#host.delay(Math.min(10, hardDeadlineMonotonicMs - now), signal);
+      if (delayed === "aborted") return false;
+    }
   }
 
   /** Retires an exact lease only after its retained process is positively absent. */

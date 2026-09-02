@@ -13,7 +13,7 @@ import { createHistoricalReadinessAuthorityRepository } from "./historical-readi
 import type { PublicationReviewRequestV1 } from "../publication-model.js";
 
 export const CURRENT_PARENT_DIGEST =
-  "sha256:e65b95cdc817a6b2608d6965855ca1013f36b7893424d31d2f04fd18fa0845a5";
+  "sha256:e1713db3ca7dc9d624d0f9e9cb064b6fdcfd3a3e2b0e2421b5c482e00f266905";
 export const HISTORICAL_PARENT_DIGEST =
   "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
 export const SPEC_REVISION =

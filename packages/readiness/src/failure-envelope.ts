@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from "node:util";
 
 import { copyUint8Array, isSha256Digest, uint8ArrayByteLength } from "./canonical-identity.js";
 import { getPreparedCampaignState } from "./campaign-state.js";
+import { authenticatePublishedExecutionCampaignParentV1 } from "./execution-campaign-identity.js";
 import { getExecutionCaseEvaluationInputV1, type ExecutionCaseV1 } from "./execution-case.js";
 import {
   decodeFailureEnvelopeCanonicalV1,
@@ -50,6 +51,7 @@ import type {
   AuthorizedFailureEnvelopeV1,
   FailureEnvelopeInitialCandidateV1,
   FailureEnvelopeResolutionV1,
+  FailureEnvelopeSourceAuthorityV1,
   FailureEnvelopeV1,
   FailureHistoricalAuthorityRecordV1,
   FailureHistoricalAuthorityResolverV1,
@@ -79,9 +81,33 @@ export type {
   FailureToolIdentityV1,
 } from "./failure-envelope-model.js";
 
+/** Reports whether retained live source authority belongs to the exact selected parent digest. */
+export function failureEnvelopeSourceMatchesParentV1(
+  source: FailureEnvelopeSourceAuthorityV1,
+  parentDigest: string,
+): boolean {
+  if (source.kind === "typed-valid") {
+    const execution = getExecutionCaseEvaluationInputV1(source.authority);
+    return (
+      execution !== undefined &&
+      authenticatePublishedExecutionCampaignParentV1(execution.campaign, parentDigest).ok
+    );
+  }
+  if (source.kind === "typed-invalid") {
+    const diagnostic = getPublishedDiagnosticCaseReductionInputV1(source.authority);
+    return (
+      diagnostic !== undefined &&
+      diagnostic.projection.authority.selectedReleaseDigest === parentDigest
+    );
+  }
+  const malformed = getMalformedDiagnosticCaseProjectionV1(source.authority);
+  return malformed.ok && malformed.value.selectedReleaseDigest === parentDigest;
+}
+
 interface AuthorizedFailureEnvelopeState {
   readonly projection: FailureEnvelopeV1;
   readonly records: readonly FailureHistoricalAuthorityRecordV1[];
+  readonly sourceAuthority?: FailureEnvelopeSourceAuthorityV1;
 }
 
 const AUTHORIZATION_KEYS = [
@@ -143,6 +169,7 @@ function replayEnvelope(
 function sourceAuthority(input: unknown):
   | {
       readonly family: FailureEnvelopeV1["family"];
+      readonly sourceAuthority: FailureEnvelopeSourceAuthorityV1;
       readonly replay: FailureReplayAuthorityV1;
       readonly candidate: FailureEnvelopeInitialCandidateV1;
       readonly historicalFacts: readonly HistoricalAuthorityFactV1[];
@@ -175,6 +202,10 @@ function sourceAuthority(input: unknown):
     if (claimWitnesses === undefined) return undefined;
     return {
       family: "typed-valid",
+      sourceAuthority: Object.freeze({
+        kind: "typed-valid" as const,
+        authority: source.authority as ExecutionCaseV1,
+      }),
       replay: Object.freeze({
         kind: "typed-campaign",
         envelope: replay,
@@ -218,6 +249,10 @@ function sourceAuthority(input: unknown):
     if (claimWitnesses === undefined) return undefined;
     return {
       family: "typed-invalid",
+      sourceAuthority: Object.freeze({
+        kind: "typed-invalid" as const,
+        authority: source.authority as PublishedDiagnosticCaseV1,
+      }),
       replay: Object.freeze({
         kind: "typed-campaign",
         envelope: replay,
@@ -260,6 +295,10 @@ function sourceAuthority(input: unknown):
     if (!malformed.ok) return undefined;
     return {
       family: "raw-malformed",
+      sourceAuthority: Object.freeze({
+        kind: "raw-malformed" as const,
+        authority: source.authority as MalformedDiagnosticCaseV1,
+      }),
       replay: Object.freeze({ kind: "raw-malformed", envelope: malformed.value }),
       candidate: Object.freeze({
         revision: "reduction-candidate-draft-v1",
@@ -290,11 +329,19 @@ function sourceAuthority(input: unknown):
 function createAuthority(
   projection: FailureEnvelopeV1,
   records: readonly FailureHistoricalAuthorityRecordV1[],
+  sourceAuthority?: FailureEnvelopeSourceAuthorityV1,
 ): AuthorizedFailureEnvelopeV1 {
   const authority: AuthorizedFailureEnvelopeV1 = Object.freeze({
     [AUTHORIZED_FAILURE_ENVELOPE_V1]: true as const,
   });
-  ENVELOPE_STATES.set(authority, Object.freeze({ projection, records }));
+  ENVELOPE_STATES.set(
+    authority,
+    Object.freeze({
+      projection,
+      records,
+      ...(sourceAuthority === undefined ? {} : { sourceAuthority }),
+    }),
+  );
   return authority;
 }
 
@@ -432,7 +479,7 @@ export function authorizeFailureEnvelopeV1(
     ...withoutDigest,
     digest: digest(encodeCanonical(withoutDigest)),
   });
-  return success(createAuthority(projection, records));
+  return success(createAuthority(projection, records, source.sourceAuthority));
 }
 
 /** Returns a defensive passive projection for a genuine envelope. */
@@ -642,4 +689,35 @@ export function getAuthorizedFailureEnvelopeStateV1(
   return typeof envelope === "object" && envelope !== null
     ? ENVELOPE_STATES.get(envelope)
     : undefined;
+}
+
+/** Returns the retained live source authority when the envelope was created in this process. */
+export function getFailureEnvelopeSourceAuthorityV1(
+  envelope: AuthorizedFailureEnvelopeV1,
+): FailureEnvelopeSourceAuthorityV1 | undefined {
+  const state = getAuthorizedFailureEnvelopeStateV1(envelope);
+  return state?.sourceAuthority;
+}
+
+/** Returns a defensive reduction payload for one genuine source authority. */
+export function getFailureEnvelopeSourceCandidateV1(
+  source: FailureEnvelopeSourceAuthorityV1,
+): FailureEnvelopeInitialCandidateV1 | undefined {
+  const retained = sourceAuthority(source);
+  return retained === undefined ? undefined : structuredClone(retained.candidate);
+}
+
+/** Returns the complete authenticated required-claim set without projecting execution bytes. */
+export function getFailureEnvelopeSourceClaimsV1(
+  source: FailureEnvelopeSourceAuthorityV1,
+): readonly string[] | undefined {
+  const retained = sourceAuthority(source);
+  if (retained === undefined) return undefined;
+  if (source.kind === "raw-malformed") {
+    const malformed = getMalformedDiagnosticCaseProjectionV1(source.authority);
+    return malformed.ok ? Object.freeze([malformed.value.ruleId]) : undefined;
+  }
+  return retained.candidate.kind === "raw-malformed"
+    ? undefined
+    : Object.freeze([...retained.candidate.claimedRuleIds]);
 }

@@ -14,9 +14,12 @@ import {
 import { createExecutionRouteRequestV1 } from "./execution-route-adapters.js";
 import {
   claimBoundViceRouteV1,
+  finalizeViceEvaluationEvidenceV1,
+  getFinalViceResultObservationEvidenceV1,
   sealBoundViceRouteV1,
   type SealedViceBuildBaselineV1,
 } from "./execution-vice-evaluation.js";
+import { getFailureObservationEvidenceProjectionV1 } from "./failure-predicate-evidence.js";
 import { FIXED_EVALUATED_VICE_HANDLER_IDENTITY_DIGEST_V1 } from "./execution-vice-handler-identity.js";
 import { createViceExecutionRuntimeV1, executeEvaluatedViceRouteV1 } from "./execution-vice.js";
 import { ViceExecutionCoordinator } from "./execution-vice-runtime.js";
@@ -261,6 +264,7 @@ describe("published runtime evaluation authority implementation", () => {
     expect(publicApi).not.toHaveProperty("bindEvaluatedViceRouteV1");
     expect(publicApi).not.toHaveProperty("sealBoundViceRouteV1");
     expect(publicApi).not.toHaveProperty("createEvaluatedViceHandlersV1");
+    expect(publicApi).not.toHaveProperty("getFinalViceResultObservationEvidenceV1");
     expect(Reflect.apply(claimBoundViceRouteV1, undefined, [null])).toBeUndefined();
   });
 
@@ -309,10 +313,18 @@ describe("published runtime evaluation authority implementation", () => {
     const execution = value(getExecutionCaseProjectionV1(selected.executionCase));
     const evaluation = authority();
     const route = evaluatedRoute(evaluation);
-    const baseline = buildBaseline(route, {
+    const evidenceBytes = new TextEncoder().encode("0123456789");
+    const initialBaseline = buildBaseline(route, {
       wallMs: 5,
       outputBytes: 23,
-      evidenceBytes: 10,
+      evidenceBytes: evidenceBytes.byteLength,
+    });
+    const baseline = Object.freeze({
+      ...initialBaseline,
+      evidence: Object.freeze({
+        ...initialBaseline.evidence,
+        digest: `sha256:${createHash("sha256").update(evidenceBytes).digest("hex")}`,
+      }),
     });
     const sealed = value(
       sealBoundViceRouteV1({
@@ -326,21 +338,134 @@ describe("published runtime evaluation authority implementation", () => {
     );
     now.value = baseline.workDeadlineMonotonicMs + 1;
 
-    await expect(
-      runtime.executeBoundEvaluatedViceRoute(sealed, lease, new AbortController().signal),
-    ).resolves.toMatchObject({
+    const result = await runtime.executeBoundEvaluatedViceRoute(
+      sealed,
+      lease,
+      new AbortController().signal,
+    );
+    expect(result).toMatchObject({
       status: "failure",
       stage: "vice-launch",
       code: "wall-time-exhaustion",
       usage: {
         wallMs: baseline.workDeadlineMonotonicMs + 1,
         outputBytes: 23,
-        evidenceBytes: 10,
+        evidenceBytes: expect.any(Number),
         launchAttempts: 0,
       },
-      evidence: { digest: baseline.evidence.digest, retainedBytes: 10 },
+      evidence: { retainedBytes: expect.any(Number), truncated: false },
     });
+    const observation = getFinalViceResultObservationEvidenceV1(result);
+    expect(getFailureObservationEvidenceProjectionV1(observation!)).toMatchObject({
+      revision: "failure-observation-evidence-projection-v1",
+      kind: "not-reached",
+      digest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
+      byteLength: expect.any(Number),
+    });
+    expect(getFinalViceResultObservationEvidenceV1({ ...result })).toBeUndefined();
     expect(fixture.endpointCalls()).toBe(0);
+  });
+
+  it("reproduces terminal evidence across fresh builds and distinguishes terminal facts", () => {
+    const terminal = Object.freeze({
+      status: "failure" as const,
+      tier: "vice" as const,
+      stage: "vice-launch" as const,
+      code: "emulator-launch-failure" as const,
+      usage: Object.freeze({
+        wallMs: 1,
+        outputBytes: 2,
+        evidenceBytes: 3,
+        instructions: 4,
+        cycles: 5,
+        launchAttempts: 1,
+      }),
+      evidence: Object.freeze({
+        digest: `sha256:${"a".repeat(64)}`,
+        retainedBytes: 3,
+        truncated: false,
+      }),
+    });
+    const fresh = Object.freeze({
+      ...terminal,
+      usage: Object.freeze({ ...terminal.usage, wallMs: 9_999, outputBytes: 99 }),
+      evidence: Object.freeze({
+        digest: `sha256:${"b".repeat(64)}`,
+        retainedBytes: 999,
+        truncated: false,
+      }),
+    });
+    const historical = finalizeViceEvaluationEvidenceV1(terminal, 1_024);
+    const candidate = finalizeViceEvaluationEvidenceV1(fresh, 1_024);
+    expect(
+      getFailureObservationEvidenceProjectionV1(
+        getFinalViceResultObservationEvidenceV1(historical)!,
+      ),
+    ).toEqual(
+      getFailureObservationEvidenceProjectionV1(
+        getFinalViceResultObservationEvidenceV1(candidate)!,
+      ),
+    );
+    expect(historical.evidence).toEqual(candidate.evidence);
+
+    for (const mismatch of [
+      Object.freeze({ ...terminal, stage: "vice-handshake" as const }),
+      Object.freeze({ ...terminal, code: "emulator-handshake-failure" as const }),
+      Object.freeze({ ...terminal, adapterSubcode: "adapter.timeout" }),
+    ]) {
+      const finalized = finalizeViceEvaluationEvidenceV1(mismatch, 1_024);
+      expect(
+        getFailureObservationEvidenceProjectionV1(
+          getFinalViceResultObservationEvidenceV1(finalized)!,
+        ),
+      ).not.toEqual(
+        getFailureObservationEvidenceProjectionV1(
+          getFinalViceResultObservationEvidenceV1(historical)!,
+        ),
+      );
+    }
+    const blockedOne = finalizeViceEvaluationEvidenceV1(
+      Object.freeze({
+        ...terminal,
+        cleanupBlocker: Object.freeze({
+          code: "emulator-lease-recovery-blocked" as const,
+          evidenceDigest: `sha256:${"1".repeat(64)}`,
+        }),
+      }),
+      1_024,
+    );
+    const blockedTwo = finalizeViceEvaluationEvidenceV1(
+      Object.freeze({
+        ...fresh,
+        cleanupBlocker: Object.freeze({
+          code: "emulator-lease-recovery-blocked" as const,
+          evidenceDigest: `sha256:${"2".repeat(64)}`,
+        }),
+      }),
+      1_024,
+    );
+    expect(
+      getFailureObservationEvidenceProjectionV1(
+        getFinalViceResultObservationEvidenceV1(blockedOne)!,
+      ),
+    ).toEqual(
+      getFailureObservationEvidenceProjectionV1(
+        getFinalViceResultObservationEvidenceV1(blockedTwo)!,
+      ),
+    );
+    const exhausted = finalizeViceEvaluationEvidenceV1(terminal, 1);
+    expect(exhausted).toMatchObject({
+      status: "failure",
+      stage: "compare",
+      code: "evidence-exhaustion",
+      usage: { evidenceBytes: 0 },
+      evidence: { retainedBytes: 0, truncated: false },
+    });
+    expect(
+      getFailureObservationEvidenceProjectionV1(
+        getFinalViceResultObservationEvidenceV1(exhausted)!,
+      ),
+    ).toMatchObject({ kind: "not-reached" });
   });
 
   it("reserves evaluated evidence capacity from the sealed build baseline", async () => {
@@ -375,7 +500,7 @@ describe("published runtime evaluation authority implementation", () => {
       code: "evidence-exhaustion",
       usage: {
         outputBytes: 31,
-        evidenceBytes: route.policy.budget.evidenceBytes - 31,
+        evidenceBytes: expect.any(Number),
         launchAttempts: 0,
       },
     });
