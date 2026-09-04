@@ -2,13 +2,15 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-03 06:08
+> **Last Updated**: 2026-09-04
 > **Progress**: 21/62 tasks (34%)
+> **Status**: Paused by explicit course correction; preserved at commit `14d9f1f`. Domain-skill
+> creation and a read-only compiler recovery audit must finish before any execution resumes.
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
 
-Execute RD-08 in six bounded phases. Phase 1 delivers real generated arrays/calls/branches/loops
+Execution is paused. If the work is later resumed, execute RD-08 in six bounded phases. Phase 1 delivers real generated arrays/calls/branches/loops
 and independent semantic observations before authority expansion. Later phases add only the
 minimum versioned publication, family/disposition, route and closeout work required by the RD.
 

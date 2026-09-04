@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blend65 Domain Expert"
+  short_description: "6502/C64 compiler and game-system expertise"
+  default_prompt: "Use $blend65-domain-expert to review this Blend65 compiler decision against 6502 and C64 expert practice."
