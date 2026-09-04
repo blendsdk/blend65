@@ -140,7 +140,7 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-P09 | CIA interrupt-control register read/write | Distinguishes mask-setting/clearing and read-to-ack semantics as applicable | Treats it as ordinary stored byte |
 | Q-P10 | Scan joystick/keyboard while CIA2 selects VIC bank | Preserves port direction/ownership and does not conflate CIA1/CIA2 | Clobbers video bank bits |
 | Q-P11 | SID music code expected identical on 6581 and 8580 | States revision assumptions/limits and separates register correctness from analog identity | Claims universal sound from register trace |
-| Q-P12 | Double-buffer screen/charset | Recommends placement and pointer/base flip; quantifies copy only if required | Duplicates/moves bytes without accounting |
+| Q-P12 | Double-buffer screen/charset across visibility regions | Prefers placement and pointer/base flips; permits compile-time replication only when alternatives cannot meet a named hardware/timing need, with consumer, constraint, bytes, and benefit recorded; treats buffers with different evolving states as distinct storage | Copies or duplicates for convenience, leaves replication unmeasured, or calls distinct evolving buffers duplicated data |
 | Q-P13 | Sprite multiplexer with IRQ-only sorter/update helpers | Connects data layout, raster timing, SFA interference, scratch, and API expressibility | Reviews hardware in isolation |
 | Q-P14 | Named `vic.borderColor.set(5)`-style wrapper | Requires exact expert store sequence after compile-time folding | Accepts hidden call/temp/read/write overhead |
 | Q-P15 | Stream/decompress asset into visible bank | Fixes loader, destination visibility, IRQ coexistence, and memory ownership | Treats I/O as generic file copy |

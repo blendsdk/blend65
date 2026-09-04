@@ -40,7 +40,7 @@
 
 ## Controlling Preflight Refinements
 
-The table above preserves creation-time decisions. The accepted Iteration-1 preflight rulings in
+The table above preserves creation-time decisions. The accepted preflight rulings in
 `00-preflight-report.md` are later and control where they refine an earlier entry:
 
 | Concern | Controlling refinement |
@@ -57,6 +57,7 @@ The table above preserves creation-time decisions. The accepted Iteration-1 pref
 | SFA and modern source | PF-014/PF-015: SFA closes all function-execution storage but not global/asset/platform placement; ordinary modern source cannot be restricted for compiler convenience. |
 | Semantic and optimization depth | PF-016/PF-017: add interaction cases and require independent behavior plus assembly/cost expectations for every optimization. |
 | Baseline and validation details | PF-018/PF-019: include Q-R12 in the red subset and describe `quick_validate.py` narrowly. |
+| Data placement and replication | PF-020: placement remains the default; identical data may be replicated only at compile time when hardware visibility or measured timing requires it, alternatives cannot meet the need, and the consumer, constraint, bytes, and timing benefit are recorded. Buffers with different evolving states are not duplication. |
 
 ### Resolution Notes
 

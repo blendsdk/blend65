@@ -1,12 +1,12 @@
 # Preflight Report: Blend65 Expert Skillset Plan
 
-> **Status**: DECISION REQUIRED — all 18 accepted corrections applied; 1 prior finding dismissed; deep re-scan found 1 new major finding
-> **Iteration**: 2 (full re-scan after accepted corrections)
+> **Status**: ✅ PREFLIGHT PASSED — all 20 findings resolved (19 corrected, 1 dismissed)
+> **Iteration**: 3 (focused verification of the final Iteration-2 major correction)
 > **Artifact**: full implementation plan at `codeops/features/blend65-expert-skillset/plans/blend65-expert-skillset/`
 > **Iteration-1 Artifact Tree**: `7bf4a4531a775e07d20fa3efbf9a69a17ea2c445`
-> **Iteration-2 Target Digest**: `a71cf970238e20684d97026a4265c96b5cc18ec1214a053719b48603c04137d4` (SHA-256 over the sorted thirteen target-document SHA-256 records; report and temporary notes excluded)
+> **Passed Target Digest**: `00e86eae95baa88c05805812b1621d09ab0513c3ac1ccb3ae5d7c9464d17af77` (SHA-256 over the sorted thirteen target-document SHA-256 records; report and temporary notes excluded)
 > **Repository Commit**: `1260fdee0cb77597b24921679e96c3085fa037a6`
-> **Codebase Grounded**: all 13 plan documents re-read; all 19 prior findings rechecked; 50 specification files, 12 workspaces, 92 case definitions, 60 substeps, tool versions, legacy references, and relevant compiler/SFA/platform evidence re-verified
+> **Codebase Grounded**: all 13 plan documents re-read; all 20 findings checked through convergence; 50 specification files, 12 workspaces, 92 case definitions, 60 substeps, tool versions, legacy references, and relevant compiler/SFA/platform evidence re-verified
 > **Review Independence**: Iteration 2 used two independent clustered auditors plus inline review of the remaining dimensions; Iteration 1 used clustered/domain auditors and an independent recommendation challenger
 > **Last Updated**: 2026-09-04
 
@@ -66,14 +66,14 @@ expressiveness evidence, and `docs/game-feasibility-matrix.json`.
 | Prior corrections applied and verified | 18 | PF-001..PF-010 and PF-012..PF-019 |
 | Prior finding dismissed by product clarification | 1 | PF-011 |
 | Residuals found and corrected during re-scan | 5 | PF-003, PF-004, PF-005/PF-008, PF-007, PF-009 |
-| New findings | 1 major | PF-020 — decision required |
+| New findings | 1 major | PF-020 — decision required at the end of Iteration 2 |
 
 ## Overall Result
 
-**DECISION REQUIRED.** The accepted Iteration-1 corrections are implemented and their residuals
-are closed. The plan is not yet preflighted because the deep re-scan found one new contradiction
-between the project data-placement directive and the planned expert doctrine. No roadmap lifecycle
-state advances until PF-020 is resolved and the affected text receives a focused recheck.
+**PASSED.** The accepted Iteration-1 corrections are implemented, their Iteration-2 residuals are
+closed, and the new PF-020 contradiction is corrected. The focused Iteration-3 review found no
+remaining ambiguity, contradiction, scope expansion, or untestable exception in the affected
+surface. The plan may advance to `Plan Preflighted`.
 
 ---
 
@@ -819,7 +819,7 @@ this change touches only planning, skill-governance, and repository-guidance Mar
 
 **Dimension:** Logical Contradictions
 
-**Location:** `03-04-c64-platform-and-game-knowledge.md:43,126-131`; `AGENTS.md:173-174`
+**Location:** `03-04-c64-platform-and-game-knowledge.md:43,128-135`; `AGENTS.md:173-179`
 
 **The Problem:** The plan's memory-coverage table and project directive categorically prohibit
 duplicate RAM assets, while the plan's detailed doctrine allows byte duplication when a measured
@@ -845,14 +845,22 @@ plus the project's expert-output objective, not a verbatim rule from the manual.
 **Confidence:** High. **Hardening:** an independent document-soundness auditor found the conflict;
 the main review second-guessed the auditor's proposed absolute-ban remedy against the expert C64
 objective, and an independent recommendation challenger converged on Option A with the stricter
-necessity, consumer, visibility, byte-cost, and timing-evidence threshold. **User Decision:**
-Pending.
+necessity, consumer, visibility, byte-cost, and timing-evidence threshold.
+
+**User Decision:** Resolved — User accepted Option A on 2026-09-04.
+
+**Iteration-3 Evidence:** `AGENTS.md:173-179` now makes placement the default and bounds static
+replication by necessity and measured cost. The coverage, doctrine, and failure conditions use the
+same rule at `03-04-c64-platform-and-game-knowledge.md:43,128-135,187-190`.
+`07-testing-strategy.md:100,134,143` guards SFA separation, convenience-copy rejection, necessary
+replication, measured cost, and distinct evolving buffers. An independent focused reviewer found
+no residual contradiction, ambiguity, scope creep, or untestable exception.
 
 ## Decision and Rescan State
 
-- PF-001..PF-019 are closed: eighteen accepted corrections are applied and verified; PF-011 remains
+- PF-001..PF-020 are closed: nineteen accepted corrections are applied and verified; PF-011 remains
   dismissed.
-- PF-020 is the only open finding and requires a product ruling before the preflight can pass.
 - PF-001's specification-consistency work remains an explicit execution prerequisite. This plan
   records and enforces it but does not authorize a `spec/` edit.
-- No roadmap lifecycle state advances while PF-020 remains open.
+- Iteration 3 is the final bounded re-scan permitted by this session. It passed with no findings.
+- The full plan is `Plan Preflighted`; execution may start with Phase 1 when requested.

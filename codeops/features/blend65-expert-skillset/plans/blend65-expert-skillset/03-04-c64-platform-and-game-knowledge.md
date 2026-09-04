@@ -40,7 +40,7 @@ one convenient default silently.
 | Startup | PRG load versus initialized RAM, banking and interrupt state, data initialization, main return/nonreturn, cleanup/restore obligations |
 | Runtime ownership | KERNAL calls/vectors, ROM bank requirements, zero-page clobbers, IRQ chain versus raw vectors, coexistence versus takeover |
 | Artifacts/loading | Two-byte PRG load header, load address/origin agreement, labels/symbols, disk/tape/fastloader boundaries |
-| Memory pressure | Placement over copying, data visible where consumer reads it, no duplicate RAM assets, static frame and ZP budgets |
+| Memory pressure | Placement over copying, data visible where the consumer reads it, no unaccounted/default duplication, evidence-gated static replication, static-frame and ZP budgets |
 
 ### Banking Rules
 
@@ -126,9 +126,13 @@ sequence after the same obligations. The module must distinguish:
 ### Data Placement Doctrine
 
 Data lives where the hardware or hot loop reads it. Prefer symbolic placement, alignment, bank
-selection, pointer flips, and compile-time transformations over runtime copying. Duplication is
-allowed only when the measured access/timing tradeoff and memory cost justify it; “simpler
-lowering” is not a justification.
+selection, pointer flips, and compile-time transformations over runtime copying. Never copy or
+duplicate data merely for compiler convenience. Replicating identical data is allowed only at
+compile time when hardware visibility or a measured timing requirement makes it the best expert
+result, placement/banking/pointer changes cannot meet the same need, and the exact consumer,
+visibility constraint, byte cost, and timing/access benefit are recorded. Hot paths do not copy
+when compile-time placement or replication can solve the problem. Buffers that hold different
+evolving states are distinct storage, not duplicated data.
 
 ### Game Feasibility
 
@@ -181,6 +185,7 @@ idiom but must be corroborated before becoming release guidance.
 ## Failure Conditions
 
 This component fails if PAL/NTSC is ignored where timing differs, CPU and VIC memory views are
-collapsed, chip side effects are treated as ordinary RAM, wrapper cost is not inspected, KERNAL/raw
-interrupt ABIs are mixed, a game feasibility claim lacks resource/timing/expressibility evidence,
-or future C64U features are presented as qualified C64 behavior.
+collapsed, chip side effects are treated as ordinary RAM, data is copied or replicated without the
+required necessity and cost evidence, wrapper cost is not inspected, KERNAL/raw interrupt ABIs are
+mixed, a game feasibility claim lacks resource/timing/expressibility evidence, or future C64U
+features are presented as qualified C64 behavior.

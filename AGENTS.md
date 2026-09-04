@@ -170,8 +170,13 @@ would judge it:
   the beat stays reachable, and never settle into a shape that can only ever meet. (Per-routine an
   expert can still hand-tune to the metal, so meeting is the honest *local* floor; the strict beat
   is realised at program scale and by working those filed issues down.)
-- **Data lives where the hardware reads it**: placement over copying; never duplicate bytes in
-  RAM; hot paths flip pointers, they don't copy.
+- **Data lives where the hardware reads it:** prefer placement, banking, alignment, pointer flips,
+  and compile-time transformation over copying. Never copy or duplicate bytes merely for compiler
+  convenience. Deliberate compile-time replication is allowed only when hardware visibility or a
+  measured timing requirement makes it the best expert result, placement/banking/pointer changes
+  cannot meet the same need, and the exact consumer, constraint, byte cost, and timing benefit are
+  recorded. Hot paths never copy when compile-time placement or replication can solve the problem.
+  Distinguish replicated identical data from buffers that hold different evolving states.
 - **Hardware access reads as named registers**, not magic numbers; MMIO stays volatile-correct
   under any future optimization.
 - **Every optimization has two independent expectations:** a behavior oracle derived from
