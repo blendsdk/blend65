@@ -31,6 +31,7 @@ while exhaustive and VICE campaigns remain explicit. (AR-1, AR-4, AR-7, AR-8)
 | 03-02 | [Rule Families and Dispositions](03-02-rule-families-dispositions.md) | Complete denominator model |
 | 03-03 | [Publication and Execution](03-03-publication-execution.md) | Evolution, routes and evidence |
 | 03-04 | [Smoke, Routing and Closeout](03-04-smoke-routing-closeout.md) | Fast gate, ownership and closure |
+| 03-05 | [Phase-2 Executable Contracts](03-05-phase2-executable-contracts.md) | Exact v2 parent, migration, historical resolution, child reuse and consumer interfaces |
 | 07 | [Testing Strategy](07-testing-strategy.md) | Concrete immutable ST cases |
 | 99 | [Execution Plan](99-execution-plan.md) | Six bounded phases and task checklist |
 

@@ -3,14 +3,23 @@ import { basename, join, relative, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  getPublishedExecutionReleaseRecordProjectionV1,
+  resolvePublishedExecutionReleaseRecordByDigestV1,
+  type PublishedExecutionReleaseRecordProjectionV1,
+} from "@blend65/readiness";
+
+import {
   CAPABILITY_IDS,
   CURRENT_PARENT_DIGEST,
+  HISTORICAL_EXECUTION_DIGEST,
+  HISTORICAL_EXECUTION_PARENT_DIGEST,
   HISTORICAL_PARENT_DIGEST,
   canonicalJsonBytes,
   createIsolatedRepository,
   digestBytes,
   executionReleaseRoot,
   expectedPublication,
+  installHistoricalExecutionRelease,
   makeBindings,
   makePublicationInput,
   makeReview,
@@ -64,6 +73,10 @@ interface PublicReadinessApi {
     digest?: string,
   ): Promise<OperationResult<unknown>>;
   resolvePublishedSnapshotByDigest(input: {
+    repositoryRoot: string;
+    publicationDigest: string;
+  }): Promise<OperationResult<unknown>>;
+  resolvePublishedRuleFamilyRecordByDigestV2(input: {
     repositoryRoot: string;
     publicationDigest: string;
   }): Promise<OperationResult<unknown>>;
@@ -593,26 +606,129 @@ describe("transaction durability and passive history", () => {
     });
   });
 
-  it("resolves both historical parent shapes and their child without rewriting either release", async () => {
+  it("authenticates historical parent and child releases without granting obsolete execution authority", async () => {
     const api = await publicApi();
     const root = await repository();
     const parentBefore = await snapshotParentPublications(root);
+    await installHistoricalExecutionRelease(root);
+    const historicalChildBefore = await snapshotTree(
+      executionReleaseRoot(root, HISTORICAL_EXECUTION_DIGEST),
+    );
 
-    for (const [index, parentDigest] of [
-      HISTORICAL_PARENT_DIGEST,
-      CURRENT_PARENT_DIGEST,
-    ].entries()) {
-      expectOk(
-        await api.resolvePublishedSnapshotByDigest({
-          repositoryRoot: root,
-          publicationDigest: parentDigest,
-        }),
-      );
-      const { candidate } = await prepareAccepted(api, root, parentDigest, `historical-${index}`);
-      const childBefore = await snapshotTree(executionReleaseRoot(root, candidate.digest));
-      await resolvedComposite(api, root, parentDigest, candidate.digest);
-      expect(await snapshotTree(executionReleaseRoot(root, candidate.digest))).toEqual(childBefore);
+    expect(typeof api.resolvePublishedRuleFamilyRecordByDigestV2).toBe("function");
+    expectOk(
+      await api.resolvePublishedRuleFamilyRecordByDigestV2({
+        repositoryRoot: root,
+        publicationDigest: HISTORICAL_EXECUTION_PARENT_DIGEST,
+      }),
+    );
+    const historicalRecord = expectOk(
+      await resolvePublishedExecutionReleaseRecordByDigestV1({
+        repositoryRoot: root,
+        publicationDigest: HISTORICAL_EXECUTION_DIGEST,
+      }),
+    );
+    const historicalProjection: PublishedExecutionReleaseRecordProjectionV1 = expectOk(
+      getPublishedExecutionReleaseRecordProjectionV1(historicalRecord),
+    );
+    expect(historicalProjection.schemaVersion).toBe(1);
+    expect(historicalProjection.publicationDigest).toBe(HISTORICAL_EXECUTION_DIGEST);
+    expect(historicalProjection.parentDigest).toBe(HISTORICAL_EXECUTION_PARENT_DIGEST);
+    expect(historicalProjection.bindings).toHaveLength(6);
+    expect(
+      historicalProjection.members.map(
+        (member: PublishedExecutionReleaseRecordProjectionV1["members"][number]) => member.path,
+      ),
+    ).toEqual([
+      "execution-bindings-v1.json",
+      "execution-manifest-v1.json",
+      "execution-parent-v1.json",
+      "execution-semantic-review-v1.json",
+    ]);
+    for (const member of historicalProjection.members) {
+      const expectedBytes = historicalChildBefore[member.path];
+      expect(expectedBytes).toBeDefined();
+      if (expectedBytes === undefined) {
+        throw new Error(`missing historical member ${member.path}`);
+      }
+      expect(member.digest).toBe(digestBytes(expectedBytes));
+      expect(member.byteLength).toBe(expectedBytes.byteLength);
+      expect(member.bytes).toEqual(expectedBytes);
     }
+    expect(historicalProjection.bindingDigest).toBe(
+      historicalProjection.members.find(
+        (member: PublishedExecutionReleaseRecordProjectionV1["members"][number]) =>
+          member.path === "execution-bindings-v1.json",
+      )?.digest,
+    );
+    expect(historicalProjection.semanticReviewDigest).toBe(
+      historicalProjection.members.find(
+        (member: PublishedExecutionReleaseRecordProjectionV1["members"][number]) =>
+          member.path === "execution-semantic-review-v1.json",
+      )?.digest,
+    );
+    const repeatedProjection: PublishedExecutionReleaseRecordProjectionV1 = expectOk(
+      getPublishedExecutionReleaseRecordProjectionV1(historicalRecord),
+    );
+    expect(repeatedProjection).toEqual(historicalProjection);
+    expect(repeatedProjection).not.toBe(historicalProjection);
+    for (const [index, member] of historicalProjection.members.entries()) {
+      expect(repeatedProjection.members[index]?.bytes).not.toBe(member.bytes);
+    }
+
+    const executableCurrentParent = expectOk(
+      await api.resolvePublishedSnapshotByDigest({
+        repositoryRoot: root,
+        publicationDigest: CURRENT_PARENT_DIGEST,
+      }),
+    );
+    expectIssue(
+      api.resolveCompositeReadinessSnapshot(executableCurrentParent, historicalRecord),
+      "execution.identity",
+      "",
+    );
+    expectIssue(
+      await api.resolvePublishedExecutionRelease(root, HISTORICAL_EXECUTION_DIGEST),
+      "execution.stale-authority",
+      "/parentDigest",
+    );
+    expect(
+      await api.resolvePublishedSnapshotByDigest({
+        repositoryRoot: root,
+        publicationDigest: HISTORICAL_EXECUTION_PARENT_DIGEST,
+      }),
+    ).toMatchObject({
+      ok: false,
+      kind: "stale",
+      diagnostics: [
+        expect.objectContaining({
+          code: "publication.implementation-unavailable",
+          path: "/bindings/0/implementationRevision",
+        }),
+      ],
+    });
+    expect(await snapshotTree(executionReleaseRoot(root, HISTORICAL_EXECUTION_DIGEST))).toEqual(
+      historicalChildBefore,
+    );
+    expect(await snapshotParentPublications(root)).toEqual(parentBefore);
+
+    expectOk(
+      await api.resolvePublishedSnapshotByDigest({
+        repositoryRoot: root,
+        publicationDigest: CURRENT_PARENT_DIGEST,
+      }),
+    );
+    const { candidate: currentChild } = await prepareAccepted(
+      api,
+      root,
+      CURRENT_PARENT_DIGEST,
+      "historical-1",
+    );
+    const currentChildBefore = await snapshotTree(executionReleaseRoot(root, currentChild.digest));
+    await resolvedComposite(api, root, CURRENT_PARENT_DIGEST, currentChild.digest);
+    expect(await snapshotTree(executionReleaseRoot(root, currentChild.digest))).toEqual(
+      currentChildBefore,
+    );
     expect(await snapshotParentPublications(root)).toEqual(parentBefore);
   });
 

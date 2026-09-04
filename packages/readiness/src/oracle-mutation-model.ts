@@ -5,6 +5,7 @@ import { ORACLE_MEMORY_MUTATION_PATHS } from "./oracle-memory.js";
 import { ORACLE_SCALAR_MUTATION_PATHS } from "./oracle-operations.js";
 import { ORACLE_NORMALIZATION_MUTATION_PATHS } from "./oracle-values.js";
 import { ORACLE_RELATION_MUTATION_PATHS } from "./semantic-relation-conformance.js";
+import { STRUCTURED_ORACLE_MUTATION_PATHS } from "./structured-oracle-evaluator.js";
 import type { OracleDiagnostic } from "./oracle-model.js";
 
 /** Closed mutation families accepted by the version-one adequacy catalog. */
@@ -58,6 +59,12 @@ export interface OracleMutationPathRegistryV1 {
   /** Registry schema version. */
   readonly schemaVersion: 1;
   /** Exact reachable production branches. */
+  readonly paths: readonly OracleMutationPathV1[];
+}
+
+/** Immutable mutation registry including structured evaluator and relation paths. */
+export interface OracleMutationPathRegistryV2 {
+  readonly schemaVersion: 2;
   readonly paths: readonly OracleMutationPathV1[];
 }
 
@@ -341,7 +348,9 @@ export function oracleMutationPathRegistry(): OracleMutationPathRegistryV1 {
     ...ORACLE_MEMORY_MUTATION_PATHS.map((value) => path("evaluator-operation", value)),
     ...ORACLE_ORDER_MUTATION_PATHS.map((value) => path("evaluator-operation", value)),
     ...ORACLE_AUTHORITY_MUTATION_PATHS.map((value) => path("diagnostic-mapping", value)),
-    ...ORACLE_RELATION_MUTATION_PATHS.map((value) => path(relationFamily(value.pathId), value)),
+    ...ORACLE_RELATION_MUTATION_PATHS.filter(
+      (value) => value.operationId !== "relation.loop-unrolling",
+    ).map((value) => path(relationFamily(value.pathId), value)),
   ].sort((left, right) =>
     compareAscii(oracleMutationIdForPath(left), oracleMutationIdForPath(right)),
   );
@@ -351,6 +360,24 @@ export function oracleMutationPathRegistry(): OracleMutationPathRegistryV1 {
   });
   PATH_REGISTRIES.add(registry);
   return registry;
+}
+
+/**
+ * Builds the additive registry containing every historical and structured mutation path.
+ *
+ * @returns Lexically ordered version-two mutation path registry.
+ */
+export function oracleMutationPathRegistryV2(): OracleMutationPathRegistryV2 {
+  const paths = [
+    ...oracleMutationPathRegistry().paths,
+    ...STRUCTURED_ORACLE_MUTATION_PATHS.map((value) => path("evaluator-operation", value)),
+    ...ORACLE_RELATION_MUTATION_PATHS.filter(
+      (value) => value.operationId === "relation.loop-unrolling",
+    ).map((value) => path(relationFamily(value.pathId), value)),
+  ].sort((left, right) =>
+    compareAscii(oracleMutationIdForPath(left), oracleMutationIdForPath(right)),
+  );
+  return Object.freeze({ schemaVersion: 2, paths: Object.freeze(paths) });
 }
 
 /**

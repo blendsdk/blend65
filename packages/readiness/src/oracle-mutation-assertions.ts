@@ -24,9 +24,18 @@ import {
   type OracleMutationObservationV1,
 } from "./oracle-mutation-packet.js";
 import { hydrateOracleMutationSuite } from "./oracle-mutation-suite.js";
+import { hydrateStructuredOracleMutationSuiteV2 } from "./oracle-mutation-suite.js";
 import { hasExactOracleKeys, isOracleRecord, oracleFailure } from "./oracle-input.js";
 import type { OracleDiagnostic } from "./oracle-model.js";
 import { evaluateSemanticRelation } from "./semantic-relations.js";
+import type {
+  SemanticRelationRequestV2,
+  SemanticRelationResultV2,
+} from "./semantic-relation-model.js";
+import {
+  evaluateStructuredOracleProgram,
+  type StructuredOracleProgramResultV2,
+} from "./structured-oracle-evaluator.js";
 
 /** Successful or failed execution of one complete canonical mutation vector. */
 export type OracleMutationVectorResultV1 =
@@ -47,6 +56,64 @@ export type OracleMutationAssertionResultV1 =
 
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
 const ASSERTION_KEYS = ["kind", "expected"] as const;
+
+/** Result of directly exercising one structured mutation path. */
+export type StructuredOracleMutationResultV2 =
+  | StructuredOracleProgramResultV2
+  | SemanticRelationResultV2;
+
+/**
+ * Runs one structured evaluator or loop-relation mutation against authenticated authority.
+ *
+ * @param caseId Stable reviewed structured case identity.
+ * @param selection Exact registered mutation selection.
+ * @returns Mutated structured evaluator or relation result.
+ */
+export async function runStructuredOracleMutationForConformanceV2(
+  caseId: unknown,
+  selection: OracleMutationSelectionV1,
+): Promise<StructuredOracleMutationResultV2> {
+  const hydrated = hydrateStructuredOracleMutationSuiteV2(caseId);
+  if (!hydrated.ok) {
+    return oracleFailure(
+      "oracle.authority.not-accepted",
+      "/caseId",
+      "Structured mutation case authority is unavailable.",
+    );
+  }
+  const authority = hydrated.authority;
+  if (selection.operationId === "oracle.structured-program") {
+    return runWithOracleMutationVariant(selection, () =>
+      evaluateStructuredOracleProgram(authority.oracleInput),
+    );
+  }
+  if (
+    selection.operationId !== "relation.loop-unrolling" ||
+    authority.relationSelectionPath === undefined
+  ) {
+    return oracleFailure(
+      "oracle.contract.invalid",
+      "/selection",
+      "Structured mutation selection does not belong to the chosen case.",
+    );
+  }
+  const request: SemanticRelationRequestV2 = Object.freeze({
+    schemaVersion: 2,
+    handlerId: "transform.semantic-relations",
+    relationId: "relation.loop-unrolling",
+    sourceProvenance: authority.sourceProvenance,
+    sourceCase: authority.generatedCase,
+    entryFunction: authority.oracleInput.entryFunction,
+    selectionPath: authority.relationSelectionPath,
+    variantId: "unroll-exact-domain-v1",
+    memory: authority.oracleInput.memory,
+    budget: authority.oracleInput.budget,
+    generationBudget: authority.oracleInput.generationBudget,
+  });
+  return runWithOracleMutationVariant(selection, () =>
+    evaluateSemanticRelation(authority.oracleSuite, request),
+  );
+}
 
 function vectorFailure(path: string, message: string): OracleMutationVectorResultV1 {
   return oracleFailure("oracle.contract.invalid", path, message);

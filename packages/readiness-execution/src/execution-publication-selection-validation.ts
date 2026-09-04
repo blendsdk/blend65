@@ -100,7 +100,7 @@ export function validateExecutionChildReleaseFilesV1(
   }
 }
 
-/** Reads the historical parent pointer only when its bytes are exact canonical authority. */
+/** Reads either supported parent pointer only when its bytes are exact canonical authority. */
 export function readSelectedExecutionParentDigestV1(
   repositoryRoot: string,
   pointerPath: string,
@@ -114,22 +114,39 @@ export function readSelectedExecutionParentDigestV1(
       value === null ||
       Array.isArray(value) ||
       Object.getPrototypeOf(value) !== Object.prototype ||
-      Reflect.ownKeys(value).length !== 2 ||
       !("schemaVersion" in value) ||
-      value.schemaVersion !== 1 ||
       !("publicationDigest" in value) ||
       typeof value.publicationDigest !== "string" ||
-      !/^sha256:[0-9a-f]{64}$/u.test(value.publicationDigest) ||
-      !exactBytes(
-        read.value,
-        ENCODER.encode(
-          `${JSON.stringify({
-            schemaVersion: 1,
-            publicationDigest: value.publicationDigest,
-          })}\n`,
-        ),
-      )
+      !/^sha256:[0-9a-f]{64}$/u.test(value.publicationDigest)
     ) {
+      return failure(
+        "execution.stale-authority",
+        "/parentDigest",
+        "Selected parent pointer is not exact canonical authority.",
+      );
+    }
+    const keys = Reflect.ownKeys(value);
+    const canonical =
+      value.schemaVersion === 1 && keys.length === 2
+        ? ENCODER.encode(
+            `${JSON.stringify({
+              schemaVersion: 1,
+              publicationDigest: value.publicationDigest,
+            })}\n`,
+          )
+        : value.schemaVersion === 2 &&
+            keys.length === 3 &&
+            "kind" in value &&
+            value.kind === "rule-family-publication-pointer-v2"
+          ? ENCODER.encode(
+              `${JSON.stringify({
+                schemaVersion: 2,
+                kind: "rule-family-publication-pointer-v2",
+                publicationDigest: value.publicationDigest,
+              })}\n`,
+            )
+          : undefined;
+    if (canonical === undefined || !exactBytes(read.value, canonical)) {
       return failure(
         "execution.stale-authority",
         "/parentDigest",

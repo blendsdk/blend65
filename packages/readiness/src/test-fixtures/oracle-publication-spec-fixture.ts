@@ -2,8 +2,19 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { restoreUnboundPublicationAuthority } from "./unbound-publication-authority.js";
-import { createHistoricalReadinessAuthorityRepository } from "./historical-readiness-authority.js";
+import {
+  prepareBindingPublicationReview,
+  publishBindingTransaction,
+} from "../binding-publication.js";
+import type { PublicationResult } from "../publication-model.js";
+import {
+  restoreCurrentUnboundPublicationAuthority,
+  restoreUnboundPublicationAuthority,
+} from "./unbound-publication-authority.js";
+import {
+  createCurrentReadinessAuthorityRepository,
+  createHistoricalReadinessAuthorityRepository,
+} from "./historical-readiness-authority.js";
 
 export type SpecDigest = `sha256:${string}`;
 
@@ -123,12 +134,25 @@ function encodeJson(value: unknown): Uint8Array {
   return encoder.encode(`${JSON.stringify(value)}\n`);
 }
 
+function requirePublicationSuccess<T>(result: PublicationResult<T>, operation: string): T {
+  if (!result.ok) {
+    throw new TypeError(
+      `${operation} failed: ${result.diagnostics
+        .map(({ code, path }) => `${code}@${path}`)
+        .join(",")}`,
+    );
+  }
+  return result.value;
+}
+
 async function copyRepositoryAuthority(prefix: string): Promise<string> {
   return createHistoricalReadinessAuthorityRepository(prefix);
 }
 
 export async function createOraclePublicationSpecFixture(): Promise<OraclePublicationSpecFixture> {
-  const repositoryRoot = await copyRepositoryAuthority("blend65-oracle-publication-spec-");
+  const repositoryRoot = await createCurrentReadinessAuthorityRepository(
+    "blend65-oracle-publication-spec-",
+  );
   const pointerPath = join(repositoryRoot, "readiness/publications/current-publication.json");
   const pointerBytes = encodeJson({
     schemaVersion: 1,
@@ -153,6 +177,70 @@ export async function createOraclePublicationSpecFixture(): Promise<OraclePublic
     legacySemanticReviewBytes,
     cleanup: () => rm(repositoryRoot, { recursive: true }),
   };
+}
+
+/**
+ * Publishes an isolated reviewed version-one base from exact current callable authority.
+ *
+ * The repository's historical releases remain untouched. The returned release exists only in the
+ * temporary fixture and can therefore serve tests that need genuine executable base authority.
+ *
+ * @returns A current four-handler publication and cleanup capability.
+ *
+ * @example
+ * ```ts
+ * const fixture = await createCurrentOraclePublicationSpecFixture();
+ * try {
+ *   // Resolve fixture.publicationDigest through the executable resolver.
+ * } finally {
+ *   await fixture.cleanup();
+ * }
+ * ```
+ */
+export async function createCurrentOraclePublicationSpecFixture(): Promise<OraclePublicationSpecFixture> {
+  const repositoryRoot = await createCurrentReadinessAuthorityRepository(
+    "blend65-current-oracle-publication-spec-",
+  );
+  try {
+    await restoreCurrentUnboundPublicationAuthority(SOURCE_REPOSITORY_ROOT, repositoryRoot);
+    const prepared = requirePublicationSuccess(
+      await prepareBindingPublicationReview({ repositoryRoot }),
+      "Current publication review preparation",
+    );
+    const semanticReviewBytes = createAcceptedReviewBytes(
+      prepared.request,
+      "current-v1-fixture-reviewer",
+    );
+    const published = requirePublicationSuccess(
+      await publishBindingTransaction({ repositoryRoot, semanticReviewBytes }),
+      "Current binding publication",
+    );
+    const pointerBytes = await readFile(
+      join(repositoryRoot, "readiness/publications/current-publication.json"),
+    );
+    const pointer = parsePointer(pointerBytes);
+    if (pointer.publicationDigest !== published.publicationDigest) {
+      throw new TypeError("Current fixture pointer does not name its published release.");
+    }
+    const legacySemanticReviewBytes = await readFile(
+      join(
+        repositoryRoot,
+        "readiness/publications/releases",
+        published.publicationDigest,
+        "semantic-review-v1.json",
+      ),
+    );
+    return {
+      repositoryRoot,
+      publicationDigest: published.publicationDigest,
+      pointerBytes,
+      legacySemanticReviewBytes,
+      cleanup: () => rm(repositoryRoot, { recursive: true }),
+    };
+  } catch (error) {
+    await rm(repositoryRoot, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 export async function createLegacyPublicationSpecFixture(): Promise<LegacyPublicationSpecFixture> {

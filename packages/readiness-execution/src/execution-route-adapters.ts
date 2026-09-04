@@ -16,10 +16,10 @@ import type {
 import {
   getExecutionCaseProjectionV1,
   getMalformedDiagnosticCaseProjectionV1,
+  isExecutionCaseOraclePairV1,
   isExecutionDigestV1,
   isExecutionTierV1,
 } from "@blend65/readiness/execution-runtime";
-import { createPublishedOracleRequest } from "@blend65/readiness/published-oracle";
 import {
   getPublishedDiagnosticCaseProjectionV1,
   type PublishedDiagnosticCaseV1,
@@ -218,16 +218,6 @@ function sameTiers(left: readonly ExecutionTierV1[], right: readonly ExecutionTi
   return left.length === right.length && left.every((tier, index) => tier === right[index]);
 }
 
-/**
- * Authenticates the opaque oracle through its genuine WeakMap-backed request boundary.
- * An intentionally invalid intent distinguishes authentic authority from a forged record without
- * evaluating a case or accepting caller-supplied oracle facts.
- */
-function authenticOracle(context: PublishedOracleContext): boolean {
-  const probe = createPublishedOracleRequest(context, {});
-  return !probe.ok && probe.diagnostics[0]?.code !== "oracle.authority.missing";
-}
-
 /** Validates the only supported obligation-to-terminal projection for invalid source. */
 function diagnosticObligationMatchesTerminal(
   obligation: string,
@@ -336,7 +326,7 @@ export function createExecutionRouteRequestV1(
   ) {
     return failure("/route", "Route does not match the genuine execution case and tier graph.");
   }
-  if (!authenticOracle(input.oracle)) {
+  if (!isExecutionCaseOraclePairV1(input.executionCase, input.oracle)) {
     return failure("/oracle", "Published oracle authority is not authentic.");
   }
   const policy = createExecutionBudgetScopeV1(input.policy, 0);

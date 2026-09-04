@@ -1,7 +1,14 @@
-import { validateGeneratorIrSyntax } from "./generator-ir-validator.js";
-import type { GenExpression, GenFunction, GenModule, GenStatement } from "./generator-ir.js";
+import { validateStructuredGeneratorIrSyntax } from "./generator-ir-validator.js";
+import type {
+  GenExpression,
+  GenModule,
+  GenStructuredExpression,
+  GenStructuredModule,
+  GenStructuredStatement,
+} from "./generator-ir.js";
 import { DEFAULT_RENDERER_EXPRESSION_POLICY, renderExpression } from "./expression-renderer.js";
 import type { ExpressionRenderContext, RendererExpressionPolicy } from "./expression-renderer.js";
+import { renderStructuredFunctions } from "./structured-source-renderer.js";
 import type {
   LiteralSpellingClass,
   RoundTripDiagnostic,
@@ -67,11 +74,29 @@ export interface PreparedSourceRenderInput {
   readonly literalSpellings: ReadonlyMap<string, LiteralSpellingClass>;
 }
 
+/** Immutable prepared input for additive structured source rendering. */
+export interface PreparedStructuredSourceRenderInput extends Omit<
+  PreparedSourceRenderInput,
+  "module"
+> {
+  /** Deeply frozen structured generator module. */
+  readonly module: GenStructuredModule;
+}
+
 /** Closed result of preparing renderer input without retaining caller-owned objects. */
 export type PreparedSourceRenderResult =
   | {
       readonly ok: true;
       readonly input: PreparedSourceRenderInput;
+      readonly diagnostics: readonly [];
+    }
+  | SourceRenderFailure;
+
+/** Closed result of preparing legacy or structured renderer input. */
+export type PreparedStructuredSourceRenderResult =
+  | {
+      readonly ok: true;
+      readonly input: PreparedStructuredSourceRenderInput;
       readonly diagnostics: readonly [];
     }
   | SourceRenderFailure;
@@ -94,7 +119,10 @@ export interface SourceRenderer {
    * @param options Closed source limits and spelling selections.
    * @returns Source only when validation and the byte budget succeed.
    */
-  renderSourceModule(module: GenModule, options: SourceRenderOptions): SourceRenderResult;
+  renderSourceModule(
+    module: GenModule | GenStructuredModule,
+    options: SourceRenderOptions,
+  ): SourceRenderResult;
 }
 
 function diagnostic(
@@ -131,7 +159,7 @@ function isCanonicalPointer(value: string): boolean {
 }
 
 function collectLiteralPaths(
-  expression: GenExpression,
+  expression: GenExpression | GenStructuredExpression,
   path: string,
   output: Map<string, GenExpression["type"]>,
 ): void {
@@ -150,27 +178,67 @@ function collectLiteralPaths(
   }
   if (expression.kind === "memory-read") {
     collectLiteralPaths(expression.address, `${path}/address`, output);
+  } else if (expression.kind === "index") {
+    collectLiteralPaths(expression.index, `${path}/index`, output);
+  } else if (expression.kind === "call") {
+    expression.arguments.forEach((argument, index) => {
+      if (argument.kind !== "array-reference") {
+        collectLiteralPaths(argument, `${path}/arguments/${index}`, output);
+      }
+    });
   }
 }
 
 function collectStatementLiteralPaths(
-  statement: GenStatement,
+  statement: GenStructuredStatement,
   path: string,
   output: Map<string, GenExpression["type"]>,
 ): void {
   if (statement.kind === "local") {
     collectLiteralPaths(statement.initializer, `${path}/initializer`, output);
+  } else if (statement.kind === "array") {
+    statement.initializer.forEach((value, index) =>
+      collectLiteralPaths(value, `${path}/initializer/${index}`, output),
+    );
   } else if (statement.kind === "assign") {
+    if (typeof statement.target !== "string") {
+      collectLiteralPaths(statement.target.index, `${path}/target/index`, output);
+    }
     collectLiteralPaths(statement.value, `${path}/value`, output);
   } else if (statement.kind === "memory-write") {
     collectLiteralPaths(statement.address, `${path}/address`, output);
     collectLiteralPaths(statement.value, `${path}/value`, output);
-  } else if (statement.value !== undefined) {
+  } else if (statement.kind === "return" && statement.value !== undefined) {
     collectLiteralPaths(statement.value, `${path}/value`, output);
+  } else if (statement.kind === "call-statement") {
+    statement.arguments.forEach((argument, index) => {
+      if (argument.kind !== "array-reference") {
+        collectLiteralPaths(argument, `${path}/arguments/${index}`, output);
+      }
+    });
+  } else if (statement.kind === "if") {
+    collectLiteralPaths(statement.condition, `${path}/condition`, output);
+    statement.thenBody.forEach((child, index) =>
+      collectStatementLiteralPaths(child, `${path}/thenBody/${index}`, output),
+    );
+    statement.elseBody.forEach((child, index) =>
+      collectStatementLiteralPaths(child, `${path}/elseBody/${index}`, output),
+    );
+  } else if (statement.kind === "while" || statement.kind === "do-while") {
+    collectLiteralPaths(statement.condition, `${path}/condition`, output);
+    statement.body.forEach((child, index) =>
+      collectStatementLiteralPaths(child, `${path}/body/${index}`, output),
+    );
+  } else if (statement.kind === "for") {
+    collectLiteralPaths(statement.start, `${path}/start`, output);
+    collectLiteralPaths(statement.end, `${path}/end`, output);
+    statement.body.forEach((child, index) =>
+      collectStatementLiteralPaths(child, `${path}/body/${index}`, output),
+    );
   }
 }
 
-function moduleLiteralPaths(module: GenModule): Map<string, GenExpression["type"]> {
+function moduleLiteralPaths(module: GenStructuredModule): Map<string, GenExpression["type"]> {
   const paths = new Map<string, GenExpression["type"]>();
   module.constants.forEach((constant, index) => {
     collectLiteralPaths(constant.value, `/constants/${index}/value`, paths);
@@ -187,31 +255,83 @@ function moduleLiteralPaths(module: GenModule): Map<string, GenExpression["type"
   return paths;
 }
 
-function expressionHasKeyword(expression: GenExpression): boolean {
+function expressionHasKeyword(expression: GenExpression | GenStructuredExpression): boolean {
   if (expression.kind === "name") return LANGUAGE_KEYWORDS.has(expression.name);
   if (expression.kind === "unary") return expressionHasKeyword(expression.operand);
   if (expression.kind === "binary") {
     return expressionHasKeyword(expression.left) || expressionHasKeyword(expression.right);
   }
-  return expression.kind === "memory-read" && expressionHasKeyword(expression.address);
+  if (expression.kind === "memory-read") return expressionHasKeyword(expression.address);
+  if (expression.kind === "index") {
+    return LANGUAGE_KEYWORDS.has(expression.target) || expressionHasKeyword(expression.index);
+  }
+  if (expression.kind === "call") {
+    return (
+      LANGUAGE_KEYWORDS.has(expression.callee) ||
+      expression.arguments.some((argument) =>
+        argument.kind === "array-reference"
+          ? LANGUAGE_KEYWORDS.has(argument.name)
+          : expressionHasKeyword(argument),
+      )
+    );
+  }
+  return false;
 }
 
-function statementHasKeyword(statement: GenStatement): boolean {
+function statementHasKeyword(statement: GenStructuredStatement): boolean {
   if (statement.kind === "local") {
     return LANGUAGE_KEYWORDS.has(statement.name) || expressionHasKeyword(statement.initializer);
   }
   if (statement.kind === "assign") {
-    return LANGUAGE_KEYWORDS.has(statement.target) || expressionHasKeyword(statement.value);
+    return (
+      (typeof statement.target === "string"
+        ? LANGUAGE_KEYWORDS.has(statement.target)
+        : LANGUAGE_KEYWORDS.has(statement.target.target) ||
+          expressionHasKeyword(statement.target.index)) || expressionHasKeyword(statement.value)
+    );
   }
   if (statement.kind === "memory-write") {
     return expressionHasKeyword(statement.address) || expressionHasKeyword(statement.value);
   }
-  return statement.value !== undefined && expressionHasKeyword(statement.value);
+  if (statement.kind === "array") {
+    return (
+      LANGUAGE_KEYWORDS.has(statement.name) || statement.initializer.some(expressionHasKeyword)
+    );
+  }
+  if (statement.kind === "return") {
+    return statement.value !== undefined && expressionHasKeyword(statement.value);
+  }
+  if (statement.kind === "call-statement") {
+    return (
+      LANGUAGE_KEYWORDS.has(statement.callee) ||
+      statement.arguments.some((argument) =>
+        argument.kind === "array-reference"
+          ? LANGUAGE_KEYWORDS.has(argument.name)
+          : expressionHasKeyword(argument),
+      )
+    );
+  }
+  if (statement.kind === "if") {
+    return (
+      expressionHasKeyword(statement.condition) ||
+      statement.thenBody.some(statementHasKeyword) ||
+      statement.elseBody.some(statementHasKeyword)
+    );
+  }
+  if (statement.kind === "while" || statement.kind === "do-while") {
+    return expressionHasKeyword(statement.condition) || statement.body.some(statementHasKeyword);
+  }
+  return (
+    LANGUAGE_KEYWORDS.has(statement.counter) ||
+    expressionHasKeyword(statement.start) ||
+    expressionHasKeyword(statement.end) ||
+    statement.body.some(statementHasKeyword)
+  );
 }
 
 function validateOptions(
   options: unknown,
-  module: GenModule,
+  module: GenStructuredModule,
 ): ValidatedRenderOptions | SourceRenderFailure {
   try {
     if (
@@ -291,10 +411,22 @@ function validateOptions(
  * @returns Immutable prepared input or bounded diagnostics.
  */
 export function prepareSourceRenderInput(
+  module: GenModule,
+  options: unknown,
+): PreparedSourceRenderResult;
+export function prepareSourceRenderInput(
+  module: GenStructuredModule,
+  options: unknown,
+): PreparedStructuredSourceRenderResult;
+export function prepareSourceRenderInput(
   module: unknown,
   options: unknown,
-): PreparedSourceRenderResult {
-  const validated = validateGeneratorIrSyntax(module);
+): PreparedStructuredSourceRenderResult;
+export function prepareSourceRenderInput(
+  module: unknown,
+  options: unknown,
+): PreparedStructuredSourceRenderResult {
+  const validated = validateStructuredGeneratorIrSyntax(module);
   if (!validated.ok) {
     return diagnostic(
       "render.input.invalid",
@@ -333,58 +465,8 @@ export function prepareSourceRenderInput(
   };
 }
 
-function renderStatement(
-  statement: GenStatement,
-  path: string,
-  context: ExpressionRenderContext,
-): string {
-  if (statement.kind === "local") {
-    return `let ${statement.name}: ${statement.type} = ${renderExpression(
-      statement.initializer,
-      `${path}/initializer`,
-      context,
-    )};`;
-  }
-  if (statement.kind === "assign") {
-    return `${statement.target} = ${renderExpression(statement.value, `${path}/value`, context)};`;
-  }
-  if (statement.kind === "memory-write") {
-    const intrinsic = statement.width === 1 ? "poke" : "pokew";
-    return `${intrinsic}(${renderExpression(
-      statement.address,
-      `${path}/address`,
-      context,
-    )}, ${renderExpression(statement.value, `${path}/value`, context)});`;
-  }
-  return statement.value === undefined
-    ? "return;"
-    : `return ${renderExpression(statement.value, `${path}/value`, context)};`;
-}
-
-function renderFunction(
-  fn: GenFunction,
-  functionIndex: number,
-  context: ExpressionRenderContext,
-): string {
-  const parameters = fn.parameters
-    .map((parameter) => `${parameter.name}: ${parameter.type}`)
-    .join(", ");
-  const lines = [`function ${fn.name}(${parameters}): ${fn.returnType} {`];
-  fn.body.forEach((statement, statementIndex) => {
-    lines.push(
-      `  ${renderStatement(
-        statement,
-        `/functions/${functionIndex}/body/${statementIndex}`,
-        context,
-      )}`,
-    );
-  });
-  lines.push("}");
-  return lines.join("\n");
-}
-
 function renderPreparedWithPolicy(
-  prepared: PreparedSourceRenderInput,
+  prepared: PreparedStructuredSourceRenderInput,
   policy: RendererExpressionPolicy,
 ): SourceRenderResult {
   const context: ExpressionRenderContext = {
@@ -401,9 +483,7 @@ function renderPreparedWithPolicy(
       )};`,
     );
   });
-  prepared.module.functions.forEach((fn, index) => {
-    lines.push(renderFunction(fn, index, context));
-  });
+  lines.push(...renderStructuredFunctions(prepared.module, context));
   const source = `${lines.join("\n")}\n`;
   const sourceBytes = TEXT_ENCODER.encode(source);
   if (sourceBytes.byteLength > prepared.maxSourceBytes) {
@@ -422,7 +502,7 @@ function renderPreparedWithPolicy(
 }
 
 function renderWithPolicy(
-  module: GenModule,
+  module: GenModule | GenStructuredModule,
   options: SourceRenderOptions,
   policy: RendererExpressionPolicy,
 ): SourceRenderResult {
@@ -437,7 +517,7 @@ function renderWithPolicy(
  * @returns Deterministic source or a byte-budget diagnostic.
  */
 export function renderPreparedSourceModule(
-  prepared: PreparedSourceRenderInput,
+  prepared: PreparedStructuredSourceRenderInput,
 ): SourceRenderResult {
   return renderPreparedWithPolicy(prepared, DEFAULT_RENDERER_EXPRESSION_POLICY);
 }
@@ -450,7 +530,10 @@ export function renderPreparedSourceModule(
  */
 export function createSourceRenderer(policy: RendererExpressionPolicy): SourceRenderer {
   return Object.freeze({
-    renderSourceModule(module: GenModule, options: SourceRenderOptions): SourceRenderResult {
+    renderSourceModule(
+      module: GenModule | GenStructuredModule,
+      options: SourceRenderOptions,
+    ): SourceRenderResult {
       return renderWithPolicy(module, options, policy);
     },
   });
@@ -472,7 +555,7 @@ export function createSourceRenderer(policy: RendererExpressionPolicy): SourceRe
  * ```
  */
 export function renderSourceModule(
-  module: GenModule,
+  module: GenModule | GenStructuredModule,
   options: SourceRenderOptions,
 ): SourceRenderResult {
   return renderWithPolicy(module, options, DEFAULT_RENDERER_EXPRESSION_POLICY);

@@ -212,3 +212,31 @@ export function compareSemanticRelationObservations(
       return compareExactValueState(source, transformed);
   }
 }
+
+/**
+ * Compares the complete independently observed state for loop unrolling.
+ *
+ * @param source Source-program observation.
+ * @param transformed Unrolled-program observation.
+ * @returns Whether every observable is equal and no comparator fault is active.
+ */
+export function compareStructuredLoopObservations(
+  source: OracleObservationV1,
+  transformed: OracleObservationV1,
+): boolean {
+  const pathId = "relation.loop-unrolling.comparator";
+  if (
+    currentSemanticRelationFault(pathId)?.faultId === "relation.fault.omit-required-observable" ||
+    selectedOracleMutationVariant(
+      requireOracleMutationDispatchMarker(
+        ORACLE_RELATION_MUTATION_PATHS,
+        "relation.loop-unrolling",
+        pathId,
+        "omit-required-observable-v1",
+      ),
+    ) === "omit-required-observable-v1"
+  ) {
+    return false;
+  }
+  return isDeepStrictEqual(source, transformed);
+}

@@ -21,7 +21,7 @@ import {
 } from "./publication-resolver.js";
 import {
   createAcceptedReviewBytes,
-  createOraclePublicationSpecFixture,
+  createCurrentOraclePublicationSpecFixture,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
 
 const TARGET_HANDLER_IDS = [
@@ -142,7 +142,7 @@ const runFinalConformance = runWithPublicationConformance as unknown as <T>(
 ) => Promise<T>;
 
 async function prepareFreshPromotion() {
-  const fixture = await createOraclePublicationSpecFixture();
+  const fixture = await createCurrentOraclePublicationSpecFixture();
   const base = await resolvePublishedSnapshotByDigest({
     repositoryRoot: fixture.repositoryRoot,
     publicationDigest: fixture.publicationDigest,

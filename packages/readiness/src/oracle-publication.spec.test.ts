@@ -7,7 +7,7 @@ import {
   addEighthManifestMember,
   changeCarriedBinding,
   createAcceptedReviewBytes,
-  createOraclePublicationSpecFixture,
+  createCurrentOraclePublicationSpecFixture,
   createReviewFailureVariants,
   removeSelectedRelease,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
@@ -213,7 +213,7 @@ describe("incremental oracle publication staging", () => {
     const publication = await publicationApi();
     expect(publication.prepareIncrementalBindingPublicationReview).toBeTypeOf("function");
     const resolver = await resolverApi();
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = await resolveBase(resolver, fixture);
       const baseRows = resolver.getPublishedBindingRows(baseSnapshot);
@@ -255,7 +255,7 @@ describe("incremental oracle publication staging", () => {
     const publication = await publicationApi();
     const resolver = await resolverApi();
 
-    const forgedFixture = await createOraclePublicationSpecFixture();
+    const forgedFixture = await createCurrentOraclePublicationSpecFixture();
     try {
       expectDiagnostic(
         await publication.prepareIncrementalBindingPublication({
@@ -271,7 +271,7 @@ describe("incremental oracle publication staging", () => {
       await forgedFixture.cleanup();
     }
 
-    const absentFixture = await createOraclePublicationSpecFixture();
+    const absentFixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = await resolveBase(resolver, absentFixture);
       await removeSelectedRelease(absentFixture);
@@ -289,7 +289,7 @@ describe("incremental oracle publication staging", () => {
       await absentFixture.cleanup();
     }
 
-    const targetFixture = await createOraclePublicationSpecFixture();
+    const targetFixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = await resolveBase(resolver, targetFixture);
       expectDiagnostic(
@@ -306,7 +306,7 @@ describe("incremental oracle publication staging", () => {
       await targetFixture.cleanup();
     }
 
-    const carriedFixture = await createOraclePublicationSpecFixture();
+    const carriedFixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = await resolveBase(resolver, carriedFixture);
       const review = await prepareAcceptedReview(publication, carriedFixture, baseSnapshot);
@@ -328,7 +328,7 @@ describe("incremental oracle publication staging", () => {
       await carriedFixture.cleanup();
     }
 
-    const memberFixture = await createOraclePublicationSpecFixture();
+    const memberFixture = await createCurrentOraclePublicationSpecFixture();
     try {
       await addEighthManifestMember(memberFixture);
       const result = await resolver.resolvePublishedSnapshotByDigest({
@@ -345,7 +345,7 @@ describe("incremental oracle publication staging", () => {
   it("reconstructs review authority and rejects missing, extra, stale, or rejected evidence without a snapshot", async () => {
     const publication = await publicationApi();
     const resolver = await resolverApi();
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = await resolveBase(resolver, fixture);
       const review = await prepareAcceptedReview(publication, fixture, baseSnapshot);

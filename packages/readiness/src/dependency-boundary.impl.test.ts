@@ -4,8 +4,24 @@ import { fileURLToPath } from "node:url";
 import { parse } from "@typescript-eslint/typescript-estree";
 import { describe, expect, it } from "vitest";
 
+import { scanReadinessCompilerBoundary } from "./readiness-boundary-core.js";
+
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCE_ROOT = resolve(PACKAGE_ROOT, "src");
+const STRUCTURED_PRODUCTION_MODULES = [
+  "generator-ir-validator.ts",
+  "generator-ir.ts",
+  "semantic-relation-analysis.ts",
+  "semantic-relation-compare.ts",
+  "semantic-relation-transform.ts",
+  "semantic-relations.ts",
+  "structured-case-families.ts",
+  "structured-case-registry.ts",
+  "structured-ir-validation.ts",
+  "structured-oracle-evaluator.ts",
+  "structured-oracle-runtime.ts",
+  "structured-source-renderer.ts",
+] as const;
 
 function isStringRecord(value: unknown): value is Readonly<Record<string, string>> {
   return (
@@ -171,5 +187,104 @@ describe("readiness package boundary", () => {
         'const text = "@blend65/core"; // import value from "@blend65/frontend"',
       ),
     ).toEqual([]);
+  });
+
+  it("keeps every structured production authority free of workspace imports", async () => {
+    const observations = await Promise.all(
+      STRUCTURED_PRODUCTION_MODULES.map(async (path) => ({
+        path,
+        loads: findWorkspaceModuleLoads(await readFile(resolve(SOURCE_ROOT, path), "utf8")),
+      })),
+    );
+
+    expect(observations).toEqual(
+      STRUCTURED_PRODUCTION_MODULES.map((path) => ({ path, loads: [] })),
+    );
+  });
+});
+
+describe("bidirectional compiler/readiness scanner", () => {
+  const encoder = new TextEncoder();
+
+  it.each([
+    {
+      label: "static imports",
+      readiness: 'import "@blend65/compiler";',
+      toolchain: 'import "@blend65/readiness";',
+    },
+    {
+      label: "re-exports",
+      readiness: 'export * from "@blend65/compiler";',
+      toolchain: 'export { value } from "@blend65/readiness";',
+    },
+    {
+      label: "dynamic imports",
+      readiness: 'const load = () => import("@blend65/compiler/api");',
+      toolchain: 'const load = () => import("@blend65/readiness/published-oracle");',
+    },
+    {
+      label: "require calls",
+      readiness: 'const compiler = require("@blend65/compiler");',
+      toolchain: 'const readiness = require("@blend65/readiness");',
+    },
+  ])("rejects $label in both directions through the production scanner", (vector) => {
+    const readinessPath = "packages/readiness/src/synthetic-boundary.ts";
+    const toolchainPath = "packages/core/src/synthetic-boundary.ts";
+    expect(
+      scanReadinessCompilerBoundary({
+        schemaVersion: 1,
+        modules: [
+          {
+            owner: "compiler-toolchain",
+            path: toolchainPath,
+            source: encoder.encode(vector.toolchain),
+          },
+          {
+            owner: "readiness",
+            path: readinessPath,
+            source: encoder.encode(vector.readiness),
+          },
+        ],
+      }),
+    ).toEqual({
+      ok: false,
+      diagnostics: [
+        {
+          code: "boundary.readiness-imports-compiler",
+          path: readinessPath,
+          message: "Readiness production modules must not import @blend65/compiler.",
+        },
+        {
+          code: "boundary.compiler-imports-readiness",
+          path: toolchainPath,
+          message: "Compiler-toolchain production modules must not import @blend65/readiness.",
+        },
+      ],
+    });
+  });
+
+  it("keeps import-like comments and ordinary strings inert in both owners", () => {
+    const modules = [
+      {
+        owner: "compiler-toolchain",
+        path: "packages/compiler/src/inert-boundary.ts",
+        source: encoder.encode(
+          '/* export * from "@blend65/readiness" */\nconst text = \'require("@blend65/readiness")\';',
+        ),
+      },
+      {
+        owner: "readiness",
+        path: "packages/readiness/src/inert-boundary.ts",
+        source: encoder.encode(
+          '// import("@blend65/compiler")\nconst text = \'import "@blend65/compiler"\';',
+        ),
+      },
+    ] as const;
+
+    expect(scanReadinessCompilerBoundary({ schemaVersion: 1, modules })).toEqual({
+      ok: true,
+      modulePaths: modules.map(({ path }) => path).sort(),
+      diagnostics: [],
+    });
   });
 });

@@ -11,6 +11,9 @@ the exact first-vertical population has modeled evidence and the remaining rows 
 or named non-source routes and compute one fail-closed result per inventory ID. Equivalent rules
 share data and handlers, never identity or result rows. (AR-3, AR-6)
 
+The exact top-level v2 registry, validation result and embed-fixture interfaces are authoritative in
+`03-05-phase2-executable-contracts.md`; the aliases below remain their row/family vocabulary.
+
 ## Architecture
 
 ### Proposed data model

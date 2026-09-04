@@ -22,7 +22,7 @@ import {
 } from "./publication-resolver.js";
 import {
   createAcceptedReviewBytes,
-  createOraclePublicationSpecFixture,
+  createCurrentOraclePublicationSpecFixture,
   type OraclePublicationSpecFixture,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
 
@@ -100,7 +100,7 @@ describe("final publication internals", () => {
   });
 
   it("closes a throwing incremental-target collection without invoking accessors again", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const base = await resolvePublishedSnapshotByDigest({
       repositoryRoot: fixture.repositoryRoot,
       publicationDigest: fixture.publicationDigest,
@@ -135,7 +135,7 @@ describe("final publication internals", () => {
   });
 
   it("brands a legitimate detached atomic replacement as object-bound authority", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -165,7 +165,7 @@ describe("final publication internals", () => {
   });
 
   it("orders one pointer retry without exposing authority in observations", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -214,7 +214,7 @@ describe("final publication internals", () => {
   it.each(["start", "success"] as const)(
     "closes a throwing %s resolution observer as bounded I/O",
     async (event) => {
-      const fixture = await createOraclePublicationSpecFixture();
+      const fixture = await createCurrentOraclePublicationSpecFixture();
       const observations: ResolutionObservation[] = [];
       try {
         const result = await runWithPublicationConformance(
@@ -242,7 +242,7 @@ describe("final publication internals", () => {
   );
 
   it("closes a throwing failure observer without leaking the original path failure", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -271,7 +271,7 @@ describe("final publication internals", () => {
   });
 
   it("closes a throwing retry observer after verified pointer replacement", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -309,7 +309,7 @@ describe("final publication internals", () => {
   });
 
   it("does not retry when the retained publications directory is replaced", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const publicationsPath = resolve(fixture.repositoryRoot, "readiness/publications");
     const pointerPath = join(publicationsPath, "current-publication.json");
     const replacementPath = `${publicationsPath}.replacement`;
@@ -351,7 +351,7 @@ describe("final publication internals", () => {
   });
 
   it("does not retry a publications-directory swap between replacement validation passes", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const publicationsPath = resolve(fixture.repositoryRoot, "readiness/publications");
     const pointerPath = join(publicationsPath, "current-publication.json");
     const pointerReplacementPath = `${pointerPath}.replacement`;
@@ -406,7 +406,7 @@ describe("final publication internals", () => {
   });
 
   it("resolves a throwing replacement-inspection hook as ordinary I/O without retry", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -458,7 +458,7 @@ describe("final publication internals", () => {
   });
 
   it("does not retry when the opened pointer gains a terminal hard link", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -501,7 +501,7 @@ describe("final publication internals", () => {
   });
 
   it("does not retry a detached pointer replaced by a different-sized file", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -540,7 +540,7 @@ describe("final publication internals", () => {
   });
 
   it("does not retry an identity replacement on a non-pointer publication member", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const manifestPath = join(
       fixture.repositoryRoot,
       "readiness/publications/releases",
@@ -586,7 +586,7 @@ describe("final publication internals", () => {
     ["new", "after-pointer-rename"],
     ["indeterminate", "after-pointer-rename"],
   ] as const)("reconciles the %s selected-state branch", async (branch, faultPoint) => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     const pointerPath = resolve(
       fixture.repositoryRoot,
       "readiness/publications/current-publication.json",
@@ -656,7 +656,7 @@ describe("final publication internals", () => {
   it.each(["forced", "interrupted"] as const)(
     "rejects %s staged invariant validation before pointer commit",
     async (failure) => {
-      const fixture = await createOraclePublicationSpecFixture();
+      const fixture = await createCurrentOraclePublicationSpecFixture();
       try {
         const promotion = await preparePromotion(fixture);
         const result = await runWithPublicationConformance(

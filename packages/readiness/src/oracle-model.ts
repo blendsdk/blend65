@@ -315,6 +315,9 @@ export type SemanticRelationId =
   | "relation.algebraic-identity"
   | "relation.independent-declaration-reordering";
 
+/** Additive relation identity accepted by structured semantic evaluation. */
+export type StructuredSemanticRelationIdV2 = "relation.loop-unrolling";
+
 /** Stable reasons why a structurally valid request has no modeled oracle answer. */
 export type OracleUnmodeledReason =
   | "rule-unavailable"

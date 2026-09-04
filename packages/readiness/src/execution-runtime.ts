@@ -6,7 +6,7 @@ export {
   isExecutionTierV1,
   parseExecutionPolicyV1,
 } from "./execution-contracts.js";
-export { getExecutionCaseProjectionV1 } from "./execution-case.js";
+export { getExecutionCaseProjectionV1, isExecutionCaseOraclePairV1 } from "./execution-case.js";
 export { getMalformedDiagnosticCaseProjectionV1 } from "./malformed-diagnostic-case.js";
 export {
   parseExecutionEnvelopeIrV1,

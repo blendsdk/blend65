@@ -5,26 +5,34 @@ import {
   isPureRelationExpression,
   localInitializerDependenciesAreLiftable,
   localIsReassigned,
+  structuredStatementsHaveVolatileEffects,
 } from "./semantic-relation-analysis.js";
 import {
   compareSemanticRelationObservations,
+  compareStructuredLoopObservations,
   semanticRelationComparatorWitness,
 } from "./semantic-relation-compare.js";
 import {
   currentSemanticRelationFault,
+  semanticRelationPreconditionAccepted,
   semanticRelationRewritePath,
 } from "./semantic-relation-conformance.js";
 import {
   isSemanticRelationResult,
   prepareSemanticRelationRequest,
+  prepareStructuredSemanticRelationRequest,
   type PreparedSemanticRelationRequestV1,
 } from "./semantic-relation-input.js";
 import type {
   SemanticRelationModeledResultV1,
+  SemanticRelationRequestV1,
+  SemanticRelationRequestV2,
   SemanticRelationResultV1,
+  SemanticRelationResultV2,
 } from "./semantic-relation-model.js";
 import {
   applySemanticRelationTransform,
+  applyStructuredLoopUnrollingTransform,
   preflightSemanticRelationTransformBudget,
   type SemanticRelationTransformSuccessV1,
 } from "./semantic-relation-transform.js";
@@ -47,8 +55,95 @@ import {
   type OracleSuiteState,
 } from "./oracle-suite.js";
 import type { GeneratedModeledCase } from "./modeled-generator-model.js";
+import { evaluateStructuredOracleProgram } from "./structured-oracle-evaluator.js";
 
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
+
+function isStructuredRelationRequest(request: unknown): boolean {
+  try {
+    return (
+      typeof request === "object" && request !== null && Reflect.get(request, "schemaVersion") === 2
+    );
+  } catch {
+    return false;
+  }
+}
+
+function evaluateStructuredLoopRelation(
+  suite: OracleSuite,
+  request: unknown,
+): SemanticRelationResultV2 {
+  const prepared = prepareStructuredSemanticRelationRequest(suite, request);
+  if ("ok" in prepared) return prepared;
+  const volatile = structuredStatementsHaveVolatileEffects(prepared.selectedLoop.body);
+  const accepted = semanticRelationPreconditionAccepted("relation.loop-unrolling", !volatile);
+  if (!accepted) {
+    return volatile
+      ? Object.freeze({
+          ok: true,
+          outcome: "proof-incomplete",
+          relationId: "relation.loop-unrolling",
+          reason: "volatile-effect-order-unproven",
+          diagnostics: EMPTY_DIAGNOSTICS,
+        })
+      : Object.freeze({
+          ok: true,
+          outcome: "relation-inapplicable",
+          relationId: "relation.loop-unrolling",
+          diagnostics: EMPTY_DIAGNOSTICS,
+        });
+  }
+  if (volatile) {
+    return oracleFailure(
+      "oracle.relation.violated",
+      "/transformedCase",
+      "Forced loop unrolling lacks a volatile-effect ordering proof.",
+    );
+  }
+  const source = evaluateStructuredOracleProgram(prepared.authority.oracleInput);
+  if (!source.ok || source.outcome !== "modeled") {
+    return oracleFailure(
+      "oracle.relation.invalid",
+      "/sourceCase",
+      "Structured source could not be independently evaluated.",
+    );
+  }
+  const iterationDomain = Object.freeze(
+    source.loopTrace.filter(({ loopPath }) => loopPath === prepared.request.selectionPath),
+  );
+  const transformed = applyStructuredLoopUnrollingTransform(prepared, iterationDomain);
+  if (!transformed.ok) return transformed;
+  const transformedResult = evaluateStructuredOracleProgram({
+    ...prepared.authority.oracleInput,
+    module: transformed.transformedModule,
+  });
+  if (!transformedResult.ok || transformedResult.outcome !== "modeled") {
+    return oracleFailure(
+      "oracle.relation.violated",
+      "/transformedCase",
+      "Unrolled program could not be independently evaluated.",
+    );
+  }
+  if (!compareStructuredLoopObservations(source.observation, transformedResult.observation)) {
+    return oracleFailure(
+      "oracle.relation.violated",
+      "/transformedCase",
+      "Unrolled observation differs from the source observation.",
+    );
+  }
+  return Object.freeze({
+    ok: true,
+    outcome: "modeled",
+    relationId: "relation.loop-unrolling",
+    sourceCase: prepared.authority.generatedCase,
+    transformedCase: transformed.transformedCase,
+    sourceObservation: source.observation,
+    transformedObservation: transformedResult.observation,
+    observation: transformedResult.observation,
+    iterationDomain,
+    diagnostics: EMPTY_DIAGNOSTICS,
+  });
+}
 
 function inapplicable(
   relationId: PreparedSemanticRelationRequestV1["request"]["relationId"],
@@ -333,9 +428,24 @@ function relationModeled(
  */
 export function evaluateSemanticRelation(
   suite: OracleSuite,
+  request: Pick<SemanticRelationRequestV2, "schemaVersion" | "relationId">,
+): SemanticRelationResultV2;
+export function evaluateSemanticRelation(
+  suite: OracleSuite,
+  request: SemanticRelationRequestV1,
+): SemanticRelationResultV1;
+export function evaluateSemanticRelation(
+  suite: OracleSuite,
   request: unknown,
-): SemanticRelationResultV1 {
+): SemanticRelationResultV1;
+export function evaluateSemanticRelation(
+  suite: OracleSuite,
+  request: unknown,
+): SemanticRelationResultV1 | SemanticRelationResultV2 {
   try {
+    if (isStructuredRelationRequest(request)) {
+      return evaluateStructuredLoopRelation(suite, request);
+    }
     const prepared = prepareSemanticRelationRequest(suite, request);
     if (isSemanticRelationResult(prepared)) return prepared;
     const sourceClosure = validateOracleSemanticClosure(

@@ -15,36 +15,20 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 
 import {
-  prepareIncrementalBindingPublication,
-  prepareIncrementalBindingPublicationReview,
   prepareExecutionPublicationCandidateV1,
-  publishIncrementalBindingPublication,
   resolvePublishedExecutionRelease,
   resolvePublishedSnapshotByDigest,
 } from "@blend65/readiness";
-import type {
-  PublicationReviewRequestV1,
-  PublishedExecutionRelease,
-  PublishedSnapshot,
-} from "@blend65/readiness";
+import type { PublishedExecutionRelease, PublishedSnapshot } from "@blend65/readiness";
 
 import { getExecutionCatalogFixtureDescriptorV1 } from "../execution-publication-catalog-conformance-v1.js";
 
 export const CURRENT_EXECUTION_PARENT_DIGEST =
-  "sha256:e1713db3ca7dc9d624d0f9e9cb064b6fdcfd3a3e2b0e2421b5c482e00f266905";
+  "sha256:95196ab163db10677cc64bc419a79576c1f536fec4c8484244aa15f6926dfdf6";
 export const EXECUTION_SPEC_REVISION =
   "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd";
 
 const EXECUTION_PUBLICATIONS_RELATIVE_PATH = join("readiness", "execution-publications");
-const READINESS_BASE_PUBLICATION_DIGEST =
-  "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
-const READINESS_ORACLE_HANDLER_IDS = Object.freeze([
-  "oracle.compiler-result",
-  "oracle.emitted-program",
-  "oracle.frontend-result",
-  "oracle.runtime-state",
-  "transform.semantic-relations",
-]);
 const CURRENT_POINTER_RELATIVE_PATH = join(
   EXECUTION_PUBLICATIONS_RELATIVE_PATH,
   "current-execution-publication.json",
@@ -80,8 +64,8 @@ const AUTHORITY_RELATIVE_PATHS = [
   join("packages", "readiness", "src"),
   join("packages", "readiness", "package.json"),
 ] as const;
-const MAX_AUTHORITY_FILES = 512;
-const MAX_AUTHORITY_BYTES = 64 * 1024 * 1024;
+const MAX_AUTHORITY_FILES = 768;
+const MAX_AUTHORITY_BYTES = 96 * 1024 * 1024;
 
 interface AuthorityTreeSize {
   files: number;
@@ -238,90 +222,56 @@ export async function createHistoricalReadinessAuthorityFixtureV1(): Promise<His
   }
 }
 
+/** Copies exact current readiness authority into an isolated bounded repository. */
+export async function createCurrentReadinessAuthorityFixtureV1(): Promise<HistoricalReadinessAuthorityFixtureV1> {
+  const sourceRepositoryRoot = resolveCatalogSpecRepositoryRootV1();
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "blend65-current-readiness-authority-"));
+  try {
+    if (sourceRepositoryRoot !== SOURCE_REPOSITORY_ROOT) {
+      throw new Error("catalog fixture repository root changed unexpectedly");
+    }
+    await copyParentAuthority(repositoryRoot);
+    return {
+      repositoryRoot,
+      cleanup: async () => {
+        await rm(repositoryRoot, { recursive: true, force: true });
+      },
+    };
+  } catch (error) {
+    await rm(repositoryRoot, { recursive: true, force: true });
+    throw error;
+  }
+}
+
 /**
- * Stages current oracle bindings over the exact historical base in a bounded temporary repository.
+ * Resolves the copied selected current parent in a bounded temporary repository.
  *
  * @returns The isolated repository, genuine resolved parent, and its cleanup operation.
  */
 export async function createHistoricalExecutionParentFixtureV1(): Promise<HistoricalExecutionParentFixtureV1> {
-  const authority = await createHistoricalReadinessAuthorityFixtureV1();
+  const authority = await createCurrentReadinessAuthorityFixtureV1();
   try {
-    await writeFile(
-      join(authority.repositoryRoot, "readiness/publications/current-publication.json"),
-      encodeCanonicalJsonV1({
-        schemaVersion: 1,
-        publicationDigest: READINESS_BASE_PUBLICATION_DIGEST,
-      }),
-    );
-    const base = await resolvePublishedSnapshotByDigest({
+    const parent = await resolvePublishedSnapshotByDigest({
       repositoryRoot: authority.repositoryRoot,
-      publicationDigest: READINESS_BASE_PUBLICATION_DIGEST,
+      publicationDigest: CURRENT_EXECUTION_PARENT_DIGEST,
     });
-    if (!base.ok) {
+    if (!parent.ok) {
       throw new Error(
-        base.diagnostics
-          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
-          .join("; "),
-      );
-    }
-    const review = await prepareIncrementalBindingPublicationReview({
-      repositoryRoot: authority.repositoryRoot,
-      baseSnapshot: base.value,
-      targetHandlerIds: READINESS_ORACLE_HANDLER_IDS,
-    });
-    if (!review.ok) {
-      throw new Error(
-        review.diagnostics
-          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
-          .join("; "),
-      );
-    }
-    const staged = await prepareIncrementalBindingPublication({
-      repositoryRoot: authority.repositoryRoot,
-      baseSnapshot: base.value,
-      targetHandlerIds: READINESS_ORACLE_HANDLER_IDS,
-      semanticReviewBytes: createReadinessReviewBytes(review.value.request),
-    });
-    if (!staged.ok) {
-      throw new Error(
-        staged.diagnostics
-          .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
-          .join("; "),
-      );
-    }
-    const published = await publishIncrementalBindingPublication(staged.value.prepared);
-    if (!published.ok) {
-      throw new Error(
-        published.diagnostics
+        parent.diagnostics
           .map((issue) => `${issue.code} at ${issue.path}: ${issue.message}`)
           .join("; "),
       );
     }
     return {
       repositoryRoot: authority.repositoryRoot,
-      parentDigest: published.value.publicationDigest,
-      parent: published.value.snapshot,
+      parentDigest: CURRENT_EXECUTION_PARENT_DIGEST,
+      parent: parent.value,
       cleanup: authority.cleanup,
     };
   } catch (error) {
     await authority.cleanup();
     throw error;
   }
-}
-
-function createReadinessReviewBytes(request: PublicationReviewRequestV1): Uint8Array {
-  return encodeCanonicalJsonV1({
-    schemaVersion: 1,
-    reviews: request.reviewUnits.map((unit) => ({
-      unitId: unit.unitId,
-      reviewer: "execution publication catalog specification fixture",
-      specRevision: request.specRevision,
-      semanticDigest: unit.semanticDigest,
-      dependencyDigests: unit.dependencyDigests,
-      outcome: "accepted",
-      resolvedDisagreementIds: [],
-    })),
-  });
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -463,19 +413,12 @@ export async function snapshotPublicationArtifactsV1(
 ): Promise<Readonly<Record<string, Uint8Array>>> {
   const root = join(repositoryRoot, EXECUTION_PUBLICATIONS_RELATIVE_PATH);
   const files = await listFiles(root);
-  const bareDigest = digest.replace(/^sha256:/u, "");
   const snapshot: Record<string, Uint8Array> = {};
 
   for (const path of files) {
-    const bytes = new Uint8Array(await readFile(path));
     const relativePath = relative(root, path);
-    const text = new TextDecoder().decode(bytes);
-    if (
-      relativePath.includes(bareDigest) ||
-      relativePath.includes(digest) ||
-      text.includes(digest)
-    ) {
-      snapshot[relativePath] = bytes;
+    if (relativePath.includes(digest)) {
+      snapshot[relativePath] = new Uint8Array(await readFile(path));
     }
   }
 

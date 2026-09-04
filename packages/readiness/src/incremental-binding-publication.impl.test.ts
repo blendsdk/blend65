@@ -18,7 +18,7 @@ import { runWithPublicationConformance } from "./publication-conformance-v1.js";
 import { getPublishedMetadata, resolvePublishedSnapshotByDigest } from "./publication-resolver.js";
 import {
   createAcceptedReviewBytes,
-  createOraclePublicationSpecFixture,
+  createCurrentOraclePublicationSpecFixture,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
 import { PUBLISHED_ORACLE_REQUEST_INTENT } from "./test-fixtures/published-evidence-spec-fixture.js";
 
@@ -44,7 +44,7 @@ function requireSuccess<T>(
 
 describe("incremental binding publication capabilities", () => {
   it("returns defensive review bytes and commits only one genuine staged capability", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = requireSuccess(
         await resolvePublishedSnapshotByDigest({
@@ -189,7 +189,7 @@ describe("incremental binding publication capabilities", () => {
   });
 
   it("serializes competing capabilities derived from the same selected base", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = requireSuccess(
         await resolvePublishedSnapshotByDigest({
@@ -238,7 +238,7 @@ describe("incremental binding publication capabilities", () => {
   });
 
   it("binds accepted incremental review to current publication implementation content", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = requireSuccess(
         await resolvePublishedSnapshotByDigest({
@@ -279,7 +279,7 @@ describe("incremental binding publication capabilities", () => {
     "packages/readiness/src/index.ts",
     "packages/readiness/src/published-oracle.ts",
   ])("binds compatible publication review to %s", async (authorityPath) => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = requireSuccess(
         await resolvePublishedSnapshotByDigest({
@@ -314,7 +314,7 @@ describe("incremental binding publication capabilities", () => {
   });
 
   it("classifies named release inputs and keeps legacy resolution independent of oracle authority", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       expect(
         await resolvePublishedSnapshotByDigest({
@@ -353,7 +353,7 @@ describe("incremental binding publication capabilities", () => {
   });
 
   it("retains exact authority bytes across a same-size post-read mutation", async () => {
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const baseSnapshot = requireSuccess(
         await resolvePublishedSnapshotByDigest({

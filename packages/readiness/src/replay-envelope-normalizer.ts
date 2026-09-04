@@ -11,6 +11,8 @@ import {
   type CaseIdentity,
 } from "./case-identity.js";
 import type { GenerationBudget } from "./generator-ir.js";
+import type { StructuredGenerationBudgetV2 } from "./generator-ir.js";
+import { validateStructuredGenerationBudgetV2 } from "./generation-budget.js";
 import {
   EMPTY_REPLAY_DIAGNOSTICS,
   replayDiagnostic,
@@ -63,6 +65,56 @@ const BUDGET_KEYS = [
   "maxAttempts",
 ] as const;
 const CANONICAL_UNSIGNED = /^(?:0|[1-9][0-9]*)$/u;
+
+/** Result of dispatching and normalizing a version-two budget carried by structured replay. */
+export type StructuredReplayBudgetResultV2 =
+  | {
+      /** Success discriminator. */
+      readonly ok: true;
+      /** Defensive immutable structured budget snapshot. */
+      readonly budget: StructuredGenerationBudgetV2;
+      /** Empty diagnostic tuple. */
+      readonly diagnostics: readonly [];
+    }
+  | {
+      /** Failure discriminator. */
+      readonly ok: false;
+      /** Stable replay-schema diagnostics. */
+      readonly diagnostics: readonly ReplayDiagnostic[];
+    };
+
+/**
+ * Dispatches the structured replay budget schema without widening the historical envelope parser.
+ *
+ * @param value Unknown structured budget carried by a version-two replay owner.
+ * @returns An immutable budget or one stable replay-schema diagnostic.
+ *
+ * @example
+ * ```ts
+ * const result = normalizeStructuredReplayBudgetV2(value);
+ * ```
+ */
+export function normalizeStructuredReplayBudgetV2(value: unknown): StructuredReplayBudgetResultV2 {
+  const normalized = validateStructuredGenerationBudgetV2(value);
+  if (normalized.ok) {
+    return Object.freeze({
+      ok: true,
+      budget: normalized.budget,
+      diagnostics: EMPTY_REPLAY_DIAGNOSTICS,
+    });
+  }
+  const first = normalized.diagnostics[0];
+  return Object.freeze({
+    ok: false,
+    diagnostics: Object.freeze([
+      replayDiagnostic(
+        "replay.schema.invalid",
+        first?.path ?? "/budget",
+        first?.message ?? "Structured replay budget is invalid.",
+      ),
+    ]),
+  });
+}
 
 function escapePointerSegment(segment: string): string {
   return segment.replaceAll("~", "~0").replaceAll("/", "~1");

@@ -2,6 +2,8 @@ import { posix } from "node:path";
 
 import ts from "typescript";
 
+export { scanReadinessCompilerBoundary } from "./readiness-compiler-boundary.js";
+
 /** One in-memory TypeScript module supplied to the readiness boundary scanner. */
 export interface ReadinessBoundaryModuleV1 {
   /** Canonical POSIX repository-relative path. */

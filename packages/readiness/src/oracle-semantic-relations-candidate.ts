@@ -1,5 +1,8 @@
 import type { OracleSuite } from "./oracle-model.js";
-import type { SemanticRelationResultV1 } from "./semantic-relation-model.js";
+import type {
+  SemanticRelationResultV1,
+  SemanticRelationResultV2,
+} from "./semantic-relation-model.js";
 import { evaluateSemanticRelation } from "./semantic-relations.js";
 
 /**
@@ -17,6 +20,6 @@ import { evaluateSemanticRelation } from "./semantic-relations.js";
 export function evaluateSemanticRelationsCandidate(
   suite: OracleSuite,
   request: unknown,
-): SemanticRelationResultV1 {
+): SemanticRelationResultV1 | SemanticRelationResultV2 {
   return evaluateSemanticRelation(suite, request);
 }

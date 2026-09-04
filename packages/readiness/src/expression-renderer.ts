@@ -1,4 +1,9 @@
-import type { BinaryOperator, GenExpression } from "./generator-ir.js";
+import type {
+  BinaryOperator,
+  GenArrayReferenceExpression,
+  GenExpression,
+  GenStructuredExpression,
+} from "./generator-ir.js";
 import type { LiteralSpellingClass } from "./roundtrip-model.js";
 
 /** Associativity used by the renderer-owned expression policy. */
@@ -84,7 +89,7 @@ function maybeParenthesize(
 }
 
 function renderNode(
-  expression: GenExpression,
+  expression: GenExpression | GenStructuredExpression,
   path: string,
   context: ExpressionRenderContext,
 ): RenderedExpression {
@@ -106,6 +111,18 @@ function renderNode(
     const address = renderNode(expression.address, `${path}/address`, context);
     const intrinsic = expression.width === 1 ? "peek" : "peekw";
     return { text: `${intrinsic}(${address.text})`, bindingPower: 14 };
+  }
+  if (expression.kind === "index") {
+    return {
+      text: `${expression.target}[${renderNode(expression.index, `${path}/index`, context).text}]`,
+      bindingPower: 14,
+    };
+  }
+  if (expression.kind === "call") {
+    const argumentsText = expression.arguments
+      .map((argument, index) => renderCallArgument(argument, `${path}/arguments/${index}`, context))
+      .join(", ");
+    return { text: `${expression.callee}(${argumentsText})`, bindingPower: 14 };
   }
   if (expression.kind === "unary") {
     const operandPath = `${path}/operand`;
@@ -140,6 +157,16 @@ function renderNode(
   };
 }
 
+function renderCallArgument(
+  argument: GenStructuredExpression | GenArrayReferenceExpression,
+  path: string,
+  context: ExpressionRenderContext,
+): string {
+  return argument.kind === "array-reference"
+    ? argument.name
+    : renderNode(argument, path, context).text;
+}
+
 /**
  * Renders one already validated expression with deterministic grouping.
  *
@@ -149,7 +176,7 @@ function renderNode(
  * @returns Canonical expression source.
  */
 export function renderExpression(
-  expression: GenExpression,
+  expression: GenExpression | GenStructuredExpression,
   expressionPath: string,
   context: ExpressionRenderContext,
 ): string {

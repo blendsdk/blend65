@@ -12,6 +12,11 @@ export interface OracleMutationSelectionV1 {
   readonly variantId: string;
 }
 
+/** Additive direct-test selection whose stable identity is derived from its exact path. */
+export type OracleMutationSelectionInputV1 =
+  | OracleMutationSelectionV1
+  | Omit<OracleMutationSelectionV1, "mutantId">;
+
 /** Literal source marker for one reachable mutation dispatch branch. */
 export interface OracleMutationDispatchMarkerV1 {
   /** Stable production operation identity. */
@@ -93,13 +98,17 @@ export function requireOracleMutationDispatchMarker(
   return marker;
 }
 
-function closeSelection(selection: OracleMutationSelectionV1): OracleMutationSelectionV1 {
+function closeSelection(selection: OracleMutationSelectionInputV1): OracleMutationSelectionV1 {
   try {
+    const mutantId = Object.hasOwn(selection, "mutantId")
+      ? Reflect.get(selection, "mutantId")
+      : `mutant.${selection.pathId}`;
     if (
       typeof selection !== "object" ||
       selection === null ||
       Object.getPrototypeOf(selection) !== Object.prototype ||
-      !ID_PATTERN.test(selection.mutantId) ||
+      typeof mutantId !== "string" ||
+      !ID_PATTERN.test(mutantId) ||
       !ID_PATTERN.test(selection.operationId) ||
       !ID_PATTERN.test(selection.pathId) ||
       !ID_PATTERN.test(selection.variantId)
@@ -107,7 +116,7 @@ function closeSelection(selection: OracleMutationSelectionV1): OracleMutationSel
       throw new TypeError("invalid oracle mutation selection");
     }
     return Object.freeze({
-      mutantId: selection.mutantId,
+      mutantId,
       operationId: selection.operationId,
       pathId: selection.pathId,
       variantId: selection.variantId,
@@ -146,7 +155,7 @@ function equalSelection(
  * ```
  */
 export async function runWithOracleMutationVariant<T>(
-  selection: OracleMutationSelectionV1,
+  selection: OracleMutationSelectionInputV1,
   operation: () => T | Promise<T>,
 ): Promise<T> {
   const closed = closeSelection(selection);

@@ -6,13 +6,15 @@ import {
   selectedOracleMutationVariant,
 } from "./oracle-conformance-v1.js";
 import type { SemanticRelationId } from "./oracle-model.js";
+import { STRUCTURED_RELATION_MUTATION_PATHS } from "./structured-oracle-evaluator.js";
 /** Stable precondition dispatch points used by relation conformance tests. */
 export type SemanticRelationPreconditionPathId =
   | "relation.identifier-renaming.precondition"
   | "relation.literal-to-local.precondition"
   | "relation.local-to-parameter.precondition"
   | "relation.algebraic-identity.precondition"
-  | "relation.independent-declaration-reordering.precondition";
+  | "relation.independent-declaration-reordering.precondition"
+  | "relation.loop-unrolling.precondition";
 
 /** Stable rewrite dispatch points used by relation conformance tests. */
 export type SemanticRelationRewritePathId =
@@ -20,7 +22,8 @@ export type SemanticRelationRewritePathId =
   | "relation.literal-to-local.rewrite"
   | "relation.local-to-parameter.rewrite"
   | "relation.algebraic-identity.rewrite"
-  | "relation.independent-declaration-reordering.rewrite";
+  | "relation.independent-declaration-reordering.rewrite"
+  | "relation.loop-unrolling.rewrite";
 
 /** Stable comparator dispatch points used by relation conformance tests. */
 export type SemanticRelationComparatorPathId =
@@ -28,7 +31,8 @@ export type SemanticRelationComparatorPathId =
   | "relation.literal-to-local.comparator"
   | "relation.local-to-parameter.comparator"
   | "relation.algebraic-identity.comparator"
-  | "relation.independent-declaration-reordering.comparator";
+  | "relation.independent-declaration-reordering.comparator"
+  | "relation.loop-unrolling.comparator";
 
 /** Every stable semantic-relation production path. */
 export type SemanticRelationPathId =
@@ -41,7 +45,9 @@ export type SemanticRelationFaultV1 =
   | {
       readonly schemaVersion: 1;
       readonly pathId: SemanticRelationPreconditionPathId;
-      readonly faultId: "relation.fault.force-precondition-false";
+      readonly faultId:
+        | "relation.fault.force-precondition-false"
+        | "relation.fault.force-precondition-true";
     }
   | {
       readonly schemaVersion: 1;
@@ -65,6 +71,7 @@ export interface SemanticRelationFaultInputV1 {
   /** Closed fault selected for that checkpoint class. */
   readonly faultId:
     | "relation.fault.force-precondition-false"
+    | "relation.fault.force-precondition-true"
     | "relation.fault.non-preserving-rewrite"
     | "relation.fault.semantic-closure-invalid-rewrite"
     | "relation.fault.omit-required-observable";
@@ -76,11 +83,13 @@ const RELATIONS = [
   "local-to-parameter",
   "algebraic-identity",
   "independent-declaration-reordering",
+  "loop-unrolling",
 ] as const;
 const FAULT_CONTEXT = new AsyncLocalStorage<SemanticRelationFaultV1>();
 
 /** Closed relation branches and variants required by mutation conformance. */
 export const ORACLE_RELATION_MUTATION_PATHS = Object.freeze([
+  ...STRUCTURED_RELATION_MUTATION_PATHS,
   oracleMutationDispatchMarker(
     "relation.algebraic-identity",
     "relation.algebraic-identity.comparator",
@@ -216,7 +225,10 @@ function isComparatorPath(
 
 function closeFault(fault: SemanticRelationFaultInputV1): SemanticRelationFaultV1 | undefined {
   if (fault.schemaVersion !== 1) return undefined;
-  if (fault.faultId === "relation.fault.force-precondition-false") {
+  if (
+    fault.faultId === "relation.fault.force-precondition-false" ||
+    fault.faultId === "relation.fault.force-precondition-true"
+  ) {
     return isPreconditionPath(fault.pathId)
       ? Object.freeze({
           schemaVersion: 1,
@@ -274,7 +286,8 @@ export function semanticRelationPreconditionPath(
     | "relation.literal-to-local"
     | "relation.local-to-parameter"
     | "relation.algebraic-identity"
-    | "relation.independent-declaration-reordering",
+    | "relation.independent-declaration-reordering"
+    | "relation.loop-unrolling",
 ): SemanticRelationPreconditionPathId {
   switch (relationId) {
     case "relation.identifier-renaming":
@@ -287,6 +300,8 @@ export function semanticRelationPreconditionPath(
       return "relation.algebraic-identity.precondition";
     case "relation.independent-declaration-reordering":
       return "relation.independent-declaration-reordering.precondition";
+    case "relation.loop-unrolling":
+      return "relation.loop-unrolling.precondition";
   }
 }
 
@@ -297,7 +312,8 @@ export function semanticRelationRewritePath(
     | "relation.literal-to-local"
     | "relation.local-to-parameter"
     | "relation.algebraic-identity"
-    | "relation.independent-declaration-reordering",
+    | "relation.independent-declaration-reordering"
+    | "relation.loop-unrolling",
 ): SemanticRelationRewritePathId {
   switch (relationId) {
     case "relation.identifier-renaming":
@@ -310,6 +326,8 @@ export function semanticRelationRewritePath(
       return "relation.algebraic-identity.rewrite";
     case "relation.independent-declaration-reordering":
       return "relation.independent-declaration-reordering.rewrite";
+    case "relation.loop-unrolling":
+      return "relation.loop-unrolling.rewrite";
   }
 }
 
@@ -320,7 +338,8 @@ export function semanticRelationComparatorPath(
     | "relation.literal-to-local"
     | "relation.local-to-parameter"
     | "relation.algebraic-identity"
-    | "relation.independent-declaration-reordering",
+    | "relation.independent-declaration-reordering"
+    | "relation.loop-unrolling",
 ): SemanticRelationComparatorPathId {
   switch (relationId) {
     case "relation.identifier-renaming":
@@ -333,6 +352,8 @@ export function semanticRelationComparatorPath(
       return "relation.algebraic-identity.comparator";
     case "relation.independent-declaration-reordering":
       return "relation.independent-declaration-reordering.comparator";
+    case "relation.loop-unrolling":
+      return "relation.loop-unrolling.comparator";
   }
 }
 
@@ -357,12 +378,15 @@ export function currentSemanticRelationFault(
  * @returns Baseline result, forced false for legacy conformance, or forced true for mutation proof.
  */
 export function semanticRelationPreconditionAccepted(
-  relationId: SemanticRelationId,
+  relationId: SemanticRelationId | "relation.loop-unrolling",
   baseline: boolean,
 ): boolean {
   const pathId = semanticRelationPreconditionPath(relationId);
   if (currentSemanticRelationFault(pathId)?.faultId === "relation.fault.force-precondition-false") {
     return false;
+  }
+  if (currentSemanticRelationFault(pathId)?.faultId === "relation.fault.force-precondition-true") {
+    return true;
   }
   return selectedOracleMutationVariant(
     requireOracleMutationDispatchMarker(
@@ -384,7 +408,7 @@ export function semanticRelationPreconditionAccepted(
  * @returns Whether that exact rewrite branch is selected for mutation.
  */
 export function semanticRelationRewriteIsMutated(
-  relationId: SemanticRelationId,
+  relationId: SemanticRelationId | "relation.loop-unrolling",
   baselineVariantId: string,
 ): boolean {
   return (
@@ -396,5 +420,19 @@ export function semanticRelationRewriteIsMutated(
         `non-preserving.${baselineVariantId}`,
       ),
     ) === `non-preserving.${baselineVariantId}`
+  );
+}
+
+/** Reports whether the structured rewrite must violate semantic closure. */
+export function structuredLoopClosureRewriteIsMutated(): boolean {
+  return (
+    selectedOracleMutationVariant(
+      requireOracleMutationDispatchMarker(
+        ORACLE_RELATION_MUTATION_PATHS,
+        "relation.loop-unrolling",
+        "relation.loop-unrolling.rewrite",
+        "semantic-closure-invalid-v1",
+      ),
+    ) === "semantic-closure-invalid-v1"
   );
 }

@@ -4,6 +4,8 @@ import type {
   GenFunction,
   GenModule,
   GenStatement,
+  GenStructuredExpression,
+  GenStructuredStatement,
   ScalarType,
 } from "./generator-ir.js";
 
@@ -391,4 +393,75 @@ export function allOnesForType(type: ScalarType): bigint | undefined {
     case "boolean":
       return undefined;
   }
+}
+
+function structuredExpressionIsVolatile(expression: GenStructuredExpression): boolean {
+  switch (expression.kind) {
+    case "memory-read":
+      return true;
+    case "unary":
+      return structuredExpressionIsVolatile(expression.operand);
+    case "binary":
+      return (
+        structuredExpressionIsVolatile(expression.left) ||
+        structuredExpressionIsVolatile(expression.right)
+      );
+    case "index":
+      return structuredExpressionIsVolatile(expression.index);
+    case "call":
+      return expression.arguments.some(
+        (argument) =>
+          argument.kind !== "array-reference" && structuredExpressionIsVolatile(argument),
+      );
+    case "literal":
+    case "name":
+      return false;
+  }
+}
+
+/** Reports whether a structured statement tree contains an ordered volatile access. */
+export function structuredStatementsHaveVolatileEffects(
+  statements: readonly GenStructuredStatement[],
+): boolean {
+  return statements.some((statement) => {
+    switch (statement.kind) {
+      case "memory-write":
+        return true;
+      case "local":
+        return structuredExpressionIsVolatile(statement.initializer);
+      case "array":
+        return statement.initializer.some(structuredExpressionIsVolatile);
+      case "assign":
+        return (
+          structuredExpressionIsVolatile(statement.value) ||
+          (typeof statement.target !== "string" &&
+            structuredExpressionIsVolatile(statement.target.index))
+        );
+      case "return":
+        return statement.value !== undefined && structuredExpressionIsVolatile(statement.value);
+      case "call-statement":
+        return statement.arguments.some(
+          (argument) =>
+            argument.kind !== "array-reference" && structuredExpressionIsVolatile(argument),
+        );
+      case "if":
+        return (
+          structuredExpressionIsVolatile(statement.condition) ||
+          structuredStatementsHaveVolatileEffects(statement.thenBody) ||
+          structuredStatementsHaveVolatileEffects(statement.elseBody)
+        );
+      case "while":
+      case "do-while":
+        return (
+          structuredExpressionIsVolatile(statement.condition) ||
+          structuredStatementsHaveVolatileEffects(statement.body)
+        );
+      case "for":
+        return (
+          structuredExpressionIsVolatile(statement.start) ||
+          structuredExpressionIsVolatile(statement.end) ||
+          structuredStatementsHaveVolatileEffects(statement.body)
+        );
+    }
+  });
 }

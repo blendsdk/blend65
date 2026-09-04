@@ -2,15 +2,11 @@ import { isDeepStrictEqual } from "node:util";
 
 import {
   isSha256Digest,
+  structuredGenerationBudgetFields,
   type CanonicalIdentityField,
-  type GenerationConfiguration,
 } from "./canonical-identity.js";
-import {
-  deriveCampaignIdentity,
-  deriveCaseIdentity,
-  deriveConfigurationIdentity,
-  type CampaignIdentityInput,
-} from "./case-identity.js";
+import { validateStructuredGenerationBudgetV2 } from "./generation-budget.js";
+import type { StructuredGenerationBudgetV2 } from "./generator-ir.js";
 import { isGenIdentifier } from "./generator-ir.js";
 import {
   deriveOracleEvaluationDigest,
@@ -35,6 +31,14 @@ import { replayCase } from "./replay.js";
 import { parseReplayEnvelope, REPLAY_V1_LIMITS } from "./replay-input.js";
 import type { RevisionRegistry } from "./revision-registry.js";
 import type { Sha256Digest } from "./model-registry-model.js";
+import {
+  compareUtf8,
+  exactDataRecord,
+  failure,
+  identityFailure,
+  isSemanticRelationId,
+  normalizeReplayProvenance,
+} from "./oracle-evaluation-identity-validation.js";
 
 /** Bounded canonical policy revision committed by evaluation identities. */
 export type OraclePolicyRevision = `oracle-policy-v${number}`;
@@ -166,203 +170,6 @@ const REPLAY_VALIDATION_INPUT_KEYS = [
   "expectedProvenance",
   "expectedSourceContent",
 ] as const;
-const SEMANTIC_RELATION_IDS: ReadonlySet<string> = new Set([
-  "relation.identifier-renaming",
-  "relation.literal-to-local",
-  "relation.local-to-parameter",
-  "relation.algebraic-identity",
-  "relation.independent-declaration-reordering",
-]);
-const stringifyJson: (
-  value: unknown,
-  replacer?: (this: unknown, key: string, value: unknown) => unknown,
-) => string | undefined = JSON.stringify;
-
-function normalizeReplayStructureWithoutIdentityCoherence(
-  value: unknown,
-): Rd02ReplayProvenanceV1 | undefined {
-  if (!isOracleRecord(value)) return undefined;
-  const campaign = value.campaign;
-  const caseIdentity = value.caseIdentity;
-  const configuration = value.configuration;
-  if (
-    !isOracleRecord(campaign) ||
-    !isOracleRecord(caseIdentity) ||
-    !isOracleRecord(configuration) ||
-    !isSha256Digest(campaign.configurationDigest) ||
-    !isSha256Digest(value.campaignDigest) ||
-    !isSha256Digest(caseIdentity.campaignDigest) ||
-    !isSha256Digest(caseIdentity.digest)
-  ) {
-    return undefined;
-  }
-  const configurationIdentity = deriveConfigurationIdentity(
-    configuration as unknown as GenerationConfiguration,
-  );
-  if (!configurationIdentity.ok) return undefined;
-  const repairedCampaign = {
-    ...campaign,
-    configurationDigest: configurationIdentity.identity,
-  } as unknown as CampaignIdentityInput;
-  const campaignIdentity = deriveCampaignIdentity(repairedCampaign);
-  if (!campaignIdentity.ok) return undefined;
-  const caseResult = deriveCaseIdentity(
-    campaignIdentity.identity,
-    caseIdentity.generationPath as readonly number[],
-    caseIdentity.ordinal as number,
-  );
-  if (!caseResult.ok) return undefined;
-  const repaired = {
-    ...value,
-    campaign: repairedCampaign,
-    campaignDigest: campaignIdentity.identity,
-    caseIdentity: {
-      ...caseIdentity,
-      campaignDigest: campaignIdentity.identity,
-      digest: caseResult.identity.digest,
-    },
-  };
-  const text = stringifyJson(repaired, (_key, member: unknown) =>
-    typeof member === "bigint" ? member.toString(10) : member,
-  );
-  if (text === undefined) return undefined;
-  const parsed = parseReplayEnvelope(TEXT_ENCODER.encode(text));
-  if (!parsed.ok) return undefined;
-  return Object.freeze({
-    ...parsed.envelope,
-    campaign: Object.freeze({
-      ...parsed.envelope.campaign,
-      configurationDigest: campaign.configurationDigest,
-    }),
-    campaignDigest: value.campaignDigest,
-    caseIdentity: Object.freeze({
-      ...parsed.envelope.caseIdentity,
-      campaignDigest: caseIdentity.campaignDigest,
-      digest: caseIdentity.digest,
-    }),
-  });
-}
-
-function diagnostic(path: string, message: string): OracleDiagnostic {
-  return Object.freeze({ code: "oracle.input.invalid", path, message: message.slice(0, 512) });
-}
-
-function failure<T>(
-  path: string,
-  message: string,
-): Extract<OracleValidationResultV1<T>, { readonly ok: false }> {
-  return Object.freeze({
-    ok: false,
-    diagnostics: Object.freeze([diagnostic(path, message)]),
-  });
-}
-
-function identityFailure(path: string, message: string): OracleIdentityResultV1 {
-  return failure(path, message);
-}
-
-function exactDataRecord(
-  value: unknown,
-  keys: readonly string[],
-): Readonly<Record<string, unknown>> | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  try {
-    const prototype = Object.getPrototypeOf(value);
-    const ownKeys = Reflect.ownKeys(value);
-    if (
-      (prototype !== Object.prototype && prototype !== null) ||
-      ownKeys.length !== keys.length ||
-      ownKeys.some((key) => typeof key !== "string" || !keys.includes(key))
-    ) {
-      return undefined;
-    }
-    const descriptors = Object.getOwnPropertyDescriptors(value);
-    const closed: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
-    for (const key of keys) {
-      const descriptor = descriptors[key];
-      if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) {
-        return undefined;
-      }
-      closed[key] = descriptor.value;
-    }
-    return Object.freeze(closed);
-  } catch {
-    return undefined;
-  }
-}
-
-function compareUtf8(left: string, right: string): number {
-  const leftBytes = TEXT_ENCODER.encode(left);
-  const rightBytes = TEXT_ENCODER.encode(right);
-  const length = Math.min(leftBytes.byteLength, rightBytes.byteLength);
-  for (let index = 0; index < length; index += 1) {
-    const difference = (leftBytes[index] ?? 0) - (rightBytes[index] ?? 0);
-    if (difference !== 0) return difference;
-  }
-  return leftBytes.byteLength - rightBytes.byteLength;
-}
-
-function isSemanticRelationId(value: unknown): value is SemanticRelationId {
-  return typeof value === "string" && SEMANTIC_RELATION_IDS.has(value);
-}
-
-function normalizeReplayProvenance(
-  value: unknown,
-): OracleValidationResultV1<Rd02ReplayProvenanceV1> {
-  const snapshot = snapshotOracleInput(value, "/sourceProvenance");
-  if (!snapshot.ok) {
-    return Object.freeze({
-      ok: false,
-      diagnostics: snapshot.diagnostics,
-    });
-  }
-  try {
-    const text = stringifyJson(snapshot.value, (_key, member: unknown) =>
-      typeof member === "bigint" ? member.toString(10) : member,
-    );
-    if (text === undefined) {
-      return failure("/sourceProvenance", "Replay provenance is not canonical data.");
-    }
-    const bytes = TEXT_ENCODER.encode(text);
-    if (bytes.byteLength > REPLAY_V1_LIMITS.maxInputBytes) {
-      return failure("/sourceProvenance", "Replay provenance exceeds its fixed byte limit.");
-    }
-    const parsed = parseReplayEnvelope(bytes);
-    if (!parsed.ok) {
-      const structurallyNormalized = normalizeReplayStructureWithoutIdentityCoherence(
-        snapshot.value,
-      );
-      if (structurallyNormalized !== undefined) {
-        return Object.freeze({
-          ok: true,
-          value: structurallyNormalized,
-          diagnostics: EMPTY_DIAGNOSTICS,
-        });
-      }
-      const first = parsed.diagnostics[0];
-      return Object.freeze({
-        ok: false,
-        diagnostics: Object.freeze([
-          Object.freeze({
-            code:
-              first?.code === "replay.input.limit"
-                ? ("oracle.input.limit" as const)
-                : ("oracle.input.invalid" as const),
-            path: `/sourceProvenance${first?.path ?? ""}`,
-            message: (first?.message ?? "Replay provenance is invalid.").slice(0, 512),
-          }),
-        ]),
-      });
-    }
-    return Object.freeze({
-      ok: true,
-      value: parsed.envelope,
-      diagnostics: EMPTY_DIAGNOSTICS,
-    });
-  } catch {
-    return failure("/sourceProvenance", "Replay provenance could not be normalized safely.");
-  }
-}
 
 function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
   if (left.byteLength !== right.byteLength) return false;
@@ -393,6 +200,39 @@ function pushList(
   fields.push({ name: `${prefix}.count`, value: text(values.length) });
   values.forEach((value, index) => {
     fields.push({ name: `${prefix}.${index}`, value: text(value) });
+  });
+}
+
+/**
+ * Produces the structured generation-budget fields committed by an oracle evaluation identity.
+ *
+ * @param budget Unknown version-two generation budget.
+ * @returns Prefixed canonical fields, or stable oracle diagnostics.
+ *
+ * @example
+ * ```ts
+ * const result = structuredGenerationBudgetEvaluationFields(budget);
+ * ```
+ */
+export function structuredGenerationBudgetEvaluationFields(
+  budget: StructuredGenerationBudgetV2,
+): OracleValidationResultV1<readonly CanonicalIdentityField[]> {
+  const normalized = validateStructuredGenerationBudgetV2(budget);
+  if (!normalized.ok) {
+    const first = normalized.diagnostics[0];
+    return failure(
+      first?.path ?? "/generationBudget",
+      first?.message ?? "Structured generation budget is invalid.",
+    );
+  }
+  return Object.freeze({
+    ok: true,
+    value: Object.freeze(
+      structuredGenerationBudgetFields(normalized.budget).map((field) =>
+        Object.freeze({ name: `generationBudget.${field.name}`, value: field.value }),
+      ),
+    ),
+    diagnostics: EMPTY_DIAGNOSTICS,
   });
 }
 

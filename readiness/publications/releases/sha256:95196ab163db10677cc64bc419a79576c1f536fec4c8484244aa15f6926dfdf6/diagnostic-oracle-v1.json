@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "manifestVersion": "1.0.0",
+  "specRevision": "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd",
+  "policyRevision": "diagnostic-oracle-policy-v1",
+  "records": [
+    {
+      "ruleId": "rule.ch02.2-primitive-types.boolean.range.true",
+      "neighborId": "neighbor.scalar.boolean.wrong-type",
+      "diagnosticContext": "initializer",
+      "diagnosticCode": "E10152",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.boolean.range.true",
+      "neighborId": "neighbor.scalar.boolean.wrong-type",
+      "diagnosticContext": "return-expression",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
+      "neighborId": "neighbor.scalar.byte.above-max",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
+      "neighborId": "neighbor.scalar.byte.below-min",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
+      "neighborId": "neighbor.scalar.sbyte.above-max",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
+      "neighborId": "neighbor.scalar.sbyte.below-min",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
+      "neighborId": "neighbor.scalar.sword.above-max",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
+      "neighborId": "neighbor.scalar.sword.below-min",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
+      "neighborId": "neighbor.scalar.word.above-max",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
+      "neighborId": "neighbor.scalar.word.below-min",
+      "diagnosticCode": "E10084",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+      "neighborId": "neighbor.memory.peek.wrong-address-type",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+      "neighborId": "neighbor.memory.peek.wrong-arity",
+      "diagnosticCode": "E10041",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+      "neighborId": "neighbor.memory.peekw.wrong-address-type",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+      "neighborId": "neighbor.memory.peekw.wrong-arity",
+      "diagnosticCode": "E10041",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+      "neighborId": "neighbor.memory.poke.wrong-address-type",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+      "neighborId": "neighbor.memory.poke.wrong-arity",
+      "diagnosticCode": "E10041",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+      "neighborId": "neighbor.memory.poke.wrong-value-type",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+      "neighborId": "neighbor.memory.pokew.wrong-address-type",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+      "neighborId": "neighbor.memory.pokew.wrong-arity",
+      "diagnosticCode": "E10041",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    },
+    {
+      "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+      "neighborId": "neighbor.memory.pokew.wrong-value-type",
+      "diagnosticCode": "E10172",
+      "phase": "semantic",
+      "severity": "error",
+      "observableFields": ["code", "phase", "severity"]
+    }
+  ]
+}

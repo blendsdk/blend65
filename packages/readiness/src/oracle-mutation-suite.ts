@@ -28,6 +28,10 @@ import type { OracleMutationSuiteDescriptorV1 } from "./oracle-mutation-packet.j
 import { createOracleSuite } from "./oracle-suite.js";
 import { createRevisionRegistry, type RevisionEntry } from "./revision-registry.js";
 import { validateInventorySchema } from "./schema-validator.js";
+import {
+  resolveStructuredCaseAuthorityV1,
+  type StructuredCaseAuthorityResultV1,
+} from "./structured-case-families.js";
 
 /** Successful exact suite hydration for semantic-relation mutation vectors. */
 export type OracleMutationSuiteHydrationResultV1 =
@@ -53,6 +57,18 @@ let cachedHydration:
       readonly suite: OracleSuite;
     }
   | undefined;
+
+/**
+ * Hydrates structured mutation authority through the finite case registry.
+ *
+ * @param caseId Stable reviewed structured case identity.
+ * @returns Authenticated structured case authority or its closed resolver failure.
+ */
+export function hydrateStructuredOracleMutationSuiteV2(
+  caseId: unknown,
+): StructuredCaseAuthorityResultV1 {
+  return resolveStructuredCaseAuthorityV1(caseId);
+}
 
 const FIXED_CONFIGURATION: GenerationConfiguration = Object.freeze({
   caseCount: 16,

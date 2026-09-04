@@ -35,6 +35,33 @@ import {
 } from "./execution-route-adapters.js";
 import type { ExecutionReportOccurrenceProvenanceInputV1 } from "./execution-report-provenance.js";
 
+/** Structured compiler tiers exercised before emulator acceptance. */
+export type StructuredPhase1ExecutionTierV1 = "frontend" | "compiler-api" | "emit" | "acme";
+
+/**
+ * Derives the deterministic ordering identity for one structured execution route.
+ *
+ * @param caseDigest Authenticated structured case digest.
+ * @param terminalTier Existing public route's terminal tier.
+ * @returns Domain-separated route rank.
+ *
+ * @example
+ * ```ts
+ * const rank = deriveStructuredExecutionRouteRankV1(caseDigest, "frontend");
+ * ```
+ */
+export function deriveStructuredExecutionRouteRankV1(
+  caseDigest: `sha256:${string}`,
+  terminalTier: StructuredPhase1ExecutionTierV1,
+): `sha256:${string}` {
+  return `sha256:${createHash("sha256")
+    .update("blend65.readiness.structured-route-rank.v1\0", "utf8")
+    .update(caseDigest, "utf8")
+    .update("\0", "utf8")
+    .update(terminalTier, "utf8")
+    .digest("hex")}`;
+}
+
 /** Local external tools that may be prerequisites of one selected route. */
 export type ExecutionRouteToolV1 = "acme" | "vice";
 

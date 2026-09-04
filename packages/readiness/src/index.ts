@@ -169,8 +169,17 @@ export {
 export {
   createExecutionCaseV1,
   getExecutionCaseProjectionV1,
+  getStructuredExecutionCaseProjectionV1,
+  getStructuredExecutionOracleContextV1,
   resolveExecutionEnvelopeReplayV1,
 } from "./execution-case.js";
+export {
+  FIRST_VERTICAL_CASE_IDS_V1,
+  FIRST_VERTICAL_RULE_IDS_V1,
+  createFirstVerticalPublicationCandidateV2,
+  validateFirstVerticalPublicationCandidateV2,
+} from "./first-vertical-publication.js";
+export { resolveStructuredCaseAuthorityV1 } from "./structured-case-families.js";
 export { projectC64ActualWriteV1, projectC64InitialStateV1 } from "./execution-vic-projection.js";
 export {
   createPublishedRuntimeEvaluationAuthorityV1,
@@ -186,6 +195,10 @@ export {
   resolveCompositeReadinessSnapshot,
   resolvePublishedExecutionRelease,
 } from "./execution-publication-resolver.js";
+export {
+  getPublishedExecutionReleaseRecordProjectionV1,
+  resolvePublishedExecutionReleaseRecordByDigestV1,
+} from "./execution-publication-record.js";
 export {
   inspectExecutionPublicationV1,
   prepareExecutionPublicationCandidateV1,
@@ -609,6 +622,11 @@ export type {
   PublishedExecutionRelease,
 } from "./execution-publication-resolver.js";
 export type {
+  PublishedExecutionReleaseRecordProjectionV1,
+  PublishedExecutionReleaseRecordV1,
+  ResolvePublishedExecutionReleaseRecordInputV1,
+} from "./execution-publication-record.js";
+export type {
   ExecutionPublicationCandidateV1,
   ExecutionPublicationDiagnosticV1,
   ExecutionPublicationInspectionV1,
@@ -629,7 +647,26 @@ export type {
   ExecutionPrebuildIdentityInputV1,
   ExecutionProjectionRevisionV1,
 } from "./execution-envelope-contracts.js";
-export type { ExecutionCaseProjectionV1, ExecutionCaseV1 } from "./execution-case.js";
+export type {
+  ExecutionCaseProjectionV1,
+  ExecutionCaseV1,
+  StructuredExecutionCaseProjectionV1,
+  StructuredExecutionCaseRequestV1,
+} from "./execution-case.js";
+export type {
+  FirstVerticalCandidateDiagnosticCodeV2,
+  FirstVerticalCandidateDiagnosticV2,
+  FirstVerticalCandidateValidationResultV2,
+  FirstVerticalEvidenceBindingV2,
+  FirstVerticalPublicationCandidateV2,
+} from "./first-vertical-publication.js";
+export type {
+  FirstVerticalCaseIdV1,
+  StructuredCaseAuthorityResultV1,
+  StructuredCaseAuthorityV1,
+  StructuredCaseIdV1,
+  StructuredOracleProgramInputV2,
+} from "./structured-case-families.js";
 export type {
   PublishedRuntimeEvaluationAuthorityV1,
   PublishedRuntimeEvaluationDecisionV1,
@@ -642,3 +679,4 @@ export type {
   SemanticRelationRequestV1,
   SemanticRelationResultV1,
 } from "./semantic-relation-model.js";
+export * from "./rule-family-api.js";

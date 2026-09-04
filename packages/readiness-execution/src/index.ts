@@ -33,6 +33,8 @@ export type {
   ExecutionEnvironmentCapabilitiesV1,
   ExecutionToolVersionV1,
 } from "./execution-orchestration-types.js";
+export { deriveStructuredExecutionRouteRankV1 } from "./execution-route-evidence.js";
+export type { StructuredPhase1ExecutionTierV1 } from "./execution-route-evidence.js";
 export {
   deriveExecutionFixtureDigestV1,
   renderExecutionEnvelopeV1,

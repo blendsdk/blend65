@@ -7,6 +7,15 @@ import { isSha256Digest } from "./canonical-identity.js";
 import type { PublishedSnapshot } from "./binding-model.js";
 import type { HandlerKind, InventoryV1 } from "./model.js";
 import type { Sha256Digest } from "./model-registry-model.js";
+import type {
+  PublicationDiagnostic,
+  PublicationResult,
+} from "./rule-family-publication-diagnostics.js";
+
+export type {
+  PublicationDiagnostic,
+  PublicationResult,
+} from "./rule-family-publication-diagnostics.js";
 
 const PREPARED_PUBLICATION_REVIEW_BRAND: unique symbol = Symbol("prepared-publication-review");
 
@@ -46,44 +55,6 @@ export interface PublicationReviewRequestV1 {
   /** Lexically ordered staged inventory and binding review units. */
   readonly reviewUnits: readonly PublicationReviewUnitV1[];
 }
-
-/** Stable failure emitted by publication preparation, resolution or commit. */
-export interface PublicationDiagnostic {
-  /** Closed machine-readable failure category. */
-  readonly code:
-    | "publication.input.invalid"
-    | "publication.input.limit"
-    | "publication.path.invalid"
-    | "publication.digest.mismatch"
-    | "publication.collision"
-    | "publication.binding.invalid"
-    | "publication.review.invalid"
-    | "publication.review.stale"
-    | "publication.review.not-accepted"
-    | "publication.lock.contended"
-    | "publication.durability-unsupported"
-    | "publication.acceptance.failed"
-    | "publication.io";
-  /** RFC 6901 pointer or canonical repository-relative artifact path. */
-  readonly path: string;
-  /** Bounded human-readable explanation. */
-  readonly message: string;
-}
-
-/** Closed success-or-failure result shared by every publication operation. */
-export type PublicationResult<T> =
-  | { readonly ok: true; readonly value: T; readonly diagnostics: readonly [] }
-  | {
-      readonly ok: false;
-      readonly kind:
-        | "invalid"
-        | "collision"
-        | "contended"
-        | "durability-unsupported"
-        | "acceptance-failed"
-        | "io";
-      readonly diagnostics: readonly PublicationDiagnostic[];
-    };
 
 /** Input accepted by the read-only publication-review preparation operation. */
 export interface PrepareBindingPublicationReviewInput {

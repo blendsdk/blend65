@@ -1,8 +1,10 @@
-import { rm } from "node:fs/promises";
-
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { PublishedSnapshot } from "./binding-model.js";
+import {
+  prepareIncrementalBindingPublication,
+  prepareIncrementalBindingPublicationReview,
+} from "./binding-publication.js";
 import type { GenerationConfiguration } from "./canonical-identity.js";
 import type { PreparedCampaign } from "./campaign-model.js";
 import { createPreparedCampaignCapability, type PreparedCampaignState } from "./campaign-state.js";
@@ -11,16 +13,24 @@ import {
   createPublishedExecutionCampaignV1,
   getPreparedCampaignExecutionIdentityV1,
 } from "./execution-campaign-identity.js";
-import { resolvePublishedSnapshot } from "./publication-resolver.js";
+import { resolvePublishedSnapshotByDigest } from "./publication-resolver.js";
 import {
-  createIsolatedRepository,
-  CURRENT_PARENT_DIGEST as SELECTED_PARENT_DIGEST,
-} from "./test-fixtures/execution-publication-spec-fixture.js";
+  createAcceptedReviewBytes,
+  createCurrentOraclePublicationSpecFixture,
+  type OraclePublicationSpecFixture,
+} from "./test-fixtures/oracle-publication-spec-fixture.js";
 
 const CAMPAIGN_DIGEST = `sha256:${"a".repeat(64)}` as `sha256:${string}`;
 const SEED = `sha256:${"b".repeat(64)}` as `sha256:${string}`;
 const HISTORICAL_PARENT_DIGEST =
   "sha256:8f27564485518a6addbab549ab75c85bbf19a3cc976ec9de61ea4d04a55bf597";
+const TARGET_HANDLER_IDS = [
+  "oracle.compiler-result",
+  "oracle.emitted-program",
+  "oracle.frontend-result",
+  "oracle.runtime-state",
+  "transform.semantic-relations",
+] as const;
 const CONFIGURATION: GenerationConfiguration = {
   caseCount: 40,
   maxInvalidCases: 16,
@@ -44,17 +54,38 @@ const CONFIGURATION: GenerationConfiguration = {
 };
 
 let selectedSnapshot: PublishedSnapshot;
-let historicalRepositoryRoot: string;
+let selectedParentDigest: `sha256:${string}`;
+let publicationFixture: OraclePublicationSpecFixture;
 
 beforeAll(async () => {
-  historicalRepositoryRoot = await createIsolatedRepository();
-  const selected = await resolvePublishedSnapshot({ repositoryRoot: historicalRepositoryRoot });
-  if (!selected.ok) throw new TypeError(JSON.stringify(selected.diagnostics));
-  selectedSnapshot = selected.value;
+  publicationFixture = await createCurrentOraclePublicationSpecFixture();
+  const base = await resolvePublishedSnapshotByDigest({
+    repositoryRoot: publicationFixture.repositoryRoot,
+    publicationDigest: publicationFixture.publicationDigest,
+  });
+  if (!base.ok) throw new TypeError(JSON.stringify(base.diagnostics));
+  const review = await prepareIncrementalBindingPublicationReview({
+    repositoryRoot: publicationFixture.repositoryRoot,
+    baseSnapshot: base.value,
+    targetHandlerIds: TARGET_HANDLER_IDS,
+  });
+  if (!review.ok) throw new TypeError(JSON.stringify(review.diagnostics));
+  const prepared = await prepareIncrementalBindingPublication({
+    repositoryRoot: publicationFixture.repositoryRoot,
+    baseSnapshot: base.value,
+    targetHandlerIds: TARGET_HANDLER_IDS,
+    semanticReviewBytes: createAcceptedReviewBytes(
+      review.value.request,
+      "execution-campaign-identity-reviewer",
+    ),
+  });
+  if (!prepared.ok) throw new TypeError(JSON.stringify(prepared.diagnostics));
+  selectedSnapshot = prepared.value.stagedSnapshot;
+  selectedParentDigest = prepared.value.publicationDigest;
 });
 
 afterAll(async () => {
-  await rm(historicalRepositoryRoot, { recursive: true, force: true });
+  await publicationFixture.cleanup();
 });
 
 function genuineCampaign(): PreparedCampaign {
@@ -132,7 +163,7 @@ describe("published execution campaign authority", () => {
       invalidCaseCount: 16,
     });
     expect(
-      authenticatePublishedExecutionCampaignParentV1(prepared.value, SELECTED_PARENT_DIGEST),
+      authenticatePublishedExecutionCampaignParentV1(prepared.value, selectedParentDigest),
     ).toEqual({ ok: true, value: true });
     const mismatched = authenticatePublishedExecutionCampaignParentV1(
       prepared.value,
@@ -145,7 +176,7 @@ describe("published execution campaign authority", () => {
     expect(
       Reflect.apply(authenticatePublishedExecutionCampaignParentV1, undefined, [
         { ...prepared.value },
-        SELECTED_PARENT_DIGEST,
+        selectedParentDigest,
       ]),
     ).toMatchObject({
       ok: false,

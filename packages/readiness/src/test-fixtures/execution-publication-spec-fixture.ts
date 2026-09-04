@@ -1,21 +1,38 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import { cp, lstat, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { dirname, join, relative, resolve } from "node:path";
 
-import {
-  prepareIncrementalBindingPublication,
-  prepareIncrementalBindingPublicationReview,
-  publishIncrementalBindingPublication,
-} from "../binding-publication.js";
-import { resolvePublishedSnapshotByDigest } from "../publication-resolver.js";
-import { createHistoricalReadinessAuthorityRepository } from "./historical-readiness-authority.js";
+import { createCurrentReadinessAuthorityRepository } from "./historical-readiness-authority.js";
 
-import type { PublicationReviewRequestV1 } from "../publication-model.js";
+const SOURCE_REPOSITORY_ROOT = resolve(import.meta.dirname, "../../../..");
 
 export const CURRENT_PARENT_DIGEST =
-  "sha256:e1713db3ca7dc9d624d0f9e9cb064b6fdcfd3a3e2b0e2421b5c482e00f266905";
+  "sha256:95196ab163db10677cc64bc419a79576c1f536fec4c8484244aa15f6926dfdf6";
 export const HISTORICAL_PARENT_DIGEST =
   "sha256:41afbb4512456470e0b182fb14edb5caeaac7688d7e36ba1e102fc8d42ae3403";
+
+/**
+ * Identifies the immutable parent named by the checked-in historical execution release.
+ *
+ * @example
+ * ```ts
+ * const parentDigest = HISTORICAL_EXECUTION_PARENT_DIGEST;
+ * ```
+ */
+export const HISTORICAL_EXECUTION_PARENT_DIGEST =
+  "sha256:e5796e6f2abab401100f93547b4044c57a762b9ec7703e6183fda2c07afcd3e5";
+
+/**
+ * Identifies the checked-in historical execution release used for passive replay tests.
+ *
+ * @example
+ * ```ts
+ * const executionDigest = HISTORICAL_EXECUTION_DIGEST;
+ * ```
+ */
+export const HISTORICAL_EXECUTION_DIGEST =
+  "sha256:2afaa8243acf4e47af1d23bb93a5069d0b88caf11721060b58e85db86e77d228";
+
 export const SPEC_REVISION =
   "sha256:51860164138f80e23eabf7cfd685ed47a8faf486ff7aee36cc9f46d8b86e1ccd";
 
@@ -91,14 +108,6 @@ export interface ExpectedExecutionPublicationV1 {
 }
 
 const encoder = new TextEncoder();
-const CURRENT_ORACLE_HANDLER_IDS = Object.freeze([
-  "oracle.compiler-result",
-  "oracle.emitted-program",
-  "oracle.frontend-result",
-  "oracle.runtime-state",
-  "transform.semantic-relations",
-]);
-let currentParentTemplatePromise: Promise<Readonly<Record<string, Uint8Array>>> | undefined;
 
 export function digestBytes(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -208,85 +217,16 @@ export function expectedPublication(
   };
 }
 
-function readinessReviewBytes(request: PublicationReviewRequestV1): Uint8Array {
-  return canonicalJsonBytes({
-    schemaVersion: 1,
-    reviews: request.reviewUnits.map((unit) => ({
-      unitId: unit.unitId,
-      reviewer: "execution publication catalog specification fixture",
-      specRevision: request.specRevision,
-      semanticDigest: unit.semanticDigest,
-      dependencyDigests: unit.dependencyDigests,
-      outcome: "accepted",
-      resolvedDisagreementIds: [],
-    })),
-  });
-}
-
-async function buildCurrentParentTemplate(): Promise<Readonly<Record<string, Uint8Array>>> {
-  const repositoryRoot = await createHistoricalReadinessAuthorityRepository(
-    "blend65-execution-parent-template-",
-  );
-  try {
-    await writeFile(
-      join(repositoryRoot, "readiness/publications/current-publication.json"),
-      canonicalJsonBytes({ schemaVersion: 1, publicationDigest: HISTORICAL_PARENT_DIGEST }),
-    );
-    const base = await resolvePublishedSnapshotByDigest({
-      repositoryRoot,
-      publicationDigest: HISTORICAL_PARENT_DIGEST,
-    });
-    if (!base.ok) throw new Error("expected the historical execution-spec parent to resolve");
-    const review = await prepareIncrementalBindingPublicationReview({
-      repositoryRoot,
-      baseSnapshot: base.value,
-      targetHandlerIds: CURRENT_ORACLE_HANDLER_IDS,
-    });
-    if (!review.ok) throw new Error("expected the current execution-spec review to prepare");
-    const staged = await prepareIncrementalBindingPublication({
-      repositoryRoot,
-      baseSnapshot: base.value,
-      targetHandlerIds: CURRENT_ORACLE_HANDLER_IDS,
-      semanticReviewBytes: readinessReviewBytes(review.value.request),
-    });
-    if (!staged.ok) throw new Error("expected the current execution-spec parent to stage");
-    const published = await publishIncrementalBindingPublication(staged.value.prepared);
-    if (!published.ok || published.value.publicationDigest !== CURRENT_PARENT_DIGEST) {
-      throw new Error(
-        `expected current execution-spec parent ${CURRENT_PARENT_DIGEST}, received ${published.ok ? published.value.publicationDigest : "publication failure"}`,
-      );
-    }
-    return await snapshotTree(
-      join(repositoryRoot, "readiness/publications/releases", CURRENT_PARENT_DIGEST),
-    );
-  } finally {
-    await rm(repositoryRoot, { recursive: true, force: true });
-  }
-}
-
-async function currentParentTemplate(): Promise<Readonly<Record<string, Uint8Array>>> {
-  currentParentTemplatePromise ??= buildCurrentParentTemplate();
-  return currentParentTemplatePromise;
-}
-
 export async function createIsolatedRepository(): Promise<string> {
-  const template = await currentParentTemplate();
-  const repositoryRoot =
-    await createHistoricalReadinessAuthorityRepository("blend65-execution-spec-");
+  const repositoryRoot = await createCurrentReadinessAuthorityRepository("blend65-execution-spec-");
   try {
-    const releaseRoot = join(
-      repositoryRoot,
-      "readiness/publications/releases",
-      CURRENT_PARENT_DIGEST,
-    );
-    for (const [path, bytes] of Object.entries(template)) {
-      const outputPath = join(releaseRoot, path);
-      await mkdir(dirname(outputPath), { recursive: true });
-      await writeFile(outputPath, bytes);
-    }
     await writeFile(
       join(repositoryRoot, "readiness/publications/current-publication.json"),
-      canonicalJsonBytes({ schemaVersion: 1, publicationDigest: CURRENT_PARENT_DIGEST }),
+      canonicalJsonBytes({
+        schemaVersion: 2,
+        kind: "rule-family-publication-pointer-v2",
+        publicationDigest: CURRENT_PARENT_DIGEST,
+      }),
     );
     return repositoryRoot;
   } catch (error) {
@@ -305,6 +245,54 @@ export function executionPublicationRoot(repositoryRoot: string): string {
 
 export function executionReleaseRoot(repositoryRoot: string, digest: string): string {
   return join(executionPublicationRoot(repositoryRoot), "releases", digest);
+}
+
+/**
+ * Copies the exact checked-in historical child release into an isolated repository.
+ *
+ * The helper verifies the child's stored parent identity and refuses to merge with or overwrite an
+ * existing destination. It does not create an execution-publication pointer.
+ *
+ * @example
+ * ```ts
+ * await installHistoricalExecutionRelease(repositoryRoot);
+ * ```
+ */
+export async function installHistoricalExecutionRelease(repositoryRoot: string): Promise<void> {
+  const source = executionReleaseRoot(SOURCE_REPOSITORY_ROOT, HISTORICAL_EXECUTION_DIGEST);
+  const destination = executionReleaseRoot(repositoryRoot, HISTORICAL_EXECUTION_DIGEST);
+  const parentReference: unknown = JSON.parse(
+    await readFile(join(source, "execution-parent-v1.json"), "utf8"),
+  );
+  if (
+    typeof parentReference !== "object" ||
+    parentReference === null ||
+    !("schemaVersion" in parentReference) ||
+    parentReference.schemaVersion !== 1 ||
+    !("kind" in parentReference) ||
+    parentReference.kind !== "execution-parent-publication-v1" ||
+    !("parentDigest" in parentReference) ||
+    parentReference.parentDigest !== HISTORICAL_EXECUTION_PARENT_DIGEST
+  ) {
+    throw new Error("checked-in historical execution release names an unexpected parent");
+  }
+
+  try {
+    await lstat(destination);
+    throw new Error("historical execution release destination already exists");
+  } catch (error) {
+    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  await mkdir(dirname(destination), { recursive: true });
+  await cp(source, destination, {
+    recursive: true,
+    force: false,
+    errorOnExist: true,
+    dereference: false,
+  });
 }
 
 export async function readExecutionPointer(repositoryRoot: string): Promise<unknown> {

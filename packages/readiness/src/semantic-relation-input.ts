@@ -1,13 +1,15 @@
 import { Buffer } from "node:buffer";
+import { isDeepStrictEqual } from "node:util";
 
 import { isGenIdentifier } from "./generator-ir.js";
-import type { GenFunction, GenModule } from "./generator-ir.js";
+import type { GenForStatement, GenFunction, GenModule } from "./generator-ir.js";
 import type { GeneratedCase } from "./campaign-model.js";
 import {
   hasExactOracleKeys,
   isOracleRecord,
   oracleFailure,
   snapshotOracleInput,
+  type OracleFailure,
 } from "./oracle-input.js";
 import { validateOracleBudget } from "./oracle-budget.js";
 import { validateOracleMemoryFixture } from "./oracle-memory.js";
@@ -17,8 +19,13 @@ import { getOracleSuiteState, type OracleSuiteState } from "./oracle-suite.js";
 import { snapshotSemanticRelationValue } from "./semantic-relation-freeze.js";
 import type {
   SemanticRelationRequestV1,
+  SemanticRelationRequestV2,
   SemanticRelationResultV1,
 } from "./semantic-relation-model.js";
+import {
+  structuredCaseAuthorityForSuiteV1,
+  type StructuredCaseAuthorityV1,
+} from "./structured-case-families.js";
 
 /** Replay-verified immutable state consumed by semantic-relation dispatch. */
 export interface PreparedSemanticRelationRequestV1 {
@@ -36,6 +43,15 @@ export interface PreparedSemanticRelationRequestV1 {
   readonly suiteState: OracleSuiteState;
 }
 
+/** Authenticated immutable state consumed by structured loop-unrolling dispatch. */
+export interface PreparedSemanticRelationRequestV2 {
+  readonly request: SemanticRelationRequestV2;
+  readonly authority: StructuredCaseAuthorityV1;
+  readonly selectedLoop: GenForStatement;
+  readonly functionIndex: number;
+  readonly statementIndex: number;
+}
+
 const REQUEST_KEYS = [
   "schemaVersion",
   "handlerId",
@@ -48,6 +64,7 @@ const REQUEST_KEYS = [
   "memory",
   "budget",
 ] as const;
+const STRUCTURED_REQUEST_KEYS = [...REQUEST_KEYS, "generationBudget"] as const;
 
 const VARIANTS: Readonly<Record<SemanticRelationId, readonly string[]>> = Object.freeze({
   "relation.identifier-renaming": Object.freeze(["fresh-sibling-v1"]),
@@ -199,6 +216,99 @@ export function prepareSemanticRelationRequest(
       modeledCase: sourceCaseSnapshot,
     }),
     suiteState,
+  });
+}
+
+/**
+ * Authenticates and closes one structured loop-unrolling request.
+ *
+ * @param suite Package-created structured oracle capability.
+ * @param input Hostile request candidate.
+ * @returns Authenticated loop selection or one stable oracle failure.
+ */
+export function prepareStructuredSemanticRelationRequest(
+  suite: OracleSuite,
+  input: unknown,
+): PreparedSemanticRelationRequestV2 | OracleFailure {
+  const authority = structuredCaseAuthorityForSuiteV1(suite);
+  if (authority === undefined) {
+    return oracleFailure(
+      "oracle.authority.not-accepted",
+      "/suite",
+      "Oracle suite capability is not accepted.",
+    );
+  }
+  const snapshot = snapshotOracleInput(input);
+  if (!snapshot.ok) return snapshot;
+  const value = snapshot.value;
+  if (
+    !isOracleRecord(value) ||
+    !hasExactOracleKeys(value, STRUCTURED_REQUEST_KEYS) ||
+    value.schemaVersion !== 2 ||
+    value.handlerId !== "transform.semantic-relations" ||
+    value.relationId !== "relation.loop-unrolling" ||
+    value.variantId !== "unroll-exact-domain-v1"
+  ) {
+    return oracleFailure(
+      "oracle.input.invalid",
+      "",
+      "Structured relation request must use the exact version-two shape.",
+    );
+  }
+  if (
+    value.entryFunction !== authority.oracleInput.entryFunction ||
+    value.selectionPath !== authority.relationSelectionPath ||
+    !isDeepStrictEqual(value.sourceProvenance, authority.sourceProvenance) ||
+    !isDeepStrictEqual(value.sourceCase, authority.generatedCase) ||
+    !isDeepStrictEqual(value.memory, authority.oracleInput.memory) ||
+    !isDeepStrictEqual(value.budget, authority.oracleInput.budget) ||
+    !isDeepStrictEqual(value.generationBudget, authority.oracleInput.generationBudget)
+  ) {
+    return oracleFailure(
+      "oracle.authority.stale",
+      "/sourceCase",
+      "Structured relation authority does not match the registered case.",
+    );
+  }
+  if (typeof value.selectionPath !== "string") {
+    return oracleFailure("oracle.relation.invalid", "/selectionPath", "Loop selection is invalid.");
+  }
+  const match = /^\/functions\/(0|[1-9][0-9]*)\/body\/(0|[1-9][0-9]*)$/u.exec(value.selectionPath);
+  const functionIndex = match?.[1] === undefined ? undefined : Number(match[1]);
+  const statementIndex = match?.[2] === undefined ? undefined : Number(match[2]);
+  if (functionIndex === undefined || statementIndex === undefined) {
+    return oracleFailure("oracle.relation.invalid", "/selectionPath", "Loop selection is invalid.");
+  }
+  const statement =
+    functionIndex === undefined || statementIndex === undefined
+      ? undefined
+      : authority.oracleInput.module.functions[functionIndex]?.body[statementIndex];
+  if (statement?.kind !== "for") {
+    return oracleFailure(
+      "oracle.relation.invalid",
+      "/selectionPath",
+      "Selection must name one top-level finite loop.",
+    );
+  }
+  const request: SemanticRelationRequestV2 = Object.freeze({
+    schemaVersion: 2,
+    handlerId: "transform.semantic-relations",
+    relationId: "relation.loop-unrolling",
+    sourceProvenance: authority.sourceProvenance,
+    sourceCase: authority.generatedCase,
+    entryFunction: authority.oracleInput.entryFunction,
+    selectionPath: value.selectionPath,
+    variantId: "unroll-exact-domain-v1",
+    memory: authority.oracleInput.memory,
+    budget: authority.oracleInput.budget,
+    generationBudget: authority.oracleInput.generationBudget,
+  });
+  return Object.freeze({
+    authority,
+    request,
+    selectedLoop: statement,
+    functionIndex,
+    statementIndex,
   });
 }
 

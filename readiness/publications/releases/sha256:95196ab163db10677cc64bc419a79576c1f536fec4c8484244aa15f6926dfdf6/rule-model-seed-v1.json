@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "seedVersion": "rule-model-seed-v1",
+  "rules": [
+    {
+      "kind": "scalar",
+      "ruleId": "rule.ch02.2-primitive-types.boolean.range.true",
+      "handlerId": "generator.frontend-cases",
+      "scalarType": "boolean",
+      "values": ["false", "true"],
+      "constructorIds": [
+        "constructor.scalar.boolean.literal",
+        "constructor.scalar.boolean.local-variable",
+        "constructor.scalar.boolean.named-constant",
+        "constructor.scalar.boolean.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.boolean.domain"],
+      "neighborIds": ["neighbor.scalar.boolean.wrong-type"],
+      "boundaryFamilyIds": ["boundary.scalar.boolean"],
+      "spellings": ["literal", "named-constant", "local-variable", "parameter"]
+    },
+    {
+      "kind": "scalar",
+      "ruleId": "rule.ch02.2-primitive-types.byte.range.0-255",
+      "handlerId": "generator.frontend-cases",
+      "scalarType": "byte",
+      "values": ["0", "255"],
+      "constructorIds": [
+        "constructor.scalar.byte.literal",
+        "constructor.scalar.byte.local-variable",
+        "constructor.scalar.byte.named-constant",
+        "constructor.scalar.byte.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.byte.range"],
+      "neighborIds": ["neighbor.scalar.byte.above-max", "neighbor.scalar.byte.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.byte"],
+      "spellings": ["literal", "named-constant", "local-variable", "parameter"]
+    },
+    {
+      "kind": "scalar",
+      "ruleId": "rule.ch02.2-primitive-types.sbyte.range.128-127",
+      "handlerId": "generator.frontend-cases",
+      "scalarType": "sbyte",
+      "values": ["-128", "127"],
+      "constructorIds": [
+        "constructor.scalar.sbyte.literal",
+        "constructor.scalar.sbyte.local-variable",
+        "constructor.scalar.sbyte.named-constant",
+        "constructor.scalar.sbyte.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.sbyte.range"],
+      "neighborIds": ["neighbor.scalar.sbyte.above-max", "neighbor.scalar.sbyte.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.sbyte"],
+      "spellings": ["literal", "named-constant", "local-variable", "parameter"]
+    },
+    {
+      "kind": "scalar",
+      "ruleId": "rule.ch02.2-primitive-types.sword.range.32768-32767",
+      "handlerId": "generator.frontend-cases",
+      "scalarType": "sword",
+      "values": ["-32768", "32767"],
+      "constructorIds": [
+        "constructor.scalar.sword.literal",
+        "constructor.scalar.sword.local-variable",
+        "constructor.scalar.sword.named-constant",
+        "constructor.scalar.sword.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.sword.range"],
+      "neighborIds": ["neighbor.scalar.sword.above-max", "neighbor.scalar.sword.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.sword"],
+      "spellings": ["literal", "named-constant", "local-variable", "parameter"]
+    },
+    {
+      "kind": "scalar",
+      "ruleId": "rule.ch02.2-primitive-types.word.range.0-65535",
+      "handlerId": "generator.frontend-cases",
+      "scalarType": "word",
+      "values": ["0", "65535"],
+      "constructorIds": [
+        "constructor.scalar.word.literal",
+        "constructor.scalar.word.local-variable",
+        "constructor.scalar.word.named-constant",
+        "constructor.scalar.word.parameter"
+      ],
+      "predicateIds": ["predicate.scalar.word.range"],
+      "neighborIds": ["neighbor.scalar.word.above-max", "neighbor.scalar.word.below-min"],
+      "boundaryFamilyIds": ["boundary.scalar.word"],
+      "spellings": ["literal", "named-constant", "local-variable", "parameter"]
+    },
+    {
+      "kind": "memory",
+      "ruleId": "rule.ch12.3-1-memory-access.peek-addr.signature.word",
+      "handlerId": "generator.runtime-cases",
+      "intrinsic": "peek",
+      "parameterTypes": ["word"],
+      "returnType": "byte",
+      "constructorIds": ["constructor.memory.peek"],
+      "predicateIds": ["predicate.memory.peek.signature"],
+      "neighborIds": [
+        "neighbor.memory.peek.wrong-address-type",
+        "neighbor.memory.peek.wrong-arity"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.peek"],
+      "addressSpellings": ["literal", "named-constant", "local-variable", "parameter"],
+      "valueSpellings": [],
+      "addressForms": ["direct", "computed"]
+    },
+    {
+      "kind": "memory",
+      "ruleId": "rule.ch12.3-1-memory-access.peekw-addr.signature.word",
+      "handlerId": "generator.runtime-cases",
+      "intrinsic": "peekw",
+      "parameterTypes": ["word"],
+      "returnType": "word",
+      "constructorIds": ["constructor.memory.peekw"],
+      "predicateIds": ["predicate.memory.peekw.signature"],
+      "neighborIds": [
+        "neighbor.memory.peekw.wrong-address-type",
+        "neighbor.memory.peekw.wrong-arity"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.peekw"],
+      "addressSpellings": ["literal", "named-constant", "local-variable", "parameter"],
+      "valueSpellings": [],
+      "addressForms": ["direct", "computed"]
+    },
+    {
+      "kind": "memory",
+      "ruleId": "rule.ch12.3-1-memory-access.poke-addr-val.signature.word-byte",
+      "handlerId": "generator.runtime-cases",
+      "intrinsic": "poke",
+      "parameterTypes": ["word", "byte"],
+      "returnType": "void",
+      "constructorIds": ["constructor.memory.poke"],
+      "predicateIds": ["predicate.memory.poke.signature"],
+      "neighborIds": [
+        "neighbor.memory.poke.wrong-address-type",
+        "neighbor.memory.poke.wrong-arity",
+        "neighbor.memory.poke.wrong-value-type"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.poke"],
+      "addressSpellings": ["literal", "named-constant", "local-variable", "parameter"],
+      "valueSpellings": ["literal", "named-constant", "local-variable", "parameter"],
+      "addressForms": ["direct", "computed"]
+    },
+    {
+      "kind": "memory",
+      "ruleId": "rule.ch12.3-1-memory-access.pokew-addr-val.signature.word-word",
+      "handlerId": "generator.runtime-cases",
+      "intrinsic": "pokew",
+      "parameterTypes": ["word", "word"],
+      "returnType": "void",
+      "constructorIds": ["constructor.memory.pokew"],
+      "predicateIds": ["predicate.memory.pokew.signature"],
+      "neighborIds": [
+        "neighbor.memory.pokew.wrong-address-type",
+        "neighbor.memory.pokew.wrong-arity",
+        "neighbor.memory.pokew.wrong-value-type"
+      ],
+      "boundaryFamilyIds": ["boundary.memory.pokew"],
+      "addressSpellings": ["literal", "named-constant", "local-variable", "parameter"],
+      "valueSpellings": ["literal", "named-constant", "local-variable", "parameter"],
+      "addressForms": ["direct", "computed"]
+    }
+  ]
+}

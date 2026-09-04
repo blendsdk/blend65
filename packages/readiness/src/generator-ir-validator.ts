@@ -1,388 +1,52 @@
 import type {
+  GenArrayReferenceExpression,
   GenConst,
-  GenExpression,
-  GenFunction,
-  GenModule,
-  GenParameter,
-  GenStatement,
-  GenerationDiagnostic,
-  GenerationDiagnosticCode,
+  GenIdentifier,
+  GenIndexAssignmentTarget,
+  GenStructuredExpression,
+  GenStructuredFunction,
+  GenStructuredModule,
+  GenStructuredParameter,
+  GenStructuredStatement,
   IrValidationResult,
-  ScalarType,
-  BinaryOperator,
-  UnaryOperator,
+  StructuredIrValidationResult,
 } from "./generator-ir.js";
 import { isGenIdentifier, isScalarType } from "./generator-ir.js";
+import {
+  parseGeneratorArrayType,
+  parseGeneratorCallArgument,
+  parseGeneratorExpression,
+} from "./generator-ir-expression-parser.js";
+import {
+  isLegacyExpression,
+  isLegacyModule,
+  validateLegacyModuleTypes,
+} from "./generator-ir-legacy-semantics.js";
+import {
+  generatorDiagnostic,
+  generatorNodeFailure,
+  generatorNodeSuccess,
+  hasExactGeneratorKeys,
+  isGeneratorRecord,
+  type GeneratorNodeResult,
+} from "./generator-ir-parser-common.js";
+import { inspectGeneratorInput } from "./generator-input-inspection.js";
+import { validateStructuredModuleSemantics } from "./structured-ir-semantics.js";
 
-/** Structural failure found before an unknown generator input is read. */
-export interface GeneratorInputFailure {
-  readonly path: string;
-  readonly message: string;
-}
+export { inspectGeneratorInput, type GeneratorInputFailure } from "./generator-input-inspection.js";
 
-interface PendingValue {
-  readonly kind: "value";
-  readonly value: unknown;
-  readonly path: string;
-}
-
-interface PendingLeave {
-  readonly kind: "leave";
-  readonly value: object;
-}
-
-type PendingTraversal = PendingValue | PendingLeave;
-
-type NodeResult<T> =
-  | { readonly ok: true; readonly node: T }
-  | { readonly ok: false; readonly diagnostic: GenerationDiagnostic };
-
-const MAX_GENERATOR_VALUES = 262_144;
-const MAX_EXPRESSION_DEPTH = 1_024;
 const EMPTY_DIAGNOSTICS: readonly [] = Object.freeze([]);
-const UNARY_OPERATORS: ReadonlySet<string> = new Set(["-", "~", "!"]);
-const BINARY_OPERATORS: ReadonlySet<string> = new Set([
-  "+",
-  "-",
-  "*",
-  "/",
-  "%",
-  "&",
-  "|",
-  "^",
-  "<<",
-  ">>",
-  "==",
-  "!=",
-  "<",
-  "<=",
-  ">",
-  ">=",
-]);
-const COMPARISON_OPERATORS: ReadonlySet<string> = new Set(["==", "!=", "<", "<=", ">", ">="]);
-const EQUALITY_OPERATORS: ReadonlySet<string> = new Set(["==", "!="]);
-const SHIFT_OPERATORS: ReadonlySet<string> = new Set(["<<", ">>"]);
+type NodeResult<T> = GeneratorNodeResult<T>;
+const diagnostic = generatorDiagnostic;
+const failure = generatorNodeFailure;
+const success = generatorNodeSuccess;
+const isRecord = isGeneratorRecord;
+const hasExactKeys = hasExactGeneratorKeys;
+const parseExpression = parseGeneratorExpression;
+const parseCallArgument = parseGeneratorCallArgument;
+const parseArrayType = parseGeneratorArrayType;
 
-interface ScopeBinding {
-  readonly kind: "constant" | "parameter" | "local";
-  readonly type: ScalarType;
-  readonly writable: boolean;
-}
-
-interface GeneratorScope {
-  readonly localBindings: ReadonlyMap<string, ScopeBinding>;
-  readonly constantBindings: ReadonlyMap<string, ScopeBinding>;
-}
-
-function escapePointerSegment(segment: string): string {
-  return segment.replaceAll("~", "~0").replaceAll("/", "~1");
-}
-
-function childPath(path: string, key: string): string {
-  return `${path}/${escapePointerSegment(key)}`;
-}
-
-function isCanonicalArrayIndex(key: string, length: number): boolean {
-  if (!/^(?:0|[1-9][0-9]*)$/u.test(key)) return false;
-  const index = Number(key);
-  return Number.isSafeInteger(index) && index >= 0 && index < length && String(index) === key;
-}
-
-/**
- * Inspects generator data without invoking accessors or accepting exotic objects.
- *
- * @param value Root input value.
- * @param rootPath JSON-pointer path assigned to the root.
- * @param allowFunction Whether a callable capability is permitted at a path.
- * @returns The first unsafe structure, or `undefined` for a plain acyclic tree.
- *
- * @example
- * ```ts
- * inspectGeneratorInput({ kind: "module" }, "", () => false);
- * ```
- */
-export function inspectGeneratorInput(
-  value: unknown,
-  rootPath: string,
-  allowFunction: (path: string) => boolean,
-): GeneratorInputFailure | undefined {
-  const pending: PendingTraversal[] = [{ kind: "value", value, path: rootPath }];
-  const ancestors = new WeakSet<object>();
-  let visited = 0;
-  let scheduled = 1;
-
-  while (pending.length > 0) {
-    const current = pending.pop();
-    if (current === undefined) break;
-    if (current.kind === "leave") {
-      ancestors.delete(current.value);
-      continue;
-    }
-    visited += 1;
-    if (visited > MAX_GENERATOR_VALUES) {
-      return {
-        path: current.path,
-        message: "Generator input exceeds the traversal value limit.",
-      };
-    }
-
-    const rawValue = current.value;
-    if (
-      rawValue === null ||
-      typeof rawValue === "string" ||
-      typeof rawValue === "number" ||
-      typeof rawValue === "bigint" ||
-      typeof rawValue === "boolean"
-    ) {
-      continue;
-    }
-    if (typeof rawValue === "function") {
-      if (allowFunction(current.path)) continue;
-      return { path: current.path, message: "Functions are not permitted at this input path." };
-    }
-    if (typeof rawValue !== "object") {
-      return { path: current.path, message: "Generator input contains a non-data value." };
-    }
-
-    const objectValue = rawValue;
-    if (ancestors.has(objectValue)) {
-      return { path: current.path, message: "Generator input must be an acyclic data tree." };
-    }
-    ancestors.add(objectValue);
-    pending.push({ kind: "leave", value: objectValue });
-
-    try {
-      const prototype = Object.getPrototypeOf(objectValue);
-      const isArray = Array.isArray(objectValue);
-      if (
-        (isArray && prototype !== Array.prototype) ||
-        (!isArray && prototype !== Object.prototype && prototype !== null)
-      ) {
-        return {
-          path: current.path,
-          message: "Generator records and arrays must use plain prototypes.",
-        };
-      }
-
-      let arrayLength: number | undefined;
-      if (isArray) {
-        const lengthDescriptor = Reflect.getOwnPropertyDescriptor(objectValue, "length");
-        if (
-          lengthDescriptor === undefined ||
-          !("value" in lengthDescriptor) ||
-          typeof lengthDescriptor.value !== "number"
-        ) {
-          return {
-            path: current.path,
-            message: "Generator array length must be an own data property.",
-          };
-        }
-        arrayLength = lengthDescriptor.value;
-        if (arrayLength > MAX_GENERATOR_VALUES - scheduled) {
-          return {
-            path: current.path,
-            message: "Generator input exceeds the traversal value limit.",
-          };
-        }
-      }
-
-      const keys = Reflect.ownKeys(objectValue);
-      if (keys.some((key) => typeof key !== "string")) {
-        return { path: current.path, message: "Generator input must not contain symbols." };
-      }
-      const stringKeys = keys.filter((key): key is string => typeof key === "string");
-      const childKeys = stringKeys.filter((key) => !(isArray && key === "length"));
-      if (childKeys.length > MAX_GENERATOR_VALUES - scheduled) {
-        return {
-          path: current.path,
-          message: "Generator input exceeds the traversal value limit.",
-        };
-      }
-      scheduled += childKeys.length;
-
-      if (isArray) {
-        const elementKeys = childKeys;
-        if (
-          arrayLength === undefined ||
-          elementKeys.length !== arrayLength ||
-          elementKeys.some((key) => !isCanonicalArrayIndex(key, arrayLength))
-        ) {
-          return {
-            path: current.path,
-            message: "Generator arrays must be dense and unadorned.",
-          };
-        }
-      }
-
-      for (const key of childKeys) {
-        const descriptor = Reflect.getOwnPropertyDescriptor(objectValue, key);
-        if (descriptor === undefined || !("value" in descriptor) || !descriptor.enumerable) {
-          return {
-            path: childPath(current.path, key),
-            message: "Generator properties must be enumerable own data properties.",
-          };
-        }
-        pending.push({
-          kind: "value",
-          value: descriptor.value,
-          path: childPath(current.path, key),
-        });
-      }
-    } catch {
-      return {
-        path: current.path,
-        message: "Generator input structure could not be inspected safely.",
-      };
-    }
-  }
-
-  return undefined;
-}
-
-function diagnostic(
-  code: GenerationDiagnosticCode,
-  path: string,
-  message: string,
-): GenerationDiagnostic {
-  return Object.freeze({ code, path, message });
-}
-
-function failure<T>(code: GenerationDiagnosticCode, path: string, message: string): NodeResult<T> {
-  return { ok: false, diagnostic: diagnostic(code, path, message) };
-}
-
-function success<T>(node: T): NodeResult<T> {
-  return { ok: true, node };
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function hasExactKeys(value: Readonly<Record<string, unknown>>, keys: readonly string[]): boolean {
-  const actual = Object.keys(value);
-  return actual.length === keys.length && keys.every((key) => Object.hasOwn(value, key));
-}
-
-function isUnaryOperator(value: unknown): value is UnaryOperator {
-  return typeof value === "string" && UNARY_OPERATORS.has(value);
-}
-
-function isBinaryOperator(value: unknown): value is BinaryOperator {
-  return typeof value === "string" && BINARY_OPERATORS.has(value);
-}
-
-function parseExpression(value: unknown, path: string, depth: number): NodeResult<GenExpression> {
-  if (depth > MAX_EXPRESSION_DEPTH) {
-    return failure("generation-input-invalid", path, "Expression nesting exceeds the safe limit.");
-  }
-  if (!isRecord(value) || typeof value.kind !== "string") {
-    return failure("generation-input-invalid", path, "Expression must be a closed record.");
-  }
-
-  if (value.kind === "literal") {
-    if (
-      !hasExactKeys(value, ["kind", "type", "value"]) ||
-      !isScalarType(value.type) ||
-      typeof value.value !== "bigint"
-    ) {
-      return failure("generation-input-invalid", path, "Literal expression shape is invalid.");
-    }
-    const range = scalarRange(value.type);
-    if (value.value < range.minimum || value.value > range.maximum) {
-      return failure(
-        "generation-type-invalid",
-        `${path}/value`,
-        "Literal value lies outside its declared scalar type.",
-      );
-    }
-    return success<GenExpression>(
-      Object.freeze({ kind: "literal", type: value.type, value: value.value }),
-    );
-  }
-
-  if (value.kind === "name") {
-    if (
-      !hasExactKeys(value, ["kind", "type", "name"]) ||
-      !isScalarType(value.type) ||
-      !isGenIdentifier(value.name)
-    ) {
-      return failure("generation-input-invalid", path, "Name expression shape is invalid.");
-    }
-    return success<GenExpression>(
-      Object.freeze({ kind: "name", type: value.type, name: value.name }),
-    );
-  }
-
-  if (value.kind === "unary") {
-    if (
-      !hasExactKeys(value, ["kind", "type", "operator", "operand"]) ||
-      !isScalarType(value.type) ||
-      !isUnaryOperator(value.operator)
-    ) {
-      return failure("generation-input-invalid", path, "Unary expression shape is invalid.");
-    }
-    const operand = parseExpression(value.operand, `${path}/operand`, depth + 1);
-    if (!operand.ok) return operand;
-    return success<GenExpression>(
-      Object.freeze({
-        kind: "unary",
-        type: value.type,
-        operator: value.operator,
-        operand: operand.node,
-      }),
-    );
-  }
-
-  if (value.kind === "binary") {
-    if (
-      !hasExactKeys(value, ["kind", "type", "operator", "left", "right"]) ||
-      !isScalarType(value.type) ||
-      !isBinaryOperator(value.operator)
-    ) {
-      return failure("generation-input-invalid", path, "Binary expression shape is invalid.");
-    }
-    const left = parseExpression(value.left, `${path}/left`, depth + 1);
-    if (!left.ok) return left;
-    const right = parseExpression(value.right, `${path}/right`, depth + 1);
-    if (!right.ok) return right;
-    return success<GenExpression>(
-      Object.freeze({
-        kind: "binary",
-        type: value.type,
-        operator: value.operator,
-        left: left.node,
-        right: right.node,
-      }),
-    );
-  }
-
-  if (value.kind === "memory-read") {
-    if (
-      !hasExactKeys(value, ["kind", "type", "width", "address"]) ||
-      (value.width !== 1 && value.width !== 2) ||
-      (value.type !== "byte" && value.type !== "word") ||
-      (value.width === 1 && value.type !== "byte") ||
-      (value.width === 2 && value.type !== "word")
-    ) {
-      return failure("generation-type-invalid", path, "Memory-read width and type do not agree.");
-    }
-    const address = parseExpression(value.address, `${path}/address`, depth + 1);
-    if (!address.ok) return address;
-    return success<GenExpression>(
-      Object.freeze({
-        kind: "memory-read",
-        type: value.type,
-        width: value.width,
-        address: address.node,
-      }),
-    );
-  }
-
-  return failure("generation-input-invalid", `${path}/kind`, "Expression kind is not supported.");
-}
-
-function parseStatement(value: unknown, path: string): NodeResult<GenStatement> {
+function parseStatement(value: unknown, path: string): NodeResult<GenStructuredStatement> {
   if (!isRecord(value) || typeof value.kind !== "string") {
     return failure("generation-input-invalid", path, "Statement must be a closed record.");
   }
@@ -396,7 +60,7 @@ function parseStatement(value: unknown, path: string): NodeResult<GenStatement> 
     }
     const initializer = parseExpression(value.initializer, `${path}/initializer`, 1);
     if (!initializer.ok) return initializer;
-    return success<GenStatement>(
+    return success<GenStructuredStatement>(
       Object.freeze({
         kind: "local",
         name: value.name,
@@ -405,14 +69,66 @@ function parseStatement(value: unknown, path: string): NodeResult<GenStatement> 
       }),
     );
   }
+  if (value.kind === "array") {
+    if (
+      !hasExactKeys(value, ["kind", "name", "elementType", "extent", "initializer"]) ||
+      !isGenIdentifier(value.name) ||
+      !isScalarType(value.elementType) ||
+      typeof value.extent !== "number" ||
+      !Number.isSafeInteger(value.extent) ||
+      !Array.isArray(value.initializer)
+    ) {
+      return failure("generation-input-invalid", path, "Array declaration shape is invalid.");
+    }
+    const initializer: GenStructuredExpression[] = [];
+    for (let index = 0; index < value.initializer.length; index += 1) {
+      const expression = parseExpression(
+        value.initializer[index],
+        `${path}/initializer/${index}`,
+        1,
+      );
+      if (!expression.ok) return expression;
+      initializer.push(expression.node);
+    }
+    return success<GenStructuredStatement>(
+      Object.freeze({
+        kind: "array",
+        name: value.name,
+        elementType: value.elementType,
+        extent: value.extent,
+        initializer: Object.freeze(initializer),
+      }),
+    );
+  }
   if (value.kind === "assign") {
-    if (!hasExactKeys(value, ["kind", "target", "value"]) || !isGenIdentifier(value.target)) {
+    if (!hasExactKeys(value, ["kind", "target", "value"])) {
       return failure("generation-input-invalid", path, "Assignment shape is invalid.");
+    }
+    let target: GenIdentifier | GenIndexAssignmentTarget;
+    if (isGenIdentifier(value.target)) {
+      target = value.target;
+    } else if (
+      isRecord(value.target) &&
+      hasExactKeys(value.target, ["kind", "type", "target", "index"]) &&
+      value.target.kind === "index-target" &&
+      isScalarType(value.target.type) &&
+      isGenIdentifier(value.target.target)
+    ) {
+      const index = parseExpression(value.target.index, `${path}/target/index`, 1);
+      if (!index.ok) return index;
+      target = Object.freeze({
+        kind: "index-target",
+        type: value.target.type,
+        target: value.target.target,
+        index: index.node,
+      });
+    } else {
+      return failure("generation-input-invalid", `${path}/target`, "Assignment target is invalid.");
     }
     const expression = parseExpression(value.value, `${path}/value`, 1);
     if (!expression.ok) return expression;
-    return success<GenStatement>(
-      Object.freeze({ kind: "assign", target: value.target, value: expression.node }),
+    return success<GenStructuredStatement>(
+      Object.freeze({ kind: "assign", target, value: expression.node }),
     );
   }
   if (value.kind === "memory-write") {
@@ -426,7 +142,7 @@ function parseStatement(value: unknown, path: string): NodeResult<GenStatement> 
     if (!address.ok) return address;
     const expression = parseExpression(value.value, `${path}/value`, 1);
     if (!expression.ok) return expression;
-    return success<GenStatement>(
+    return success<GenStructuredStatement>(
       Object.freeze({
         kind: "memory-write",
         width: value.width,
@@ -440,25 +156,159 @@ function parseStatement(value: unknown, path: string): NodeResult<GenStatement> 
       return failure("generation-input-invalid", path, "Return statement shape is invalid.");
     }
     if (!Object.hasOwn(value, "value")) {
-      return success<GenStatement>(Object.freeze({ kind: "return" }));
+      return success<GenStructuredStatement>(Object.freeze({ kind: "return" }));
     }
     const expression = parseExpression(value.value, `${path}/value`, 1);
     if (!expression.ok) return expression;
-    return success<GenStatement>(Object.freeze({ kind: "return", value: expression.node }));
+    return success<GenStructuredStatement>(
+      Object.freeze({ kind: "return", value: expression.node }),
+    );
+  }
+  if (value.kind === "call-statement") {
+    if (
+      !hasExactKeys(value, ["kind", "callee", "arguments"]) ||
+      !isGenIdentifier(value.callee) ||
+      !Array.isArray(value.arguments)
+    ) {
+      return failure("generation-input-invalid", path, "Call statement shape is invalid.");
+    }
+    const argumentsValue: (GenStructuredExpression | GenArrayReferenceExpression)[] = [];
+    for (let index = 0; index < value.arguments.length; index += 1) {
+      const argument = parseCallArgument(value.arguments[index], `${path}/arguments/${index}`, 1);
+      if (!argument.ok) return argument;
+      argumentsValue.push(argument.node);
+    }
+    return success<GenStructuredStatement>(
+      Object.freeze({
+        kind: "call-statement",
+        callee: value.callee,
+        arguments: Object.freeze(argumentsValue),
+      }),
+    );
+  }
+  if (value.kind === "if") {
+    if (
+      !hasExactKeys(value, ["kind", "condition", "thenBody", "elseBody"]) ||
+      !Array.isArray(value.thenBody) ||
+      !Array.isArray(value.elseBody)
+    ) {
+      return failure("generation-input-invalid", path, "If statement shape is invalid.");
+    }
+    const condition = parseExpression(value.condition, `${path}/condition`, 1);
+    if (!condition.ok) return condition;
+    const thenBody = parseStatementList(value.thenBody, `${path}/thenBody`);
+    if (!thenBody.ok) return thenBody;
+    const elseBody = parseStatementList(value.elseBody, `${path}/elseBody`);
+    if (!elseBody.ok) return elseBody;
+    return success<GenStructuredStatement>(
+      Object.freeze({
+        kind: "if",
+        condition: condition.node,
+        thenBody: thenBody.node,
+        elseBody: elseBody.node,
+      }),
+    );
+  }
+  if (value.kind === "while") {
+    if (!hasExactKeys(value, ["kind", "condition", "body"]) || !Array.isArray(value.body)) {
+      return failure("generation-input-invalid", path, "While statement shape is invalid.");
+    }
+    const condition = parseExpression(value.condition, `${path}/condition`, 1);
+    if (!condition.ok) return condition;
+    const body = parseStatementList(value.body, `${path}/body`);
+    if (!body.ok) return body;
+    return success<GenStructuredStatement>(
+      Object.freeze({ kind: "while", condition: condition.node, body: body.node }),
+    );
+  }
+  if (value.kind === "do-while") {
+    if (!hasExactKeys(value, ["kind", "body", "condition"]) || !Array.isArray(value.body)) {
+      return failure("generation-input-invalid", path, "Do-while statement shape is invalid.");
+    }
+    const body = parseStatementList(value.body, `${path}/body`);
+    if (!body.ok) return body;
+    const condition = parseExpression(value.condition, `${path}/condition`, 1);
+    if (!condition.ok) return condition;
+    return success<GenStructuredStatement>(
+      Object.freeze({ kind: "do-while", body: body.node, condition: condition.node }),
+    );
+  }
+  if (value.kind === "for") {
+    if (
+      !hasExactKeys(value, [
+        "kind",
+        "counter",
+        "counterType",
+        "start",
+        "direction",
+        "end",
+        "step",
+        "body",
+      ]) ||
+      !isGenIdentifier(value.counter) ||
+      !isScalarType(value.counterType) ||
+      value.counterType === "boolean" ||
+      (value.direction !== "until" && value.direction !== "to" && value.direction !== "downto") ||
+      typeof value.step !== "bigint" ||
+      !Array.isArray(value.body)
+    ) {
+      return failure("generation-input-invalid", path, "For statement shape is invalid.");
+    }
+    const start = parseExpression(value.start, `${path}/start`, 1);
+    if (!start.ok) return start;
+    const end = parseExpression(value.end, `${path}/end`, 1);
+    if (!end.ok) return end;
+    const body = parseStatementList(value.body, `${path}/body`);
+    if (!body.ok) return body;
+    return success<GenStructuredStatement>(
+      Object.freeze({
+        kind: "for",
+        counter: value.counter,
+        counterType: value.counterType,
+        start: start.node,
+        direction: value.direction,
+        end: end.node,
+        step: value.step,
+        body: body.node,
+      }),
+    );
   }
   return failure("generation-input-invalid", `${path}/kind`, "Statement kind is not supported.");
 }
 
-function parseParameter(value: unknown, path: string): NodeResult<GenParameter> {
-  if (
-    !isRecord(value) ||
-    !hasExactKeys(value, ["name", "type"]) ||
-    !isGenIdentifier(value.name) ||
-    !isScalarType(value.type)
-  ) {
+function parseStatementList(
+  values: readonly unknown[],
+  path: string,
+): NodeResult<readonly GenStructuredStatement[]> {
+  const statements: GenStructuredStatement[] = [];
+  for (let index = 0; index < values.length; index += 1) {
+    const statement = parseStatement(values[index], `${path}/${index}`);
+    if (!statement.ok) return statement;
+    statements.push(statement.node);
+  }
+  return success(Object.freeze(statements));
+}
+
+function parseParameter(value: unknown, path: string): NodeResult<GenStructuredParameter> {
+  if (!isRecord(value) || !isGenIdentifier(value.name)) {
     return failure("generation-input-invalid", path, "Parameter shape is invalid.");
   }
-  return success(Object.freeze({ name: value.name, type: value.type }));
+  if (hasExactKeys(value, ["name", "type"]) && isScalarType(value.type)) {
+    return success(Object.freeze({ name: value.name, type: value.type }));
+  }
+  if (
+    hasExactKeys(value, ["kind", "name", "type"]) &&
+    value.kind === "scalar-parameter" &&
+    isScalarType(value.type)
+  ) {
+    return success(Object.freeze({ kind: "scalar-parameter", name: value.name, type: value.type }));
+  }
+  if (hasExactKeys(value, ["kind", "name", "type"]) && value.kind === "array-parameter") {
+    const type = parseArrayType(value.type, `${path}/type`);
+    if (!type.ok) return type;
+    return success(Object.freeze({ kind: "array-parameter", name: value.name, type: type.node }));
+  }
+  return failure("generation-input-invalid", path, "Parameter shape is invalid.");
 }
 
 function parseConst(value: unknown, path: string): NodeResult<GenConst> {
@@ -473,6 +323,13 @@ function parseConst(value: unknown, path: string): NodeResult<GenConst> {
   }
   const expression = parseExpression(value.value, `${path}/value`, 1);
   if (!expression.ok) return expression;
+  if (!isLegacyExpression(expression.node)) {
+    return failure(
+      "generation-input-invalid",
+      `${path}/value`,
+      "Module constants cannot contain structured runtime expressions.",
+    );
+  }
   return success(
     Object.freeze({
       kind: "const",
@@ -483,7 +340,7 @@ function parseConst(value: unknown, path: string): NodeResult<GenConst> {
   );
 }
 
-function parseFunction(value: unknown, path: string): NodeResult<GenFunction> {
+function parseFunction(value: unknown, path: string): NodeResult<GenStructuredFunction> {
   if (
     !isRecord(value) ||
     !hasExactKeys(value, ["kind", "name", "parameters", "returnType", "body"]) ||
@@ -495,30 +352,26 @@ function parseFunction(value: unknown, path: string): NodeResult<GenFunction> {
   ) {
     return failure("generation-input-invalid", path, "Function declaration shape is invalid.");
   }
-  const parameters: GenParameter[] = [];
+  const parameters: GenStructuredParameter[] = [];
   for (let index = 0; index < value.parameters.length; index += 1) {
     const parameter = parseParameter(value.parameters[index], `${path}/parameters/${index}`);
     if (!parameter.ok) return parameter;
     parameters.push(parameter.node);
   }
-  const body: GenStatement[] = [];
-  for (let index = 0; index < value.body.length; index += 1) {
-    const statement = parseStatement(value.body[index], `${path}/body/${index}`);
-    if (!statement.ok) return statement;
-    body.push(statement.node);
-  }
+  const body = parseStatementList(value.body, `${path}/body`);
+  if (!body.ok) return body;
   return success(
     Object.freeze({
       kind: "function",
       name: value.name,
       parameters: Object.freeze(parameters),
       returnType: value.returnType,
-      body: Object.freeze(body),
+      body: body.node,
     }),
   );
 }
 
-function parseModule(value: unknown): NodeResult<GenModule> {
+function parseModule(value: unknown): NodeResult<GenStructuredModule> {
   if (
     !isRecord(value) ||
     !hasExactKeys(value, ["kind", "path", "constants", "functions"]) ||
@@ -538,7 +391,7 @@ function parseModule(value: unknown): NodeResult<GenModule> {
     if (!constant.ok) return constant;
     constants.push(constant.node);
   }
-  const functions: GenFunction[] = [];
+  const functions: GenStructuredFunction[] = [];
   for (let index = 0; index < value.functions.length; index += 1) {
     const fn = parseFunction(value.functions[index], `/functions/${index}`);
     if (!fn.ok) return fn;
@@ -552,308 +405,6 @@ function parseModule(value: unknown): NodeResult<GenModule> {
       functions: Object.freeze(functions),
     }),
   );
-}
-
-function scalarRange(type: ScalarType): { readonly minimum: bigint; readonly maximum: bigint } {
-  switch (type) {
-    case "boolean":
-      return { minimum: 0n, maximum: 1n };
-    case "byte":
-      return { minimum: 0n, maximum: 255n };
-    case "sbyte":
-      return { minimum: -128n, maximum: 127n };
-    case "word":
-      return { minimum: 0n, maximum: 65_535n };
-    case "sword":
-      return { minimum: -32_768n, maximum: 32_767n };
-  }
-}
-
-function isIntegerType(type: ScalarType): boolean {
-  return type !== "boolean";
-}
-
-function isUnsignedIntegerType(type: ScalarType): boolean {
-  return type === "byte" || type === "word";
-}
-
-function isSignedIntegerType(type: ScalarType): boolean {
-  return type === "sbyte" || type === "sword";
-}
-
-function integerWidth(type: ScalarType): 8 | 16 {
-  return type === "byte" || type === "sbyte" ? 8 : 16;
-}
-
-function promotedIntegerType(left: ScalarType, right: ScalarType): ScalarType | undefined {
-  if (!isIntegerType(left) || !isIntegerType(right)) return undefined;
-  const bothSigned = isSignedIntegerType(left) && isSignedIntegerType(right);
-  const bothUnsigned = isUnsignedIntegerType(left) && isUnsignedIntegerType(right);
-  if (!bothSigned && !bothUnsigned) return undefined;
-  const width = Math.max(integerWidth(left), integerWidth(right));
-  if (bothSigned) return width === 8 ? "sbyte" : "sword";
-  return width === 8 ? "byte" : "word";
-}
-
-function lookupBinding(scope: GeneratorScope, name: string): ScopeBinding | undefined {
-  return scope.localBindings.get(name) ?? scope.constantBindings.get(name);
-}
-
-function validateExpressionType(
-  expression: GenExpression,
-  scope: GeneratorScope,
-  path: string,
-): GenerationDiagnostic | undefined {
-  if (expression.kind === "name") {
-    const binding = lookupBinding(scope, expression.name);
-    if (binding === undefined || binding.type !== expression.type) {
-      return diagnostic(
-        "generation-type-invalid",
-        `${path}/name`,
-        "Name expression does not match a visible declaration of the same type.",
-      );
-    }
-    return undefined;
-  }
-  if (expression.kind === "unary") {
-    const operandFailure = validateExpressionType(expression.operand, scope, `${path}/operand`);
-    if (operandFailure !== undefined) return operandFailure;
-    const valid =
-      expression.operator === "!"
-        ? expression.type === "boolean" && expression.operand.type === "boolean"
-        : expression.operator === "-"
-          ? isSignedIntegerType(expression.operand.type) &&
-            expression.type === expression.operand.type
-          : isIntegerType(expression.operand.type) && expression.type === expression.operand.type;
-    return valid
-      ? undefined
-      : diagnostic(
-          "generation-type-invalid",
-          `${path}/type`,
-          "Unary expression operands and result type are inconsistent.",
-        );
-  }
-  if (expression.kind === "binary") {
-    const leftFailure = validateExpressionType(expression.left, scope, `${path}/left`);
-    if (leftFailure !== undefined) return leftFailure;
-    const rightFailure = validateExpressionType(expression.right, scope, `${path}/right`);
-    if (rightFailure !== undefined) return rightFailure;
-    const isComparison = COMPARISON_OPERATORS.has(expression.operator);
-    const isShift = SHIFT_OPERATORS.has(expression.operator);
-    const promotedType = promotedIntegerType(expression.left.type, expression.right.type);
-    const valid = isShift
-      ? isIntegerType(expression.left.type) &&
-        isUnsignedIntegerType(expression.right.type) &&
-        expression.type === expression.left.type
-      : isComparison
-        ? expression.type === "boolean" &&
-          ((EQUALITY_OPERATORS.has(expression.operator) &&
-            expression.left.type === "boolean" &&
-            expression.right.type === "boolean") ||
-            promotedType !== undefined)
-        : promotedType !== undefined && expression.type === promotedType;
-    return valid
-      ? undefined
-      : diagnostic(
-          "generation-type-invalid",
-          `${path}/type`,
-          "Binary expression operands and result type are inconsistent.",
-        );
-  }
-  if (expression.kind === "memory-read") {
-    const addressFailure = validateExpressionType(expression.address, scope, `${path}/address`);
-    if (addressFailure !== undefined) return addressFailure;
-    if (expression.address.type !== "word") {
-      return diagnostic(
-        "generation-type-invalid",
-        `${path}/address/type`,
-        "Memory addresses must have word type.",
-      );
-    }
-  }
-  return undefined;
-}
-
-function validateModuleTypes(module: GenModule): GenerationDiagnostic | undefined {
-  const moduleNames = new Set<string>();
-  const constantBindings = new Map<string, ScopeBinding>();
-  for (let index = 0; index < module.constants.length; index += 1) {
-    const constant = module.constants[index];
-    if (moduleNames.has(constant.name)) {
-      return diagnostic(
-        "generation-type-invalid",
-        `/constants/${index}/name`,
-        "Module declaration names must be unique.",
-      );
-    }
-    moduleNames.add(constant.name);
-    constantBindings.set(
-      constant.name,
-      Object.freeze({ kind: "constant", type: constant.type, writable: false }),
-    );
-  }
-  for (let index = 0; index < module.functions.length; index += 1) {
-    const fn = module.functions[index];
-    if (moduleNames.has(fn.name)) {
-      return diagnostic(
-        "generation-type-invalid",
-        `/functions/${index}/name`,
-        "Module declaration names must be unique.",
-      );
-    }
-    moduleNames.add(fn.name);
-  }
-
-  const constantScope: GeneratorScope = {
-    localBindings: new Map(),
-    constantBindings,
-  };
-  for (let index = 0; index < module.constants.length; index += 1) {
-    const constant = module.constants[index];
-    const valueFailure = validateExpressionType(
-      constant.value,
-      constantScope,
-      `/constants/${index}/value`,
-    );
-    if (valueFailure !== undefined) return valueFailure;
-    if (constant.value.type !== constant.type) {
-      return diagnostic(
-        "generation-type-invalid",
-        `/constants/${index}/type`,
-        "Constant value does not match its declared type.",
-      );
-    }
-  }
-
-  for (let functionIndex = 0; functionIndex < module.functions.length; functionIndex += 1) {
-    const fn = module.functions[functionIndex];
-    const functionPath = `/functions/${functionIndex}`;
-    const localBindings = new Map<string, ScopeBinding>();
-    const scope: GeneratorScope = { localBindings, constantBindings };
-    for (let parameterIndex = 0; parameterIndex < fn.parameters.length; parameterIndex += 1) {
-      const parameter = fn.parameters[parameterIndex];
-      if (lookupBinding(scope, parameter.name) !== undefined) {
-        return diagnostic(
-          "generation-type-invalid",
-          `${functionPath}/parameters/${parameterIndex}/name`,
-          "Parameter names must be unique in their function scope.",
-        );
-      }
-      localBindings.set(
-        parameter.name,
-        Object.freeze({ kind: "parameter", type: parameter.type, writable: true }),
-      );
-    }
-
-    let terminated = false;
-    for (let statementIndex = 0; statementIndex < fn.body.length; statementIndex += 1) {
-      const statement = fn.body[statementIndex];
-      const statementPath = `${functionPath}/body/${statementIndex}`;
-      if (terminated) {
-        return diagnostic(
-          "generation-type-invalid",
-          statementPath,
-          "Statements after a terminal return are outside the generator IR contract.",
-        );
-      }
-      if (statement.kind === "local") {
-        if (lookupBinding(scope, statement.name) !== undefined) {
-          return diagnostic(
-            "generation-type-invalid",
-            `${statementPath}/name`,
-            "Local names must be unique in their function scope.",
-          );
-        }
-        const initializerFailure = validateExpressionType(
-          statement.initializer,
-          scope,
-          `${statementPath}/initializer`,
-        );
-        if (initializerFailure !== undefined) return initializerFailure;
-        if (statement.initializer.type !== statement.type) {
-          return diagnostic(
-            "generation-type-invalid",
-            `${statementPath}/type`,
-            "Local initializer does not match its declared type.",
-          );
-        }
-        localBindings.set(
-          statement.name,
-          Object.freeze({ kind: "local", type: statement.type, writable: true }),
-        );
-      } else if (statement.kind === "assign") {
-        const valueFailure = validateExpressionType(
-          statement.value,
-          scope,
-          `${statementPath}/value`,
-        );
-        if (valueFailure !== undefined) return valueFailure;
-        const binding = lookupBinding(scope, statement.target);
-        if (binding === undefined || !binding.writable || binding.type !== statement.value.type) {
-          return diagnostic(
-            "generation-type-invalid",
-            `${statementPath}/target`,
-            "Assignment target must be a writable local or parameter of the value type.",
-          );
-        }
-      } else if (statement.kind === "memory-write") {
-        const addressFailure = validateExpressionType(
-          statement.address,
-          scope,
-          `${statementPath}/address`,
-        );
-        if (addressFailure !== undefined) return addressFailure;
-        const valueFailure = validateExpressionType(
-          statement.value,
-          scope,
-          `${statementPath}/value`,
-        );
-        if (valueFailure !== undefined) return valueFailure;
-        const expectedValueType = statement.width === 1 ? "byte" : "word";
-        if (statement.address.type !== "word" || statement.value.type !== expectedValueType) {
-          return diagnostic(
-            "generation-type-invalid",
-            statement.address.type !== "word"
-              ? `${statementPath}/address/type`
-              : `${statementPath}/value/type`,
-            "Memory-write operands do not match the selected width.",
-          );
-        }
-      } else if (statement.value === undefined) {
-        if (fn.returnType !== "void") {
-          return diagnostic(
-            "generation-type-invalid",
-            statementPath,
-            "A scalar-returning function must return a value.",
-          );
-        }
-        terminated = true;
-      } else {
-        const returnFailure = validateExpressionType(
-          statement.value,
-          scope,
-          `${statementPath}/value`,
-        );
-        if (returnFailure !== undefined) return returnFailure;
-        if (fn.returnType === "void" || statement.value.type !== fn.returnType) {
-          return diagnostic(
-            "generation-type-invalid",
-            `${statementPath}/value/type`,
-            "Return value does not match the function return type.",
-          );
-        }
-        terminated = true;
-      }
-    }
-    if (fn.returnType !== "void" && !terminated) {
-      return diagnostic(
-        "generation-type-invalid",
-        `${functionPath}/body`,
-        "A scalar-returning function requires a matching terminal value return.",
-      );
-    }
-  }
-  return undefined;
 }
 
 /**
@@ -872,7 +423,9 @@ function validateModuleTypes(module: GenModule): GenerationDiagnostic | undefine
  * });
  * ```
  */
-function validateGeneratorIrStructure(input: unknown): IrValidationResult {
+function validateGeneratorIrStructure(
+  input: unknown,
+): IrValidationResult | StructuredIrValidationResult {
   try {
     const structuralFailure = inspectGeneratorInput(input, "", () => false);
     if (structuralFailure !== undefined) {
@@ -911,7 +464,20 @@ function validateGeneratorIrStructure(input: unknown): IrValidationResult {
  * @param input Unknown programmatic module input.
  * @returns A structurally validated immutable module or stable diagnostics.
  */
-export function validateGeneratorIrSyntax(input: unknown): IrValidationResult {
+export function validateGeneratorIrSyntax(input: unknown): IrValidationResult;
+export function validateGeneratorIrSyntax(
+  input: unknown,
+): IrValidationResult | StructuredIrValidationResult {
+  return validateGeneratorIrStructure(input);
+}
+
+/**
+ * Closes unknown structured data without hiding its structured module type.
+ *
+ * @param input Unknown structured module input.
+ * @returns A deeply frozen structured module or stable diagnostics.
+ */
+export function validateStructuredGeneratorIrSyntax(input: unknown): StructuredIrValidationResult {
   return validateGeneratorIrStructure(input);
 }
 
@@ -926,13 +492,23 @@ export function validateGeneratorIrSyntax(input: unknown): IrValidationResult {
  * const checked = validateGeneratorIr(module);
  * ```
  */
-export function validateGeneratorIr(input: unknown): IrValidationResult {
+export function validateGeneratorIr(input: unknown): IrValidationResult;
+export function validateGeneratorIr(
+  input: unknown,
+): IrValidationResult | StructuredIrValidationResult {
   const structural = validateGeneratorIrStructure(input);
   if (!structural.ok) {
     return structural;
   }
   try {
-    const typeFailure = validateModuleTypes(structural.module);
+    const typeFailure = isLegacyModule(structural.module)
+      ? validateLegacyModuleTypes(structural.module)
+      : (() => {
+          const failure = validateStructuredModuleSemantics(structural.module);
+          return failure === undefined
+            ? undefined
+            : diagnostic(failure.code, failure.path, failure.message);
+        })();
     if (typeFailure !== undefined) {
       return { ok: false, diagnostics: Object.freeze([typeFailure]) };
     }

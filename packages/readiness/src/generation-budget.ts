@@ -8,6 +8,7 @@ import type {
   GenerationBudgetTracker,
   GenerationDiagnostic,
   GenerationUsage,
+  StructuredGenerationBudgetResultV2,
 } from "./generator-ir.js";
 import { inspectGeneratorInput } from "./generator-ir-validator.js";
 import { validateGeneratorIr } from "./generator-ir-validator.js";
@@ -33,6 +34,11 @@ const BUDGET_KEYS = [
   "maxSourceBytes",
   "maxAttempts",
 ] as const;
+const STRUCTURED_BUDGET_KEYS = ["schemaVersion", ...BUDGET_KEYS, "maxStatementDepth"] as const;
+
+/** Canonical identity domain for a structured generation budget. */
+export const STRUCTURED_GENERATION_BUDGET_DOMAIN_V2 =
+  "blend65.readiness.structured-generation-budget.v2" as const;
 const DIMENSIONS: ReadonlySet<string> = new Set([
   "modules",
   "declarations",
@@ -431,6 +437,92 @@ export function validateGenerationBudget(input: unknown): GenerationBudgetResult
         ),
       ]),
     };
+  }
+}
+
+/**
+ * Validates and snapshots a structured budget without widening the historical budget shape.
+ *
+ * @param input Unknown version-two budget input.
+ * @returns An immutable structured budget or stable diagnostics.
+ *
+ * @example
+ * ```ts
+ * const result = validateStructuredGenerationBudgetV2({
+ *   schemaVersion: 2,
+ *   maxModules: 1,
+ *   maxDeclarations: 8,
+ *   maxIrNodes: 64,
+ *   maxStatements: 32,
+ *   maxExpressionDepth: 8,
+ *   maxLoopWork: 16n,
+ *   maxSourceBytes: 4096,
+ *   maxAttempts: 4,
+ *   maxStatementDepth: 4,
+ * });
+ * ```
+ */
+export function validateStructuredGenerationBudgetV2(
+  input: unknown,
+): StructuredGenerationBudgetResultV2 {
+  try {
+    const structuralFailure = inspectGeneratorInput(input, "/budget", () => false);
+    if (structuralFailure !== undefined) {
+      return Object.freeze({
+        ok: false,
+        diagnostics: Object.freeze([
+          diagnostic("generation-input-invalid", structuralFailure.path, structuralFailure.message),
+        ]),
+      });
+    }
+    if (
+      !isRecord(input) ||
+      !hasExactKeys(input, STRUCTURED_BUDGET_KEYS) ||
+      input.schemaVersion !== 2 ||
+      !isPositiveSafeInteger(input.maxStatementDepth)
+    ) {
+      return Object.freeze({
+        ok: false,
+        diagnostics: Object.freeze([
+          diagnostic(
+            "generation-input-invalid",
+            "/budget",
+            "Structured generation budget must use the exact version-two shape.",
+          ),
+        ]),
+      });
+    }
+    const base = validateGenerationBudget({
+      maxModules: input.maxModules,
+      maxDeclarations: input.maxDeclarations,
+      maxIrNodes: input.maxIrNodes,
+      maxStatements: input.maxStatements,
+      maxExpressionDepth: input.maxExpressionDepth,
+      maxLoopWork: input.maxLoopWork,
+      maxSourceBytes: input.maxSourceBytes,
+      maxAttempts: input.maxAttempts,
+    });
+    if (!base.ok) return base;
+    return Object.freeze({
+      ok: true,
+      budget: Object.freeze({
+        schemaVersion: 2,
+        ...base.budget,
+        maxStatementDepth: input.maxStatementDepth,
+      }),
+      diagnostics: EMPTY_DIAGNOSTICS,
+    });
+  } catch {
+    return Object.freeze({
+      ok: false,
+      diagnostics: Object.freeze([
+        diagnostic(
+          "generation-input-invalid",
+          "/budget",
+          "Structured generation budget could not be inspected safely.",
+        ),
+      ]),
+    });
   }
 }
 

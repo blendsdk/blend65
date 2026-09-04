@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { GenerationBudget } from "./generator-ir.js";
+import type { GenerationBudget, StructuredGenerationBudgetV2 } from "./generator-ir.js";
 import { inspectGeneratorInput } from "./generator-ir-validator.js";
 import { validateGenerationBudget } from "./generation-budget.js";
 import type { Sha256Digest } from "./model-registry-model.js";
@@ -11,7 +11,8 @@ export type CanonicalIdentityDomain =
   | "blend65-campaign-v1"
   | "blend65-counter-draw-v1"
   | "blend65-case-v1"
-  | "blend65-handler-implementation-v1";
+  | "blend65-handler-implementation-v1"
+  | "blend65.readiness.structured-generation-budget.v2";
 
 /** One fixed-order name/value pair in a canonical identity preimage. */
 export interface CanonicalIdentityField {
@@ -590,6 +591,52 @@ export function generationConfigurationFields(
     Object.freeze({
       name: "budget.maxAttempts",
       value: canonicalUnsignedDecimal(configuration.budget.maxAttempts),
+    }),
+  ]);
+}
+
+/**
+ * Produces the fixed canonical field sequence for a validated structured generation budget.
+ *
+ * This sequence is separate from the historical configuration fields so adding statement depth
+ * cannot alter an existing configuration preimage.
+ *
+ * @param budget Immutable validated structured budget.
+ * @returns Fixed-order version-two budget identity fields.
+ *
+ * @example
+ * ```ts
+ * const fields = structuredGenerationBudgetFields(budget);
+ * ```
+ */
+export function structuredGenerationBudgetFields(
+  budget: StructuredGenerationBudgetV2,
+): readonly CanonicalIdentityField[] {
+  return Object.freeze([
+    Object.freeze({ name: "schemaVersion", value: "2" }),
+    Object.freeze({ name: "maxModules", value: canonicalUnsignedDecimal(budget.maxModules) }),
+    Object.freeze({
+      name: "maxDeclarations",
+      value: canonicalUnsignedDecimal(budget.maxDeclarations),
+    }),
+    Object.freeze({ name: "maxIrNodes", value: canonicalUnsignedDecimal(budget.maxIrNodes) }),
+    Object.freeze({
+      name: "maxStatements",
+      value: canonicalUnsignedDecimal(budget.maxStatements),
+    }),
+    Object.freeze({
+      name: "maxExpressionDepth",
+      value: canonicalUnsignedDecimal(budget.maxExpressionDepth),
+    }),
+    Object.freeze({ name: "maxLoopWork", value: canonicalUnsignedDecimal(budget.maxLoopWork) }),
+    Object.freeze({
+      name: "maxSourceBytes",
+      value: canonicalUnsignedDecimal(budget.maxSourceBytes),
+    }),
+    Object.freeze({ name: "maxAttempts", value: canonicalUnsignedDecimal(budget.maxAttempts) }),
+    Object.freeze({
+      name: "maxStatementDepth",
+      value: canonicalUnsignedDecimal(budget.maxStatementDepth),
     }),
   ]);
 }

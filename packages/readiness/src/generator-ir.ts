@@ -73,6 +73,37 @@ export interface GenMemoryReadExpression {
   readonly address: GenExpression;
 }
 
+/** A fixed or parameter-only unsized array type. */
+export interface GenArrayType {
+  readonly kind: "array-type";
+  readonly elementType: ScalarType;
+  readonly extent: number | null;
+  readonly access: "const" | "mutable";
+}
+
+/** A reference to array storage accepted only in a call argument. */
+export interface GenArrayReferenceExpression {
+  readonly kind: "array-reference";
+  readonly type: GenArrayType;
+  readonly name: GenIdentifier;
+}
+
+/** A scalar read from one generated array. */
+export interface GenIndexExpression {
+  readonly kind: "index";
+  readonly type: ScalarType;
+  readonly target: GenIdentifier;
+  readonly index: GenStructuredExpression;
+}
+
+/** A call to one scalar-returning generated function. */
+export interface GenCallExpression {
+  readonly kind: "call";
+  readonly type: ScalarType;
+  readonly callee: GenIdentifier;
+  readonly arguments: readonly (GenStructuredExpression | GenArrayReferenceExpression)[];
+}
+
 /** Closed expression union for generated programs. */
 export type GenExpression =
   | GenLiteralExpression
@@ -80,6 +111,50 @@ export type GenExpression =
   | GenUnaryExpression
   | GenBinaryExpression
   | GenMemoryReadExpression;
+
+/** A structured unary expression whose operand may contain calls or indexing. */
+export interface GenStructuredUnaryExpression {
+  readonly kind: "unary";
+  readonly type: ScalarType;
+  readonly operator: UnaryOperator;
+  readonly operand: GenStructuredExpression;
+}
+
+/** A structured binary expression whose operands may contain calls or indexing. */
+export interface GenStructuredBinaryExpression {
+  readonly kind: "binary";
+  readonly type: ScalarType;
+  readonly operator: BinaryOperator;
+  readonly left: GenStructuredExpression;
+  readonly right: GenStructuredExpression;
+}
+
+/** A structured volatile read whose address may be computed by structured expressions. */
+export interface GenStructuredMemoryReadExpression {
+  readonly kind: "memory-read";
+  readonly type: "byte" | "word";
+  readonly width: 1 | 2;
+  readonly address: GenStructuredExpression;
+}
+
+/** Closed expression union for structured generated programs. */
+export type GenStructuredExpression =
+  | GenLiteralExpression
+  | GenNameExpression
+  | GenStructuredUnaryExpression
+  | GenStructuredBinaryExpression
+  | GenStructuredMemoryReadExpression
+  | GenIndexExpression
+  | GenCallExpression;
+
+/** A fixed local array declaration. */
+export interface GenArrayDeclaration {
+  readonly kind: "array";
+  readonly name: GenIdentifier;
+  readonly elementType: ScalarType;
+  readonly extent: number;
+  readonly initializer: readonly GenStructuredExpression[];
+}
 
 /** A typed local declaration statement. */
 export interface GenLocalStatement {
@@ -96,6 +171,43 @@ export interface GenAssignStatement {
   readonly value: GenExpression;
 }
 
+/** A writable indexed assignment target. */
+export interface GenIndexAssignmentTarget {
+  readonly kind: "index-target";
+  readonly type: ScalarType;
+  readonly target: GenIdentifier;
+  readonly index: GenStructuredExpression;
+}
+
+/** A structured assignment to a scalar name or indexed array element. */
+export interface GenStructuredAssignStatement {
+  readonly kind: "assign";
+  readonly target: GenIdentifier | GenIndexAssignmentTarget;
+  readonly value: GenStructuredExpression;
+}
+
+/** A structured scalar local declaration. */
+export interface GenStructuredLocalStatement {
+  readonly kind: "local";
+  readonly name: GenIdentifier;
+  readonly type: ScalarType;
+  readonly initializer: GenStructuredExpression;
+}
+
+/** A structured volatile write. */
+export interface GenStructuredMemoryWriteStatement {
+  readonly kind: "memory-write";
+  readonly width: 1 | 2;
+  readonly address: GenStructuredExpression;
+  readonly value: GenStructuredExpression;
+}
+
+/** A structured return with an optional scalar expression. */
+export interface GenStructuredReturnStatement {
+  readonly kind: "return";
+  readonly value?: GenStructuredExpression;
+}
+
 /** A byte- or word-width volatile memory write. */
 export interface GenMemoryWriteStatement {
   readonly kind: "memory-write";
@@ -110,6 +222,47 @@ export interface GenReturnStatement {
   readonly value?: GenExpression;
 }
 
+/** A call to one void generated function. */
+export interface GenCallStatement {
+  readonly kind: "call-statement";
+  readonly callee: GenIdentifier;
+  readonly arguments: readonly (GenStructuredExpression | GenArrayReferenceExpression)[];
+}
+
+/** A closed conditional with explicit ordered branches. */
+export interface GenIfStatement {
+  readonly kind: "if";
+  readonly condition: GenStructuredExpression;
+  readonly thenBody: readonly GenStructuredStatement[];
+  readonly elseBody: readonly GenStructuredStatement[];
+}
+
+/** A pre-condition loop. */
+export interface GenWhileStatement {
+  readonly kind: "while";
+  readonly condition: GenStructuredExpression;
+  readonly body: readonly GenStructuredStatement[];
+}
+
+/** A post-condition loop. */
+export interface GenDoWhileStatement {
+  readonly kind: "do-while";
+  readonly body: readonly GenStructuredStatement[];
+  readonly condition: GenStructuredExpression;
+}
+
+/** A finite integer loop whose domain is fixed before execution. */
+export interface GenForStatement {
+  readonly kind: "for";
+  readonly counter: GenIdentifier;
+  readonly counterType: Exclude<ScalarType, "boolean">;
+  readonly start: GenStructuredExpression;
+  readonly direction: "until" | "to" | "downto";
+  readonly end: GenStructuredExpression;
+  readonly step: bigint;
+  readonly body: readonly GenStructuredStatement[];
+}
+
 /** Closed statement union for generated functions. */
 export type GenStatement =
   | GenLocalStatement
@@ -117,10 +270,49 @@ export type GenStatement =
   | GenMemoryWriteStatement
   | GenReturnStatement;
 
-/** One typed function parameter. */
+/** Closed statement union for structured generated programs. */
+export type GenStructuredStatement =
+  | GenStructuredLocalStatement
+  | GenArrayDeclaration
+  | GenStructuredAssignStatement
+  | GenStructuredMemoryWriteStatement
+  | GenStructuredReturnStatement
+  | GenCallStatement
+  | GenIfStatement
+  | GenWhileStatement
+  | GenDoWhileStatement
+  | GenForStatement;
+
+/** One historical scalar parameter retained for byte-identical v1 replay. */
 export interface GenParameter {
   readonly name: GenIdentifier;
   readonly type: ScalarType;
+}
+
+/** One explicitly discriminated scalar parameter. */
+export interface GenScalarParameter {
+  readonly kind: "scalar-parameter";
+  readonly name: GenIdentifier;
+  readonly type: ScalarType;
+}
+
+/** One fixed or unsized array parameter. */
+export interface GenArrayParameter {
+  readonly kind: "array-parameter";
+  readonly name: GenIdentifier;
+  readonly type: GenArrayType;
+}
+
+/** Closed parameter union for structured generated functions. */
+export type GenStructuredParameter = GenParameter | GenScalarParameter | GenArrayParameter;
+
+/** Oracle-only placement for generated array storage. */
+export interface GenArrayPlacementFixtureV1 {
+  readonly revision: "structured-array-placement-v1";
+  readonly bindings: readonly {
+    readonly arrayName: GenIdentifier;
+    readonly baseAddress: number;
+  }[];
 }
 
 /** One immutable named scalar constant. */
@@ -147,6 +339,35 @@ export interface GenModule {
   readonly constants: readonly GenConst[];
   readonly functions: readonly GenFunction[];
 }
+
+/** One structured function with scalar or array parameters and statements. */
+export interface GenStructuredFunction {
+  readonly kind: "function";
+  readonly name: GenIdentifier;
+  readonly parameters: readonly GenStructuredParameter[];
+  readonly returnType: ScalarType | "void";
+  readonly body: readonly GenStructuredStatement[];
+}
+
+/** One structured generated module. */
+export interface GenStructuredModule {
+  readonly kind: "module";
+  readonly path: readonly GenIdentifier[];
+  readonly constants: readonly GenConst[];
+  readonly functions: readonly GenStructuredFunction[];
+}
+
+/** Result of closing an unknown value into structured generator IR. */
+export type StructuredIrValidationResult =
+  | {
+      readonly ok: true;
+      readonly module: GenStructuredModule;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly GenerationDiagnostic[];
+    };
 
 /** Resource dimension enforced during generated-case construction. */
 export type GenerationBudgetDimension =
@@ -270,6 +491,29 @@ export interface GenerationBudget {
   readonly maxSourceBytes: number;
   readonly maxAttempts: number;
 }
+
+/** Structural limits for real programs with nested statements. */
+export interface StructuredGenerationBudgetV2 extends GenerationBudget {
+  /** Exact structured budget schema. */
+  readonly schemaVersion: 2;
+  /** Maximum one-based statement nesting depth. */
+  readonly maxStatementDepth: number;
+}
+
+/** All resource dimensions carried by a structured generation result. */
+export type StructuredGenerationBudgetDimensionV2 = GenerationBudgetDimension | "statement-depth";
+
+/** Result of validating and snapshotting one structured budget. */
+export type StructuredGenerationBudgetResultV2 =
+  | {
+      readonly ok: true;
+      readonly budget: StructuredGenerationBudgetV2;
+      readonly diagnostics: readonly [];
+    }
+  | {
+      readonly ok: false;
+      readonly diagnostics: readonly GenerationDiagnostic[];
+    };
 
 /** Result of validating and snapshotting a structural budget. */
 export type GenerationBudgetResult =

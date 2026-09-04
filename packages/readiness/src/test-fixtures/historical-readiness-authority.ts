@@ -33,8 +33,8 @@ const HISTORICAL_PARENT_AUTHORITY_OVERLAYS = [
     sha256: "9ac3267c455476edfc3555c549417331bd2a859061b12d5098aa1820ca4a442a",
   },
 ] as const;
-const MAX_AUTHORITY_FILES = 512;
-const MAX_AUTHORITY_BYTES = 64 * 1024 * 1024;
+const MAX_AUTHORITY_FILES = 768;
+const MAX_AUTHORITY_BYTES = 96 * 1024 * 1024;
 
 interface AuthorityTreeSize {
   files: number;
@@ -88,6 +88,18 @@ async function copyCurrentAuthority(repositoryRoot: string): Promise<void> {
       dereference: false,
       filter: (path) => !isExcludedAuthorityPath(path),
     });
+  }
+}
+
+/** Creates a bounded repository from the exact current readiness authority bytes. */
+export async function createCurrentReadinessAuthorityRepository(prefix: string): Promise<string> {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), prefix));
+  try {
+    await copyCurrentAuthority(repositoryRoot);
+    return repositoryRoot;
+  } catch (error) {
+    await rm(repositoryRoot, { recursive: true, force: true });
+    throw error;
   }
 }
 

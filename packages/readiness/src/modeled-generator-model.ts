@@ -3,7 +3,9 @@ import type {
   BoundaryVariantResult,
   GenExpression,
   GenModule,
+  GenStructuredModule,
   GenerationBudget,
+  StructuredGenerationBudgetDimensionV2,
   GenerationUsage,
 } from "./generator-ir.js";
 import type {
@@ -191,6 +193,11 @@ export type ConstructionUsage = Readonly<
   >
 >;
 
+/** Complete construction usage for a structured generated program. */
+export type StructuredConstructionUsageV2 = Readonly<
+  Record<StructuredGenerationBudgetDimensionV2, bigint>
+>;
+
 /** One reviewed generated case and its exact coverage claim. */
 export interface GeneratedModeledCase {
   readonly projection: GeneratedCaseProjection;
@@ -208,6 +215,20 @@ export interface GeneratedModeledCase {
         readonly expectedDiagnosticFamily: string;
       };
   readonly constructionUsage: ConstructionUsage;
+}
+
+/** One authenticated structured case retained outside the historical projection wire shape. */
+export interface StructuredGeneratedModeledCaseV1 extends Omit<
+  GeneratedModeledCase,
+  "projection" | "constructionUsage"
+> {
+  /** Closed structured module and its semantic validity classification. */
+  readonly projection: {
+    readonly kind: "structured";
+    readonly module: GenStructuredModule;
+  };
+  /** Exact construction usage including nested statements and static loop work. */
+  readonly constructionUsage: StructuredConstructionUsageV2;
 }
 
 /** One immutable invocation value for a parameterized modeled case. */

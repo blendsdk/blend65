@@ -4,6 +4,7 @@ import {
   createExecutionCaseV1,
   generateCampaignCase,
   getExecutionCaseProjectionV1,
+  getStructuredExecutionOracleContextV1,
   parseExecutionEnvelopeIrV1,
   parseExecutionInitialStateFixtureV1,
   projectC64ActualWriteV1,
@@ -12,6 +13,8 @@ import {
   type GeneratedCase,
   type PreparedCampaign,
 } from "./index.js";
+import { isExecutionCaseOraclePairV1 } from "./execution-runtime.js";
+import { createPublishedOracleRequest, type PublishedOracleContext } from "./published-oracle.js";
 import { createOracleContractsSpecFixture } from "./test-fixtures/oracle-contracts-spec-fixture.js";
 
 let campaign: PreparedCampaign;
@@ -106,6 +109,47 @@ describe("execution-case authority isolation", () => {
       return;
     }
     throw new TypeError("Expected one valid modeled memory write case.");
+  });
+});
+
+describe("structured execution oracle isolation", () => {
+  function createStructuredPair(): {
+    readonly executionCase: ExecutionCaseV1;
+    readonly oracle: PublishedOracleContext;
+  } {
+    const created = createExecutionCaseV1({
+      schemaVersion: 1,
+      kind: "structured-generated",
+      caseId: "case.structured.vertical-combined-v1",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) throw new TypeError("Expected a structured execution case.");
+    const resolvedOracle = getStructuredExecutionOracleContextV1(created.value);
+    expect(resolvedOracle.ok).toBe(true);
+    if (!resolvedOracle.ok) throw new TypeError("Expected a structured oracle token.");
+    return { executionCase: created.value, oracle: resolvedOracle.value };
+  }
+
+  it("accepts only the exact oracle token minted for a structured execution case", () => {
+    const first = createStructuredPair();
+    const second = createStructuredPair();
+    const copied = { ...first.oracle } as PublishedOracleContext;
+    const forged = {
+      selectedReleaseDigest: first.oracle.selectedReleaseDigest,
+    } as PublishedOracleContext;
+
+    expect(isExecutionCaseOraclePairV1(first.executionCase, first.oracle)).toBe(true);
+    expect(isExecutionCaseOraclePairV1(first.executionCase, copied)).toBe(false);
+    expect(isExecutionCaseOraclePairV1(first.executionCase, forged)).toBe(false);
+    expect(isExecutionCaseOraclePairV1(first.executionCase, second.oracle)).toBe(false);
+  });
+
+  it("does not grant published-request authority to a structured execution token", () => {
+    const pair = createStructuredPair();
+    expect(createPublishedOracleRequest(pair.oracle, {})).toMatchObject({
+      ok: false,
+      diagnostics: [{ code: "oracle.authority.missing", path: "/context" }],
+    });
   });
 });
 

@@ -1,6 +1,14 @@
 import { isDeepStrictEqual } from "node:util";
 
-import type { GenExpression, GenIdentifier, GenModule, GenerationBudget } from "./generator-ir.js";
+import type {
+  GenExpression,
+  GenIdentifier,
+  GenModule,
+  GenStructuredExpression,
+  GenStructuredModule,
+  GenStructuredStatement,
+  GenerationBudget,
+} from "./generator-ir.js";
 import { isGenIdentifier } from "./generator-ir.js";
 import { validateGeneratorIr } from "./generator-ir-validator.js";
 import { buildModeledModule } from "./modeled-case-builder.js";
@@ -14,6 +22,7 @@ import type {
   GeneratedModeledCase,
   ModeledCaseChoice,
   ModeledCaseValidity,
+  StructuredConstructionUsageV2,
 } from "./modeled-generator-model.js";
 
 /** One factory-reviewed construction paired with its authoritative structural usage. */
@@ -151,6 +160,143 @@ export function deriveConstructionUsage(module: GenModule): ConstructionUsage {
     "expression-depth": depth,
     "loop-work": 0n,
   });
+}
+
+function structuredExpressionUsage(expression: GenStructuredExpression): {
+  readonly nodes: bigint;
+  readonly depth: bigint;
+} {
+  if (expression.kind === "literal" || expression.kind === "name") {
+    return { nodes: 1n, depth: 1n };
+  }
+  if (
+    expression.kind === "unary" ||
+    expression.kind === "memory-read" ||
+    expression.kind === "index"
+  ) {
+    const child = structuredExpressionUsage(
+      expression.kind === "unary"
+        ? expression.operand
+        : expression.kind === "memory-read"
+          ? expression.address
+          : expression.index,
+    );
+    return { nodes: child.nodes + 1n, depth: child.depth + 1n };
+  }
+  if (expression.kind === "binary") {
+    const left = structuredExpressionUsage(expression.left);
+    const right = structuredExpressionUsage(expression.right);
+    return {
+      nodes: left.nodes + right.nodes + 1n,
+      depth: (left.depth > right.depth ? left.depth : right.depth) + 1n,
+    };
+  }
+  let nodes = 1n;
+  let depth = 1n;
+  for (const argument of expression.arguments) {
+    if (argument.kind === "array-reference") {
+      nodes += 1n;
+      continue;
+    }
+    const usage = structuredExpressionUsage(argument);
+    nodes += usage.nodes;
+    if (usage.depth + 1n > depth) depth = usage.depth + 1n;
+  }
+  return { nodes, depth };
+}
+
+function structuredLoopDomain(statement: Extract<GenStructuredStatement, { kind: "for" }>): bigint {
+  if (statement.start.kind !== "literal" || statement.end.kind !== "literal") return 0n;
+  const start = statement.start.value;
+  const end = statement.end.value;
+  if (statement.direction === "until") {
+    return end <= start ? 0n : (end - start + statement.step - 1n) / statement.step;
+  }
+  if (statement.direction === "to") {
+    return end < start ? 0n : (end - start) / statement.step + 1n;
+  }
+  return start < end ? 0n : (start - end) / statement.step + 1n;
+}
+
+/**
+ * Recounts every structured construction dimension independently from cached case metadata.
+ *
+ * @param module Structurally and semantically valid structured generator module.
+ * @returns Exact immutable usage including nested-statement depth and static loop work.
+ *
+ * @example
+ * ```ts
+ * const usage = deriveStructuredConstructionUsageV2(module);
+ * ```
+ */
+export function deriveStructuredConstructionUsageV2(
+  module: GenStructuredModule,
+): StructuredConstructionUsageV2 {
+  const usage: Record<keyof StructuredConstructionUsageV2, bigint> = {
+    modules: 1n,
+    declarations: 0n,
+    "ir-nodes": 1n,
+    statements: 0n,
+    "expression-depth": 0n,
+    "loop-work": 0n,
+    "source-bytes": 0n,
+    attempts: 0n,
+    "statement-depth": 0n,
+  };
+  const addExpression = (expression: GenStructuredExpression): void => {
+    const counted = structuredExpressionUsage(expression);
+    usage["ir-nodes"] += counted.nodes;
+    if (counted.depth > usage["expression-depth"]) usage["expression-depth"] = counted.depth;
+  };
+  const addBody = (body: readonly GenStructuredStatement[], depth: bigint): void => {
+    for (const statement of body) {
+      usage.statements += 1n;
+      usage["ir-nodes"] += 1n;
+      if (depth > usage["statement-depth"]) usage["statement-depth"] = depth;
+      if (statement.kind === "local") {
+        usage.declarations += 1n;
+        addExpression(statement.initializer);
+      } else if (statement.kind === "array") {
+        usage.declarations += 1n;
+        statement.initializer.forEach(addExpression);
+      } else if (statement.kind === "assign") {
+        if (typeof statement.target !== "string") addExpression(statement.target.index);
+        addExpression(statement.value);
+      } else if (statement.kind === "memory-write") {
+        addExpression(statement.address);
+        addExpression(statement.value);
+      } else if (statement.kind === "return" && statement.value !== undefined) {
+        addExpression(statement.value);
+      } else if (statement.kind === "call-statement") {
+        statement.arguments.forEach((argument) => {
+          if (argument.kind !== "array-reference") addExpression(argument);
+        });
+      } else if (statement.kind === "if") {
+        addExpression(statement.condition);
+        addBody(statement.thenBody, depth + 1n);
+        addBody(statement.elseBody, depth + 1n);
+      } else if (statement.kind === "while" || statement.kind === "do-while") {
+        addExpression(statement.condition);
+        addBody(statement.body, depth + 1n);
+      } else if (statement.kind === "for") {
+        addExpression(statement.start);
+        addExpression(statement.end);
+        usage["loop-work"] += structuredLoopDomain(statement);
+        addBody(statement.body, depth + 1n);
+      }
+    }
+  };
+  module.constants.forEach((constant) => {
+    usage.declarations += 1n;
+    usage["ir-nodes"] += 1n;
+    addExpression(constant.value);
+  });
+  module.functions.forEach((fn) => {
+    usage.declarations += 1n + BigInt(fn.parameters.length);
+    usage["ir-nodes"] += 1n + BigInt(fn.parameters.length);
+    addBody(fn.body, 1n);
+  });
+  return Object.freeze({ ...usage });
 }
 
 /**

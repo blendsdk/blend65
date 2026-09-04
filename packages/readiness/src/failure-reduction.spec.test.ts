@@ -5,13 +5,15 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 
 import {
   createAcceptedReviewBytes,
-  createOraclePublicationSpecFixture,
+  createCurrentOraclePublicationSpecFixture,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
 
 type Digest = `sha256:${string}`;
 type Api = Readonly<Record<string, unknown>>;
 type Data = Readonly<Record<string, unknown>>;
-type OraclePublicationSpecFixture = Awaited<ReturnType<typeof createOraclePublicationSpecFixture>>;
+type CurrentOraclePublicationSpecFixture = Awaited<
+  ReturnType<typeof createCurrentOraclePublicationSpecFixture>
+>;
 // prettier-ignore
 type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly issues: readonly { readonly code: string; readonly path: string }[] };
 // prettier-ignore
@@ -27,7 +29,7 @@ type Invocation = { readonly authority: object; readonly token: object; readonly
 // prettier-ignore
 type Step = { readonly kind: "execute-candidate"; readonly invocation: Invocation } | { readonly kind: "complete"; readonly result: { readonly outcome: "one-minimal" | "reduction-exhausted"; readonly best: ExecutionProjection; readonly trace: readonly Data[]; readonly exhaustedAt?: string } };
 // prettier-ignore
-type Fixture = { readonly root: Api; readonly internal: Api; readonly publication: OraclePublicationSpecFixture; readonly context: object; readonly plan: Campaign; readonly valid: object; readonly invalid: object };
+type Fixture = { readonly root: Api; readonly internal: Api; readonly publication: CurrentOraclePublicationSpecFixture; readonly context: object; readonly plan: Campaign; readonly valid: object; readonly invalid: object };
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -87,7 +89,7 @@ async function loadApis(): Promise<Pick<Fixture, "root" | "internal">> {
   return { root, internal };
 }
 
-async function oracleContext(publication: OraclePublicationSpecFixture): Promise<object> {
+async function oracleContext(publication: CurrentOraclePublicationSpecFixture): Promise<object> {
   const publishing = await vi.importActual<Api>("./binding-publication.js");
   const resolver = await vi.importActual<Api>("./publication-resolver.js");
   const oracle = await vi.importActual<Api>("./published-oracle-context.js");
@@ -238,7 +240,7 @@ let completed: Fixture | undefined;
 async function fixture(): Promise<Fixture> {
   pending ??= (async () => {
     const apis = await loadApis();
-    const publication = await createOraclePublicationSpecFixture();
+    const publication = await createCurrentOraclePublicationSpecFixture();
     try {
       const context = await oracleContext(publication);
       const plan = await createCampaign(apis.root, fixed("6"));

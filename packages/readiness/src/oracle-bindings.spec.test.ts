@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createCurrentOraclePublicationSpecFixture,
   createLegacyPublicationSpecFixture,
   createOraclePublicationSpecFixture,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
@@ -349,9 +350,9 @@ describe("oracle candidate bindings and compatible resolution", () => {
     }
   });
 
-  it("resolves the historical release by its serialized four-handler binding set", async () => {
+  it("resolves the current executable release by its serialized four-handler binding set", async () => {
     const api = await resolverApi();
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
       const snapshot = requireSuccess(
         await api.resolvePublishedSnapshotByDigest({

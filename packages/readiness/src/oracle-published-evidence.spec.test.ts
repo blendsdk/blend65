@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createAcceptedReviewBytes,
-  createOraclePublicationSpecFixture,
+  createCurrentOraclePublicationSpecFixture,
 } from "./test-fixtures/oracle-publication-spec-fixture.js";
 import { PUBLISHED_ORACLE_REQUEST_INTENT } from "./test-fixtures/published-evidence-spec-fixture.js";
 import type {
@@ -103,8 +103,6 @@ const RD03_HANDLER_IDS = [
 ] as const;
 const RELEASED_GENERATOR_REVISION =
   "sha256:b71530380c60b5b2bb7dbe778a4c5a17045fa05840bf569ed7ac652f6019dfdb";
-const RELEASED_BOUNDARY_REVISION =
-  "sha256:d163568b837f6a001ec040b66d9a483cc41cc395020a44f941847288183e257f";
 
 function requireSuccess<T>(result: CompatibleResult<T> | ContextResult | RequestResult): T {
   expect(result.ok).toBe(true);
@@ -155,7 +153,7 @@ async function stagedSnapshot(
   fixture: OraclePublicationSpecFixture,
   publication: PublicationApi,
   resolver: ResolverApi,
-): Promise<object> {
+): Promise<{ readonly baseSnapshot: object; readonly stagedSnapshot: object }> {
   const baseSnapshot = requireSuccess<object>(
     await resolver.resolvePublishedSnapshotByDigest({
       repositoryRoot: fixture.repositoryRoot,
@@ -172,14 +170,15 @@ async function stagedSnapshot(
       targetHandlerIds: RD03_HANDLER_IDS,
     }),
   );
-  return requireSuccess<PreparedPreview>(
+  const preview = requireSuccess<PreparedPreview>(
     await publication.prepareIncrementalBindingPublication({
       repositoryRoot: fixture.repositoryRoot,
       baseSnapshot,
       targetHandlerIds: RD03_HANDLER_IDS,
       semanticReviewBytes: createAcceptedReviewBytes(review.request),
     }),
-  ).stagedSnapshot;
+  );
+  return { baseSnapshot, stagedSnapshot: preview.stagedSnapshot };
 }
 
 describe("snapshot-bound published oracle evidence", () => {
@@ -187,10 +186,16 @@ describe("snapshot-bound published oracle evidence", () => {
     const publication = await publicationApi();
     const resolver = await resolverApi();
     const published = await publishedApi();
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
-      const snapshot = await stagedSnapshot(fixture, publication, resolver);
+      const { baseSnapshot, stagedSnapshot: snapshot } = await stagedSnapshot(
+        fixture,
+        publication,
+        resolver,
+      );
+      const baseRows = resolver.getPublishedBindingRows(baseSnapshot);
       const rows = resolver.getPublishedBindingRows(snapshot);
+      expect(baseRows).toHaveLength(4);
       expect(rows).toHaveLength(9);
       expect(new Set(rows?.map(({ handlerId }) => handlerId))).toHaveLength(9);
       for (const row of rows ?? []) {
@@ -233,8 +238,16 @@ describe("snapshot-bound published oracle evidence", () => {
       const boundaryRow = rows?.find(
         ({ handlerId }) => handlerId === "transform.boundary-variants",
       );
-      expect(generatorRow?.implementationRevision).toBe(RELEASED_GENERATOR_REVISION);
-      expect(boundaryRow?.implementationRevision).toBe(RELEASED_BOUNDARY_REVISION);
+      const baseGeneratorRow = baseRows?.find(
+        ({ handlerId }) => handlerId === "generator.frontend-cases",
+      );
+      const baseBoundaryRow = baseRows?.find(
+        ({ handlerId }) => handlerId === "transform.boundary-variants",
+      );
+      expect(baseGeneratorRow).toBeDefined();
+      expect(baseBoundaryRow).toBeDefined();
+      expect(generatorRow?.implementationRevision).toBe(baseGeneratorRow?.implementationRevision);
+      expect(boundaryRow?.implementationRevision).toBe(baseBoundaryRow?.implementationRevision);
 
       const context = requireSuccess<object>(published.createPublishedOracleContext(snapshot));
       const created = published.createPublishedOracleRequest(
@@ -310,9 +323,9 @@ describe("snapshot-bound published oracle evidence", () => {
     });
     expectNoRequest(forgedRequest);
 
-    const fixture = await createOraclePublicationSpecFixture();
+    const fixture = await createCurrentOraclePublicationSpecFixture();
     try {
-      const snapshot = await stagedSnapshot(fixture, publication, resolver);
+      const { stagedSnapshot: snapshot } = await stagedSnapshot(fixture, publication, resolver);
       const context = requireSuccess<object>(published.createPublishedOracleContext(snapshot));
       const getter = vi.fn(() => {
         throw new Error("must not execute");

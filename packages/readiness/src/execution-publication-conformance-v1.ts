@@ -64,6 +64,7 @@ const EXECUTION_PUBLICATION_OWNERS = new Set([
   "execution-publication-conformance-v1.ts",
   "execution-publication-model.ts",
   "execution-publication-pointer.ts",
+  "execution-publication-record.ts",
   "execution-publication-resolver.ts",
   "execution-publication-transaction.ts",
 ]);

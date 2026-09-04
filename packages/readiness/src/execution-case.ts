@@ -14,6 +14,13 @@ import {
   type ExecutionInitialStateFixtureV1,
   type ExecutionObservationRequestV1,
 } from "./execution-envelope-contracts.js";
+import type { PublishedOracleContext } from "./oracle-model.js";
+import { createPublishedOracleRequest } from "./published-oracle-context.js";
+import {
+  createStructuredExecutionCaseDataV1,
+  STRUCTURED_EXECUTION_CASE_ID_V1,
+  type StructuredExecutionCaseDataV1,
+} from "./structured-execution-case-data.js";
 
 /** Compile-time marker for a runtime-backed execution-case capability. */
 export const EXECUTION_CASE_BRAND: unique symbol = Symbol("execution-case");
@@ -38,13 +45,48 @@ export interface ExecutionCaseProjectionV1 {
   readonly observation: ExecutionObservationRequestV1;
 }
 
-interface ExecutionCaseState {
+/** Request for the one reviewed combined structured execution program. */
+export interface StructuredExecutionCaseRequestV1 {
+  readonly schemaVersion: 1;
+  readonly kind: "structured-generated";
+  readonly caseId: "case.structured.vertical-combined-v1";
+}
+
+/** Passive structured case data retained without exposing evaluator authority. */
+export interface StructuredExecutionCaseProjectionV1 extends ExecutionCaseProjectionV1 {
+  readonly kind: "structured-generated";
+  readonly caseId: "case.structured.vertical-combined-v1";
+  readonly caseDigest: `sha256:${string}`;
+  readonly oracleEvaluationIdentity: `sha256:${string}`;
+  readonly expectedObservation: {
+    readonly kind: "direct-mmio";
+    readonly address: 49152;
+    readonly byteLength: 1;
+    readonly value: 12;
+  };
+}
+
+interface CampaignExecutionCaseState {
+  readonly kind: "campaign";
   readonly campaign: PreparedCampaign;
   readonly ordinal: number;
   readonly generatedCase: GeneratedCase;
   readonly envelope: ExecutionEnvelopeIrV1;
   readonly fixture: ExecutionInitialStateFixtureV1;
 }
+
+interface StructuredExecutionCaseState {
+  readonly kind: "structured-generated";
+  readonly authority: StructuredExecutionCaseDataV1["authority"];
+  readonly sourceBytes: Uint8Array;
+  readonly envelope: ExecutionEnvelopeIrV1;
+  readonly fixture: ExecutionInitialStateFixtureV1;
+  readonly oracleEvaluationIdentity: `sha256:${string}`;
+  readonly expectedObservation: StructuredExecutionCaseDataV1["expectedObservation"];
+  readonly oracle: PublishedOracleContext;
+}
+
+type ExecutionCaseState = CampaignExecutionCaseState | StructuredExecutionCaseState;
 
 /** Evaluator-only facts retained behind one genuine execution-case capability. */
 export interface ExecutionCaseEvaluationInputV1 {
@@ -80,6 +122,10 @@ function failure<T>(path: string, message: string): ExecutionOperationResultV1<T
 
 function success<T>(value: T): ExecutionOperationResultV1<T> {
   return Object.freeze({ ok: true, value });
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function scalarWidth(type: ScalarType | "void"): 1 | 2 | undefined {
@@ -231,6 +277,7 @@ function createFromGenerated(
   EXECUTION_CASE_STATES.set(
     capability,
     Object.freeze({
+      kind: "campaign" as const,
       campaign,
       ordinal,
       generatedCase,
@@ -241,18 +288,80 @@ function createFromGenerated(
   return success(capability);
 }
 
+function createStructuredExecutionCase(
+  input: unknown,
+): ExecutionOperationResultV1<ExecutionCaseV1> {
+  if (!isRecord(input)) {
+    return failure("/request", "Structured execution request must use the exact reviewed case.");
+  }
+  const request = input;
+  if (
+    Object.keys(request).length !== 3 ||
+    !Object.hasOwn(request, "schemaVersion") ||
+    !Object.hasOwn(request, "kind") ||
+    !Object.hasOwn(request, "caseId") ||
+    request.schemaVersion !== 1 ||
+    request.kind !== "structured-generated" ||
+    request.caseId !== STRUCTURED_EXECUTION_CASE_ID_V1
+  ) {
+    return failure("/request", "Structured execution request must use the exact reviewed case.");
+  }
+  const data = createStructuredExecutionCaseDataV1();
+  if (!data.ok) return data;
+  const oracle = Object.freeze({
+    selectedReleaseDigest: data.value.authority.caseDigest,
+  }) as PublishedOracleContext;
+  const capability: ExecutionCaseV1 = Object.freeze({ [EXECUTION_CASE_BRAND]: true as const });
+  EXECUTION_CASE_STATES.set(
+    capability,
+    Object.freeze({
+      kind: "structured-generated" as const,
+      authority: data.value.authority,
+      sourceBytes: data.value.sourceBytes.slice(),
+      envelope: data.value.envelope,
+      fixture: data.value.fixture,
+      oracleEvaluationIdentity: data.value.oracleEvaluationIdentity,
+      expectedObservation: data.value.expectedObservation,
+      oracle,
+    }),
+  );
+  return success(capability);
+}
+
+/** Resolves the reviewed structured program into opaque execution authority. */
+export function createExecutionCaseV1(
+  request: StructuredExecutionCaseRequestV1,
+): ExecutionOperationResultV1<ExecutionCaseV1>;
+
 /** Regenerates one valid campaign ordinal and closes it into opaque execution authority. */
 export function createExecutionCaseV1(
   campaign: PreparedCampaign,
   ordinal: number,
   observation: ExecutionObservationRequestV1,
+): ExecutionOperationResultV1<ExecutionCaseV1>;
+
+export function createExecutionCaseV1(
+  campaignOrRequest: PreparedCampaign | StructuredExecutionCaseRequestV1,
+  ordinal?: number,
+  observation?: ExecutionObservationRequestV1,
 ): ExecutionOperationResultV1<ExecutionCaseV1> {
-  if (!Number.isSafeInteger(ordinal) || ordinal < 0) {
+  if (ordinal === undefined && observation === undefined) {
+    return createStructuredExecutionCase(campaignOrRequest);
+  }
+  if (typeof ordinal !== "number" || !Number.isSafeInteger(ordinal) || ordinal < 0) {
     return failure("/ordinal", "Execution ordinal must be a non-negative safe integer.");
   }
-  const generated = generateCampaignCase(campaign, ordinal);
+  if (observation === undefined) {
+    return failure("/observation", "Execution observation is required.");
+  }
+  const generated = generateCampaignCase(campaignOrRequest as PreparedCampaign, ordinal);
   return generated.ok
-    ? createFromGenerated(campaign, ordinal, generated.value, observation)
+    ? createFromGenerated(
+        campaignOrRequest as PreparedCampaign,
+        ordinal,
+        generated.value,
+        observation,
+      )
     : failure("/campaign", "Campaign or ordinal is not genuine and replayable.");
 }
 
@@ -297,6 +406,17 @@ export function getExecutionCaseProjectionV1(
 ): ExecutionOperationResultV1<ExecutionCaseProjectionV1> {
   const state = getExecutionCaseStateV1(executionCase);
   if (state === undefined) return failure("/executionCase", "Execution case authority is invalid.");
+  if (state.kind === "structured-generated") {
+    return success(
+      Object.freeze({
+        sourceCaseDigest: state.authority.caseDigest,
+        sourceBytes: state.sourceBytes.slice(),
+        envelope: state.envelope,
+        fixture: state.fixture,
+        observation: state.envelope.observation,
+      }),
+    );
+  }
   return success(
     Object.freeze({
       sourceCaseDigest: state.generatedCase.identity.digest,
@@ -306,6 +426,52 @@ export function getExecutionCaseProjectionV1(
       observation: state.envelope.observation,
     }),
   );
+}
+
+/** Returns the fresh passive projection retained by a genuine structured execution case. */
+export function getStructuredExecutionCaseProjectionV1(
+  executionCase: ExecutionCaseV1,
+): ExecutionOperationResultV1<StructuredExecutionCaseProjectionV1> {
+  const state = getExecutionCaseStateV1(executionCase);
+  if (state?.kind !== "structured-generated") {
+    return failure("/executionCase", "Structured execution case authority is invalid.");
+  }
+  return success(
+    Object.freeze({
+      kind: "structured-generated" as const,
+      caseId: STRUCTURED_EXECUTION_CASE_ID_V1,
+      caseDigest: state.authority.caseDigest,
+      sourceCaseDigest: state.authority.caseDigest,
+      sourceBytes: state.sourceBytes.slice(),
+      envelope: state.envelope,
+      fixture: state.fixture,
+      observation: state.envelope.observation,
+      oracleEvaluationIdentity: state.oracleEvaluationIdentity,
+      expectedObservation: state.expectedObservation,
+    }),
+  );
+}
+
+/** Returns only the opaque oracle token paired with a genuine structured execution case. */
+export function getStructuredExecutionOracleContextV1(
+  executionCase: ExecutionCaseV1,
+): ExecutionOperationResultV1<PublishedOracleContext> {
+  const state = getExecutionCaseStateV1(executionCase);
+  return state?.kind === "structured-generated"
+    ? success(state.oracle)
+    : failure("/executionCase", "Structured execution case authority is invalid.");
+}
+
+/** Authenticates an oracle only when it belongs to the exact execution case. */
+export function isExecutionCaseOraclePairV1(
+  executionCase: ExecutionCaseV1,
+  oracle: PublishedOracleContext,
+): boolean {
+  const state = getExecutionCaseStateV1(executionCase);
+  if (state === undefined) return false;
+  if (state.kind === "structured-generated") return state.oracle === oracle;
+  const probe = createPublishedOracleRequest(oracle, {});
+  return !probe.ok && probe.diagnostics[0]?.code !== "oracle.authority.missing";
 }
 
 /**
@@ -318,7 +484,7 @@ export function getExecutionCaseEvaluationInputV1(
   executionCase: ExecutionCaseV1,
 ): ExecutionCaseEvaluationInputV1 | undefined {
   const state = getExecutionCaseStateV1(executionCase);
-  if (state === undefined) return undefined;
+  if (state === undefined || state.kind !== "campaign") return undefined;
   return Object.freeze({
     sourceCaseDigest: state.generatedCase.identity.digest,
     campaign: state.campaign,

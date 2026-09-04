@@ -6,10 +6,16 @@ import {
   isSha256Digest,
   normalizeGenerationConfiguration,
   normalizeGenerationPath,
+  structuredGenerationBudgetFields,
   uint8ArrayByteLength,
   type CanonicalIdentityField,
   type GenerationConfiguration,
 } from "./canonical-identity.js";
+import {
+  STRUCTURED_GENERATION_BUDGET_DOMAIN_V2,
+  validateStructuredGenerationBudgetV2,
+} from "./generation-budget.js";
+import type { StructuredGenerationBudgetV2 } from "./generator-ir.js";
 import { inspectGeneratorInput } from "./generator-ir-validator.js";
 import {
   deriveIdentityDigest,
@@ -432,6 +438,49 @@ export function deriveConfigurationIdentity(
       "identity.input.invalid",
       "/configuration",
       "Configuration identity could not be derived safely.",
+    );
+  }
+}
+
+/**
+ * Derives the content identity of a structured generation budget.
+ *
+ * The version-two domain is intentionally distinct from historical configuration identity, so
+ * statement depth participates in structured identities without changing any version-one bytes.
+ *
+ * @param budget Unknown structured budget data to normalize and hash.
+ * @param registry Optional collision-retention capability.
+ * @returns The digest and canonical preimage, or stable diagnostics.
+ *
+ * @example
+ * ```ts
+ * const result = deriveStructuredGenerationBudgetIdentityV2(budget);
+ * ```
+ */
+export function deriveStructuredGenerationBudgetIdentityV2(
+  budget: StructuredGenerationBudgetV2,
+  registry?: IdentityCollisionRegistry,
+): IdentityResult<Sha256Digest> {
+  try {
+    const normalized = validateStructuredGenerationBudgetV2(budget);
+    if (!normalized.ok) {
+      const first = normalized.diagnostics[0];
+      return failure(
+        "identity.input.invalid",
+        first?.path ?? "/budget",
+        first?.message ?? "Structured generation budget is invalid.",
+      );
+    }
+    const preimage = encodeCanonicalIdentity(
+      STRUCTURED_GENERATION_BUDGET_DOMAIN_V2,
+      structuredGenerationBudgetFields(normalized.budget),
+    );
+    return deriveIdentityDigest(preimage, registry);
+  } catch {
+    return failure(
+      "identity.input.invalid",
+      "/budget",
+      "Structured generation budget identity could not be derived safely.",
     );
   }
 }
