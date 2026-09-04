@@ -136,8 +136,9 @@ audit/parity/recovery method used by later knowledge.
    dependent headings, known issues, and comparative-versus-normative status.
 2. **2.2** Research and pin C64/Commodore-chip, ACME 0.97, VICE 3.10, and constraint-only
    future-target source families, plus original practitioner technique material, real game/demo
-   source, VICE hardware tests, revision-identified VIC research, and SID player/emulation evidence.
-   Record missing original sources or revision gaps as unresolved, not unlabelled lore.
+   source, attributable Integrator workflow/reconstruction evidence, VICE hardware tests,
+   revision-identified VIC research, and SID player/emulation evidence. Record missing original
+   sources or revision gaps as unresolved, not unlabelled lore.
 3. **2.3** Audit manifest dependencies and conflicts, then freeze every external-fact oracle before
    authoring its dependent module. Before freeze, an independent reviewer verifies that each hidden
    invariant follows from its stable source key and precise location without overgeneralization.
@@ -270,7 +271,9 @@ game architecture, allocation, generated code, and executable evidence.
    streaming/assets/data layout, zero-cost modern APIs, placement doctrine, and live feasibility
    reasoning that has no dependency on the optional game matrix/page. Cover the required CPU,
    raster, sprite, scrolling/rendering, aggressive VIC, audio, loader/asset, and engine-structure
-   technique families and their knowledge-to-compiler proof chains.
+   technique families and their knowledge-to-compiler proof chains. The loader/asset family must
+   include the explicit Integrator-style reusable-element/panel, mask/priority, attribute-conflict,
+   emitted-layout, loading, and zero-cost-renderer case without creating an editor framework.
 7. **5.7** Complete Phase-5 coverage and run all Q-P content cases. Use VICE 3.10 as the default
    automated runtime oracle with recorded model/options; identify targeted real-hardware QA and
    label provisional physical claims `VICE-verified / hardware-unverified`.

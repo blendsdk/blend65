@@ -1,13 +1,13 @@
 # Preflight Report: Blend65 Expert Skillset Plan
 
 > **Status**: ✅ PREFLIGHT PASSED — all 23 findings resolved (22 corrected, 1 dismissed)
-> **Iteration**: 4 (accepted game-technique realization amendment and focused convergence)
+> **Iteration**: 5 (explicit Integrator-style Q-P15 refinement and focused verification)
 > **Artifact**: full implementation plan at `codeops/features/blend65-expert-skillset/plans/blend65-expert-skillset/`
 > **Iteration-1 Artifact Tree**: `7bf4a4531a775e07d20fa3efbf9a69a17ea2c445`
-> **Passed Target Digest**: `adb861f486dcfcd5a4ebbc0938a5a34a923cda2864a48c59b521c96ea6e2898d` (SHA-256 over the sorted thirteen target-document SHA-256 records; report and temporary notes excluded)
-> **Repository Base Commit**: `36bcf4682ebe7d9de693178bf0f6771ed9e6398e`
+> **Passed Target Digest**: `3791cb4689ea084bd66253579f4ce3c136784c946a0f66949a5230f562ebcafb` (SHA-256 over the sorted thirteen target-document SHA-256 records; report and temporary notes excluded)
+> **Repository Base Commit**: `dce611db0f5c45fc3e53e4371f6b7461803d33eb`
 > **Codebase Grounded**: all 13 plan documents reviewed through convergence; 50 specification files, 12 workspaces, 100 unique case definitions, 60 substeps, tool versions, legacy references, and relevant compiler/SFA/platform evidence verified
-> **Review Independence**: Iteration 4 used three independent clustered auditors and one independent recommendation challenge; earlier iterations used clustered/domain auditors and recommendation challenges
+> **Review Independence**: Iteration 5 used two independent focused auditors; Iteration 4 used three independent clustered auditors and one independent recommendation challenge; earlier iterations used clustered/domain auditors and recommendation challenges
 > **Last Updated**: 2026-09-04
 
 > **SAME-SESSION REVIEW:** This artifact was created earlier in the current conversation. Same-agent
@@ -71,10 +71,10 @@ expressiveness evidence, and `docs/game-feasibility-matrix.json`.
 ## Overall Result
 
 **PASSED.** The original twenty findings and the three Iteration-4 amendment findings are resolved.
-The accepted game-technique realization design now has deterministic compiler/API dispositions,
-independent proof duties, complete representative family cases, pre-freeze source/oracle review,
-and consistent future-target case ordering. Focused convergence found no remaining material issue.
-The plan may advance to `Plan Preflighted`.
+Iteration 5 added the accepted explicit Integrator-style Q-P15 refinement and found no new issue.
+The game-technique design now has deterministic compiler/API dispositions, independent proof
+duties, complete representative family cases, pre-freeze source/oracle review, and consistent
+ordering. The plan may advance to `Plan Preflighted`.
 
 ---
 
@@ -938,11 +938,27 @@ Deterministic Iteration-4 checks found 13 target plan documents, 7 phase checkbo
 substeps, and 100 unique cases (`R12 + L26 + C24 + P21 + A17`). The target digest above excludes
 this report and temporary notes.
 
+## Iteration-5 Integrator-Style Q-P15 Refinement
+
+The user explicitly requested an Integrator-style refinement of existing Q-P15. AR-34, the
+loading/assets family, source families, qualification case, and Phase-2/Phase-5 execution steps now
+require one coherent workflow: reusable elements/panels, compile-time composition, generated
+masks/priority and attribute-conflict evidence, measured memory-versus-draw/mask choices, emitted
+C64 layout, loading/ownership, and the zero-cost renderer contract. The historical workflow is
+evidence for the design pattern, not authority for silicon behavior or a requirement to recreate an
+editor.
+
+Two independent focused auditors checked ambiguities, assumptions, contradictions, completeness,
+dependencies, testability, ordering, consistency, codebase/evidence alignment, and scope. Both
+reported no findings after refutation. Inline feasibility, security, edge-case, and scope review
+also found no issue. The inventory remains 100 unique cases and the accepted topology is unchanged.
+
 ## Decision and Rescan State
 
 - PF-001..PF-023 are closed: twenty-two accepted corrections are applied and verified; PF-011
   remains dismissed.
 - PF-001's specification-consistency work remains an explicit execution prerequisite. This plan
   records and enforces it but does not authorize a `spec/` edit.
-- Iteration 4 completed the accepted amendment and converged after one bounded residual correction.
+- Iteration 4 completed the broad game-technique amendment. Iteration 5 completed the explicit
+  Integrator-style Q-P15 refinement with no finding.
 - The full plan is `Plan Preflighted`; execution may start with Phase 1 when requested.

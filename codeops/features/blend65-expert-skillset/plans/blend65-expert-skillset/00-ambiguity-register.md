@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 Expert Skillset
 
-> **Status**: ✅ GATE PASSED — all 33 items resolved
-> **Last Updated**: 2026-09-04 20:58
+> **Status**: ✅ GATE PASSED — all 34 items resolved
+> **Last Updated**: 2026-09-04 21:28
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|----------|-----------------|-------------------|---------------|--------|
@@ -38,6 +38,7 @@
 | 31 | Integration | How can a standalone full plan be tracked in the requested CodeOps feature roadmap when the roadmap schema supports only RD, lightweight-task, and nested-deferral identities? | Add one formal `RD-01` as the lifecycle owner, then make the plan RD-based (recommended) / keep the standalone plan and omit its per-feature roadmap | User chose a single `RD-01` lifecycle owner and an RD-based plan. | ✅ Resolved |
 | 32 | Naming & terminology | What exact concern partitions keep qualification cases bounded and evaluator oracles separated? | Five named case files for routing/evidence, language/architecture/SFA, CPU/lowering/optimization, C64/platform/games, and parity/recovery/portability (recommended) / one monolithic case file | User chose the five named concern partitions. | ✅ Resolved |
 | 33 | Behavioral | Are C64 game-development techniques merely descriptive knowledge, or must the skill force their realization in the compiler? | Add a structured game-technique casebook inside the accepted references, mapping every technique to a deterministic compiler/API disposition and proof (recommended) / maintain a separate tricks skill or optimizer framework | User chose the structured casebook within the single skill. The skill guides development; the shipped compiler must encode deterministic mechanisms and must not depend on AI or skill prose at compile time. | ✅ Resolved |
+| 34 | Scope | Should The Last Ninja's Integrator approach remain implicit in general asset coverage or become an explicit skill qualification scenario? | Strengthen existing Q-P15 with an Integrator-style compile-time scene/asset workflow (recommended) / leave it implicit or add a separate tool/framework | User explicitly requested the Q-P15 refinement. It remains one case within the existing game/asset knowledge and adds no tool or framework. | ✅ Resolved |
 
 ## Controlling Preflight Refinements
 
@@ -63,6 +64,7 @@ The table above preserves creation-time decisions. The accepted preflight ruling
 | Technique qualification | PF-021: Q-P11/Q-P15/Q-P16 each prove one representative audio, loader/asset, or engine-structure realization end to end without adding cases. |
 | Oracle integrity | PF-022: independent source-to-oracle review precedes external-oracle freeze; a later proven factual defect reopens only the affected gate and invalidates its dependents. |
 | Future-target case ordering | PF-023: Q-A17 has an explicit Phase-6 portability-content facet and Phase-7 version/release integration facet; the definitive suite grades their union once. |
+| Integrator-style workflow | AR-34: Q-P15 explicitly covers reusable element/panel composition, masks/foreground priority, attribute conflicts, memory-versus-draw-speed choices, emitted layout, and runtime rendering contracts. |
 
 ### Resolution Notes
 
@@ -181,3 +183,12 @@ implementation seam; it must encode the result as deterministic algorithms, tabl
 or APIs and prove behavior independently from assembly/cost. No natural-language inference,
 separate tricks skill, generic game-optimization flag, service, framework, or new runtime layer is
 added.
+
+**AR-34:** Integrator is treated as a historically grounded cross-development asset/scene workflow,
+not as a magic optimizer rewrite or a mandate to reproduce a particular editor. Existing Q-P15 and
+the loading/assets family must require reusable graphical elements/panels, compile-time scene
+composition, foreground/occlusion masks, draw priority, multicolor attribute-conflict handling,
+precomputed rendering data, explicit memory-versus-draw/mask-speed accounting, emitted C64 asset
+layout, and the runtime renderer contract. Original-author/practitioner evidence establishes the
+workflow; hardware claims follow the normal C64 authority hierarchy. No additional case, runtime
+artifact, tool, or framework is added.

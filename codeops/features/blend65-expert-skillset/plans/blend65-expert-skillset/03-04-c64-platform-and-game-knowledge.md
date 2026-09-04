@@ -138,8 +138,35 @@ The required families are:
 | Scrolling/rendering | Fine/coarse scroll, double buffering and pointer flips, dirty regions, Color RAM updates, charset/tile/bitmap arrangements, and decompression/update windows |
 | Aggressive VIC use | FLI, FLD, line crunch, VSP/AGSP, border opening, and sprite crunch, each explicitly risk-, revision-, and ownership-bounded rather than enabled generically |
 | Audio | SID-player cadence, raster/main IRQ placement, music/SFX voice sharing, ADSR handling, table layout, and 6581/8580 consequences |
-| Loading/assets | Loader coexistence, overlays, streaming, decompression windows, placement/alignment, compile-time conversion, and justified code/data reuse |
+| Loading/assets | Loader coexistence, overlays, streaming, decompression windows, placement/alignment, compile-time conversion, justified code/data reuse, and an Integrator-style reusable-element/panel scene workflow |
 | Engine structures | Fixed pools, SoA/AoS, collision broad/narrow phases, state dispatch, function-pointer consequences, and deterministic update ordering |
+
+### Integrator-Style Asset and Scene Compilation
+
+The Last Ninja's Integrator is a named historical case study for moving expensive, error-prone
+graphics composition work to the development machine. The skill does not prescribe cloning its
+editor. It extracts a reusable compiler/toolchain design pattern:
+
+- author reusable graphical elements and collections/panels rather than storing every screen as an
+  unrelated full image;
+- compose screens at compile time and emit the smallest runtime representation appropriate to the
+  chosen renderer;
+- generate foreground/occlusion masks and explicit draw-order or priority metadata;
+- detect or report multicolor/character attribute conflicts at build time where the format permits;
+- precompute draw, erase, clipping, addressing, or lookup data when its byte cost beats runtime
+  calculation under the measured workload;
+- compare element reuse, panel reuse, precomposed data, masks, and deliberate duplication using
+  total asset bytes, loader/decompression cost, drawing/masking cycles, and update frequency;
+- preserve C64 bank, alignment, charset/bitmap, Color RAM, and destination-visibility constraints in
+  the emitted asset contract; and
+- define the zero-cost runtime API/renderer contract that consumes the generated data without
+  rediscovering scene relationships each frame.
+
+Q-P15 must distinguish compile-time asset/scene work, artifact layout, runtime loading, and runtime
+rendering responsibilities. A valid answer may choose different representations for different
+games, but it must make the choice deterministic from declared constraints and prove both the
+generated artifact and runtime cost. “Use Integrator” or “build an editor” is not a sufficient
+compiler design.
 
 ### Compiler Disposition Policy
 
@@ -248,7 +275,10 @@ Mandatory cases combine memory, hardware, game, CPU, and compiler knowledge:
 - an advanced VIC technique that is exposed through an explicit risk/revision contract and never
   selected from arbitrary source shape; and
 - a scrolling/rendering decision among pointer flips, compile-time placement/replication, dirty
-  updates, and copying using actual frame and memory budgets.
+  updates, and copying using actual frame and memory budgets; and
+- an Integrator-style scene whose reusable elements/panels, masks, priority, attribute constraints,
+  generated layout, loading path, and zero-cost renderer are traced from development asset to
+  runtime behavior.
 
 ## Evidence Baseline
 
@@ -258,6 +288,8 @@ evidence for known documentation gaps, original practitioner articles/source for
 game/demo implementations, VICE hardware-test programs, and relevant SID-player/emulation
 references. Practitioner evidence may establish that an idiom is real and show its implementation;
 hardware-semantic claims are cross-checked against stronger hardware evidence where obtainable.
+The Integrator case pins an attributable practitioner account and available reconstruction/source
+evidence, clearly separating documented workflow from inference about unavailable original tools.
 
 ## Failure Conditions
 

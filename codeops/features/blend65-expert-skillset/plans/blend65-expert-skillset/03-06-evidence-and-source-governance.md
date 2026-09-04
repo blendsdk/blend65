@@ -64,7 +64,7 @@ The implementation researches and pins at least:
 | `VICE-310-*` | Official VICE 3.10 manual/source and probes | Emulator settings, monitor, model behavior, timing evidence |
 | `VICE-TEST-*` | Version-pinned VICE hardware test programs and recorded probes | Executable edge cases for VIC-II, CIA, SID, CPU, banking, and timing under the declared model |
 | `VIC-EMP-*` | Revision-identified empirical work such as Christian Bauer's VIC-II article and Linus Åkesson's timing/Safe VSP research | Documented VIC-II timing, DMA, and silicon-sensitive behavior where original documentation is incomplete |
-| `C64-PRACTICE-*` | Original-author technique articles/source, Codebase64 pages with attributable material, and real game/demo source | Expert game idioms, implementation shapes, prerequisites, and measured tradeoffs; not sole silicon authority |
+| `C64-PRACTICE-*` | Original-author technique articles/source, attributable Integrator workflow accounts and reconstruction/source evidence, Codebase64 pages with attributable material, and real game/demo source | Expert game and cross-development asset idioms, implementation shapes, prerequisites, and measured tradeoffs; not sole silicon authority |
 | `C64-AUDIO-*` | Version-pinned GoatTracker player/docs, reSID/VICE sources, and applicable SID format/player references | SID scheduling, player integration, register-level behavior, and emulator/revision boundaries |
 | `LLVM-CODEGEN-*` | LLVM code-generator documentation | Comparative responsibility/pass model |
 | `LLVM-MOS-*` | llvm-mos implementation/SDK pinned revision | Comparative 6502 allocation, static stack, targets, runtime patterns |
@@ -75,7 +75,8 @@ URLs identified during planning include the Bitsavers MOS document archive, WDC'
 datasheet, the Zimmers C64 manual archive, LLVM's Code Generator documentation, llvm-mos SDK, the
 official ACME project/repository, the VICE project/manual/test programs, Christian Bauer's VIC-II
 article, Linus Åkesson's VIC timing and Safe VSP research, original-author Codebase64 technique
-material, and the Oscar64, KickC, Prog8, cc65, GoatTracker, and reSID projects. Execution pins exact
+material, Robin Levy's Integrator workflow account, available Integrator reconstruction/source
+evidence, and the Oscar64, KickC, Prog8, cc65, GoatTracker, and reSID projects. Execution pins exact
 versions, commits, authorship, and direct locations instead of citing a search or category page.
 
 ## Claim-Level Citation Form
