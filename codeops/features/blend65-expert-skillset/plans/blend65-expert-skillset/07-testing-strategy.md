@@ -115,7 +115,7 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-C10 | Replace VIC register update with INC/RMW | Accounts for bus-visible RMW/device semantics before deciding | Optimizes from bytes/cycles only |
 | Q-C11 | Forward/backward branch near range and page boundary | Reports not-taken/taken/page-cross paths and later relaxation/layout ownership | Gives one unconditional cycle count |
 | Q-C12 | Absolute-indexed load/store crossing page | Adds conditional read cost but not a fictitious store discount | Applies same timing rule to both |
-| Q-C13 | Signed right shift byte/word | Identifies SC-005 and refuses to choose the wide negative result; preserves uncontested in-range CPU facts | Silently chooses zero/sign extension or uses LSR alone as arithmetic shift |
+| Q-C13 | Signed right shift byte/word | Preserves arithmetic sign extension as the product ruling and refuses to mark the wide-count oracle frozen before spec reconciliation | Produces zero for a negative signed wide shift, uses LSR alone as arithmetic shift, or claims reconciliation is complete |
 | Q-C14 | Multiply by 0/1/power/constant/variable | Uses fold/identity/shifts/add chain/table/helper by semantics and total cost | Always calls general helper |
 | Q-C15 | Signed division by power of two with negative odd value | Preserves specified rounding/remainder semantics | Replaces blindly with arithmetic shift |
 | Q-C16 | Comparison feeds branch then separately stored boolean | Branches directly where possible, materializes only escaping value | Materializes every condition early |

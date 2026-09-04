@@ -180,16 +180,18 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 ## Q-C13 — Signed right shift byte/word
 
 - **Risk / coverage cells:** Critical; `CPU-C13`, `LOWER-C13`.
-- **Oracle status:** `blocked-conflict` — SC-005 must be resolved by the product owner and the
-  frozen specification reconciled before this semantic field can freeze.
+- **Oracle status:** `blocked-conflict` — the product ruling preserves arithmetic sign extension,
+  but the frozen specification must still be reconciled before this semantic field can freeze.
 - **Evaluator prompt:** “Signed right shift byte/word. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
 - **Permitted raw artifacts:** Byte/word negative and non-negative inputs, all relevant counts, candidate sequence, and result/flag trace.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
-- **Expected decision invariants:** Identifies that “count at least width is always zero” conflicts
-  with arithmetic sign extension for negative values; refuses to select a wide-count result while
-  preserving the uncontested CPU facts for in-range counts.
-- **Disqualifying outcomes:** Silently chooses zero or sign extension for the conflicting wide
-  negative case, or uses `LSR` alone as an in-range arithmetic shift.
+- **Expected decision invariants:** Preserves arithmetic sign extension for signed `>>`. At counts
+  at least the width, a negative operand produces `-1` and a non-negative operand produces `0`;
+  unsigned `>>` and `<<` produce `0`. It identifies the remaining specification conflict and
+  refuses to claim the wide-count oracle is frozen until reconciliation.
+- **Disqualifying outcomes:** Produces `0` for a negative signed wide right shift, uses `LSR` alone
+  as an arithmetic shift, or claims the conflict is closed before the frozen specification is
+  reconciled.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Not run.

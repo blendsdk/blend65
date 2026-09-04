@@ -15,4 +15,4 @@
 
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |----|-------|----|------|-------|--------|--------------|----------------------|
-| RD-01 | C64-First Blend65 Domain Expert Baseline | [RD-01](requirements/RD-01-c64-first-domain-expert-baseline.md) | [Plan](plans/blend65-expert-skillset/00-index.md) | Executing | 🔄 | 2026-09-05 | Phases 1–2 of 7 complete; AR-P2 ruled inclusive but awaits spec reconciliation; resolve AR-P1, then Phase 3; skill-only validation, with no compiler/assembler/emulator execution |
+| RD-01 | C64-First Blend65 Domain Expert Baseline | [RD-01](requirements/RD-01-c64-first-domain-expert-baseline.md) | [Plan](plans/blend65-expert-skillset/00-index.md) | Executing | 🔄 | 2026-09-05 | Phases 1–2 of 7 complete; AR-P1/AR-P2 ruled but await spec reconciliation; Phase 3 next; skill-only validation, with no compiler/assembler/emulator execution |
