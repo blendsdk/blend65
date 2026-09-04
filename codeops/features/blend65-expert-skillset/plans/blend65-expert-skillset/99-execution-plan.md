@@ -1,8 +1,8 @@
 # Execution Plan: Blend65 Expert Skillset v1.0.0
 
 > **Plan Status**: Ready for unaffected execution; final semantic qualification has one explicit prerequisite
-> **Progress**: 1/7 delivery phases (14%); 60 retained implementation substeps
-> **Last Updated**: 2026-09-04 23:20
+> **Progress**: 2/7 delivery phases (29%); 60 retained implementation substeps
+> **Last Updated**: 2026-09-05
 > **Implements**: blend65-expert-skillset/RD-01
 > **Execution mode**: Commit coherent, impact-verified checkpoints without asking; never push
 
@@ -20,7 +20,7 @@ boundary. No compiler implementation is performed.
 | 3 | Blend65 Architecture, SFA, and IL | 8 | Four compiler modules and the spec crosswalk are complete; conflicted semantics remain visibly blocked pending the independent prerequisite |
 | 4 | NMOS 6502/6510 and Lowering | 8 | CPU/effect model and lowering casebook pass behavior-and-cost focused cases |
 | 5 | C64 Platform and Game Engineering | 8 | C64 modules pass model-bounded platform/game cases; hardware-sensitive limits are labelled |
-| 6 | ACME, Artifacts, and Portability | 7 | Pinned probes and six-target constraint model pass tool/portability cases |
+| 6 | ACME, Artifacts, and Portability | 7 | Pinned authoritative behavior and six-target constraint model pass tool/portability content cases |
 | 7 | Router Migration and Definitive Qualification | 11 delivery + 2 release-tail | Spec prerequisite resolved; isolated candidate reviewed and blind-qualified; live tree migrated byte-identically; v1.0.0 content committed |
 
 ## Progress Protocol
@@ -69,7 +69,9 @@ authoritative there so this plan file stays inside the exact post-checkpoint all
   Construction states remain explicitly unqualified; after v1.0.0 activates, every substantive
   change increments at least the patch version and requalifies before atomic replacement.
 - Select verification by touched surface. Run touched Prettier, link/path/source/topology checks,
-  and relevant qualification cases. Do not run compiler tests for this skill/Markdown-only plan.
+  and content-only qualification cases. This is a skill/Markdown plan: do not execute compiler
+  builds or tests, readiness/boundary suites, ACME, VICE, or any other emulator. Executable proof
+  obligations are specified for the later compiler implementation/audit; they are not run here.
 - Commit automatically at the coherent checkpoints named below; never push.
 
 ---
@@ -148,7 +150,16 @@ audit/parity/recovery method used by later knowledge.
 
 **Reference**: 03-05 §Evidence/Recovery, 03-06, RD-01 R11–R12/R17
 
-- [ ] **P2 — External oracles and the evidence/recovery foundation are qualified.**
+> **Phase baseline tree**: `70235f65c93d2fde5661fb55ac156a375fcffd03`
+> **Scope mode**: strict
+> **Expected modification set**: `.agents/skills/blend65-domain-expert/SKILL.md`,
+> `.agents/skills/blend65-domain-expert/references/source-manifest.md`,
+> `.agents/skills/blend65-domain-expert/references/evidence-parity-and-recovery.md`,
+> `.agents/skills/blend65-domain-expert/qualification/**`, this feature's requirements and plan
+> artifacts needed to encode the no-executable-tests correction, and the feature/portfolio
+> roadmaps.
+
+- [x] **P2 — External oracles and the evidence/recovery foundation are qualified.** ✅ (implemented: 2026-09-05)
 
 1. **2.1** Research and pin frozen Blend65-spec, MOS/WDC CPU, and primary compiler-comparison
    sources in `references/source-manifest.md`, including real 6502 compilers such as llvm-mos,
@@ -159,12 +170,14 @@ audit/parity/recovery method used by later knowledge.
    source, attributable Integrator workflow/reconstruction evidence, VICE hardware tests,
    revision-identified VIC research, and SID player/emulation evidence. Record missing original
    sources or revision gaps as unresolved, not unlabelled lore.
-3. **2.3** Audit manifest dependencies and conflicts, then freeze every external-fact oracle before
-   authoring its dependent module. Before freeze, an independent reviewer verifies that each hidden
-   invariant follows from its stable source key and precise location without overgeneralization.
-   VICE facts are bounded to the configured emulator and physical claims name targeted QA. If
-   stronger evidence later proves an oracle defective, reopen only that authority gate and
-   invalidate/review its dependent content and results before correction and refreeze.
+3. **2.3** Audit manifest dependencies and conflicts, then freeze every non-conflicted
+   external-fact oracle before authoring its dependent module. A conflicted oracle remains visibly
+   blocked until its product ruling and separately authorized spec reconciliation. Before freeze,
+   an independent reviewer verifies that each hidden invariant follows from its stable source key
+   and precise location without overgeneralization. VICE facts are bounded to the configured
+   emulator and physical claims name targeted QA. If stronger evidence later proves an oracle
+   defective, reopen only that authority gate and invalidate/review its dependent content and
+   results before correction and refreeze.
 4. **2.4** Author `references/evidence-parity-and-recovery.md` for evidence levels, five
    capability states, fact/inference/unknown/recommendation separation, equivalent-work accounting,
    and expressiveness outside finite ratios.
@@ -180,8 +193,20 @@ audit/parity/recovery method used by later knowledge.
    oracles, and pinned legacy-reference hashes; bump the explicit unqualified construction version and commit the
    evidence/recovery checkpoint.
 
-**Phase verification:** content cases named in 2.6 and touched-surface checks in 2.7. No compiler
-tests run.
+**Phase verification:** content cases named in 2.6 and touched-surface checks in 2.7. No compiler,
+assembler, or emulator executable is run.
+
+### Phase 2 Quality Review
+
+> **Review state**: ✅ Three major findings were remediated; the independent re-review returned no findings.
+> **Reviewer**: Independent CodeOps correctness reviewer
+> **Spec-test integrity**: Passed — no `*.spec.test.*` file changed
+
+| Finding | Severity | Evidence | Resolution authority | Remediation |
+|---|---|---|---|---|
+| RV-001 | 🟠 Major | RD-01 AC20 contradicted the explicit skill-only verification boundary. | User's explicit 2026-09-05 instruction | Replaced with content-only checks and an explicit no-executable rule; re-review clear |
+| RV-002 | 🟠 Major | RD-01 retained the rejected multi-release path and full-verification wording. | Accepted single-active-release design | Topology, release prose, and AC17 now use only `qualification/release.md`; re-review clear |
+| RV-003 | 🟠 Major | Future-target pins lacked exact locations and the VIC-II source family lacked manufacturer evidence or a missing-source boundary. | Accepted source-depth/source-governance requirements | Added bounded hash-pinned CSG 6567 evidence, exact target identities/locations, and SRC-011; re-review clear |
 
 ---
 
@@ -251,15 +276,17 @@ casebook, correcting the stale-V danger.
    self-modifying specialization, and undocumented-opcode boundaries. Every technique receives a
    compiler disposition, recognizable preconditions, full costs, counterexample, behavior oracle,
    and assembly/cost expectation.
-7. **4.7** Complete Phase-4 coverage and run all Q-C content cases plus Q-R01 with fresh
+7. **4.7** Complete Phase-4 coverage and run all unblocked Q-C content cases plus Q-R01 with fresh
    evaluators; seed both prior V states and signed boundaries, and resolve/rerun every material
-   failure with source checks.
+   failure with source checks. Q-C13/Q-C19 remain blocked until AR-P1/AR-P2 receive product rulings
+   and the frozen spec is reconciled.
 8. **4.8** Run opcode/addressing/category completeness, source-key/link/touched-Prettier/path/
    pinned-legacy-reference hash checks; bump the unqualified construction version and commit the CPU/lowering
    checkpoint.
 
-**Phase verification:** all Q-C content cases green, including Q-C21's two independent
-expectations. No compiler tests run.
+**Phase verification:** all unblocked Q-C content cases green, including Q-C21's two independent
+expectations. Blocked semantic cases remain visible and prevent final release until reconciled. No
+compiler tests run.
 
 ---
 
@@ -294,14 +321,14 @@ game architecture, allocation, generated code, and executable evidence.
    technique families and their knowledge-to-compiler proof chains. The loader/asset family must
    include the explicit Integrator-style reusable-element/panel, mask/priority, attribute-conflict,
    emitted-layout, loading, and zero-cost-renderer case without creating an editor framework.
-7. **5.7** Complete Phase-5 coverage and run all Q-P content cases. Use VICE 3.10 as the default
-   automated runtime oracle with recorded model/options; identify targeted real-hardware QA and
-   label provisional physical claims `VICE-verified / hardware-unverified`.
+7. **5.7** Complete Phase-5 coverage and run all Q-P as content-only cases. Check that each
+   executable claim specifies the future VICE 3.10 model/options, observable expectations, and
+   targeted real-hardware QA boundary. Do not execute VICE in this skill-creation plan.
 8. **5.8** Run PAL/NTSC/chip/topic/source/link/touched-Prettier/path/pinned-legacy-reference checks; bump the
    unqualified construction version and commit the C64 checkpoint.
 
-**Phase verification:** all Q-P content cases green; required C64 coverage complete or explicitly
-hardware-provisional under the accepted status; no compiler tests run.
+**Phase verification:** all Q-P content cases green; required C64 coverage complete and every
+runtime/silicon claim has an explicit future proof boundary. No compiler or emulator test runs.
 
 ---
 
@@ -311,16 +338,18 @@ hardware-provisional under the accepted status; no compiler tests run.
 
 **Reference**: 03-05 §§ACME/Portability, RD-01 R9–R10
 
-- [ ] **P6 — ACME/artifact probes and portability constraints are content-qualified.**
+- [ ] **P6 — ACME/artifact knowledge and portability constraints are content-qualified.**
 
 1. **6.1** Author `references/acme-and-artifacts.md` for ACME 0.97 CPU mode, expressions,
    symbols/scopes, addressing/force-width, branch range, placement/alignment, data/includes,
    output, reports/labels, byte inspection, PRG packaging, and VICE boundaries.
-2. **6.2** Run fixed temporary ACME 0.97 probes for precedence, low/high symbols, addressing
-   choice, labels, branch range, origin/alignment, data directives, and actual bytes. Record exact
-   commands/results/source keys; add no permanent runner.
-3. **6.3** Run C64 PRG/header/origin and VICE 3.10 execution probes; record tool versions,
-   emulator model/options, skip/failure semantics, and tier limits.
+2. **6.2** Derive and cross-check ACME 0.97 behavior for precedence, low/high symbols, addressing
+   choice, labels, branch range, origin/alignment, data directives, and actual-byte expectations
+   from pinned official documentation/source. Specify exact future probe inputs, commands,
+   expected bytes/diagnostics, and source keys without executing ACME or adding a runner.
+3. **6.3** Specify the future C64 PRG/header/origin and VICE 3.10 execution proofs, including exact
+   expected observations, tool versions, emulator model/options, skip/failure semantics, and tier
+   limits. Do not execute VICE in this skill-creation plan.
 4. **6.4** Author the six-machine constraint matrix in `references/target-portability.md` from
    pinned primary sources, labelling C64 production-qualified and every other target
    constraint-only without unsupported detail.
@@ -329,11 +358,12 @@ hardware-provisional under the accepted status; no compiler tests run.
 6. **6.6** Complete Phase-6 coverage and run Q-A01..Q-A06, Q-A09/Q-A10, Q-A17's explicit
    portability-content facet, and Q-R12 as content cases; resolve/rerun material tool-boundary,
    claim-scope, or portability failures.
-7. **6.7** Run ACME/VICE version/probe/source/link/touched-Prettier/path/pinned-legacy-reference checks; bump
-   the unqualified construction version and commit the toolchain/portability checkpoint.
+7. **6.7** Run source-version/proof-specification/link/touched-Prettier/path/pinned-legacy-reference
+   checks; bump the unqualified construction version and commit the toolchain/portability checkpoint.
 
-**Phase verification:** required probes match recorded bytes/diagnostics, the PRG/VICE boundary is
-proven for the declared model, and selected content cases are green. No compiler tests run.
+**Phase verification:** official sources support the recorded bytes/diagnostics and the future
+PRG/VICE proof boundary is exact enough to execute during compiler work. Selected content cases
+are green. No compiler, assembler, or emulator executable is run.
 
 ---
 

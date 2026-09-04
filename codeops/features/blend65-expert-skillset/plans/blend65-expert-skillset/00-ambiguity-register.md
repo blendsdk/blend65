@@ -1,7 +1,8 @@
 # Ambiguity Register: Blend65 Expert Skillset
 
-> **Status**: ✅ GATE PASSED — all 34 items resolved
-> **Last Updated**: 2026-09-04 21:28
+> **Status**: ✅ Creation gate passed — all 34 planning items resolved; two Phase-2 runtime semantic
+> conflicts are isolated and pending product rulings before their Phase-3 crosswalk can qualify.
+> **Last Updated**: 2026-09-05 00:32
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|----------|-----------------|-------------------|---------------|--------|
@@ -39,6 +40,17 @@
 | 32 | Naming & terminology | What exact concern partitions keep qualification cases bounded and evaluator oracles separated? | Five named case files for routing/evidence, language/architecture/SFA, CPU/lowering/optimization, C64/platform/games, and parity/recovery/portability (recommended) / one monolithic case file | User chose the five named concern partitions. | ✅ Resolved |
 | 33 | Behavioral | Are C64 game-development techniques merely descriptive knowledge, or must the skill force their realization in the compiler? | Add a structured game-technique casebook inside the accepted references, mapping every technique to a deterministic compiler/API disposition and proof (recommended) / maintain a separate tricks skill or optimizer framework | User chose the structured casebook within the single skill. The skill guides development; the shipped compiler must encode deterministic mechanisms and must not depend on AI or skill prose at compile time. | ✅ Resolved |
 | 34 | Scope | Should The Last Ninja's Integrator approach remain implicit in general asset coverage or become an explicit skill qualification scenario? | Strengthen existing Q-P15 with an Integrator-style compile-time scene/asset workflow (recommended) / leave it implicit or add a separate tool/framework | User explicitly requested the Q-P15 refinement. It remains one case within the existing game/asset knowledge and adds no tool or framework. | ✅ Resolved |
+
+## Runtime Ambiguities
+
+These were discovered by the independent Phase-2 source-to-invariant review. They block only the
+named semantic fields; unaffected skill construction continues. No compiler implementation, test,
+or readiness artifact may supply the answer.
+
+| ID | Category | Runtime ambiguity | Recommendation to present | User decision | Status |
+|---|---|---|---|---|---|
+| AR-P1 | Language semantics | For a negative signed value, does `>>` with a count at least the type width produce zero, or continue arithmetic sign extension? `spec/04-expressions-operators.md:115-116` requires both incompatible outcomes, and `spec/02-type-system.md:429-446` requires sign extension. | Preserve type-aware arithmetic shift: counts at least the width produce `-1` for negative signed operands and `0` otherwise; revise the general “always 0” rule to unsigned/left-shift behavior as appropriate. | Pending product owner | ⛔ `blocked-conflict` (SC-005; Q-C13) |
+| AR-P2 | Language semantics | Is `to` inclusive with full-byte `0 to 255`, or exclusive with full-byte `0 to 256`? The normative control-flow chapter and F008 evaluation contradict each other. | Preserve the normative chapter and Kotlin-like reading: `to` is inclusive, `0 to 255` is the 256-iteration byte range, and `0 to 256` is out of range. Reconcile F008. | Pending product owner | ⛔ `blocked-conflict` (SC-006; Q-C19) |
 
 ## Controlling Preflight Refinements
 

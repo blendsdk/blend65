@@ -5,12 +5,13 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Active construction version**: `0.1.0-legacy-quarantine`
+> **Active construction version**: `0.2.0-evidence-foundation`
 > **Qualification status**: Unqualified. This version must not authorize compiler, language,
 > hardware, optimization, platform, game-design, parity, or product decisions.
 
 The previous four-reference prototype is quarantined while the independently sourced `1.0.0`
-baseline is built. Its references remain only as read-only migration evidence. They may be
+baseline is built. The new source manifest and evidence/recovery method are construction material,
+not active decision authority. The old references remain only as read-only migration evidence. They may be
 inspected to ensure that no useful old rule disappears, but their statements are not facts and
 must not determine new qualification expectations or compiler architecture.
 

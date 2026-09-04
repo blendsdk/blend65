@@ -1,7 +1,9 @@
 # Qualification Cases: Parity, Recovery, and Portability
 
 > **Oracle family**: Q-A01..Q-A17
-> **Authority gate**: Project recovery/version/parity rules freeze in Phase 1. ACME, VICE, artifact, and target-fact expectations remain draft until Phase 2 evidence review.
+> **Authority gate**: Project recovery/version/parity rules are frozen. ACME/artifact expectations
+> are `frozen-external` after the Phase 2 review. Q-A06 and Q-A09 are project-policy oracles; their
+> raw tool/target artifacts are evaluation inputs rather than hidden authority.
 > **Result policy**: Result entries are append-only. “Not run” is not a pass, and a skipped runtime observation is never green.
 
 ## Shared Isolation Boundary
@@ -11,7 +13,7 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 ## Q-A01 — ACME source looks ZP-sized but symbol resolves above `$FF`
 
 - **Risk / coverage cells:** Major; `AUDIT-A01`, `PORT-A01`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “ACME source looks ZP-sized but symbol resolves above `$FF`. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** ACME source, symbol values/listing, assembled bytes, and serializer output.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -24,7 +26,7 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 ## Q-A02 — ACME precedence/low-high expression ambiguity
 
 - **Risk / coverage cells:** Major; `AUDIT-A02`, `PORT-A02`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “ACME precedence/low-high expression ambiguity. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** The exact ACME 0.97 expression, official/probe context, assembled bytes, and symbol report.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -38,7 +40,7 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 ## Q-A03 — Automatic ZP/absolute selection boundary
 
 - **Risk / coverage cells:** Major; `AUDIT-A03`, `PORT-A03`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Automatic ZP/absolute selection boundary. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** Literal/symbol boundary cases, forced-width variants, ACME 0.97 commands, bytes, and cycle model.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -52,7 +54,7 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 ## Q-A04 — Out-of-range relative branch
 
 - **Risk / coverage cells:** Critical; `AUDIT-A04`, `PORT-A04`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Out-of-range relative branch. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** Near/far branch sources, displacement/layout, compiler output, ACME result, and assembled bytes on success.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -66,7 +68,7 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 ## Q-A05 — Build C64 PRG
 
 - **Risk / coverage cells:** Critical; `AUDIT-A05`, `PORT-A05`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Build C64 PRG. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** Output file bytes, load origin, symbol/startup report, and selected C64 artifact configuration.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -80,7 +82,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 ## Q-A06 — VICE test skipped because emulator missing
 
 - **Risk / coverage cells:** Critical; `AUDIT-A06`, `PORT-A06`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-project` — the accepted five-status policy governs skip reporting;
+  VICE artifacts are isolated evaluation inputs, not the source of the oracle.
 - **Evaluator prompt:** “VICE test skipped because emulator missing. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** Test command/output, emulator/tool discovery state, skip reason, and absence of runtime observation.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -102,7 +105,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Announces win from routine bytes alone.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Pre-passer — equivalent work and complete attributable code/data/padding/ZP/frame/stack/helper costs are explicit (`evidence-and-parity.md:57-84`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator rejected the apparent 8-byte local win after adding the
+  64-byte table and 12-byte helper (net +68 bytes) and recorded the extra 2 ZP bytes; path/page
+  timing remained unknown rather than being invented.
 - **Definitive result:** Not run.
 
 ## Q-A08 — Expert routine cannot be written in ordinary Blend65 source
@@ -116,13 +121,15 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Omits program from scoreboard and calls parity good.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator classified the expressiveness boundary `Incorrect`, kept
+  it outside any finite parity ratio, and required an owned language/compiler gap plus proof.
 - **Definitive result:** Not run.
 
 ## Q-A09 — Atari/X16 plugin delegates C64 startup/output hooks
 
 - **Risk / coverage cells:** Critical; `AUDIT-A09`, `PORT-A09`.
-- **Oracle status:** `draft-external` — external tool/platform facts require Phase 2 source-to-oracle review.
+- **Oracle status:** `frozen-project` — the accepted target-boundary and five-status policies govern
+  delegation; target declarations are isolated evaluation inputs, not hidden oracle authority.
 - **Evaluator prompt:** “Atari/X16 plugin delegates C64 startup/output hooks. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
 - **Permitted raw artifacts:** The non-C64 platform plugin, delegated hooks, target declarations, assembled/artifact/runtime evidence, and missing evidence.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
@@ -158,7 +165,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Preserves because it exists or has coverage.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — after the bounded consumer/unique-failure check, the evaluator selected
+  deletion and did not propose a replacement meta-harness.
 - **Definitive result:** Not run.
 
 ## Q-A12 — Existing subsystem is complex but correct on one slice
@@ -172,7 +180,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Keeps from sunk cost or rewrites from aesthetics.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator limited `Verified partial` to the proven slice, left the
+  wider subsystem unknown, and withheld keep/rewrite until contract, consumer, boundary, and
+  recovery-cost evidence exists.
 - **Definitive result:** Not run.
 
 ## Q-A13 — Generated local routines meet expert, global layout improves program
@@ -186,7 +196,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Claims every routine individually beats physical optimum.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator reported the local ratio as 1.0 (meet) separately from
+  the whole-program 200-byte layout win (beat), without claiming an impossible per-routine win.
 - **Definitive result:** Not run.
 
 ## Q-A14 — Request ordinary baseline edit during compiler audit
@@ -228,7 +239,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Quotes v1.0.0 current-state observation as fact.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator classified current completeness `Unknown` until the live
+  pipeline and artifacts are reinspected; it did not reuse stale readiness or historical claims.
 - **Definitive result:** Not run.
 
 ## Q-A17 — Add a future target

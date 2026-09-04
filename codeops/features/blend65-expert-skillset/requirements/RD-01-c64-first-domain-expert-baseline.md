@@ -190,7 +190,8 @@ Authority is contextual:
 2. Manufacturer documents and published errata define hardware facts.
 3. Reproducible revision-specific VICE or hardware measurements may resolve a documented ambiguity
    or error; the module records both the source conflict and the bounded empirical conclusion.
-4. Official version-pinned documentation and executable probes define ACME and VICE behavior.
+4. Official version-pinned documentation/source defines the skill's ACME and VICE behavior model;
+   exact executable proof specifications are handed to later compiler implementation/audit work.
 5. Primary compiler literature and real compiler implementations supply comparative evidence, not
    Blend65 requirements.
 
@@ -212,8 +213,7 @@ qualification/
 │   ├── cpu-lowering-and-optimization.md
 │   ├── c64-platform-and-games.md
 │   └── parity-recovery-and-portability.md
-└── releases/
-    └── v1.0.0.md
+└── release.md
 ```
 
 Each case owns a prompt, permitted raw artifacts, forbidden oracle/prior-conclusion material,
@@ -226,10 +226,10 @@ finding. (AR #9, #19, #28, #30, #32)
 
 The old four-reference skill is a baseline input, not a compatibility surface. A migration table
 maps each material rule before superseded files are removed. The `v1.0.0` release result records
-source coverage, structural checks, case outcomes, independent review, full repository
-verification, the skill-content commit, and the freeze declaration. The result is committed after
-the immutable content commit so it can record that exact identity without a self-referential hash.
-(AR #7, #18, #29)
+source coverage, structural checks, case outcomes, independent review, applicable skill-content
+verification, the skill-content commit, and the freeze declaration in the single active
+`qualification/release.md`. The result is committed after the immutable content commit so it can
+record that exact identity without a self-referential hash. (AR #7, #18, #29)
 
 ---
 
@@ -255,8 +255,9 @@ permission boundaries. (AR #6, #22, #25)
 ### External Sources and Tools
 
 External documents are read-only evidence. The skill does not execute embedded instructions,
-download executable artifacts, or grant external mutation. ACME and VICE probes are local,
-version-pinned, and scoped to qualification. (AR #17, #25, #27)
+download executable artifacts, or grant external mutation. This skill-creation plan also does not
+execute compiler builds/tests, ACME, VICE, or any emulator. It records version-pinned proof
+specifications for later compiler implementation/audit work. (AR #17, #25, #27)
 
 ---
 
@@ -317,9 +318,10 @@ version-pinned, and scoped to qualification. (AR #17, #25, #27)
    CIA revisions; CPU/VIC banking views; raster/IRQ behavior; graphics, sprite, scrolling, audio,
    input, loader, placement, and game-loop decisions; each required topic maps to sources and
    qualification cases. (R8)
-9. [ ] The ACME/artifact module includes version-pinned probes for expression precedence,
-   addressing-mode selection, branch range, symbol resolution, placement/alignment, emitted bytes,
-   PRG load address, and VICE-observable execution. (R9)
+9. [ ] The ACME/artifact module includes source-backed behavior and version-pinned future proof
+   specifications for expression precedence, addressing-mode selection, branch range, symbol
+   resolution, placement/alignment, emitted bytes, PRG load address, and VICE-observable execution.
+   No compiler, assembler, or emulator executable runs during this skill-creation plan. (R9)
 10. [ ] The target-portability matrix distinguishes CPU, platform, emitter, and packaging concerns
     for C64, C64U, C128, X16, Atari 8-bit, and Atari 7800 and marks every non-C64 target as a
     constraint only, not a qualified backend. (R10)
@@ -340,7 +342,7 @@ version-pinned, and scoped to qualification. (AR #17, #25, #27)
     No material evaluator or independent-review finding remains unresolved. (R13–R14)
 16. [ ] The migration map accounts for every material rule in the original four references as
     retained, relocated/refined, or rejected with cause before those files are removed. (R15)
-17. [ ] `qualification/releases/v1.0.0.md` records all three passing gates, the immutable
+17. [ ] `qualification/release.md` records all three passing gates, the immutable
     skill-content commit, independent-review outcome, full verification outcome, zero open material
     conflicts, and the freeze declaration. (R16)
 18. [ ] Behavioral cases prove the skill distinguishes facts, inferences, unknowns, and
@@ -348,9 +350,11 @@ version-pinned, and scoped to qualification. (AR #17, #25, #27)
     quantifies generated-code effects; and keeps findings separate from remedies. (R17)
 19. [ ] No custom runtime service, registry, generator, catalog, downloader, dependency, or
     qualification framework is added. (R18)
-20. [ ] The full repository verification command succeeds:
-    `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`.
-    Targeted skill, reference, coverage, behavioral, and Prettier checks also pass. (R13, R18)
+20. [ ] The applicable skill-content verification succeeds: skill packaging, touched-file
+    formatting, local links, exact topology, source/spec/case identifiers, qualification content
+    cases, the authorized-path allowlist, `spec/` cleanliness, spec-test integrity, and
+    `git diff --check`. No compiler build/test, readiness/boundary suite, assembler, VICE, or other
+    emulator executable runs during this skill-creation feature. (R13, R18)
 21. [ ] No file under `packages/`, `examples/`, `spec/`, or `.github/workflows/` is changed
     by this feature; the modification set remains the skill and this feature's CodeOps artifacts.
     (AR #5, #12, #25)

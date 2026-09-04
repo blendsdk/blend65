@@ -18,7 +18,7 @@ blocking unknowns.
 | 1 | Blend65 language meaning | Reconciled frozen `spec/` plus explicit product rulings from the bounded consistency prerequisite | Does not define physical hardware truth; unresolved internal contradictions block affected oracle freeze and are never resolved from compiler behavior |
 | 2 | Hardware behavior | Manufacturer manuals, datasheets, schematics, published errata | Revision and documentation defects must be recorded |
 | 3 | Disputed/revision-sensitive physical behavior | Revision-identified physical measurement or stronger silicon evidence | Bounded to exact hardware/configuration; method and raw result required |
-| 4 | ACME/VICE behavior | Official version-pinned documentation/source plus executable probes | VICE 3.10 is the primary automated runtime oracle for its declared model; it does not redefine Blend65 semantics or prove universal silicon behavior |
+| 4 | ACME/VICE behavior model | Official version-pinned documentation/source; later execution is governed by exact proof specifications | VICE 3.10 is the designated future automated runtime oracle for its declared model; it does not redefine Blend65 semantics or prove universal silicon behavior |
 | 5 | Compiler methods | Primary literature and real compiler implementations | Comparative evidence only; no design is copied merely because it is established elsewhere |
 | 6 | Game-development idioms | Original practitioner explanation/source plus real game/demo implementations | Authoritative for the existence, intent, and implementation of an idiom; hardware-semantic claims still require ranks 2–4 |
 
@@ -43,7 +43,7 @@ Every source entry has:
 | Precision | Page/section/table/figure or source file/symbol conventions used by citations |
 | Known issues | Errata, ambiguity, missing revision detail, OCR risk, or disagreement |
 | Local extraction | Any exact table/excerpt distilled locally and why it is operationally necessary |
-| Verification | Cross-check or executable probe where applicable |
+| Verification | Independent source cross-check now; exact future executable proof where applicable |
 
 ## Initial Required Source Families
 
@@ -60,9 +60,9 @@ The implementation researches and pins at least:
 | `MOS/CSG-VIC-*` | Original VIC-II documentation plus bounded measurements | Registers, timing, DMA, revision variants |
 | `MOS/CSG-SID-*` | Original SID documentation plus bounded measurements | Programmer-visible audio/register behavior and revision variants |
 | `MOS/CSG-CIA-*` | Original 6526 documentation plus bounded measurements | Timers, ports, interrupts, revision behavior |
-| `ACME-097-*` | Official ACME 0.97 release/repository docs and probes | Syntax, expressions, addressing, directives, output |
-| `VICE-310-*` | Official VICE 3.10 manual/source and probes | Emulator settings, monitor, model behavior, timing evidence |
-| `VICE-TEST-*` | Version-pinned VICE hardware test programs and recorded probes | Executable edge cases for VIC-II, CIA, SID, CPU, banking, and timing under the declared model |
+| `ACME-097-*` | Official ACME 0.97 release/repository documentation and source | Syntax, expressions, addressing, directives, output, and later proof specifications |
+| `VICE-310-*` | Official VICE 3.10 manual/source | Emulator settings, monitor, model behavior, timing evidence, and later proof specifications |
+| `VICE-TEST-*` | Version-pinned VICE hardware test-program source | Existing executable edge-case evidence and future test design for VIC-II, CIA, SID, CPU, banking, and timing under the declared model; not executed here |
 | `VIC-EMP-*` | Revision-identified empirical work such as Christian Bauer's VIC-II article and Linus Åkesson's timing/Safe VSP research | Documented VIC-II timing, DMA, and silicon-sensitive behavior where original documentation is incomplete |
 | `C64-PRACTICE-*` | Original-author technique articles/source, attributable Integrator workflow accounts and reconstruction/source evidence, Codebase64 pages with attributable material, and real game/demo source | Expert game and cross-development asset idioms, implementation shapes, prerequisites, and measured tradeoffs; not sole silicon authority |
 | `C64-AUDIO-*` | Version-pinned GoatTracker player/docs, reSID/VICE sources, and applicable SID format/player references | SID scheduling, player integration, register-level behavior, and emulator/revision boundaries |
@@ -96,7 +96,8 @@ For each coverage group:
 1. identify the strongest viable authority and exact revision;
 2. capture the material fact with precise location;
 3. look for errata, cross-revision differences, or contrary primary evidence;
-4. reproduce a tool/emulator claim when documentation is ambiguous and a bounded probe is viable;
+4. specify a bounded future tool/emulator proof when documentation is ambiguous; do not execute it
+   during this skill-creation plan;
 5. translate the fact into compiler/platform/game consequences and failure cases;
 6. draft the qualification case before finalizing guidance;
 7. add claim-level citations and manifest dependency links; and
@@ -149,7 +150,7 @@ loading and avoids turning the skill into an archive rather than a decision know
 - every cited key exists exactly once in the manifest;
 - every manifest entry names dependent sections;
 - every external URL is direct and reviewed at release time;
-- tool behavior includes version and probe evidence;
+- tool behavior includes version-pinned source evidence and exact future proof specifications;
 - no required cell depends solely on a weak secondary source; and
 - every required game-technique cell distinguishes idiom evidence, hardware evidence, and the
   compiler-realization recommendation; and

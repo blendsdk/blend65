@@ -1,7 +1,9 @@
 # Qualification Cases: C64 Platform and Games
 
 > **Oracle family**: Q-P01..Q-P21
-> **Authority gate**: `draft-external` in Phase 1. Hardware, timing, tool-observed, revision, and practitioner-workflow expectations freeze only after Phase 2 pins evidence and passes independent source-to-oracle review.
+> **Authority gate**: Hardware, timing, tool-observed, revision, and practitioner-workflow
+> expectations are `frozen-external` after the Phase 2 independent source-to-invariant review.
+> This freezes the oracle, not the still-unwritten replacement knowledge or its later results.
 > **Project constraints already fixed**: Modern source ergonomics, placement over copying, deterministic compiler/API realization, zero hidden runtime skill dependency, complete cost accounting, and targeted physical QA for silicon-sensitive claims.
 > **Result policy**: Result entries are append-only. Draft observations cannot count as release pass/fail evidence.
 
@@ -12,7 +14,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P01 — CPU writes RAM under I/O while VIC reads display data
 
 - **Risk / coverage cells:** Critical; `C64-P01`, `GAME-P01`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “CPU writes RAM under I/O while VIC reads display data. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** CPU `$0001` state, CIA2 VIC-bank state, target addresses/data, CPU/VIC observations, and declared machine model.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -26,7 +28,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P02 — Mainline changes `$01` while IRQ may run
 
 - **Risk / coverage cells:** Critical; `C64-P02`, `GAME-P02`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Mainline changes `$01` while IRQ may run. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Mainline and IRQ code, `$0001` ownership protocol, interrupt-mask state, and observable memory/device accesses.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -40,7 +42,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P03 — Move charset/screen to another VIC bank
 
 - **Risk / coverage cells:** Major; `C64-P03`, `GAME-P03`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Move charset/screen to another VIC bank. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Screen/charset declarations, VIC bank/base-register state, required alignment, placement map, and proposed copy/flip operations.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -54,7 +56,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P04 — Raster workload budgeted for both PAL and NTSC
 
 - **Risk / coverage cells:** Critical; `C64-P04`, `GAME-P04`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Raster workload budgeted for both PAL and NTSC. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Raster schedule, PAL and NTSC model identifiers, line/cycle budgets, and all conditional paths.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -68,7 +70,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P05 — Work scheduled on a badline
 
 - **Risk / coverage cells:** Critical; `C64-P05`, `GAME-P05`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Work scheduled on a badline. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Raster line/model, badline conditions, instruction schedule, VIC state, and bus-cycle observation.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -82,7 +84,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P06 — Eight sprites active during raster work
 
 - **Risk / coverage cells:** Critical; `C64-P06`, `GAME-P06`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Eight sprites active during raster work. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Sprite enable/Y positions, raster line/model, DMA schedule, and candidate CPU workload.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -96,7 +98,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P07 — Install compiler RTI handler through KERNAL vector versus raw vector
 
 - **Risk / coverage cells:** Critical; `C64-P07`, `GAME-P07`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Install compiler RTI handler through KERNAL vector versus raw vector. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Handler source/assembly, vector path, ROM banking, KERNAL/raw entry assumptions, saved registers, and exit sequence.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -110,7 +112,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P08 — Acknowledge VIC raster IRQ
 
 - **Risk / coverage cells:** Critical; `C64-P08`, `GAME-P08`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Acknowledge VIC raster IRQ. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** VIC IRQ status/mask values, proposed acknowledge sequence, and read/write trace.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -124,7 +126,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P09 — CIA interrupt-control register read/write
 
 - **Risk / coverage cells:** Critical; `C64-P09`, `GAME-P09`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “CIA interrupt-control register read/write. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** CIA ICR operation, prior mask/pending state, proposed reads/writes, and resulting trace.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -138,7 +140,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P10 — Scan joystick/keyboard while CIA2 selects VIC bank
 
 - **Risk / coverage cells:** Critical; `C64-P10`, `GAME-P10`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Scan joystick/keyboard while CIA2 selects VIC bank. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Joystick/keyboard scan, CIA port directions/latches, VIC-bank selection, and ownership requirements.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -152,7 +154,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P11 — Design SID-player scheduling and music/SFX sharing across 6581/8580
 
 - **Risk / coverage cells:** Major; `C64-P11`, `GAME-P11`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Design SID-player scheduling and music/SFX sharing across 6581/8580. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** SID player/SFX contract, cadence, IRQ ownership, voice/table layout, 6581/8580 assumptions, and reference register/audio traces.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -166,7 +168,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P12 — Double-buffer screen/charset across visibility regions
 
 - **Risk / coverage cells:** Major; `C64-P12`, `GAME-P12`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Double-buffer screen/charset across visibility regions. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Two evolving screen/charset states, visibility regions, base pointers, memory budget, update cost, and copy/flip candidates.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -180,7 +182,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P13 — Sprite multiplexer with IRQ-only sorter/update helpers
 
 - **Risk / coverage cells:** Major; `C64-P13`, `GAME-P13`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Sprite multiplexer with IRQ-only sorter/update helpers. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Object list, raster schedule, sorter/update call graph, IRQ/mainline reachability, scratch/frame plan, and emitted hot-path assembly.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -194,7 +196,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P14 — Named `vic.borderColor.set(5)`-style wrapper
 
 - **Risk / coverage cells:** Major; `C64-P14`, `GAME-P14`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Named `vic.borderColor.set(5)`-style wrapper. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** The named wrapper call, constant argument, selected register, candidate lowering/assembly, and expert direct-store baseline.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -208,7 +210,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P15 — Design an Integrator-style compile-time scene/asset pipeline for a large visible game area
 
 - **Risk / coverage cells:** Major; `C64-P15`, `GAME-P15`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Design an Integrator-style compile-time scene/asset pipeline for a large visible game area. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Reusable elements/panels, scene composition input, foreground/occlusion/priority rules, multicolor attributes, memory and draw/mask budgets, emitted layout, loader/visibility contract, and runtime renderer trace.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -222,7 +224,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P16 — Design entity storage, collision, and state dispatch for a fixed game workload
 
 - **Risk / coverage cells:** Major; `C64-P16`, `GAME-P16`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Design entity storage, collision, and state dispatch for a fixed game workload. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Fixed workload, hot queries/updates, entity fields, collision phases, state-dispatch needs, call/interrupt graph, and candidate layouts.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -236,7 +238,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P17 — Stable raster region calls variable-path logic or a helper
 
 - **Risk / coverage cells:** Critical; `C64-P17`, `GAME-P17`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Stable raster region calls variable-path logic or a helper. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Stable raster region, all callee/control paths, declared cycle contract, platform timing facts, and candidate schedule.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -250,7 +252,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P18 — Request VSP/AGSP for a general C64 build
 
 - **Risk / coverage cells:** Critical; `C64-P18`, `GAME-P18`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Request VSP/AGSP for a general C64 build. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Requested VSP/AGSP effect, exact chip/board/video assumptions, safe alternatives, VICE trace, and available physical-QA evidence.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -264,7 +266,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P19 — Use FLI/FLD/line-crunch/border/sprite-crunch technique
 
 - **Risk / coverage cells:** Critical; `C64-P19`, `GAME-P19`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Use FLI/FLD/line-crunch/border/sprite-crunch technique. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Named display technique, required visual intent, exact timing/layout/banking/IRQ ownership, API proposal, and reference effect trace.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -278,7 +280,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P20 — Optimize a scrolling/rendering hot path
 
 - **Risk / coverage cells:** Major; `C64-P20`, `GAME-P20`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Optimize a scrolling/rendering hot path. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Scrolling/rendering workload, frame budget, memory map, dirty regions, candidate placement/replication/table/unroll/copy strategies, and whole-program costs.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
@@ -292,7 +294,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 ## Q-P21 — Bake a sprite-multiplexer technique into Blend65 support
 
 - **Risk / coverage cells:** Major; `C64-P21`, `GAME-P21`.
-- **Oracle status:** `draft-external` — project constraints are fixed, but the complete case freezes only after Phase 2 evidence review.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Bake a sprite-multiplexer technique into Blend65 support. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Desired sprite-multiplexer behavior, modern source/API sketch, target facts, schedule/data plan, SFA/IRQ graph, lowering/layout alternatives, and proof artifacts.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.

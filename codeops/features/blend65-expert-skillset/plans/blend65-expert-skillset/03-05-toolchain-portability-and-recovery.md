@@ -14,13 +14,13 @@ the later Blend65 recovery audit without preserving complexity merely because it
 
 ### Qualified Tool Baseline
 
-The v1.0.0 knowledge and probes pin the locally accepted baseline:
+The v1.0.0 knowledge and future proof specifications pin the accepted baseline:
 
 | Tool | Version/model | Authority |
 |---|---|---|
-| ACME | 0.97 “Zem”, 2021-01-31 | Official release/repository documentation plus executable probes |
-| VICE | `x64sc` 3.10 | VICE 3.10 manual/source plus executable monitor/runtime probes |
-| Target artifact | C64 PRG | Commodore format/startup sources plus assembled-byte inspection |
+| ACME | 0.97 “Zem”, 2020-06-28, official SVN r266 | Official release/repository documentation and source |
+| VICE | `x64sc` 3.10 | VICE 3.10 manual and source |
+| Target artifact | C64 PRG | Commodore format/startup sources plus a specified later byte-inspection procedure |
 
 If execution discovers the repository intentionally targets another exact ACME build, that is
 material evidence: stop, add a runtime ambiguity, and reconcile the required baseline rather than
@@ -40,9 +40,10 @@ silently changing it.
 | Output | PRG versus raw output flags/directives, report/symbol/label artifacts, error behavior |
 | Inspection | Compare source intent, listing/report, labels, and actual binary bytes; never infer encoding from emitted text alone |
 
-### Mandatory Executable Probes
+### Mandatory Future Proof Specifications
 
-Small temporary inputs—never a new permanent framework—pin:
+The module gives small, exact, version-pinned inputs and expected observations—never a new
+permanent framework—for later compiler implementation/audit work to prove:
 
 1. expression precedence and low/high symbolic-byte results;
 2. ZP versus absolute addressing selection at value and symbol boundaries;
@@ -54,9 +55,10 @@ Small temporary inputs—never a new permanent framework—pin:
 8. PRG two-byte load address and body origin agreement; and
 9. a VICE-observable program proving the assembled artifact executes at the declared address.
 
-Each probe records source, exact command, tool version, expected bytes/diagnostic, observed result,
-and the knowledge section it validates. Shell input is fixed repository-owned text; no external
-content is executed.
+Each proof specification records source, exact future command, tool version, expected
+bytes/diagnostic or emulator observation, and the knowledge section it validates. This
+skill-creation plan does not execute ACME, VICE, a compiler build/test, or any emulator. A later
+execution result must be recorded separately and must never be invented from the specification.
 
 ### Emitter Boundary
 

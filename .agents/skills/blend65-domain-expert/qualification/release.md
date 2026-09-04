@@ -1,9 +1,9 @@
 # Blend65 Domain Expert Release Record
 
-> **Active construction version**: `0.1.0-legacy-quarantine`
+> **Active construction version**: `0.2.0-evidence-foundation`
 > **Target baseline**: `1.0.0`
 > **Status**: Draft — unqualified; no release gate is claimed green
-> **Recorded**: 2026-09-04
+> **Recorded**: 2026-09-05
 
 ## Identity
 
@@ -16,8 +16,8 @@
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Construction router | `0.1.0-legacy-quarantine`; explicitly unqualified and non-authoritative |
-| Quarantine router SHA-256 | `35e495fbc6e18665dfdf3c09b3b0e1b039a2da8ebd06291e6832523bab2e92ae` |
+| Construction router | `0.2.0-evidence-foundation`; explicitly unqualified and non-authoritative |
+| Construction router SHA-256 | `3d8e214bb5f9e252671a73264b744183ce4c414f685268c89e812335bfb8a4c2` |
 | Qualified content commit | — |
 | Superseded qualified version | None; the legacy prototype was never qualified |
 
@@ -25,10 +25,10 @@
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Incomplete | Quarantine router validates, but the accepted thirteen-reference final topology does not yet exist. |
-| Coverage and traceability | Incomplete | 100 case shells and 50 spec-path rows exist; replacement depth/source cells are intentionally incomplete. |
-| Behavioral | Incomplete | Red baseline recorded below; no candidate focused or definitive blind run exists. |
-| Specification consistency prerequisite | Blocked | SC-001..SC-004 in the coverage matrix require product rulings and separately authorized reconciled spec commits. |
+| Structural | Incomplete | Quarantine router and two Phase 2 construction references exist, but the accepted thirteen-reference final topology does not yet exist. |
+| Coverage and traceability | Incomplete | The 100 case shells, 50 spec paths, source manifest, and Phase-2 source facets exist. Forty-seven external oracles are frozen after independent review; later replacement depth cells remain incomplete. |
+| Behavioral | Incomplete | The Phase-2 evidence/recovery subset has 11 focused passes; later module cases and a definitive blind run remain outstanding. |
+| Specification consistency prerequisite | Blocked | SC-001..SC-006 in the coverage matrix require product rulings and separately authorized reconciled spec commits. |
 
 ## Red-Baseline Method
 
@@ -65,6 +65,40 @@ The red subset therefore exposes material insufficiency even though several good
 pre-pass. Pre-passers stay recorded; they are not forced red and do not make legacy prose
 authoritative.
 
+## Phase-2 Source-to-Invariant Review
+
+The independent source reviewer examined all 53 cases that originally crossed the external
+authority gate. The first pass found six major precision/authority problems. Remediation replaced
+dead datasheet links with identity-and-hash-pinned mirrors, added exact MOS/spec/ACME locations,
+added revision-specific KERNAL and practitioner source symbols, removed placeholder citations, and
+separated external facts from project method. Four cases—Q-C21, Q-A06, Q-A09, and Q-R06—were
+correctly reclassified as project-policy oracles.
+
+The second pass found two real frozen-spec conflicts, one overbroad signed-division case, and two
+citation defects. Q-C13 is blocked by SC-005, Q-C19 by SC-006, and Q-C15 is now explicitly
+quotient-only. ACME evaluation and evidence anchors were corrected. The final narrow re-review
+returned no findings and authorized all 47 non-conflicted external cases as `frozen-external`.
+No assembler, emulator, or physical-hardware observation was run or claimed.
+
+## Phase-2 Focused Results
+
+Each evaluator received only the named construction references and prompt, not the hidden oracle,
+coverage matrix, plan, legacy conclusions, prior outputs, or author history.
+
+| Cases | Result | What the result establishes |
+|---|---|---|
+| Q-R05 | Pass | Essential knowledge is locally usable; URLs remain provenance only. |
+| Q-R06 | Pass | Manufacturer and configured-VICE claims stay bounded; silicon-sensitive physical behavior remains `Unknown` pending targeted hardware QA. |
+| Q-R07 | Pass | Parser plus assembly-shape evidence yields only a precisely bounded `Verified partial`. |
+| Q-R08 | Pass | One local rewrite does not justify a generalized pass registry. |
+| Q-R09 | Pass | Imperative text inside an external source remains inert and untrusted. |
+| Q-A07 | Pass | Table/helper/ZP costs reverse a false local win; unmeasured path/page timing stays unknown. |
+| Q-A08 | Pass | An unexpressible program is `Incorrect` and outside any finite parity ratio. |
+| Q-A11 | Pass | A no-unique-value readiness layer is deleted without creating a replacement meta-harness. |
+| Q-A12 | Pass | One proven slice is `Verified partial`; salvage waits for contract/boundary/recovery-cost evidence. |
+| Q-A13 | Pass | Local 1.0 parity and the 200-byte whole-program win are reported separately. |
+| Q-A16 | Pass | Mutable compiler completeness is `Unknown` until the live pipeline is reinspected. |
+
 ## Migration
 
 The coverage matrix pins every material legacy heading and its planned destination. All rows remain
@@ -85,13 +119,37 @@ cleanliness, spec-test integrity, and `git diff --check` are green. The independ
 returned no findings. No compiler package, readiness, boundary, emulator, or full repository test
 is applicable to this Markdown-only construction checkpoint.
 
+Phase-2 content verification passed on 2026-09-05. The skill packaging validator and touched-file
+Prettier check are green. The case files and matrix contain the same 100 unique case IDs; the live
+specification and matrix contain the same 50 Markdown paths; all non-policy source-audit rows name
+a defined stable source; all 47 non-conflicted external oracles are frozen; the four reclassified
+project-policy oracles and two externally gated blocked conflicts have their exact expected states;
+and all 11 focused evidence/recovery cases record a pass. The current construction-router identity,
+five unchanged legacy-evidence hashes, strict Phase-2 path allowlist, roadmap links, `spec/`
+cleanliness, spec-test integrity, and `git diff --check` also pass. This was content validation only:
+no compiler build or test, assembler, VICE or other emulator executable, emulator probe, readiness
+suite, or physical-hardware proof ran or is claimed.
+
 ## Post-phase Review
+
+### Phase 1
 
 | Finding | User ruling | Remediation state |
 |---|---|---|
 | RV-001 — Q-L21 packet and matrix row were truncated | Accepted 2026-09-04 | Implemented and verified; independent re-review found no remaining issue |
 | RV-002 — Q-L23 ignored a frozen-spec contradiction | Accepted 2026-09-04 | SC-004 recorded and case blocked; independent re-review found no remaining issue |
 | RV-003 — legacy-router identity rule contradicted quarantine replacement | Accepted 2026-09-04 | Historical/live identities split; independent re-review found no remaining issue |
+
+### Phase 2
+
+| Finding | Resolution authority | Remediation state |
+|---|---|---|
+| RV-001 — AC20 still required compiler/full-repository verification | User's explicit skill-only verification instruction, 2026-09-05 | Replaced with applicable content checks and an explicit no-executable boundary; re-review clear |
+| RV-002 — requirements retained obsolete multi-release path and full-verification wording | Accepted single-active-release design | Topology, release prose, and AC17 now use only `qualification/release.md`; re-review clear |
+| RV-003 — future-target precision was overstated and no manufacturer VIC-II source was pinned | Accepted source-depth and source-governance requirements | Added bounded hash-pinned CSG 6567 evidence, exact target locations/identities, and SRC-011; re-review clear |
+
+The independent re-review found no remaining critical or major issue. Spec-test integrity remained
+intact, and no compiler, assembler, readiness, emulator, or hardware execution was performed.
 
 ## Freeze Declaration
 

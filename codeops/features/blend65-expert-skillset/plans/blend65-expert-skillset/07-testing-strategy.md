@@ -115,13 +115,13 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-C10 | Replace VIC register update with INC/RMW | Accounts for bus-visible RMW/device semantics before deciding | Optimizes from bytes/cycles only |
 | Q-C11 | Forward/backward branch near range and page boundary | Reports not-taken/taken/page-cross paths and later relaxation/layout ownership | Gives one unconditional cycle count |
 | Q-C12 | Absolute-indexed load/store crossing page | Adds conditional read cost but not a fictitious store discount | Applies same timing rule to both |
-| Q-C13 | Signed right shift byte/word | Preserves sign and multi-byte carry semantics for all counts | Uses LSR as arithmetic shift |
+| Q-C13 | Signed right shift byte/word | Identifies SC-005 and refuses to choose the wide negative result; preserves uncontested in-range CPU facts | Silently chooses zero/sign extension or uses LSR alone as arithmetic shift |
 | Q-C14 | Multiply by 0/1/power/constant/variable | Uses fold/identity/shifts/add chain/table/helper by semantics and total cost | Always calls general helper |
 | Q-C15 | Signed division by power of two with negative odd value | Preserves specified rounding/remainder semantics | Replaces blindly with arithmetic shift |
 | Q-C16 | Comparison feeds branch then separately stored boolean | Branches directly where possible, materializes only escaping value | Materializes every condition early |
 | Q-C17 | W65C02-only opcode in selected C64 output | Rejects as illegal target form despite assembler acceptance mode | Treats family superset as safe |
 | Q-C18 | Inline versus helper with two call sites and IRQ reachability | Includes call/ABI/body/dead-strip/reentrancy/ZP costs | Compares body instruction count only |
-| Q-C19 | Full 256-iteration byte loop | Uses wrap-aware idiom and validates zero/256 distinction | Compares against unrepresentable byte bound |
+| Q-C19 | Full 256-iteration byte loop | Identifies SC-006 and refuses to assign the wrap idiom to a source form before reconciliation | Silently chooses the chapter or F008 definition |
 | Q-C20 | Link-time symbol low/high bytes | Keeps symbolic assembler resolution; no runtime helper/materialization | Calculates known address at runtime |
 | Q-C21 | An optimization changes lowered assembly | Requires both an independent behavior oracle and the intended assembly/cost expectation; differential execution is supporting only | Accepts shape/cost alone or lets two paths validate a shared lowering bug |
 | Q-C22 | Fixed-trip hot loop is considered for unrolling | Chooses from measured trip count, path frequency, code/layout cost, and cycle benefit; partial/full/no unroll are all legitimate results | Unrolls every constant loop or rejects unrolling universally |
@@ -159,8 +159,8 @@ and grading evidence are recorded without adding a permanent runner or framework
 | ID | Scenario | Required invariant | Disqualifying outcome |
 |---|---|---|---|
 | Q-A01 | ACME source looks ZP-sized but symbol resolves above `$FF` | Inspects actual bytes/report; distinguishes serializer from assembler | Grades emitted text alone |
-| Q-A02 | ACME precedence/low-high expression ambiguity | Uses pinned 0.97 probe and records exact expected bytes | Relies on memory or another assembler |
-| Q-A03 | Automatic ZP/absolute selection boundary | Probes value/symbol/force-width behavior and accounts bytes/cycles | Assumes source mnemonic fixes width |
+| Q-A02 | ACME precedence/low-high expression ambiguity | Uses pinned 0.97 official evidence and gives an exact future proof with expected bytes | Relies on memory, another assembler, or an invented observation |
+| Q-A03 | Automatic ZP/absolute selection boundary | Derives value/symbol/force-width behavior from pinned evidence, specifies the later byte proof, and accounts bytes/cycles | Assumes source mnemonic fixes width |
 | Q-A04 | Out-of-range relative branch | Requires compiler repair before serialization or explicit assembler error; verifies bytes | Treats successful text generation as completion |
 | Q-A05 | Build C64 PRG | Confirms two-byte load header, origin, body, symbols, startup | Confuses raw binary with PRG |
 | Q-A06 | VICE test skipped because emulator missing | Reports runtime status unknown/skipped, not pass | Rolls skip into green count |
@@ -222,7 +222,7 @@ RD-01 currently forbids such a framework.
 |---|---|
 | Source and recovery foundation | Content only: Q-R05..Q-R09, Q-A07/Q-A08, Q-A11..Q-A13, and Q-A16 after their external oracles freeze |
 | Blend65/compiler/SFA/IL | Content only: all unblocked Q-L plus Q-R03/Q-R04; conflicted semantic cases remain pending |
-| CPU/lowering | Content only: all Q-C plus Q-R01 |
+| CPU/lowering | Content only: all unblocked Q-C plus Q-R01; conflicted cases remain pending |
 | C64 platform/game | Content only: all Q-P |
 | ACME/portability/recovery | Content only: Q-A01..Q-A06, Q-A09/Q-A10, Q-A17's portability-content facet, and Q-R12 |
 | Integrated candidate | Router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15, Q-A17's version/release integration facet, and cross-domain regression; then independent review and correction |
@@ -247,7 +247,9 @@ Select checks from the touched surface and claim:
 | Candidate integration | Candidate topology, metadata, links, source/spec sets, migration, focused router cases, and independent review |
 | Final skill completion | Complete isolated skill qualification, all structural/source/path/freeze checks, and `spec/` cleanliness |
 
-Do not run the compiler's package/readiness/boundary suite for this skill/Markdown-only feature.
+Do not run compiler builds or package/readiness/boundary tests, ACME, VICE, or another emulator for
+this skill/Markdown-only feature. Tool and runtime cases inspect source-backed knowledge and the
+precision of future proof specifications; they do not fabricate execution results.
 Later compiler implementation uses directed package/consumer tests during development and broader
 tests only at an affected major integration or release boundary. TypeScript 7 and removal of ESLint
 without a replacement linter is a separate future toolchain change, not part of this plan.

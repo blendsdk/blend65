@@ -50,7 +50,7 @@ The following implementation interpretations are now fixed:
 | R6 NMOS 6502/6510 expert model | 03-03 | 4 | CPU coverage matrix and silicon cases |
 | R7 6502 lowering casebook | 03-03 | 4 | Operation-family cases and cost ledgers |
 | R8 C64 platform/game expertise | 03-04 | 5 | PAL/NTSC, chip, banking, and game-system cases |
-| R9 ACME/artifact expertise | 03-05 | 6 | ACME 0.97 probes and VICE 3.10 observations |
+| R9 ACME/artifact expertise | 03-05 | 6 | Pinned official ACME/VICE evidence and exact future proof specifications |
 | R10 Target portability model | 03-05 | 6 | Six-target constraint matrix and non-claim cases |
 | R11 Evidence/parity/recovery | 03-05 | 2, 6 | Audit, parity, expressiveness, salvage cases |
 | R12 Pinned evidence manifest | 03-06 | 2 | Manifest completeness and claim-link audit |
@@ -70,7 +70,7 @@ The following implementation interpretations are now fixed:
 | 5–6 | Language/architecture/SFA cases and anti-prescription checks |
 | 7 | CPU completeness grid plus signed-compare, decimal, wrap, RMW, and delta cases |
 | 8 | C64 coverage grid plus PAL/NTSC and hardware/game cross-domain cases |
-| 9 | Pinned ACME probes, byte inspection, PRG and VICE observations |
+| 9 | Source-backed ACME byte expectations plus exact future PRG/VICE proof specifications |
 | 10 | Target constraint matrix and qualified-scope labels |
 | 11–12 | Evidence/parity/recovery rules and source-manifest validation |
 | 13–15 | Coverage set equality, partial red baseline, isolated blind evaluation, review record |

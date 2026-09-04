@@ -61,9 +61,9 @@ for the later compiler audit rather than adapting the skill to it.
 
 | Tool | Observed version | Qualification use | Boundary |
 |---|---|---|---|
-| ACME | 0.97 “Zem” (2021-01-31) | Assemble focused syntax/encoding/artifact probes and inspect bytes/symbols | Version-specific results are not generalized silently to other ACME releases. |
-| VICE `x64sc` | 3.10 | Primary development, regression, and automated runtime oracle for the declared model/configuration | Physical or revision-sensitive claims remain `VICE-verified / hardware-unverified` until targeted real-hardware QA. |
-| Node/Yarn/Turbo/Vitest | Repository-pinned | Full repository regression verification | No new package or harness is needed for Markdown skill work. |
+| ACME | 0.97 “Zem” (2020-06-28; official SVN r266) | Pin syntax/encoding/artifact behavior from official documentation/source and specify later byte-level proofs | Version-specific claims are not generalized silently; ACME is not executed in this skill plan. |
+| VICE `x64sc` | 3.10 | Define the later automated runtime-oracle contract for the declared model/configuration | VICE is not executed in this skill plan; physical or revision-sensitive claims still require targeted real-hardware QA. |
+| Node/Yarn/Turbo/Vitest | Repository-pinned | Repository context only | Compiler builds and test suites are outside this skill/Markdown plan. |
 | Skill validator | Existing `quick_validate.py` | Basic `SKILL.md` frontmatter/name/description/body checks | Topology, links, metadata, sources, coverage, routing, and expertise need separate checks. |
 
 ## Primary Evidence Baseline
@@ -76,7 +76,7 @@ Research found viable primary/authoritative source families for the release:
 | WDC 65C02 delta | WDC W65C02S datasheet | Explicit CMOS instruction/behavior delta and portability constraints |
 | C64 platform | Commodore 64 Programmer's Reference Guide, Commodore service/schematic material, original chip documentation where available | Memory map, 6510 port, VIC-II/SID/CIA programming model, startup, and revision-aware constraints |
 | Compiler architecture | LLVM code-generator documentation and llvm-mos implementation/SDK | Comparative legalization/selection/allocation/emission patterns and whole-program static-stack evidence; never Blend65 authority |
-| Assembler/emulator | ACME official repository/release docs and VICE 3.10 manual/source | Version-specific syntax, output, monitor, timing, and executable probes |
+| Assembler/emulator | ACME official repository/release docs and VICE 3.10 manual/source | Version-specific syntax, output, monitor, timing, and executable proof specifications for later work |
 
 The source manifest must pin exact editions, revisions, URLs or repository commits, retrieval date,
 dependent knowledge sections, and known conflicts. Secondary sources may help locate ambiguities,
