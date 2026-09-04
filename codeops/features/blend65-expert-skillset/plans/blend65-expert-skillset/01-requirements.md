@@ -35,6 +35,7 @@ The following implementation interpretations are now fixed:
 | Migration | `qualification/coverage-matrix.md` owns the old-rule migration ledger to avoid adding an unauthorized artifact. |
 | Release identity | One active semantic version is declared in the router. Final skill content and qualification evidence are committed first; `qualification/release.md` then binds the exact content commit. Every later substantive change bumps and requalifies the single active version; Git preserves history. |
 | Later recovery | The skill teaches audit criteria but freezes no current compiler-completeness claim, readiness result, feasibility-matrix claim, or tentative concrete backend topology. Material later conclusions cite skill version, content commit, knowledge heading, and source keys. |
+| Technique realization | Game-development techniques are decision knowledge, not decorative lore. Each is mapped to recognizable compiler facts, one deterministic compiler/API disposition, preconditions, complete costs, hazards, and independent behavior plus assembly/cost proof. The shipped compiler has no AI or skill-runtime dependency. |
 | Verification | Checks are selected by touched surface. Skill/Markdown work uses formatting, topology, links, source/spec set checks, and relevant qualification cases; it does not run the compiler suite. |
 
 ## Requirement-to-Plan Traceability

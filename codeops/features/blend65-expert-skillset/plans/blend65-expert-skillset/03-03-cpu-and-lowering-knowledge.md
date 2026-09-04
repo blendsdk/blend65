@@ -92,19 +92,40 @@ Each operation family provides a decision table with:
 
 1. Blend65 input semantics and width/signedness;
 2. operand location/constant/alias/volatile variants;
-3. required incoming state (especially carry/decimal/interrupt assumptions);
-4. legal candidate sequences;
-5. register/flag/memory/clobber effects;
-6. bytes plus best/worst or path-specific cycles;
-7. selection rule and whole-program considerations;
-8. counterexample showing when a tempting sequence is wrong or worse;
-9. helper-call threshold/ABI cost where relevant; and
-10. source and qualification-case keys.
+3. recognizable source, IL, layout, target, and profile facts;
+4. required incoming state (especially carry/decimal/interrupt assumptions);
+5. legal candidate sequences;
+6. register/flag/memory/clobber effects;
+7. bytes plus best/worst or path-specific cycles;
+8. compiler disposition and its exact enabling/preventing preconditions;
+9. selection rule and whole-program considerations;
+10. counterexample showing when a tempting sequence is wrong or worse;
+11. helper-call threshold/ABI cost where relevant;
+12. any machine-wide target fact or local semantic/timing/risk contract required;
+13. deterministic realization obligation for the later compiler audit/redesign; and
+14. source and qualification-case keys.
 
 Any entry used as an optimization also names an independent behavior oracle and a separate
 assembly/cost expectation. Matching the intended sequence is not proof that the changed machine
 program remains correct; differential execution against unoptimized output is supporting evidence
 only.
+
+### Technique Realization Boundary
+
+Every expert idiom is assigned exactly one primary disposition before it can guide implementation:
+
+| Disposition | When it applies | Durable compiler result |
+|---|---|---|
+| Automatic semantics-preserving optimization | Legality and benefit are provable from existing facts for every affected execution | Deterministic rewrite/selection with no user flag |
+| Cost-guided selection | Several legal forms trade cycles, code, data, ZP, layout, or helper cost | Deterministic cost model using declared optimization goals and whole-program facts |
+| Zero-cost API or specialized lowering | The operation expresses C64 intent or a coordinated subsystem more clearly than generic source patterns | Typed/named operation, compile-time parameters, lowering rule, or link-time template with no hidden work |
+| Explicit local contract | Cycle-exact, writable-code, IRQ-ownership, chip-risk, or other non-local assumptions cannot be inferred safely | Narrow source-level annotation/block/API contract validated at the use site |
+| Diagnostic or no transformation | Required safety/legality facts are missing or contradictory | Explainable rejection, warning, or preserved general code |
+
+Machine-wide target facts such as selected CPU, PAL/NTSC model, VIC revision policy, and ROM/IRQ
+ownership may live in the target profile. Risky or timing-sensitive permission is local unless the
+fact truly governs the whole program. There is no generic “game optimization” switch and no blind
+recognition of arbitrary loops as hardware tricks.
 
 ### Required Operation Inventory
 
@@ -126,6 +147,20 @@ only.
 | Aggregates/copies | small unrolled, looped copy, table/data placement, overlap, volatile/device destinations, SoA/AoS choice |
 | Constants/link-time facts | immediates, low/high symbolic bytes, assembler expressions, no unnecessary runtime materialization |
 | Runtime helpers | semantic contract, ABI, reachability/dead stripping, call/setup cost, interrupt/reentrancy safety |
+
+### Game-Relevant Code-Shaping Families
+
+The casebook also covers loop unrolling, page/branch alignment, ZP promotion, lookup tables and
+addition chains, pre-shifted/precomputed data, computed dispatch, and self-modifying absolute
+operand specialization. Each entry includes code/data/alignment/ZP costs and the workload boundary
+where it wins. No family is universally preferred.
+
+Self-modifying code is never a default merely because it is fast in isolation. It requires code in
+writable RAM, exclusive or synchronized ownership of the modified bytes, non-reentrant execution
+or an explicit concurrency protocol, interrupt-safety proof, code-write visibility for the selected
+6502-family target/emulator, and measured benefit over indirect/direct alternatives.
+Undocumented opcodes likewise require an explicit selected-silicon contract and never appear in
+general C64 output.
 
 ### Signed Comparison Correction
 
@@ -170,11 +205,13 @@ omitted to manufacture a win.
 At minimum, the manifest must pin the MOS MCS6500 Programming Manual, MCS6500 Hardware Manual, WDC
 W65C02S datasheet, and exact ACME/VICE sources used to resolve observable behavior. Comparative
 compiler material may include LLVM's target-independent code-generator documentation and the
-llvm-mos implementation/SDK, labelled as comparative—not normative—evidence.
+llvm-mos implementation/SDK plus real 6502-family compilers such as Oscar64, KickC, Prog8, and
+cc65, labelled as comparative—not normative—evidence.
 
 ## Failure Conditions
 
 This component fails if any legal operation family has only a slogan, any sequence lacks a flag or
 memory-effect account, timing omits material branch/page variants, C64 output can silently use a
 65C02-only form, signed comparison repeats the stale-V defect, or undocumented instructions become
-an unqualified default.
+an unqualified default. It also fails if a game technique remains prose without a compiler
+disposition, machine-recognizable preconditions, full cost, a counterexample, and proof duties.

@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 Expert Skillset
 
-> **Status**: ✅ GATE PASSED — all 32 items resolved
-> **Last Updated**: 2026-09-04 13:25
+> **Status**: ✅ GATE PASSED — all 33 items resolved
+> **Last Updated**: 2026-09-04 20:58
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|----------|-----------------|-------------------|---------------|--------|
@@ -37,6 +37,7 @@
 | 30 | Behavioral | How are qualification cases selected and isolated without an arbitrary quota? | Risk/depth-driven cases; authority-gated oracle freeze; ephemeral evaluator copies; separate grading | User chose coverage depth over a fixed count and strict evaluator/oracle/history separation. | ✅ Resolved |
 | 31 | Integration | How can a standalone full plan be tracked in the requested CodeOps feature roadmap when the roadmap schema supports only RD, lightweight-task, and nested-deferral identities? | Add one formal `RD-01` as the lifecycle owner, then make the plan RD-based (recommended) / keep the standalone plan and omit its per-feature roadmap | User chose a single `RD-01` lifecycle owner and an RD-based plan. | ✅ Resolved |
 | 32 | Naming & terminology | What exact concern partitions keep qualification cases bounded and evaluator oracles separated? | Five named case files for routing/evidence, language/architecture/SFA, CPU/lowering/optimization, C64/platform/games, and parity/recovery/portability (recommended) / one monolithic case file | User chose the five named concern partitions. | ✅ Resolved |
+| 33 | Behavioral | Are C64 game-development techniques merely descriptive knowledge, or must the skill force their realization in the compiler? | Add a structured game-technique casebook inside the accepted references, mapping every technique to a deterministic compiler/API disposition and proof (recommended) / maintain a separate tricks skill or optimizer framework | User chose the structured casebook within the single skill. The skill guides development; the shipped compiler must encode deterministic mechanisms and must not depend on AI or skill prose at compile time. | ✅ Resolved |
 
 ## Controlling Preflight Refinements
 
@@ -58,6 +59,10 @@ The table above preserves creation-time decisions. The accepted preflight ruling
 | Semantic and optimization depth | PF-016/PF-017: add interaction cases and require independent behavior plus assembly/cost expectations for every optimization. |
 | Baseline and validation details | PF-018/PF-019: include Q-R12 in the red subset and describe `quick_validate.py` narrowly. |
 | Data placement and replication | PF-020: placement remains the default; identical data may be replicated only at compile time when hardware visibility or measured timing requires it, alternatives cannot meet the need, and the consumer, constraint, bytes, and timing benefit are recorded. Buffers with different evolving states are not duplication. |
+| Technique realization | AR-33: C64 game techniques are mapped to concrete compiler treatments and independent proof. Safe transformations may be automatic; context-sensitive or risky techniques require costs, zero-cost APIs, local contracts, or diagnostics. |
+| Technique qualification | PF-021: Q-P11/Q-P15/Q-P16 each prove one representative audio, loader/asset, or engine-structure realization end to end without adding cases. |
+| Oracle integrity | PF-022: independent source-to-oracle review precedes external-oracle freeze; a later proven factual defect reopens only the affected gate and invalidates its dependents. |
+| Future-target case ordering | PF-023: Q-A17 has an explicit Phase-6 portability-content facet and Phase-7 version/release integration facet; the definitive suite grades their union once. |
 
 ### Resolution Notes
 
@@ -166,3 +171,13 @@ separate graders receive expected invariants and captured output.
 `c64-platform-and-games.md`, and `parity-recovery-and-portability.md`. This keeps evaluator
 packets bounded while preserving cross-domain cases inside the concern that owns the expected
 decision.
+
+**AR-33:** The skill is development-time expertise, not part of the released compiler. Each
+game-technique entry must identify recognizable source/IL/target facts, preconditions, full costs,
+hazards, and one compiler disposition: automatic semantics-preserving optimization, cost-guided
+selection, zero-cost platform API or specialized lowering, explicit local opt-in contract, or a
+diagnostic when safety cannot be proved. Later compiler audit/redesign chooses the smallest actual
+implementation seam; it must encode the result as deterministic algorithms, tables, target facts,
+or APIs and prove behavior independently from assembly/cost. No natural-language inference,
+separate tricks skill, generic game-optimization flag, service, framework, or new runtime layer is
+added.

@@ -49,6 +49,8 @@ authoritative there so this plan file stays inside the exact post-checkpoint all
   rulings, SFA doctrine, and primary hardware/tool evidence → skill → later compiler audit. Existing
   compiler code/tests, roadmaps, readiness artifacts, scoreboards, and feasibility snapshots never
   determine doctrine or expected answers.
+- Treat the skill as development-time expertise. Every game technique must reach a deterministic
+  compiler/API disposition and proof; no released compiler path may depend on AI or skill prose.
 - Qualification expectations derive only from RD-01, internally consistent frozen `spec/`,
   explicit product rulings, and pinned primary/authoritative evidence. Do not weaken a frozen case
   to accommodate authored guidance.
@@ -89,12 +91,13 @@ known-unsafe legacy authority without using current compiler behavior to choose 
 3. **1.3** Author `qualification/cases/language-architecture-and-sfa.md` with Q-L01..Q-L26 from
    RD-01 and internally consistent frozen semantics only, including nested-argument lifetimes,
    modern dynamic `POKE`, semantic interactions, SFA closure, and SFA/platform-layout boundaries.
-4. **1.4** Author `qualification/cases/cpu-lowering-and-optimization.md` with Q-C01..Q-C21,
+4. **1.4** Author `qualification/cases/cpu-lowering-and-optimization.md` with Q-C01..Q-C24,
    including stale-V seeding, signed boundaries, MMIO effects, page/timing paths, CPU legality, and
-   separate behavior plus assembly/cost expectations for optimization.
-5. **1.5** Author `qualification/cases/c64-platform-and-games.md` with Q-P01..Q-P16 and explicit
+   separate behavior plus assembly/cost expectations for optimization and code-shaping techniques.
+5. **1.5** Author `qualification/cases/c64-platform-and-games.md` with Q-P01..Q-P21 and explicit
    PAL/NTSC, chip/revision, banking, IRQ ABI, data-placement, zero-cost-wrapper, VICE, and targeted
-   physical-QA contexts.
+   physical-QA contexts, including proof that game techniques become deterministic compiler/API
+   mechanisms rather than runtime skill dependence.
 6. **1.6** Author `qualification/cases/parity-recovery-and-portability.md` with Q-A01..Q-A17,
    including tool-version, skipped-runtime, hidden-cost, scaffold, salvage, version, and errata
    cases.
@@ -128,14 +131,19 @@ audit/parity/recovery method used by later knowledge.
 - [ ] **P2 — External oracles and the evidence/recovery foundation are qualified.**
 
 1. **2.1** Research and pin frozen Blend65-spec, MOS/WDC CPU, and primary compiler-comparison
-   sources in `references/source-manifest.md`; record exact edition/version/location, retrieval
-   date, scope, dependent headings, known issues, and comparative-versus-normative status.
+   sources in `references/source-manifest.md`, including real 6502 compilers such as llvm-mos,
+   Oscar64, KickC, Prog8, and cc65; record exact edition/version/location, retrieval date, scope,
+   dependent headings, known issues, and comparative-versus-normative status.
 2. **2.2** Research and pin C64/Commodore-chip, ACME 0.97, VICE 3.10, and constraint-only
-   future-target source families. Record missing original sources or revision gaps as unresolved,
-   not unlabelled lore.
+   future-target source families, plus original practitioner technique material, real game/demo
+   source, VICE hardware tests, revision-identified VIC research, and SID player/emulation evidence.
+   Record missing original sources or revision gaps as unresolved, not unlabelled lore.
 3. **2.3** Audit manifest dependencies and conflicts, then freeze every external-fact oracle before
-   authoring its dependent module. Each expectation cites a stable source key and precise location;
-   VICE facts are bounded to the configured emulator and physical claims name targeted QA.
+   authoring its dependent module. Before freeze, an independent reviewer verifies that each hidden
+   invariant follows from its stable source key and precise location without overgeneralization.
+   VICE facts are bounded to the configured emulator and physical claims name targeted QA. If
+   stronger evidence later proves an oracle defective, reopen only that authority gate and
+   invalidate/review its dependent content and results before correction and refreeze.
 4. **2.4** Author `references/evidence-parity-and-recovery.md` for evidence levels, five
    capability states, fact/inference/unknown/recommendation separation, equivalent-work accounting,
    and expressiveness outside finite ratios.
@@ -144,9 +152,9 @@ audit/parity/recovery method used by later knowledge.
    parity, and mandatory reinspection of mutable current status.
 6. **2.6** Fill Phase-2 coverage cells and run content-only Q-R05..Q-R09, Q-A07/Q-A08,
    Q-A11..Q-A13, and Q-A16 in a fresh allowlisted context. Reserve Q-R10/Q-R11 and
-   Q-A14/Q-A15/Q-A17 for Phase 7 because their invariants depend on the integrated router,
-   response shape, version, freeze, release, or errata behavior. Resolve material content/source
-   failures and rerun the affected plus one content regression.
+   Q-A14/Q-A15 and Q-A17's version/release integration facet for Phase 7 because their invariants
+   depend on the integrated router, response shape, version, freeze, release, or errata behavior.
+   Resolve material content/source failures and rerun the affected plus one content regression.
 7. **2.7** Validate source-key equality, links, touched Prettier, authorized paths, frozen external
    oracles, and pinned legacy-reference hashes; bump the explicit unqualified construction version and commit the
    evidence/recovery checkpoint.
@@ -218,7 +226,10 @@ casebook, correcting the stale-V danger.
    multiplication, division/modulo, constant specialization, signed rounding, and helper thresholds.
 6. **4.6** Complete loops, calls/returns, ABI/helpers, pointers/addresses, aggregates/copies,
    link-time constants, volatility, resource ledgers, whole-program context, and generated-code
-   review. Every optimizing entry names behavior and assembly/cost expectations.
+   review. Cover unrolling, alignment, ZP promotion, tables/pre-shifted data, computed dispatch,
+   self-modifying specialization, and undocumented-opcode boundaries. Every technique receives a
+   compiler disposition, recognizable preconditions, full costs, counterexample, behavior oracle,
+   and assembly/cost expectation.
 7. **4.7** Complete Phase-4 coverage and run all Q-C content cases plus Q-R01 with fresh
    evaluators; seed both prior V states and signed boundaries, and resolve/rerun every material
    failure with source checks.
@@ -253,10 +264,13 @@ game architecture, allocation, generated code, and executable evidence.
    voice/control/ADSR/filter/scheduling and 6581/8580 bounds, plus volatile-register/RMW rules.
 5. **5.5** Author the frame/raster/sprite half of `references/c64-game-engineering.md`: loop
    models, raster scheduling, sprite multiplexing, interrupt-safe data/SFA, budgets, and PAL/NTSC
-   adaptation.
+   adaptation. Add the structured technique schema and automatic/cost-guided/API/local-contract/
+   diagnostic disposition policy.
 6. **5.6** Complete graphics/scrolling/audio/input/entities/collision/state machines/loaders/
    streaming/assets/data layout, zero-cost modern APIs, placement doctrine, and live feasibility
-   reasoning that has no dependency on the optional game matrix/page.
+   reasoning that has no dependency on the optional game matrix/page. Cover the required CPU,
+   raster, sprite, scrolling/rendering, aggressive VIC, audio, loader/asset, and engine-structure
+   technique families and their knowledge-to-compiler proof chains.
 7. **5.7** Complete Phase-5 coverage and run all Q-P content cases. Use VICE 3.10 as the default
    automated runtime oracle with recorded model/options; identify targeted real-hardware QA and
    label provisional physical claims `VICE-verified / hardware-unverified`.
@@ -289,8 +303,9 @@ hardware-provisional under the accepted status; no compiler tests run.
    constraint-only without unsupported detail.
 5. **6.5** Complete shared-6502 composition, CPU/platform/serializer/packager ownership,
    scaffold classification, abstraction-consumer test, and future target version/qualification.
-6. **6.6** Complete Phase-6 coverage and run Q-A01..Q-A06, Q-A09/Q-A10/Q-A17, and Q-R12 as
-   content cases; resolve/rerun material tool-boundary, claim-scope, or portability failures.
+6. **6.6** Complete Phase-6 coverage and run Q-A01..Q-A06, Q-A09/Q-A10, Q-A17's explicit
+   portability-content facet, and Q-R12 as content cases; resolve/rerun material tool-boundary,
+   claim-scope, or portability failures.
 7. **6.7** Run ACME/VICE version/probe/source/link/touched-Prettier/path/pinned-legacy-reference checks; bump
    the unqualified construction version and commit the toolchain/portability checkpoint.
 
@@ -317,17 +332,17 @@ immutable v1.0.0 content checkpoint.
    `agents/openai.yaml`: preserve identity/activation boundaries, selectively route all thirteen
    references, and encode authority, modern-source stance, decision/response/lineage shape,
    anti-overengineering, single-active-version, freeze, and errata behavior.
-3. **7.3** Run the router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15/Q-A17, and a
-   cross-domain regression against that isolated candidate. This covers activation/non-activation,
-   selective loading, response/lineage, version, freeze, release, and errata behavior. Correct and
-   rerun failures before migration.
+3. **7.3** Run the router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15, Q-A17's explicit
+   version/release integration facet, and a cross-domain regression against that isolated
+   candidate. This covers activation/non-activation, selective loading, response/lineage, version,
+   freeze, release, and errata behavior. Correct and rerun failures before migration.
 4. **7.4** Perform independent review across hardware/tool accuracy, compiler semantics/SFA,
    lowering/effects/optimization/cost, C64 practicality, modern ergonomics, source traceability,
    routing, migration loss, oracle integrity, and overengineering.
 5. **7.5** Resolve every material review finding in the isolated candidate and rerun affected
    focused cases plus a cross-domain regression per changed module. Repeat independent review of
    the changed surface; do not weaken oracle fields.
-6. **7.6** Run the complete 92-case five-file suite once against the exact no-further-content-
+6. **7.6** Run the complete 100-case five-file suite once against the exact no-further-content-
    change isolated candidate. Launch each evaluator as a fresh one-shot process inside
    `/usr/bin/bwrap` or an equivalently enforced filesystem sandbox that does not mount the
    repository or normal workspace. Give it only the allowlisted packet and minimum read-only
@@ -363,7 +378,7 @@ immutable v1.0.0 content checkpoint.
     feature and portfolio roadmaps to Implemented with release evidence; commit the release/roadmap
     checkpoint. Never push and never modify this execution plan after the content checkpoint.
 
-**Phase verification:** the 92-case inventory is derived from unique IDs; all cases and required
+**Phase verification:** the 100-case inventory is derived from unique IDs; all cases and required
 coverage are green; the exact live tree contains thirteen runtime references and seven
 qualification artifacts; no material finding remains; and `spec/`, compiler packages, examples,
 dependencies, and CI are untouched. No compiler tests run.
@@ -402,7 +417,7 @@ The plan is complete when:
 1. all seven delivery phases are `[x]` and all 60 named substeps have evidence;
 2. the independent specification-consistency prerequisite is resolved;
 3. all RD-01 requirements and acceptance criteria have exact evidence;
-4. all three release gates and all 92 derived behavioral cases pass with zero material finding;
+4. all three release gates and all 100 derived behavioral cases pass with zero material finding;
 5. the final tree has exactly thirteen runtime references and seven qualification artifacts;
 6. the live spec crosswalk and every source/case/coverage set check are exact;
 7. the four superseded references are absent and every old rule has a verified migration

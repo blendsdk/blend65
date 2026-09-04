@@ -110,6 +110,71 @@ width, order, and count under every future pass.
 | Load/stream | Disk/tape/fastloader integration boundary, memory windows, IRQ coexistence, decompression destination placement |
 | Assets | Compile-time conversion/embed boundary, alignment, bank/visibility, no runtime recreation of link-time facts |
 
+### Game Technique Casebook
+
+This is not a list of folklore. Each technique is a structured design case that a later compiler
+audit/redesign can translate into durable implementation. Every entry contains:
+
+1. the game problem and measurable constraint it solves;
+2. recognizable source, semantic, IL, layout, target-profile, and whole-program facts;
+3. PAL/NTSC, chip-revision, memory-map, ROM/IRQ-ownership, and writable-code assumptions;
+4. one or more expert hand-written implementations and equivalent-work obligations;
+5. one primary compiler disposition: automatic, cost-guided, zero-cost API/specialized lowering,
+   explicit local contract, or diagnostic/no transformation;
+6. facts the IL, SFA/ABI, layout, platform API, emitter, and artifact stages must preserve;
+7. complete cycle, code, data, ZP, alignment, frame, setup, and steady-state costs;
+8. hazards, invalid contexts, and a counterexample where the tempting form is worse or wrong;
+9. independent behavior evidence plus the intended assembly/cost expectation;
+10. VICE model/probe and targeted physical-hardware QA boundary; and
+11. source-manifest and qualification-case keys.
+
+The required families are:
+
+| Family | Minimum techniques and compiler questions |
+|---|---|
+| CPU/code shaping | Fixed-trip unrolling, branch/fall-through and page alignment, ZP promotion, lookup/addition-chain choices, pre-shifted/precomputed data, computed dispatch, self-modifying operands, and explicitly selected undocumented opcodes |
+| Raster scheduling | Stable raster entry, double IRQ and IRQ chains, badline/sprite-DMA budgets, mode splits, invariant cycle paths, overrun/late handling, and PAL/NTSC adaptation |
+| Sprites | Multiplexer sorting/scheduling, shared VIC bit-register updates, pointer/data placement, pre-shifted masks/data, and mainline/IRQ ownership |
+| Scrolling/rendering | Fine/coarse scroll, double buffering and pointer flips, dirty regions, Color RAM updates, charset/tile/bitmap arrangements, and decompression/update windows |
+| Aggressive VIC use | FLI, FLD, line crunch, VSP/AGSP, border opening, and sprite crunch, each explicitly risk-, revision-, and ownership-bounded rather than enabled generically |
+| Audio | SID-player cadence, raster/main IRQ placement, music/SFX voice sharing, ADSR handling, table layout, and 6581/8580 consequences |
+| Loading/assets | Loader coexistence, overlays, streaming, decompression windows, placement/alignment, compile-time conversion, and justified code/data reuse |
+| Engine structures | Fixed pools, SoA/AoS, collision broad/narrow phases, state dispatch, function-pointer consequences, and deterministic update ordering |
+
+### Compiler Disposition Policy
+
+| Disposition | Policy |
+|---|---|
+| Automatic | Apply only when semantics, observable hardware behavior, legality, and benefit are provable without a new user promise. |
+| Cost-guided | Compare complete costs under an explicit optimization goal and actual call/frequency/layout facts; do not select from instruction count alone. |
+| Zero-cost API/specialized lowering | Express hardware or subsystem intent with named modern constructs that lower to the same obligations as expert assembly. Runtime templates are permitted only when they are the smallest shared implementation and all costs are visible. |
+| Explicit local contract | Use for cycle-exact regions, writable-code/self-modifying sequences, IRQ ownership, deliberate silicon/revision risk, or other facts that cannot safely be inferred. Validate the contract and keep its scope narrow. |
+| Diagnostic/no transformation | Preserve general code or explain why a requested technique cannot be made safe. Never guess a timing, banking, alias, ownership, or silicon fact. |
+
+Target-wide configuration is reserved for facts that truly govern the entire binary, such as CPU,
+video model, declared chip compatibility, memory/cartridge map, and ROM/IRQ ownership policy. A
+local raster kernel or self-modifying routine does not justify a global “fast game” flag. Safe
+optimizations remain automatic; dangerous tricks never become accidental defaults.
+
+### Knowledge-to-Compiler Proof Chain
+
+For each technique, the later recovery journey must trace:
+
+```text
+source intent + target facts
+    → preserved semantic/IL facts
+    → selected compiler/API disposition
+    → deterministic algorithm, table, lowering, layout, or diagnostic
+    → independent behavior proof
+    → assembled bytes/cycles/resources compared with expert equivalent work
+    → VICE and targeted hardware evidence where the technique depends on the machine
+```
+
+The skill may propose the mechanism and judge the implementation, but the released compiler may
+not consult natural-language guidance or an AI model. If an expert trick cannot be inferred safely,
+the correct result is an explicit modern API/contract or a clear diagnostic—not fragile loop-shape
+pattern matching.
+
 ### Zero-Cost API Standard
 
 A platform API is acceptable when a modern programmer can express intent using named types,
@@ -169,18 +234,30 @@ Mandatory cases combine memory, hardware, game, CPU, and compiler knowledge:
 - switching a charset/screen by pointer/register changes versus copying the data;
 - raster IRQ code under PAL and NTSC with badline and sprite-DMA costs;
 - sprite multiplexer storage and interrupt-safe SFA scratch;
+- a sprite multiplexer whose source API, scheduling representation, lowering/layout ownership,
+  full cost, and timing proof are traced end to end;
 - volatile VIC IRQ acknowledgement where a generic RMW rewrite is unsafe;
 - KERNAL-vector versus raw-vector handler ABI;
 - SID driver scheduling with revision assumptions;
 - CIA joystick/keyboard scanning without clobbering VIC bank selection; and
-- a zero-cost modern wrapper whose emitted accesses are compared to hand assembly.
+- a zero-cost modern wrapper whose emitted accesses are compared to hand assembly;
+- a fixed-trip hot loop where unrolling competes with code size, alignment, and branch/page layout
+  effects rather than winning by slogan;
+- self-modifying operand specialization that is accepted only with writable-code, ownership,
+  reentrancy, IRQ-safety, and measured-benefit proof;
+- an advanced VIC technique that is exposed through an explicit risk/revision contract and never
+  selected from arbitrary source shape; and
+- a scrolling/rendering decision among pointer flips, compile-time placement/replication, dirty
+  updates, and copying using actual frame and memory budgets.
 
 ## Evidence Baseline
 
 The source manifest pins the Commodore 64 Programmer's Reference Guide, original Commodore service
-or schematic material, original chip documentation where available, and revision-specific
-empirical evidence for known documentation gaps. Community references can identify a dispute or
-idiom but must be corroborated before becoming release guidance.
+or schematic material, original chip documentation where available, revision-specific empirical
+evidence for known documentation gaps, original practitioner articles/source for game idioms, real
+game/demo implementations, VICE hardware-test programs, and relevant SID-player/emulation
+references. Practitioner evidence may establish that an idiom is real and show its implementation;
+hardware-semantic claims are cross-checked against stronger hardware evidence where obtainable.
 
 ## Failure Conditions
 
@@ -188,4 +265,6 @@ This component fails if PAL/NTSC is ignored where timing differs, CPU and VIC me
 collapsed, chip side effects are treated as ordinary RAM, data is copied or replicated without the
 required necessity and cost evidence, wrapper cost is not inspected, KERNAL/raw interrupt ABIs are
 mixed, a game feasibility claim lacks resource/timing/expressibility evidence, or future C64U
-features are presented as qualified C64 behavior.
+features are presented as qualified C64 behavior. It also fails if techniques remain lore without
+recognizable facts, a compiler disposition, safety bounds, costs, and proof, or if a risky trick is
+enabled by a broad global optimization flag.

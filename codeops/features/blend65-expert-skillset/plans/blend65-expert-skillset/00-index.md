@@ -28,19 +28,23 @@ layer is created or changed.
 The current compiler, its tests, roadmaps, readiness machinery, scoreboards, and game-feasibility
 snapshot are inputs to a later audit only. They may supply realistic qualification prompts, but
 they cannot determine skill doctrine, qualification oracles, or the future compiler architecture.
+The skill is also not a runtime dependency of the finished compiler. It must teach the development
+agent how to translate C64 game techniques into deterministic compiler algorithms, target facts,
+zero-cost APIs, local contracts, diagnostics, and proofs that remain in the codebase after the
+skill is no longer needed for ordinary use.
 
 ## Document Index
 
 | # | Document | Purpose |
 |---|---|---|
-| AR | [Ambiguity Register](00-ambiguity-register.md) | Thirty-two resolved decisions and the passed Zero-Ambiguity Gate |
+| AR | [Ambiguity Register](00-ambiguity-register.md) | Thirty-three resolved decisions and the passed Zero-Ambiguity Gate |
 | 00 | [Index](00-index.md) | Scope, navigation, and execution shape |
 | 01 | [Requirements](01-requirements.md) | Thin implementation delta over approved RD-01 |
 | 02 | [Current State](02-current-state.md) | Grounded skill, compiler, toolchain, and risk baseline |
 | 03-01 | [Router and Baseline Governance](03-01-router-and-baseline-governance.md) | Public skill contract, selective loading, migration, freeze, and errata |
 | 03-02 | [Blend65 Compiler Knowledge](03-02-blend65-compiler-knowledge.md) | Spec crosswalk, architecture, SFA/ABI, IL, and optimization knowledge |
-| 03-03 | [6502 CPU and Lowering Knowledge](03-03-cpu-and-lowering-knowledge.md) | NMOS 6502/6510 model, 65C02 delta, operation casebook, and cost reasoning |
-| 03-04 | [C64 Platform and Game Knowledge](03-04-c64-platform-and-game-knowledge.md) | Memory/runtime, hardware, timing, game systems, and zero-cost APIs |
+| 03-03 | [6502 CPU and Lowering Knowledge](03-03-cpu-and-lowering-knowledge.md) | NMOS 6502/6510 model, 65C02 delta, operation/technique casebook, and cost reasoning |
+| 03-04 | [C64 Platform and Game Knowledge](03-04-c64-platform-and-game-knowledge.md) | Memory/runtime, hardware, game-technique realization, and zero-cost APIs |
 | 03-05 | [Toolchain, Portability, and Recovery Knowledge](03-05-toolchain-portability-and-recovery.md) | ACME/artifacts, future-target constraints, parity, and recovery method |
 | 03-06 | [Evidence and Source Governance](03-06-evidence-and-source-governance.md) | Source hierarchy, claim traceability, pinned manifest, and conflicts |
 | 03-07 | [Qualification and Release](03-07-qualification-and-release.md) | Coverage matrix, adversarial evaluation, independent review, and freeze |
@@ -88,6 +92,7 @@ qualification/release.md binds the v1.0.0 commit and freezes the baseline
 | Minimum sufficient mechanism | Markdown plus existing validators and repo commands; no bespoke framework or runtime. |
 | Implementation independence | Existing compiler behavior and support artifacts never become skill authority; discrepancies are recorded for the later audit. |
 | VICE-first development | VICE 3.10 is the automated runtime oracle; targeted real-hardware QA settles only physical/revision-sensitive claims and provisional results are labelled. |
+| Knowledge becomes compiler behavior | Every game technique receives a deterministic compiler/API disposition plus independent behavior and assembly/cost proof; the shipped compiler never consults AI or skill prose. |
 
 ## Planned Runtime Artifact Tree
 

@@ -124,6 +124,9 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-C19 | Full 256-iteration byte loop | Uses wrap-aware idiom and validates zero/256 distinction | Compares against unrepresentable byte bound |
 | Q-C20 | Link-time symbol low/high bytes | Keeps symbolic assembler resolution; no runtime helper/materialization | Calculates known address at runtime |
 | Q-C21 | An optimization changes lowered assembly | Requires both an independent behavior oracle and the intended assembly/cost expectation; differential execution is supporting only | Accepts shape/cost alone or lets two paths validate a shared lowering bug |
+| Q-C22 | Fixed-trip hot loop is considered for unrolling | Chooses from measured trip count, path frequency, code/layout cost, and cycle benefit; partial/full/no unroll are all legitimate results | Unrolls every constant loop or rejects unrolling universally |
+| Q-C23 | Specialize an indirect access by modifying an absolute operand | Requires writable code, exclusive/synchronized ownership, non-reentrancy or a protocol, IRQ safety, selected-target legality, and measured benefit; otherwise keeps a safe form | Enables self-modifying code from performance intent alone |
+| Q-C24 | Replace arithmetic or shifts with lookup/pre-shifted data | Includes table bytes, alignment/padding, placement/banking, actual access cost, workload frequency, and behavior proof | Calls table lookup faster without whole-program cost or visibility analysis |
 
 ## `c64-platform-and-games.md`
 
@@ -139,12 +142,17 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-P08 | Acknowledge VIC raster IRQ | Preserves exact volatile access semantics/order and register-specific acknowledgement | Generic RMW without device proof |
 | Q-P09 | CIA interrupt-control register read/write | Distinguishes mask-setting/clearing and read-to-ack semantics as applicable | Treats it as ordinary stored byte |
 | Q-P10 | Scan joystick/keyboard while CIA2 selects VIC bank | Preserves port direction/ownership and does not conflate CIA1/CIA2 | Clobbers video bank bits |
-| Q-P11 | SID music code expected identical on 6581 and 8580 | States revision assumptions/limits and separates register correctness from analog identity | Claims universal sound from register trace |
+| Q-P11 | Design SID-player scheduling and music/SFX sharing across 6581/8580 | Recognizes cadence, IRQ ownership, voice/table placement, and revision facts; chooses a compiler/API disposition with full cost, independent behavior proof, and revision-bounded register/audio expectations | Claims universal sound from a register trace or leaves the technique as descriptive lore |
 | Q-P12 | Double-buffer screen/charset across visibility regions | Prefers placement and pointer/base flips; permits compile-time replication only when alternatives cannot meet a named hardware/timing need, with consumer, constraint, bytes, and benefit recorded; treats buffers with different evolving states as distinct storage | Copies or duplicates for convenience, leaves replication unmeasured, or calls distinct evolving buffers duplicated data |
 | Q-P13 | Sprite multiplexer with IRQ-only sorter/update helpers | Connects data layout, raster timing, SFA interference, scratch, and API expressibility | Reviews hardware in isolation |
 | Q-P14 | Named `vic.borderColor.set(5)`-style wrapper | Requires exact expert store sequence after compile-time folding | Accepts hidden call/temp/read/write overhead |
-| Q-P15 | Stream/decompress asset into visible bank | Fixes loader, destination visibility, IRQ coexistence, and memory ownership | Treats I/O as generic file copy |
-| Q-P16 | Entity update chooses AoS versus SoA | Decides from actual indexed hot paths, memory, and modern expressibility | Declares one layout universally best |
+| Q-P15 | Design loading, decompression, and compile-time asset transformation for a large visible asset | Recognizes loader, destination visibility, IRQ coexistence, ownership, placement, and artifact facts; chooses a compiler/toolchain/API disposition with complete cost and runtime/artifact proof | Treats I/O as generic copying or leaves asset preparation as unowned advice |
+| Q-P16 | Design entity storage, collision, and state dispatch for a fixed game workload | Chooses fixed pools and SoA/AoS from hot paths, models broad/narrow collision and function-pointer/SFA consequences, and gives a deterministic compiler/API disposition with behavior and assembly/resource proof | Declares one layout universally best or leaves engine structures as descriptive lore |
+| Q-P17 | Stable raster region calls variable-path logic or a helper | Requires an explicit local cycle contract, path-invariance proof or bounded scheduling design, and a diagnostic when the budget cannot be proved | Assumes source shape or average cycles are stable |
+| Q-P18 | Request VSP/AGSP for a general C64 build | Requires an explicit silicon/risk/compatibility contract, safer alternative comparison, VICE evidence, and targeted physical QA; never enables it by default | Treats one emulator result as safe universal hardware behavior |
+| Q-P19 | Use FLI/FLD/line-crunch/border/sprite-crunch technique | Maps intent to a named API/template/lowering and exact timing/layout/ownership obligations, not a generic peephole | Pattern-matches arbitrary stores/loops into a display trick |
+| Q-P20 | Optimize a scrolling/rendering hot path | Compares pointer flips, placement/justified replication, pre-shifted data, dirty updates, unrolling, and copying against actual frame and memory budgets | Blindly copies, duplicates, or unrolls without equivalent-work accounting |
+| Q-P21 | Bake a sprite-multiplexer technique into Blend65 support | Produces a deterministic realization plan spanning modern source API, schedule/data representation, SFA/IRQ interference, target facts, lowering/layout ownership, cost, and proof | Merely describes the trick or assumes the shipped compiler can consult the skill |
 
 ## `parity-recovery-and-portability.md`
 
@@ -166,12 +174,13 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-A14 | Request ordinary baseline edit during compiler audit | Refuses mutation until later baseline | Changes skill and invalidates earlier decisions |
 | Q-A15 | Discover critical false CPU fact after recovery decisions | Pauses affected work, point release, affected/regression cases, targeted impact audit | Silently patches or restarts everything |
 | Q-A16 | Ask skill for current compiler completeness months later | Reinspects live repository; frozen skill contains method, not stale status | Quotes v1.0.0 current-state observation as fact |
-| Q-A17 | Add a future target | Requires separate research, cases, cross-module review, and new frozen release between journeys | Appends shallow notes mid-journey |
+| Q-A17 | Add a future target | Content facet requires primary research, platform-specific cases, honest unqualified status, and CPU/platform/serializer/packager separation; integration facet requires version bump, complete qualification, atomic activation between journeys, and dependent-impact review | Appends shallow notes, implies production support, or mutates the active baseline mid-journey |
 
 ## Red Baseline Selection
 
 Run at least Q-R04, Q-R06, Q-R12, Q-L07, Q-L08, Q-C01, Q-C07, Q-C10, Q-P01, Q-P07,
-Q-A07, Q-A09, and Q-A15 against the current four-reference skill before replacement authoring.
+Q-P21, Q-A07, Q-A09, and Q-A15 against the current four-reference skill before replacement
+authoring.
 Record every failure, partial result, pre-passer, and draft-oracle observation in
 `qualification/release.md`. This subset exercises the known stale-V defect, narrow selective
 loading, and the highest-risk cross-domain gaps.
@@ -215,17 +224,17 @@ RD-01 currently forbids such a framework.
 | Blend65/compiler/SFA/IL | Content only: all unblocked Q-L plus Q-R03/Q-R04; conflicted semantic cases remain pending |
 | CPU/lowering | Content only: all Q-C plus Q-R01 |
 | C64 platform/game | Content only: all Q-P |
-| ACME/portability/recovery | Content only: Q-A01..Q-A06, Q-A09/Q-A10, and Q-R12 |
-| Integrated candidate | Router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15/Q-A17, and cross-domain regression; then independent review and correction |
+| ACME/portability/recovery | Content only: Q-A01..Q-A06, Q-A09/Q-A10, Q-A17's portability-content facet, and Q-R12 |
+| Integrated candidate | Router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15, Q-A17's version/release integration facet, and cross-domain regression; then independent review and correction |
 | Definitive isolated candidate | Complete blind suite, all evidence writes, then the Candidate Pre-delete Gate |
 | Byte-identical live candidate | Formal live Gates 1–3; Gate 3 reuses the isolated evidence only when the payload hashes match exactly |
 
 Phase 2 through Phase 6 focused runs manually select completed modules and do not claim router,
-selective-loading, response-shape, or freeze facets. Q-R10, Q-R11, Q-A14, Q-A15, and Q-A17 are
-reserved for Phase 7 because their required invariants are version, response, freeze, release, or
-errata behavior. Independent review and corrections precede the definitive suite. Every later
-runtime-content or qualification-evidence change invalidates the full run and requires review of
-the change plus another complete blind suite.
+selective-loading, response-shape, or freeze facets. Q-R10, Q-R11, Q-A14, Q-A15, and Q-A17's
+version/release integration facet are reserved for Phase 7 because their required invariants are
+version, response, freeze, release, or errata behavior. Independent review and corrections precede
+the definitive suite. Every later runtime-content or qualification-evidence change invalidates the
+full run and requires review of the change plus another complete blind suite.
 
 ## Impact-Based Verification
 
@@ -245,7 +254,7 @@ without a replacement linter is a separate future toolchain change, not part of 
 
 ## Pass Bar
 
-Every listed case is mandatory; the current inventory is 92 cases, derived from unique IDs rather
+Every listed case is mandatory; the current inventory is 100 cases, derived from unique IDs rather
 than used as a quota. Case selection follows semantic and risk depth. Every required coverage cell,
 source link, structural check, blind case, and independent material review must pass. Presentation
 differences are non-material; factual, semantic, architecture, safety, source-conflict, routing, or

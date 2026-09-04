@@ -58,7 +58,8 @@ artifact is authorized.
   IRQ/NMI, ZP, stack, budget, and the boundary from platform asset/global placement;
 - all official NMOS 6502 instruction/addressing/effect categories and required silicon hazards;
 - all Blend65 operation families in the lowering casebook;
-- C64 memory/runtime, VIC-II, SID, CIA, PAL/NTSC, game-system, and zero-cost API concerns;
+- C64 memory/runtime, VIC-II, SID, CIA, PAL/NTSC, game-system, game-technique realization, and
+  zero-cost API concerns;
 - ACME syntax/artifact and VICE observation boundaries;
 - six-target portability constraint fields;
 - evidence/parity/expressiveness/recovery/harness-value and optimization-proof methods;
@@ -78,8 +79,9 @@ Oracle fields are implementation-blind and have two authority gates:
    cross-chapter contradictions. Conflicted semantic expectations remain `blocked-conflict` until
    explicit product rulings and a reconciled specification baseline exist.
 2. Keep hardware, CPU, ACME, VICE, and other external-fact expectations explicitly `draft` until
-   Phase 2 pins their primary/authoritative sources. Freeze each such expectation before dependent
-   replacement knowledge is authored.
+   Phase 2 pins their primary/authoritative sources and an independent source-to-oracle review
+   confirms that each hidden invariant follows from those sources without overgeneralization.
+   Freeze each such expectation before dependent replacement knowledge is authored.
 
 `qualification/coverage-matrix.md` owns the prerequisite register without adding another artifact:
 each conflict records both exact spec locations, affected case/cell IDs, proposed ruling status,
@@ -92,6 +94,12 @@ The current compiler, its tests, legacy skill prose, roadmaps, readiness harness
 feasibility snapshot never supply expected decisions. Oracle fields are immutable after their
 governing authority gate. Final result fields are append-only through evaluation/review, freeze at
 the Candidate Pre-delete Gate, and remain immutable in the content checkpoint.
+
+A later demonstrated source/oracle defect reopens only the affected authority gate, records the
+stronger evidence, and invalidates every dependent content cell and result before correction and
+refreeze. This exception protects factual integrity; it cannot be used to weaken an oracle merely
+because candidate guidance failed. After an active release, the version-bump and targeted-impact
+rules also apply.
 
 ## Gate 3 — Adversarial Behavior
 
@@ -117,8 +125,8 @@ selective-loading behavior. The case author may know the oracle; evaluators may 
 |---|---|
 | `routing-and-evidence.md` | Activation/non-activation, selective loading, claim classification, source hierarchy, conflict, offline answers, minimal mechanism |
 | `language-architecture-and-sfa.md` | Spec semantics, modern expressibility, modular boundaries, SFA/ABI/reentrancy/closure, IL effect preservation, anti-prescription |
-| `cpu-lowering-and-optimization.md` | Flags, signed comparison, arithmetic/compare/shift/helper choices, MMIO, optimization behavior and cost, 65C02 legality |
-| `c64-platform-and-games.md` | Banking, CPU/VIC views, PAL/NTSC, IRQ ABI, VIC/SID/CIA, data placement, game systems, zero-cost APIs |
+| `cpu-lowering-and-optimization.md` | Flags, signed comparison, arithmetic/compare/shift/helper choices, MMIO, code-shaping techniques, optimization behavior and cost, 65C02 legality |
+| `c64-platform-and-games.md` | Banking, CPU/VIC views, PAL/NTSC, IRQ ABI, VIC/SID/CIA, data placement, game techniques, deterministic compiler disposition, zero-cost APIs |
 | `parity-recovery-and-portability.md` | Equivalent work, status classification, harness value, salvage, scaffolds, future-target seams, versioning/errata |
 
 ## Red Baseline
@@ -210,6 +218,26 @@ ABI/flag/interrupt state, and timing when timing is explicitly observable. Use e
 where tractable, adversarial boundaries, direct reference oracles, assembled execution, or VICE as
 appropriate. Optimized-versus-unoptimized differential execution is supporting evidence only.
 
+## Game-Technique Realization Rule
+
+Qualification tests more than whether the agent can recall a trick. A technique case passes only
+when the response:
+
+1. recognizes the exact source/IL/target facts and refuses unsafe inference;
+2. chooses the correct automatic, cost-guided, zero-cost API/lowering, local-contract, or
+   diagnostic disposition;
+3. assigns preserved facts and implementation responsibility without freezing the later
+   compiler's unexamined topology;
+4. gives a deterministic realization that a compiler can implement without AI or prose at
+   compile time;
+5. accounts for complete program costs and a counterexample; and
+6. names independent behavior proof plus assembly/resource/timing expectations and any required
+   VICE or physical-hardware evidence.
+
+A clever-looking assembly sequence fails if its enabling facts are not recognizable or encoded,
+if the user must write alien source to trigger it, or if it silently assumes writable code,
+exclusive IRQ ownership, a video standard, a chip revision, or constant-time control flow.
+
 ## Immutable Content Checkpoint
 
 The checkpoint includes exactly:
@@ -255,7 +283,8 @@ parallel working-tree files.
 - factual hardware/tool accuracy and revision bounds;
 - compiler-semantics and SFA completeness;
 - lowering correctness, effects, optimization proof, and cost accounting;
-- C64 commercial-game practicality and modern-source ergonomics;
+- C64 commercial-game practicality, technique-to-compiler realization, unsafe auto-enablement,
+  and modern-source ergonomics;
 - source traceability/conflict resolution;
 - selective-loading/routing coherence;
 - migration loss and internal contradictions;

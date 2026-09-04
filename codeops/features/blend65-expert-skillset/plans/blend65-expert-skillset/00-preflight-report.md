@@ -1,13 +1,13 @@
 # Preflight Report: Blend65 Expert Skillset Plan
 
-> **Status**: ✅ PREFLIGHT PASSED — all 20 findings resolved (19 corrected, 1 dismissed)
-> **Iteration**: 3 (focused verification of the final Iteration-2 major correction)
+> **Status**: ✅ PREFLIGHT PASSED — all 23 findings resolved (22 corrected, 1 dismissed)
+> **Iteration**: 4 (accepted game-technique realization amendment and focused convergence)
 > **Artifact**: full implementation plan at `codeops/features/blend65-expert-skillset/plans/blend65-expert-skillset/`
 > **Iteration-1 Artifact Tree**: `7bf4a4531a775e07d20fa3efbf9a69a17ea2c445`
-> **Passed Target Digest**: `00e86eae95baa88c05805812b1621d09ab0513c3ac1ccb3ae5d7c9464d17af77` (SHA-256 over the sorted thirteen target-document SHA-256 records; report and temporary notes excluded)
-> **Repository Commit**: `1260fdee0cb77597b24921679e96c3085fa037a6`
-> **Codebase Grounded**: all 13 plan documents re-read; all 20 findings checked through convergence; 50 specification files, 12 workspaces, 92 case definitions, 60 substeps, tool versions, legacy references, and relevant compiler/SFA/platform evidence re-verified
-> **Review Independence**: Iteration 2 used two independent clustered auditors plus inline review of the remaining dimensions; Iteration 1 used clustered/domain auditors and an independent recommendation challenger
+> **Passed Target Digest**: `adb861f486dcfcd5a4ebbc0938a5a34a923cda2864a48c59b521c96ea6e2898d` (SHA-256 over the sorted thirteen target-document SHA-256 records; report and temporary notes excluded)
+> **Repository Base Commit**: `36bcf4682ebe7d9de693178bf0f6771ed9e6398e`
+> **Codebase Grounded**: all 13 plan documents reviewed through convergence; 50 specification files, 12 workspaces, 100 unique case definitions, 60 substeps, tool versions, legacy references, and relevant compiler/SFA/platform evidence verified
+> **Review Independence**: Iteration 4 used three independent clustered auditors and one independent recommendation challenge; earlier iterations used clustered/domain auditors and recommendation challenges
 > **Last Updated**: 2026-09-04
 
 > **SAME-SESSION REVIEW:** This artifact was created earlier in the current conversation. Same-agent
@@ -70,10 +70,11 @@ expressiveness evidence, and `docs/game-feasibility-matrix.json`.
 
 ## Overall Result
 
-**PASSED.** The accepted Iteration-1 corrections are implemented, their Iteration-2 residuals are
-closed, and the new PF-020 contradiction is corrected. The focused Iteration-3 review found no
-remaining ambiguity, contradiction, scope expansion, or untestable exception in the affected
-surface. The plan may advance to `Plan Preflighted`.
+**PASSED.** The original twenty findings and the three Iteration-4 amendment findings are resolved.
+The accepted game-technique realization design now has deterministic compiler/API dispositions,
+independent proof duties, complete representative family cases, pre-freeze source/oracle review,
+and consistent future-target case ordering. Focused convergence found no remaining material issue.
+The plan may advance to `Plan Preflighted`.
 
 ---
 
@@ -856,11 +857,92 @@ same rule at `03-04-c64-platform-and-game-knowledge.md:43,128-135,187-190`.
 replication, measured cost, and distinct evolving buffers. An independent focused reviewer found
 no residual contradiction, ambiguity, scope creep, or untestable exception.
 
+## Iteration-4 Game-Technique Amendment
+
+The user accepted AR-33: the skill is development-time expertise, while the finished compiler must
+encode game techniques as deterministic algorithms, cost models, target facts, zero-cost APIs,
+local contracts, or diagnostics. The amendment reused the existing thirteen-reference, five-case-
+file, seven-phase topology and increased the risk-derived case inventory from 92 to 100 without
+adding a framework, dependency, runner, compiler implementation, or runtime AI requirement.
+
+| Cluster | Dimensions/lenses | Result |
+|---|---|---|
+| Document soundness | 1 Ambiguities, 3 Logical Contradictions, 12 Consistency | PF-021 survived independent refutation; corrected and rechecked. |
+| Grounding | 2 Implicit Assumptions, 13 Codebase Alignment | PF-023 survived independent refutation; corrected and rechecked. All 100 IDs are unique and the skill has no compiler-runtime dependency. |
+| Delivery logic | 4 Completeness, 5 Dependencies, 11 Ordering | PF-021 independently confirmed; PF-022 survived refutation; both corrected and rechecked. |
+| Risk and operations | 6 Feasibility, 8 Security, 9 Edge Cases | No finding. Writable-code, IRQ, timing, silicon-risk, emulator, and physical-hardware boundaries are explicit. |
+| Fit and verification | 7 Testability, 10 Scope Creep | No finding. Existing files/cases/phases carry the amendment; no new support product appears. |
+
+### PF-021: Three technique families lacked deterministic realization cases 🟠 MAJOR
+
+**Dimensions:** Completeness and Consistency
+
+**Location:** `03-04-c64-platform-and-game-knowledge.md` Game Technique Casebook;
+`07-testing-strategy.md` Q-P11/Q-P15/Q-P16
+
+**Problem:** Audio, loader/assets, and engine structures were mandatory families, but their cases
+tested only partial domain facts. The suite could pass while those families remained descriptive
+lore rather than implementable compiler/API decisions.
+
+**Recommendation:** Strengthen the three existing representative cases; add no cases or artifacts.
+
+**User Decision:** Accepted on 2026-09-04.
+
+**Correction Evidence:** Q-P11 now requires SID cadence/IRQ/voice/table/revision facts, disposition,
+complete cost, and independent proof. Q-P15 does the same for loading/decompression/asset
+transformation and artifact/runtime behavior. Q-P16 covers fixed pools, data layout, collision,
+dispatch, function-pointer/SFA consequences, deterministic disposition, and proof. Independent
+focused review found no residual.
+
+### PF-022: External oracles froze before independent source review 🟠 MAJOR
+
+**Dimension:** Ordering and Sequencing
+
+**Location:** `03-06-evidence-and-source-governance.md` Research and Distillation Procedure;
+`03-07-qualification-and-release.md` Qualification Oracle Lifecycle; `99-execution-plan.md` 2.3
+
+**Problem:** Phase 2 made externally sourced oracle fields immutable before the only explicitly
+independent source/oracle-integrity review. A mistaken interpretation could shape dependent content
+without a defined correction path.
+
+**Recommendation:** Require bounded independent source-to-oracle review before freeze. If stronger
+evidence later proves a factual defect, reopen only that authority gate and invalidate its dependent
+content/results before correction and refreeze; never weaken an oracle to fit authored guidance.
+
+**User Decision:** Accepted on 2026-09-04.
+
+**Correction Evidence:** Evidence governance, oracle lifecycle, Phase 2.3, and validation now encode
+the pre-freeze review and bounded reopen path. An independent focused reviewer found no residual
+and confirmed compatibility with active-release versioning and impact audit.
+
+### PF-023: Q-A17 had contradictory phase ownership 🟡 MINOR
+
+**Dimensions:** Implicit Assumptions, Consistency, and Ordering
+
+**Location:** `07-testing-strategy.md` Q-A17 and Focused Evaluation Order;
+`99-execution-plan.md` 2.6, 6.6, and 7.3
+
+**Problem:** Phase 6 assigned Q-A17 while other plan text reserved the whole case for Phase 7.
+
+**Recommendation:** An independent challenge found the strongest correction: keep one case with an
+explicit Phase-6 portability-content facet and Phase-7 version/release integration facet; grade the
+union once in the definitive suite.
+
+**User Decision:** Accepted on 2026-09-04.
+
+**Correction Evidence:** The case definition, focused-run table, reservation prose, and execution
+steps use the same facet split. A first focused review found one stale summary sentence; it was
+corrected under the accepted ruling, and the second review found no remaining contradiction.
+
+Deterministic Iteration-4 checks found 13 target plan documents, 7 phase checkboxes, 60 retained
+substeps, and 100 unique cases (`R12 + L26 + C24 + P21 + A17`). The target digest above excludes
+this report and temporary notes.
+
 ## Decision and Rescan State
 
-- PF-001..PF-020 are closed: nineteen accepted corrections are applied and verified; PF-011 remains
-  dismissed.
+- PF-001..PF-023 are closed: twenty-two accepted corrections are applied and verified; PF-011
+  remains dismissed.
 - PF-001's specification-consistency work remains an explicit execution prerequisite. This plan
   records and enforces it but does not authorize a `spec/` edit.
-- Iteration 3 is the final bounded re-scan permitted by this session. It passed with no findings.
+- Iteration 4 completed the accepted amendment and converged after one bounded residual correction.
 - The full plan is `Plan Preflighted`; execution may start with Phase 1 when requested.
