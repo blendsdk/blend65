@@ -1,8 +1,8 @@
 # Execution Plan: Blend65 Expert Skillset v1.0.0
 
 > **Plan Status**: Ready for unaffected execution; final semantic qualification has one explicit prerequisite
-> **Progress**: 0/7 delivery phases (0%); 60 retained implementation substeps
-> **Last Updated**: 2026-09-04
+> **Progress**: 1/7 delivery phases (14%); 60 retained implementation substeps
+> **Last Updated**: 2026-09-04 23:20
 > **Implements**: blend65-expert-skillset/RD-01
 > **Execution mode**: Commit coherent, impact-verified checkpoints without asking; never push
 
@@ -81,7 +81,14 @@ known-unsafe legacy authority without using current compiler behavior to choose 
 
 **Reference**: 03-07, 07-testing-strategy, RD-01 R13–R15
 
-- [ ] **P1 — Consistent spec/project oracles are frozen and the legacy skill is quarantined.**
+> **Phase baseline tree**: `e01cb92f57d7472149da529b69686e349469bb20`
+> **Scope mode**: strict
+> **Expected modification set**: `.agents/skills/blend65-domain-expert/SKILL.md`,
+> `.agents/skills/blend65-domain-expert/qualification/**`, this execution plan, and the
+> `blend65-expert-skillset` feature roadmap. The four legacy references are pinned read-only
+> migration evidence and must retain their baseline hashes.
+
+- [x] **P1 — Consistent spec/project oracles are frozen and the legacy skill is quarantined.** ✅ (completed: 2026-09-04 23:20)
 
 1. **1.1** Create `qualification/coverage-matrix.md` with the required schema, coverage-family
    shells, eight depth facets, source/case links, set-equality rules, and old-reference migration
@@ -113,11 +120,24 @@ known-unsafe legacy authority without using current compiler behavior to choose 
    public router to `0.1.0-legacy-quarantine` with an explicit no-authority warning and make the
    four pinned old references read-only migration evidence.
 9. **1.9** Run case-ID uniqueness, touched Markdown/link/Prettier, allowed-path, basic
-   `quick_validate.py`, and pinned legacy-reference hash checks. Commit the oracle/quarantine checkpoint with a
-   `test(skillset): ...` Conventional Commit.
+   `quick_validate.py`, qualification-packet meaningful-value and delimiter integrity, conflict
+   register, split historical/live router identity, and pinned legacy-reference hash checks.
+   Commit the oracle/quarantine checkpoint with a `test(skillset): ...` Conventional Commit.
 
 **Phase verification:** relevant checks in 1.9 only. External draft cases and conflicted semantic
 cases are not called green. No compiler package, readiness, boundary, or emulator suite is run.
+
+### Phase 1 Quality Review
+
+> **Review state**: ✅ All three accepted major findings were remediated and verified; the independent re-review returned no findings.
+> **Reviewer**: Independent CodeOps correctness reviewer
+> **Spec-test integrity**: Passed — no `*.spec.test.*` file changed
+
+| Finding | Severity | Evidence | User decision | Remediation |
+|---|---|---|---|---|
+| RV-001 | 🟠 Major | Q-L21 and its matrix row were truncated at the Markdown table `\|\|` token; the existing field-count check did not detect empty/malformed values. | Accepted 2026-09-04 | Implemented and verified; re-review clear |
+| RV-002 | 🟠 Major | `spec/10-modules.md` permits variable-dependent startup initializers, while F019/F003 require compile-time-constant module initializers; Q-L23 was incorrectly frozen. | Accepted 2026-09-04 | Implemented as SC-004 and verified; re-review clear |
+| RV-003 | 🟠 Major | The matrix says all six legacy hashes remain live, but Phase 1 intentionally replaces the router and only the metadata plus four references remain unchanged. | Accepted 2026-09-04 | Historical/live identity checks split and verified; re-review clear |
 
 ---
 
