@@ -33,14 +33,18 @@ recovery audit re-establishes every status claim from the live tree.
 
 - `python3 /home/gevik/.codex/skills/.system/skill-creator/scripts/quick_validate.py
   .agents/skills/blend65-domain-expert` currently passes.
-- That validator proves packaging/frontmatter/link shape only. It does not prove correctness,
-  source quality, coverage, routing discrimination, or decision behavior.
+- That validator checks `SKILL.md` presence, YAML frontmatter/name/description constraints, basic
+  body content, and unfinished scaffold markers. It does not traverse reference links, validate
+  `agents/openai.yaml`, check tree topology, or prove correctness, source quality, coverage,
+  routing discrimination, or decision behavior.
 - There is no `qualification/` directory and no source manifest today.
 
 ## Live Compiler Evidence Relevant to Skill Design
 
-These observations justify knowledge topics and test cases; they are not frozen conclusions about
-what the recovery architecture must become.
+These observations justify realistic prompts for later auditing; they are never authority for
+knowledge rules, qualification expectations, or what the recovery architecture must become. If a
+live behavior conflicts with the specification, SFA doctrine, or primary target evidence, record it
+for the later compiler audit rather than adapting the skill to it.
 
 | Observation | Current evidence | Why the skill must cover it |
 |---|---|---|
@@ -58,9 +62,9 @@ what the recovery architecture must become.
 | Tool | Observed version | Qualification use | Boundary |
 |---|---|---|---|
 | ACME | 0.97 “Zem” (2021-01-31) | Assemble focused syntax/encoding/artifact probes and inspect bytes/symbols | Version-specific results are not generalized silently to other ACME releases. |
-| VICE `x64sc` | 3.10 | Observe C64 execution, banking, device state, and cycle-aware cases | Emulator evidence is model/configuration evidence, not automatic proof for every physical revision. |
+| VICE `x64sc` | 3.10 | Primary development, regression, and automated runtime oracle for the declared model/configuration | Physical or revision-sensitive claims remain `VICE-verified / hardware-unverified` until targeted real-hardware QA. |
 | Node/Yarn/Turbo/Vitest | Repository-pinned | Full repository regression verification | No new package or harness is needed for Markdown skill work. |
-| Skill validator | Existing `quick_validate.py` | Frontmatter and packaging validation | It is one of three gates, not the expertise gate. |
+| Skill validator | Existing `quick_validate.py` | Basic `SKILL.md` frontmatter/name/description/body checks | Topology, links, metadata, sources, coverage, routing, and expertise need separate checks. |
 
 ## Primary Evidence Baseline
 
@@ -104,8 +108,9 @@ but cannot silently outrank the hierarchy in RD-01.
 
 ## Readiness to Plan
 
-The repository has a clean, green requirements checkpoint at commit `8fa69c1`. All thirty-two
-ambiguities are resolved, the exact artifact topology is fixed, required local tools are present,
-and no implementation uncertainty remains that would change task ordering or acceptance. The plan
-can therefore execute without a runtime decision unless new contradictory evidence is discovered;
-such evidence must enter the Ambiguity Register before work resumes.
+The repository has a requirements checkpoint at commit `8fa69c1`, the exact artifact topology is
+fixed, and required local tools are present. A bounded specification-consistency prerequisite is
+now known: duplicate diagnostic assignments and direct cross-chapter contradictions must receive
+independent audit and explicit product rulings before final semantic qualification. Unaffected
+skill work may proceed, and the current compiler cannot resolve that prerequisite. Any newly
+discovered product ambiguity still enters the Ambiguity Register before the affected work resumes.

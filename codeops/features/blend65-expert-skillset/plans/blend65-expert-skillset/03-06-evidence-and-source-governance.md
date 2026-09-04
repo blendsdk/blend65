@@ -15,10 +15,10 @@ blocking unknowns.
 
 | Rank | Context | Authority | Limits |
 |---:|---|---|---|
-| 1 | Blend65 language meaning | Frozen `spec/` | Does not define physical hardware truth; contradictions are surfaced, not silently repaired |
+| 1 | Blend65 language meaning | Reconciled frozen `spec/` plus explicit product rulings from the bounded consistency prerequisite | Does not define physical hardware truth; unresolved internal contradictions block affected oracle freeze and are never resolved from compiler behavior |
 | 2 | Hardware behavior | Manufacturer manuals, datasheets, schematics, published errata | Revision and documentation defects must be recorded |
-| 3 | Documented ambiguity/error | Reproducible revision-specific VICE or physical measurement | Bounded to exact model/configuration; method and raw result required |
-| 4 | ACME/VICE behavior | Official version-pinned documentation/source plus executable probes | Version-specific; observed behavior does not redefine Blend65 semantics |
+| 3 | Disputed/revision-sensitive physical behavior | Revision-identified physical measurement or stronger silicon evidence | Bounded to exact hardware/configuration; method and raw result required |
+| 4 | ACME/VICE behavior | Official version-pinned documentation/source plus executable probes | VICE 3.10 is the primary automated runtime oracle for its declared model; it does not redefine Blend65 semantics or prove universal silicon behavior |
 | 5 | Compiler methods | Primary literature and real compiler implementations | Comparative evidence only; no design is copied merely because it is established elsewhere |
 
 Community references are discovery aids or explicitly labelled corroboration. They cannot become
@@ -48,7 +48,7 @@ The implementation researches and pins at least:
 
 | Key family | Candidate authority | Required scope |
 |---|---|---|
-| `BLEND65-SPEC-*` | Frozen repository `spec/` at content commit | Every semantic crosswalk row |
+| `BLEND65-SPEC-*` | Reconciled frozen repository `spec/` at content commit plus recorded product rulings | Every semantic crosswalk row; conflicted rows cannot freeze before the consistency prerequisite closes |
 | `MOS-PGM-*` | MOS Technology MCS6500 Programming Manual | Programmer-visible instruction/addressing/flag/cycle model |
 | `MOS-HW-*` | MOS Technology MCS6500 Hardware Manual | Bus, interrupt, timing, stack, and hardware behavior |
 | `WDC-65C02-*` | WDC W65C02S datasheet | CMOS delta and portability constraints |
@@ -101,8 +101,11 @@ When sources disagree:
 1. classify whether they address the same chip/tool revision and configuration;
 2. prefer the contextual authority hierarchy, not recency alone;
 3. record both claims and their locations;
-4. define a minimal discriminating measurement if reproducible and safe;
-5. bound the conclusion to the measured revision/model;
+4. define a minimal discriminating measurement if reproducible and safe; VICE may settle configured
+   emulator behavior, while physical/revision-sensitive truth requires targeted real-hardware or
+   stronger silicon evidence;
+5. bound the conclusion to the measured revision/model and use
+   `VICE-verified / hardware-unverified` while required physical QA is pending;
 6. record remaining uncertainty and downstream decisions affected; and
 7. block release if the unresolved difference can alter a required decision.
 
@@ -126,6 +129,11 @@ loading and avoids turning the skill into an archive rather than a decision know
 - tool behavior includes version and probe evidence;
 - no required cell depends solely on a weak secondary source; and
 - unresolved material conflicts are zero.
+
+The manifest's dependent-section links stop at knowledge ownership. Material compiler-audit and
+redesign conclusions extend lineage in their own records with `{skillVersion, contentCommit,
+referencePath#heading, sourceKeys}` so a later version change can revalidate only changed-rule
+consumers. This is recorded in ordinary audit documents, not a separate registry.
 
 ## Failure Conditions
 

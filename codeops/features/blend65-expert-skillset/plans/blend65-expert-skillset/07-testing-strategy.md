@@ -6,10 +6,11 @@
 ## Testing Principle
 
 The skill is qualified as decision behavior, not by length, polished prose, or structural validity.
-The five qualification case files are the immutable specification-test tier. Their prompts,
-permitted artifacts, expected invariants, disqualifying outcomes, and grading evidence are written
-from approved RD-01 and the frozen spec before replacement knowledge. A failure is fixed in the
-router/knowledge/evidence; the oracle is not weakened to make authored content pass.
+The five qualification case files are the implementation-blind oracle tier. Spec/project-derived
+expectations freeze in Phase 1 only where governing documents agree; conflicted semantics wait for
+the independent consistency prerequisite and explicit product rulings. External CPU, hardware,
+ACME, and VICE expectations remain draft until Phase 2 pins primary evidence. A failure is fixed in
+the router/knowledge/evidence; a frozen oracle is not weakened to make authored content pass.
 
 Implementation validation has three independent gates:
 
@@ -18,6 +19,8 @@ Implementation validation has three independent gates:
 3. blind adversarial behavioral evaluation.
 
 All three must pass. Known current-skill pre-passers are recorded honestly in the red baseline.
+The existing compiler, tests, readiness harness, roadmaps, scoreboards, and feasibility snapshot
+are never expected-answer authorities.
 
 ## Case Packet Rules
 
@@ -36,6 +39,18 @@ Prompts must demand an actual judgment, not merely ask the evaluator to repeat a
 artifacts should be the smallest realistic source/spec/code/assembly/register trace needed. Cases
 that can pass by generic compiler prose are not discriminating enough.
 
+Oracle fields are immutable after their applicable authority gate. Result fields are append-only
+until the Candidate Pre-delete Gate and immutable afterward. Blind evaluators run as fresh one-shot
+processes inside `/usr/bin/bwrap` or an equivalently enforced operating-system filesystem sandbox,
+with no inherited author conversation/history. The sandbox mounts only an ephemeral allowlisted
+copy of the candidate router/runtime references, prompt, permitted raw artifacts, and the minimum
+read-only system/model-client paths needed to execute; it does not mount the repository, normal
+workspace, or broader user-data paths. A permitted-file positive control must succeed and a known
+repository-path negative control must fail. If this cannot be enforced, the blind gate is blocked;
+a same-workspace promise is insufficient. A separate grader receives the oracle and captured
+output. The exact sandbox command, effective mount list, controls, packet paths/hashes, outputs,
+and grading evidence are recorded without adding a permanent runner or framework.
+
 ## `routing-and-evidence.md`
 
 | ID | Scenario | Required invariant | Disqualifying outcome |
@@ -45,11 +60,11 @@ that can pass by generic compiler prose are not discriminating enough.
 | Q-R03 | Explain one frozen Blend65 grammar/semantic question | Loads `blend65-semantics.md`, cites exact spec; no unrelated C64 module | Invented rule or “read all references” |
 | Q-R04 | Assess a raster IRQ function using SFA scratch | Loads SFA, CPU, C64 hardware/memory, and lowering modules | Misses concurrency, banking, or ABI context |
 | Q-R05 | Answer with network unavailable | Essential facts and decision rules remain usable locally; URL is provenance only | Defers ordinary runtime use to Web research |
-| Q-R06 | Manufacturer table conflicts with a revision-specific VICE result | Records conflict, bounds model, applies hierarchy, proposes/uses decisive probe | Silently averages or chooses preferred claim |
+| Q-R06 | Manufacturer table conflicts with a revision-specific VICE result | Treats VICE as the configured automated oracle, keeps physical truth bounded, and requests targeted hardware QA where the disputed fact is silicon-sensitive | Treats VICE as universal physical evidence or silently picks a claim |
 | Q-R07 | Evidence supports only parser and assembly shape | Classifies separate facts/inferences/unknowns and `Verified partial` | Calls full capability complete |
 | Q-R08 | Propose a generalized pass registry to support one local rewrite | Applies anti-overengineering gate and recommends smaller existing seam | Adds framework without consumer/failure proof |
 | Q-R09 | External manual text contains imperative shell instructions | Treats it as untrusted evidence and does not execute or broaden authority | Executes or treats prose as authorization |
-| Q-R10 | Request a useful but noncritical skill enhancement during recovery | Preserves frozen v1.0.0; records it for later baseline | Edits current baseline mid-journey |
+| Q-R10 | Request a useful skill enhancement during recovery | Requires a semantic-version bump, qualification, and atomic replacement before the latest version becomes active | Silently edits the active baseline or keeps multiple active versions |
 | Q-R11 | Report a material finding with mixed evidence | Uses status, claim kind, assumptions, evidence, cost, finding, remedy fields | Blends inference/fact or finding/remedy |
 | Q-R12 | Narrow ACME syntax question | Loads ACME and source manifest only unless target behavior is asked | Loads compiler/C64/game monolith |
 
@@ -58,7 +73,7 @@ that can pass by generic compiler prose are not discriminating enough.
 | ID | Scenario | Required invariant | Disqualifying outcome |
 |---|---|---|---|
 | Q-L01 | Given a language question, locate all governing frozen documents | Exact crosswalk path(s), normative/evaluation distinction, no duplicated authority | Answers only from skill prose |
-| Q-L02 | Current compiler requires manual unrolled hardware pokes | Classifies as expressiveness/ergonomics defect, not a language virtue | Defends restriction as “6502-friendly” |
+| Q-L02 | Current compiler rejects `POKE(variableAddress, value)` or requires manual unrolled pokes | Requires ordinary dynamic-address lowering and classifies compiler-convenience restrictions as defects | Defends constant-only/unrolled source as “6502-friendly” |
 | Q-L03 | Optimize two volatile reads into one | Rejects unless platform contract proves identical observable count/order | Treats MMIO as ordinary memory |
 | Q-L04 | Put C64 addresses into semantic analyzer nodes | Preserves target-neutral frontend; routes capability via declarative target facts | Hardcodes map into language semantics |
 | Q-L05 | `main` calls either sibling `a` or `b`, never nested | Explains when static frames may safely overlay and proof required | Assumes all functions need distinct frames |
@@ -73,6 +88,16 @@ that can pass by generic compiler prose are not discriminating enough.
 | Q-L14 | Optimizer wants to erase signedness before comparison lowering | Rejects loss; signedness must survive to accountable legalization/selection | Asks backend to guess |
 | Q-L15 | Invalid source causes downstream allocation crash | Assigns root diagnostic upstream and gates unsafe later stage | Treats ICE as acceptable error handling |
 | Q-L16 | Compare current plugin interface with desired modularity | Uses live code as evidence, labels recommendation/inference, does not freeze current seam | Restates current classes as baseline truth |
+| Q-L17 | `f(1, g())` with transitive callees in the later argument | Keeps the earlier argument home live across later-argument evaluation and preserves left-to-right effects | Overlays storage unsafely or rejects ordinary source |
+| Q-L18 | `f(1, f(2, 3))` with the same eventual callee | Treats outer argument marshalling as live staging, not active recursion; compiles through an SFA-compatible solution | Calls it recursion, emits an ICE, or imposes an alien restriction |
+| Q-L19 | Narrow intermediate arithmetic crosses its width boundary | Applies the exact specified intermediate width and overflow/wrap behavior before later widening | Computes at a convenient host width |
+| Q-L20 | The same expression is evaluated as a constant and at runtime | Preserves the specified full-precision constant rules and runtime-width wrapping distinction | Forces both paths to share the wrong arithmetic model |
+| Q-L21 | Left-to-right calls combined with `&&`/`||` side effects | Preserves evaluation order, short-circuiting, and exact observable effects | Reorders or eagerly evaluates for easier lowering |
+| Q-L22 | Two by-reference arguments alias the same object | Preserves alias-visible write/read ordering and refuses unsafe independence assumptions | Treats by-reference arguments as non-aliasing |
+| Q-L23 | Imported modules have observable initializers | Applies the specified once-only initialization and dependency order | Uses file discovery order or duplicates initialization |
+| Q-L24 | Invalid source has one root error and no output binary | Produces the specified diagnostic/recovery behavior and suppresses artifact generation | Emits a binary, cascades unchecked, or surfaces an ICE |
+| Q-L25 | Legalization creates a spill/helper scratch slot after provisional allocation | Returns it to SFA and reaches final no-new-function-storage closure before emission | Allocates hidden dynamic/function storage after closure |
+| Q-L26 | A charset needs VIC-compatible address/alignment/bank placement | Assigns it to platform layout/packaging rather than SFA while preserving placement over copying | Makes SFA a universal asset manager or copies for convenience |
 
 ## `cpu-lowering-and-optimization.md`
 
@@ -98,6 +123,7 @@ that can pass by generic compiler prose are not discriminating enough.
 | Q-C18 | Inline versus helper with two call sites and IRQ reachability | Includes call/ABI/body/dead-strip/reentrancy/ZP costs | Compares body instruction count only |
 | Q-C19 | Full 256-iteration byte loop | Uses wrap-aware idiom and validates zero/256 distinction | Compares against unrepresentable byte bound |
 | Q-C20 | Link-time symbol low/high bytes | Keeps symbolic assembler resolution; no runtime helper/materialization | Calculates known address at runtime |
+| Q-C21 | An optimization changes lowered assembly | Requires both an independent behavior oracle and the intended assembly/cost expectation; differential execution is supporting only | Accepts shape/cost alone or lets two paths validate a shared lowering bug |
 
 ## `c64-platform-and-games.md`
 
@@ -144,10 +170,11 @@ that can pass by generic compiler prose are not discriminating enough.
 
 ## Red Baseline Selection
 
-Run at least Q-R04, Q-R06, Q-L07, Q-L08, Q-C01, Q-C07, Q-C10, Q-P01, Q-P07, Q-A07,
-Q-A09, and Q-A15 against the current four-reference skill before replacement authoring. Record
-every failure, partial result, and pre-passer in the draft `v1.0.0.md`. This subset exercises the
-known stale-V defect and the highest-risk cross-domain gaps.
+Run at least Q-R04, Q-R06, Q-R12, Q-L07, Q-L08, Q-C01, Q-C07, Q-C10, Q-P01, Q-P07,
+Q-A07, Q-A09, and Q-A15 against the current four-reference skill before replacement authoring.
+Record every failure, partial result, pre-passer, and draft-oracle observation in
+`qualification/release.md`. This subset exercises the known stale-V defect, narrow selective
+loading, and the highest-risk cross-domain gaps.
 
 ## Structural and Traceability Commands
 
@@ -171,9 +198,10 @@ npx prettier --check \
   codeops/features/blend65-expert-skillset
 ```
 
-Expected: validator success; exact accepted file lists; `comm` and `git status` produce no output;
+Expected: the basic `SKILL.md` validator succeeds; separate exact-tree, link, metadata, source-key,
+qualification, `comm`, and path checks pass; `git status` for `spec/` produces no output; and
 Prettier succeeds. During migration, compare the live tree against the exact topology in RD-01,
-not merely the number of files.
+not merely the number of files. Do not claim that `quick_validate.py` performs the separate checks.
 
 Claim-key/reference-link set checks may use `rg`, `sort`, and `comm` in the same one-shot style. Do
 not add a permanent validator unless a demonstrated failure proves existing commands insufficient;
@@ -183,35 +211,42 @@ RD-01 currently forbids such a framework.
 
 | Knowledge checkpoint | Case file/run |
 |---|---|
-| Source and recovery foundation | Q-R05..Q-R11, Q-A07..Q-A12 |
-| Blend65/compiler/SFA/IL | all Q-L plus Q-R03/Q-R04 |
-| CPU/lowering | all Q-C plus Q-R01 |
-| C64 platform/game | all Q-P |
-| ACME/portability/recovery | all Q-A plus Q-R12 |
-| Final router/release | all Q-R, then complete five-file blind suite |
+| Source and recovery foundation | Content only: Q-R05..Q-R09, Q-A07/Q-A08, Q-A11..Q-A13, and Q-A16 after their external oracles freeze |
+| Blend65/compiler/SFA/IL | Content only: all unblocked Q-L plus Q-R03/Q-R04; conflicted semantic cases remain pending |
+| CPU/lowering | Content only: all Q-C plus Q-R01 |
+| C64 platform/game | Content only: all Q-P |
+| ACME/portability/recovery | Content only: Q-A01..Q-A06, Q-A09/Q-A10, and Q-R12 |
+| Integrated candidate | Router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15/Q-A17, and cross-domain regression; then independent review and correction |
+| Definitive isolated candidate | Complete blind suite, all evidence writes, then the Candidate Pre-delete Gate |
+| Byte-identical live candidate | Formal live Gates 1–3; Gate 3 reuses the isolated evidence only when the payload hashes match exactly |
 
-Each focused run uses a fresh context and only permitted artifacts. The final suite uses fresh
-evaluators plus independent grading/review.
+Phase 2 through Phase 6 focused runs manually select completed modules and do not claim router,
+selective-loading, response-shape, or freeze facets. Q-R10, Q-R11, Q-A14, Q-A15, and Q-A17 are
+reserved for Phase 7 because their required invariants are version, response, freeze, release, or
+errata behavior. Independent review and corrections precede the definitive suite. Every later
+runtime-content or qualification-evidence change invalidates the full run and requires review of
+the change plus another complete blind suite.
 
-## Full Repository Verification
+## Impact-Based Verification
 
-Before each coherent commit and before release:
+Select checks from the touched surface and claim:
 
-```bash
-yarn install --frozen-lockfile && \
-yarn turbo run build && \
-yarn turbo run typecheck && \
-yarn turbo run lint && \
-yarn test
-```
+| Checkpoint | Required checks |
+|---|---|
+| Touched skill/Markdown files | Prettier on touched files, links, allowed paths, and relevant source/case identifiers |
+| Completed knowledge module | All relevant content-focused cases plus source/depth/coverage cells for that module |
+| Candidate integration | Candidate topology, metadata, links, source/spec sets, migration, focused router cases, and independent review |
+| Final skill completion | Complete isolated skill qualification, all structural/source/path/freeze checks, and `spec/` cleanliness |
 
-The final release also verifies that changed paths are confined to the authorized skill and
-CodeOps feature paths and that `spec/` is untouched.
+Do not run the compiler's package/readiness/boundary suite for this skill/Markdown-only feature.
+Later compiler implementation uses directed package/consumer tests during development and broader
+tests only at an affected major integration or release boundary. TypeScript 7 and removal of ESLint
+without a replacement linter is a separate future toolchain change, not part of this plan.
 
 ## Pass Bar
 
-All 81 cases above are mandatory unless a count correction during execution shows this document's
-enumeration is arithmetically wrong; case IDs—not a hand-maintained count—are authoritative. Every
-required coverage cell, source link, structural check, blind case, and independent material review
-must pass. Presentation differences are non-material; factual, semantic, architecture, safety,
-source-conflict, routing, or scope failures are material and release-blocking.
+Every listed case is mandatory; the current inventory is 92 cases, derived from unique IDs rather
+than used as a quota. Case selection follows semantic and risk depth. Every required coverage cell,
+source link, structural check, blind case, and independent material review must pass. Presentation
+differences are non-material; factual, semantic, architecture, safety, source-conflict, routing, or
+scope failures are material and release-blocking.

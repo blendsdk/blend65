@@ -18,7 +18,7 @@ for the task, and make uncertainty and version-freeze behavior explicit.
 | Folder | `.agents/skills/blend65-domain-expert/` |
 | Frontmatter `name` | `blend65-domain-expert` exactly |
 | Frontmatter `description` | Discriminates compiler semantics/lowering/SFA/assembly/C64 work from generic maintenance; includes concrete trigger phrases without becoming a keyword dump |
-| Baseline version | `1.0.0`, declared in the body |
+| Active baseline version | `1.0.0`, declared in the body; every later substantive change increments it by at least a patch before requalification |
 | Discovery | Existing implicit project-local skill discovery; no alias or second skill |
 | UI metadata | `agents/openai.yaml` remains consistent with the final description and purpose |
 
@@ -36,6 +36,12 @@ The final router should stay compact and use this order:
 7. anti-overengineering gate;
 8. freeze and critical-errata protocol; and
 9. completion bar.
+
+The required stance includes the modern-language prime directive: normal source forms remain legal
+unless an explicit, approved restriction is genuinely forced by the selected target/resource
+model. SFA, missing lowering, or compiler convenience may not create alien source restrictions.
+Nested calls and `POKE(variableAddress, value)` are representative required forms, not special
+exceptions.
 
 The router may summarize a rule needed on every invocation. It must link to a reference instead of
 duplicating topic knowledge that applies only to some tasks.
@@ -91,6 +97,7 @@ contain:
 | Context | Spec baseline, CPU, machine/video variant, banking/interrupt/tool assumptions that can alter the result |
 | User-visible capability | The source program or game behavior being judged |
 | Evidence | Exact spec section, source-manifest key, live `file:line`, assembly/bytes, or runtime observation |
+| Knowledge lineage | Active `skillVersion`, `contentCommit`, `referencePath#heading`, and source keys for every material audit/redesign conclusion; a claim ID only when a heading contains multiple independent rules |
 | Cost | Bytes, relevant path cycles, ZP/frame/stack/data/padding/scratch costs when output is involved |
 | Finding | What the evidence proves, with named boundaries and confidence |
 | Remedy | Separate smallest viable next action; no remedy phrased as evidence |
@@ -116,43 +123,70 @@ scoring framework.
 
 ## Controlled Migration
 
-The existing four references remain present while replacements are authored. The migration ledger
-in `qualification/coverage-matrix.md` lists every material old heading/rule with:
+At execution start, record the exact Git commit and content hashes for `SKILL.md`,
+`agents/openai.yaml`, and the four legacy references. Add a minimal interim router warning that
+marks the legacy baseline unqualified and revokes its authority for compiler, hardware, or product
+decisions. This warning is the first explicit skill version, `0.1.0-legacy-quarantine`; it is an
+unqualified transition state, never a release baseline. The old files then remain
+read-only migration evidence while replacement content is authored; frozen/reconciled `spec/`,
+explicit product decisions, SFA doctrine, and primary evidence govern the new baseline.
+
+The migration ledger in `qualification/coverage-matrix.md` lists every material old heading/rule
+with:
 
 - exact old file and section;
 - disposition: retained, relocated/refined, or rejected;
 - exact new file/section or rejection reason;
-- factual correction note where meaning changed; and
+- independent source/spec verification and factual correction note where meaning changed; and
 - qualification case(s) that protect the result.
 
-Deletion is permitted only after every ledger row is resolved, all thirteen new references exist,
-the final router links them, focused qualification is green, and a diff confirms no valid rule was
-lost. The four old filenames then disappear in the same migration commit; they are not retained as
-redirects or shadow authority.
+No old statement migrates merely because it existed. It must be independently verified first.
+
+Deletion uses an exact **Candidate Pre-delete Gate** against an isolated complete candidate tree.
+The gate requires all thirteen references, the candidate router/metadata, complete source and
+coverage links, a resolved migration ledger, content-focused qualification, independent review and
+corrections, the definitive isolated blind-suite evidence, exact candidate topology, and no
+material open conflict. After it passes, the live router is replaced and the four old files are
+deleted as one coherent working-tree change. Formal Release Gates 1–3 then run against the live
+tree by verifying it is byte-identical to the qualified candidate; a mismatch invalidates the
+evidence. No redirect or shadow authority remains.
 
 ## Freeze and Errata
 
 ### Normal Freeze
 
 - `SKILL.md` declares `1.0.0`.
-- The complete runtime and qualification content is committed as one immutable content checkpoint.
-- `qualification/releases/v1.0.0.md` records that exact commit in a following commit.
+- The complete runtime and qualification payload is committed as one immutable content checkpoint:
+  router, metadata, thirteen references, coverage/migration matrix, five finalized case files, and
+  all evaluation/review evidence. Oracle fields have been frozen since their authoring gate and
+  result fields are final after append-only evaluation history.
+- Only `qualification/release.md` and the feature/portfolio roadmaps may change after that content
+  checkpoint. The release record binds the exact version and content commit in a following commit.
 - Compiler recovery cites and uses that version without routine edits.
-- New insights, conveniences, or additional targets wait for a separately planned later baseline.
+- New insights, conveniences, or additional targets require a separately planned, fully qualified
+  version that atomically replaces the active baseline. Git commits/tags preserve old versions;
+  the working tree retains only the latest qualified skill and one active release record.
 
-### Critical Factual Erratum
+### Substantive Change and Critical Errata
 
-A point release is allowed only when a factual defect can cause a wrong semantic, architecture,
-lowering, hardware, or recovery decision. The affected work pauses. The correction must:
+A version bump is mandatory whenever a substantive router, knowledge, source-governance, or
+qualification-oracle change is required, including a factual defect that can cause a wrong
+semantic, architecture, lowering, hardware, or recovery decision. The affected work pauses. The
+correction must:
 
 1. identify the false rule and its evidence;
 2. establish corrected primary evidence or bounded empirical resolution;
 3. add/strengthen a discriminating case before changing the rule;
 4. update only affected knowledge and necessary routing;
-5. run affected cases plus the full regression suite;
+5. run affected cases and every qualification case whose governing rules changed;
 6. receive independent review;
-7. bind a new point-version content commit; and
-8. audit only downstream decisions that depended on the corrected rule.
+7. bind the newly qualified semantic version to its content commit in `qualification/release.md`;
+8. audit only downstream decisions that depended on the corrected rule, recording each as
+   `unaffected`, `revalidated`, `corrected`, or `invalidated/reopened`; and
+9. activate the new version atomically only after qualification passes.
+
+Release-record bookkeeping that binds an already-qualified content commit does not recursively
+trigger another version bump.
 
 A stylistic improvement, missing convenience, newly interesting topic, or future platform request
 does not qualify.

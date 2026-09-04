@@ -6,9 +6,13 @@
 
 ## Authority Rule
 
-RD-01 is the complete requirements authority. This file does not restate or weaken it. It records
-only the execution interpretation needed to make the implementation plan deterministic. If this
-file and RD-01 ever disagree, RD-01 wins and execution stops to repair the plan.
+RD-01 remains the product-scope authority. The explicit user decisions recorded in this plan's
+`00-preflight-report.md` are later controlling refinements for implementation mechanics,
+qualification, versioning, evidence boundaries, and verification. Where an accepted PF ruling and
+the older RD text differ, the PF ruling wins; this plan applies it without expanding product scope.
+The RD itself is a context document outside this preflight modification set and is not silently
+rewritten. A future requirements-maintenance action may synchronize its wording, but execution does
+not revert to superseded RD mechanics in the meantime.
 
 ## Confirmed Scope Delta
 
@@ -21,15 +25,17 @@ The following implementation interpretations are now fixed:
 | RD concern | Execution interpretation |
 |---|---|
 | Runtime topology | Exactly thirteen reference files; no additional runtime README, alias, registry, or generated catalog. |
-| Qualification topology | Exactly one coverage matrix, five concern-split case files, and one `v1.0.0` release result. |
-| Spec-first order | Qualification expectations are authored from RD-01 and frozen `spec/` before replacement knowledge is written. |
-| Red proof | The current four-reference baseline is evaluated against high-risk cases; known pre-passers are recorded, never forced red. |
+| Qualification topology | Exactly one coverage matrix, five concern-split case files, and one active `qualification/release.md`. |
+| Semantic authority prerequisite | Spec/project-derived expectations may freeze in Phase 1 only where the frozen documents agree. Duplicate assignments and direct cross-chapter conflicts receive an independent, bounded consistency audit and explicit product ruling before final semantic qualification. No compiler behavior resolves them. |
+| External-oracle order | Hardware/tool expectations remain draft until Phase 2 pins the governing primary evidence; they freeze before dependent knowledge is authored. |
+| Red proof | The current four-reference baseline is evaluated against a high-risk subset, including Q-R12; known pre-passers and draft-expectation observations are recorded, never forced red or treated as final qualification. |
 | Knowledge depth | Coverage cells—not page or word counts—must satisfy the eight-part depth contract. |
 | Crosswalk | All 50 current `spec/**/*.md` paths receive a mapped-guidance or explicit N/A row. |
 | Source pinning | The manifest records revision/version, retrieval date, dependent sections, and conflicts; runtime guidance remains usable offline. |
 | Migration | `qualification/coverage-matrix.md` owns the old-rule migration ledger to avoid adding an unauthorized artifact. |
-| Release identity | Skill content is committed first; the release result is then completed and committed separately with the exact content hash. |
-| Later recovery | The skill teaches audit criteria but freezes no current compiler-completeness claim or tentative concrete backend topology. |
+| Release identity | One active semantic version is declared in the router. Final skill content and qualification evidence are committed first; `qualification/release.md` then binds the exact content commit. Every later substantive change bumps and requalifies the single active version; Git preserves history. |
+| Later recovery | The skill teaches audit criteria but freezes no current compiler-completeness claim, readiness result, feasibility-matrix claim, or tentative concrete backend topology. Material later conclusions cite skill version, content commit, knowledge heading, and source keys. |
+| Verification | Checks are selected by touched surface. Skill/Markdown work uses formatting, topology, links, source/spec set checks, and relevant qualification cases; it does not run the compiler suite. |
 
 ## Requirement-to-Plan Traceability
 
@@ -50,7 +56,7 @@ The following implementation interpretations are now fixed:
 | R13 Coverage-driven qualification | 03-07 | 1–7 | Every mandatory matrix row green |
 | R14 Blind independent evaluation | 03-07 | 7 | Sanitized packets, evaluator outputs, reviewer result |
 | R15 Controlled in-place migration | 03-01, 03-07 | 1, 7 | Old-rule ledger, exact-tree audit, Git diff |
-| R16 Frozen release and errata | 03-01, 03-07 | 7 | Content commit, versioned release record, errata drill |
+| R16 Frozen release and errata | 03-01, 03-07 | 7 | Content commit, active release record, version-bump and impact-audit drill |
 | R17 Evidence-shaped responses | 03-01, 03-05 | 2, 7 | Response-shape and uncertainty cases |
 | R18 Minimal mechanism | All | 1–7 | Dependency/tree audit and full verification |
 
@@ -66,10 +72,10 @@ The following implementation interpretations are now fixed:
 | 9 | Pinned ACME probes, byte inspection, PRG and VICE observations |
 | 10 | Target constraint matrix and qualified-scope labels |
 | 11–12 | Evidence/parity/recovery rules and source-manifest validation |
-| 13–15 | Coverage set equality, red baseline, blind green evaluation, review record |
+| 13–15 | Coverage set equality, partial red baseline, isolated blind evaluation, review record |
 | 16–17 | Migration ledger, exact-tree audit, content hash, and freeze declaration |
 | 18–19 | Response-shape and critical-erratum simulation cases |
-| 20–22 | No-new-mechanism audit, full verify, frozen-tree/path boundaries, roadmap links |
+| 20–22 | No-new-mechanism audit, complete skill qualification, frozen-tree/path boundaries, roadmap links |
 
 ## Out-of-Scope Enforcement
 

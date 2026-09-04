@@ -17,10 +17,17 @@ C128, Commander X16, Atari 8-bit, and Atari 7800.
 
 The implementation is deliberately vertical. Each knowledge concern gets its qualification oracle
 first, demonstrates the current skill's failure or insufficiency, receives the smallest sufficient
-reference content, and must then pass its focused cases. The old four references stay authoritative
-until their replacements pass; they are removed in one controlled migration after all thirteen new
-references are complete. No compiler source, language specification, test harness, service,
-registry, generator, downloader, or publication layer is created or changed.
+reference content, and must then pass its focused cases. At execution start, the old skill tree is
+pinned, its four references become read-only migration evidence, and its router is versioned and
+quarantined; its statements are not authority for new knowledge. The replacement is activated only
+after an isolated Candidate Pre-delete Gate, then the old references are removed in the same
+coherent live-tree change. No compiler source,
+language specification, test harness, service, registry, generator, downloader, or publication
+layer is created or changed.
+
+The current compiler, its tests, roadmaps, readiness machinery, scoreboards, and game-feasibility
+snapshot are inputs to a later audit only. They may supply realistic qualification prompts, but
+they cannot determine skill doctrine, qualification oracles, or the future compiler architecture.
 
 ## Document Index
 
@@ -45,32 +52,42 @@ registry, generator, downloader, or publication layer is created or changed.
 ```text
 approved RD-01
     ↓
-immutable coverage contract + adversarial cases
-    ↓  current skill must demonstrate RED/insufficient outcomes
-pinned evidence + thirteen focused reference modules
-    ↓  focused cases go GREEN concern by concern
-router migration + deletion of four superseded references
+spec/project-derived oracles freeze; external-fact cases remain draft
+    ↓  current skill insufficiencies/pre-passers are recorded
+pinned primary evidence freezes external-fact oracles
     ↓
-blind full-suite evaluation + independent review
+thirteen focused reference modules + content-focused evaluation
+    ↓
+integrated candidate router + independent review and corrections
+    ↓
+definitive blind full-suite evaluation of the isolated candidate
+    ↓
+isolated Candidate Pre-delete Gate
+    ↓
+atomic live router migration + deletion of four superseded references
+    ↓
+formal live gates bind the byte-identical candidate evidence
     ↓
 immutable content commit
     ↓
-v1.0.0 release record binds the commit and freezes the baseline
+qualification/release.md binds the v1.0.0 commit and freezes the baseline
 ```
 
 ## Non-Negotiable Invariants
 
 | Invariant | Plan consequence |
 |---|---|
-| SFA is the general function-frame model | The skill teaches static frames, overlays, reentrancy, interrupt reachability, and failure diagnostics; it does not reopen software/hardware-stack frames as the default. |
+| SFA is the sole general function-frame model | The final function-storage plan closes over parameters, returns, locals, temporaries, spills, and function/helper scratch. Platform layout/packaging separately owns globals, assets, banking, alignment, segments, loaders, and artifacts. |
 | Modern source in, expert 6502 output out | Ergonomics and generated-code parity are graded separately and both must pass. |
 | C64 first, multi-target from the seams | C64 receives production depth; other targets constrain separation only and are labelled unqualified. |
 | Facts before architecture preference | Frozen spec and primary hardware/toolchain evidence govern; current implementation shapes are live audit inputs only. |
 | Peepholes are residual | Legalization, instruction selection, resource binding, layout, branch repair, and target optimization remain explicit responsibilities. |
 | One skill, selective references | `SKILL.md` stays a concise router; knowledge depth lives in exactly thirteen linked references. |
 | Zero material qualification failures | No average score or percentage can hide one unsafe semantic or hardware misconception. |
-| Freeze before recovery | Routine skill changes wait; only a critical factual erratum can produce a reviewed point release and targeted impact audit. |
+| One active qualified baseline | Every substantive skill change increments the version by at least a patch, is requalified before atomic activation, and triggers only dependency-traced downstream review. Git preserves earlier versions. |
 | Minimum sufficient mechanism | Markdown plus existing validators and repo commands; no bespoke framework or runtime. |
+| Implementation independence | Existing compiler behavior and support artifacts never become skill authority; discrepancies are recorded for the later audit. |
+| VICE-first development | VICE 3.10 is the automated runtime oracle; targeted real-hardware QA settles only physical/revision-sensitive claims and provisional results are labelled. |
 
 ## Planned Runtime Artifact Tree
 
@@ -100,7 +117,7 @@ v1.0.0 release record binds the commit and freezes the baseline
     │   ├── cpu-lowering-and-optimization.md
     │   ├── c64-platform-and-games.md
     │   └── parity-recovery-and-portability.md
-    └── releases/v1.0.0.md
+    └── release.md
 ```
 
 ## Modification Boundary
@@ -117,8 +134,10 @@ target in this feature.
 
 ## Completion Definition
 
-The feature plan is implemented only when every RD-01 acceptance criterion has evidence, all
-mandatory cases pass blind evaluation with no material open finding, all old rules have an explicit
-migration disposition, the old broad references are gone, full repository verification passes,
-the content is committed, and `qualification/releases/v1.0.0.md` binds that exact commit as the
-frozen baseline.
+The feature plan is implemented only when every RD-01 acceptance criterion has evidence, the
+independent specification-consistency prerequisite has reconciled all material semantic conflicts,
+all mandatory cases pass blind evaluation with no material open finding, all old rules have an
+explicit migration disposition, and the old broad references are gone. The complete skill-specific
+structural, source, path, freeze, and qualification checks must pass; the unrelated compiler suite
+is not run for this Markdown-only feature. The content is then committed and
+`qualification/release.md` binds that exact v1.0.0 commit as the single active frozen baseline.

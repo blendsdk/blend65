@@ -101,6 +101,11 @@ Each operation family provides a decision table with:
 9. helper-call threshold/ABI cost where relevant; and
 10. source and qualification-case keys.
 
+Any entry used as an optimization also names an independent behavior oracle and a separate
+assembly/cost expectation. Matching the intended sequence is not proof that the changed machine
+program remains correct; differential execution against unoptimized output is supporting evidence
+only.
+
 ### Required Operation Inventory
 
 | Family | Required variants |

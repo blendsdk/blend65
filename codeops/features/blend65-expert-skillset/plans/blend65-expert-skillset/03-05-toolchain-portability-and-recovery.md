@@ -131,8 +131,8 @@ production guidance for those machines.
 | Focused stage test | Behavior at parser/semantic/SFA/IL/machine boundary | Downstream assembly/runtime behavior |
 | Emitted assembly | Selected symbolic instructions and structure | Actual encodings, container, hardware result |
 | Assembled bytes/reports | Encoding, placement, symbols, size | Device behavior and timing under a machine model |
-| Emulator observation | Declared model behavior and measurable paths | Every physical revision or unspecified configuration |
-| Physical hardware/revision measurement | Behavior on that unit/configuration | Universal behavior without a justified generalization |
+| VICE 3.10 observation | Primary automated evidence for declared model behavior and measurable paths | Universal silicon/revision behavior; use `VICE-verified / hardware-unverified` where physical QA is still required |
+| Physical hardware/revision measurement | Targeted evidence for silicon/analog/revision-sensitive behavior on that unit/configuration | Universal behavior without a justified generalization |
 | Expert equivalent-work comparison | Local parity and cost cause | Language expressibility outside the compiled corpus |
 
 ### Capability Status
@@ -170,7 +170,8 @@ For each compiler segment/capability, collect:
 
 | Field | Required evidence |
 |---|---|
-| Contract | Frozen spec/API/game behavior |
+| Knowledge lineage | Active skill version, exact content commit, `referencePath#heading`, source keys, and a claim key only when the heading contains multiple independent rules |
+| Contract | Reconciled frozen spec, explicit product/API decision, or current requested program behavior; never existing compiler behavior or a feasibility snapshot |
 | Live path | Files/functions/data transformations with line evidence |
 | Tests | Positive/boundary/negative and exact tier actually executed |
 | Artifact/runtime | Assembly, bytes, symbols, VICE/hardware observation as applicable |
@@ -178,6 +179,10 @@ For each compiler segment/capability, collect:
 | Complexity | Mechanisms, consumers, maintenance/verification burden, duplication |
 | Salvage | Keep, simplify, rewrite, or delete—with dependency/evidence reason |
 | Next proof | Smallest decisive test or implementation action |
+
+When a later qualified skill version changes a rule, follow only recorded lineage and classify each
+dependent conclusion as `unaffected`, `revalidated`, `corrected`, or `invalidated/reopened`. Do not
+re-audit unrelated work and do not create a claim registry or service.
 
 ### Salvage Rule
 
@@ -199,4 +204,5 @@ decline it during recovery. The skill does not prescribe a replacement meta-harn
 This component fails if assembly text is treated as bytes, current local tool behavior is
 generalized without version pinning, future target scaffolds are called complete, portability
 collapses all target concerns into one object, parity compares unequal obligations, or recovery
-preserves machinery because of sunk cost or roadmap status.
+preserves machinery because of sunk cost or roadmap status. The optional game-feasibility snapshot
+is never recovery authority or an audit-scope source.

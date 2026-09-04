@@ -28,6 +28,12 @@ which frozen documents govern a question, what information must survive the pipe
 compiler/hardware interactions are dangerous. Every semantic conclusion still cites and reads the
 governing `spec/` section.
 
+Before final semantic qualification, an independent bounded consistency audit must check duplicate
+diagnostic assignments and direct cross-chapter contradictions across the specification. Conflicts
+receive explicit product rulings and a reconciled specification baseline before their oracle fields
+freeze. Unaffected crosswalk rows and cases may proceed; conflicted rows stay visibly blocked. The
+existing compiler and its tests are never precedence evidence.
+
 ### Required Crosswalk Shape
 
 The module contains exactly one row for every current `spec/**/*.md` file. Rows have:
@@ -60,7 +66,12 @@ count change makes qualification fail loudly until a new baseline is planned.
 
 ### Decision Rules
 
-- A hardware limitation does not become a language rule merely because current lowering is weak.
+- Blend65 behaves like a normal modern language unless a restriction is deliberate, explicit,
+  approved, and genuinely forced by the selected target/resource model.
+- A hardware limitation does not become a language rule merely because current lowering is weak,
+  SFA needs staging, or the compiler lacks an implementation. Legal nested calls such as
+  `f(1, g())` and `f(1, f(2, 3))`, and dynamic operations such as
+  `POKE(variableAddress, value)`, require correct lowering rather than source workarounds.
 - A behavior the language cannot express is reported as an expressiveness failure, outside finite
   assembly parity ratios.
 - Target-neutral stages retain semantic distinctions until their owning consumer can act safely.
@@ -112,17 +123,24 @@ not a mandate to recreate LLVM or use its exact IR stack on this small compiler.
 
 ### Binding Rule
 
-SFA owns general function storage. Parameters, locals, temporaries, spills, and compiler scratch
-are statically assigned unless an explicitly supported dynamic feature requires a separately
-proven mechanism. The 6502 hardware stack remains available for JSR/RTS return addresses,
-interrupt entry/exit state, register preservation, and explicit stack intrinsics; it is not the
-general local-frame allocator.
+SFA is the sole general function-frame model and the final function-execution-storage invariant.
+Parameters, returns, locals, temporaries, spills, and function/helper scratch are statically
+assigned before emission. Earlier stages may create provisional plans and later lowering or
+resource binding may discover new function-lifetime storage, but the design must converge on a
+final closure after which no stage may invent more function storage. The 6502 hardware stack
+remains available for JSR/RTS return addresses, interrupt entry/exit state, register preservation,
+and explicit stack intrinsics; it is not the general local-frame allocator.
+
+SFA is not a universal memory manager. Platform layout and packaging own global data, sprites,
+charsets, images, SID data, hardware-visible alignment, banking, segments, loaders, and artifact
+placement. A later spill returns to SFA closure; placing a VIC-visible charset does not.
 
 ### Required SFA Model
 
 | Concern | Required treatment |
 |---|---|
-| Frame contents | Parameters, returns, locals, temporaries, spills, address-taken slots, alignment, and compiler scratch ownership |
+| Frame contents | Parameters, returns, locals, temporaries, spills, address-taken slots, function-local alignment, and function/helper scratch ownership |
+| Closure | Provisional plans may be refined, but a final no-new-function-storage gate precedes emission and covers storage introduced by legalization/resource binding |
 | Lifetime | Per-slot lifetime versus conservative frame lifetime; what evidence permits reuse |
 | Call graph | Direct/indirect/address-taken edges, roots, reachability, recursion/cycles, initialization, exported/unknown callers |
 | Interference | Caller/callee overlap, siblings, reentrant paths, IRQ/NMI/mainline concurrency, escaped entry points |
@@ -146,6 +164,11 @@ The module must reason correctly about:
 - ZP pair allocation at `$xxFF` and zero-page wrap behavior;
 - aggregate alignment/size and a target RAM/ZP budget failure;
 - call-site parameter homing, return ownership, and helper clobbers; and
+- already-homed earlier arguments remaining live while later arguments call `g()` or the same
+  callee, preserving left-to-right evaluation and results without treating the outer call as active
+  recursion;
+- a later-created spill/helper scratch slot returning to SFA before final closure, contrasted with
+  VIC-compatible charset placement remaining a platform-layout concern; and
 - a tempting software-stack alternative, rejected unless an authorized language capability proves
   both necessity and acceptable target cost.
 
@@ -193,6 +216,21 @@ Every optimization rule states applicability, semantic preconditions, killed/gen
 flag and memory effects, target legality, cost model, counterexample, verification case, and whether
 it must run before/after allocation/layout. Fixed-point iteration requires a termination argument;
 pass ordering requires a dependency, not taste.
+
+### Semantic-Equivalence Proof
+
+Every optimization has two independent expectations:
+
+1. a behavior oracle derived from Blend65, CPU, ABI, and platform semantics; and
+2. an assembly/cost expectation that proves the intended transformation occurred and delivered its
+   claimed byte, cycle, memory, or resource effect.
+
+The behavior oracle covers return values, memory, MMIO access identity/count/order, live ABI state,
+flags, interrupt-visible state, and timing only when timing is explicitly observable. Choose the
+smallest decisive method: exhaustive byte-state evaluation where tractable, adversarial boundary
+sets, a direct mathematical/reference oracle, assembled execution, or VICE for declared C64
+behavior. Optimized-versus-unoptimized differential execution is supporting evidence only because
+both paths can share a lowering defect. A shape-only golden cannot prove semantic preservation.
 
 ### Anti-Patterns
 

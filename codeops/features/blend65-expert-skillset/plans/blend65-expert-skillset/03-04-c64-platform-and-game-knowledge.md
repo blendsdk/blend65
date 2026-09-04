@@ -132,7 +132,8 @@ lowering” is not a justification.
 
 ### Game Feasibility
 
-Feasibility is decomposed into:
+When the user explicitly asks whether a program or game design is feasible, decompose the live
+question into:
 
 1. expressible source architecture;
 2. correct compiler/runtime behavior;
@@ -142,8 +143,20 @@ Feasibility is decomposed into:
 6. assembly parity of hot systems; and
 7. verification on the declared model.
 
-A game-row score is not proof by itself. An inexpressible capability is an infinite parity failure
-and belongs in the expressiveness ledger; a compiling but slower-than-expert path remains a defect.
+No existing game-feasibility matrix or generated page is input, authority, required coverage, or
+acceptance evidence for this reasoning. That repository snapshot is naive, time-stamped, optional,
+and removable. An inexpressible capability is an infinite parity failure and belongs in the
+expressiveness ledger; a compiling but slower-than-expert path remains a defect.
+
+### VICE and Physical-Hardware Boundary
+
+VICE 3.10 `x64sc` is the normal development, regression, and automated runtime oracle for a fixed
+model/configuration. Primary documentation governs stated hardware semantics. Targeted
+real-hardware QA is required near release when the conclusion depends on raster/badline timing,
+CIA edge behavior, SID analog or revision behavior, undocumented/silicon-sensitive opcodes,
+cartridge or expansion behavior, unusual banking, or a documentation-versus-emulator conflict.
+Until that physical check is completed, label the conclusion
+`VICE-verified / hardware-unverified`; do not generalize one emulator result to all C64 revisions.
 
 ## Cross-Module Cases
 

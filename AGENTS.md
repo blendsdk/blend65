@@ -15,7 +15,10 @@
 - **Package Manager:** Yarn classic (v1) workspaces — **no** `workspace:*` protocol
 - **Bundler:** Vite (per-package builds where applicable); `tsc --build` for type output
 - **Test Framework:** Vitest
-- **Linter/Formatter:** ESLint v9 (flat config) — enforced; Prettier — configured but unrun (see Commands)
+- **Current linter/formatter:** ESLint v9 (flat config) is still present; Prettier is configured but
+  unrun (see Commands). The approved future toolchain direction is TypeScript 7 with ESLint removed
+  and no replacement linter. Until that migration is implemented, describe the checkout as it is;
+  do not claim TypeScript 7 or no-ESLint status prematurely.
 - **Runtime:** Node 22 (pinned via `.nvmrc` + `engines`)
 
 **Manifest files:** package.json, tsconfig.json, turbo.json
@@ -24,7 +27,7 @@
 
 All commands run from the repo root.
 
-- **Build:** `yarn build` (turbo run build — `tsc --build` across all 10 packages)
+- **Build:** `yarn build` (turbo run build — package build scripts across all 12 workspaces)
 - **Typecheck:** `yarn typecheck`  •  **Lint:** `yarn lint` (ESLint ONLY — `eslint .` per package)
 - **Format:** ⚠️ Prettier is installed and configured (`.prettierrc.json`), and ESLint hands all
   formatting rules to it via `eslint-config-prettier` — but **nothing ever runs it**: no root or
@@ -37,8 +40,14 @@ All commands run from the repo root.
 - **Full readiness acceptance:** `yarn test:readiness:full` — intentionally opt-in and potentially
   multi-hour. Run only when readiness/execution semantics change or at an explicit readiness/release
   acceptance checkpoint; it is not part of normal development or quick-release verification.
-- **Verify (run before every commit):**
+- **Verification is impact-based:** choose checks from the touched surface and the claim being made.
+  During implementation, run directed package or behavior tests. At a major integration boundary,
+  run the complete relevant module or feature qualification. Use the repository-wide command
   `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
+  only when compiler/runtime changes cross package boundaries, at an explicit repository/release
+  acceptance checkpoint, or when the affected dependency surface makes the full run relevant.
+  Skill/Markdown-only changes do not run the compiler suite; validate touched formatting, links,
+  topology, source keys, and the relevant skill qualification cases instead.
 - **Clean:** TODO — no `clean` script defined (root, packages, or `turbo.json`); clean manually
   (`git clean -xdf packages/*/dist packages/*/*.tsbuildinfo`) or add a `clean` task to `turbo.json`.
 
@@ -47,21 +56,30 @@ All commands run from the repo root.
 Monorepo — Yarn workspaces + Turbo. Source in `packages/*/src/`; tests co-located as
 `*.spec.test.ts` (spec tier) / `*.impl.test.ts` (logic tier, RD-02+), plus the repo-root `test/` cross-package boundary tier (`boundary.spec.test.ts`).
 
-- `packages/` — the 10 `@blend65/*` packages (edges below)
+- `packages/` — the 12 `@blend65/*` packages (edges below)
 - `spec/` — frozen spec-v3.0; DO NOT MODIFY during compiler implementation (D3)
 - `examples/` — per-slice acceptance fixtures (gate + slice3a…slice8b), VICE-verified
 - `codeops/` — nested CodeOps layout (marker `.codeops.yml`): `00-roadmap.md` (portfolio) + `features/blend65-ri/` (`00-roadmap.md`, `requirements/`, `plans/<rd-slug>/`) + `_archive/` (completed plans)
 - `.github/workflows/` — CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
-- `docs/` — incl. the C64 game-feasibility matrix: `game-feasibility-matrix.json` (source of truth) rendered to an interactive `game-feasibility-matrix.html` by `scripts/gen-capability-matrix.mjs` (`yarn gen:matrix`); manual refresh via the `update_capability` skill
+- `docs/` — includes an optional, naive, time-stamped C64 game-feasibility snapshot:
+  `game-feasibility-matrix.json` renders to `game-feasibility-matrix.html` via
+  `scripts/gen-capability-matrix.mjs` (`yarn gen:matrix`). It is not compiler or skill authority,
+  must not drive architecture, requirements, qualification, or audit scope, and may be removed
+  without replacement. Git history is sufficient preservation.
 - `research/`, `scripts/` — research notes, repo tooling
 
 ### Package dependency edges (R15 boundary is load-bearing)
 
-Private — `core` ← — · `frontend` ← core · `codegen` ← core, frontend · `platforms`, `config` ← core.
+Private — `core` ← — · `frontend` ← core · `codegen` ← core, frontend · `platforms`, `config` ← core ·
+`readiness` has no internal runtime dependency · `readiness-execution` ← cli, compiler, core,
+frontend, readiness, test-harness.
 Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` ← compiler, config, core · `language-server` ← core, frontend (**NEVER codegen** — R15) · `vscode` ← language-server · `test-harness` ← core, compiler (+ codegen **dev-only**).
 
 > **R15 / AR-20 (load-bearing):** `frontend` and `language-server` MUST NOT import `@blend65/codegen`
-> — enforced by ESLint `no-restricted-imports` (AR-P7) + `test/boundary.spec.test.ts` (ST-R15a/b/c).
+> — currently enforced by ESLint `no-restricted-imports` (AR-P7) and
+> `test/boundary.spec.test.ts` (ST-R15a/b/c). When ESLint is removed for the TypeScript 7 migration,
+> the small direct boundary test remains the durable enforcement; do not replace ESLint with
+> another general linter.
 
 ## Conventions
 
@@ -86,10 +104,15 @@ Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` �
 
 - **Large classes (>500 lines):** Split into modules / use composition; prefer pure
   functions and small focused modules over monolithic classes.
-- **Component pattern:** Compiler pipeline stages (Lexer → Parser → Analyzer → SFA →
-  IL/Optimizer → Codegen → Emitter), each independently testable.
-- **State management:** N/A (AOT compiler; no UI runtime state). SFA = static frame
-  allocation, all allocation decided at compile time.
+- **Compiler responsibilities:** Keep lexing, parsing, semantic analysis, function-storage
+  allocation, IR transformation, target lowering, machine optimization, serialization, and
+  packaging independently testable. The current pass/class topology is audit evidence, not an
+  architecture mandate for the redesign.
+- **SFA boundary:** Static Frame Allocation is the sole general model for function-execution
+  storage. Before emission it closes over parameters, returns, locals, temporaries, spills, and
+  function/helper scratch; no later stage may invent function storage after that closure. SFA is
+  not a whole-machine memory manager. Global data, sprites, charsets, images, SID data, target
+  alignment/banking/segments, loaders, and artifact placement belong to platform layout/packaging.
 
 ### Documentation
 
@@ -129,16 +152,13 @@ would judge it:
   would hand-write (instruction selection, cycles, bytes, ZP usage). A divergence is a defect —
   file it (GitHub issue) or fix it, never shrug it off. Goldens should read like a competent
   asm dev wrote them.
-- **Meet or beat the expert — across the whole capability matrix (NON-NEGOTIABLE).** Parity is the
+- **Meet or beat the expert for every implemented capability (NON-NEGOTIABLE).** Parity is the
   *floor*, not the goal. The generated code must **never be worse** than what an expert would
   hand-write for a routine (that floor is the scoreboard's 1.0 ratio), and must **beat** the
   expert's *realistic whole-program* result — the win a compiler alone can take: global allocation,
   exhaustive strength reduction, cross-routine layout, perfect consistency, no fatigue, no
-  hand-tuned routine left un-tuned. Steer every implementation decision so the programs and games
-  the capability matrix (`docs/game-feasibility-matrix.json` → `.html`) tracks are **(a)**
-  expressible in a modern way (audience directive #3) and **(b)** ship with output at or beyond
-  that bar. A capability the matrix marks feasible but whose generated code an expert would still
-  beat is a **defect, not a completed row** — reopen it.
+  hand-tuned routine left un-tuned. A capability whose generated code an expert would still beat is
+  a defect, regardless of any feasibility snapshot or historical status claim.
 - **Beat first; meet only as a last resort, and file the gap (NON-NEGOTIABLE).** The posture is to
   **beat** the expert. Settle for *meeting* only when there is genuinely no way to beat it right
   now — and when you do, **file a GitHub issue** (the "file it" of the parity clause) that spells
@@ -154,6 +174,11 @@ would judge it:
   RAM; hot paths flip pointers, they don't copy.
 - **Hardware access reads as named registers**, not magic numbers; MMIO stays volatile-correct
   under any future optimization.
+- **Every optimization has two independent expectations:** a behavior oracle derived from
+  language/CPU/platform semantics and an assembly/cost expectation for the intended transformed
+  result. Optimized-versus-unoptimized differential execution is supporting evidence only because
+  both paths may share a lowering defect. Include values, memory, MMIO order/count, ABI/flags/
+  interrupt state, and timing when the contract makes timing observable.
 - **A restriction that forces un-idiomatic user code** (e.g. unrolled pokes) is itself the bug —
   treat it as such.
 - **Output is judged as an expert 6502 programmer would; input is judged as the target user
@@ -173,7 +198,7 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
 
 1. **Commit without asking; never push.** Whenever a commit is warranted, make it — assume it
    always is — without stopping for approval. Commit at coherent, **green** checkpoints
-   (build/typecheck/lint/test passing, a logical unit complete) with a properly-scoped message;
+   (the relevant impact-based checks passing, a logical unit complete) with a properly-scoped message;
    never leave a broken tree committed. `spec/` stays frozen (D3) and default-branch work still
    branches first. **Pushing is never automatic** — it remains an explicit, user-initiated action.
 2. **Update the roadmap without asking.** Whenever the roadmap
@@ -181,10 +206,13 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
    lifecycle / stage / status change, make it as part of the work — no confirmation step.
 3. **The user is a modern programmer, not an asm/retro expert.** Assume the people writing Blend65
    do **not** know 6502 assembly or 8-bit retro conventions. The compiler does the heavy lifting
-   and offloads them: Blend65 must read and behave like a modern language as far as the hardware
-   allows. **Any restriction that exists only because it was easy for the compiler — or that forces
-   the user to think in hardware terms they should not have to — is a defect to reevaluate, not a
-   rule to defend**; log it to the expressiveness ledger / conformance feature. This strengthens
+   and offloads them: Blend65 must read and behave like a normal modern language except for a
+   deliberate, explicit, approved limitation genuinely forced by the selected platform or its
+   resource model. **Any restriction that exists only because it was easy for the compiler, SFA,
+   or current lowering — or that forces the user to think in hardware terms they should not have
+   to — is a defect to reevaluate, not a rule to defend.** Ordinary forms such as nested calls and
+   `POKE(variableAddress, value)` require correct lowering, not alien source workarounds. Log such
+   failures to the expressiveness ledger / conformance feature. This strengthens
    the "input is judged as the target user" clause above and does **not** relax output quality:
    generated code is still judged as an expert asm dev would. Modern ergonomics in, expert asm out.
 4. **Lead with the single best option, clearly tagged.** When a decision genuinely needs the user,
@@ -209,6 +237,25 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
 
 ### Project-specific
 
+- **Skill/implementation independence:** the frozen language specification, explicit product
+  decisions, the proven SFA function-storage doctrine, and primary hardware/tool evidence may
+  shape the expert skill. Existing compiler code, tests, roadmaps, readiness artifacts, scoreboards,
+  and feasibility snapshots are audit subjects only; they never become skill authority or force
+  the redesign to preserve an existing implementation choice. During later compiler recovery,
+  record implementation discrepancies as findings/issues rather than teaching them as doctrine.
+- **Single active expert baseline:** keep exactly one active, latest-qualified
+  `blend65-domain-expert` skill. Every substantive router, knowledge, source-governance, or
+  qualification-oracle change bumps its semantic version by at least a patch, qualifies before
+  atomic activation, and records the version plus content commit in dependent audits. Git history
+  preserves older versions; only one `qualification/release.md` is active. Updating that release
+  record to bind an already-qualified content commit is bookkeeping and does not recursively bump
+  the version.
+- **C64 verification authority:** VICE 3.10 `x64sc` is the normal development, regression, and
+  automated runtime oracle. Primary documentation governs stated hardware semantics. Use targeted
+  real-hardware QA near release for raster/badline timing, CIA edge behavior, SID analog/revision
+  behavior, undocumented or silicon-sensitive opcodes, cartridge/expansion behavior, unusual
+  banking, and documentation-versus-emulator conflicts. Until then report the bounded status
+  `VICE-verified / hardware-unverified`; never present VICE alone as universal silicon proof.
 - `spec/` is the FROZEN spec-v3.0 baseline. Do NOT modify any file under `spec/` during
   compiler implementation (decision D3). `git status --porcelain spec/` must stay empty.
 - Honor the Blend65 Language Guard (`.clinerules/language-guard.md`) for any language-
@@ -234,7 +281,7 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
   VICE 3.10; the codec/assertion/registry/golden/PNG tiers DO run in CI. Local emulator suites
   run sequentially (`fileParallelism:false`) so concurrent `x64sc` instances don't contend.
 
-<!-- analyze_project: refreshed 2026-07-17 (post-RD-18-closure) — Project structure: examples now gate+slice3a…slice8b; docs line names the game-feasibility matrix + update_capability skill. Toolchain/Commands re-verified unchanged against package.json (10 packages, yarn@1.22.22, scripts build/typecheck/lint/test), .nvmrc (22), turbo.json; no clean script — TODO still applies. -->
+<!-- analyze_project: refreshed 2026-09-04 during expert-skillset preflight corrections — 12 workspaces verified from packages/*; matrix authority, impact-based verification, SFA boundary, VICE/hardware evidence, and single-active skill version updated. Current checkout remains TypeScript 5.9/ESLint 9 until the separately accepted TypeScript 7/no-ESLint migration. -->
 
 ## CodeOps routing
 
