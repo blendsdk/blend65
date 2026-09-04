@@ -271,16 +271,17 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 ## Q-C19 — Full 256-iteration byte loop
 
 - **Risk / coverage cells:** Major; `CPU-C19`, `LOWER-C19`.
-- **Oracle status:** `blocked-conflict` — SC-006 must be resolved by the product owner and the
-  frozen specification reconciled before this semantic field can freeze.
+- **Oracle status:** `blocked-conflict` — the product ruling selects inclusive `to`, but the
+  frozen specification must still be reconciled before this semantic field can freeze.
 - **Evaluator prompt:** “Full 256-iteration byte loop. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
 - **Permitted raw artifacts:** Loop source, initial/final counter semantics, 0-versus-256 cases, candidate sequence, and execution count trace.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
-- **Expected decision invariants:** Identifies the inclusive-`0 to 255` versus
-  exclusive-`0 to 256` specification conflict and refuses to assign the wrap idiom to either
-  source form until reconciliation; the hardware wrap behavior itself remains factual.
-- **Disqualifying outcomes:** Silently chooses either source-range definition or treats the
-  contradictory evaluation document as implementation authority.
+- **Expected decision invariants:** Preserves the accepted rule that `to` is inclusive,
+  `0 to 255` executes 256 iterations, and `0 to 256` is out of range. It identifies the remaining
+  specification conflict and refuses to claim the source-form oracle is frozen until reconciliation;
+  the hardware wrap behavior itself remains factual.
+- **Disqualifying outcomes:** Uses exclusive `to`, permits `0 to 256`, or claims the conflict is
+  closed before the frozen specification is reconciled.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Not run.

@@ -50,7 +50,7 @@ or readiness artifact may supply the answer.
 | ID | Category | Runtime ambiguity | Recommendation to present | User decision | Status |
 |---|---|---|---|---|---|
 | AR-P1 | Language semantics | For a negative signed value, does `>>` with a count at least the type width produce zero, or continue arithmetic sign extension? `spec/04-expressions-operators.md:115-116` requires both incompatible outcomes, and `spec/02-type-system.md:429-446` requires sign extension. | Preserve type-aware arithmetic shift: counts at least the width produce `-1` for negative signed operands and `0` otherwise; revise the general “always 0” rule to unsigned/left-shift behavior as appropriate. | Pending product owner | ⛔ `blocked-conflict` (SC-005; Q-C13) |
-| AR-P2 | Language semantics | Is `to` inclusive with full-byte `0 to 255`, or exclusive with full-byte `0 to 256`? The normative control-flow chapter and F008 evaluation contradict each other. | Preserve the normative chapter and Kotlin-like reading: `to` is inclusive, `0 to 255` is the 256-iteration byte range, and `0 to 256` is out of range. Reconcile F008. | Pending product owner | ⛔ `blocked-conflict` (SC-006; Q-C19) |
+| AR-P2 | Language semantics | Is `to` inclusive with full-byte `0 to 255`, or exclusive with full-byte `0 to 256`? The normative control-flow chapter and F008 evaluation contradict each other. | Preserve the normative chapter and Kotlin-like reading: `to` is inclusive, `0 to 255` is the 256-iteration byte range, and `0 to 256` is out of range. Reconcile F008. | Accepted 2026-09-05: `to` is inclusive; `0 to 255` executes 256 iterations; `0 to 256` is out of range. | ⛔ `blocked-conflict` — product ruling resolved; reconciled spec commit pending (SC-006; Q-C19) |
 
 ## Controlling Preflight Refinements
 

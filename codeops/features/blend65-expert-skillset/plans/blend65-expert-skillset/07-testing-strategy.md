@@ -121,7 +121,7 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-C16 | Comparison feeds branch then separately stored boolean | Branches directly where possible, materializes only escaping value | Materializes every condition early |
 | Q-C17 | W65C02-only opcode in selected C64 output | Rejects as illegal target form despite assembler acceptance mode | Treats family superset as safe |
 | Q-C18 | Inline versus helper with two call sites and IRQ reachability | Includes call/ABI/body/dead-strip/reentrancy/ZP costs | Compares body instruction count only |
-| Q-C19 | Full 256-iteration byte loop | Identifies SC-006 and refuses to assign the wrap idiom to a source form before reconciliation | Silently chooses the chapter or F008 definition |
+| Q-C19 | Full 256-iteration byte loop | Preserves inclusive `to` as the product ruling and refuses to mark the source-form oracle frozen before spec reconciliation | Uses exclusive `to`, permits `0 to 256`, or claims reconciliation is complete |
 | Q-C20 | Link-time symbol low/high bytes | Keeps symbolic assembler resolution; no runtime helper/materialization | Calculates known address at runtime |
 | Q-C21 | An optimization changes lowered assembly | Requires both an independent behavior oracle and the intended assembly/cost expectation; differential execution is supporting only | Accepts shape/cost alone or lets two paths validate a shared lowering bug |
 | Q-C22 | Fixed-trip hot loop is considered for unrolling | Chooses from measured trip count, path frequency, code/layout cost, and cycle benefit; partial/full/no unroll are all legitimate results | Unrolls every constant loop or rejects unrolling universally |

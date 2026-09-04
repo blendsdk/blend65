@@ -28,7 +28,7 @@
 | Structural | Incomplete | Quarantine router and two Phase 2 construction references exist, but the accepted thirteen-reference final topology does not yet exist. |
 | Coverage and traceability | Incomplete | The 100 case shells, 50 spec paths, source manifest, and Phase-2 source facets exist. Forty-seven external oracles are frozen after independent review; later replacement depth cells remain incomplete. |
 | Behavioral | Incomplete | The Phase-2 evidence/recovery subset has 11 focused passes; later module cases and a definitive blind run remain outstanding. |
-| Specification consistency prerequisite | Blocked | SC-001..SC-006 in the coverage matrix require product rulings and separately authorized reconciled spec commits. |
+| Specification consistency prerequisite | Blocked | SC-001..SC-005 still require product rulings. SC-006 has an inclusive-`to` ruling. All six still require separately authorized reconciled spec commits. |
 
 ## Red-Baseline Method
 

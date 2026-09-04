@@ -278,8 +278,9 @@ casebook, correcting the stale-V danger.
    and assembly/cost expectation.
 7. **4.7** Complete Phase-4 coverage and run all unblocked Q-C content cases plus Q-R01 with fresh
    evaluators; seed both prior V states and signed boundaries, and resolve/rerun every material
-   failure with source checks. Q-C13/Q-C19 remain blocked until AR-P1/AR-P2 receive product rulings
-   and the frozen spec is reconciled.
+   failure with source checks. Q-C13 remains blocked until AR-P1 receives a product ruling and the
+   frozen spec is reconciled. Q-C19 has its AR-P2 ruling but remains blocked until the frozen spec
+   is reconciled.
 8. **4.8** Run opcode/addressing/category completeness, source-key/link/touched-Prettier/path/
    pinned-legacy-reference hash checks; bump the unqualified construction version and commit the CPU/lowering
    checkpoint.
