@@ -1,7 +1,7 @@
 # Source Manifest
 
-> **Construction version**: `0.4.0-cpu-lowering`
-> **Retrieved/rechecked**: 2026-09-06
+> **Construction version**: `0.5.0-c64-platform`
+> **Retrieved/rechecked**: 2026-09-07
 > **Purpose**: Pin the evidence that may shape the Blend65 expert baseline. This manifest is
 > provenance, dependency, and conflict control; it is not a substitute for the distilled local
 > knowledge in the other references.
@@ -555,7 +555,7 @@ The following terms are used below:
 - **Scope**: 6502-compatible core, on-chip six-bit I/O port, `$0000/$0001` direction/data registers,
   pins, and documented timing.
 - **Dependent sections**: `mos-6502-family.md#6510-delta` and
-  `c64-memory-and-runtime.md#6510-port-and-cpu-memory-view`.
+  `c64-memory-and-runtime.md#cpu-address-view`.
 - **Precision**: title/feature page; “FUNCTIONAL DESCRIPTION”; “INPUT/OUTPUT PORT REGISTERS”
   description of the direction register at address 0 and port register at address 1; and the
   electrical/timing tables in this ten-page Rev. A scan.
@@ -630,9 +630,12 @@ The following terms are used below:
   `c64-hardware.md`; platform contracts in `c64-game-engineering.md`; immutable C64 character maps
   in `blend65-semantics.md` and Q-L28.
 - **Precision**: Chapter 3 printed pages 101–104 (CIA2 VIC-bank selection, screen/character bases,
-  and 16 KiB visibility), printed page 151 (`$D019` interrupt status/acknowledgement), Chapter 5
-  printed pages 308 and 311 (IRQ vectors, `RTI`, `$0000/$0001`, CINV, and memory map), printed page
-  320 (I/O assignments), Appendix B printed pages 376–378 (screen-display codes and the two ROM
+  and 16 KiB visibility), printed page 93 (keyboard matrix), printed page 151 (`$D019` interrupt
+  status/acknowledgement), Chapter 5
+  printed pages 261–265 (read/write memory configurations and RAM-under-ROM writes), 308 and 311
+  (IRQ vectors, `RTI`, `$0000/$0001`, CINV, and memory map), printed page 320 (I/O assignments),
+  printed pages 343–344 (game-port and joystick wiring),
+  Appendix B printed pages 376–378 (screen-display codes and the two ROM
   character-set modes), Appendix C printed pages 379–381 (PETSCII and mode-dependent letter
   values), and Appendix G printed page 391 (VIC register map). Other claims name their chapter PDF,
   printed page, register table, or subsection.
@@ -649,25 +652,30 @@ The following terms are used below:
   `01bd60f162ef92212ef0cb67546ae8f42be34168`.
 - **Location**:
   <https://github.com/mist64/cbmsrc/tree/01bd60f162ef92212ef0cb67546ae8f42be34168/KERNAL_C64_03>.
-- **Scope**: the KERNAL-mediated IRQ/BRK entry, RAM vector dispatch, register saves/restores, IRQ
-  exit contract, and stock BRK warm-start path.
+- **Scope**: the KERNAL-mediated IRQ, NMI, and BRK entries; RAM-vector dispatch; register
+  saves/restores; source handling and exit contracts; and stock BRK/RESTORE warm-start paths.
 - **Dependent sections**: `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`,
-  `blend65-semantics.md#interrupt-domain-sfa-and-shared-state`, `sfa-and-abi.md#hardware-stack-duties`,
-  C64 Appendix §9.3, Q-L11, Q-L29, and Q-P07.
+  `c64-memory-and-runtime.md#revision-pinned-nmi-contracts-and-costs`,
+  `blend65-semantics.md#interrupt-domain-sfa-and-shared-state`,
+  `sfa-and-abi.md#hardware-stack-duties`, C64 Appendix §9.3, Q-L11, Q-L29, and Q-P07.
 - **Precision**: `KERNAL_C64_03/irqfile::PULS/PULS1` pushes A/X/Y, does not clear D, and dispatches through `CINV`;
   `KERNAL_C64_03/editor.2::KPREND` reads CIA1 ICR before restoring Y/X/A and executing `RTI`.
   In the standard 901227-03 image, the restore-only sub-tail begins at `$EA81`; the accepted
   exclusive Blend65 variant jumps there only under a profile pinned to that ROM contract.
   `KERNAL_C64_03/vectors` points `$FFFE/$FFFF` at `PULS`; `PULS` tests the stacked B flag and sends
-  BRK through `CBINV`; `init::VECTSS` initializes that RAM vector to `rs232nmi::TIMB`, which calls
-  `RESTOR`, `IOINIT`, and `CINT` before jumping through the BASIC warm-start vector at `$A002`
-  rather than executing `RTI`.
+  BRK through `CBINV`. The same vector file points `$FFFA/$FFFB` at `rs232nmi::NMI` at `$FE43`,
+  whose `SEI; JMP (NMINV)` reaches `$0318/$0319` without saving registers or clearing D.
+  `init::VECTSS` initializes CINV to `KEY`, CBINV to `TIMB`, and NMINV to `NNMI` at `$FE47`.
+  `NNMI` saves A/X/Y, disables CIA2 masks, reads CIA2 ICR once, and distinguishes its CIA2,
+  cartridge, and RESTORE+STOP paths before `NMIRTI/PREND` restores Y/X/A and executes `RTI`.
+  `TIMB` instead calls `RESTOR`, `IOINIT`, and `CINT` before jumping through the BASIC warm-start
+  vector at `$A002` rather than executing `RTI`.
 - **Known issues**: this is a revision-specific implementation artifact. A raw vector with KERNAL
   ROM absent has only the selected CPU's hardware interrupt contract. The source proves that the
   stock BRK route is non-returning to its call site, but the default game profile does not claim a
   complete handler stack/effect bound and therefore exposes no `brk_contract`.
-- **Local extraction**: exact stack/ownership difference between a KERNAL `CINV` handler and a raw
-  `$FFFE/$FFFF` handler.
+- **Local extraction**: exact stack/ownership differences among KERNAL CINV/NMINV handlers and raw
+  `$FFFE/$FFFF`/`$FFFA/$FFFB` handlers, including the NMI source-consumption and banking boundary.
 - **Verification**: pair with CBM-C64-PRG-1982 printed pages 308 and 311 and MOS-PGM-1976 Chapter 9.
 
 ### CBM-C64-SVC-1985 — C64 service manual and schematics
@@ -679,7 +687,7 @@ The following terms are used below:
 - **Scope**: board variants, clock and memory integration, chip select/banking circuitry,
   connectors, and chip pinout context.
 - **Dependent sections**: `c64-memory-and-runtime.md#cpu-vic-and-physical-memory-views` and
-  `c64-hardware.md#models-revisions-and-qa-bounds`.
+  `c64-hardware.md#model-declaration`.
 - **Precision**: specifications, circuit-theory pages, board-identification sheets, and matching
   schematic identifier.
 - **Known issues**: multiple board and chip revisions exist; a schematic for one assembly is not a
@@ -736,8 +744,8 @@ The following terms are used below:
   mirror SHA-256 `6fbad4b037e4c4880e28bd9c34caa940a8ceb82041a41a0c22f8e6b12014567b`.
 - **Scope**: display modes, movable-image blocks (sprites), raster and interrupt registers,
   register map, memory interface, BA/AEC arbitration, and DMA behavior for the documented 6567.
-- **Dependent sections**: `c64-memory-and-runtime.md#cpu-and-vic-views`;
-  `c64-hardware.md#vic-ii-register-and-dma-baseline`; raster/sprite sections of
+- **Dependent sections**: `c64-memory-and-runtime.md#vic-view-and-placement`;
+  `c64-hardware.md#vic-ii-register-contract` and `#vic-ii-bus-arbitration`; raster/sprite sections of
   `c64-game-engineering.md`.
 - **Precision**: internal sheets 1–10 (display and movable-image-block behavior), 11–14 (raster,
   interrupts, screen-position decodes, and register map), and 15–16 (system interface and DMA).
@@ -756,8 +764,8 @@ The following terms are used below:
 - **Location**: <https://www.cebix.net/VIC-Article.txt>.
 - **Scope**: 6510/VIC memory views, bus access, badlines, sprite DMA, raster timing, interrupts, and
   documented display techniques.
-- **Dependent sections**: `c64-memory-and-runtime.md#cpu-and-vic-views`;
-  `c64-hardware.md#vic-ii-timing-dma-and-register-effects`; raster/display sections of
+- **Dependent sections**: `c64-memory-and-runtime.md#vic-view-and-placement`;
+  `c64-hardware.md#vic-ii-bus-arbitration`; raster/display sections of
   `c64-game-engineering.md`.
 - **Precision**: §§2.2, 2.4.1–2.4.3, 3.2, 3.5–3.8, 3.12, and 3.14; the source's own model-limit
   warning is part of every dependent conclusion.
@@ -788,7 +796,7 @@ The following terms are used below:
 - **Edition/version**: live article retrieved 2026-09-05.
 - **Location**: <https://www.linusakesson.net/scene/perpetual-fragility/index.php>.
 - **Scope**: AGSP, line crunch, bank switching, badline scheduling, and their integrated constraints.
-- **Dependent sections**: `c64-game-engineering.md#cycle-exact-display-techniques` and Q-P19.
+- **Dependent sections**: `c64-game-engineering.md#q-p19-cycle-event-templates` and Q-P19.
 - **Precision**: named AGSP, line-crunch, graphics, and timing sections.
 - **Known issues**: authoritative for this production and technique, not a universal compiler
   rewrite recipe.
@@ -808,6 +816,31 @@ The following terms are used below:
   schedule is correct for another workload.
 - **Local extraction**: scheduler and compatibility obligations only.
 - **Verification**: hardware mechanics cross-checked with VIC-BAUER-2024 and VICE test sources.
+
+### STABLE-RASTER-CB64-2025 — Codebase64 stable raster routine
+
+- **Authority/status**: practitioner technique record maintained by the Codebase64 community;
+  evidence for this bounded implementation shape, not a manufacturer specification.
+- **Edition/version**: live page revision dated 17 June 2025, retrieved 2026-09-07.
+- **Location**: <https://codebase.c64.org/doku.php?id=base:stable_raster_routine>.
+- **Scope**: PAL/NTSC double-IRQ raster stabilization, nested-stack disposal, jitter correction,
+  and explicit interference cases.
+- **Dependent sections**: `c64-game-engineering.md#bounded-double-irq-baseline` and Q-P17.
+- **Precision**: the “Raster Stabilizing Code” listing and cycle comments: first IRQ completion
+  jitter, 7-cycle hardware entry, 13-cycle A/X/Y save, next-line wedge, `TSX`/`CLI` wait, 7–8-cycle
+  nested entry, `TXS`, PAL-63 `LDX #$08` delay, two `$D012` reads, corrective `BEQ`, and the stated
+  other-interrupt/line-`$FF`/sprite/badline rejection cases.
+- **Known issues**: the page is rolling community material, its spelling/comments are not a formal
+  specification, and its macro is not safe outside the listed timing environment. The local
+  extraction adds explicit banking, ownership, SFA, resource, and future-proof boundaries rather
+  than attributing them to the page.
+- **Local extraction**: one reject-by-default, PAL-specific compiler template with a fixed-zero
+  `$D011` raster-high bit, line range `1..254`, exact bytes, nominal path cycles, stack high-water
+  mark, ZP requirement, and counterexamples. High-raster and frame-wrap variants require a
+  separately charged `$D011`-aware template.
+- **Verification**: cross-check instruction cycles with MOS-PGM-1976 and raster/bus behavior with
+  VIC-BAUER-2024; later inspect final bytes/layout and both entry-jitter paths in exact VICE 3.10,
+  followed by narrow physical PAL-revision QA.
 
 ## Tool Authorities
 
@@ -983,6 +1016,103 @@ which obligation differs before comparing emitted code or architecture.
 - **Local extraction**: bounded corroboration only; never infer unparsed tail layouts.
 - **Verification**: the Phase-5 gate must obtain producer/schema evidence and representative
   3.80-produced fixtures, then compare every declared field, count, boundary, and optional block.
+
+### CHARPAD-388 — CharPad C64 Pro 3.88 release record
+
+- **Authority/status**: Original producer release record; normative only for the application
+  release identity and advertised distribution/features, not for an undocumented byte layout.
+- **Edition/version**: CharPad C64 Pro 3.88, public release 19 June 2026.
+- **Location**:
+  <https://subchristsoftware.itch.io/charpad-c64-pro/devlog/1558316/charpad-pro-388>.
+- **Scope**: Pins the selected current producer baseline; records the release files and current
+  native-image/help/export changes.
+- **Dependent sections**: CharPad handler boundary in `blend65-semantics.md`,
+  `c64-game-engineering.md#native-asset-handlers`, Q-L26, and the Phase-5 asset proof boundary.
+- **Precision**: heading “CharPad Pro 3.88”, public-release line, Files section, and named 3.88
+  change list.
+- **Known issues**: The paid archive and producer-generated CTM fixtures are not present in the
+  repository. The release page does not itself publish the CTM v9 byte schema or prove that a
+  comparative fixture was produced by 3.88.
+- **Local extraction**: release identity, date, distribution filenames, and advertised surface
+  only.
+- **Verification**: pair with the complete producer manual/schema and a representative
+  3.88-produced CTM v9 fixture set before a parser implementation qualifies.
+
+### C64LIB-CTM9-79D5C0E — Comparative open-source CTM v9 reader
+
+- **Authority/status**: Comparative implementation and fixture evidence; not the CharPad producer
+  and not normative for omitted or deliberately limited project components.
+- **Edition/version**: c64lib Gradle Retro Assembler Plugin commit
+  `79d5c0e0e0e033c316c4159da7e4b399d9a10ec5`, inspected 2026-09-07.
+- **Location**:
+  <https://github.com/c64lib/gradle-retro-assembler-plugin/tree/79d5c0e0e0e033c316c4159da7e4b399d9a10ec5/processors/charpad>.
+- **Scope**: Corroborates `CTM` signature/version dispatch, the CTM v9 header, `$DABn` ordered-block
+  markers, character/material/color blocks, optional tile/color/tag/name blocks, 16-bit tile/map
+  indices and dimensions, and exact parser boundaries represented by its tests.
+- **Dependent sections**: `c64-game-engineering.md#native-asset-handlers`, Q-L26, and the future
+  CharPad fixture/golden packet.
+- **Precision**: `ProcessCharpadUseCase.kt::getProcessor` SHA-256
+  `6f717e00d7c9171ff8db5979260cd273730d9d872909205cb3034c5e40ebd02c`;
+  `post6/CTM9Processor.kt` SHA-256
+  `ea7e205dbfe23ee0ac5724665b9b55b176d13b8d344cc6e4ae6ae7e55129ac68`;
+  `post6/BlockBasedCTMProcessor.kt` SHA-256
+  `abef58fdc4fdc75cf5e2bf133bb4a6ecb6bd58e28af2969c58ea66aa6ce0b47f`;
+  and the pinned `src/test/resources` fixture inventory.
+- **Known issues**: The comparative reader enforces its own 10×10 tile and 8192×8192 map limits,
+  drops tile names after validation, and exposes a narrower output surface than Blend65. Those are
+  implementation choices, not producer-format or Blend65 constraints. Its repository fixtures do
+  not establish CharPad 3.88 producer provenance.
+- **Local extraction**: structural corroboration and adversarial boundary inventory only.
+- **Verification**: the qualified Blend65 handler must validate against producer evidence and
+  3.88-created fixtures, then independently prove every selector/type/width and malformed case.
+
+### OPENSPRITE-F13B115 — Comparative SPD reader with project-tail coverage
+
+- **Authority/status**: Independent open-source comparative implementation; not the SpritePad
+  producer and not authority for the complete SPD v5 format.
+- **Edition/version**: OpenSprite commit
+  `f13b115626a6032da25d60a3d65055bd6e0027e4`, inspected 2026-09-07.
+- **Location**: <https://github.com/jowin202/OpenSprite/tree/f13b115626a6032da25d60a3d65055bd6e0027e4>.
+- **Scope**: Corroborates `SPD` version dispatch, flags, word sprite/tile counts, sprite records and
+  packed attributes, tile blocks/attributes/tags/names, overlay distances, and sprite-animation
+  start/end/timer/flag arrays.
+- **Dependent sections**: `c64-game-engineering.md#native-asset-handlers`, Q-L27, and the future
+  SpritePad fixture/golden packet.
+- **Precision**: `fileio.cpp::read_spd`, file SHA-256
+  `c67ee4b5dece0af61d08dcf60fe2c0dae44227e2a969387e1eecb5ca1200d05e`.
+- **Known issues**: The reader labels overlay-distance decoding “TODO: Verify this,” deliberately
+  drops tile payloads after reading them, and leaves tile animations unimplemented. It can detect
+  useful disagreement but cannot close the producer-schema gate.
+- **Local extraction**: bounded independent corroboration plus an explicit inventory of remaining
+  unproved tails.
+- **Verification**: compare with the producer manual/schema and 3.80-produced SPD v5 fixtures;
+  preserve disagreements as failures rather than averaging implementations.
+
+### KOALA-NATIVE-003 — Classic Koala Painter layout cross-check
+
+- **Authority/status**: published C64 practitioner-format record plus an independently pinned
+  open-source producer; neither is the original Koala Painter manual, so the exact accepted subset
+  remains explicit Blend65 project policy.
+- **Edition/version**: Codebase64 graphics-formats list v0.03, retrieved 2026-09-07; Retropixels
+  commit `a5caf5b889eff11528768cf6b1d16585c47b4122`, inspected 2026-09-07.
+- **Location**:
+  <https://codebase64.net/doku.php?id=base:c64_grafix_files_specs_list_v0.03> and
+  <https://github.com/micheldebree/retropixels/blob/a5caf5b889eff11528768cf6b1d16585c47b4122/cli/README.md>.
+- **Scope**: classic uncompressed Koala `$6000` load address and the ordered 8,000-byte bitmap,
+  1,000-byte screen, 1,000-byte Color RAM, and one-byte background payload.
+- **Dependent sections**: `c64-game-engineering.md#native-asset-handlers`, Q-L26, and the future
+  Koala fixture/golden packet.
+- **Precision**: Codebase64 “Koala Painter 2” address table; Retropixels `cli/README.md` output
+  table, SHA-256 `ef1cd543b019f972286bcc6b872a7038d68ec92427aaaf62e87eb52fdd605945`.
+- **Known issues**: other applications use related layouts with different load addresses or extra
+  bytes. These sources establish the classic byte layout, not Blend65's selector names or a rule
+  that unused high nibbles must be zero.
+- **Local extraction**: exact length/header/section boundaries only. Low-nibble hardware meaning
+  comes from C64 Color RAM; preservation or rejection of high bits is compiler policy and requires
+  explicit fixtures.
+- **Verification**: independently generated accepted and malformed fixtures must pin byte hashes,
+  selector results, EOF rejection, high-nibble policy, and final Color RAM transfer before the
+  implementation qualifies.
 
 ### HESSIAN-1.2 — Hessian game source
 
@@ -1207,11 +1337,20 @@ hardware and assembler facts; the local modules add explicit legal sequences, co
 counterexamples, and compiler dispositions. A local calculation never upgrades itself into a new
 external source, and later assembled-byte or execution evidence remains separate qualification.
 
+For candidate Q-R04 routing, always load `sfa-and-abi.md#interference-and-reentrancy` plus
+`#final-storage-closure` and `c64-hardware.md#vic-ii-bus-arbitration`. Add
+`c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts` (or
+`#safe-banking-transaction` for a banking scope) and
+`mos-6502-family.md#reset-interrupt-and-stack-behavior` only when the question depends on the raw,
+CINV, banking, or hardware-stack entry contract. Add `6502-lowering-casebook.md` only when emitted
+instruction shape or optimization is actually under review. This is the smallest cross-domain
+candidate route; it does not activate the quarantined router before Phase 7.
+
 | Cases | Stable sources and precise locations | Invariant derivation and bound |
 |---|---|---|
 | Q-L19 (**project-policy/reconciled-spec oracle**) | `BLEND65-SPEC-P3-ed278ab9`: Chapters 02, 04–08, 11, 12, and 14; F008/F011/F014/F016/F018/F020; accepted AR-P35–AR-P41 | Stored arrays are fixed contiguous `T[N]`. `T[]` is only initializer extent inference or a whole-fixed-array any-size parameter; the latter carries a two-byte address plus a two-byte element count, while exact parameters carry only the address. `length()`, `sizeof()`, and `offsetof()` have stable semantic `word` types; fixed-array length and all valid size/offset queries fold, while any-size length reads the carried count. Extents and complete fixed array/struct byte sizes fit `0..65535`; E10264/E10265 reject larger forms, and E10266 rejects `sizeof(T[])`. Every unbarriered integer-producing operator inside `[]` uses the 16-bit-capable ordinal context, while explicit or earlier 8-bit barriers retain wrap. Proof may select byte-only work without changing source meaning. E10262 rejects only a proved finite-looking loop whose declared fixed-width counter cannot reach its invariant bound. No dynamic array, slice, span, view, helper, heap, or default runtime is introduced. |
-| Q-L26 | Reconciled project contract; HVSC-SID-FORMAT-20260906 header fields; TARGET-C64U-EE6B7AC selected SID configuration; SPRITEPAD-380/C64LIB-RBT-79D5C0E bounded SPD evidence; accepted CharPad and Koala contracts | Each handler has a literal key, exact accepted identity, selector types, malformed-input boundary, emitted representation, and placement/cost contract. The SID handler accepts only the specified self-contained PSID v1–v4 subset, resolves the load/init fields exactly, rejects environment-dependent variants, validates exact selected video/model/topology compatibility with E10261, and places bytes at their effective load address without a runtime copy. Unknown metadata remains embed-only unless an exact player contract closes it. SpritePad tail parsing remains bounded pending its Phase-5 producer/schema/fixture gate. |
-| Q-L27 | Reconciled project contract after AR-P14/AR-P16; SPRITEPAD-380 release record; C64LIB-RBT-79D5C0E `getProcessor`, `process`, and `readHeader` | The product contract may pin 3.80/SPD v5, word counts, native 64-byte records, per-record attributes, selected optional components, and no hidden copies. The public producer record proves only the application identity; the comparative parser corroborates the signature/version, header/count widths, and sprite records but omits project tails. Exact tile/animation/expansion/overlay parsing therefore remains unqualified until the Phase-5 producer/schema/fixture gate. |
+| Q-L26 | Reconciled project contract; HVSC-SID-FORMAT-20260906 header fields; TARGET-C64U-EE6B7AC selected SID configuration; SPRITEPAD-380/C64LIB-RBT-79D5C0E/OPENSPRITE-F13B115 bounded SPD evidence; CHARPAD-388/C64LIB-CTM9-79D5C0E bounded CTM evidence; KOALA-NATIVE-003 classic layout evidence | Each handler has a literal key, exact accepted identity, selector types, malformed-input boundary, emitted representation, and placement/cost contract. The SID handler accepts only the specified self-contained PSID v1–v4 subset, resolves the load/init fields exactly, rejects environment-dependent variants, validates exact selected video/model/topology compatibility with E10261, and places bytes at their effective load address without a runtime copy. Unknown metadata remains embed-only unless an exact player contract closes it. Producer-schema/fixture prerequisites remain fail-closed and cannot be replaced by comparative parser agreement. Koala selector and high-nibble policy remain explicit project decisions rather than claims about the historic format. |
+| Q-L27 | Reconciled project contract after AR-P14/AR-P16; SPRITEPAD-380 release record; C64LIB-RBT-79D5C0E and OPENSPRITE-F13B115 bounded parser evidence | The product contract pins 3.80/SPD v5, word counts, native 64-byte records, per-record attributes, complete optional components, and no hidden copies. The public producer record proves only application identity; the two comparative parsers corroborate part of the header/record/tail model but explicitly omit or question tail fields. Complete tile/animation/expansion/overlay parsing therefore remains unqualified until producer schema and 3.80 fixture evidence settle every byte. |
 | Q-L28 | Reconciled specification after AR-P25; CBM-C64-PRG-1982 Appendices B/C printed pages 376–381; TARGET-X16-R49 `X16 Reference - 02 - Getting Started.md` character-set modes | C64 screen-code and PETSCII conversion is mode-bound and compile-time-only. The profile must select one exhaustive immutable map or reject the conversion; a per-literal map selection does not switch hardware. X16's separately documented ISO mode prevents reusing C64 tables by resemblance. Custom glyph meaning remains unknown without explicit metadata. |
 | Q-L29 | Reconciled specification after AR-P26/AR-P27; CBM-C64-PRG-1982 printed pages 308/311; CBM-C64-KERNAL-03 `irqfile::PULS/PULS1` and `editor.2::KPREND`; MOS-PGM-1976 Chapters 3/9; ZAKS-6502-1980 Chapter 3 p.3-13 | The 901227-03 KERNAL path saves A/X/Y but does not clear D before CINV and exposes its restore-only sub-tail at `$EA81`; raw hardware entry also leaves NMOS D unchanged. Blend65 therefore establishes binary body entry while preserving interrupted/chained status. One source handler still uses sink-selected variants. Default chaining requires a reported two-byte saved-CINV link whose low byte is at most `$FE`; exclusive takeover requires ownership of every enabled source; raw installation requires a profile-proven active/writable vector. Visible raw-entry installation at CINV is a compile-time ABI error, not a low-level escape. |
 | Q-L30 | Reconciled specification after AR-P28; MOS-PGM-1976 §§2.2.1.2/2.2.2 and §3.3; WDC-65C02S-2022 Table 7-1 | MOS defines packed unsigned decimal operands, carry/no-borrow sequencing, and D-controlled `ADC`/`SBC`; WDC distinguishes the CMOS interrupt D-state guarantee. Blend65 keeps ordinary arithmetic binary, gives BCD operations explicit semantic identity and owned carry/D state, and binds runtime-invalid digits to the exact selected CPU rather than inventing a portable result or mandatory checker. |
@@ -1239,18 +1378,19 @@ external source, and later assembled-byte or execution evidence remains separate
 | Q-C22 | MOS-PGM-1976 §§4.1.1–4.1.4 and Appendices B–C; `evidence-parity-and-recovery.md#equivalent-work-accounting` | Unrolling is a workload decision. Fixed count, path frequency, code/layout expansion, and saved cycles determine full/partial/no-unroll; none is universally correct. |
 | Q-C23 | MOS-PGM-1976 Appendix B instruction sizes and Chapter 5 absolute addressing; CBM-C64-PRG-1982 printed pages 311/320 memory map; frozen IRQ/ownership policy | Operand patching is valid only in writable visible memory with exclusive or synchronized ownership and IRQ/reentrancy safety. This is a bounded synthesis, not a claim that practitioner precedent makes self-modifying code a default optimization. |
 | Q-C24 | MOS-PGM-1976 Appendices B–C access/cycle tables; CBM-C64-PRG-1982 printed pages 101–104 and 311/320 for visibility/banking; `evidence-parity-and-recovery.md#equivalent-work-accounting` | A table replaces work with data and access cost. Its bytes, padding/alignment, bank/placement, path frequency, and behavior all count. |
-| Q-P01..Q-P03 | MOS-6510-1982 “INPUT/OUTPUT PORT REGISTERS”; CSG-6567-318014 internal sheets 2–5 and 14–16; CBM-C64-PRG-1982 printed pages 101–104 (`$DD00/$DD02`, VIC bank, `$D018`, screen/character bases), 311 (`$0000/$0001` and memory map), and 320 (I/O assignments); VIC-BAUER-2024 §§2.2 and 2.4.1–2.4.3 | CPU mapping, physical RAM, and VIC visibility are distinct. `$0000/$0001`, CIA2 bank bits, VIC base alignment, and interrupt ownership must be explicit; placement/pointer changes are preferred over runtime copying when equivalent. |
+| Q-P01..Q-P03 | MOS-6510-1982 “INPUT/OUTPUT PORT REGISTERS”; MOS-PGM-1976 Chapters 3/9 and MOS-HW-1976 interrupt/NMI sequences; CSG-6567-318014 internal sheets 2–5 and 14–16; CBM-C64-PRG-1982 printed pages 101–104 (`$DD00/$DD02`, VIC bank, `$D018`, screen/character bases), 261–265 (read/write mapping), 311 (`$0000/$0001` and memory map), and 320 (I/O assignments); VIC-BAUER-2024 §§2.2 and 2.4.1–2.4.3 | CPU mapping, physical RAM, and VIC visibility are distinct. `$0000/$0001`, CIA2 bank bits, VIC base alignment, CPU `I`, IRQ/NMI source masks/pending state, latch-versus-pin state, and interrupt ownership must be explicit; placement/pointer changes are preferred over runtime copying when equivalent. |
 | Q-P04..Q-P06 | CSG-6567-318014 internal sheets 10–16; VIC-BAUER-2024 §§2.4.3, 3.5–3.8; NINE-AKESSON sprite/timing sections; CBM-C64-PRG-1982 graphics/VIC appendices | Raster capacity depends on video standard, path, badlines, and sprite DMA. Nominal CPU cycles or an average frame are insufficient. |
-| Q-P07 | CBM-C64-PRG-1982 printed pages 308/311; CBM-C64-KERNAL-03 `irqfile::PULS/PULS1` and `editor.2::KPREND`; MOS-PGM-1976 Chapters 3/9; ZAKS-6502-1980 Chapter 3 p.3-13 | The selected 901227-03 KERNAL path saves A/X/Y but does not clear D before `CINV`. Default `setIRQ` preserves entry flags around a binary-mode body and chains through a page-safe two-byte saved prior CINV; `setIRQExclusive` establishes binary mode, jumps to the `$EA81` restore-only tail, and owns every enabled source; a profile-gated raw installer establishes binary mode and owns save/restore/`RTI`. All variants and costs are explicit, and no path double-pushes blindly or uses `JMP ($xxFF)`. |
+| Q-P07 | CBM-C64-PRG-1982 printed pages 308/311; CBM-C64-KERNAL-03 `irqfile::PULS/PULS1`, `editor.2::KPREND`, `vectors::NMI`, `rs232nmi::NMI/NNMI/NMIRTI/PREND`, and `init::VECTSS`; MOS-PGM-1976 Chapters 3/9; MOS-HW-1976 interrupt/NMI sequence; ZAKS-6502-1980 Chapter 3 p.3-13 | The selected 901227-03 IRQ path saves A/X/Y before CINV, while `$FE43` reaches NMINV without saving them; neither clears D. IRQ chain/exclusive/raw and NMI chain/exclusive/raw routes therefore have distinct compiler wrappers and exact bytes/cycles/stack terms. An NMINV chain saves status before A/X/Y and restores A/X/Y before status; it may elide a save only when the interrupted program and every reachable prior-handler observer agree. Exclusive/raw NMI routes rely on final `RTI` and need only interrupted-point liveness for register elision. CIA2 ICR has one consuming owner, RESTORE/cartridge/nesting behavior is closed, an NMI-safe vector/banking transition is proved, and every saved indirect link avoids `$xxFF`. Prior-handler/body/ack/stall costs remain explicit rather than folded into a false fixed total. |
+| Q-R04 | `sfa-and-abi.md#interference-and-reentrancy` and `#final-storage-closure`; `c64-hardware.md#vic-ii-bus-arbitration`; conditional `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts`, `mos-6502-family.md#reset-interrupt-and-stack-behavior`, and `6502-lowering-casebook.md` | The minimum route always closes SFA concurrency/storage and per-line VIC availability. IRQ entry/stack/banking sources are added only when the sink or machine transaction matters; the lowering casebook is added only for emitted-code review. Current compiler behavior and the game matrix never supply authority. |
 | Q-P08 | CSG-6567-318014 internal sheet 11 (interrupt register); CBM-C64-PRG-1982 printed page 151 “Interrupt Status Register” and Appendix G printed page 391; VIC-BAUER-2024 §§3.2/3.12 | `$D019` acknowledgement writes one to selected latched bits. This volatile, register-specific access count/order is semantic; a generic memory RMW is not presumed equivalent. |
-| Q-P09, Q-P10 | MOS-6526-1981 printed pages 1–2 (ports/DDRs), page 6 (ICR), and page 8 (register map); CBM-C64-PRG-1982 printed pages 101–102 and 320 | CIA ICR reads acknowledge pending sources while writes set/clear mask bits according to bit 7; CIA1 input and CIA2 VIC-bank/serial ownership must not be conflated. |
-| Q-P11 | MOS-6581-SID register/programming sections; HVSC-SID-FORMAT-20260906 init/play and flag metadata; TARGET-C64U-EE6B7AC endpoint configuration; GOATTRACKER-2.77 `readme.txt`, `src/player.s`, and `examples/src/example2.s`; GOATTRACKER-R172 `player.s::mt_init`, `::mt_playsfx`, `::mt_play`, `::mt_chntempo`, and SID-write block; C64-GAMEFRAME-C634F6F `sound.s`; OSCAR64-1.32.273 `include/audio/sidfx.{h,c}`; SIDFACTORYII-0254B04 candidate documents; LIBSIDPLAYFP-3.1.1 `residfp-emu.cpp::reSIDfpEmu::{write,clock,model}` | The public API is player-neutral and lowers directly through a hash-bound contract: music-only, integrated music/SFX, minimal SFX-only, and exact custom-player paths are all valid. The contract owns cadence, supported video standards and endpoint topology, ABI, writable state, voices, IRQ/mainline interaction, arbitration, and costs; it may close unknown PSID metadata but cannot contradict specific flags. Plain PSID never implies SFX, and no generic runtime scheduler/mixer is added. GoatTracker 2.77 is the first adapter family; SID Factory II remains the next candidate. 6581/8580 model differences bound expectations, and register traces do not prove universal analogue sound. |
+| Q-P09, Q-P10 | MOS-6526-1981 printed pages 1–2 (ports/DDRs), pages 3–5 (timers/CRA/CRB), page 6 (ICR), and page 8 (register map); CBM-C64-PRG-1982 printed page 93 (keyboard matrix), pages 101–102 (CIA/VIC-bank use), page 320 (I/O assignments), and pages 343–344 (game ports and joysticks) | CIA offsets and CRA/CRB/ICR fields are exact. ICR reads acknowledge pending sources while writes set/clear mask bits according to bit 7. CIA1's active-low joystick bits and complete PA-column/PB-row keyboard matrix share physical lines; CIA2 VIC-bank/serial ownership must not be conflated with them. |
+| Q-P11 | MOS-6581-SID exact register/programming sections; HVSC-SID-FORMAT-20260906 init/play and flag metadata; TARGET-C64U-EE6B7AC endpoint configuration; GOATTRACKER-2.77 `readme.txt`, `src/player.s`, and `examples/src/example2.s`; GOATTRACKER-R172 `player.s::mt_init`, `::mt_playsfx`, `::mt_play`, `::mt_chntempo`, and SID-write block; C64-GAMEFRAME-C634F6F `sound.s`; OSCAR64-1.32.273 `include/audio/sidfx.{h,c}`; SIDFACTORYII-0254B04 candidate documents; LIBSIDPLAYFP-3.1.1 `residfp-emu.cpp::reSIDfpEmu::{write,clock,model}` | Exact voice/global/control/filter offsets and effect classes underlie the player-neutral API. It lowers directly through a hash-bound contract: music-only, integrated music/SFX, minimal SFX-only, and exact custom-player paths are all valid. The contract owns cadence, supported video standards and endpoint topology, ABI, writable state, voices, IRQ/mainline interaction, arbitration, and costs; it may close unknown PSID metadata but cannot contradict specific flags. Plain PSID never implies SFX, and no generic runtime scheduler/mixer is added. GoatTracker 2.77 is the first adapter family; SID Factory II remains the next candidate. 6581/8580 model differences bound expectations, and register traces do not prove universal analogue sound. |
 | Q-P12 | CBM-C64-PRG-1982 VIC base-pointer/memory rules; VIC-BAUER-2024 §§2.4.2 and 3.2 | Independent evolving buffers are distinct storage. For visibility changes, aligned placement and base/pointer flips avoid runtime copies; any extra compile-time replica needs a named consumer, constraint, size, and measured benefit. |
 | Q-P13, Q-P21 | VIC-BAUER-2024 §§3.8/3.12; NINE-AKESSON sprite/timing sections; HESSIAN-1.2 `actor.s::DrawActors` and `sprite.s::GetAndStoreSprite`; C64-GAMEFRAME-C634F6F `actor.s::DrawActors` and `sprite.s::DrawLogicalSprite` | Multiplexing spans raster schedule, sorted data, register updates, IRQ ownership, frame/scratch interference, and API/lowering proof. Describing the trick or relying on runtime skill prose is not implementation. |
 | Q-P14 | CBM-C64-PRG-1982 VIC register table; MOS-PGM-1976 `LDA`/`STA` entries | A constant named border-color wrapper must fold to the same direct store sequence and effects an expert would use; hidden call, temporary, or read traffic violates zero-cost intent. |
 | Q-P15 | INTEGRATOR-LEVY lines 124–136; INTEGRATOR-DIFRAIA-2012 lines 279–313; CBM-C64-PRG-1982 graphics/memory facts | Testimony supports elements/panels, masks, attributes, priority, reuse, and memory/speed tradeoffs; reconstruction supports concrete editor stages but retains explicit unknowns. Compiler/toolchain ownership, emitted layout, loader contract, zero-cost renderer, and artifact/runtime proof are new synthesis, not attributed history. |
 | Q-P16 | HESSIAN-1.2 `actor.s::UpdateActors` and target/collision-list paths; C64-GAMEFRAME-C634F6F `actor.s::UpdateActors` and collision bounds/search paths; MOS-PGM-1976 Chapter 6 and Appendices B–C | SoA/AoS, pools, collision phases, and dispatch are selected from the fixed workload and SFA/IRQ consequences. No source establishes one universally best layout. |
-| Q-P17 | MOS-PGM-1976 path-specific cycle data; VIC-BAUER-2024 §§3.5–3.8 and 3.12 | A stable raster region needs a declared worst-case local cycle contract and proof across every control/call path; source shape or average cycles cannot establish stability. |
+| Q-P17 | MOS-PGM-1976 path-specific cycle data; VIC-BAUER-2024 §§3.5–3.8 and 3.12; STABLE-RASTER-CB64-2025 exact listing/cycle comments | A stable raster region needs a declared worst-case local cycle contract and proof across every control/call path; source shape or average cycles cannot establish stability. The PAL double-IRQ template is legal only under its complete source/stack/vector/bus/page contract and is rejected rather than generalized when any precondition is open. |
 | Q-P18 | VSP-AKESSON risk/safety sections; VIC-BAUER-2024 §3.14; VICE-310-SOURCE only for configured-emulator behavior | VSP/AGSP is never enabled by default. An opt-in must state silicon/board/video assumptions, compare safer alternatives, and require targeted physical QA; VICE cannot prove universal safety. |
 | Q-P19 | VIC-BAUER-2024 §3.14; FRAGILITY-AKESSON named technique/timing sections | FLI/FLD/line-crunch/border/sprite-crunch requires explicit timing, banking, layout, and ownership. A named API/template/local contract may expose intent; a generic peephole must not guess it from arbitrary stores. |
 | Q-P20 | HESSIAN-1.2 `actor.s::{DrawActors,InterpolateActors}`, `sprite.s::GetAndStoreSprite`, and `level.s::ChangeLevel`; C64-GAMEFRAME-C634F6F `actor.s::{DrawActors,UpdateActors}`, `sprite.s::DrawLogicalSprite`, and `level.s::ChangeLevel`; CBM-C64-PRG-1982 printed pages 101–104/311 | Choose pointer flip, placement/justified replication, pre-shift, dirty update, unroll, or copy only against the actual frame and memory budgets with equivalent-work accounting. These implementations are workload evidence, not a universal winner. |

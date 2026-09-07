@@ -1,6 +1,6 @@
 # Compiler Architecture Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.4.0-cpu-lowering`
+> **Construction status**: Candidate knowledge for the unqualified `0.5.0-c64-platform`
 > build. This module defines responsibilities and invariants, not a mandatory class diagram.
 
 ## Design Objective

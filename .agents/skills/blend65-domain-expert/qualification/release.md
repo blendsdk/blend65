@@ -1,6 +1,6 @@
 # Blend65 Domain Expert Release Record
 
-> **Active construction version**: `0.4.0-cpu-lowering`
+> **Active construction version**: `0.5.0-c64-platform`
 > **Target baseline**: `1.0.0`
 > **Status**: Draft — unqualified; no release gate is claimed green
 > **Recorded**: 2026-09-07
@@ -16,8 +16,8 @@
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Construction router | `0.4.0-cpu-lowering`; explicitly unqualified and non-authoritative |
-| Construction router SHA-256 | `701702ad849fb2256584a68bebdd8bcc031ac8c4fb11183e18e023976e047c82` |
+| Construction router | `0.5.0-c64-platform`; explicitly unqualified and non-authoritative |
+| Construction router SHA-256 | `5dccc93902b1ab2ac7e2afee3f29ebcf00ccbb357c3e294fb59753f5d5efbd98` |
 | Qualified content commit | — |
 | Superseded qualified version | None; the legacy prototype was never qualified |
 
@@ -25,9 +25,9 @@
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Incomplete | Eight candidate construction references coexist with four quarantined legacy references; the accepted thirteen-reference final topology does not yet exist. |
-| Coverage and traceability | Incomplete | The Phase-3 language/architecture/SFA/IL content and Phase-4 CPU/lowering content pass their focused evaluators and independent grades. C64, ACME/artifact, and portability replacement content remains incomplete by planned later-phase scope. |
-| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Phase 4 passes Q-C01..Q-C24 plus focused Q-R01. Q-L27/Q-R04 retain explicit later-phase evidence boundaries, and definitive Phase-7 isolation remains outstanding. |
+| Structural | Incomplete | Eleven candidate construction references coexist with four quarantined legacy references; two planned candidate references and the final thirteen-reference migration remain. |
+| Coverage and traceability | Incomplete | Phase-3 language/architecture/SFA/IL, Phase-4 CPU/lowering, and Phase-5 C64 platform/game content pass focused evaluation. ACME/artifact and portability replacement content remains Phase 6. Native asset parser claims remain fail-closed until their stated producer-schema/fixture implementation proofs exist. |
+| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Phase 4 passes Q-C01..Q-C24 plus focused Q-R01. Phase 5 passes Q-P01..Q-P21 plus focused Q-R04 after corrective evaluation. Definitive Phase-7 isolation remains outstanding. |
 | Specification consistency prerequisite | Phase 3 complete | The current replacement candidate binds corrections through SC-147 under `BLEND65-SPEC-P3-ed278ab9`. Mechanical checks report 50 specification paths, 96 grammar productions, and matching diagnostic registries with 177 unique codes (148 errors, 29 warnings). Exact evaluator and corrective independent grade pass; formal-semantics review is clean. |
 | Hardware-limitation exceptions | Incomplete | Every currently known entry and optional-safety contract is reconciled; the mandatory final omission re-scan remains a Phase-7 release gate. |
 
@@ -1156,12 +1156,57 @@ indexed-access, and canonical 256-loop totals.
 Both evaluation stages were read-only content reviews. No compiler build, typecheck, lint, package
 test, assembler, readiness suite, VICE/emulator, or hardware test ran or is claimed.
 
+## Phase-5 Focused Results
+
+The platform and game evaluators received the three new C64 candidate references, the source
+manifest, and their assigned case prompts. They did not receive compiler code, tests, readiness
+artifacts, the feasibility matrix, legacy conclusions, or prior verdicts. The first pass exposed
+incomplete banking-state preservation, incorrect KERNAL-tail accounting, three game-workload proof
+gaps, and asset-format evidence overclaims. The candidate knowledge was corrected; no case or
+oracle was weakened and no gap was parked.
+
+| Case | Final result | Decisive current evidence |
+|---|---|---|
+| Q-P01 | Pass | CPU, VIC, and physical RAM views stay distinct; placement is preferred to copying |
+| Q-P02 | Pass | Banking transaction preserves DDR, latch, CPU I, device masks, pending-state observability, and IRQ/NMI ownership |
+| Q-P03 | Pass | VIC bank, `$D018`, alignment, pointer range, CPU visibility, and loader placement close together |
+| Q-P04 | Pass | PAL/NTSC profiles use separate line/cycle/frame budgets and prohibit average-frame substitution |
+| Q-P05 | Pass | Badline work subtracts exact unavailable slots and keeps model/scroll assumptions explicit |
+| Q-P06 | Pass | Eight-sprite DMA pressure is charged as a union with badline stalls, not omitted or double-counted as capacity |
+| Q-P07 | Pass | CINV/NMINV chain, revision-pinned exclusive, and raw IRQ/NMI variants have distinct entry saves, observer-safe elision, status order, bytes, cycles, stack, source/nesting ownership, and vector/banking transitions |
+| Q-P08 | Pass | `$D019` write-one acknowledgement is volatile, ordered, and not replaced by generic RMW |
+| Q-P09 | Pass | Exact CIA offsets and CRA/CRB/ICR bits preserve timer, mask, acknowledgement, and port-output effects |
+| Q-P10 | Pass | Exact active-low joystick bits and full PA-column/PB-row keyboard matrix preserve shared lines, DDR/latches, and CIA2 VIC-bank ownership |
+| Q-P11 | Pass | Exact SID voice/global/control/filter maps underpin player-neutral music-only, integrated music/SFX, SFX-only, and custom-player paths without a generic runtime |
+| Q-P12 | Pass | Independent evolving buffers are distinct storage; visibility changes prefer placement and pointer/base flips |
+| Q-P13 | Pass | Fixed 24-sprite oracle, stable sort/drop rules, raw-IRQ ownership, page-contained tables, and exact 1,213-byte IRQ/117-cycle event accounting close the content case |
+| Q-P14 | Pass | Named constant border write lowers to the expert direct-store sequence with no call, temporary, or hidden read |
+| Q-P15 | Pass | Integrator-style elements/panels, masks, attributes, layout, loading, zero-cost renderer, and proof ownership are explicit without inventing an editor framework |
+| Q-P16 | Pass | Fixed 320-slot/40-active workload, 3,984-byte neutral base, eight state actions, half-open AABB rule, and exact 20-pair oracle make layouts comparable |
+| Q-P17 | Pass | Stable regions require path-bounded local cycle contracts; the PAL double-IRQ baseline now fixes mechanism, 64-cycle convergence, 78-byte wrapper, nine-byte local stack high-water, ownership, and rejection/proof bounds |
+| Q-P18 | Pass | VSP/AGSP remains explicit opt-in with safer fallback and mandatory selected-hardware QA |
+| Q-P19 | Pass | FLI/FLD/line-crunch/border/sprite-crunch templates name exact events, ownership, resource surfaces, fallbacks, and future proof boundaries |
+| Q-P20 | Pass | Scrolling compares pointer flips, justified replication, pre-shifted data, dirty updates, unrolling, and copies under one behavior/resource oracle |
+| Q-P21 | Pass | Sprite-multiplexer knowledge reaches modern API, schedule, SFA/IRQ, lowering, cost, and proof seams instead of remaining runtime prose |
+| Q-R04 | Pass | Minimum route closes SFA interference and VIC availability; banking, entry/stack, and lowering references are conditional on the actual sink and emitted-code question |
+
+Asset evaluation separately confirmed that the skill does not claim unsupported native parsing.
+SpritePad Pro 3.80/SPD v5, CharPad Pro 3.88/CTM v9, the accepted PSID v1–v4 subset, and classic
+Koala identity are pinned, but a parser or selector remains fail-closed until its producer schema,
+representative producer fixture, malformed/wrong-version fixture, exact selector result, and hash
+are present. This is the required implementation-proof boundary, not deferred Phase-5 knowledge.
+
+The final Q-P13/Q-P16 correction grade independently recalculated every stated byte/cycle/storage
+total and the deterministic collision/sprite oracles. Both pass. All focused work was read-only
+content evaluation. No compiler build, typecheck, lint, package test, assembler, readiness suite,
+VICE/emulator, or hardware test ran or is claimed.
+
 ## Migration
 
 The coverage matrix pins every material legacy heading and its planned destination. The Phase-4
-CPU/lowering rows now record an independently graded replacement; rows owned by later phases retain
-their explicit pending state. The four old references remain in the working tree as hash-checked
-read-only evidence until the Candidate Pre-delete Gate.
+CPU/lowering and Phase-5 C64 rows now record evaluated replacements. The ACME half of the legacy
+C64 verification section remains Phase 6. The four old references remain in the working tree as
+hash-checked read-only evidence until the Candidate Pre-delete Gate.
 
 ## Verification
 
@@ -1206,6 +1251,17 @@ router identity, five pinned legacy hashes, strict Phase-4 path allowlist, froze
 spec-test integrity check, and `git diff --check` are green. This was content validation only: no
 compiler build, typecheck, lint, package test, assembler, readiness suite, VICE/other emulator, or
 physical-hardware test ran or is claimed.
+
+Phase-5 content verification passed on 2026-09-07. The case files retain 107 unique cases with all
+eleven required fields; Q-P01..Q-P21 and the focused candidate route Q-R04 pass after corrective
+evaluation. Every candidate citation key is defined in the manifest; all checked local Markdown
+links and named reference anchors resolve; the required PAL/NTSC, VIC-II, CIA, SID, asset, Integrator,
+memory, runtime, and game-engineering topics are present. The construction-router identity and four
+legacy-reference hashes match their records. The skill packaging validator, touched-file Prettier,
+strict Phase-5 path allowlist, frozen-`spec/` check, spec-test integrity check, and
+`git diff --check` pass. This was content validation only: no compiler build, typecheck, lint,
+package test, assembler, readiness suite, VICE/other emulator, or physical-hardware test ran or is
+claimed.
 
 ## Post-phase Review
 
@@ -1291,6 +1347,29 @@ anchors. The independent re-review reports no findings. Security and performance
 were skipped because this phase changed only non-executable skill and planning Markdown. Spec-test
 and frozen-`spec/` integrity remain intact; no compiler, assembler, readiness, emulator, or hardware
 execution was performed.
+
+### Phase 5
+
+The correctness reviews found eight major defects across the initial and final passes. Each finding
+was repaired in the candidate knowledge and its affected case was re-graded; Q-P07 was strengthened
+to cover its plan-mandated NMI half without weakening an existing invariant, and no skill-content
+gap was deferred.
+
+| Finding | Remediation and focused re-grade |
+|---|---|
+| RV-001 — exclusive-CINV and raw IRQ costs included redundant `PHP`/`PLP` | Removed the pair where final `RTI` restores status; Q-P07 passes with exact wrapper/tail/output/stack totals |
+| RV-002 — CPU availability subtracted VIC refresh as a CPU-denied slot | Availability now unions only second-phase denial and keeps BA warning distinct from AEC denial; Q-P04–Q-P06 and Q-R04 pass |
+| RV-003 — double-IRQ stabilization was named but not taught | Added the bounded PAL template with 64-cycle convergence, exact 78-byte wrapper and nine-byte local stack high-water, fixed low-raster domain, ownership, rejection cases, and future proof; Q-P17 passes |
+| RV-004 — joystick and keyboard mappings were missing | Added exact active-low CIA1 joystick bits, complete PA-column/PB-row matrix, shared-line/DDR/latch rules, and direct-lowering bounds; Q-P10 passes |
+| RV-005 — CIA/SID register and bit maps were conceptual rather than exact | Added the complete CIA offsets/CRA/CRB/ICR bits and SID voice/global/control/filter maps; Q-P09 and Q-P11 pass |
+| RV-006 — Q-P13 logical-record and resource totals overlapped ambiguously | Defined the six-byte record and one additive `457 + 2 + 2`, then padding/alignment, partition; Q-P13 passes after independent recalculation |
+| RV-007 — task 5.2's wrapped/raw NMI half had no exact contract or qualification | Added revision-pinned `$FE43`/NMINV and raw routes, exact save/status/cycle/byte/stack accounting, CIA2/RESTORE/cartridge/nesting ownership, safe vector/banking transitions, and future proof; strengthened Q-P07 passes a fresh grade |
+| RV-008 — chained-NMI save elision ignored prior-handler observers | Restricted interrupted-point-only elision to exclusive/raw routes; a chain also proves every reachable prior-handler observer; Q-P07 passes its correction re-grade |
+
+The final independent correctness re-review reports no findings. All re-grades were content-only.
+Security and performance specialist reviews remain inapplicable to this non-executable
+documentation phase. Frozen-`spec/` and spec-test integrity remain intact; no compiler, assembler,
+readiness, emulator, or hardware execution was performed.
 
 ## Freeze Declaration
 

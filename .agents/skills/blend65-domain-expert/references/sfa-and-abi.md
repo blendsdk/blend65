@@ -1,6 +1,6 @@
 # Static Frame Allocation and ABI Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.4.0-cpu-lowering`
+> **Construction status**: Candidate knowledge for the unqualified `0.5.0-c64-platform`
 > build.
 >
 > **Binding specification rule**: Static Frame Allocation (SFA) is the sole general function-frame

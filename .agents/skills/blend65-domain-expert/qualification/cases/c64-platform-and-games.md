@@ -22,7 +22,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Uses one universal memory map.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: pre-passer — CPU mapping, VIC-bank selection, and bank-relative visibility are separated (`c64-game-systems.md:19-34`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P02 — Mainline changes `$01` while IRQ may run
@@ -36,7 +36,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Moves bank writes freely.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P03 — Move charset/screen to another VIC bank
@@ -50,7 +50,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Copies assets merely for compiler convenience.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P04 — Raster workload budgeted for both PAL and NTSC
@@ -64,7 +64,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Uses one PAL number as universal C64.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P05 — Work scheduled on a badline
@@ -78,7 +78,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Declares fit from instruction sum alone.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P06 — Eight sprites active during raster work
@@ -92,15 +92,17 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Ignores DMA stalls.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
-## Q-P07 — Select KERNAL-chain, KERNAL-exclusive, or raw IRQ entry
+## Q-P07 — Select KERNAL-chain, KERNAL-exclusive, or raw IRQ/NMI entry
 
 - **Risk / coverage cells:** Critical; `C64-P07`, `GAME-P07`.
-- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
-- **Evaluator prompt:** “Select among default KERNAL chaining, explicit KERNAL takeover, and raw IRQ installation for one source interrupt handler. State exact machine/video/chip, KERNAL revision, vector/banking, enabled-source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.”
-- **Permitted raw artifacts:** Handler/helper source and assembly, selected profile, CINV and hardware vector paths, ROM banking, KERNAL/raw entry assumptions, saved registers, source acknowledgement, exit sequence, and cost report.
+- **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2 and strengthened
+  during the Phase-5 review to include task 5.2's previously omitted NMI half; no existing
+  invariant or disqualifier was weakened.
+- **Evaluator prompt:** “Select among default KERNAL chaining, explicit KERNAL takeover, and raw installation for one IRQ or NMI source handler. State exact machine/video/chip, KERNAL revision, CINV/NMINV/hardware-vector and banking state, every enabled/physical source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.”
+- **Permitted raw artifacts:** Handler/helper source and assembly, selected profile, CINV/NMINV and hardware vector paths, ROM banking, KERNAL/raw entry assumptions, saved registers/status, CIA1/CIA2/RESTORE/cartridge source behavior and acknowledgement, vector-update sequence, exit sequence, and cost report.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
 - **Expected decision invariants:** Default `setIRQ` uses the no-second-save CINV chain variant and a
   reported two-byte saved prior vector whose low byte is at most `$FE`. It preserves entry flags
@@ -109,14 +111,25 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   `setRawIRQ` exists only with a profile-proven writable/active raw vector, establishes binary mode,
   and owns save/restore/`RTI`. The handler acknowledges its source, helpers remain `JSR`/`RTS`,
   interrupted/chained status is preserved, and all variants/costs are explicit without a dispatcher.
+  The revision-pinned NMI route recognizes that `$FE43` reaches NMINV without saving registers:
+  a chain saves status before A/X/Y, restores A/X/Y before status, and then jumps to a page-safe
+  saved prior NMINV; exclusive/raw forms save A/X/Y and end in `RTI`. CIA2 ICR is consumed once by
+  one owner, RESTORE/cartridge behavior and NMI nesting are closed, and a raw vector is populated
+  before its bank state becomes visible. No use of `SEI` is accepted as NMI exclusion.
 - **Disqualifying outcomes:** Uses one prologue/`RTI` blindly, double-pushes A/X/Y at CINV, skips
   prior KERNAL work without source ownership, exposes a raw sink under an unproven banking path,
   accepts visible raw-entry installation at `$0314`, permits unknown decimal mode at body entry,
-  places the indirect link at `$xxFF`, changes the prior handler's entry flags, or hides static
-  link/body/stack cost.
+  treats NMINV as though KERNAL already saved registers, consumes CIA2 state before a chained owner,
+  assumes `SEI` protects a two-byte NMI-vector update, leaves RESTORE/cartridge/nesting open, places
+  an indirect link at `$xxFF`, changes or liveness-elides a prior handler's observable entry
+  flags/registers, or hides static link/body/stack cost.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
-- **Red-baseline result:** Draft observation: partial — generic save/acknowledge/RTI duties exist, but KERNAL-vector versus raw-vector entry contracts do not (`c64-game-systems.md:63-68`).
-- **Focused result:** Not run.
+- **Red-baseline result:** Draft observation: partial — generic save/acknowledge/RTI duties exist,
+  but KERNAL-vector versus raw-vector IRQ/NMI entry contracts do not
+  (`c64-game-systems.md:63-68`).
+- **Focused result:** Pass — the initial IRQ-only pass was invalidated by RV-007; the strengthened
+  IRQ/NMI case passed a fresh Phase-5 isolated content re-grade, with decisive evidence recorded in
+  `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P08 — Acknowledge VIC raster IRQ
@@ -130,7 +143,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Generic RMW without device proof.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P09 — CIA interrupt-control register read/write
@@ -144,7 +157,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Treats it as ordinary stored byte.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P10 — Scan joystick/keyboard while CIA2 selects VIC bank
@@ -158,7 +171,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Clobbers video bank bits.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P11 — Design SID-player scheduling and music/SFX sharing across 6581/8580
@@ -172,7 +185,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Infers SFX from PSID, adds a generic dispatcher/scheduler/mixer/name table/runtime, silently copies the payload, guesses a player/export identity, ignores unsafe IRQ/mainline overlap, claims universal sound from a register trace, or leaves the technique as descriptive lore.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P12 — Double-buffer screen/charset across visibility regions
@@ -186,7 +199,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Copies or duplicates for convenience, leaves replication unmeasured, or calls distinct evolving buffers duplicated data.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P13 — Sprite multiplexer with IRQ-only sorter/update helpers
@@ -200,7 +213,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Reviews hardware in isolation.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P14 — Named `vic.borderColor.set(5)`-style wrapper
@@ -214,7 +227,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Accepts hidden call/temp/read/write overhead.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P15 — Design an Integrator-style compile-time scene/asset pipeline for a large visible game area
@@ -228,7 +241,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Says only “use Integrator/build an editor,” flattens everything into generic copying, ignores attribute/mask/runtime costs, or leaves asset preparation unowned.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P16 — Design entity storage, collision, and state dispatch for a fixed game workload
@@ -242,7 +255,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Declares one layout universally best or leaves engine structures as descriptive lore.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P17 — Stable raster region calls variable-path logic or a helper
@@ -256,7 +269,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Assumes source shape or average cycles are stable.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P18 — Request VSP/AGSP for a general C64 build
@@ -270,7 +283,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Treats one emulator result as safe universal hardware behavior.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P19 — Use FLI/FLD/line-crunch/border/sprite-crunch technique
@@ -284,7 +297,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Pattern-matches arbitrary stores/loops into a display trick.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P20 — Optimize a scrolling/rendering hot path
@@ -298,7 +311,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Blindly copies, duplicates, or unrolls without equivalent-work accounting.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.
 
 ## Q-P21 — Bake a sprite-multiplexer technique into Blend65 support
@@ -312,5 +325,5 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Merely describes the trick or assumes the shipped compiler can consult the skill.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: fail — game idioms are listed, but sprite multiplexing is not mapped to deterministic compiler/API ownership, costs, hazards, and proof (`c64-game-systems.md:82-97`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Not run.

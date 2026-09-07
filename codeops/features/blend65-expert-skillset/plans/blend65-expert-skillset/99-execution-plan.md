@@ -1,7 +1,7 @@
 # Execution Plan: Blend65 Expert Skillset v1.0.0
 
-> **Plan Status**: Phases 1–4 complete; Phase 5 C64 platform/game knowledge is next
-> **Progress**: 4/7 delivery phases (57%); 62 retained implementation substeps
+> **Plan Status**: Phases 1–5 complete; Phase 6 ACME/artifact/portability knowledge is next
+> **Progress**: 5/7 delivery phases (71%); 62 retained implementation substeps
 > **Last Updated**: 2026-09-07
 > **Implements**: blend65-expert-skillset/RD-01
 > **Execution mode**: Commit coherent, impact-verified checkpoints without asking; never push
@@ -387,7 +387,13 @@ game architecture, allocation, generated code, and executable evidence.
 
 **Reference**: 03-04, RD-01 R8
 
-- [ ] **P5 — C64 platform/game knowledge is model-bounded and content-qualified.**
+> **Phase baseline tree**: `2f54d156f6a4626fbe374a42aeb3a47bd1b06b81`
+> **Scope mode**: strict
+> **Expected modification set**: `.agents/skills/blend65-domain-expert/references/{c64-memory-and-runtime,c64-hardware,c64-game-engineering,source-manifest}.md`, `.agents/skills/blend65-domain-expert/qualification/{coverage-matrix.md,cases/c64-platform-and-games.md,cases/routing-and-evidence.md,release.md}`, `.agents/skills/blend65-domain-expert/SKILL.md`, this `99-execution-plan.md`, and the feature roadmap. The single-active-version bump may also change only the construction-version header in already completed candidate references. The portfolio roadmap is deferred on this non-integration branch. No compiler, language-specification, package, example, readiness, assembler, emulator, or hardware-test surface is in scope.
+
+- [x] **P5 — C64 platform/game knowledge is model-bounded and content-qualified.** The three
+  candidate modules, source graph, 21 Q-P cases, focused Q-R04 route, asset fail-closed boundary,
+  evaluator corrections, and content checks pass. ✅ (completed: 2026-09-07 21:10)
 
 1. **5.1** Author `references/c64-memory-and-runtime.md`: CPU map/banking, `$0000/$0001`, RAM
    under ROM/I/O, CPU/VIC views, CIA2 VIC bank, ZP/page-one ownership, placement, and resource
@@ -426,6 +432,48 @@ game architecture, allocation, generated code, and executable evidence.
 
 **Phase verification:** all Q-P content cases green; required C64 coverage complete and every
 runtime/silicon claim has an explicit future proof boundary. No compiler or emulator test runs.
+
+### Phase 5 Focused Evaluation
+
+The platform, game, and asset evaluators reviewed disjoint candidate concerns without compiler
+code, tests, readiness artifacts, the feasibility matrix, legacy conclusions, or prior verdicts.
+Every material failure was corrected and rerun; none was waived or moved to a later skill phase.
+
+| Finding group | Severity | Remediation and final result |
+|---|---|---|
+| Banking transaction omitted full DDR/latch/interrupt state; Q-R04 route was too broad | Major | Added complete state/ownership protocol and conditional narrow route; Q-P02/Q-R04 pass |
+| KERNAL `$EA81` restore-tail accounting was wrong | Major | Recomputed wrapper/tail bytes, cycles, stack, source ownership, and CIA1 behavior; final review also removed redundant exclusive/raw `PHP`/`PLP`; Q-P07 passes |
+| Sprite baseline omitted page-cross, schedule, decimal-state, and deadline closure | Major | Added page-contained tables, deterministic fixture/sort/drop policy, `CLD`, exact code/data/stack totals, and a cycle-1-to-deadline proof; Q-P13 passes |
+| Entity comparison mixed candidate-only storage and lacked a behavior oracle | Major | Separated the 3,984-byte neutral base, added exact generator/state/AABB/grid rules and 20-pair/overflow oracles; Q-P16 passes |
+| Aggressive-VIC templates lacked exact event shapes | Major | Added bounded FLI/FLD/line-crunch/border/sprite-crunch events, resources, fallbacks, and future proof boundaries; Q-P19 passes |
+| Native asset evidence overclaimed producer-format certainty | Major | Pinned producer identities and bounded comparative evidence; registered exact future fixtures and kept unsupported parsers/selectors fail-closed; no Phase-5 content blocker remains |
+| Keyboard/joystick citations were broad | Minor | Added exact Programmer's Reference Guide p.93 and pp.343–344, active-low joystick bits, and the complete PA-column/PB-row matrix; Q-P10 passes |
+
+The content gate reports 107 unique eleven-field cases, 21/21 Q-P focused passes, no unresolved
+candidate source key, no missing local Markdown link/checked anchor, unchanged legacy hashes, a
+clean frozen `spec/` surface, and no changed `*.spec.test.*` file. The skill validator, touched-file
+Prettier, and `git diff --check` pass. No compiler build, typecheck, lint, package test, assembler,
+readiness suite, VICE/emulator, or physical-hardware test ran.
+
+### Phase 5 Quality Review
+
+The correctness reviews found eight major content defects across their initial and final passes.
+Every affected case was withdrawn, corrected, and freshly re-graded before the phase checkpoint.
+
+| Review finding | Remediation and result |
+|---|---|
+| RV-001 — redundant status saves inflated exclusive/raw IRQ contracts | Corrected exact bytes/cycles/stack; Q-P07 passes |
+| RV-002 — refresh was incorrectly treated as CPU-denied phi2 | Split first-phase VIC activity, BA warning, and AEC denial; Q-P04–Q-P06/Q-R04 pass |
+| RV-003 — double-IRQ knowledge was superficial | Added exact PAL mechanism, costs, stack, fixed line domain, counterexamples, and proof boundary; Q-P17 passes |
+| RV-004 — exact keyboard/joystick maps were absent | Added complete active-low input maps and ownership/lowering rules; Q-P10 passes |
+| RV-005 — exact CIA/SID maps were absent | Added complete compiler-relevant address/bit/effect tables; Q-P09/Q-P11 pass |
+| RV-006 — Q-P13 record/resource arithmetic overlapped | Defined the six-byte record and non-overlapping resource partition; Q-P13 passes |
+| RV-007 — wrapped/raw NMI knowledge and qualification were incomplete | Added exact 901227-03 NMINV and raw entry/cost/source/nesting/vector/banking contracts; strengthened Q-P07 passes |
+| RV-008 — chained-NMI save elision ignored prior-handler observers | Chain elision now requires proof across interrupted and prior-handler paths; Q-P07 passes |
+
+The final independent correctness re-review reports no findings. Security and performance
+specialist reviews are skipped because this phase contains only non-executable skill/planning
+Markdown. No compiler, assembler, readiness, emulator, or hardware execution applies.
 
 ---
 

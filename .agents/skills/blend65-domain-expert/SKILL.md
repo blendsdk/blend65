@@ -5,7 +5,7 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Active construction version**: `0.4.0-cpu-lowering`
+> **Active construction version**: `0.5.0-c64-platform`
 > **Qualification status**: Unqualified. This version must not authorize compiler, language,
 > hardware, optimization, platform, game-design, parity, or product decisions.
 
