@@ -1,6 +1,6 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.3.2-compiler-knowledge`
+> **Construction status**: Candidate knowledge for the unqualified `0.4.0-cpu-lowering`
 > build. This module specifies semantic payload and proof duties, not a mandatory IR count or pass
 > framework.
 

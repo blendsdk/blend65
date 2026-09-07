@@ -1,6 +1,6 @@
 # Source Manifest
 
-> **Construction version**: `0.3.2-compiler-knowledge`
+> **Construction version**: `0.4.0-cpu-lowering`
 > **Retrieved/rechecked**: 2026-09-06
 > **Purpose**: Pin the evidence that may shape the Blend65 expert baseline. This manifest is
 > provenance, dependency, and conflict control; it is not a substitute for the distilled local
@@ -512,7 +512,7 @@ The following terms are used below:
 - **Scope**: registers, status flags, addressing modes, official instructions, algorithms, and
   documented cycle/byte properties.
 - **Dependent sections**: `mos-6502-family.md#programmer-visible-state`,
-  `mos-6502-family.md#official-instruction-and-addressing-grid`, and arithmetic/comparison/shift/
+  `mos-6502-family.md#official-nmos-instruction-and-addressing-grid`, and arithmetic/comparison/shift/
   loop entries in `6502-lowering-casebook.md`.
 - **Precision**: Chapter 2 §§2.2.1–2.2.3 (`ADC`, `SBC`, multi-precision arithmetic, carry, and
   overflow); Chapter 3 §§3.0–3.8 (status flags); Chapter 4 §§4.0.2–4.2.1 (jumps, relative
@@ -595,6 +595,25 @@ The following terms are used below:
 - **Local extraction**: one bounded rule: an NMOS indirect vector ending in `$FF` fetches its high
   byte from `$xx00`, not the next page.
 - **Verification**: contrast with WDC-65C02S-2022 Table 7-1 and VICE-TEST-EF8E8EFE CPU tests.
+
+### VISUAL6502-RESET-2010 — NMOS reset transistor-model trace
+
+- **Authority/status**: Empirical primary reconstruction of the MOS 6502 reset sequencer from the
+  Visual6502 transistor model; authoritative only for the displayed NMOS trace and the structural
+  read/decrement sequence it exposes.
+- **Edition/version**: Michael Steil, “Internals of BRK/IRQ/NMI/RESET on a MOS 6502,” published
+  2010-09-29.
+- **Location**: <https://www.pagetable.com/?p=410>.
+- **Scope**: seven reset-entry cycles, three suppressed stack writes observed as page-one reads,
+  three stack-pointer decrements, low/high reset-vector fetch order, and the following opcode fetch.
+- **Dependent sections**: `mos-6502-family.md#reset-interrupt-and-stack-behavior`.
+- **Precision**: “RESET,” trace cycles 1–8 and the explanations immediately below cycles 3–8.
+- **Known issues**: the displayed power-up trace begins with `S=$00`; a warm reset instead starts
+  from the incoming stack pointer. Leading bus addresses can depend on entry state and compatible
+  chips outside the selected MOS NMOS boundary can differ.
+- **Local extraction**: exact seven-cycle structural sequence and the formula
+  `S_after=(S_before-3)&$ff`; no claim that every reset begins with `S=$00`.
+- **Verification**: bounded by MOS-HW-1976 reset timing and kept separate from W65C02S behavior.
 
 ## Commodore 64 and Chip Sources
 
@@ -1182,6 +1201,12 @@ the fact; the project parity/modern-language directives support the compiler dis
 labelled **project-policy oracle** are not external oracles; their governing policy is already
 frozen, while named sources are only permitted raw evidence for a later isolated evaluation.
 
+For Phase-4 CPU/lowering use, Q-C01..Q-C24 bind these rows to the local distillations in
+`mos-6502-family.md` and `6502-lowering-casebook.md`. The MOS/WDC/ACME records remain authority for
+hardware and assembler facts; the local modules add explicit legal sequences, costs,
+counterexamples, and compiler dispositions. A local calculation never upgrades itself into a new
+external source, and later assembled-byte or execution evidence remains separate qualification.
+
 | Cases | Stable sources and precise locations | Invariant derivation and bound |
 |---|---|---|
 | Q-L19 (**project-policy/reconciled-spec oracle**) | `BLEND65-SPEC-P3-ed278ab9`: Chapters 02, 04–08, 11, 12, and 14; F008/F011/F014/F016/F018/F020; accepted AR-P35–AR-P41 | Stored arrays are fixed contiguous `T[N]`. `T[]` is only initializer extent inference or a whole-fixed-array any-size parameter; the latter carries a two-byte address plus a two-byte element count, while exact parameters carry only the address. `length()`, `sizeof()`, and `offsetof()` have stable semantic `word` types; fixed-array length and all valid size/offset queries fold, while any-size length reads the carried count. Extents and complete fixed array/struct byte sizes fit `0..65535`; E10264/E10265 reject larger forms, and E10266 rejects `sizeof(T[])`. Every unbarriered integer-producing operator inside `[]` uses the 16-bit-capable ordinal context, while explicit or earlier 8-bit barriers retain wrap. Proof may select byte-only work without changing source meaning. E10262 rejects only a proved finite-looking loop whose declared fixed-width counter cannot reach its invariant bound. No dynamic array, slice, span, view, helper, heap, or default runtime is introduced. |
@@ -1203,8 +1228,8 @@ frozen, while named sources are only permitted raw evidence for a later isolated
 | Q-C10 | MOS-PGM-1976 Chapter 10 §§10.6–10.9 (memory read-modify-write); CSG-6567-318014 internal sheet 11 (interrupt register); VIC-BAUER-2024 §§3.2/3.12; CBM-C64-PRG-1982 printed pages 151 and 391 (`$D019`) | A memory RMW performs device-visible accesses and may not preserve the semantics of a chosen VIC register operation. Bytes/cycles alone cannot authorize the rewrite. |
 | Q-C11, Q-C12 | MOS-PGM-1976 §§4.1.1–4.1.4 (relative branch, range, and path timing), §§6.1–6.2 (absolute indexed), Appendix B opcode timing, and Appendix C addressing timing | Branch cost is path/page dependent. Indexed read page crossing and store timing are not the same rule. Layout/repair must use final addresses. |
 | Q-C13 | BLEND65-SPEC-P3-ed278ab9 `spec/04-expressions-operators.md` and `spec/02-type-system.md`, wide-shift rules; MOS-PGM-1976 Chapter 10 §§10.0–10.4 (`LSR`, `ASL`, `ROR`, `ROL`); CC65-2.19 `libsrc/runtime/asr.s` (comparative sign-propagating implementation only) | Signed arithmetic `>>` preserves sign extension for counts at least the width: negative operands produce `-1`, and non-negative operands produce `0`. Unsigned `>>` and every `<<` produce `0` at those counts. The 6502 practice check confirms that signed shifts explicitly propagate sign through carry; cc65's different C rule supplies comparison only and does not decide Blend65 semantics. |
-| Q-C14 | BLEND65-SPEC-P3-ed278ab9 `spec/04-expressions-operators.md:70-78` and `spec/02-type-system.md:450-464`; MOS-PGM-1976 Chapter 10 shift/rotate effects; `evidence-parity-and-recovery.md#equivalent-work-accounting` | Fold/identity/shift-add/table/helper selection is compiler synthesis. It must preserve width/signedness/wrap semantics and win after complete attributable cost; no comparative compiler is authority for the choice. |
-| Q-C15 | BLEND65-SPEC-P3-ed278ab9, `spec/04-expressions-operators.md` (truncation-toward-zero quotient and signed-remainder identity); MOS-PGM-1976 Chapter 10 shift/rotate effects; `evidence-parity-and-recovery.md#transformation-proof` | A signed negative odd dividend distinguishes truncation-toward-zero division from arithmetic shift and dividend-signed remainder from an unsigned mask. `-3 / 2 == -1` and `-5 % 2 == -1`; a shift/mask replacement requires a proof or sign-aware correction. |
+| Q-C14 | BLEND65-SPEC-P3-ed278ab9 `spec/04-expressions-operators.md:70-104` and `spec/02-type-system.md:269-300,441-456,485-489`; MOS-PGM-1976 Chapter 10 shift/rotate effects; `evidence-parity-and-recovery.md#equivalent-work-accounting` | Fold/identity/shift-add/table/helper selection is compiler synthesis. It must preserve width/signedness/wrap semantics and win after complete attributable cost; no comparative compiler is authority for the choice. |
+| Q-C15 | BLEND65-SPEC-P3-ed278ab9 `spec/04-expressions-operators.md:106-147` (truncation-toward-zero quotient, signed-remainder identity, and zero boundary); MOS-PGM-1976 Chapter 10 shift/rotate effects; `evidence-parity-and-recovery.md#transformation-proof` | A signed negative odd dividend distinguishes truncation-toward-zero division from arithmetic shift and dividend-signed remainder from an unsigned mask. `-3 / 2 == -1` and `-5 % 2 == -1`; a shift/mask replacement requires a proof or sign-aware correction. |
 | Q-C16 | BLEND65-SPEC-P3-ed278ab9 `spec/02-type-system.md:181-185,228-237` (comparison produces Boolean); MOS-PGM-1976 §4.2.1 and §§4.1.2–4.1.3; `evidence-parity-and-recovery.md#equivalent-work-accounting` | Direct branching and delayed materialization are project/compiler synthesis. The escaping Boolean remains materialized exactly where demanded by the use graph. |
 | Q-C17 | MOS-PGM-1976 official opcode grid; WDC-65C02S-2022 Tables 5-1/5-2 | Instruction legality belongs to the selected CPU; assembler ability to accept a W65C02 opcode does not make it legal for NMOS 6510 output. |
 | Q-C18 | MOS-PGM-1976 Chapter 8 (`JSR`/`RTS` and stack) and Chapter 9 (interrupt context); `evidence-parity-and-recovery.md#equivalent-work-accounting`; the frozen SFA/IRQ ownership policy | Inline/helper selection includes call/return, ABI saves, reachability/dead stripping, scratch/ZP/frame use, and IRQ reentrancy—not body length alone. |
@@ -1248,8 +1273,8 @@ frozen, while named sources are only permitted raw evidence for a later isolated
 | SRC-005 | No complete original Integrator source/manual is available in the accepted packet. | Keep first-person statements, reconstruction features, unknown original steps, and new Blend65 synthesis distinct. | Q-P15 may freeze as a design-evaluation oracle, but cannot claim historical details not evidenced. |
 | SRC-006 | Future-target documents do not constitute implementation qualification. | Use them only to prevent C64-specific assumptions in shared seams. | Q-A09 can classify delegation; no future target becomes `Verified complete`. |
 | SRC-007 | Some archive URLs are mirrors and may move. | Pin document identity/version and record a replacement mirror only after verifying identical content. | URL failure does not change a fact, but blocks new exact citation until identity is rechecked. |
-| SRC-008 | F010's original commentary could be read as authorizing `N xor V` after `CMP`, but MOS-PGM-1976 §4.2.1 shows that `CMP` does not set V. | F010 now says explicitly that zero comparison may use the loaded sign bit, while a general signed comparison must establish every consumed flag; its example uses `SBC`, which defines V. | Q-C01/Q-C02 must never accept stale V; Phase 4 still owns exact lowering families and their independent behavior oracles. |
-| SRC-009 | Chapters 02/04 previously disagreed on a negative signed right shift whose count is at least the width. | SC-005 is closed: a negative signed wide `>>` produces `-1`; non-negative/unsigned wide `>>` and every wide `<<` produce `0`. | Q-C13's language oracle is frozen; Phase 4 must provide exact legal sequences and costs. |
+| SRC-008 | F010's original commentary could be read as authorizing `N xor V` after `CMP`, but MOS-PGM-1976 §4.2.1 shows that `CMP` does not set V. | F010 now says explicitly that zero comparison may use the loaded sign bit, while a general signed comparison must establish every consumed flag; its example uses `SBC`, which defines V. | Q-C01/Q-C02 must never accept stale V; Phase 4 now supplies and independently grades the exact lowering families. |
+| SRC-009 | Chapters 02/04 previously disagreed on a negative signed right shift whose count is at least the width. | SC-005 is closed: a negative signed wide `>>` produces `-1`; non-negative/unsigned wide `>>` and every wide `<<` produce `0`. | Q-C13's language oracle is frozen; Phase 4 now supplies and independently grades the exact legal sequences and costs. |
 | SRC-010 | Chapter 05 and F008 first disagreed over the range-loop contract; later review found the whole range-only design unfamiliar and unnecessarily specialized. | SC-006 records the superseded range reconciliation. SC-131 closes AR-P32: one three-clause loop uses ordinary evaluation, scope, mutation, effects, exits, and fixed-width wrap; correct generic CFG lowering is always available, while proven canonical induction recovers expert patterns without a runtime or second syntax. | Q-L31 and Q-C19 must be rebound after the final Phase-3 specification identity; the later compiler audit must treat every existing range-only parser/AST/analyzer/lowering path as a recovery subject rather than authority. |
 | SRC-011 | The available CSG 6567 manufacturer document is a preliminary, NTSC-centered 19-page scan from a 22-sheet drawing, not a complete VIC-II revision history. | Use CSG-6567-318014 for its documented register/effect and bus baseline only; use revision-bounded research/tests for later PAL/NTSC timing and physical-silicon claims. | VIC-dependent oracles retain explicit variant and physical-QA boundaries; the preliminary sheet cannot universalize Bauer/VICE observations. |
 | SRC-012 | Earlier profile text used numeric `clock_mhz` as a C64 timing identity, conflated PSID Unknown with Both, exposed one scalar SID model, and described C64U's primary endpoint only as emulated. | SC-133 requires explicit `video_standard` plus an address/model `sid_chips` list; treats `clock_mhz` as derived/validated data; preserves all PSID clock/model meanings and secondary/tertiary inheritance; and treats a C64U endpoint as physical SID or UltiSID deployment configuration. | Q-L26/Q-L33/Q-P11 reject known mismatch with E10261, require a player contract to close unknown callable-audio metadata, separate turbo CPU speed from SID timing, and never infer runtime hardware activation or conversion. |

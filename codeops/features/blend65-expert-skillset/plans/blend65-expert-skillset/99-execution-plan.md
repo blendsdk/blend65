@@ -1,7 +1,7 @@
 # Execution Plan: Blend65 Expert Skillset v1.0.0
 
-> **Plan Status**: Phase 3 complete under exact identity `BLEND65-SPEC-P3-ed278ab9`; Phase 4 is next
-> **Progress**: 3/7 delivery phases (43%); 62 retained implementation substeps
+> **Plan Status**: Phases 1–4 complete; Phase 5 C64 platform/game knowledge is next
+> **Progress**: 4/7 delivery phases (57%); 62 retained implementation substeps
 > **Last Updated**: 2026-09-07
 > **Implements**: blend65-expert-skillset/RD-01
 > **Execution mode**: Commit coherent, impact-verified checkpoints without asking; never push
@@ -323,7 +323,14 @@ casebook, correcting the stale-V danger.
 
 **Reference**: 03-03, RD-01 R6–R7
 
-- [ ] **P4 — CPU and lowering knowledge passes source-linked behavior-and-cost cases.**
+> **Phase baseline tree**: `86f7b448d440b8dfd1cda62ad0b87106c68a12d4`
+> **Scope mode**: strict
+> **Expected modification set**: `.agents/skills/blend65-domain-expert/references/{mos-6502-family,6502-lowering-casebook,source-manifest}.md`, `.agents/skills/blend65-domain-expert/qualification/{coverage-matrix.md,cases/cpu-lowering-and-optimization.md,cases/routing-and-evidence.md,release.md}`, `.agents/skills/blend65-domain-expert/SKILL.md`, this `99-execution-plan.md`, and the feature roadmap. The single-active-version bump also changes only the construction-version header in `references/{compiler-architecture,sfa-and-abi,il-and-optimization}.md`. The portfolio roadmap is deferred on this non-integration branch. No compiler, language-specification, package, example, readiness, assembler, emulator, or hardware-test surface is in scope.
+
+- [x] **P4 — CPU and lowering knowledge passes source-linked behavior-and-cost cases.** The
+  complete 56-mnemonic/151-opcode NMOS model, expert lowering casebook, 24 Q-C cases, focused
+  Q-R01 route, evaluator, independent grade, content gates, and clean post-phase re-review pass. ✅
+  (completed: 2026-09-07 19:06)
 
 1. **4.1** Author `references/mos-6502-family.md` machine state and the complete official NMOS
    instruction/addressing grid with legality, encoding, cycles, memory access, register/flag
@@ -355,6 +362,21 @@ casebook, correcting the stale-V danger.
 **Phase verification:** all unblocked Q-C content cases green, including Q-C21's two independent
 expectations. Blocked semantic cases remain visible and prevent final release until reconciled. No
 compiler tests run.
+
+### Phase 4 Quality Review
+
+> **Review state**: ✅ Two major and one minor findings were remediated; the independent re-review
+> returned no findings.
+> **Reviewer**: Independent CodeOps correctness reviewer
+> **Spec-test integrity**: Passed — no `*.spec.test.*` or `spec/` content changed
+> **Specialist reviews**: Security and performance skipped because this phase changed only
+> non-executable skill and planning Markdown.
+
+| Finding | Severity | Resolution authority | Remediation |
+|---|---|---|---|
+| RV-001 — reset entry lacked exact timing, S effects, and page-one bus reads | 🟠 Major | Phase-4 complete CPU-model requirement and source-governance policy | Added the seven-cycle NMOS sequence, three suppressed stack writes as reads, `S_after` formula, vector order, explicit bounds, and the registered `VISUAL6502-RESET-2010` evidence source; re-review clear |
+| RV-002 — traceability still called completed CPU/lowering modules planned | 🟠 Major | Truthful qualification and single-state traceability requirements | Updated Q-L30, Q-R04, case-header, conflict-register, and migration status wording while preserving the pending Phase-5/Phase-7 boundaries; re-review clear |
+| RV-003 — two opcode-grid references used a nonexistent anchor | 🟡 Minor | Local-reference integrity requirement | Corrected both references to `#official-nmos-instruction-and-addressing-grid`; 146 inline existing-target anchors pass; re-review clear |
 
 ---
 

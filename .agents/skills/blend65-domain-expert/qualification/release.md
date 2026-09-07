@@ -1,6 +1,6 @@
 # Blend65 Domain Expert Release Record
 
-> **Active construction version**: `0.3.2-compiler-knowledge`
+> **Active construction version**: `0.4.0-cpu-lowering`
 > **Target baseline**: `1.0.0`
 > **Status**: Draft — unqualified; no release gate is claimed green
 > **Recorded**: 2026-09-07
@@ -16,8 +16,8 @@
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Construction router | `0.3.2-compiler-knowledge`; explicitly unqualified and non-authoritative |
-| Construction router SHA-256 | `a21baa35f456f42afc2378b1f7a95c0e145f41fcc8484d23969f543ec52a5274` |
+| Construction router | `0.4.0-cpu-lowering`; explicitly unqualified and non-authoritative |
+| Construction router SHA-256 | `701702ad849fb2256584a68bebdd8bcc031ac8c4fb11183e18e023976e047c82` |
 | Qualified content commit | — |
 | Superseded qualified version | None; the legacy prototype was never qualified |
 
@@ -25,9 +25,9 @@
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Incomplete | Six candidate construction references coexist with four quarantined legacy references; the accepted thirteen-reference final topology does not yet exist. |
-| Coverage and traceability | Incomplete | The exact 50-path crosswalk and Phase-3 language/architecture/SFA/IL cases pass their exact evaluator, corrective independent grade, and review gates. CPU, C64, ACME, and portability replacement content remains incomplete by planned later-phase scope. |
-| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Q-L27/Q-R04 retain explicit later-phase evidence boundaries, and definitive Phase-7 isolation remains outstanding. |
+| Structural | Incomplete | Eight candidate construction references coexist with four quarantined legacy references; the accepted thirteen-reference final topology does not yet exist. |
+| Coverage and traceability | Incomplete | The Phase-3 language/architecture/SFA/IL content and Phase-4 CPU/lowering content pass their focused evaluators and independent grades. C64, ACME/artifact, and portability replacement content remains incomplete by planned later-phase scope. |
+| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Phase 4 passes Q-C01..Q-C24 plus focused Q-R01. Q-L27/Q-R04 retain explicit later-phase evidence boundaries, and definitive Phase-7 isolation remains outstanding. |
 | Specification consistency prerequisite | Phase 3 complete | The current replacement candidate binds corrections through SC-147 under `BLEND65-SPEC-P3-ed278ab9`. Mechanical checks report 50 specification paths, 96 grammar productions, and matching diagnostic registries with 177 unique codes (148 errors, 29 warnings). Exact evaluator and corrective independent grade pass; formal-semantics review is clean. |
 | Hardware-limitation exceptions | Incomplete | Every currently known entry and optional-safety contract is reconciled; the mandatory final omission re-scan remains a Phase-7 release gate. |
 
@@ -77,7 +77,9 @@ correctly reclassified as project-policy oracles.
 
 The second pass found two real frozen-spec conflicts, one overbroad signed-division case, and two
 citation defects. At that checkpoint Q-C13 was blocked by SC-005 and Q-C19 by SC-006; AR-P32/SC-131
-has since superseded Q-C19's range oracle. Q-C15 is explicitly quotient-only. ACME evaluation and evidence anchors were corrected. The final narrow re-review
+has since superseded Q-C19's range oracle. Q-C15 is explicitly limited to signed power-of-two
+quotient/remainder correctness rather than general division implementation. ACME evaluation and
+evidence anchors were corrected. The final narrow re-review
 returned no findings and authorized all 47 non-conflicted external cases as `frozen-external`.
 No assembler, emulator, or physical-hardware observation was run or claimed.
 
@@ -1099,12 +1101,67 @@ the focused Q-L19 completeness check because it did not explicitly diagnose ordi
 the new exact identity above. Q-L27 and Q-R04 remain explicit later-phase evidence boundaries, not
 Phase-3 semantic defects.
 
+## Phase-4 Focused Results
+
+The Phase-4 evaluator received only the seven allowlisted candidate knowledge modules and the case
+prompts, not the hidden oracles, coverage/release/plan material, legacy conclusions, compiler code,
+tests, examples, readiness artifacts, or prior outputs. Aquinas first reported 20 passes and five
+material content failures: Q-C04, Q-C13, Q-C14, Q-C15, and Q-C20 lacked complete local sequences or
+cost evidence. The candidate was corrected rather than the cases. Its first focused rerun left two
+cost-proof failures because Q-C14/Q-C15 omitted taken-branch page-cross terms. The second correction
+added exact page formulas, and the final focused rerun passed both. No failure was waived or parked.
+
+| Case | Final evaluator result | Decisive current evidence |
+|---|---|---|
+| Q-C01 | Pass | Rejects stale V after `CMP`; legal controlled-subtraction/normalization/sign-split families and costs |
+| Q-C02 | Pass | Full signed-byte boundaries and both initial V states; N-only/C-only counterexamples |
+| Q-C03 | Pass | Direct `CMP`/`BCS` branch with no unnecessary Boolean home |
+| Q-C04 | Pass | Complete signed-word high-first stream; 37 bytes and six exact base path totals |
+| Q-C05 | Pass | Source-independent `CLC` and low-to-high word carry chain |
+| Q-C06 | Pass | Source-independent `SEC` and low-to-high no-borrow chain |
+| Q-C07 | Pass | NMOS IRQ does not clear D; exact raw/exclusive/chained ABI ownership and costs |
+| Q-C08 | Pass | ZP indirect pointer wraps at `$ff`; page-safe pair allocation is mandatory |
+| Q-C09 | Pass | NMOS `JMP ($12ff)` high-byte fetch wraps within the page; W65C02S differs |
+| Q-C10 | Pass | NMOS RMW bus sequence blocks unproved VIC/MMIO substitution |
+| Q-C11 | Pass | Relative range, taken/page timing, and branch-over-`JMP` repair are explicit |
+| Q-C12 | Pass | Indexed-read page penalty and fixed indexed-store timing/bus effects are distinct |
+| Q-C13 | Pass | Constant/runtime signed byte/word shifts cover zero, boundaries, wide counts, state, storage, and page costs |
+| Q-C14 | Pass | Constant chains plus legal looped/unrolled byte and word multiply candidates have complete cost formulas |
+| Q-C15 | Pass | Exact signed power-of-two quotient/remainder streams preserve truncation toward zero and dividend-signed remainder |
+| Q-C16 | Pass | Branch use consumes flags directly; only the escaping Boolean is materialized |
+| Q-C17 | Pass | Selected NMOS target legality overrides assembler acceptance of W65C02 forms |
+| Q-C18 | Pass | Inline/helper choice includes body, calls, ABI, dead stripping, SFA/ZP/stack, and IRQ reentrancy |
+| Q-C19 | Pass | Ordinary word loop runs 256 iterations; proof may use byte `INX/BNE`; byte source loop is not silently repaired |
+| Q-C20 | Pass | ACME `#<`/`#>` and parenthesized offsets preserve assembly-time symbol resolution |
+| Q-C21 | Pass | Independent behavior oracle and separate assembly/resource expectation are both mandatory |
+| Q-C22 | Pass | Full/partial/no unroll is selected from measured workload and layout costs |
+| Q-C23 | Pass | Self-modifying specialization requires writable code, ownership, IRQ/reentry/bank proof, and measured benefit |
+| Q-C24 | Pass | Tables/pre-shifted data charge payload, padding, placement/banking, access, workload, and behavior |
+| Q-R01 | Pass | Focused route selects semantics, CPU, lowering, parity/evidence, and source traceability; live router remains quarantined |
+
+### Independent Phase-4 grade
+
+Herschel had not reviewed Phase 4 before this grade. The grader received the complete frozen case
+oracles and current candidate references, but not the evaluator verdicts, release/coverage/plan
+artifacts, compiler implementation, tests, legacy references, or feasibility matrix. It independently
+recalculated the signed-compare, shift, multiply, signed division/remainder, helper, branch/page,
+indexed-access, and canonical 256-loop totals.
+
+| Grade | Result | Boundary |
+|---|---|---|
+| Q-C01..Q-C24 | 24/24 Pass | Legal selected-CPU forms, semantics, counterexamples, full cost/resource evidence, and proof duties pass |
+| Q-R01 | Pass | Candidate-content route is sufficient; this does not qualify the quarantined live router |
+| Material findings | None | No oracle was changed and no result was accepted with missing evidence |
+
+Both evaluation stages were read-only content reviews. No compiler build, typecheck, lint, package
+test, assembler, readiness suite, VICE/emulator, or hardware test ran or is claimed.
+
 ## Migration
 
-The coverage matrix pins every material legacy heading and its planned destination. All rows remain
-incomplete until the replacement heading is independently sourced and qualified. The four old
-references remain in the working tree as hash-checked read-only evidence until the Candidate
-Pre-delete Gate.
+The coverage matrix pins every material legacy heading and its planned destination. The Phase-4
+CPU/lowering rows now record an independently graded replacement; rows owned by later phases retain
+their explicit pending state. The four old references remain in the working tree as hash-checked
+read-only evidence until the Candidate Pre-delete Gate.
 
 ## Verification
 
@@ -1139,6 +1196,16 @@ warnings), 107 unique eleven-field qualification cases (R12/L33/C24/P21/A17), so
 definitions, local links, legacy/live hashes, strict path allowlist, spec-test integrity, and
 `git diff --check` pass. This was documentation and content validation only. No compiler build,
 typecheck, lint, package test, assembler, readiness suite, VICE/emulator, or hardware test ran.
+
+Phase-4 content verification passed on 2026-09-07. The machine grid contains all 56 documented
+NMOS mnemonics, 151 legal mnemonic/addressing pairs, and 151 unique official opcode bytes. The five
+casebooks retain 107 unique eleven-field cases (`R12/L33/C24/P21/A17`); Q-C01..Q-C24 and the focused
+candidate route Q-R01 all pass their evaluator and independent grade. The skill packaging validator,
+touched-file Prettier check, local Markdown path/anchor check, source-key resolution, exact current
+router identity, five pinned legacy hashes, strict Phase-4 path allowlist, frozen-`spec/` check,
+spec-test integrity check, and `git diff --check` are green. This was content validation only: no
+compiler build, typecheck, lint, package test, assembler, readiness suite, VICE/other emulator, or
+physical-hardware test ran or is claimed.
 
 ## Post-phase Review
 
@@ -1212,6 +1279,18 @@ because they addressed the wrong stored case meanings; that failed evidence grad
 above. The corrective four-case capture and fresh independent grade pass Q-L01, Q-L14, Q-L20, and
 Q-L24; Q-L19 retains its pass. The final correctness re-review reports no findings. No Phase-3
 semantic conflict or new array-view concept remains.
+
+### Phase 4
+
+The correctness reviewer found two major content defects and one minor reference defect. The reset
+entry lacked exact timing, stack-pointer effects, and page-one bus accesses; traceability still
+described completed CPU/lowering modules as planned; and two references used the wrong opcode-grid
+anchor. The remedies add the exact bounded seven-cycle NMOS reset sequence and registered
+`VISUAL6502-RESET-2010` evidence, reconcile every affected Phase-4 status boundary, and correct both
+anchors. The independent re-review reports no findings. Security and performance specialist reviews
+were skipped because this phase changed only non-executable skill and planning Markdown. Spec-test
+and frozen-`spec/` integrity remain intact; no compiler, assembler, readiness, emulator, or hardware
+execution was performed.
 
 ## Freeze Declaration
 

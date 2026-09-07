@@ -21,7 +21,8 @@ Each evaluator receives only the case prompt, the permitted raw artifacts named 
 - **Disqualifying outcomes:** Generic code review or one unrelated reference.
 - **Evidence required to grade:** The captured response, exact references selected or rejected, stated context/authority, cited permitted evidence, claim classification, and any named decisive missing probe.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 candidate-content route and independent grade are recorded
+  in `../release.md#phase-4-focused-results`; the live router remains quarantined until Phase 7.
 - **Definitive result:** Not run.
 
 ## Q-R02 — Rename a private TypeScript helper with no compiler-semantic effect

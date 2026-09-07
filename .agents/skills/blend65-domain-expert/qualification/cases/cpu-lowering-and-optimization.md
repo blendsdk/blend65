@@ -3,8 +3,8 @@
 > **Oracle family**: Q-C01..Q-C24
 > **Authority gate**: All 49 external machine-fact oracles across the case families are frozen. The
 > Phase-2 review froze 47 directly. The reconciled Phase-3 specification binds Q-C13 and
-> AR-P32/SC-131's replacement Q-C19 semantic oracle; Phase 4 still owns their CPU/lowering
-> qualification.
+> AR-P32/SC-131's replacement Q-C19 semantic oracle; Phase 4 supplies and independently grades
+> their CPU/lowering qualification.
 > **Result policy**: Result entries are append-only. Draft observations cannot count as pass/fail release evidence.
 
 ## Shared Isolation Boundary
@@ -22,7 +22,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Accepts sequence under favorable V.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Draft observation: fail — the legacy text states `N xor V` but omits that `CMP` does not produce V, permitting stale-V reasoning (`mos-6502-codegen.md:52-56`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C02 — Signed byte `<` over `-128,-1,0,1,127` pairs
@@ -36,7 +37,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Uses N or C alone.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 ## Q-C03 — Unsigned byte `>=` in branch context
 
@@ -49,7 +51,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Calls helper or uses signed rule.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C04 — Signed word compare with equal/different high bytes
@@ -63,7 +66,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Lets low-byte carry override signed high relation.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C05 — Word addition with live incoming carry irrelevant to source
@@ -77,7 +81,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Reuses unknown carry.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C06 — Word subtraction
@@ -91,7 +96,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Treats carry as borrow.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C07 — IRQ arrives while decimal mode may be set on NMOS C64
@@ -105,7 +111,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Assumes interrupt clears D.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Draft observation: pre-passer — NMOS interrupt decimal-state danger and ABI ownership are explicit (`mos-6502-codegen.md:58-60`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C08 — `(zp),Y` pointer stored at `$FF`
@@ -119,7 +126,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Treats fetch as `$00FF/$0100`.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C09 — `JMP ($12FF)` on NMOS
@@ -133,7 +141,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Applies 65C02 corrected behavior to C64.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C10 — Replace VIC register update with INC/RMW
@@ -147,7 +156,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Optimizes from bytes/cycles only.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Draft observation: pre-passer — bus-visible RMW and VIC acknowledgement hazards are explicit (`mos-6502-codegen.md:68`; `c64-game-systems.md:43-48`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C11 — Forward/backward branch near range and page boundary
@@ -161,7 +171,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Gives one unconditional cycle count.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C12 — Absolute-indexed load/store crossing page
@@ -175,7 +186,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Applies same timing rule to both.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C13 — Signed right shift byte/word
@@ -193,7 +205,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   alone as an arithmetic shift.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C14 — Multiply by 0/1/power/constant/variable
@@ -207,7 +220,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Always calls general helper.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C15 — Signed division and remainder by a power of two with negative odd value
@@ -226,7 +240,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   signed-negative remainder blindly with a positive mask.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C16 — Comparison feeds branch then separately stored boolean
@@ -240,7 +255,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Materializes every condition early.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C17 — W65C02-only opcode in selected C64 output
@@ -254,7 +270,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Treats family superset as safe.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C18 — Inline versus helper with two call sites and IRQ reachability
@@ -268,7 +285,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Compares body instruction count only.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C19 — Full 256-iteration canonical loop
@@ -297,7 +315,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   its escape/effect proof, adds a runtime, or retains a second range-loop contract.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C20 — Link-time symbol low/high bytes
@@ -311,7 +330,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Calculates known address at runtime.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C21 — An optimization changes lowered assembly
@@ -326,7 +346,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Accepts shape/cost alone or lets two paths validate a shared lowering bug.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C22 — Fixed-trip hot loop is considered for unrolling
@@ -340,7 +361,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Unrolls every constant loop or rejects unrolling universally.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C23 — Specialize an indirect access by modifying an absolute operand
@@ -354,7 +376,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Enables self-modifying code from performance intent alone.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
 
 ## Q-C24 — Replace arithmetic or shifts with lookup/pre-shifted data
@@ -368,5 +391,6 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Disqualifying outcomes:** Calls table lookup faster without whole-program cost or visibility analysis.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
+  `../release.md#phase-4-focused-results`.
 - **Definitive result:** Not run.
