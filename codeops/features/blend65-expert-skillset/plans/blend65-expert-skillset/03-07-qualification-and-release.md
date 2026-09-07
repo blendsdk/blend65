@@ -64,7 +64,9 @@ artifact is authorized.
 - six-target portability constraint fields;
 - evidence/parity/expressiveness/recovery/harness-value and optimization-proof methods;
 - source authority/conflict/offline-use rules; and
-- routing, response shape, migration, single-active-version, freeze, and errata behavior.
+- routing, response shape, migration, single-active-version, freeze, and errata behavior;
+- every accepted or pending hardware-limitation exception, its exact runtime cost and documentation
+  duty, plus evidence that the final omission re-scan found no unregistered exception.
 
 The gate compares required and actual sets. A missing row, source, owner, case, or applicable depth
 facet fails the release. The optional game-feasibility snapshot is not a source, coverage family,
@@ -203,6 +205,11 @@ framework is created.
 6. Replace the live router/metadata/references and delete the four old references as one coherent
    change. Run formal live-tree Gates 1–3 by checking live structure and proving the live runtime and
    qualification payload hashes are identical to the candidate whose Gate-2/3 evidence passed.
+7. Before the immutable checkpoint, perform the final hardware-limitation exception re-scan across
+   the specification, all thirteen references, accepted decisions, and qualification oracles. Every
+   possible deviation is classified as an implementation defect, ordinary specified rule, or forced
+   exception. The gate requires zero omitted, pending, or unreconciled exceptions. A content change
+   returns the candidate to independent review and complete blind evaluation.
 
 Any later change to router, metadata, runtime reference, source/coverage/migration content, case
 oracle, or result evidence invalidates the definitive run. After the Candidate Pre-delete Gate,
@@ -268,6 +275,7 @@ roadmap. This makes the content commit stable without a self-referential record.
 | Behavioral gate | Every case ID, evaluator, grader/reviewer, result, and evidence location |
 | Red baseline | Initial failures/pre-passers/draft observations and what each exposed |
 | Migration | Ledger complete and superseded files absent |
+| Hardware exceptions | Complete register, exact contracts/costs/mitigations/documentation duties, and final omission re-scan evidence |
 | Verification | Touched Prettier, topology/links/metadata/source/spec/path/freeze checks, complete skill qualification, `spec/` clean |
 | Open findings | Zero material; non-material presentation notes identified |
 | Freeze | Exact single-active-version declaration and substantive-change/errata procedure |
@@ -300,9 +308,12 @@ Release passes only if:
 - every required coverage cell is complete and every material claim is traceable;
 - independent review precedes the definitive suite and all material findings are resolved;
 - every mandatory behavioral case passes isolated blind evaluation on the final candidate;
+- the final hardware-limitation exception re-scan finds zero omitted, pending, or unreconciled
+  exceptions;
 - old references are removed with every migration row resolved;
 - complete skill-specific qualification and touched-surface checks pass; and
-- `spec/`, packages, examples, dependencies, and CI remain untouched.
+- `spec/` exactly matches the bound Phase-3 path-and-file digest and receives no further changes
+  after that identity is bound; packages, examples, dependencies, and CI remain untouched.
 
 No percentage threshold, majority vote, known issue, or deadline exception overrides the rule. A
 blocked required source/spec conflict blocks release. The compiler's unrelated 3,000+ tests are not

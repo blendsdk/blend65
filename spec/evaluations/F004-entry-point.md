@@ -23,12 +23,12 @@ The entry point of a Blend65 program is a function named `main`. There must be e
 
 ## Errors
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10020 | No `main` function found | `No entry point found — define a 'function main(): void' in any module` |
-| E10021 | Multiple `main` functions | `Multiple entry points found — 'main' is defined in module '<A>' and module '<B>'. Only one is allowed` |
-| E10022 | Wrong `main` signature | `Entry point 'main' must have signature 'function main(): void' — found '<actual signature>'` |
-| E10023 | Another function calls `main()` | `Cannot call 'main()' — it is the program entry point, not a callable function` |
+| E10020 | No `main` function found | [Chapter 14](../14-diagnostics.md) |
+| E10021 | Multiple `main` functions | [Chapter 14](../14-diagnostics.md) |
+| E10022 | Wrong `main` signature | [Chapter 14](../14-diagnostics.md) |
+| E10023 | Another function calls `main()` | [Chapter 14](../14-diagnostics.md) |
 
 ## Examples
 

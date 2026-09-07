@@ -38,10 +38,16 @@ let rank: byte = (score >= 90) ? GRADE_A
 
 ```ebnf
 conditional-expression
-    = logical-or-expression [ "?" expression ":" conditional-expression ] ;
+    = logical-or-expression
+    , [ "?" , expression , ":" , conditional-expression ] ;
 ```
 
-The conditional operator sits **below `||`** (the lowest binary operator) and **above assignment**. Because assignment is a *statement* in Blend65 (F017 Part 3), there is no assignment-vs-ternary precedence tangle. The operator is **right-associative**, so `a ? b : c ? d : e` parses as `a ? b : (c ? d : e)` — the conventional, useful chaining form.
+The conditional operator sits **below `||`** (the lowest binary operator) and **above assignment**.
+Assignment is a value-producing expression with the lowest precedence, so
+`target = condition ? a : b` assigns the selected value, while an assignment in a condition or arm
+follows the normal grammar. Both conditional and assignment expressions are right-associative:
+`a ? b : c ? d : e` parses as `a ? b : (c ? d : e)`, and `a = b = c` parses as
+`a = (b = c)`.
 
 ---
 
@@ -93,8 +99,8 @@ The result type of the conditional expression is the **unified type** of its two
 ```blend65
 let a: word = big ? wideValue : byteValue;   // ✅ byte arm promoted to word
 let b: byte = flag ? 1 : 2;                  // ✅ both byte literals
-let c = flag ? sx : ux;                       // ❌ E10081 — sbyte vs byte arms
-let d = flag ? 1 : RED;                       // ❌ E10162 — byte vs enum Color
+let c: sbyte = flag ? sx : ux;                // ❌ E10081 — sbyte vs byte arms
+let d: byte = flag ? 1 : RED;                 // ❌ E10162 — byte vs enum Color
 ```
 
 The result of the conditional expression is then subject to the **same assignment/narrowing rules** as any other expression (F010 E10082 narrowing applies when assigning a wider unified result to a narrower variable).
@@ -137,7 +143,7 @@ let color: byte = isAlert ? RED : GREEN;
     LDA #GREEN          ; false arm
 .end:
     STA _color
-    ; ~10-12 cycles, comparable to the if/else it replaces
+    ; 11-15 cycles for ZP/absolute condition and result homes
 ```
 
 ### Word arms
@@ -211,7 +217,7 @@ A nested conditional compiles to a cascade of branches, equivalent to an `if`/`e
 | Rule | Status | Notes |
 |------|--------|-------|
 | L1 Unambiguous syntax | ✅ | `?` is otherwise unused; `:` after the true-arm is required and never collides with type annotations (those never appear mid-expression) or `case:` labels. LL(k)-parseable. |
-| L2 Consistent with existing | ✅ | Reuses F013 boolean-condition rule, F016 unification, F017 precedence. Lowest expression precedence, right-associative — conventional. |
+| L2 Consistent with existing | ✅ | Reuses F013 boolean-condition rule, F016 unification, and F017 precedence. It is right-associative above the still-lower, right-associative assignment level. |
 | L3 Beginner-friendly | ✅ | Identical to C/TypeScript/Java `?:`. The target audience reads it instantly. |
 | L4 Minimal feature | ✅ | The single, standard form. No elvis operator, no nullish variants, no statement-form. |
 | L5 No redundancy | ✅ | Overlaps with `if`/`else` only in outcome; `if`/`else` is a *statement*, this is an *expression*. The expression context (function args, intrinsic operands) is not otherwise expressible without a temporary variable. |
@@ -243,9 +249,9 @@ A nested conditional compiles to a cascade of branches, equivalent to an `if`/`e
 
 ## Part 4: Error Codes
 
-| Code | Message | Trigger |
+| Code | Public presentation | Rationale trigger |
 |------|---------|---------|
-| E10162 | Conditional operator arms have incompatible types `<type_a>` and `<type_b>` — both arms must yield the same type (or compatible integer types) | `flag ? 1 : RED`, `flag ? aByte : aStruct`, two different enum types |
+| E10162 | [Chapter 14](../14-diagnostics.md) | `flag ? 1 : RED`, `flag ? aByte : aStruct`, two different enum types |
 
 **Existing error codes that apply:**
 
@@ -266,7 +272,7 @@ There are no new warning codes. The cost warnings of any operators *inside* the 
 |---------|-------------|
 | F013 Control flow | Condition uses the same boolean rule (CF-2, E10100). The ternary is the expression analogue of `if`/`else`; either may be chosen. A ternary may appear in an `if`/`while` condition: `if (a ? b : c) { ... }`. |
 | F016 Type system | Arm unification uses auto-promotion (TS-3/TS-4). Result subject to narrowing rules on assignment (E10082). |
-| F017 Operators | Lowest-precedence expression operator, below `||`, right-associative. Operators may appear in the condition and in either arm with normal precedence; parenthesize for clarity. |
+| F017 Operators | Below `||` and above assignment; right-associative. Operators and assignment expressions may appear in the condition and arms according to normal precedence; parenthesize for clarity. |
 | F010 Signed types | Mixed-signedness arms → E10081. Signed/unsigned arms must be cast to a common type. |
 | F014 Arrays | Arms may be array *element* reads; whole arrays are not valid arms (E10162). A ternary may compute an index: `buf[hi ? 1 : 0]`. |
 | F020 Memory intrinsics | Arms may be `peek`/`lo`/`hi`/`sizeof`/etc. A ternary may be an argument to `poke`: `poke(reg, on ? 1 : 0)`. Intrinsic side effects in an untaken arm do not occur (CO-2). |
@@ -339,7 +345,7 @@ function widen(useWide: boolean, w: word, b: byte): word {
 //    let bad: byte = useWide ? w : b;
 
 // ❌ E10081 — arms mix signed and unsigned:
-//    let m = flag ? signedVal : unsignedVal;
+//    let m: byte = flag ? signedVal : unsignedVal;
 
 // ❌ E10100 — condition is not boolean:
 //    let n: byte = count ? 1 : 0;        // use: count != 0 ? 1 : 0

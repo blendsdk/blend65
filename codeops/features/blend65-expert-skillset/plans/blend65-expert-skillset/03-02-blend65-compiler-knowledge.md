@@ -34,6 +34,12 @@ receive explicit product rulings and a reconciled specification baseline before 
 freeze. Unaffected crosswalk rows and cases may proceed; conflicted rows stay visibly blocked. The
 existing compiler and its tests are never precedence evidence.
 
+The module also owns one hardware-limitation exception register. It records each deliberate
+departure from mainstream language expectations, the target/resource proof that forces it, exact
+semantics and optimizer boundaries, added runtime cost, developer mitigation, and documentation
+obligations. Pending entries are non-authoritative. Compiler convenience is never an admissible
+constraint, and the register is a section of this module rather than a new support mechanism.
+
 ### Required Crosswalk Shape
 
 The module contains exactly one row for every current `spec/**/*.md` file. Rows have:
@@ -57,10 +63,10 @@ count change makes qualification fail loudly until a new baseline is planned.
 | Lexical/grammar | Token boundaries, literals, comments, keyword/operator disambiguation, error recovery, source spans; no target leakage |
 | Types | Exact byte/word widths, signedness, wrapping/overflow, conversions, constants, booleans, arrays, structs, enums, pointers/references if present |
 | Expressions | Precedence, evaluation order, side effects, short circuit, volatile access count/order, lvalue/place versus value, address-of, conditional operator |
-| Statements/control flow | Reachability, loop bounds/wrap, switch/branch meaning, break/continue/return, nontermination, diagnostic ownership |
+| Statements/control flow | Reachability, `for` clause order/effects/exits, fixed-width wrap, canonical induction, switch/branch meaning, nontermination, diagnostic ownership |
 | Functions/modules | Resolution, visibility, initialization order, calls, entry point, interrupts, address-taken behavior, separate compilation assumptions |
 | Storage/memory | Module/static/local/zeropage/data/embed placement, initialization, lifetime, aliasing, escape, MMIO volatility |
-| Intrinsics/platform | Semantic versus target availability checks, type/effect contracts, CPU control, hardware access, encoding, output format |
+| Intrinsics/platform | Semantic versus target availability checks, type/effect contracts, CPU control, profile-bound BRK control/stack effects, hardware access, encoding, output format |
 | Diagnostics | One root cause, stable code/primary span, notes, recovery without silent poison, separation from implementation crashes |
 | Future/migration/evaluations | Reconsideration triggers and intent evidence, never promoted above the final normative chapter |
 
@@ -76,7 +82,8 @@ count change makes qualification fail loudly until a new baseline is planned.
   assembly parity ratios.
 - Target-neutral stages retain semantic distinctions until their owning consumer can act safely.
 - A conflict between frozen semantics and demonstrable hardware feasibility is surfaced for a
-  later product decision; this feature never edits `spec/`.
+  product decision. During the approved Phase-3 prerequisite, only the exact consistency-ledger
+  locations are repaired after their rulings; compiler implementation remains out of scope.
 
 ## `compiler-architecture.md`
 
@@ -129,7 +136,9 @@ assigned before emission. Earlier stages may create provisional plans and later 
 resource binding may discover new function-lifetime storage, but the design must converge on a
 final closure after which no stage may invent more function storage. The 6502 hardware stack
 remains available for JSR/RTS return addresses, interrupt entry/exit state, register preservation,
-and explicit stack intrinsics; it is not the general local-frame allocator.
+explicit stack intrinsics, and a profile-proven synchronous BRK edge; it is not the general
+local-frame allocator. BRK always charges the CPU's three pushed bytes plus its contracted handler
+peak and never authorizes injected runtime support.
 
 SFA is not a universal memory manager. Platform layout and packaging own global data, sprites,
 charsets, images, SID data, hardware-visible alignment, banking, segments, loaders, and artifact
@@ -163,7 +172,9 @@ The module must reason correctly about:
 - pointer scratch and spill state live across a possible interrupt;
 - ZP pair allocation at `$xxFF` and zero-page wrap behavior;
 - aggregate alignment/size and a target RAM/ZP budget failure;
-- call-site parameter homing, return ownership, and helper clobbers; and
+- call-site parameter homing, return ownership, and helper clobbers;
+- a reachable `asm_brk()` with returning, non-returning, and missing profile contracts, including
+  exact CPU/handler stack ownership and zero injected handler/runtime; and
 - already-homed earlier arguments remaining live while later arguments call `g()` or the same
   callee, preserving left-to-right evaluation and results without treating the outer call as active
   recursion;

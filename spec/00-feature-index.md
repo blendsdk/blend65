@@ -1,8 +1,10 @@
 # Blend65 v3 — Language Feature Index
 
 > **Created**: May 25, 2026  
-> **Purpose**: Central index tracking every language feature, design decision, and error code.  
-> **Usage**: Each feature has its own evaluation file in `evaluations/`. This index provides the overview and the canonical error code registry.
+> **Purpose**: Discovery index for every language feature, design decision, and diagnostic code.
+> **Usage**: Each feature has an evaluation file in `evaluations/`. Chapter 14 is the sole canonical
+> diagnostic registry; summaries here help readers find the owning feature and never redefine a
+> code, severity, or message template.
 
 ---
 
@@ -14,7 +16,7 @@ These are foundational decisions — not features. They are **givens** that all 
 |----|-------|-------------|
 | A1 | C-like syntax | Curly braces, semicolons, `name: type` annotations, C-style operators |
 | A2 | Static Frame Allocation (SFA) | All memory allocation at compile time. No heap, no recursion, static call graph |
-| A3 | No undefined behavior | Every input produces a defined result or a compile-time error (Language Guard H5) |
+| A3 | Bounded behavior | Every input has defined control/effects/width, produces a compile-time error, or uses an explicitly registered narrow hardware-limitation exception |
 | A4 | Explicit over implicit | No hidden code execution, no implicit conversions, no magic |
 | A5 | Multi-platform | Must compile to all target platforms: C64, C64 Ultimate, CX16, Atari 800XL, Atari 7800 |
 
@@ -35,7 +37,7 @@ These are foundational decisions — not features. They are **givens** that all 
 | F009 | Switch statement | ✅ Accepted | Pass | [evaluations/F009-switch-statement.md](evaluations/F009-switch-statement.md) |
 | F010 | Signed types (`sbyte`, `sword`) | ✅ Accepted | Pass | [evaluations/F010-signed-types.md](evaluations/F010-signed-types.md) |
 | F011 | Structs | ✅ Accepted | Pass | [evaluations/F011-structs.md](evaluations/F011-structs.md) |
-| F012 | CPU control intrinsics | ✅ Accepted | Pass | [evaluations/F012-cpu-control-intrinsics.md](evaluations/F012-cpu-control-intrinsics.md) |
+| F012 | CPU control and packed-BCD intrinsics | ✅ Accepted | Pass | [evaluations/F012-cpu-control-intrinsics.md](evaluations/F012-cpu-control-intrinsics.md) |
 | F013 | Control flow (if/else, while, do-while, block scoping) | ✅ Accepted | Pass | [evaluations/F013-control-flow.md](evaluations/F013-control-flow.md) |
 | F014 | Arrays, strings, char literals, const params | ✅ Accepted | Pass | [evaluations/F014-arrays.md](evaluations/F014-arrays.md) |
 | F015 | Data inclusion (asset embedding) | ✅ Accepted | Pass | [evaluations/F015-data-inclusion.md](evaluations/F015-data-inclusion.md) |
@@ -55,7 +57,7 @@ These are foundational decisions — not features. They are **givens** that all 
 
 | Document | Description |
 |----------|-------------|
-| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-018; FUT-008 resolved) and rejected features (REJ-001 type aliases, REJ-002 inline assembly) |
+| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-019; FUT-004/FUT-005/FUT-008/FUT-019 resolved) and rejected features (REJ-001 type aliases, REJ-002 inline assembly) |
 | [../\.clinerules/language-guard.md](../.clinerules/language-guard.md) | Language Guard — 23 rules, 5 escape hatch tiers |
 
 > **Note**: Feature ID **F023** (type aliases) was consciously **rejected** and its ID is **retired** — it is never reused. See `future-considerations.md` → REJ-001 for the full decision record. The `type` keyword remains reserved (F021 LS-9).
@@ -66,17 +68,19 @@ These are foundational decisions — not features. They are **givens** that all 
 
 ---
 
-## Appendix: Error Code Registry
+## Appendix: Diagnostic Discovery Index
 
-All error codes use a 5-digit format starting at 10000.
+Active diagnostic codes use a 5-digit format starting at 10000. The final column is a discovery
+summary, not the public message template. See Chapter 14 for canonical wording, severity behavior,
+source spans, suppression, and retirement history.
 
-| Code | Feature | Message |
-|------|---------|---------|
+| Code | Feature | Discovery summary |
+|------|---------|-------------------|
 | E10001 | F002 | Module declaration required — every source file must begin with `module <name>;` |
 | E10002 | F002 | Only one module declaration allowed per source file |
 | E10003 | F002 | Duplicate declaration `<name>` in module `<module>` (also declared in `<file>`) |
 | E10010 | F003 | Executable statements are not allowed at module level — place code inside a function |
-| E10011 | F003 | Module-level initializer must be a compile-time constant expression |
+| E10012 | Modules | Import names a non-exported declaration |
 | E10020 | F004 | No entry point found — define a `function main(): void` in any module |
 | E10021 | F004 | Multiple entry points found — `main` is defined in module `<A>` and module `<B>`. Only one is allowed |
 | E10022 | F004 | Entry point `main` must have signature `function main(): void` — found `<actual signature>` |
@@ -85,15 +89,13 @@ All error codes use a 5-digit format starting at 10000.
 | E10031 | F005 | Constants are not allowed in `zeropage` — zero page is for mutable runtime data. Use module-level `const` instead |
 | E10032 | F005 | Zero-page budget exceeded — used `<N>` bytes, platform `<platform>` allows `<M>` bytes (range `<start>`–`<end>`) |
 | E10033 | F005 | Unexpected `<keyword>` in zeropage block — declarations use `name: type` syntax without let/const |
+| E10034 | Memory model | Output binary exceeds the selected platform budget |
 | E10040 | F006 | Cannot take address of constant `<name>` — scalar constants are inlined and have no memory address |
 | E10041 | F006 | Cannot take address of parameter `<name>` — copy it to a local variable first |
-| E10042 | F006 | Cannot take address of `<expr>` — address-of is only supported on named variables and functions |
-| E10043 | F006 | Cannot take address of `<expr>` — address-of requires a named variable or function |
+| E10042 | F006 | Cannot take address of field or array element `<expr>` — this address form is not supported |
+| E10043 | F006 | Address-of requires a named variable or function — found `<expr>` |
 | E10050 | F007 | Interrupt function `<name>` must have signature `(): void` — found `<actual>` |
 | E10051 | F007 | Cannot call interrupt function `<name>` directly — use `&<name>` to get its address for installation |
-| E10060 | F008 | Cannot assign to for-loop variable `<name>` — loop variables are read-only |
-| E10061 | F008 | Step value must not be zero — this would create an infinite loop |
-| E10062 | F008 | Variable `<name>` already declared in enclosing for-loop — use a different name |
 | E10063 | F008 | `<keyword>` can only be used inside a loop body |
 | E10070 | F009 | Duplicate case value `<value>` — already used at line `<N>` |
 | E10071 | F009 | Case value must be a compile-time constant — `<expr>` cannot be evaluated at compile time |
@@ -107,13 +109,12 @@ All error codes use a 5-digit format starting at 10000.
 | E10082 | F010 | Cannot implicitly narrow `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
 | E10083 | F010 | Cannot negate unsigned type `<type>` — use `sbyte`/`sword` for signed arithmetic |
 | E10084 | F010 | Value `<value>` out of range for type `<type>` (range: `<min>` to `<max>`) |
-| E10085 | F010 | Array index must be unsigned type (`byte` or `word`) — found `<type>` |
 | E10086 | F010 | Cannot cast `<from_type>` to `<to_type>` — boolean is not convertible to/from integer types |
 | E10090 | F011 | Struct `<name>` must have at least one field |
 | E10091 | F011 | Struct `<name>` cannot contain a field of its own type — self-referencing structs are not allowed |
 | E10092 | F011 | Circular struct dependency: `<struct_a>` contains `<struct_b>` which contains `<struct_a>` |
 | E10093 | F011 | Cannot return struct type `<name>` from function — pass a struct parameter instead |
-| E10094 | F011 | Cannot pass `const` struct `<name>` as function parameter — copy to a mutable variable first |
+| E10094 | F011 | Cannot pass `const` struct `<name>` to a mutable parameter — use a const parameter or a mutable copy |
 | E10095 | F011 | Cannot compare structs with `<op>` — compare individual fields instead |
 | E10096 | F011 | Struct literal must initialize all fields — missing field `<field>` |
 | E10097 | F011 | Struct literal fields must be in declaration order — expected `<expected>`, found `<found>` |
@@ -121,21 +122,18 @@ All error codes use a 5-digit format starting at 10000.
 | E10101 | F013 | Variable `<name>` shadows declaration in enclosing scope (line `<N>`) — use a different name |
 | E10102 | F013 | Not all code paths return a value in function `<name>` — add a return statement or ensure all branches return |
 | E10110 | F014 | Array size must be a compile-time constant expression — found `<expr>` |
-| E10111 | F014 | Array size must be at least 1 — found `<size>` |
 | E10112 | F014 | Array initializer has `<N>` elements but array size is `<M>` |
 | E10113 | F014 | Const array must be fully initialized — `<N>` elements provided for size `<M>`. Use fill syntax: `[values; fill]` |
 | E10114 | F014 | Fill syntax `[...; fill]` requires explicit array size — use `type[N] = [values; fill]` |
 | E10115 | F014 | Fill value must be a single element — found string or array |
 | E10116 | F014 | Cannot mix string literals with value elements in array initializer |
-| E10117 | F014 | Array `<name>` (≤256 bytes) requires `byte` index — found `<type>` |
-| E10118 | F014 | Array `<name>` (>256 bytes) requires `word` index — found `<type>` |
 | E10119 | F014 | Cannot assign whole array — copy elements individually using a loop |
 | E10120 | F014 | Cannot return array type from function — use an array parameter instead |
 | E10121 | F014 | Cannot compare arrays with `<op>` — compare individual elements |
 | E10122 | F014 | Cannot pass const `<name>` to mutable parameter `<param>` — add `const` to parameter or copy to mutable variable |
 | E10123 | F014 | Cannot modify const parameter `<name>` — parameter is declared `const` |
 | E10124 | F014 | String literal (`<N>` bytes) exceeds array size (`<M>`) |
-| E10125 | F014 | Unknown encoding `<name>` for platform `<platform>` — available: `<list>` |
+| E10125 | F014 | Encoding or character map `<name>` is unavailable for platform `<platform>` — available: `<list>` |
 | E10130 | F015 | File not found: `<path>` (searched: `<search_paths>`) |
 | E10131 | F015 | Embedded file `<path>` is empty (0 bytes) |
 | E10132 | F015 | Format `<format>` (`<ext>`) requires a selector |
@@ -144,14 +142,11 @@ All error codes use a 5-digit format starting at 10000.
 | E10135 | F015 | `embed()` can only be used at module level |
 | E10136 | F015 | `embed()` path must be a string literal |
 | E10137 | F015 | No format handler registered for extension `<ext>` and selector `<selector>` specified |
-| E10138 | F015 | Offset `<offset>` exceeds file size (`<file_size>` bytes) |
-| E10139 | F015 | Offset `<offset>` + size `<size>` exceeds file size (`<file_size>` bytes) |
-| E10140 | F015 | Embedded data size mismatch: expected `<expected>` bytes, got `<actual>` bytes |
-| E10141 | F015 | `offset` parameter cannot be used with format-aware selectors |
+| E10140 | F015 | Embedded data size mismatch: expected `<expected>` elements, got `<actual>` elements |
 | E10142 | F015 | Cannot use array selector in expression context — array selectors can only initialize `const` declarations |
 | E10143 | F015 | Alignment conflict: `<data>` requires `<align>`-byte alignment but placement failed |
 | E10144 | F015 | Type mismatch: selector `<selector>` returns `<expected>`, declaration type is `<actual>` |
-| E10150 | F016 | Type annotation required — use `let <name>: <type> = <expr>` |
+| E10150 | F016 | Type annotation required for declaration `<name>` — add `: <type>` |
 | E10151 | F016 | Cannot use `boolean` in arithmetic/bitwise expression — boolean is a logical type, not numeric |
 | E10152 | F016 | Cannot cast to or from `void` |
 | E10153 | F016 | Cannot cast struct or array types — only integer types (`byte`, `sbyte`, `word`, `sword`) support casts |
@@ -171,11 +166,13 @@ All error codes use a 5-digit format starting at 10000.
 | E10190 | F019 | `const` declaration requires an initializer — constants must be initialized at declaration |
 | E10191 | F019 | `const` initializer must be a compile-time constant expression — found `<expr>` |
 | E10192 | F019 | Cannot assign to `const` variable `<name>` |
+| E10194 | Modules | Circular module-level initializer dependency |
 | E10200 | F020 | `sizeof` requires a type name — found `<expr>`. Use `sizeof(<TypeName>)` with a type like `byte`, `word`, or a struct name |
 | E10201 | F020 | `offsetof` requires a struct type — found `<type>`. Only struct types have field offsets |
 | E10202 | F020 | Field `<field>` not found in struct `<type>` — available fields: `<list>` |
 | E10203 | F020 | `length` requires an array — found `<type>`. Use `sizeof(<TypeName>)` for type sizes |
-| E10210 | F021 | Unexpected character `<char>` (U+`<codepoint>`) — only ASCII characters are valid in Blend65 source code |
+| E10204 | Data inclusion | Format-aware asset cannot be parsed |
+| E10210 | F021 | Unexpected non-ASCII character outside a string literal, character literal, or comment |
 | E10211 | F021 | Unterminated block comment — expected `*/` before end of file |
 | E10212 | F021 | Cannot redeclare reserved built-in `<name>` — this identifier is a built-in function/constant |
 | E10213 | F021 | Invalid underscore in numeric literal — underscores must appear between digits only (no leading, trailing, or consecutive underscores) |
@@ -197,36 +194,69 @@ All error codes use a 5-digit format starting at 10000.
 | E10234 | F022 | Empty enum `<name>` — an enum must declare at least one member |
 | E10235 | F022 | Cannot assign `<type>` to enum `<name>` — use an explicit cast `<name>(<expr>)` to convert a byte to this enum |
 | E10236 | F022 | Cannot compare enum `<a>` with enum `<b>` — different enum types. Cast one to `byte` to compare underlying values |
+| E10237 | Modules | Module declaration is not the first source item |
+| E10238 | Resources | Selected target resource budget is exceeded |
+| E10239 | Names | Identifier is not declared in the current scope |
+| E10240 | Arrays | Statically provable array index is outside the extent |
+| E10241 | Types | Type name cannot be resolved |
+| E10242 | Structs | Field access names a field not present on the struct |
+| E10243 | Structs | Struct initializer contains an unknown field |
+| E10244 | Interrupts | Ordinary `RTS` function reaches an interrupt-handler sink |
+| E10245 | SFA / stack | Execution overlap or hardware-stack use has no static bound |
+| E10246 | Functions | `const` parameter is not an array or struct |
+| E10247 | Interrupts | Function-address sink receives erased or unknown ABI provenance |
+| E10248 | Functions / intrinsics | Explicit stack operations do not preserve a valid function-entry stack state |
+| E10249 | Strings / characters | Selected encoding cannot represent a literal character or symbolic escape as the required byte |
+| E10250 | F015 | `embed()` selector argument must be a string literal |
+| E10251 | F014 | Character-map argument must be a string literal |
+| E10252 | Interrupts / memory | Raw interrupt entry is written to a recognized incompatible firmware vector |
+| E10253 | Arrays | Array storage has no explicit or initializer-inferred compile-time extent |
+| E10254 | Intrinsics | Statically known packed-BCD operand contains a non-decimal nibble |
+| E10255 | Intrinsics | Raw decimal state reaches an ordinary semantic boundary or mismatched control-flow join |
+| E10256 | F015 / C64 audio | Embedded asset has no qualified callable player contract |
+| E10257 | F015 / C64 audio | Selected player contract lacks the requested operation, cue, ID form/range, or logical voice |
+| E10258 | F015 / interrupts | Reachability permits overlapping calls to a non-reentrant audio-player contract |
+| E10259 | Intrinsics / platform profile | Reachable `asm_brk()` has no proven BRK control-flow and handler contract |
+| E10260 | F006 / functions / SFA | Local-origin address or derived fragment may escape its dynamic source lifetime |
+| E10261 | F015 / platform profile / C64 | SID asset requirements are incompatible with the selected video/SID topology or player contract |
+| E10262 | F008 / control flow | Finite-looking canonical loop counter repeats before its invariant condition can become false |
+| E10263 | F014 / arrays | Array index has a non-integer type |
+| E10264 | F014 / arrays | Compile-time array extent is not an integer in the representable range `0..65535` |
+| E10265 | F011 / F014 / aggregates | Fixed array or struct type requires more than 65535 bytes |
+| E10266 | F020 / size query | `sizeof` is applied to an unsized array type with no standalone extent |
 
 ### Warning Codes
 
 | Code | Feature | Message |
 |------|---------|---------|
 | W10030 | F005 | Zero-page usage is `<N>`/`<M>` bytes (`<percent>`%) for platform `<platform>` — consider moving less critical variables to RAM |
-| W10060 | F008 | Loop counter `<name>` uses `word` but range fits in `byte` — use `byte` for faster loop execution (6-7 cycles/iteration vs 15-20) |
-| W10070 | F009 | Switch expression is `word` but all case values fit in `byte` — consider using a `byte` variable for more efficient comparison (4 bytes/case vs 8 bytes/case) |
-| W10100 | F010 | Signed overflow in constant expression — result wraps to `<value>` |
+| W10033 | Memory model | RAM usage approaches the selected platform budget |
+| W10070 | F009 | Switch expression is `word` but every case fits in `byte` — a byte value is cheaper to compare |
+| W10100 | F010 | Known signed overflow in an ordinary runtime expression wraps at operand width |
 | W10101 | F010 | Narrowing cast from `<from_type>` to `<to_type>` truncates value `<value>` to `<result>` |
 | W10110 | F011 | Struct `<name>` in zeropage uses `<N>` bytes — consider moving large structs to RAM |
 | W10111 | F011 | Array of structs indexed by variable: struct size `<N>` is not a power of 2 — indexing requires multiply |
 | W10112 | F011 | Possible aliasing: parameter `<a>` and `<b>` may refer to the same struct |
-| W10120 | F012 | `asm_sed()` enables BCD decimal mode — Blend65 arithmetic operators (+, -) will produce BCD results. Call `asm_cld()` before resuming normal arithmetic |
 | W10130 | F013 | Condition is always false — code block will never execute |
 | W10131 | F013 | Unreachable code — statements after `<keyword>` will never execute |
 | W10140 | F014 | Partially initialized array `<name>` — `<N>` of `<M>` elements initialized, remaining are indeterminate |
 | W10141 | F014 | Uninitialized array `<name>` — all `<N>` elements are indeterminate |
-| W10142 | F014 | Array `<name>` (`<N>` bytes) uses indirect addressing — access is slower than direct indexed arrays (≤256 bytes) |
-| W10143 | F014 | Large array `<name>` (`<N>` bytes) on platform `<platform>` — consider total RAM budget |
-| W10150 | F015 | Embedded data (`<N>` bytes) uses `<percent>`% of platform `<platform>` data budget |
-| W10151 | F015 | File `<path>` is embedded `<N>` times — each creates a separate copy in the binary |
+| W10143 | F014 | Mutable array `<name>` (`<N>` RAM bytes) reaches the platform warning threshold |
+| W10150 | F015 | Embedded data (`<N>` bytes) uses `<percent>`% of platform `<platform>` binary-size budget |
+| W10151 | F015 | `<N>` declarations share one embedded output `<path>` selector `<selector>` and address |
 | W10160 | F016 | `<narrow_type>` arithmetic may overflow before widening to `<wide_type>` — use `<wide_type>(a) <op> <wide_type>(b)` for wider arithmetic |
-| W10161 | F016 | Constant expression overflow — `<expr>` wraps to `<value>` at `<type>` width before widening |
+| W10161 | F016 | Known ordinary runtime expression wraps at narrow width before widening |
 | W10170 | F017 | Runtime multiply generates subroutine call (~`<N>` cycles for `<width>`-bit) |
 | W10171 | F017 | Runtime divide/modulo generates subroutine call (~`<N>` cycles for `<width>`-bit) |
 | W10172 | F017 | Multiply by `<N>` generates shift-and-add sequence (~`<M>` cycles) — consider power-of-2 stride for faster access |
-| W10173 | F017 | Possible division by zero — divisor `<name>` may be 0 at runtime |
-| W10174 | F017 | Shift amount `<N>` >= type width (`<W>` bits) — result is always 0 |
-| W10180 | F018 | Maximum stack depth is `<N>` bytes (`<levels>` call levels) on platform `<platform>` — stack budget is `<budget>` bytes |
+| W10173 | F017 | Runtime divisor is not proven nonzero; default zero result bits are unspecified |
+| W10174 | F017 | Wide shift saturates: left to 0; signed negative right to -1; other right to 0 |
+| W10180 | F018 | Proven simultaneous hardware-stack peak reaches the profile threshold (default: 80% of usable capacity, rounded down) |
 | W10181 | F018 | Function `<name>` is never called and not exported — consider removing or adding `export` |
-| W10190 | F019 | Variable `<name>` may be used before initialization — value is indeterminate |
+| W10190 | F019 | Function-local variable `<name>` may be read before initialization — value is indeterminate; module-level storage is exempt |
+| W10191 | Variables | Variable is declared but never used |
 | W10210 | F021 | Numeric literal has leading zeros: `<literal>` — Blend65 does not have octal literals; this is decimal `<value>` |
+| W10211 | Interrupts | Cross-domain read-modify-write can lose an update |
+| W10212 | Interrupts | Cross-domain multi-byte access can tear |
+
+Retired codes, former draft collisions, and all replacement mappings are listed only in Chapter 14.

@@ -49,7 +49,8 @@ Each evaluator receives only the case prompt, the permitted raw artifacts named 
 - **Disqualifying outcomes:** Invented rule or “read all references”.
 - **Evidence required to grade:** The captured response, exact references selected or rejected, stated context/authority, cited permitted evidence, claim classification, and any named decisive missing probe.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the semantic-only candidate route and independent grade are recorded in
+  `qualification/release.md`; final live-router behavior remains Phase 7.
 - **Definitive result:** Not run.
 
 ## Q-R04 — Assess a raster IRQ function using SFA scratch
@@ -63,7 +64,9 @@ Each evaluator receives only the case prompt, the permitted raw artifacts named 
 - **Disqualifying outcomes:** Misses concurrency, banking, or ABI context.
 - **Evidence required to grade:** The captured response, exact references selected or rejected, stated context/authority, cited permitted evidence, claim classification, and any named decisive missing probe.
 - **Red-baseline result:** Partial — broad SFA/C64 references cover reachability and IRQ scratch, but no precise accepted module route or complete IRQ/SFA packet (`SKILL.md:28-39`; `compiler-engineering.md:47-58`; `c64-game-systems.md:57-69`).
-- **Focused result:** Not run.
+- **Focused result:** `Verified partial` — the SFA/ABI facet and its independent grade are recorded in
+  `qualification/release.md`; CPU, C64 banking/IRQ, and lowering routes remain explicit Phase-4/5
+  dependencies, so no complete result is claimed.
 - **Definitive result:** Not run.
 
 ## Q-R05 — Answer with network unavailable

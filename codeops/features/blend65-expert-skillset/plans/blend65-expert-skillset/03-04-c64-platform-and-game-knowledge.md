@@ -82,8 +82,13 @@ side effects without runtime cost.
 
 Cover register write-only/readback boundaries, voice registers, waveform/gate/control sequencing,
 ADSR behavior relevant to software control, filter/volume, paddle/oscillator/envelope reads when
-used, 6581/8580 differences that affect program behavior, and music-driver scheduling. The skill
-does not promise analog-audio identity from a simple register trace.
+used, 6581/8580 differences that affect program behavior, and music-driver scheduling. Separate a
+PSID container's init/play metadata from a callable player contract. The public platform surface is
+player-neutral and covers music-only, integrated music/SFX, minimal SFX-only, and exact custom
+players; constant operations lower directly through a hash-bound contract with no generic runtime,
+scheduler, mixer, name table, or copied payload. The first adapter family is GoatTracker 2.77;
+SID Factory II is the next candidate, while GTUltra/multi-SID requires a later C64U profile. The
+skill does not promise analog-audio identity from a simple register trace.
 
 ### Volatile Register Contract
 
@@ -103,7 +108,7 @@ width, order, and count under every future pass.
 | Sprite engine | Hardware sprite allocation, multiplexing, sorted Y events, pointer/image placement, update bandwidth |
 | Scrolling | Tile/character map representation, fine/coarse update, screen/charset double buffering, copy volume and timing |
 | Graphics | Charset/bitmap asset placement, screen switching, color updates, dirty regions, decompression/stream boundaries |
-| Audio | SID driver cadence, IRQ ownership, per-frame budget, tables/instruments, 6581/8580 policy |
+| Audio | Player-neutral init/tick/SFX operations, exact player/export identity, source-owned cadence, IRQ/mainline safety, player-native arbitration, voice mapping, all enabled-feature costs, and 6581/8580 policy |
 | Input | Keyboard matrix, joystick active-low semantics, debounce/repeat, CIA sharing and interrupt-safe access |
 | Entities/collision | SoA/AoS based on hot access, fixed-size pools, broad/narrow phases, arithmetic widths, deterministic updates |
 | State machines | Compact dispatch, function-pointer/indirect-call implications for SFA, data-driven alternatives |
@@ -137,7 +142,7 @@ The required families are:
 | Sprites | Multiplexer sorting/scheduling, shared VIC bit-register updates, pointer/data placement, pre-shifted masks/data, and mainline/IRQ ownership |
 | Scrolling/rendering | Fine/coarse scroll, double buffering and pointer flips, dirty regions, Color RAM updates, charset/tile/bitmap arrangements, and decompression/update windows |
 | Aggressive VIC use | FLI, FLD, line crunch, VSP/AGSP, border opening, and sprite crunch, each explicitly risk-, revision-, and ownership-bounded rather than enabled generically |
-| Audio | SID-player cadence, raster/main IRQ placement, music/SFX voice sharing, ADSR handling, table layout, and 6581/8580 consequences |
+| Audio | Hash-bound player contracts; direct init/tick/named-song/SFX lowering; music-only, integrated, SFX-only, and custom-player choices; raster/main IRQ placement; voice sharing/arbitration; writable state; tables; full costs; and 6581/8580 consequences |
 | Loading/assets | Loader coexistence, overlays, streaming, decompression windows, placement/alignment, compile-time conversion, justified code/data reuse, and an Integrator-style reusable-element/panel scene workflow |
 | Engine structures | Fixed pools, SoA/AoS, collision broad/narrow phases, state dispatch, function-pointer consequences, and deterministic update ordering |
 

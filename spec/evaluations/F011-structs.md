@@ -46,8 +46,11 @@ struct Name {
 **EBNF:**
 ```ebnf
 struct_decl = [ "export" ] , "struct" , identifier , "{" , struct_field , { struct_field } , "}" ;
-struct_field = identifier , ":" , type_expr , ";" ;
+struct_field = identifier , ":" , value_type , ";" ;
 ```
+
+`value_type` is the shared Chapter-02/master-grammar production; the field rules below reject
+unsized and recursive aggregate forms semantically.
 
 ### Field Types
 
@@ -58,6 +61,7 @@ Struct fields can be:
 | `byte`, `sbyte` | `hp: byte;` | 1 byte |
 | `word`, `sword` | `score: word;` | 2 bytes, little-endian |
 | `boolean` | `active: boolean;` | 1 byte |
+| Enum type | `state: ActorState;` | 1 byte, with nominal enum type |
 | Fixed-size array | `name: byte[3];` | Inline, contiguous |
 | Another struct | `pos: Position;` | Nested composition |
 
@@ -127,7 +131,9 @@ let backup: Enemy = boss;   // Copies all 5 bytes
 boss = backup;               // Restores from backup
 ```
 
-Cost: 2 cycles per byte (LDA + STA). A 5-byte struct = ~10 cycles to copy.
+An unrolled copy costs 6–8 cycles and 4–6 ROM bytes per byte for zero-page through absolute
+source/destination homes. Address calculation, a selected loop, and any overlap-safe SFA snapshot
+are additional and reported separately.
 
 ---
 
@@ -232,15 +238,16 @@ struct Player {
 
 The 6502 has no alignment requirements, so no padding is needed.
 
-### SR-6: Array Indices Must Be Unsigned
+### SR-6: Array-of-Struct Indices Use the Array Ordinal Rules
 
-When indexing an array of structs, the index must be `byte` or `word` (unsigned):
+Arrays of structs accept every integer index type under Chapter 08's ordinary ordinal rules:
 
 ```blend65
 let enemies: Enemy[8];
 let i: byte = 3;
 enemies[i].hp = 50;      // ✅ byte index
-enemies[sbyte(3)].hp = 50; // ❌ E10085: signed index not allowed
+enemies[sbyte(3)].hp = 50; // ✅ signed value is non-negative
+enemies[sbyte(-1)].hp = 50; // ❌ E10240: known negative ordinal
 ```
 
 ### SR-7: sizeof Operator
@@ -248,13 +255,17 @@ enemies[sbyte(3)].hp = 50; // ❌ E10085: signed index not allowed
 `sizeof(Type)` returns the byte size of any type as a compile-time constant:
 
 ```blend65
-const ENEMY_SIZE: byte = sizeof(Enemy);     // 5
-const PLAYER_SIZE: byte = sizeof(Player);   // 9
-const BYTE_SIZE: byte = sizeof(byte);       // 1
-const WORD_SIZE: byte = sizeof(word);       // 2
+const ENEMY_SIZE: word = sizeof(Enemy);     // 5
+const PLAYER_SIZE: word = sizeof(Player);   // 9
+const BYTE_SIZE: word = sizeof(byte);       // 1
+const WORD_SIZE: word = sizeof(word);       // 2
 ```
 
 This is a compile-time operator — the compiler substitutes the literal value. Zero runtime cost.
+
+The complete nested size is computed at full precision and must be in `0..65535` bytes. Structs
+larger than 255 bytes are valid; `sizeof` and `offsetof` both return `word`. E10265 rejects a struct
+whose total exceeds 65535 bytes before allocation or lowering.
 
 ### SR-8: Minimum One Field
 
@@ -304,7 +315,7 @@ The compiler tracks this. E10032 fires if total ZP usage exceeds platform budget
 ### Struct in Loops — Zero Overhead
 
 ```blend65
-for i: byte = 0 to 8 {
+for (let i: byte = 0; i < 8; i += 1) {
     let temp: Enemy = { x: i, y: 0, hp: 10, enemyType: 0, frame: 0 };
     damage(temp, 5);
 }
@@ -363,7 +374,7 @@ damage(boss, 30);
     LDA #30             ; amount parameter
     STA param_amount
     JSR damage
-; Total call overhead: ~16 cycles, 10 bytes
+; Total shown: 21–22 cycles, 15–16 bytes depending on the amount parameter home
 ```
 
 ### Array of Structs — Constant Index
@@ -396,11 +407,14 @@ enemies[i].hp = 50;    // Requires runtime multiply
     ADC #2              ; + offset of hp
     TAY
     LDA #50
-    STA enemies,Y       ; Absolute indexed — works if total < 256 bytes
-; ~16 cycles for address calc + 5 cycles for store = ~21 cycles
+    STA enemies,Y       ; Absolute indexed — legal only after a byte-offset range proof
+; Total shown: 25–27 cycles, 16–18 bytes depending on the index home
 ```
 
-For arrays larger than 256 bytes or struct sizes that aren't efficiently computable, the compiler uses a 16-bit address calculation with ZP pointer.
+This fast form requires proof that the complete reachable `i × 5 + 2` offset fits in one byte;
+the array's declared byte size alone is not enough because unchecked out-of-bounds ordinals retain
+their full address calculation. Without that proof, the compiler uses a 16-bit address calculation
+with a zero-page pointer.
 
 ### Nested Struct Access
 
@@ -434,7 +448,7 @@ let e: Enemy = { x: 100, y: 50, hp: 200, enemyType: 1, frame: 0 };
     STA e+3             ; enemyType
     LDA #0
     STA e+4             ; frame
-; 10 instructions, ~20 cycles for a 5-byte struct
+; 10 instructions, 25–30 cycles and 20–25 bytes for ZP/absolute destination homes
 ```
 
 ### Struct Copy (Assignment)
@@ -454,7 +468,7 @@ let backup: Enemy = boss;
     STA backup+3
     LDA boss+4
     STA backup+4
-; 10 instructions, ~20 cycles for a 5-byte struct
+; 10 instructions, 40 cycles and 30 bytes for the shown absolute homes
 ```
 
 ---
@@ -465,11 +479,11 @@ let backup: Enemy = boss;
 |-----------|------|-------|
 | Field access (direct) | 4 cycles | Absolute addressing, compile-time address |
 | Field access (by-ref) | 5-6 cycles | Indirect indexed `(ptr),Y` |
-| Call overhead (pass struct) | ~16 cycles | Set up ZP pointer + JSR |
+| Call overhead (shown constant struct/value) | 21–22 cycles, 15–16 bytes | Set up ZP pointer, store byte argument, and JSR |
 | Array[const].field | 4 cycles | Compile-time address calculation |
-| Array[var].field | ~21 cycles | Runtime index multiply + access |
-| Struct init (N bytes) | ~4N cycles | N × (LDA + STA) |
-| Struct copy (N bytes) | ~4N cycles | N × (LDA + STA) |
+| Array[var].field (shown byte-offset form) | 25–27 cycles, 16–18 bytes | Requires proof that the complete effective offset fits one byte |
+| Struct init (N bytes) | 5–6N cycles, 4–5N bytes | Unrolled immediate load plus ZP/absolute store |
+| Struct copy (N bytes) | 6–8N cycles, 4–6N bytes | Unrolled ZP/absolute load plus store; snapshot/address work is additional |
 | sizeof(Type) | 0 cycles | Compile-time constant |
 | ZP per active struct param | 2 bytes | Shared across non-overlapping functions |
 
@@ -508,9 +522,12 @@ updatePosition(player.pos);  // ✅ Compiler calculates &player + offset_of_pos
 
 **No.** Structs are not scalar types. E10075 applies.
 
-### SR-A4: Can structs be used in for-loop bounds?
+### SR-A4: Can structs be used in for-loop clauses?
 
-**No.** Loop variables must be integer types. Structs are not iterable.
+Struct expressions may appear wherever the ordinary initializer, condition, or update expression
+rules permit them. A bare struct is not a Boolean condition, and unsupported struct arithmetic is
+rejected by the ordinary type/operator diagnostics. The `for` statement adds no iterable or range
+protocol.
 
 ### SR-A5: What about `&` on struct variables?
 
@@ -531,7 +548,9 @@ function swap(a: Enemy, b: Enemy): void { ... }
 swap(boss, boss);  // ⚠️ Both a and b point to same memory — aliasing
 ```
 
-The compiler MAY warn for obvious cases (same variable passed twice) but cannot catch all aliasing.
+The compiler emits W10112 when two mutable struct arguments at one call site are statically proven
+to designate the same base storage, including the same variable or resolved path. Mere may-alias
+uncertainty does not warn because it has no deterministic diagnostic predicate.
 
 ### SR-A7: Self-referencing structs?
 
@@ -570,24 +589,25 @@ struct InternalState { ... }                     // Module-private
 
 ## Error Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| E10090 | Struct `<name>` must have at least one field |
-| E10091 | Struct `<name>` cannot contain a field of its own type — self-referencing structs are not allowed |
-| E10092 | Circular struct dependency: `<struct_a>` contains `<struct_b>` which contains `<struct_a>` |
-| E10093 | Cannot return struct type `<name>` from function — pass a struct parameter instead |
-| E10094 | Cannot pass `const` struct `<name>` to mutable parameter — add `const` to parameter or copy to a mutable variable (see also F014 E10122) |
-| E10095 | Cannot compare structs with `<op>` — compare individual fields instead |
-| E10096 | Struct literal must initialize all fields — missing field `<field>` |
-| E10097 | Struct literal fields must be in declaration order — expected `<expected>`, found `<found>` |
+| E10090 | [Chapter 14](../14-diagnostics.md) |
+| E10091 | [Chapter 14](../14-diagnostics.md) |
+| E10092 | [Chapter 14](../14-diagnostics.md) |
+| E10093 | [Chapter 14](../14-diagnostics.md) |
+| E10094 | [Chapter 14](../14-diagnostics.md) |
+| E10095 | [Chapter 14](../14-diagnostics.md) |
+| E10096 | [Chapter 14](../14-diagnostics.md) |
+| E10097 | [Chapter 14](../14-diagnostics.md) |
+| E10265 | [Chapter 14](../14-diagnostics.md) — total struct byte size exceeds 65535 |
 
 ### Warning Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| W10110 | Struct `<name>` in zeropage uses `<N>` bytes — consider moving large structs to RAM |
-| W10111 | Array of structs indexed by variable: struct size `<N>` is not a power of 2 — indexing requires multiply (~`<cycles>` cycles per access) |
-| W10112 | Possible aliasing: parameter `<a>` and `<b>` may refer to the same struct |
+| W10110 | [Chapter 14](../14-diagnostics.md) |
+| W10111 | [Chapter 14](../14-diagnostics.md) |
+| W10112 | [Chapter 14](../14-diagnostics.md) |
 
 ---
 
@@ -603,7 +623,7 @@ struct InternalState { ... }                     // Module-private
 | F009 Switch | Structs not valid as switch expression type (E10075) |
 | F010 Signed types | Signed fields (`sbyte`, `sword`) fully supported in structs |
 | Enums | Enum fields valid in structs. Enum values valid in struct literals |
-| F014 Arrays | Fixed-size arrays as struct fields supported. Const parameters (F014 CP-1..CP-5) replace previous SR-3 restriction. Arrays of structs deferred |
+| F014 Arrays | Fixed-size arrays as struct fields and arrays of structs are supported. Const parameters (F014 CP-1..CP-5) replace the previous SR-3 restriction. SoA remains an optional, measured layout choice rather than a language restriction. |
 | Type aliases | Not available (REJ-001) — refer to struct types by their declared name; use `import { X as Y }` to rename across modules |
 
 ---
@@ -643,7 +663,7 @@ function damageEnemy(e: Enemy, amount: byte): void {
 }
 
 function updateEnemies(): void {
-    for i: byte = 0 to enemyCount {
+    for (let i: byte = 0; i < enemyCount; i += 1) {
         if (enemies[i].hp > 0) {
             enemies[i].frame = enemies[i].frame + 1;
         }
@@ -738,10 +758,10 @@ let highScores: HighScoreEntry[5];
 
 function insertScore(name0: byte, name1: byte, name2: byte, score: word): void {
     // Find insertion point
-    for i: byte = 0 to 5 {
+    for (let i: byte = 0; i < 5; i += 1) {
         if (score > highScores[i].score) {
             // Shift entries down
-            for j: byte = 4 downto i {
+            for (let j: byte = 4; j > i; j -= 1) {
                 highScores[j] = highScores[byte(j - 1)];
             }
             // Insert new entry
@@ -773,7 +793,7 @@ function insertScore(name0: byte, name1: byte, name2: byte, score: word): void {
 | Rule | Status | Notes |
 |------|--------|-------|
 | H1 6502 implementable | ✅ | Field access = offset addressing; by-ref = `(ptr),Y` — native 6502 patterns |
-| H2 Cost transparency | ✅ | Full cost table documented; sizeof operator for developer awareness |
+| H2 Cost transparency | ✅ | The cost summary labels instruction-core and complete displayed boundaries, identifies additional snapshot/address work, and exposes `sizeof` for compile-time size inspection |
 | H3 SFA compatible | ✅ | Proven: all allocations static, no heap, frame reuse for locals |
 | H4 Memory footprint documented | ✅ | sizeof(Type) available; ZP pointer cost documented |
 | H5 Fully deterministic | ✅ | All operations produce defined results; aliasing documented |
@@ -787,7 +807,7 @@ function insertScore(name0: byte, name1: byte, name2: byte, score: word): void {
 | L3 Beginner-friendly | ✅ | Familiar from C/TS/Java |
 | L4 Minimal feature | ✅ | No methods, no inheritance, no generics — pure data grouping |
 | L5 No redundancy | ✅ | Replaces error-prone parallel arrays pattern |
-| L6 Error messages defined | ✅ | 8 error codes + 3 warning codes |
+| L6 Error messages defined | ✅ | 9 error codes + 3 warning codes |
 | L7 Compile-time failure preferred | ✅ | Type mismatches, missing fields, const passing — all caught at compile time |
 | L8 Feature interaction documented | ✅ | All feature interactions listed |
 | L9 Documentable with examples | ✅ | 4 examples: entities, physics, lookup tables, high scores |

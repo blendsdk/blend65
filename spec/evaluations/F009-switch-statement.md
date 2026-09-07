@@ -285,7 +285,10 @@ Under SFA, case-scoped variables can share frame slots when their lifetimes don'
     ; ... etc
 ```
 
-*Dispatch: ~12 bytes + 2 bytes per entry. O(1) lookup, ~20 cycles. The compiler selects this strategy automatically when case values are dense and numerous.*
+*The displayed dispatcher is 18 ROM bytes plus 2 bytes per entry. An in-range dispatch costs
+32–34 cycles, depending on indexed-load page crossings; an out-of-range value costs 9 cycles when
+the taken `BCS` stays on-page and 10 when it crosses. The compiler selects this strategy
+automatically when case values are dense and numerous.*
 
 **Word-sized switch expression:**
 
@@ -302,7 +305,8 @@ Under SFA, case-scoped variables can share frame slots when their lifetimes don'
     ; ... next case ...
 ```
 
-*8 bytes per case comparison for word vs 4 bytes for byte.*
+*The displayed word comparison is 14 ROM bytes before the match `JMP`, or 17 bytes including it.
+The compiler may share or restructure loads only when the selected lowering preserves semantics.*
 
 ## Codegen Strategy Selection
 
@@ -310,10 +314,10 @@ The compiler automatically selects the optimal codegen strategy:
 
 | Condition | Strategy | Cost |
 |-----------|----------|------|
-| 2–6 cases (any values) | Compare-and-branch chain | O(n) comparisons, 4 bytes/case dispatch |
-| 7+ cases, dense values (0..N) | Jump table | O(1) dispatch, ~12 bytes + 2 bytes/entry |
+| 2–6 cases (any values) | Compare-and-branch chain | O(n); after the expression load, each byte `CMP #imm; BEQ` step is 4 bytes and 4–6 cycles |
+| 7+ cases, dense values (0..N) | Jump table | O(1); displayed dispatcher is 18 bytes + 2 bytes/entry and 32–34 in-range cycles |
 | 7+ cases, sparse values | Compare-and-branch chain | O(n) comparisons |
-| `word` expression | Compare-and-branch chain | 8 bytes/case dispatch |
+| `word` expression | Compare-and-branch chain | Displayed step is 14 bytes before, or 17 bytes including, its match `JMP` |
 
 The developer does not control this selection — the compiler optimizes automatically.
 
@@ -504,21 +508,21 @@ function movePlayer(direction: byte, speed: byte): void {
 
 ## Errors
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10070 | Duplicate case value | `Duplicate case value '<value>' — already used at line <N>` |
-| E10071 | Non-constant case value | `Case value must be a compile-time constant — '<expr>' cannot be evaluated at compile time` |
-| E10072 | Case type mismatch | `Case value type '<case_type>' does not match switch expression type '<switch_type>'` |
-| E10073 | `fallthrough` in last case/default | `'fallthrough' has no effect — this is the last case in the switch` |
-| E10074 | `fallthrough` not last statement | `'fallthrough' must be the last statement in a case body — it cannot be inside an if/while/for block, and no statements may follow it` |
-| E10075 | Invalid switch expression type | `Cannot switch on type '<type>' — switch expression must be 'byte', 'sbyte', 'word', 'sword', or an enum type` |
-| E10076 | Multiple default clauses | `Only one 'default' clause is allowed per switch statement` |
+| E10070 | Duplicate case value | [Chapter 14](../14-diagnostics.md) |
+| E10071 | Non-constant case value | [Chapter 14](../14-diagnostics.md) |
+| E10072 | Case type mismatch | [Chapter 14](../14-diagnostics.md) |
+| E10073 | `fallthrough` in last case/default | [Chapter 14](../14-diagnostics.md) |
+| E10074 | `fallthrough` not last statement | [Chapter 14](../14-diagnostics.md) |
+| E10075 | Invalid switch expression type | [Chapter 14](../14-diagnostics.md) |
+| E10076 | Multiple default clauses | [Chapter 14](../14-diagnostics.md) |
 
 ## Warnings
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| W10070 | `word` switch where all cases fit in `byte` | `Switch expression is 'word' but all case values fit in 'byte' — consider using a 'byte' variable for more efficient comparison (4 bytes/case vs 8 bytes/case)` |
+| W10070 | `word` switch where all cases fit in `byte` | [Chapter 14](../14-diagnostics.md) |
 
 ## Feature Interaction Summary (L8)
 
@@ -528,7 +532,7 @@ function movePlayer(direction: byte, speed: byte): void {
 | F005 (Memory placement) | Case values can reference `const` declarations. Case-scoped variables allocated in function's SFA frame |
 | F006 (Address-of) | `&` on case-scoped variables follows F006 rules for local variables |
 | F007 (Interrupt functions) | Switch can appear in interrupt handlers. No special restrictions |
-| F008 (For loop) | Switch inside for-loop: `break` exits the for-loop, `continue` advances the for-loop. Switch is transparent to loop control |
+| F008 (For loop) | Switch inside a for-loop: `break` exits the for-loop; `continue` runs the update clause and then retests the condition. Switch is transparent to loop control |
 
 ## Language Guard Verdict
 
@@ -537,9 +541,9 @@ function movePlayer(direction: byte, speed: byte): void {
 - **P3 No platform assumptions** ✅ — No hardware addresses or platform names in the switch spec.
 - **P4 Resource-scalable** ✅ — W10070 warns about unnecessary `word` comparisons. Codegen scales from compare-chain to jump table.
 - **H1 6502 implementable** ✅ — Maps directly to CMP/BEQ chains or jump tables. Both are standard 6502 patterns.
-- **H2 Cost transparency** ✅ — Compare-chain: 4 bytes + 4–5 cycles per case comparison (byte), 8 bytes for word. Jump table: ~12 bytes dispatch + 2 bytes per entry, O(1) ~20 cycles. `fallthrough`: zero cost (omits JMP). All documented.
+- **H2 Cost transparency** ✅ — After the expression load, each byte compare-and-branch step is 4 bytes and 4–6 cycles. The displayed word step is 14 bytes before its match `JMP`, or 17 including it. The displayed dense jump-table dispatcher is 18 bytes plus 2 bytes per entry and 32–34 in-range cycles. `fallthrough` has zero runtime cost because it omits a `JMP`.
 - **H3 SFA compatible** ✅ — Case-scoped variables are in the function's static frame. Non-overlapping case scopes share frame memory.
-- **H4 Memory footprint** ✅ — Compare-chain: 4 bytes dispatch + 3 bytes (JMP) per case body. Jump table: 12 bytes dispatch + 2 bytes per entry. Quantifiable per switch instance.
+- **H4 Memory footprint** ✅ — After the expression load, a byte compare-and-branch step is 4 bytes. The displayed word step is 14 bytes before its match `JMP`. The displayed jump-table dispatcher is 18 bytes plus 2 bytes per entry. Each case body may need a 3-byte auto-break `JMP`; explicit `fallthrough` omits it.
 - **H5 Deterministic** ✅ — Every case value match is defined. No-match with no default = skip (defined). `fallthrough` is explicit. Auto-break is defined. No undefined behavior.
 - **L1 Unambiguous** ✅ — `switch`, `case`, `default`, `fallthrough` are all keywords. Multi-value comma syntax is unambiguous in EBNF. No parsing conflicts.
 - **L2 Consistent** ✅ — Block syntax (`{ }`) matches `if`/`while`/`for`. `case value:` with colon follows C/Java/TS convention. `fallthrough` follows Swift precedent.
@@ -559,4 +563,3 @@ function movePlayer(direction: byte, speed: byte): void {
 - **F2 Platform-profile ready** ✅ — No platform-specific behavior. All codegen uses standard 6502 instructions.
 - **F3 Optimizer-friendly** ✅ — Compile-time known case values enable jump table selection. Constant propagation can simplify switch expressions. Dead case elimination possible.
 - **F4 Stability** ✅ — Classified as **Stable**.
-

@@ -6,7 +6,10 @@
 
 ## Description
 
-Blend65 provides a curated set of **13 built-in functions** for 6502 CPU operations that the language cannot express through normal syntax. Each function compiles to exactly one 6502 instruction with zero overhead. These are not "inline assembly" — they are type-checked, parameterless function calls that happen to emit a single opcode.
+Blend65 provides a curated set of **13 built-in functions** for 6502 CPU operations that the
+language cannot express through normal syntax. Each function compiles to its exact instruction
+bytes with no call/helper overhead; BRK includes its mandatory padding byte. These are not “inline
+assembly” — they are type-checked, parameterless calls with explicit machine effects.
 
 ## Design Rationale
 
@@ -40,10 +43,10 @@ Only operations the language **cannot express at all**:
 | Category | Why no language equivalent |
 |----------|---------------------------|
 | Interrupt enable/disable | Pure CPU state — no data operation can do this |
-| Hardware stack manipulation | SFA manages frames, but sometimes the real stack is needed (register save/restore, interrupt prologue helper) |
-| Carry/decimal/overflow flags | Language arithmetic handles flags implicitly, but developers sometimes need explicit flag control (multi-precision arithmetic, BCD) |
+| Hardware stack manipulation | SFA manages frames, but the real stack is still needed for explicit CPU-state work and profile-selected interrupt entry/exit duties |
+| Carry/decimal/overflow flags | Language arithmetic handles flags implicitly, but developers sometimes need explicit hardware-state control; deterministic BCD arithmetic uses separate semantic intrinsics |
 | NOP | "Waste exactly 2 cycles" has no language expression |
-| BRK | Software interrupt / debug breakpoint has no language expression |
+| BRK | A profile-bound synchronous software interrupt has no language expression |
 
 ### Game-level validation
 
@@ -74,7 +77,9 @@ cpu_intrinsic_name = "asm_sei" | "asm_cli" | "asm_pha" | "asm_pla"
                    | "asm_brk" ;
 ```
 
-These are recognized by the compiler as built-in identifiers (like `peek`, `poke`, `true`, `false`). They follow standard function call syntax — no new grammar rules.
+These are reserved built-in function identifiers, like `peek` and `poke`. They are not lexical
+keywords: `true` and `false` are literals in a different grammar category. Redeclaring any
+`asm_*` name is E10212. Calls follow standard function-call syntax and require no import.
 
 ## Complete Function Reference
 
@@ -114,9 +119,37 @@ These are recognized by the compiler as built-in identifiers (like `peek`, `poke
 | `asm_cld()` | `CLD` ($D8) | 1 | 2 | Clear decimal mode — arithmetic operates in binary (normal) |
 | `asm_sed()` | `SED` ($F8) | 1 | 2 | Set decimal mode — `ADC`/`SBC` operate in BCD |
 
-**Use case**: BCD (Binary-Coded Decimal) arithmetic for score display, timer display, or other human-readable decimal values without needing binary-to-decimal conversion routines.
+**Use case**: Exact low-level processor-state control. Normal source uses `bcd_add()` or
+`bcd_sub()` for deterministic packed-decimal arithmetic; `asm_sed()` never changes the meaning of
+ordinary `+` or `-`.
 
-> ⚠️ **Important**: While decimal mode is active, the compiler's generated code for `+` and `-` operators will produce BCD results instead of binary results. Call `asm_cld()` before resuming normal Blend65 arithmetic. See warning W10120.
+The compiler tracks D through control flow. E10255 rejects ordinary arithmetic, effective-address
+formation, calls, returns/interrupt terminals, and mismatched-D joins reached before `asm_cld()`.
+The compiler does not insert hidden CLD/SED instructions around normal source.
+
+Compiler-generated interrupt entries establish binary mode before Blend65 handler code or ordinary
+helper calls, preserve the interrupted status across the eventual return or chain, and report the
+exact bytes, cycles, and stack cost. An explicit `asm_sed()` inside the handler remains a tracked
+raw-state region with the same E10255 boundaries.
+
+### Packed-BCD Arithmetic (2 functions)
+
+| Function | Accepted signatures | Semantic result | Runtime support |
+|----------|---------------------|-----------------|-----------------|
+| `bcd_add(left, right)` | `(byte, byte): byte`; `(word, word): word` | Packed-decimal sum modulo 100 or 10,000 | Inline only; no linked helper |
+| `bcd_sub(left, right)` | `(byte, byte): byte`; `(word, word): word` | Packed-decimal difference modulo 100 or 10,000 | Inline only; no linked helper |
+
+Each operation owns carry: add starts with C=0 and subtract with C=1 (no borrow). A word propagates
+carry/no-borrow from its low packed byte to its high byte and discards the final carry/borrow. It
+leaves D=0 and gives no language contract for other final flags. E10254 rejects a statically known
+operand containing an invalid decimal nibble. Valid constant calls fold; unknown invalid runtime
+digits follow the selected CPU's exact bytewise decimal ADC/SBC result, so decimal algebra requires
+a proof of valid digits.
+
+The IL operation is explicit rather than an ambient mode on ordinary arithmetic. Lowering normally
+uses inline SED, owned CLC/SEC, one or two ADC/SBC steps, and CLD. It may safely coalesce adjacent
+operations only when IRQ/NMI paths restore interrupted D state. A target profile that cannot prove
+that restoration does not support the operations. Lowering never links a runtime routine.
 
 ### Overflow Flag (1 function)
 
@@ -124,7 +157,8 @@ These are recognized by the compiler as built-in identifiers (like `peek`, `poke
 |----------|-------------|-------|--------|--------|
 | `asm_clv()` | `CLV` ($B8) | 1 | 2 | Clear overflow flag |
 
-**Use case**: Clearing the overflow flag before a `BIT` instruction sequence (via volatile_read and flag testing), or before signed arithmetic where overflow detection matters.
+**Use case**: Establishing a known-clear overflow flag before a low-level platform/ABI operation
+whose explicit contract consumes V, or before a carefully controlled signed-arithmetic sequence.
 
 Note: There is no `asm_sev()` because the 6502 has no "set overflow" instruction.
 
@@ -133,26 +167,31 @@ Note: There is no `asm_sev()` because the 6502 has no "set overflow" instruction
 | Function | 6502 Opcode | Bytes | Cycles | Effect |
 |----------|-------------|-------|--------|--------|
 | `asm_nop()` | `NOP` ($EA) | 1 | 2 | No operation — wastes exactly 2 CPU cycles |
-| `asm_brk()` | `BRK` ($00) | 1* | 7 | Software interrupt — pushes PC+2 and status, jumps to IRQ/BRK vector |
+| `asm_brk()` | `BRK` ($00) + `$EA` padding | 2 | 7 to handler entry | Profile-bound synchronous software interrupt |
 
-*BRK is technically 1 byte but the CPU reads (and skips) the byte after it. The compiler pads with a NOP byte after BRK.
+The CPU opcode is one byte, but it reads and skips the following byte. The compiler therefore emits
+an exact `$EA` padding byte after it.
 
 **Use case for NOP**: Cycle-precise timing in raster interrupt handlers. Multiple `asm_nop()` calls create a "NOP sled" for timing alignment. Also used in stable raster techniques.
 
-**Use case for BRK**: Debug breakpoints. When running in an emulator with a monitor, BRK triggers the monitor. In production builds, BRK should not be reachable (the compiler may warn about it in release mode).
+**Use case for BRK**: Invoke an explicitly configured software-interrupt handler. The hardware does
+not promise an emulator monitor or a returning debug service. A reachable call therefore requires
+the selected profile's exact handler/control-flow contract (E10259). The compiler does not install
+that handler or add runtime code.
 
 ## Rules
 
 | ID | Rule | Decision |
 |----|------|----------|
-| CC-1 | All functions are parameterless | No arguments. Return type is `void`. Standard function call syntax. |
-| CC-2 | Valid anywhere a statement is valid | Can be used inside functions, inside `if`/`while`/`for`/`switch` bodies, inside interrupt handlers. |
-| CC-3 | Register clobber semantics | After any `asm_*()` call, the compiler assumes **all CPU registers (A, X, Y) and flags may have been modified**. The compiler will reload any values it needs from memory. |
-| CC-4 | Push/pull pairing is developer responsibility | The compiler does not track stack balance across `asm_pha()`/`asm_pla()` pairs. Mismatched pushes/pulls cause stack corruption — this is documented behavior, not undefined behavior. |
-| CC-5 | Decimal mode is developer responsibility | After `asm_sed()`, the developer must call `asm_cld()` before any Blend65 arithmetic. The compiler emits W10120 to remind developers. |
+| CC-1 | All `asm_*` functions are parameterless | No arguments. Return type is `void`. Standard function call syntax. BCD operations instead use their typed two-operand signatures. |
+| CC-2 | CPU controls are valid anywhere a statement is valid | Can be used inside functions, inside `if`/`while`/`for`/`switch` bodies, inside interrupt handlers. BCD operations are ordinary expressions. |
+| CC-3 | Register clobber semantics | After an ordinary `asm_*()` call, the compiler assumes **all CPU registers (A, X, Y) and flags may have been modified**. A returning `asm_brk()` instead applies the selected contract's exact preservation/clobber and machine-state effects. |
+| CC-4 | Explicit stack state is kind-checked | Control-flow analysis tracks an ordered LIFO sequence of accumulator-save and status-save entries. `asm_pla()`/`asm_plp()` require the matching top kind; joins and backedges require identical sequences; every exit restores the empty relative sequence (E10248). The whole-program peak includes every live push. |
+| CC-5 | Raw decimal mode is developer-controlled and compiler-tracked | After `asm_sed()`, every path must reach `asm_cld()` before ordinary arithmetic/address formation, a call, an exit, or a differently-stateful join; E10255 rejects a violation. BCD built-ins manage their own internal decimal state. |
 | CC-6 | Cannot be used at module level | Like all statements, asm_*() calls must be inside a function body. E10010 applies. |
 | CC-7 | Can be used inside interrupt functions | All 13 functions are valid inside `interrupt function` bodies. |
 | CC-8 | Naming convention | All CPU control intrinsics use the `asm_` prefix to distinguish them from language intrinsics (peek, poke, etc.) and user-defined functions. |
+| CC-9 | BRK contract and control flow | Reachable `asm_brk()` requires an exact selected-profile contract. It charges three CPU-pushed bytes plus declared handler peak, then either resumes after padding or has no normal successor. The compiler emits no handler/runtime. |
 
 ## Ambiguities Resolved
 
@@ -160,17 +199,18 @@ Note: There is no `asm_sev()` because the 6502 has no "set overflow" instruction
 |---|-----|-----------|------------|
 | 1 | CC-A1 | Should the full 6502 instruction set be exposed? | **No.** Only operations the language cannot express. Branches → use `if`/`while`/`for`. Load/store → use variables/peek/poke. Arithmetic → use operators. The language covers 95%+ of instruction use cases. Permanent decision record: **REJ-002**. |
 | 2 | CC-A2 | Should `asm { }` blocks be supported? | **No.** Requires an embedded assembler (lexer mode switch, assembly parser, symbol bridge, register negotiation). Enormous compiler complexity for minimal gain over the curated function approach. Permanent decision record: **REJ-002**. |
-| 3 | CC-A3 | Should BIT instruction be included? | **No.** `BIT addr` tests bits without modifying A, but `volatile_read(addr) & mask` achieves the same logical result in 2 instructions instead of 1. The minor efficiency difference doesn't justify adding a parameterized asm_*() function with addressing mode complexity. Deferred to future if real-world code shows a need. |
+| 3 | CC-A3 | Should BIT instruction be included? | **No.** `BIT addr` tests bits without modifying A, but the existing volatile `peek(addr) & mask` operation expresses the same source-level test. The minor efficiency difference does not justify a parameterized `asm_*()` API with addressing-mode complexity. Reconsider only if measured code shows that a dedicated zero-cost platform operation is required. |
 | 4 | CC-A4 | Register state after asm_*() calls | **Clobber-all.** The compiler treats every asm_*() call as potentially modifying A, X, Y, and all flags. This is pessimistic but safe — the compiler reloads values from memory as needed. In practice, only `asm_pla()` actually modifies A, and flag operations modify specific flags, but "clobber all" keeps the contract simple and future-proof. |
-| 5 | CC-A5 | What if asm_sed() is called but asm_cld() is not? | **Documented hazard with compile-time warning.** The compiler emits W10120 at every `asm_sed()` call site. If the developer forgets `asm_cld()`, subsequent Blend65 arithmetic produces BCD results — this is defined behavior (the 6502 does what it does), but likely not what the developer intended. Full control-flow analysis to detect missing `asm_cld()` is deferred as too complex. |
+| 5 | CC-A5 | What if asm_sed() is called but asm_cld() is not? | **Path-sensitive compile-time error.** E10255 rejects the first ordinary arithmetic/address/call/exit boundary or mismatched-D join. A raw SED followed by raw barrier operations and a matching CLD remains legal. |
 | 6 | CC-A6 | Can asm_*() calls be used in expressions? | **No.** All return `void`. They are statements, not expressions. `let x = asm_nop();` → standard type error (cannot assign void to byte). |
 | 7 | CC-A7 | What about 65C02 extensions (WAI, STP)? | **Deferred.** The CX16 uses a 65C02 which has additional instructions like WAI (Wait for Interrupt) and STP (Stop Processor). These can be added as platform-specific intrinsics in a future version, following the same pattern. The core set covers only instructions present on all target CPUs (NMOS 6502 + variants). |
-| 8 | CC-A8 | Should asm_*() functions be namespaced? | **No.** The `asm_` prefix IS the namespace. `import` is not required — these are built-in, always available, like `true`, `false`, `peek`, `poke`. |
+| 8 | CC-A8 | Should asm_*() functions be namespaced? | **No.** The `asm_` prefix is the namespace. `import` is not required: these are reserved built-in function identifiers, always available like `peek` and `poke`; they are not keywords or literals. |
 | 9 | CC-A9 | Should `extern function` be supported for linking external assembly? | **Deferred to FUT-011.** For the 1% of code that truly needs hand-written assembly (cycle-counted demo effects, self-modifying code), external linking is the clean solution. Not needed for game development. |
+| 10 | CC-A10 | Is `asm_brk()` inherently a debug-only warning? | **No.** Blend65 has no debug/release semantic mode, and BRK is an intentional hardware operation. W10121 is retired. E10259 rejects a reachable call unless the selected profile proves its vector, handler identity, return behavior, stack peak, and machine effects. |
 
 ## Code Generation
 
-Each function emits exactly one byte (the opcode):
+Each CPU-control function emits its exact opcode bytes:
 
 ```
 asm_sei()  →  $78        ; SEI
@@ -188,7 +228,9 @@ asm_nop()  →  $EA        ; NOP
 asm_brk()  →  $00 $EA    ; BRK + padding byte
 ```
 
-Note: `asm_brk()` emits 2 bytes because the 6502 BRK instruction skips the byte after the opcode (it pushes PC+2, not PC+1). The compiler pads with $EA (NOP) to prevent the skipped byte from being misinterpreted.
+Note: `asm_brk()` emits 2 bytes because the 6502 BRK instruction skips the byte after the opcode
+(it pushes PC+2, not PC+1). The compiler pads with `$EA` (NOP). It emits no vector, handler, trap
+routine, or support library.
 
 ## Cost Summary
 
@@ -206,9 +248,12 @@ Note: `asm_brk()` emits 2 bytes because the 6502 BRK instruction skips the byte 
 | `asm_sed` | 1 | 0 | 0 | 2 |
 | `asm_clv` | 1 | 0 | 0 | 2 |
 | `asm_nop` | 1 | 0 | 0 | 2 |
-| `asm_brk` | 2 | 0 | 0 | 7 |
+| `asm_brk` | 2 | 0 | 0 | 7 to handler entry |
 
-No runtime support routines. No memory allocation. The most cost-efficient feature in the entire language.
+No runtime support routines and no memory allocation are introduced. For `asm_brk()`, the resource
+report additionally charges the CPU's three pushed stack bytes plus the selected contract's
+maximum handler stack use; handler cycles and effects belong to that contract rather than the
+two-byte emission row.
 
 ## Examples
 
@@ -217,16 +262,19 @@ No runtime support routines. No memory allocation. The most cost-efficient featu
 ```blend65
 module Game;
 
-function setRasterInterrupt(line: byte, handler: word): void {
-    asm_sei();                          // Disable interrupts
+function configureRasterLine(line: byte): void {
+    asm_php();                          // Preserve caller's interrupt state
+    asm_sei();                          // Keep related VIC writes together
     poke(0xD012, line);                 // Set raster line
-    pokew(0x0314, handler);             // Set IRQ vector
     poke(0xD01A, peek(0xD01A) | 0x01); // Enable raster interrupt
-    asm_cli();                          // Re-enable interrupts
+    asm_plp();                          // Restore prior status
 }
 ```
 
-**Why asm_*() is needed**: Without `asm_sei()`, an interrupt could fire between writing the low and high byte of the vector, causing a jump to a half-updated address — a guaranteed crash.
+Install the handler separately with the compiler-recognized C64 `setIRQ(&handler)` API. That API
+performs its atomic vector update and selects the KERNAL CINV entry variant. A raw
+`pokew($0314, &handler)` is E10252 because it would install the raw `RTI` entry at a post-save
+firmware hook.
 
 ### Example 2: NOP Sled for Raster Timing
 
@@ -261,10 +309,7 @@ module Score;
 let score: byte = 0;  // BCD-encoded: $00 to $99
 
 function addScore(points: byte): void {
-    asm_sed();          // Enter decimal mode
-    asm_clc();          // Clear carry for addition
-    score = score + points;  // BCD addition! $09 + $01 = $10, not $0A
-    asm_cld();          // Back to binary mode — CRITICAL!
+    score = bcd_add(score, points); // $09 + $01 = $10, not binary $0A
 }
 
 function displayScore(): void {
@@ -276,7 +321,10 @@ function displayScore(): void {
 }
 ```
 
-**Why asm_*() is needed**: `asm_sed()` puts the CPU in BCD mode where `ADC`/`SBC` automatically produce decimal results. This eliminates binary-to-decimal conversion routines. `asm_cld()` returns to normal mode. The compiler cannot generate these mode switches from arithmetic expressions.
+**Why a semantic BCD intrinsic is needed**: it gives the compiler the exact width, carry ownership,
+digit-validity facts, interrupt constraints, and result semantics needed to emit the same compact
+decimal instructions safely. Raw `asm_sed()` remains available for deliberate hardware-state work
+but cannot make an ordinary expression context-dependent.
 
 ### Example 4: Preserving Processor State
 
@@ -301,48 +349,96 @@ function withSavedFlags(callback: word): void {
 
 ## Errors
 
-This feature introduces **no new error codes**. All asm_*() functions are parameterless and return void — misuse is caught by standard type checking:
+The ordinary call-shape errors still use standard type checking. E10248 additionally rejects
+control-flow paths whose explicit stack operations cannot preserve a valid function-entry stack
+state. The diagnostic identifies the mismatched push span and expected pull kind where applicable,
+so a later `RTS` or `RTI` cannot consume corrupted stack state.
 
 - Passing arguments: Standard "expected 0 arguments, got N" error
 - Using in expression context: Standard "cannot assign void to type" error  
 - Using at module level: E10010 (executable statements not allowed at module level)
+- Redeclaring an `asm_*` name: E10212 (reserved built-in)
+- Pulling above function entry, pulling the wrong saved kind, joining unequal kind sequences, or
+  leaving a nonempty exit sequence: E10248
+- Writing a visible raw interrupt entry to a recognized incompatible firmware vector: E10252
+- Statically known invalid packed-BCD digit: E10254
+- Raw decimal state reaches an ordinary semantic boundary or mismatched join: E10255
+- Reachable `asm_brk()` without an exact selected-profile handler/control-flow contract: E10259
 
 ## Warnings
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| W10120 | `asm_sed()` is called | `asm_sed() enables BCD decimal mode — Blend65 arithmetic operators (+, -) will produce BCD results. Call asm_cld() before resuming normal arithmetic` |
+W10120 is retired. Its former warning condition is now the compile-time error E10255 because raw
+processor state may not silently change ordinary language semantics. W10121 is also retired:
+Blend65 has no debug/release semantic mode, and explicit BRK use is governed by its required
+profile contract and E10259 instead of an advisory warning.
 
 ## Language Guard Verdict
 
-- **P1 Cross-platform compilable** ✅ — All 13 instructions exist on NMOS 6502, 6502C, and 65C02. Present on every target platform.
-- **P2 Platform-meaningful** ✅ — Every platform uses interrupts (SEI/CLI), game scores use BCD (SED/CLD), raster effects use NOP timing, hardware register updates need atomic sections.
-- **P3 No platform assumptions** ✅ — These are CPU instructions, not platform hardware. No addresses, chip names, or platform names in the definitions.
-- **P4 Resource-scalable** ✅ — 1 byte per call on all platforms. No resource scaling concerns.
-- **H1 6502 implementable** ✅ — Each function IS a 6502 instruction. Trivially implementable.
-- **H2 Cost transparency** ✅ — Perfect cost transparency. 1 function = 1 instruction = documented cycle count. The most predictable feature in the language.
-- **H3 SFA compatible** ✅ — No memory allocation. CPU state operations only.
-- **H4 Memory footprint documented** ✅ — 1 byte ROM per call (2 for BRK). 0 RAM. 0 ZP. Documented in cost table above.
-- **H5 Fully deterministic** ✅ — Each instruction has a defined effect per the MOS 6502 datasheet. Stack underflow from mismatched PHA/PLA is documented behavior (pulls whatever byte is on the stack).
+- **P1 Cross-platform compilable** ✅ — All 13 control instructions and decimal `ADC`/`SBC`
+  exist on every current selected CPU. A platform may omit a usable BRK handler contract, in which
+  case E10259 rejects only the reachable `asm_brk()` call.
+- **P2 Platform-meaningful** ✅ — Every platform uses interrupts (SEI/CLI), game scores can use the
+  explicit BCD operations, raster effects use NOP timing, and hardware register updates need atomic
+  sections.
+- **P3 No platform assumptions** ✅ — CPU instruction semantics depend on the selected CPU. BRK's
+  active vector, handler, return behavior, stack use, and machine effects come only from the
+  selected platform contract rather than a generic debugger assumption.
+- **P4 Resource-scalable** ✅ — CPU controls have fixed opcode costs; BCD lowering reports its
+  selected inline sequence. Every live explicit push adds one byte to the whole-program
+  hardware-stack peak, while a balanced pull removes it. BRK charges three CPU bytes plus the
+  exact contracted handler peak.
+- **H1 6502 implementable** ✅ — Each CPU control is one instruction. BCD operations use a bounded
+  inline decimal `ADC`/`SBC` sequence with no runtime helper.
+- **H2 Cost transparency** ✅ — Control costs are exact; BCD costs include operand/result
+  materialization and every selected instruction.
+- **H3 SFA compatible** ✅ — No linked runtime storage is required. Any lowering temporary is an
+  ordinary SFA-owned compiler temporary; BRK adds no SFA home or installed handler.
+- **H4 Memory footprint documented** ✅ — A CPU-control call uses 1 byte ROM (2 emitted bytes for
+  BRK). BCD sequences and any materialization are reported. Each simultaneously live `PHA`/`PHP`
+  consumes one hardware-stack byte until its balancing pull; BRK reports its separate three-byte
+  CPU frame and contracted handler peak.
+- **H5 Fully deterministic** ✅ — Each instruction has a defined CPU effect. The compiler proves
+  the exact explicit-stack kind sequence on every path: E10248 rejects underflow, a wrong-kind
+  pull, unequal join/backedge sequences, or a nonempty exit. Valid BCD operands have exact language
+  results; runtime-invalid digits are explicitly bound to the selected CPU under HLE-006.
 - **L1 Unambiguous syntax** ✅ — `asm_sei()` — standard function call syntax. No parsing ambiguity.
 - **L2 Consistent with existing** ✅ — Same syntax as `peek()`, `poke()`, `barrier()`. Same calling convention.
 - **L3 Beginner-friendly** ✅ — Function names include the mnemonic. `asm_sei` = "assembly SEI" = "set interrupt disable." Any 6502 developer recognizes it instantly. Non-6502 developers see it's clearly a low-level operation.
-- **L4 Minimal feature** ✅ — 13 functions, all parameterless, all void. No addressing modes, no register selection, no operands. The absolute minimum to cover operations the language can't express.
-- **L5 No redundancy** ✅ — Each function does something no other language feature can do. No overlap with operators, control flow, or memory intrinsics.
-- **L6 Error messages defined** ✅ — No feature-specific errors needed. Standard type checking covers all misuse. One warning (W10120) for BCD mode.
-- **L7 Compile-time failure preferred** ✅ — All errors caught at compile time (wrong arguments, wrong context). The only runtime concern (mismatched push/pull) is documented.
-- **L8 Feature interaction documented** ✅ — Interactions with arithmetic (BCD mode), with interrupt functions (valid inside handlers), with control flow (valid in all blocks), and register clobber semantics all documented.
+- **L4 Minimal feature** ✅ — 13 parameterless void CPU controls plus 2 typed BCD operations. No
+  addressing-mode or register-selection API is added.
+- **L5 No redundancy** ✅ — CPU controls expose otherwise unavailable state. BCD operations are
+  explicit because ordinary arithmetic deliberately remains binary.
+- **L6 Error messages defined** ✅ — E10248 owns explicit-stack underflow, wrong-kind pulls,
+  unequal join/backedge state, and nonempty exits; E10254 owns invalid constant BCD digits, E10255
+  owns raw decimal-state violations, E10259 owns missing BRK contracts, E10212 owns reserved-name
+  redeclaration, and standard call/type diagnostics cover other misuse.
+- **L7 Compile-time failure preferred** ✅ — Wrong arguments, wrong context, reserved-name
+  redeclaration, and unsafe explicit stack state are rejected at compile time. A byte-balanced
+  accumulator/status mismatch is still unsafe because it exposes allocator-selected register or
+  flag state.
+- **L8 Feature interaction documented** ✅ — Ordinary binary arithmetic, explicit BCD, raw decimal
+  state, interrupt entry, control flow, and clobber semantics are all distinguished.
 - **L9 Documentable with examples** ✅ — Four examples covering all major use patterns: critical sections, NOP timing, BCD arithmetic, flag preservation.
 - **C1 Lexer/parser implementable** ✅ — Built-in identifier recognition. Standard function call parsing. No new tokens or grammar rules.
-- **C2 Semantic analysis defined** ✅ — Type check: 0 parameters, void return. Clobber-all register model. W10120 on asm_sed().
-- **C3 Code generation strategy** ✅ — `emit(opcode)`. The simplest codegen in the entire compiler. Opcode table has 13 entries.
-- **C4 Unit testable** ✅ — 13 test cases, each verifying one byte of output. Edge case: asm_brk() emits 2 bytes.
-- **C5 Runtime verifiable** ✅ — Run in emulator, check CPU flags / interrupt state / stack pointer after each call.
+- **C2 Semantic analysis defined** ✅ — CPU controls take 0 parameters and return void. BCD
+  intrinsics require matching unsigned widths. The compiler uses a clobber-all register model,
+  kind-aware explicit-stack state, path-sensitive D-state validation with E10255, and a
+  contract-bound returning/non-returning BRK edge with E10259.
+- **C3 Code generation strategy** ✅ — CPU controls use a 13-entry opcode table. Explicit BCD nodes
+  lower to owned inline decimal sequences and D-clear exits.
+- **C4 Unit testable** ✅ — Test each control opcode plus byte/word BCD values, carry/borrow,
+  wrapping, invalid constants, selected-CPU invalid runtime digits, and unsafe raw-D paths.
+- **C5 Runtime verifiable** ✅ — CPU-profile tests can check values, flags, interrupt state, stack
+  pointer, and exact inline instruction effects.
 - **F1 Extensible** ✅ — Future 65C02-specific functions (WAI, STP) follow the same pattern. Platform-specific intrinsics can be added without changing the core set.
-- **F2 Platform-profile ready** ✅ — No platform variation. These are CPU-universal.
-- **F3 Optimizer-friendly** ✅ — Treated as optimization barriers (clobber-all). The optimizer knows not to reorder across these calls or eliminate them.
+- **F2 Platform-profile ready** ✅ — Platform-independent semantics select qualified CPU decimal
+  behavior. BRK explicitly consumes the selected platform's handler contract; no vector or device
+  assumption is embedded in the language operation.
+- **F3 Optimizer-friendly** ✅ — CPU controls are ordered barriers. Explicit BCD nodes retain the
+  facts needed for valid constant folding and proof-gated region coalescing.
 - **F4 Stability classification** ✅ — **Stable**. These map 1:1 to CPU instructions that haven't changed since 1975.
 
-**Escape Hatches Applied**: None.
+**Hardware-limitation exception**: HLE-006 governs runtime-invalid packed-BCD digits. It adds no
+mandatory checker or runtime support.
 
 **Verdict**: ✅ **ACCEPTED** — 23/23 rules pass without conditions. This is the cleanest feature evaluation in the v3 specification.

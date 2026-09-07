@@ -13,8 +13,8 @@
 |-------|-------|
 | Platform ID | `a7800` |
 | CPU | Sally 6502C (modified) |
-| Clock | 1.19 MHz (effective — MARIA DMA steals cycles) |
-| RAM | 4 KB on-board ($40–$FF + $0200–$027F + $1800–$27FF) |
+| Clock | 1.79 MHz nominal; TIA/RIOT accesses slow to 1.19 MHz and MARIA DMA steals bus time |
+| RAM | 4 KB on-board (`$1800`–`$27FF`), partly shadowed into pages zero and one |
 | ROM | Cartridge-based (up to 48 KB, typically 32 KB) |
 | Graphics | MARIA (DMA-based display list processor) |
 | Sound | TIA (2 voices, Atari 2600 compatible) + optional POKEY |
@@ -42,53 +42,60 @@ The 7800's memory map is fragmented — RAM exists in three non-contiguous regio
 ```
 $0000–$001F  TIA registers (write-only; reads return open bus)
 $0020–$003F  MARIA registers
-$0040–$00FF  ← RAM (zero page): 192 bytes (shared ZP + general RAM)
-$0100–$01FF  Hardware stack (256 bytes)
-$0200–$027F  ← RAM: 128 bytes
+$0040–$00FF  ← Shadow of physical RAM $2040–$20FF (zero-page window)
+$0100–$013F  TIA/MARIA register shadows — not stack RAM
+$0140–$01FF  ← Shadow of physical RAM $2140–$21FF (192-byte stack window)
+$0200–$027F  Shadowed address space — not independent general RAM
 $0280–$02FF  RIOT registers (timers, I/O)
-$0300–$17FF  Unmapped / mirrors
-$1800–$27FF  ← RAM: 4,096 bytes (main RAM block)
-$2800–$3FFF  Cartridge RAM (optional — cart-dependent, 0–6 KB)
+$0300–$17FF  Mirrors / external-device space — unavailable to the default profile
+$1800–$27FF  ← Physical RAM: 4,096 bytes
+$2800–$3FFF  Mirrors/conflicts — unavailable to the default profile
 $4000–$7FFF  Cartridge ROM bank (switchable, 16 KB)
 $8000–$BFFF  Cartridge ROM bank (switchable, 16 KB)
-$C000–$FFEF  Cartridge ROM (fixed, 16 KB minus vectors)
-$FFF0–$FFF7  Encryption verification area
-$FFF8–$FFFE  Interrupt vectors (NMI, RESET, IRQ/BRK)
-$FFFF        Last ROM byte
+$C000–$FFEF  Cartridge ROM (fixed placeable prefix)
+$FFF0–$FFF9  Packaging-owned verification/reserved trailer
+$FFFA–$FFFF  Interrupt vectors (NMI, RESET, IRQ/BRK)
 ```
 
 ### 2.2 RAM Summary
 
 | Region | Range | Size | Notes |
 |--------|-------|------|-------|
-| Zero Page RAM | $0040–$00FF | 192 bytes | Fast ZP access; shared between ZP variables and general use |
-| Page 2 RAM | $0200–$027F | 128 bytes | General variables |
-| Main RAM | $1800–$27FF | 4,096 bytes | Largest contiguous block; variables, buffers, MARIA display lists |
-| **Total on-board** | | **4,416 bytes** | |
-| Cart RAM (optional) | $2800–$3FFF | 0–6,144 bytes | Hardware-dependent; not guaranteed |
+| Physical RAM | $1800–$27FF | 4,096 bytes | The only on-board RAM; low-page windows below are aliases into it |
+| Zero-page shadow | $0040–$00FF | 192 addressable bytes | Aliases `$2040`–`$20FF`; not additional storage |
+| Stack shadow | $0140–$01FF | 192 addressable bytes | Aliases `$2140`–`$21FF`; `$0100`–`$013F` is not RAM |
+| Default general allocation | $2200–$27FF | 1,536 bytes | Disjoint from selected ZP/stack shadows; variables and SFA frames |
+| **Total on-board** | | **4,096 physical bytes** | Shadow windows are counted once |
 
 ### 2.3 Profile Values
 
 ```
 memory:
   code_start:     $8000
-  code_end:       $FFF7
-  data_start:     $1800
-  data_end:       $27FF
-  ram_start:      $1800
+  code_end:       $FFEF
+  data_start:     $8000
+  data_end:       $FFEF
+  ram_start:      $2200
   ram_end:        $27FF
   zp_start:       $40
   zp_end:         $7F
-  stack_reserve:  24
+  stack_capacity: 192
+  stack_reserve:  0
 ```
 
 ### 2.4 Memory Map Notes
 
-- **Code lives in ROM** ($8000–$FFF7, typically 32 KB). This is the cartridge ROM. Code is executed directly from ROM — it is not loaded into RAM.
-- **Data lives in RAM** ($1800–$27FF). The compiler places mutable variables and SFA frames here. Const data (arrays, lookup tables) stays in ROM.
+- **Placeable code and const data live in ROM** ($8000–$FFEF). The final 16 bytes are reserved for
+  packaging-owned verification data and vectors. Code executes directly from ROM; it is not loaded
+  into RAM.
+- **Const data shares ROM with code** ($8000–$FFEF), and their combined placement must fit the
+  32,752-byte placeable cartridge span. Default-profile mutable variables and SFA frames use
+  `$2200`–`$27FF`; the data segment never moves immutable arrays/assets into that RAM range.
 - **MARIA display lists** also consume main RAM. A typical MARIA display list for a game screen uses 200–500 bytes of the $1800–$27FF block. The profile's `max_ram` is conservatively reduced to account for this.
 - **No heap, no disk** — this is a cartridge console. Everything must fit in ROM + 4 KB RAM.
-- Page 2 RAM ($0200–$027F) is available but outside the main contiguous block. The compiler may use it for additional frames via manual placement.
+- Page 2 (`$0200`–`$027F`) is shadowed address space, not an independent 128-byte RAM bank. The
+  default profile never allocates it. Likewise, ZP and stack aliases are excluded from the general
+  allocation range so one physical byte cannot receive two owners.
 
 ---
 
@@ -101,13 +108,16 @@ memory:
 | $00–$1F | 32 | TIA registers (memory-mapped I/O) | ❌ Hardware |
 | $20–$3F | 32 | MARIA registers (memory-mapped I/O) | ❌ Hardware |
 | $40–$7F | 64 | Free RAM (zero page) | ✅ |
-| $80–$FF | 128 | Free RAM (zero page) | ✅ |
+| $80–$FF | 128 | RAM shadow reserved outside the default compiler ZP range | ❌ Default profile |
 
-**Total ZP RAM**: $40–$FF = 192 bytes, but the profile reserves the upper portion for general variable use since the 7800's RAM is so scarce.
+**Total ZP-addressable RAM**: `$40`–`$FF` = 192 bytes, all shadowing physical
+`$2040`–`$20FF`. It is not additional storage.
 
 **Default profile ZP range for compiler use**: `$40`–`$7F` = **64 zero-page bytes**.
 
-The remaining ZP RAM ($80–$FF, 128 bytes) is part of the general RAM pool and can be used for variables that don't need ZP-speed access.
+The remaining ZP window (`$80`–`$FF`) is unavailable to the default allocator. A future qualified
+profile may expose more of the shadow only with one physical-owner map that also excludes its
+`$2080`–`$20FF` aliases.
 
 ### 3.2 Profile Values
 
@@ -118,8 +128,8 @@ budgets:
 
 ### 3.3 Zero Page Notes
 
-- The 7800 has **no OS/KERNAL** consuming zero page — it's a bare-metal console. All of $40–$FF is genuinely free.
-- However, the total is only 192 bytes of ZP-accessible RAM, and this is part of the overall 4 KB RAM budget.
+- The 7800 has **no OS/KERNAL** consuming the selected `$40`–`$7F` zero-page window.
+- ZP-addressable bytes are aliases into the 4 KiB physical RAM budget, not extra capacity.
 - Aggressive ZP sharing via frame coloring (Ch 11) is critical on this platform.
 
 ---
@@ -128,18 +138,21 @@ budgets:
 
 ```
 budgets:
-  max_binary_size: 32752    # $8000–$FFF7 = 32,760 bytes (minus 8 for vectors)
+  max_binary_size: 32752    # placeable span $8000–$FFEF inclusive
   max_ram:         1536     # conservative: 4096 - ~2560 for MARIA display lists
   max_zp:          64       # $40–$7F
-  stack_budget:    226      # 256 - 24 reserve - 6 NMI overhead
 ```
 
 ### 4.1 Budget Notes
 
-- **max_binary_size**: 32 KB ROM is the default cartridge size. Larger cartridges (48 KB with bank switching) exist but require a custom profile.
+- **max_binary_size**: The placeable `$8000`–`$FFEF` span is 32,752 bytes. The packaging-owned
+  `$FFF0`–`$FFFF` verification/vector trailer completes the default 32-KB ROM image and is not
+  available to code or const-data placement. Larger cartridges require a custom profile.
 - **max_ram**: Only **1,536 bytes** of the 4,096-byte main RAM block are budgeted for program variables. The remaining ~2,560 bytes are reserved for MARIA display lists, which must reside in RAM. This is a **conservative estimate** — actual MARIA overhead varies by game. Developers can adjust this in custom profiles.
 - **max_zp**: 64 bytes. The compiler uses ZP for frame pointers, temporaries, and critical loop variables. On the 7800, every ZP byte is precious.
-- **stack_budget**: 24 bytes reserved for MARIA DMA interruption and NMI handling. The 7800's NMI (VBLANK) fires every frame and uses stack space.
+- **stack capacity**: only `$0140`–`$01FF` is writable RAM in hardware-stack address space, giving
+  192 safe bytes. The bare-metal default reserves none of those bytes statically; generated
+  NMI/IRQ entries, calls, and explicit pushes are charged to the proven peak.
 
 ---
 
@@ -171,15 +184,17 @@ The ROM image includes the standard 6502 vectors at the end:
 
 ### 5.2 Startup Sequence
 
-The 7800 RESET vector points to the entry point. The compiler generates a startup routine:
+The 7800 RESET vector points to the entry point. The compiler generates startup code that:
 
-1. Clears TIA registers (silence any 2600-mode sound)
-2. Initializes MARIA (enable DMA, set display list pointer)
-3. Zeroes all RAM ($40–$FF, $0200–$027F, $1800–$27FF)
-4. Copies DATA initializers from ROM to RAM
-5. Enables NMI (VBLANK)
-6. Calls `main()`
-7. On return: `main()` is not expected to return — game loops forever. If it does return, the startup code halts via `JMP *`.
+1. Clears the hardware registers required to enter the selected TIA/MARIA mode; this is device
+   initialization, not a blanket clear of user RAM.
+2. Initializes MARIA (enable DMA, set display-list pointer).
+3. Evaluates every module/zeropage `let` initializer exactly once in the Chapter 10 schedule.
+   Constant stores, aggregate initialization, and runtime calls/expressions emit only their required
+   code; uninitialized mutable storage is not cleared, and `const` data is already in ROM.
+4. Enables the selected NMI/VBLANK source according to the platform interrupt contract.
+5. Falls through directly into the `main()` body, with no `JSR` or `JMP` transition.
+6. If `main()` returns, its target epilogue halts via `JMP *`.
 
 ### 5.3 Encryption Header
 
@@ -191,54 +206,49 @@ The Atari 7800 has a BIOS that checks for a valid signature before allowing the 
 
 ```
 encoding:
-  default_encoding: ascii
-  screen_encoding:  ascii
+  default_encoding: raw
+  default_character_map: raw
+  encodings:
+    raw:
+      maps:
+        raw: ascii-raw-v1
 ```
 
-### 6.1 ASCII
+### 6.1 Raw Bytes
 
 The Atari 7800 is a **game console with no text display hardware**. All text rendering is done via custom bitmap fonts drawn by MARIA. There is no standard character encoding.
 
-The default encoding is **ASCII** — the simplest baseline. The `encode()` intrinsic maps source characters to standard ASCII values ($20–$7E). Game developers typically define their own font tile ordering and use `encode()` with custom offset tables.
+The default `raw` mapping is the exact `ascii-raw-v1` map from Chapter 15: every scalar
+U+0000..U+007F maps to the identical byte `$00`..`$7F`, including `\n`, `\r`, and `\t` as `$0A`,
+`$0D`, and `$09`; no other scalar is mapped. `\0` and `\xNN` remain exact. There is no Unicode
+runtime representation, `raw()` intrinsic, or generic `encode()` intrinsic.
 
 ### 6.2 Screen Encoding
 
-Since text display is fully custom (rendered via MARIA sprites or bitmap tiles), screen encoding equals default encoding. Font-specific remapping is a game-code concern, not a platform profile concern.
+Since text display is fully custom (rendered via MARIA sprites or bitmap tiles), font-specific
+indices require explicit versioned scalar-to-glyph metadata. Without that metadata they must be
+expressed as exact byte arrays/escapes or asset-generated symbols. The compiler does not infer glyph
+meaning or emit a hidden remapping table.
 
 ---
 
-## 7. Embed Format Handlers
+## 7. Asset Embedding
 
-```
-embed_formats:
-  bin: raw_binary
-  png: indexed_image
-  tmx: tilemap
-```
+The initial profile registers no signature/version-aware format handler. Format-neutral
+`embed(path)` remains available for `.bin` and every other raw file and returns its uninterpreted
+bytes as `const byte[]`; it has no selector and does not appear in `embed_formats`.
 
-### 7.1 Raw Binary (`.bin`)
+### 7.1 Deferred Target Handlers
 
-| Selector | Type | Description |
-|----------|------|-------------|
-| (default) | `const byte[]` | Raw bytes, no interpretation |
+PNG and TMX are not registered by the initial Atari 7800 profile. Their previous selector tables
+did not define a source format/version, MARIA graphics mode, palette mapping, conversion algorithm,
+placement contract, or deterministic failure behavior and therefore did not describe an
+implementable language surface.
 
-### 7.2 Indexed Image (`.png`)
-
-| Selector | Type | Description |
-|----------|------|-------------|
-| `.pixels` | `const byte[]` | Pixel data (MARIA-format: 160-mode or 320-mode packed) |
-| `.palette` | `const byte[]` | Palette indices (MARIA palette format) |
-| `.width` | `byte` | Width in pixels |
-| `.height` | `byte` | Height in pixels |
-
-### 7.3 Tilemap (`.tmx`)
-
-| Selector | Type | Description |
-|----------|------|-------------|
-| `.map` | `const byte[]` | Tile index map (row-major) |
-| `.tileset` | `const byte[]` | Tile graphics data |
-| `.width` | `byte` | Map width in tiles |
-| `.height` | `byte` | Map height in tiles |
+Reconsider these formats when an Atari 7800 expert-skill extension is opened. That extension must
+pin primary sources and representative fixtures and define exact validation, selectors, emitted
+bytes, MARIA mode/layout, placement, costs, and failure semantics before activating a handler. Raw
+files remain available through `embed(path)` in the meantime.
 
 ---
 
@@ -246,14 +256,12 @@ embed_formats:
 
 ```
 warnings:
-  warn_frame_size: 16
   warn_array_size: 32
 ```
 
 | Warning | Threshold | Rationale |
 |---------|-----------|-----------|
-| W10030 (frame size) | 16 bytes | With only ~1.5 KB usable RAM, large frames are dangerous |
-| W10191 (array size) | 32 bytes | Mutable arrays > 32 bytes consume significant RAM; use const arrays in ROM instead |
+| W10143 (array size) | 32 bytes | Mutable arrays above this threshold consume significant RAM; prefer const arrays in ROM when appropriate |
 
 ### 8.1 Warning Threshold Notes
 
@@ -302,11 +310,11 @@ This is the most important architectural distinction on the 7800:
 
 | Data | Location | Implication |
 |------|----------|-------------|
-| Code | ROM ($8000–$FFF7) | Executes directly from cart; no RAM cost |
+| Code | ROM ($8000–$FFEF) | Executes directly from cart; no RAM cost; final 16 bytes are packaging-owned |
 | `const` arrays / data | ROM | No RAM cost — use `const` liberally |
-| `let` variables | RAM ($1800–$27FF) | Scarce — every byte counts |
+| `let` variables | Default allocation `$2200`–`$27FF` | Scarce, disjoint from selected ZP/stack shadows |
 | MARIA display lists | RAM | ~500–2,560 bytes, depending on complexity |
-| Hardware stack | $0100–$01FF | 256 bytes minus reserves |
+| Hardware stack | $0140–$01FF | 192 writable bytes; `$0100`–`$013F` aliases registers |
 
 **Best practice**: Maximize `const` data in ROM. Minimize `let` variables in RAM. Use struct-of-arrays layout over array-of-structs to improve byte-level access patterns.
 
@@ -326,46 +334,32 @@ Some 7800 cartridges include a POKEY chip for enhanced audio (4 additional chann
 
 The default 32 KB profile uses a flat ROM layout. Larger cartridges (48 KB, 128 KB, etc.) use bank switching at $4000–$7FFF and/or $8000–$BFFF. Bank-switched configurations require custom profiles with adjusted `code_start`/`code_end` values.
 
-### 9.6 Differences from Other Platforms
-
-| Aspect | C64 | Atari 800XL | Atari 7800 |
-|--------|-----|-------------|------------|
-| RAM | 64 KB | 64 KB | **4 KB** |
-| Code location | RAM (loaded) | RAM (loaded) | **ROM (cartridge)** |
-| CPU clock | ~1 MHz | ~1.8 MHz | ~1.2 MHz (effective) |
-| Display | VIC-II (raster) | ANTIC (DMA) | **MARIA (DMA, heavier)** |
-| Sound | SID (3 voices) | POKEY (4 voices) | TIA (2 voices) |
-| Encoding | PETSCII | ATASCII | ASCII (custom fonts) |
-| Binary format | PRG (disk) | XEX (disk) | **A78 (ROM cartridge)** |
-| ZP budget | 142 bytes | 128 bytes | **64 bytes** |
-| Usable RAM | ~26 KB | ~40 KB | **~1.5 KB** |
-
----
-
 ## 10. Complete Profile
 
 ```yaml
 # Blend65 Platform Profile: Atari 7800
 platform: a7800
 cpu: 6502
-clock_mhz: 1.19        # effective (MARIA DMA reduces throughput)
+clock_mhz: 1.79        # nominal CPU clock; slow-device accesses and MARIA DMA are separate timing effects
 
 memory:
   code_start:     $8000
-  code_end:       $FFF7
-  data_start:     $1800
-  data_end:       $27FF
-  ram_start:      $1800
+  code_end:       $FFEF
+  data_start:     $8000
+  data_end:       $FFEF
+  ram_start:      $2200
   ram_end:        $27FF
   zp_start:       $40
   zp_end:         $7F
-  stack_reserve:  24
+  stack_capacity: 192
+  stack_reserve:  0
 
 budgets:
   max_binary_size: 32752
   max_ram:         1536
   max_zp:          64
-  stack_budget:    226
+
+# brk_contract omitted: no exact handler/control-flow contract is qualified in this baseline
 
 output:
   output_format:  a78
@@ -373,16 +367,14 @@ output:
   reset_vector:   $8000
 
 encoding:
-  default_encoding: ascii
-  screen_encoding:  ascii
-
-embed_formats:
-  bin: raw_binary
-  png: indexed_image
-  tmx: tilemap
+  default_encoding: raw
+  default_character_map: raw
+  encodings:
+    raw:
+      maps:
+        raw: ascii-raw-v1
 
 warnings:
-  warn_frame_size: 16
   warn_array_size: 32
 ```
 
@@ -392,20 +384,21 @@ warnings:
 
 | Profile Slot | Filled? |
 |---|---|
-| code_start / code_end | ✅ $8000 / $FFF7 |
-| data_start / data_end | ✅ $1800 / $27FF |
-| ram_start / ram_end | ✅ $1800 / $27FF |
+| code_start / code_end | ✅ $8000 / $FFEF |
+| data_start / data_end | ✅ $8000 / $FFEF |
+| ram_start / ram_end | ✅ $2200 / $27FF |
 | zp_start / zp_end | ✅ $40 / $7F |
-| stack_reserve | ✅ 24 |
+| stack_capacity | ✅ 192 |
+| stack_reserve | ✅ 0 |
 | max_binary_size | ✅ 32752 |
 | max_ram | ✅ 1536 |
 | max_zp | ✅ 64 |
-| stack_budget | ✅ 226 |
+| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ a78 |
 | load_address | ✅ $8000 |
 | reset_vector | ✅ $8000 |
-| default_encoding | ✅ ascii |
-| screen_encoding | ✅ ascii |
-| embed_formats | ✅ bin, png, tmx |
-| warn_frame_size | ✅ 16 |
+| default_encoding | ✅ raw |
+| default_character_map | ✅ raw |
+| encodings | ✅ ascii-raw-v1 |
+| embed_formats | N/A — no registered format handler; raw `embed(path)` remains available |
 | warn_array_size | ✅ 32 |

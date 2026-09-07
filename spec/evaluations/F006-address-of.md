@@ -14,12 +14,12 @@ The v2 `@address` built-in type is removed. Addresses are simply `word` values. 
 ## Syntax
 
 ```blend65
-&identifier
+&expression
 ```
 
 **EBNF:**
 ```ebnf
-address_of_expr = "&" , identifier ;
+address_of_expr = "&" , unary_expr ;
 ```
 
 ## Rules
@@ -28,7 +28,7 @@ address_of_expr = "&" , identifier ;
 |------|----------|
 | Return type | `word` (16-bit unsigned — same as a memory address on 6502) |
 | On module-level variables | ✅ Valid — returns RAM address |
-| On local variables | ✅ Valid — SFA gives locals static addresses |
+| On local variables | ✅ Valid as a non-escaping borrow — SFA gives locals static addresses, but E10260 rejects any possible use beyond the local's dynamic source lifetime |
 | On `zeropage` variables | ✅ Valid — returns ZP address (0x00–0xFF, fits in `word`) |
 | On functions | ✅ Valid — returns the code address of the function |
 | On `interrupt` functions | ✅ Valid — returns the code address (see F007) |
@@ -39,6 +39,29 @@ address_of_expr = "&" , identifier ;
 | On array elements (`&a[i]`) | ❌ **E10042** — deferred to future version (see FUT-001) |
 | On literals (`&42`) | ❌ **E10043** — literals have no address |
 | On expressions (`&(x+y)`) | ❌ **E10043** — expressions have no address |
+
+While a function address remains compiler-visible, it retains source function identity and source
+handler kind in addition to its `word` representation. A recognized interrupt-handler sink rejects
+an ordinary `RTS` function, selects the exact raw or firmware-mediated entry variant, and
+contributes that execution root to SFA. The sink may therefore install a specialized address rather
+than the raw numeric payload. Opaque integer/address escape erases proof; a visible write to an
+exactly known incompatible firmware vector is E10252 rather than an escape hatch.
+
+For a function local, the ordinary `word` result also retains hidden local-origin provenance. The
+borrow is valid only during that local's dynamic source lifetime, including its lexical block and
+one loop iteration. Copies, casts, conditionals, `lo`/`hi`, arithmetic, and bitwise derivations keep
+the dependency so it cannot be laundered into an escaping integer fragment. Local scalar or
+aggregate storage is legal when its lifetime is proved contained. Returning the value, storing it
+in module/zero-page/raw/MMIO or unproven longer-lived storage, or passing it to a retaining or
+unknown boundary is E10260.
+
+A parameter position is non-retaining only when every reachable path may use or mutate through the
+address and forward it solely to other proven non-retaining positions, without returning,
+persisting, publishing to an interrupt/hardware consumer, or passing it to unknown code. The
+compiler infers this transitively for user functions; platform/library contracts declare it.
+Legal borrow use extends the local's SFA liveness but adds no runtime mechanism. After the lifetime
+ends, the same physical home may be reused by a sequential call or loop iteration; no earlier
+address remains observable and no cross-invocation address identity is promised.
 
 ## Examples
 
@@ -64,6 +87,8 @@ function main(): void {
 ```blend65
 module Game;
 
+import { setIRQ } from c64.system;
+
 interrupt function onRasterIRQ(): void {
     // ... interrupt handler code ...
 }
@@ -76,8 +101,8 @@ function main(): void {
     let irqAddr: word = &onRasterIRQ;    // Code address of interrupt handler
     let loopAddr: word = &gameLoop;       // Code address of regular function
     
-    // Install interrupt handler (platform-specific)
-    pokew(0x0314, &onRasterIRQ);
+    // Install through the platform-specific, compiler-recognized sink.
+    setIRQ(&onRasterIRQ);
 }
 ```
 
@@ -102,28 +127,36 @@ function main(): void {
 | 2 | AO-2 | `&` on array/struct constants | Valid — stored in data section |
 | 3 | AO-3 | `&` on function parameters | **E10041** — deferred (FUT-002) |
 | 4 | AO-4 | `&` on struct fields / array elements | **E10042** — deferred (FUT-001) |
+| 5 | AO-5 | May `&local` outlive the local? | **No** — it is a compiler-tracked non-escaping borrow; E10260 rejects the first use that may cross its dynamic source lifetime |
 
 ## Errors
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10040 | `&` on inlined scalar constant | `Cannot take address of constant '<name>' — scalar constants are inlined and have no memory address. Use an array or variable instead` |
-| E10041 | `&` on function parameter | `Cannot take address of parameter '<name>' — copy it to a local variable first` |
-| E10042 | `&` on struct field or array element | `Cannot take address of '<expr>' — address-of is only supported on named variables and functions. Compute the address manually: '&<base> + <offset>'` |
-| E10043 | `&` on literal or expression | `Cannot take address of '<expr>' — address-of requires a named variable or function` |
+| E10040 | `&` on inlined scalar constant | [Chapter 14](../14-diagnostics.md) |
+| E10041 | `&` on function parameter | [Chapter 14](../14-diagnostics.md) |
+| E10042 | `&` on struct field or array element | [Chapter 14](../14-diagnostics.md) |
+| E10043 | `&` on literal or expression | [Chapter 14](../14-diagnostics.md) |
+| E10252 | Raw interrupt entry written to an incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
+| E10260 | Local-origin address or derived fragment may escape its dynamic source lifetime | [Chapter 14](../14-diagnostics.md) |
 
 ## Language Guard Verdict
 
 - **P1 Cross-platform** ✅ — Memory addresses are universal on 6502. All platforms use 16-bit addresses.
 - **P3 No platform assumptions** ✅ — `&` returns a `word` with no platform-specific semantics.
 - **H1 6502 implementable** ✅ — Address is a compile-time constant. `&x` compiles to loading the low/high bytes of x's address.
-- **H2 Cost transparency** ✅ — `&x` costs 0 runtime cycles (address is immediate data). Loading it into a variable costs 4 cycles (2× LDA #imm + STA).
-- **H3 SFA compatible** ✅ — All addresses are compile-time known in SFA.
+- **H2 Cost transparency** ✅ — `&x` costs 0 runtime cycles (the address is link-time data).
+  Materializing both bytes into absolute storage costs 10 bytes/12 cycles (two immediate loads and
+  two absolute stores); a zero-page destination costs 8 bytes/10 cycles.
+- **H3 SFA compatible** ✅ — All addresses are compile-time known in SFA. Local borrows extend
+  liveness only to their last legal use; unsafe persistence is rejected rather than silently
+  pinning an automatic local.
 - **H5 Deterministic** ✅ — Every valid use produces a well-defined address. Every invalid use produces a compile error.
 - **L1 Unambiguous** ✅ — `&` has exactly one meaning. No overloading with other uses.
 - **L2 Consistent** ✅ — `&` for address-of is the same convention as C and Rust.
 - **L3 Beginner-friendly** ✅ — Any C developer recognizes `&variable`.
+- **L6 Errors actionable** ✅ — E10260 identifies the escape path and recommends module-level or
+  caller-owned storage. This avoids C-style dangling-address undefined behavior without a heap.
 - **L4 Minimal** ✅ — One operator, one meaning, restricted to names only (no complex expressions).
 - **L5 No redundancy** ✅ — Replaces both `@variable` and `@address` type from v2.
 - **C1 Lexer/parser** ✅ — `AMPERSAND`, `IDENTIFIER`. Standard unary prefix operator.
-

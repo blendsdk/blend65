@@ -66,7 +66,8 @@ if (true) {
 }
 ```
 
-This applies across all nesting levels: function parameters, outer blocks, for-loop variables, and module-level variables.
+This applies across all nesting levels: function parameters, outer blocks, for-header declarations,
+and module-level variables.
 
 ---
 
@@ -142,7 +143,10 @@ if (x > 10) { doA(); } else { doB(); }
 .end:
 ```
 
-Typical cost: ~6–10 cycles for the branch, plus the cost of evaluating the condition and executing the selected body.
+For the displayed form, the false path's condition load, comparison, and taken branch cost 8–10
+cycles; the true path's condition load, comparison, untaken branch, and join `JMP` cost 10–11
+cycles. Those ranges allow zero-page or absolute `x` and a same-page or page-crossing taken branch.
+They exclude both selected bodies.
 
 ---
 
@@ -203,90 +207,97 @@ do {
 
 ### 7.1 Syntax
 
-Blend65 v3 uses only the `until`/`to`/`downto` range form. The C-style `for (init; cond; update)` is not supported.
+Blend65 uses one C/JavaScript-style three-clause form. Each clause is optional.
 
 ```ebnf
-for_stmt = "for" , "(" , "let" , identifier , ":" , type , "=" , expression
-         , ( "until" | "to" | "downto" ) , expression
-         , [ "step" , const_expression ]
-         , ")" , block ;
+for_stmt        = "for" , "(" , [ for_initializer ] , ";"
+                , [ expression ] , ";" , [ for_update ] , ")" , block ;
+for_initializer = for_local_decl | expression_list ;
+for_local_decl  = "let" , identifier , ":" , value_type , [ "=" , expression ]
+                | "const" , identifier , ":" , value_type , "=" , const_expression ;
+for_update      = expression_list ;
+expression_list = expression , { "," , expression } ;
 ```
-
-### 7.2 Direction and Bounds
-
-Blend65 follows the Kotlin model: each range keyword means exactly what it reads in English. `until` excludes its end bound; `to` and `downto` include it.
-
-| Keyword | Direction | End Bound | Meaning |
-|---------|-----------|-----------|---------|
-| `until` | Ascending | **Exclusive** | Loop visits start..(end−1) — end is *not* reached |
-| `to` | Ascending | **Inclusive** | Loop visits start..end — end *is* reached |
-| `downto` | Descending | **Inclusive** | Loop visits start..end — end *is* reached |
 
 ```blend65
-for (let i: byte = 0 until 10) { ... }       // visits 0,1,2,...,9 (10 iterations)
-for (let i: byte = 1 to 8) { ... }           // visits 1,2,3,...,8 (8 iterations)
-for (let i: byte = 9 downto 0) { ... }       // visits 9,8,7,...,0 (10 iterations)
-for (let i: byte = 0 until 100 step 2) { ... } // visits 0,2,4,...,98 (50 iterations)
-for (let i: byte = 0 to 255) { ... }         // full byte range: 0..255 (256 iterations)
+for (let i: byte = 0; i < 10; i += 1) { ... }
+for (i = start, left = count; left != 0; i += stride, left -= 1) { ... }
+for (;;) { updateFrame(); }
 ```
 
-**Choosing the right keyword:**
-- Use `until` for array iteration — `for (let i: byte = 0 until length(arr))` visits exactly the valid indices `[0, N)`.
-- Use `to` when the end value itself must be visited — e.g. `1 to 8`, or the full type range `0 to 255`.
-- There is no exclusive-descending keyword in v3; for descending exclusion, adjust the bound (e.g. `9 downto 0` visits 0; to stop at 1, write `9 downto 1`). See `future-considerations.md` (FUT-019).
+### 7.2 Evaluation Order
 
-**Empty ranges** (e.g., `10 until 5`, `5 to 4`, or `5 downto 10`) execute **zero iterations**.
+For `for (I; C; U) B`:
 
-#### 7.2.1 End-Bound Range Rule (CF-FOR-1 / E10064)
+1. Enter the for-statement scope and evaluate initializer `I` once.
+2. Evaluate condition `C` before every possible iteration. An omitted condition is `true`.
+3. If the condition is false, leave the loop. Otherwise execute body `B`.
+4. After normal body completion or `continue`, evaluate update `U` and return to step 2.
+5. `break` and `return` leave without evaluating the update again.
 
-The end bound determines how far the counter must reach. Because an **inclusive** `to` loop over the full type range must compare past the largest representable value, the valid range of the end bound depends on the keyword:
+Expression lists in the initializer and update evaluate left to right. Every clause uses the
+ordinary expression rules, including calls, MMIO effects, conversions, and fixed-width wrap. A
+present condition must have type `boolean` (**E10100**). The compiler may optimize an evaluation
+only when its normal value-and-effect proof permits it.
 
-| Keyword | Valid end-bound range (for a counter of type T) |
-|---------|--------------------------------------------------|
-| `until` | `type_min(T)` … `type_max(T)` (exclusive bound; the counter never holds it) |
-| `to` | `type_min(T)` … `type_max(T)` (inclusive bound; the counter does hold it) |
-| `downto` | `type_min(T)` … `type_max(T)` (inclusive bound) |
+### 7.3 Scope and Mutability
 
-A **constant** end bound outside `[type_min(T), type_max(T)]` produces **E10064**. This makes the impossible v2-era case `0 to 256` on a `byte` a compile-time error rather than a silent infinite loop — the full byte range is written `0 to 255`.
+- An initializer declaration is one ordinary local `let` or `const`; the header delimiter replaces
+  its trailing semicolon.
+- Its binding is visible in the condition, update, and body, but not after the loop.
+- The body is a nested block. Ordinary no-shadowing rule E10101 applies; there is no special loop
+  shadowing rule.
+- A `let` binding remains mutable in the body. A `const` uses ordinary E10190–E10192 rules.
+- An expression initializer introduces no binding and may update existing variables.
+- Header locals and expression temporaries use ordinary CFG liveness and SFA allocation. No hidden
+  iterator, dynamic frame, or runtime support is created.
+
+### 7.4 Fixed-Width Boundary Behavior
+
+A `for` statement is not a mathematical range. Its condition and update observe ordinary typed
+values. If a `byte` update wraps from 255 to 0, the next condition sees 0.
 
 ```blend65
-for (let i: byte = 0 to 255) { ... }   // ✅ 256 iterations — uses INX/BNE-wrap codegen
-for (let i: byte = 0 to 256) { ... }   // ❌ E10064: end bound 256 out of range for 'byte' (0–255)
-for (let i: byte = 0 until 256) { ... } // ❌ E10064: end bound 256 out of range for 'byte' (0–255)
+for (let i: byte = 0; i < 10; i += 1) { ... } // 0 through 9
+for (let i: word = 0; i < 256; i += 1) { ... } // 0 through 255
+for (let i: byte = 0; i < 256; i += 1) { ... } // ❌ E10262: byte cannot reach 256
 ```
 
-### 7.3 Step
+The full-domain form uses `word` because its semantic counter must reach the terminal value 256.
+When `i` does not escape and no source effect observes the wider terminal state, the optimizer may
+still use an 8-bit machine counter and the expert `INX`/`BNE` wrap-exit idiom. Source width does not
+force machine width when a narrowing proof exists.
 
-- `step` is optional; defaults to **1**.
-- Must be a **compile-time constant**, positive integer.
-- Step value of zero produces **E10061** (would create an infinite loop).
-
-### 7.4 Loop Variable Rules
-
-- The loop variable is **declared** by the for-loop (`let i: type = ...`) — it is not a pre-existing variable.
-- The loop variable is **read-only** inside the body. Assignment to it produces **E10060**.
-- The loop variable's type must be an integer type (`byte`, `sbyte`, `word`, `sword`). The bounds and step must match the variable's signedness (→ Ch 02, TS-5).
-- The loop variable is scoped to the for-loop (body + bounds). It is not visible after the loop.
-- Nesting restriction: a nested for-loop may not reuse the same variable name (**E10062**).
+Wrapping remains legal and useful. Byte-bounded loops, ring cursors, timers, decrement-to-zero
+loops, deliberate `for (;;)`, and loops whose source explicitly observes wrap are not rejected.
+E10262 applies only when bounded canonical-induction analysis proves that a finite-looking loop's
+counter must repeat before its invariant comparison can become false, the body does not modify that
+counter or bound, and the loop has no other explicit exit. The diagnostic identifies the counter's
+representable range and unreachable bound and recommends a suitable wider type. This is a focused
+reachability proof, not a general termination solver, and it never silently changes the declared
+counter type.
 
 ### 7.5 Break and Continue
 
 - `break` exits the innermost enclosing loop immediately.
-- `continue` jumps to the next iteration (increment/decrement + condition check).
+- `continue` evaluates the update clause and then re-evaluates the condition.
 - Using `break` or `continue` outside a loop body produces **E10063**.
 
-### 7.6 Warnings
+### 7.6 6502 Code Generation
 
-- **W10060**: Loop counter uses `word` but range fits in `byte` — use `byte` for faster execution.
+Correctness lowers the statement to initializer, condition, body, update, and end blocks.
+`continue` targets update; `break` targets end. This generic CFG works for every legal loop.
 
-### 7.7 6502 Code Generation
+A bounded canonical-induction recognizer may then prove a known initialization, invariant bound,
+known stride, safe alias/effect behavior, and equivalent exits. It may select a register counter,
+fold a comparison, narrow a semantic word induction value, or choose a wrap-exit pattern. A loop
+that does not match remains correct generic CFG code; the compiler does not add a generalized loop
+framework or require hardware-shaped source.
 
-The compiler selects one of two patterns depending on the keyword and whether the end bound equals the counter type's maximum.
-
-**Pattern A — compare-and-branch (`until`, and `to`/`downto` whose bound is *not* the type maximum):**
+**Small ascending byte loop:**
 
 ```blend65
-for (let i: byte = 0 until 10) {
+for (let i: byte = 0; i < 10; i += 1) {
     poke($0400 + i, 1);
 }
 ```
@@ -298,20 +309,17 @@ for (let i: byte = 0 until 10) {
     BCS .end            ; if i >= 10, exit
     LDA #$01
     STA $0400,X         ; poke($0400 + i, 1)
-    INX                 ; i++
-    JMP .loop
+    INX                 ; i += 1
+    BCC .loop           ; unconditional: body and INX preserve C=0 from CPX
 .end:
-; ~8 cycles/iteration overhead + body
+; Same-page loop control excluding LDX/body: 95 cycles for 10 body executions
+; Add 10 cycles if the taken BCC backedge crosses a page and 1 if the taken exit BCS does
 ```
 
-For an inclusive `to` bound below the type maximum, the compiler compares against `bound + 1` (e.g. `1 to 8` compares against `9`), which is representable and uses the same `CPX`/`BCS` pattern.
-
-**Pattern B — wrap termination (`to` whose bound *is* the type maximum, e.g. `0 to 255`):**
-
-Comparing against `256` is impossible in 8 bits, so the compiler relies on the natural `INX` wrap from `255`→`0`, terminating when the counter wraps back to the start value:
+**Proven full 256-element loop:**
 
 ```blend65
-for (let i: byte = 0 to 255) {
+for (let i: word = 0; i < length(page); i += 1) {
     poke($0400 + i, 1);
 }
 ```
@@ -321,13 +329,19 @@ for (let i: byte = 0 to 255) {
 .loop:
     LDA #$01
     STA $0400,X         ; poke($0400 + i, 1)
-    INX                 ; i++ — wraps 255 -> 0 after the final iteration
-    BNE .loop           ; continue until the counter wraps back to 0
+    INX                 ; machine induction wraps after source value 255
+    BNE .loop           ; zero-result/wrap proves the source's next condition is false
 .end:
-; exactly 256 iterations; ~5 cycles/iteration overhead + body
+; exactly 256 iterations
+; induction control excluding LDX/body: 1,279 cycles with a same-page BNE backedge
+; add 255 cycles when all 255 taken BNE backedges cross a page
 ```
 
-For `byte` loops with small ranges, the compiler uses X or Y register as the loop counter when possible (~6–7 cycles/iteration). For `word` loops, the counter is a ZP pair (~15–20 cycles/iteration).
+This narrowing is legal only when every observable source value and effect remains identical. If
+the address of `i` escapes, the condition or update has other effects, or the body needs the full
+word value in a way that cannot be reconstructed, the compiler retains a suitable word
+representation. The selected form's bytes, cycles, clobbers, memory traffic, RAM/ZP, and spills are
+reported and compared with expert assembly.
 
 ---
 
@@ -378,7 +392,7 @@ switch (level) {
 
 **Fallthrough rules:**
 - `fallthrough` must be the **last statement** in a case body (**E10074**).
-- `fallthrough` in the last case/default has no effect (**E10073** warning).
+- `fallthrough` in the last case/default is rejected (**E10073** error).
 - `fallthrough` cannot appear inside nested blocks (if/while/for) within the case (**E10074**).
 
 ### 8.4 Multi-Value Cases (SW-2)
@@ -450,7 +464,7 @@ The compiler generates a compare-and-branch chain for small switch statements an
 `break` exits the innermost enclosing loop (`for`, `while`, `do-while`) immediately. Using `break` outside a loop produces **E10063**.
 
 ```blend65
-for (let i: byte = 0 until 100) {
+for (let i: byte = 0; i < 100; i += 1) {
     if (arr[i] == target) {
         found = true;
         break;             // exit the for loop
@@ -462,7 +476,9 @@ for (let i: byte = 0 until 100) {
 
 ### 9.2 Continue
 
-`continue` jumps to the next iteration of the innermost enclosing loop. For `for` loops, this means incrementing/decrementing the counter and re-evaluating the condition. Using `continue` outside a loop produces **E10063**.
+`continue` jumps to the next iteration of the innermost enclosing loop. For `for` loops, this means
+evaluating the update clause and then re-evaluating the condition. Using `continue` outside a loop
+produces **E10063**.
 
 ### 9.3 Return
 
@@ -475,7 +491,6 @@ for (let i: byte = 0 until 100) {
 ```ebnf
 statement        = var_decl
                  | const_decl
-                 | assignment_stmt
                  | expression_stmt
                  | if_stmt
                  | while_stmt
@@ -487,44 +502,45 @@ statement        = var_decl
                  | continue_stmt
                  | block ;
 
-var_decl         = "let" , identifier , ":" , type , [ "=" , expression ] , ";" ;
-const_decl       = "const" , identifier , ":" , type , "=" , expression , ";" ;
-assignment_stmt  = lvalue , assignment_op , expression , ";" ;
+var_decl         = "let" , identifier , ":" , value_type , [ "=" , expression ] , ";" ;
+const_decl       = "const" , identifier , ":" , value_type , "=" , const_expression , ";" ;
 expression_stmt  = expression , ";" ;
 return_stmt      = "return" , [ expression ] , ";" ;
 break_stmt       = "break" , ";" ;
 continue_stmt    = "continue" , ";" ;
 ```
 
+An assignment used as a statement is an `expression_stmt`; assignment itself remains the
+right-associative, value-producing expression defined by Ch 04, OP-A1. Any expression may appear as
+an expression statement. The language defines no diagnostic merely because a pure value is
+discarded, and it must not reject the syntax merely because the expression is not a function call.
+
 ---
 
-## 11. Error Codes
+## 11. Diagnostic Conditions
 
-Errors canonically owned by this chapter:
+This chapter owns statement and control-flow trigger predicates. Chapter 14 alone owns public
+severities, message templates, spans, suppression, and history.
 
-| Code | Message |
-|------|---------|
-| E10060 | Cannot assign to for-loop variable `<name>` — loop variables are read-only |
-| E10061 | Step value must not be zero — this would create an infinite loop |
-| E10062 | Variable `<name>` already declared in enclosing for-loop — use a different name |
-| E10063 | `<keyword>` can only be used inside a loop body |
-| E10064 | For-loop end bound `<value>` is out of range for counter type `<type>` (`<min>`–`<max>`) |
-| E10070 | Duplicate case value `<value>` — already used at line `<N>` |
-| E10071 | Case value must be a compile-time constant |
-| E10072 | Case value type `<case_type>` does not match switch expression type `<switch_type>` |
-| E10073 | `fallthrough` has no effect — this is the last case in the switch |
-| E10074 | `fallthrough` must be the last statement in a case body |
-| E10075 | Cannot switch on type `<type>` — must be `byte`, `sbyte`, `word`, `sword`, or enum |
-| E10076 | Only one `default` clause is allowed per switch statement |
-| E10100 | Condition must be type `boolean` — found `<type>`. Use an explicit comparison |
-| E10101 | Variable `<name>` shadows declaration in enclosing scope (line `<N>`) |
-| E10102 | Not all code paths return a value in function `<name>` |
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10063 | `break` or `continue` appears outside a loop body. | The statement is rejected. |
+| E10070 | Two clauses in one `switch` have the same case value. | The duplicate case is rejected. |
+| E10071 | A case value is not a compile-time constant. | The case is rejected. |
+| E10072 | A case value is incompatible with the switch expression type. | The case is rejected. |
+| E10073 | `fallthrough` appears in the final case of a switch. | The statement is rejected because there is no following case. |
+| E10074 | `fallthrough` is not the final top-level statement of its case body. | The statement is rejected. |
+| E10075 | A switch expression is neither an integer nor an enum. | The switch is rejected. |
+| E10076 | A switch contains more than one `default` clause. | Every additional default clause is rejected. |
+| E10100 | An `if`, `while`, `do while`, or `for` condition does not have type `boolean`. | The condition is rejected; no truthiness conversion is inserted. |
+| E10101 | A local declaration shadows an enclosing declaration. | The inner declaration is rejected. |
+| E10239 | An identifier does not resolve in its lexical/module scope. | The reference is rejected. |
+| E10262 | Canonical induction proves that a finite-looking loop counter repeats before its condition can become false. | The loop is rejected; use a type that can represent the terminal state or make deliberate wrap/infinite control explicit. |
 
-### Warning Codes
+### Warning Conditions
 
-| Code | Message |
-|------|---------|
-| W10060 | Loop counter uses `word` but range fits in `byte` — use `byte` for faster execution |
-| W10070 | Switch expression is `word` but all case values fit in `byte` |
-| W10130 | Condition is always false — code block will never execute |
-| W10131 | Unreachable code — statements after `<keyword>` will never execute |
+| Code | Trigger | Consequence |
+|------|---------|-------------|
+| W10070 | A `word` switch expression has only byte-range case values. | Compilation continues; comparisons may be wider than necessary. |
+| W10130 | A condition is provably always false. | Compilation continues; the guarded block is unreachable. |
+| W10131 | A statement is unreachable after unconditional control transfer. | Compilation continues; the unreachable statement has no runtime effect. |

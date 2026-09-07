@@ -35,7 +35,9 @@ The following implementation interpretations are now fixed:
 | Migration | `qualification/coverage-matrix.md` owns the old-rule migration ledger to avoid adding an unauthorized artifact. |
 | Release identity | One active semantic version is declared in the router. Final skill content and qualification evidence are committed first; `qualification/release.md` then binds the exact content commit. Every later substantive change bumps and requalifies the single active version; Git preserves history. |
 | Later recovery | The skill teaches audit criteria but freezes no current compiler-completeness claim, readiness result, feasibility-matrix claim, or tentative concrete backend topology. Material later conclusions cite skill version, content commit, knowledge heading, and source keys. |
-| Technique realization | Game-development techniques are decision knowledge, not decorative lore. Each is mapped to recognizable compiler facts, one deterministic compiler/API disposition, preconditions, complete costs, hazards, and independent behavior plus assembly/cost proof. Q-P15 explicitly exercises an Integrator-style compile-time asset/scene workflow without requiring a new editor or framework. The shipped compiler has no AI or skill-runtime dependency. |
+| Technique realization | Game-development techniques are decision knowledge, not decorative lore. Each is mapped to recognizable compiler facts, one deterministic compiler/API disposition, preconditions, complete costs, hazards, and independent behavior plus assembly/cost proof. Q-P11 requires a player-neutral, hash-bound, direct-lowering audio contract across music-only, integrated music/SFX, SFX-only, and custom-player paths without a generic runtime. Q-P15 explicitly exercises an Integrator-style compile-time asset/scene workflow without requiring a new editor or framework. The shipped compiler has no AI or skill-runtime dependency. |
+| Hardware-limitation exceptions | `blend65-semantics.md` contains the single canonical register for accepted or pending deviations from mainstream language expectations. Each entry must prove a hardware/no-runtime constraint, define exact semantics and runtime cost, provide a developer mitigation, and name documentation duties. Compiler convenience cannot justify an exception. A final release-blocking re-scan must find and classify omissions. |
+| Representation-leak discovery | The skill, not the user, must proactively find `byte`/`word`, carry, page, bank, pointer, element-size, and related 6502 boundary traps hidden inside ordinary modern source. It starts from mainstream observable behavior, exhausts inference/range-proof/compile-time/zero-cost remedies, and exposes a restriction only when AR-35 proves it unavoidable. Existing qualification cases must demonstrate unprompted discovery; no new framework is added. |
 | Verification | Checks are selected by touched surface. Skill/Markdown work uses formatting, topology, links, source/spec set checks, and relevant qualification cases; it does not run the compiler suite. |
 
 ## Requirement-to-Plan Traceability
@@ -49,7 +51,7 @@ The following implementation interpretations are now fixed:
 | R5 Architecture decision discipline | 03-02 | 3 | Boundary and anti-prescription cases |
 | R6 NMOS 6502/6510 expert model | 03-03 | 4 | CPU coverage matrix and silicon cases |
 | R7 6502 lowering casebook | 03-03 | 4 | Operation-family cases and cost ledgers |
-| R8 C64 platform/game expertise | 03-04 | 5 | PAL/NTSC, chip, banking, and game-system cases |
+| R8 C64 platform/game expertise | 03-04 | 5 | PAL/NTSC, chip, banking, qualified player-neutral game audio, and game-system cases |
 | R9 ACME/artifact expertise | 03-05 | 6 | Pinned official ACME/VICE evidence and exact future proof specifications |
 | R10 Target portability model | 03-05 | 6 | Six-target constraint matrix and non-claim cases |
 | R11 Evidence/parity/recovery | 03-05 | 2, 6 | Audit, parity, expressiveness, salvage cases |
@@ -80,7 +82,8 @@ The following implementation interpretations are now fixed:
 
 ## Out-of-Scope Enforcement
 
-Execution stops if a proposed task requires compiler code, a language-spec edit, a new dependency,
-an executable knowledge tool, a general research framework, or production qualification of a
-non-C64 platform. Such work requires a later authorized feature; it cannot be smuggled into this
-baseline as “supporting infrastructure.”
+Execution stops if a proposed task requires compiler code, a new dependency, an executable
+knowledge tool, a general research framework, or production qualification of a non-C64 platform.
+The only language-spec edits authorized in this baseline are the exact bounded Phase-3 consistency
+repairs accepted under AR-P3; every other language change requires a later authorized feature. None
+of these excluded surfaces may be smuggled into this baseline as “supporting infrastructure.”

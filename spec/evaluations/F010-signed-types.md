@@ -98,13 +98,13 @@ let pos: byte = 100;
 let vel: sbyte = -3;
 
 // ❌ Compile error — cannot mix byte and sbyte
-let result = pos + vel;
+let invalidResult: sbyte = pos + vel;
 
 // ✅ Explicit: cast to signed world, do the math
-let result: sbyte = sbyte(pos) + vel;
+let signedResult: sbyte = sbyte(pos) + vel;
 
 // ✅ Or cast to unsigned world
-let result: byte = pos + byte(vel);
+let unsignedResult: byte = pos + byte(vel);
 ```
 
 **Rationale**: The 6502 uses the same ADD instruction for signed and unsigned, but the *meaning* of the result differs. By requiring an explicit cast, the developer declares which interpretation they intend. This eliminates an entire class of bugs that C is infamous for.
@@ -204,10 +204,14 @@ let y: sbyte = -128;
 y = y - 1;                // Wraps to 127 (deterministic)
 ```
 
-The compiler emits a warning when overflow is detectable at compile time:
+In an ordinary runtime-expression context, the compiler emits a warning when signed wrapping is
+detectable at compile time. True constant contexts use full-precision evaluation and E10084 instead:
 
 ```blend65
-const TOO_BIG: sbyte = 127 + 1;  // ⚠️ W10100: Signed overflow in constant expression
+function example(): void {
+    let tooBig: sbyte = sbyte(127) + sbyte(1); // ⚠️ W10100; runtime result is -128
+}
+const TOO_BIG: sbyte = 127 + 1;                // ❌ E10084; constant context is 128
 ```
 
 ### ST-7: Comparison Semantics Follow the Type
@@ -262,7 +266,7 @@ let c: sbyte = a + b;
     CLC
     ADC b
     STA c
-; 4 instructions, ~10 cycles. Same as unsigned.
+; 4 instructions, 11–14 cycles depending on ZP/absolute homes. Same as unsigned.
 ```
 
 ### Signed Comparison (The One Difference)
@@ -277,11 +281,9 @@ if (velocity < 0) { ... }
     CMP #value
     BCC .less_than
 
-; Signed comparison (sbyte < value): uses N⊕V
+; Signed comparison against zero: the sign bit alone decides the result
     LDA velocity
-    CMP #$00
-    BMI .less_than       ; Branch if negative (N=1 and no overflow)
-                          ; For general signed compare: check N XOR V
+    BMI .less_than
 ```
 
 For general signed less-than (`a < b`):
@@ -295,7 +297,16 @@ For general signed less-than (`a < b`):
     BMI .a_less_than_b   ; If result negative, a < b
 ```
 
-**Cost**: Signed comparison is ~2-4 extra cycles and ~3-5 extra bytes compared to unsigned. This only matters in tight inner loops — the compiler can document this.
+`CMP` does **not** set the overflow flag. Therefore a general signed comparison must never branch
+from `N xor V` after `CMP`: `V` would be stale machine state. The zero comparison above needs only
+the loaded sign bit. The general sequence deliberately uses `SBC`, which defines `V`, then
+normalizes the sign before branching. A backend may select another proven equivalent sequence, but
+it must establish every flag it consumes.
+
+**Cost**: For the displayed variable-variable sequence, the general signed comparison is 13–18
+cycles and 11–13 ROM bytes across addressing and branch paths. A matching `LDA`/`CMP`/branch
+unsigned comparison is 8–12 cycles and 6–8 bytes. The selected compiler sequence must report its
+exact paths; a signed comparison against zero is much cheaper because `LDA`/`BMI` is sufficient.
 
 ### Unary Negation
 
@@ -310,7 +321,7 @@ let neg: sbyte = -velocity;
     CLC
     ADC #$01
     STA neg
-; 5 instructions, ~10 cycles
+; 5 instructions, 12–14 cycles and 9–11 bytes for ZP/absolute homes
 ```
 
 ### Right Shift (Type-Aware)
@@ -325,7 +336,7 @@ let result: sbyte = value >> 1;   // Arithmetic right shift
     CMP #$80         ; Set carry to sign bit
     ROR A             ; Rotate right through carry (sign-extends)
     STA result
-; 4 instructions, ~8 cycles (vs 2 instructions/4 cycles for logical shift)
+; 4 instructions, 10–12 cycles and 7–9 bytes for ZP/absolute homes
 ```
 
 ### Same-Size Cast (Zero Cost)
@@ -336,11 +347,17 @@ let s: sbyte = sbyte(b);    // Reinterpret
 ```
 
 ```asm
-; Generated code: NOTHING.
-; The compiler just changes the type label internally.
-; 'b' and 's' share the same memory, same bits.
-; Zero instructions. Zero cycles. Zero bytes.
+; The cast adds no bit-conversion operation: the value's bits are unchanged.
+; The ordinary initialization still moves or stores the value if required.
+    LDA b
+    STA s
 ```
+
+`b` and `s` are independent variables. A later write to either one must not change the other merely
+because their representations match. The allocator may coalesce their register or memory homes only
+when liveness, alias, volatility, and execution-domain analysis proves that the objects cannot be
+observed independently. Thus “zero-cost cast” means no conversion sequence beyond the ordinary
+value transfer; it never means automatic storage aliasing.
 
 ### Widening Casts
 
@@ -361,7 +378,7 @@ let wide: sword = sword(narrow);   // Sign-extend
     LDA #$FF           ; Negative: high byte = $FF
 .done:
     STA wide+1         ; High byte
-; ~8-12 cycles depending on branch
+; 16–21 cycles and 17–20 ROM bytes depending on branch and ZP/absolute homes
 ```
 
 ```blend65
@@ -375,7 +392,7 @@ let wide: word = word(narrow);     // Zero-extend
     STA wide           ; Low byte
     LDA #$00
     STA wide+1         ; High byte
-; 4 instructions, ~8 cycles
+; 4 instructions, 11–14 cycles and 8–11 bytes for ZP/absolute homes
 ```
 
 ### 16-bit Signed Comparison
@@ -421,21 +438,23 @@ if (a < b) { ... }
 
 | Operation | byte | sbyte | Extra cost |
 |-----------|------|-------|-----------|
-| Addition (`+`) | ~10 cycles | ~10 cycles | **0** |
-| Subtraction (`-`) | ~10 cycles | ~10 cycles | **0** |
-| Bitwise ops | ~6 cycles | ~6 cycles | **0** |
-| Left shift (`<<`) | ~4 cycles | ~4 cycles | **0** |
-| Equality (`==`, `!=`) | ~6 cycles | ~6 cycles | **0** |
-| Less/greater (`<`, `>`) | ~6 cycles | ~8-10 cycles | **+2-4 cycles** |
-| Right shift (`>>`) | ~4 cycles | ~8 cycles | **+4 cycles** |
-| Negation (`-x`) | N/A | ~10 cycles | N/A |
-| Same-size cast | — | — | **0** |
-| Sign-extend (8→16) | — | ~8-12 cycles | **+4 cycles** vs zero-extend |
+| Addition (`+`) | Selected lowering | Same selected lowering | **0** |
+| Subtraction (`-`) | Selected lowering | Same selected lowering | **0** |
+| Bitwise ops | Selected lowering | Same selected lowering | **0** |
+| Left shift (`<<`) | Selected lowering | Same selected lowering | **0** |
+| Equality (`==`, `!=`) | Selected lowering | Same selected lowering | **0** |
+| Less/greater (`<`, `>`) | Carry-based selected compare | Zero compare: `LDA`/branch; displayed general compare: 13–18 cycles | General signed comparison requires extra flag-correcting work |
+| Right shift (`>>`) | Logical selected lowering | Sign-propagating selected lowering | Sign propagation adds work unless nonnegative is proved |
+| Negation (`-x`) | N/A | Selected lowering | N/A |
+| Same-size cast | — | — | **0 conversion cost; ordinary value transfer still applies** |
+| Sign-extend (8→16) | — | Selected lowering | Extra sign propagation versus zero-extension |
 | RAM per variable | 1 byte | 1 byte | **0** |
-| ROM per operation | same | +3-5 bytes for compare/shift | **+3-5 bytes** where different |
+| ROM per operation | same for representation-neutral operations | Displayed general compare is 5 bytes larger than matching variable-variable unsigned compare | Exact selected sequence is reported |
 | Zero page | same | same | **0** |
 
-**Bottom line**: Signed types are almost free. The only measurable cost is in comparisons and right shifts, which typically add 2-5 extra cycles and 3-5 extra bytes of ROM.
+**Bottom line**: Signed and unsigned arithmetic share the same representation-level instructions.
+Ordered comparisons and arithmetic right shifts may require additional work. The compiler reports
+the selected path rather than promising one context-free surcharge.
 
 ---
 
@@ -447,13 +466,15 @@ if (a < b) { ... }
 
 ### ST-A2: Can sbyte/sword be used as array indices?
 
-**No.** Array indices must be unsigned (`byte` or `word`). Negative indices have no meaning.
+**Yes.** Chapter 08 accepts every integer type as an element ordinal. A known negative value is
+E10240. `--bounds-check` tests a runtime signed value against zero and the array extent; default
+unchecked access sign-extends it into the 16-bit effective-address calculation.
 
 ```blend65
 let arr: byte[10];
 let i: sbyte = 5;
-arr[i];             // ❌ E10085: Array index must be unsigned type (byte or word)
-arr[byte(i)];       // ✅ Explicit cast
+arr[i];             // ✅ ordinal 5
+arr[sbyte(-1)];     // ❌ E10240: known negative ordinal
 ```
 
 ### ST-A3: What type does mixed-literal arithmetic produce?
@@ -492,25 +513,29 @@ switch (direction) {
 }
 ```
 
-Codegen uses the same compare-and-branch pattern as unsigned, but with signed comparison instructions.
+Equality cases use the ordinary byte equality path. Ordered cases use a signed comparison sequence
+whose consumed flags are all established by that sequence; they do not reinterpret an unsigned
+`CMP` result by reading stale `V`.
 
 ### ST-A6: How do signed types interact with for-loops?
 
 Signed loop variables enable countdown past zero:
 
 ```blend65
-// Count down from 5 to -5 (inclusive)
-for i: sbyte = 5 downto -5 {
+// Count down from 5 to -5 (inclusive); sword represents the terminal -6.
+for (let i: sword = 5; i >= -5; i -= 1) {
     process(i);   // 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5
 }
 
 // Signed step
-for i: sbyte = -10 to 10 step 3 {
+for (let i: sbyte = -10; i <= 10; i += 3) {
     plot(i);      // -10, -7, -4, -1, 2, 5, 8
 }
 ```
 
-The loop bound and step must match the loop variable's signedness.
+The initializer, condition, and update use ordinary signed-expression and conversion rules. A
+semantic counter type must represent every value observed by the next condition; proof-based
+induction narrowing may still select a cheaper machine representation.
 
 ### ST-A7: What about `boolean` ↔ signed conversions?
 
@@ -603,22 +628,21 @@ let sw: sword = sword(b);     // ✅ Explicit cast: zero-extend to 16-bit, label
 
 ## Error Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| E10080 | Cannot implicitly convert `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
-| E10081 | Cannot mix signed type `<type_a>` with unsigned type `<type_b>` in expression — cast one operand |
-| E10082 | Cannot implicitly narrow `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
-| E10083 | Cannot negate unsigned type `<type>` — use `sbyte`/`sword` for signed arithmetic |
-| E10084 | Value `<value>` out of range for type `<type>` (range: `<min>` to `<max>`) |
-| E10085 | Array index must be unsigned type (`byte` or `word`) — found `<type>` |
-| E10086 | Cannot cast `<from_type>` to `<to_type>` — boolean is not convertible to/from integer types |
+| E10080 | [Chapter 14](../14-diagnostics.md) |
+| E10081 | [Chapter 14](../14-diagnostics.md) |
+| E10082 | [Chapter 14](../14-diagnostics.md) |
+| E10083 | [Chapter 14](../14-diagnostics.md) |
+| E10084 | [Chapter 14](../14-diagnostics.md) |
+| E10086 | [Chapter 14](../14-diagnostics.md) |
 
 ### Warning Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| W10100 | Signed overflow in constant expression — result wraps to `<value>` |
-| W10101 | Narrowing cast from `<from_type>` to `<to_type>` truncates value `<value>` to `<result>` |
+| W10100 | [Chapter 14](../14-diagnostics.md) |
+| W10101 | [Chapter 14](../14-diagnostics.md) |
 
 ---
 
@@ -630,10 +654,10 @@ let sw: sword = sword(b);     // ✅ Explicit cast: zero-extend to 16-bit, label
 | F005 Memory placement | Valid in `zeropage {}` blocks, `let`, `const`. Same size as unsigned counterparts |
 | F006 Address-of | `&signedVar` returns `word`. No difference from unsigned |
 | F007 Interrupt functions | Signed types valid inside interrupt functions. No special behavior |
-| F008 For loop | Signed loop variables supported. Loop bounds/step must match signedness |
+| F008 For loop | Signed locals and expressions use ordinary three-clause semantics; signedness conversions remain explicit |
 | F009 Switch | `sbyte`/`sword` valid as switch expression type. Case values can be negative |
 | Enums | Enums remain unsigned (`byte`-backed). No signed enums |
-| Arrays | Signed element types valid. Array index must be unsigned |
+| Arrays | Signed element types and signed indices are valid. A known negative index is E10240; checked runtime access tests the lower bound, while unchecked address formation sign-extends the index. |
 | Type aliases | Not available — type aliases were rejected (REJ-001). Refer to signed types by their real names (`sbyte`, `sword`) |
 
 ---
@@ -719,7 +743,7 @@ module demo;
 
 // Draw a symmetric pattern: -10 to +10
 function drawPattern(): void {
-    for i: sbyte = -10 to 11 {    // exclusive upper bound: stops at 10
+    for (let i: sbyte = -10; i < 11; i += 1) {
         let screenX: byte = byte(sbyte(80) + i);
         plot(screenX, 100);
     }
@@ -727,7 +751,7 @@ function drawPattern(): void {
 
 // Countdown past zero
 function countdown(): void {
-    for i: sbyte = 5 downto -5 {  // inclusive lower bound: includes -5
+    for (let i: sword = 5; i >= -5; i -= 1) {
         display(i);
     }
 }
@@ -764,7 +788,7 @@ v2 had no signed types. Common v2 patterns and their v3 equivalents:
 | Rule | Status | Notes |
 |------|--------|-------|
 | H1 6502 implementable | ✅ | 6502 natively supports two's complement via N and V flags |
-| H2 Cost transparency | ✅ | Cost table documents exact cycle/byte differences |
+| H2 Cost transparency | ✅ | The cost table separates representation-neutral operations from selected sign-aware forms, gives exact boundaries for displayed sequences, and requires actual selected-path reporting where no context-free delta exists |
 | H3 SFA compatible | ✅ | Same allocation model as unsigned types |
 | H4 Memory footprint documented | ✅ | sbyte=1 byte, sword=2 bytes, same as unsigned |
 | H5 Fully deterministic | ✅ | Overflow wraps deterministically; all operations defined |
@@ -778,7 +802,7 @@ v2 had no signed types. Common v2 patterns and their v3 equivalents:
 | L3 Beginner-friendly | ✅ | C/TS devs understand signed integers |
 | L4 Minimal feature | ✅ | Two types + one mixing rule. No promotion hierarchy |
 | L5 No redundancy | ✅ | Signed types serve a purpose unsigned cannot (negative values) |
-| L6 Error messages defined | ✅ | 7 error codes + 2 warning codes cover all misuse |
+| L6 Error messages defined | ✅ | 6 error codes + 2 warning codes cover the defined misuse and advisory conditions |
 | L7 Compile-time failure preferred | ✅ | Type mixing caught at compile time; range violations caught at compile time |
 | L8 Feature interaction documented | ✅ | All feature interactions explicitly defined |
 | L9 Documentable with examples | ✅ | 4 examples covering physics, tables, clamping, loops |

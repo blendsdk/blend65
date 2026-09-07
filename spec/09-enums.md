@@ -272,19 +272,20 @@ Enums generate **no code and no data** on their own. They exist purely in the ty
 
 ---
 
-## 7. Error Codes
+## 7. Diagnostic Conditions
 
-All error codes defined in this chapter. The canonical registry is in → Ch 14.
+This chapter owns enum trigger predicates. Chapter 14 alone owns public severities, message
+templates, spans, suppression, and history.
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| E10230 | Non-constant member value | `Enum member value must be a compile-time byte constant — found '<expr>'` |
-| E10231 | Unknown enum reference | `Enum member '<member>' references an unknown enum '<name>' — did you mean '<suggestion>'?` |
-| E10232 | Duplicate member name | `Duplicate enum member name '<member>' in enum '<name>'` |
-| E10233 | Value out of range | `Enum member value '<value>' out of range — enum members must be 0–255 (enums are byte-backed)` |
-| E10234 | Empty enum | `Empty enum '<name>' — an enum must declare at least one member` |
-| E10235 | Type mismatch (byte→enum) | `Cannot assign '<type>' to enum '<name>' — use an explicit cast '<name>(<expr>)' to convert a byte to this enum` |
-| E10236 | Cross-enum comparison | `Cannot compare enum '<a>' with enum '<b>' — different enum types. Cast one to byte to compare underlying values` |
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10230 | An explicit enum member value is not a compile-time constant. | The member declaration is rejected. |
+| E10231 | An enum-member expression names an enum that does not resolve. | The reference is rejected. |
+| E10232 | One enum declares the same member name more than once. | The duplicate member is rejected. |
+| E10233 | An enum member value is outside 0–255. | The member is rejected because enum storage is one byte. |
+| E10234 | An enum declaration has no members. | The declaration is rejected. |
+| E10235 | A byte value reaches an enum-typed context without an explicit enum cast. | The conversion is rejected. |
+| E10236 | Equality compares values of different enum types without an explicit byte conversion. | The comparison is rejected. |
 
 ---
 

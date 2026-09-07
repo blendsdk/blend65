@@ -10,7 +10,10 @@
 
 ## Description
 
-Arrays are fixed-size, contiguous sequences of elements in memory. Under SFA, every array has a compile-time-known base address and size — no dynamic allocation, no resizing.
+Every stored array object is a fixed-size, contiguous sequence whose storage and extent are known at
+compile time; there is no dynamic allocation or resizing. An any-size array parameter is not a new
+stored array object: its SFA home receives the fixed caller object's runtime base address and element
+count.
 
 This feature also introduces:
 - **String literals** as syntactic sugar for `const byte[]` with platform-specific encoding
@@ -57,30 +60,33 @@ arr[index] = value;                          // write element
 
 **EBNF:**
 ```ebnf
-array_type     = type_name , "[" , [ const_expr ] , "]" ;
-array_init     = string_literal
-               | encoded_string
-               | "[" , [ init_content ] , "]" ;
-init_content   = value_list , [ ";" , fill_expr ]
-               | string_in_bracket , ";" , fill_expr
-               | ";" , fill_expr ;
-value_list     = expression , { "," , expression } ;
-string_in_bracket = string_literal | encoded_string ;
-fill_expr      = expression ;
-array_access   = identifier , "[" , expression , "]" ;
+array_type        = array_element_type , "[" , [ const_expression ] , "]" ;
+array_element_type = integer_type | "boolean" | qualified_name ;
+array_literal     = "[" , [ array_init_content ] , "]" ;
+array_init_content = expression , { "," , expression }
+                   | expression , { "," , expression } , ";" , expression
+                   | ";" , expression ;
 ```
+
+Array indexing uses the master grammar's `"[" , expression , "]"` `postfix_op` alternative; this
+fragment does not define a competing expression production.
 
 ### Element Types
 
-| Type | Size per Element | Max Elements (Tier 1) | Use Case |
-|------|-----------------|----------------------|----------|
+| Type | Size per Element | Elements in a 256-byte direct-offset window | Use Case |
+|------|-----------------|---------------------------------------------|----------|
 | `byte` | 1 byte | 256 | Entity properties, lookup tables, screen data |
 | `word` | 2 bytes | 128 | Address tables, jump tables, score arrays |
 | `sbyte` | 1 byte | 256 | Signed deltas, sine tables (-128..127) |
 | `sword` | 2 bytes | 128 | Signed offsets, large delta tables |
 | `boolean` | 1 byte | 256 | Flag arrays (alive/dead, visible/hidden) |
+| Enum type | 1 byte | 256 | Nominal state, kind, and mode tables |
 
-Arrays of structs are **deferred** — see Future Considerations. The struct-of-arrays (SoA) pattern is the idiomatic 6502 approach and should be preferred.
+Arrays accept non-`void` primitive, enum, and struct element types. Arrays of structs are part of
+v3 (F011 and Chapter 07). A struct-of-arrays (SoA) layout is often
+faster when a hot loop touches only a few fields, but that is a cost-guided layout choice rather
+than a language restriction. The compiler must preserve either source layout and report the
+addressing cost.
 
 ### Rules
 
@@ -95,46 +101,70 @@ let buffer: byte[40];                    // ✅ literal
 let data: byte[someVariable];           // ❌ E10110: size must be compile-time constant
 ```
 
-#### AR-2: Size Must Be At Least 1
+The extent expression is evaluated at full precision and must produce an integer in `0..65535`;
+otherwise E10264 rejects the type. The compiler then computes the complete array byte size at full
+precision. E10265 rejects a type larger than 65535 bytes, including a `word` or struct array whose
+element count itself fits. These are compile-time representation limits and add no runtime checks.
+
+An omitted extent is legal for an unsized function parameter and for a declaration whose
+initializer supplies a compile-time-known element count. A module/local storage declaration without
+such an initializer, and every struct field, requires an explicit extent; otherwise E10253 rejects
+the declaration. Explicit `[0]` and empty extent-inferencing initializers remain valid.
+
+#### AR-2: Zero-Length Arrays
 
 ```blend65
-let empty: byte[0];   // ❌ E10111: array size must be at least 1
+let empty: byte[0];          // ✅ zero storage bytes
+const noBytes: byte[] = ""; // ✅ inferred extent 0
 ```
 
-#### AR-3: Two-Tier Codegen Model
+A zero-length array has length zero and emits no data bytes. Its label remains a valid
+position marker, but no byte at that address belongs to the array. A known index is E10240; a
+runtime access follows the selected unchecked or `--bounds-check` policy.
 
-Arrays are compiled using one of two strategies based on **total byte size** (element count × element size):
+#### AR-3: Storage Size Does Not Select Source Index Type
 
-| Tier | Total Bytes | Index Type | Addressing Mode | Cost |
-|------|------------|------------|-----------------|------|
-| **Tier 1** | ≤ 256 | `byte` | Absolute,X / Absolute,Y | 4 cycles |
-| **Tier 2** | > 256 | `word` | (ZP),Y indirect | 5-6 cycles + 2 ZP bytes |
-
-The compiler automatically selects the tier. The developer must use the correct index type:
+All four integer types may index every array. The index is an element ordinal; total byte size
+affects placement, resource accounting, and profitable lowering but never source legality.
 
 ```blend65
-let small: byte[100];     // 100 bytes → Tier 1
-small[byteIndex] = 42;    // ✅ byte index
-small[wordIndex] = 42;    // ❌ E10117: requires byte index
+let small: byte[100];
+small[byteIndex] = 42;     // ✅
+small[wordIndex] = 42;     // ✅
 
-let large: byte[1000];    // 1000 bytes → Tier 2
-large[wordIndex] = 42;    // ✅ word index
-large[byteIndex] = 42;    // ❌ E10118: requires word index
+let large: byte[1000];
+large[byteIndex] = 42;     // ✅ ordinals representable by this byte value
+large[wordIndex] = 42;     // ✅ full word ordinal
 ```
 
-Word arrays at the tier boundary: `word[128]` = 256 bytes → Tier 1. `word[129]` = 258 bytes → Tier 2.
+The compiler chooses direct indexed or general 16-bit address formation per access from range,
+element-size, placement, and register facts. It may narrow only under proof that every source value
+and effective address remains identical.
 
-#### AR-4: Index Must Be Unsigned
+#### AR-4: Index-Ordinal Expression Context
 
-Array indices must be `byte` or `word` (unsigned). Signed types (`sbyte`, `sword`) are rejected:
+Direct integer-producing operations inside `array[...]` are evaluated in a local 16-bit-capable
+ordinal context. Before unary `~` or `-`, or binary `+`, `-`, `*`, `/`, `%`, `<<`, `>>`, `&`, `|`,
+or `^` evaluates without a narrow barrier, `byte` becomes `word` and `sbyte` becomes `sword`.
+Unsigned unary minus remains illegal; comparisons and logical operators produce `boolean` and are
+therefore invalid indices:
 
 ```blend65
-let i: sbyte = 5;
-arr[i];            // ❌ E10085: array index must be unsigned (byte or word)
-arr[byte(i)];      // ✅ explicit cast
+let data: byte[500];
+let shifted: byte[600];
+let i: byte = 255;
+data[i + 10];          // ✅ ordinal 265
+shifted[i << 1];        // ✅ ordinal 510
+data[510];              // ❌ E10240: ordinal 510 is outside data[0..499]
+data[byte(i + 10)];    // ✅ explicit narrow barrier, ordinal 9
 ```
 
-(Error E10085 defined in F010.)
+Parentheses and selected conditional arms propagate the context. Explicit 8-bit casts, typed
+8-bit assignment/compound assignment, and arithmetic completed inside a called function are
+deliberate narrow barriers. Mixed signedness keeps its ordinary explicit-cast rule. A known
+negative or out-of-extent ordinal is E10240. Checked runtime access tests signed lower and upper
+bounds; unchecked signed access sign-extends into the 16-bit address calculation. Proof may keep
+the emitted work byte-only or consume carry directly without creating a source-visible word.
 
 #### AR-5: No Whole-Array Assignment
 
@@ -147,7 +177,7 @@ a = b;             // ❌ E10119: cannot assign whole array — copy elements in
 **Rationale**: Hidden loop violates A4 (explicit over implicit) and H2 (cost transparency). Use a for loop:
 
 ```blend65
-for (i: byte = 0 to length(a)) {
+for (let i: word = 0; i < length(a); i += 1) {
     a[i] = b[i];
 }
 ```
@@ -177,11 +207,20 @@ function fillTable(out: byte[4]): void {
 
 #### AR-8: Bounds Checking
 
-**Compile-time**: When the index is a compile-time constant, the compiler checks it against array size. Out-of-bounds constant index is a compile error.
+**Compile-time**: When the compiler can prove an index is outside the array extent, compilation
+fails. The canonical diagnostic is defined in Chapter 14.
 
-**Runtime**: No bounds checking by default (too expensive for 6502). The compiler flag `--bounds-check` enables runtime checks for debugging — inserts compare-and-trap code before each access. This is a debug tool, not for production.
+**Runtime, default**: No implicit check, trap, clamp, or reduction modulo the array length is
+emitted. The effective address is `(base + index * elementSize) modulo 65536`. A multi-byte element
+continues byte by byte across `$FFFF` to `$0000`; active platform banking, ROM, RAM, and MMIO effects
+remain observable. The optimizer may use a sound range proof but may never assume an unproved index
+is in range.
 
-**Without `--bounds-check`**: Out-of-bounds runtime access wraps modulo the addressing space. Behavior is defined (not undefined) but undesirable — the developer is responsible for correct indices.
+**Runtime, `--bounds-check`**: This independent, default-off development option emits an inline
+check before effective-address formation or any memory/MMIO effect. The index and address operands
+are evaluated once. A failure enters the platform's source-labelled, non-returning safety stop; it
+does not call a linked runtime, trap handler, or user callback. A sound proof removes the check.
+The build report lists instrumented and elided sites, ROM cost, and successful-path cycles.
 
 ---
 
@@ -270,6 +309,9 @@ let buf: byte[40];          // ⚠️ W10141: uninitialized array — all elemen
 let buf: byte[40] = [; 0];  // ✅ No warning — explicitly filled
 ```
 
+The warning requires a nonzero extent. `let empty: byte[0];` owns no element whose bits could be
+indeterminate and therefore does not emit W10141.
+
 ---
 
 ## Part 3: String Literals
@@ -286,25 +328,26 @@ const MSG: byte[] = "HELLO";
 // (byte values depend on platform encoding)
 ```
 
-The compiler encodes the string using the platform profile's `defaultStringEncoding` setting.
+The compiler encodes the string using the platform profile's `default_encoding` and
+`default_character_map` settings.
 
 #### STR-2: Platform Default Encoding
 
 The platform profile defines the default encoding:
 
-| Platform | Default Encoding | Available Encodings |
-|----------|-----------------|-------------------|
-| C64 | `screen_codes` | `petscii`, `screen_codes` |
-| C64 Ultimate | `screen_codes` | `petscii`, `screen_codes` |
-| CX16 | `screen_codes` | `petscii`, `screen_codes` |
-| Atari 800XL | `internal_codes` | `atascii`, `internal_codes` |
-| Atari 7800 | `raw` | `raw` (no encoding — ASCII values pass through) |
+| Platform | Default Encoding | Default Map | Available Named Encodings |
+|----------|------------------|-------------|---------------------------|
+| C64 | `screen_codes` | `upper_graphics` | `petscii`, `screen_codes` |
+| C64 Ultimate | `screen_codes` | `upper_graphics` | `petscii`, `screen_codes` |
+| CX16 | `raw` | `raw` | None; specialized maps await the X16 expert extension |
+| Atari 800XL | `raw` | `raw` | None; specialized maps await the Atari expert extension |
+| Atari 7800 | `raw` | `raw` | None |
 
 The default can be overridden in the platform profile configuration.
 
 #### STR-3: Encoding Intrinsics (Cast-Style)
 
-To use a non-default encoding, use the encoding intrinsic:
+To use a non-default encoding, use a target-registered named encoding intrinsic:
 
 ```blend65
 // Platform default encoding:
@@ -313,26 +356,32 @@ const TITLE: byte[] = "GAME OVER";
 // Explicit encoding:
 const KERNAL_MSG: byte[] = petscii("HELLO");         // PETSCII for KERNAL I/O
 const SCREEN_MSG: byte[] = screen_codes("SCORE:");   // Screen codes for direct screen write
-const ATARI_MSG: byte[] = atascii("READY");          // ATASCII for Atari I/O
+const MIXED_CASE: byte[] = screen_codes("Hello", "lower_upper");
 ```
 
-Encoding intrinsics are polymorphic:
+There is no generic `encode()` intrinsic. Named intrinsics make the chosen byte contract visible in
+source and are polymorphic:
 
 | Input | Output | Example |
 |-------|--------|---------|
 | String literal `"..."` | `byte[]` (array of encoded bytes) | `petscii("HI")` → `byte[2]` |
 | Character literal `'.'` | `byte` (single encoded byte) | `petscii('.')` → `byte` |
+| Literal plus map-key string literal | Same as the first argument | `screen_codes("Hello", "lower_upper")` → `byte[5]` |
+
+The optional map argument is compile-time-only and must be a string literal. It selects one
+immutable map for that literal; it does not change the machine's active character set. E10251
+rejects a non-literal map argument, and E10125 rejects an unavailable encoding or map key.
 
 Using an encoding not available for the target platform is a compile error:
 
 ```blend65
 // Compiling for Atari 800XL:
-const MSG: byte[] = petscii("HI");  // ❌ E10125: unknown encoding 'petscii' for platform 'a800xl'
+const MSG: byte[] = petscii("HI");  // ❌ E10125: 'petscii' is unavailable for 'a800xl'
 ```
 
 #### STR-4: Raw Bytes, No Automatic Termination
 
-String literals produce raw bytes — no null terminator, no length prefix:
+String literals produce an encoded byte array with no null terminator and no length prefix:
 
 ```blend65
 const MSG: byte[] = "HELLO";
@@ -351,12 +400,21 @@ const MSG_Z: byte[] = "HELLO\0";
 
 | Escape | Value | Description |
 |--------|-------|-------------|
-| `\\` | `$5C` | Literal backslash |
-| `\"` | Encoding of `"` | Double quote |
-| `\0` | `$00` | Null byte |
-| `\xNN` | `$NN` | Arbitrary hex byte value |
+| `\\` | Encoding of `\` | Backslash character |
+| `\"` | Encoding of `"` | Double-quote character |
+| `\'` | Encoding of `'` | Single-quote character |
+| `\n` | Selected encoding mapping | Symbolic newline |
+| `\r` | Selected encoding mapping | Symbolic carriage return |
+| `\t` | Selected encoding mapping | Symbolic horizontal tab |
+| `\0` | `$00` | Exact null byte, independent of encoding |
+| `\xNN` | `$NN` | Exact byte, independent of encoding |
 
-No `\n`, `\t`, `\r` — these are meaningless on screen-mapped 6502 displays.
+The set is closed. Lexing accepts every spelling above and preserves ordinary literal characters
+as exact Unicode scalar values. Semantic encoding maps every ordinary scalar and symbolic escape
+through the selected table, with no normalization, transliteration, replacement, or lossy
+fallback. E10249 rejects a missing mapping; it also rejects a character literal whose mapping is
+not exactly one byte. The developer can select an available named encoding or write the exact
+required byte with `\xNN`; `\0` and `\xNN` always bypass encoding.
 
 #### STR-6: Double Quotes for Strings
 
@@ -382,15 +440,19 @@ Character literals are single-byte values written in single quotes.
 **EBNF:**
 ```ebnf
 char_literal = "'" , ( char_char | escape_seq ) , "'" ;
-char_char    = ? any printable character except ' and \ ? ;
-escape_seq   = "\\" | "\'" | "\0" | "\x" , hex_digit , hex_digit ;
+char_char    = ? any single Unicode scalar value except U+0027, U+005C, U+000D, or U+000A ? ;
+escape_seq   = ? U+005C REVERSE SOLIDUS ?
+             , ( "n" | "r" | "t" | "0" | ? U+005C REVERSE SOLIDUS ? | '"' | "'"
+                         | "x" , hex_digit , hex_digit ) ;
 ```
 
 ### Rules
 
 #### CL-1: Character Literals Are Byte Values
 
-A character literal is a `byte` constant. It is encoded using the platform's default encoding:
+A character literal is a `byte` constant. It contains one Unicode scalar value or one escape and
+is encoded using the platform's default encoding and character map. The mapping must produce
+exactly one byte or E10249; there is no Unicode normalization or replacement.
 
 ```blend65
 let ch: byte = 'A';           // Same as: let ch: byte = 65; (on ASCII-based platforms)
@@ -505,7 +567,7 @@ function readTable(t: const byte[256]): void {
 
 ```blend65
 function clear(buf: byte[40]): void {
-    for (i: byte = 0 to 40) {
+    for (let i: byte = 0; i < 40; i += 1) {
         buf[i] = 0;
     }
 }
@@ -517,7 +579,7 @@ The parameter specifies an exact size. The compiler enforces that the argument m
 let screen: byte[40];
 let small: byte[10];
 clear(screen);     // ✅ byte[40] → byte[40]
-clear(small);      // ❌ E-size: array size mismatch — expected 40, found 10
+clear(small);      // ❌ E10172: array size mismatch — expected 40, found 10
 ```
 
 `length(buf)` inside the function returns the compile-time constant 40.
@@ -525,40 +587,49 @@ clear(small);      // ❌ E-size: array size mismatch — expected 40, found 10
 ### Unsized Parameters
 
 ```blend65
-function sum(data: const byte[], len: byte): byte {
-    let total: byte = 0;
-    for (i: byte = 0 to len) {
-        total = total + data[i];
+function sum(data: const byte[]): word {
+    let total: word = 0;
+    for (let i: word = 0; i < length(data); i += 1) {
+        total += word(data[i]);
     }
     return total;
 }
 ```
 
-`byte[]` without a size accepts any byte array. The compiler passes the array address. The developer passes the length manually (or uses `length()` at the call site).
+`byte[]` in parameter position accepts a fixed byte array of any extent. The caller passes the base
+address and full word element count through compiler-managed homes. This is an existing array
+parameter form, not a dynamic array, slice, span, view, storable value, or return type.
 
 ```blend65
 let a: byte[] = [1, 2, 3];
 let b: byte[10] = [; 0];
-let s1: byte = sum(a, length(a));    // ✅ length(a) = 3
-let s2: byte = sum(b, length(b));    // ✅ length(b) = 10
+let s1: word = sum(a);
+let s2: word = sum(b);
 ```
+
+An any-size parameter may be forwarded only to another compatible any-size parameter. It cannot be
+assigned, stored, returned, converted to an exact `T[N]`, or used to manufacture a subarray.
 
 ### Parameter Codegen
 
-Arrays are passed by reference (compiler passes the address):
+Exact arrays are passed by reference using a two-byte address home. Any-size parameters also carry
+the full two-byte element count:
 
 ```asm
-; Caller: sum(a, length(a))
+; Caller: sum(a), where a has three elements
 LDA #<a
-STA param_ptr        ; ZP pointer low
+STA sum_data_addr
 LDA #>a
-STA param_ptr+1      ; ZP pointer high
-LDA #3               ; length
-STA param_len
+STA sum_data_addr+1
+LDA #3
+STA sum_data_length
+LDA #0
+STA sum_data_length+1
 JSR sum
 ```
 
-Cost: 2 ZP bytes for pointer + 1 byte for length parameter.
+Cost: two SFA bytes for an exact array parameter; four for an any-size parameter. ZP placement is
+an allocation decision, not a source or ABI promise. No helper, element copy, or runtime is added.
 
 ---
 
@@ -571,12 +642,12 @@ Cost: 2 ZP bytes for pointer + 1 byte for length parameter.
 | Fixed-size array (`byte[40]`) | 40 | Compile-time constant | 0 cycles |
 | Size-inferred array (`byte[] = [1,2,3]`) | 3 | Compile-time constant | 0 cycles |
 | Sized parameter (`byte[40]`) | 40 | Compile-time constant | 0 cycles |
-| Unsized parameter (`byte[]`) | Caller-passed value | Runtime `byte` or `word` | 1 LDA |
+| Unsized parameter (`byte[]`) | Caller array's full element count | Runtime `word` | Load compiler-managed count |
 
 ```blend65
 const TABLE: byte[] = [10, 20, 30, 40, 50];
 
-for (i: byte = 0 to length(TABLE)) {   // length = 5, compile-time
+for (let i: word = 0; i < length(TABLE); i += 1) { // length = 5, compile-time
     poke($0400 + word(i), TABLE[i]);
 }
 ```
@@ -585,7 +656,7 @@ for (i: byte = 0 to length(TABLE)) {   // length = 5, compile-time
 
 ## 6502 Code Generation
 
-### Tier 1: Byte Array Read (≤256 bytes)
+### Proven Byte-Offset Direct Read
 
 ```blend65
 let arr: byte[100];
@@ -594,11 +665,11 @@ let val: byte = arr[i];
 
 ```asm
 LDX i
-LDA arr,X          ; Absolute,X — 4 cycles, 3 bytes ROM
+LDA arr,X          ; Absolute,X — 4 cycles, or 5 on a page-crossing read; 3 bytes ROM
 STA val
 ```
 
-### Tier 1: Byte Array Write
+### Proven Byte-Offset Direct Write
 
 ```blend65
 arr[i] = 42;
@@ -607,15 +678,15 @@ arr[i] = 42;
 ```asm
 LDX i
 LDA #42
-STA arr,X          ; 4 cycles, 3 bytes ROM
+STA arr,X          ; Absolute,X store — 5 cycles, 3 bytes ROM
 ```
 
-### Tier 1: Word Array Read
+### Proven Byte-Offset Word-Element Read
 
 ```blend65
 let addrs: word[64];
-let lo: byte;
-let hi: byte;
+let addressLow: byte;
+let addressHigh: byte;
 // Access addrs[i]: need offset = i * 2
 ```
 
@@ -623,14 +694,14 @@ let hi: byte;
 LDA i
 ASL A              ; A = i * 2
 TAX
-LDA addrs,X       ; Low byte — 4 cycles
-STA lo
-LDA addrs+1,X     ; High byte — 4 cycles
-STA hi
-; Total: ~12 cycles
+LDA addrs,X       ; Low byte — 4 cycles, or 5 on page crossing
+STA addressLow
+LDA addrs+1,X     ; High byte — 4 cycles, or 5 on page crossing
+STA addressHigh
+; Total shown: 21–26 cycles and 14–17 bytes, depending on ZP/absolute homes and page crossings
 ```
 
-### Tier 2: Large Array Read (>256 bytes)
+### General 16-Bit Address Formation
 
 ```blend65
 let screen: byte[1000];
@@ -647,9 +718,10 @@ LDA #>screen
 ADC pos_hi         ; Add index high byte (with carry)
 STA ptr+1
 LDY #0
-LDA (ptr),Y        ; Indirect indexed — 5-6 cycles
+LDA (ptr),Y        ; Indirect indexed with Y=0 — exactly 5 cycles
 STA val
-; Total: ~20 cycles + 2 ZP bytes
+; Total shown: 28–31 cycles and 19–22 ROM bytes, depending on ZP/absolute homes,
+; plus the compiler-owned 2-byte ZP pointer
 ```
 
 ### Fill Initialization
@@ -664,7 +736,8 @@ LDX #39
 .fill:
 STA buf,X
 DEX
-BPL .fill           ; ~200 cycles for 40 bytes, 7 bytes ROM
+BPL .fill           ; 403 cycles including setup when the backedge stays on-page; 10 bytes ROM
+                    ; 442 cycles if the taken backedge crosses a page (39 extra cycles)
 ```
 
 ### Partial Initialization with Fill
@@ -706,14 +779,14 @@ STA x
 
 ## Cost Summary
 
-| Operation | Tier 1 (≤256B) | Tier 2 (>256B) | Notes |
-|-----------|---------------|----------------|-------|
-| Element read | 4 cycles | 20 cycles | +2 ZP bytes for Tier 2 |
-| Element write | 4 cycles | 20 cycles | +2 ZP bytes for Tier 2 |
-| Word element read | 12 cycles | 24 cycles | Index multiply by 2 (shift) |
-| Fill (N bytes) | ~5N cycles | ~5N cycles | Init loop |
-| length() | 0 cycles | 0 cycles | Compile-time constant |
-| Array param passing | ~10 cycles | ~10 cycles | Set up ZP pointer |
+| Operation | Best proven shape | General shape | Notes |
+|-----------|-------------------|---------------|-------|
+| Byte-element read/write | Direct absolute indexed | 16-bit address formation + indirect access | Selected per access, not declaration size |
+| Multi-byte element read/write | Scaled direct offset | 16-bit scaled address formation | Every accessed byte preserves wrap/MMIO semantics |
+| Fill (`N` bytes) | Counted direct loop | Paged/16-bit loop | Selected from extent and placement |
+| `length(fixed)` | Compile-time constant | — | Semantic type is always `word`; proof may narrow machine state |
+| `length(anySizeParam)` | Load carried word count | — | No helper or runtime |
+| Exact/any-size parameter | Store 2-byte address / address + 2-byte count | — | Ordinary SFA homes |
 
 ---
 
@@ -735,17 +808,23 @@ Access: `entry.name[1]` computes `&entry + offset_of_name + 1`.
 
 ### AR-A2: Arrays of structs?
 
-**Deferred.** The struct-of-arrays pattern is idiomatic on 6502:
+**Yes.** Arrays of structs are valid v3 source. A struct-of-arrays pattern can be faster when a hot
+loop touches only a subset of fields, but that is a measured layout choice rather than a language
+restriction:
 
 ```blend65
-// ❌ Deferred: let enemies: Enemy[8];    // requires multiply by sizeof(Enemy)
-// ✅ Preferred: struct-of-arrays
+// Valid array-of-structs layout
+let enemies: Enemy[8];
+
+// Optional struct-of-arrays layout when measurements justify it
 let enemyX: byte[8];
 let enemyY: byte[8];
 let enemyHP: byte[8];
 ```
 
-(Note: F011 showed examples with arrays of structs. Those examples illustrate potential future syntax but are not part of the v3 core language.)
+The compiler must support both forms and report their actual addressing and storage costs. It must
+not reject the array-of-structs form merely because multiplication or address formation needs
+lowering.
 
 ### AR-A3: Multidimensional arrays?
 
@@ -784,13 +863,15 @@ The existing W10030 (ZP budget warning) applies. Large ZP arrays will trigger th
 
 ```blend65
 const TABLE: byte[] = [1, 2, 3, 4, 5];
-const TABLE_SIZE: byte = length(TABLE);    // ✅ = 5, compile-time constant
+const TABLE_SIZE: word = length(TABLE);    // ✅ = 5, compile-time constant
 let copy: byte[length(TABLE)];             // ✅ valid array size
 ```
 
 ### AR-A7: What is the type of `length()`?
 
-For arrays ≤256 elements: `byte`. For arrays >256 elements: `word`. The compiler selects based on the array's declared size.
+Always `word`. Fixed extents fold at compile time; an any-size parameter reads the full word count
+provided by the caller. A 256-element array therefore returns 256 without a type boundary. Machine
+representation may narrow only when proof preserves every use.
 
 ### AR-A8: Can you take `&` of an array?
 
@@ -805,23 +886,23 @@ let addr: word = &buf;     // ✅ base address of array
 
 ### AR-A9: Default encoding choice rationale
 
-Games overwhelmingly write directly to screen memory, not through OS I/O routines. Therefore:
-- C64/CX16: Default is `screen_codes` (not PETSCII)
-- Atari 800XL: Default is `internal_codes` (not ATASCII)
-- Atari 7800: Default is `raw` (no standard encoding)
+Games overwhelmingly write directly to screen memory, not through OS I/O routines. Therefore the
+C64/C64U default is `screen_codes` with the power-on `upper_graphics` ROM map. CX16 and Atari
+targets keep the exact `ascii-raw-v1` byte baseline until separate expert extensions qualify their
+machine-specific text maps; this baseline is not a claim about display hardware.
 
-Developers using KERNAL/OS output routines use the encoding intrinsic explicitly: `petscii("HELLO")`.
+Developers using C64 KERNAL output routines select PETSCII explicitly: `petscii("HELLO")`.
 
 ### AR-A10: Encoding intrinsic availability
 
 Encoding intrinsics are platform-specific. The platform profile defines which are available:
 
-| Intrinsic | C64 | CX16 | Atari 800XL | Atari 7800 |
-|-----------|-----|------|-------------|------------|
-| `petscii()` | ✅ | ✅ | ❌ | ❌ |
-| `screen_codes()` | ✅ | ✅ | ❌ | ❌ |
-| `atascii()` | ❌ | ❌ | ✅ | ❌ |
-| `internal_codes()` | ❌ | ❌ | ✅ | ❌ |
+| Intrinsic | C64 / C64U | CX16 | Atari 800XL | Atari 7800 |
+|-----------|------------|------|-------------|------------|
+| `petscii()` | ✅ | ❌ | ❌ | ❌ |
+| `screen_codes()` | ✅ | ❌ | ❌ | ❌ |
+| `atascii()` | ❌ | ❌ | Reserved, inactive | ❌ |
+| `internal_codes()` | ❌ | ❌ | Reserved, inactive | ❌ |
 
 Using an unavailable intrinsic → E10125.
 
@@ -829,33 +910,35 @@ Using an unavailable intrinsic → E10125.
 
 ## Error Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| E10110 | Array size must be a compile-time constant expression — found `<expr>` |
-| E10111 | Array size must be at least 1 — found `<size>` |
-| E10112 | Array initializer has `<N>` elements but array size is `<M>` |
-| E10113 | Const array must be fully initialized — `<N>` elements provided for size `<M>`. Use fill syntax: `[values; fill]` |
-| E10114 | Fill syntax `[...; fill]` requires explicit array size — use `type[N] = [values; fill]` |
-| E10115 | Fill value must be a single element — found string or array |
-| E10116 | Cannot mix string literals with value elements in array initializer |
-| E10117 | Array `<name>` (≤256 bytes) requires `byte` index — found `<type>` |
-| E10118 | Array `<name>` (>256 bytes) requires `word` index — found `<type>` |
-| E10119 | Cannot assign whole array — copy elements individually using a loop |
-| E10120 | Cannot return array type from function — use an array parameter instead |
-| E10121 | Cannot compare arrays with `<op>` — compare individual elements |
-| E10122 | Cannot pass const `<name>` to mutable parameter `<param>` — add `const` to parameter or copy to mutable variable |
-| E10123 | Cannot modify const parameter `<name>` — parameter is declared `const` |
-| E10124 | String literal (`<N>` bytes) exceeds array size (`<M>`) |
-| E10125 | Unknown encoding `<name>` for platform `<platform>` — available: `<list>` |
+| E10110 | [Chapter 14](../14-diagnostics.md) |
+| E10112 | [Chapter 14](../14-diagnostics.md) |
+| E10113 | [Chapter 14](../14-diagnostics.md) |
+| E10114 | [Chapter 14](../14-diagnostics.md) |
+| E10115 | [Chapter 14](../14-diagnostics.md) |
+| E10116 | [Chapter 14](../14-diagnostics.md) |
+| E10119 | [Chapter 14](../14-diagnostics.md) |
+| E10120 | [Chapter 14](../14-diagnostics.md) |
+| E10121 | [Chapter 14](../14-diagnostics.md) |
+| E10122 | [Chapter 14](../14-diagnostics.md) |
+| E10123 | [Chapter 14](../14-diagnostics.md) |
+| E10124 | [Chapter 14](../14-diagnostics.md) |
+| E10125 | [Chapter 14](../14-diagnostics.md) |
+| E10249 | [Chapter 14](../14-diagnostics.md) |
+| E10251 | [Chapter 14](../14-diagnostics.md) |
+| E10253 | [Chapter 14](../14-diagnostics.md) |
+| E10263 | [Chapter 14](../14-diagnostics.md) |
+| E10264 | [Chapter 14](../14-diagnostics.md) — extent is not an integer in `0..65535` |
+| E10265 | [Chapter 14](../14-diagnostics.md) — total array byte size exceeds 65535 |
 
 ### Warning Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| W10140 | Partially initialized array `<name>` — `<N>` of `<M>` elements initialized, remaining are indeterminate |
-| W10141 | Uninitialized array `<name>` — all `<N>` elements are indeterminate |
-| W10142 | Array `<name>` (`<N>` bytes) uses indirect addressing — access is slower than direct indexed arrays (≤256 bytes) |
-| W10143 | Large array `<name>` (`<N>` bytes) on platform `<platform>` — consider total RAM budget |
+| W10140 | [Chapter 14](../14-diagnostics.md) |
+| W10141 | [Chapter 14](../14-diagnostics.md) — nonzero mutable array without an initializer |
+| W10143 | [Chapter 14](../14-diagnostics.md) — mutable-array RAM allocation reaches the profile threshold |
 
 ---
 
@@ -866,11 +949,11 @@ Using an unavailable intrinsic → E10125.
 | F003 Module contents | Arrays/consts at module level. length() as constant expression |
 | F005 Memory placement | `let` → RAM, `const` → data/ROM, `zeropage { arr: byte[4]; }` → ZP |
 | F006 Address-of | `&arr` → word (base address). `&arr[i]` deferred (E10042) |
-| F008 For loop | `for (i = 0 to length(arr))` — natural array iteration pattern |
-| F010 Signed types | Signed types valid as elements. Signed indices rejected (E10085) |
-| F011 Structs | Arrays as struct fields. Const params apply to both. No struct arrays in v3 |
+| F008 For loop | `for (let i: word = 0; i < length(arr); i += 1)` visits every valid index once; the optimizer may narrow the machine induction state when proven safe |
+| F010 Signed types | Signed types are valid as elements and indices; known negative indices are E10240, checked runtime indices test the lower bound, and unchecked indices sign-extend into the 16-bit address domain |
+| F011 Structs | Arrays as struct fields and arrays of structs are both valid. Const params apply to both; layout choice remains explicit and costed |
 | F013 Control flow | Arrays in conditions via element access: `if (arr[i] == target)` |
-| Platform profiles | Encoding tables, default encoding, available encoding intrinsics |
+| Platform profiles | Encoding tables, immutable map identities, defaults, and available encoding intrinsics |
 
 ---
 
@@ -917,7 +1000,7 @@ function spawnEntity(x: byte, y: byte, hp: byte): void {
 }
 
 function updateAll(): void {
-    for (i: byte = 0 to entityCount) {
+    for (let i: byte = 0; i < entityCount; i += 1) {
         if (entityActive[i]) {
             entityY[i] = entityY[i] + 1;
             if (entityY[i] == 0) {
@@ -936,15 +1019,15 @@ module ui;
 const SCORE_LABEL: byte[] = screen_codes("SCORE:");
 const LIVES_LABEL: byte[] = screen_codes("LIVES:");
 
-function drawLabel(screen_addr: word, label: const byte[], len: byte): void {
-    for (i: byte = 0 to len) {
-        poke(screen_addr + word(i), label[i]);
+function drawLabel(screen_addr: word, label: const byte[]): void {
+    for (let i: word = 0; i < length(label); i += 1) {
+        poke(screen_addr + i, label[i]);
     }
 }
 
 function drawUI(): void {
-    drawLabel($0400, SCORE_LABEL, length(SCORE_LABEL));
-    drawLabel($0428, LIVES_LABEL, length(LIVES_LABEL));
+    drawLabel($0400, SCORE_LABEL);
+    drawLabel($0428, LIVES_LABEL);
 }
 ```
 
@@ -965,7 +1048,7 @@ function addChar(ch: byte): void {
 }
 
 function clearInput(): void {
-    for (i: byte = 0 to MAX_INPUT) {
+    for (let i: byte = 0; i < MAX_INPUT; i += 1) {
         inputBuffer[i] = ' ';
     }
     inputPos = 0;
@@ -981,8 +1064,8 @@ const RAMP: byte[] = [0, 11, 12, 15, 1, 15, 12, 11];
 let rampOffset: byte = 0;
 
 function cycleColors(): void {
-    for (i: byte = 0 to length(RAMP)) {
-        let colorIndex: byte = (i + rampOffset) & 7;  // Wrap at 8
+    for (let i: word = 0; i < length(RAMP); i += 1) {
+        let colorIndex: byte = byte((i + rampOffset) & 7);  // Explicit proven-safe narrowing
         poke($D800 + word(i), RAMP[colorIndex]);
     }
     rampOffset = rampOffset + 1;
@@ -997,20 +1080,20 @@ function cycleColors(): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| P1 Cross-platform compilable | ✅ | Fixed-size arrays are universal. Two-tier codegen works on all 6502 platforms |
+| P1 Cross-platform compilable | ✅ | Fixed-size arrays and ordinary integer ordinals are universal; each backend selects legal addressing per access |
 | P2 Platform-meaningful | ✅ | Lookup tables, entity arrays, screen buffers — core game dev patterns on every platform |
 | P3 No platform assumptions | ✅ | Core array semantics are platform-neutral. Encoding is via platform profiles |
-| P4 Resource-scalable | ✅ | W10142 warns about large arrays. W10143 warns about RAM budget. Tier 2 codegen scales naturally |
+| P4 Resource-scalable | ✅ | W10143 warns about mutable-array RAM pressure; the build report exposes each selected access cost |
 
 ### Hardware / 6502 Feasibility (H)
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| H1 6502 implementable | ✅ | Absolute,X for Tier 1; (ZP),Y for Tier 2 — native 6502 addressing modes |
-| H2 Cost transparency | ✅ | Full cost table. Tier boundary clearly documented. Compiler warns about tier transitions |
+| H1 6502 implementable | ✅ | Direct indexed and 16-bit pointer-based forms cover the complete fixed-array model |
+| H2 Cost transparency | ✅ | The build report records the actual sequence, scratch, bytes, and cycles selected per access |
 | H3 SFA compatible | ✅ | All arrays fixed-size, compile-time-known addresses. No dynamic allocation |
-| H4 Memory footprint documented | ✅ | Element size × count = total bytes. ZP cost for Tier 2 documented |
-| H5 Fully deterministic | ✅ | Out-of-bounds with --bounds-check: defined trap. Without: wrapping (defined). Const params prevent ROM writes |
+| H4 Memory footprint documented | ✅ | Element size × count is fixed; any scratch or ZP pointer belongs to final SFA/resource closure |
+| H5 Bounded behavior | ✅ | Default effective addresses wrap modulo 65536 with real banking/MMIO effects; optional checks fail before access in a defined non-returning safety stop |
 
 ### Language Design Quality (L)
 
@@ -1019,9 +1102,9 @@ function cycleColors(): void {
 | L1 Unambiguous syntax | ✅ | `type[size]`, `arr[index]`, `[values; fill]` — all unambiguous in EBNF |
 | L2 Consistent with existing | ✅ | Same `name: type` pattern. Const/let distinction. Cast-style encoding intrinsics match F010 |
 | L3 Beginner-friendly | ✅ | Arrays, strings, character literals — familiar from C/TS/Java |
-| L4 Minimal feature | ✅ | No struct arrays, no multidimensional, no dynamic sizing. Minimum viable arrays |
+| L4 Minimal feature | ✅ | Fixed-size one-dimensional arrays include aggregate element types; multidimensional and dynamic sizing remain outside v3. |
 | L5 No redundancy | ✅ | No overlap with existing features. String literals are sugar, not a separate type |
-| L6 Error messages defined | ✅ | 16 error codes + 4 warning codes |
+| L6 Error messages defined | ✅ | Active array diagnostics are linked to the canonical Chapter-14 registry |
 | L7 Compile-time failure preferred | ✅ | Size checks, type checks, const safety — all at compile time |
 | L8 Feature interaction documented | ✅ | All interactions listed |
 | L9 Documentable with examples | ✅ | 5 examples: sine table, entity management, screen output, input buffer, color animation |
@@ -1031,9 +1114,9 @@ function cycleColors(): void {
 | Rule | Status | Notes |
 |------|--------|-------|
 | C1 Lexer/parser implementable | ✅ | `[`, `]` brackets, `;` for fill separator, `'c'` for char literals — standard tokenization |
-| C2 Semantic analysis defined | ✅ | Size validation, tier selection, index type checking, const propagation — all specified |
-| C3 Code generation strategy | ✅ | Both tiers fully documented with assembly patterns |
-| C4 Unit testable | ✅ | Each init form, each tier, each error — independently testable |
+| C2 Semantic analysis defined | ✅ | Size validation, index-ordinal context, extent propagation, any-size parameter length, and const propagation are specified |
+| C3 Code generation strategy | ✅ | Direct indexed and general 16-bit patterns are selected by proof per access |
+| C4 Unit testable | ✅ | Each initializer, width boundary, parameter form, addressing proof, and diagnostic is independently testable |
 | C5 Runtime verifiable | ✅ | Array contents deterministic; emulator-testable on all platforms |
 
 ### Future-Proofing (F)
@@ -1051,4 +1134,8 @@ None. All 23 rules pass.
 
 ### Verdict
 
-**✅ ACCEPTED** — Arrays provide the minimal, 6502-native data structure with two-tier codegen matching the hardware's indexed addressing capabilities. String literals integrate as byte arrays with platform-specific encoding. Const parameters close a critical safety gap for by-reference passing. The `[values; fill]` initialization model is clean and explicit.
+**✅ ACCEPTED** — Arrays remain fixed, contiguous, and statically allocated. Ordinary source
+indices are independent of backend addressing choices, any-size parameters carry only the full
+array address/count required by their existing role, and no dynamic array, slice, span, or view
+concept is added. String literals remain fixed byte arrays with platform-selected encoding; const
+parameters and explicit initialization preserve safety and cost transparency.

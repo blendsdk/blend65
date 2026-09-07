@@ -1,9 +1,10 @@
 # Qualification Cases: CPU, Lowering, and Optimization
 
 > **Oracle family**: Q-C01..Q-C24
-> **Authority gate**: The 47 non-conflicted external oracles across all case families passed the
-> Phase 2 source-to-invariant review. Q-C13 and Q-C19 remain `blocked-conflict`; later content
-> qualification cannot override those semantic blocks.
+> **Authority gate**: All 49 external machine-fact oracles across the case families are frozen. The
+> Phase-2 review froze 47 directly. The reconciled Phase-3 specification binds Q-C13 and
+> AR-P32/SC-131's replacement Q-C19 semantic oracle; Phase 4 still owns their CPU/lowering
+> qualification.
 > **Result policy**: Result entries are append-only. Draft observations cannot count as pass/fail release evidence.
 
 ## Shared Isolation Boundary
@@ -180,18 +181,16 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 ## Q-C13 — Signed right shift byte/word
 
 - **Risk / coverage cells:** Critical; `CPU-C13`, `LOWER-C13`.
-- **Oracle status:** `blocked-conflict` — the product ruling preserves arithmetic sign extension,
-  but the frozen specification must still be reconciled before this semantic field can freeze.
+- **Oracle status:** `frozen-external` — the reconciled specification preserves arithmetic sign
+  extension and the machine facts passed independent source review.
 - **Evaluator prompt:** “Signed right shift byte/word. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
 - **Permitted raw artifacts:** Byte/word negative and non-negative inputs, all relevant counts, candidate sequence, and result/flag trace.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
 - **Expected decision invariants:** Preserves arithmetic sign extension for signed `>>`. At counts
   at least the width, a negative operand produces `-1` and a non-negative operand produces `0`;
-  unsigned `>>` and `<<` produce `0`. It identifies the remaining specification conflict and
-  refuses to claim the wide-count oracle is frozen until reconciliation.
-- **Disqualifying outcomes:** Produces `0` for a negative signed wide right shift, uses `LSR` alone
-  as an arithmetic shift, or claims the conflict is closed before the frozen specification is
-  reconciled.
+  unsigned `>>` and `<<` produce `0`.
+- **Disqualifying outcomes:** Produces `0` for a negative signed wide right shift or uses `LSR`
+  alone as an arithmetic shift.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Not run.
@@ -211,18 +210,20 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Focused result:** Not run.
 - **Definitive result:** Not run.
 
-## Q-C15 — Signed division by power of two with negative odd value
+## Q-C15 — Signed division and remainder by a power of two with negative odd value
 
 - **Risk / coverage cells:** Critical; `CPU-C15`, `LOWER-C15`.
 - **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
-- **Evaluator prompt:** “Signed division by power of two with negative odd value. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
-- **Permitted raw artifacts:** The specified truncation-toward-zero division quotient rule,
-  negative odd boundaries, divisor powers of two, and candidate transformation.
+- **Evaluator prompt:** “Signed division and remainder by a power of two with negative odd value. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
+- **Permitted raw artifacts:** The specified truncation-toward-zero quotient and signed-remainder
+  identity, negative odd boundaries, divisor powers of two, and candidate transformations.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
-- **Expected decision invariants:** Preserves the specified truncation-toward-zero quotient. Signed
-  remainder behavior is outside this case because the frozen specification does not define it
-  precisely enough.
-- **Disqualifying outcomes:** Replaces blindly with arithmetic shift.
+- **Expected decision invariants:** Preserves the specified truncation-toward-zero quotient and
+  `r = a - q*b`, including `-3 / 2 == -1` and `-5 % 2 == -1`. Restricts plain shift/mask forms to
+  unsigned, proven-nonnegative, or otherwise proven-equivalent inputs; otherwise uses a sign-aware
+  correction or the general lowering.
+- **Disqualifying outcomes:** Replaces signed-negative division blindly with arithmetic shift or
+  signed-negative remainder blindly with a positive mask.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Not run.
@@ -270,20 +271,30 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Focused result:** Not run.
 - **Definitive result:** Not run.
 
-## Q-C19 — Full 256-iteration byte loop
+## Q-C19 — Full 256-iteration canonical loop
 
 - **Risk / coverage cells:** Major; `CPU-C19`, `LOWER-C19`.
-- **Oracle status:** `blocked-conflict` — the product ruling selects inclusive `to`, but the
-  frozen specification must still be reconciled before this semantic field can freeze.
-- **Evaluator prompt:** “Full 256-iteration byte loop. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
-- **Permitted raw artifacts:** Loop source, initial/final counter semantics, 0-versus-256 cases, candidate sequence, and execution count trace.
+- **Oracle status:** `frozen-project+external` after AR-P32 — ordinary three-clause semantics select
+  behavior; the machine facts passed independent source review.
+- **Evaluator prompt:** “Compare `for (let i: word = 0; i < 256; i += 1)` with the same loop using
+  `i: byte`. For the declared CPU, determine exact source behavior and the smallest expert lowering
+  for the word form. State every proof precondition and clobber, show the decisive state/path
+  reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding
+  costs where applicable.”
+- **Permitted raw artifacts:** Reconciled three-clause loop semantics, both loop sources,
+  initial/visited/terminal counter states, candidate sequence, execution-count trace, and selected
+  CPU `INX`/`DEX` and branch facts.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
-- **Expected decision invariants:** Preserves the accepted rule that `to` is inclusive,
-  `0 to 255` executes 256 iterations, and `0 to 256` is out of range. It identifies the remaining
-  specification conflict and refuses to claim the source-form oracle is frozen until reconciliation;
-  the hardware wrap behavior itself remains factual.
-- **Disqualifying outcomes:** Uses exclusive `to`, permits `0 to 256`, or claims the conflict is
-  closed before the frozen specification is reconciled.
+- **Expected decision invariants:** The word form visits 0 through 255 and reaches the semantic word
+  terminal state 256. It may use one byte of induction state and `INX` plus a wrap-to-zero exit only
+  when proof establishes the exact 256-step canonical shape, the semantic word value does not
+  escape, the terminal state is unobservable, and calls/effects cannot observe or change it. The
+  byte form wraps from 255 to 0, so `i < 256` stays true and the loop is deterministically infinite.
+  It is diagnosed only by ordinary compile-time nontermination policy, never silently converted to
+  a hidden range loop. Noncanonical loops use the correct general CFG lowering.
+- **Disqualifying outcomes:** Rejects the valid word loop, silently widens or repairs the byte loop,
+  loses an iteration, exposes the narrowed internal representation, applies wrap lowering without
+  its escape/effect proof, adds a runtime, or retains a second range-loop contract.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Not run.

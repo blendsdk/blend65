@@ -95,15 +95,25 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Focused result:** Not run.
 - **Definitive result:** Not run.
 
-## Q-P07 — Install compiler RTI handler through KERNAL vector versus raw vector
+## Q-P07 — Select KERNAL-chain, KERNAL-exclusive, or raw IRQ entry
 
 - **Risk / coverage cells:** Critical; `C64-P07`, `GAME-P07`.
 - **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
-- **Evaluator prompt:** “Install compiler RTI handler through KERNAL vector versus raw vector. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
-- **Permitted raw artifacts:** Handler source/assembly, vector path, ROM banking, KERNAL/raw entry assumptions, saved registers, and exit sequence.
+- **Evaluator prompt:** “Select among default KERNAL chaining, explicit KERNAL takeover, and raw IRQ installation for one source interrupt handler. State exact machine/video/chip, KERNAL revision, vector/banking, enabled-source, and nesting assumptions. Assign compiler/platform/developer ownership; account for bytes, cycles, static link storage, stack and visibility; give one counterexample and the independent proof needed.”
+- **Permitted raw artifacts:** Handler/helper source and assembly, selected profile, CINV and hardware vector paths, ROM banking, KERNAL/raw entry assumptions, saved registers, source acknowledgement, exit sequence, and cost report.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
-- **Expected decision invariants:** Matches entry/exit ABI and banking; detects extra wrapper pushes.
-- **Disqualifying outcomes:** Uses same prologue/RTI blindly.
+- **Expected decision invariants:** Default `setIRQ` uses the no-second-save CINV chain variant and a
+  reported two-byte saved prior vector whose low byte is at most `$FE`. It preserves entry flags
+  around a binary-mode Blend65 body before chaining. Explicit `setIRQExclusive` establishes binary
+  mode, uses the no-second-save `$EA81` restore tail, and requires ownership of every enabled source.
+  `setRawIRQ` exists only with a profile-proven writable/active raw vector, establishes binary mode,
+  and owns save/restore/`RTI`. The handler acknowledges its source, helpers remain `JSR`/`RTS`,
+  interrupted/chained status is preserved, and all variants/costs are explicit without a dispatcher.
+- **Disqualifying outcomes:** Uses one prologue/`RTI` blindly, double-pushes A/X/Y at CINV, skips
+  prior KERNAL work without source ownership, exposes a raw sink under an unproven banking path,
+  accepts visible raw-entry installation at `$0314`, permits unknown decimal mode at body entry,
+  places the indirect link at `$xxFF`, changes the prior handler's entry flags, or hides static
+  link/body/stack cost.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: partial — generic save/acknowledge/RTI duties exist, but KERNAL-vector versus raw-vector entry contracts do not (`c64-game-systems.md:63-68`).
 - **Focused result:** Not run.
@@ -155,11 +165,11 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 
 - **Risk / coverage cells:** Major; `C64-P11`, `GAME-P11`.
 - **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
-- **Evaluator prompt:** “Design SID-player scheduling and music/SFX sharing across 6581/8580. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
-- **Permitted raw artifacts:** SID player/SFX contract, cadence, IRQ ownership, voice/table layout, 6581/8580 assumptions, and reference register/audio traces.
+- **Evaluator prompt:** “Design player-neutral C64 game audio that supports music-only, integrated music/SFX, minimal SFX-only, and exact custom-player paths. Separate PSID container metadata from a callable player contract. State the exact player/export identity, source operations, direct-call lowering, cadence, call domains, ABI/clobbers, writable state, voice mapping, arbitration, IRQ/CIA/SID ownership, banking, PAL/NTSC and 6581/8580 assumptions, and every enabled-feature byte/cycle/RAM/ZP/stack cost. Reject hidden runtime scheduling or mixing. Give one unsafe-overlap counterexample and the independent proof needed.”
+- **Permitted raw artifacts:** Hash-pinned player/export and container contracts; init/tick/SFX entry ABIs; player-native queue/priority/resume behavior; cadence and IRQ ownership; voice/table/writable layout; 6581/8580 assumptions; comparative minimal SFX-only code; candidate-workflow documents explicitly marked unqualified; and reference register/audio traces.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
-- **Expected decision invariants:** Recognizes cadence, IRQ ownership, voice/table placement, and revision facts; chooses a compiler/API disposition with full cost, independent behavior proof, and revision-bounded register/audio expectations.
-- **Disqualifying outcomes:** Claims universal sound from a register trace or leaves the technique as descriptive lore.
+- **Expected decision invariants:** Uses one player-neutral source surface whose constant forms lower to exact contract register loads and absolute calls. Treats PSID as insufficient to prove SFX or writable-state behavior; requires a hash-bound contract; leaves tick scheduling with source; permits only player-declared queues/arbitration or fully costed inline critical sections; models logical voice `0..2`; reports all selected costs; and preserves music-only, integrated, SFX-only, and custom-player choices without making one tracker the architecture. GoatTracker 2.77 is the first adapter family, SID Factory II remains a candidate, and multi-SID/GTUltra requires a separate profile.
+- **Disqualifying outcomes:** Infers SFX from PSID, adds a generic dispatcher/scheduler/mixer/name table/runtime, silently copies the payload, guesses a player/export identity, ignores unsafe IRQ/mainline overlap, claims universal sound from a register trace, or leaves the technique as descriptive lore.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Not run.

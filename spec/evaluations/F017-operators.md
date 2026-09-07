@@ -11,7 +11,7 @@
 
 This feature formalizes the complete operator set for Blend65 v3 — arithmetic, bitwise, comparison, logical, unary, and compound assignment operators. It specifies operator precedence, short-circuit evaluation, and the three-tier codegen strategy for multiply/divide/modulo operators on the 6502 (which lacks hardware multiply and divide instructions).
 
-Blend65 v3 includes operators that map naturally to 6502 instructions and excludes operators that are meaningless or prohibitively expensive on the target platforms. Every operator has documented 6502 codegen patterns and cycle costs, satisfying H2 (cost transparency).
+Blend65 v3 includes operators that map naturally to 6502 instructions and excludes operators that are meaningless or prohibitively expensive on the target platforms. Representative patterns and their accounting boundaries are documented below; sequence-dependent operations require the selected lowering to report its actual complete costs.
 
 ---
 
@@ -29,11 +29,11 @@ Blend65 v3 includes operators that map naturally to 6502 instructions and exclud
 
 ### Unary Operators
 
-| Operator | Name | Operand Types | Result Type | 6502 Cost |
+| Operator | Name | Operand Types | Result Type | Selected cost boundary |
 |----------|------|--------------|-------------|-----------|
-| `-expr` | Negation | `sbyte`, `sword` only | Same as operand | ~10 cycles (EOR + ADC) |
-| `~expr` | Bitwise NOT | integer | Same as operand | 2 cycles (`EOR #$FF`) |
-| `!expr` | Logical NOT | `boolean` | `boolean` | 2 cycles (`EOR #$01`) |
+| `-expr` | Negation | `sbyte`, `sword` only | Same as operand | 12–14 cycles, 9–11 bytes for the complete displayed stored-byte form |
+| `~expr` | Bitwise NOT | integer | Same as operand | Accumulator instruction core: 2 cycles, 2 bytes (`EOR #$FF`); loads/stores are additional |
+| `!expr` | Logical NOT | `boolean` | `boolean` | Accumulator instruction core: 2 cycles, 2 bytes (`EOR #$01`); loads/stores are additional |
 
 **Unary negation on unsigned types is a compile error** (F010 ST-3, E10083).
 
@@ -135,11 +135,12 @@ Operators are evaluated according to this precedence table (highest to lowest):
 | 9 | `\|` | Left-to-right | Bitwise OR |
 | 10 | `&&` | Left-to-right | Logical AND |
 | 11 | `\|\|` | Left-to-right | Logical OR |
-| 12 (lowest) | `? :` | Right-to-left | Conditional (ternary) — see F024 |
+| 12 | `? :` | Right-to-left | Conditional (ternary) — see F024 |
+| 13 (lowest) | `=`, `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `\|=`, `^=`, `<<=`, `>>=` | Right-to-left | Assignment |
 
-**Conditional operator** `? :` is the lowest-precedence expression operator and is **right-associative** (so `a ? b : c ? d : e` parses as `a ? b : (c ? d : e)`). Its full semantics, type-unification rules, and codegen are defined in **F024**.
-
-**Assignment operators** (`=`, `+=`, `-=`, etc.) are statements, not expressions. They do not participate in the precedence table.
+The conditional operator is right-associative: `a ? b : c ? d : e` parses as
+`a ? b : (c ? d : e)`. Assignment is also right-associative and has the lowest precedence:
+`a = b = f()` parses as `a = (b = f())`.
 
 
 **Parentheses** `( )` override precedence as expected:
@@ -279,14 +280,14 @@ let octal: word = word(x) * 8; // → ASL; ROL (3 times for 16-bit)
     ROL _result+1
     ASL _result     ; ×8
     ROL _result+1
-    ; ~18 cycles, 12 bytes
+    ; 41-50 cycles, 20-29 bytes with zero-page or absolute variable homes
 ```
 
 #### Power-of-2 Divide → Shift
 
 ```blend65
-let halved: byte = x / 2;      // → LSR (unsigned) or CMP+ROR (signed)
-let eighth: byte = x / 8;      // → LSR; LSR; LSR
+let halved: byte = x / 2;      // → LSR for unsigned x
+let eighth: byte = x / 8;      // → three LSR operations for unsigned x
 ```
 
 **Codegen for `x / 2` (byte, unsigned):**
@@ -296,13 +297,19 @@ let eighth: byte = x / 8;      // → LSR; LSR; LSR
     STA _halved
 ```
 
+A plain arithmetic right shift is not a general signed division replacement because it rounds a
+negative odd value downward rather than toward zero: `sbyte(-3) / sbyte(2)` is `-1`, while an
+arithmetic shift produces `-2`. Signed division by a power of two therefore needs a proven
+nonnegative/exactly-divisible operand or a sign-aware correction sequence. The optimizer records
+and proves that precondition; it never substitutes the old `CMP+ROR` sketch.
+
 #### Power-of-2 Modulo → AND Mask
 
 ```blend65
 let rem: byte = x % 4;         // → AND #$03
 let rem8: byte = x % 8;        // → AND #$07
 let rem16: byte = x % 16;      // → AND #$0F
-let rem256: byte = x % 256;    // → no-op (byte is already mod 256)
+let rem256: word = word(x) % word(256); // → widen x; result equals x
 ```
 
 **Codegen for `x % 8`:**
@@ -311,6 +318,12 @@ let rem256: byte = x % 256;    // → no-op (byte is already mod 256)
     AND #$07        ; 2 cycles, 2 bytes
     STA _rem
 ```
+
+The mask form is likewise restricted to unsigned or proven-nonnegative operands. Signed remainder
+uses the truncated quotient identity `r = a - trunc(a / b) * b`, so a nonzero result has the
+dividend's sign. For example, `sbyte(-5) % sbyte(2)` is `-1`, not the `+1` produced by `AND #$01`.
+A signed power-of-two remainder optimization must use a sign-correct sequence or retain the general
+lowering.
 
 #### Known-Constant Multiply → Shift-and-Add Decomposition
 
@@ -330,7 +343,7 @@ let times40: word = word(x) * 40; // → (x << 5) + (x << 3)
     CLC
     ADC _x          ; + x = x * 3
     STA _tripled
-    ; ~8 cycles, 5 bytes
+    ; 13-16 cycles, 8-11 bytes with zero-page or absolute variable homes
 ```
 
 **Codegen for `x * 10` (word, from byte):**
@@ -360,40 +373,43 @@ let times40: word = word(x) * 40; // → (x << 5) + (x << 3)
     LDA _result+1
     ADC _tmp+1
     STA _result+1
-    ; ~40 cycles, ~24 bytes
+    ; 73-92 cycles, 41-60 bytes with zero-page or absolute variable homes
 ```
 
 #### Known-Constant Division → Multiply-by-Reciprocal or Shift Sequences
 
-Non-power-of-2 division by constants uses platform runtime subroutines:
+Non-power-of-2 division by constants uses the cheapest proven selected inline sequence or software
+helper. W10171 is emitted only when that selected lowering calls the helper:
 
 ```blend65
-let third: byte = x / 3;       // → software divide subroutine
-let avg: byte = total / 10;    // → software divide subroutine
+let third: byte = x / 3;       // → selected inline sequence or software helper
+let avg: byte = total / 10;    // → selected inline sequence or software helper
 ```
 
-### Tier 3: Runtime Software Subroutines (Expensive + Warning)
+### Tier 3: Runtime Software Sequences and Helpers
 
-When **both** operands are runtime variables, the compiler generates a call to a software subroutine and emits a warning:
+Runtime-variable multiplication uses its selected software multiply helper and emits W10170.
+Runtime-variable division or remainder selects a proven finite inline sequence or a software
+helper; W10171 is emitted only for the helper form. The examples below show helper-selected cases:
 
 ```blend65
-let area: word = width * height;
-// ⚠️ W10170: Runtime multiply generates subroutine call (~80-120 cycles for 8-bit, ~150-200 for 16-bit)
+let area: word = word(width) * word(height);
+// ⚠️ W10170: Runtime multiply generates a subroutine call; the diagnostic's cycle estimate includes helper and call-site work
 
 let avg: byte = total / count;
-// ⚠️ W10171: Runtime divide generates subroutine call (~150-200 cycles for 8-bit, ~250-350 for 16-bit)
+// ⚠️ W10171: Runtime divide generates a subroutine call; the diagnostic's cycle estimate includes helper and call-site work
 
 let rem: byte = value % divisor;
 // ⚠️ W10171: Runtime divide generates subroutine call (modulo uses division)
 ```
 
-**Codegen for `width * height` (both byte, result word):**
+**Codegen for `word(width) * word(height)` (byte ranges proven, word result):**
 ```asm
     LDA _width
     STA __mul8_a
     LDA _height
     STA __mul8_b
-    JSR __mul8          ; 8-bit multiply subroutine
+    JSR __mul8          ; proven 8×8→16 multiply implementation of word semantics
     ; result in __mul8_result (word)
     LDA __mul8_result
     STA _area
@@ -401,45 +417,57 @@ let rem: byte = value % divisor;
     STA _area+1
 ```
 
-**Runtime subroutine costs:**
+**Shared helper-body costs:**
 
 | Subroutine | Algorithm | Cycles (typical) | ROM Size |
 |-----------|-----------|-------------------|----------|
-| `__mul8` | 8-bit shift-and-add | ~80-120 | ~30-40 bytes |
-| `__mul16` | 16-bit shift-and-add | ~150-200 | ~50-70 bytes |
+| `__mul8` | 8-bit shift-and-add | ~80-150 | ~30-40 bytes |
+| `__mul16` | 16-bit shift-and-add | ~200-400 | ~50-70 bytes |
 | `__div8` | 8-bit restoring division | ~150-200 | ~40-50 bytes |
 | `__div16` | 16-bit restoring division | ~250-350 | ~60-80 bytes |
 
-**Important:** Each subroutine is included in the binary **only if used**. If a program never uses runtime multiply, `__mul8` is not linked.
+These ranges cover the separately emitted helper body only. The W10170/W10171 cycle estimate
+includes the helper and selected call-site execution. The build report separately accounts for the
+emitted helper ROM, call-site operand loads, `JSR`, result materialization, and SFA-owned helper
+state. Each subroutine is included in the binary **only if used**. If a program never uses runtime
+multiply, `__mul8` is not linked.
 
 ### OP-4: Division by Zero
 
-Division by zero is defined behavior (H5 requirement):
-
-- **Compile-time constant zero divisor:** Error E10160
-- **Runtime zero divisor:** Result is defined as the **maximum value** for the type. `byte / 0 = 255`, `word / 0 = 65535`. Modulo by zero returns `0`. The compiler emits W10173 if it can prove the divisor might be zero.
+- **Compile-time constant zero divisor:** Error E10160.
+- **Runtime zero divisor, default mode:** The selected finite division sequence runs without an
+  injected check, trap, handler, fallback, or extra scratch. Quotient and remainder are valid-width
+  but otherwise unspecified. The optimizer may not assume the divisor is nonzero.
+- **`--division-zero-check`:** An inline once-evaluated pre-division check enters the selected
+  platform's non-returning safety stop on zero. Sound nonzero proof removes the check. No runtime
+  library is linked.
 
 ```blend65
 const BAD: byte = 10 / 0;         // ❌ E10160: division by zero in constant expression
 
 let x: byte = 10;
 let y: byte = 0;
-let result: byte = x / y;         // Runtime: result = 255 (defined, not undefined)
-// ⚠️ W10173: possible division by zero — divisor 'y' may be 0 at runtime
+let result: byte = x / y;         // Runtime zero: bounded, unspecified byte result
 ```
 
-**Rationale:** On 6502, there is no exception mechanism. The software divide routine must return *something*. Returning max-value is detectable (unlikely to be a valid result) and deterministic. The warning encourages defensive coding.
+**Rationale:** The 6502 has neither division nor a native zero-divisor result. The default does not
+spend memory fabricating one. Developers who need a defined branch guard explicitly or enable the
+optional development check.
 
-### OP-5: Non-Power-of-2 Constant Multiply Warning
+### OP-5: Nontrivial Constant Multiply Warning
 
-When a non-power-of-2 constant is used in multiplication, the compiler emits an informational warning about the shift-and-add decomposition cost:
+When the selected lowering for a constant multiplication contains at least one shift and at least
+one add or subtract, the compiler emits an informational warning about that concrete sequence's
+cost:
 
 ```blend65
 let stride: word = word(index) * 40;
 // ⚠️ W10172: multiply by 40 generates shift-and-add sequence (~30-40 cycles) — consider power-of-2 stride for faster access
 ```
 
-This warning is **informational only** — it's useful for developers optimizing hot loops. It does NOT trigger for power-of-2 constants (which use cheap shifts) or compile-time-constant expressions (which are folded).
+This warning is **informational only**. It does not trigger for a single power-of-two shift,
+compile-time-constant expressions that fold away, or a constant multiplication whose selected
+lowering does not use both shifting and addition/subtraction.
 
 ---
 
@@ -465,7 +493,7 @@ Shifts by a compile-time constant ≥ type width produce a warning:
 
 ```blend65
 let x: byte = 100;
-let y: byte = x << 8;            // ⚠️ W10174: shift amount 8 >= type width (8 bits) — result is always 0
+let y: byte = x << 8;            // ⚠️ W10174: saturated left shift yields 0
 ```
 
 ### OP-7: Left Shift Codegen
@@ -492,7 +520,8 @@ let result: byte = x << 3;
     ASL A           ; ×2
     ASL A           ; ×4
     ASL A           ; ×8
-    STA _result     ; 6 cycles, 3 bytes for shift operations
+    STA _result
+    ; Shift core only: 6 cycles, 3 bytes; operand load and result store are additional
 ```
 
 ### OP-8: Right Shift Codegen (Type-Aware)
@@ -517,7 +546,8 @@ let result: sbyte = sbyte_val >> 1;
     LDA _sbyte_val
     CMP #$80        ; carry = sign bit
     ROR A           ; sign bit shifted in from left
-    STA _result     ; 4 cycles for signed vs 2 for unsigned
+    STA _result
+    ; Shift core only: CMP+ROR is 4 cycles/3 bytes versus LSR at 2 cycles/1 byte
 ```
 
 ---
@@ -535,7 +565,7 @@ let c: byte = a + b;
     CLC
     ADC _b
     STA _c
-    ; 4 instructions, ~8 cycles
+    ; 4 instructions, 11-14 cycles and 7-10 bytes for ZP/absolute homes
 ```
 
 ### 16-Bit Addition
@@ -552,7 +582,7 @@ let c: word = a + b;    // a, b are word
     LDA _a+1
     ADC _b+1
     STA _c+1
-    ; 7 instructions, ~16 cycles
+    ; 7 instructions, 20-26 cycles and 13-19 bytes for ZP/absolute homes
 ```
 
 ### Auto-Promotion Addition (byte + word)
@@ -570,7 +600,7 @@ let result: word = base + offset;    // base: word, offset: byte
     LDA _base+1
     ADC #$00          ; add 0 + carry from low byte
     STA _result+1
-    ; 7 instructions, ~16 cycles (same as word+word when offset is known byte)
+    ; 7 instructions, 19-24 cycles and 13-18 bytes for ZP/absolute homes
 ```
 
 ### 8-Bit Subtraction
@@ -584,7 +614,7 @@ let c: byte = a - b;
     SEC
     SBC _b
     STA _c
-    ; 4 instructions, ~8 cycles
+    ; 4 instructions, 11-14 cycles and 7-10 bytes for ZP/absolute homes
 ```
 
 ### Increment/Decrement Optimization
@@ -602,7 +632,9 @@ This is why `++`/`--` operators are unnecessary — the compiler produces identi
 
 ## Part 8: Bitwise Operator Codegen
 
-All bitwise operators map directly to single 6502 instructions:
+Each byte lane of a bitwise operator maps directly to the matching 6502 instruction. A byte value
+needs one operator instruction; a multi-byte value needs one per byte, plus the selected operand
+loads and result materialization.
 
 ### AND, OR, XOR
 
@@ -653,7 +685,7 @@ let result: word = a & b;   // a, b are word
     LDA _a+1
     AND _b+1
     STA _result+1
-    ; 6 instructions, ~12 cycles
+    ; 6 instructions, 18-24 cycles and 12-18 bytes for ZP/absolute homes
 ```
 
 ---
@@ -686,7 +718,7 @@ if (a < b) { ... }   // a, b are sbyte
     EOR #$80         ; fix sign if overflow
 .no_overflow:
     BMI .true        ; negative = a < b
-    ; ~8-10 cycles, ~6-8 bytes (vs 4-6 for unsigned)
+    ; 13-18 cycles, 11-13 bytes including the operand load
 ```
 
 ### Equality (Same for Signed and Unsigned)
@@ -697,7 +729,7 @@ if (x == 0) { ... }
 
 ```asm
     LDA _x
-    BEQ .true        ; 4 cycles, 3 bytes
+    BEQ .true        ; 5-8 cycles, 4-5 bytes including the operand load
 ```
 
 ### 16-Bit Comparison
@@ -771,49 +803,38 @@ let notReady: boolean = !ready;
     LDA _ready
     EOR #$01         ; flip: 0→1, 1→0
     STA _notReady
-    ; 3 instructions, ~6 cycles
+    ; 3 instructions, 8-10 cycles and 6-8 bytes for ZP/absolute homes
 ```
 
 ---
 
 ## Part 11: Cost Summary
 
-### 8-Bit Operations (byte/sbyte)
+Cost tables must name their accounting boundary. The following rows cover the **complete displayed
+sequence**, including operand loads and result stores, with compiler-chosen homes that may be in
+zero page or absolute memory. They are not operator-core-only estimates.
 
-| Operation | Cycles | Bytes | Notes |
-|-----------|--------|-------|-------|
-| `+ - & \| ^ ~` | 6-8 | 4-5 | Native 6502 |
-| `<< >> (unsigned)` | 2/bit | 1/bit | `ASL`/`LSR` per bit |
-| `>> (signed)` | 4/bit | 2/bit | `CMP #$80; ROR` per bit |
-| `== !=` | 4-6 | 3-4 | `CMP; BEQ/BNE` |
-| `< > (unsigned)` | 4-6 | 3-4 | `CMP; BCC/BCS` |
-| `< > (signed)` | 8-10 | 6-8 | N⊕V flag check |
-| `! (logical)` | 6 | 3 | `EOR #$01` |
-| `&& \|\|` | 6-10 | 4-8 | Short-circuit branches |
-| `-expr (negation)` | 10 | 5 | `EOR #$FF; CLC; ADC #1` |
-| `* power-of-2` | 2/bit | 1/bit | `ASL` per bit |
-| `* constant` | 8-40 | 5-24 | Shift-and-add decomposition |
-| `* runtime` | 80-120 | JSR | Software subroutine |
-| `/ power-of-2` | 2/bit | 1/bit | `LSR` per bit |
-| `/ runtime` | 150-200 | JSR | Software subroutine |
-| `% power-of-2` | 4 | 2 | `AND #mask` |
-| `% runtime` | 150-200 | JSR | Software subroutine (uses division) |
-| `+= 1` / `-= 1` | 5-6 | 2-3 | Optimized to `INC`/`DEC` |
+| Displayed sequence | Cycles | ROM bytes |
+|--------------------|--------|-----------|
+| Byte addition or subtraction | 11-14 | 7-10 |
+| Word addition | 20-26 | 13-19 |
+| Byte-plus-word addition | 19-24 | 13-18 |
+| Word bitwise operation | 18-24 | 12-18 |
+| Signed byte comparison | 13-18 | 11-13 |
+| Equality against zero | 5-8 | 4-5 |
+| Logical not with stored result | 8-10 | 6-8 |
+| Signed byte negation | 12-14 | 9-11 |
 
-### 16-Bit Operations (word/sword)
-
-| Operation | Cycles | Bytes | Notes |
-|-----------|--------|-------|-------|
-| `+ -` | 14-18 | 7-9 | Multi-byte `ADC`/`SBC` |
-| `& \| ^` | 12 | 6 | Both bytes |
-| `<< >> (unsigned)` | 4/bit | 2/bit | `ASL+ROL` / `LSR+ROR` per bit |
-| `==` | 8-10 | 5-6 | Compare both bytes |
-| `< > (unsigned)` | 10-14 | 7-10 | High byte first, then low |
-| `< > (signed)` | 14-18 | 10-14 | N⊕V on high byte, unsigned on low |
-| `* power-of-2` | 4/bit | 2/bit | `ASL+ROL` per bit |
-| `* constant` | 30-60 | 20-40 | Shift-and-add at 16-bit width |
-| `* runtime` | 150-200 | JSR | 16-bit multiply subroutine |
-| `/ runtime` | 250-350 | JSR | 16-bit divide subroutine |
+Instruction-core costs remain useful when no materialization is needed: an accumulator byte shift
+costs 2 cycles and 1 byte per bit; `INC`/`DEC` on a memory home costs 5-6 cycles and 2-3 bytes; and
+an unsigned power-of-two remainder mask in the accumulator costs 2 cycles and 2 bytes. Constant
+multiplication, signed division/remainder, short-circuit logic, and 16-bit comparisons are
+sequence-dependent and must be reported from the selected lowering instead of a generic total.
+When selected, the separately emitted helper bodies retain the earlier table's approximate costs:
+80-150 cycles and 30-40 ROM bytes for `__mul8`, 200-400 cycles and 50-70 ROM bytes for `__mul16`,
+150-200 cycles and 40-50 ROM bytes for `__div8`, and 250-350 cycles and 60-80 ROM bytes for
+`__div16`. The call-site loads, `JSR`, and result materialization are additional selected-lowering
+costs and must be reported with the call site.
 
 ---
 
@@ -855,7 +876,9 @@ let result: byte = x << n;    // n is not a constant
     BNE .loop
 .done:
     STA _result
-    ; ~4 + 4*n cycles
+    ; n == 0: 12-16 cycles
+    ; n > 0, same-page backedge: 10-13 + 7*n cycles for ZP/absolute homes
+    ; add n-1 cycles if the taken BNE backedge crosses a page
 ```
 
 This is significantly more expensive than constant shifts. No warning is emitted (the developer chose a variable shift deliberately).
@@ -891,6 +914,11 @@ w += b;    // w = w + b → word + byte(auto-promote) = word → assign to word 
 b += w;    // b = b + w → byte + word(auto-promote) = word → assign to byte ❌ E10082 (narrowing)
 ```
 
+The target place and right operand are each evaluated once. Compound assignment reads the old target
+value once before the right operand and stores once. The expression result is the converted value
+stored in the target, without reloading it. SFA snapshots any intermediate that a later evaluation
+could overwrite.
+
 ### OP-A9: Can comparison operators be chained?
 
 **No.** `a < b < c` is not supported. Use `a < b && b < c`:
@@ -909,11 +937,11 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 
 ## Part 13: Error Codes
 
-| Code | Message | Trigger |
+| Code | Public presentation | Rationale trigger |
 |------|---------|---------|
-| E10154 | Cannot apply `<op>` to `boolean` — ordered comparisons (`<`, `>`, `<=`, `>=`) are not valid for boolean operands | `true > false` |
-| E10160 | Division by zero in constant expression | `10 / 0` in const context |
-| E10161 | Shift amount must be unsigned type (`byte` or `word`) — found `<type>` | `x << sbyte_val` |
+| E10154 | [Chapter 14](../14-diagnostics.md) | `true > false` |
+| E10160 | [Chapter 14](../14-diagnostics.md) | `10 / 0` in const context |
+| E10161 | [Chapter 14](../14-diagnostics.md) | `x << sbyte_val` |
 
 **Existing error codes that apply:**
 
@@ -925,13 +953,13 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 
 ### Warning Codes
 
-| Code | Message | Trigger |
+| Code | Public presentation | Rationale trigger |
 |------|---------|---------|
-| W10170 | Runtime multiply generates subroutine call (~`<N>` cycles for `<width>`-bit) | Both operands are runtime variables |
-| W10171 | Runtime divide/modulo generates subroutine call (~`<N>` cycles for `<width>`-bit) | Both operands are runtime variables (or non-power-of-2 constant divisor) |
-| W10172 | Multiply by `<N>` generates shift-and-add sequence (~`<M>` cycles) — consider power-of-2 stride for faster access | Non-power-of-2 constant multiplier |
-| W10173 | Possible division by zero — divisor `<name>` may be 0 at runtime | Divisor not provably non-zero |
-| W10174 | Shift amount `<N>` >= type width (`<W>` bits) — result is always 0 | Constant shift >= bit width |
+| W10170 | [Chapter 14](../14-diagnostics.md) | Selected multiply lowering calls a software helper |
+| W10171 | [Chapter 14](../14-diagnostics.md) | Selected divide/remainder lowering calls a software helper |
+| W10172 | [Chapter 14](../14-diagnostics.md) | Selected constant-multiply lowering contains a shift plus an add/subtract; a single power-of-two shift is excluded |
+| W10173 | [Chapter 14](../14-diagnostics.md) | Divisor not provably nonzero |
+| W10174 | [Chapter 14](../14-diagnostics.md) | Constant shift >= bit width |
 
 ---
 
@@ -939,14 +967,14 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 
 | Feature | Interaction |
 |---------|-------------|
-| F008 For loop | Loop variable update (`i += step`) uses compound assignment. `step` must be compatible with loop variable type |
+| F008 For loop | Initializer, Boolean condition, and update use ordinary operators; update expression lists evaluate left to right |
 | F009 Switch | Switch comparisons use `==` internally. Case values follow comparison type rules |
 | F010 Signed types | Signed comparison codegen (N⊕V). Arithmetic shift for signed `>>`. No negation of unsigned |
 | F011 Structs | No operators on struct types. Access fields first, then use operators on field values |
 | F013 Control flow | Conditions use comparison and logical operators. Result must be `boolean` (F013 CF-2) |
 | F014 Arrays | Array indexing uses `+` internally (base + offset). No operators on whole arrays |
 | F016 Type system | All operator type rules defined in F016. F017 specifies codegen and precedence |
-| F024 Conditional operator | The ternary `? :` is the lowest-precedence expression operator (Part 3). Its semantics, type unification, and codegen are defined in F024 |
+| F024 Conditional operator | The ternary `? :` is below `||` and above the lowest-precedence assignment operators (Part 3). Its semantics, type unification, and codegen are defined in F024 |
 
 
 ---
@@ -958,9 +986,9 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 ```blend65
 module bits;
 
-const FLAG_VISIBLE: byte = %00000001;
-const FLAG_ACTIVE: byte  = %00000010;
-const FLAG_SOLID: byte   = %00000100;
+const FLAG_VISIBLE: byte = 0b00000001;
+const FLAG_ACTIVE: byte  = 0b00000010;
+const FLAG_SOLID: byte   = 0b00000100;
 
 function setFlag(flags: byte, flag: byte): byte {
     return flags | flag;
@@ -997,13 +1025,13 @@ function tilePixelOffset(tileIndex: byte): word {
 
 // Tier 2: constant shift-and-add
 function rowByteOffset(row: byte): word {
-    return word(row) * 40;             // → shifts + adds (~30 cycles)
+    return word(row) * 40;             // → selected shifts/adds with reported complete cost
     // ⚠️ W10172 — developer can accept or optimize
 }
 
 // Tier 3: runtime — unavoidable in some cases
 function genericOffset(x: byte, stride: byte): word {
-    return word(x) * word(stride);     // → JSR __mul8 (~80-120 cycles)
+    return word(x) * word(stride);     // → JSR __mul8; helper body plus reported call-site cost
     // ⚠️ W10170
 }
 ```
@@ -1083,23 +1111,23 @@ function updatePhysics(): void {
 | **P2** Platform-meaningful | ✅ | Arithmetic, bitwise, and logical operators are fundamental to every program |
 | **P3** No platform assumptions | ✅ | No platform-specific operators. Runtime subroutines are linked per-platform but the operators are universal |
 | **P4** Resource-scalable | ✅ | Warnings for expensive operations (W10170-W10172). Developers can choose cheaper alternatives on constrained platforms |
-| **H1** 6502 implementable | ✅ | Native operators map to single instructions. Multiply/divide implemented via documented software subroutines |
-| **H2** Cost transparency | ✅ | Complete cost table (Part 11) with cycle counts for every operator × width combination. Warnings for expensive codegen |
+| **H1** 6502 implementable | ✅ | Each selected byte-lane primitive maps to legal 6502 instructions; multi-byte values chain the required lanes. Multiply/divide use documented finite inline sequences or software helpers. |
+| **H2** Cost transparency | ✅ | Part 11 separates complete displayed sequences, instruction cores, and shared helper bodies. Sequence-dependent operations report the actual selected lowering, including call-site and materialization costs. Warnings identify expensive selected forms. |
 | **H3** SFA compatible | ✅ | All operations are expression-level — no dynamic allocation. Runtime subroutines use fixed memory locations |
 | **H4** Memory footprint documented | ✅ | Part 11 documents byte costs. Runtime subroutines: 30-80 bytes ROM each, only linked if used |
-| **H5** Fully deterministic | ✅ | Division by zero returns max-value (defined, not undefined). Overflow wraps. All operations have defined results |
+| **H5** Bounded behavior | ✅ | Overflow wraps. Runtime division by zero is the registered narrow hardware exception: control/effects/width are defined while quotient/remainder bits are unspecified |
 | **L1** Unambiguous syntax | ✅ | Standard operator syntax. Precedence table resolves all parsing ambiguity. No `++`/`--` eliminates expression-vs-statement ambiguity |
 | **L2** Consistent with existing | ✅ | Same operators as C/TypeScript (minus excluded set). Precedence matches C |
 | **L3** Beginner-friendly | ✅ | Every C/TS developer knows these operators. Short-circuit is expected. Warnings explain costs |
 | **L4** Minimal feature | ✅ | Only operators that map naturally to 6502. No unnecessary operators (no comma, no `++`). The conditional `? :` is a distinct expression operator defined in F024 |
 | **L5** No redundancy | ✅ | Each operator serves a distinct purpose. No overlapping functionality |
 | **L6** Error messages defined | ✅ | 3 new error codes (E10154, E10160, E10161), 5 new warnings (W10170-W10174) |
-| **L7** Compile-time failure preferred | ✅ | Type errors at compile time. Division by zero in constants at compile time. Only runtime div-by-zero has defined runtime behavior |
+| **L7** Compile-time failure preferred | ✅ | Type errors and constant zero divisors fail at compile time; optional runtime checks are explicit and default-off |
 | **L8** Feature interactions documented | ✅ | Part 14: interactions with F008-F016 |
 | **L9** Documentable with examples | ✅ | Part 15: four examples covering bits, multiply strategies, bounds checking, physics |
 | **C1** Lexer/parser implementable | ✅ | All operators use standard tokens. Pratt parser handles precedence. No ambiguity |
 | **C2** Semantic analysis defined | ✅ | Type checking via F016 matrices. Shift amount validation. Constant folding for constant expressions |
-| **C3** Code generation strategy | ✅ | Complete codegen patterns for every operator at every width (Parts 5-10) |
+| **C3** Code generation strategy | ✅ | Parts 5–10 define selection rules and representative legal patterns; the compiler chooses and reports the exact form for operand facts, width, signedness, and surrounding consumers. |
 | **C4** Unit testable | ✅ | Each operator × type combination is a test case. Each codegen tier is independently testable |
 | **C5** Runtime verifiable | ✅ | All operations produce deterministic results verifiable in emulator |
 | **F1** Extensible | ✅ | The conditional `? :` is defined in F024. New operators don't require changing existing ones |

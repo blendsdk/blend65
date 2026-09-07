@@ -9,7 +9,10 @@
 
 ## 1. Overview
 
-Variables and constants are the primary way to store data in Blend65. This chapter is the **single source of truth** for declaration syntax, initialization rules, mutability semantics, memory placement, and the startup sequence.
+Variables and constants are the primary way to store data in Blend65. This chapter governs
+declaration syntax, initializer value and omission semantics, mutability, and declaration-level
+placement. Chapter 10 governs cross-module startup dependency/effect scheduling. The selected
+platform appendix governs bootstrap and return epilogue behavior.
 
 Blend65 provides two declaration keywords:
 
@@ -25,7 +28,8 @@ A third construct, the **`zeropage` block**, provides fast-access storage in the
 ### 2.1 `let` — Mutable Variables
 
 ```ebnf
-let_decl = "let" , identifier , ":" , type_expr , [ "=" , expression ] , ";" ;
+let_decl = [ "export" ] , "let" , identifier , ":" , value_type
+           , [ "=" , expression ] , ";" ;
 ```
 
 ```blend65
@@ -38,8 +42,12 @@ let velocity: sbyte = -2;
 ### 2.2 `const` — Compile-Time Constants
 
 ```ebnf
-const_decl = "const" , identifier , ":" , type_expr , "=" , const_expression , ";" ;
+const_decl = [ "export" ] , "const" , identifier , ":" , value_type
+             , "=" , const_expression , ";" ;
 ```
+
+`export` is available only on module-level declarations. The statement grammar uses the same
+declaration forms without that prefix for function-local storage.
 
 ```blend65
 const MAX_ENEMIES: byte = 8;
@@ -53,7 +61,7 @@ const DEFAULT_ENEMY: Enemy = { x: 0, y: 0, hp: 100, enemyType: 0, frame: 0 };
 
 ```ebnf
 zeropage_block = "zeropage" , "{" , zeropage_var , { zeropage_var } , "}" ;
-zeropage_var   = identifier , ":" , type_expr , [ "=" , expression ] , ";" ;
+zeropage_var   = [ "export" ] , identifier , ":" , value_type , [ "=" , expression ] , ";" ;
 ```
 
 ```blend65
@@ -82,10 +90,13 @@ let score = 0;           // ❌ E10150: type annotation required
 
 ### VAR-2 — `let` Initialization Is Optional
 
-A `let` variable may be declared without an initializer. Its value is **indeterminate** until assigned. Using an indeterminate variable triggers warning W10190.
+A `let` variable may be declared without an initializer. Its value is **indeterminate** until
+assigned. Reading a function-local mutable variable before its first assignment triggers W10190.
+Module-level storage is exempt because the compiler cannot generally prove whether platform startup,
+external code, or hardware-visible activity established the stored bits before the read.
 
 ```blend65
-let temp: byte;           // ⚠️ W10190 if read before assignment
+let temp: byte;           // ⚠️ W10190 if a function-local read occurs before assignment
 temp = calculate();       // now initialized
 let value: byte = temp;   // ✅ safe after assignment
 ```
@@ -97,17 +108,17 @@ A `const` must have an initializer, and the initializer must be a **compile-time
 ```blend65
 const MAX: byte = 8;               // ✅ literal
 const DOUBLE: byte = MAX * 2;      // ✅ const expression
-const SIZE: byte = length(TABLE);  // ✅ length() of const array is compile-time
-const BAD: byte;                   // ❌ E10192: const must be initialized
-const BAD2: byte = someFunction(); // ❌ E10193: initializer is not compile-time constant
+const SIZE: word = length(TABLE);  // ✅ length() of fixed const array is compile-time
+const BAD: byte;                   // ❌ E10190: const must be initialized
+const BAD2: byte = someFunction(); // ❌ E10191: initializer is not compile-time constant
 ```
 
 ### VAR-4 — `const` Cannot Be Reassigned
 
 ```blend65
 const MAX: byte = 8;
-MAX = 10;             // ❌ E10191: cannot assign to const
-MAX += 1;             // ❌ E10191: cannot assign to const
+MAX = 10;             // ❌ E10192: cannot assign to const
+MAX += 1;             // ❌ E10192: cannot assign to const
 ```
 
 ### VAR-5 — Scope Rules
@@ -117,7 +128,7 @@ MAX += 1;             // ❌ E10191: cannot assign to const
 | Module-level `let`/`const` | Visible throughout the module (after declaration point irrelevant — see VAR-6) |
 | Module-level `zeropage` block | Same as module-level `let` — visible throughout module |
 | Function-local `let`/`const` | Block-scoped (→ Ch 05, §2.3) |
-| For-loop counter | Scoped to the loop body (→ Ch 05, §5.2) |
+| For-header local declaration | Scoped to the complete for statement: condition, update, and body (→ Ch 05, §7.3) |
 
 ### VAR-6 — Declaration Order Independent
 
@@ -133,7 +144,7 @@ const MAX: byte = 10;
 A variable name in a nested scope must not duplicate a name in an enclosing scope (→ Ch 05, §2.4). This includes:
 - Function locals vs. module-level variables
 - Block-scoped locals vs. function parameters
-- Loop counter vs. enclosing scope variables
+- For-header declaration vs. enclosing scope variables
 
 ```blend65
 let score: word = 0;
@@ -170,7 +181,7 @@ Identifiers follow the rules in → Ch 01, §3. Keywords cannot be used as ident
 
 ### 4.2 Scalar Constant Inlining
 
-Scalar `const` values (`byte`, `sbyte`, `word`, `sword`, `boolean`) are **inlined** by the compiler — the constant name is replaced by its value at every use site. No RAM or ROM is allocated for the constant itself.
+Scalar `const` values (`byte`, `sbyte`, `word`, `sword`, `boolean`, and enum types) are **inlined** by the compiler — the constant name is replaced by its value at every use site. No RAM or ROM is allocated for the constant itself.
 
 ```blend65
 const MAX: byte = 8;
@@ -190,12 +201,15 @@ const DEFAULT: Enemy = { x: 0, y: 0, hp: 100, enemyType: 0, frame: 0 }; // 5 byt
 
 The platform profile defines how many zero-page bytes are available (→ Ch 15). The compiler tracks total ZP usage across all modules. Exceeding the budget → E10032.
 
-| Platform | Typical ZP Budget | Notes |
-|----------|-------------------|-------|
-| C64 | ~20–30 bytes | KERNAL uses most of $00–$FF |
-| CX16 | ~32 bytes | Similar KERNAL usage |
-| Atari 800XL | ~20 bytes | OS uses most of page zero |
-| Atari 7800 | ~16 bytes | TIA/MARIA reserves + small RAM |
+| Platform | Default-profile ZP budget | Profile range |
+|----------|---------------------------|---------------|
+| C64 / C64U | 142 bytes | `$02`–`$8F` |
+| CX16 | 94 bytes | `$22`–`$7F` |
+| Atari 800XL | 128 bytes | `$80`–`$FF` |
+| Atari 7800 | 64 bytes | `$40`–`$7F` |
+
+These are the exact current default profiles, not general hardware maxima. A custom profile may
+choose a different proven-safe range and budget.
 
 The compiler also uses ZP bytes internally for expression evaluation temps and struct/array pointer temps (→ Ch 06, §7.6; → Ch 07, §5.8). These are in addition to user-declared ZP variables.
 
@@ -205,11 +219,15 @@ The compiler also uses ZP bytes internally for expression evaluation temps and s
 
 ### 5.1 Initialization Order
 
-Module-level variables with initializers are set up by a compiler-generated **startup routine** that runs before `main()`:
+Module-level `let` variables with initializers are evaluated once by compiler-generated startup code
+before `main()`. An initializer may use any otherwise legal non-`void` expression, including
+statically resolved ordinary function calls and assignment expressions. `const` initializers remain
+compile-time expressions and generate no startup evaluation. Chapter 10, §5.4 owns dependency,
+effect-order, cycle, and cross-module scheduling rules.
 
-1. **Zeropage variables** with initializers — `LDA #value / STA zpAddr`
-2. **RAM variables** with initializers — `LDA #value / STA ramAddr`
-3. **`main()` call** — `JSR _main`
+1. Evaluate module and zeropage `let` initializers in the Chapter 10 schedule.
+2. Convert each result to the declared type and perform its implicit final store.
+3. Fall through to `main()`.
 
 Uninitialized variables (`let x: byte;`) generate **no startup code** — their memory contains whatever was there before.
 
@@ -217,14 +235,15 @@ Uninitialized variables (`let x: byte;`) generate **no startup code** — their 
 
 | Item | ROM Cost | Cycle Cost |
 |------|----------|------------|
-| Byte initializer | 4 bytes (LDA imm + STA abs) | 6 cycles |
-| Word initializer | 8 bytes (2 × LDA + STA) | 12 cycles |
-| Struct initializer (N bytes) | 4N bytes | 6N cycles |
-| Fill array (N bytes) | ~7 bytes (loop) | ~5N cycles |
-| Explicit array (N values) | 4N bytes | 6N cycles |
+| Constant byte initializer | 5 bytes to absolute storage; 4 bytes to zero page | 6 cycles absolute; 5 cycles zero page |
+| Constant word initializer | 10 bytes/12 cycles for two distinct bytes to absolute storage; 8 bytes/10 cycles when one loaded byte is reused for both stores | Zero-page stores save 1 byte and 1 cycle per stored byte |
+| Runtime expression/call | Generated expression and call sequence | Exact, bounded range/formula, or `runtime-dependent` |
+| Struct initializer (N bytes) | Sum of selected field-expression and store sequences | Exact emitted total; repeated values may share loads |
+| Fill array (N bytes) | Selected loop or unrolled sequence | Exact emitted total, including index/setup/branch cost |
+| Explicit array (N values) | Sum of selected element-expression and store sequences | Exact emitted total; repeated values may share loads |
 | Uninitialized variable | 0 bytes | 0 cycles |
 
-The compiler reports total startup cost in the build summary.
+The compiler reports startup ROM, SFA/RAM/ZP, callees/helpers, and cycle cost in the build summary.
 
 ### 5.3 Const Arrays: No Startup Cost
 
@@ -243,7 +262,7 @@ let score: byte = 0;
 ```asm
 ; In startup routine:
     LDA #$00
-    STA _score          ; 4 bytes ROM, 6 cycles
+    STA _score          ; LDA+STA abs: 5 bytes ROM, 6 cycles
 
 ; Usage: score = score + 10
     LDA _score
@@ -263,7 +282,7 @@ let totalScore: word = 1000;
     LDA #<1000          ; $E8
     STA _totalScore
     LDA #>1000          ; $03
-    STA _totalScore+1   ; 8 bytes ROM, 12 cycles
+    STA _totalScore+1   ; two LDA+STA abs pairs: 10 bytes ROM, 12 cycles
 ```
 
 ### 6.3 Zeropage Variable
@@ -320,28 +339,31 @@ _COLORS: .byte $00, $06, $0E, $01
 
 ---
 
-## 7. Error Codes
+## 7. Diagnostic Conditions
 
-All error codes defined in this chapter. The canonical registry is in → Ch 14.
+This chapter owns the trigger predicates below. Chapter 14 alone owns public severities, message
+templates, spans, suppression, and history.
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| E10003 | Duplicate declaration in same scope | `Duplicate declaration — '<name>' is already declared in this scope` |
-| E10032 | ZP budget exceeded | `Zero-page budget exceeded — <used> bytes used, platform '<platform>' allows <budget> bytes` |
-| E10101 | Name shadows enclosing scope | `'<name>' shadows a declaration in an enclosing scope — use a different name` |
-| E10150 | Missing type annotation | `Type annotation required — write '<name>: <type>'` |
-| E10190 | Use before initialization | — see W10190 (warning) |
-| E10191 | Assignment to const | `Cannot assign to const '<name>' — constants cannot be reassigned` |
-| E10192 | Const without initializer | `Const '<name>' must have an initializer — constants require a compile-time value` |
-| E10193 | Non-constant const initializer | `Initializer for const '<name>' is not a compile-time constant expression` |
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10003 | A declaration duplicates a name in the same scope. | The second declaration is rejected. |
+| E10030 | A module contains a second `zeropage` block. | The second block is rejected; declarations must be combined into the first block. |
+| E10031 | A `const` declaration appears inside `zeropage`. | The declaration is rejected; constants remain module-level compile-time declarations. |
+| E10032 | Requested zero-page storage exceeds the selected profile's allocatable range. | Placement fails. |
+| E10033 | A declaration inside `zeropage` begins with `let`, `const`, or another unexpected keyword instead of the block's `[export] name: type [= expression];` form. | The declaration is rejected. |
+| E10101 | A local declaration shadows an enclosing declaration. | The inner declaration is rejected. |
+| E10150 | A declaration omits its required type annotation. | The declaration is rejected. |
+| E10190 | A `const` declaration has no initializer. | The declaration is rejected. |
+| E10191 | A `const` initializer is not a compile-time constant expression. | The declaration is rejected. |
+| E10192 | An assignment target is a `const` declaration. | No store is generated. |
 
-## Warning Codes
+### Warning Conditions
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| W10190 | Possible use before initialization | `Variable '<name>' may be used before being initialized — assign a value before reading` |
-| W10191 | Unused variable | `Variable '<name>' is declared but never used — consider removing it` |
-| W10030 | Large ZP allocation | `Zeropage allocation for '<name>' uses <N> bytes — consider total ZP budget` |
+| Code | Trigger | Consequence |
+|------|---------|-------------|
+| W10190 | A control-flow path may read a function-local mutable variable before its first assignment. Module-level storage is exempt from this warning. | The read receives the variable's indeterminate stored bits. |
+| W10191 | A variable is declared but never used. | No semantic change; the declaration may be unnecessary. |
+| W10030 | Allocated zero-page usage reaches the selected profile's `warn_zp_percent`, or 75% of `max_zp` when omitted. | Compilation continues with the measured allocation. |
 
 ---
 
@@ -350,8 +372,8 @@ All error codes defined in this chapter. The canonical registry is in → Ch 14.
 | Feature | Interaction |
 |---------|-------------|
 | **Type system** (→ Ch 02) | All declarations require explicit type annotations (TS-1). Assignment follows type compatibility. Literal type rules (TS-2) apply to initializers. |
-| **Operators** (→ Ch 04) | Compound assignment (`+=`, `-=`, etc.) on `let` variables. Not allowed on `const` (E10191). |
-| **Control flow** (→ Ch 05) | Block scoping for function-local declarations. No shadowing (E10101). For-loop counters scoped to loop body. |
+| **Operators** (→ Ch 04) | Compound assignment (`+=`, `-=`, etc.) on `let` variables. Not allowed on `const` (E10192). |
+| **Control flow** (→ Ch 05) | Block scoping for function-local declarations. No shadowing (E10101). A for-header declaration is scoped to the complete for statement. |
 | **Functions** (→ Ch 06) | Function-local variables stored in SFA frame. Block-scoped locals with non-overlapping lifetimes share frame memory. Parameters are like `let` (mutable) unless marked `const`. |
 | **Structs** (→ Ch 07) | Struct instances can be `let` or `const`. Const structs placed in data section. |
 | **Arrays** (→ Ch 08) | Array `let`/`const` controls element mutability. Const arrays must be fully initialized (E10113). |

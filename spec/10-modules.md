@@ -24,7 +24,8 @@ Key design principles:
 ### 2.1 Syntax
 
 ```ebnf
-module_decl = "module" , identifier , ";" ;
+module_decl    = "module" , qualified_name , ";" ;
+qualified_name = identifier , { "." , identifier } ;
 ```
 
 Every source file must begin with a `module` declaration (after any leading comments):
@@ -33,12 +34,16 @@ Every source file must begin with a `module` declaration (after any leading comm
 module Game;
 ```
 
+A module name may contain any number of dot-separated identifiers, for example `Game.Main` or
+`Utils.Math.Fixed`. The complete spelling is the module's case-sensitive identity; dots create a
+namespace path, not a filesystem relationship.
+
 ### 2.2 Rules
 
 | Rule | Decision |
 |------|----------|
 | Must every file have a module declaration? | **Yes** — E10001 if missing |
-| Must it be the first statement? | **Yes** — E10002 if preceded by anything other than comments |
+| Must it be the first statement? | **Yes** — E10237 if preceded by anything other than comments |
 | Can two files share the same module name? | **Yes** — they contribute to the same module. All declarations merge. |
 | Is the module name tied to the filename? | **No** — filenames have no semantic meaning |
 | Are module names case-sensitive? | **Yes** — `Game` and `game` are different modules |
@@ -90,7 +95,7 @@ The `export` keyword makes a declaration visible to other modules:
 ```blend65
 module Math;
 export const PI_APPROX: byte = 3;
-export function clamp(v: byte, lo: byte, hi: byte): byte { }
+export function clamp(v: byte, lowBound: byte, highBound: byte): byte { }
 export struct Vector2 { x: word; y: word; }
 export enum Direction { UP, DOWN, LEFT, RIGHT }
 
@@ -104,9 +109,10 @@ function helperCalc(): byte { }
 The `import` statement brings exported declarations into scope:
 
 ```ebnf
-import_stmt = "import" , "{" , import_list , "}" , "from" , identifier , ";" ;
+import_stmt = "import" , "{" , import_list , "}" , "from" , qualified_name , ";" ;
 import_list = import_item , { "," , import_item } ;
 import_item = identifier , [ "as" , identifier ] ;
+qualified_name = identifier , { "." , identifier } ;
 ```
 
 ```blend65
@@ -181,9 +187,9 @@ function main(): void {
 1. Hardware reset → CPU starts at reset vector
 2. Platform bootstrap (KERNAL, etc.) → jumps to program start
 3. Compiler-generated startup routine:
-   a. Initialize zeropage variables (→ Ch 03, §5)
-   b. Initialize RAM variables (→ Ch 03, §5)
-   c. Fall through to main() body (no JSR — saves 2 stack bytes)
+   a. Execute the unified dependency/effect schedule for every explicit module-level and
+      `zeropage` `let` initializer (→ Ch 03, §5; §5.4 below)
+   b. Fall through to main() body (no JSR — saves 2 stack bytes)
 4. main() executes
 5. main() returns → platform-defined behavior (typically returns to OS/monitor)
 ```
@@ -192,15 +198,21 @@ Note: The startup routine falls through directly into `main()`'s body — there 
 
 ### 5.4 Module Initialization Order
 
-Module-level variables with initializers are initialized by the compiler-generated startup routine (§5.3, step 3) **before** `main()` runs. Because Blend65 has no module body and initializers are evaluated at startup, the order is defined deterministically:
+Module-level and `zeropage` variables with initializers are initialized by the compiler-generated
+startup routine (§5.3, step 3) **before** `main()` runs. They participate in one schedule regardless
+of storage class. Because Blend65 has no module body and initializers are evaluated at startup, the
+order is defined deterministically:
 
 | Rule | Decision |
 |------|----------|
-| Are initializers run before `main()`? | **Yes** — all module-level `let`/`const` initializers run during startup, before `main()`'s first instruction. |
-| What determines initialization order? | **Dependency order.** If variable `A`'s initializer reads variable `B`, then `B` is initialized first. The compiler builds an initialization dependency graph and emits initializers in topological order. |
-| What about independent variables? | Variables with no inter-dependencies are initialized in **declaration order** within a module, and modules are ordered by their dependency edges (imports). |
+| Are initializers run before `main()`? | **Yes** — every explicit module-level `let` initializer runs once during startup before `main()`; `const` is evaluated at compile time. |
+| What expressions are allowed? | Any otherwise legal non-`void` expression, including assignment expressions and statically resolved ordinary calls. Existing rules still reject recursion, direct interrupt calls, calls to `main`, and independently invalid operations. |
+| What determines initialization order? | **Dependency and effect order.** Every direct or transitive may-read of another initialized module variable creates a predecessor edge. Compound assignment contributes both a read and a write. Call effects are summarized over the recursion-free call graph. An import alone creates no runtime edge; circular declaration imports therefore remain legal. |
+| What about independent variables? | Among ready nodes, order by the initialized variable's fully qualified name (`Module.Path.variable`) using case-sensitive ASCII byte order. Names are unique after merged-module duplicate checks, so this is a total order independent of file paths and command-line input order. Observable side-effecting initializers receive ordering edges that preserve it. |
 | Constant initializers (`const`) | Fully compile-time evaluated — they never participate in runtime ordering. |
-| Circular initializer dependency | **Compile-time error E10194.** If `A`'s initializer depends on `B` and `B`'s depends on `A` (directly or transitively), no valid order exists. |
+| Circular initializer dependency | **Compile-time error E10194.** If the read/call/effect graph cannot be scheduled, the diagnostic shows the initializer, call, and read path that closes the cycle. |
+| Opaque hardware effects | Raw memory/MMIO and other opaque effects are conservative ordering barriers. They do not acquire fabricated precise alias information. |
+| SFA and cost | Startup and its callees are execution roots. Their parameters, locals, temporaries, spills, and helper scratch participate in final SFA closure. The build report exposes their ROM/storage cost and exact, bounded, or runtime-dependent cycles. |
 
 ```blend65
 module Game;
@@ -214,7 +226,12 @@ let a: word = b + 1;             // ❌ E10194: circular initializer
 let b: word = a + 1;             //    'a' depends on 'b' and 'b' depends on 'a'
 ```
 
-**Rationale**: Dependency-ordered initialization makes startup deterministic (Axiom A3) without requiring the developer to manually order declarations. Circular dependencies have no valid evaluation order and are rejected at compile time rather than producing an unspecified value.
+**Rationale**: Dependency-ordered initialization makes startup deterministic (Axiom A3) without requiring the developer to manually order declarations. The fully qualified declaration name is the stable tie-break because filenames and input order have no language meaning. Circular imports remain legal; only an actual initializer dependency cycle has no valid evaluation order and is rejected at compile time rather than producing an unspecified value.
+
+Writes alone do not mean that the written variable's own initializer must run first. Their observable
+result follows the total schedule. A read of a `let` with no initializer has no predecessor node and
+uses the ordinary indeterminate-value warning. Optimizers preserve the scheduled order of all
+observable effects.
 
 ---
 
@@ -244,19 +261,23 @@ The compiler processes all files in a multi-pass model:
 
 ---
 
-## 7. Error Codes
+## 7. Diagnostic Conditions
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| E10001 | Missing module declaration | `Source file must begin with a module declaration — add 'module <Name>;'` |
-| E10002 | Module declaration not first | `Module declaration must be the first statement in the file` |
-| E10003 | Duplicate declaration | `Duplicate declaration — '<name>' is already declared in this scope` |
-| E10010 | Executable statement at module level | `Executable statements are not allowed at module level — place code inside a function` |
-| E10012 | Import of non-exported item | `'<name>' is not exported from module '<module>'` |
-| E10020 | No main function | `No 'main' function found — every program needs 'function main(): void'` |
-| E10021 | Multiple main functions | `Multiple 'main' functions found — in modules '<A>' and '<B>'. Only one is allowed.` |
-| E10023 | Calling main directly | `Cannot call 'main()' directly — it is the program entry point, not a callable function` |
-| E10194 | Circular module-level initializer | `Circular initializer detected — '<name>' depends on itself (directly or indirectly) through module-level initialization order` |
+This chapter owns these predicates; Chapter 14 owns the canonical presentation.
+
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10001 | A source file has no module declaration. | The file is rejected. |
+| E10002 | A source file contains more than one module declaration. | Every declaration after the first is rejected. |
+| E10003 | Merged module scope contains duplicate declaration names. | The duplicate declaration is rejected. |
+| E10010 | An executable statement occurs at module level. | It must move into a function. |
+| E10012 | An import names a declaration that its module does not export. | The import is rejected. |
+| E10020 | The linked program has no `main`. | No entry point can be emitted. |
+| E10021 | The linked program has multiple `main` declarations. | Entry-point selection fails. |
+| E10022 | `main` does not have the exact `function main(): void` signature. | The declaration cannot be the entry point. |
+| E10023 | Source code calls `main` directly. | The call is rejected. |
+| E10194 | Module initializer dependencies contain a direct or transitive cycle. | Startup ordering fails and the ordered cycle is reported. |
+| E10237 | A module declaration is preceded by a non-comment source item. | The file is rejected even if no second module declaration exists. |
 
 ---
 

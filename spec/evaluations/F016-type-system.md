@@ -9,7 +9,9 @@
 
 ## Description
 
-This feature formalizes the complete type system rules for Blend65 v3 — the rules that govern how types interact across all declarations, expressions, and assignments. While individual type-related decisions were made in earlier features (F010's signed/unsigned mixing rules, F013's boolean-only conditions, F014's array type rules), this document is the **single source of truth** for how the type system works as a unified whole.
+This evaluation consolidates the rationale for the Blend65 v3 type-system rules across declarations,
+expressions, and assignments. The normative rules remain in Chapters 02–04 and their governing
+chapters; this document cannot override them.
 
 Blend65 v3 is **fully explicitly typed** — every declaration requires a type annotation. There is no type inference. This is a deliberate design choice for a 6502 language where the difference between `byte` and `word` directly determines memory usage, register allocation, and cycle counts. The developer states their intent; the compiler enforces it.
 
@@ -73,7 +75,7 @@ function damage(amount: byte): byte {
 // ❌ E10150: type annotation required
 let x = 10;
 const MAX = 255;
-function foo(n) { }
+function foo(n): void { }
 ```
 
 **Why no inference:** On 6502, the type IS the design decision. `byte` vs `word` is the difference between 1-byte and 2-byte operations, between 4-cycle and 12-cycle arithmetic. The developer must actively choose, and the annotation documents that choice for every reader of the code.
@@ -81,7 +83,7 @@ function foo(n) { }
 **Exceptions — array size inference is allowed** (F014):
 ```blend65
 const DATA: byte[] = [1, 2, 3, 4];           // ✅ Size inferred as 4 — element TYPE is explicit
-const SPRITES: byte[] = embed("p.spd").sprites; // ✅ Size inferred from file — element TYPE is explicit
+const SPRITES: byte[] = embed("p.spd", "sprites"); // ✅ Size inferred from file — element TYPE is explicit
 ```
 
 Array size inference is NOT type inference — the *type* (`byte`) is always stated. Only the *count* is inferred from the initializer.
@@ -112,7 +114,7 @@ Hex and binary literals follow the same rules based on their numeric value:
 ```blend65
 let x: byte = $FF;       // ✅ $FF = 255, fits in byte
 let y: byte = $100;      // ❌ E10084: $100 = 256, out of range for byte
-let z: byte = %11111111; // ✅ %11111111 = 255, fits in byte
+let z: byte = 0b11111111; // ✅ binary 11111111 = 255, fits in byte
 ```
 
 ---
@@ -162,7 +164,11 @@ let newPos: sword = position + delta; // ✅ sbyte auto-promotes to sword: 300 +
 
 **Why auto-promotion is safe:** Widening never loses data. `byte` 200 → `word` 200. `sbyte` -5 → `sword` -5. The mathematical value is preserved. This is fundamentally different from signed/unsigned mixing, where the same bits have different mathematical meanings.
 
-**6502 cost:** Auto-promotion inserts a zero-extend (byte→word: 2 instructions, ~4 cycles) or sign-extend (sbyte→sword: ~4-6 instructions, ~8-12 cycles) before the operation. This cost is documented in F017.
+**6502 cost:** The cost depends on where the source already resides and whether a separate result
+must be materialized. For the standalone stored conversions displayed in F010, zero extension uses
+11–14 cycles and 8–11 ROM bytes, while sign extension uses 16–21 cycles and 17–20 ROM bytes for
+zero-page or absolute source/result homes. A consumer may absorb part or all of the conversion, so
+the selected lowering reports its actual complete cost instead of adding a context-free surcharge.
 
 ### TS-5: Mixed-Signedness Is an Error
 
@@ -179,9 +185,9 @@ Mixing signed and unsigned types in the same expression is a compile-time error 
 let pos: byte = 100;
 let vel: sbyte = -3;
 
-let result: byte = pos + vel;          // ❌ E10081: cannot mix byte and sbyte
-let result: sbyte = sbyte(pos) + vel;  // ✅ explicit cast — sbyte + sbyte = sbyte
-let result: byte = pos + byte(vel);    // ✅ explicit cast — byte + byte = byte
+let invalidResult: byte = pos + vel;          // ❌ E10081: cannot mix byte and sbyte
+let signedResult: sbyte = sbyte(pos) + vel;   // ✅ explicit cast — sbyte + sbyte = sbyte
+let unsignedResult: byte = pos + byte(vel);   // ✅ explicit cast — byte + byte = byte
 ```
 
 ### TS-6: Boolean Is Not Numeric
@@ -265,19 +271,29 @@ The type of an expression is determined by its operands, **not** by the destinat
 let a: byte = 200;
 let b: byte = 100;
 let result: word = a + b;    // byte + byte = byte → 44 (wraps) → word(44) = 44
-                              // ⚠️ W10160: byte + byte may overflow before widening
+                              // ⚠️ W10161: exact reaching values prove the wrap
 
 let c: word = word(a) + word(b);  // word + word = word → 300 (correct)
 ```
 
-**The rule:** If you want wider arithmetic, cast the operands BEFORE the operation. The compiler warns when a narrow expression is assigned to a wider variable and overflow is possible (W10160/W10161).
+**The rule:** If you want wider runtime arithmetic, cast the operands BEFORE the operation. The
+compiler warns when an ordinary runtime narrow expression is widened by assignment, argument or
+return binding, or another explicit semantic context and overflow is possible (W10160/W10161). A
+`const` initializer is a different, full-precision context
+under TS-18 and uses E10084 if its final value does not fit.
 
-**When the warning triggers:** The compiler emits W10160/W10161 when:
+**When the warning triggers:** The compiler emits W10160 or W10161 when:
 1. An arithmetic expression (`+`, `-`, `*`) has narrow operands (byte or sbyte)
-2. The result is assigned to a wider type (word or sword)
+2. The result is widened by assignment, argument/return binding, or another explicit semantic
+   context such as a direct subscript after a narrow barrier
 3. The operation COULD overflow at the narrow width
 
-The warning does NOT trigger for:
+W10160 is used when overflow is possible but exact runtime operands are not known. W10161 replaces
+it when pre-optimization semantic analysis proves the exact reaching operand values and exact
+intermediate wrap. The proof must not depend on optimizer choices or ignore aliases, calls,
+interrupts, or volatile effects. The warnings do NOT trigger
+for true constant contexts or these cases:
+
 - Bitwise operations (no overflow concept)
 - Comparisons (result is boolean, not numeric)
 - When the narrow expression is provably within range (constant folding)
@@ -339,14 +355,18 @@ sword(expr)    // Cast to sword
 
 ### Cast Behavior
 
-| Cast | Behavior | 6502 Cost |
-|------|----------|-----------|
-| Same size, same signedness | No-op (identity) | 0 cycles, 0 bytes |
-| Same size, cross-signedness | Reinterpret bits | 0 cycles, 0 bytes |
-| Widen unsigned (byte→word) | Zero-extend high byte | ~4 cycles, 4 bytes |
-| Widen signed (sbyte→sword) | Sign-extend high byte | ~8-12 cycles, 6-8 bytes |
-| Narrow (word→byte, sword→sbyte) | Truncate to low byte | 0 cycles (just use low byte) |
-| Narrow cross-sign (word→sbyte) | Truncate + reinterpret | 0 cycles |
+The cost column below is explicit about its boundary. “No added instruction” means the conversion
+changes only interpretation or selects an already available byte; it does not include unrelated
+loads or stores. Widening rows give the complete standalone stored forms displayed in F010.
+
+| Cast | Behavior | Selected 6502 cost |
+|------|----------|--------------------|
+| Same size, same signedness | No-op (identity) | No added instruction |
+| Same size, cross-signedness | Reinterpret bits | No added instruction |
+| Widen unsigned (byte→word) | Zero-extend high byte | 11–14 cycles, 8–11 bytes for the complete stored form |
+| Widen signed (sbyte→sword) | Sign-extend high byte | 16–21 cycles, 17–20 bytes for the complete stored form |
+| Narrow (word→byte, sword→sbyte) | Select low byte | No added instruction when the low byte is already available |
+| Narrow cross-sign (word→sbyte) | Select low byte and reinterpret | No added instruction when the low byte is already available |
 
 ### TS-11: Cast Restrictions
 
@@ -395,7 +415,7 @@ pos += delta;                // ❌ E10081: cannot mix byte and sbyte
 
 ### TS-13: Compile-Time Constant Expressions
 
-Constant expressions (used in `const` initializers, array sizes, `embed()` offsets, case values) are evaluated at compile time using full-precision arithmetic:
+Constant expressions (used in `const` initializers, array sizes, case values, and enum members) are evaluated at compile time using full-precision arithmetic:
 
 ```blend65
 const SIZE: word = 40 * 25;           // ✅ Evaluated at compile time: 1000
@@ -428,7 +448,10 @@ const OVERFLOW: sbyte = 100 + 50;    // ❌ E10084: 150 out of range for sbyte (
 
 ### TS-A3: Does `byte + byte` produce `word` when assigned to a `word` variable?
 
-**No.** `byte + byte` produces `byte`. If assigned to `word`, the `byte` result is implicitly widened (zero-extended). If the addition overflows at byte width, the wrapped result is widened. The compiler warns (W10160).
+**No.** `byte + byte` produces `byte`. If assigned to `word`, the `byte` result is implicitly widened
+(zero-extended). If the addition overflows at byte width, the wrapped result is widened. The compiler
+emits W10160 when overflow is possible but exact operands are unknown, or W10161 when exact reaching
+values prove the wrap.
 
 ### TS-A4: Can a literal in a binary expression adapt to the other operand's type?
 
@@ -458,20 +481,23 @@ let d: word = a + c + b;       // (byte + word) = word(1100), then word + byte =
 
 Enums are `byte`-backed. Implicit conversion enum→byte is allowed; byte→enum is not (prevents invalid enum values). This will be fully specified when the enum feature is formalized.
 
-### TS-A8: What type does `sizeof()` return?
+### TS-A8: What types do `sizeof()` and `offsetof()` return?
 
-`sizeof()` returns `byte` for types with size ≤ 255 bytes, `word` for larger types. In practice, all primitive types and most structs fit in `byte`. Large arrays may require `word`.
+Both always return `word`. This prevents an object-size or field-offset boundary from changing the
+meaning of otherwise identical arithmetic. The values are compile-time-known, so lowering may
+still use one byte when that preserves every observation. Array extents and complete fixed
+array/struct sizes must fit `0..65535`; an unsized array has no standalone `sizeof` value.
 
 ---
 
 ## Part 10: Error Codes
 
-| Code | Message | Trigger |
+| Code | Public presentation | Rationale trigger |
 |------|---------|---------|
-| E10150 | Type annotation required — use `let <name>: <type> = <expr>` | Declaration without type annotation |
-| E10151 | Cannot use `boolean` in arithmetic/bitwise expression — boolean is a logical type, not numeric | Boolean operand in `+`, `-`, `*`, etc. |
-| E10152 | Cannot cast to or from `void` | `void(expr)` or cast to void |
-| E10153 | Cannot cast struct or array types — only integer types (`byte`, `sbyte`, `word`, `sword`) support casts | `byte(myStruct)` or `byte(myArray)` |
+| E10150 | [Chapter 14](../14-diagnostics.md) | Declaration without type annotation |
+| E10151 | [Chapter 14](../14-diagnostics.md) | Boolean operand in `+`, `-`, `*`, etc. |
+| E10152 | [Chapter 14](../14-diagnostics.md) | `void(expr)` or cast to void |
+| E10153 | [Chapter 14](../14-diagnostics.md) | `byte(myStruct)` or `byte(myArray)` |
 
 **Existing error codes that enforce type system rules:**
 
@@ -482,16 +508,15 @@ Enums are `byte`-backed. Implicit conversion enum→byte is allowed; byte→enum
 | E10082 | F010 | Implicit narrowing |
 | E10083 | F010 | Negate unsigned type |
 | E10084 | F010 | Value out of range for type |
-| E10085 | F010 | Signed array index |
 | E10086 | F010 | Boolean ↔ integer cast |
 | E10100 | F013 | Non-boolean condition |
 
 ### Warning Codes
 
-| Code | Message | Trigger |
+| Code | Public presentation | Rationale trigger |
 |------|---------|---------|
-| W10160 | `<narrow_type>` arithmetic may overflow before widening to `<wide_type>` — use `<wide_type>(a) <op> <wide_type>(b)` for wider arithmetic | byte/sbyte expression assigned to word/sword |
-| W10161 | Constant expression overflow — `<expr>` wraps to `<value>` at `<type>` width before widening | Same as W10160 but detected at compile time with known values |
+| W10160 | [Chapter 14](../14-diagnostics.md) | Narrow runtime arithmetic widened by an explicit semantic context, with possible but not exactly proved overflow |
+| W10161 | [Chapter 14](../14-diagnostics.md) | Same ordinary runtime context as W10160, but compile-time-known operands prove the exact wrap; do not also emit W10160 |
 
 ---
 
@@ -501,12 +526,12 @@ Enums are `byte`-backed. Implicit conversion enum→byte is allowed; byte→enum
 |---------|-------------|
 | F003 Module contents | Module-level `let` and `const` follow TS-1 (mandatory annotations), TS-8 (assignment rules) |
 | F005 Memory placement | Zeropage declarations use `name: type` syntax — type is always explicit |
-| F008 For loop | Loop variable type is explicit: `for i: byte = 0 to 10`. Loop bounds must match variable type or be promotable (TS-4) |
+| F008 For loop | Header declarations keep explicit types: `for (let i: byte = 0; i < 10; i += 1)`. Every clause uses ordinary expression typing and conversion rules |
 | F009 Switch | Switch expression and case values follow type mixing rules. Case values must match expression type (E10072) |
 | F010 Signed types | TS-3 through TS-5 formalize and generalize F010's ST-1 (no mixing) and ST-2 (implicit widening) |
-| F011 Structs | Struct field access produces the field's declared type. Struct types are not castable (TS-11) |
+| F011 Structs | Struct field access produces the field's declared type. Struct types are not castable (TS-11). Complete struct size must fit `0..65535`; `sizeof` and `offsetof` are stable-word compile-time queries |
 | F013 Control flow | Conditions must be boolean (CF-2 / E10100). TS-6 reinforces this |
-| F014 Arrays | Array element access produces the element type. Array index must be unsigned (E10085). Array size inference is allowed (not type inference) |
+| F014 Arrays | Array element access produces the element type. Every integer type may be an index under the index-ordinal context; non-integers are E10263 and known negative/out-of-extent values are E10240. Array extent and total type size must fit `0..65535`. Array size inference is allowed (not element-type inference) |
 | F015 Data inclusion | `embed()` selectors have declared return types. Type validation per E10144 |
 | F017 Operators | All operator result types follow TS-3 through TS-7. Operator-specific rules in F017 |
 
@@ -557,7 +582,7 @@ function overflowDemo(): void {
     let a: byte = 200;
     let b: byte = 100;
 
-    // ⚠️ W10160: byte + byte may overflow before widening to word
+    // ⚠️ W10161: exact reaching values prove byte wrap before widening to word
     let wrong: word = a + b;         // 200 + 100 = 44 (wraps at byte), then word(44) = 44
 
     // ✅ Correct: widen BEFORE arithmetic
@@ -616,7 +641,7 @@ function chainOrder(): void {
     let c: word = 1000;
 
     // Left-to-right: (200 + 100) wraps to 44 at byte, then 44 + 1000 = 1044
-    let r1: word = a + b + c;    // 1044 (⚠️ W10160 on a + b)
+    let r1: word = a + b + c;    // 1044 (⚠️ W10161 on a + b; exact values prove wrap)
 
     // Left-to-right: (200 + 1000) = 1200 at word (auto-promote), then 1200 + 100 = 1300
     let r2: word = a + c + b;    // 1300 (no warning — a promotes to word immediately)
@@ -637,7 +662,7 @@ function chainOrder(): void {
 | **P3** No platform assumptions | ✅ | No platform-specific types or rules. All six types are universal |
 | **P4** Resource-scalable | ✅ | Choosing `byte` vs `word` is the primary way developers manage RAM on constrained platforms |
 | **H1** 6502 implementable | ✅ | All types map directly to 6502 storage. Auto-promotion uses standard zero-extend/sign-extend sequences |
-| **H2** Cost transparency | ✅ | Auto-promotion cost is documented (4-12 cycles). Overflow warning helps developers understand expression evaluation |
+| **H2** Cost transparency | ✅ | Complete standalone stored zero extension is 11–14 cycles and 8–11 bytes; sign extension is 16–21 cycles and 17–20 bytes. A consumer may absorb some or all work, so the selected lowering reports its actual complete cost. Overflow warnings explain narrow evaluation before a wider context. |
 | **H3** SFA compatible | ✅ | Type annotations enable precise SFA frame sizing — each variable's size is known at compile time |
 | **H4** Memory footprint documented | ✅ | Type sizes are fixed: byte/sbyte=1, word/sword=2, boolean=1. Frame sizes are fully predictable |
 | **H5** Fully deterministic | ✅ | Every type combination produces either a defined result or a compile error. No undefined behavior. Overflow wraps deterministically |

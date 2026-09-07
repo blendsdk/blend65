@@ -40,22 +40,26 @@ The compiler organizes the output binary into segments. The platform profile (�
 ```
 $0000–$00FF  Zero Page
   $00–$01    6510 I/O direction registers (hardware)
-  $02–$2F    Available for Blend65 ZP variables + compiler temps
-  $30–$FF    KERNAL/BASIC usage (reserved)
+  $02–$8F    Available for Blend65 ZP variables + compiler temps (142 bytes)
+  $90–$FF    Outside the default profile (KERNAL/editor/cassette ownership)
 
 $0100–$01FF  Hardware Stack (256 bytes)
 
-$0800–$9FFF  RAM — Code + Data + Variables
-  $0801–...  Code segment (startup + functions)
-  ...–$9FFF  Data segment (const arrays/structs) + RAM variables + SFA frames
-
-$A000–$BFFF  BASIC ROM (can be banked out for more RAM)
-$C000–$CFFF  Free RAM (if BASIC ROM banked out)
+$0801–$CFFF  Shared program span — BASIC stub + Code + Data + Variables + SFA frames
+  $A000–$BFFF  RAM is selected here because the default startup banks out BASIC ROM
 $D000–$DFFF  I/O registers (VIC-II, SID, CIA)
 $E000–$FFFF  KERNAL ROM
 ```
 
 The exact layout varies per platform and is configured in the platform profile.
+
+For a contiguous load image such as the default C64 PRG, all emitted startup/code/const/asset bytes
+form one prefix beginning at `load_address`; any address gap inside that prefix is serialized as
+padding. Mutable variables and SFA homes form a disjoint trailing BSS suffix after the last emitted
+byte. The linker reserves their addresses but the serializer emits no bytes for that suffix, so the
+loader does not overwrite uninitialized storage. The complete prefix plus BSS suffix is the shared
+program footprint and must fit the profile range. This ordering is a flat-image rule, not a claim
+that ROM/cartridge targets serialize RAM reservations.
 
 ---
 
@@ -63,7 +67,13 @@ The exact layout varies per platform and is configured in the platform profile.
 
 ### 3.1 Core Principle
 
-Every function gets a **static memory frame** — a fixed-size block of RAM at a compile-time-known address. The frame holds the function's parameters and local variables.
+Every function receives one or more **static invocation-private homes** at compile-time-known
+addresses. A home contains parameters, return slots, locals, temporaries, spills, staging values,
+zero-page pairs, and helper scratch needed by one concurrently possible invocation. Mainline, startup,
+IRQ, NMI, nested/re-enabled interrupt roots, and compiler-visible escaped callbacks all participate.
+Taking `&local` does not make the home persistent. It creates a borrow bounded by the local's
+dynamic source lifetime. Legal borrow uses extend that home's liveness; E10260 rejects any possible
+escape beyond the lifetime.
 
 ```
 Function: calculate(a: byte, b: byte): word
@@ -83,10 +93,13 @@ Function: calculate(a: byte, b: byte): word
 | Stack pointer manipulation per call | No stack pointer manipulation |
 | Variable-size stack frame | Fixed-size frame, known at compile time |
 | Supports recursion | No recursion (→ Ch 06, FN-6) |
-| 256-byte stack limit is a problem | Stack only holds return addresses |
+| 256-byte stack limit is a problem | SFA removes data frames; the remaining returns, interrupts, and explicit pushes are statically budgeted |
 | Frame access via stack pointer + offset | Frame access via absolute addressing |
 
-On the 6502, stack-based calling is expensive: the hardware stack is only 256 bytes, there is no frame pointer register, and accessing stack data requires pulling/pushing (destroying the data order). SFA eliminates all of this.
+On the 6502, stack-based data frames are expensive: the hardware stack is only 256 bytes, there is
+no frame pointer register, and accessing stack data requires pulling/pushing. SFA eliminates data
+frames, but the compiler still accounts for return addresses, interrupts, and explicit stack
+intrinsics.
 
 ### 3.3 Frame Size per Type
 
@@ -96,13 +109,28 @@ On the 6502, stack-based calling is expensive: the hardware stack is only 256 by
 | `word` / `sword` parameter or local | 2 |
 | Enum parameter or local | 1 |
 | Struct parameter (by-reference) | 2 (base address pointer) |
-| Array parameter (by-reference) | 2 (base address pointer) |
+| Exact `T[N]` array parameter (by-reference) | 2 (base address pointer) |
+| Any-size `T[]` array parameter (by-reference) | 4 (base address pointer + word element count) |
 | Struct local (by-value) | `sizeof(Type)` |
 | Array local (by-value) | element size × count |
 
 ### 3.4 Frame Coloring
 
 Functions with **non-overlapping lifetimes** can share frame memory. The compiler computes this from the static call graph.
+
+The interference graph includes both ordinary call nesting and interrupt preemption. A function
+reachable from overlapping execution domains receives separate storage homes; a code variant is
+needed only when fixed addresses or specialized callees differ. Globals/assets/MMIO are shared state,
+not frame storage. Final allocation occurs only after lowering has exposed every helper scratch need.
+An unbounded or unknown storage-bearing overlap is a compile-time error, never silent corruption.
+
+Address-derived provenance participates in the interference proof. A local home remains
+non-reusable while a legal borrow can observe it, including through a proven non-retaining callee
+or a feasible preempting domain. Bounded concurrent domains receive disjoint homes and any code
+variant needed to materialize the correct fixed address. Sequential invocations and loop
+iterations may reuse one physical home only because E10260 makes an earlier borrowed address
+unobservable. SFA never pins an automatic local for program lifetime or silently converts it into
+shared static state.
 
 ```
 Call graph:
@@ -173,28 +201,57 @@ If total ZP allocation exceeds the platform budget → E10032.
 
 ### 5.1 Stack Purpose
 
-In Blend65, the hardware stack ($0100–$01FF, 256 bytes) is used **only** for:
+In Blend65, the hardware stack uses the selected profile's proven-writable part of page one
+(normally `$0100`–`$01FF`; `$0140`–`$01FF` on Atari 7800). It is used for:
 - **Return addresses** — 2 bytes per active `JSR` (function call)
 - **Interrupt context** — 3 bytes CPU push (P, PCL, PCH) + 3 bytes register save (A, X, Y)
+- **Synchronous `BRK` context** — 3 bytes pushed by the CPU plus the selected profile contract's
+  maximum additional handler stack use
+- **Explicit stack intrinsics** — each live `asm_pha()` or `asm_php()` contributes one byte until
+  its kind-correct `asm_pla()` or `asm_plp()` pull
 
 Parameters, locals, and return values **never** touch the hardware stack.
 
 ### 5.2 Stack Budget
 
-The compiler computes worst-case stack usage from the call graph:
+The platform profile supplies raw stack capacity and bytes reserved for firmware/platform use. The
+compiler derives usable capacity and computes the worst simultaneous peak across the call graph,
+interrupt/preemption graph, and explicit stack deltas:
 
 ```
 Stack budget (C64 example):
   256 bytes total
   - 20 bytes KERNAL reserve
-  - 6 bytes per interrupt entry (3 CPU + 3 registers)
-  = 230 bytes available for call chain
-  = 115 call levels maximum (2 bytes each)
+  = 236 bytes available to Blend65 execution
+
+One possible simultaneous path:
+  24 bytes main call chain
+   6 bytes IRQ entry
+   8 bytes IRQ call chain
+   2 bytes explicit pushes
+  = 40 bytes peak
 ```
+
+The six-byte entry is charged once for every interrupt entry that can be live simultaneously; it is
+not pre-subtracted as a single fixed allowance. `asm_cli()` and platform non-maskable sources affect
+which entries can overlap. An unbounded re-entry path is rejected with E10245. A finite peak beyond
+capacity is E10238. Explicit-stack analysis tracks the ordered kind sequence, not only byte depth.
+Pulls may not consume pre-entry state or a different saved kind; joins and loop backedges require
+identical sequences; all exits must restore the empty relative sequence (E10248). An explicit-stack
+cycle whose depth grows without a static bound is E10245.
+
+A reachable `asm_brk()` is a separate synchronous control-flow edge, not an ordinary call or a
+generic asynchronous interrupt root. The edge always contributes the CPU's three pushed bytes plus
+the selected `brk_contract.handler_stack_peak`. A returning contract continues after BRK's mandatory
+padding byte; a non-returning contract terminates that path. E10259 rejects the operation when the
+selected profile cannot prove this control flow and peak. The compiler never reserves SFA storage,
+installs a handler, or links support code for BRK.
 
 ### 5.3 Stack Depth Warning
 
-If the maximum call depth approaches the platform-defined stack budget, the compiler emits W10180 (→ Ch 06).
+The profile's stack warning threshold is `warn_stack_peak` when present. When absent, it is 80% of
+derived usable capacity (`stack_capacity - stack_reserve`), rounded down. The compiler emits W10180
+when the proven simultaneous peak reaches or exceeds that threshold (→ Ch 06).
 
 ---
 
@@ -207,7 +264,7 @@ The compiler produces a **build summary** reporting all memory usage. This is cr
 Platform: c64
 Target: game.prg
 
-Code segment:    1,247 bytes ($0801–$0CE0)
+Code segment:    1,248 bytes ($0801–$0CE0)
 Data segment:      312 bytes ($0CE1–$0E18)  [const arrays, strings, embed data]
 RAM variables:      89 bytes ($0E19–$0E71)
 SFA frames:         47 bytes ($0E72–$0EA0)  [peak: 10 bytes simultaneous]
@@ -217,16 +274,20 @@ Zero page:
   Compiler temps:   4 bytes
   Struct pointers:  4 bytes
   IRQ temps:        2 bytes
-  Total:           16 / 30 bytes (53%)
+  Total:           16 / 142 bytes (11%)
 
 Hardware stack:
-  Max call depth:   4 levels (8 bytes)
-  IRQ overhead:     6 bytes
-  Total peak:      14 / 230 bytes (6%)
+  Raw capacity:   256 bytes
+  Platform reserve: 20 bytes
+  Main calls:       8 bytes
+  IRQ entry/calls: 14 bytes
+  Explicit pushes:  2 bytes
+  Total peak:      24 / 236 usable bytes (10%)
 
 Startup routine:   42 bytes, 68 cycles
 
-Total binary:    1,695 bytes
+Emitted binary:  1,560 bytes ($0801–$0E18; excludes 2-byte PRG header)
+Shared footprint: 1,696 bytes ($0801–$0EA0; includes trailing non-emitted BSS)
 ```
 
 ---
@@ -245,7 +306,8 @@ Cross-reference of where each language construct lives in memory:
 | Module-level `const` struct | Data | `sizeof(Type)` | Baked into binary |
 | `zeropage` variable | Zero page | 1–2 bytes | Fast access |
 | Function parameter (scalar) | SFA frame | 1–2 bytes | Caller writes before JSR |
-| Function parameter (struct/array) | SFA frame | 2 bytes | Base address pointer |
+| Function parameter (struct/exact array) | SFA frame | 2 bytes | Base address pointer |
+| Function parameter (any-size array) | SFA frame | 4 bytes | Base address pointer + word element count |
 | Function local (scalar) | SFA frame | 1–2 bytes | — |
 | Function local (struct) | SFA frame | `sizeof(Type)` | — |
 | Function local (array) | SFA frame | N × element size | — |
@@ -255,18 +317,23 @@ Cross-reference of where each language construct lives in memory:
 
 ---
 
-## 8. Error Codes
+## 8. Diagnostic Conditions
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| E10032 | ZP budget exceeded | `Zero-page budget exceeded — <used> bytes used, platform '<platform>' allows <budget> bytes` |
-| E10033 | RAM budget exceeded | `RAM usage (<used> bytes) exceeds platform '<platform>' available RAM (<budget> bytes)` |
-| E10034 | Binary too large | `Output binary (<size> bytes) exceeds platform '<platform>' maximum binary size (<limit> bytes)` |
+This chapter owns resource and allocation predicates; Chapter 14 owns their canonical presentation.
 
-## Warning Codes
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10032 | Static zero-page placement exceeds the selected profile's allocatable range. | Placement fails. |
+| E10034 | The final output binary exceeds the selected platform's binary-size limit. | Artifact emission fails. |
+| E10238 | RAM, data, array, frame, or another target resource exceeds its selected-profile budget. | The named resource cannot be placed. |
+| E10245 | A storage-bearing execution path or hardware-stack path can overlap itself without a static bound. | SFA/stack analysis cannot prove a finite peak. |
+| E10248 | An explicit stack-intrinsic path pops above function entry, pulls the wrong saved kind, joins unequal kind sequences, or exits with a nonempty relative sequence. | Safe deterministic `RTS`/`RTI` state cannot be preserved. |
+| E10260 | A local-origin address or derived fragment may remain observable after its local's dynamic source lifetime. | SFA cannot safely reuse the home, so the escaping use is rejected rather than pinned. |
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| W10180 | Stack depth near limit | `Maximum stack depth is <N> bytes on platform '<platform>' — stack budget is <budget> bytes` |
-| W10030 | Large ZP allocation | `Zeropage allocation uses <N> of <budget> bytes — consider total ZP budget` |
-| W10033 | RAM nearing limit | `RAM usage is <percent>% of platform '<platform>' budget` |
+### Warning Conditions
+
+| Code | Trigger | Consequence |
+|------|---------|-------------|
+| W10180 | Proven hardware-stack peak crosses the selected profile's warning threshold. | Compilation continues with the measured peak. |
+| W10030 | Zero-page use reaches `warn_zp_percent`, or 75% of `max_zp` when omitted. | Compilation continues with the measured placement. |
+| W10033 | RAM use reaches `warn_ram_percent`, or 75% of `max_ram` when omitted. | Compilation continues with the measured placement. |

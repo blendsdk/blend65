@@ -1,5 +1,10 @@
 # Blend65 v3 — Specification Build Plan
 
+> **Historical status**: This plan records the May 29, 2026 consolidation. Its phase evidence and
+> counts are historical unless a current value is explicitly identified below. The normative
+> language contract now lives in `00-introduction.md` through `15-platform-profile.md` plus the
+> platform appendixes; later accepted product rulings may refine those documents.
+
 > **Date**: May 29, 2026
 > **Purpose**: Sequenced, gated plan for turning the 23 accepted feature evaluations (F001–F024,
 > F023 retired) into the consolidated formal specification (00–15), the v2 retirement, the platform
@@ -51,7 +56,7 @@ feature doc owns each cross-cutting rule (from preflight-report.md §3) — the 
 | **01** | Lexical Structure | F021 | tokens, keywords, literals, comments, reserved words (incl. retired `type`) |
 | **02** | Type System | F016, F010, F022 | **TS-4** expression-operand auto-promotion; narrowing-requires-cast; boolean-is-not-numeric; cast rules; **F010 ST-1** mixed-signedness (E10081); **F010 ST-2** assignment-context widening; enum↔byte (F022 EN-9/EN-10) |
 | **03** | Variables & Constants | F019, F005 | let/const, initialization, startup sequence, zeropage placement, memory placement |
-| **04** | Expressions & Operators | F017, F024, F006, F020 | operator set + precedence table; **ternary at level 12 right-assoc** (F024); address-of `&` (F006); peek/poke/lo/hi/sizeof/offsetof/length (F020, incl. sizeof return-type rule) |
+| **04** | Expressions & Operators | F017, F024, F006, F020 | operator set + precedence table; **ternary at level 2 right-assoc** (F024), below `||` and above assignment; address-of `&` (F006); peek/poke/lo/hi/sizeof/offsetof/length (F020, incl. stable-word size/offset query rules) |
 | **05** | Statements & Control Flow | F013, F008, F009 | **block** definition (F013); **boolean-condition rule E10100** (F013); if/else/while/do-while; for-loop; switch/fallthrough; break/continue |
 | **06** | Functions | F018, F007 | declaration/calling; SFA frames; recursion prohibition (E10180/E10181); no-shadowing (E10101 — FN-A3 resolved); interrupt functions; `&fn` callback auto-detection |
 | **07** | Structs | F011 | struct rules; no self-reference/circularity; no struct return; struct literals |
@@ -59,8 +64,8 @@ feature doc owns each cross-cutting rule (from preflight-report.md §3) — the 
 | **09** | Enums | F022 | byte-backed nominal type; asymmetric conversion |
 | **10** | Modules & Multi-file | F001, F002, F003, F004 | module decl; contents & visibility; entry point `main`; multi-file compilation; `import { X as Y }` |
 | **11** | Memory Model & SFA | F005, F018 (frame parts), F006 | static frame allocation; zero-page budget; address model (addresses are plain `word`) |
-| **12** | CPU Control & Intrinsics | F012 | the 13 curated CPU-control intrinsics; BCD warning; (no inline asm — REJ-002) |
-| **13** | Data Inclusion / Asset Embedding | F015 | `embed()`; format selectors; offset/size; const-only placement |
+| **12** | CPU Control & Intrinsics | F012 | 13 curated CPU controls; 2 explicit BCD operations; raw decimal-state diagnostics; no inline asm (REJ-002) |
+| **13** | Data Inclusion / Asset Embedding | F015 | `embed()`; format selectors; const-only placement |
 | **14** | Diagnostics: Error & Warning Registry | index appendix | the full E1xxxx / W1xxxx tables (single canonical copy) |
 | **15** | Conformance & Platform Profile Contract | index, language-guard F2 | what a platform profile must define; conformance checklist; links to appendixes |
 
@@ -118,4 +123,6 @@ F019✓(03) F020✓(04) F021✓(01) F022✓(02,09) F024✓(04). **All 23 mapped.
 - ✅ **P2** — chapters 00–15. All 16 written: 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15.
 - ✅ **P3** — `v2-to-v3-migration.md` written (140 rows, 0 gaps → Gate G2 PASSED); `language-specification-v2/` deleted via `git rm -r`.
 - ✅ **P4** — 5 platform appendixes written (c64, c64u, cx16, a800xl, a7800). All profile slots filled → Gate G3 PASSED.
-- ✅ **P5** — master EBNF grammar written (`grammar.ebnf.md`): 85 productions, LL(2) max, Pratt for expressions, all constructs covered → Gate G4 PASSED.
+- ✅ **P5** — master EBNF grammar written (`grammar.ebnf.md`). The original completion snapshot
+  reported 85 productions. The current reconciled grammar has 92 production definitions, retains
+  the recursive-descent/Pratt design, and covers all specified constructs → Gate G4 PASSED.

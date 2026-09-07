@@ -9,7 +9,11 @@
 
 ## Description
 
-Functions are reusable blocks of code that perform a specific task. Under SFA, each function gets a **static memory frame** allocated at compile time — parameters and local variables have fixed addresses, not stack-based locations. This eliminates the expensive stack manipulation that traditional C compilers require on the 6502.
+Functions are reusable blocks of code that perform a specific task. Under SFA, every statically
+bounded activation gets a **static memory home** allocated at compile time — parameters and local
+variables have fixed addresses, not stack-based locations. Calls that cannot overlap may share
+storage; overlapping mainline, IRQ, and NMI activations do not. This eliminates the expensive stack
+manipulation that traditional C compilers require on the 6502.
 
 ```blend65
 function moveEnemy(enemy: Enemy, dx: sbyte, dy: sbyte): void {
@@ -29,10 +33,11 @@ function clamp(value: word, min: word, max: word): word {
 ```
 
 **Key design principles:**
-- Static Frame Allocation — every parameter and local variable has a compile-time-known address
-- No recursion — each function has exactly one frame instance; the compiler detects and rejects all recursion
+- Static Frame Allocation — every invocation-private value has a compile-time-known address for each statically bounded execution domain
+- No recursion — recursive activation depth is unbounded; the compiler detects and rejects all recursion
 - No stack for data — parameters, locals, and return values never touch the hardware stack
-- JSR/RTS for return addresses — the only hardware stack usage (2 bytes per active call level)
+- Complete stack accounting — `JSR` return addresses, interrupt entries/register saves, and
+  explicit stack intrinsics all contribute to the proven peak
 - Register-based return values — `byte`/`sbyte`/`boolean` in A, `word`/`sword` in A(lo)/X(hi)
 - Declaration order independent — functions can call other functions regardless of source order
 
@@ -49,15 +54,14 @@ function_decl = [ "export" ] , "function" , identifier
               , function_body ;
 
 parameter_list = parameter , { "," , parameter } ;
-parameter      = [ "const" ] , identifier , ":" , type_expr ;
+parameter      = identifier , ":" , [ "const" ] , value_type ;
 
-return_type    = "void" | "byte" | "sbyte" | "word" | "sword" | "boolean" ;
+return_type    = "void" | value_type ;
 function_body  = "{" , { statement } , "}" ;
-
-type_expr      = "byte" | "sbyte" | "word" | "sword" | "boolean"
-               | identifier                           (* struct type *)
-               | type_expr , "[" , const_expr , "]"    (* array type *) ;
 ```
+
+`value_type` is the shared master-grammar production; this fragment does not define a competing
+function-only type alias.
 
 ### Function Call
 
@@ -118,7 +122,7 @@ function resetEnemy(enemy: Enemy): void {
 }
 
 function clearBuffer(buffer: byte[1000]): void {
-    for (let i: word = 0 to 999) {
+    for (let i: word = 0; i <= 999; i += 1) {
         buffer[i] = 0;  // modifies the ORIGINAL array
     }
 }
@@ -126,12 +130,14 @@ function clearBuffer(buffer: byte[1000]): void {
 
 This is compiler-managed — there is no `ref` keyword. The developer does not choose; the compiler always uses by-reference for structs and arrays, by-value for scalars.
 
-The `const` modifier (F014 CP-1..5) prevents modification of by-reference parameters:
+The `const` modifier (F014 CP-1..5) prevents modification of by-reference parameters. It is valid
+only on struct and array parameters; scalar and enum parameters are already copied by value, so a
+`const` qualifier on them is rejected with E10246:
 
 ```blend65
-function countNonZero(const data: byte[256]): byte {
+function countNonZero(data: const byte[256]): byte {
     let count: byte = 0;
-    for (let i: byte = 0 to 255) {
+    for (let i: word = 0; i < 256; i += 1) {
         if (data[i] != 0) {
             count += 1;
         }
@@ -140,11 +146,16 @@ function countNonZero(const data: byte[256]): byte {
 }
 ```
 
-**Codegen**: The caller stores the base address (2 bytes) into the callee's frame. The callee uses indirect indexed addressing to access the data.
+**Codegen**: A struct or exact `T[N]` array parameter uses a two-byte base-address home. An
+any-size `T[]` parameter also receives the caller array's full two-byte element count, for four SFA
+bytes total. The callee may use that count through `length(parameter)`. This parameter form is not
+a dynamic array or first-class subarray value; it cannot be stored or returned.
 
 ### FN-4 — Return Value Types
 
-Functions can return scalar types only. Struct and array return values are not allowed.
+Every value type is syntactically valid in a return annotation so invalid aggregate returns reach
+semantic analysis. Functions can return scalar and enum values only. Struct returns produce E10093;
+array returns produce E10120.
 
 | Return type | Allowed | Register | Notes |
 |-------------|---------|----------|-------|
@@ -154,6 +165,7 @@ Functions can return scalar types only. Struct and array return values are not a
 | `word` | ✅ | A(lo) / X(hi) | 16-bit unsigned |
 | `sword` | ✅ | A(lo) / X(hi) | 16-bit signed (same registers, different semantics) |
 | `boolean` | ✅ | A | 0 = false, 1 = true |
+| enum type | ✅ | A | Byte-backed value with nominal enum type |
 | struct type | ❌ E10093 | — | Use out-parameter instead (F011) |
 | array type | ❌ E10120 | — | Use out-parameter instead (F014) |
 
@@ -161,7 +173,7 @@ Functions can return scalar types only. Struct and array return values are not a
 
 | Situation | Rule | Error |
 |-----------|------|-------|
-| Non-void function, `return expr;` | Expression type must match return type | E10172 if mismatch |
+| Non-void function, `return expr;` | Expression must be assignment-compatible with the declared return type under F016/Chapter 02 | E10080, E10082, E10086, or E10235 according to the rejected conversion |
 | Non-void function, `return;` (no value) | Not allowed | E10174 |
 | Non-void function, missing return on some path | Not allowed | E10102 (F013) |
 | Void function, `return;` | Allowed (early exit) | — |
@@ -205,7 +217,9 @@ function pong(): void {
 }
 ```
 
-**Why**: SFA allocates one static frame per function. Recursive calls would overwrite the active frame, corrupting parameters and locals. This is not undefined behavior (H5) — the compiler catches it.
+**Why**: SFA can allocate a finite, statically selected set of homes, but recursion has no static
+activation bound. Blend65 does not add a dynamic frame stack or runtime selector. This is not
+undefined behavior (H5) — the compiler catches every direct or indirect recursive cycle.
 
 **Alternative**: Use iteration. Every recursive algorithm has an iterative equivalent, and iterative solutions are generally faster on 6502 (no call overhead).
 
@@ -226,11 +240,11 @@ function setupScreen(): void { ... }
 
 **Cross-module calls:**
 ```blend65
-// file: graphics.blend65
+// file: graphics.blend
 module Graphics;
 export function clearScreen(): void { ... }
 
-// file: main.blend65
+// file: main.blend
 module Main;
 import { clearScreen } from Graphics;
 
@@ -287,10 +301,14 @@ Functions cannot be assigned to variables, passed as parameters, or stored in da
 ```blend65
 let fn: word = &clearScreen;     // ✅ address as word (F006)
 // There is no way to "call" fn — it's just a number
-// Install it as an interrupt vector, pass to platform API, etc.
+// Pass it to an API that accepts an ordinary code address.
 ```
 
-Typed function pointers and indirect calls are deferred to FUT-003.
+Function values and indirect calls remain outside v3. The compiler nevertheless preserves
+function identity and available entry variants while an address stays visible to
+compiler-recognized platform operations. Direct scalar storage/copy does not by itself erase the
+finite provenance set; integer
+transformation, address escape, unknown external use, and raw memory do.
 
 ---
 
@@ -313,7 +331,9 @@ Blend65 uses a **Static Frame Allocation** calling convention that eliminates al
 
 ### Frame Layout
 
-Each function gets a contiguous block of RAM allocated at compile time:
+Each non-overlapping function activation can use a contiguous block of RAM allocated at compile
+time. A function that may overlap across mainline, IRQ, NMI, or bounded nested interrupt domains
+gets a disjoint home for each simultaneous activation:
 
 ```
 Function: calculate(a: byte, b: byte): word
@@ -328,11 +348,15 @@ Function: calculate(a: byte, b: byte): word
 The compiler allocates frames using the static call graph:
 - Functions with **non-overlapping lifetimes** can share frame memory (frame coloring)
 - Functions on the **same call path** must have separate frames
+- Functions that can overlap across execution domains must have separate invocation-private homes
+- Globals, assets, and MMIO remain shared and are not silently duplicated
 - The total frame region is a compile-time constant
 
 ### Struct/Array Parameter Passing
 
-Structs and arrays are passed by address. The caller stores the base address (2 bytes) into the callee's frame:
+Structs and exact arrays are passed by address. The caller stores the base address (2 bytes) into
+the callee's frame. An any-size array parameter additionally receives the caller array's two-byte
+element count, as specified above:
 
 ```
 Function: updateEnemy(enemy: Enemy, dx: sbyte)
@@ -379,7 +403,7 @@ let result: byte = add(10, score);
     STA add_param_b     ; 4 cycles — store to callee's frame
     JSR _add            ; 6 cycles — call (pushes return address)
     STA _result         ; 4 cycles — store return value from A
-    ; Total call overhead: 24 cycles
+    ; Caller-side sequence shown: 24 cycles (callee body/RTS are separate)
 ```
 
 **Generated 6502 (callee):**
@@ -494,22 +518,9 @@ Call graph:
   render → drawSprite
 ```
 
-The compiler performs cycle detection (DFS with back-edge detection) on this graph. If any cycle is found, it reports the full cycle path:
-
-```
-error[E10181]: Indirect recursion detected — cycle: ping → pong → ping
-  --> src/game.blend65:12:5
-   |
-12 |     pong();
-   |     ^^^^^^
-   |
-  --> src/game.blend65:16:5
-   |
-16 |     ping();
-   |     ^^^^^^
-   = note: Blend65 uses static frame allocation which does not support recursion
-   = help: Break the cycle by restructuring into a loop or state machine
-```
+The compiler performs cycle detection on this graph. If any cycle is found, E10181 identifies the
+full ordered cycle through primary and related spans. [Chapter 14](../14-diagnostics.md) owns the
+exact public template, notes, and help; this rationale document does not duplicate them.
 
 ---
 
@@ -519,18 +530,24 @@ error[E10181]: Indirect recursion detected — cycle: ping → pong → ping
 
 | Operation | Cycles | Notes |
 |-----------|--------|-------|
-| Store byte argument | 6 | LDA + STA (immediate or absolute) |
-| Store word argument | 12 | LDA + STA × 2 bytes |
-| Store struct/array address | 12 | LDA + STA × 2 bytes (address) |
+| Store byte argument to absolute home | 4 register-ready; 6 immediate; 8 absolute-memory source | Argument materialization plus one STA; a ZP home saves 1 cycle |
+| Store word argument to absolute homes | 8 register-ready A/X; 12 two immediate bytes; 16 two absolute-memory bytes | Two stores plus source loads; ZP homes save 1 cycle per store |
+| Store struct/array address to absolute homes | 12 for a link-time address | Two immediate loads and two stores; a ZP home saves 2 cycles total |
 | JSR | 6 | Push return address, jump |
 | RTS | 6 | Pull return address, jump back |
-| Read byte return | 4 | STA from A register |
-| Read word return | 8 | STA from A + STX from X |
+| Store byte return | 4 | STA from A to an absolute destination; ZP costs 3 |
+| Store word return | 8 | STA from A + STX from X to absolute destinations; ZP costs 6 total |
 
 **Typical function call cost:**
 - Void, no params: **12 cycles** (JSR + RTS)
-- 2 byte params, byte return: **30 cycles** (2×6 store + 6 JSR + 6 RTS + 4 read + 2 body overhead)
-- Struct param, void: **24 cycles** (12 addr store + 6 JSR + 6 RTS)
+- 2 byte params, byte return: **30 cycles** for the shown immediate + absolute-memory arguments,
+  absolute parameter homes/destination, JSR, RTS, and result store (6 + 8 + 6 + 6 + 4), excluding
+  callee arithmetic/body instructions
+- Struct param, void: **24 cycles** for a link-time address into absolute parameter homes plus JSR
+  and RTS (12 + 6 + 6), excluding the callee body
+
+The build report derives final cost from emitted instructions because argument sources and SFA
+placement determine whether immediate, zero-page, or absolute forms are selected.
 
 ### Frame Memory Cost
 
@@ -538,7 +555,8 @@ error[E10181]: Indirect recursion detected — cycle: ping → pong → ping
 |------|----------|
 | Byte parameter | 1 byte per function |
 | Word parameter | 2 bytes per function |
-| Struct/array parameter | 2 bytes per function (address) |
+| Struct or exact array parameter | 2 bytes per function (address) |
+| Any-size array parameter | 4 bytes per function (address + word element count) |
 | Boolean parameter | 1 byte per function |
 | Local byte variable | 1 byte per function |
 | Local word variable | 2 bytes per function |
@@ -552,18 +570,27 @@ Frame memory is shared between functions with non-overlapping lifetimes (frame c
 | Each active call level | 2 bytes (return address) |
 | Interrupt entry (CPU push) | 3 bytes (P, PCL, PCH) |
 | Interrupt register save | 3 bytes (A, X, Y via PHA/TXA PHA/TYA PHA) |
+| Chained CINV status preservation | 1 byte while `PHP`/`PLP` brackets the handler body |
+| Live explicit push | 1 byte per `asm_pha()`/`asm_php()` until its pull |
 
 **Example budget (C64):**
 
 ```
 256 bytes total hardware stack
  - 24 bytes  main call chain (12 levels × 2 bytes)
- -  6 bytes  interrupt overhead (3 CPU + 3 register save)
+ -  7 bytes  default CINV-chain overhead (3 CPU + 3 KERNAL register save + 1 status)
  -  8 bytes  interrupt handler calls (4 levels × 2 bytes)
  - 20 bytes  KERNAL reserve
 ────────────
-198 bytes free (77%)
+197 bytes free (77%)
 ```
+
+The compiler proves the peak across simultaneously live mainline, IRQ, NMI, and callback paths,
+including nested entries admitted by the profile and interrupt-mask effects. It does not subtract a
+single assumed interrupt entry from the profile budget. Every explicit-stack path must preserve a
+kind-correct LIFO sequence relative to function entry, agree at reachable joins and loop backedges,
+and restore the empty relative sequence at every exit (E10248). Unbounded stack growth or re-entry
+is E10245; a finite peak beyond raw capacity is E10238.
 
 ---
 
@@ -593,7 +620,9 @@ Use a different name: `addToScore(points: word)`.
 
 ### FN-A4: Can you take the address of a function?
 
-**Yes** — `&functionName` returns a `word` containing the function's code address (F006). This works for both regular and exported functions. For interrupt functions, `&handler` returns the address for installation in interrupt vectors (F007).
+**Yes** — `&functionName` returns a `word` containing the function's code address (F006). This
+works for both regular and exported functions. For interrupt functions, a recognized platform
+installer consumes the typed address provenance and selects its required entry variant (F007).
 
 ### FN-A5: What about the `callback` keyword from v2?
 
@@ -622,34 +651,64 @@ If both are imported without alias, E10003 applies (duplicate declaration in sco
 
 ### FN-A8: What is the maximum call depth?
 
-There is no language-imposed limit. The practical limit is `256 / 2 = 128` call levels (the entire hardware stack for return addresses), minus stack budget for interrupts and KERNAL. The compiler computes the worst-case call depth from the static call graph and emits **W10180** when it exceeds the platform-defined threshold.
+There is no language-imposed call-count limit. The selected profile supplies raw capacity and a
+platform reserve. The compiler computes the feasible simultaneous peak from calls, interrupt
+entries, and explicit stack operations. W10180 fires when that finite peak reaches the profile's
+`warn_stack_peak` value, or 80% of derived usable capacity rounded down when the optional field is
+absent.
 
-### FN-A9: Can a function call itself through `&` and platform APIs?
+### FN-A9: What happens when a function address reaches a callback or interrupt API?
 
-In theory, a function's address could be installed as an interrupt vector or passed to a platform routine that calls it. The compiler's recursion detection covers direct and indirect calls in the source code. Calls through raw addresses (poke + JMP) are outside the compiler's analysis — the developer is responsible. This is documented as a known limitation.
+The selected profile names recognized sinks, accepted source kinds, materialized entry variants,
+and execution domains. Function identity follows direct scalar declarations, assignments, copies,
+identity casts, and conditional merges while all possible sources remain known and storage does not
+escape. An incompatible known source is E10244; erased or unknown provenance at a recognized sink
+is E10247. A visible raw interrupt entry written to an exactly known incompatible firmware vector
+is E10252; only a genuinely opaque memory/vector use escapes certification. Accepted sinks add the
+selected callback variant and complete helper closure to SFA and stack analysis.
+
+At an explicit proof boundary, the compiler keeps every known address-taken function reachable but
+cannot validate an external caller, return convention, or execution domain beyond that boundary.
+
+### FN-A10: May a callee retain the address of its caller's local?
+
+**Only when the address cannot outlive that local, which means a general retained address is not
+allowed.** A parameter reached by a local-origin address must be proven non-retaining on every
+transitive path. The callee may dereference, mutate, copy within contained local storage, or forward
+to another proven non-retaining position. Returning, persisting, publishing to an interrupt or
+hardware consumer, or forwarding to unknown/external code is E10260. The proof is compile-time
+only and adds no ABI field or runtime code.
 
 ---
 
 ## Error Codes
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10170 | Function declared without return type | `Return type required — use 'function <name>(): void' for functions that return nothing` |
-| E10171 | Wrong number of arguments | `Wrong argument count — '<name>()' expects <N> parameters, got <M>` |
-| E10172 | Argument type mismatch | `Argument type mismatch — parameter '<param>' of '<name>()' expects '<expected>', found '<actual>'` |
-| E10173 | Return value in void function | `Cannot return a value from void function '<name>' — remove the expression or change the return type` |
-| E10174 | Missing return expression | `Missing return value — function '<name>' returns '<type>' but 'return' has no expression` |
-| E10175 | Cannot call non-function | `'<name>' is not a function — cannot call '<type>' value as a function` |
-| E10176 | Nested function definition | `Cannot define function inside function '<outer>' — move '<inner>' to module level` |
-| E10180 | Direct recursion | `Direct recursion — function '<name>' calls itself. Blend65 uses static frame allocation which does not support recursion. Use iteration instead` |
-| E10181 | Indirect recursion | `Indirect recursion detected — cycle: <fn1> → <fn2> → ... → <fn1>. Blend65 uses static frame allocation which does not support recursion` |
+| E10102 | A reachable path in a non-void function reaches the closing brace without returning | [Chapter 14](../14-diagnostics.md) |
+| E10170 | Function declared without return type | [Chapter 14](../14-diagnostics.md) |
+| E10171 | Wrong number of arguments | [Chapter 14](../14-diagnostics.md) |
+| E10172 | Argument type mismatch | [Chapter 14](../14-diagnostics.md) |
+| E10173 | Return value in void function | [Chapter 14](../14-diagnostics.md) |
+| E10174 | Missing return expression | [Chapter 14](../14-diagnostics.md) |
+| E10175 | Cannot call non-function | [Chapter 14](../14-diagnostics.md) |
+| E10176 | Nested function definition | [Chapter 14](../14-diagnostics.md) |
+| E10180 | Direct recursion | [Chapter 14](../14-diagnostics.md) |
+| E10181 | Indirect recursion | [Chapter 14](../14-diagnostics.md) |
+| E10244 | Ordinary RTS function reaches an interrupt-handler sink | [Chapter 14](../14-diagnostics.md) |
+| E10245 | Execution overlap or hardware-stack use has no static bound | [Chapter 14](../14-diagnostics.md) |
+| E10246 | Ineligible const parameter | [Chapter 14](../14-diagnostics.md) |
+| E10247 | Unknown function-address provenance | [Chapter 14](../14-diagnostics.md) |
+| E10248 | Invalid explicit function-entry stack state | [Chapter 14](../14-diagnostics.md) |
+| E10252 | Raw interrupt entry written to incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
+| E10260 | Local-origin address reaches a retaining or unproven call/return path | [Chapter 14](../14-diagnostics.md) |
 
 ## Warning Codes
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| W10180 | Stack depth approaches limit | `Maximum stack depth is <N> bytes (<levels> call levels) on platform '<platform>' — stack budget is <budget> bytes. Main path: <main_depth> levels, IRQ: <irq_depth> levels` |
-| W10181 | Unused function | `Function '<name>' is never called and not exported — consider removing or adding 'export'` |
+| W10180 | Simultaneous stack peak reaches the profile threshold | [Chapter 14](../14-diagnostics.md) |
+| W10181 | Unused function | [Chapter 14](../14-diagnostics.md) |
 
 ---
 
@@ -661,19 +720,29 @@ In theory, a function's address could be installed as an interrupt vector or pas
 
 ### With F006 (Address-of)
 
-`&functionName` returns a `word` with the function's code address. This works for any function (regular, exported, interrupt). The compiler marks the function as "address-taken" for SFA liveness analysis — even if the function is not directly called in source code, it must be included in the binary.
+`&functionName` returns a `word` with the function's code address. This works for any function
+(regular, exported, interrupt). The compiler marks the function as address-taken for reachability
+and preserves its function identity and source kind through compiler-recognized consumers. An
+interrupt sink may select a specialized entry address rather than the raw numeric payload.
+`&local` remains a lifetime-bounded borrow: a callee argument must be transitively non-retaining,
+and E10260 rejects a return, persistent publication, or unproven boundary.
 
 ### With F007 (Interrupt Functions)
 
-Interrupt functions follow a different calling convention:
-- Prologue: push A, X, Y onto hardware stack (register save)
-- Epilogue: pull Y, X, A from hardware stack + RTI (instead of RTS)
+Interrupt functions follow a sink-selected calling convention:
+- Raw CPU-vector variant: push A/X/Y, establish binary mode, then restore Y/X/A and execute `RTI`
+- Firmware-mediated variant: honor the profile's existing save frame, establish binary mode, and preserve the declared chain/restore status contract
 - Cannot be called via `JSR` from source code (E10051)
+- Ordinary helpers retain `JSR`/`RTS` and may be reused from mainline and interrupt domains
+- Overlapping invocation-private storage gets disjoint SFA homes; globals, assets, and MMIO stay shared
+- Unbounded storage-bearing self-overlap is a compile-time error
+- Every reachable variant, page-safe link word, decimal/status wrapper, stack byte, and cost is reported; no dispatcher/runtime is added
 - All other F018 rules apply (no recursion, static frame, etc.)
 
 ### With F008 (For Loop)
 
-For loops inside functions use the function's static frame for the loop counter variable. Loop variables follow normal scoping rules (F013).
+For-header locals and clause temporaries inside functions use the function's static frame and
+ordinary CFG liveness. They follow normal declaration and scoping rules (F013).
 
 ### With F009 (Switch Statement)
 
@@ -696,7 +765,11 @@ Structs are always passed by reference (FN-3). The `const` modifier prevents mod
 
 ### With F014 (Arrays / Const Parameters)
 
-Arrays are always passed by reference (FN-3). The `const` modifier prevents modification (F014 CP-1..5). Arrays cannot be returned (E10120 from F014). Const parameter rules CP-1 through CP-5 apply to both struct and array parameters within function signatures.
+Arrays are always passed by reference (FN-3). Exact parameters carry an address; any-size
+parameters also carry the full word element count used by `length()`. The `const` modifier prevents
+modification (F014 CP-1..5). Arrays cannot be stored through an any-size parameter or returned
+(E10120 from F014). Const parameter rules CP-1 through CP-5 apply to both struct and array
+parameters within function signatures.
 
 ### With F016 (Type System)
 
@@ -789,12 +862,12 @@ export function max(a: byte, b: byte): byte {
     return b;
 }
 
-export function clampByte(value: byte, lo: byte, hi: byte): byte {
-    if (value < lo) {
-        return lo;
+export function clampByte(value: byte, lowBound: byte, highBound: byte): byte {
+    if (value < lowBound) {
+        return lowBound;
     }
-    if (value > hi) {
-        return hi;
+    if (value > highBound) {
+        return highBound;
     }
     return value;
 }
@@ -840,7 +913,7 @@ function updateEnemy(enemy: Enemy): void {
     }
 }
 
-function isAlive(const enemy: Enemy): boolean {
+function isAlive(enemy: const Enemy): boolean {
     // Const — cannot modify, compiler enforces
     return enemy.hp > 0;
 }
@@ -854,7 +927,7 @@ function damageEnemy(enemy: Enemy, amount: byte): void {
 }
 
 function updateAllEnemies(): void {
-    for (let i: byte = 0 to 7) {
+    for (let i: byte = 0; i <= 7; i += 1) {
         if (isAlive(enemies[i])) {
             updateEnemy(enemies[i]);
         }
@@ -920,7 +993,7 @@ function applyMovement(dx: sbyte, dy: sbyte): void {
 | P1 Cross-platform compilable | ✅ | JSR/RTS and static frames work on all 6502 variants |
 | P2 Platform-meaningful | ✅ | Functions are essential for any structured program |
 | P3 No platform assumptions | ✅ | No hardware addresses, chip names, or platform references in core rules |
-| P4 Resource-scalable | ✅ | Frame sizes adapt to available RAM; W10180 warns when stack budget is tight |
+| P4 Resource-scalable | ✅ | Frame sizes are statically reported and must fit target RAM; W10180 separately warns when the proven hardware-stack peak reaches its threshold |
 
 ### Hardware / 6502 Feasibility (H)
 
@@ -928,8 +1001,8 @@ function applyMovement(dx: sbyte, dy: sbyte): void {
 |------|--------|-------|
 | H1 6502 implementable | ✅ | JSR/RTS are native instructions; static frames use standard addressing |
 | H2 Cost transparency | ✅ | Call overhead documented per-operation; frame sizes reported in build summary |
-| H3 SFA compatible | ✅ | Functions ARE the core SFA unit — one frame per function, static allocation |
-| H4 Memory footprint documented | ✅ | Frame cost = sum of param + local sizes; stack cost = 2 bytes per call level |
+| H3 SFA compatible | ✅ | Functions are the core SFA unit; every bounded overlapping activation gets a static invocation-private home |
+| H4 Memory footprint documented | ✅ | Final SFA cost includes parameters, locals, temporaries, spills, staging/helper scratch, and every required static instance; simultaneous hardware-stack peak includes active calls, interrupt entry, saved registers/status, and explicit pushes |
 | H5 Fully deterministic | ✅ | No undefined behavior — recursion caught at compile time, eval order guaranteed |
 
 ### Language Design Quality (L)
@@ -941,7 +1014,7 @@ function applyMovement(dx: sbyte, dy: sbyte): void {
 | L3 Beginner-friendly | ✅ | Syntax is familiar to C/TypeScript/JavaScript developers |
 | L4 Minimal feature | ✅ | No overloading, no nested functions, no closures — minimal set |
 | L5 No redundancy | ✅ | Only way to define reusable code blocks; `interrupt` is a modifier, not a separate feature |
-| L6 Error messages defined | ✅ | 11 error codes + 2 warnings covering all misuse patterns |
+| L6 Error messages defined | ✅ | 17 error codes + 2 warnings covering all misuse patterns |
 | L7 Compile-time failure preferred | ✅ | All errors caught at compile time (recursion, types, arguments) |
 | L8 Feature interaction documented | ✅ | Interactions with all 12 related features explicitly defined |
 | L9 Documentable with examples | ✅ | 4 examples: game loop, utilities, struct params, frame visualization |

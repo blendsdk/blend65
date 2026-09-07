@@ -34,9 +34,8 @@ zeropage {
 
 **EBNF:**
 ```ebnf
-zeropage_block = "zeropage" , "{" , zeropage_decl_list , "}" ;
-zeropage_decl_list = { zeropage_decl } ;
-zeropage_decl = [ "export" ] , identifier , ":" , type , [ "=" , const_expr ] , ";" ;
+zeropage_block = "zeropage" , "{" , zeropage_decl , { zeropage_decl } , "}" ;
+zeropage_decl = [ "export" ] , identifier , ":" , value_type , [ "=" , expression ] , ";" ;
 ```
 
 ## `zeropage` Block Rules
@@ -147,18 +146,18 @@ The platform profile defines where the "data section" physically maps:
 
 ## Errors
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10030 | Duplicate `zeropage` block in module | `Only one 'zeropage' block is allowed per module — combine all zero-page declarations into a single block` |
-| E10031 | `const` inside `zeropage` block | `Constants are not allowed in 'zeropage' — zero page is for mutable runtime data. Use module-level 'const' instead` |
-| E10032 | ZP budget exceeded | `Zero-page budget exceeded — used <N> bytes, platform '<platform>' allows <M> bytes (range <start>–<end>)` |
-| E10033 | `let`/`const` keyword inside `zeropage` block | `Unexpected '<keyword>' in zeropage block — declarations use 'name: type' syntax without let/const` |
+| E10030 | Duplicate `zeropage` block in module | [Chapter 14](../14-diagnostics.md) |
+| E10031 | `const` inside `zeropage` block | [Chapter 14](../14-diagnostics.md) |
+| E10032 | ZP budget exceeded | [Chapter 14](../14-diagnostics.md) |
+| E10033 | `let`/`const` keyword inside `zeropage` block | [Chapter 14](../14-diagnostics.md) |
 
 ## Warnings
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| W10030 | ZP usage above 75% of platform budget | `Zero-page usage is <N>/<M> bytes (<percent>%) for platform '<platform>' — consider moving less critical variables to RAM` |
+| W10030 | ZP usage reaches the profile's `warn_zp_percent`, default 75% | [Chapter 14](../14-diagnostics.md) |
 
 ## Language Guard Verdict
 
@@ -178,4 +177,3 @@ The platform profile defines where the "data section" physically maps:
 - **L5 No redundancy** ✅ — Replaces three v2 keywords (`@zp`, `@ram`, `@data`) with one keyword + defaults.
 - **C1 Lexer/parser** ✅ — `KW_ZEROPAGE`, `LBRACE`, declarations, `RBRACE`. Standard block parsing.
 - **F2 Platform-profile ready** ✅ — ZP range and data section mapping come from platform profile.
-

@@ -12,7 +12,10 @@
 
 This feature defines the complete lexical structure of Blend65 v3 — the rules by which source text is decomposed into tokens. The lexer (tokenizer) is the first stage of the compiler pipeline: it reads UTF-8 source files and produces a stream of typed tokens that the parser consumes.
 
-Blend65 uses ASCII-range syntax only. Source files are UTF-8, but all language constructs (identifiers, keywords, literals, operators, punctuation) use only the ASCII subset (U+0000–U+007F). Non-ASCII bytes may appear inside string literals (where they are passed through as raw bytes) and comments (where they are ignored).
+Blend65 uses ASCII-range grammar and identifiers. Source files are UTF-8; keywords, identifiers,
+operators, punctuation, and literal delimiters use only U+0000–U+007F. String and character literal
+content may contain Unicode scalar values, which the lexer preserves for compile-time target
+encoding. Comments may also contain non-ASCII content and are discarded.
 
 ```blend65
 // All language tokens are ASCII
@@ -39,8 +42,11 @@ function addScore(points: word): void {
 All Blend65 source files (`.blend` extension) are encoded as UTF-8. The compiler reads the byte stream as UTF-8 and processes ASCII-range bytes for tokenization.
 
 - **BOM handling**: A leading UTF-8 BOM (U+FEFF, bytes `EF BB BF`) is silently skipped if present.
-- **Non-ASCII in code**: Non-ASCII characters outside string literals and comments produce error E10210.
-- **Non-ASCII in strings**: Passed through as raw bytes into the output (no encoding transformation by the lexer — encoding is handled by F014's `encode()` system).
+- **Non-ASCII in code**: Non-ASCII characters outside string literals, character literals, and
+  comments produce error E10210.
+- **Non-ASCII in strings and characters**: Preserved as Unicode scalar values in the literal token.
+  The lexer performs no target conversion; semantic mapping or E10249 rejection is owned by
+  F014/Chapter 08.
 - **Non-ASCII in comments**: Ignored (comments are discarded).
 
 ### LS-2: Case sensitivity
@@ -231,9 +237,12 @@ keyword = "module" | "import" | "export" | "from"
         | "enum" | "type" ;
 ```
 
-### LS-10: Reserved built-in identifiers
+### LS-10: Reserved built-in and entry identifiers
 
-These identifiers are NOT keywords (the lexer produces `IDENTIFIER` tokens for them), but the **semantic analyzer** prohibits redeclaring them. They name built-in functions and the program entry point.
+These identifiers are NOT keywords (the lexer produces `IDENTIFIER` tokens for them). The semantic
+analyzer prohibits redeclaring intrinsic names with E10212. `main` is entry-reserved instead: the
+exact `function main(): void` declaration is legal, other declaration shapes are E10022, and calls
+to it are E10023.
 
 ```
 // Memory intrinsics (F020)
@@ -245,27 +254,31 @@ asm_sei   asm_cli   asm_pha   asm_pla
 asm_php   asm_plp   asm_clc   asm_sec
 asm_cld   asm_sed   asm_clv   asm_nop   asm_brk
 
-// Data intrinsics (F014, F015)
-encode    embed
+// Data/arithmetic intrinsics (F012, F015)
+embed   bcd_add   bcd_sub
 
-// Entry point (F004)
-main
+// Target encoding intrinsics (F014)
+petscii   screen_codes   atascii   internal_codes
 ```
 
-**Total: 28 reserved built-in identifiers.**
+The four encoding names remain reserved on every target. An unavailable encoding call is E10125,
+not a user-function call.
+
+**Total: 29 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
 
 **Rules:**
 - The lexer does NOT distinguish these from regular identifiers — it produces `IDENTIFIER` for all of them.
 - The semantic analyzer recognizes these names and:
   - Resolves calls to the corresponding built-in functions
-  - Produces error E10212 if any of these names is used in a `let`, `const`, `function`, `struct`, or parameter declaration
+  - Produces E10212 if an intrinsic name is used in a `let`, `const`, `function`, `struct`, or parameter declaration
+  - Applies E10020–E10023, rather than E10212, to the special entry name `main`
 - This design keeps the lexer simple and keyword-table small while preventing confusing code.
 
 **Example of prohibited usage:**
 ```blend65
 let peek: byte = 5;         // E10212: Cannot redeclare reserved built-in 'peek'
 function lo(): byte { ... }  // E10212: Cannot redeclare reserved built-in 'lo'
-let main: byte = 0;          // E10212: Cannot redeclare reserved built-in 'main'
+let main: byte = 0;          // E10022: entry point must be function main(): void
 ```
 
 ---
@@ -395,8 +408,8 @@ decimal_literal = digit , { [ "_" ] , digit } ;
 String literals are delimited by **double quotes** (`"`). They produce a sequence of bytes determined by the platform's character encoding (see F014).
 
 ```blend65
-const TITLE: byte[12] = "HELLO WORLD";
-const EMPTY: byte[1] = "";
+const TITLE: byte[] = "HELLO WORLD";
+const EMPTY: byte[] = "";
 ```
 
 **Rules:**
@@ -409,7 +422,7 @@ const EMPTY: byte[1] = "";
 string_literal  = '"' , { string_char } , '"' ;
 
 string_char     = escape_sequence
-                | ? any byte except '"', '\', CR, LF ? ;
+                | ? any Unicode scalar value except U+0022, U+005C, U+000D, or U+000A ? ;
 ```
 
 ### LS-17: Escape sequences
@@ -418,7 +431,7 @@ String literals and char literals support the following escape sequences:
 
 | Escape | Description | Byte Value |
 |--------|-------------|-----------|
-| `\\` | Backslash | `$5C` |
+| `\\` | Backslash | Encoding-dependent |
 | `\"` | Double quote | Encoding-dependent |
 | `\'` | Single quote | Encoding-dependent |
 | `\n` | Newline / line feed | Platform-defined via encoding |
@@ -430,14 +443,17 @@ String literals and char literals support the following escape sequences:
 **Rules:**
 - The escape set is **closed**: any `\` followed by a character NOT in this table produces error E10219. There are no "pass-through" escapes.
 - `\xNN` requires **exactly** two hex digits: `\x4` ❌ E10220, `\x41` ✅ (`$41`, which is `A` in ASCII/PETSCII).
-- `\0` inserts a literal zero byte. This is encoding-independent.
-- `\n`, `\r`, `\t` byte values are determined by the platform's character encoding profile (e.g., PETSCII `\n` = `$0D`, ATASCII `\n` = `$9B`). The `\xNN` escape bypasses encoding and inserts the exact byte value.
-- `\"` and `\'` produce the quote character in the platform's encoding (e.g., PETSCII double quote = `$22`).
+- `\0` and `\xNN` insert exact bytes and bypass encoding.
+- Every other escape is symbolic. Semantic encoding resolves it through the selected profile table;
+  a missing meaningful mapping is E10249, not a lexer error.
+- `\\`, `\"`, and `\'` request the corresponding source character in the selected encoding.
+- Ordinary literal characters are preserved as exact Unicode scalar values for the same semantic
+  mapping. Lexing performs no normalization, transliteration, replacement, or byte conversion.
 
 ```ebnf
-escape_sequence = "\\" , escape_char ;
+escape_sequence = ? U+005C REVERSE SOLIDUS ? , escape_char ;
 
-escape_char     = "n" | "r" | "t" | "0" | "\\" | '"' | "'"
+escape_char     = "n" | "r" | "t" | "0" | ? U+005C REVERSE SOLIDUS ? | '"' | "'"
                 | "x" , hex_digit , hex_digit ;
 ```
 
@@ -447,27 +463,30 @@ escape_char     = "n" | "r" | "t" | "0" | "\\" | '"' | "'"
 
 ### LS-18: Char literal syntax
 
-Character literals are delimited by **single quotes** (`'`). They represent a single byte value determined by the platform's character encoding.
+Character literals are delimited by **single quotes** (`'`). They contain one Unicode scalar value
+or one escape sequence and represent one byte determined by the selected platform encoding.
 
 ```blend65
 let ch: byte = 'A';
-let newline: byte = '\n';
 let zero: byte = '\0';
 let hex: byte = '\x41';      // same as 'A' in ASCII/PETSCII
 ```
 
 **Rules:**
-- A char literal must contain **exactly one character** or **exactly one escape sequence**
+- A char literal must contain **exactly one Unicode scalar value** or **exactly one escape sequence**;
+  a glyph written as multiple scalar values is still a multi-character literal
 - Empty char literal `''` produces error E10221
 - Multi-character char literal `'AB'` produces error E10222
 - Char literals use the same escape sequences as string literals (LS-17)
 - The type of a char literal is `byte`
+- Semantic encoding must produce exactly one byte; otherwise it reports E10249. `\0` and `\xNN`
+  remain exact bytes.
 
 ```ebnf
 char_literal    = "'" , char_content , "'" ;
 
 char_content    = escape_sequence
-                | ? any single byte except "'", '\', CR, LF ? ;
+                | ? any single Unicode scalar value except U+0027, U+005C, U+000D, or U+000A ? ;
 ```
 
 ---
@@ -533,6 +552,12 @@ The lexer recognizes the following operator tokens. Multi-character operators ar
 | `^=` | Xor-assign | `CARET_EQUAL` |
 | `<<=` | Shl-assign | `SHIFT_LEFT_EQUAL` |
 | `>>=` | Shr-assign | `SHIFT_RIGHT_EQUAL` |
+
+#### Conditional operator
+
+| Token | Lexeme | Token Type |
+|-------|--------|------------|
+| `?` | Question mark | `QUESTION` |
 
 #### Address-of operator (F006)
 
@@ -610,7 +635,7 @@ Every token carries position information for error reporting:
 
 Every token produced by the Blend65 lexer belongs to exactly one of these types:
 
-### Literals (4 types)
+### Literals (3 types)
 
 ```
 NUMBER          // All numeric literals (decimal, hex, binary)
@@ -653,7 +678,7 @@ KW_ENUM  KW_TYPE
 
 ```
 
-### Operators (28 types)
+### Operators (32 types)
 
 ```
 // Arithmetic
@@ -673,6 +698,7 @@ EQUAL
 PLUS_EQUAL  MINUS_EQUAL  STAR_EQUAL  SLASH_EQUAL  PERCENT_EQUAL
 AMPERSAND_EQUAL  PIPE_EQUAL  CARET_EQUAL
 SHIFT_LEFT_EQUAL  SHIFT_RIGHT_EQUAL
+QUESTION
 ```
 
 ### Punctuation (10 types)
@@ -693,7 +719,7 @@ DOT                 // .
 EOF                 // End of input
 ```
 
-**Total: 76 token types** (4 literal + 1 identifier + 32 keyword + 28 operator + 10 punctuation + 1 special)
+**Total: 79 token types** (3 literal + 1 identifier + 32 keyword + 32 operator + 10 punctuation + 1 special)
 
 ---
 
@@ -710,9 +736,10 @@ bin_digit       = "0" | "1" ;
 
 (* ===== Whitespace and comments ===== *)
 
-whitespace      = " " | "\t" | "\r" | "\n" ;
+whitespace      = " " | ? HT byte ? | ? CR byte ? | ? LF byte ? ;
 
-line_comment    = "//" , { ? any byte except LF ? } , ( LF | EOF ) ;
+line_comment    = "//" , { ? any byte except LF ? }
+                , ( ? LF byte ? | ? end of file ? ) ;
 
 block_comment   = "/*" , { ? any byte except "*/" sequence ? } , "*/" ;
 
@@ -745,14 +772,15 @@ number_literal  = hex_literal
 
 (* ===== String and character literals ===== *)
 
-escape_sequence = "\\" , ( "n" | "r" | "t" | "0" | "\\" | '"' | "'"
+escape_sequence = ? U+005C REVERSE SOLIDUS ?
+                , ( "n" | "r" | "t" | "0" | ? U+005C REVERSE SOLIDUS ? | '"' | "'"
                          | "x" , hex_digit , hex_digit ) ;
 
 string_literal  = '"' , { escape_sequence
-                        | ? any byte except '"', '\\', CR, LF ? } , '"' ;
+                        | ? any Unicode scalar value except U+0022, U+005C, U+000D, or U+000A ? } , '"' ;
 
 char_literal    = "'" , ( escape_sequence
-                        | ? any single byte except "'", '\\', CR, LF ? ) , "'" ;
+                        | ? any single Unicode scalar value except U+0027, U+005C, U+000D, or U+000A ? ) , "'" ;
 
 
 (* ===== Operators (longest match) ===== *)
@@ -763,7 +791,7 @@ operator        = "<<=" | ">>="
                 | "&=" | "|=" | "^="
                 | "+" | "-" | "*" | "/" | "%"
                 | "&" | "|" | "^" | "~"
-                | "<" | ">" | "=" | "!" ;
+                | "<" | ">" | "=" | "!" | "?" ;
 
 
 (* ===== Punctuation ===== *)
@@ -787,7 +815,7 @@ token           = whitespace       (* skipped *)
 
 (* ===== Source file ===== *)
 
-source_file     = { token } , EOF ;
+source_file     = { token } , ? end of file ? ;
 ```
 
 ---
@@ -866,29 +894,29 @@ This is standard C behavior and requires no lexer-level disambiguation.
 
 ### Lexer Errors
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| E10210 | Unexpected character `<char>` (U+`<codepoint>`) — only ASCII characters are valid in Blend65 source code |
-| E10211 | Unterminated block comment — expected `*/` before end of file |
-| E10212 | Cannot redeclare reserved built-in `<name>` — this identifier is a built-in function/constant |
-| E10213 | Invalid underscore in numeric literal — underscores must appear between digits only (no leading, trailing, or consecutive underscores) |
-| E10214 | Invalid hexadecimal literal — expected hex digit (`0`–`9`, `A`–`F`) after `<prefix>` |
-| E10215 | Invalid binary literal — expected binary digit (`0` or `1`) after `0b` |
-| E10216 | Numeric literal value `<value>` exceeds maximum (65535) — no Blend65 type can hold values larger than 16 bits |
-| E10217 | Newline in string literal — strings must be on a single line. Use `\n` for newline characters |
-| E10218 | Unterminated string literal — expected closing `"` before end of line |
-| E10219 | Unknown escape sequence `\<char>` — valid escapes are: `\\`, `\"`, `\'`, `\n`, `\r`, `\t`, `\0`, `\xNN` |
-| E10220 | Incomplete hex escape `\x<char>` — `\x` requires exactly two hex digits (e.g., `\x41`) |
-| E10221 | Empty character literal — char literals must contain exactly one character or escape sequence |
-| E10222 | Multi-character literal `<literal>` — char literals must contain exactly one character. Use a string literal for multiple characters |
-| E10223 | Unterminated character literal — expected closing `'` |
-| E10224 | `<keyword>` is reserved for a future Blend65 version and cannot be used yet |
+| E10210 | [Chapter 14](../14-diagnostics.md) |
+| E10211 | [Chapter 14](../14-diagnostics.md) |
+| E10212 | [Chapter 14](../14-diagnostics.md) |
+| E10213 | [Chapter 14](../14-diagnostics.md) |
+| E10214 | [Chapter 14](../14-diagnostics.md) |
+| E10215 | [Chapter 14](../14-diagnostics.md) |
+| E10216 | [Chapter 14](../14-diagnostics.md) |
+| E10217 | [Chapter 14](../14-diagnostics.md) |
+| E10218 | [Chapter 14](../14-diagnostics.md) |
+| E10219 | [Chapter 14](../14-diagnostics.md) |
+| E10220 | [Chapter 14](../14-diagnostics.md) |
+| E10221 | [Chapter 14](../14-diagnostics.md) |
+| E10222 | [Chapter 14](../14-diagnostics.md) |
+| E10223 | [Chapter 14](../14-diagnostics.md) |
+| E10224 | [Chapter 14](../14-diagnostics.md) |
 
 ### Warning Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| W10210 | Numeric literal has leading zeros: `<literal>` — Blend65 does not have octal literals; this is decimal `<value>` |
+| W10210 | [Chapter 14](../14-diagnostics.md) |
 
 ---
 
@@ -905,7 +933,7 @@ This is standard C behavior and requires no lexer-level disambiguation.
 - `import`, `export` are keywords. The parser uses token types from this feature.
 
 ### With F004 (Entry point)
-- `main` is a reserved built-in identifier (LS-10), not a keyword. The lexer produces `IDENTIFIER` for it.
+- `main` is an entry-reserved identifier (LS-10), not a built-in or keyword. The lexer produces `IDENTIFIER` for it.
 
 ### With F005 (Memory placement)
 - `zeropage` is a keyword. v2's `@zp`/`@ram`/`@data` are completely removed.
@@ -930,7 +958,8 @@ This is standard C behavior and requires no lexer-level disambiguation.
 
 ### With F014 (Arrays, strings, char literals)
 - String and char literal tokenization defined here. Encoding transformation happens at the semantic level (F014), not the lexer.
-- `encode` is a reserved built-in identifier.
+- Target profiles may register named compile-time encoding intrinsics; there is no generic
+  `encode` built-in.
 
 ### With F015 (Data inclusion)
 - `embed` is a reserved built-in identifier.
@@ -953,6 +982,11 @@ This is standard C behavior and requires no lexer-level disambiguation.
 
 ### With F012 (CPU control intrinsics)
 - All `asm_*` names are reserved built-in identifiers.
+- `bcd_add` and `bcd_sub` are reserved semantic arithmetic intrinsics with explicit operands.
+
+### With F014 (Arrays and target encodings)
+- `petscii`, `screen_codes`, `atascii`, and `internal_codes` are globally reserved intrinsic names;
+  target availability is decided by E10125.
 
 ---
 
@@ -1115,7 +1149,7 @@ let enemies: Sprite[8];
 |------|--------|-------|
 | P1 Cross-platform compilable | ✅ | Lexical structure is platform-independent — same tokens on all platforms |
 | P2 Platform-meaningful | ✅ | Tokenization is universally required — every program on every platform goes through the lexer |
-| P3 No platform assumptions | ✅ | No hardware addresses, chip names, or platform names in lexical rules. Escape sequence byte values (`\n`, `\t`, `\r`) are delegated to the platform encoding profile |
+| P3 No platform assumptions | ✅ | No hardware addresses, chip names, or platform names in lexical rules. Symbolic escape mappings and deliberate unavailability are delegated to the platform encoding profile |
 | P4 Resource-scalable | ✅ | The lexer runs on the host (compiler) machine, not the target. No target resource impact |
 
 ### Hardware / 6502 Feasibility (H)
@@ -1157,7 +1191,7 @@ let enemies: Sprite[8];
 | Rule | Status | Notes |
 |------|--------|-------|
 | F1 Extensible | ✅ | New keywords can be added to the keyword table. New operators can be added. New literal formats (e.g., octal, if ever needed) can be added. `enum` and `type` are already reserved |
-| F2 Platform-profile ready | ✅ | Escape sequence byte values (`\n`, `\t`, `\r`, quote characters) are resolved via the platform encoding profile. The lexer itself is platform-independent |
+| F2 Platform-profile ready | ✅ | Symbolic escapes are resolved or rejected through the selected platform encoding. The lexer itself is platform-independent |
 | F3 Optimizer-friendly | ✅ | N/A — lexer output (tokens) is consumed by the parser, not the optimizer |
 | F4 Stability classification | ✅ | **Stable**. The lexical structure is the foundation — changes here would break every program. Committed to stability |
 
@@ -1169,4 +1203,4 @@ None. All 23 rules pass.
 
 **✅ ACCEPTED**
 
-F021 formalizes the complete lexical structure of Blend65 v3, consolidating all token definitions established across F001–F020 into a single authoritative document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 76 token types, 32 keywords, and 28 reserved built-in identifiers form a clean, minimal foundation for the parser.
+F021 formalizes the complete lexical structure of Blend65 v3, consolidating all token definitions established across F001–F024 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 79 token types, 32 keywords, 29 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.

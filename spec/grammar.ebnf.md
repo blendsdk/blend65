@@ -42,22 +42,24 @@ top_level_item  = import_stmt
                 | interrupt_decl
                 | struct_decl
                 | enum_decl
-                | var_decl_stmt
-                | const_decl_stmt ;
+                | let_decl
+                | const_decl
+                | zeropage_block ;
 ```
 
 ### 2.2 Module Declaration (→ Ch 10)
 
 ```ebnf
-module_decl     = "module" , identifier , ";" ;
+module_decl     = "module" , qualified_name , ";" ;
 ```
 
 ### 2.3 Import (→ Ch 10)
 
 ```ebnf
-import_stmt     = "import" , "{" , import_list , "}" , "from" , identifier , ";" ;
+import_stmt     = "import" , "{" , import_list , "}" , "from" , qualified_name , ";" ;
 import_list     = import_item , { "," , import_item } ;
 import_item     = identifier , [ "as" , identifier ] ;
+qualified_name  = identifier , { "." , identifier } ;
 ```
 
 ---
@@ -67,11 +69,15 @@ import_item     = identifier , [ "as" , identifier ] ;
 ### 3.1 Variables & Constants (→ Ch 03)
 
 ```ebnf
-var_decl_stmt   = [ "export" ] , [ "zeropage" ] , "let" , identifier , ":" , type
-                , "=" , expression , ";" ;
+let_decl        = [ "export" ] , "let" , identifier , ":" , value_type
+                , [ "=" , expression ] , ";" ;
 
-const_decl_stmt = [ "export" ] , "const" , identifier , ":" , type
+const_decl      = [ "export" ] , "const" , identifier , ":" , value_type
                 , "=" , const_expression , ";" ;
+
+zeropage_block  = "zeropage" , "{" , zeropage_var , { zeropage_var } , "}" ;
+zeropage_var    = [ "export" ] , identifier , ":" , value_type
+                , [ "=" , expression ] , ";" ;
 ```
 
 ### 3.2 Functions (→ Ch 06)
@@ -79,15 +85,17 @@ const_decl_stmt = [ "export" ] , "const" , identifier , ":" , type
 ```ebnf
 function_decl   = [ "export" ] , "function" , identifier
                 , "(" , [ param_list ] , ")"
-                , [ ":" , type ]
+                , ":" , return_type
                 , block ;
 
 interrupt_decl  = [ "export" ] , "interrupt" , "function" , identifier
                 , "(" , ")"
-                , block ;
+                , ":" , "void" , block ;
 
 param_list      = param , { "," , param } ;
-param           = identifier , ":" , type ;
+param           = identifier , ":" , [ "const" ] , value_type ;
+
+return_type     = "void" | value_type ;
 ```
 
 ### 3.3 Structs (→ Ch 07)
@@ -97,7 +105,7 @@ struct_decl     = [ "export" ] , "struct" , identifier , "{"
                 , struct_field , { struct_field }
                 , "}" ;
 
-struct_field    = identifier , ":" , type , ";" ;
+struct_field    = identifier , ":" , value_type , ";" ;
 ```
 
 ### 3.4 Enums (→ Ch 09)
@@ -115,18 +123,22 @@ enum_member     = identifier , [ "=" , const_expression ] ;
 ## 4. Types (→ Ch 02)
 
 ```ebnf
-type            = primitive_type
+type            = "void" | value_type ;
+
+value_type      = integer_type
+                | "boolean"
                 | array_type
-                | identifier ;          (* struct or enum name *)
+                | qualified_name ;       (* struct or enum name *)
 
-primitive_type  = "byte" | "sbyte" | "word" | "sword" | "boolean" | "void" ;
+integer_type    = "byte" | "sbyte" | "word" | "sword" ;
 
-array_type      = base_array_type , "[" , const_expression , "]" ;
-base_array_type = primitive_type | identifier ;   (* element type: primitive or struct *)
+array_type      = array_element_type , "[" , [ const_expression ] , "]" ;
+array_element_type = integer_type | "boolean" | qualified_name ;
 ```
 
-**Parsing note:** `identifier` in `type` is a struct or enum name. The semantic pass
-resolves whether the identifier refers to a struct, enum, or is undefined (→ error E10020).
+**Parsing note:** `qualified_name` in `type` is a local or module-qualified struct/enum name. The
+semantic pass resolves whether the name refers to a struct, enum, or is undefined. Chapter 14 owns
+the canonical unknown-type diagnostic.
 This avoids context-sensitivity in the parser.
 
 ---
@@ -138,7 +150,6 @@ This avoids context-sensitivity in the parser.
 ```ebnf
 statement       = var_decl_local
                 | const_decl_local
-                | assignment_stmt
                 | expression_stmt
                 | if_stmt
                 | while_stmt
@@ -154,48 +165,33 @@ statement       = var_decl_local
 ### 5.2 Local Declarations
 
 ```ebnf
-var_decl_local  = [ "zeropage" ] , "let" , identifier , ":" , type
-                , "=" , expression , ";" ;
+var_decl_local  = "let" , identifier , ":" , value_type
+                , [ "=" , expression ] , ";" ;
 
-const_decl_local = "const" , identifier , ":" , type
+const_decl_local = "const" , identifier , ":" , value_type
                  , "=" , const_expression , ";" ;
 ```
 
-### 5.3 Assignment
+`zeropage` is module-level only. A local declaration never carries `zeropage`; the parser rejects
+that spelling before semantic analysis.
+
+### 5.3 Expression Statement
 
 ```ebnf
-assignment_stmt = lvalue , assign_op , expression , ";" ;
-
-assign_op       = "=" | "+=" | "-=" | "*=" | "/=" | "%="
-                | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
-
-lvalue          = identifier , { lvalue_suffix } ;
-lvalue_suffix   = "[" , expression , "]"         (* array index *)
-                | "." , identifier ;              (* struct field *)
+expression_stmt = expression , ";" ;
 ```
 
-### 5.4 Expression Statement
+Any expression may appear as a statement. Assignment and CPU-control intrinsic calls use this
+production. Its result, if any, is discarded. W10131 remains exclusively the unreachable-code
+warning and is never used merely because an expression result is discarded.
 
-```ebnf
-expression_stmt = call_expression , ";" ;
-
-call_expression = postfix_expr ;   (* must end in a call postfix_op — see note *)
-```
-
-**Note:** Only function/intrinsic calls are valid expression statements — a
-`call_expression` is a `postfix_expr` (§6.4) whose outermost `postfix_op` is a call
-(`"(" [ arg_list ] ")"`). The parser parses a full `postfix_expr`; the semantic pass
-rejects any expression statement that is not a call, or whose call produces an unused
-value (→ W10131). Bare assignments are **not** expression statements — they are
-`assignment_stmt` (§5.3). Assignment is a statement, never an expression (see §6.2).
-
-### 5.5 Block
+### 5.4 Block
 
 ```ebnf
 block           = "{" , { statement } , "}" ;
 ```
 
-### 5.6 If / Else (→ Ch 05, §4)
+### 5.5 If / Else (→ Ch 05, §4)
 
 ```ebnf
 if_stmt         = "if" , "(" , expression , ")" , block
@@ -206,34 +202,37 @@ if_stmt         = "if" , "(" , expression , ")" , block
 This means the parser never encounters a bare statement after `if` — the grammar is
 unambiguous without any special rule.
 
-### 5.7 While (→ Ch 05, §5)
+### 5.6 While (→ Ch 05, §5)
 
 ```ebnf
 while_stmt      = "while" , "(" , expression , ")" , block ;
 ```
 
-### 5.8 Do-While (→ Ch 05, §6)
+### 5.7 Do-While (→ Ch 05, §6)
 
 ```ebnf
 do_while_stmt   = "do" , block , "while" , "(" , expression , ")" , ";" ;
 ```
 
-### 5.9 For Loop (→ Ch 05, §7)
+### 5.8 For Loop (→ Ch 05, §7)
 
 ```ebnf
-for_stmt        = "for" , "(" , "let" , identifier , ":" , type
-                , "=" , expression
-                , ( "until" | "to" | "downto" ) , expression
-                , [ "step" , const_expression ]
-                , ")" , block ;
+for_stmt        = "for" , "(" , [ for_initializer ] , ";"
+                , [ expression ] , ";" , [ for_update ] , ")" , block ;
+
+for_initializer = for_local_decl | expression_list ;
+for_local_decl  = "let" , identifier , ":" , value_type , [ "=" , expression ]
+                | "const" , identifier , ":" , value_type , "=" , const_expression ;
+for_update      = expression_list ;
+expression_list = expression , { "," , expression } ;
 ```
 
-**Parsing note:** `until`, `to`, and `downto` are contextual keywords — they are only
-reserved inside the for-loop header parentheses, not in general expression context. The
-parser recognizes them after the initializer expression. `until` gives an exclusive end
-bound; `to`/`downto` give an inclusive end bound (→ Ch 05, §7.2).
+**Parsing note:** The statement parser owns the two semicolon delimiters and closing parenthesis,
+and calls the ordinary expression parser for each present expression. Commas at the top level of an
+initializer/update clause delimit its left-to-right expression list; commas nested in calls or
+literals remain part of that expression. No symbol-table or target knowledge is required.
 
-### 5.10 Switch (→ Ch 05, §8)
+### 5.9 Switch (→ Ch 05, §8)
 
 ```ebnf
 switch_stmt     = "switch" , "(" , expression , ")" , "{"
@@ -247,7 +246,7 @@ default_clause  = "default" , ":" , case_body ;
 case_body       = { statement } , [ "fallthrough" , ";" ] ;
 ```
 
-### 5.11 Jump Statements
+### 5.10 Jump Statements
 
 ```ebnf
 return_stmt     = "return" , [ expression ] , ";" ;
@@ -272,14 +271,15 @@ defines the *behavior*.
 ### 6.2 Expression (Entry Point)
 
 ```ebnf
-expression      = conditional_expr ;
+expression      = assignment_expr ;
 
-(* Assignment is NOT an expression in Blend65. It is a statement (§5.3,
-   assignment_stmt). This eliminates assignment-in-condition bugs such as
-   `if (x = 0)` and keeps `expression` side-effect-light. The expression
-   hierarchy therefore begins at the conditional (ternary) level. *)
+(* Assignment: level 1 (lowest), right-associative. The semantic pass requires
+   the left operand to be an assignable place. *)
+assignment_expr = conditional_expr , [ assign_op , assignment_expr ] ;
+assign_op       = "=" | "+=" | "-=" | "*=" | "/=" | "%="
+                | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
 
-(* Conditional (ternary): level 1, right-associative *)
+(* Conditional (ternary): level 2, right-associative *)
 conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr ] ;
 
 (* NOTE: The ternary is right-associative: a ? b : c ? d : e = a ? b : (c ? d : e) *)
@@ -296,20 +296,23 @@ additive_expr    = multiplicative_expr , { ( "+" | "-" ) , multiplicative_expr }
 multiplicative_expr = unary_expr , { ( "*" | "/" | "%" ) , unary_expr } ;
 ```
 
-### 6.3 Unary Expressions (Level 13)
+### 6.3 Unary Expressions
 
 ```ebnf
 unary_expr      = ( "!" | "~" | "-" | "&" ) , unary_expr
-                | cast_expr ;
-
-cast_expr       = postfix_expr , [ "as" , type ] ;
+                | postfix_expr ;
 ```
 
 **Note:** `&` in unary position is the address-of operator (→ Ch 04, §8). In binary
 position it is bitwise AND (→ §6.2 `bitwise_and_expr`). The parser disambiguates by
 position: prefix = address-of, infix = bitwise AND.
 
-### 6.4 Postfix Expressions (Level 14)
+Explicit casts use call-shaped syntax: `byte(expr)`, `sbyte(expr)`, `word(expr)`,
+`sword(expr)`, or `EnumName(expr)`. Primitive cast names have their own primary production;
+an identifier followed by a call is parsed uniformly and semantic name resolution distinguishes an
+enum cast from a function call. There is no `as` cast operator.
+
+### 6.4 Postfix Expressions
 
 ```ebnf
 postfix_expr    = primary_expr , { postfix_op } ;
@@ -329,35 +332,41 @@ primary_expr    = number_literal
                 | char_literal
                 | "true"
                 | "false"
+                | primitive_cast
                 | identifier
                 | struct_literal
                 | array_literal
                 | intrinsic_call
-                | embed_expr
                 | "(" , expression , ")" ;
+
+primitive_cast  = integer_type , "(" , expression , ")" ;
 ```
 
 ### 6.6 Struct Literal (→ Ch 07)
 
 ```ebnf
-struct_literal  = identifier , "{" , field_init , { "," , field_init } , [ "," ] , "}" ;
+struct_literal  = "{" , field_init , { "," , field_init } , [ "," ] , "}" ;
 field_init      = identifier , ":" , expression ;
 ```
 
-**Parsing note:** `identifier "{"` could begin either a struct literal or an identifier
-followed by a block. Disambiguation: struct literals appear only in expression context
-(after `=`, in argument lists, etc.), never at statement position. The parser checks
-context to resolve.
+**Parsing note:** `{` begins a struct literal in expression position and a block in statement
+position. The declared or expected type supplies the struct type; field names and order are checked
+semantically.
 
 ### 6.7 Array Literal (→ Ch 08)
 
 ```ebnf
-array_literal   = "[" , expression , { "," , expression } , [ "," ] , "]"
-                | "[" , expression , ";" , const_expression , "]" ;
+array_literal   = "[" , [ array_init_content ] , "]" ;
+array_init_content = expression , { "," , expression }
+                   | expression , { "," , expression } , ";" , expression
+                   | ";" , expression ;
 ```
 
-The second form is the **fill syntax**: `[value; count]` creates an array of `count`
-elements all initialized to `value`.
+The semicolon form is the **fill syntax**: explicit values before `;` are placed first and the
+single element after `;` fills the remaining declared extent. `[]` is a zero-length array literal
+when its element type is supplied by context. String and encoded
+string expressions use the same production, with Chapter 08 enforcing their no-concatenation and
+single-element fill restrictions.
 
 ### 6.8 Constant Expression
 
@@ -367,18 +376,24 @@ const_expression = expression ;
 
 A `const_expression` is syntactically identical to `expression`. The **semantic pass**
 verifies that all operands are compile-time constants (literal values, `const` variables,
-`sizeof`, `offsetof`, `length`, `lo`, `hi`). Non-constant operands produce **E10030**.
+`sizeof`, `offsetof`, fixed-array `length`, `lo`, `hi`). An any-size parameter's `length` is a
+runtime word and therefore fails this semantic check. Chapter 14 owns the canonical diagnostic when a
+runtime value appears in a constant-expression context.
 
 ---
 
-## 7. Intrinsic Calls (→ Ch 12)
+## 7. Intrinsic Calls (→ Ch 08, Ch 12, Ch 13)
 
 ### 7.1 CPU Control Intrinsics
 
 ```ebnf
 intrinsic_call  = cpu_intrinsic
                 | memory_intrinsic
-                | compile_time_intrinsic ;
+                | query_intrinsic
+                | ( "bcd_add" | "bcd_sub" ) , "(" , expression , "," , expression , ")"
+                | ( "petscii" | "screen_codes" | "atascii" | "internal_codes" )
+                  , "(" , ( string_literal | char_literal ) , [ "," , string_literal ] , ")"
+                | embed_expr ;
 
 cpu_intrinsic   = cpu_intrinsic_name , "(" , ")" ;
 
@@ -388,9 +403,14 @@ cpu_intrinsic_name = "asm_sei" | "asm_cli"
                    | "asm_clc" | "asm_sec"
                    | "asm_cld" | "asm_sed"
                    | "asm_clv"
-                   | "asm_nop" | "asm_brk"
-                   | "asm_wai" ;          (* 65C02 only — platform-gated *)
+                   | "asm_nop" | "asm_brk" ;
 ```
+
+All reserved built-ins are identifier-shaped lexer tokens rather than keywords. In primary
+expression position, the parser dispatches a `reserved_builtin` spelling followed by `(` to
+`intrinsic_call`; that spelling is not also eligible for the generic `identifier` alternative.
+This lexeme check needs no symbol table and makes the alternatives deterministic. Semantic analysis
+then owns operand types, target availability, and the canonical diagnostic for an invalid call.
 
 ### 7.2 Memory Intrinsics
 
@@ -403,27 +423,30 @@ memory_intrinsic = "peek" , "(" , expression , ")"
                  | "hi" , "(" , expression , ")" ;
 ```
 
-### 7.3 Compile-Time Intrinsics
+### 7.3 Size and Element-Count Query Intrinsics
 
 ```ebnf
-compile_time_intrinsic = "sizeof" , "(" , type , ")"
-                       | "offsetof" , "(" , identifier , "," , identifier , ")"
-                       | "length" , "(" , identifier , ")"
-                       | "encode" , "(" , char_literal , ")" ;
+query_intrinsic = "sizeof" , "(" , type , ")"
+                | "offsetof" , "(" , qualified_name , "," , identifier , ")"
+                | "length" , "(" , expression , ")" ;
 ```
+
+The grammar accepts an unsized array spelling in the `type` position so one shared type production
+remains sufficient. Semantic analysis rejects `sizeof(T[])` with E10266 because that contextual
+parameter/inference form has no standalone fixed extent.
 
 ---
 
 ## 8. Data Inclusion (→ Ch 13)
 
 ```ebnf
-embed_expr      = "embed" , "(" , string_literal , [ "," , embed_options ] , ")" ;
-
-embed_options   = embed_option , { "," , embed_option } ;
-embed_option    = identifier , ":" , const_expression ;
+embed_expr      = "embed" , "(" , string_literal , [ "," , string_literal ] , ")" ;
 ```
 
-**Example selectors:** `format: "spritepad"`, `index: 0`, `offset: 128`, `size: 64`.
+The path and optional selector are string literals. The selector is an exact, case-sensitive key
+interpreted only by the selected platform-profile format handler; the core grammar does not parse
+the key as a member path or query language. Raw binary embedding has no selector. There are no
+generic `format`, `index`, `offset`, or `size` arguments.
 
 ---
 
@@ -437,7 +460,9 @@ letter          = "A"…"Z" | "a"…"z" ;
 digit           = "0"…"9" ;
 ```
 
-An identifier must not be a keyword or reserved built-in name (→ Ch 01, §5–§7).
+The lexical production admits every identifier-shaped spelling. Semantic analysis rejects keywords
+and reserved intrinsic names in declaration positions; the entry-reserved spelling `main` is legal
+only for the exact Chapter-10 entry-function declaration (→ Ch 01, §5–§7).
 
 ### 9.2 Keywords (32 total)
 
@@ -456,26 +481,24 @@ keyword         = "module" | "import" | "export" | "from"
 ### 9.3 Contextual Keywords
 
 ```ebnf
-contextual_keyword = "until" | "to" | "downto" | "step" | "as" ;
+contextual_keyword = "as" ;
 ```
 
-These are keywords only in specific syntactic positions:
-- `until`, `to`, `downto`, `step` — inside for-loop headers
-- `as` — in cast expressions
+`as` is recognized only between names in an import item; it is not a cast operator and remains a
+valid identifier elsewhere. The former range words `until`, `to`, `downto`, and `step` are ordinary
+identifiers with no contextual role.
 
-They are valid identifiers in all other contexts.
-
-### 9.4 Reserved Built-in Names (28 total)
+### 9.4 Reserved Built-in Names (29 total)
 
 ```ebnf
 reserved_builtin = "peek" | "poke" | "peekw" | "pokew"
                  | "lo" | "hi" | "sizeof" | "offsetof" | "length"
-                 | "encode" | "embed" | "main"
+                 | "embed" | "bcd_add" | "bcd_sub"
+                 | "petscii" | "screen_codes" | "atascii" | "internal_codes"
                  | "asm_sei" | "asm_cli" | "asm_pha" | "asm_pla"
                  | "asm_php" | "asm_plp" | "asm_clc" | "asm_sec"
                  | "asm_cld" | "asm_sed" | "asm_clv"
-                 | "asm_nop" | "asm_brk" | "asm_wai"
-                 | "true" | "false" ;
+                 | "asm_nop" | "asm_brk" ;
 ```
 
 ### 9.5 Numeric Literals
@@ -495,24 +518,26 @@ bin_literal     = ( "0b" | "0B" ) , bin_digit , { [ "_" ] , bin_digit } ;
 ### 9.6 String and Character Literals
 
 ```ebnf
-string_literal  = "'" , { string_char } , "'" ;
-char_literal    = "'" , string_char , "'" ;
+string_literal  = '"' , { string_char } , '"' ;
+char_literal    = "'" , char_char , "'" ;
 
-string_char     = (* any character except "'" and "\", or an escape_seq *) ;
-escape_seq      = "\\" | "\'" | "\n" | "\t" | "\0" | "\r"
-                | "\x" , hex_digit , hex_digit ;
+string_char     = escape_seq | ? any Unicode scalar value except U+0022, U+005C, U+000D, or U+000A ? ;
+char_char       = escape_seq | ? any single Unicode scalar value except U+0027, U+005C, U+000D, or U+000A ? ;
+escape_seq      = ? U+005C REVERSE SOLIDUS ?
+                , ( "n" | "r" | "t" | "0" | ? U+005C REVERSE SOLIDUS ? | '"' | "'"
+                          | "x" , hex_digit , hex_digit ) ;
 ```
 
-**Disambiguation between string and char literals:** A single character between quotes
-(`'x'`) is a `char_literal` producing a `byte` via `encode()`. Two or more characters
-between quotes is a `string_literal` producing `const byte[]`. Zero characters (`''`)
-is an error (**E10012**).
+Double quotes always delimit strings, including the valid empty string `""`. Single quotes always
+delimit exactly one Unicode scalar value or escape sequence and produce one encoded byte. Quote kind, not
+content length, distinguishes the tokens.
 
 ### 9.7 Comments
 
 ```ebnf
-line_comment    = "//" , { (* any character except newline *) } , newline ;
-block_comment   = "/*" , { (* any character except "*/" *) } , "*/" ;
+line_comment    = "//" , { ? any byte except LF ? }
+                , ( ? LF byte ? | ? end of file ? ) ;
+block_comment   = "/*" , { ? any character except the byte pair "*/" ? } , "*/" ;
 ```
 
 Block comments do **not** nest. The first `*/` terminates the comment.
@@ -539,97 +564,103 @@ All grammar productions listed alphabetically for quick reference:
 | Production | Section | Description |
 |-----------|---------|-------------|
 | `additive_expr` | §6.2 | `+`, `-` binary |
-| `arg_list` | §6.4 | Function call arguments |
-| `array_literal` | §6.7 | `[1, 2, 3]` or `[0; 256]` |
-| `array_type` | §4 | `byte[10]`, `word[N]` |
-| `assign_op` | §5.3 | `=`, `+=`, `-=`, etc. |
-| `assignment_stmt` | §5.3 | `x = 5;` |
-| `call_expression` | §5.4 | Call used as a statement |
-| `base_array_type` | §4 | Element type of an array |
+| `arg_list` | §6.4 | Function-call arguments |
+| `array_element_type` | §4 | Non-void array element type |
+| `array_init_content` | §6.7 | Values and optional fill element |
+| `array_literal` | §6.7 | `[]`, `[1, 2]`, or `[1; 0]` |
+| `array_type` | §4 | Sized or unsized array type |
+| `assign_op` | §6.2 | Simple and compound assignment operators |
+| `assignment_expr` | §6.2 | Lowest-precedence, right-associative assignment |
 | `bin_digit` | §9.5 | `0` or `1` |
 | `bin_literal` | §9.5 | `0b11110000` |
 | `bitwise_and_expr` | §6.2 | `&` binary |
 | `bitwise_or_expr` | §6.2 | `\|` binary |
 | `bitwise_xor_expr` | §6.2 | `^` binary |
-| `block` | §5.5 | `{ ... }` |
+| `block` | §5.4 | `{ ... }` statement block |
 | `block_comment` | §9.7 | `/* ... */` |
-| `break_stmt` | §5.11 | `break;` |
-| `case_body` | §5.10 | Statements inside a case |
-| `case_clause` | §5.10 | `case V:` |
-| `case_value_list` | §5.10 | Comma-separated case values |
-| `cast_expr` | §6.3 | `expr as type` |
+| `break_stmt` | §5.10 | `break;` |
+| `case_body` | §5.9 | Statements inside a case |
+| `case_clause` | §5.9 | `case V:` |
+| `case_value_list` | §5.9 | Comma-separated case values |
+| `char_char` | §9.6 | Character-literal content |
 | `char_literal` | §9.6 | `'x'` |
-| `compile_time_intrinsic` | §7.3 | `sizeof`, `offsetof`, `length`, `encode` |
-| `conditional_expr` | §6.2 | `? :` ternary (top of expression hierarchy) |
-| `const_decl_local` | §5.2 | Local `const` |
-| `const_decl_stmt` | §3.1 | Top-level `const` |
-| `const_expression` | §6.8 | Compile-time evaluable expression |
-| `contextual_keyword` | §9.3 | `until`, `to`, `downto`, `step`, `as` |
-| `continue_stmt` | §5.11 | `continue;` |
-| `cpu_intrinsic` | §7.1 | `asm_sei()`, etc. |
-| `cpu_intrinsic_name` | §7.1 | Names of CPU intrinsics |
+| `query_intrinsic` | §7.3 | `sizeof`, `offsetof`, `length` |
+| `conditional_expr` | §6.2 | Right-associative `? :` expression |
+| `const_decl` | §3.1 | Top-level `const` declaration |
+| `const_decl_local` | §5.2 | Local `const` declaration |
+| `const_expression` | §6.8 | Compile-time evaluable expression context |
+| `contextual_keyword` | §9.3 | Import-alias `as` |
+| `continue_stmt` | §5.10 | `continue;` |
+| `cpu_intrinsic` | §7.1 | CPU-control intrinsic call |
+| `cpu_intrinsic_name` | §7.1 | Names of CPU-control intrinsics |
 | `decimal_literal` | §9.5 | `255`, `1_000` |
-| `default_clause` | §5.10 | `default:` |
+| `default_clause` | §5.9 | `default:` |
 | `digit` | §9.1 | `0`…`9` |
-| `do_while_stmt` | §5.8 | `do { } while ();` |
-| `embed_expr` | §8 | `embed("file.bin", ...)` |
-| `embed_option` | §8 | `format: "spritepad"` |
-| `embed_options` | §8 | Comma-separated options |
-| `enum_decl` | §3.4 | `enum Name { ... }` |
-| `enum_member` | §3.4 | `A = 0` |
+| `do_while_stmt` | §5.7 | `do { } while (...);` |
+| `embed_expr` | §8 | Raw embed or one literal handler-owned selector key |
+| `enum_decl` | §3.4 | Enum declaration |
+| `enum_member` | §3.4 | Enum member and optional value |
 | `equality_expr` | §6.2 | `==`, `!=` |
-| `escape_seq` | §9.6 | `\n`, `\x41`, etc. |
+| `escape_seq` | §9.6 | Closed literal escape sequence |
 | `expression` | §6.2 | Entry point for expressions |
-| `expression_stmt` | §5.4 | `doSomething();` |
-| `field_init` | §6.6 | `field: value` |
-| `for_stmt` | §5.9 | `for (let i: byte = 0 until 10) { }` |
-| `function_decl` | §3.2 | `function name() { }` |
+| `expression_list` | §5.8 | Left-to-right initializer/update expressions in a for header |
+| `expression_stmt` | §5.3 | Any expression followed by `;` |
+| `field_init` | §6.6 | Struct field initializer |
+| `for_initializer` | §5.8 | Declaration or expression-list initializer of a for loop |
+| `for_local_decl` | §5.8 | Local declaration without its own trailing semicolon in a for header |
+| `for_stmt` | §5.8 | Three-clause C/JavaScript-style loop |
+| `for_update` | §5.8 | Expression-list update of a for loop |
+| `function_decl` | §3.2 | Function with mandatory return annotation |
 | `hex_digit` | §9.5 | `0`…`F` |
 | `hex_literal` | §9.5 | `$FF`, `0xFF` |
-| `identifier` | §9.1 | `myVar`, `_count` |
-| `if_stmt` | §5.6 | `if () { } else { }` |
-| `import_item` | §2.3 | `name` or `name as alias` |
-| `import_list` | §2.3 | Comma-separated imports |
-| `import_stmt` | §2.3 | `import { ... } from Module;` |
-| `interrupt_decl` | §3.2 | `interrupt function name() { }` |
-| `intrinsic_call` | §7 | Any intrinsic call |
-| `keyword` | §9.2 | 32 keywords |
-| `letter` | §9.1 | `A`…`Z`, `a`…`z` |
+| `identifier` | §9.1 | User-defined name |
+| `if_stmt` | §5.5 | Braced `if`/`else` |
+| `import_item` | §2.3 | Imported name and optional alias |
+| `import_list` | §2.3 | Comma-separated import items |
+| `import_stmt` | §2.3 | Module import |
+| `integer_type` | §4 | Four integer primitive types |
+| `interrupt_decl` | §3.2 | `interrupt function name(): void` |
+| `intrinsic_call` | §7 | Any reserved language intrinsic call |
+| `keyword` | §9.2 | Reserved language word |
+| `let_decl` | §3.1 | Top-level mutable declaration |
+| `letter` | §9.1 | ASCII letter |
 | `line_comment` | §9.7 | `// ...` |
 | `logical_and_expr` | §6.2 | `&&` |
 | `logical_or_expr` | §6.2 | `\|\|` |
-| `lvalue` | §5.3 | Assignable target |
-| `lvalue_suffix` | §5.3 | `[i]` or `.field` |
-| `memory_intrinsic` | §7.2 | `peek`, `poke`, etc. |
-| `module_decl` | §2.2 | `module Name;` |
+| `memory_intrinsic` | §7.2 | `peek`, `poke`, and related calls |
+| `module_decl` | §2.2 | Required first module declaration |
 | `multiplicative_expr` | §6.2 | `*`, `/`, `%` |
-| `number_literal` | §9.5 | Any numeric literal |
-| `param` | §3.2 | `name: type` |
+| `number_literal` | §9.5 | Decimal, hexadecimal, or binary literal |
+| `param` | §3.2 | `name: [const] type` |
 | `param_list` | §3.2 | Comma-separated parameters |
-| `postfix_expr` | §6.4 | Primary + `()`, `[]`, `.` |
-| `postfix_op` | §6.4 | Call, index, or member |
-| `primary_expr` | §6.5 | Literals, identifiers, parens |
-| `primitive_type` | §4 | `byte`, `word`, etc. |
-| `program` | §2.1 | Top-level compilation unit |
+| `postfix_expr` | §6.4 | Primary plus calls, indices, or members |
+| `postfix_op` | §6.4 | Call, index, or member suffix |
+| `primary_expr` | §6.5 | Literals, names, aggregates, intrinsics, grouping |
+| `primitive_cast` | §6.5 | `byte(expr)` and other integer casts |
+| `program` | §2.1 | One source compilation unit |
+| `qualified_name` | §2.3 | Dot-separated module identity |
 | `relational_expr` | §6.2 | `<`, `<=`, `>`, `>=` |
-| `reserved_builtin` | §9.4 | 28 reserved names |
-| `return_stmt` | §5.11 | `return [expr];` |
+| `reserved_builtin` | §9.4 | 29 reserved built-in identifiers; `main` is separately entry-reserved |
+| `return_stmt` | §5.10 | `return [expression];` |
+| `return_type` | §3.2 | Any parsed value type; semantic rules reject struct and array returns |
 | `shift_expr` | §6.2 | `<<`, `>>` |
 | `statement` | §5.1 | Any statement |
-| `string_char` | §9.6 | Character in string |
-| `string_literal` | §9.6 | `'hello'` |
-| `struct_decl` | §3.3 | `struct Name { ... }` |
-| `struct_field` | §3.3 | `name: type;` |
-| `struct_literal` | §6.6 | `Name { x: 1, y: 2 }` |
-| `switch_stmt` | §5.10 | `switch () { case: ... }` |
-| `top_level_item` | §2.1 | Any top-level declaration |
-| `type` | §4 | Any type specifier |
-| `unary_expr` | §6.3 | `!`, `~`, `-`, `&` prefix |
-| `var_decl_local` | §5.2 | Local `let` |
-| `var_decl_stmt` | §3.1 | Top-level `let` |
-| `while_stmt` | §5.7 | `while () { }` |
+| `string_char` | §9.6 | String-literal content |
+| `string_literal` | §9.6 | Double-quoted byte sequence |
+| `struct_decl` | §3.3 | Struct declaration |
+| `struct_field` | §3.3 | Struct field declaration |
+| `struct_literal` | §6.6 | Context-typed `{ field: value }` |
+| `switch_stmt` | §5.9 | Switch statement |
+| `top_level_item` | §2.1 | Any declaration after the module header |
+| `type` | §4 | Value type or `void` |
+| `unary_expr` | §6.3 | Prefix or postfix-based expression |
+| `value_type` | §4 | Any non-void type |
+| `var_decl_local` | §5.2 | Local mutable declaration |
+| `while_stmt` | §5.6 | Braced `while` loop |
+| `zeropage_block` | §3.1 | Module-level zero-page declarations |
+| `zeropage_var` | §3.1 | Mutable zero-page declaration |
 
-**Total productions: 85**
+**Total productions: 96**
 
 ---
 
@@ -642,34 +673,34 @@ expressions:
 
 - **Top-level and statements**: Standard recursive descent. Each statement type has a
   unique leading token (`let`, `const`, `if`, `while`, `do`, `for`, `switch`, `return`,
-  `break`, `continue`, `{`).
+  `break`, `continue`, `{`); other statement starts are parsed as expressions.
 - **Expressions**: Pratt parser using the 14-level precedence table from Ch 04, §2. The
   `expression` production in §6.2 is the EBNF representation of the precedence hierarchy;
   an implementation uses `parse_expr(min_precedence)` with a lookup table for binding powers.
-- **No backtracking required**: All parse decisions can be made by examining the current
-  token (LL(1) for most constructs, LL(2) for distinguishing `identifier "{"` struct literal
-  vs block, and `identifier "("` function call vs expression).
+- **No backtracking required**: All parse decisions can be made from the syntactic position and
+  bounded lookahead. Pratt parsing handles assignment as part of the expression. Semantic name
+  resolution distinguishes an identifier call from an enum cast.
 
 ### 11.2 Disambiguation Points
 
 | Ambiguity | Resolution |
 |-----------|-----------|
-| `if ... else if` vs `if ... else { if }` | Parsed as `else if_stmt` (first alternative in §5.6); semantically identical to nested if inside else block |
+| `if ... else if` vs `if ... else { if }` | Parsed as `else if_stmt` (first alternative in §5.5); semantically identical to nested if inside else block |
 | `&` address-of vs `&` bitwise AND | Position: unary prefix = address-of; binary infix = bitwise AND |
-| `identifier "{"` struct literal vs block | Context: in expression position = struct literal; at statement position = error (structs are not statements) |
-| `'x'` char literal vs `'hello'` string literal | Length: 1 char = char literal (`byte`); 2+ chars = string literal (`const byte[]`) |
-| `until`/`to`/`downto`/`step` keyword vs identifier | Context: only treated as keywords inside `for (...)` after the initializer expression |
-| `as` keyword vs identifier | Context: only treated as keyword after a postfix expression |
+| `{` struct literal vs block | Syntactic position: expression position = context-typed struct literal; statement position = block |
+| String vs character literal | Quote kind: double quotes = string (including empty); single quotes = exactly one character |
+| `as` import alias vs identifier | Context: recognized only between imported and local names; there is no `as` cast |
+| `Type(expr)` cast vs function call | Primitive type keywords are syntactic casts; identifier calls are classified as enum casts or function calls by semantic name resolution |
 
 ### 11.3 Lookahead Requirements
 
 | Context | Lookahead | Tokens |
 |---------|-----------|--------|
 | Statement selection | LL(1) | Leading keyword or `{` |
-| Expression vs assignment | LL(1) | Parse as expression; if `=`/`+=`/etc. follows, treat as assignment |
-| Struct literal | LL(2) | `identifier` followed by `{` in expression context |
+| Assignment | Pratt | Lowest binding power, right-associative; semantic pass validates assignable target |
+| Struct literal | LL(1) by context | `{` in expression position |
 | Export + declaration | LL(2) | `export` followed by `function`/`let`/`const`/`struct`/`enum`/`interrupt` |
-| For-loop header | LL(1) | After `=` expression, check for `until`/`to`/`downto` |
+| For-loop header | LL(1) | `let`/`const` select a declaration initializer; semicolons delimit condition and update |
 
 ### 11.4 No Context-Sensitive Parsing
 
@@ -679,8 +710,8 @@ are made with fixed rules:
 - `$` followed by hex digit → hex literal
 - `0x`/`0b` → hex/binary literal prefix
 - Keywords are recognized by string matching against the keyword table
-- `until`, `to`, `downto`, `step`, `as` are tokenized as identifiers; the parser promotes them
-  to keywords in context
+- Import-alias `as` is tokenized as an identifier; the parser recognizes it only in its grammatical
+  context
 
 ---
 
@@ -688,9 +719,9 @@ are made with fixed rules:
 
 | Criterion | Status |
 |---|---|
-| Every language construct has a production | ✅ 85 productions covering all Ch 01–13 constructs |
-| Provably LL(k) / recursive-descent + Pratt | ✅ Max LL(2); Pratt for expressions; no backtracking |
+| Every language construct has a production | ✅ 96 productions covering all Ch 01–13 constructs |
+| Provably LL(k) / recursive-descent + Pratt | ✅ Bounded lookahead plus Pratt expressions; no backtracking |
 | Dangling-else resolved | ✅ Mandatory braces (CF-1) — no bare statements after `if`/`while`/`for` |
-| No tokenization ambiguities | ✅ `&`/`until`/`to`/`downto`/`step`/`as` disambiguated by position/context |
+| No tokenization ambiguities | ✅ `&` and import `as` are disambiguated by position/context; quote kind distinguishes strings and characters |
 
 **Gate G4: PASSED**

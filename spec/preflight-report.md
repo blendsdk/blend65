@@ -1,5 +1,10 @@
 # Blend65 v3 — Preflight & Disambiguation Report
 
+> **Historical status**: This report records the pre-consolidation state on May 29, 2026. Its
+> inventories, counts, and authority statements are historical evidence, not the current
+> specification contract. The current normative authority is `00-introduction.md` through
+> `15-platform-profile.md` plus the platform appendixes, as corrected by accepted product rulings.
+
 > **Date**: May 29, 2026
 > **Purpose**: Flush out discrepancies, contradictions, and ambiguities across the v3 feature
 > evaluations (F001–F024) **before** consolidating them into the formal specification (00–15),
@@ -11,7 +16,7 @@
 
 ## 0. Why this pass came first
 
-The per-feature evaluations are the **single source of truth**. The three remaining deliverables
+At the time of this pass, the per-feature evaluations were the **single source of truth**. The three remaining deliverables
 (consolidated spec 00–15, platform appendixes, master EBNF) are all *derived* from them. Fixing
 contradictions at the source is the cheapest it will ever be — otherwise every defect must be
 fixed twice (source + derived doc) with a drift risk between them. v2 is **retained** until 00–15
@@ -21,12 +26,14 @@ demonstrably supersedes it and the migration gap table (§5) shows 100% coverage
 
 ## 1. Reference Integrity (R-1, R-2) — ✅ COMPLETE
 
-Mechanical sweep of every `Fxxx`, `FUT-xxx`, `REJ-xxx`, `Exxxxx`, `Wxxxxx` reference.
+This section is a historical snapshot of the May 29, 2026 tree, not a current reference inventory.
+It records the mechanical sweep of every then-present `Fxxx`, `FUT-xxx`, `REJ-xxx`, `Exxxxx`,
+and `Wxxxxx` reference.
 
 | Check | Result |
 |-------|--------|
 | Dangling feature-ID references | None. The single `F023` occurrences are intentional historical notes (retirement record in `future-considerations.md`; REJ-001 note in index). |
-| Dangling FUT references | None. The single `FUT-019` occurrence is the intentional "ex-FUT-019" historical note in F024's Alternatives table. |
+| Dangling FUT references | None. FUT-019 now has a resolved entry in `future-considerations.md`; F024 retains an intentional "ex-FUT-019" historical note. |
 | Dangling REJ references | None. REJ-001 (type aliases) and REJ-002 (inline asm) resolve correctly. |
 | Codes used in features but **unregistered** in index | **1 found → ✅ FIXED** (see §2). |
 | Codes registered in index but **unused** in any feature | None. |
@@ -78,8 +85,10 @@ either a hard rule or an explicit, documented limitation:
   raw `&`+poke is "the developer's responsibility." ✅ This is acceptable as a *documented limitation*
   but should be cross-listed in the index's "known limitations" once 00–15 is written.
 - `F012` CC-A7 — 65C02 `WAI`/`STP` "Deferred." Should point at a FUT entry rather than inline prose.
-- `F020` line ~497 — `sizeof` return type "byte if size ≤ 255, word if > 255." This is a *real
-  semantic rule*, not hedging, but is buried in an A-item; promote it into a numbered rule in F020.
+- The earlier F020 rule made `sizeof` change source type at 255 bytes and later text incorrectly
+  kept `offsetof` at `byte` by assuming structs could not exceed 255 bytes. The final Phase-3
+  reconciliation gives both queries stable `word` results, permits structs larger than 255 bytes,
+  and defines the representable fixed-array/struct domain as `0..65535` bytes.
 
 ---
 

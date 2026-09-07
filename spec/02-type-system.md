@@ -65,7 +65,7 @@ function damage(amount: byte): byte { ... }  // ✅
 
 let x = 10;                      // ❌ E10150: type annotation required
 const MAX = 255;                  // ❌ E10150
-function foo(n) { ... }           // ❌ E10150
+function foo(n): void { ... }     // ❌ E10150: parameter type required
 ```
 
 **Exception — array size inference** (→ Ch 08): The *element count* of an array may be inferred from its initializer. The element *type* is always explicit.
@@ -122,6 +122,10 @@ When both operands of a binary operator have the **same type**, the result has t
 
 This applies to all arithmetic (`+`, `-`, `*`, `/`, `%`) and bitwise (`&`, `|`, `^`, `<<`, `>>`) operators.
 
+Ordinary `+`, `-`, `+=`, and `-=` always use binary integer semantics. Processor decimal and carry
+flags never change their source-level meaning. Packed-decimal arithmetic uses the explicit
+`bcd_add()` and `bcd_sub()` operations from Chapter 12.
+
 ### TS-4 — Mixed-Width Auto-Promotion (Same Signedness)
 
 When operands have **different widths but the same signedness**, the narrower operand is implicitly widened to match the wider:
@@ -141,7 +145,11 @@ let result: word = base + offset;  // ✅ byte auto-promotes to word: 1042
 
 **Why auto-promotion is safe:** Widening never loses data. `byte` 200 → `word` 200. `sbyte` -5 → `sword` -5. The mathematical value is preserved.
 
-**6502 cost:** Zero-extend (byte→word): ~4 cycles, 4 bytes. Sign-extend (sbyte→sword): ~8–12 cycles, 6–8 bytes. Documented per operation in → Ch 04.
+**6502 cost:** Widening has no fixed surcharge independent of its consumer. For the standalone
+stored conversions displayed in F010, zero extension uses 11–14 cycles and 8–11 ROM bytes, while
+sign extension uses 16–21 cycles and 17–20 ROM bytes for zero-page or absolute source/result homes.
+A selected operation may absorb some or all of that work and must report the instructions it
+actually emits.
 
 ### TS-5 — Mixed-Signedness Is an Error
 
@@ -158,9 +166,9 @@ Mixing signed and unsigned types in the same expression is a **compile-time erro
 let pos: byte = 100;
 let vel: sbyte = -3;
 
-let result = pos + vel;            // ❌ E10081: cannot mix byte and sbyte
-let result: sbyte = sbyte(pos) + vel;  // ✅ explicit cast
-let result: byte = pos + byte(vel);    // ✅ explicit cast
+let invalidResult: sbyte = pos + vel;       // ❌ E10081: cannot mix byte and sbyte
+let signedResult: sbyte = sbyte(pos) + vel; // ✅ explicit cast
+let unsignedResult: byte = pos + byte(vel); // ✅ explicit cast
 ```
 
 **Rationale:** The 6502 uses the same ADD instruction for signed and unsigned, but the *meaning* differs. Requiring an explicit cast forces the developer to declare which interpretation they intend.
@@ -264,7 +272,7 @@ The type of an expression is determined by its operands, **not** the destination
 let a: byte = 200;
 let b: byte = 100;
 let result: word = a + b;  // byte + byte = byte → 44 (wraps) → word(44) = 44
-                             // ⚠️ W10160: byte arithmetic may overflow before widening
+                             // ⚠️ W10161: exact reaching values prove the wrap
 ```
 
 **The fix:** Cast operands before the operation:
@@ -275,10 +283,22 @@ let result: word = word(a) + word(b);  // word + word = word → 300 ✅
 
 **Warning triggers:** The compiler emits **W10160** when:
 1. An arithmetic expression (`+`, `-`, `*`) has narrow operands (byte/sbyte).
-2. The result is assigned to a wider type (word/sword).
+2. The result is widened by assignment, argument binding, return binding, or another explicit
+   semantic context such as a direct subscript after a narrow barrier.
 3. Overflow is possible at the narrow width.
 
-The warning does **not** trigger for bitwise operations, comparisons, or when the narrow expression is provably in range (constant folding).
+W10161 replaces W10160 when pre-optimization semantic analysis proves the exact reaching operand
+values and exact intermediate wrap. That proof may use literals, `const` values, or one unmodified
+reaching value of a mutable local; it must not rely on an optimizer choice or ignore aliases,
+calls, interrupts, or volatile effects. The warning does **not** trigger for bitwise operations,
+comparisons, or when the narrow expression is provably in range.
+
+Array subscripting is the one explicit operator context that promotes direct 8-bit ordinal
+arithmetic before it evaluates (Chapter 08, AR-4). It is not destination-driven conversion: the
+`[]` operator defines the semantic domain of its own index operand so that `array[i + 10]` does not
+silently wrap at 255 merely because `i` is stored as a byte. An explicit 8-bit cast or other narrow
+barrier restores ordinary narrow arithmetic. The contextual promotion itself emits neither W10160
+nor W10161; warnings still apply to an explicit narrow expression completed before subscripting.
 
 ### TS-10 — Chained Expression Order
 
@@ -314,14 +334,25 @@ A cast is **not** a function call — it is a compile-time type conversion that 
 
 ### TS-12 — Cast Behavior
 
-| Cast | Behavior | 6502 Cost |
-|------|----------|-----------|
-| Same size, same signedness | No-op (identity) | 0 cycles |
-| Same size, cross-signedness (byte↔sbyte, word↔sword) | Reinterpret bits | 0 cycles |
-| Widen unsigned (byte→word) | Zero-extend high byte | ~4 cycles, 4 bytes |
-| Widen signed (sbyte→sword) | Sign-extend high byte | ~8–12 cycles, 6–8 bytes |
-| Narrow (word→byte, sword→sbyte) | Truncate to low byte | 0 cycles |
-| Narrow cross-sign (word→sbyte, sword→byte) | Truncate + reinterpret | 0 cycles |
+The cost column below is explicit about its boundary. “No added instruction” means that the
+conversion changes only interpretation or selects an already available byte; it excludes unrelated
+loads/stores. Widening rows give the complete standalone stored forms displayed in F010.
+
+| Cast | Behavior | Selected 6502 cost |
+|------|----------|--------------------|
+| Same size, same signedness | No-op (identity) | No added instruction |
+| Same size, cross-signedness (byte↔sbyte, word↔sword) | Reinterpret bits | No added instruction |
+| Widen unsigned (byte→word) | Zero-extend high byte | 11–14 cycles, 8–11 bytes for the complete stored form |
+| Widen signed (sbyte→sword) | Sign-extend high byte | 16–21 cycles, 17–20 bytes for the complete stored form |
+| Narrow (word→byte, sword→sbyte) | Select low byte | No added instruction when the low byte is already available |
+| Narrow cross-sign (word→sbyte, sword→byte) | Select low byte and reinterpret | No added instruction when the low byte is already available |
+
+These costs do not merge distinct variables or remove an ordinary assignment. In
+`let s: sbyte = sbyte(b)`, `b` and `s` remain independent objects whenever
+both are live or either can be observed through an alias. The compiler may coalesce their homes
+only when ordinary liveness, alias, volatility, and interference proofs show that doing so preserves
+all reads and writes. Otherwise the assignment performs the required register or memory move even
+though no additional bit-conversion instruction is needed.
 
 ### TS-13 — Cast Restrictions
 
@@ -407,7 +438,7 @@ pos += delta;                // ❌ E10081: cannot mix byte and sbyte
 
 ### TS-18 — Compile-Time Constants
 
-Constant expressions (used in `const` initializers, array sizes, `embed()` offsets, case values, enum member values) are evaluated at compile time with full-precision arithmetic:
+Constant expressions (used in `const` initializers, array sizes, case values, and enum member values) are evaluated at compile time with full-precision arithmetic:
 
 ```blend65
 const SIZE: word = 40 * 25;       // ✅ 1000
@@ -445,6 +476,10 @@ let sr: sbyte = s >> 1;         // 0b11000000 = -64 (arithmetic)
 
 Left shift (`<<`) is identical for both signed and unsigned types.
 
+When a right-shift count is at least the operand width, the result is saturated rather than obtained
+by masking the count: unsigned operands and non-negative signed operands yield `0`; negative signed
+operands yield `-1`. This keeps arithmetic right shift sign-extending for every count.
+
 ---
 
 ## 12. Overflow Behavior
@@ -461,44 +496,72 @@ let y: sbyte = 127;
 y = y + 1;           // -128 (wraps)
 ```
 
-The compiler emits **W10100** when signed overflow is detectable at compile time in constant expressions.
+In an ordinary runtime-expression context, the compiler emits W10100 when a same-width signed wrap
+is detectable at compile time. A true constant context uses full precision and E10084 instead.
 
 ---
 
-## 13. `sizeof` Return Type
+## 13. Compile-Time Size Queries and Representable Objects
 
-### TS-21 — sizeof Returns byte or word
+### TS-21 — `sizeof` Returns `word`
 
-`sizeof(TypeName)` returns `byte` for types with size ≤ 255 bytes, `word` for larger types. In practice, all primitives and most structs fit in `byte`; large arrays may require `word`. Full `sizeof` specification: → Ch 04.
+`sizeof(TypeName)` always returns `word`. Type-size arithmetic therefore does not change source
+meaning when a fixed object crosses 255 bytes. The result is still a compile-time constant, and
+machine lowering may use one byte when proof shows that every consumer observes the same value.
+Full `sizeof` specification: → Ch 04.
+
+### TS-22 — `offsetof` Returns `word`
+
+`offsetof(StructType, fieldName)` always returns `word`. A field may begin after byte 255 in a
+valid struct, so field-offset arithmetic must not silently narrow merely because many structs are
+small. The result is a compile-time constant, and proof may select byte-only machine work when that
+preserves every use.
+
+### TS-23 — Fixed Object Size Domain
+
+Every array extent is evaluated as a full-precision constant and must be in `0..65535`. Every
+fixed array or struct type must occupy `0..65535` bytes after its complete nested size is computed
+at full precision. These limits keep array counts, object sizes, field offsets, and 16-bit address
+formation total without adding a wider runtime integer or hidden runtime support. They do not cap a
+struct at 255 bytes.
+
+An unsized array type such as `byte[]` has no standalone fixed size. It is legal only in the
+initializer-inference and any-size-parameter roles defined by Chapters 06 and 08; applying
+`sizeof` to it is rejected.
 
 ---
 
-## 14. Error Codes
+## 14. Diagnostic Conditions
 
-Errors defined in this chapter (canonical owner):
+This chapter owns the type-system predicates and consequences below. Chapter 14 alone owns public
+severities, message templates, spans, suppression, and history.
 
-| Code | Message |
-|------|---------|
-| E10080 | Cannot implicitly convert `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
-| E10081 | Cannot mix signed type `<type_a>` with unsigned type `<type_b>` in expression — cast one operand |
-| E10082 | Cannot implicitly narrow `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
-| E10083 | Cannot negate unsigned type `<type>` — use `sbyte`/`sword` for signed arithmetic |
-| E10084 | Value `<value>` out of range for type `<type>` (range: `<min>` to `<max>`) |
-| E10085 | Array index must be unsigned type (`byte` or `word`) — found `<type>` |
-| E10086 | Cannot cast `<from_type>` to `<to_type>` — boolean is not convertible to/from integer types |
-| E10150 | Type annotation required — use `let <name>: <type> = <expr>` |
-| E10151 | Cannot use `boolean` in arithmetic/bitwise expression — boolean is a logical type, not numeric |
-| E10152 | Cannot cast to or from `void` |
-| E10153 | Cannot cast struct or array types — only integer types support casts |
-| E10154 | Cannot apply `<op>` to `boolean` — ordered comparisons are not valid for boolean operands |
-| E10235 | Cannot assign `<type>` to enum `<name>` — use an explicit cast `<name>(<expr>)` |
-| E10236 | Cannot compare enum `<a>` with enum `<b>` — different enum types. Cast one to `byte` |
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10080 | An implicit conversion crosses signed and unsigned integer families. | The conversion is rejected; an explicit cast is required. |
+| E10081 | One integer operation mixes signed and unsigned operands without an explicit cast. | The expression is rejected. |
+| E10082 | An implicit conversion narrows an integer value. | The conversion is rejected; an explicit cast is required. |
+| E10083 | Unary minus is applied to an unsigned integer. | The expression is rejected. |
+| E10084 | A full-precision constant-context result does not fit the required declared type. | The constant declaration/use is rejected; no narrow-width wrap is performed. |
+| E10086 | A cast converts between boolean and integer. | The cast is rejected. |
+| E10150 | A declaration omits a required type annotation. | The declaration is rejected. |
+| E10151 | Boolean participates in arithmetic or bitwise operations. | The expression is rejected. |
+| E10152 | A cast has `void` as source or destination. | The cast is rejected. |
+| E10153 | A cast targets or consumes a struct or array type. | The cast is rejected. |
+| E10154 | An ordered comparison has a boolean operand. | The comparison is rejected. |
+| E10241 | A type-name position contains an unresolved identifier. | The declaration or expression is rejected. |
+| E10235 | A byte value reaches an enum destination without an explicit enum cast. | The conversion is rejected. |
+| E10236 | A comparison combines two different nominal enum types. | The comparison is rejected. |
 
-### Warning Codes
+### Warning Conditions
 
-| Code | Message |
-|------|---------|
-| W10100 | Signed overflow in constant expression — result wraps to `<value>` |
-| W10101 | Narrowing cast from `<from_type>` to `<to_type>` truncates value `<value>` to `<result>` |
-| W10160 | `<narrow_type>` arithmetic may overflow before widening to `<wide_type>` — use `<wide_type>(a) <op> <wide_type>(b)` |
-| W10161 | Constant expression overflow — `<expr>` wraps to `<value>` at `<type>` width before widening |
+These warnings apply only to ordinary runtime-expression semantics, even when all operands happen
+to be compile-time known. They never change TS-18 constant contexts, which use full precision and
+E10084 rather than intermediate wrapping.
+
+| Code | Trigger | Consequence |
+|------|---------|-------------|
+| W10100 | A compile-time-known ordinary runtime signed expression overflows its signed operand width and remains at that width. | The exact two's-complement wrapped result is used. |
+| W10101 | An explicit narrowing cast has a compile-time-known value that loses bits. | The exact truncated result is used. |
+| W10160 | An ordinary runtime narrow arithmetic expression is widened by its context and may overflow before widening, but the exact operands are not compile-time known. | The operand-width runtime result is widened. |
+| W10161 | An ordinary runtime narrow arithmetic expression is widened by its context and compile-time-known operands prove that it wraps before widening. | The exact operand-width wrapped result is widened; W10160 is not also emitted for the same expression. |

@@ -57,7 +57,13 @@ function movePlayer(dx: sbyte, dy: sbyte): void {
 
 ### A2 — Static Frame Allocation (SFA)
 
-All memory allocation is determined at compile time. There is no heap, no `malloc`, no garbage collector, and no recursion. Every function has exactly one statically allocated frame. The call graph is fully known at compile time, and the compiler reuses frame memory for functions whose lifetimes do not overlap.
+All memory allocation is determined at compile time. There is no heap, no `malloc`, no garbage
+collector, and no recursion. Each source function receives one static invocation-private home for
+every execution-domain specialization required by the complete call/interruption graph. Functions
+whose lifetimes cannot overlap may reuse storage; overlapping mainline/IRQ/NMI paths may not.
+A local variable's address may be borrowed only while that local's dynamic source lifetime is
+active. The compiler rejects any local-origin address or derived fragment that may outlive that
+lifetime; persistent addresses use module-level or caller-owned storage instead.
 
 **Why:** The 6502 has a 256-byte hardware stack, no frame pointer register, and no memory protection. Dynamic allocation on this hardware is fragile, non-deterministic, and wastes precious cycles. SFA guarantees that memory usage is predictable, bounded, and verifiable at build time.
 
@@ -70,12 +76,19 @@ Every possible input to the compiler produces either:
 1. A well-defined result (documented), or
 2. A compile-time error with a specific error code and actionable message.
 
-There is no "undefined behavior" in Blend65. Integer overflow wraps deterministically (two's complement). Every operator, every type combination, and every edge case has a specified outcome. Every operation has a defined effect: it never corrupts unrelated memory, never produces a result the compiler is permitted to treat as impossible, and never licenses the optimizer to delete or reorder surrounding code.
+There is no "undefined behavior" in Blend65. Integer overflow wraps deterministically (two's
+complement). Every operation has defined control flow, width, effects, and cost obligations: it never
+licenses the optimizer to delete or reorder surrounding code or to treat a possible result as
+impossible. The only unspecified result bits are the explicitly registered hardware-limitation
+exceptions for indeterminate storage and default runtime division by zero. Default unchecked array
+indexing has an exact 16-bit effective-address rule even when it reaches unrelated memory or MMIO.
 
 **Unspecified values are not undefined behavior.** A variable declared without an initializer (→ Ch 03, VAR-2) holds an **unspecified value** — whatever bytes already occupied that RAM, zero-page, or register location. Reading it is fully defined: it yields *some* valid value of the variable's type, of the correct width, with no other effect. The value is simply not *predictable*. This is a deliberate design choice — Blend65 does not auto-zero variables at startup, because doing so would cost cycles and bytes that the target hardware cannot spare. The distinction is:
 
 - **Undefined behavior** (forbidden): the operation has no defined effect and may corrupt the program. Blend65 has none of this.
-- **Unspecified value** (permitted): the operation is fully defined, but the specific value read is not predictable. The compiler emits **W10190** when it can statically detect a read before assignment.
+- **Unspecified value** (permitted only where registered): control flow, result width, and observable
+  effects are fixed, but the particular result bits are not predictable. The optimizer may not invent
+  additional assumptions from that fact.
 
 **Why:** On a machine with no OS, no exception handler, and no debugger, undefined behavior means a hard crash, an infinite loop, or silent memory corruption — with zero diagnostic information. The cost of defining all behavior is far less than the cost of debugging undefined behavior on bare metal.
 
@@ -151,7 +164,7 @@ This specification is organized into 16 chapters:
 | 09 | Enums | Byte-backed nominal types, asymmetric conversion |
 | 10 | Modules & Multi-File | Module declarations, imports/exports, entry point |
 | 11 | Memory Model & SFA | Static frame allocation, zero-page budget, address model |
-| 12 | CPU Control & Intrinsics | The 13 curated CPU-control intrinsics |
+| 12 | CPU Control & Intrinsics | 13 curated CPU controls, explicit packed BCD, and memory intrinsics |
 | 13 | Data Inclusion & Asset Embedding | `embed()`, format selectors, const-only placement |
 | 14 | Diagnostics: Error & Warning Registry | Complete E1xxxx / W1xxxx tables |
 | 15 | Conformance & Platform Profile Contract | What a platform profile must define |

@@ -37,7 +37,7 @@ skill is no longer needed for ordinary use.
 
 | # | Document | Purpose |
 |---|---|---|
-| AR | [Ambiguity Register](00-ambiguity-register.md) | Thirty-four resolved decisions and the passed Zero-Ambiguity Gate |
+| AR | [Ambiguity Register](00-ambiguity-register.md) | Thirty-five resolved planning decisions and thirty-four resolved Phase-3 rulings; no open product ambiguity |
 | 00 | [Index](00-index.md) | Scope, navigation, and execution shape |
 | 01 | [Requirements](01-requirements.md) | Thin implementation delta over approved RD-01 |
 | 02 | [Current State](02-current-state.md) | Grounded skill, compiler, toolchain, and risk baseline |

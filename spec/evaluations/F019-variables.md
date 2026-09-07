@@ -9,7 +9,10 @@
 
 ## Description
 
-Variables and constants are the primary way to store data in Blend65. This feature is the **single source of truth** for declaration syntax, initialization rules, mutability semantics, and the startup sequence. While individual aspects were introduced in earlier features (F003's module-level rules, F005's memory placement, F013's block scoping, F016's mandatory type annotations), this document consolidates everything into one canonical reference.
+Variables and constants are the primary way to store data in Blend65. This evaluation consolidates
+the rationale for declaration syntax, initialization, mutability, and startup. The normative rules
+remain in Chapters 03, 10, 11, and the selected platform appendix; this document cannot override
+them.
 
 Blend65 provides two declaration keywords:
 
@@ -33,7 +36,9 @@ const SINE_TABLE: byte[256] = [/* precomputed values */];
 - `const` always means compile-time constant — never a runtime-immutable variable
 - Uninitialized `let` variables have indeterminate values — no hidden init code
 - One declaration per statement — no multi-variable declarations
-- The startup sequence is linear: CPU init → variable init → fall through to main() — no JSR/JMP overhead
+- Startup is platform bootstrap → scheduled variable initializers → fall through to `main()`.
+  Initializer expressions may call ordinary functions; only the final transition into `main()` has
+  no `JSR`/`JMP` overhead.
 
 ---
 
@@ -42,44 +47,22 @@ const SINE_TABLE: byte[256] = [/* precomputed values */];
 ### Variable Declaration (`let`)
 
 ```ebnf
-let_decl = "let" , identifier , ":" , type_expr , [ "=" , expression ] , ";" ;
+let_decl = [ "export" ] , "let" , identifier , ":" , value_type
+           , [ "=" , expression ] , ";" ;
 ```
 
 ### Constant Declaration (`const`)
 
 ```ebnf
-const_decl = "const" , identifier , ":" , type_expr , "=" , const_expr , ";" ;
+const_decl = [ "export" ] , "const" , identifier , ":" , value_type
+             , "=" , const_expression , ";" ;
 ```
 
-### With Export (module-level only)
-
-```ebnf
-export_let_decl   = "export" , let_decl ;
-export_const_decl = "export" , const_decl ;
-```
-
-### Type Expressions
-
-```ebnf
-type_expr = "byte" | "sbyte" | "word" | "sword" | "boolean"
-          | identifier                           (* struct or enum type *)
-          | type_expr , "[" , const_expr , "]"    (* array type *)
-          | type_expr , "[" , "]"                 (* array with inferred size — requires initializer *) ;
-```
-
-### Constant Expressions
-
-```ebnf
-const_expr = literal
-           | const_identifier
-           | const_expr , binary_op , const_expr
-           | unary_op , const_expr
-           | "(" , const_expr , ")"
-           | "sizeof" , "(" , type_or_name , ")"
-           | "embed" , "(" , string_literal , ")" , [ "." , selector ] ;
-```
-
-A `const_expr` is evaluated entirely at compile time. It may reference other `const` values, use arithmetic/bitwise/comparison operators with constant operands, and invoke compile-time intrinsics like `sizeof()` and `embed()`.
+`value_type` and `const_expression` are the shared master-grammar productions. A local declaration
+uses the corresponding no-`export` statement form. `const_expression` shares the ordinary
+expression grammar; semantic analysis then requires it to be
+evaluable entirely at compile time. It may reference other `const` values, use operators with
+constant operands, and invoke compile-time intrinsics such as `sizeof()` and `embed()`.
 
 ---
 
@@ -102,10 +85,10 @@ position = 1000;            // ✅ first assignment
 
 | Context | Valid | Notes |
 |---------|-------|-------|
-| Module level | ✅ | Stored in general RAM. Initializer must be compile-time constant (E10011) |
+| Module level | ✅ | Stored in general RAM. Initializer may be any otherwise legal non-`void` expression and runs once before `main` |
 | Function body | ✅ | Stored in function's SFA frame. Initializer can be any expression |
 | Block body (if/while/for) | ✅ | Scoped to the block (F013 CF-3). Shares SFA frame memory with non-overlapping blocks |
-| For-loop init | ✅ | `for (let i: byte = 0 to 10)` — loop variable is read-only (F008) |
+| For-loop initializer | ✅ | `for (let i: byte = 0; i < 10; i += 1)` — ordinary mutable local scoped to the complete for statement (F008) |
 | `zeropage { }` block | ❌ | Zeropage uses `name: type` syntax without keywords (F005) |
 | Module level without a function | ❌ | Bare statements are E10010 (F003) |
 
@@ -120,7 +103,8 @@ const TILE_SIZE: byte = 8;
 const MAP_BYTES: word = 40 * 25;       // ✅ constant folding: 1000
 ```
 
-**Scalar `const` behavior:** The compiler inlines the constant's value at every use site. No RAM is allocated. No storage exists at runtime. This is equivalent to an `EQU` directive in assembly.
+**Scalar `const` behavior:** Primitive and enum constants are inlined at every use site. No RAM is
+allocated and no runtime storage exists. This is equivalent to an `EQU` directive in assembly.
 
 ```blend65
 const MAX: byte = 8;
@@ -171,15 +155,17 @@ function foo(base: word): void {
 | `const X: byte = 5;` | ❌ No (inlined) | N/A — no storage | `X = 5` (equate) |
 | `const T: byte[] = [1,2];` | ❌ No (data section) | N/A — placed at assemble time | `T: .byte 1, 2` |
 
-**Module-level initializer constraint:** When a module-level `let` has an initializer, it must be a compile-time constant expression (E10011 from F003). Function calls, variable references, and runtime computation are not allowed:
+**Module-level initializer rule:** A module-level `let` initializer may use any otherwise legal
+non-`void` expression, including ordinary calls, assignments, variable reads, and runtime
+computation. It runs once before `main` under Chapter 10's dependency and effect schedule:
 
 ```blend65
 // Module level
 const MAX: byte = 8;
 let score: word = 0;                  // ✅ literal constant
 let offset: byte = MAX * 2;           // ✅ constant expression (MAX is const)
-let computed: byte = getDefault();     // ❌ E10011: not a compile-time constant
-let derived: byte = score + 1;        // ❌ E10011: references runtime variable
+let computed: byte = getDefault();     // ✅ ordinary startup call
+let derived: byte = score + 1;         // ✅ scheduled after score's initializer
 ```
 
 **Function-level initializers** may use any valid expression:
@@ -255,11 +241,13 @@ let b: byte[4] = [5, 6, 7, 8];
 a = b;                                 // ❌ E10119: cannot assign whole array (F014)
 ```
 
-**Cannot assign to for-loop variables:**
+**A for-header `let` remains mutable:**
 
 ```blend65
-for (let i: byte = 0 to 10) {
-    i = 5;                             // ❌ E10060: cannot assign to for-loop variable (F008)
+for (let i: byte = 0; i < 10; i += 1) {
+    if (skipAhead) {
+        i += 2;                        // ✅ ordinary assignment; changes later loop behavior
+    }
 }
 ```
 
@@ -320,7 +308,7 @@ const C: byte = A + B;                // ✅ → 30
 
 | Expression | Constant? | Notes |
 |-----------|-----------|-------|
-| Numeric literal (`42`, `$FF`, `%1010`) | ✅ | Always |
+| Numeric literal (`42`, `$FF`, `0b1010`) | ✅ | Always |
 | Boolean literal (`true`, `false`) | ✅ | Always |
 | String/char literal (`'A'`, `"hello"`) | ✅ | For array initializers |
 | Reference to another `const` | ✅ | Transitively resolved |
@@ -380,14 +368,17 @@ immutable[0] = 10;                     // ❌ E10192: cannot modify const array
 
 // Array size inference from initializer (F014, F016)
 const COLORS: byte[] = [2, 5, 6];     // ✅ size inferred as 3
-let buffer: byte[];                    // ❌ E10110: size required without initializer
+let buffer: byte[];                    // ❌ E10253: extent required without initializer
 ```
 
 ---
 
 ## Startup Sequence
 
-The compiler generates a linear startup sequence that matches how a 6502 assembly programmer structures their entry point. There are no hidden functions, no JSR to main, and no JMP gymnastics.
+The compiler generates the selected platform bootstrap followed by the scheduled initializer
+expressions, then falls through into `main()`. Initializers may call ordinary functions. There is
+no hidden aggregate initializer function and no `JSR` or `JMP` for the final transition into
+`main()`.
 
 ### The Sequence
 
@@ -395,13 +386,11 @@ The compiler generates a linear startup sequence that matches how a 6502 assembl
 [Platform-specific loader stub]        ← BASIC SYS / RUNAD / RESET vector
                                          (defined by platform profile)
 _blend65_entry:
-    SEI                                ← Standard CPU init
-    CLD
-    LDX #$FF
-    TXS
-    
+    ; Selected platform bootstrap has already established the required CPU/device state.
+    ; There is no universal SEI/CLD/TXS sequence: reset-vector and OS-launched targets differ.
+
     ; Variable initialization — LDA/STA for each initialized variable
-    ; (in declaration order within each module)
+    ; (dependency/effect order; ready ties use fully qualified variable name)
     LDA #<_playerX_init_lo
     STA _playerX
     LDA #$00
@@ -419,14 +408,14 @@ _main:
 
 | Rule | Description |
 |------|-------------|
-| **Linear flow** | CPU init → variable init → main() body. No JSR, no JMP. main() is inlined at the entry point |
+| **Linear flow** | Platform bootstrap → scheduled variable initializers, including their ordinary calls → `main()` body. Only the transition into `main()` is fall-through, with no `JSR` or `JMP` |
 | **No hidden functions** | There is no `__init()` or `__startup()`. The init sequence is visible in the build summary |
-| **Declaration order** | Init code is emitted in declaration order within each module |
-| **Module order** | Modules are initialized in dependency order (imports before importers), then alphabetically for independent modules |
-| **`const` = no init code** | Scalar constants are inlined (EQU). Array/struct constants are placed in the data section at assemble time (.byte directives). Zero runtime cost |
-| **No initializer = no code** | `let temp: byte;` generates zero init code — just reserves RAM (`.res 1`) |
+| **Dependency/effect order** | Direct and transitive reads/calls create dependency edges; ready independent initializers use case-sensitive ASCII order of their fully qualified variable names, as defined by Chapter 10 |
+| **Module order** | Actual initializer reads/calls create predecessor edges; import syntax alone does not. Ready independent initializers use case-sensitive ASCII order of the fully qualified variable name (`Module.Path.variable`), independent of file path and compiler-input order |
+| **`const` = no init code** | Primitive and enum constants are inlined (EQU). Array/struct constants are placed in the data section at assemble time (.byte directives). Zero runtime cost |
+| **No initializer = no code** | `let temp: byte;` generates zero init code and reserves RAM in the target's non-emitted storage region (`.res 1`) |
 | **Platform stub** | The loader stub (BASIC SYS, RUNAD, RESET vector) is defined by the platform profile, not the language |
-| **CPU init** | SEI, CLD, LDX #$FF, TXS — standard 6502 startup. Platform profile can customize (7800 needs TIA init, etc.) |
+| **CPU/device init** | Owned entirely by the selected platform bootstrap. A reset-vector target may initialize the hardware stack; an OS/BASIC-launched target may need to preserve its return chain. No universal instruction sequence is implied here. |
 | **main() is uncallable** | main() is the entry point, not a callable function. Other functions cannot call main() (E10023 in F004) |
 
 ### Assembly Equivalence
@@ -435,9 +424,9 @@ _main:
 |---------|-------------------|-------------|
 | `const MAX: byte = 8;` | `MAX = 8` (equate) | 0 bytes, 0 cycles |
 | `const TABLE: byte[] = [1,2,3];` | `TABLE: .byte 1, 2, 3` (data section) | 0 cycles (placed at assemble time) |
-| `let score: word = 0;` | `score: .res 2` + `LDA #0 / STA score / STA score+1` at entry | 6 bytes init, 10 cycles |
+| `let score: word = 0;` | `score: .res 2` + `LDA #0 / STA score / STA score+1` at entry | 8 bytes init, 10 cycles |
 | `let temp: byte;` | `temp: .res 1` (reserve only) | 0 bytes init, 0 cycles |
-| `zeropage { x: byte = 10; }` | `.segment "ZEROPAGE" / x: .res 1` + `LDA #10 / STA x` at entry | 4 bytes init, 6 cycles |
+| `zeropage { x: byte = 10; }` | `.segment "ZEROPAGE" / x: .res 1` + `LDA #10 / STA x` at entry | 4 bytes init, 5 cycles |
 
 ### Build Summary
 
@@ -445,11 +434,11 @@ The compiler reports the exact cost of the startup sequence:
 
 ```
 === Build Summary (platform: c64) ===
-Startup sequence: 22 bytes ROM, 38 cycles
-  CPU setup:     6 bytes (SEI, CLD, LDX #$FF, TXS)
-  playerX:       4 bytes (LDA #$A0, STA $0820)
-  score:         6 bytes (LDA #$00, STA $0822, STA $0823)
-  frameCount:    4 bytes (LDA #$0A, STA $02)           [zeropage]
+Platform bootstrap: reported by the selected C64 profile
+Startup initializers: 17 bytes ROM, 21 cycles
+  playerX:       5 bytes, 6 cycles (LDA #$A0, STA $0820)
+  score:         8 bytes, 10 cycles (LDA #$00, STA $0822, STA $0823)
+  frameCount:    4 bytes, 5 cycles (LDA #$0A, STA $02) [zeropage]
   temp:          0 bytes (no initializer)
 Entry: falls through to main() — no JSR overhead
 Data section: 259 bytes (SINE_TABLE: 256, SPRITE_DATA: 3)
@@ -470,10 +459,10 @@ let score: word = 0;
 **Generated (in startup sequence):**
 ```asm
     LDA #160
-    STA _playerX        ; 4 bytes, 6 cycles
+    STA _playerX        ; 5 bytes, 6 cycles
     LDA #$00
     STA _score          ; \
-    STA _score+1        ; / 6 bytes, 10 cycles (word init, both bytes zero)
+    STA _score+1        ; / 8 bytes, 10 cycles (word init, both bytes zero)
 ```
 
 ### Module-Level `let` without Initializer
@@ -487,7 +476,7 @@ let buffer: byte[256];
 **Generated:**
 ```asm
 ; No init code generated — just memory reservation
-; In BSS/RAM segment:
+; In the target's non-emitted BSS/RAM segment:
 _temp:   .res 1          ; 1 byte reserved
 _buffer: .res 256        ; 256 bytes reserved
 ```
@@ -603,7 +592,10 @@ _ORIGIN:
 
 ### VAR-A5: How does the startup sequence work?
 
-Linear flow: platform loader stub → CPU init (SEI/CLD/TXS) → variable initialization (LDA/STA for each initialized variable) → fall through into main() body. No JSR to main(), no JMP. main() is inlined at the end of the startup sequence. This matches exactly how a 6502 assembly programmer structures their entry point.
+The selected platform loader/bootstrap establishes its required CPU and device state; there is no
+universal `SEI`/`CLD`/`TXS` sequence. The compiler then executes every scheduled runtime variable
+initializer, including any legal ordinary calls, exactly once and falls through into `main()`.
+Only that final transition has no `JSR` or `JMP` overhead.
 
 ### VAR-A6: Can `const` declare struct instances?
 
@@ -619,7 +611,10 @@ Linear flow: platform loader stub → CPU init (SEI/CLD/TXS) → variable initia
 
 ### VAR-A9: What is the initialization order for multi-module programs?
 
-Init code is emitted in declaration order within each module. Module initialization order follows dependency order (modules that are imported are initialized before the importing module), with alphabetical ordering for independent modules. Since all initializers must be compile-time constants (E10011), the order cannot affect correctness — no initializer can depend on another variable's runtime value.
+Each initializer runs once in Chapter 10's topological schedule. The compiler includes direct and
+transitive reads/calls, preserves the stable order of observable side effects, and rejects an
+unsatisfiable cycle. Startup callees and helper scratch participate in SFA closure. The build report
+shows their ROM, storage, and exact, bounded, or runtime-dependent cycle cost.
 
 ---
 
@@ -627,32 +622,30 @@ Init code is emitted in declaration order within each module. Module initializat
 
 ### New Error Codes
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10190 | `const` without initializer | `'const' declaration requires an initializer — constants must be initialized at declaration` |
-| E10191 | `const` with non-constant initializer | `'const' initializer must be a compile-time constant expression — found '<expr>'` |
-| E10192 | Assignment to `const` | `Cannot assign to 'const' variable '<name>'` |
+| E10190 | `const` without initializer | [Chapter 14](../14-diagnostics.md) |
+| E10191 | `const` with non-constant initializer | [Chapter 14](../14-diagnostics.md) |
+| E10192 | Assignment to `const` | [Chapter 14](../14-diagnostics.md) |
 
 ### New Warning Codes
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| W10190 | Read before init | `Variable '<name>' may be used before initialization — value is indeterminate` |
+| W10190 | Read before init | [Chapter 14](../14-diagnostics.md) |
 
 ### New Error Code in F004
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10023 | Calling main() | `Cannot call 'main()' — it is the program entry point, not a callable function` |
+| E10023 | Calling main() | [Chapter 14](../14-diagnostics.md) |
 
 ### Existing Error Codes That Apply
 
 | Code | Source | Rule Enforced |
 |------|--------|--------------|
-| E10011 | F003 | Module-level initializer must be compile-time constant |
 | E10031 | F005 | Constants not allowed in zeropage block |
 | E10033 | F005 | `let`/`const` keyword inside zeropage block |
-| E10060 | F008 | Cannot assign to for-loop variable |
 | E10101 | F013 | Variable shadows outer scope |
 | E10119 | F014 | Cannot assign whole array |
 | E10150 | F016 | Type annotation required |
@@ -664,7 +657,8 @@ Init code is emitted in declaration order within each module. Module initializat
 
 ### With F003 (Module Contents)
 
-Module-level `let` and `const` follow F003's rules: only declarations at module level, no executable statements, initializers must be compile-time constants (E10011). F019 formalizes the syntax and semantics; F003 defines what is allowed at module level.
+Module-level `let` and `const` follow F003's declaration-only rule. `let` initializers may be runtime
+expressions and run once before `main`; `const` remains compile-time-only. Chapter 10 owns scheduling.
 
 ### With F004 (Entry Point)
 
@@ -679,7 +673,9 @@ main() is the entry point. The startup sequence falls through into main()'s body
 
 ### With F008 (For Loop)
 
-`for (let i: byte = 0 to 10)` declares a loop variable with `let` syntax. The loop variable is implicitly read-only (E10060). The loop variable is scoped to the for-loop body.
+`for (let i: byte = 0; i < 10; i += 1)` declares an ordinary mutable local. It is visible in the
+condition, update, and body, but not after the loop. A `const` initializer declaration follows the
+ordinary constant rules. There is no special read-only loop-variable diagnostic.
 
 ### With F009 (Switch Statement)
 
@@ -766,14 +762,14 @@ function main(): void {
 
 **Build summary for this module:**
 ```
-Startup: 18 bytes, 30 cycles
-  playerX:     4 bytes (LDA #$A0, STA $02)     [zeropage]
-  playerY:     4 bytes (LDA #$64, STA $03)     [zeropage]
-  frameCount:  4 bytes (LDA #$00, STA $04)     [zeropage]
-  score:       6 bytes (LDA #$00, STA, STA)    [RAM]
-  lives:       4 bytes (LDA #$03, STA)         [RAM]
-  gameRunning: 4 bytes (LDA #$01, STA)         [RAM]
-  enemyCount:  4 bytes (LDA #$00, STA)         [RAM]
+Startup: 35 bytes, 43 cycles
+  playerX:     4 bytes, 5 cycles (LDA #$A0, STA $02)     [zeropage]
+  playerY:     4 bytes, 5 cycles (LDA #$64, STA $03)     [zeropage]
+  frameCount:  4 bytes, 5 cycles (LDA #$00, STA $04)     [zeropage]
+  score:       8 bytes, 10 cycles (LDA #$00, STA, STA)   [RAM]
+  lives:       5 bytes, 6 cycles (LDA #$03, STA)         [RAM]
+  gameRunning: 5 bytes, 6 cycles (LDA #$01, STA)         [RAM]
+  enemyCount:  5 bytes, 6 cycles (LDA #$00, STA)         [RAM]
   tempCalc:    0 bytes (no initializer)
   inputBuffer: 0 bytes (no initializer)
 Data section: 8 bytes (ENEMY_SPEEDS)
@@ -823,7 +819,7 @@ function findItem(target: byte): byte {
     let foundIndex: byte;              // INDETERMINATE — will be assigned in loop
     let found: boolean = false;
 
-    for (let i: byte = 0 to 63) {
+    for (let i: byte = 0; i <= 63; i += 1) {
         if (inventory[i] == target) {
             foundIndex = i;            // INITIALIZED on this path
             found = true;
@@ -842,7 +838,7 @@ function findItem(target: byte): byte {
 function findItemFixed(target: byte): byte {
     let foundIndex: byte = 255;        // INITIALIZED — default "not found"
 
-    for (let i: byte = 0 to 63) {
+    for (let i: byte = 0; i <= 63; i += 1) {
         if (inventory[i] == target) {
             foundIndex = i;
             break;

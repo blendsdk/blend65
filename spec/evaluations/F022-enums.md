@@ -250,15 +250,15 @@ After `A = 10`, the next auto member is `11`, not `1`. Auto-numbering always con
 
 ## Error Codes
 
-| Code | Message |
+| Code | Public presentation |
 |------|---------|
-| E10230 | Enum member value must be a compile-time `byte` constant — found `<expr>` |
-| E10231 | Enum member `<member>` references an unknown enum `<name>` — did you mean `<suggestion>`? |
-| E10232 | Duplicate enum member name `<member>` in enum `<name>` |
-| E10233 | Enum member value `<value>` out of range — enum members must be 0–255 (enums are byte-backed) |
-| E10234 | Empty enum `<name>` — an enum must declare at least one member |
-| E10235 | Cannot assign `<type>` to enum `<name>` — use an explicit cast `<name>(<expr>)` to convert a byte to this enum |
-| E10236 | Cannot compare enum `<a>` with enum `<b>` — different enum types. Cast one to `byte` to compare underlying values |
+| E10230 | [Chapter 14](../14-diagnostics.md) |
+| E10231 | [Chapter 14](../14-diagnostics.md) |
+| E10232 | [Chapter 14](../14-diagnostics.md) |
+| E10233 | [Chapter 14](../14-diagnostics.md) |
+| E10234 | [Chapter 14](../14-diagnostics.md) |
+| E10235 | [Chapter 14](../14-diagnostics.md) |
+| E10236 | [Chapter 14](../14-diagnostics.md) |
 
 ---
 

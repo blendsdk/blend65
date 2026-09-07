@@ -19,7 +19,7 @@
 ### FUT-001: Address-of on struct fields and array elements
 
 > **Source**: F006 (Address-of Operator), Ambiguity AO-4  
-> **Deferred from**: v3  
+> **Deferred from**: v3
 > **Priority**: Medium
 
 **What**: Allow `&myStruct.field` and `&buffer[5]` to return the memory address of a struct field or array element.
@@ -49,53 +49,71 @@
 
 ---
 
-### FUT-003: Typed function pointers (interrupt vs. regular)
+### FUT-003: First-class typed function pointers and indirect calls — REFINED
 
-> **Source**: F007 (Interrupt Functions), Ambiguity INT-2  
-> **Deferred from**: v3  
+> **Source**: F007 (Interrupt Functions), Ambiguity INT-2
+> **Deferred from**: v3
 > **Priority**: Medium
 
-**What**: Distinguish between `&regularFunction` and `&interruptFunction` at the type level, so that platform library functions like `setIRQ()` can only accept interrupt function addresses.
+**What remains future**: Add first-class function pointer values and source-level indirect calls.
+The type system for those values would need to distinguish ordinary `RTS` callees from callback-only
+interrupt handlers and their raw or firmware-mediated entry variants.
 
-**Why deferred**: Requires a function pointer type system (e.g., `type IRQHandler = interrupt () => void;`). This is significant complexity for v3. In v3, `&anyFunction` returns `word` — the developer is responsible for only installing `interrupt` functions as handlers.
+**What is no longer deferred**: A full function-pointer type system is not required to make known
+platform operations safe. The selected platform profile declares recognized sinks. The compiler
+preserves a finite set of possible function identities and entry ABIs through direct scalar
+declarations, assignments, copies, identity casts, and conditional selection while storage remains
+unescaped. An interrupt-handler sink accepts only an `interrupt function` and selects its exact raw
+or firmware-mediated entry variant; an IRQ-context callback sink may accept an ordinary `RTS`
+helper. Incompatible known provenance is E10244; erased or unknown provenance at a recognized sink
+is E10247. Integer transformation, address escape, or an unknown external boundary erases proof.
+An exactly visible raw write to a known incompatible firmware vector is E10252; only a genuinely
+opaque raw-memory boundary escapes certification.
 
 **Reconsideration criteria**:
-- Users frequently make the mistake of installing non-interrupt functions as handlers
-- A minimal type system for function pointers can be designed without excessive complexity
+- A real program needs to store or select among callable function values
+- A minimal function-pointer type system can preserve ABI and execution-domain facts
 - The feature passes the full Language Guard evaluation
 
 ---
 
-### FUT-004: Compile-time call-graph analysis for interrupt reentrancy
+### ~~FUT-004: Compile-time call-graph analysis for interrupt reentrancy~~ — ✅ RESOLVED
 
 > **Source**: F007 (Interrupt Functions), Ambiguity INT-1  
 > **Deferred from**: v3  
 > **Priority**: High
 
-**What**: The compiler analyzes the call graph and emits a warning/error when a function is reachable from both the main code path AND an interrupt handler. This would detect SFA reentrancy hazards at compile time.
+**What was deferred**: Analyze the call graph when a function is reachable from mainline and an
+interrupt handler, instead of merely documenting possible SFA corruption.
 
-**Why deferred**: Requires the compiler to build and analyze a complete call graph, distinguishing "main path" from "interrupt path." This is a significant compiler feature. In v3, the hazard is documented — the developer must avoid calling shared functions from interrupt handlers.
+**How it was resolved**: v3 models entry ABI and execution domain separately. It follows every
+compiler-visible mainline, IRQ, NMI, bounded nested-interrupt, and callback root through its complete
+helper closure. Overlapping activations receive disjoint invocation-private SFA homes. Shared
+globals, assets, and MMIO remain shared; visible lost-update and torn multi-byte hazards receive
+warnings. A storage-bearing path whose overlap cannot be statically bounded is rejected rather than
+left to corrupt memory.
 
-**Reconsideration criteria**:
-- The SFA call graph is already computed for frame allocation (may be low incremental cost)
-- Users report reentrancy bugs that are hard to diagnose
-- The analysis can be implemented without false positives
+No runtime selector, dynamic stack, frame copy, hidden interrupt mask, or silent state duplication is
+introduced.
 
 ---
 
-### FUT-005: Platform library type-safety for interrupt installation
+### ~~FUT-005: Platform library type-safety for interrupt installation~~ — ✅ RESOLVED
 
 > **Source**: F007 (Interrupt Functions), Ambiguity INT-2  
-> **Deferred from**: v3 (depends on FUT-003)  
+> **Deferred from**: v3
 > **Priority**: Medium
 
-**What**: Platform library functions like `setIRQ(&handler)` enforce at the type level that only `interrupt` functions can be passed. Currently, any `word` is accepted.
+**What was deferred**: Require a platform operation such as `setIRQ(&handler)` to reject an
+ordinary `RTS` function where hardware will return with `RTI`.
 
-**Why deferred**: Depends on typed function pointers (FUT-003). Without a function pointer type, the platform library can only accept `word`, and the type system cannot distinguish interrupt from regular function addresses.
+**How it was resolved**: Compiler-recognized platform sinks preserve source-handler identity and
+select the exact raw or firmware entry variant without introducing first-class function-pointer
+types. Passing an ordinary function is a compile-time error. A visible raw entry written to a known
+incompatible firmware vector is also rejected; a genuinely opaque address remains an unsafe proof
+boundary.
 
-**Reconsideration criteria**:
-- FUT-003 (typed function pointers) is implemented
-- Platform library design is mature enough to define type-safe APIs
+FUT-003 now covers only true first-class callable values and indirect calls.
 
 ---
 
@@ -108,8 +126,8 @@
 **What**: Allow `break label;` to exit multiple nested loops at once, where a label is attached to an outer loop:
 
 ```blend65
-outer: for (let y: byte = 0 to 25) {
-    for (let x: byte = 0 to 40) {
+outer: for (let y: byte = 0; y < 25; y += 1) {
+    for (let x: byte = 0; x < 40; x += 1) {
         if (condition) {
             break outer;    // exits both loops
         }
@@ -117,7 +135,7 @@ outer: for (let y: byte = 0 to 25) {
 }
 ```
 
-**Why deferred**: In v3, multi-level exit is handled with a flag variable (`let found = false; ... if (found) { break; }`). This is explicit, works everywhere, and doesn't require new syntax. Labeled `break` is a convenience feature — it saves a few lines but adds grammar complexity (label declarations, label scoping rules).
+**Why deferred**: In v3, multi-level exit is handled with a flag variable (`let found: boolean = false; ... if (found) { break; }`). This is explicit, works everywhere, and doesn't require new syntax. Labeled `break` is a convenience feature — it saves a few lines but adds grammar complexity (label declarations, label scoping rules).
 
 **Reconsideration criteria**:
 - Real-world Blend65 code frequently uses deeply nested loops with multi-level exit
@@ -309,11 +327,17 @@ const SPRITE_DATA: byte[192] = [0x00, 0x7E, 0x00, ...];
 
 ```blend65
 // Future: compiler converts PNG to C64 multicolor bitmap
-const BITMAP: byte[8000] = embed("picture.png").bitmap;
-const SCREEN: byte[1000] = embed("picture.png").screen;
+const BITMAP: byte[8000] = embed("picture.png", "bitmap");
+const SCREEN: byte[1000] = embed("picture.png", "screen");
 ```
 
-**Why deferred**: Image conversion is complex (color quantization, dithering, palette mapping) and error-prone. Retro developers already use specialized tools (SpritePad, CharPad, Koala Painter, etc.) that produce optimized output. Adding image conversion to the compiler would duplicate functionality that dedicated tools do better. The format handler system (F015) already supports these native formats directly.
+**Why deferred**: Image conversion is complex (color quantization, dithering, palette mapping) and
+error-prone. Retro developers already use specialized tools that produce optimized native output.
+Adding modern-image conversion to the compiler would duplicate functionality that dedicated tools
+do better. This deferral does not cover parsing an already-native, fixed-layout format: for example,
+the C64 Koala handler validates and decomposes classic Koala bytes without quantization, dithering,
+palette selection, or pixel conversion. The format handler system (F015) supports such qualified
+native formats directly.
 
 **Reconsideration criteria**:
 - Community demand for a streamlined "modern art → retro platform" pipeline
@@ -418,25 +442,17 @@ lives = lives - 1;
 
 ---
 
-### FUT-019: Exclusive-descending range keyword for `for` loops
+### ~~FUT-019: Exclusive-descending range keyword for `for` loops~~ — ✅ RESOLVED
 
 > **Source**: F013/F008 (Statements & Control Flow), Ch 05 §7.2  
-> **Deferred from**: v3  
-> **Priority**: Low
+> **Resolution**: Three-clause `for` loop replaces range keywords
 
-**What**: A range keyword that descends while **excluding** its end bound — the descending mirror of `until`. v3 provides three range keywords: `until` (ascending, exclusive end), `to` (ascending, inclusive end), and `downto` (descending, inclusive end). There is no exclusive-descending form.
+**What was deferred**: Add a fourth range keyword that descends while excluding its end bound.
 
-```blend65
-// Hypothetical future syntax (name TBD — e.g. "downuntil"):
-for (let i: byte = 9 downuntil 0) { ... }   // would visit 9,8,...,1 (excludes 0)
-```
-
-**Why deferred**: The case is fully covered today by adjusting the bound — `for (let i: byte = 9 downto 1)` visits `9..1` and stops at 1, achieving the same result. Adding a fourth range keyword for a bound-adjustment that the developer can already express adds keyword surface and a naming problem (`downuntil`? `downtil`?) for marginal ergonomic gain (Language Guard L4, L5). Keeping three keywords keeps the for-header grammar minimal.
-
-**Reconsideration criteria**:
-- Real-world Blend65 code frequently writes descending loops whose natural lower bound is exclusive (e.g. iterating `N-1 .. 0` inclusive but wanting `N-1 .. 1`)
-- A clear, unambiguous keyword name is agreed that reads correctly in English
-- The codegen reuses the existing descending compare-and-branch pattern with no new cost
+**How it was resolved**: Blend65 removed the range-only loop syntax and adopted
+`for (initializer; condition; update)`. Descending inclusion or exclusion is written directly in
+the Boolean condition, so a separate range keyword would duplicate the same behavior and recreate
+a second loop grammar.
 
 ---
 
@@ -446,9 +462,9 @@ for (let i: byte = 9 downuntil 0) { ... }   // would visit 9,8,...,1 (excludes 0
 |----|-------------|----------|------------|
 | FUT-001 | `&` on struct fields / array elements | Medium | — |
 | FUT-002 | `&` on function parameters | Low | — |
-| FUT-003 | Typed function pointers | Medium | — |
-| FUT-004 | Call-graph reentrancy analysis | High | — |
-| FUT-005 | Type-safe interrupt installation | Medium | FUT-003 |
+| FUT-003 | First-class typed function pointers and indirect calls — REFINED | Medium | — |
+| ~~FUT-004~~ | ~~Call-graph reentrancy analysis~~ — ✅ RESOLVED (execution-domain SFA) | — | — |
+| ~~FUT-005~~ | ~~Type-safe interrupt installation~~ — ✅ RESOLVED (recognized platform sinks and entry variants) | — | — |
 | FUT-006 | Labeled `break` for nested loops | Low | — |
 | FUT-007 | Range cases in switch statements | Low | — |
 | ~~FUT-008~~ | ~~Const struct parameters~~ — ✅ RESOLVED (F014) | — | — |
@@ -462,7 +478,7 @@ for (let i: byte = 9 downuntil 0) { ... }   // would visit 9,8,...,1 (excludes 0
 | FUT-016 | Stack-free calling convention (`--no-stack-calls`) | Medium | F018 |
 | FUT-017 | Optimization barrier intrinsic (`barrier()`) | Low | F020 |
 | FUT-018 | Separate volatile memory intrinsics | Low | F020 |
-| FUT-019 | Exclusive-descending range keyword for `for` loops | Low | F013 |
+| ~~FUT-019~~ | ~~Exclusive-descending range keyword for `for` loops~~ — ✅ RESOLVED (three-clause for) | — | — |
 
 ---
 
@@ -550,6 +566,9 @@ compiling to a single opcode with full cost transparency. Validated against thre
 game architectures (The Last Ninja, Commando, Giana Sisters) — no game technique required
 cycle-counted inline assembly.
 
+Packed-decimal source uses the separate `bcd_add()` and `bcd_sub()` semantic operations. They
+lower inline while ordinary `+` and `-` remain binary; they do not expand the raw opcode API.
+
 **Escape hatch for the 1%**: The genuinely cycle-counted cases (demo-scene effects such as FLD,
 VSP, AGSP, FLI, and self-modifying code) are served by **FUT-011 (external assembly linking via
 `extern function`)** — hand-written assembly in a real assembler, linked with the compiler output.
@@ -558,5 +577,3 @@ That is the sanctioned path; this rejection is *not* a dead end.
 **Reconsideration bar** (high): Only revisit if real-world Blend65 code repeatedly needs
 cycle-counted assembly sequences that FUT-011 external linking cannot satisfy, AND a design exists
 that resolves the register-ownership and label-scoping problems above without an embedded assembler.
-
-

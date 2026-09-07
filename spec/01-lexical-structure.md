@@ -11,7 +11,10 @@
 
 The lexer is the first stage of the Blend65 compiler pipeline. It reads a UTF-8 source file and produces a stream of typed tokens that the parser consumes. This chapter defines every token the lexer can produce, the rules for forming them, and the disambiguation rules that resolve ambiguous byte sequences.
 
-Blend65 uses ASCII-range syntax exclusively. Source files are UTF-8, but all language constructs — identifiers, keywords, literals, operators, punctuation — use only the ASCII subset (U+0000–U+007F). Non-ASCII bytes may appear inside string literals (passed through as raw bytes) and comments (ignored).
+Blend65 uses ASCII-range grammar and identifiers. Source files are UTF-8; keywords, identifiers,
+operators, punctuation, and literal delimiters use only U+0000–U+007F. String and character literal
+content may contain Unicode scalar values, which the lexer preserves for compile-time target
+encoding (→ Ch 08). Comments may also contain non-ASCII content and are discarded.
 
 ---
 
@@ -22,8 +25,11 @@ Blend65 uses ASCII-range syntax exclusively. Source files are UTF-8, but all lan
 All Blend65 source files use the `.blend` extension and are encoded as UTF-8.
 
 - **BOM handling**: A leading UTF-8 BOM (U+FEFF, bytes `EF BB BF`) is silently skipped if present.
-- **Non-ASCII in code**: Non-ASCII characters outside string literals and comments produce **E10210**.
-- **Non-ASCII in strings**: Passed through as raw bytes into the output. Encoding transformation is handled by the `encode()` system (→ Ch 08), not the lexer.
+- **Non-ASCII in code**: Non-ASCII characters outside string literals, character literals, and
+  comments produce **E10210**.
+- **Non-ASCII in strings and characters**: Preserved as Unicode scalar values in the literal
+  token. The selected encoding table determines semantic conversion or E10249 rejection (→ Ch 08);
+  the lexer does not choose a target encoding.
 - **Non-ASCII in comments**: Ignored — comments are discarded.
 
 ### 2.2 Case Sensitivity
@@ -187,23 +193,33 @@ keyword = "module" | "import" | "export" | "from"
 
 ### 5.1.1 Contextual Keywords
 
-The for-loop range form (→ Ch 05, §7) uses four words — `until`, `to`, `downto`, and `step` — that are **contextual keywords**, not reserved words. The lexer produces ordinary `IDENTIFIER` tokens for them; the **parser** recognizes their special meaning only in the for-header position (between the loop bounds). Everywhere else they are valid identifiers.
+Import aliases use the contextual keyword `as`. The lexer produces an ordinary `IDENTIFIER` token
+for it; the parser recognizes it only between names in an import item. `as` is not a cast operator;
+casts use `Type(expr)` syntax. Everywhere else `as` is a valid identifier.
 
 ```blend65
-for (let i: byte = 0 until 10 step 2) { ... }  // 'until' and 'step' act as range keywords here
-let to: byte = 5;                              // ✅ 'to' is a normal identifier
-let step: word = readStep();                   // ✅ 'step' is a normal identifier
+import { Counter as TimerCounter } from timing; // contextual use
+let as: byte = 5;                               // ✅ ordinary identifier here
 ```
 
-**Rationale:** Keeping these as contextual keywords avoids reserving four common English words across the whole language. The for-header is the only grammatical position where they carry special meaning, and the parser can resolve them there without lexer or symbol-table assistance (no context-sensitivity in the lexer — L1/C1).
+The former range-loop words `until`, `to`, `downto`, and `step` have no language role and are
+ordinary identifiers.
+
+**Rationale:** Contextual recognition avoids reserving `as` across the whole language. The import
+item is an unambiguous grammatical position, so the parser needs no lexer or symbol-table assistance
+(L1/C1).
 
 ### 5.2 Boolean Literals as Keywords
 
 `true` and `false` are keywords. The lexer produces `KW_TRUE` and `KW_FALSE` tokens. The parser treats them as boolean literal expressions. They cannot be used as identifiers.
 
-### 5.3 Reserved Built-In Identifiers
+### 5.3 Reserved Built-In and Entry Identifiers
 
-These identifiers are **not** keywords — the lexer produces `IDENTIFIER` tokens for them. The **semantic analyzer** prohibits redeclaring them (error **E10212**). They name built-in functions and the program entry point.
+These identifiers are **not** keywords—the lexer produces `IDENTIFIER` tokens for them. The
+semantic analyzer reserves the intrinsic names globally and rejects their use in declarations with
+**E10212**. The entry name `main` is different: it is permitted only for the exact entry-function
+declaration governed by Chapter 10. A non-function declaration named `main`, or a `main` function
+with the wrong signature, is **E10022**; calling it is **E10023**.
 
 **Memory intrinsics** (→ Ch 04):
 ```
@@ -218,24 +234,34 @@ asm_php   asm_plp   asm_clc   asm_sec
 asm_cld   asm_sed   asm_clv   asm_nop   asm_brk
 ```
 
-**Data intrinsics** (→ Ch 08, Ch 13):
+**Data-inclusion intrinsic** (→ Ch 13):
 ```
-encode    embed
-```
-
-**Entry point** (→ Ch 10):
-```
-main
+embed
 ```
 
-**Total: 28 reserved built-in identifiers.**
+**Packed-decimal arithmetic intrinsics** (→ Ch 12, §2.5):
+```
+bcd_add   bcd_sub
+```
 
-**Design rationale:** Keeping these as identifiers (not keywords) keeps the keyword table small and the lexer simple. The semantic analyzer handles the restriction, which means these names resolve to their built-in functions when called and produce **E10212** when used in declarations.
+**Target encoding intrinsics** (→ Ch 08, Ch 15):
+```
+petscii   screen_codes   atascii   internal_codes
+```
+
+All four encoding names are reserved on every target so declaration meaning does not change with
+the selected platform. Calling a name unavailable in the selected profile is E10125.
+
+**Total: 29 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
+
+**Design rationale:** Keeping these as identifiers (not keywords) keeps the keyword table small and
+the lexer simple. The semantic analyzer resolves intrinsic calls, produces **E10212** for intrinsic
+redeclarations, and handles `main` through the dedicated entry-point rules.
 
 ```blend65
 let peek: byte = 5;         // ❌ E10212: Cannot redeclare reserved built-in 'peek'
 function lo(): byte { ... }  // ❌ E10212: Cannot redeclare reserved built-in 'lo'
-let main: byte = 0;          // ❌ E10212: Cannot redeclare reserved built-in 'main'
+let main: byte = 0;          // ❌ E10022: entry point must be function main(): void
 ```
 
 ---
@@ -339,8 +365,8 @@ number_literal = hex_literal | bin_literal | decimal_literal ;
 String literals are delimited by double quotes (`"`). They produce a sequence of bytes determined by the platform's character encoding (→ Ch 08).
 
 ```blend65
-const TITLE: byte[12] = "HELLO WORLD";
-const EMPTY: byte[1] = "";
+const TITLE: byte[] = "HELLO WORLD";
+const EMPTY: byte[] = "";
 ```
 
 **Rules:**
@@ -352,7 +378,7 @@ const EMPTY: byte[1] = "";
 ```ebnf
 string_literal = '"' , { string_char } , '"' ;
 string_char    = escape_sequence
-               | ? any byte except '"', '\', CR, LF ? ;
+               | ? any Unicode scalar value except U+0022, U+005C, U+000D, or U+000A ? ;
 ```
 
 ### 7.2 Escape Sequences
@@ -361,7 +387,7 @@ String literals and character literals share the same escape sequences:
 
 | Escape | Description | Byte Value |
 |--------|-------------|-----------|
-| `\\` | Backslash | `$5C` |
+| `\\` | Backslash | Encoding-dependent |
 | `\"` | Double quote | Encoding-dependent |
 | `\'` | Single quote | Encoding-dependent |
 | `\n` | Newline / line feed | Platform-defined via encoding |
@@ -373,13 +399,17 @@ String literals and character literals share the same escape sequences:
 **Rules:**
 - The escape set is **closed**: any `\` followed by a character not in this table produces **E10219**.
 - `\xNN` requires exactly two hex digits: `\x4` → **E10220**.
-- `\0` inserts a literal zero byte, encoding-independent.
-- `\n`, `\r`, `\t` byte values are resolved by the platform's character encoding profile (e.g., PETSCII `\n` = `$0D`, ATASCII `\n` = `$9B`). The `\xNN` escape bypasses encoding and inserts the exact byte.
-- `\"` and `\'` produce the quote character in the platform's encoding.
+- `\0` and `\xNN` insert exact bytes and bypass encoding.
+- Every other escape is symbolic. The semantic encoder resolves it through the selected platform
+  encoding. When that encoding has no meaningful mapping, semantic analysis reports **E10249**;
+  the lexer has still recognized a valid escape token.
+- `\\`, `\"`, and `\'` request the corresponding source character in the selected encoding.
+- Ordinary literal characters follow the same later mapping rule. The lexer preserves their exact
+  Unicode scalar values without normalization, transliteration, replacement, or byte conversion.
 
 ```ebnf
-escape_sequence = "\\" , escape_char ;
-escape_char     = "n" | "r" | "t" | "0" | "\\" | '"' | "'"
+escape_sequence = ? U+005C REVERSE SOLIDUS ? , escape_char ;
+escape_char     = "n" | "r" | "t" | "0" | ? U+005C REVERSE SOLIDUS ? | '"' | "'"
                 | "x" , hex_digit , hex_digit ;
 ```
 
@@ -387,26 +417,30 @@ escape_char     = "n" | "r" | "t" | "0" | "\\" | '"' | "'"
 
 ## 8. Character Literals
 
-Character literals are delimited by single quotes (`'`). They represent a single byte value in the platform's character encoding.
+Character literals are delimited by single quotes (`'`). They contain one Unicode scalar value or
+one escape sequence and represent one byte in the selected platform encoding.
 
 ```blend65
 let ch: byte = 'A';
-let newline: byte = '\n';
+let nul: byte = '\0';
 let hex: byte = '\x41';
 ```
 
 **Rules:**
-- Must contain exactly one character or one escape sequence.
+- Must contain exactly one Unicode scalar value or one escape sequence. A user-perceived glyph made
+  from multiple scalar values is a multi-character literal; no normalization or composition occurs.
 - Empty: `''` → **E10221**.
 - Multi-character: `'AB'` → **E10222**.
 - Unterminated: missing closing `'` → **E10223**.
 - Uses the same escape sequences as string literals (§7.2).
 - The type of a character literal is `byte`.
+- Semantic encoding must map the scalar value or symbolic escape to exactly one byte. No mapping, or
+  a mapping that is not exactly one byte, is **E10249**. `\0` and `\xNN` remain exact bytes.
 
 ```ebnf
 char_literal = "'" , char_content , "'" ;
 char_content = escape_sequence
-             | ? any single byte except "'", '\', CR, LF ? ;
+             | ? any single Unicode scalar value except U+0027, U+005C, U+000D, or U+000A ? ;
 ```
 
 ---
@@ -568,9 +602,9 @@ Every token carries position information for error reporting:
 
 ## 12. Complete Token Type Enumeration
 
-**76 token types** total:
+**79 token types** total:
 
-### Literals (4)
+### Literals (3)
 
 | Token Type | Description |
 |-----------|-------------|
@@ -600,7 +634,7 @@ KW_TRUE      KW_FALSE
 KW_ENUM      KW_TYPE
 ```
 
-### Operators (29)
+### Operators (32)
 
 ```
 PLUS  MINUS  STAR  SLASH  PERCENT
@@ -642,8 +676,9 @@ bin_digit       = "0" | "1" ;
 
 (* ===== Whitespace and comments ===== *)
 
-whitespace      = " " | "\t" | "\r" | "\n" ;
-line_comment    = "//" , { ? any byte except LF ? } , ( LF | EOF ) ;
+whitespace      = " " | ? HT byte ? | ? CR byte ? | ? LF byte ? ;
+line_comment    = "//" , { ? any byte except LF ? }
+                , ( ? LF byte ? | ? end of file ? ) ;
 block_comment   = "/*" , { ? any byte except "*/" sequence ? } , "*/" ;
 
 
@@ -664,12 +699,13 @@ number_literal  = hex_literal | bin_literal | decimal_literal ;
 
 (* ===== String and character literals ===== *)
 
-escape_sequence = "\\" , ( "n" | "r" | "t" | "0" | "\\" | '"' | "'"
+escape_sequence = ? U+005C REVERSE SOLIDUS ?
+                , ( "n" | "r" | "t" | "0" | ? U+005C REVERSE SOLIDUS ? | '"' | "'"
                          | "x" , hex_digit , hex_digit ) ;
 string_literal  = '"' , { escape_sequence
-                        | ? any byte except '"', '\\', CR, LF ? } , '"' ;
+                        | ? any Unicode scalar value except U+0022, U+005C, U+000D, or U+000A ? } , '"' ;
 char_literal    = "'" , ( escape_sequence
-                        | ? any single byte except "'", '\\', CR, LF ? ) , "'" ;
+                        | ? any single Unicode scalar value except U+0027, U+005C, U+000D, or U+000A ? ) , "'" ;
 
 
 (* ===== Operators (longest match) ===== *)
@@ -704,35 +740,36 @@ token           = whitespace       (* skipped *)
 
 (* ===== Source file ===== *)
 
-source_file     = { token } , EOF ;
+source_file     = { token } , ? end of file ? ;
 ```
 
 ---
 
-## 14. Error Codes
+## 14. Diagnostic Conditions
 
-All lexer errors are compile-time errors.
+This chapter owns lexical and reserved-identifier predicates. Chapter 14 alone owns public
+severities, templates, spans, suppression, and history.
 
-| Code | Message |
-|------|---------|
-| E10210 | Unexpected character `<char>` (U+`<codepoint>`) — only ASCII characters are valid in Blend65 source code |
-| E10211 | Unterminated block comment — expected `*/` before end of file |
-| E10212 | Cannot redeclare reserved built-in `<name>` — this identifier is a built-in function/constant |
-| E10213 | Invalid underscore in numeric literal — underscores must appear between digits only (no leading, trailing, or consecutive underscores) |
-| E10214 | Invalid hexadecimal literal — expected hex digit (`0`–`9`, `A`–`F`) after `<prefix>` |
-| E10215 | Invalid binary literal — expected binary digit (`0` or `1`) after `0b` |
-| E10216 | Numeric literal value `<value>` exceeds maximum (65535) — no Blend65 type can hold values larger than 16 bits |
-| E10217 | Newline in string literal — strings must be on a single line. Use `\n` for newline characters |
-| E10218 | Unterminated string literal — expected closing `"` before end of line |
-| E10219 | Unknown escape sequence `\<char>` — valid escapes are: `\\`, `\"`, `\'`, `\n`, `\r`, `\t`, `\0`, `\xNN` |
-| E10220 | Incomplete hex escape `\x<char>` — `\x` requires exactly two hex digits (e.g., `\x41`) |
-| E10221 | Empty character literal — char literals must contain exactly one character or escape sequence |
-| E10222 | Multi-character literal `<literal>` — char literals must contain exactly one character. Use a string literal for multiple characters |
-| E10223 | Unterminated character literal — expected closing `'` |
-| E10224 | `<keyword>` is reserved for a future Blend65 version and cannot be used yet |
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10210 | A non-ASCII character occurs outside a string literal, character literal, or comment. | The character cannot form a language token. |
+| E10211 | End of file occurs before a block comment's closing `*/`. | The unterminated comment is rejected. |
+| E10212 | A declaration reuses a reserved built-in identifier. | Semantic analysis rejects the declaration; lexing still emits an ordinary identifier token. |
+| E10213 | A numeric separator is leading, trailing, or consecutive rather than between digits. | The numeric literal is rejected. |
+| E10214 | A hexadecimal prefix is not followed by a valid hexadecimal digit sequence. | The literal is rejected. |
+| E10215 | A binary prefix is not followed by a valid binary digit sequence. | The literal is rejected. |
+| E10216 | A numeric literal's mathematical value exceeds 65535. | The literal is rejected before type conversion. |
+| E10217 | A raw newline occurs before a string literal closes. | The string is rejected. |
+| E10218 | A source line ends before a string literal's closing quote. | The string is rejected. |
+| E10219 | A string or character literal contains an escape outside the closed supported set. | The literal is rejected. |
+| E10220 | A `\x` escape does not contain exactly two hexadecimal digits. | The literal is rejected. |
+| E10221 | A character literal contains no character or escape. | The literal is rejected. |
+| E10222 | A character literal contains more than one character/escape unit. | The literal is rejected. |
+| E10223 | A character literal has no closing quote. | The literal is rejected. |
+| E10224 | Source uses a word reserved for a future language version. | The token is rejected in the current language version. |
 
-> **Note:** E10212 is enforced by the semantic analyzer, not the lexer. It is listed here because it governs identifiers defined in this chapter.
+### Warning Conditions
 
-| Code | Message |
-|------|---------|
-| W10210 | Numeric literal has leading zeros: `<literal>` — Blend65 does not have octal literals; this is decimal `<value>` |
+| Code | Trigger | Consequence |
+|------|---------|-------------|
+| W10210 | A decimal literal has leading zeros. | It retains its decimal value; no octal interpretation occurs. |

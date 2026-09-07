@@ -26,7 +26,6 @@ A module can contain **declarations only** — no loose runnable code. All execu
 |------------|---------|-------|
 | Loose statements | `clearScreen();` at module level | **E10010**: `Executable statements are not allowed at module level — place code inside a function` |
 | Loose expressions | `1 + 2;` at module level | **E10010** (same) |
-| Runtime initializers | `let x: byte = add(1, 2);` | **E10011**: `Module-level initializer must be a compile-time constant expression` |
 | Init blocks | `init { ... }` | **E10010** (same — unrecognized at module level) |
 
 ## Visibility model
@@ -53,18 +52,16 @@ There are **no** `public`, `private`, or `protected` keywords. The `export` keyw
 | `zeropage { x: byte = 10; }` | ✅ Yes | 10 |
 | `zeropage { x: byte; }` | ❌ No | Indeterminate |
 
-**Rationale**: No hidden startup code. Saves ROM space (critical on constrained platforms). Aligns with A4 (explicit over implicit). Matches how C and assembly work.
-
-**Module-level initializer constraints**:
-- When an initializer IS provided, it must be a **compile-time constant expression**
-- Compile-time constants include: literals (`42`, `true`, `$FF`), constant expressions (`10 + 5`), `const` references
-- Function calls, variable references, and any runtime computation are **not allowed** as initializers
-- Complex initialization must be done explicitly inside `main()` or a function called from `main()`
+**Rationale**: Initialization is explicit in the declaration. The compiler emits no code for an
+omitted initializer and reports the complete startup cost. Module-level `let` accepts the same
+otherwise legal non-`void` expressions as local `let`, including ordinary calls and assignments.
+Each initializer runs once before `main`; Chapter 10 owns dependency and observable-effect order.
+`const` remains compile-time-only.
 
 ```blend65
 module Game.Main;
 
-// ✅ Valid — compile-time constants
+// ✅ Valid — constants and runtime expressions
 const MAX_ENEMIES: byte = 8;
 let score: word = 0;
 let highScore: word = 1000;
@@ -74,8 +71,7 @@ let offset: byte = 10 + 5;          // constant expression → 15
 let tempBuffer: byte[64];
 let scratch: word;
 
-// ❌ Invalid — runtime expressions
-let computed: byte = add(1, 2);      // E10011
+let computed: byte = add(1, 2);      // evaluated once during startup
 let dynamic: byte = MAX_ENEMIES * 2; // ✅ if MAX_ENEMIES is const → constant folding OK
 ```
 
@@ -87,7 +83,7 @@ module Utils.Math;
 
 // Private — only accessible within Utils.Math
 function square(x: byte): word {
-  return x * x;
+    return word(x) * word(x);
 }
 
 // Public — accessible via import
@@ -116,6 +112,7 @@ export function main(): void {
 - **L3 Beginner-friendly** ✅ — Same model as TypeScript/ES modules
 - **L4 Minimal** ✅ — Only two visibility levels, one keyword
 - **L5 No redundancy** ✅ — No overlapping visibility mechanisms
-- **H2 Cost transparency** ✅ — No hidden init code, no implicit execution
-- **H5 Deterministic** ✅ — No init ordering issues, no hidden side effects
-
+- **H2 Cost transparency** ✅ — Every explicit runtime initializer and its transitive calls are
+  listed with startup ROM/storage/cycle cost; an omitted initializer emits no code.
+- **H5 Deterministic** ✅ — Initializer reads, calls, and effects participate in the Chapter 10
+  dependency/effect schedule, with a stable fully qualified-name tie-break.

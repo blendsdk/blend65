@@ -62,6 +62,7 @@ memory:
   ram_end:        $BFFF
   zp_start:       $80
   zp_end:         $FF
+  stack_capacity: 256
   stack_reserve:  16
 ```
 
@@ -115,13 +116,13 @@ budgets:
   max_binary_size: 40960    # $2000–$BFFF = 40,960 bytes
   max_ram:         40960    # shared with binary
   max_zp:          128      # $80–$FF
-  stack_budget:    234      # 256 - 16 reserve - 6 IRQ overhead
 ```
 
 ### 4.1 Budget Notes
 
 - **max_binary_size**: 40 KB is generous for an 8-bit platform — larger than the C64's default range because BASIC ROM is fully disabled.
-- **stack_budget**: The Atari OS is lighter on stack usage during interrupts than the C64 KERNAL, so only 16 bytes are reserved.
+- **stack capacity**: The Atari OS reserve is 16 bytes, leaving 240 of the raw 256 bytes. Calls,
+  generated interrupt entries, and explicit pushes are charged to the proven simultaneous peak.
 - **ANTIC DMA overhead** is not reflected in byte budgets but affects available CPU cycles per frame. The compiler cannot account for this automatically; it is a developer concern documented in §9.
 
 ---
@@ -154,15 +155,26 @@ The final segment writes the entry point address to **RUNAD** ($02E0–$02E1), w
 | | 2 bytes | `$E1 $02` (RUNAD segment end) |
 | | 2 bytes | Entry point address (little-endian) |
 
+The XEX packager emits only intervals that own bytes at load time: startup, code, const data, and
+explicitly initialized mutable data, followed by the RUNAD segment. Every mutable or SFA interval
+without emitted initialization is BSS and is omitted from XEX records; a BSS hole splits adjacent
+emitted bytes into separate ordered segments rather than causing the hole to be serialized or
+cleared. Emitted segments are sorted by ascending load address, may not overlap one another, and
+may not overlap a reserved BSS interval. The build report records XEX payload/container bytes
+separately from the complete `$2000`–`$BFFF` shared-range footprint. This preserves the language
+rule that omitted initializers do not cause writes while still applying one collective placement
+check to loaded and non-loaded intervals.
+
 ### 5.2 Startup Sequence
 
-The compiler generates a startup routine at the entry point:
+The compiler generates startup code at the entry point:
 
-1. Disables BASIC ROM (writes to $D301 PIA port B if not already done)
-2. Zeroes BSS segment
-3. Copies DATA initializers to RAM
-4. Calls `main()`
-5. On return: jumps to OS warm start ($E474) or halts via `JMP *`
+1. Disables BASIC ROM (writes to $D301 PIA port B if not already done).
+2. Evaluates every module/zeropage `let` initializer exactly once in the Chapter 10 schedule.
+   Constant stores, aggregate initialization, and runtime calls/expressions emit only their required
+   code; uninitialized mutable storage is not cleared, and `const` data is already in the image.
+3. Falls through directly into the `main()` body, with no `JSR` or `JMP` transition.
+4. If `main()` returns, its target epilogue jumps to OS warm start ($E474) or halts via `JMP *`.
 
 ---
 
@@ -170,76 +182,45 @@ The compiler generates a startup routine at the entry point:
 
 ```
 encoding:
-  default_encoding: atascii
-  screen_encoding:  atari_internal
+  default_encoding: raw
+  default_character_map: raw
+  encodings:
+    raw:
+      maps:
+        raw: ascii-raw-v1
 ```
 
-### 6.1 ATASCII
+### 6.1 Raw Baseline
 
-String literals are encoded in **ATASCII** (Atari ASCII). The `encode()` intrinsic maps source characters to ATASCII values at compile time.
+Unwrapped literals use the exact `ascii-raw-v1` identity map from Chapter 15: U+0000..U+007F maps
+to the same byte and no other scalar is mapped. This is a deterministic byte baseline, not a claim
+that ASCII is an Atari display or OS encoding. The `atascii()` and `internal_codes()` names are
+reserved but inactive.
 
-| Source Char | ATASCII Value | Notes |
-|------------|---------------|-------|
-| `'A'`–`'Z'` | $41–$5A | Same as ASCII |
-| `'a'`–`'z'` | $61–$7A | Same as ASCII |
-| `'0'`–`'9'` | $30–$39 | Same as ASCII |
-| `' '` | $20 | Space |
-| `'\n'` | $9B | EOL (Atari end-of-line, differs from ASCII $0A and PETSCII $0D) |
-
-### 6.2 Atari Internal (Screen) Codes
-
-When writing directly to screen memory, the Atari uses a different encoding called "internal" or "screen" codes:
-
-| Source Char | Internal Code | Notes |
-|------------|---------------|-------|
-| `'A'`–`'Z'` | $21–$3A | Offset from ATASCII |
-| `'a'`–`'z'` | $61–$7A | Same as ATASCII |
-| `'0'`–`'9'` | $10–$19 | Offset from ATASCII |
-| `' '` | $00 | Space = zero |
-
-The platform library provides encoding conversion; the profile defines the mapping for compiler-level `encode()` optimization.
+Their exhaustive ATASCII and internal-code mappings, including inverse-video and control-code
+semantics, must be supplied and qualified by a future Atari expert-skill extension. Until then,
+source uses exact bytes or asset-generated symbols where Atari display meaning matters. No runtime
+Unicode representation or converter is emitted.
 
 ---
 
-## 7. Embed Format Handlers
+## 7. Asset Embedding
 
-```
-embed_formats:
-  bin: raw_binary
-  fnt: atari_font
-  rip: raster_image
-  rmt: raster_music
-```
+The initial profile registers no signature/version-aware format handler. Format-neutral
+`embed(path)` remains available for `.bin` and every other raw file and returns its uninterpreted
+bytes as `const byte[]`; it has no selector and does not appear in `embed_formats`.
 
-### 7.1 Raw Binary (`.bin`)
+### 7.1 Deferred Target Handlers
 
-| Selector | Type | Description |
-|----------|------|-------------|
-| (default) | `const byte[]` | Raw bytes, no interpretation |
+FNT, RIP, and RMT are not registered by the initial Atari 800XL profile. Their previous selector
+tables did not identify exact producing tools, file generations, signatures, complete layouts,
+player ABI, placement contracts, or deterministic failure behavior and therefore did not describe
+an implementable language surface.
 
-### 7.2 Atari Font (`.fnt`)
-
-| Selector | Type | Description |
-|----------|------|-------------|
-| `.data` | `const byte[]` | Font data (1 KB: 128 chars × 8 bytes) |
-| `.char_count` | `byte` | Number of characters (typically 128) |
-
-### 7.3 Raster Image Processor (`.rip`)
-
-| Selector | Type | Description |
-|----------|------|-------------|
-| `.data` | `const byte[]` | Screen data (mode-dependent format) |
-| `.colors` | `const byte[]` | Color register values |
-| `.width` | `byte` | Width in bytes |
-| `.height` | `byte` | Height in scanlines |
-
-### 7.4 Raster Music Tracker (`.rmt`)
-
-| Selector | Type | Description |
-|----------|------|-------------|
-| `.data` | `const byte[]` | RMT player + music data |
-| `.init_address` | `word` | Init routine address |
-| `.play_address` | `word` | Play routine address (call once per frame) |
+Reconsider these formats when an Atari 8-bit expert-skill extension is opened. That extension must
+pin primary sources and representative fixtures and define exact validation, selectors, emitted
+bytes, ANTIC/GTIA/POKEY integration, placement, costs, and failure semantics before activating a
+handler. Raw files remain available through `embed(path)` in the meantime.
 
 ---
 
@@ -247,14 +228,12 @@ embed_formats:
 
 ```
 warnings:
-  warn_frame_size: 64
   warn_array_size: 256
 ```
 
 | Warning | Threshold | Rationale |
 |---------|-----------|-----------|
-| W10030 (frame size) | 64 bytes | Same as C64 — similar RAM constraints |
-| W10191 (array size) | 256 bytes | Arrays > 256 cannot use byte indexing |
+| W10143 (array size) | 256 bytes | Large arrays consume notable RAM and often require indirect indexing |
 
 ---
 
@@ -303,7 +282,7 @@ POKEY provides 4 audio channels with 8-bit frequency control. Registers at $D200
 | Display engine | VIC-II (raster-based) | ANTIC (display-list DMA) |
 | Sprites | 8 hardware sprites | 4 players + 4 missiles |
 | Sound | SID (3 voices, 16-bit freq) | POKEY (4 voices, 8-bit freq) |
-| Character encoding | PETSCII | ATASCII |
+| Default character encoding | Screen codes | Raw ASCII identity baseline |
 | Executable format | PRG | XEX |
 | Zero-page budget | 142 bytes ($02–$8F) | 128 bytes ($80–$FF) |
 
@@ -326,30 +305,29 @@ memory:
   ram_end:        $BFFF
   zp_start:       $80
   zp_end:         $FF
+  stack_capacity: 256
   stack_reserve:  16
 
 budgets:
   max_binary_size: 40960
   max_ram:         40960
   max_zp:          128
-  stack_budget:    234
+
+# brk_contract omitted: no exact handler/control-flow contract is qualified in this baseline
 
 output:
   output_format:  xex
   load_address:   $2000
 
 encoding:
-  default_encoding: atascii
-  screen_encoding:  atari_internal
-
-embed_formats:
-  bin: raw_binary
-  fnt: atari_font
-  rip: raster_image
-  rmt: raster_music
+  default_encoding: raw
+  default_character_map: raw
+  encodings:
+    raw:
+      maps:
+        raw: ascii-raw-v1
 
 warnings:
-  warn_frame_size: 64
   warn_array_size: 256
 ```
 
@@ -363,16 +341,17 @@ warnings:
 | data_start / data_end | ✅ $2000 / $BFFF |
 | ram_start / ram_end | ✅ $2000 / $BFFF |
 | zp_start / zp_end | ✅ $80 / $FF |
+| stack_capacity | ✅ 256 |
 | stack_reserve | ✅ 16 |
 | max_binary_size | ✅ 40960 |
 | max_ram | ✅ 40960 |
 | max_zp | ✅ 128 |
-| stack_budget | ✅ 234 |
+| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ xex |
 | load_address | ✅ $2000 |
 | reset_vector | N/A (disk-loaded, not cartridge) |
-| default_encoding | ✅ atascii |
-| screen_encoding | ✅ atari_internal |
-| embed_formats | ✅ bin, fnt, rip, rmt |
-| warn_frame_size | ✅ 64 |
+| default_encoding | ✅ raw |
+| default_character_map | ✅ raw |
+| encodings | ✅ ascii-raw-v1 only; Atari-specific maps deferred to its expert extension |
+| embed_formats | N/A — no registered format handler; raw `embed(path)` remains available |
 | warn_array_size | ✅ 256 |

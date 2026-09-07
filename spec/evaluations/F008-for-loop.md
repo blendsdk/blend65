@@ -3,427 +3,388 @@
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
 > **Guard**: Pass (all 23 rules)  
-> **Replaces v2**: Both the C-style `for (init; cond; update)` and the `to`/`downto` forms. v3 uses **only** the `to`/`downto` form.
+> **Compatibility note**: Replaces the provisional `until`/`to`/`downto`/`step` range form with
+> one C/JavaScript-style three-clause loop.
 
 ## Description
 
-The `for` loop is Blend65's **counted iteration** construct. It iterates a variable over a numeric range with a compile-time constant step. The C-style `for (init; cond; update)` syntax from v2 is **removed** — all non-counted loops use `while` or `do-while`.
+The Blend65 `for` statement uses the familiar `for (initializer; condition; update) { ... }`
+shape. It is a general loop, not a special range construct. The initializer runs once, the
+condition runs before every possible iteration, and the update runs after a normally completed
+body and after `continue`.
 
-This design gives the compiler full knowledge of the iteration range, enabling optimal 6502 codegen (register-based counters, branch instructions) and preventing the performance pitfalls that plagued v2 (function calls in conditions, implicit multiplication in nested loops).
+This source form does not require a runtime, a software stack, or special SFA behavior. Correct
+lowering is an ordinary control-flow graph. A small canonical-induction recognizer may then recover
+counted-loop facts and select the same register, wrap-exit, or strength-reduced machine sequence an
+expert 6502 programmer would use. Correctness never depends on recognizing that pattern.
 
 ## Syntax
 
-```blend65
-for (let i: byte = 0 to 10) { }            // ascending, exclusive end
-for (let i: byte = 9 downto 0) { }         // descending, inclusive end
-for (let i: byte = 0 to 100 step 2) { }    // ascending with step
-for (let i: byte = 99 downto 0 step 3) { } // descending with step
-```
-
-**EBNF:**
 ```ebnf
-for_stmt = "for" , "(" , "let" , identifier , ":" , type , "=" , expression
-         , ( "to" | "downto" ) , expression
-         , [ "step" , const_expression ]
-         , ")" , block ;
+for_stmt        = "for" , "(" , [ for_initializer ] , ";"
+                , [ expression ] , ";" , [ for_update ] , ")" , block ;
+
+for_initializer = for_local_decl | expression_list ;
+for_local_decl  = "let" , identifier , ":" , value_type , [ "=" , expression ]
+                | "const" , identifier , ":" , value_type , "=" , const_expression ;
+for_update      = expression_list ;
+expression_list = expression , { "," , expression } ;
 ```
 
-## Boundary Model (Kotlin-style)
-
-Blend65 uses an **asymmetric boundary model**, following the same precedent as Kotlin:
-
-| Keyword | Direction | End bound | Mnemonic |
-|---------|-----------|-----------|----------|
-| `to` | Ascending | **Exclusive** — end value is NOT visited | "up to X" = stops before X |
-| `downto` | Descending | **Inclusive** — end value IS visited | "down to X" = reaches X |
-
-**The one rule to remember:**
-> **`to X` = goes up, doesn't reach X. `downto X` = goes down, reaches X.**
-
-This matches natural English: "I counted to 10" (stopped before 10). "I counted down to 0" (reached 0).
-
-**Examples:**
-
-| Expression | Values visited | Iterations |
-|------------|---------------|------------|
-| `0 to 10` | 0, 1, 2, ..., 9 | 10 |
-| `9 downto 0` | 9, 8, 7, ..., 0 | 10 |
-| `0 to 256` | 0, 1, 2, ..., 255 | 256 (full byte range) |
-| `255 downto 0` | 255, 254, ..., 0 | 256 (full byte range) |
-| `0 to 100 step 2` | 0, 2, 4, ..., 98 | 50 |
-| `99 downto 0 step 3` | 99, 96, ..., 3, 0 | 34 |
-| `10 to 5` | *(none)* | 0 (empty range) |
-| `5 downto 10` | *(none)* | 0 (empty range) |
-
-**Why asymmetric?**
-- `to` (exclusive) is optimal for array indexing: `for (i = 0 to length)` works correctly without off-by-one.
-- `downto` (inclusive) is optimal for countdowns: `for (i = 7 downto 0)` naturally includes 0.
-- With exclusive `downto`, you'd need `downto -1` to include 0 — impossible with unsigned `byte`.
-- Kotlin uses exactly this model (`until` = exclusive ascending, `downTo` = inclusive descending).
-
-## Evaluation Rules
-
-| Aspect | Rule |
-|--------|------|
-| Start expression | Evaluated **once** at loop entry |
-| End expression | Evaluated **once** at loop entry |
-| Step expression | Must be a **compile-time constant** (evaluated at compile time) |
-| Function calls in start/end | **Allowed** — safe because evaluated once, not every iteration |
-| End value type | May exceed loop variable range (e.g., `256` for `byte` — used as compile-time bound only) |
-
-The "evaluated once" semantics prevent the v2 problem where `for (i = 0; i < foo(); i++)` called `foo()` every iteration:
+The declaration form follows the normal local `let`/`const` rules but omits the declaration's own
+semicolon because the header delimiter supplies it. An expression list evaluates its expressions
+once each, from left to right. Blend65 still has no general comma operator and no `++` or `--`
+operator; compound assignment such as `i += 1` is the normal update spelling.
 
 ```blend65
-// ✅ Safe — getCount() called exactly once
-for (let i: byte = 0 to getCount()) {
+for (let i: byte = 0; i < 10; i += 1) {
     process(i);
 }
 
-// Equivalent to:
-// let _end = getCount();
-// for (let i: byte = 0 to _end) { process(i); }
-```
+for (i = start, remaining = count; remaining != 0; i += stride, remaining -= 1) {
+    process(data[i]);
+}
 
-## Loop Variable Rules
-
-| Rule | Decision |
-|------|----------|
-| Declaration | Always `let name: type` — no reuse of existing variables |
-| Type annotation | **Mandatory** — `byte` vs `word` generates different code |
-| Scope | **Block-scoped** to the for statement — not accessible after `}` |
-| Mutability | **Read-only** inside the body — cannot be assigned |
-| Address-of (`&`) | Valid — follows F006 rules for local variables |
-| After loop ends | Out of scope — capture value before `break` if needed |
-
-**Block scoping** means two loops in the same function can use the same variable name:
-
-```blend65
-function update(): void {
-    for (let i: byte = 0 to 8) { updateSprite(i); }    // first i
-    for (let i: byte = 0 to 10) { updateEnemy(i); }    // second i — no conflict
-    // Under SFA, both i's can share the same frame slot (non-overlapping lifetimes)
+for (;;) {
+    updateFrame();
 }
 ```
 
-**Read-only** prevents a class of subtle bugs:
+The former range words `until`, `to`, `downto`, and `step` have no special meaning. They are
+ordinary identifiers outside any separately defined feature.
+
+## Exact Evaluation and Control Flow
+
+For `for (I; C; U) B`, execution is exactly:
+
+1. Enter a new for-statement scope.
+2. Evaluate `I` once, left to right when it is an expression list. A declaration creates its
+   binding in this scope.
+3. Evaluate `C`. If it is omitted, use the Boolean value `true` without emitting a load or helper.
+4. If `C` is false, leave the loop and its scope.
+5. Execute body block `B`.
+6. On normal body completion or `continue`, evaluate `U` once, left to right, then return to step 3.
+7. On `break`, leave the loop immediately without evaluating `U` again. `return` also skips `U`.
+
+The condition must have type `boolean`; there is no integer truthiness. Each clause uses ordinary
+expression evaluation, conversion, side-effect, MMIO, call, and fixed-width wrap rules. The
+compiler may not hoist, merge, delete, or reorder a clause evaluation unless the normal optimizer
+proof shows that all values and observable effects are unchanged.
 
 ```blend65
-for (let i: byte = 0 to 10) {
-    i = 5;    // ❌ E10060: Cannot assign to for-loop variable
+for (let i: byte = start(); i < limit(); i += step()) {
+    process(i);
 }
 ```
+
+Here `start()` runs once. `limit()` runs before every possible iteration, including the first.
+`step()` runs only after a completed body or `continue`. This is intentional mainstream behavior;
+developers who want a once-evaluated bound store it explicitly:
+
+```blend65
+let end: byte = limit();
+for (let i: byte = 0; i < end; i += 1) {
+    process(i);
+}
+```
+
+## Scope, Mutability, and SFA
+
+- A declaration in the initializer is visible in the condition, update, and body, but not after the
+  loop.
+- The body is a nested block scope. Blend65's ordinary no-shadowing rule applies; there is no
+  for-specific shadowing rule.
+- A `let` binding is mutable. Assigning it in the body is legal and has ordinary program meaning.
+- A `const` binding follows the normal constant-initializer and assignment rules.
+- An expression initializer introduces no binding and may reuse existing variables.
+- Header bindings, expression temporaries, and spills are ordinary function storage. SFA uses their
+  real CFG liveness and interference; the loop introduces no dynamic frame, hidden iterator, or
+  runtime state.
+
+Because the counter is an ordinary variable, changing it in the body can change termination. This
+is expected in C/JavaScript-style loops and must not receive a special compiler restriction.
+
+## Fixed-Width Boundaries
+
+A `for` loop does not create mathematical-range semantics. Its initializer, condition, and update
+are ordinary Blend65 expressions. Integer updates wrap at the declared width, and the next
+condition observes that wrapped value.
+
+```blend65
+// Exactly ten iterations.
+for (let i: byte = 0; i < 10; i += 1) { ... }
+
+// Exactly 256 iterations. The semantic counter must represent the terminal value 256.
+for (let i: word = 0; i < 256; i += 1) { ... }
+
+// ❌ E10262: the byte counter repeats before it can reach 256.
+for (let i: byte = 0; i < 256; i += 1) { ... }
+```
+
+The third header looks finite to a modern developer, but its invariant condition can never become
+false. Bounded canonical-induction analysis therefore rejects it with E10262 rather than silently
+letting it repeat. The compiler must not secretly widen the declared counter because that would
+change observable behavior when the counter is assigned, addressed, passed, or read.
+
+This does not outlaw modular byte behavior. Byte-bounded loops, ring cursors, timers,
+decrement-to-zero loops, deliberate `for (;;)`, and loops that explicitly observe wrap remain
+legal. E10262 requires proof that the canonical counter repeats before its invariant comparison can
+be false, that the body does not modify the counter or bound, and that no other explicit exit is
+present. It is not a general termination analysis.
+
+A descending loop that must include zero likewise needs a semantic type that can represent its
+post-zero value:
+
+```blend65
+for (let i: sword = 9; i >= 0; i -= 1) {
+    process(word(i));
+}
+```
+
+The optimizer may still use an 8-bit induction state when it proves the wider semantic values are
+not otherwise observable.
 
 ## `break` and `continue`
 
-Both are supported. **Neither involves hidden cost** — they compile to the same branch instructions used in `if` statements.
-
-| Keyword | Behavior | 6502 Code | Cost |
-|---------|----------|-----------|------|
-| `break` | Exits the innermost loop | BEQ/BNE (or JMP if >127 bytes) | 2-3 bytes, 2-3 cycles |
-| `continue` | Skips to compiler-controlled increment | BEQ/BNE (or JMP if >127 bytes) | 2-3 bytes, 2-3 cycles |
+`break` and `continue` target the innermost enclosing loop.
 
 ```blend65
-// break — search for value
-let foundIndex: byte = 255;
-for (let i: byte = 0 to 100) {
+for (let i: byte = 0; i < 100; i += 1) {
     if (data[i] == target) {
-        foundIndex = i;    // capture before breaking (i is out of scope after loop)
-        break;
+        foundIndex = i;
+        break;              // update is skipped
     }
-}
-
-// continue — skip specific values
-for (let i: byte = 0 to 10) {
-    if (i == 5) {
-        continue;          // skip to next iteration (i incremented by compiler)
+    if (data[i] == EMPTY) {
+        continue;           // update runs, then condition runs
     }
-    process(i);            // called for 0,1,2,3,4,6,7,8,9
-}
-```
-
-`break` only exits the **innermost** loop. For multi-level break, use a flag variable:
-
-```blend65
-let found: boolean = false;
-for (let y: byte = 0 to 25) {
-    for (let x: byte = 0 to 40) {
-        if (screen[y * 40 + x] == target) {
-            found = true;
-            break;         // exits inner loop only
-        }
-    }
-    if (found) { break; }  // exits outer loop
-}
-```
-
-Labeled `break` (e.g., `break outer;`) is deferred to a future version (see FUT-006).
-
-## Step Rules
-
-| Rule | Decision |
-|------|----------|
-| Default step | **1** when `step` keyword is omitted |
-| Step must be | **Compile-time constant**, positive integer |
-| Step of zero | **E10061**: compile error |
-| Step direction | Implicit — `to` always increments, `downto` always decrements |
-
-**Why compile-time constant?** This enables optimal codegen:
-- Step 1 → `INX`/`DEX` (1 byte, 2 cycles)
-- Step 2 → `INX`+`INX` (2 bytes, 4 cycles)
-- Step N > 2 → `CLC`/`ADC #N` (3 bytes, 4-5 cycles) or multiple INC
-
-If you need a variable step, use `while`:
-```blend65
-let i: byte = start;
-while (i < end) {
     process(i);
-    i = i + stride;    // variable step
 }
 ```
 
-## Generated Code Patterns (6502)
+Using either keyword outside a loop is E10063. Labeled exits remain deferred (FUT-006).
 
-These patterns show the typical assembly output. The compiler may use different strategies depending on the range and step for optimal performance.
+## Correct Lowering
 
-**Ascending byte, step 1 (`0 to 10`):**
-```asm
-    LDX #0              ; i = 0               (2 bytes, 2 cycles)
-.loop:
-    ; ... body ...
-    INX                  ; i += 1              (1 byte, 2 cycles)
-    CPX #10              ; compare with end    (2 bytes, 2 cycles)
-    BNE .loop            ; loop if i != 10     (2 bytes, 2-3 cycles)
+The target-neutral lowering is the following CFG:
+
+```text
+for.scope.entry:
+    initializer
+    jump for.condition
+
+for.condition:
+    if omitted-condition-or-condition then for.body else for.end
+
+for.body:
+    body
+    jump for.update
+
+for.update:
+    update
+    jump for.condition
+
+for.end:
+    leave for scope
 ```
-*Overhead: 5 bytes setup + 5 bytes/iteration, 6-7 cycles/iteration*
 
-**Full byte range ascending (`0 to 256`):**
-```asm
-    LDX #0              ; i = 0
-.loop:
-    ; ... body ...
-    INX                  ; i += 1 (wraps 255→0)
-    BNE .loop            ; loop while i != 0   (optimal — no CPX needed!)
-```
-*Overhead: 2 bytes setup + 3 bytes/iteration, 4-5 cycles/iteration*
+`continue` branches to `for.update`; `break` branches to `for.end`. A `return` branches to the
+function exit. This lowering is sufficient for every legal `for` statement and does not depend on
+the Pratt parser: the statement parser owns the three delimiters and invokes the ordinary
+expression parser for each clause.
 
-**Descending byte, inclusive zero (`9 downto 0`):**
-```asm
-    LDX #10             ; start+1 (for pre-decrement trick)
-.loop:
-    DEX                  ; i -= 1 (first iteration: i = 9)
-    ; ... body ...
-    BNE .loop            ; loop while i != 0 (after body with i=0: DEX set Z=1)
-```
-*Overhead: 2 bytes setup + 3 bytes/iteration, 4-5 cycles/iteration*
+## Canonical Induction Recognition
 
-Note: For start values > 254 (full byte range `255 downto 0`), the compiler uses an alternate pattern with explicit end-of-range detection.
+After semantic lowering, a bounded recognizer may classify a loop as canonical induction when it
+can prove all relevant facts, including:
 
-**Word counter (`0 to 1000`):**
-```asm
-    LDA #0               ; i_lo = 0
-    STA _i_lo
-    LDA #0               ; i_hi = 0
-    STA _i_hi
-.loop:
-    ; ... body (uses _i_lo/_i_hi) ...
-    INC _i_lo            ; 16-bit increment
-    BNE .no_carry
-    INC _i_hi
-.no_carry:
-    LDA _i_hi            ; 16-bit compare with 1000 ($03E8)
-    CMP #$03
-    BCC .loop            ; hi < end_hi → continue
-    BNE .done            ; hi > end_hi → stop
-    LDA _i_lo
-    CMP #$E8
-    BCC .loop            ; lo < end_lo → continue
-.done:
-```
-*Overhead: ~15-20 cycles/iteration — significantly more expensive than byte counter*
+- one induction variable has a known initialization;
+- the loop condition compares that value against an invariant bound;
+- the update adds or subtracts a known stride;
+- body writes, aliases, calls, MMIO, callbacks, and escaped addresses cannot change the induction
+  state or bound unexpectedly;
+- removing, widening, narrowing, or combining an update cannot change an observable value or
+  effect; and
+- every exit and `continue` edge retains the source control-flow behavior.
 
-## Ambiguities Resolved
+This is analysis over the existing CFG and value/effect facts, not a second loop language or a
+general loop framework. A loop that does not match remains correct generic CFG code.
 
-| # | ID | Ambiguity | Resolution |
-|---|------|-----------|------------|
-| 1 | FOR-1 | Which syntax form? | **`to`/`downto` only** — C-style `for (init; cond; update)` removed. Use `while` for non-counted loops. |
-| 2 | FOR-2 | Boundary semantics | **`to` = exclusive end, `downto` = inclusive end** (Kotlin model). Matches natural English and common use cases. |
-| 3 | FOR-3 | End value evaluation | **Once at loop entry** (Pascal semantics). Prevents re-evaluation cost and accidental infinite loops. |
-| 4 | FOR-4 | Function calls in for-header | **Allowed** — safe because evaluated once, not every iteration. This eliminates the v2 `foo()` in condition problem. |
-| 5 | FOR-5 | Loop variable scope | **Block-scoped** to the for statement. Not accessible after `}`. Two loops in the same function can reuse the same name. Under SFA, non-overlapping lifetimes can share frame memory. |
-| 6 | FOR-6 | Loop variable mutability | **Read-only** inside the body. Prevents bugs, enables register allocation. **E10060** on assignment attempt. |
-| 7 | FOR-7 | Step constraints | **Compile-time constant**, positive integer, default 1. Enables optimal codegen. Variable step → use `while`. |
-| 8 | FOR-8 | Step of zero | **E10061** compile error — always detectable since step is a compile-time constant. |
-| 9 | FOR-9 | `downto 0` with unsigned byte | **Inclusive** — 0 IS visited. Compiler generates correct codegen (pre-decrement + BNE, or explicit end check). No wrapping issue. |
-| 10 | FOR-10 | `to 256` with byte counter | **Allowed** — `256` is a compile-time bound, not stored in the loop variable. Compiler generates optimal `INX` + `BNE` pattern (256 iterations, wrap-based termination). |
-| 11 | FOR-11 | Empty range (`to` with start ≥ end, `downto` with start < end) | **Zero iterations** — body never executes. No error or warning. Compiler generates skip-check for variable bounds; constant empty ranges are eliminated at compile time. |
-| 12 | FOR-12 | `continue` semantics | **Skips to compiler-controlled increment**, then condition check. Unambiguous because the update is implicit (no explicit update expression to question). |
-| 13 | FOR-13 | Nested loop variable shadowing | **E10062** — prohibited. Inner loop cannot reuse the name of an outer loop's variable. Prevents confusion. |
-| 14 | FOR-14 | `word` loop counter cost | **W10060** warning when the loop range fits in `byte` but the developer declared `word`. Word counters cost ~15-20 cycles/iteration vs 6-7 for byte. |
-| 15 | FOR-15 | Loop variable value after loop/break | **Out of scope** — block scoping means the variable doesn't exist after the loop. Capture the value before `break` if needed. |
-| 16 | FOR-16 | `break` from nested loops | **Innermost only** — standard behavior. Use flag variable for multi-level exit. Labeled `break` deferred (FUT-006). |
-| 17 | FOR-17 | Type inference for loop variable | **Not allowed** — type annotation is mandatory. `byte` vs `word` generates fundamentally different code on 6502. Aligns with A4 (explicit over implicit). |
+### Full 256-element array loop
 
-## v2 Migration Guide
-
-| v2 Syntax | v3 Syntax |
-|-----------|-----------|
-| `for (let i: byte = 0; i < 10; i += 1) { }` | `for (let i: byte = 0 to 10) { }` |
-| `for (let i: byte = 0; i < n; i += 1) { }` | `for (let i: byte = 0 to n) { }` |
-| `for (i = 0 to 10) { }` (v2 inclusive) | `for (let i: byte = 0 to 11) { }` (v3 exclusive) |
-| `for (count = 10 downto 0) { }` (v2 inclusive) | `for (let count: byte = 10 downto 0) { }` (v3 inclusive — same!) |
-| `for (let i: byte = 0; i < foo(); i += 1) { }` | `for (let i: byte = 0 to foo()) { }` (safe — called once) |
-| `for (i = 0 to 100 step 2) { }` | `for (let i: byte = 0 to 101 step 2) { }` (v3 exclusive: adjust end) |
-
-## Examples
-
-**Basic ascending and descending:**
 ```blend65
-module Game;
-
-function main(): void {
-    // Clear 8 sprites (indices 0–7)
-    for (let i: byte = 0 to 8) {
-        clearSprite(i);
-    }
-
-    // Fade out brightness (255 down to 0)
-    for (let brightness: byte = 255 downto 0) {
-        setBrightness(brightness);
-        delay(2);
-    }
+for (let i: word = 0; i < length(page); i += 1) {
+    page[i] = 0;
 }
 ```
 
-**Pattern: Game entity update loop with variable bound:**
+When `length(page) == 256`, `i` does not escape, and the body needs only its low byte, the backend
+may prove the source equivalent to this expert pattern:
+
+```asm
+    LDX #$00
+.loop:
+    LDA #$00
+    STA page,X
+    INX
+    BNE .loop
+```
+
+The machine loop never materializes semantic `i == 256`; the `INX` zero-result/wrap event proves the
+same body-execution sequence and final control edge. If the source observes `i` or the condition in
+a way that invalidates that proof, the optimizer must retain a representation that preserves the
+ordinary word semantics.
+
+### Small ascending byte loop
+
 ```blend65
-module Game;
-
-let numEnemies: byte = 0;
-
-function updateEnemies(): void {
-    // numEnemies evaluated ONCE at loop entry
-    for (let i: byte = 0 to numEnemies) {
-        moveEnemy(i);
-        checkCollision(i);
-    }
+for (let i: byte = 0; i < 10; i += 1) {
+    poke($0400 + i, 1);
 }
 ```
 
-**Pattern: Efficient screen operations (avoiding multiplication):**
-```blend65
-module Graphics;
+One valid selected pattern is:
 
-zeropage {
-    screenPtr: word;
-}
-
-const SCREEN_BASE: word = $0400;
-
-// ✅ GOOD: Pointer-based — no multiplication
-function clearScreen(ch: byte): void {
-    screenPtr = SCREEN_BASE;
-    for (let i: word = 0 to 1000) {
-        poke(screenPtr, ch);
-        screenPtr = screenPtr + 1;
-    }
-}
-
-// ❌ AVOID: Nested loops with multiplication (slow on 6502!)
-// for (let y: byte = 0 to 25) {
-//     for (let x: byte = 0 to 40) {
-//         poke(SCREEN_BASE + y * 40 + x, 32);  // y*40 = ~100 cycles per call!
-//     }
-// }
+```asm
+    LDX #$00
+.condition:
+    CPX #$0A
+    BCS .end
+    LDA #$01
+    STA $0400,X
+    INX
+    BCC .condition       ; unconditional: body and INX preserve C=0 from CPX
+.end:
 ```
 
-**Edge cases:**
-```blend65
-module Examples;
+The exact branch layout may differ when measured as faster or smaller, but behavior, effects,
+clobbers, bytes, cycles, and storage must be compared against an expert hand-written alternative.
 
-function edgeCases(): void {
-    // Full byte range — all 256 values
-    for (let i: byte = 0 to 256) {
-        process(i);        // i = 0, 1, 2, ..., 255
-    }
+## Cost Model
 
-    // Full byte range descending — all 256 values
-    for (let i: byte = 255 downto 0) {
-        process(i);        // i = 255, 254, ..., 0
-    }
+The language construct itself allocates no runtime object and links no helper. Cost is the sum of
+the selected code for each clause, branch/layout overhead, body, and any normal SFA homes or spills.
 
-    // Empty range — body never executes
-    for (let i: byte = 10 to 5) {
-        neverCalled();     // zero iterations
-    }
+| Form | Required accounting |
+|---|---|
+| Generic loop | initializer once; condition per test; update per normal/continue edge; branch and body costs |
+| Register induction | register lifetime/clobbers, compare/update/branch bytes and taken/not-taken cycles |
+| Static/ZP induction | load/store or memory increment cost plus occupied RAM/ZP bytes |
+| Narrowed semantic counter | proof boundary and any value materialization required by observable uses |
+| Unrolled loop | replicated body/code bytes, changed branch/layout range, cycle benefit, and instruction-cache assumptions omitted because 6502 has none |
 
-    // Step with descending
-    for (let i: byte = 20 downto 0 step 5) {
-        process(i);        // i = 20, 15, 10, 5, 0
-    }
+No warning tells the developer to replace a semantic `word` counter with `byte` merely for compiler
+convenience. Choosing an 8-bit machine induction representation is an optimizer responsibility.
 
-    // Capturing loop variable before break
-    let found: byte = 255;
-    for (let i: byte = 0 to 100) {
-        if (data[i] == target) {
-            found = i;
-            break;
-        }
-    }
-    // i is out of scope here — use 'found' instead
-}
-```
+## Diagnostics
 
-## Errors
+The loop reuses ordinary diagnostics:
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| E10060 | Assign to for-loop variable | `Cannot assign to for-loop variable '<name>' — loop variables are read-only` |
-| E10061 | Step value is zero | `Step value must not be zero — this would create an infinite loop` |
-| E10062 | Shadowed variable in nested loop | `Variable '<name>' already declared in enclosing for-loop — use a different name` |
-| E10063 | `break`/`continue` outside loop | `'<keyword>' can only be used inside a loop body` |
+| Code | Condition |
+|---|---|
+| E10063 | `break` or `continue` appears outside a loop body |
+| E10100 | A present `for` condition is not `boolean` |
+| E10101 | A declaration in the for scope or body shadows an enclosing declaration |
+| E10262 | Canonical induction proves that a finite-looking counter repeats before its invariant condition can become false |
+| E10190/E10191/E10192 | Ordinary `const` initialization or assignment rules are violated |
+| W10190 | A function-local `let` may be read before assignment, including through a header path |
+| W10130 | A present condition is provably always false |
+| W10131 | A statement is unreachable after unconditional control transfer |
 
-## Warnings
+Former range-only diagnostics E10060, E10061, E10062, E10064, and W10060 are retired.
+Their conditions either no longer exist or are owned by the ordinary declaration, type, scope, and
+expression rules.
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| W10060 | `word` counter where `byte` suffices | `Loop counter '<name>' uses 'word' but range 0..<N> fits in 'byte' — use 'byte' for faster loop execution (6-7 cycles/iteration vs 15-20)` |
-
-## Feature Interaction Summary (L8)
+## Interaction Matrix
 
 | Feature | Interaction |
-|---------|-------------|
-| F003 (Module contents) | For loops cannot appear at module level (E10010 — executable code must be inside functions) |
-| F005 (Memory placement) | Loop variable is in the function's SFA frame. Compiler may keep byte counters in X/Y registers for performance |
-| F006 (Address-of) | `&loopVar` is valid — follows F006 rules for local variables |
-| F007 (Interrupt functions) | For loops can appear in interrupt handlers. Separate ZP temps ensure no corruption |
+|---|---|
+| Types and casts | Every clause uses ordinary expression typing and explicit conversion rules. |
+| Variables/constants | The initializer may declare one normal local binding; its scope is the whole for statement. |
+| Arrays | `let i: word = 0; i < length(a)` is correct for every representable array length; narrowing is an optimizer proof. |
+| Structs/enums | Header/body expressions may use them wherever the ordinary operators permit. |
+| Functions | Calls retain normal left-to-right evaluation, effects, clobbers, and SFA homes. |
+| Memory intrinsics/MMIO | Volatile reads/writes keep exact access count and order in every clause. |
+| Interrupt domains | Shared values may change asynchronously under their normal concurrency contract; the loop adds no snapshot semantics. |
+| `while`/`do-while` | All are general loops. `for` is the concise form when initialization/update belong in the header. |
+| `switch` | A switch is transparent to loop `break`/`continue` ownership under the existing auto-break rule. |
+| SFA | Header bindings and temporaries use normal lexical/CFG liveness; no dynamic allocation occurs. |
+| Optimizer | Canonical induction may be recognized only with alias/effect/range proof; generic loops stay generic. |
 
-## Language Guard Verdict
+## Alternatives Considered
 
-- **P1 Cross-platform** ✅ — Loop constructs are universal. `to`/`downto` compile to standard 6502 instructions on all platforms.
-- **P2 Platform-meaningful** ✅ — Counted loops are fundamental to every game/demo/application on every platform.
-- **P3 No platform assumptions** ✅ — No hardware addresses or platform names in the loop spec.
-- **P4 Resource-scalable** ✅ — W10060 warns when `word` counter is used unnecessarily. Byte counters are optimal on all platforms.
-- **H1 6502 implementable** ✅ — Maps directly to `INX`/`DEX` + `CPX`/`BNE` patterns. Documented codegen for all cases.
-- **H2 Cost transparency** ✅ — Byte loop: 5-7 cycles/iteration. Word loop: 15-20 cycles/iteration. `break`/`continue`: 2-3 bytes, 2-3 cycles each. All costs documented.
-- **H3 SFA compatible** ✅ — Loop variables are part of the function's static frame. Block scoping allows frame slot reuse for non-overlapping lifetimes.
-- **H4 Memory footprint** ✅ — Byte loop: 7-10 bytes ROM. Word loop: 15-25 bytes ROM. Step and range affect the exact count.
-- **H5 Deterministic** ✅ — Every combination of start, end, step, and type produces defined behavior. Empty ranges = zero iterations. Wrapping is handled by codegen. Step of zero is a compile error.
-- **L1 Unambiguous** ✅ — One parsing strategy. `to`/`downto` are keywords. No C-style `for` to conflict with.
-- **L2 Consistent** ✅ — Block syntax matches `if`/`while`. `let name: type` matches all variable declarations. Boundary model follows Kotlin precedent.
-- **L3 Beginner-friendly** ✅ — `for (let i: byte = 0 to 10)` reads naturally. Any developer can guess what it does. One-sentence boundary rule.
-- **L4 Minimal** ✅ — Two keywords (`to`, `downto`), optional `step`, one variable declaration. No C-style `for` complexity.
-- **L5 No redundancy** ✅ — Replaces v2's two incompatible loop syntaxes with one clean form. Non-counted loops use `while`.
-- **L6 Error messages** ✅ — E10060 (assign to read-only), E10061 (zero step), E10062 (shadowing), E10063 (break/continue outside loop).
-- **L7 Compile-time failure** ✅ — Zero step, type mismatches, shadowing all caught at compile time. No runtime failures from loop mechanics.
-- **L8 Feature interaction** ✅ — Interactions with F003, F005, F006, F007 explicitly documented above.
-- **L9 Documentable** ✅ — Prose + basic examples + pattern examples + edge cases all provided.
-- **C1 Lexer/parser** ✅ — `KW_FOR`, `LPAREN`, `KW_LET`, `IDENT`, `COLON`, `TYPE`, `ASSIGN`, `EXPR`, `KW_TO`|`KW_DOWNTO`, `EXPR`, [`KW_STEP`, `CONST_EXPR`], `RPAREN`, `BLOCK`. Standard recursive descent.
-- **C2 Semantic analysis** ✅ — Check: start fits in type, end is valid bound, step > 0, variable read-only, no shadowing, break/continue inside loop.
-- **C3 Code generation** ✅ — Documented 6502 patterns for byte ascending, full range, descending inclusive, word counter. Compiler selects optimal pattern per range.
-- **C4 Unit testable** ✅ — Lexer: `KW_FOR`, `KW_TO`, `KW_DOWNTO`, `KW_STEP` tokens. Parser: for-stmt AST node. Semantic: read-only check, shadowing check. Codegen: register-based byte loops vs memory-based word loops.
-- **C5 Runtime verifiable** ✅ — Compile loop programs, run in emulator, verify counter values at each iteration via memory inspection.
-- **F1 Extensible** ✅ — Future: labeled `break` (FUT-006), `for-in` over arrays, parallel iterators.
-- **F2 Platform-profile ready** ✅ — No platform-specific behavior. All codegen uses standard 6502 instructions.
-- **F3 Optimizer-friendly** ✅ — Compile-time known bounds enable loop unrolling, strength reduction, dead loop elimination.
-- **F4 Stability** ✅ — Classified as **Stable**.
+| Alternative | Why rejected |
+|---|---|
+| Keep only `until`/`to`/`downto`/`step` | It gives one statement special range types, read-only counters, once-evaluated bounds, extra diagnostics, and full-domain edge rules. Those restrictions are not forced by 6502 hardware and surprise C/JavaScript developers. |
+| Support both range and three-clause forms | It duplicates loop semantics, parser/AST paths, diagnostics, optimization tests, and documentation without adding expressiveness. Canonical induction analysis recovers the optimization benefit from one familiar form. |
+| Lower every loop as opaque generic control flow forever | Correct but fails the output-quality directive. Common induction patterns must be recognized and compared with expert machine code. |
+| Add a generalized loop-optimization framework now | No current requirement needs that machinery. A bounded induction recognizer over the normal CFG is sufficient and keeps later extension possible. |
 
+## Decision Summary
+
+| # | Question | Decision |
+|---:|---|---|
+| 1 | Syntax | One `for (initializer; condition; update) { block }` form. |
+| 2 | Optional clauses | All three clauses may be omitted; an omitted condition is `true`. |
+| 3 | Initializer | One normal local `let`/`const` declaration or a left-to-right expression list. |
+| 4 | Condition | Evaluated before every iteration and must be `boolean`. |
+| 5 | Update | Left-to-right expression list after normal completion or `continue`; skipped by `break`/`return`. |
+| 6 | Scope | A distinct for scope contains the initializer binding; the body is its nested block. |
+| 7 | Mutability | Ordinary declaration rules; no read-only loop counter. |
+| 8 | Fixed-width behavior | Ordinary wrapping expressions; no hidden widening. E10262 rejects only a proved finite-looking unreachable termination. |
+| 9 | Full byte domain | Use a semantic type that represents the terminal value; proven lowering may use `INX/BNE` or `DEX/BNE`. |
+| 10 | Parsing | Statement parser owns delimiters and calls the ordinary expression parser. No Pratt-parser extension is required. |
+| 11 | SFA | Ordinary local/temporary liveness; no hidden iterator, dynamic frame, or runtime. |
+| 12 | Optimization | Bounded canonical-induction recognition over normal CFG; unmatched loops remain correct. |
+| 13 | Exits | `continue` goes to update; `break` and `return` skip update. |
+| 14 | Legacy range form | Removed, not retained as a second syntax. Its four words return to ordinary identifiers. |
+
+## Language Guard Evaluation
+
+### Platform Universality
+
+- **P1 Cross-platform compilable** ✅ — ordinary control flow compiles on every target CPU.
+- **P2 Platform-meaningful** ✅ — initialization/condition/update loops are common in games and tools.
+- **P3 No platform assumptions** ✅ — the semantic contract names no platform address or device.
+- **P4 Resource-scalable** ✅ — no mandatory storage or helper; selected costs are reported.
+
+### Hardware / 6502 Feasibility
+
+- **H1 6502 implementable** ✅ — branches, comparisons, and updates are sufficient.
+- **H2 Cost transparency** ✅ — clause frequency and selected loop overhead are explicit.
+- **H3 SFA compatible** ✅ — all bindings and temporaries have static CFG lifetimes.
+- **H4 Memory footprint documented** ✅ — zero inherent RAM/ZP/runtime cost; normal homes are charged.
+- **H5 Fully deterministic** ✅ — order, exits, omission, side effects, and fixed-width wrap are exact.
+
+### Language Design Quality
+
+- **L1 Unambiguous** ✅ — two semicolon delimiters split three standard recursive-descent clauses.
+- **L2 Consistent** ✅ — uses normal declarations, expressions, blocks, conditions, and scope.
+- **L3 Beginner-friendly** ✅ — familiar to C, JavaScript, and TypeScript developers.
+- **L4 Minimal** ✅ — one syntax and one generic CFG; no parallel range construct.
+- **L5 No redundancy** ✅ — `for` is the concise header form; it does not duplicate a range type/API.
+- **L6 Error messages** ✅ — malformed syntax uses parser diagnostics; semantic misuse uses ordinary codes.
+- **L7 Compile-time failure preferred** ✅ — type, scope, constant, and proved unreachable-counter errors are rejected before lowering.
+- **L8 Interactions documented** ✅ — see the interaction matrix above.
+- **L9 Documentable with examples** ✅ — basic, effectful, deliberate-infinite, rejected-boundary, and optimized cases are shown.
+
+### Compiler Implementability
+
+- **C1 Lexer/parser implementable** ✅ — only `for`, punctuation, declarations, and expressions are used.
+- **C2 Semantic analysis defined** ✅ — evaluation, type, scope, mutation, exit, and SFA rules are complete.
+- **C3 Code generation strategy exists** ✅ — generic CFG first; proven induction specialization second.
+- **C4 Unit testable** ✅ — clause AST, order, scope, exits, wrap, and canonical recognition are enumerable.
+- **C5 Runtime verifiable** ✅ — memory traces can distinguish zero/one/many, `continue`, `break`, wrap, and effects.
+
+### Future-Proofing
+
+- **F1 Extensible** ✅ — new analysis can recognize more CFG patterns without changing source semantics.
+- **F2 Platform-profile ready** ✅ — only cost selection varies by CPU/profile.
+- **F3 Optimizer-friendly** ✅ — explicit condition/update blocks expose induction and effects.
+- **F4 Stability classification** ✅ — stable.
+
+## Verdict
+
+**✅ ACCEPTED.** The standard form provides modern source behavior with a smaller semantic and
+implementation surface than the former range-only design. Generic CFG lowering establishes
+correctness; proof-based induction recognition supplies expert 6502 output without a runtime or a
+second loop subsystem.

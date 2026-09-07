@@ -212,7 +212,8 @@ function update(score: byte): void {
 }
 ```
 
-This rule generalizes F008's FOR-13 (no shadowing of for-loop variables in nested loops). The for-loop specific error E10062 is a specialization of the general shadowing rule E10101.
+The same E10101 rule applies to declarations in for headers and bodies; there is no for-specific
+shadowing diagnostic.
 
 **Scope nesting hierarchy (innermost to outermost):**
 1. If/else body scope, while body scope, do-while body scope, for-loop body scope
@@ -241,8 +242,8 @@ function example(): void {
     }
     
     // Sequential for-loops (already established in F008)
-    for (let i: byte = 0 to 8) { updateSprite(i); }
-    for (let i: byte = 0 to 10) { updateEnemy(i); }    // ✅ OK — reuse
+    for (let i: byte = 0; i <= 8; i += 1) { updateSprite(i); }
+    for (let i: byte = 0; i <= 10; i += 1) { updateEnemy(i); } // ✅ OK — reuse
     
     // If/else branches — non-overlapping
     if (x > 0) {
@@ -336,7 +337,7 @@ This is the **only** block-containing statement that requires a trailing semicol
 | `if (cond) { }` | No | Self-terminating with `}` |
 | `while (cond) { }` | No | Self-terminating with `}` |
 | `do { } while (cond);` | **Yes** | Ends with `)`, not `}` |
-| `for (... to ...) { }` | No | Self-terminating with `}` |
+| `for (...; ...; ...) { }` | No | Self-terminating with `}` |
 | `switch (expr) { }` | No | Self-terminating with `}` |
 
 ### CF-8: Return Path Completeness
@@ -490,7 +491,8 @@ while (true) {
     JSR _gameLoop
     JMP .loop        ; unconditional — no condition check
 ```
-*Cost: 3 bytes JMP per iteration (7 cycles). The compiler recognizes `while (true)` and omits condition evaluation entirely.*
+*Cost: one 3-byte, 3-cycle `JMP` per iteration, in addition to the loop body. The compiler
+recognizes `while (true)` and omits condition evaluation entirely.*
 
 ### Do-While
 
@@ -581,7 +583,7 @@ do {
 | 1 | CF-A1 | Should conditions accept numeric types (truthy) or require boolean? | **Boolean only** (E10100). Consistent with A4 (explicit over implicit) and F010 (no implicit conversions). `x != 0` compiles to identical 6502 code as a truthy check would. |
 | 2 | CF-A2 | Should braceless if/while be allowed? | **No — mandatory braces**. Eliminates dangling-statement bugs. On 6502, these bugs cause silent corruption with zero diagnostics. Consistent with A1 (C-like syntax with curly braces). |
 | 3 | CF-A3 | Include do-while in v3 or defer? | **Include**. Do-while is the most natural loop form on 6502 (body + backward branch, no initial JMP). Deferring it would force `while (true) { ...; if (!cond) { break; } }` workarounds. |
-| 4 | CF-A4 | Allow variable shadowing in nested blocks? | **No** (E10101). No shadowing at any level — including module-level variables. Prevents accidental name collisions that are nearly impossible to debug on 6502. Generalizes F008's FOR-13 rule to all scope boundaries. Stricter than C but forces better naming discipline. |
+| 4 | CF-A4 | Allow variable shadowing in nested blocks? | **No** (E10101). No shadowing at any level — including module-level variables and for-header scopes. Prevents accidental name collisions that are nearly impossible to debug on 6502. Stricter than C but forces better naming discipline. |
 | 5 | CF-A5 | Allow name reuse in sequential non-overlapping blocks? | **Yes**. Sequential blocks at the same level can reuse names — the earlier variable is out of scope. Enables SFA frame slot sharing. Already established for sequential for-loops in F008. |
 | 6 | CF-A6 | How is `else if` parsed? | **Composed**: `else` followed by `if_stmt`. No special grammar production. Naturally supports arbitrary chain depth. The `else if` form is NOT syntactic sugar — it's just the `else` clause containing an `if` statement. |
 | 7 | CF-A7 | What does `continue` do in do-while? | **Jumps to the condition check** at the bottom of the loop. Standard C/Java/TypeScript behavior. Body is skipped from the `continue` point, but the condition is always re-evaluated before deciding to iterate. |
@@ -669,7 +671,7 @@ module Search;
 function findEnemy(targetX: byte, targetY: byte): byte {
     let foundIndex: byte = 255;    // 255 = not found
     
-    for (let i: byte = 0 to numEnemies) {
+    for (let i: byte = 0; i < numEnemies; i += 1) {
         if (enemyX[i] == targetX) {
             if (enemyY[i] == targetY) {
                 foundIndex = i;
@@ -687,8 +689,8 @@ function findEnemy(targetX: byte, targetY: byte): byte {
 module Demo;
 
 function processGrid(): void {
-    for (let y: byte = 0 to 25) {
-        for (let x: byte = 0 to 40) {
+    for (let y: byte = 0; y < 25; y += 1) {
+        for (let x: byte = 0; x < 40; x += 1) {
             let cell: byte = getCell(x, y);
             
             if (cell == EMPTY) {
@@ -752,11 +754,11 @@ function mainLoop(): byte {
 
 ## Errors
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| E10100 | Numeric type used in condition | `Condition must be type 'boolean' — found '<type>'. Use an explicit comparison (e.g., '<expr> != 0')` |
-| E10101 | Variable shadows outer scope | `Variable '<name>' shadows declaration in enclosing scope (line <N>) — use a different name` |
-| E10102 | Missing return on some paths | `Not all code paths return a value in function '<name>' — add a return statement or ensure all branches return` |
+| E10100 | Numeric type used in condition | [Chapter 14](../14-diagnostics.md) |
+| E10101 | Variable shadows outer scope | [Chapter 14](../14-diagnostics.md) |
+| E10102 | Missing return on some paths | [Chapter 14](../14-diagnostics.md) |
 
 **Existing errors that apply to this feature:**
 
@@ -767,12 +769,13 @@ function mainLoop(): byte {
 
 ## Warnings
 
-| Code | Condition | Message |
+| Code | Rationale condition | Public presentation |
 |------|-----------|---------|
-| W10130 | Condition is always false | `Condition is always false — code block will never execute` |
-| W10131 | Code after break/continue/return | `Unreachable code — statements after '<keyword>' will never execute` |
+| W10130 | Condition is always false | [Chapter 14](../14-diagnostics.md) |
+| W10131 | Code after break/continue/return | [Chapter 14](../14-diagnostics.md) |
 
-**No warning for `while (true)` or `do { } while (true)` — these are intentional infinite loops, fundamental to game programming.**
+**No warning for `while (true)`, `do { } while (true)`, or `for (;;)`: these are intentional
+infinite loops, fundamental to game programming.**
 
 ---
 
@@ -784,7 +787,7 @@ function mainLoop(): byte {
 | F005 (Memory placement) | Block-scoped variables live in the function's SFA frame, not in zero-page or global RAM. `zeropage` declarations are module-level only. |
 | F006 (Address-of) | `&` on block-scoped variables follows F006 rules. The address is a compile-time constant (SFA frame location). Valid only while the variable is in scope. |
 | F007 (Interrupt functions) | If/while/do-while can appear in interrupt handlers. Each interrupt function has its own SFA frame, so block scoping works identically. |
-| F008 (For loop) | For-loops create their own block scope (FOR-5). `break`/`continue` work identically in for, while, and do-while (E10063 applies to all three). For-loop shadowing rule (E10062) is a specialization of the general shadowing rule (E10101). |
+| F008 (For loop) | A for statement creates a header scope plus its nested body block. Header declarations use ordinary E10101 no-shadowing. `continue` runs the update clause before the next condition; E10063 applies to all loops. |
 | F009 (Switch) | Switch is transparent to `break`/`continue` (F009). An `if` inside a switch case body is valid. A switch inside a loop is valid — `break` in the switch case exits the **loop**. If-else chains on a single variable may be better expressed as `switch`. |
 | F010 (Signed types) | Comparison operators in conditions produce `boolean` regardless of operand signedness. `if (signedVal < 0)` generates correct signed comparison code (N flag check vs. carry flag check). |
 | F011 (Structs) | Struct field access in conditions: `if (player.health > 0)` is valid. The field is loaded, compared, and the result is `boolean`. Struct variables follow the same block scoping rules. |
@@ -799,15 +802,15 @@ function mainLoop(): byte {
 - **P3 No platform assumptions** ✅ — No hardware addresses, chip names, or platform-specific details anywhere in this feature. All examples use abstract names.
 - **P4 Resource-scalable** ✅ — Control flow overhead is minimal and predictable (2–3 bytes per branch, 3 bytes per JMP). Block scoping with SFA integration helps conserve RAM through frame slot reuse.
 - **H1 6502 implementable** ✅ — Maps directly to BEQ/BNE/BCC/BCS/JMP instructions. All 6502 variants support these. Do-while maps to the most natural 6502 loop pattern (backward branch).
-- **H2 Cost transparency** ✅ — Every construct has documented codegen patterns with byte counts and cycle costs. If: 6–8 bytes overhead. While: 3 bytes initial JMP + 2 bytes branch per iteration. Do-while: 2 bytes branch per iteration. Break/continue: 2–3 bytes each.
+- **H2 Cost transparency** ✅ — The displayed patterns document their ROM components: if uses 6–8 bytes of overhead, while adds a 3-byte initial jump plus a 2-byte branch, do-while adds a 2-byte branch, and break/continue add 2–3 bytes. Exact cycles depend on condition lowering, taken versus fallthrough paths, branch-page crossing, and body exits, so the selected lowering reports those complete path costs rather than this summary inventing one context-free total.
 - **H3 SFA compatible** ✅ — Block-scoped variables are part of the function's static frame. Non-overlapping block scopes share frame memory. No dynamic allocation. No stack growth from nesting (nesting only affects codegen structure, not runtime stack).
 - **H4 Memory footprint documented** ✅ — RAM: block-scoped variables share frame slots (non-overlapping lifetimes save RAM). ROM: 2–8 bytes overhead per control flow construct. ZP: none required by control flow itself.
 - **H5 Fully deterministic** ✅ — Every construct has defined behavior for all inputs. `while (false)`: zero iterations. `while (true)`: infinite loop (intentional). Empty bodies: valid. Boolean-only conditions prevent "is 0 false?" ambiguity. Return path completeness (E10102) prevents undefined function exit.
 - **L1 Unambiguous syntax** ✅ — EBNF grammar is LL(k) parseable. Mandatory braces eliminate dangling-else ambiguity entirely. `else if` composes naturally. Do-while semicolon is explicit.
 - **L2 Consistent with existing** ✅ — Block syntax `{ }` matches for-loop and switch. Condition parentheses match C conventions. `break`/`continue` follow F008 rules. Boolean-only conditions follow F010's "no implicit conversions" principle.
 - **L3 Beginner-friendly** ✅ — Any C/TypeScript/JavaScript developer can read and understand if/else, while, and do-while immediately. Only difference from C: no braceless forms and no truthy conditions. Both are easily learned.
-- **L4 Minimal feature** ✅ — Three constructs (if/else, while, do-while) cover all branching and looping needs. No `loop` keyword (use `while (true)`), no `unless` (use `if (!cond)`), no ternary operator (deferred).
-- **L5 No redundancy** ✅ — Each construct serves a distinct purpose: if/else = branching, while = 0+ iteration loop, do-while = 1+ iteration loop. For-loop (F008) = counted iteration. Switch (F009) = multi-value branching. No overlap.
+- **L4 Minimal feature** ✅ — Three statement constructs (if/else, while, do-while) cover their control-flow roles. No `loop` keyword (use `while (true)`) and no `unless` (use `if (!cond)`). Conditional expressions use the separately accepted F024 `? :` operator rather than a duplicate statement form.
+- **L5 No redundancy** ✅ — Each construct serves a distinct purpose: if/else = branching, while = condition-only 0+ iteration, do-while = 1+ iteration, and for-loop (F008) = initialization/condition/update in one header. Switch (F009) = multi-value branching.
 - **L6 Error messages defined** ✅ — E10100 (condition type), E10101 (shadowing), E10102 (return paths). W10130 (dead code), W10131 (unreachable code). Plus existing E10010 (module-level), E10063 (break/continue outside loop). Each has specific message, trigger condition, and fix guidance.
 - **L7 Compile-time failure preferred** ✅ — All errors (E10100, E10101, E10102) and warnings (W10130, W10131) are compile-time. No runtime failures from control flow mechanics.
 - **L8 Feature interaction documented** ✅ — Interactions with all 12 existing features explicitly documented above.
@@ -817,7 +820,9 @@ function mainLoop(): byte {
 - **C3 Code generation strategy** ✅ — Documented 6502 patterns for: if (no else), if-else, if-else if-else chain, while, while(true), do-while, break, continue in while, continue in do-while. All use standard branch/jump instructions.
 - **C4 Unit testable** ✅ — Lexer: keyword tokens. Parser: if-stmt, while-stmt, do-while-stmt AST nodes. Semantic: boolean condition check, shadowing check, return path analysis. Codegen: branch patterns for each construct. All boundary conditions enumerable.
 - **C5 Runtime verifiable** ✅ — Compile control flow programs, run in emulator, verify execution paths via memory writes at known addresses. Test: if-branch taken/not-taken, while iteration counts, do-while minimum-once semantics, break/continue targets.
-- **F1 Extensible** ✅ — Future additions possible without breaking changes: ternary operator (`cond ? a : b`), `loop` keyword, pattern matching, guard clauses. None require syntax changes to existing if/while/do-while.
+- **F1 Extensible** ✅ — The current conditional expression (`cond ? a : b`) composes with this
+  control-flow model. Future constructs such as a `loop` keyword, pattern matching, or guard clauses
+  could be added without changing existing `if`/`while`/`do-while` syntax.
 - **F2 Platform-profile ready** ✅ — No platform-specific behavior. All codegen uses standard 6502 instructions. No platform profile interaction needed.
 - **F3 Optimizer-friendly** ✅ — Standard control flow graph construction. Enables: dead code elimination (`if (false)`), loop-invariant code motion, branch simplification, `while (true)` recognition, unreachable code detection after unconditional `break`/`return`.
 - **F4 Stability classification** ✅ — Classified as **Stable**. If/else, while, and do-while are universally understood constructs with decades of precedent. No changes anticipated.

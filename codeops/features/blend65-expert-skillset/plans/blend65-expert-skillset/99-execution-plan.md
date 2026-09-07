@@ -1,15 +1,15 @@
 # Execution Plan: Blend65 Expert Skillset v1.0.0
 
-> **Plan Status**: Ready for unaffected execution; final semantic qualification has one explicit prerequisite
-> **Progress**: 2/7 delivery phases (29%); 60 retained implementation substeps
-> **Last Updated**: 2026-09-05
+> **Plan Status**: Phase 3 complete under exact identity `BLEND65-SPEC-P3-ed278ab9`; Phase 4 is next
+> **Progress**: 3/7 delivery phases (43%); 62 retained implementation substeps
+> **Last Updated**: 2026-09-07
 > **Implements**: blend65-expert-skillset/RD-01
 > **Execution mode**: Commit coherent, impact-verified checkpoints without asking; never push
 
 ## Execution Summary
 
 Seven executable phases create independent qualification oracles, pin evidence, build knowledge by
-concern, and only then integrate and activate the router. The 60 detailed work actions remain as
+concern, and only then integrate and activate the router. The 62 detailed work actions remain as
 non-checkbox substeps so CodeOps does not mistake each one for a repository-wide verification
 boundary. No compiler implementation is performed.
 
@@ -17,11 +17,11 @@ boundary. No compiler implementation is performed.
 |---:|---|---:|---|
 | 1 | Qualification Oracle and Legacy Quarantine | 9 | Consistent spec/project oracles frozen; external oracles draft; legacy baseline recorded and quarantined |
 | 2 | Evidence and Recovery Foundation | 7 | Primary evidence pinned; external oracles frozen before dependent knowledge; recovery content passes focused review |
-| 3 | Blend65 Architecture, SFA, and IL | 8 | Four compiler modules and the spec crosswalk are complete; conflicted semantics remain visibly blocked pending the independent prerequisite |
+| 3 | Blend65 Architecture, SFA, and IL | 9 | Four compiler modules and the reconciled spec crosswalk pass focused evaluation, grading, and independent re-review |
 | 4 | NMOS 6502/6510 and Lowering | 8 | CPU/effect model and lowering casebook pass behavior-and-cost focused cases |
 | 5 | C64 Platform and Game Engineering | 8 | C64 modules pass model-bounded platform/game cases; hardware-sensitive limits are labelled |
 | 6 | ACME, Artifacts, and Portability | 7 | Pinned authoritative behavior and six-target constraint model pass tool/portability content cases |
-| 7 | Router Migration and Definitive Qualification | 11 delivery + 2 release-tail | Spec prerequisite resolved; isolated candidate reviewed and blind-qualified; live tree migrated byte-identically; v1.0.0 content committed |
+| 7 | Router Migration and Definitive Qualification | 12 delivery + 2 release-tail | Spec prerequisite resolved; isolated candidate reviewed and blind-qualified; exception register re-scanned; live tree migrated byte-identically; v1.0.0 content committed |
 
 ## Progress Protocol
 
@@ -36,8 +36,8 @@ This file tracks the seven delivery-phase checkboxes, not every substep:
 4. Resume the first `[~]` phase, otherwise the first `[ ]` phase.
 5. Use `date '+%Y-%m-%d %H:%M'`; never invent timestamps.
 
-P7 covers delivery substeps 7.1–7.11. Before the immutable content checkpoint, mark all seven
-delivery phases complete. Substeps 7.12–7.13 are an explicitly separate release tail: they may then
+P7 covers delivery substeps 7.1–7.12. Before the immutable content checkpoint, mark all seven
+delivery phases complete. Substeps 7.13–7.14 are an explicitly separate release tail: they may then
 change only `qualification/release.md` and the feature/portfolio roadmaps. Their completion state is
 authoritative there so this plan file stays inside the exact post-checkpoint allowlist.
 
@@ -60,9 +60,11 @@ authoritative there so this plan file stays inside the exact post-checkpoint all
   external systems.
 - Use primary/authoritative sources and record revision/location. A material source conflict blocks
   the affected cell.
-- Modify only `.agents/skills/blend65-domain-expert/**`, this feature's CodeOps artifacts, and the
-  portfolio roadmap lifecycle row when required. Do not modify `spec/`, `packages/`, `examples/`,
-  `.github/`, dependencies, or existing feature roadmaps.
+- Modify only `.agents/skills/blend65-domain-expert/**`, this feature's CodeOps artifacts, the
+  portfolio roadmap lifecycle row when required, and the exact `spec/` files named by the Phase-3
+  consistency ledger after their semantic rulings are accepted. This bounded specification repair
+  is part of Phase 3 and must finish before compiler-knowledge qualification. Do not modify
+  `packages/`, `examples/`, `.github/`, dependencies, or existing feature roadmaps.
 - Do not create a knowledge service, index/search layer, downloader, generator, registry, test
   runner, README, catalog, alias skill, legacy mirror, or game-matrix dependency.
 - Every substantive candidate content checkpoint updates the version declared by `SKILL.md`.
@@ -97,7 +99,7 @@ known-unsafe legacy authority without using current compiler behavior to choose 
    ledger. Replacement-dependent and conflicted cells remain explicitly incomplete.
 2. **1.2** Author `qualification/cases/routing-and-evidence.md` with Q-R01..Q-R12 packets, frozen
    or draft oracle status, disqualifiers, permitted artifacts, and blank append-only run records.
-3. **1.3** Author `qualification/cases/language-architecture-and-sfa.md` with Q-L01..Q-L26 from
+3. **1.3** Author `qualification/cases/language-architecture-and-sfa.md` with Q-L01..Q-L33 from
    RD-01 and internally consistent frozen semantics only, including nested-argument lifetimes,
    modern dynamic `POKE`, semantic interactions, SFA closure, and SFA/platform-layout boundaries.
 4. **1.4** Author `qualification/cases/cpu-lowering-and-optimization.md` with Q-C01..Q-C24,
@@ -217,7 +219,11 @@ topology or allowing conflicted semantics to masquerade as qualified.
 
 **Reference**: 03-02, RD-01 R3–R5
 
-- [ ] **P3 — Compiler knowledge is complete, with any unresolved spec-conflict cells explicit.**
+> **Phase baseline tree**: `c3febaf66647d4a841c524edabf8595dc9edf8f5`
+> **Scope mode**: strict
+> **Expected modification set**: `.agents/skills/blend65-domain-expert/references/{blend65-semantics,compiler-architecture,sfa-and-abi,il-and-optimization,source-manifest}.md`, `.agents/skills/blend65-domain-expert/qualification/{coverage-matrix.md,cases/language-architecture-and-sfa.md,cases/routing-and-evidence.md,cases/cpu-lowering-and-optimization.md,cases/c64-platform-and-games.md,release.md}`, `.agents/skills/blend65-domain-expert/SKILL.md`, this feature's `00-index.md`, `00-ambiguity-register.md`, `01-requirements.md`, `03-02-blend65-compiler-knowledge.md`, `03-04-c64-platform-and-game-knowledge.md`, `03-06-evidence-and-source-governance.md`, `03-07-qualification-and-release.md`, `07-testing-strategy.md`, `99-execution-plan.md`, roadmap status files, the portfolio roadmap, and—only after each ruling is accepted—the exact `spec/` files in the Phase-3 consistency ledger. The added C64 case and cross-cutting plan documents record accepted AR-P14/AR-P20..AR-P30/AR-P34 asset, IRQ, audio, evidence, and qualification consequences; they do not author Phase-5 C64 knowledge. `source-manifest.md` and the CPU case file change only to rebind the reproducible specification identity and its dependent source keys after those accepted repairs.
+
+- [x] **P3 — Compiler knowledge and the frozen specification are internally consistent; no known semantic conflict is deferred.** Reconciled through AR-P41/SC-147 under exact identity `BLEND65-SPEC-P3-ed278ab9`; the exact evaluator sets, corrective independent grade, and semantics review pass, with no array view/slice/span/subrange concept added. ✅ (completed: 2026-09-07 14:05)
 
 1. **3.1** Author the normative chapter/evaluation half of `references/blend65-semantics.md` with
    exact paths, document status, governed concerns, pipeline obligations, related modules, and no
@@ -238,13 +244,75 @@ topology or allowing conflicted semantics to masquerade as qualified.
    canonicalization, whole-program, legalization, selection, binding, layout, repair, target, and
    peephole responsibilities; pass dependencies/termination; MMIO; and the two-expectation semantic
    proof method.
-7. **3.7** Complete Phase-3 coverage cells and run every unblocked Q-L content case plus Q-R03/Q-R04
-   with only selected modules. Resolve content failures and rerun affected/cross-module cases.
-8. **3.8** Run spec-path/source/link/touched-Prettier/authorized-path/pinned-legacy-reference checks; bump the
+7. **3.7** Mechanically inventory every chapter/grammar/evaluation and diagnostic-registry
+   contradiction. Correct derived/rationale drift directly from the governing chapters. Obtain an
+   explicit product ruling for every genuine chapter-to-chapter semantic choice, reconcile every
+   affected `spec/` location in this phase, and leave no known conflict parked for Phase 7. Record
+   every hardware/no-runtime departure from mainstream language expectations in the canonical
+   semantics exception register with its exact contract, cost, mitigation, and documentation duty.
+8. **3.8** Build concrete raw-artifact packets for every Q-L case, including Q-L19's proactive
+   fixed-array/index/counter representation-width trap with no slice/span/view concept, the current SpritePad v5 Q-L27, immutable-character-map Q-L28,
+   sink-selected interrupt-ABI Q-L29, explicit-BCD Q-L30, familiar-loop Q-L31,
+   local-address-lifetime Q-L32, and SID-configuration Q-L33 cases, plus Q-R03/Q-R04; capture evaluator
+   outputs separately from their graders, and rerun the affected and cross-module content cases.
+   Focused results are advisory content evidence, not the definitive Phase-7 isolated qualification.
+9. **3.9** Run spec-path/source/link/touched-Prettier/authorized-path/pinned-legacy-reference checks; bump the
    unqualified construction version and commit the compiler-knowledge checkpoint.
 
-**Phase verification:** all unblocked content cases green; every specification conflict remains
-visible and release-blocking; `git status --porcelain spec/` empty. No compiler tests run.
+**Phase verification:** all content cases green; the consistency ledger has no unresolved or
+unreconciled entry; `spec/` changes are limited to that ledger. No compiler, assembler, readiness,
+VICE, or other emulator test runs.
+
+### Phase 3 Quality Review
+
+> **Review state**: ✅ Product rulings are resolved through AR-P41 and consistency repairs through
+> SC-147 under exact identity `BLEND65-SPEC-P3-ed278ab9`. Exact evaluator sets, the corrective
+> independent grade, and formal-semantics review pass; the final correctness re-review reports no
+> findings. The failed first focused-evidence grade is retained as audit history rather than
+> overwritten.
+> **Reviewers**: Independent CodeOps correctness reviewer and formal-semantics reviewer
+> **Spec-test integrity**: Passed — no `*.spec.test.*` file changed
+
+| Finding | Severity | Accepted remediation state |
+|---|---|---|
+| RV-001 / SR-002 | Critical/Major | Grammar reclassified as derived; complete grammar/chapter ledger added; function-local user-ZP assumption removed; reconciliation and focused rerun complete |
+| RV-002 / SR-005 | Major/Minor | Unsupported Phase-3 results reset; concrete packets, captures, and separate grading required before rerun |
+| RV-003 | Major | Every measured expert-parity “meet” now mandates a GitHub issue with full delta and path to the win |
+| RV-004 | Minor | Comparative compiler citations now use versioned source keys and pinpoint paths |
+| SR-001 | Major | Current semantic determination and release-document consistency are separate axes; Chapters 00–15 govern over derived/rationale copies |
+| SR-003 | Critical | Division-zero, OOB, callback/IRQ ABI, and expanded no-corruption conflicts added; AR-P6..AR-P8 and optional-safety AR-P10 accepted and reconciled |
+| SR-004 | Critical | Mechanical diagnostic inventory expanded to all 39 different-condition collisions, 18 wording/trigger drifts, 11 Chapter-14-only codes, and 96 index-only codes; AR-P9 accepted and reconciled |
+| P3-001 | Major | AR-P24 accepted after an independent option challenge; SC-049 now defines exact hosted Unicode-scalar preservation, finite compile-time one-byte target maps, E10249 rejection, and zero runtime Unicode support |
+| P3-002 | Major | Candidate ABI and migration now bind to Chapter 06's caller-stored static-frame parameter homes and A/A-X scalar returns (SC-043) |
+| P3-003 | Major | F017 cost rows now distinguish unsigned/proven-nonnegative reductions from sign-aware/general signed lowering (SC-044) |
+| P3-004 | Major | Migration now distinguishes ordinary `RTS` callbacks from direct `interrupt function`/`RTI` entries (SC-045) |
+| P3-005 | Moderate | F008 summaries now list all three range directions: `until`, `to`, and `downto` (SC-046) |
+| P3-006 | Moderate | Migration now records type aliases as rejected under REJ-001, not provisional (SC-047) |
+| P3-007 | Minor | Chapter 01/F021 token totals corrected to 32 operators and 79 total types (SC-048) |
+| R3-RV-001 / R3-SR-001 | Major | AR-P25 accepted after independent challenge; exhaustive immutable C64 mode maps, literal-only override, exact raw baselines, custom-map metadata gate, E10251, and Q-L28 reconcile SC-050; comprehensive correction grading passes |
+| R3-RV-002 / R3-SR-002 | Major | Character-literal E10210 wording and the raw-scalar grammar exclusion set are reconciled under SC-051 |
+| R3-RV-003 | Major | The inactive Atari PMG linker-selector example is removed under SC-052 |
+| R3-RV-004 | Major | Chapter 06 now defines one logical frame layout with statically allocated domain instances under SC-053 |
+| R3-RV-005 / R3-SR-004 | Minor | Release wording now binds the final Phase-3 digest, and the governing Chapter-06 link is corrected |
+| R3-SR-003 | Major | AR-P26 accepted after independent design challenge; three explicit C64 tiers, sink-selected entry variants, E10252, static cost accounting, and no runtime reconcile SC-054; Q-L29 comprehensive correction grading passes |
+| R3-EVAL-001 | Major | Comprehensive evaluation repaired stale evaluation authority, platform-defined startup/call handling, literal-category count, and grammar count/LF termination as SC-055..SC-058 |
+| R3-EVAL-002 | Major | AR-P27 accepted after independent challenge; binary-mode interrupt-body entry, status-safe chaining, page-safe indirect link placement, exact cost accounting, and no runtime reconcile SC-059 |
+| R3-EVAL-003 | Major | AR-P28 accepted after independent challenge; ordinary arithmetic remains binary, explicit BCD operations own carry/D state, runtime-invalid digits follow HLE-006, and no runtime is added (SC-125) |
+| R3-EVAL-004 | Major | AR-P29 accepted after independent challenge; explicit-stack state is kind-correct and path-sensitive with no emitted overhead (SC-128) |
+| R3-EVAL-005 | Major | AR-P30 accepted after independent challenge; player-neutral C64 audio lowers directly through hash-bound contracts, supports music/SFX/SFX-only/custom paths, and adds no generic runtime (SC-129) |
+| R3-EVAL-006 | Major | AR-P31 accepted with a refinement: BRK emits only `$00 $EA`, requires an exact profile contract, charges CPU plus handler stack, models returning/non-returning effects, retires W10121, and adds no handler/runtime (SC-130) |
+| R3-EVAL-007 | Major | AR-P32 accepted with a redesign: the range-only loop is replaced by one familiar three-clause loop with ordinary effects, CFG, SFA, and fixed-width semantics; proof-gated canonical induction recovers expert 6502 output without a runtime or generalized loop framework (SC-131). Existing range-only compiler paths are future audit/recovery subjects, not authority. |
+| R3-EVAL-008 | Major | AR-P33 accepted after independent challenge: `&local` is a hidden-provenance non-escaping borrow bounded by its dynamic source lifetime; per-parameter transitive retention proof permits ordinary calls, E10260 rejects the first possible escape, and bounded concurrent domains receive disjoint SFA homes/variants without a heap, runtime, or persistent pin (SC-132/HLE-007). |
+| R3-EVAL-009 | Major | AR-P34 accepted after independent challenge: SID-capable C64/C64U profiles select explicit video standard and address/model endpoint topology; all PSID clock/model meanings and secondary/tertiary inheritance remain exact; Unknown callable audio needs a closing player contract; E10261 rejects known mismatch; C64U deployment and turbo timing remain separate; no conversion or runtime hardware activation is added (SC-133). |
+| R3-EVAL-010 | Major | AR-P35..AR-P41 and SC-134..SC-145 close the no-view fixed-array, any-size-parameter, index-ordinal, loop-reachability, stable-query, aggregate-domain, proof, and cost contracts. |
+| R3-EVAL-011 | Major | SC-146 closes the broad source-validity, cost-accounting, diagnostic-ownership, feature-summary, and reserved-intrinsic grammar-routing repair without changing product behavior. |
+| R3-EVAL-012 | Minor | SC-147 makes the Q-L19 boundary explicit: ordinal 510 is valid for a 600-element array and E10240 for a 500-element array. |
+| R3-GRADE-001 | Major | The first focused capture mislabeled four answers. Its failed independent grade is preserved; a fresh four-case capture and independent grade pass Q-L01, Q-L14, Q-L20, and Q-L24, while Q-L19 retains its pass. |
+| R3-RV-001..R3-RV-004 | Major/Minor | The evidence-integrity, stale-history, coverage-overclaim, and stale Phase-3 task-state findings are all remediated under the exact final identity. |
+
+AR-P11 through AR-P41 were discovered and accepted during ruling reconciliation. Phase 3 may not
+be relabelled under a later specification edit: every edit invalidates this exact identity and its
+affected evidence. Definitive whole-skill isolation remains Phase 7 rather than a Phase-3 defect.
 
 ---
 
@@ -278,8 +346,8 @@ casebook, correcting the stale-V danger.
    and assembly/cost expectation.
 7. **4.7** Complete Phase-4 coverage and run all unblocked Q-C content cases plus Q-R01 with fresh
    evaluators; seed both prior V states and signed boundaries, and resolve/rerun every material
-   failure with source checks. Q-C13 and Q-C19 have their AR-P1/AR-P2 product rulings but remain
-   blocked until the frozen spec is reconciled.
+   failure with source checks. Q-C13 has its AR-P1 ruling. Q-C19 has the AR-P32/SC-131 replacement
+   oracle and remains pending only the final specification identity and Phase-4 CPU/lowering content.
 8. **4.8** Run opcode/addressing/category completeness, source-key/link/touched-Prettier/path/
    pinned-legacy-reference hash checks; bump the unqualified construction version and commit the CPU/lowering
    checkpoint.
@@ -320,10 +388,17 @@ game architecture, allocation, generated code, and executable evidence.
    raster, sprite, scrolling/rendering, aggressive VIC, audio, loader/asset, and engine-structure
    technique families and their knowledge-to-compiler proof chains. The loader/asset family must
    include the explicit Integrator-style reusable-element/panel, mask/priority, attribute-conflict,
-   emitted-layout, loading, and zero-cost-renderer case without creating an editor framework.
+   emitted-layout, loading, and zero-cost-renderer case without creating an editor framework. For
+   every built-in asset handler, pin the latest stable producing application release at the
+   qualification baseline, identify its exact emitted signature/version, inventory the complete
+   native component/width/attribute surface, and distinguish supported selectors from omitted
+   components without guessing from an extension.
 7. **5.7** Complete Phase-5 coverage and run all Q-P as content-only cases. Check that each
    executable claim specifies the future VICE 3.10 model/options, observable expectations, and
-   targeted real-hardware QA boundary. Do not execute VICE in this skill-creation plan.
+   targeted real-hardware QA boundary. Asset-handler claims additionally require representative
+   files from the pinned producing release, malformed/wrong-version counterexamples, and exact
+   selector values/types as future golden proof specifications. Do not execute VICE in this
+   skill-creation plan.
 8. **5.8** Run PAL/NTSC/chip/topic/source/link/touched-Prettier/path/pinned-legacy-reference checks; bump the
    unqualified construction version and commit the C64 checkpoint.
 
@@ -377,10 +452,9 @@ immutable v1.0.0 content checkpoint.
 
 - [ ] **P7 — The final live skill is independently qualified and its content checkpoint is immutable.**
 
-1. **7.1** Verify the independent spec-consistency prerequisite is complete: duplicate assignments
-   and direct cross-chapter conflicts have explicit product rulings and a reconciled frozen
-   baseline. Freeze affected semantic oracles, run them, finish every coverage/source dependency,
-   and resolve all material conflicts and migration rows.
+1. **7.1** Verify Phase 3's completed specification-consistency checkpoint and freeze the affected
+   semantic oracles. Do not reopen or postpone a known Phase-3 conflict here. Finish every remaining
+   coverage/source dependency and migration row.
 2. **7.2** In an ephemeral isolated candidate tree, author the v1.0.0 `SKILL.md` and matching
    `agents/openai.yaml`: preserve identity/activation boundaries, selectively route all thirteen
    references, and encode authority, modern-source stance, decision/response/lineage shape,
@@ -390,12 +464,13 @@ immutable v1.0.0 content checkpoint.
    candidate. This covers activation/non-activation, selective loading, response/lineage, version,
    freeze, release, and errata behavior. Correct and rerun failures before migration.
 4. **7.4** Perform independent review across hardware/tool accuracy, compiler semantics/SFA,
-   lowering/effects/optimization/cost, C64 practicality, modern ergonomics, source traceability,
-   routing, migration loss, oracle integrity, and overengineering.
+   lowering/effects/optimization/cost, C64 practicality, modern ergonomics including proactive
+   representation-leak discovery, source traceability, routing, migration loss, oracle integrity,
+   and overengineering.
 5. **7.5** Resolve every material review finding in the isolated candidate and rerun affected
    focused cases plus a cross-domain regression per changed module. Repeat independent review of
    the changed surface; do not weaken oracle fields.
-6. **7.6** Run the complete 100-case five-file suite once against the exact no-further-content-
+6. **7.6** Run the complete 107-case five-file suite once against the exact no-further-content-
    change isolated candidate. Launch each evaluator as a fresh one-shot process inside
    `/usr/bin/bwrap` or an equivalently enforced filesystem sandbox that does not mount the
    repository or normal workspace. Give it only the allowlisted packet and minimum read-only
@@ -416,22 +491,31 @@ immutable v1.0.0 content checkpoint.
     runtime/qualification payload hash is identical to the isolated candidate whose Gate-2/3
     evidence passed. A mismatch invalidates qualification and returns to 7.4; no second full suite
     is needed for byte-identical content.
-11. **7.11** Without changing the evidence that passed 7.8, verify all finalized case/review
+11. **7.11** Run the final Hardware-Limitation Exception Re-scan over the reconciled specification,
+    all thirteen candidate references, all accepted decisions, and every qualification oracle.
+    Inventory every compile-time rejection, unsupported mainstream behavior, unspecified result,
+    unchecked/raw hardware boundary, omitted trap/check/fallback, and user-visible platform
+    restriction. Classify each as an implementation defect, an ordinary specified rule, or a
+    genuinely forced hardware/no-runtime exception. Add every missing exception to the canonical
+    register, obtain any unresolved product ruling, and reconcile its specification and named
+    user-documentation duties. The gate requires zero omitted, pending, or unreconciled exceptions.
+    Any candidate-content change invalidates downstream evidence and returns execution to 7.4.
+12. **7.12** Without changing the evidence that passed 7.8, verify all finalized case/review
     evidence, run complete skill qualification plus touched Prettier/topology/link/metadata/source/
     spec/path/freeze checks, verify authorized paths and clean `spec/`, mark all seven delivery
     phases complete, and commit the exact immutable v1.0.0 content checkpoint. Capture its commit;
     never amend it.
 **Post-checkpoint release tail — not part of the P7 checkbox:**
 
-12. **7.12** After the checkpoint, edit only `qualification/release.md` to bind v1.0.0 to that
+13. **7.13** After the checkpoint, edit only `qualification/release.md` to bind v1.0.0 to that
     commit and record qualified scope, all gates, red baseline, evaluation/review/migration
     evidence, zero material findings, verification, freeze, and impact policy. Release bookkeeping
     does not bump the already-qualified version.
-13. **7.13** Validate the release record and exact post-checkpoint allowlist; update only the
+14. **7.14** Validate the release record and exact post-checkpoint allowlist; update only the
     feature and portfolio roadmaps to Implemented with release evidence; commit the release/roadmap
     checkpoint. Never push and never modify this execution plan after the content checkpoint.
 
-**Phase verification:** the 100-case inventory is derived from unique IDs; all cases and required
+**Phase verification:** the 107-case inventory is derived from unique IDs; all cases and required
 coverage are green; the exact live tree contains thirteen runtime references and seven
 qualification artifacts; no material finding remains; and `spec/`, compiler packages, examples,
 dependencies, and CI are untouched. No compiler tests run.
@@ -445,7 +529,7 @@ Phase 1 consistent local oracles + external drafts + legacy quarantine
     ↓
 Phase 2 source graph + external-oracle freeze + recovery/parity method
     ↓
-Phase 3 Blend65 semantics/architecture/SFA/IL (conflicts remain visibly blocked)
+Phase 3 Blend65 semantics/architecture/SFA/IL (complete under BLEND65-SPEC-P3-ed278ab9)
     ↓
 Phase 4 CPU model + lowering casebook
     ↓
@@ -455,7 +539,8 @@ Phase 6 ACME/artifacts + future-target constraints
     ↓
 Phase 7 reconciled semantics → isolated router → independent review/corrections
     → definitive blind suite → Candidate Pre-delete Gate → atomic live migration
-    → formal live gates by content identity → immutable content commit → release binding
+    → formal live gates by content identity → final hardware-exception omission re-scan
+    → immutable content commit → release binding
 ```
 
 Phase 2 precedes external-fact knowledge because sources must govern oracles. Phase 4 precedes C64
@@ -467,10 +552,10 @@ never appears on the authority side of this graph.
 
 The plan is complete when:
 
-1. all seven delivery phases are `[x]` and all 60 named substeps have evidence;
+1. all seven delivery phases are `[x]` and all 62 named substeps have evidence;
 2. the independent specification-consistency prerequisite is resolved;
 3. all RD-01 requirements and acceptance criteria have exact evidence;
-4. all three release gates and all 100 derived behavioral cases pass with zero material finding;
+4. all three release gates and all 105 derived behavioral cases pass with zero material finding;
 5. the final tree has exactly thirteen runtime references and seven qualification artifacts;
 6. the live spec crosswalk and every source/case/coverage set check are exact;
 7. the four superseded references are absent and every old rule has a verified migration
@@ -478,4 +563,6 @@ The plan is complete when:
 8. complete skill qualification is green and all changes remain inside the authorized boundary;
 9. the immutable skill-content commit and following release/roadmap commit exist; and
 10. `qualification/release.md` declares v1.0.0 the only active qualified baseline for the later
-    compiler-recovery journey.
+    compiler-recovery journey; and
+11. the final hardware-limitation exception re-scan records zero omitted, pending, or unreconciled
+    exceptions.

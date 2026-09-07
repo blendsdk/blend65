@@ -39,8 +39,11 @@ Key design principles:
 struct_decl  = [ "export" ] , "struct" , identifier
              , "{" , struct_field , { struct_field } , "}" ;
 
-struct_field = identifier , ":" , type_expr , ";" ;
+struct_field = identifier , ":" , value_type , ";" ;
 ```
+
+`value_type` is the shared production from Chapter 02 and the master grammar. Semantic analysis
+then rejects `void`, an unsized array, or a recursive aggregate as described below.
 
 ### 2.2 Field Types
 
@@ -51,6 +54,7 @@ Struct fields can be:
 | `byte`, `sbyte` | `hp: byte;` | 1 byte |
 | `word`, `sword` | `score: word;` | 2 bytes, little-endian |
 | `boolean` | `active: boolean;` | 1 byte |
+| Enum type | `state: ActorState;` | 1 byte, with nominal enum type |
 | Fixed-size array | `name: byte[3];` | Element size × count |
 | Another struct | `pos: Position;` | Size of nested struct |
 
@@ -59,6 +63,10 @@ Fields **cannot** be:
 - Unsized arrays (`byte[]` without a size)
 - The struct's own type (no self-reference — SR-7)
 - A struct that directly or indirectly contains this struct (no circularity — SR-8)
+
+After all nested field sizes are computed at full precision, the complete struct size must be in
+`0..65535` bytes. A struct may be larger than 255 bytes; `sizeof` and `offsetof` therefore both
+have stable `word` result types. E10265 rejects a declaration whose total exceeds 65535 bytes.
 
 ### 2.3 Export Visibility
 
@@ -113,7 +121,7 @@ damage(boss, 30);
 The `const` modifier prevents modification of by-reference struct parameters (→ Ch 08, const parameter rules):
 
 ```blend65
-function display(const e: Enemy): void {
+function display(e: const Enemy): void {
     let hp: byte = e.hp;     // ✅ read OK
     e.hp = 0;                // ❌ E10123: cannot modify const parameter
 }
@@ -246,7 +254,16 @@ let backup: Enemy = boss;   // copies all 5 bytes
 boss = backup;               // restores from backup
 ```
 
-**Cost**: ~4N cycles for an N-byte struct (N × LDA + STA).
+The assignment target is evaluated once, the complete source value is evaluated once, and the
+bytes are stored once. If the source can overlap the destination or later evaluation could
+overwrite source bytes, SFA first snapshots the source into non-overlapping invocation-private
+staging. The value of the assignment expression is that complete stored struct value; chained
+assignment therefore never observes a partially copied struct.
+
+**Cost**: an unrolled non-overlapping copy costs 6–8 cycles and 4–6 ROM bytes per byte when
+source and destination homes range from zero page to absolute. A selected loop, address calculation,
+or required SFA snapshot has its own reported cost. Snapshot RAM and complete copy cost appear in
+the build report.
 
 ### 4.5 Passing Nested Struct Fields
 
@@ -278,7 +295,10 @@ function swap(a: Enemy, b: Enemy): void { }
 swap(boss, boss);  // ⚠️ both a and b point to same memory — aliasing
 ```
 
-The compiler may emit **W10112** for obvious cases (same variable passed twice) but cannot catch all aliasing.
+The compiler emits **W10112** at a call site when two mutable struct arguments are statically
+proven to designate the same base storage, including the same variable or the same resolved path.
+It does not warn merely because two arguments might alias through information unavailable to the
+compiler; that uncertainty does not change the documented shared-storage behavior.
 
 ---
 
@@ -331,7 +351,7 @@ damage(boss, 30);
     LDA #30             ; amount parameter
     STA param_amount
     JSR damage
-; Total call overhead: ~16 cycles, 10 bytes
+; Total shown: 21–22 cycles, 15–16 bytes depending on the amount parameter home
 ```
 
 ### 5.4 Array of Structs — Constant Index
@@ -364,11 +384,14 @@ enemies[i].hp = 50;    // requires runtime multiply
     ADC #2              ; + offset of hp
     TAY
     LDA #50
-    STA enemies,Y       ; absolute indexed — works if total < 256 bytes
-; ~16 cycles for address calc + 5 cycles for store = ~21 cycles
+    STA enemies,Y       ; absolute indexed — legal only after a byte-offset range proof
+; Total shown: 25–27 cycles, 16–18 bytes depending on the index home
 ```
 
-For arrays larger than 256 bytes or struct sizes that aren't efficiently computable, the compiler uses a 16-bit address calculation with ZP pointer.
+This fast form requires proof that the complete reachable `i × 5 + 2` offset fits in one byte;
+the array's declared byte size alone is not enough because unchecked out-of-bounds ordinals retain
+their full address calculation. Without that proof, the compiler uses a 16-bit address calculation
+with a zero-page pointer.
 
 ### 5.6 Nested Struct Access
 
@@ -402,7 +425,7 @@ let e: Enemy = { x: 100, y: 50, hp: 200, enemyType: 1, frame: 0 };
     STA e+3             ; enemyType
     LDA #0
     STA e+4             ; frame
-; 10 instructions, ~20 cycles for a 5-byte struct
+; 10 instructions, 25–30 cycles and 20–25 bytes for ZP/absolute destination homes
 ```
 
 ### 5.8 ZP Pointer Cost
@@ -425,38 +448,42 @@ The compiler tracks total ZP usage. E10032 fires if it exceeds the platform budg
 |-----------|------|-------|
 | Field access (direct) | 4 cycles | Absolute addressing, compile-time address |
 | Field access (by-ref) | 5–6 cycles | Indirect indexed `(ptr),Y` |
-| Call overhead (pass struct) | ~16 cycles | Set up ZP pointer + JSR |
+| Call overhead (shown constant struct/value) | 21–22 cycles, 15–16 bytes | Set up ZP pointer, store byte argument, and JSR |
 | Array[const].field | 4 cycles | Compile-time address calculation |
-| Array[var].field | ~21 cycles | Runtime index multiply + access |
-| Struct init (N bytes) | ~4N cycles | N × (LDA + STA) |
-| Struct copy (N bytes) | ~4N cycles | N × (LDA + STA) |
+| Array[var].field (shown byte-offset form) | 25–27 cycles, 16–18 bytes | Requires proof that the complete effective offset fits one byte |
+| Struct init (N bytes) | 5–6N cycles, 4–5N bytes | Unrolled immediate load plus ZP/absolute store |
+| Struct copy (N bytes) | 6–8N cycles, 4–6N bytes | Unrolled ZP/absolute load plus store; snapshot/address work is additional |
 | `sizeof(Type)` | 0 cycles | Compile-time constant |
 | ZP per active struct param | 2 bytes | Shared across non-overlapping functions |
 
 ---
 
-## 7. Error Codes
+## 7. Diagnostic Conditions
 
-All error codes defined in this chapter. The canonical registry is in → Ch 14.
+This chapter owns struct trigger predicates. Chapter 14 alone owns public severities, message
+templates, spans, suppression, and history.
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| E10090 | Empty struct | `Struct '<name>' must have at least one field` |
-| E10091 | Self-referencing struct | `Struct '<name>' cannot contain a field of its own type — self-referencing structs are not allowed` |
-| E10092 | Circular dependency | `Circular struct dependency: '<A>' contains '<B>' which contains '<A>'` |
-| E10093 | Struct return type | `Cannot return struct type '<name>' from function — pass a struct parameter instead` |
-| E10094 | Const struct to mutable param | `Cannot pass const struct '<name>' to mutable parameter — add 'const' to parameter or copy to a mutable variable` |
-| E10095 | Struct comparison | `Cannot compare structs with '<op>' — compare individual fields instead` |
-| E10096 | Missing field in literal | `Struct literal must initialize all fields — missing field '<field>'` |
-| E10097 | Wrong field order in literal | `Struct literal fields must be in declaration order — expected '<expected>', found '<found>'` |
+| Code | Trigger | Rejected behavior or consequence |
+|------|---------|----------------------------------|
+| E10090 | A struct declaration has no fields. | The declaration is rejected. |
+| E10091 | A struct directly contains a field of its own type. | The declaration is rejected. |
+| E10092 | Struct field containment forms an indirect type cycle. | Every declaration in the cycle is rejected. |
+| E10093 | A function declares a struct return type. | The function is rejected. |
+| E10094 | A const struct argument is passed to a mutable struct parameter. | The call is rejected; no mutable alias is created. |
+| E10095 | A comparison operator is applied to struct values. | The comparison is rejected. |
+| E10096 | A struct literal omits a declared field. | The literal is rejected. |
+| E10097 | A struct literal's fields do not follow declaration order. | The literal is rejected. |
+| E10242 | Member access names no field in the resolved struct type. | The access is rejected. |
+| E10243 | A struct initializer names a field absent from the resolved type. | The initializer is rejected. |
+| E10265 | A struct's complete nested byte size exceeds 65535. | The type declaration is rejected before allocation or lowering. |
 
-## Warning Codes
+### Warning Conditions
 
-| Code | Condition | Message |
-|------|-----------|---------|
-| W10110 | Large struct in zeropage | `Struct '<name>' in zeropage uses <N> bytes — consider moving large structs to RAM` |
-| W10111 | Expensive struct indexing | `Array of structs indexed by variable: struct size <N> is not a power of 2 — indexing requires multiply (~<cycles> cycles per access)` |
-| W10112 | Possible aliasing | `Possible aliasing: parameter '<a>' and '<b>' may refer to the same struct` |
+| Code | Trigger | Consequence |
+|------|---------|-------------|
+| W10110 | A zero-page struct reaches `warn_struct_zp_size`, or `max(1, floor(max_zp / 4))` bytes when omitted. | Compilation continues with the measured zero-page cost. |
+| W10111 | Runtime indexing addresses an array whose struct element size is not a power of two. | Compilation continues with the measured index-cost estimate. |
+| W10112 | Two mutable struct arguments at one call site are statically proven to designate the same base storage. | Compilation continues; writes through either parameter affect the shared object. |
 
 ---
 
@@ -514,7 +541,7 @@ function damageEnemy(e: Enemy, amount: byte): void {
 }
 
 function updateAllEnemies(): void {
-    for (let i: byte = 0 to enemyCount) {
+    for (let i: byte = 0; i < enemyCount; i += 1) {
         if (enemies[i].hp > 0) {
             enemies[i].frame += 1;
         }
@@ -604,10 +631,10 @@ struct HighScoreEntry {
 let highScores: HighScoreEntry[5];
 
 function insertScore(name0: byte, name1: byte, name2: byte, newScore: word): void {
-    for (let i: byte = 0 to 5) {
+    for (let i: byte = 0; i < 5; i += 1) {
         if (newScore > highScores[i].score) {
             // Shift entries down
-            for (let j: byte = 4 downto i) {
+            for (let j: byte = 4; j > i; j -= 1) {
                 highScores[j] = highScores[j - 1];
             }
             // Insert new entry
