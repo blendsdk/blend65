@@ -1,6 +1,6 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.5.0-c64-platform`
+> **Construction status**: Candidate knowledge for the unqualified `0.6.0-artifacts-portability`
 > build. This module specifies semantic payload and proof duties, not a mandatory IR count or pass
 > framework.
 

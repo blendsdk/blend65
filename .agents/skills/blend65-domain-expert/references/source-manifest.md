@@ -1,7 +1,7 @@
 # Source Manifest
 
-> **Construction version**: `0.5.0-c64-platform`
-> **Retrieved/rechecked**: 2026-09-07
+> **Construction version**: `0.6.0-artifacts-portability`
+> **Retrieved/rechecked**: 2026-09-08
 > **Purpose**: Pin the evidence that may shape the Blend65 expert baseline. This manifest is
 > provenance, dependency, and conflict control; it is not a substitute for the distilled local
 > knowledge in the other references.
@@ -854,7 +854,8 @@ The following terms are used below:
 - **Scope**: expression grammar, low/high byte operators, addressing selection/forcing, symbols,
   branches, directives, diagnostics, reports, and output formats.
 - **Dependent sections**: all of `acme-and-artifacts.md`; serializer/packager boundaries in
-  `compiler-architecture.md`; Q-A01..Q-A05 and Q-R12.
+  `compiler-architecture.md`; ownership boundaries in `target-portability.md`; Q-A01..Q-A05 and
+  Q-R12.
 - **Precision**: `trunk/docs/QuickRef.txt` lines 302–360 (operator table, associativity, and
   low/high-byte ambiguity); `trunk/docs/AddrModes.txt` lines 7–45 (automatic ZP/absolute
   selection), 94–141 (force-width postfixes and byte extraction), and 146–172 (selection
@@ -883,9 +884,12 @@ The following terms are used below:
   observation mechanisms used by future proof specifications.
 - **Dependent sections**: `acme-and-artifacts.md#vice-proof-contract`, emulator boundaries in
   `c64-hardware.md`, Q-A06, and Q-R06.
-- **Precision**: tagged source path and symbol; never moving default-branch line numbers.
+- **Precision**: `vice/doc/vice.texi` command-line initialization, C64 model, monitor, and debug
+  settings; `vice/src/c64/c64-cmdline-options.c` model-name table; and
+  `vice/src/c64/cart/debugcart.c::debugcart_store`. Never use moving default-branch line numbers.
 - **Known issues**: VICE behavior is not universal physical truth. Model/settings must be recorded.
-- **Local extraction**: configuration and observation contract only.
+- **Local extraction**: exact future `x64sc -default -model c64 -console +sound +warp -debugcart
+  -limitcycles 4000000 -autostart ...` configuration and debug-cart exit observation contract only.
 - **Verification**: cross-check the release manual and relevant test-program sources; no emulator
   execution occurs in this plan.
 
@@ -898,10 +902,12 @@ The following terms are used below:
 - **Scope**: emulator/model configuration, command-line use, monitor, snapshots, and test
   observation interfaces.
 - **Dependent sections**: `acme-and-artifacts.md#vice-proof-contract` and Q-A06/Q-R06.
-- **Precision**: machine-model, command-line-options, monitor, and C64-model sections by heading.
+- **Precision**: “Command-line options used during initialization” (`-default`, `-console`,
+  `-limitcycles`, `-autostart`), C64 `-model`, and Debug settings (`-debugcart`) by heading.
 - **Known issues**: the online URL may later serve a newer manual; tagged source is the immutable
   version anchor.
-- **Local extraction**: exact future command template and required recorded configuration.
+- **Local extraction**: exact future command template, required recorded configuration, debug-cart
+  success marker, timeout boundary, and missing-tool/skip classification.
 - **Verification**: documentation/source agreement only during skill creation.
 
 ### VICE-TEST-EF8E8EFE — VICE test-program corpus snapshot
@@ -1261,7 +1267,7 @@ which obligation differs before comparing emitted code or architecture.
 - **Scope**: integrated linking, crunching, loading, resident IRQ interaction, memory placement, and
   cross-development workflow.
 - **Dependent sections**: `c64-game-engineering.md#asset-streaming-and-loading` and
-  `acme-and-artifacts.md#artifact-and-loader-boundaries`.
+  `acme-and-artifacts.md#five-separate-boundaries`.
 - **Precision**: handbook section and page for loader/linker/IRQ/memory behavior.
 - **Known issues**: demo-oriented solution; loader tradeoffs and assumptions must be re-evaluated for
   a game's I/O and runtime contract.
@@ -1317,7 +1323,7 @@ instead of inventing one.
 
 | Key | Exact pin and location | Constraint scope | Known limit / dependent section |
 |---|---|---|---|
-| TARGET-X16-R49 | Commander X16 docs release `r49`, commit `d8c26e580caa3b92c96446a24d65c32149cc41e4`; `X16 Reference - 02 - Getting Started.md` character-set modes, `08 - Memory Map.md`, `09 - VERA Programmer's Reference.md`, `14 - Hardware.md`, `Appendix C - 65C02 Processor.md`, and `Appendix G - ZSM File Format.md`; <https://github.com/X16Community/x16-docs/tree/r49> | W65C02, banking, VERA, memory map, upper/graphics versus lower/upper versus ISO character-mode distinction, artifacts, official ZSM revision 1 identity | Constraint only; initial text and asset profiles are raw-only, and the next separately qualified X16 expert-skill extension reopens exhaustive character maps, production depth, and format handlers; `target-portability.md#commander-x16` |
+| TARGET-X16-R49 | Commander X16 docs release `r49`, commit `d8c26e580caa3b92c96446a24d65c32149cc41e4`; `X16 Reference - 01 - Overview.md`, `02 - Getting Started.md` character-set modes, `08 - Memory Map.md`, `09 - VERA Programmer's Reference.md`, `11 - Sound Programming.md`, `14 - Hardware.md`, `Appendix C - 65C02 Processor.md`, and `Appendix G - ZSM File Format.md`; <https://github.com/X16Community/x16-docs/tree/r49> | 65C02S at 8 MHz, banking, VERA/VRAM, YM2151, memory map, upper/graphics versus lower/upper versus ISO character-mode distinction, artifacts, official ZSM revision 1 identity | Constraint only; initial text and asset profiles are raw-only, and the next separately qualified X16 expert-skill extension reopens exhaustive character maps, production depth, and format handlers; `target-portability.md#commander-x16` |
 | TARGET-C64U-EE6B7AC | commit `ee6b7ac1d5d06a6713dcfa5f95efdc78588d4b69`; `config/turbo_mode.rst`, `howto/dma.rst`, `data_streams.rst`, `hardware/index.rst`, `config/multi_sid.rst` SHA-256 `49a7fd70809c162a73c633248c36a91e2a6787f710fb78b5c68efc6f139390b0`, and `sidplayer.rst` SHA-256 `c3c5ccbf891b428bf55dccd52127e42864f5bad5599f5b0748b6b4fc2989a77c`; <https://github.com/GideonZ/1541u-documentation/tree/ee6b7ac1d5d06a6713dcfa5f95efdc78588d4b69> | C64 compatibility, physical-SID/UltiSID endpoint configuration, SID-player facilities, and Ultimate extensions | Constraint only; model/firmware and exact selected endpoint topology must be stated; documentation does not authorize compiler-side runtime discovery or hardware activation; `target-portability.md#c64-ultimate` |
 | TARGET-C128-1986 | Commodore 128 Programmer's Reference Guide, February 1986, ISBN 0-553-34292-4; memory-management, machine-language, VIC-II/VDC, and appendices headings; <https://www.devili.iki.fi/pub/Commodore/docs/books/C128_Programmers_Reference_OCR.pdf> | 8502, modes, banking, VIC-II/VDC, startup | OCR must be checked against scans for exact bits; `target-portability.md#c128` |
 | TARGET-ATARI8-HW | Atari 400/800 Home Computer System Hardware Manual, Atari, copyright 1982; no edition/revision printed; SHA-256 `4072344ee26b954f492608af70dba812f5214d89468e1061ba6724d7a8054845`; sections II.A–II.E, III.A–III.I, V.A–V.B, and VI.A–VI.C; <https://www.atarimania.com/documents/atari-400-800-hardware-manual.pdf> | 6502-family, ANTIC/CTIA, POKEY, interrupt/register, display-list, and memory-map seams | Constraint only and not a complete 800XL/GTIA profile; asset handlers are raw-only until the Atari 8-bit expert-skill extension reopens and qualifies them; `target-portability.md#atari-8-bit` |

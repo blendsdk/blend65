@@ -1,9 +1,9 @@
 # Blend65 Domain Expert Release Record
 
-> **Active construction version**: `0.5.0-c64-platform`
+> **Active construction version**: `0.6.0-artifacts-portability`
 > **Target baseline**: `1.0.0`
 > **Status**: Draft — unqualified; no release gate is claimed green
-> **Recorded**: 2026-09-07
+> **Recorded**: 2026-09-08
 
 ## Identity
 
@@ -16,8 +16,8 @@
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Construction router | `0.5.0-c64-platform`; explicitly unqualified and non-authoritative |
-| Construction router SHA-256 | `5dccc93902b1ab2ac7e2afee3f29ebcf00ccbb357c3e294fb59753f5d5efbd98` |
+| Construction router | `0.6.0-artifacts-portability`; explicitly unqualified and non-authoritative |
+| Construction router SHA-256 | `d7d22a6f88ea38a762c02dc88b14af2838e980c9931569beb84b80fbe33932b3` |
 | Qualified content commit | — |
 | Superseded qualified version | None; the legacy prototype was never qualified |
 
@@ -25,9 +25,9 @@
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Incomplete | Eleven candidate construction references coexist with four quarantined legacy references; two planned candidate references and the final thirteen-reference migration remain. |
-| Coverage and traceability | Incomplete | Phase-3 language/architecture/SFA/IL, Phase-4 CPU/lowering, and Phase-5 C64 platform/game content pass focused evaluation. ACME/artifact and portability replacement content remains Phase 6. Native asset parser claims remain fail-closed until their stated producer-schema/fixture implementation proofs exist. |
-| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Phase 4 passes Q-C01..Q-C24 plus focused Q-R01. Phase 5 passes Q-P01..Q-P21 plus focused Q-R04 after corrective evaluation. Definitive Phase-7 isolation remains outstanding. |
+| Structural | Incomplete | All thirteen candidate references now exist beside four quarantined legacy references; the final isolated qualification and atomic thirteen-reference migration remain Phase 7. |
+| Coverage and traceability | Incomplete | Phase-3 language/architecture/SFA/IL, Phase-4 CPU/lowering, Phase-5 C64 platform/game, and Phase-6 ACME/artifact/portability content are authored. Phase-6 focused qualification is recorded below; definitive Phase-7 isolation remains. Native asset parser claims remain fail-closed until their stated producer-schema/fixture implementation proofs exist. |
+| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Phase 4 passes Q-C01..Q-C24 plus focused Q-R01. Phase 5 passes Q-P01..Q-P21 plus focused Q-R04 after corrective evaluation. Phase 6 adds its focused content cases; definitive Phase-7 isolation remains outstanding. |
 | Specification consistency prerequisite | Phase 3 complete | The current replacement candidate binds corrections through SC-147 under `BLEND65-SPEC-P3-ed278ab9`. Mechanical checks report 50 specification paths, 96 grammar productions, and matching diagnostic registries with 177 unique codes (148 errors, 29 warnings). Exact evaluator and corrective independent grade pass; formal-semantics review is clean. |
 | Hardware-limitation exceptions | Incomplete | Every currently known entry and optional-safety contract is reconciled; the mandatory final omission re-scan remains a Phase-7 release gate. |
 
@@ -1201,12 +1201,43 @@ total and the deterministic collision/sprite oracles. Both pass. All focused wor
 content evaluation. No compiler build, typecheck, lint, package test, assembler, readiness suite,
 VICE/emulator, or hardware test ran or is claimed.
 
+## Phase-6 Focused Results
+
+The Phase-6 evaluator received only `acme-and-artifacts.md`, `target-portability.md`,
+`evidence-parity-and-recovery.md`, `source-manifest.md`, `compiler-architecture.md`, and the ten
+assigned prompts. It was forbidden the hidden oracles, plans, compiler code/tests, legacy
+references, prior outputs, network access, and executable tools. Its first pass found two content
+integration defects: Q-R12's minimum route was inferable but not explicit, and one selected module
+still displayed an older construction version. Both were corrected without changing an oracle.
+The evaluator's focused recheck passed.
+
+An independent grader then received the captured decisions, the two hidden case files, current
+candidate references, and the already downloaded pinned primary materials. It checked the exact
+ACME bytes and diagnostic, C64 BASIC/PRG layout, VICE option/debug-cart semantics, target facts,
+status bounds, and case integrity. It reported no findings.
+
+| Case | Final result | Decisive current evidence |
+|---|---|---|
+| Q-A01 | Pass | Resolved symbol, report and actual bytes are mandatory; the exact future width probe expects `a5 fa ad 00 01 ad fa 00 a5 fa` |
+| Q-A02 | Pass | Generated low/high extraction is parenthesized and the exact future result for `$12ff + 1` is `00 13` |
+| Q-A03 | Pass | Value, symbol, forced-width and first-pass-forward behavior are distinct and byte-checked |
+| Q-A04 | Pass | Displacement 128 has the exact source-derived error; legal compiler repair occurs before serialization and retains path-cost proof |
+| Q-A05 | Pass | The 22-byte PRG, `$0801` load header, `$080b` terminator link, `$0810` entry and BASIC `SYS 2064` startup agree; runtime remains a separate future proof |
+| Q-A06 | Pass | Missing or skipped VICE remains `Unknown` and outside every green count |
+| Q-A09 | Pass | Atari/X16 delegation to C64 startup/output is `Scaffold/stub`, never support |
+| Q-A10 | Pass | Language, CPU, platform, serializer and packager/startup facts retain separate owners |
+| Q-A17 portability facet | Pass | Primary sources, constraint-only status, target cases, separated contracts and a vertical artifact proof are required; Phase-7 integration remains |
+| Q-R12 | Pass | A narrow ACME question loads only `acme-and-artifacts.md` and `source-manifest.md` unless its scope expands |
+
+These results qualify the knowledge content and exact future proof specifications, not executable
+observations. Phase 6 did not run ACME, VICE, the compiler, package tests, readiness, or hardware.
+
 ## Migration
 
-The coverage matrix pins every material legacy heading and its planned destination. The Phase-4
-CPU/lowering and Phase-5 C64 rows now record evaluated replacements. The ACME half of the legacy
-C64 verification section remains Phase 6. The four old references remain in the working tree as
-hash-checked read-only evidence until the Candidate Pre-delete Gate.
+The coverage matrix pins every material legacy heading and its planned destination. Phase-3 through
+Phase-6 candidate modules now provide evaluated replacements for every old heading. The four old
+references remain in the working tree as hash-checked read-only evidence until the Phase-7
+Candidate Pre-delete Gate.
 
 ## Verification
 
@@ -1262,6 +1293,16 @@ strict Phase-5 path allowlist, frozen-`spec/` check, spec-test integrity check, 
 `git diff --check` pass. This was content validation only: no compiler build, typecheck, lint,
 package test, assembler, readiness suite, VICE/other emulator, or physical-hardware test ran or is
 claimed.
+
+Phase-6 content verification passed on 2026-09-08. The skill validator and touched-file Prettier
+check pass. The five case files retain 107 unique cases with exactly all eleven required fields;
+Q-A01..Q-A06, Q-A09/Q-A10, Q-A17's portability-content facet, and Q-R12 record focused passes in
+their correct packets. All candidate citation keys are defined, every checked local Markdown path
+and anchor resolves, all required ACME/PRG/VICE/target markers exist, the construction version is
+consistently `0.6.0-artifacts-portability`, and all four legacy-reference hashes match. The strict
+Phase-6 path allowlist, frozen-`spec/`, spec-test integrity, and `git diff --check` pass. This was
+content validation only: no compiler build, typecheck, lint, package test, readiness suite, ACME,
+VICE/other emulator, or physical-hardware test ran or is claimed.
 
 ## Post-phase Review
 
@@ -1369,6 +1410,17 @@ gap was deferred.
 The final independent correctness re-review reports no findings. All re-grades were content-only.
 Security and performance specialist reviews remain inapplicable to this non-executable
 documentation phase. Frozen-`spec/` and spec-test integrity remain intact; no compiler, assembler,
+readiness, emulator, or hardware execution was performed.
+
+### Phase 6
+
+The initial review packet omitted the exact verification recipe/result, so the correctness reviewer
+correctly refused to issue a verdict. While completing that packet, it also identified that the
+Q-R12 focused-result text had been placed under Q-R02. The result was moved to its exact case and
+Q-R02 was restored to `Not run`; no oracle text changed. The complete verification recipe then
+passed, and the resumed independent correctness review reported no findings. Security and
+performance specialist reviews were skipped because this phase changes only non-executable skill
+and planning Markdown. Frozen-`spec/` and spec-test integrity remain intact; no compiler, assembler,
 readiness, emulator, or hardware execution was performed.
 
 ## Freeze Declaration

@@ -21,7 +21,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Grades emitted text alone.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator required the resolved symbol, report, and actual bytes;
+  the independent grade confirmed the exact future `$0100` absolute probe and kept executable
+  observation pending rather than inferring it from source text.
 - **Definitive result:** Not run.
 ## Q-A02 — ACME precedence/low-high expression ambiguity
 
@@ -34,7 +36,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Relies on memory or another assembler.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator preserved explicit `<(base + 1)`/`>(base + 1)`
+  parentheses and expected `00 13`; the independent grade confirmed the value and pinned-source
+  rule without claiming that ACME ran.
 - **Definitive result:** Not run.
 
 ## Q-A03 — Automatic ZP/absolute selection boundary
@@ -48,7 +52,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Assumes source mnemonic fixes width.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — automatic value selection, explicit `+1`/`+2` width, first-pass
+  forward-symbol behavior, report inspection, and the exact future byte sequence all survived
+  independent grading.
 - **Definitive result:** Not run.
 
 ## Q-A04 — Out-of-range relative branch
@@ -62,7 +68,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Treats successful text generation as completion.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — displacement 127 remains the successful boundary, 128 requires the
+  exact pinned diagnostic, and compiler repair stays in machine CFG/layout with actual-byte and
+  path-cost proof.
 - **Definitive result:** Not run.
 
 ## Q-A05 — Build C64 PRG
@@ -76,7 +84,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Confuses raw binary with PRG.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — header, origin, body, segments, symbols, BASIC `SYS 2064` startup, and
+  VICE execution remain separate gates; the independent grade confirmed the exact 22-byte future
+  PRG and `$080b`/`$0810` symbols.
 - **Definitive result:** Not run.
 
 ## Q-A06 — VICE test skipped because emulator missing
@@ -91,7 +101,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Rolls skip into green count.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — a missing emulator or deliberate skip is `Unknown` at the runtime
+  boundary, is excluded from green counts, and names the exact pinned rerun as the next proof.
 - **Definitive result:** Not run.
 
 ## Q-A07 — Generated routine uses smaller code but adds table/helper/ZP
@@ -137,7 +148,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Calls target supported because registry entry exists.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Draft observation: partial — status and salvage rules exist, but there is no six-target constraint model (`evidence-and-parity.md:38-54,123-134`).
-- **Focused result:** Not run.
+- **Focused result:** Pass — a non-C64 plugin delegating C64 startup/output is `Scaffold/stub`;
+  neither registry presence nor emitted text upgrades target support.
 - **Definitive result:** Not run.
 
 ## Q-A10 — Decide where a new target fact belongs
@@ -151,7 +163,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Adds catch-all platform special case upstream.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the evaluator routed source meaning, CPU facts, machine facts, ACME
+  syntax, and artifact/startup facts to distinct owners and rejected a catch-all upstream platform
+  special case.
 - **Definitive result:** Not run.
 
 ## Q-A11 — Readiness harness has many tests but no unique failure
@@ -254,5 +268,8 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Appends shallow notes, implies production support, or mutates the active baseline mid-journey.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
+- **Focused result:** Portability-content facet passes — pinned primary research, an honest
+  constraint-only appendix, separate CPU/platform/serializer/packager contracts, target-specific
+  frozen cases, and one vertical artifact proof are mandatory. Phase-7 integration still must prove
+  version bump, dependent-impact review, complete qualification, and atomic activation.
 - **Definitive result:** Not run.

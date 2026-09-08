@@ -1,6 +1,6 @@
 # Evidence, Parity, and Recovery
 
-> **Construction version**: `0.2.0-evidence-foundation`
+> **Construction version**: `0.6.0-artifacts-portability`
 > **Role**: Decide what is actually known, compare generated work fairly with expert 6502 work,
 > and recover useful compiler parts without preserving accidental complexity.
 

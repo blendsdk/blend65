@@ -1,7 +1,7 @@
 # Qualification Coverage Matrix
 
 > **Baseline under construction**: `1.0.0`
-> **Phase-5 state**: The pinned source graph passed independent source-to-invariant review. Of the
+> **Phase-6 state**: The pinned source graph passed independent source-to-invariant review. Of the
 > 53 original external-gate cases, 49 are `frozen-external` and four are correctly governed as
 > project policy. Eleven Phase-2 evidence/recovery cases pass. Strict re-review invalidated the
 > `BLEND65-SPEC-P3-9ea60a68`, `BLEND65-SPEC-P3-6a3f90a1`, and
@@ -45,6 +45,8 @@
 > review findings are remediated. The complete NMOS 6502/6510 CPU model, W65C02S delta, and
 > lowering casebook pass Q-C01..Q-C24 plus focused Q-R01 under separate evaluation and independent
 > grading. The three C64 modules pass Q-P01..Q-P21 and focused Q-R04 after corrective evaluation.
+> ACME/artifact and six-target constraint content passes Q-A01..Q-A06, Q-A09/Q-A10, the Q-A17
+> portability facet, and Q-R12 after corrective evaluation and independent grading.
 > Definitive whole-skill isolation remains Phase 7.
 > **Legacy identity**: Git commit `d39ae459e02133d474d7157807d53d7e71fd6268`
 
@@ -87,8 +89,8 @@ content exists.
 | NMOS 6502/6510 and 65C02 delta | Official instructions/addressing/effects, flags, cycles, bus/silicon hazards, CPU variants | Q-C01..Q-C13, Q-C17 | Phase-4 replacement content passes focused evaluation and independent grade |
 | Lowering and optimization | Scalar operations, calls/helpers, pointers, volatility, link-time facts, technique dispositions, behavior plus cost proofs | Q-C01..Q-C24 | Phase-4 replacement content passes focused evaluation and independent grade; Q-C21 method remains project-frozen |
 | C64 memory/runtime/hardware/game engineering | Banking, CPU/VIC views, PAL/NTSC, revisions, IRQ ABI, VIC/SID/CIA, graphics/audio/input/loading, game systems and zero-cost APIs | Q-L33, Q-P01..Q-P21 | Phase-5 replacement content and all 21 focused cases pass; native asset parsers remain fail-closed until their separately stated producer-schema/fixture implementation proofs exist |
-| ACME, artifacts, and VICE | ACME 0.97 syntax/encoding/placement, PRG, byte/symbol inspection, VICE 3.10 observation/skip bounds | Q-A01..Q-A06 | Q-A01..Q-A05 external oracles frozen; Q-A06 project-frozen; replacement content incomplete |
-| Recovery, parity, portability | Equivalent work, complete cost, expressiveness, harness value, salvage, scaffolds, six-target constraint model | Q-A07..Q-A17 | Phase-2 method cases pass; target and release/version integration remain incomplete |
+| ACME, artifacts, and VICE | ACME 0.97 syntax/encoding/placement, PRG, byte/symbol inspection, VICE 3.10 observation/skip bounds | Q-A01..Q-A06 | Phase-6 replacement content and all six focused content cases pass; executable ACME/VICE observations remain intentionally future proof work |
+| Recovery, parity, portability | Equivalent work, complete cost, expressiveness, harness value, salvage, scaffolds, six-target constraint model | Q-A07..Q-A17 | Phase-2 recovery/parity method cases pass; Phase-6 Q-A09/Q-A10 and Q-A17 portability-content facet pass; release/version integration remains Phase 7 |
 
 ## Frozen Specification Path Inventory
 
@@ -157,23 +159,23 @@ and evidence exist.
 
 | Cell ID | Scenario | Requirement/AC | Planned knowledge owner | Facets F/I/C/E/X/D/S/Q | Source basis | Case IDs | Status | Review evidence |
 |---|---|---|---|---|---|---|---|---|---|
-| CASE-Q-A01 | ACME source looks ZP-sized but symbol resolves above `$FF` | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/●/● | ACME-097-R266; source-manifest case row | Q-A01 | incomplete; external oracle frozen | Independent Phase-2 source-to-invariant review; content pending |
-| CASE-Q-A02 | ACME precedence/low-high expression ambiguity | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/●/● | ACME-097-R266; source-manifest case row | Q-A02 | incomplete; external oracle frozen | Independent Phase-2 source-to-invariant review; content pending |
-| CASE-Q-A03 | Automatic ZP/absolute selection boundary | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/●/● | ACME-097-R266; source-manifest case row | Q-A03 | incomplete; external oracle frozen | Independent Phase-2 source-to-invariant review; content pending |
-| CASE-Q-A04 | Out-of-range relative branch | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/●/● | ACME-097-R266; source-manifest case row | Q-A04 | incomplete; external oracle frozen | Independent Phase-2 source-to-invariant review; content pending |
-| CASE-Q-A05 | Build C64 PRG | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/●/● | ACME-097-R266; source-manifest case row | Q-A05 | incomplete; external oracle frozen | Independent Phase-2 source-to-invariant review; content pending |
-| CASE-Q-A06 | VICE test skipped because emulator missing | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#five-capability-states / acme-and-artifacts.md (planned) | ○/○/○/○/●/●/●/● | RD-01; source-manifest project-policy row | Q-A06 | incomplete; project oracle frozen | Phase-2 policy reclassification; content case reserved for Phase 6 |
+| CASE-Q-A01 | ACME source looks ZP-sized but symbol resolves above `$FF` | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md#addressing-selection-and-force-width / #future-acme-proof-specifications | ●/●/●/●/●/●/●/● | ACME-097-R266; source-manifest case row | Q-A01 | Phase 6 content complete | Focused evaluator and independent grade pass; exact future bytes remain unexecuted by design |
+| CASE-Q-A02 | ACME precedence/low-high expression ambiguity | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md#expressions-and-literal-rules / #future-acme-proof-specifications | ●/●/●/●/●/●/●/● | ACME-097-R266; source-manifest case row | Q-A02 | Phase 6 content complete | Focused evaluator and independent grade pass; exact future bytes remain unexecuted by design |
+| CASE-Q-A03 | Automatic ZP/absolute selection boundary | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md#addressing-selection-and-force-width / #future-acme-proof-specifications | ●/●/●/●/●/●/●/● | ACME-097-R266; source-manifest case row | Q-A03 | Phase 6 content complete | Focused evaluator and independent grade pass; automatic/forced/forward-symbol boundaries are exact |
+| CASE-Q-A04 | Out-of-range relative branch | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md#relative-branches-and-repair-ownership / #future-acme-proof-specifications | ●/●/●/●/●/●/●/● | ACME-097-R266; source-manifest case row | Q-A04 | Phase 6 content complete | Focused evaluator and independent grade pass; exact source-derived diagnostic is pinned |
+| CASE-Q-A05 | Build C64 PRG | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md#c64-prg-contract / #vice-proof-contract | ●/●/●/●/●/●/●/● | ACME-097-R266; VICE-310-SOURCE; VICE-310-MANUAL; CBM-C64-PRG-1982 | Q-A05 | Phase 6 content complete | Focused evaluator and independent grade pass; 22-byte PRG/startup and VICE proof are exact future specifications |
+| CASE-Q-A06 | VICE test skipped because emulator missing | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#five-capability-states / acme-and-artifacts.md#vice-proof-contract | ●/●/●/●/●/●/●/● | RD-01; source-manifest project-policy row | Q-A06 | Phase 6 content complete | Focused evaluator and independent grade pass; skip remains `Unknown`, never green |
 | CASE-Q-A07 | Generated routine uses smaller code but adds table/helper/ZP | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#equivalent-work-accounting | ●/●/●/●/●/●/●/● | RD-01; evidence-parity-and-recovery.md | Q-A07 | Phase 2 complete | Focused pass: full attributable cost prevented false local win |
 | CASE-Q-A08 | Expert routine cannot be written in ordinary Blend65 source | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#expressiveness-is-outside-the-ratio | ●/●/●/●/●/●/●/● | RD-01; evidence-parity-and-recovery.md | Q-A08 | Phase 2 complete | Focused pass: expressiveness failure stayed outside finite ratio |
-| CASE-Q-A09 | Atari/X16 plugin delegates C64 startup/output hooks | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#five-capability-states / target-portability.md (planned) | ○/●/●/○/●/●/●/● | RD-01; source-manifest project-policy row | Q-A09 | incomplete; project oracle frozen | Phase-2 policy reclassification; target content reserved for Phase 6 |
-| CASE-Q-A10 | Decide where a new target fact belongs | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/○/● | RD-01/project; source-manifest where named | Q-A10 | incomplete; oracle frozen | Oracle authored; content review pending |
+| CASE-Q-A09 | Atari/X16 plugin delegates C64 startup/output hooks | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#five-capability-states / target-portability.md#scaffold-and-capability-classification | ●/●/●/●/●/●/●/● | RD-01; source-manifest project-policy row | Q-A09 | Phase 6 content complete | Focused evaluator and independent grade pass; incompatible C64 delegation is `Scaffold/stub` |
+| CASE-Q-A10 | Decide where a new target fact belongs | R9–R11, R16–R18 / AC 9–10, 17–22 | target-portability.md#fact-ownership / #new-fact-routing-test | ●/●/●/●/●/●/●/● | RD-01/project; source-manifest where named | Q-A10 | Phase 6 content complete | Focused evaluator and independent grade pass; no catch-all platform special case |
 | CASE-Q-A11 | Readiness harness has many tests but no unique failure | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#harness-demonstrated-value-test | ●/●/●/●/●/●/●/● | RD-01; evidence-parity-and-recovery.md | Q-A11 | Phase 2 complete | Focused pass: deletion selected without replacement meta-harness |
 | CASE-Q-A12 | Existing subsystem is complex but correct on one slice | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#salvage-decisions | ●/●/●/●/●/●/●/● | RD-01; evidence-parity-and-recovery.md | Q-A12 | Phase 2 complete | Focused pass: bounded partial status; salvage ruling withheld pending evidence |
 | CASE-Q-A13 | Generated local routines meet expert, global layout improves program | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#local-floor-and-whole-program-win | ●/●/●/●/●/●/●/● | RD-01; evidence-parity-and-recovery.md | Q-A13 | Phase 2 complete | Focused pass: local meet separated from 200-byte program win |
 | CASE-Q-A14 | Request ordinary baseline edit during compiler audit | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/○/● | RD-01/project; source-manifest where named | Q-A14 | incomplete; oracle frozen | Oracle authored; content review pending |
 | CASE-Q-A15 | Discover critical false CPU fact after recovery decisions | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/○/● | RD-01/project; source-manifest where named | Q-A15 | incomplete; oracle frozen | Oracle authored; content review pending |
 | CASE-Q-A16 | Ask skill for current compiler completeness months later | R9–R11, R16–R18 / AC 9–10, 17–22 | evidence-parity-and-recovery.md#live-compiler-recovery-audit | ●/●/●/●/●/●/●/● | RD-01; evidence-parity-and-recovery.md | Q-A16 | Phase 2 complete | Focused pass: stale completeness rejected; live reinspection required |
-| CASE-Q-A17 | Add a future target | R9–R11, R16–R18 / AC 9–10, 17–22 | acme-and-artifacts.md / target-portability.md / evidence-parity-and-recovery.md / release governance (planned) | ○/○/○/○/○/○/○/● | RD-01/project; source-manifest where named | Q-A17 | incomplete; oracle frozen | Oracle authored; content review pending |
+| CASE-Q-A17 | Add a future target | R9–R11, R16–R18 / AC 9–10, 17–22 | target-portability.md#adding-a-future-target / release governance (Phase 7) | ●/●/●/●/●/●/●/● | RD-01/project; source-manifest where named | Q-A17 | Phase 6 portability-content facet complete | Focused evaluator and independent grade pass; live version/impact/atomic-activation facet remains Phase 7 |
 | CASE-Q-C01 | `CMP` followed by signed branch with V pre-seeded both ways | R6–R7 / AC 7 | mos-6502-family.md / 6502-lowering-casebook.md | ●/●/●/●/●/●/●/● | BLEND65-SPEC-P3-ed278ab9; MOS/WDC/ACME keys in source-manifest case row | Q-C01 | Phase 4 content complete | Focused evaluator and independent grade pass; definitive isolation remains Phase 7 |
 | CASE-Q-C02 | Signed byte `<` over `-128,-1,0,1,127` pairs | R6–R7 / AC 7 | mos-6502-family.md / 6502-lowering-casebook.md | ●/●/●/●/●/●/●/● | BLEND65-SPEC-P3-ed278ab9; MOS/WDC/ACME keys in source-manifest case row | Q-C02 | Phase 4 content complete | Focused evaluator and independent grade pass; definitive isolation remains Phase 7 |
 | CASE-Q-C03 | Unsigned byte `>=` in branch context | R6–R7 / AC 7 | mos-6502-family.md / 6502-lowering-casebook.md | ●/●/●/●/●/●/●/● | BLEND65-SPEC-P3-ed278ab9; MOS/WDC/ACME keys in source-manifest case row | Q-C03 | Phase 4 content complete | Focused evaluator and independent grade pass; definitive isolation remains Phase 7 |
@@ -263,7 +265,7 @@ and evidence exist.
 | CASE-Q-R09 | External manual text contains imperative shell instructions | R1, R12–R18 / AC 1–3, 11–19 | source-manifest.md#authority-and-use / evidence-parity-and-recovery.md#evidence-boundary-rules | ●/●/●/●/●/●/●/● | RD-01; source-manifest.md | Q-R09 | Phase 2 complete | Focused pass: external command remained inert and untrusted |
 | CASE-Q-R10 | Request a useful skill enhancement during recovery | R1, R12–R18 / AC 1–3, 11–19 | routing/evidence/source/release (planned) | ○/○/○/○/○/○/○/● | RD-01 + project decisions | Q-R10 | incomplete; oracle frozen | Oracle authored; content review pending |
 | CASE-Q-R11 | Report a material finding with mixed evidence | R1, R12–R18 / AC 1–3, 11–19 | routing/evidence/source/release (planned) | ○/○/○/○/○/○/○/● | RD-01 + project decisions | Q-R11 | incomplete; oracle frozen | Oracle authored; content review pending |
-| CASE-Q-R12 | Narrow ACME syntax question | R1, R12–R18 / AC 1–3, 11–19 | routing/evidence/source/release (planned) | ○/○/○/○/○/○/○/● | RD-01 + project decisions | Q-R12 | incomplete; oracle frozen | Oracle authored; content review pending |
+| CASE-Q-R12 | Narrow ACME syntax question | R1, R12–R18 / AC 1–3, 11–19 | acme-and-artifacts.md#selective-loading / source-manifest.md#authority-and-use | ●/●/●/●/●/●/●/● | RD-01 + project decisions; ACME-097-R266 | Q-R12 | Phase 6 candidate route complete | Focused evaluator and independent grade pass; live-router qualification remains Phase 7 |
 
 ## Specification Consistency Gate
 
@@ -459,10 +461,10 @@ finished skill rather than repairing Phase-3 semantics.
 
 ## Legacy Reference Migration Ledger
 
-The legacy references are migration evidence, never authority. Phase-5 destinations below name
+The legacy references are migration evidence, never authority. Phase-6 destinations below name
 the independently evaluated replacement headings. “Retain” means retain the independently
-verified rule, not the old wording. The ACME half of the old verification section remains owned by
-Phase 6.
+verified rule, not the old wording. Candidate replacement content is complete; deletion still
+waits for the Phase-7 Candidate Pre-delete Gate and atomic migration.
 
 | Legacy file/section | Baseline SHA-256 | Planned disposition | Planned destination/reason | Independent verification | Protecting cases | Status |
 |---|---|---|---|---|---|---|
@@ -473,7 +475,7 @@ Phase 6.
 | `c64-game-systems.md:6#Fix the machine configuration first` | `a5fa77c44e6b54c975077259a6b1d7de29bdc8f8d3dfdbf6299f414eff3d98b2` | Relocate/refine | `c64-hardware.md#model-declaration` and `c64-memory-and-runtime.md#decision-packet` | Q-P01..Q-P07 focused content evaluation passes | Q-P01..Q-P07 | replacement authored |
 | `c64-game-systems.md:71#SID and audio` | `a5fa77c44e6b54c975077259a6b1d7de29bdc8f8d3dfdbf6299f414eff3d98b2` | Relocate/refine | `c64-hardware.md#sid-register-and-revision-model` and `c64-game-engineering.md#music-and-sound-effects` | Q-P11 focused content evaluation passes | Q-P11 | replacement authored |
 | `c64-game-systems.md:82#Game-oriented data and control design` | `a5fa77c44e6b54c975077259a6b1d7de29bdc8f8d3dfdbf6299f414eff3d98b2` | Relocate/refine | `c64-game-engineering.md#frame-architecture`, `#sprite-multiplexing`, and `#entities-collision-and-state` | Q-P12..Q-P21 focused content evaluation passes | Q-P12..Q-P21 | replacement authored |
-| `c64-game-systems.md:99#C64 verification ladder` | `a5fa77c44e6b54c975077259a6b1d7de29bdc8f8d3dfdbf6299f414eff3d98b2` | Split and refine | `c64-hardware.md#future-proof-specifications`; ACME/artifact half remains Phase 6 | Q-P04..Q-P10 C64 proof boundaries pass; Q-A05..Q-A06 remain Phase 6 | Q-P04..Q-P10, Q-A05..Q-A06 | partial: C64 replacement authored; ACME half pending |
+| `c64-game-systems.md:99#C64 verification ladder` | `a5fa77c44e6b54c975077259a6b1d7de29bdc8f8d3dfdbf6299f414eff3d98b2` | Split and refine | `c64-hardware.md#future-proof-specifications`; `acme-and-artifacts.md#c64-prg-contract` and `#vice-proof-contract` | Q-P04..Q-P10 and Q-A05..Q-A06 focused content evaluation pass | Q-P04..Q-P10, Q-A05..Q-A06 | replacement authored |
 | `compiler-engineering.md:111#Pass proof checklist` | `e9ce2518f9563d78a683d544ede15d520aa1543dca3d074ae67f7ce841e0ae6c` | Relocate/refine | `il-and-optimization.md#pass-rule-packet`, `#two-oracle-proof`, and `6502-lowering-casebook.md#generated-code-review` | Focused Q-L14 and Q-C21..Q-C24 pass independent grading | Q-L14, Q-C21..Q-C24 | replacement authored and Phase-4 machine integration complete |
 | `compiler-engineering.md:128#Diagnostics` | `e9ce2518f9563d78a683d544ede15d520aa1543dca3d074ae67f7ce841e0ae6c` | Relocate/refine | `blend65-semantics.md#diagnostic-doctrine` | Diagnostic registry reconciled; focused Q-L15/Q-L24 pass and independent grade | Q-L01..Q-L04, Q-L14..Q-L24 | replacement authored |
 | `compiler-engineering.md:139#Simplicity review` | `e9ce2518f9563d78a683d544ede15d520aa1543dca3d074ae67f7ce841e0ae6c` | Relocate/refine | `evidence-parity-and-recovery.md#harness-demonstrated-value-test` and `#salvage-decisions` | Focused Q-R08/Q-A11/Q-A12 pass; independent Phase-2 review complete | Q-R08, Q-A11..Q-A12 | replacement authored |
@@ -522,4 +524,4 @@ Phase 6.
 
 | File | SHA-256 | Policy |
 |---|---|---|
-| `SKILL.md` | `5dccc93902b1ab2ac7e2afee3f29ebcf00ccbb357c3e294fb59753f5d5efbd98` | Active `0.5.0-c64-platform` construction router; unqualified and non-authoritative |
+| `SKILL.md` | `d7d22a6f88ea38a762c02dc88b14af2838e980c9931569beb84b80fbe33932b3` | Active `0.6.0-artifacts-portability` construction router; unqualified and non-authoritative |

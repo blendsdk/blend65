@@ -1,6 +1,6 @@
 # Compiler Architecture Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.5.0-c64-platform`
+> **Construction status**: Candidate knowledge for the unqualified `0.6.0-artifacts-portability`
 > build. This module defines responsibilities and invariants, not a mandatory class diagram.
 
 ## Design Objective

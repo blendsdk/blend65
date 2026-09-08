@@ -189,5 +189,8 @@ Each evaluator receives only the case prompt, the permitted raw artifacts named 
 - **Disqualifying outcomes:** Loads compiler/C64/game monolith.
 - **Evidence required to grade:** The captured response, exact references selected or rejected, stated context/authority, cited permitted evidence, claim classification, and any named decisive missing probe.
 - **Red-baseline result:** Fail — no `acme-and-artifacts.md` or `source-manifest.md` exists, and the narrow question routes into broad CPU/C64 prose.
-- **Focused result:** Not run.
+- **Focused result:** Pass — the minimum candidate route is exactly `acme-and-artifacts.md` plus
+  `source-manifest.md`; architecture, portability, CPU, C64, game, parity, and recovery modules are
+  loaded only if the question expands into their domains. Independent grading found no remaining
+  route or source-boundary defect.
 - **Definitive result:** Not run.

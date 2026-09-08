@@ -1,8 +1,8 @@
 # Execution Plan: Blend65 Expert Skillset v1.0.0
 
-> **Plan Status**: Phases 1–5 complete; Phase 6 ACME/artifact/portability knowledge is next
-> **Progress**: 5/7 delivery phases (71%); 62 retained implementation substeps
-> **Last Updated**: 2026-09-07
+> **Plan Status**: Phases 1–6 complete; Phase 7 router migration and definitive qualification is next
+> **Progress**: 6/7 delivery phases (86%); 62 retained implementation substeps
+> **Last Updated**: 2026-09-08
 > **Implements**: blend65-expert-skillset/RD-01
 > **Execution mode**: Commit coherent, impact-verified checkpoints without asking; never push
 
@@ -481,9 +481,13 @@ Markdown. No compiler, assembler, readiness, emulator, or hardware execution app
 
 **Goal**: Pin text-to-bytes-to-PRG behavior and provide honest future-target seam constraints.
 
+> **Phase baseline tree**: `ed26fd95163016431cf3d9e87b5e7a28c9f1e94a`
+> **Scope mode**: strict
+> **Expected modification set**: `.agents/skills/blend65-domain-expert/references/{acme-and-artifacts,target-portability,source-manifest}.md`, `.agents/skills/blend65-domain-expert/qualification/{coverage-matrix.md,cases/parity-recovery-and-portability.md,cases/routing-and-evidence.md,release.md}`, `.agents/skills/blend65-domain-expert/SKILL.md`, this `99-execution-plan.md`, and the feature roadmap. The single-active-version bump may also change only the construction-version header in already completed candidate references. The portfolio roadmap is deferred on this non-integration branch. No compiler, language-specification, package, example, readiness, assembler, emulator, hardware-test, dependency, CI, runner, or framework surface is in scope.
+
 **Reference**: 03-05 §§ACME/Portability, RD-01 R9–R10
 
-- [ ] **P6 — ACME/artifact knowledge and portability constraints are content-qualified.**
+- [x] **P6 — ACME/artifact knowledge and portability constraints are content-qualified.** ✅ (completed: 2026-09-08 09:20)
 
 1. **6.1** Author `references/acme-and-artifacts.md` for ACME 0.97 CPU mode, expressions,
    symbols/scopes, addressing/force-width, branch range, placement/alignment, data/includes,
@@ -625,7 +629,7 @@ The plan is complete when:
 1. all seven delivery phases are `[x]` and all 62 named substeps have evidence;
 2. the independent specification-consistency prerequisite is resolved;
 3. all RD-01 requirements and acceptance criteria have exact evidence;
-4. all three release gates and all 105 derived behavioral cases pass with zero material finding;
+4. all three release gates and all 107 derived behavioral cases pass with zero material finding;
 5. the final tree has exactly thirteen runtime references and seven qualification artifacts;
 6. the live spec crosswalk and every source/case/coverage set check are exact;
 7. the four superseded references are absent and every old rule has a verified migration
