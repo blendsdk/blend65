@@ -10,9 +10,9 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Progress**: 18/20
+> **Progress**: 18/20 historical RD closures; not a current-spec capability percentage
 >
-> **Last Updated**: 2026-07-17
+> **Last Updated**: 2026-09-09
 >
 > Full per-slice/per-phase history — preflight findings, ambiguity-register decisions, and
 > phase narratives — lives in the plan directories under `plans/`, the completed-plan
@@ -20,6 +20,15 @@
 > a short milestone log, and the status tables.
 
 ## Current status
+
+**Expert recovery audit completed 2026-09-09.** The audit confirms that the historical 18/20 RD
+counter does not represent active-spec completeness or release readiness. The current compiler is
+**Incorrect** against the active language at parser, array, call-lowering, diagnostic, target/SFA,
+artifact-atomicity, and expert-parity boundaries. It also confirms valuable salvage in the
+frontend infrastructure, diagnostic mechanics, SFA algorithms, CFG/IL basics, ACME utilities, and
+focused VICE harness. Recommendation: stop RD-13/RD-14 and readiness implementation, then create a
+C64-first controlled clean-slate recovery plan that ports components only after proof. See the
+[expert recovery audit](01-expert-recovery-audit.md).
 
 **RD-18 Slice 7b ✅ COMPLETE (2026-07-12, exec_plan 58/58) — SLICE 7 CLOSED, RD-18 acceptance
 item 6 ticked.** The pointer surface ships end-to-end: by-ref struct/array params (caller stores
@@ -93,7 +102,9 @@ audited + ticked; RD-04b phantom retired. Next: RD-13/RD-14 (both need `make_pla
 
 ## Current Position
 
-- **Active**: none — **RD-18 is CLOSED** (2026-07-17). All slices 3a–8b ✅ complete, each
+- **Active**: implementation paused after the 2026-09-09 expert recovery audit. **RD-18 remains
+  historically CLOSED** (2026-07-17), but that lifecycle state is not a claim of current language
+  completeness. All slices 3a–8b were marked complete under their historical plans, each
   gated by CI assemble-clean + CI golden + local VICE.
   **⚠️ Corrected 2026-07-21** — the original wording, "the whole frozen v3 language compiles
   end-to-end", is **false**. Legal frozen-spec constructs still ICE, fail to parse, or
@@ -104,8 +115,8 @@ audited + ticked; RD-04b phantom retired. Next: RD-13/RD-14 (both need `make_pla
   **RD-15** (programmatic + CLI API), both 2026-07-03. The full pipeline compiles
   frontend→SFA→IL→6502→ACME→loadable c64 `.prg` and is VICE-verified; `blendc` ships with config,
   diagnostics, and resource reports.
-- **Next up**: **RD-13** (non-functional sweep) and **RD-14** (VS Code extension & Language
-  Server) — both need `make_plan`.
+- **Next up**: after user acceptance of the audit, create a C64-first recovery requirements set and
+  implementation plan. RD-13, RD-14, and readiness work are not the next implementation actions.
 
 ---
 
