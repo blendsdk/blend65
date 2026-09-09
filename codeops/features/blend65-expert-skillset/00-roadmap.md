@@ -1,10 +1,10 @@
 # Roadmap: Blend65 Expert Skillset
 
 > **Feature-Set**: Blend65 Expert Skillset
-> **Status**: Executing
+> **Status**: Implemented
 > **Created**: 2026-09-04
-> **Last Updated**: 2026-09-08
-> **Progress**: 0 / 1 (0%)
+> **Last Updated**: 2026-09-09
+> **Progress**: 1 / 1 (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Legend
@@ -15,4 +15,4 @@
 
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |----|-------|----|------|-------|--------|--------------|----------------------|
-| RD-01 | C64-First Blend65 Domain Expert Baseline | [RD-01](requirements/RD-01-c64-first-domain-expert-baseline.md) | [Plan](plans/blend65-expert-skillset/00-index.md) | Executing | 🔄 | 2026-09-08 | Phases 1–6 of 7 complete under `BLEND65-SPEC-P3-ed278ab9`; Phase 6 ACME/artifact/portability content passes Q-A01..Q-A06, Q-A09/Q-A10, Q-A17 portability, and Q-R12 with clean independent review; Phase 7 router migration and definitive qualification is next; content-only qualification, no compiler/assembler/readiness/emulator execution |
+| RD-01 | C64-First Blend65 Domain Expert Baseline | [RD-01](requirements/RD-01-c64-first-domain-expert-baseline.md) | [Plan](plans/blend65-expert-skillset/00-index.md) | Implemented | ✅ | 2026-09-09 | v1.0.0 is the single active qualified baseline at content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`; all 7 phases and 107 qualification cases pass; exact 13-reference/7-qualification topology; no compiler, assembler, readiness, or emulator execution |

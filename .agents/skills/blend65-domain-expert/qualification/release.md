@@ -1,8 +1,8 @@
 # Blend65 Domain Expert Release Record
 
-> **Candidate version**: `1.0.0`
-> **Status**: Qualification in progress; not active until every release gate is green
-> **Recorded**: 2026-09-08
+> **Active qualified version**: `1.0.0`
+> **Status**: Active — the only qualified Blend65 domain-expert baseline
+> **Recorded**: 2026-09-09
 
 ## Identity
 
@@ -15,9 +15,11 @@
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Candidate router | `1.0.0`; isolated and inactive until qualification and atomic migration complete |
+| Active router | `1.0.0`; qualified and atomically active |
 | Candidate router SHA-256 | `80fbc581e4a1a60e372fa2bff745748755da322d2f5db5a3c402b4bc2aa4621f` |
-| Qualified content commit | — |
+| Qualified content commit | `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa` |
+| Qualified runtime-payload digest | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
+| Qualified content-checkpoint full skill-tree digest | `4379f1d0a7d6e8c3523c647591994a86fb5bfc99d66f75edf5b9a16b3c925e00` |
 | Superseded qualified version | None; the legacy prototype was never qualified |
 
 ## Gate State
@@ -1571,6 +1573,10 @@ reports no findings and confirms specification-test integrity.
 
 ## Freeze Declaration
 
-There is no freeze declaration yet. The single active construction version is explicitly
-unqualified. The target `1.0.0` baseline becomes active only after all release gates pass and its
-exact immutable content commit is recorded here.
+Blend65 Domain Expert `1.0.0` is the single active qualified baseline. It is bound to immutable
+content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`, router SHA-256
+`80fbc581e4a1a60e372fa2bff745748755da322d2f5db5a3c402b4bc2aa4621f`, and the runtime/full-tree
+digests recorded above. Activation occurred on 2026-09-09 after all release gates passed. Any
+substantive router, knowledge, source-governance, or qualification-oracle change requires at least
+a patch-version bump, affected/dependent requalification, independent review, and a new atomic
+activation. Git history preserves older content; no parallel active version exists.
