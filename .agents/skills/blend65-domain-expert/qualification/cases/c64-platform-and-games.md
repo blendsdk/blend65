@@ -23,7 +23,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: pre-passer — CPU mapping, VIC-bank selection, and bank-relative visibility are separated (`c64-game-systems.md:19-34`).
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P02 — Mainline changes `$01` while IRQ may run
 
@@ -37,7 +40,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P03 — Move charset/screen to another VIC bank
 
@@ -51,7 +57,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P04 — Raster workload budgeted for both PAL and NTSC
 
@@ -65,7 +74,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P05 — Work scheduled on a badline
 
@@ -79,7 +91,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P06 — Eight sprites active during raster work
 
@@ -93,7 +108,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P07 — Select KERNAL-chain, KERNAL-exclusive, or raw IRQ/NMI entry
 
@@ -130,7 +148,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Focused result:** Pass — the initial IRQ-only pass was invalidated by RV-007; the strengthened
   IRQ/NMI case passed a fresh Phase-5 isolated content re-grade, with decisive evidence recorded in
   `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P08 — Acknowledge VIC raster IRQ
 
@@ -144,7 +165,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P09 — CIA interrupt-control register read/write
 
@@ -158,7 +182,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P10 — Scan joystick/keyboard while CIA2 selects VIC bank
 
@@ -172,7 +199,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P11 — Design SID-player scheduling and music/SFX sharing across 6581/8580
 
@@ -186,7 +216,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P12 — Double-buffer screen/charset across visibility regions
 
@@ -200,7 +233,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P13 — Sprite multiplexer with IRQ-only sorter/update helpers
 
@@ -214,7 +250,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P14 — Named `vic.borderColor.set(5)`-style wrapper
 
@@ -228,7 +267,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P15 — Design an Integrator-style compile-time scene/asset pipeline for a large visible game area
 
@@ -242,7 +284,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P16 — Design entity storage, collision, and state dispatch for a fixed game workload
 
@@ -256,7 +301,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P17 — Stable raster region calls variable-path logic or a helper
 
@@ -270,7 +318,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P18 — Request VSP/AGSP for a general C64 build
 
@@ -284,7 +335,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P19 — Use FLI/FLD/line-crunch/border/sprite-crunch technique
 
@@ -298,7 +352,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P20 — Optimize a scrolling/rendering hot path
 
@@ -312,7 +369,10 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-P21 — Bake a sprite-multiplexer technique into Blend65 support
 
@@ -326,4 +386,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: fail — game idioms are listed, but sprite multiplexing is not mapped to deterministic compiler/API ownership, costs, hazards, and proof (`c64-game-systems.md:82-97`).
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.

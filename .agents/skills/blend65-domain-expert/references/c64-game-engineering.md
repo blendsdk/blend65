@@ -329,6 +329,15 @@ sprites/order to this oracle and checks every write, line, cycle, vector, stack 
 late marker, and assembled sorter cost in VICE before targeted physical timing QA.
 [VIC-BAUER-2024, §§3.8 and 3.12; NINE-AKESSON, sprite DMA and priority sections]
 
+Any report that quotes those numeric costs must bind them to the whole baseline contract in the
+same answer: PAL 6569 with 63 cycles per line; exclusive raw VIC raster IRQ; only the VIC raster
+source enabled; no NMI, re-entry, or banking competitor; writable and visible `$FFFE–$FFFF`;
+visible I/O; unchanged declared `$0000/$0001`; fixed VIC bank and screen base; and unexpanded
+24×21 sprites with fixed per-channel multicolor, priority, and X-expansion state. Merely saying
+that a profile will choose a model or interrupt variant is not enough. If any precondition is not
+bound, the numeric baseline is inapplicable and its bytes/cycles must be reported as Unknown until
+a separately qualified variant is supplied.
+
 ## Scrolling and rendering
 
 ### Fine/coarse design
@@ -388,7 +397,7 @@ A template is a set of bus-write events plus a selected-model stabilizer and slo
 means the final device-write bus cycle, not the start of an `LDA`. A full known register value costs
 5 bytes/6 nominal cycles as `LDA #value; STA absolute`; with the value already proved live in A,
 the store is 3 bytes/4 cycles. Stabilization, entry/exit, padding, DMA stalls, data, and restore
-writes are separate ledger rows. The initial 0.5 candidate recognizes these templates only through
+writes are separate ledger rows. This baseline recognizes these templates only through
 an explicit named local contract:
 
 | Template | Deterministic event/effect baseline | Layout and fallback |
@@ -469,6 +478,15 @@ and register-call ordering. Assembly proof checks direct call sequences and all 
 stack/cycle costs. A selected-model register trace in VICE/libsidplayfp is useful but does not prove
 identical 6581/8580 analogue sound; targeted listening/measurement on named hardware closes that
 boundary.
+
+Before closing an audio design or audit, explicitly report the four integration paths, the exact
+export/player identity and selected features, logical source voices `0..2` separately from any
+player-native channel-offset encoding, cadence ownership, callable ABI/clobbers, writable state,
+arbitration/resume behavior, IRQ/mainline exclusion, every enabled IRQ/CIA/NMI source and nesting
+path, banking, video/SID topology, and every linked resource cost. Name GoatTracker 2.77 only as the
+first adapter family, retain SID Factory II as an unqualified candidate, and require a separate
+C64U profile for GTUltra or multi-SID. Missing contract fields stay `Unknown`; they never justify a
+generic scheduler or mixer or a fixed stack/timing claim.
 
 ## Input
 
@@ -590,7 +608,8 @@ order internally, but it must canonicalize the published result or it is behavio
 
 For each candidate the proof table must contain final code bytes, static data and padding, ZP,
 SFA homes, hardware-stack peak, initialization, update, broad phase, narrow-hit and narrow-miss,
-state best/worst path cycles, plus IRQ/loader visibility. Those numbers come from final assembled
+state best/worst path cycles, plus the complete machine, interrupt, and loading context required by
+the machine-bound workload completion gate below. Those numbers come from final assembled
 addresses because page crossings and address-mode choices matter; this content-only phase does not
 invent them. The compiler selects the lowest candidate satisfying the declared RAM and worst-frame
 budget. A source address escape, unknown state target, or observable layout fixes the affected
@@ -600,6 +619,26 @@ overlap defeats an average-case sweep claim, touching edges detect `<=` in place
 sparse two-state trace can make the 16-byte jump table lose to a chain. [MOS-PGM-1976,
 indexed/indirect access and instruction costs;
 HESSIAN-1.2 and C64-GAMEFRAME-C634F6F, named actor/collision paths]
+
+### Machine-bound workload completion gate
+
+Every C64 workload, representation comparison, or game-system recommendation fixes the execution
+context even when the work appears CPU-only. State the exact machine profile, CPU, video chip and
+video standard, plus relevant banking and visibility. If the packet does not supply one, keep the
+affected result `Unknown`; do not silently choose a generic C64.
+
+State either that interrupts are absent/disabled for the measured interval or describe every
+reachable IRQ and NMI route. Each introduced route must name its source and entry kind, vector/link
+storage, acknowledgement owner, terminal/exit owner, nesting and re-entry assumptions, banking
+visibility, handler/wrapper code bytes, IRQ-specific hardware-stack peak, and entry,
+acknowledgement, restoration, exit, and full-path cycles. A generic `stack`, `code`, or `cycles`
+line does not account for an interrupt route.
+
+State loader and initialization ownership whether or not streaming is central to the comparison.
+Report loader/decompressor code and data bytes, transfer/load time, initialization/loading cycles,
+scratch/ZP/stack, destination and visibility windows, and interference with live code, IRQ, audio,
+SFA homes, and assets. Each unavailable figure is individually `Unknown`, never omitted or treated
+as zero.
 
 ## Asset streaming and loading
 
@@ -622,6 +661,15 @@ but only selected outputs are emitted. Extension chooses a candidate handler; si
 complete structure, indices, lengths, and exact EOF establish validity. Older, newer, malformed,
 or unregistered generations fail closed with E10204.
 
+Keep four asset costs distinct: emitted artifact bytes, final runtime residency, compile-time import
+work, and any runtime access/transfer work. A compile-time handler allocates no SFA home and can add
+zero runtime import instructions, but that does not make its selected object “zero RAM.” The linker
+and packager may place bytes in ROM, resident RAM, a load overlay, cartridge space, or another
+profile-owned region. Until the final map and loader plan exist, physical RAM/ROM/banked residency,
+replication, transfer, and overlap costs are individually `Unknown`. For VIC-consumed data, also
+prove the selected bank, offset, alignment, visibility, and every other simultaneously resident
+object; never infer fit from payload size alone.
+
 ### Qualification baseline and surfaces
 
 | Handler | Pinned identity | Exact accepted identity | Surface and important rejection rules | Evidence state |
@@ -632,7 +680,7 @@ or unregistered generations fail closed with E10204.
 | Koala | `KOALA-NATIVE-003` classic layout cross-check | project contract: exactly 10,003 bytes with little-endian `$6000`, 8,000 bitmap, 1,000 screen, 1,000 Color RAM bytes, and one background byte | bitmap, screen, color_ram, background; selector required; no placement/base field; explicit Color RAM transfer; low-nibble hardware meaning is separate from file-byte preservation | layout cross-checked; selector names and high-nibble acceptance are product policy pending fixtures |
 
 The complete normative Blend65 selector/type rules come from
-[BLEND65-SPEC-P3-ed278ab9, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
+[BLEND65-SPEC-P3-4bf8a989, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
 provenance: SpritePad/CharPad files do not encode the producing application version. The format
 claim is qualified only against representative files produced by the pinned release plus an exact
 schema/parser review.
@@ -652,6 +700,77 @@ tags, names, and map. `CHARPAD-388` must pin the producer release record; releas
 cover every display/color/tile combination and wide index boundary. Comparative parser limits
 cannot silently become Blend65 limits.
 
+The CharPad handler has no default selector. Its exact initial selector surface is:
+
+| Selector | Type and availability |
+|---|---|
+| `"charset"` | `const byte[]`; eight bytes per character, with 2-KiB alignment and selected-VIC-bank visibility |
+| `"tiles"` | smallest-lossless `const byte[]` or little-endian `const word[]`; tile mode only |
+| `"map"` | smallest-lossless `const byte[]` or little-endian `const word[]`; tile indices in tile mode, otherwise character indices |
+| `"tiles_word"` | forced little-endian `const word[]`, even when every value fits in a byte; tile mode only |
+| `"map_word"` | forced little-endian `const word[]`, even when every value fits in a byte |
+| `"tiles_packed12"` | `const byte[]`; tile mode only, and only when every tile index is at most 4095 |
+| `"map_packed12"` | `const byte[]`; present only when every map index is at most 4095 |
+| `"tiles_low"`, `"tiles_high"` | independently selected full `const byte[]` planes; tile mode only |
+| `"map_low"`, `"map_high"` | independently selected full `const byte[]` planes |
+| `"colors"`, `"color_method"` | native color table as `const byte[]` and native method as `byte` |
+| `"map_width"`, `"map_height"` | `word` dimensions in map entries |
+| `"tile_width"`, `"tile_height"`, `"tile_mode"` | `byte`, `byte`, and `boolean`; dimensions are 1 without a tile layer |
+
+For canonical `"tiles"` and `"map"`, maximum index 255 selects `byte[]`; any larger valid index
+selects `word[]`. Declaring the other type is E10144 with the required type, never truncation or a
+format error. A requested selector absent from the parsed file's enumerated surface is E10133.
+
+For logical values `v[0..N-1]`, packed-12 emits the `N` low bytes first, followed by `ceil(N/2)`
+high-nibble bytes. High byte `j` is
+`((v[2*j] >> 8) & $0f) | (((v[2*j+1] >> 8) & $0f) << 4)`. When `N` is odd, the absent final value
+contributes zero to the upper nibble. Therefore `$123,$456,$789` emits
+`$23,$56,$89,$41,$07`. A value above `$fff` makes the packed selector unavailable; it never
+truncates. Only explicitly selected canonical, forced-word, packed, or split representations emit
+and appear in the build cost. No companion representation, flattened screen, derived color RAM,
+address base, or offset table appears implicitly.
+
+Before closing a CharPad/Koala review, state the canonical 255 byte/word selection boundary,
+packed-12's 4095 maximum, low-plane-then-high-nibble ordering, odd-tail zero padding, independent
+low/high selectors, selector-required/no-default rule, E10144 selector-type mismatch, and E10204
+for malformed or unregistered versions. For Koala, also state the exact 10,003-byte `$6000`
+layout, its one-byte background component, requested-only emission, placement-derived VIC fields,
+and the explicit costed Color RAM transfer.
+
+For CharPad availability, do not group all tile-related names under “tile-only.” `"tile_width"`,
+`"tile_height"`, and `"tile_mode"` are always present; without a tile layer their exact values are
+`1`, `1`, and `false`. Only the selectors explicitly marked tile-mode-only in the table above are
+absent and produce E10133 when requested.
+
+Before closing a SpritePad review, state the exact accepted SPD v5 identity, E10204 for every other
+version, complete 64-byte records, word counts, per-record attributes, every selected optional
+tile/animation/overlay component, explicit requested derived outputs, and placement-derived VIC
+blocks. All embedded assets are program-lifetime platform-layout/packaging objects outside SFA;
+their handlers never allocate function-execution storage or hidden duplicate representations.
+
+State resident-set placement as intervals, not as one scalar byte sum. In a selected 16-KiB VIC
+bank `B = [0, $4000)`, `S` contiguous native sprite records placed at bank-relative offset `o`
+occupy `R = [o, o + 64 × S)`. Require `o mod 64 = 0` and `R` to lie entirely within `B`. Model every
+simultaneously live VIC-visible object as its actual interval or intervals; each must satisfy its
+own alignment, visibility, and banking constraints and must not overlap another live object unless
+the overlap is a proved identical-object alias or an explicit overlay with a complete liveness
+contract. The active screen matrix occupies its complete 1-KiB interval; its final eight bytes are
+the sprite-pointer table and are not an additional allocation. Final offsets already include
+alignment padding, so report padding as artifact cost but do not add it again to an interval end.
+
+`256 × 64 = 16,384`: 256 native records fill every block only as `[0, $4000)`, so they cannot
+coexist with an active screen matrix in that bank. More than 256 necessarily exceeds one bank. For
+any project whose complete set is not simultaneously resident, report the explicit resident subset
+and loader/overlay/bank-transition contract.
+
+Parser-closing evidence must cover the accepted-fixture roles `SPD380-MIN-V5` (smallest accepted
+structure), `SPD380-ALL-V5` (all supported components together), `SPD380-WIDE-V5` (word-sized counts
+and indices), and an `SPD380-OPTIONALS-V5-*` matrix that exercises every optional component both
+present and absent in meaningful legal combinations. It must also cover the explicit adjacent-
+version rejections `SPD-V4` and `SPD-V6` and every derived malformed boundary in the acquisition
+register. These IDs are stable manifest labels, not evidence by themselves: producer provenance,
+file hashes, expected selector types/bytes, and exact boundary/EOF results supply the proof.
+
 For Koala, `KOALA-NATIVE-003` cross-checks the classic header and four ordered components. It does
 not justify treating nonzero unused high bits as a malformed historic file. If the current product
 contract rejects such bytes, record that as a deliberate Blend65 policy and test both accepted and
@@ -669,14 +788,14 @@ producer slot.
 
 | Handler | Required accepted fixture IDs | Required rejection IDs | Provenance and expected output record |
 |---|---|---|---|
-| SpritePad 3.80 | `SPD380-MIN-V5`, `SPD380-ALL-V5`, `SPD380-WIDE-V5`, `SPD380-OPTIONALS-V5` | `SPD-V4`, `SPD-V6`, every block truncation/count mismatch/trailer/selector mismatch derived from a hashed accepted file | 3.80 project/save provenance, file SHA-256, every selector's type/length/SHA-256, full tail/EOF coverage |
+| SpritePad 3.80 | `SPD380-MIN-V5`, `SPD380-ALL-V5`, `SPD380-WIDE-V5`, and the `SPD380-OPTIONALS-V5-*` matrix | `SPD-V4`, `SPD-V6`, every block truncation/count mismatch/trailer/selector mismatch derived from a hashed accepted file | 3.80 project/save provenance, file SHA-256, every selector's type/length/SHA-256, full tail/EOF coverage; IDs label evidence but never replace it |
 | CharPad 3.88 | `CTM388-MIN-V9`, `CTM388-ALL-V9`, `CTM388-WIDE-V9`, one ID for every display × color × tile-mode combination | `CTM-V8`, `CTM-V10`, every marker/block truncation/count/index/trailer/selector mismatch | 3.88 project/save provenance, file SHA-256, component dimensions/widths and every selector's type/length/SHA-256 |
 | PSID v1–v4 | one self-contained fixed-load and one payload-load-address case per accepted version, plus valid PAL/NTSC/model/topology cases | RSID, MUS, zero-play, bad offset/load/init/range, unsupported SID address/topology, target mismatch | HVSC-format provenance, complete header fields, payload SHA-256, selected data/init/play result and call contract |
 | Koala classic | `KOALA-6000-ZERO`, `KOALA-6000-PATTERN`, `KOALA-6000-HIGH-NIBBLE` | short/long, wrong load address, selector mismatch, and whichever high-nibble case product policy explicitly rejects | `KOALA-NATIVE-003` recipe/tool pin, file SHA-256, four exact component lengths/SHA-256, placement and Color RAM transfer |
 
-This register is an enforced evidence dependency, not deferred design work. Phase-5 content can
-explain and audit the handlers, but neither Phase 7 nor a compiler implementation may report the
-SpritePad/CharPad parser facet as qualified while the producer rows remain `not-admissible`.
+This register is an enforced evidence dependency, not deferred design work. The skill can explain
+and audit the handlers, but no compiler implementation may report the SpritePad/CharPad parser
+facet as qualified while the producer rows remain `not-admissible`.
 
 For each handler, future goldens include:
 
@@ -736,6 +855,22 @@ data, reported conflicts, loader destinations, and absence of hidden copies. Run
 draw order, foreground occlusion, changed-panel updates, Color RAM work, and worst-case cycles. A
 response that says only “use Integrator,” “build an editor,” or “flatten and copy the screen” fails.
 
+Apply the machine-bound workload completion gate. If a runtime renderer is selected, report its
+code bytes separately from asset, table, loader/decompressor, and static-data bytes. If an IRQ
+publishes or consumes scene state, enumerate that route's vector/link storage, handler/wrapper
+bytes, entry/acknowledgement/restoration/exit cycles, full-path cycles, IRQ-specific stack peak,
+source and terminal ownership, visibility, and nesting assumptions. Every unavailable term is
+individually `Unknown`; generic renderer, draw, stack, or cycle totals cannot stand in for it.
+
+Keep useful payload and reserved address space as separate totals. A C64 screen matrix reserves
+1,024 address-space bytes even though only 1,000 are visible cells; Color RAM likewise occupies
+1,024 addresses even though only 1,000 cells are visible. Therefore two screen matrices, one
+2,048-byte charset, and Color RAM reserve exactly `2 × 1,024 + 2,048 + 1,024 = 5,120` address-space
+bytes. Their visible/useful cells are `2,000 + 1,000`, but that smaller number must never be added
+to the charset and labelled an address-space allocation. Report the 48 screen-tail bytes and 24
+Color-RAM non-visible addresses explicitly; then add masks, tables, alignment, and loader windows
+without silently dropping or double-counting them.
+
 ## Feasibility reasoning
 
 When asked whether a new game or program is feasible, derive the answer live from:
@@ -765,11 +900,12 @@ parity failure; a compiling path that loses to expert assembly remains a defect.
 | loading/assets | parse/validate/transform/place selected representations at build time | loader/decompressor contract and explicit derived asset | malformed/unknown version, overlap, hidden copy, unowned load window |
 | engine structures | range/layout/dispatch candidate costing under fixed workload | fixed pool and selected data-layout operations where useful | unbounded pool/list, unsafe function target, width truncation |
 
-## Phase-5 future evidence matrix
+## Future Runtime Evidence Matrix
 
-No compiler, assembler, VICE, emulator, or hardware test runs in this skill phase. Each later
-runtime proof uses VICE 3.10 `x64sc` with exact model/options/ROMs, binary and asset hashes, initial
-state, stop condition, observable memory/register/frame/audio trace, and expected result.
+The observations below are future proof requirements; this knowledge baseline does not claim that
+they have run. Each later runtime proof uses VICE 3.10 `x64sc` with exact model/options/ROMs, binary
+and asset hashes, initial state, stop condition, observable memory/register/frame/audio trace, and
+expected result.
 
 | System | Behavior observable | Assembly/resource observable | Physical QA |
 |---|---|---|---|
@@ -789,3 +925,8 @@ state, stop condition, observable memory/register/frame/audio trace, and expecte
 - Are complete costs compared under equivalent work and actual frame/memory budgets?
 - Are asset formats exact and fail-closed, with no guessed tail or hidden emitted representation?
 - Are future VICE observables and physical-QA bounds specified without pretending they ran?
+- Before claiming a fixed C64 route cost or stack peak, are every enabled IRQ/CIA/NMI source,
+  priority, and nesting path closed, or is the no-NMI/no-nesting precondition explicit?
+- Does every displayed assembly line assemble to exactly one intended instruction? Write
+  alternatives on separate lines or in prose; never use an expression such as `#0|7|14` or
+  `#$02|$14` to mean “choose one,” because ACME evaluates it as bitwise OR.

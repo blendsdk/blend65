@@ -1,8 +1,7 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.6.0-artifacts-portability`
-> build. This module specifies semantic payload and proof duties, not a mandatory IR count or pass
-> framework.
+> **Baseline version**: `1.0.0`. This module specifies semantic payload and proof duties, not a
+> mandatory IR count or pass framework.
 
 ## Optimization Contract
 
@@ -359,7 +358,7 @@ Choose the smallest decisive method:
 Physical hardware remains the final authority for silicon-sensitive behavior, but routine compiler
 development normally uses PC-hosted source/assembly checks and VICE. Hardware QA is targeted near
 release or when emulator fidelity is the disputed fact.
-`[BLEND65-PROJECT-POLICY-P3-3541841b, Project-specific: C64 verification authority]`
+`[BLEND65-PROJECT-POLICY-P3-28627e0c, Project-specific: C64 verification authority]`
 
 ### Assembly and cost oracle
 
@@ -381,7 +380,7 @@ issue records the source/assembly pair, complete measured cost delta, and the co
 optimization pass, IL form, allocation change, or platform-library primitive that provides a path
 to the win. Issue creation is authorized for this parity debt; never push as part of that action.
 This mutation rule is explicit project/process policy, not a language or optimizer semantic.
-`[BLEND65-PROJECT-POLICY-P3-3541841b, PRIME DIRECTIVE — expert assembly game developer]`
+`[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE — expert assembly game developer]`
 
 ## Counterexamples That Must Stay in the Test Set
 
@@ -430,11 +429,11 @@ hardware proof, or one instruction-count decrease into a whole-program win.
 
 ## Sources
 
-- `[BLEND65-PROJECT-POLICY-P3-3541841b, PRIME DIRECTIVE — expert assembly game developer]` — product/process authority for expert parity and tracked meet-level debt
-- `[BLEND65-SPEC-P3-ed278ab9, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/07-structs.md §Aliasing]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
+- `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE — expert assembly game developer]` — product/process authority for expert parity and tracked meet-level debt
+- `[BLEND65-SPEC-P3-4bf8a989, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/07-structs.md §Aliasing]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative pass-responsibility evidence only
 - `[LLVM-MOS-275C7FC, target implementation]` — comparative 6502 evidence only

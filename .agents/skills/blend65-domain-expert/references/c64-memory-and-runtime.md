@@ -258,6 +258,12 @@ that redundant pair: their final `RTI` restores the CPU-pushed status, including
 state. [CBM-C64-KERNAL-03,
 `irqfile::PULS/PULS1` and `editor.2::KPREND`; MOS-PGM-1976, interrupt and instruction timings]
 
+A route report using this baseline must enumerate the existing-ROM columns, not only generated
+output: the `PULS`-to-CINV segment is 16 ROM bytes and zero output bytes; the exclusive `$EA81`
+tail is 6 ROM bytes and zero output bytes. It must also state that only sink-reachable variants are
+emitted and that explicit handler-local `asm_sed()` remains legal under the ordinary decimal-state
+diagnostics. Omitting any of these makes a “complete cost/ABI” conclusion incomplete.
+
 ### Revision-pinned NMI contracts and costs
 
 On KERNAL 901227-03 the hardware vector `$FFFA/$FFFB` points to `$FE43`. Hardware NMI acceptance
@@ -314,10 +320,29 @@ source bits, restored status, stack high-water mark, vector-update states, and r
 then receive targeted physical-hardware QA. No emulator or hardware result is claimed by this
 knowledge baseline.
 
+Before closing any IRQ/NMI route analysis, enumerate these obligations even when the final route is
+Unknown: default CINV chain uses `PHP; CLD; body/ack; PLP` before its page-safe prior-vector jump;
+exclusive CINV establishes binary mode and uses only its pinned restore tail; raw IRQ owns register
+saves and `RTI`. The source `interrupt function` remains callback-only. Exclusive/raw `RTI`
+restores the complete interrupted processor status, including the interrupted D value, even though
+generated body entry establishes D clear. A deliberate `asm_sed()` inside the body remains legal
+under its ordinary decimal-state diagnostics and outgoing-state proof. NMINV chain saves status
+before A/X/Y, establishes binary mode, restores A/X/Y before status, and then chains; exclusive and
+raw NMI save/restore A/X/Y and end in `RTI`. Assign exactly one owner to each consuming CIA2 ICR
+read, read it exactly once when owned, and handle every returned source bit. State that reusable
+helpers remain ordinary `JSR`/`RTS` functions. For raw takeover, populate the complete underlying
+RAM vector before exposing that bank state and keep both sides of the transition valid. The proof
+plan must name VICE evidence where applicable and targeted physical QA for RESTORE, cartridge NMI,
+CIA2 revision behavior, and every nesting/re-entry claim. Rejecting route selection does not permit
+omitting these route invariants.
+
 The default saved-link object is two writable bytes and must be page-safe for any NMOS indirect
-jump form, or the lowering must use a form without the `$xxFF` wrap. Each installed handler has one
+jump form: a link beginning at `$xxFE` is valid, while one beginning at `$xxFF` must be relocated
+or rejected unless lowering uses a form without the NMOS wrap. Each installed handler has one
 entry kind; an IRQ callback is not an ordinary callable function. Reusable logic lives in an
-`RTS` helper with a separately checked mainline/IRQ concurrency contract.
+`RTS` helper with a separately checked mainline/IRQ concurrency contract. The generated binary-mode
+entry does not outlaw a deliberate `asm_sed()` in the body; it remains subject to the normal raw
+decimal-state diagnostics and outgoing-state proof.
 
 Banking, decimal mode, registers, flags, and the hardware-stack shape are all observable state.
 The handler restores the interrupted state unless its declared exclusive contract says otherwise.

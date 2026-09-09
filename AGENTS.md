@@ -113,6 +113,12 @@ Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` �
   function/helper scratch; no later stage may invent function storage after that closure. SFA is
   not a whole-machine memory manager. Global data, sprites, charsets, images, SID data, target
   alignment/banking/segments, loaders, and artifact placement belong to platform layout/packaging.
+- **Aggregate-return direction:** Current v3 E10093/E10120 rejection of fixed struct/array returns
+  is expressiveness debt, not a hardware or SFA law. Redesign toward a caller-owned hidden return
+  destination closed through SFA, with direct construction/copy elision and complete alias,
+  lifetime, nested-call, interrupt-domain, effect-order, and resource proof. Do not add a heap or
+  generic runtime, and do not preserve an alien source restriction merely because current lowering
+  lacks this ABI.
 
 ### Documentation
 
@@ -234,6 +240,7 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
 - Node.js 22 (pinned via `.nvmrc` + `engines`).
 - Yarn classic (v1) — workspaces, no `workspace:*` protocol.
 - Turbo (installed via yarn workspace dev dependency).
+- **Selected assembler:** ACME 0.97 is the current terminal assembler for Blend65 output.
 - Emulators (VICE, x16emu, Altirra, Stella/7800) — VICE 3.10 + ACME are needed locally
   for the RD-12/RD-18 acceptance tiers; CI has NO emulator tier (AR-27) but does
   install ACME.

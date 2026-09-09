@@ -24,7 +24,11 @@
 
 **What**: Allow `&myStruct.field` and `&buffer[5]` to return the memory address of a struct field or array element.
 
-**Why deferred**: Keeps the `&` operator minimal in v3 (Language Guard L4). Computing field/element addresses can be done manually with `&variable + offset`, which works in all cases.
+**Why deferred**: Keeps the `&` operator minimal in v3 (Language Guard L4). A named,
+addressable object can be adjusted manually with `&variable + offset` only while the derived
+address remains within that object's lifetime. This is not a universal substitute: function
+parameters cannot be addressed in v3, and local-derived addresses retain the local's provenance
+and may not escape its source lifetime.
 
 **Reconsideration criteria**:
 - Real-world Blend65 code frequently needs field/element addresses
@@ -195,7 +199,11 @@ switch (score) {
 
 **What**: Allow `&player.hp` to return the address of a specific struct field. For module-level structs, the address is compile-time constant. For by-reference parameters, requires runtime address calculation.
 
-**Why deferred**: Overlaps with FUT-001. For by-reference struct parameters, computing `&(param.field)` requires runtime pointer arithmetic. In v3, developers can use `&struct + offset` with `sizeof` for manual calculation.
+**Why deferred**: Overlaps with FUT-001. For a named, addressable struct object, developers may
+compute `&struct + offsetof(StructType, field)` while the derived address stays within the
+object's lifetime. That workaround does not apply to a by-reference parameter because `&param`
+is E10041. Until FUT-001, FUT-002, or FUT-009 is implemented, a caller that needs a parameter
+field address must pass that address separately.
 
 **Reconsideration criteria**:
 - FUT-001 is implemented (address-of on sub-expressions)
@@ -204,20 +212,26 @@ switch (score) {
 
 ---
 
-### FUT-010: Struct return values
+### FUT-010: Aggregate return values
 
-> **Source**: F011 (Structs), Rule SR-2  
+> **Source**: F011 (Structs), Rule SR-2; F014 (Arrays), array-return rule
 > **Deferred from**: v3  
 > **Priority**: Low
 
-**What**: Allow functions to return struct types: `function createEnemy(): Enemy`. The compiler would copy the struct from the function's frame to the caller's destination.
+**What**: Allow functions to return fixed structs and fixed arrays, such as
+`function createEnemy(): Enemy` or `function makePattern(): byte[16]`.
 
-**Why deferred**: Requires hidden byte copying from callee frame to caller, which has non-transparent cost (violates H2 and A4). The by-reference parameter pattern achieves the same result explicitly.
+**Why deferred**: The current v3 restriction is language-design debt, not a 6502 hardware
+necessity. The preferred redesign is a caller-owned hidden return destination integrated with
+SFA: the caller supplies the final storage and the callee constructs the aggregate directly
+there. This needs complete alias, lifetime, nested-call, interrupt-domain, resource, and
+diagnostic rules before it can become normative. It does not require a heap or general runtime.
 
 **Reconsideration criteria**:
-- A syntax is designed that makes the copy cost explicit (e.g., `let e: Enemy = createEnemy();` clearly assigns)
-- The compiler can optimize out the copy in common cases (return value optimization / RVO)
-- Community feedback indicates the by-reference parameter pattern is too verbose
+- Caller-owned destination passing is specified for structs and fixed arrays
+- Direct construction and copy elision are proved without changing observable source behavior
+- Alias, lifetime, nested-call, IRQ/NMI overlap, SFA closure, and complete costs are specified
+- Existing E10093/E10120 call sites have a clear migration and diagnostic path
 
 ---
 
@@ -355,7 +369,13 @@ native formats directly.
 
 **What**: An alternative calling convention that eliminates all hardware stack usage for function calls by replacing JSR/RTS with JMP-threaded calls using static return address variables.
 
-**How it works**: Since SFA guarantees no recursion, each function can only be "active" once at a time. The compiler allocates a 2-byte static "return address" variable per function. The caller stores the return point address into this variable and uses `JMP` instead of `JSR`. The callee uses `JMP (return_addr)` or a self-modifying `JMP $0000` to return:
+**How it works**: SFA can allocate a page-safe 2-byte return-address pair for each statically
+selectable simultaneous activation of a function and emit the matching fixed entry/return
+variant. Mainline, IRQ, NMI, callback, and other bounded overlap domains may therefore require
+multiple pairs and variants for one source function. If the compiler cannot prove a finite
+selection, it must retain `JSR`/`RTS` or reject an explicitly required stack-free mode. The caller
+stores the return point address into its selected pair and uses `JMP`; the matching callee variant
+returns through that same pair:
 
 ```asm
 ; Standard JSR/RTS (current v3):
@@ -382,7 +402,7 @@ _foo:
 | Aspect | JSR/RTS (v3 default) | JMP-threaded (FUT-016) |
 |--------|---------------------|------------------------|
 | Stack usage per call | 2 bytes | 0 bytes |
-| Static RAM per function | 0 bytes | 2 bytes |
+| Static RAM per allocated activation variant | 0 bytes | 2 bytes |
 | Call overhead | 12 cycles | ~20 cycles |
 | Code size per call site | 3 bytes | ~11 bytes |
 | JMP indirect bug (NMOS 6502) | N/A | Must avoid page boundary |
@@ -391,6 +411,10 @@ _foo:
 - Single-caller functions → JMP threading with hardcoded return (zero overhead)
 - Tail calls → `JMP` instead of `JSR` (zero additional stack)
 - Multi-caller functions → JSR/RTS (simplest, fastest)
+
+Every cost is reported per allocated activation/entry variant. ROM and static RAM multiply when
+the same source function needs several simultaneous homes; “no recursion” alone never proves that
+one source function can be active only once.
 
 **Why deferred**: JSR/RTS is faster, smaller, and the standard approach. Typical game code uses 10-30 bytes of the 256-byte hardware stack — well within budget. The stack-free approach is only valuable for extreme cases (very deep call chains, interrupt-heavy code on Atari 7800 with 4KB RAM).
 
@@ -469,7 +493,7 @@ a second loop grammar.
 | FUT-007 | Range cases in switch statements | Low | — |
 | ~~FUT-008~~ | ~~Const struct parameters~~ — ✅ RESOLVED (F014) | — | — |
 | FUT-009 | Address-of on struct fields | Medium | FUT-001, F011 |
-| FUT-010 | Struct return values | Low | F011 |
+| FUT-010 | Aggregate return values | Low | F011, F014 |
 | FUT-011 | External assembly linking (`extern function`) | Low | F012 |
 | FUT-012 | Array copy intrinsic (`copy()`) | Medium | F014 |
 | FUT-013 | Compile-time table generation | Low | F014 |

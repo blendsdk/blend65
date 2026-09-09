@@ -17,7 +17,7 @@ These are foundational decisions — not features. They are **givens** that all 
 | A1 | C-like syntax | Curly braces, semicolons, `name: type` annotations, C-style operators |
 | A2 | Static Frame Allocation (SFA) | All memory allocation at compile time. No heap, no recursion, static call graph |
 | A3 | Bounded behavior | Every input has defined control/effects/width, produces a compile-time error, or uses an explicitly registered narrow hardware-limitation exception |
-| A4 | Explicit over implicit | No hidden code execution, no implicit conversions, no magic |
+| A4 | Explicit over implicit | No hidden code execution and no unenumerated coercions. An implicit conversion exists only where a normative rule explicitly defines it—TS-4 and TS-14 in spec v3.0; otherwise conversion must be explicit or is invalid. |
 | A5 | Multi-platform | Must compile to all target platforms: C64, C64 Ultimate, CX16, Atari 800XL, Atari 7800 |
 
 ---
@@ -57,7 +57,7 @@ These are foundational decisions — not features. They are **givens** that all 
 
 | Document | Description |
 |----------|-------------|
-| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-019; FUT-004/FUT-005/FUT-008/FUT-019 resolved) and rejected features (REJ-001 type aliases, REJ-002 inline assembly) |
+| [future-considerations.md](future-considerations.md) | Deferred and resolved `FUT-NNN` entries, plus rejected features (REJ-001 type aliases, REJ-002 inline assembly); the live register owns the exact set |
 | [../\.clinerules/language-guard.md](../.clinerules/language-guard.md) | Language Guard — 23 rules, 5 escape hatch tiers |
 
 > **Note**: Feature ID **F023** (type aliases) was consciously **rejected** and its ID is **retired** — it is never reused. See `future-considerations.md` → REJ-001 for the full decision record. The `type` keyword remains reserved (F021 LS-9).

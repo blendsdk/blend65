@@ -646,6 +646,11 @@ VIC-II can address 16 KB banks (selected via CIA2 $DD00). The default profile as
 
 ### 9.5 Optional Safety Stop
 
+The default unchecked array contract emits no bounds handling. Its effective address is computed
+modulo 65536; a multi-byte element continues from `$FFFF` to `$0000`, and each byte observes the
+active C64 banking and MMIO map. A constant provably outside the array is still a compile-time
+error. The checks below are explicit, independent, and off by default.
+
 When `--bounds-check` or `--division-zero-check` detects a failure, the C64 profile branches to a
 source-labelled terminal block emitted in ROM/code bytes. The block uses no RAM or zero page and is
 non-returning:

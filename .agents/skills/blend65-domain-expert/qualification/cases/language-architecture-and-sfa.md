@@ -3,8 +3,8 @@
 > **Oracle family**: Q-L01..Q-L33
 > **Authority gate**: Reconciled specification identity from `references/source-manifest.md` and explicit
 > project decisions only.
-> **Conflict boundary**: Every recorded conflict through SC-049 is closed under the accepted rulings
-> through AR-P24. A newly discovered contradiction blocks only its affected
+> **Conflict boundary**: Every recorded conflict through SC-155 is closed under the accepted rulings
+> through AR-P43. A newly discovered contradiction blocks only its affected
 > fields until it receives an explicit ruling and specification repair.
 > **Result policy**: Result entries are append-only after a valid run. The corrected Phase-3 packet,
 > evaluator outputs, initial cross-grades, focused reruns, and correction grades are preserved in
@@ -17,18 +17,25 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 ## Q-L01 — Locate governing documents and audit the complete specification crosswalk
 
 - **Risk / coverage cells:** Major; `LANG-L01`, `SFA-L01`.
-- **Oracle status:** `frozen-project` — the stated semantic/project invariant is internally consistent.
-- **Evaluator prompt:** “First resolve the supplied language question from governing documents.
+- **Oracle status:** `frozen-project` — AR-P42/SC-148..SC-151 reconcile the final summary and
+  crosswalk conflicts; AR-P43/SC-152..SC-155 reconcile the final HLE/expressiveness scan without
+  claiming aggregate-return implementation support.
+- **Evaluator prompt:** “First resolve this supplied language question from governing documents:
+  Axiom A4 forbids unenumerated coercions, while TS-4 defines same-signedness mixed-width widening
+  and TS-14 defines enum-to-byte conversion. Are `byte + word` and enum-to-byte use therefore
+  invalid, or are those two explicitly enumerated implicit conversions valid?
   Then audit every path in the exact `spec/**/*.md` inventory against the candidate semantic
   crosswalk. For each path, identify its authority role, one substantive semantic payload, one
   compiler/storage/effect consequence, one important interaction or failure boundary, the correct
   skill branch, and any genuinely inapplicable depth facet with a reason. Report contradictions,
   missing paths, shallow summaries, unsupported coverage, and duplicated authority.”
 - **Permitted raw artifacts:** The live `spec/**/*.md` path inventory, all 50 files in that
-  inventory, the user's concrete language question, and only the candidate
+  inventory, the concrete A4/TS-4/TS-14 question above, and only the candidate
   `references/blend65-semantics.md` crosswalk/semantic rules plus the three candidate branch
   references it links for architecture, SFA/ABI, and IL/optimization consequences. The packet also
-  includes the exact hash-pinned `AGENTS.md` excerpts that state two project-policy facts used by
+  includes candidate `SKILL.md` solely to select those permitted references; it is not semantic
+  authority and must not supply an answer.
+  The packet also includes the exact hash-pinned `AGENTS.md` excerpts that state two project-policy facts used by
   the candidate: ACME is the selected assembler, and a parity result that only meets rather than
   beats the expert floor requires an authorized GitHub debt issue and never authorizes a push.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
@@ -36,15 +43,27 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   historical role; substantive per-path payload and consequence rather than inventory-only
   presence; correct branch routing; explicit justified N/A facets; no duplicated authority. ACME
   selection and automatic parity-debt issue recording are identified as product/process policy,
-  never inferred from the language specification, CPU manuals, or current implementation.
-- **Disqualifying outcomes:** Answers only from skill prose, or accepts the two project-policy
-  claims without the supplied hash-pinned policy excerpts.
+  never inferred from the language specification, CPU manuals, or current implementation. The
+  Atari 7800 is 1.79 MHz nominal with separately modeled 1.19 MHz TIA/RIOT accesses and MARIA DMA
+  stalls. A4 permits only the implicit conversions enumerated by TS-4 and TS-14. The future
+  register is audited from its live entries rather than a duplicated endpoint. F001 is limited to
+  supplied files, one binary, path-name irrelevance, and module-based cross-file references; it
+  supplies no discovery, module-to-file, duplicate-module, or diagnostic-stability contract. The
+  audit must also recognize EXP-001 aggregate-return debt, exact W10190/W10141 scopes,
+  per-activation SFA costs, provenance-bounded address workarounds, and the migration/C64 HLE
+  disclosures introduced by SC-152..SC-155.
+- **Disqualifying outcomes:** Answers only from skill prose; accepts the two project-policy claims
+  without the supplied hash-pinned policy excerpts; uses a flat 1.19 MHz A7800 CPU clock; rejects
+  TS-4/TS-14 conversions because of A4; trusts a duplicated future-item endpoint; or invents an
+  F001 discovery, duplicate-module, or diagnostic-stability contract.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — exact 50-path audit, governing examples, and hash-pinned project-policy
-  separation pass comprehensive evaluation and independent correction grading; definitive
-  isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Focused result:** Historical pass under the pre-AR-P42 identity only; it does not qualify the
+  corrected prompt, crosswalk, or `BLEND65-SPEC-P3-4bf8a989` candidate.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L02 — Current compiler rejects `POKE(variableAddress, value)` or requires manual unrolled pokes
 
@@ -59,7 +78,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L03 — Optimize two volatile reads into one
 
@@ -73,7 +95,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L04 — Put C64 addresses into semantic analyzer nodes
 
@@ -87,7 +112,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L05 — `main` calls either sibling `a` or `b`, never nested
 
@@ -101,7 +129,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L06 — `a` calls `b` while `a` values remain live
 
@@ -115,7 +146,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L07 — Recursive call-graph SCC
 
@@ -131,7 +165,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Pre-passer — recursion/reentrancy rejection and user-facing diagnosis exist at outline depth (`compiler-engineering.md:47-58`); the conflicted exact diagnostic assignment was not graded.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L08 — IRQ can preempt mainline and both reach helper/scratch
 
@@ -139,7 +176,9 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Oracle status:** `frozen-project` — SC-007 is reconciled: mandatory interference modeling,
   disjoint invocation-private homes, shared program state, and entry-ABI enforcement are fixed.
 - **Evaluator prompt:** “IRQ can preempt mainline and both reach helper/scratch. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** Mainline/IRQ roots, complete reachable call graph, scratch/frame inventories, and interrupt ABI assumptions.
+- **Permitted raw artifacts:** Mainline, IRQ, and NMI roots; their complete helper reachability;
+  scratch/frame inventories; bounded overlap/nesting facts; and both matching and mismatched entry-ABI
+  candidates.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
 - **Expected decision invariants:** Models reentrancy/interference across complete
   mainline/IRQ/NMI/helper reachability; allocates disjoint invocation-private homes for bounded
@@ -149,7 +188,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Pre-passer — whole-call-graph IRQ reachability and non-reentrant scratch interference are explicit (`compiler-engineering.md:49-57`; `c64-game-systems.md:64-68`).
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L09 — Address-taken/exported function has unknown caller
 
@@ -163,7 +205,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L10 — ZP pair lands at final byte or pressure exceeds budget
 
@@ -177,7 +222,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L11 — Proposal misuses hardware-stack ownership or BRK accounting
 
@@ -192,7 +240,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the AR-P29 kind-state and AR-P31 BRK contract pass comprehensive
   evaluation and independent correction grading; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L12 — Asked how many IRs/classes Blend65 must have
 
@@ -206,7 +257,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L13 — Add Atari target by copying C64 backend
 
@@ -220,14 +274,19 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L14 — Optimizer wants to erase signedness before comparison lowering
 
 - **Risk / coverage cells:** Critical; `LANG-L14`, `SFA-L14`.
 - **Oracle status:** `frozen-project` — the stated semantic/project invariant is internally consistent.
 - **Evaluator prompt:** “Optimizer wants to erase signedness before comparison lowering. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** The semantic operation before and after the proposed IR change and the selected compare lowering inputs.
+- **Permitted raw artifacts:** The semantic operation before and after the proposed IR change, the
+  selected compare lowering inputs, a same-width signedness cast between independently observable
+  variables, and a proposal to coalesce their storage solely because the cast emits no instructions.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
 - **Expected decision invariants:** Rejects loss; signedness must survive to accountable
   legalization/selection. A same-width signedness cast preserves bits without making independently
@@ -238,7 +297,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L15 — Invalid source causes downstream allocation crash
 
@@ -254,7 +316,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L16 — Compare current plugin interface with desired modularity
 
@@ -268,7 +333,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L17 — `f(1, g())` with transitive callees in the later argument
 
@@ -282,7 +350,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L18 — `f(1, f(2, 3))` with the same eventual callee
 
@@ -296,7 +367,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L19 — Ordinary array code crosses byte/word boundaries without prompting
 
@@ -346,23 +420,29 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   rejected-loop proof boundary; and assembly/cost expectations for both proved-small and
   above-255 cases.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass against `BLEND65-SPEC-P3-ed278ab9`; evaluator captures and the passing
-  independent correction grade are recorded in `qualification/release.md`.
-- **Definitive result:** Not run.
+- **Focused result:** Historical pass under the pre-AR-P42 identity only; it does not qualify
+  `BLEND65-SPEC-P3-4bf8a989`.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
-## Q-L20 — The same expression is evaluated as a constant and at runtime
+## Q-L20 — Constant/runtime arithmetic split and runtime-zero division
 
 - **Risk / coverage cells:** Critical; `LANG-L20`, `SFA-L20`.
 - **Oracle status:** `frozen-project` — the stated semantic/project invariant is internally consistent.
-- **Evaluator prompt:** “The same expression is evaluated as a constant and at runtime. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** The governing constant-expression and runtime-width spec sections plus both evaluation traces.
+- **Evaluator prompt:** “The same arithmetic expression is evaluated as a constant and at runtime, and the divisor may be zero only at runtime. Determine the required language behavior and compiler boundaries. Distinguish a constant zero divisor, the default runtime-zero contract, and explicit `--division-zero-check`. Trace effects, storage, control flow, and costs far enough to justify the result, then state the smallest viable remedy if supplied behavior is wrong.”
+- **Permitted raw artifacts:** The governing constant-expression/runtime-width/division/safety spec sections, C64 safety-stop contract, both value traces, and checked/unchecked zero-divisor traces.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Preserves the specified full-precision constant rules and runtime-width wrapping distinction.
-- **Disqualifying outcomes:** Forces both paths to share the wrong arithmetic model.
+- **Expected decision invariants:** Preserves full-precision constant evaluation versus runtime-width wrap. Constant zero is E10160. Default runtime zero terminates with an unspecified valid-width result and declared effects only, with no check, handler, fallback, scratch, or optimizer-undefined assumption. Default-off `--division-zero-check` evaluates once, fails before division, and on C64 uses only the canonical source-labelled `SEI` plus self-loop terminal block. It adds no linked runtime, handler choice, KERNAL/user vector, error string, RAM, or ZP; all ROM, SFA/register pressure, success-path branch/layout, and timing costs are reported.
+- **Disqualifying outcomes:** Forces both constant/runtime paths to share the wrong arithmetic model; invents a specified unchecked zero result; treats runtime zero as optimizer undefined; emits a default check; or proposes a selectable/returning trap handler or uncharged runtime.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L21 — Left-to-right calls combined with `&&`/`||` side effects
 
@@ -376,7 +456,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L22 — Two by-reference arguments alias the same object
 
@@ -390,27 +473,38 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
-## Q-L23 — Imported modules have observable initializers
+## Q-L23 — Module initialization and indeterminate-storage warnings
 
 - **Risk / coverage cells:** Critical; `LANG-L23`, `SFA-L23`.
 - **Oracle status:** `frozen-project` after authority classification — Chapter 10 and reconciled
   F003/F019 agree on runtime `let` initializers, dependency/effect order, and one-time execution.
-- **Evaluator prompt:** “Imported modules have observable initializers. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** `spec/10-modules.md`, `spec/evaluations/F003-module-contents.md`, `spec/evaluations/F019-variables.md`, the import graph, and initializer effects.
+- **Evaluator prompt:** “Imported modules have observable initializers, while function-local and module-level mutable declarations may omit initializers. Determine startup order, stored-bit behavior, and the exact W10190/W10141 warning scopes. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if supplied behavior is wrong.”
+- **Permitted raw artifacts:** `spec/03-variables.md`, `spec/08-arrays-strings.md`, `spec/10-modules.md`, `spec/14-diagnostics.md`, `spec/evaluations/F003-module-contents.md`, `spec/evaluations/F014-arrays.md`, `spec/evaluations/F019-variables.md`, the import graph, initializer effects, and declarations/reads for a function scalar, function array, module scalar, and module array.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
 - **Expected decision invariants:** Applies the reconciled dependency/effect-ordered startup semantics,
   preserves observable initializer effects and one-time execution, gives import syntax no runtime
   edge by itself, and orders ready ties by the fully qualified variable name in case-sensitive ASCII
-  order independent of files/input order.
+  order independent of files/input order. Omitted mutable initialization emits no clear and reads
+  existing valid-width stored bits without optimizer UB. W10190 applies only to a function-local
+  maybe-read-before-first-assignment. W10141 independently applies to every nonzero uninitialized
+  mutable array, including module arrays; both warnings may apply to one function-local array.
 - **Disqualifying outcomes:** Uses file discovery/input order, treats every import as a runtime edge,
   duplicates initialization, treats current compiler behavior as semantic precedence, or lets
-  subordinate rationale override Chapter 10.
+  subordinate rationale override Chapter 10; blanket-clears storage; exempts module arrays from
+  W10141; applies W10190 to module storage; merges the two warning predicates; or treats the bits as
+  optimizer undefined.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L24 — Invalid source has one root error and no compilation artifact
 
@@ -426,7 +520,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L25 — Legalization creates a spill/helper scratch slot after provisional allocation
 
@@ -440,7 +537,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the concrete Phase-3 evaluator result and independent grade are recorded in `qualification/release.md`; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L26 — A charset needs VIC-compatible address/alignment/bank placement
 
@@ -449,10 +549,15 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   the smallest-lossless canonical type plus explicit forced-word, packed, and split C64
   representations and a fixed current-format identity. AR-P21 separates native Koala components
   from placement-derived VIC fields and explicit color-RAM transfer.
-- **Evaluator prompt:** “A charset needs VIC-compatible address/alignment/bank placement. Determine the required language behavior and the responsible compiler boundary. Trace observable effects and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** The `embed(path, selector)` asset declarations, the handler's
-  signature/version and enumerated-key contract for the sample file, required VIC
-  visibility/alignment/bank facts, placement map, and copy plan.
+- **Evaluator prompt:** “A current CharPad project and a classic Koala image both need
+  VIC-compatible address/alignment/bank placement. Determine the required language behavior and
+  responsible compiler boundaries. Trace selected representations, emitted bytes, placement,
+  color-RAM transfer, and runtime access far enough to justify the decision, then state the
+  smallest viable remedy if supplied behavior is wrong.”
+- **Permitted raw artifacts:** The `embed(path, selector)` declarations for CharPad and Koala; each
+  handler's exact signature/version/native-layout and enumerated-key contract; CharPad map/tile
+  widths and packed/split choices; required VIC visibility/alignment/bank facts; placement map;
+  explicit color-RAM transfer; and proposed copies or derived VIC fields.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
 - **Expected decision invariants:** Assigns it to platform layout/packaging rather than SFA,
   preserves placement over copying, uses literal handler-owned selector keys,
@@ -474,10 +579,14 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Disqualifying outcomes:** Makes SFA a universal asset manager, copies for convenience, or silently promotes the evaluation selector table above the normative C64 profile.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — the complete CharPad/Koala handler, representation, placement,
-  ownership, and static-cost contract passes comprehensive evaluation and independent correction
-  grading; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Focused result:** Pass — after the first definitive run exposed missing local CharPad
+  representation detail, the corrected candidate exhaustively covers handler identity, exact
+  selector types/availability, canonical/packed/split forms, diagnostics, requested-only costs,
+  placement, SFA ownership, and Koala. The focused evaluator, independent grade, cross-domain
+  regression, and independent correction review all pass; definitive full isolation remains.
+- **Definitive result:** Pass — the complete `BLEND65-SPEC-P3-4bf8a989` coverage sample exposed
+  the defect, and the corrected focused evaluator and independent grade passed Q-L26. Exact hashes
+  and the admissibility boundary are recorded in `qualification/release.md`.
 
 ## Q-L27 — A current SpritePad project contains sprites, attributes, tiles, animations, and overlays
 
@@ -503,13 +612,17 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   per-sprite attributes; retains requested tile/animation/overlay components; emits no implicit
   duplicate or offset table; reports an explicitly selected derived attribute table; derives the
   VIC block through `vicSpriteBlock(&SPRITES)` after placement; rejects non-v5 input with E10204;
-  keeps assets outside SFA; and does not claim the unobserved tail schema or a producer-fixture
-  validation pass. It preserves the exact source contract while naming the Phase-5 schema/fixture
-  proof required before a real handler qualifies.
+  keeps assets outside SFA; proves residency from actual aligned bank-relative intervals without
+  double-counting padding or occupied prefixes; accounts for the active screen interval and its
+  contained pointer table; and does not claim the unobserved tail schema or a producer-fixture
+  validation pass. It preserves the exact source contract while naming the distinct minimal,
+  all-component, wide, optional-present/absent, adjacent-version, malformed-boundary, provenance,
+  hash, expected-output, and exact-EOF evidence required before a real handler qualifies.
 - **Disqualifying outcomes:** Drops the 64th attribute byte or optional runtime-relevant components,
   truncates the count, invents a global multicolor property, copies data silently, treats a
   placement-derived block as file metadata, accepts an unregistered version, moves assets into SFA,
-  or fabricates producer-fixture/schema evidence for the optional project tails.
+  treats a scalar byte sum as sufficient placement proof, double-counts padding or occupied
+  prefixes, or fabricates producer-fixture/schema evidence for the optional project tails.
 - **Evidence required to grade:** Exact governing spec/project locations; the pinned release and
   bounded-reader identities; a precise supported-versus-unproven field split; intended native
   versus derived byte accounting; placement and bank ownership; and the named Phase-5 evidence
@@ -518,7 +631,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Focused result:** Verified partial — the complete product contract passes content evaluation;
   exact SPD v5 tail parsing remains explicitly unqualified until the Phase-5
   producer/schema/fixture gate; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the complete `BLEND65-SPEC-P3-4bf8a989` coverage sample exposed
+  the defect; the corrected focused grade passed the full asset contract, and a second independent
+  focused grade passed the final interval-placement refinement. Exact hashes and the explicit
+  parser-qualification boundary are recorded in `qualification/release.md`.
 
 ## Q-L28 — C64 literals cross character-set modes and a custom charset lacks metadata
 
@@ -553,7 +669,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Focused result:** Pass — exact C64 maps, diagnostics, custom-map boundary, compile-time-only
   behavior, and X16 non-reuse pass comprehensive evaluation and independent correction grading;
   definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L29 — One interrupt handler reaches C64 KERNAL-chain, exclusive, and raw sinks
 
@@ -605,7 +724,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Focused result:** Pass — all three sink sequences, entry ownership, acknowledgement, page-wrap
   constraint, SFA domains, exact static costs, and no-runtime boundary pass comprehensive
   evaluation and independent correction grading; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L30 — Ordinary arithmetic and explicit packed-BCD operations share one function
 
@@ -642,13 +764,18 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Focused result:** Pass — types, evaluation, modulo behavior, invalid-digit boundaries, IL,
   inline lowering, safe coalescing, diagnostics, and static costs pass comprehensive evaluation
   and independent correction grading; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L31 — A familiar full-domain `for` loop must stay modern and lower like expert 6502
 
 - **Risk / coverage cells:** Critical; `LANG-L31`, `IL-L31`, `SFA-L31`.
-- **Oracle status:** `frozen-project` after AR-P32 — one three-clause loop has ordinary expression,
-  scope, mutation, control-flow, and fixed-width integer semantics; optimization cannot alter them.
+- **Oracle status:** `frozen-project` after AR-P32/AR-P38 — one three-clause loop has ordinary
+  expression, scope, mutation, control-flow, and fixed-width integer semantics; optimization cannot
+  alter them. AR-P38 supersedes AR-P32's original outcome for a proved unreachable finite-looking
+  fixed-width termination.
 - **Evaluator prompt:** “Analyze these loops and propose their parser, semantic, CFG, SFA, and
   optimization contracts: `for (let i: word = 0; i < length(page); i += 1) { use(page[i]); }` for a
   256-byte array; the same source with `i: byte` and `i < 256`; a loop whose initializer, condition,
@@ -675,8 +802,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   generalized loop framework. SFA treats header locals and temporaries by ordinary liveness and
   interference. The semantic-word 256-iteration form is correct; a proof may represent its
   nonescaping induction state with one byte and use `INX` plus wrap-to-zero exit when all effects
-  and the unobservable word terminal state permit. The byte-typed `i < 256` form is a deterministic
-  infinite loop and is never silently reinterpreted. Former range words are ordinary identifiers.
+  and the unobservable word terminal state permit. E10262 rejects the shown byte-typed `i < 256`
+  canonical finite-looking form because the counter repeats before its invariant condition can
+  become false; it is neither accepted as an infinite loop nor silently widened. Intentional
+  modular byte loops remain legal. Former range words are ordinary identifiers.
 - **Disqualifying outcomes:** Retains or adds a second range loop; limits clauses to make parsing or
   SFA easier; changes left-to-right effects; sends the whole header through a Pratt parser; treats
   `continue` as a direct condition edge; gives the induction variable hidden mathematical range
@@ -688,10 +817,12 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   full-domain word and byte counterexamples; optimization preconditions, emitted legal sequence,
   clobbers, and complete cost; and a remedy separated from any finding in the existing compiler.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — grammar, parser ownership, clause/exit effects, SFA liveness, generic
-  CFG lowering, canonical induction proof, clobbers, and exact selected cost pass comprehensive
-  evaluation and independent correction grading; definitive isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Focused result:** Historical pass under the superseded pre-AR-P38 oracle; correction rerun is
+  required before definitive qualification.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L32 — A local address crosses calls, loop lifetimes, and IRQ domains
 
@@ -735,7 +866,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   sequential reuse, bounded domain variants, failure boundaries, and complete cost categories pass
   comprehensive evaluation and independent correction grading; definitive isolation remains
   Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-L33 — PSID identity meets C64, C64U, and multi-SID configuration
 
@@ -780,4 +914,7 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   Unknown closure, topology, C64U deployment/turbo split, zero-conversion boundary, and complete
   cost ownership pass comprehensive evaluation and independent correction grading; definitive
   isolation remains Phase 7.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.

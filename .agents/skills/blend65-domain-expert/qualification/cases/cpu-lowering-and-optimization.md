@@ -24,7 +24,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Draft observation: fail — the legacy text states `N xor V` but omits that `CMP` does not produce V, permitting stale-V reasoning (`mos-6502-codegen.md:52-56`).
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C02 — Signed byte `<` over `-128,-1,0,1,127` pairs
 
@@ -39,7 +42,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 ## Q-C03 — Unsigned byte `>=` in branch context
 
 - **Risk / coverage cells:** Major; `CPU-C03`, `LOWER-C03`.
@@ -53,7 +59,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C04 — Signed word compare with equal/different high bytes
 
@@ -68,7 +77,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C05 — Word addition with live incoming carry irrelevant to source
 
@@ -83,7 +95,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C06 — Word subtraction
 
@@ -98,7 +113,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C07 — IRQ arrives while decimal mode may be set on NMOS C64
 
@@ -113,7 +131,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Draft observation: pre-passer — NMOS interrupt decimal-state danger and ABI ownership are explicit (`mos-6502-codegen.md:58-60`).
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C08 — `(zp),Y` pointer stored at `$FF`
 
@@ -128,7 +149,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C09 — `JMP ($12FF)` on NMOS
 
@@ -143,7 +167,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C10 — Replace VIC register update with INC/RMW
 
@@ -158,7 +185,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Draft observation: pre-passer — bus-visible RMW and VIC acknowledgement hazards are explicit (`mos-6502-codegen.md:68`; `c64-game-systems.md:43-48`).
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C11 — Forward/backward branch near range and page boundary
 
@@ -173,7 +203,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C12 — Absolute-indexed load/store crossing page
 
@@ -188,7 +221,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C13 — Signed right shift byte/word
 
@@ -196,7 +232,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Oracle status:** `frozen-external` — the reconciled specification preserves arithmetic sign
   extension and the machine facts passed independent source review.
 - **Evaluator prompt:** “Signed right shift byte/word. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
-- **Permitted raw artifacts:** Byte/word negative and non-negative inputs, all relevant counts, candidate sequence, and result/flag trace.
+- **Permitted raw artifacts:** Signed and unsigned byte/word inputs; left and right shifts; counts
+  below, equal to, and above the operand width; candidate sequences; and result/flag traces.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
 - **Expected decision invariants:** Preserves arithmetic sign extension for signed `>>`. At counts
   at least the width, a negative operand produces `-1` and a non-negative operand produces `0`;
@@ -207,7 +244,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C14 — Multiply by 0/1/power/constant/variable
 
@@ -222,7 +262,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C15 — Signed division and remainder by a power of two with negative odd value
 
@@ -242,7 +285,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C16 — Comparison feeds branch then separately stored boolean
 
@@ -257,7 +303,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C17 — W65C02-only opcode in selected C64 output
 
@@ -272,7 +321,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C18 — Inline versus helper with two call sites and IRQ reachability
 
@@ -287,13 +339,17 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C19 — Full 256-iteration canonical loop
 
 - **Risk / coverage cells:** Major; `CPU-C19`, `LOWER-C19`.
-- **Oracle status:** `frozen-project+external` after AR-P32 — ordinary three-clause semantics select
-  behavior; the machine facts passed independent source review.
+- **Oracle status:** `frozen-project+external` after AR-P32/AR-P38 — ordinary three-clause semantics
+  select behavior; AR-P38 governs unreachable finite-looking termination, and the machine facts
+  passed independent source review.
 - **Evaluator prompt:** “Compare `for (let i: word = 0; i < 256; i += 1)` with the same loop using
   `i: byte`. For the declared CPU, determine exact source behavior and the smallest expert lowering
   for the word form. State every proof precondition and clobber, show the decisive state/path
@@ -307,17 +363,21 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   terminal state 256. It may use one byte of induction state and `INX` plus a wrap-to-zero exit only
   when proof establishes the exact 256-step canonical shape, the semantic word value does not
   escape, the terminal state is unobservable, and calls/effects cannot observe or change it. The
-  byte form wraps from 255 to 0, so `i < 256` stays true and the loop is deterministically infinite.
-  It is diagnosed only by ordinary compile-time nontermination policy, never silently converted to
-  a hidden range loop. Noncanonical loops use the correct general CFG lowering.
+  byte form wraps from 255 to 0, so the invariant condition cannot become false; E10262 rejects this
+  proved canonical finite-looking loop rather than accepting an accidental infinite loop or
+  silently converting it to a hidden range loop. Intentional modular loops remain legal.
+  Noncanonical loops use the correct general CFG lowering.
 - **Disqualifying outcomes:** Rejects the valid word loop, silently widens or repairs the byte loop,
   loses an iteration, exposes the narrowed internal representation, applies wrap lowering without
   its escape/effect proof, adds a runtime, or retains a second range-loop contract.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
-  `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Focused result:** Historical pass under the superseded pre-AR-P38 oracle; correction rerun is
+  required before definitive qualification.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C20 — Link-time symbol low/high bytes
 
@@ -332,7 +392,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C21 — An optimization changes lowered assembly
 
@@ -348,7 +411,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C22 — Fixed-trip hot loop is considered for unrolling
 
@@ -363,7 +429,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C23 — Specialize an indirect access by modifying an absolute operand
 
@@ -378,7 +447,10 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-C24 — Replace arithmetic or shifts with lookup/pre-shifted data
 
@@ -393,4 +465,7 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — the Phase-4 evaluator and independent grade are recorded in
   `../release.md#phase-4-focused-results`.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.

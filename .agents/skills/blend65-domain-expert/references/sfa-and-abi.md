@@ -1,7 +1,6 @@
 # Static Frame Allocation and ABI Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.6.0-artifacts-portability`
-> build.
+> **Baseline version**: `1.0.0`
 >
 > **Binding specification rule**: Static Frame Allocation (SFA) is the sole general function-frame
 > model. The 6502 hardware stack is not a general local-variable stack.
@@ -112,6 +111,24 @@ non-retaining argument position; returning, persisting, publishing asynchronousl
 unknown/external consumer is retaining. Infer user-function summaries transitively over the whole
 program and require an explicit library/platform contract. “Synchronous” is not a proof because a
 synchronous callee may still save an address for later.
+
+### Local-address borrow completion gate
+
+Before completing a local-address audit, report each of these independently:
+
+- which address copies and derived fragments retain provenance, and that ordinary data loaded
+  through the address does not retain it;
+- whether each scalar or aggregate storage destination is lifetime-contained or is an E10260
+  escape;
+- for every user-function parameter position, the transitive non-retaining proof or the E10260
+  retaining/unproven result;
+- for every library or platform parameter position, the explicit non-retaining declaration or the
+  E10260 retaining/unproven result; and
+- every return, persistent/raw/MMIO store, asynchronous publication, unknown external call, and
+  opaque boundary, with E10260 at the first escaping use.
+
+Do not summarize only the legal path. A complete result names both legal and rejected branches and
+keeps the different proof authority for user code and library/platform contracts visible.
 
 When the last legal borrow ends, a sequential invocation or later loop iteration may reuse the
 same physical home; address freshness and cross-lifetime identity are deliberately unobservable.
@@ -289,8 +306,12 @@ and exact `T[N]` array arguments store a two-byte base address and are accessed 
 any-size `T[]` parameter adds the caller array's full two-byte element count, for four SFA bytes per
 concurrent parameter instance; the validated `0..65535` extent domain makes that count total. It is
 only a parameter ABI form and cannot be stored or returned. A byte, sbyte, boolean, or enum result
-returns in A; a word or sword returns in A (low byte) and X (high byte);
-aggregate returns are rejected. Ordinary functions and ordinary address-taken callbacks use
+returns in A; a word or sword returns in A (low byte) and X (high byte). Current v3 rejects fixed
+struct and array returns with E10093/E10120, but this is expressiveness debt rather than an SFA or
+hardware necessity. The redesign direction is caller-owned hidden destination passing: include the
+destination address in final SFA closure, construct directly into caller storage, and elide copies
+only with complete alias, lifetime, nested-call, and interrupt-domain proof. This adds no heap or
+general runtime and must preserve source effect order. Ordinary functions and ordinary address-taken callbacks use
 `JSR`/`RTS`. An `interrupt function` is callback-only: its raw-vector variant uses the specified
 save/restore sequence and `RTI`, while a compiler-recognized firmware sink selects the matching
 firmware-frame and terminal variant. The C64 KERNAL CINV variants must not save A/X/Y twice.
@@ -298,8 +319,39 @@ Every compiler-generated interrupt body begins with the profile's declared decim
 NMOS C64 baseline that state is binary: raw and exclusive variants execute `CLD` and let the
 eventual `RTI` restore the interrupted status, while the default chain holds one `PHP` byte across
 the body and executes `PLP` before the prior-handler jump. Its two-byte saved-vector link must begin
-at a low byte no greater than `$FE`. All normalization, link placement, and stack costs participate
-in the same static ABI/resource proof.
+at a low byte no greater than `$FE`: `$xxFE` is valid, while `$xxFF` must be relocated or rejected
+for the NMOS indirect-jump form. All normalization, link placement, and stack costs participate in
+the same static ABI/resource proof. Establishing binary mode at generated handler entry does not
+ban an explicit `asm_sed()` inside the handler; that expert escape remains legal when it satisfies
+the ordinary decimal-state diagnostics and restores a valid outgoing state.
+
+### Interrupt-route completion gate
+
+Do not close an interrupt-route analysis by describing only prologues and terminal instructions.
+State all of these linked invariants explicitly:
+
+- the source `interrupt function` is callback-only; it is not an ordinary `JSR`/`RTS` target;
+- every recognized sink selects its own raw or firmware-mediated entry variant, and only the
+  variants reachable from the actual sinks are emitted;
+- default chaining preserves the entry status around the binary-mode body and restores it before
+  the previous-handler jump;
+- exclusive and raw variants establish D clear for generated ordinary code, then their eventual
+  `RTI` restores the complete interrupted processor status, including the interrupted D value;
+- a deliberate `asm_sed()` inside the body remains legal under the ordinary decimal-state
+  diagnostics and must reach a valid outgoing-state boundary; say this explicitly even when the
+  supplied handler does not happen to contain `asm_sed()`;
+- `$xxFE` is a valid start for the two-byte saved indirect link, while `$xxFF` is relocated or
+  rejected for the NMOS form; and
+- source acknowledgement, helper `JSR`/`RTS`, SFA interference, stack peak, static link storage,
+  full path costs, banking/vector visibility, and the final terminal owner are all assigned.
+
+For the pinned C64 901227-03 routes, “full path costs” includes existing machine ROM separately
+from emitted output: 16 existing-ROM bytes from `PULS` to CINV and the 6-byte `$EA81` restore-only
+tail where applicable, both contributing zero output bytes. Do not report only generated wrapper
+bytes or cycles.
+
+If any item is absent, the route conclusion is incomplete even when the individual instruction
+sequence is otherwise correct.
 
 Recovery must audit current lowering and output against that complete contract. A potentially
 better ABI is design evidence for a future versioned specification decision, not permission to
@@ -318,12 +370,30 @@ does not count general locals because those belong to SFA. W10180 fires at the p
 `warn_stack_peak`, or at 80% of derived usable capacity rounded down when that optional field is
 absent; E10238 remains the hard error above derived usable capacity.
 
+Keep measured use and available capacity as separate quantities. The completion equation is
+exactly:
+
+```text
+measuredPeak <= rawCapacity - reserve
+```
+
+`measuredPeak` is the unchanged maximum live-byte sum from the feasible paths. Never subtract the
+reserve from that peak, add the reserve to it, or count the reserve as usage. The reserve reduces
+only the capacity available to the program. E10238 is decided by comparing the unchanged measured
+peak with that reduced capacity; reports show all three values so the decision can be reproduced.
+
 `asm_brk()` is a distinct synchronous edge. The CPU contributes three live bytes for PC+2 and
 status; the selected `brk_contract` contributes its complete maximum handler stack peak. A
 returning contract resumes after the mandatory padding byte with its declared preservation and
 effects. A non-returning contract ends the path. Missing proof is E10259. Never model BRK as an
 ordinary `JSR`, assume an emulator monitor, charge only the opcode, or create a handler/runtime to
 make the analysis convenient.
+
+The emitted `asm_brk()` sequence is exactly `$00 $EA`: two artifact/ROM bytes total. `$EA` is the
+mandatory padding byte already included in that total, not a third byte. There is no helper or
+runtime ROM beyond those two bytes. The CPU takes seven cycles to handler entry and pushes three
+hardware-stack bytes; the selected handler's cycles, peak stack, return behavior, and effects are
+additional contract-owned costs. Never report “zero ROM” after acknowledging the two emitted bytes.
 
 Explicit push/pull operations are ordered machine-state effects. Analysis tracks a LIFO sequence
 relative to each function entry: `asm_pha()` adds an accumulator-save, `asm_php()` adds a
@@ -418,9 +488,9 @@ convenience or familiarity with modern ABIs is not evidence of necessity.
 
 ## Sources
 
-- `[BLEND65-SPEC-P3-ed278ab9, spec/00-introduction.md §A2, §A3]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/06-functions.md §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/11-memory-model.md §Static Frame Allocation, §Zero-Page Allocation, §Hardware Stack Usage]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/03-variables.md §Memory Placement]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/13-data-inclusion.md §Code Generation]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/00-introduction.md §A2, §A3]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/06-functions.md §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/11-memory-model.md §Static Frame Allocation, §Zero-Page Allocation, §Hardware Stack Usage]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/03-variables.md §Memory Placement]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/13-data-inclusion.md §Code Generation]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/15-platform-profile.md §Platform Profile Contract]`

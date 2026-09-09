@@ -18,6 +18,30 @@
 
 ---
 
+## Hardware-Limitation and No-Runtime Boundaries
+
+These v3 rules are deliberate, user-visible exceptions to ordinary modern-language expectations.
+They are not permission for the compiler to add unrelated restrictions or to treat values as
+optimizer-undefined.
+
+| Boundary | v3 behavior and migration action |
+|---|---|
+| HLE-001 — recursion | Direct and indirect recursive call cycles are compile-time errors. Rewrite with iteration or an explicit fixed-capacity work structure; ordinary nested calls remain legal. |
+| HLE-002 — division by zero | Constant zero is E10160. Runtime zero is unchecked by default and terminates with an unspecified valid-width result plus only the selected operation's declared effects. Use an explicit guard, or opt into `--division-zero-check`; the option emits compiler-owned checks and a source-labelled terminal stop, not a linked runtime. |
+| HLE-003 — array bounds | Constant provable out-of-bounds access is E10240. Runtime indexing is unchecked by default and forms the address modulo 65536, including byte-by-byte `$FFFF`→`$0000` wrap under the active memory map. Guard explicitly or opt into default-off `--bounds-check`. |
+| HLE-004 — interrupt/callback activation | `interrupt function` declarations are callback-only. Recognized sinks select raw or firmware entry variants, and bounded overlapping domains receive distinct SFA homes/variants. Unbounded storage-bearing re-entry is rejected. |
+| HLE-005 — omitted initialization | Mutable storage without an initializer keeps its existing stored bits and emits no clearing code. W10190 covers function-local maybe-read-before-first-assignment; W10141 covers every nonzero uninitialized mutable array, including module arrays. Initialize explicitly when the value matters. |
+| HLE-006 — invalid runtime packed BCD | Known invalid nibbles are E10254. Runtime-invalid digits produce the selected CPU's exact decimal-mode result without an injected validator; validate untrusted BCD explicitly. |
+| HLE-007 — addresses of SFA locals | A local-derived address keeps hidden provenance and may not escape the local's dynamic source lifetime. E10260 rejects return, longer-lived storage, asynchronous publication, retaining/unknown calls, and opaque escape. Use module or caller-owned storage for a persistent address. |
+| HLE-008 — fixed arrays | Every stored array is fixed and contiguous. `T[]` is only an initialized-storage extent placeholder or an any-size parameter carrying an address and word count; it is not a dynamic array, view, storable value, or return type. |
+| HLE-009 — 16-bit object/query domain | Array extents and complete fixed aggregate sizes are limited to `0..65535` (E10264/E10265). `sizeof(T[])` is E10266. `sizeof()` and `offsetof()` have stable `word` type. |
+
+The current E10093/E10120 rejection of fixed struct/array return values is not an HLE. It remains
+language-design debt tracked by FUT-010; the preferred future ABI is caller-owned destination
+passing integrated with SFA, without a heap or general runtime.
+
+---
+
 ## 1. Overview & Design Goals (v2 Ch 00)
 
 | v2 Construct | v2 Location | Disposition | v3 Location | Notes |

@@ -52,7 +52,7 @@ them exact. A whole-program win may justify a locally equal instruction sequence
 new data, padding, banking, stack, or ZP cost.
 
 Source keys: instruction facts come from `MOS-PGM-1976` and the selected-core deltas in
-`WDC-65C02S-2022`; Blend65 semantics come from `BLEND65-SPEC-P3-ed278ab9`; proof and accounting
+`WDC-65C02S-2022`; Blend65 semantics come from `BLEND65-SPEC-P3-4bf8a989`; proof and accounting
 rules come from `evidence-parity-and-recovery.md` and `il-and-optimization.md`.
 
 ## Loads, stores, and moves
@@ -206,6 +206,9 @@ The static decision stream is 37 bytes. With no branch-page crossing, its path c
 
 The stream reads each absolute high operand more than once, clobbers `A/N/Z/C`, and preserves `V`.
 ZP operands shorten each affected load/compare by one byte and one cycle but consume scarce ZP.
+The displayed stream has seven operand-reading instructions, so moving both two-byte operands from
+absolute RAM to ZP changes the complete static size from 37 bytes to exactly 30 bytes—not 31. Its
+same-page path costs become 14, 16, 18, 20, 28, and 30 cycles in the table's path order.
 A normalized-high scratch candidate can reduce reads on some paths but must charge its home and
 stores. This baseline is a correctness candidate, not a universal selection: layout, liveness,
 operand location, relation kind, and path frequency still decide the winning form. A constant high
@@ -233,6 +236,15 @@ placement changes both but consumes four or more scarce bytes. This total is ill
 reuse, aliasing, in-place result, immediate operands, and live registers create different candidates.
 Always recompute from the actual stream. Q-C05 seeds both incoming carry states; Q-C06 does the
 same for subtraction.
+
+For the displayed word chains, inventory final state precisely. The last high-byte `ADC`/`SBC`
+makes `C` the carry-out/no-borrow result for the complete word. Its `N` is bit 15, so it is the
+signed 16-bit result sign. Its `Z` describes only the high result byte and cannot establish that the
+whole word is zero; a whole-word zero test must combine or test both bytes. `V` is the signed
+whole-word overflow result from the high-byte operation when the low-to-high carry chain is intact
+and `D=0`. `ADC` and `SBC` do not change `D`: binary mode is a precondition and is preserved. In
+the shown skeleton A ends with the high result; X, Y, and S are unchanged; stores do not alter
+flags. Report all memory reads/writes and any alias-safe rescheduling separately.
 
 Wrapping arithmetic does not authorize removal of observable flags or volatile accesses.
 Overflow diagnostics are compile-time range diagnostics where specified; no general runtime trap
@@ -284,7 +296,7 @@ For signed `>>`, counts at least the width produce all ones for a negative input
 non-negative input. For unsigned `>>` and every `<<`, counts at least width produce zero. The
 compiler may fold when sign/range is known; otherwise it must select or generate the correct
 terminal fill. It must not apply the host language's shift-count masking. Source:
-`BLEND65-SPEC-P3-ed278ab9`, `MOS-PGM-1976` Chapter 10, and Q-C13.
+`BLEND65-SPEC-P3-4bf8a989`, `MOS-PGM-1976` Chapter 10, and Q-C13.
 
 ### Complete arithmetic-right-shift baselines
 
@@ -564,8 +576,11 @@ and “always expand constants” both fail.
 There is no NMOS divide instruction. Constant zero divisors are compile-time errors. For a runtime
 zero divisor, the default unchecked operation terminates with an unspecified result of the correct
 width and only its declared effects; no check, trap, fallback, or generic runtime is injected.
-An optional safe-division mode may emit an inline check and selected failure action, and its bytes,
-cycles, effects, and handler requirements are charged explicitly.
+The only optional checked mode is default-off `--division-zero-check`. It evaluates the divisor
+once, branches before division, and on C64 enters the canonical source-labelled `SEI` plus self-loop
+terminal block. It has no selectable or returning handler, KERNAL/user vector, error string, linked
+runtime, RAM, or ZP. Charge the terminal/check ROM, any SFA/register pressure, success-path branch
+and layout cost, and timing effects explicitly.
 
 | Case | Legal candidate | Semantic guard |
 |---|---|---|
@@ -767,7 +782,7 @@ only a proved induction shape.
 | one trip | Straight-line body/update/result as semantically observed | Loop variable scope/final observation and `continue` behavior |
 | byte count below 256 | `X`/`Y` up/down counter when it also serves addressing; memory counter otherwise | Range, register pressure, value escape, calls, and wrap termination |
 | exact 256 word iterations `0..255` | One 8-bit induction register, body, `INX; BNE loop` | Semantic word counter does not escape; terminal 256 is unobservable; body/calls cannot observe or alter hidden induction state; exact canonical step/bound |
-| explicit byte `i < 256` | Preserve deterministic infinite wrap behavior and applicable compile-time nontermination diagnostic | Never silently widen, repair, or reinterpret it as a range loop |
+| canonical finite-looking byte `i < 256` | Emit E10262 because the counter repeats before the invariant condition can become false | Never silently widen, accept as an accidental infinite loop, or reinterpret it as a range loop; intentional modular loops remain legal |
 | countdown including zero | Preheader and post-body decrement/branch arranged to include the intended endpoints | `0`, `1`, `255`, and `256` counts; no underflow off-by-one |
 | fixed hot loop | no, partial, or full unroll | Trip count, body bytes/cycles, path frequency, layout/branch effects, I-cache not assumed, hard size budget |
 | nested loops | Assign registers/homes from combined pressure and index use | Inner steady state matters, but outer setup and spills still count |
@@ -820,6 +835,16 @@ Pointer arithmetic wraps in the defined 16-bit address domain. The compiler may 
 directly into address formation rather than materializing a word temporary, but source behavior and
 borrow provenance remain exact. A static address becoming a runtime pointer is a performance defect
 unless a runtime consumer genuinely requires the pointer.
+
+For `(zp),Y`, never choose a page-cross bus trace without a selected CPU. On NMOS 6502/6510 a
+crossing read performs the extra access at the uncorrected-high effective address before the final
+corrected read; W65C02S instead reads the final instruction byte on that extra cycle. If the packet
+does not establish the core, report both bounded variants or leave the exact dummy address Unknown.
+The zero-page pointer high-byte fetch still wraps from `$FF` to `$00` on both relevant forms.
+`LDA (zp),Y` changes A and N/Z while preserving X, Y, S, C, V, D, and I. `STA (zp),Y` preserves A,
+X, Y, S, and all flags while writing memory. Add the selected-core pointer reads, dummy access,
+final read/write, page-dependent cycles, and exact MMIO-visible addresses to that architectural
+inventory.
 
 ## Aggregates, copies, and layout
 
@@ -895,7 +920,7 @@ Replace arithmetic with data only when the complete program wins:
 | ownership | Can IRQ and mainline read it safely? Is it immutable or synchronized? |
 
 Pre-shifted sprite/image variants can save frame cycles but multiply asset bytes and loading cost.
-That is a target/game-engine decision in Phase 5, not an automatic arithmetic rewrite. Q-C24
+That is a target/game-engine decision, not an automatic arithmetic rewrite. Q-C24
 requires both behavior proof and the full table ledger.
 
 ## Computed dispatch

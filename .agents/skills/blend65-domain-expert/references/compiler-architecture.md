@@ -1,7 +1,7 @@
 # Compiler Architecture Doctrine
 
-> **Construction status**: Candidate knowledge for the unqualified `0.6.0-artifacts-portability`
-> build. This module defines responsibilities and invariants, not a mandatory class diagram.
+> **Baseline version**: `1.0.0`. This module defines responsibilities and invariants, not a
+> mandatory class diagram.
 
 ## Design Objective
 
@@ -15,7 +15,7 @@ ACME is the currently selected emitter dialect by explicit product/toolchain pol
 language semantic. The responsibility boundaries below therefore keep emitter dialect selectable:
 changing the assembler replaces terminal serialization facts, not typed semantics, SFA, or machine
 operation meaning.
-`[BLEND65-PROJECT-POLICY-P3-3541841b, Environment & dependencies; Project-specific: Skill/implementation independence]`
+`[BLEND65-PROJECT-POLICY-P3-28627e0c, Environment & dependencies; Project-specific: Skill/implementation independence]`
 
 The architecture must stay smaller than the problem. Add a representation, pass, plugin seam, or
 framework only when a current consumer and a lost-or-preserved invariant justify it. LLVM,
@@ -260,11 +260,11 @@ not zero cost and must be redesigned or the measured gap filed.
 
 ## Sources
 
-- `[BLEND65-PROJECT-POLICY-P3-3541841b, PRIME DIRECTIVE headings; Environment & dependencies; Project-specific: Skill/implementation independence]` — product/process authority for modern input, expert output, and the selected ACME toolchain
-- `[BLEND65-SPEC-P3-ed278ab9, spec/00-introduction.md §Design Axioms]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/15-platform-profile.md §Platform Profile Contract]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/06-functions.md §SFA Calling Convention]`
-- `[BLEND65-SPEC-P3-ed278ab9, spec/11-memory-model.md §Static Frame Allocation]`
+- `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE headings; Environment & dependencies; Project-specific: Skill/implementation independence]` — product/process authority for modern input, expert output, and the selected ACME toolchain
+- `[BLEND65-SPEC-P3-4bf8a989, spec/00-introduction.md §Design Axioms]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/06-functions.md §SFA Calling Convention]`
+- `[BLEND65-SPEC-P3-4bf8a989, spec/11-memory-model.md §Static Frame Allocation]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative responsibility model only
 - `[LLVM-MOS-275C7FC, repository architecture and target implementation]` — comparative only
 - `[OSCAR64-1.32.273, compiler/codegen/CodeGenerator6502.cpp and compiler/optimizer/]` — comparative instruction-selection and optimization structure only

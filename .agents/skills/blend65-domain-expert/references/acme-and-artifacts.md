@@ -1,8 +1,8 @@
 # ACME and Artifact Engineering
 
-> **Construction version**: `0.6.0-artifacts-portability`
-> **Status**: Candidate knowledge for the unqualified Blend65 expert baseline. The commands and
-> expected observations below are future proof specifications; Phase 6 did not run ACME or VICE.
+> **Baseline version**: `1.0.0`
+> **Status**: Source-backed decision knowledge. Commands and expected observations below are exact
+> future proof specifications unless a recorded result explicitly says they were executed.
 
 ## Scope and Authority
 
@@ -172,6 +172,14 @@ Target out of range (<offset>; <distance> too far).
 For example, displacement `128` is `Target out of range (128; 1 too far).`. ACME writes a dummy
 offset while collecting the error and produces no valid output file when errors remain.
 `[ACME-097-R266, src/mnemo.c::near_branch; docs/QuickRef.txt output-on-success rule]`
+
+Compute page-cross cost from the post-operand PC and the taken target, never from displacement
+magnitude. In the A04 boundary probe, a branch at `$1000` has post-operand PC `$1002`; 127 fill
+bytes put the target at `$1081`. Both addresses are in page `$10xx`, so the taken branch costs 3
+cycles, not 4. The displacement-128 target at `$1082` is still in that page but is illegal for a
+different reason: signed-relative range. A complete review reports the exact accepted bytes
+`F0 7F`, the exact rejected diagnostic `Target out of range (128; 1 too far).`, output-artifact
+suppression, register/flag preservation, and both original and repaired path costs.
 
 Branch repair belongs to machine CFG layout/optimization before serialization. The compiler may
 invert a condition around an absolute jump, choose a legal long-branch instruction on a selected

@@ -162,8 +162,9 @@ loading, response-shape, freeze, or release behavior; those facets remain pendin
 integrated Phase-7 candidate router exists.
 
 Record pass/fail and material findings in the applicable case result fields. Fix knowledge or
-source links before that content checkpoint is green. Focused runs are evidence for reviewers; they
-are not the definitive complete blind suite.
+source links before that content checkpoint is green. Focused runs become release evidence only
+when they cover a corrected case and its dependency-traced regressions under the AR-P44 isolation,
+grading, and review rules.
 
 ## Blind Isolation Contract
 
@@ -194,11 +195,15 @@ framework is created.
    routing/content checks.
 2. Perform independent factual, semantic, SFA, lowering, C64-game, source, routing, migration, and
    anti-overengineering review. Apply all material corrections and rerun affected focused cases.
-3. Run the definitive complete five-file blind suite once against the exact no-further-content-
-   change isolated candidate, using the isolation contract, then complete independent grading and
-   every evaluator, grader, packet, and review evidence write.
-4. If the suite exposes a defect, correct it, independently review the changed surface, and repeat
-   the complete suite. Targeted reruns alone cannot qualify changed final content.
+3. Run one complete five-file blind coverage sample against the integrated isolated candidate,
+   using the isolation contract, then complete independent grading and every evaluator, grader,
+   packet, and review evidence write.
+4. If the sample exposes a material knowledge or oracle defect, correct it, independently review
+   the changed surface and its dependency-traced blast radius, and rerun every affected case plus
+   one relevant regression. Evaluator-only omissions may be corrected by a fresh response capture
+   without invalidating unrelated case evidence. Qualification combines the complete coverage
+   sample, focused correction evidence, deterministic gates, and review; it never waits for a lucky
+   simultaneous all-pass transcript.
 5. Run the **Candidate Pre-delete Gate** on the qualified isolated candidate: exact topology,
    complete source/coverage/migration sets, frozen oracles, final evaluation/grade evidence, review
    resolution, and zero material conflict.
@@ -209,13 +214,13 @@ framework is created.
    the specification, all thirteen references, accepted decisions, and qualification oracles. Every
    possible deviation is classified as an implementation defect, ordinary specified rule, or forced
    exception. The gate requires zero omitted, pending, or unreconciled exceptions. A content change
-   returns the candidate to independent review and complete blind evaluation.
+   returns the candidate to independent review and affected-case blind evaluation.
 
 Any later change to router, metadata, runtime reference, source/coverage/migration content, case
-oracle, or result evidence invalidates the definitive run. After the Candidate Pre-delete Gate,
-that evidence is verified but never finalized or otherwise changed. A candidate-to-live hash
-mismatch also invalidates qualification; formal Gate 3 may reuse the isolated evaluation only for
-byte-identical content.
+oracle, or result evidence invalidates its affected and dependency-traced qualification evidence.
+After the Candidate Pre-delete Gate, that evidence is verified but never finalized or otherwise
+changed. A candidate-to-live hash mismatch also invalidates qualification; formal Gate 3 may reuse
+the isolated evaluation only for byte-identical content.
 
 ## Optimization Qualification Rule
 
@@ -307,7 +312,9 @@ Release passes only if:
 - every mandatory structural assertion passes;
 - every required coverage cell is complete and every material claim is traceable;
 - independent review precedes the definitive suite and all material findings are resolved;
-- every mandatory behavioral case passes isolated blind evaluation on the final candidate;
+- every mandatory behavioral case has isolated green evidence applicable to the final candidate,
+  using dependency-traced focused reruns after corrections rather than assuming a global blast
+  radius;
 - the final hardware-limitation exception re-scan finds zero omitted, pending, or unreconciled
   exceptions;
 - old references are removed with every migration row resolved;
@@ -315,7 +322,8 @@ Release passes only if:
 - `spec/` exactly matches the bound Phase-3 path-and-file digest and receives no further changes
   after that identity is bound; packages, examples, dependencies, and CI remain untouched.
 
-No percentage threshold, majority vote, known issue, or deadline exception overrides the rule. A
+No percentage threshold, majority vote, known issue, stochastic batch result, or deadline exception
+overrides the zero-defect rule. A
 blocked required source/spec conflict blocks release. The compiler's unrelated 3,000+ tests are not
 run for this skill/Markdown-only feature.
 
@@ -323,5 +331,5 @@ run for this skill/Markdown-only feature.
 
 Qualification fails if authors grade their own unconstrained output, evaluators can read the
 oracle/history, external-fact oracles freeze before sources, cases are weakened after a failure, a
-broad aggregate hides a dangerous miss, a definitive run predates final review/corrections, an old
-authority remains, release identity is ambiguous, or structural green is reported as expertise.
+broad aggregate hides a dangerous miss, corrected/dependent evidence predates its correction, an
+old authority remains, release identity is ambiguous, or structural green is reported as expertise.

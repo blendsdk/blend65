@@ -21,9 +21,11 @@ reference content, and must then pass its focused cases. At execution start, the
 pinned, its four references become read-only migration evidence, and its router is versioned and
 quarantined; its statements are not authority for new knowledge. The replacement is activated only
 after an isolated Candidate Pre-delete Gate, then the old references are removed in the same
-coherent live-tree change. No compiler source,
-language specification, test harness, service, registry, generator, downloader, or publication
-layer is created or changed.
+coherent live-tree change. No compiler source, test harness, service, registry, generator,
+downloader, or publication layer is created or changed. The only language-specification edits are
+the exact AR-P42 crosswalk repairs and AR-P43 final hardware-limitation/expressiveness
+reconciliation files named by the execution plan. They preserve the detailed normative rules,
+correct derived guidance, and never follow current compiler behavior.
 
 The current compiler, its tests, roadmaps, readiness machinery, scoreboards, and game-feasibility
 snapshot are inputs to a later audit only. They may supply realistic qualification prompts, but
@@ -37,7 +39,7 @@ skill is no longer needed for ordinary use.
 
 | # | Document | Purpose |
 |---|---|---|
-| AR | [Ambiguity Register](00-ambiguity-register.md) | Thirty-five resolved planning decisions and thirty-four resolved Phase-3 rulings; no open product ambiguity |
+| AR | [Ambiguity Register](00-ambiguity-register.md) | Resolved planning and runtime rulings; no open product ambiguity |
 | 00 | [Index](00-index.md) | Scope, navigation, and execution shape |
 | 01 | [Requirements](01-requirements.md) | Thin implementation delta over approved RD-01 |
 | 02 | [Current State](02-current-state.md) | Grounded skill, compiler, toolchain, and risk baseline |
@@ -130,12 +132,13 @@ qualification/release.md binds the v1.0.0 commit and freezes the baseline
 The execution may modify only:
 
 - `.agents/skills/blend65-domain-expert/**`;
-- `codeops/features/blend65-expert-skillset/**`; and
-- the portfolio roadmap only when CodeOps branch policy permits its lifecycle cascade.
+- `codeops/features/blend65-expert-skillset/**`;
+- the portfolio roadmap only when CodeOps branch policy permits its lifecycle cascade; and
+- only the exact bounded `spec/` reconciliation files listed in Phase 7 of the execution plan.
 
-The execution must not change `packages/`, `examples/`, `spec/`, `.github/`, dependencies, or
-existing Blend65 feature roadmaps. The live compiler is evidence for cases, not an implementation
-target in this feature.
+The execution must not change `packages/`, `examples/`, any other `spec/` file, `.github/`,
+dependencies, or existing Blend65 feature roadmaps. The live compiler is evidence for cases, not
+an implementation target in this feature.
 
 ## Completion Definition
 

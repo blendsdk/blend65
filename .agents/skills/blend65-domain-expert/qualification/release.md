@@ -1,8 +1,7 @@
 # Blend65 Domain Expert Release Record
 
-> **Active construction version**: `0.6.0-artifacts-portability`
-> **Target baseline**: `1.0.0`
-> **Status**: Draft — unqualified; no release gate is claimed green
+> **Candidate version**: `1.0.0`
+> **Status**: Qualification in progress; not active until every release gate is green
 > **Recorded**: 2026-09-08
 
 ## Identity
@@ -16,8 +15,8 @@
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
 | Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Construction router | `0.6.0-artifacts-portability`; explicitly unqualified and non-authoritative |
-| Construction router SHA-256 | `d7d22a6f88ea38a762c02dc88b14af2838e980c9931569beb84b80fbe33932b3` |
+| Candidate router | `1.0.0`; isolated and inactive until qualification and atomic migration complete |
+| Candidate router SHA-256 | `80fbc581e4a1a60e372fa2bff745748755da322d2f5db5a3c402b4bc2aa4621f` |
 | Qualified content commit | — |
 | Superseded qualified version | None; the legacy prototype was never qualified |
 
@@ -25,11 +24,11 @@
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Incomplete | All thirteen candidate references now exist beside four quarantined legacy references; the final isolated qualification and atomic thirteen-reference migration remain Phase 7. |
-| Coverage and traceability | Incomplete | Phase-3 language/architecture/SFA/IL, Phase-4 CPU/lowering, Phase-5 C64 platform/game, and Phase-6 ACME/artifact/portability content are authored. Phase-6 focused qualification is recorded below; definitive Phase-7 isolation remains. Native asset parser claims remain fail-closed until their stated producer-schema/fixture implementation proofs exist. |
-| Behavioral | Incomplete | Phase 2 has 11 focused passes. Phase 3 passes its exact affected-case evaluator and independent correction grade. Phase 4 passes Q-C01..Q-C24 plus focused Q-R01. Phase 5 passes Q-P01..Q-P21 plus focused Q-R04 after corrective evaluation. Phase 6 adds its focused content cases; definitive Phase-7 isolation remains outstanding. |
-| Specification consistency prerequisite | Phase 3 complete | The current replacement candidate binds corrections through SC-147 under `BLEND65-SPEC-P3-ed278ab9`. Mechanical checks report 50 specification paths, 96 grammar productions, and matching diagnostic registries with 177 unique codes (148 errors, 29 warnings). Exact evaluator and corrective independent grade pass; formal-semantics review is clean. |
-| Hardware-limitation exceptions | Incomplete | Every currently known entry and optional-safety contract is reconciled; the mandatory final omission re-scan remains a Phase-7 release gate. |
+| Structural | Passed | The isolated candidate has exactly thirteen linked references, seven qualification artifacts, valid metadata and links, and no legacy runtime reference. The Candidate Pre-delete Gate passed before atomic migration. |
+| Coverage and traceability | Passed | Every case row and legacy heading has an exact knowledge destination, source basis, protecting case, and completed applicable facets. Native asset parser claims remain fail-closed until their stated producer-schema/fixture implementation proofs exist. |
+| Behavioral | Passed | The complete isolated coverage sample under `BLEND65-SPEC-P3-4bf8a989` passed 105 cases and exposed Q-L26/Q-L27 defects. Those defects were corrected; current-packet focused Q-L26/Q-L27 evidence and independent re-review pass. All 107 case fields now contain applicable green final evidence. |
+| Specification consistency prerequisite | Passed | SC-148..SC-155 are bound to `BLEND65-SPEC-P3-4bf8a989` (`4bf8a98934df6282febe013c31a16d89dd73f8e8bbbce9e87b6678e1b75013fe`). Mechanical checks reproduce 50 specification paths. No earlier result is relabelled as evidence for this identity. |
+| Hardware-limitation exceptions | Passed | The final scan reconciled HLE-002/HLE-005, migration and C64 disclosures, per-activation costs, address-workaround bounds, and aggregate-return expressiveness debt. HLE-001..HLE-009 and EXP-001 are present with zero omitted, pending, or unreconciled exception. |
 
 ## Red-Baseline Method
 
@@ -1232,6 +1231,49 @@ status bounds, and case integrity. It reported no findings.
 These results qualify the knowledge content and exact future proof specifications, not executable
 observations. Phase 6 did not run ACME, VICE, the compiler, package tests, readiness, or hardware.
 
+## Phase-7 Candidate Integration Results
+
+The focused router evaluator received the isolated `1.0.0` candidate router and only the references
+available through that router. It evaluated Q-R01..Q-R04, Q-R10..Q-R11, Q-A14..Q-A15, Q-A17, and
+one cross-domain sprite-multiplexer routing regression. It did not receive hidden oracle text,
+prior answers, plans, compiler implementation, readiness artifacts, or the feasibility matrix.
+
+The first independent grade passed every answer except Q-R01. That answer selected lowering and CPU
+knowledge but omitted the Blend65 semantics and parity/evidence references required for a generated
+signed-comparison review. The router was corrected so concrete lowering always selects lowering and
+CPU knowledge, and a Blend65 parity review also selects semantics and evidence/parity knowledge.
+A corrective evaluator rerun selected exactly those four references; the independent re-grade
+passed Q-R01 and the cross-domain regression. Q-R02, Q-R10, Q-R11, Q-A14, Q-A15, and both Q-A17
+facets now have focused evaluator and grader passes.
+
+The independent broad review covered hardware/tool accuracy, semantics and SFA, lowering/effects/
+optimization/cost, C64 game practicality, modern ergonomics and representation leaks, source
+governance, routing, migration completeness, oracle integrity, and overengineering. It found one
+major activation-state contradiction and two stale construction labels in runtime references. The
+user accepted the remedies on 2026-09-08. The C64 baseline now has activation-stable wording, and
+runtime references no longer carry construction-phase labels. A final bounded re-review and
+Prettier check returned no findings. No specification test was present or changed.
+
+The first complete filesystem-isolated run was validly launched but failed grading and is wholly
+invalidated. Its five evaluator captures contained all 107 case rows. Routing plus parity/recovery/
+portability passed 29/29; language/architecture/SFA passed 22/33; CPU/lowering plus C64/game passed
+42/45, for 93/107 overall. Independent diagnosis found thirteen evaluator-capture omissions caused
+by the launch instruction's demand for compact one-row answers. The required knowledge for those
+thirteen cases was already present. Q-L26 exposed one real candidate defect: the runtime CharPad
+knowledge lacked exact packed-12 byte order, the 4095 availability boundary, odd-count padding,
+the complete selector/type/availability surface, and E10144 ownership.
+
+The accepted correction adds those exact frozen-spec invariants without changing the oracle or
+introducing a new language concept. The independent correction review first found missing `const`
+array result types and imprecise tile-only availability; the repaired table then passed re-review
+with no findings. A fresh focused Q-L26 evaluator and independent grader passed both Q-L26 and a
+cross-domain canonical/packed/split-map plus VIC-placement regression. The corrected runtime-tree
+digest is `2d93fa030b9355300e67c02b39847edcfca3e0e2cc4353aa0285d88eb76c83c7`;
+the focused answer hash is
+`b25f637220eb08728a15c3eb5cd86468344183322ae030064df9e356058295a2`. The replacement definitive
+launch removes the compact-row constraint and requires exhaustive case-by-case rule coverage. No
+result from the invalidated run contributes to release qualification.
+
 ## Migration
 
 The coverage matrix pins every material legacy heading and its planned destination. Phase-3 through
@@ -1304,6 +1346,16 @@ Phase-6 path allowlist, frozen-`spec/`, spec-test integrity, and `git diff --che
 content validation only: no compiler build, typecheck, lint, package test, readiness suite, ACME,
 VICE/other emulator, or physical-hardware test ran or is claimed.
 
+Phase-7 Candidate Pre-delete verification passed on 2026-09-09. The skill validator, metadata YAML
+parse, touched-file Prettier, local Markdown links, source-key equality, exact thirteen-reference
+and seven-qualification-file topologies, exact 50-path specification set and digest, 107 unique
+eleven-field cases, 107 appended definitive passes, final runtime-payload identity, focused-output
+hashes, legacy-reference pins, specification-test integrity, authorized path boundary, and
+`git diff --check` are green. The independent correction re-review reports no findings. The final
+HLE re-scan contains HLE-001..HLE-009 and EXP-001 with zero omitted, pending, or unreconciled
+exception. This was skill and Markdown validation only: no compiler build, typecheck, lint,
+package test, readiness suite, assembler, VICE/other emulator, or physical-hardware test ran.
+
 ## Post-phase Review
 
 ### Phase 1
@@ -1364,18 +1416,21 @@ trailing-comma allowance as SC-076..SC-077. Mechanical path, grammar, and diagno
 pass.
 Historical comprehensive correction reruns and independent grading passed under
 `BLEND65-SPEC-P3-3344394e`; that identity was later invalidated and is supporting evidence only.
-Subsequent reviews and accepted rulings expanded the durable reconciliation through AR-P41 and
-SC-147. They replaced range-only loops with the familiar three-clause loop; closed local-address,
+Subsequent reviews and accepted rulings expanded the durable reconciliation through AR-P42 and
+SC-151. They replaced range-only loops with the familiar three-clause loop; closed local-address,
 explicit-stack, BRK, audio/SID, fixed-array, any-size-parameter, index-ordinal, object-domain,
 query-width, cost-boundary, diagnostic, and derived-grammar gaps; and explicitly rejected a new
 view/slice/span/subrange language concept. Each specification edit produced a new digest rather
-than inheriting a historical grade. The current identity is `BLEND65-SPEC-P3-ed278ab9`. Its exact
-impact evaluator passes all ten assigned cases, its focused evaluator passes Q-L19, and its
-formal-semantics re-review is clean. The first independent grade rejected four focused answers
+than inheriting a historical grade. `BLEND65-SPEC-P3-ed278ab9` passed its Phase-3 affected-case
+evaluation, focused Q-L19 evaluation, and formal-semantics re-review. The first independent grade rejected four focused answers
 because they addressed the wrong stored case meanings; that failed evidence grade is recorded
 above. The corrective four-case capture and fresh independent grade pass Q-L01, Q-L14, Q-L20, and
 Q-L24; Q-L19 retains its pass. The final correctness re-review reports no findings. No Phase-3
-semantic conflict or new array-view concept remains.
+semantic conflict or new array-view concept remained in that historical checkpoint. The third
+definitive Phase-7 attempt later exposed AR-P42's four crosswalk conflicts. The corrected
+then-current identity was `BLEND65-SPEC-P3-6f5a1734`; AR-P43 later superseded it with
+`BLEND65-SPEC-P3-4bf8a989`. No earlier result is relabelled as qualifying evidence for either
+identity.
 
 ### Phase 4
 
@@ -1422,6 +1477,97 @@ passed, and the resumed independent correctness review reported no findings. Sec
 performance specialist reviews were skipped because this phase changes only non-executable skill
 and planning Markdown. Frozen-`spec/` and spec-test integrity remain intact; no compiler, assembler,
 readiness, emulator, or hardware execution was performed.
+
+### Phase 7 definitive qualification
+
+The first two definitive evaluator attempts were invalid because the evaluator omitted required
+case fields. The third attempt used smaller batches and produced substantially complete routing,
+parity, CPU, language, and C64 answers. It is nevertheless invalidated in full: Q-L01 correctly
+exposed four material conflicts between summary/specification text and the candidate crosswalk.
+AR-P42 resolves them without preserving or consulting compiler implementation behavior:
+
+| Correction | Accepted result |
+|---|---|
+| Atari 7800 timing summary | 1.79 MHz nominal CPU timing; 1.19 MHz TIA/RIOT accesses and MARIA DMA stalls remain separate constraints |
+| Axiom A4 | No hidden execution or unenumerated coercions; only TS-4 and TS-14 supply current implicit conversions |
+| Future register | Count-free `FUT-NNN` reference; the live register is the only endpoint authority |
+| F001 crosswalk | Only supplied files, one output binary, path-name irrelevance, and module-based cross-file references; no invented discovery, mapping, duplicate-module, or diagnostic-stability rules |
+
+An independent decision challenger preferred these narrow corrections over changing TS-4/TS-14,
+broadening F001, or creating a second authoritative errata layer. The accepted corrections are
+SC-148..SC-151 under exact specification identity `BLEND65-SPEC-P3-6f5a1734`, digest
+`6f5a17341fa2b67f9783a875bf791d8cf3ad2bbe838a929981023ffa6e503c81`. The intermediate
+`BLEND65-SPEC-P3-400777d0` identity is also invalidated: changed-surface review found its feature
+index still duplicated the future-register endpoint. All outputs and grades from
+the three earlier definitive attempts are historical diagnostic evidence only. Current
+qualification requires a complete blind coverage sample, focused green evidence for every
+corrected and dependency-traced case, deterministic gates, and independent review with zero
+unresolved material knowledge or oracle defect before activation.
+
+The next isolated run under `BLEND65-SPEC-P3-6f5a1734` produced all 107 answers and reached
+107/107 after response-only corrective captures. That result is preserved as historical evidence,
+not qualification: the mandatory final hardware-limitation scan then found substantive candidate,
+oracle, and derived-specification omissions. AR-P43 resolves them as SC-152..SC-155:
+
+| Final-scan finding | Selected correction |
+|---|---|
+| Division safety text allowed a selected failure handler | Only default-off `--division-zero-check`; C64 uses the canonical source-labelled `SEI` plus self-loop stop with no handler/runtime/RAM/ZP. |
+| HLE-005 omitted W10141 | W10190 remains function-local read-path analysis; W10141 independently covers every nonzero uninitialized mutable array, including module arrays. |
+| Historical range and per-function activation claims survived | SC-104 is historical under SC-131; frame and optional return-home costs are per allocated activation instance. |
+| Address workarounds were called universal | Manual base-plus-`offsetof` applies only to addressable named objects and lifetime-contained uses; parameter fields need a separately passed address. |
+| Migration and C64 default-boundary disclosures were absent | Migration now lists HLE-001..HLE-009; the C64 appendix states default modulo-65536 addressing and banking/MMIO effects. |
+| Aggregate returns lacked a debt owner | EXP-001 marks current E10093/E10120 fixed aggregate-return rejection as redesign debt and selects caller-owned destination passing through SFA. |
+
+The corrected specification identity is `BLEND65-SPEC-P3-4bf8a989`, digest
+`4bf8a98934df6282febe013c31a16d89dd73f8e8bbbce9e87b6678e1b75013fe`. Q-L20, Q-L23, and
+Q-A08 are strengthened in place, so the inventory remains exactly 107 cases. The changed surface
+passed independent review and affected-case isolated evaluation; no result from
+`BLEND65-SPEC-P3-6f5a1734` is relabelled.
+
+The immediately preceding `BLEND65-SPEC-P3-8983563e` candidate is also historical. Independent
+changed-surface review found one minor but real provenance defect: FUT-010 covered struct and fixed
+array returns in its body while its source metadata and summary still named only F011/structs. The
+repair names aggregate returns and binds both F011 and F014; the evaluator process started before
+that finding was stopped and none of its output counts toward qualification.
+
+The final `BLEND65-SPEC-P3-4bf8a989` complete coverage sample produced 107 answers and 107
+independent grades. It passed 105 cases and exposed the only two material misses, Q-L26 and Q-L27.
+The candidate runtime payload digest was
+`1dfcffd62bb6dde82f03faf11d1aa5abe22e26086bd485d5dbb6e9c2533aaa56`; the sorted output-tree
+digest was `64eca25491bb2620a2203211be95b89a593a2b88bb6b175c9f7ec21a55368e34`.
+Under AR-P44, those failures invalidate only their corrected and dependency-traced surfaces; they
+cannot be hidden by aggregate scoring or an unrelated pass.
+
+The first corrected focused packet passed both Q-L26 and Q-L27. Its case-prompt hash was
+`0c806f1f538a5191b8924cc7deed1c76cacaafb6e2f9ec104a030571cfd0b630`; its relative-path sorted
+packet-tree digest was `c11fa066897ce95568241dec2b24a3738942eddf05e45507d6205c3927f022f8`, and its
+`SKILL.md`/`agents`/`references` runtime-payload digest was
+`807315680008b2275795b274034a2900aec25099ec84a3a5bfda5b8bb7827e0d`. The independent grade
+hashes were `1d5823dcbbb3d477b62e8d2f4c7fb61654c7f2988fde2f1656f7ec145060cae4` for Q-L26 and
+`3aebd0b981ee2e15f05dcf88f6fac80008c5d517c4a160a4a6f8e76e6a191ab8` for Q-L27.
+
+The final router and interval-based VIC placement packet used the same case-prompt hash, a
+relative-path sorted packet-tree digest of
+`a0a558350c09b8981fbbcf36b0a3fcc1da86ae2ced31c67469d237bedd495594`, and a runtime-payload
+digest of `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82`. Its Q-L27 evaluator
+and grade hashes were `99705ad563eafc0705f6db24647210d5ec17c3943ec2974c04e1f527a87e9b35` and
+`1f29c46e3de1c679fbe0cb6dcd96937f0225c0f4e15ad014fa8c503b7a2a7ea8`. The grade passed
+interval-based VIC placement, active-screen and contained pointer-table occupancy, alignment,
+padding, runtime access, resident subsets, and fixture provenance. A final Q-L26 native-handler
+regression against those exact packet/runtime digests produced evaluator hash
+`c34092d25d75d93c6172e09c789399b5d83aa662d0f5dc079b4364c0a7a06982` and independent passing
+grade hash `291a788bfd00d6f6c6bbd0c457fc16332a2fa26290023f22534621c6e2a7eda5`. All packet-tree digests
+use `(cd packet && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum)`;
+runtime-payload digests use the same method over `SKILL.md`, `agents`, and `references`. Positive
+and negative sandbox controls passed before each final launch. No compiler, assembler, readiness,
+VICE, other emulator, or hardware test ran or is claimed.
+
+The final correctness review found three major evidence-integrity defects and one minor metadata
+defect: no post-router-change native-handler regression, ambiguous prompt-only packet hashes, 105
+unwritten definitive-result fields plus stale matrix states, and an AR-P44 header lag. The remedies
+added the exact-current-packet Q-L26 pass, reproducible packet/runtime digests, all 107 append-only
+final results, reconciled matrix states, and current ambiguity metadata. Independent re-review
+reports no findings and confirms specification-test integrity.
 
 ## Freeze Declaration
 

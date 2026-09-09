@@ -1,6 +1,6 @@
 # Evidence, Parity, and Recovery
 
-> **Construction version**: `0.6.0-artifacts-portability`
+> **Baseline version**: `1.0.0`
 > **Role**: Decide what is actually known, compare generated work fairly with expert 6502 work,
 > and recover useful compiler parts without preserving accidental complexity.
 
@@ -42,6 +42,12 @@ Keep these four classes visibly separate in notes, findings, recommendations, an
 Do not turn a recommendation into a fact by writing it in imperative form. Do not turn an unknown
 into a negative fact. “No runtime result was collected” means runtime correctness is unknown; it
 does not mean the feature fails.
+
+Use claim kind `Unknown` for the affected conclusion when decisive evidence is absent. The
+separate observation “the evidence is absent” may be a `Fact`. A smallest next probe is a sequence
+from the current evidence boundary: first establish artifact identity, configuration, and bytes
+when they are missing, then assemble or execute. Never describe the later runtime step as operating
+on an “already verified” artifact unless that verification is actually in the packet.
 
 ## Five Capability States
 

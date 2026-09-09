@@ -553,15 +553,18 @@ placement determine whether immediate, zero-page, or absolute forms are selected
 
 | Item | RAM cost |
 |------|----------|
-| Byte parameter | 1 byte per function |
-| Word parameter | 2 bytes per function |
-| Struct or exact array parameter | 2 bytes per function (address) |
-| Any-size array parameter | 4 bytes per function (address + word element count) |
-| Boolean parameter | 1 byte per function |
-| Local byte variable | 1 byte per function |
-| Local word variable | 2 bytes per function |
+| Byte parameter | 1 byte per allocated frame/invocation instance |
+| Word parameter | 2 bytes per allocated frame/invocation instance |
+| Struct or exact array parameter | 2 bytes per allocated frame/invocation instance (address) |
+| Any-size array parameter | 4 bytes per allocated frame/invocation instance (address + word element count) |
+| Boolean parameter | 1 byte per allocated frame/invocation instance |
+| Local byte variable | 1 byte per allocated frame/invocation instance |
+| Local word variable | 2 bytes per allocated frame/invocation instance |
 
-Frame memory is shared between functions with non-overlapping lifetimes (frame coloring), so the total frame region is typically much smaller than the sum of all individual frames.
+Frame memory is shared between invocation instances with proven non-overlapping lifetimes (frame
+coloring), so the total frame region is typically much smaller than the sum of all possible
+instances. One source function may need several static instances when mainline, IRQ, NMI, or other
+bounded domains can overlap; absence of recursion does not by itself collapse them to one.
 
 ### Stack Usage
 

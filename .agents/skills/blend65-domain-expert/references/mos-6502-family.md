@@ -70,6 +70,11 @@ Stores and `TXS` preserve all arithmetic flags; loads and most register transfer
 either prove the incoming flag or emit the instruction that establishes it. Carry is not ambient
 scratch state.
 
+Every numeric arithmetic example must state incoming C and D or enumerate each possible result.
+For example, with `D=1`, `LDA #$09; ADC #$01` produces packed `$10` only when incoming `C=0`; with
+`C=1` it adds eleven decimal units instead. An IRQ does not normalize C, and NMOS IRQ/NMI does not
+normalize D, so neither flag may be silently assumed at an interrupt boundary.
+
 ## Addressing modes
 
 | Mode | Effective operand | Program bytes | Timing class and hazards |
@@ -188,11 +193,12 @@ optimization slots.
 
 On NMOS, memory `ASL`, `LSR`, `ROL`, `ROR`, `INC`, and `DEC` perform one read and two writes at the
 effective address: the old value is written before the modified value. W65C02S changes this to two
-reads and one write. Indexed reads that cross a page perform an extra access using the uncorrected
-high byte before the corrected read; indexed stores use fixed timing and a dummy access even when
-no page is crossed. Exact addresses can matter to mapped devices. Source: `WDC-65C02S-2022` Table
-7-1, bounded against `MOS-HW-1976` bus timing and `VICE-TEST-EF8E8EFE` where a later proof needs
-the exact NMOS access trace.
+reads and one write. An NMOS indexed read that crosses a page performs an extra access using the
+uncorrected high byte before the corrected read; W65C02S uses the final instruction byte for its
+extra read. Indexed stores use fixed timing and a dummy access, with the exact trace selected by
+the core. Exact addresses can matter to mapped devices. Source: `WDC-65C02S-2022` Table 7-1,
+bounded against `MOS-HW-1976` bus timing and `VICE-TEST-EF8E8EFE` where a later proof needs the
+exact NMOS access trace.
 
 Consequences:
 
@@ -201,6 +207,16 @@ Consequences:
 - Do not use an address whose discarded page-cross access has a different device meaning without
   a selected-machine proof.
 - A device contract may explicitly authorize a bus pattern, but ordinary RAM equivalence cannot.
+
+For `(zp),Y`, count data-bus accesses as well as total cycles. The CPU reads the pointer low and
+high bytes from zero page, with a pointer at `$FF` taking its high byte from `$00`. A load performs
+one effective read when no page is crossed. On NMOS, a crossing load performs an uncorrected-high
+dummy read followed by the corrected read; on W65C02S the extra read is of the final instruction
+byte. A store performs the two pointer reads, one selected-core dummy access, and the final write.
+Instruction/operand fetches are additional bus cycles. Before calling traffic complete, establish
+the selected CPU and state the exact dummy and final addresses when MMIO visibility can distinguish
+them. If the selected CPU is absent, report the bounded NMOS and W65C02S variants instead of
+silently choosing one.
 
 ## Reset, interrupt, and stack behavior
 

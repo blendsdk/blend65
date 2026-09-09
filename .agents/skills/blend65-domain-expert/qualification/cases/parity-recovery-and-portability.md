@@ -24,7 +24,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — the evaluator required the resolved symbol, report, and actual bytes;
   the independent grade confirmed the exact future `$0100` absolute probe and kept executable
   observation pending rather than inferring it from source text.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 ## Q-A02 — ACME precedence/low-high expression ambiguity
 
 - **Risk / coverage cells:** Major; `AUDIT-A02`, `PORT-A02`.
@@ -39,7 +42,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — the evaluator preserved explicit `<(base + 1)`/`>(base + 1)`
   parentheses and expected `00 13`; the independent grade confirmed the value and pinned-source
   rule without claiming that ACME ran.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A03 — Automatic ZP/absolute selection boundary
 
@@ -55,7 +61,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — automatic value selection, explicit `+1`/`+2` width, first-pass
   forward-symbol behavior, report inspection, and the exact future byte sequence all survived
   independent grading.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A04 — Out-of-range relative branch
 
@@ -71,7 +80,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — displacement 127 remains the successful boundary, 128 requires the
   exact pinned diagnostic, and compiler repair stays in machine CFG/layout with actual-byte and
   path-cost proof.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A05 — Build C64 PRG
 
@@ -87,7 +99,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — header, origin, body, segments, symbols, BASIC `SYS 2064` startup, and
   VICE execution remain separate gates; the independent grade confirmed the exact 22-byte future
   PRG and `$080b`/`$0810` symbols.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A06 — VICE test skipped because emulator missing
 
@@ -103,7 +118,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — a missing emulator or deliberate skip is `Unknown` at the runtime
   boundary, is excluded from green counts, and names the exact pinned rerun as the next proof.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A07 — Generated routine uses smaller code but adds table/helper/ZP
 
@@ -119,22 +137,28 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — the evaluator rejected the apparent 8-byte local win after adding the
   64-byte table and 12-byte helper (net +68 bytes) and recorded the extra 2 ZP bytes; path/page
   timing remained unknown rather than being invented.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A08 — Expert routine cannot be written in ordinary Blend65 source
 
 - **Risk / coverage cells:** Critical; `AUDIT-A08`, `PORT-A08`.
 - **Oracle status:** `frozen-project` — governed by RD-01 and accepted recovery/version/parity decisions.
-- **Evaluator prompt:** “Expert routine cannot be written in ordinary Blend65 source. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
-- **Permitted raw artifacts:** The ordinary source task, compiler rejection/restriction, expert assembly formulation, and equivalent-obligation statement.
+- **Evaluator prompt:** “An expert routine cannot be written in ordinary Blend65 source; one concrete example is a function that naturally returns a fixed struct or fixed array but current v3 rejects it with E10093/E10120. Classify current behavior without mistaking it for a hardware necessity. Separate facts from inference and recommendation, keep unexpressible work outside finite assembly ratios, and give the smallest ABI direction that preserves modern source ergonomics without a heap or generic runtime.”
+- **Permitted raw artifacts:** The ordinary source task, current specification and compiler rejection/restriction, EXP-001, SFA/ABI boundaries, expert assembly formulation, and equivalent-obligation statement.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
-- **Expected decision invariants:** Records expressiveness failure outside finite ratio.
-- **Disqualifying outcomes:** Omits program from scoreboard and calls parity good.
+- **Expected decision invariants:** Records the expressiveness failure outside any finite ratio; reports current E10093/E10120 accurately but classifies aggregate returns as language-design debt, not HLE. Recommends caller-owned hidden destination passing integrated with SFA, direct construction/copy elision where proved, and complete alias/lifetime/nested-call/IRQ/effect/cost proof without heap or generic runtime.
+- **Disqualifying outcomes:** Omits the program from the scoreboard and calls parity good; defends aggregate-return rejection as 6502/SFA-forced; claims current support; or mandates an intermediate copy/runtime without evaluating direct destination construction.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the evaluator classified the expressiveness boundary `Incorrect`, kept
   it outside any finite parity ratio, and required an owned language/compiler gap plus proof.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A09 — Atari/X16 plugin delegates C64 startup/output hooks
 
@@ -150,7 +174,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Red-baseline result:** Draft observation: partial — status and salvage rules exist, but there is no six-target constraint model (`evidence-and-parity.md:38-54,123-134`).
 - **Focused result:** Pass — a non-C64 plugin delegating C64 startup/output is `Scaffold/stub`;
   neither registry presence nor emitted text upgrades target support.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A10 — Decide where a new target fact belongs
 
@@ -166,7 +193,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — the evaluator routed source meaning, CPU facts, machine facts, ACME
   syntax, and artifact/startup facts to distinct owners and rejected a catch-all upstream platform
   special case.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A11 — Readiness harness has many tests but no unique failure
 
@@ -181,7 +211,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — after the bounded consumer/unique-failure check, the evaluator selected
   deletion and did not propose a replacement meta-harness.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A12 — Existing subsystem is complex but correct on one slice
 
@@ -197,14 +230,24 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Focused result:** Pass — the evaluator limited `Verified partial` to the proven slice, left the
   wider subsystem unknown, and withheld keep/rewrite until contract, consumer, boundary, and
   recovery-cost evidence exists.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A13 — Generated local routines meet expert, global layout improves program
 
 - **Risk / coverage cells:** Major; `AUDIT-A13`, `PORT-A13`.
 - **Oracle status:** `frozen-project` — governed by RD-01 and accepted recovery/version/parity decisions.
-- **Evaluator prompt:** “Generated local routines meet expert, global layout improves program. Classify what is verified, partial, scaffolded, incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent work with all attributable costs; and state the smallest evidence-backed next action.”
-- **Permitted raw artifacts:** Per-routine expert comparisons, whole-program allocation/layout result, complete bytes/cycles/resources, and semantic-equivalence evidence.
+- **Evaluator prompt:** “Generated local routines meet expert, global layout improves program. The
+  identity-bound comparison record gives every local scalar cost ratio as exactly `1.0` and the
+  final whole-program layout as exactly 200 bytes smaller than its expert baseline, with equivalent
+  semantics and complete bytes/cycles/resources. Classify what is verified, partial, scaffolded,
+  incorrect, or unknown; separate facts from inference and recommendation; compare only equivalent
+  work with all attributable costs; and state the smallest evidence-backed next action.”
+- **Permitted raw artifacts:** The stated identity-bound per-routine `1.0` comparisons, exact
+  200-byte whole-program allocation/layout result, complete bytes/cycles/resources, and
+  semantic-equivalence evidence.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
 - **Expected decision invariants:** Separately reports local floor and whole-program win.
 - **Disqualifying outcomes:** Claims every routine individually beats physical optimum.
@@ -212,7 +255,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the evaluator reported the local ratio as 1.0 (meet) separately from
   the whole-program 200-byte layout win (beat), without claiming an impossible per-routine win.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A14 — Request ordinary baseline edit during compiler audit
 
@@ -225,8 +271,13 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Changes skill and invalidates earlier decisions.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Not run.
-- **Definitive result:** Not run.
+- **Focused result:** Pass — the Phase-7 evaluator refused an ordinary mid-journey baseline edit
+  and routed it to a later version with impact review and full qualification; the independent
+  grade agreed.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A15 — Discover critical false CPU fact after recovery decisions
 
@@ -239,8 +290,13 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Silently patches or restarts everything.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Fail — the legacy tree has no semantic version, content-commit binding, errata release path, or dependency-targeted impact audit.
-- **Focused result:** Not run.
-- **Definitive result:** Not run.
+- **Focused result:** Pass — the Phase-7 evaluator paused affected work and required a point
+  release, affected/regression cases, a targeted downstream impact audit, and complete
+  requalification; the independent grade agreed.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A16 — Ask skill for current compiler completeness months later
 
@@ -255,7 +311,10 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the evaluator classified current completeness `Unknown` until the live
   pipeline and artifacts are reinspected; it did not reuse stale readiness or historical claims.
-- **Definitive result:** Not run.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.
 
 ## Q-A17 — Add a future target
 
@@ -268,8 +327,12 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Appends shallow notes, implies production support, or mutates the active baseline mid-journey.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Portability-content facet passes — pinned primary research, an honest
-  constraint-only appendix, separate CPU/platform/serializer/packager contracts, target-specific
-  frozen cases, and one vertical artifact proof are mandatory. Phase-7 integration still must prove
-  version bump, dependent-impact review, complete qualification, and atomic activation.
-- **Definitive result:** Not run.
+- **Focused result:** Pass — the portability-content facet requires pinned primary research, an
+  honest constraint-only appendix, separate CPU/platform/serializer/packager contracts,
+  target-specific frozen cases, and one vertical artifact proof. The Phase-7 evaluator and
+  independent grader also require a version bump, dependent-impact review, complete qualification,
+  and atomic activation between journeys.
+- **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
+  sample evaluator output and independent grade passed this case without a material finding. The
+  packet, runtime-payload, output, isolation, and grading evidence is recorded in
+  `qualification/release.md`.

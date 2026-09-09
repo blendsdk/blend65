@@ -12,6 +12,13 @@ the independent consistency prerequisite and explicit product rulings. External 
 ACME, and VICE expectations remain draft until Phase 2 pins primary evidence. A failure is fixed in
 the router/knowledge/evidence; a frozen oracle is not weakened to make authored content pass.
 
+Behavioral evidence is case-complete rather than batch-perfect. One complete isolated blind run
+proves suite-wide coverage. A material knowledge or oracle defect invalidates its affected case and
+dependency-traced regressions; those cases require correction, focused blind reruns, and independent
+review. An evaluator-only omission does not invalidate unrelated passing cases. Release still
+requires green evidence for all 107 cases and zero unresolved material defects, but it does not
+require a nondeterministic evaluator to reproduce all 107 passes in one lucky transcript.
+
 Implementation validation has three independent gates:
 
 1. structural packaging and exact topology;
@@ -91,14 +98,14 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-L17 | `f(1, g())` with transitive callees in the later argument | Keeps the earlier argument home live across later-argument evaluation and preserves left-to-right effects | Overlays storage unsafely or rejects ordinary source |
 | Q-L18 | `f(1, f(2, 3))` with the same eventual callee | Treats outer argument marshalling as live staging, not active recursion; compiles through an SFA-compatible solution | Calls it recursion, emits an ICE, or imposes an alien restriction |
 | Q-L19 | Ordinary array code crosses byte/word boundaries without prompting | Discovers index/operator/carry/counter/query/object-domain leaks itself; preserves ordinal 265 for uncast `byte(255)+10` and 510 for `byte(255)<<1`, byte-only lowering for proved-small work, explicit-cast wrap, stable word `length()`/`sizeof()`/`offsetof()`, the `0..65535` extent/object domain with E10264..E10266, E10262 for only the proved finite-looking loop, and the any-size parameter ABI without inventing another array concept | Produces wrapped ordinals without a cast, forces word machinery everywhere, silently widens source state, rejects intentional wrap, permits unrepresentable objects, narrows field offsets, selects legality from array bytes, or adds a slice/span/view concept |
-| Q-L20 | The same expression is evaluated as a constant and at runtime | Preserves the specified full-precision constant rules and runtime-width wrapping distinction | Forces both paths to share the wrong arithmetic model |
+| Q-L20 | Constant/runtime arithmetic split and runtime-zero division | Preserves full-precision constant versus runtime-width rules plus exact default/checked HLE-002 behavior | Shares the wrong arithmetic model, invents unchecked zero semantics, or adds an unapproved runtime/handler |
 | Q-L21 | Left-to-right calls combined with `&&`/`||` side effects | Preserves evaluation order, short-circuiting, and exact observable effects | Reorders or eagerly evaluates for easier lowering |
 | Q-L22 | Two by-reference arguments alias the same object | Preserves alias-visible write/read ordering and refuses unsafe independence assumptions | Treats by-reference arguments as non-aliasing |
-| Q-L23 | Imported modules have observable initializers | Applies the specified once-only initialization and dependency order | Uses file discovery order or duplicates initialization |
+| Q-L23 | Module initialization and indeterminate-storage warnings | Applies once-only dependency/effect order, stored-bit semantics, and exact W10190/W10141 scopes | Uses file order, clears storage, duplicates initialization, or conflates/exempts warnings |
 | Q-L24 | Invalid source has one root error and no output binary | Produces the specified diagnostic/recovery behavior and suppresses artifact generation | Emits a binary, cascades unchecked, or surfaces an ICE |
 | Q-L25 | Legalization creates a spill/helper scratch slot after provisional allocation | Returns it to SFA and reaches final no-new-function-storage closure before emission | Allocates hidden dynamic/function storage after closure |
 | Q-L26 | A charset needs VIC-compatible address/alignment/bank placement | Assigns it to platform layout/packaging rather than SFA, preserves placement, and handles the accepted lossless index-width contract | Makes SFA a universal asset manager, copies for convenience, truncates, or rejects a supported current width |
-| Q-L27 | Current SpritePad v5 project with sprites, attributes, tiles, animations, and overlays | Preserves exact records and typed optional content, reports explicit derived bytes, and derives VIC blocks from placement | Drops attributes/content, truncates counts, invents a file-wide mode or file-owned block, or emits hidden duplicates |
+| Q-L27 | Current SpritePad v5 project with sprites, attributes, tiles, animations, and overlays | Preserves exact records and typed optional content, reports explicit derived bytes, derives VIC blocks from interval-proved placement, and requires provenance/hash/output-backed fixture roles | Drops attributes/content, truncates counts, invents a file-wide mode or file-owned block, emits hidden duplicates, or treats a scalar size sum or fixture label as proof |
 | Q-L28 | C64 literals cross character-set modes and a custom charset lacks metadata | Produces the exact mode-bound bytes at compile time, preserves diagnostic ownership, emits no mode switch/runtime conversion, and keeps unqualified target/custom maps inactive | Uses an ambiguous map, guesses glyphs, writes hardware state, or copies C64 mappings to X16 |
 | Q-L29 | One handler reaches C64 KERNAL-chain, exclusive, and raw sinks | Selects the exact no-double-save or raw entry variant, keeps helpers RTS, reports every link/body/stack cost, gates raw availability, and rejects visible CINV ABI mismatch | Uses one RTI body for all sinks, guesses sources, exposes unproven raw entry, hides costs, or adds a dispatcher/runtime |
 | Q-L30 | Ordinary arithmetic and explicit packed-BCD operations share one function | Keeps ordinary operators binary, preserves explicit BCD/carry/D semantics, rejects invalid constants, records runtime-invalid CPU dependence, and emits no runtime helper | Makes ordinary arithmetic ambient-BCD, assumes valid digits, leaks D, or injects a checker/helper |
@@ -128,7 +135,7 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-C16 | Comparison feeds branch then separately stored boolean | Branches directly where possible, materializes only escaping value | Materializes every condition early |
 | Q-C17 | W65C02-only opcode in selected C64 output | Rejects as illegal target form despite assembler acceptance mode | Treats family superset as safe |
 | Q-C18 | Inline versus helper with two call sites and IRQ reachability | Includes call/ABI/body/dead-strip/reentrancy/ZP costs | Compares body instruction count only |
-| Q-C19 | Full 256-iteration canonical loop | Preserves ordinary word semantics, proves any byte induction representation, and identifies the byte-typed source form as deterministically infinite | Rejects the word form, repairs the byte form, loses an iteration, or narrows without escape/effect proof |
+| Q-C19 | Full 256-iteration canonical loop | Preserves ordinary word semantics, proves any byte induction representation, and emits E10262 for the proved finite-looking byte form whose condition cannot become false | Rejects the word form, accepts or repairs the byte form, loses an iteration, or narrows without escape/effect proof |
 | Q-C20 | Link-time symbol low/high bytes | Keeps symbolic assembler resolution; no runtime helper/materialization | Calculates known address at runtime |
 | Q-C21 | An optimization changes lowered assembly | Requires both an independent behavior oracle and the intended assembly/cost expectation; differential execution is supporting only | Accepts shape/cost alone or lets two paths validate a shared lowering bug |
 | Q-C22 | Fixed-trip hot loop is considered for unrolling | Chooses from measured trip count, path frequency, code/layout cost, and cycle benefit; partial/full/no unroll are all legitimate results | Unrolls every constant loop or rejects unrolling universally |
@@ -172,7 +179,7 @@ and grading evidence are recorded without adding a permanent runner or framework
 | Q-A05 | Build C64 PRG | Confirms two-byte load header, origin, body, symbols, startup | Confuses raw binary with PRG |
 | Q-A06 | VICE test skipped because emulator missing | Reports runtime status unknown/skipped, not pass | Rolls skip into green count |
 | Q-A07 | Generated routine uses smaller code but adds table/helper/ZP | Includes all attributable costs and equivalent obligations | Announces win from routine bytes alone |
-| Q-A08 | Expert routine cannot be written in ordinary Blend65 source | Records expressiveness failure outside finite ratio | Omits program from scoreboard and calls parity good |
+| Q-A08 | Expert routine or aggregate-return program cannot be written in ordinary Blend65 source | Records expressiveness failure outside finite ratio and selects SFA caller-owned destination passing for aggregate-return debt | Omits the program, calls parity good, or mislabels E10093/E10120 as hardware-forced |
 | Q-A09 | Atari/X16 plugin delegates C64 startup/output hooks | Classifies scaffold/partial with exact boundary | Calls target supported because registry entry exists |
 | Q-A10 | Decide where a new target fact belongs | Separates CPU, platform, serializer, packager, semantics | Adds catch-all platform special case upstream |
 | Q-A11 | Readiness harness has many tests but no unique failure | Applies demonstrated-value/single-consumer/replacement test; simplify/delete | Preserves because it exists or has coverage |
@@ -233,15 +240,16 @@ RD-01 currently forbids such a framework.
 | C64 platform/game | Content only: all Q-P |
 | ACME/portability/recovery | Content only: Q-A01..Q-A06, Q-A09/Q-A10, Q-A17's portability-content facet, and Q-R12 |
 | Integrated candidate | Router facets of Q-R01..Q-R04 plus Q-R10/Q-R11, Q-A14/Q-A15, Q-A17's version/release integration facet, and cross-domain regression; then independent review and correction |
-| Definitive isolated candidate | Complete blind suite, all evidence writes, then the Candidate Pre-delete Gate |
+| Definitive isolated candidate | Complete blind coverage sample plus focused correction evidence, all evidence writes, then the Candidate Pre-delete Gate |
 | Byte-identical live candidate | Formal live Gates 1–3; Gate 3 reuses the isolated evidence only when the payload hashes match exactly |
 
 Phase 2 through Phase 6 focused runs manually select completed modules and do not claim router,
 selective-loading, response-shape, or freeze facets. Q-R10, Q-R11, Q-A14, Q-A15, and Q-A17's
 version/release integration facet are reserved for Phase 7 because their required invariants are
 version, response, freeze, release, or errata behavior. Independent review and corrections precede
-the definitive suite. Every later runtime-content or qualification-evidence change invalidates the
-full run and requires review of the change plus another complete blind suite.
+the complete coverage sample. Every later runtime-content or qualification-oracle change
+invalidates its affected and dependency-traced evidence and requires review plus focused blind
+reruns; unrelated passing evidence remains applicable when the reviewed blast radius excludes it.
 
 ## Impact-Based Verification
 

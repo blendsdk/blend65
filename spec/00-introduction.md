@@ -32,7 +32,7 @@ Blend65 targets five platforms. The language specification is platform-independe
 | C64 Ultimate | 6502 + extensions | 1 MHz | 64 KB+ | C64 variant with hardware extensions (REU, etc.) |
 | Commander X16 | 65C02 | 8 MHz | 512 KB+ banked | Modern 6502 design, generous resources |
 | Atari 800XL | 6502 | 1.79 MHz | 64 KB | Different I/O architecture (ANTIC/GTIA/POKEY) |
-| Atari 7800 | 6502C | 1.19 MHz | 4 KB (+cart RAM) | Tightest constraints, DMA display (MARIA) |
+| Atari 7800 | 6502C | 1.79 MHz nominal | 4 KB (+cart RAM) | TIA/RIOT accesses run at 1.19 MHz; MARIA DMA stalls the CPU |
 
 The compiler accepts a `--platform` flag that selects the target. The platform profile defines resource limits, memory maps, character encoding, and binary output format. All five platforms must be supported by every language feature in the core specification.
 
@@ -205,6 +205,6 @@ Platform-specific examples (e.g., specific memory addresses) are illustrative an
 | Document | Purpose |
 |----------|---------|
 | Feature evaluations (`evaluations/F001–F024`) | The *why* behind each language feature — rationale, alternatives considered, Language Guard evaluation |
-| Future considerations (`future-considerations.md`) | Deferred features (FUT-001–FUT-018) and rejected features (REJ-001, REJ-002) |
+| Future considerations (`future-considerations.md`) | Deferred and resolved `FUT-NNN` entries, plus rejected features (REJ-001, REJ-002) |
 | Language Guard (`.clinerules/language-guard.md`) | The 23-rule quality gate and evaluation template |
 | Build plan (`build-plan.md`) | The sequenced plan for producing this specification |

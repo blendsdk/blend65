@@ -1,9 +1,8 @@
 # Target Portability Doctrine
 
-> **Construction version**: `0.6.0-artifacts-portability`
-> **Status**: Candidate knowledge for the unqualified Blend65 expert baseline. C64 has production
-> depth in this candidate; every other machine below is constraint-only until its own extension is
-> independently sourced and qualified.
+> **Baseline version**: `1.0.0`
+> **Status**: C64 has production depth in this baseline. Every other machine below is
+> constraint-only until its own extension is independently sourced and qualified.
 
 ## Purpose
 
@@ -50,12 +49,12 @@ crosses owners, pass a typed requirement/result rather than querying hidden glob
 
 | Field | C64 | C64 Ultimate | C128 | Commander X16 | Atari 8-bit / 800XL | Atari 7800 |
 |---|---|---|---|---|---|---|
-| Knowledge status | Production-depth candidate; active only after v1.0 qualification | Constraint only | Constraint only | Constraint only | Constraint only; current source is an earlier 400/800 baseline, not a complete 800XL profile | Constraint only |
+| Knowledge status | Active production-depth baseline | Constraint only | Constraint only | Constraint only | Constraint only; current source is an earlier 400/800 baseline, not a complete 800XL profile | Constraint only |
 | CPU seam | 6510 using approved documented or explicitly selected NMOS policy | C64-compatible execution plus configured extensions/turbo; never infer them | 8502 in C128/C64 modes; exact mode contract required | 65C02S at 8 MHz; CMOS legality differs from C64 | 6502-family baseline; exact 800XL CPU/revision remains to qualify | SALLY 6502, normally 1.79 MHz with documented slower accesses |
 | Address/banking seam | Concrete CPU-port, ROM/I/O/RAM and VIC-bank model | Preserve C64 base; turbo and expansion state are explicit deployment inputs | 128 KiB in two 64 KiB banks plus MMU/modes; C64 mode cannot use the second 64 KiB or VDC path | Fixed RAM/I/O plus 8 KiB banked-RAM window and 16 KiB ROM/cart window | ANTIC/CPU shared-memory and OS/cart/reserved-region questions need an 800XL-specific profile | 4 KiB base RAM map plus cartridge/ROM layout; MARIA DMA halts SALLY |
 | Device seam | VIC-II, SID, CIA, CPU port | C64 compatibility plus configured physical SID/UltiSID, turbo, DMA/stream/REU extensions | VIC-II 40-column and VDC 80-column paths plus CIA/SID and mode ownership | VERA video/PSG/PCM, YM2151 and VIA; VRAM is not directly CPU-addressable | ANTIC display-list/DMA, CTIA/GTIA revision, POKEY and PIA require exact model work | MARIA display-list/list DMA, TIA subset and RIOT; access timing differs |
-| Startup/runtime | Qualified candidate C64 startup, IRQ and no-hidden-runtime contracts | C64 baseline only unless an extension profile states every precondition/cost | Unknown for production; C128, C64 and CP/M modes must not be conflated | Unknown for production; KERNAL/raw/cart startup choices need qualification | Unknown for production | Unknown for production; cartridge boot/security/container details need qualification |
-| Artifact seam | ACME C64 PRG candidate is specified byte-for-byte | C64 PRG is a compatibility candidate; extension-specific delivery remains unknown | PRG/other mode-specific artifacts unknown | PRG/ROM/cart families not qualified here | XEX/cart families are signposts only; exact records/startup unknown | Cartridge/A78-family naming is a signpost only; exact header, ROM mapping and startup unknown |
+| Startup/runtime | Qualified C64 startup, IRQ and no-hidden-runtime contracts | C64 baseline only unless an extension profile states every precondition/cost | Unknown for production; C128, C64 and CP/M modes must not be conflated | Unknown for production; KERNAL/raw/cart startup choices need qualification | Unknown for production | Unknown for production; cartridge boot/security/container details need qualification |
+| Artifact seam | ACME C64 PRG contract is specified byte-for-byte | C64 PRG is a compatibility candidate; extension-specific delivery remains unknown | PRG/other mode-specific artifacts unknown | PRG/ROM/cart families not qualified here | XEX/cart families are signposts only; exact records/startup unknown | Cartridge/A78-family naming is a signpost only; exact header, ROM mapping and startup unknown |
 | Main pressure on shared design | Banking, raster/badline timing, volatile MMIO, scarce ZP/RAM | Configurable speed/devices invalidate fixed-clock and single-SID assumptions | Mode/bank/device composition invalidates one flat C64-derived platform | CMOS instructions, bank windows and separate VRAM invalidate C64 CPU/device assumptions | Display-list DMA and OS/ZP ownership invalidate VIC-like video and free-memory assumptions | Cartridge-first layout, tiny RAM and MARIA DMA invalidate PRG/RAM-resident assumptions |
 
 Each non-C64 cell is intentionally incomplete. Unknown detail stays unknown; do not fill it from
@@ -63,10 +62,10 @@ memory, resemblance, an emulator default, or another target's convention.
 
 ## C64 Production Baseline
 
-The C64 candidate composes the exact knowledge in `mos-6502-family.md`, `c64-hardware.md`,
+The active C64 baseline composes the exact knowledge in `mos-6502-family.md`, `c64-hardware.md`,
 `c64-memory-and-runtime.md`, `c64-game-engineering.md`, `sfa-and-abi.md`,
-`6502-lowering-casebook.md`, and `acme-and-artifacts.md`. It still remains inactive until the
-single v1.0 candidate passes final qualification. `[CBM-C64-PRG-1982; CSG-6567-318014;
+`6502-lowering-casebook.md`, and `acme-and-artifacts.md`. Its active status is bound by the
+single-version release record. `[CBM-C64-PRG-1982; CSG-6567-318014;
 MOS-6581-SID; MOS-PGM-1976; ACME-097-R266]`
 
 Adding another target must not weaken C64 parity. A shared abstraction earns its place only if it
@@ -140,7 +139,9 @@ free-ZP assumptions, and a copied PRG/startup path are invalid. A later Atari 8-
 pin the selected 800XL/variant CPU, GTIA/ANTIC/POKEY/PIA registers and timing, OS and zero-page
 ownership, RAM/ROM/cart visibility, display-list placement, interrupt ABI, text encoding,
 asset/audio formats, XEX/cart packaging and emulator/hardware proof. Until then every plugin or
-registry entry is at most `Scaffold/stub`.
+registry artifact must be classified from what is actually inspected: an entry/stub without
+target-native proof is exactly `Scaffold/stub`; when no such artifact is supplied or inspected,
+capability status is exactly `Unknown`.
 
 ## Atari 7800
 
@@ -153,8 +154,9 @@ This is enough to reject a C64-derived flat-RAM PRG backend. It is not enough to
 A future extension must qualify exact console revision, memory mirrors/reservations, MARIA modes
 and DMA budget, TIA/RIOT access, cartridge mapper/ROM layout, startup/security/header requirements,
 audio strategy, asset formats, A78/cart packaging and emulator/hardware evidence. Until then the
-target remains constraint-only and any declared backend remains `Scaffold/stub` unless a smaller
-non-delegated boundary has exact proof.
+knowledge remains constraint-only. An inspected declared backend with no target-native proof is
+exactly `Scaffold/stub`; an exact proven non-delegated boundary may be `Verified partial`; and when
+no target artifact is supplied or inspected, capability status is exactly `Unknown`.
 
 ## Portability Decision Rules
 
@@ -187,7 +189,11 @@ Use the five project statuses exactly:
 | Full named contract with all required evidence | `Verified complete` |
 
 Never call a machine supported because its name appears in a registry or because assembly text was
-emitted. Constraint knowledge is not capability evidence.
+emitted. Every assessed boundary receives exactly one status—not a range such as “at most,” a pair
+of alternatives, or a future status. When no target declaration, registry entry, stub, delegated
+hook, implementation, artifact, or observation is supplied or inspected, the exact status is
+`Unknown`. Constraint knowledge alone is not capability evidence and cannot raise that status to
+`Scaffold/stub`; it only records facts and unknowns that a future implementation must respect.
 
 ## Adding a Future Target
 
@@ -206,6 +212,18 @@ A target addition follows this order:
 6. Perform targeted physical QA for silicon/device/timing claims the emulator cannot close.
 7. Bump the single active skill version, run the impact audit for recorded dependents, and activate
    the new candidate atomically only after all gates pass.
+
+The extension is prepared and reviewed in isolation. It stays explicitly unqualified until the
+named target, exact source revisions, target-specific frozen cases, and one vertical artifact proof
+exist. Integration requires an explicit version bump, dependent-impact review, complete affected
+and cross-domain qualification, and atomic activation between compiler journeys; never mutate the
+active baseline during a journey. If the target or source revision is unnamed, its future manifest
+key and lineage remain `Unknown` rather than “newly pinned.”
+
+Before closing a future-target recommendation, output a distinct integration checklist confirming
+all five release gates: target-specific frozen behavioral cases; an explicit semantic-version bump;
+complete affected and cross-domain qualification; dependent-impact review; and atomic activation
+between journeys. “Separately qualify later” is not a substitute for naming these gates.
 
 The existing C64 skill does not silently grow production knowledge for X16, C128 or Atari. Each
 substantial target body is a separately qualified extension that composes with the one active
