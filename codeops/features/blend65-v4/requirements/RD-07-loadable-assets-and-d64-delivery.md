@@ -544,8 +544,10 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 ### Determinism — complexity L
 
 - Identical authoritative inputs produce byte-identical D64, directory/BAM/sector layout, contained
-  files, loader code, reports, and hashes regardless of checkout path, locale, working directory,
-  host filesystem enumeration, or Turbo scheduling.
+  files, loader code, deterministic reports, and hashes regardless of checkout path, locale,
+  working directory, host filesystem enumeration, or Turbo scheduling. Invocation-specific
+  `.build.json` may differ only in `generationId` and declared host provenance; its semantic-input,
+  portable-tool, and artifact-hash projection must match exactly.
 
 ### Correctness and safety — complexity XL
 
@@ -604,7 +606,9 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 10. [ ] **AC-10 — Disk structure:** Every directory/block count and sector link is exact, acyclic,
     in range, nonshared, allocated in BAM, outside track 18, and reachable from one entry.
 11. [ ] **AC-11 — Deterministic identity:** Identical inputs in different checkout paths and
-    enumeration orders produce byte-identical disk, evidence, encoded names, and hashes.
+    enumeration orders produce byte-identical disk, deterministic evidence, encoded names, and
+    hashes. Their `.build.json` files differ only in `generationId` and declared host provenance;
+    their semantic-input, portable-tool, and artifact-hash projections match exactly.
 12. [ ] **AC-12 — Capacity boundaries:** Exactly fitting block and directory cases succeed; one
     excess block, one excess unit entry, name collision, unrepresentable identity, and arithmetic
     overflow fail before publication with exact contributors.

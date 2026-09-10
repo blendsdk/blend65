@@ -300,11 +300,15 @@ versioned schema rooted at integer `schemaVersion: 1`. Each rejects duplicate/un
 types, and missing/unsupported versions; fixes required/optional fields; and uses the exact string
 `"Unknown"` only for fields that admit unavailable evidence. Deterministic encoding is UTF-8 without
 BOM with LF, lexicographically ordered object keys, and schema-defined array order; an incompatible
-future contract bumps the major integer. `buildId` covers canonical semantic inputs and portable
-tool identities only.
-`.build.json` hashes every other artifact and never itself; host paths, executable hashes, duration,
-and peak memory are provenance outside portable identity. A separate output digest may summarize the
-generated set without changing `buildId`.
+future contract bumps the major integer. Every successful artifact-producing invocation assigns the
+lowercase canonical UUID v4 returned by Node `crypto.randomUUID()` as one unique opaque
+`generationId` used only for its immutable directory, current record, and run pins. An existing
+target generation fails publication rather than being overwritten or reused.
+`.build.json` records canonical semantic inputs and portable tool identities, hashes every other
+artifact and never itself, and stores `generationId`, host paths, executable hashes, duration, and
+peak memory as invocation provenance outside reproducibility comparison. A separate output digest
+may summarize the deterministic generated set. Equivalent builds create distinct generations but
+retain identical deterministic outputs; generations are never reused as cache entries.
 
 When present, the host `tools.jsonc` requires integer `schemaVersion: 1` and permits only optional
 absolute-string `acmePath` and `x64scPath`. Unknown or duplicate keys, wrong types, missing or
@@ -480,7 +484,7 @@ PRG, RAM, ZP, hardware-stack, or runtime-cycle cost.
 |---|---|---|
 | Source indexing | Fixed `.blend` extension, separately resolved containment identities, exact host-exposed filename spelling, deterministic `/`-separator ordering, legal merged modules, declaration collisions, symlink escape rejection, unreadable/vanished files, and profile-provided modules outside the project index. | AR-028 |
 | Configuration | Nearest manifest wins; duplicate/unknown keys, invalid schema/profile/options, output escape, and nested-project ambiguity are diagnosed. | AR-022 |
-| Coherent inputs | A build consumes one stable source/asset/config snapshot. A file changing during the read is retried as a whole or fails; it never yields mixed hashes/artifacts. | Determinism and AR-022 build identity |
+| Coherent inputs | A build consumes one stable source/asset/config snapshot. A file changing during the read is retried as a whole or fails; it never yields mixed hashes/artifacts. | Determinism and AR-022 input/output evidence |
 | Modules and startup | Circular declaration imports remain legal; missing exports, duplicates, multiple/no `main`, and cyclic initializer effects are diagnosed with paths. | Active language specification |
 | Editor freshness | Cancellation and document versions discard stale results; build/run do not silently compile an unsaved state different from the recorded files. | AR-021 plus deterministic build obligation |
 | Frontend/build diagnostic boundary | LSP/`check` report only provable profile/asset/constraint issues; final sizes, addresses, branch repair, and global placement/no-space failures belong to `build`. | Compiler responsibility boundary |

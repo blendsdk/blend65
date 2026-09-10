@@ -75,7 +75,7 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   file, use only normal process-`PATH` lookup and its native ordering. `PATH` is host execution
   authority; there is no fixed-install-location registry or special rejection of a project-contained
   `PATH` entry. Record canonical path and version in normal build evidence; an executable hash is
-  qualification provenance outside portable build identity. Never download or install a tool,
+  qualification provenance outside portable reproducibility comparison. Never download or install a tool,
   invoke a shell, or accept a path, argument, option, or monitor command from project/source/asset/
   diagnostic content. Compiler-library use, assembly emission, `check`, and ordinary LSP analysis do
   not load or validate the tools file and require no external tool; binary production requires ACME,
@@ -236,7 +236,7 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   build, explicit commands can open the emitted assembly, labels, memory map, asset map, cost report,
   debug map, and build record, and reveal the primary deployable artifact. Paths come from a valid
   contained `.build.json` in one immutable generation and must match its artifact hashes. The UI
-  identifies the record's build identity and whether that generation is current; opening old
+  identifies the record's generation and whether it is current; opening old
   evidence does not claim that it matches current unsaved source.
   (AR-008, AR-021, AR-022, AR-032)
 - [ ] **R9.33 — Package one self-contained supported extension.** The release extension starts the
@@ -421,8 +421,11 @@ responsibilities, but a convenience import cannot create a frontend-to-codegen e
 
 ### Build generation and evidence identity — complexity L
 
-Each build writes and validates a unique staging directory, renames it once to an immutable
-`buildId` generation, then atomically replaces one small current-generation record. A short
+Each artifact-producing build assigns the lowercase canonical UUID v4 returned by Node
+`crypto.randomUUID()` as one unique opaque `generationId`, writes and validates a unique staging
+directory, renames it once to that immutable generation, then atomically replaces one small
+current-generation record containing the `generationId` and the SHA-256 of its `.build.json`. An
+existing target generation fails publication rather than being overwritten or reused. A short
 per-project lock coordinates only generation publication, current-record replacement, run pinning,
 and cleanup. Each run pins its own generation until all owned VICE/monitor work ends. Failed work
 removes only its staging directory. Cleanup retains the current generation, every actively pinned
@@ -437,12 +440,17 @@ canonical parent and creates only missing contained components; absolute/escapin
 place of a required directory, symlink escape, and declared input inside the output tree fail before
 staging or child-process launch.
 
-`buildId` derives only from canonical semantic inputs and portable tool identities. `.build.json`
-contains that ID and hashes every other generated artifact, explicitly excluding itself. If a
-summary of the generated set is needed, it is a separately named output digest and never feeds back
-into `buildId`. Host-specific executable paths and hashes, duration, and peak memory are provenance
-outside portable identity. `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` evolve
-independently under the schema contracts frozen by R9.43; no reader guesses an unsupported major.
+`generationId` is only an operational publication and pin identity. It appears only in the
+directory name, `<outDir>/current.json`, run pins, and invocation-specific `.build.json`; it never
+enters deterministic outputs or reproducibility comparison and is never used to reuse a generation
+as a cache entry. `.build.json` records it, canonical semantic inputs, portable tool identities,
+host provenance, and hashes for every other generated artifact, explicitly excluding itself.
+Reproducibility compares the recorded semantic inputs, portable tool identities, and deterministic
+output hashes.
+Host-specific executable paths and hashes, duration, peak memory, and `generationId` are
+invocation provenance outside that comparison. `.assets.json`, `.memory.json`, `.costs.json`, and
+`.build.json` evolve independently under the schema contracts frozen by R9.43; no reader guesses an
+unsupported major.
 
 Publication is the build no-return point. Cancellation observed before the current record commits
 publishes nothing. Once it commits, the immutable generation remains a successful valid build;
@@ -786,11 +794,12 @@ C64U implementation.
     or reveals the exact contained hash-matching artifact from one immutable generation. Missing,
     malformed, path-escaping, symlink-escaping, hash-mismatched, mixed-build, or stale current-record
     cases execute nothing and report the failed validation. Historical evidence is identified by
-    its build identity rather than called current.
+    its generation rather than called current.
 25. [ ] **AC-25 — Debug identity and portability:** `.debug.json` validates against its frozen
-    schema and matches compiler/spec/skill/profile/CPU/mode/safety/source/asset/build/artifact
-    identities. Two byte-identical projects at different roots produce byte-identical normalized
-    debug evidence and contain no host absolute path, timestamp, or random identity.
+    schema and matches the recorded compiler, specification, skill, profile, CPU, mode, safety,
+    source, asset, portable-tool, and artifact identities. Two byte-identical projects at different
+    roots produce byte-identical normalized debug evidence and contain no host absolute path,
+    timestamp, `generationId`, or other random identity.
 26. [ ] **AC-26 — Final range mapping:** Controlled code covering ordinary calls, inlining,
     elimination, split ranges, branch repair, generated helper/startup code, and multiple
     non-contiguous source mappings proves every recorded half-open range uses final bytes and lies
@@ -805,7 +814,7 @@ C64U implementation.
 29. [ ] **AC-29 — Cross-artifact coherence:** Every debug symbol/range agrees with `.labels`,
     `.memory.json`, `.assets.json`, `.build.json`, and the hashed PRG/D64 bytes. Each JSON sidecar
     validates independently under its versioned schema; `.build.json` hashes every other artifact
-    but not itself. Deliberately changing any address, bank, range, hash, build identity, required
+    but not itself. Deliberately changing any address, bank, range, hash, generation identity, required
     field, or schema major fails validation.
 30. [ ] **AC-30 — Zero target debug cost:** Building the same frozen project with required debug
     evidence validation disabled only in the test observer produces byte-identical assembly,

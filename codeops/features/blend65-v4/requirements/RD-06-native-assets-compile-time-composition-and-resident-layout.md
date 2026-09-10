@@ -303,8 +303,8 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   object report source path identity without leaking host-specific absolute roots, input hash,
   handler/version/selector, logical type/shape, output hash, payload bytes, emitted bytes,
   alignment/padding, physical interval, CPU/VIC visibility, bank, aliases, writable ranges, and
-  zero/runtime costs. These files use RD-03's direct version-1 sidecar schemas, semantic `buildId`,
-  immutable generation, canonical ordering/types, and fail-closed decoder rules. `.memory.json` is
+  zero/runtime costs. These files use RD-03's direct version-1 sidecar schemas, explicit input and
+  output hashes, immutable generation, canonical ordering/types, and fail-closed decoder rules. `.memory.json` is
   produced only after final machine selection, SFA closure, joint target layout, ACME assembly, and
   reconciliation with actual symbols/segments; it records each physical half-open interval,
   owner/kind, residency/lifetime, CPU mapping, VIC view, ZP/stack class, free interval/largest hole,

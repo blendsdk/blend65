@@ -1,6 +1,6 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 9 open findings (8 major, 1 minor); PF-001–PF-020 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 8 open findings (7 major, 1 minor); PF-001–PF-021 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
@@ -332,12 +332,12 @@ break required Linux/Windows output identity.
 self-reference.
 
 **Confidence:** High. **Hardening:** Challenger selected and refined Option A.
-**User Decision:** Accepted Option A on 2026-09-10. `buildId` covers canonical semantic inputs and
-portable tool identities, artifact digests cover generated outputs other than `.build.json`, and
-host-specific paths, executable hashes, timings, and memory measurements remain provenance outside
-the portable identity. `.build.json` never contributes to the identity it contains.
-**Resolution:** The portable semantic identity, artifact-digest, self-exclusion, and host-provenance
-boundaries were applied in `54bf32b`; PF-021 tracks their remaining generation-key collision.
+**User Decision:** Accepted Option A on 2026-09-10. The original correction separated semantic
+inputs, portable tool identities, artifact digests, and host provenance and excluded `.build.json`
+from its own hash.
+**Resolution:** The acyclic artifact-digest, self-exclusion, and host-provenance boundaries were
+applied in `54bf32b`. PF-021 later removed the remaining unnecessary `buildId` while preserving
+those boundaries.
 
 ### PF-010: `outDir` lifecycle and containment are undefined 🟠 MAJOR
 
@@ -683,13 +683,14 @@ refutation attempt.
 | Dimension | Open findings | Highest severity |
 |---|---:|---|
 | Ambiguities / assumptions | 2 | 🟠 MAJOR |
-| Contradictions / consistency | 3 | 🟠 MAJOR |
+| Contradictions / consistency | 2 | 🟠 MAJOR |
 | Completeness / dependencies / ordering | 2 | 🟠 MAJOR |
-| Feasibility / codebase alignment | 1 | 🟠 MAJOR |
-| Testability / security / edge cases | 5 | 🟠 MAJOR |
+| Feasibility / codebase alignment | 0 | — |
+| Testability / security / edge cases | 4 | 🟠 MAJOR |
 | Scope creep | 0 | — |
 
-Several findings span dimensions; the unique total is eight major and one minor.
+Several findings span dimensions. The deep rescan found eight major and one minor; PF-021 is now
+resolved, leaving seven major and one minor.
 
 ### PF-021: Portable `buildId` cannot name every immutable publication generation 🟠 MAJOR
 
@@ -703,12 +704,26 @@ invocation evidence. `generationId` exists but has no governing relationship to 
 
 | Option | Description | Tradeoff |
 |---|---|---|
-| A — **Recommended** | Use a unique opaque host publication token only for directory/current-record/pin ownership. Keep `buildId` and all portable sidecars deterministic; put the token and host observations only in the nonportable build-publication record, whose hash the current record binds. | Preserves every invocation and avoids cache/reuse semantics; normalized portable evidence excludes declared publication fields. |
+| A — **Selected** | Remove `buildId`. Use one unique opaque `generationId` only for directory/current-record/pin ownership. Keep deterministic sidecars free of invocation identity; put `generationId` and host observations only in `.build.json`, whose hash the current record binds. Compare recorded semantic inputs, portable tool identities, and deterministic output hashes for reproducibility. | Preserves every invocation and avoids cache/reuse semantics; normalized portable evidence excludes declared publication fields. |
 | B | Keep a content-addressed `buildId` directory, move all volatile provenance elsewhere, and validate/reuse an identical existing generation. | Simpler directory identity, but introduces reuse semantics and loses per-invocation evidence from the generation. |
 
-**Recommendation:** Option A. It cleanly separates semantic reproducibility from host publication
-ownership without a cache, database, or transaction framework.
-**Decision:** Pending.
+**Recommendation:** Revised Option A. Remove the unnecessary third identity rather than retaining a
+portable `buildId` beside generation and artifact hashes. This is the smallest model that cleanly
+separates reproducibility from host publication ownership without a cache, database, or transaction
+framework.
+**Confidence:** High. **Hardening:** An independent challenger selected revised Option A, confirmed
+Node 22 supplies the required cross-host UUID primitive, and identified four consistency corrections
+that were incorporated before commit.
+**Decision:** Accepted by the user on 2026-09-10 with an explicit instruction to choose the best
+option without overengineering. `generationId` is operational only; explicit semantic-input,
+portable-tool, and deterministic-output records prove reproducibility.
+**Resolution:** Applied across AR-022, RD-03, RD-06, RD-09, RD-10, and discovery notes. The current
+record binds `generationId` plus `.build.json` SHA-256; deterministic sidecars contain no invocation ID;
+equivalent builds create distinct bounded generations but retain identical deterministic outputs.
+The ID is one lowercase canonical UUID v4 from Node `crypto.randomUUID()`; an existing destination
+fails safely and is never overwritten or reused. `<outDir>/current.json` now has one exact minimal
+versioned schema, and blanket reproducibility claims explicitly exclude generation and host
+provenance.
 
 ### PF-022: `.debug.json` is published before its schema exists 🟠 MAJOR
 
@@ -843,12 +858,13 @@ implemented or qualified exactly.
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
-- The deep rescan found PF-021 through PF-029; none has been silently corrected.
+- The deep rescan found PF-021 through PF-029. PF-021 was corrected after the user's explicit
+  decision; PF-022 through PF-029 remain unchanged and pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-020 resolved and nine deep-rescan findings
+**Current Result:** **BLOCKED** with PF-001 through PF-021 resolved and eight deep-rescan findings
 awaiting decisions.

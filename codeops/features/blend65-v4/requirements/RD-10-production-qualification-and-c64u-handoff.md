@@ -108,10 +108,11 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 - [ ] **R10.12 — Prove cross-host output identity.** Both production hosts build the same frozen
   release projects under identical profiles, modes, and safety options. Normalized assembly,
   labels, maps, debug evidence, packaged PRG/D64 bytes, diagnostics, and semantic query results are
-  byte-identical where their contracts exclude host identity. `buildId` covers only canonical
-  semantic inputs and portable tool identities; `.build.json` hashes every other artifact and never
-  itself. Host-side records may differ only in explicitly declared tool path/hash, host, duration,
-  and peak-memory provenance fields outside portable identity. (AR-022, AR-026, AR-032, AR-048)
+  byte-identical where their contracts exclude host identity. `.build.json` records canonical
+  semantic inputs and portable tool identities and hashes every other artifact, never itself.
+  Reproducibility compares those semantic records and deterministic output hashes. Host-side records
+  may differ only in `generationId` and explicitly declared tool path/hash, host, duration, and
+  peak-memory provenance fields outside that comparison. (AR-022, AR-026, AR-032, AR-048)
 - [ ] **R10.13 — Qualify deterministic tool discovery.** On both hosts, prove the exact machine-local
   version-1 tools-file precedence, normal process-`PATH` lookup, version checks, canonical executable
   identity, diagnostic behavior, and no-download/no-shell boundary from RD-09. There is no ordinary-
@@ -602,9 +603,9 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     assembly, labels, maps, diagnostics, debug evidence, PRGs, and D64s are byte-identical. Each of
     `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` passes its independent versioned
     schema, exact `Unknown`/field/canonical-encoding rules, and unsupported-major cases. Identical
-    semantic inputs and portable tool identities yield the same `buildId`; `.build.json` excludes
-    itself from its artifact hashes. Only declared host/tool-path/hash/timing/memory provenance fields
-    may differ.
+    semantic inputs and portable tool identities yield identical deterministic output hashes;
+    `.build.json` excludes itself from its artifact hashes. Only `generationId` and declared
+    host/tool-path/hash/timing/memory provenance fields may differ.
 12. [ ] **AC-12 — Tool discovery:** Configured path, absent config, single omitted key, PATH, every
     valid override combination, native PATH ordering, wrong-version, broken-symlink, and missing-tool
     cases pass RD-09 precedence on both hosts. Present-file cases require integer `schemaVersion: 1`

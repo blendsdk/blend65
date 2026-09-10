@@ -221,8 +221,9 @@ product. (AR-038)
   PRG plus deterministic assembly, labels, memory/segment map, asset map, SFA/closure report,
   zero-page and hardware-stack report, code/data/padding and path-cycle report, source/debug map,
   selected-profile/tool identities, options/overrides, and input/output SHA-256 values. Each JSON
-  sidecar conforms to its small direct versioned schema. All files bind one snapshot and semantic
-  build identity inside one immutable generation; one atomically replaced current-generation
+  sidecar conforms to its small direct versioned schema. All files bind one snapshot through
+  explicit semantic-input and output hashes inside one uniquely named immutable generation; one
+  atomically replaced current-generation
   record publishes the complete set. A failed or pre-commit-cancelled build publishes no new
   generation as current and leaves no stale file looking current. (AR-008, AR-010, AR-022, AR-032)
 - [ ] **R3.28 — Run the exact fresh PRG in VICE 3.10.** `blendc run` verifies `x64sc` version 3.10,
@@ -425,14 +426,17 @@ because those are the same bytes loaded to their final address—not two runtime
 ### Artifact publication — complexity L
 
 The primary artifact name is `<name>.prg`. Supporting files use deterministic documented names and
-machine-readable schemas. The producer stages one complete immutable generation and atomically
-replaces one small current-generation record only after compiler, ACME, byte, layout, and packaging
-validation succeeds. Readers resolve that record once and retain the selected generation for their
-whole operation, so concurrent builds cannot expose mixed siblings. The semantic `buildId` is the
-lowercase SHA-256 of canonical Specification 4, compiler, project snapshot, target, options,
-overrides, SpritePad input, and portable ACME semantic identities; it does not hash outputs that
-contain the `buildId`. `.build.json` hashes every other published artifact, excludes its own bytes
-from that output digest, and records host executable provenance separately from portable identity.
+machine-readable schemas. The producer assigns the lowercase canonical UUID v4 returned by Node
+`crypto.randomUUID()` as one unique opaque `generationId`, stages one complete immutable generation
+under that name, and atomically replaces one small current-generation record only after compiler,
+ACME, byte, layout, and packaging validation succeeds. An existing target generation fails
+publication rather than being overwritten or reused. The current record
+contains the `generationId` and the SHA-256 of the generation's `.build.json`. Readers resolve the
+record once and retain the selected generation for their whole operation, so concurrent builds
+cannot expose mixed siblings. `.build.json` records the canonical Specification 4, compiler,
+project snapshot, target, options, overrides, SpritePad input, and portable ACME semantic
+identities. It hashes every other published artifact, excludes its own bytes, and records the
+`generationId` and host executable provenance separately from reproducibility comparison.
 
 A short per-project lock coordinates only staging-directory commit, current-record replacement,
 run pin acquisition/release, and cleanup; compilation and ACME execution do not hold it. `run` pins
@@ -448,12 +452,17 @@ The first public sidecars use these direct schemas; they are not a registry or d
 
 | Sidecar | Required schema identity and payload |
 |---|---|
-| `.build.json` | `kind: "blend65.build"`; required `generationId: string`, `semanticInputs: object`, `portableTools: ToolIdentity[]`, `hostProvenance: object`, `artifacts: ArtifactDigest[]`, and `artifactSetSha256: string`. Every `ArtifactDigest` requires `path`, `kind`, `bytes`, and `sha256`; the array covers every published file except `.build.json` itself. Host paths, executable hashes, durations, and peak host memory occur only in `hostProvenance` and never affect `buildId` or `artifactSetSha256`. |
-| `.assets.json` | `kind: "blend65.assets"`; required `generationId: string` and `assets: AssetRecord[]`. Each record requires `sourcePath`, `inputSha256`, `handler`, `handlerVersion`, `selector`, `logicalType`, `shape: integer[]`, `outputSha256`, `payloadBytes`, `emittedBytes`, `aliases: string[]`, `constraints: object[]`, and `placement: object`. |
-| `.memory.json` | `kind: "blend65.memory"`; required `generationId: string`, `sfaClosureSha256: string`, `acmeReconciled: boolean`, `runtimeMemorySafety: "proved" | "unproven"`, `unboundedEffects: object[]`, `intervals: MemoryInterval[]`, and `views: MemoryView[]`. `MemoryInterval` and `MemoryView` contain the exact ledger and free-space fields defined below. |
-| `.costs.json` | `kind: "blend65.costs"`; required `generationId: string` and `entries: CostEntry[]`. Each entry requires `owner`, `kind`, `emittedBytes`, and one tagged `cycles` object: `{ kind: "exact", value }`, `{ kind: "range", minimum, maximum }`, `{ kind: "symbolic", expression }`, or `{ kind: "unknown" }`. |
+| `.build.json` | `kind: "blend65.build"`; required `generationId: string`, `semanticInputs: object`, `portableTools: ToolIdentity[]`, `hostProvenance: object`, `artifacts: ArtifactDigest[]`, and `artifactSetSha256: string`. Every `ArtifactDigest` requires `path`, `kind`, `bytes`, and `sha256`; the array covers every published file except `.build.json` itself. Host paths, executable hashes, durations, peak host memory, and `generationId` never affect `artifactSetSha256` or reproducibility comparison. |
+| `.assets.json` | `kind: "blend65.assets"`; required `assets: AssetRecord[]`. Each record requires `sourcePath`, `inputSha256`, `handler`, `handlerVersion`, `selector`, `logicalType`, `shape: integer[]`, `outputSha256`, `payloadBytes`, `emittedBytes`, `aliases: string[]`, `constraints: object[]`, and `placement: object`. |
+| `.memory.json` | `kind: "blend65.memory"`; required `sfaClosureSha256: string`, `acmeReconciled: boolean`, `runtimeMemorySafety: "proved" | "unproven"`, `unboundedEffects: object[]`, `intervals: MemoryInterval[]`, and `views: MemoryView[]`. `MemoryInterval` and `MemoryView` contain the exact ledger and free-space fields defined below. |
+| `.costs.json` | `kind: "blend65.costs"`; required `entries: CostEntry[]`. Each entry requires `owner`, `kind`, `emittedBytes`, and one tagged `cycles` object: `{ kind: "exact", value }`, `{ kind: "range", minimum, maximum }`, `{ kind: "symbolic", expression }`, or `{ kind: "unknown" }`. |
 
-Every sidecar also requires the JSON integer `schemaVersion: 1` and `buildId: string`. Counts,
+The current-generation record is `<outDir>/current.json`: canonical UTF-8 JSON without BOM, with
+one LF terminator and lexicographically ordered keys. It contains exactly integer
+`schemaVersion: 1`, canonical lowercase UUID-v4 `generationId`, and lowercase 64-hexadecimal
+`buildJsonSha256`. Missing, duplicate, unknown, or malformed fields invalidate the record.
+
+Every sidecar also requires the JSON integer `schemaVersion: 1`. Counts,
 addresses, sizes, shape elements, and cycle bounds are nonnegative JSON integers; identities, names,
 kinds, paths, hashes, and symbolic cycle expressions are JSON strings; records are JSON objects;
 collections are canonically ordered JSON arrays. Hashes are 64 lowercase hexadecimal characters.
@@ -552,9 +561,11 @@ no C64U target identity or support claim; the owned successor activates only aft
 
 ### Correctness and determinism — complexity XL
 
-- Identical frozen inputs produce byte-identical diagnostics, assembly, evidence, and PRG output
-  regardless of checkout path, working directory, filesystem enumeration, Turbo scheduling, locale,
-  or CPU concurrency.
+- Identical frozen inputs produce byte-identical diagnostics, assembly, deterministic sidecars, and
+  PRG output regardless of checkout path, working directory, filesystem enumeration, Turbo
+  scheduling, locale, or CPU concurrency. Invocation-specific `.build.json` may differ only in
+  `generationId` and declared host provenance; its semantic-input, portable-tool, and artifact-hash
+  projection must match exactly.
 - Every stage failure is typed and attributed to its owner. Expected input/tool failures never
   become internal crashes, stale artifacts, or later-stage guesses.
 - No compiler code path reads the game-feasibility matrix or v3 readiness status.
@@ -685,7 +696,7 @@ no C64U target identity or support claim; the owned successor activates only aft
     only serializes final decisions; strict ACME invocation, actual report/symbol/byte checks, and
     output suppression behave exactly.
 27. [ ] **AC-27 — Coherent artifacts:** Every required evidence file passes its direct version-1
-    schema, has one semantic build and immutable generation identity, and has the correct hash. A
+    schema, has one semantic-input record and immutable generation identity, and has the correct hash. A
     concurrent reader pins one complete generation; an input change, pre-commit cancellation, or
     seeded compiler/ACME/layout/package failure publishes no mixed or stale set. Post-commit run
     cancellation preserves that build and stops only emulator/control work.
@@ -705,7 +716,9 @@ no C64U target identity or support claim; the owned successor activates only aft
     same obligations and complete resource ledger. Exact local and whole-program deltas are recorded
     as RD-08 input; cost alone neither fails `optimization: none` nor creates parity debt.
 32. [ ] **AC-32 — Determinism:** Byte-identical copies built from different absolute paths and
-    working directories produce identical normalized diagnostics, assembly, evidence, and PRG.
+    working directories produce identical normalized diagnostics, assembly, deterministic
+    sidecars, and PRG. Their `.build.json` files differ only in `generationId` and declared host
+    provenance; their semantic-input, portable-tool, and artifact-hash projections match exactly.
 33. [ ] **AC-33 — Focused verification:** The closeout records directed checks plus one relevant
     boundary suite, one ACME M1 proof, and one sequential VICE M1 proof; no v3 readiness/game matrix
     or repeated unrelated full suite ran.
