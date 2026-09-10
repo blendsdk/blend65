@@ -1,11 +1,11 @@
 # Blend65 v4 Requirements Discovery Notes
 
 > **Mode**: Full Discovery
-> **Phase**: 3 — Authoring ready
+> **Phase**: 4 — Validation and finalization
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-09 are approved and all 48
-> ambiguity decisions are resolved
+> **Artifact status**: Working discovery record; RD-01 through RD-10 are approved, all 48 ambiguity
+> decisions are resolved, and final requirements-set validation is active
 
 ## Authority and evidence
 
@@ -78,7 +78,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. AR-001 through AR-047 are resolved.
+None. AR-001 through AR-048 are resolved.
 
 ## Approved first C64 production profile
 
@@ -657,11 +657,12 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-09` are approved. AR-048 fixes the initial production host matrix at Node 22 on
+`RD-01` through `RD-10` are approved. Phase 4 requirements-set validation is active. AR-048 fixes
+the initial production host matrix at Node 22 on
 `linux/x64` and `win32/x64`; macOS and other Node 22 hosts remain best-effort until independently
 qualified. CLI and VS Code share deterministic ACME/VICE discovery and one optional machine-local
 tools file; portable project manifests cannot contain executable paths. This contract is now
-back-propagated into RD-02 and RD-09. Draft RD-10 next. AR-045 fixes one
+back-propagated into RD-02, RD-09, and the RD-10 production boundary. AR-045 fixes one
 complete-cost optimizer policy: hard feasibility first; deferred adjudication until downstream
 costs close; Pareto-only `balanced`; frequency-free lexicographic `speed` and `size`; and stable ID
 only for exact complete-cost ties. RD-08 preserves the complete correct `none` compiler, SFA

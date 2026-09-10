@@ -3,7 +3,7 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-09-10 18:10
+> **Last Updated**: 2026-09-10 18:33
 > **Progress**: 0 / 10 (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -24,4 +24,4 @@
 | RD-07 | Loadable Assets and D64 Delivery | [RD-07](requirements/RD-07-loadable-assets-and-d64-delivery.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04, RD-05, RD-06 |
 | RD-08 | Optimization and Expert Output | [RD-08](requirements/RD-08-optimization-and-expert-output.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04, RD-05, RD-06, RD-07 |
 | RD-09 | Developer Tooling and Debug Evidence | [RD-09](requirements/RD-09-developer-tooling-and-debug-evidence.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04 |
-| RD-10 | Production Qualification and C64U Handoff | — | — | Backlog | ⬜ | 2026-09-10 | depends on RD-05, RD-06, RD-07, RD-08, RD-09 |
+| RD-10 | Production Qualification and C64U Handoff | [RD-10](requirements/RD-10-production-qualification-and-c64u-handoff.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-05, RD-06, RD-07, RD-08, RD-09 |
