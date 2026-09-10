@@ -1,6 +1,6 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — REVIEW IN PROGRESS — 20 pending findings (1 critical, 13 major, 6 minor)
+> **Status**: BLOCKED — REVIEW IN PROGRESS — 19 pending findings (13 major, 6 minor); PF-001 resolved
 > **Iteration**: 1 — first scan
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `e7a9f09a30d503de2fb14d90ec111fbb2f06aa45`
@@ -62,7 +62,7 @@ Linux/Windows set-transaction primitive.
 
 | Severity | Count | Status |
 |---|---:|---|
-| 🔴 CRITICAL | 1 | 1 pending |
+| 🔴 CRITICAL | 1 | 1 resolved |
 | 🟠 MAJOR | 13 | 13 pending |
 | 🟡 MINOR | 6 | 6 pending |
 | 🔵 OBSERVATION | 0 | — |
@@ -92,7 +92,13 @@ pre-RD-01 authority commit also contradicts R2.2's literal “first v4 commit”
 explicit project promise and leaves the clean-slate boundary ambiguous.
 
 **Confidence:** High. **Hardening:** Independent challenger confirmed the finding and Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10.
+
+**Resolution:** Resolved. The requirements index now defines a mandatory pre-RD-01 Phase 0; RD-01
+verifies and records the prepared worktree before changing authority; RD-02 consumes that worktree,
+proves its source ancestry and RD-01 head, and names its first green **RD-02 foundation checkpoint**
+rather than the first v4 commit. AR-025 and the feature roadmap carry the same ordering. No worktree
+was created while applying this requirements correction.
 
 ### PF-002: Cross-platform project names and path identities are undefined 🟠 MAJOR
 
@@ -512,11 +518,12 @@ text superseded.
 ## Audit Guardrails and Result
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
-- No requirement correction was applied during this review.
+- Only the user-approved PF-001 requirements correction has been applied; PF-002 through PF-020
+  remain pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** pending user decisions and correction/rescan.
+**Current Result:** **BLOCKED** with 19 findings pending user decisions and correction/rescan.

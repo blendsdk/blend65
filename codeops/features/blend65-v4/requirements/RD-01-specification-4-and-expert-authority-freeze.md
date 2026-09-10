@@ -5,6 +5,7 @@
 > **Created**: 2026-09-10
 > **Project**: Blend65 v4
 > **Depends On**: —
+> **Execution Prerequisite**: Mandatory Phase 0 worktree bootstrap (AR-005, AR-025)
 > **CodeOps Artifact Schema**: 1
 
 ---
@@ -24,6 +25,11 @@ release is governed by Specification 3. Specification 4 therefore produces a ful
 v3 tests, readiness artifacts, scoreboards, and feasibility snapshots remain audit evidence only;
 none may define language or expert doctrine.
 
+RD-01 executes only in the prepared `/home/gevik/workdir/github/blend65.ri/v4` worktree on
+`feature/v4-rebuild`. The bootstrap records the exact final v3 source commit before creating that
+branch and leaves the current checkout parked as v3 evidence. Authority files are never changed in
+the parked worktree.
+
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
 > AR-034, AR-035, and AR-038 through AR-046.
 
@@ -35,11 +41,14 @@ none may define language or expert doctrine.
 
 #### Authority transition — complexity L
 
-- [ ] **R1.1 — Record the input authorities.** Before editing the specification, record the exact
-  Git commit, Specification 3 content identity `BLEND65-SPEC-P3-4bf8a989`, expert-skill version
-  `1.0.0`, expert content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`, and every approved
-  ambiguity-register decision consumed by the transition. Existing compiler behavior is not an
-  input authority. (AR-004, AR-014, AR-038)
+- [ ] **R1.1 — Verify the bootstrap and record the input authorities.** Before editing the
+  specification, verify that execution is in `/home/gevik/workdir/github/blend65.ri/v4` on
+  `feature/v4-rebuild`, that the branch was created from the recorded exact final v3 source commit,
+  and that the parked v3 worktree remains unchanged. Record that commit, Specification 3 content
+  identity `BLEND65-SPEC-P3-4bf8a989`, expert-skill version `1.0.0`, expert content commit
+  `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`, and every approved ambiguity-register decision
+  consumed by the transition. Existing compiler behavior is not an input authority. (AR-004,
+  AR-005, AR-014, AR-025, AR-038)
 - [ ] **R1.2 — Produce one Specification 4.0 tree.** Update the existing `spec/` tree in one
   controlled change. Do not create a parallel live `spec-v4/`, retain a second active Specification
   3 tree, or publish implementation-only semantic overrides. Git history and the parked v3
@@ -360,8 +369,9 @@ change the language or teach implementation behavior to the expert skill. (AR-00
 
 ### With RD-02 (Clean V4 Foundation and Deterministic Project Model)
 
-RD-02 may scaffold the v4 project only after this RD publishes the frozen Specification 4 and
-expert `2.0.0` identities. Its salvage inventory judges every candidate against those identities.
+RD-02 continues in the same prepared v4 worktree only after this RD publishes the frozen
+Specification 4 and expert `2.0.0` identities. Its salvage inventory judges every candidate against
+those identities; RD-02 does not create or relocate the worktree.
 
 ### With RD-03 through RD-10
 
@@ -440,10 +450,12 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 
 ## Acceptance Criteria
 
-1. [ ] **AC-01 — Input identity:** The transition record names the exact Specification 3 identity,
-   expert `1.0.0` identity/content commit, source Git commit, and the complete resolved Blend65 v4
-   ambiguity register from AR-001 through AR-048; no compiler implementation or v3 test is listed
-   as authority.
+1. [ ] **AC-01 — Bootstrap and input identity:** The transition record proves that RD-01 ran in
+   `/home/gevik/workdir/github/blend65.ri/v4` on `feature/v4-rebuild`, names the branch's exact final
+   v3 source commit, confirms that the parked v3 worktree remained unchanged, and names the exact
+   Specification 3 identity, expert `1.0.0` identity/content commit, and complete resolved Blend65
+   v4 ambiguity register from AR-001 through AR-048; no compiler implementation or v3 test is
+   listed as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.
 3. [ ] **AC-03 — Normative inventory:** One checked normative inventory resolves every normative

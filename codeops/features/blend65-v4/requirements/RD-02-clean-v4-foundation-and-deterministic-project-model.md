@@ -11,11 +11,12 @@
 
 ## Feature Overview
 
-Blend65 v4 begins in a sibling Git worktree as a small, buildable TypeScript 7 monorepo. It does
-not inherit v3's package count, pass topology, readiness product, tests, or false platform
-implementations. Before anything is ported, a component inventory decides whether each v3 unit is
-cheaper and safer to reuse, adapt, rewrite, discard, or keep only as evidence. Every retained unit
-must satisfy the frozen Specification 4 and expert `2.0.0` authorities from RD-01.
+Blend65 v4 foundation work continues in the sibling Git worktree prepared before RD-01 and turns it
+into a small, buildable TypeScript 7 monorepo. It does not inherit v3's package count, pass topology,
+readiness product, tests, or false platform implementations. Before anything is ported, a component
+inventory decides whether each v3 unit is cheaper and safer to reuse, adapt, rewrite, discard, or
+keep only as evidence. Every retained unit must satisfy the frozen Specification 4 and expert
+`2.0.0` authorities from RD-01.
 
 This requirement also establishes the one deterministic project model used by every later compiler,
 CLI, LSP, editor, asset, and packaging capability. A JSONC `blend65.json` manifest defines the
@@ -35,14 +36,16 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
 
 #### Safe clean-slate creation — complexity L
 
-- [ ] **R2.1 — Create the approved sibling worktree.** Record the exact final source commit and
-  create `/home/gevik/workdir/github/blend65.ri/v4` on `feature/v4-rebuild` in the existing Git
-  repository. The current checkout remains the parked v3 evidence worktree. The operation must not
-  rewrite, delete, or move the parked worktree or published Git history. (AR-005, AR-025)
-- [ ] **R2.2 — Start from a green checkpoint.** The first v4 commit must contain the frozen RD-01
-  authority, the minimal root toolchain, and at least one buildable package with a truthful purpose.
-  It cannot be a deletion-only broken tree, an empty architecture skeleton, or a copied v3 package
-  graph. (AR-025, AR-033)
+- [ ] **R2.1 — Consume and verify the approved sibling worktree.** Verify that
+  `/home/gevik/workdir/github/blend65.ri/v4` is on `feature/v4-rebuild`, that the branch descends from
+  the recorded exact final v3 source commit, that its current head contains the closed RD-01
+  authority, and that the parked v3 evidence worktree remains unchanged. RD-02 must not create,
+  relocate, reset, or overwrite either worktree or the branch. (AR-005, AR-025)
+- [ ] **R2.2 — Reach the first green RD-02 foundation checkpoint.** The first RD-02 foundation
+  commit must contain the minimal root toolchain and at least one buildable package with a truthful
+  purpose. The frozen RD-01 authority must remain in its ancestry. The checkpoint cannot be a
+  deletion-only broken tree, an empty architecture skeleton, or a copied v3 package graph. No
+  incomplete deletion or scaffolding state may be committed. (AR-025, AR-033)
 - [ ] **R2.3 — Inventory before porting or deletion.** Produce a component-level salvage inventory
   covering v3 production packages, tests, examples, scripts, workflows, fixtures, native-format
   codecs, ACME/VICE adapters, documentation, and CodeOps artifacts. Classify every candidate as
@@ -221,19 +224,20 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
 
 The transition order is mandatory:
 
-1. Verify RD-01 is closed and record its Specification 4 and expert `2.0.0` identities.
-2. Record the final source commit and validate that the sibling path is absent or is the expected
+1. Verify the Phase 0 record, branch ancestry, v4 worktree identity, and unchanged parked v3
    worktree.
-3. Create `feature/v4-rebuild` and `/home/gevik/workdir/github/blend65.ri/v4` non-destructively.
-4. Produce the component inventory before deleting or porting a candidate.
-5. Remove rejected implementation, test, readiness, target, workflow, and generated surfaces.
-6. Add the minimal toolchain and first behavior-owning package(s).
-7. Port only inventory-approved units with focused independent proof.
-8. Reach the first green foundation commit and bind it in the inventory.
+2. Verify RD-01 is closed and record its Specification 4 and expert `2.0.0` identities.
+3. Produce the component inventory before deleting or porting a candidate.
+4. Prepare removal of rejected implementation, test, readiness, target, workflow, and generated
+   surfaces together with the minimal toolchain and first behavior-owning package(s); do not commit
+   an incomplete or broken intermediate state.
+5. Run the complete relevant RD-02 foundation checks.
+6. Commit the first green RD-02 foundation checkpoint and bind it in the inventory.
+7. Port only inventory-approved units with focused independent proof, preserving green checkpoints.
 
-If the branch, path, or worktree already exists with a different identity, execution stops and
-reports the exact conflict. It must not reset, overwrite, merge, or delete the existing state.
-(AR-005, AR-025)
+If the branch, path, ancestry, RD-01 head, or worktree identity differs from the Phase 0 record,
+execution stops and reports the exact conflict. It must not reset, overwrite, merge, move, or delete
+the existing state. (AR-005, AR-025)
 
 ### Salvage inventory schema — complexity M
 
@@ -463,12 +467,14 @@ profile, manifest target, or implementation. (AR-024, AR-035)
 
 ## Acceptance Criteria
 
-1. [ ] **AC-01 — Worktree identity:** `git worktree list --porcelain` reports the parked v3
-   worktree and `/home/gevik/workdir/github/blend65.ri/v4` at the recorded source commit on
-   `feature/v4-rebuild`; no unrelated worktree or branch was changed.
-2. [ ] **AC-02 — First green commit:** The first v4 commit installs from the lockfile, typechecks,
-   builds, and runs its directed tests with no empty pass/package placeholder and no broken
-   deletion-only interval.
+1. [ ] **AC-01 — Worktree identity and ancestry:** `git worktree list --porcelain` reports the
+   unchanged parked v3 worktree and `/home/gevik/workdir/github/blend65.ri/v4` on
+   `feature/v4-rebuild`; Git ancestry proves that the branch descends from the recorded final v3
+   source commit, and its current head contains the closed RD-01 authority. No unrelated worktree or
+   branch was changed.
+2. [ ] **AC-02 — First green RD-02 foundation checkpoint:** The first RD-02 foundation commit
+   installs from the lockfile, typechecks, builds, and runs its directed tests with no empty
+   pass/package placeholder and no committed broken deletion-only interval.
 3. [ ] **AC-03 — Complete salvage inventory:** Every v3 package, root workflow, test/fixture family,
    example family, script family, and CodeOps feature has one inventory row containing all fields in
    the required schema and exactly one disposition.

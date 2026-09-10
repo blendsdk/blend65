@@ -41,6 +41,15 @@ compressor, or speculative future-target package.
 **Approved complexity:** The material support surfaces and complexity escalations are resolved in
 [the ambiguity register](00-ambiguity-register.md), AR-001 through AR-048.
 
+## Mandatory Phase 0 Bootstrap
+
+Before RD-01 begins, record the exact final v3 source commit and create
+`/home/gevik/workdir/github/blend65.ri/v4` on `feature/v4-rebuild` from that commit. The current
+checkout remains the parked v3 evidence worktree. RD-01 and every later v4 requirement execute in
+the prepared v4 worktree. If the branch, path, or worktree already exists with a different
+identity, stop without resetting, overwriting, moving, or deleting anything. This bootstrap creates
+no compiler architecture, package, or compatibility obligation. (AR-005, AR-025)
+
 ## Domain Glossary
 
 | Term | Definition |
@@ -63,7 +72,7 @@ compressor, or speculative future-target package.
 | # | Document | Description | Depends On |
 |---|---|---|---|
 | **AR** | [Ambiguity Register](00-ambiguity-register.md) | Forty-eight resolved product, language, architecture, target, evidence, and workflow decisions | — |
-| **RD-01** | [Specification 4.0 and Expert Authority Freeze](RD-01-specification-4-and-expert-authority-freeze.md) | Applies accepted language changes once, qualifies expert `2.0.0`, and freezes both authorities | — |
+| **RD-01** | [Specification 4.0 and Expert Authority Freeze](RD-01-specification-4-and-expert-authority-freeze.md) | Applies accepted language changes once, qualifies expert `2.0.0`, and freezes both authorities in the prepared v4 worktree | Phase 0 bootstrap |
 | **RD-02** | [Clean V4 Foundation and Deterministic Project Model](RD-02-clean-v4-foundation-and-deterministic-project-model.md) | Creates the clean monorepo, package boundaries, project model, diagnostics, and atomic build foundation | RD-01 |
 | **RD-03** | [Playable M1 Complete Pipeline](RD-03-playable-m1-complete-pipeline.md) | Delivers a playable Space Invaders-style vertical proof through real assets, ACME, and VICE | RD-01, RD-02 |
 | **RD-04** | [Complete Language and Correct Unoptimized Compiler](RD-04-complete-language-correct-unoptimized-compiler.md) | Implements all Specification 4 semantics and correct `optimization: none` output | RD-01, RD-02, RD-03 |
@@ -77,19 +86,20 @@ compressor, or speculative future-target package.
 ## Dependency Graph
 
 ```text
-RD-01  Specification and expert authority
-  └─ RD-02  Foundation and project model
-       └─ RD-03  Playable M1 pipeline
-            └─ RD-04  Complete correct unoptimized compiler
-                 ├─ RD-09  Developer tooling and debug evidence ─────────────┐
-                 └─ RD-05  C64 profiles and workload support                 │
-                      └─ RD-06  Native assets and resident layout            │
-                           └─ RD-07  Loadable assets and D64                  │
-                                └─ RD-08  Optimization and expert output     │
-                                                                               ├─ RD-10
-                      RD-05 ──────────────────────────────────────────────────┤
-                           RD-06 ──────────────────────────────────────────────┤
-                                RD-07 ─────────────────────────────────────────┘
+Phase 0  Record final v3 commit and create the v4 worktree
+  └─ RD-01  Specification and expert authority
+       └─ RD-02  Foundation and project model
+            └─ RD-03  Playable M1 pipeline
+                 └─ RD-04  Complete correct unoptimized compiler
+                      ├─ RD-09  Developer tooling and debug evidence ─────────────┐
+                      └─ RD-05  C64 profiles and workload support                 │
+                           └─ RD-06  Native assets and resident layout            │
+                                └─ RD-07  Loadable assets and D64                  │
+                                     └─ RD-08  Optimization and expert output     │
+                                                                                    ├─ RD-10
+                           RD-05 ──────────────────────────────────────────────────┤
+                                RD-06 ──────────────────────────────────────────────┤
+                                     RD-07 ─────────────────────────────────────────┘
 ```
 
 RD-09 can proceed in parallel after RD-04 is stable. RD-10 begins only after RD-05 through RD-09
@@ -99,8 +109,9 @@ are complete. The separate `blend65-c64u/RD-01` remains dependent on RD-10's evi
 
 | Phase | Documents | Outcome |
 |---|---|---|
+| **0: Worktree bootstrap** | AR-005, AR-025 | Final v3 commit recorded; v4 branch/worktree created non-destructively; parked v3 checkout preserved |
 | **A: Authority freeze** | RD-01 | One internally consistent Specification 4 and one qualified expert `2.0.0` baseline |
-| **B: Foundation** | RD-02 | Clean v4 worktree, deterministic monorepo, project model, diagnostics, and public compiler service |
+| **B: Foundation** | RD-02 | Prepared v4 worktree verified; deterministic monorepo, project model, diagnostics, and public compiler service established |
 | **C: First vertical proof** | RD-03 | Small playable M1 through compiler, SpritePad asset, ACME, PRG, and VICE |
 | **D: Complete unoptimized capability** | RD-04 → RD-05 → RD-06 → RD-07 | Complete language, C64 platform, native resident assets, and explicit disk delivery before optional optimization |
 | **E: Optimization and tooling** | RD-08 and RD-09 | Expert-quality optimized output plus the production CLI/editor workflow; RD-09 may start after RD-04 |
@@ -165,9 +176,10 @@ completion requires the entire active language and approved C64 surface.
 ## How to Use These Documents
 
 1. Preflight the complete requirements set before implementation planning.
-2. Start with RD-01 and create its implementation plan.
-3. Preflight that plan, then execute it using impact-based verification.
-4. Update the roadmap at each lifecycle transition.
-5. Do not begin semantic compiler implementation until RD-01 has frozen Specification 4 and the
+2. Perform the mandatory Phase 0 bootstrap and verify the parked and v4 worktree identities.
+3. In the prepared v4 worktree, start with RD-01 and create its implementation plan.
+4. Preflight that plan, then execute it using impact-based verification.
+5. Update the roadmap at each lifecycle transition.
+6. Do not begin semantic compiler implementation until RD-01 has frozen Specification 4 and the
    expert `2.0.0` baseline together.
-6. Continue in dependency order, allowing RD-09 to overlap only after RD-04 is stable.
+7. Continue in dependency order, allowing RD-09 to overlap only after RD-04 is stable.

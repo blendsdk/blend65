@@ -416,10 +416,14 @@ it is blocked on the architecture-readiness facts above and on assigning that su
 
 ### AR-025 — Git-preserved, inventory-led clean v4 branch
 
-Execution records the exact final v3 source commit and creates the sibling
-`/home/gevik/workdir/github/blend65.ri/v4` worktree on `feature/v4-rebuild`. Git history and the
-parked v3 worktree are the complete archive; v4 does not duplicate them under `legacy/`, retain an
-old source subtree, or promise compatibility with package names or behavior.
+Before RD-01 begins, a minimal Phase 0 records the exact final v3 source commit and creates the
+sibling `/home/gevik/workdir/github/blend65.ri/v4` worktree on `feature/v4-rebuild` from that exact
+commit. The current checkout remains the parked v3 evidence worktree. RD-01 performs the
+Specification 4 and expert-authority transition in the prepared v4 worktree; RD-02 later consumes
+and verifies the same worktree rather than creating it. If any branch, path, or worktree identity
+conflicts, execution stops without modifying that state. Git history and the parked v3 worktree are
+the complete archive; v4 does not duplicate them under `legacy/`, retain an old source subtree, or
+promise compatibility with package names or behavior.
 
 Before removal, a component-level salvage inventory classifies every candidate as port unchanged,
 adapt, rewrite, discard, or reference-only and cites its v4 requirement and proof. A port requires

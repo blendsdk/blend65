@@ -3,8 +3,10 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-09-10 18:33
+> **Last Updated**: 2026-09-10 20:40
 > **Progress**: 0 / 10 (0%)
+> **Execution Prerequisite**: Phase 0 records the final v3 commit and creates the v4 worktree before
+> RD-01; not yet executed
 > **CodeOps Artifact Schema**: 1
 
 ## Legend
