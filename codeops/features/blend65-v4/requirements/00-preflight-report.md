@@ -301,7 +301,13 @@ failure rules.
 **Recommendation:** Option A. Do not add a registry, schema service, or evidence database.
 
 **Confidence:** High. **Hardening:** Challenger selected and bounded Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. Each sidecar receives one compact independent
+versioned contract with exact field types, required/optional rules, unavailable-value
+representation, unknown-field behavior, canonical encoding where determinism requires it, and an
+unsupported-major diagnostic. This creates no shared schema framework, registry, service, or
+database.
+**Correction Status:** Queued for the accepted-fixes batch; PF-008 remains open until the four
+schemas and their consumer-focused qualification requirements are made explicit and consistent.
 
 ### PF-009: Build identity can hash itself and absorb host-specific data 🟠 MAJOR
 
