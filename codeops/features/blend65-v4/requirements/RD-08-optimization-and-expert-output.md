@@ -14,9 +14,9 @@
 RD-08 adds optional optimization to the complete, correct `optimization: none` compiler. It does
 not repair language semantics, legalization, SFA, target support, asset handling, or packaging.
 Those paths are already complete before this RD begins. The optimizer preserves the same modern
-Blend65 source behavior while selecting better target-neutral, whole-program, and NMOS 6510 forms
-for exactly three goals: `balanced`, `speed`, and `size`. Production `build` and `run` continue to
-default to `balanced`. (AR-002, AR-003, AR-023, AR-033)
+Blend65 source behavior while selecting better modern target-neutral, whole-program, and NMOS 6510
+forms for exactly three goals: `balanced`, `speed`, and `size`. Production `build` and `run`
+continue to default to `balanced`. (AR-002, AR-003, AR-023, AR-033)
 
 Candidate selection uses one deterministic complete-cost policy. Correctness, observable timing,
 MMIO/effect order, ABI, selected-profile legality, placement, memory fit, and final SFA closure are
@@ -25,10 +25,13 @@ relevant path first; `size` minimizes all reachable emitted/resident bytes first
 execution frequency or hides a byte/cycle/resource tradeoff behind weights. Every transformation
 has an independent behavior oracle and a separate assembly/cost oracle. Local expert parity is the
 floor, while the compiler must beat realistic expert whole-program output through global facts,
-allocation, specialization, reachability, and layout. (AR-008, AR-023, AR-026, AR-038, AR-045)
+allocation, specialization, reachability, and layout. Every optimized mode exhausts the same finite,
+evidence-qualified modern-plus-6502 candidate frontier to proved closure; the modes differ only in
+final cost ordering. The honest result is frontier-optimal, never a claim that every conceivable
+equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, AR-046)
 
 > **Decisions:** AR-002 through AR-005, AR-007, AR-008, AR-011 through AR-014, AR-018, AR-020,
-> AR-022 through AR-026, AR-029 through AR-035, AR-038, AR-042 through AR-045.
+> AR-022 through AR-026, AR-029 through AR-035, AR-038, AR-042 through AR-046.
 
 ---
 
@@ -59,7 +62,7 @@ allocation, specialization, reachability, and layout. (AR-008, AR-023, AR-026, A
   layout/padding, banking, loading, packaging, and other consumers cannot reverse it. Otherwise
   retain the finite viable alternatives until function or whole-program closure and recompute
   after reachability, helper selection, SFA closure, layout, branch repair, and packaging. (AR-018,
-  AR-023, AR-045)
+  AR-023, AR-045, AR-046)
 - [ ] **R8.5 — Use one complete cost vector.** Every candidate records `B`, `T`, and `R`:
   `B` counts each byte of the reachable shipped representation once; `T` is the comparable cycle
   cost for every relevant semantic path class; and `R` is zero-page peak, combined resident
@@ -106,11 +109,18 @@ allocation, specialization, reachability, and layout. (AR-008, AR-023, AR-026, A
 
 #### Target-neutral and whole-program transformation — complexity XL
 
-- [ ] **R8.13 — Preserve the complete semantic payload.** Optional transformations retain width,
+- [ ] **R8.13 — Combine modern and 6502 optimization while preserving semantic payload.** The
+  finite frontier combines useful modern target-neutral and whole-program transformations with
+  proven NMOS 6510 legalization, instruction selection, allocation, layout, and structured
+  peepholes. Technique origin never grants admission: use algorithms and proof ideas, not another
+  compiler's architecture, implementation, preselected pass catalog, legality assumptions, or
+  cost model. Every concrete technique needs a current Blend65 behavior, workload, or measured
+  expert-output consumer and must pass R8.43. Optional transformations retain width,
   signedness, nominal type, constant-versus-runtime arithmetic context, ordinal promotion,
   place/value identity, evaluation order, short-circuit arms, volatility, aliases, escapes,
   lifetimes, storage class, target requirements, callbacks, source association, and diagnostic
-  identity until their accountable consumer discharges them. (AR-002, AR-014, AR-018)
+  identity until their accountable consumer discharges them. (AR-002, AR-011, AR-012, AR-014,
+  AR-018, AR-023, AR-046)
 - [ ] **R8.14 — Fold constants under exact Blend65 rules.** Preserve RD-04's mandatory constant,
   `comptime function`, selected-profile, dimension, and relocation evaluation, then apply optional
   propagation/folding only in the same specified context. Preserve full-precision constant
@@ -259,19 +269,27 @@ allocation, specialization, reachability, and layout. (AR-008, AR-023, AR-026, A
   sprites, charsets, bitmaps, SID/player data, tables, resident assets, loader state, destinations,
   and package/load windows. It may change placement or choose a representation, but never move an
   asset into SFA or copy bytes merely to simplify allocation. (AR-007, AR-020, AR-029, AR-038)
-- [ ] **R8.42 — Forbid post-closure invention.** Peephole cleanup, branch repair, ACME emission,
-  PRG/D64 serialization, and evidence generation use only closed resources. A transformation that
-  needs new scratch is rejected, uses a compatible already-reserved home, or returns to closure;
-  it never grabs anonymous RAM/ZP or emits a silent runtime buffer. (AR-018, AR-023)
+- [ ] **R8.42 — Run structured cost-selected peepholes without post-closure invention.** Peephole
+  cleanup operates on symbolic machine instructions after required flag, register, liveness,
+  effect, alias, and layout facts exist. For each region it considers the unchanged baseline and
+  every applicable qualified substitution, then applies the active complete-cost ordering rather
+  than greedy first match. It cannot reconstruct erased facts, rewrite emitted ACME text, or
+  change MMIO/bus behavior. Peephole cleanup, branch repair, ACME emission, PRG/D64 serialization,
+  and evidence generation use only closed resources. A transformation that needs new scratch is
+  rejected, uses a compatible already-reserved home, or returns to closure; it never grabs
+  anonymous RAM/ZP or emits a silent runtime buffer. (AR-018, AR-023, AR-046)
 
 #### Proof, expert parity, and qualification — complexity XL
 
-- [ ] **R8.43 — Give every transformation a complete rule packet.** Record match, applicability,
-  semantic preconditions, consumed/generated facts, machine effects, pipeline location, complete
-  cost, smallest counterexample, behavior oracle, and assembly/cost oracle. Encode this in the
-  smallest existing structures and tests; do not build a public pass registry, plugin protocol,
-  rule DSL, e-graph system, or optimizer framework merely to store rules. (AR-011, AR-012,
-  AR-023)
+- [ ] **R8.43 — Admit every transformation through a complete rule packet.** A technique enters the
+  frontier only for a named current consumer. Record match, applicability, semantic preconditions,
+  consumed/generated facts, machine effects, pipeline location, complete cost, smallest
+  counterexample, behavior oracle, and assembly/cost oracle. Encode this in the smallest existing
+  structures and tests; do not build a public pass registry, plugin protocol, rule DSL, e-graph
+  system, imported textbook suite, LLVM dependency, or optimizer framework merely to store rules.
+  A new representation or shared mechanism requires concrete admitted consumers that cannot be
+  implemented or proved safely with the existing smallest structure and must pass the anti-
+  overengineering gate. (AR-011, AR-012, AR-023, AR-046)
 - [ ] **R8.44 — Require two independent expectations.** The behavior oracle derives from frozen
   Specification 4, selected CPU/platform/ABI, and independently defined program results/effects.
   The assembly/cost oracle proves the intended transformed shape and complete resource change.
@@ -315,11 +333,24 @@ allocation, specialization, reachability, and layout. (AR-008, AR-023, AR-026, A
   `balanced` retains the baseline; one infeasible-baseline/incomparable-feasible case where
   `balanced` diagnoses; one exact complete-cost tie resolved by stable ID; and one local winner
   reversed after helper/SFA/layout/packaging closure. (AR-023, AR-045)
-- [ ] **R8.51 — Prove fixed points and determinism.** Every repeated analysis/rewrite has a finite
-  lattice or monotonic measure. Identical clean builds on the same supported host/tool identities
-  emit byte-identical assembly, primary artifact, maps, costs, selected IDs, and diagnostics.
-  Random iteration, host timing, and unstable traversal cannot affect output. (AR-011, AR-022,
-  AR-026)
+- [ ] **R8.51 — Exhaust the qualified frontier to proved fixed points.** `balanced`, `speed`, and
+  `size` have identical candidate-discovery and proof depth. At the smallest complete owning scope,
+  enumerate every applicable qualified candidate and every surviving interaction that may change
+  the closed result. Do not stop at the first improvement or after a configured round count. Prune
+  only hard-infeasible candidates or candidates proved unable to win by closed cost or admissible
+  dominance bounds; retain open or incomparable choices until their decisive scope closes. Repeat
+  affected facts, transformations, reachability, helper/table selection, resource binding, SFA,
+  layout, branch repair, and packaging feedback until the complete frontier and costs are stable.
+  Every repeated group has a finite state space, finite lattice, or monotonic well-founded measure.
+  A diagnostic iteration cap cannot prove success. Identical clean builds on the same supported
+  host/tool identities emit byte-identical assembly, primary artifact, maps, costs, selected IDs,
+  and diagnostics. Random iteration, host timing, and unstable traversal cannot affect output.
+  Exact enumeration or superoptimization is allowed only for explicitly small finite regions with
+  fixed NMOS 6510 legality, live-in/live-out state, effects, memory and interrupt assumptions,
+  sequence bound, complete cost, and an independent decidable equivalence oracle. Prefer offline
+  use to qualify direct candidates. Never perform open-ended global search or report universal
+  mathematical optimality. A newly discovered winning expert candidate reopens the qualified
+  frontier as parity debt. (AR-011, AR-022, AR-026, AR-046)
 - [ ] **R8.52 — Fail safely and explain internal limits.** Nonconvergence, missing cost closure,
   impossible branch repair, stale facts, illegal opcode, post-closure storage demand, or failed
   optimizer invariant produces a source-associated compiler diagnostic and publishes no new
@@ -361,8 +392,8 @@ allocation, specialization, reachability, and layout. (AR-008, AR-023, AR-026, A
 - A fifth optimization mode, pass-level user switches, weights, hotness annotations, profile-guided
   optimization, runtime instrumentation, autotuning, or a tuning DSL. (AR-023, AR-045)
 - A public optimizer plugin API, pass registry, rule language, e-graph framework, LLVM dependency,
-  persistent build cache, or incremental compiler. A measured later need requires its own decision.
-  (AR-011, AR-012)
+  broad imported textbook pass suite, persistent build cache, or incremental compiler. A measured
+  later need requires its own decision. (AR-011, AR-012, AR-046)
 - A runtime optimizer, JIT, heap, dynamic frame, general software stack, mandatory helper library,
   hidden dispatcher, or target-side profiler. (AR-002, AR-018)
 - Automatic undocumented opcodes, inferred self-modifying code, guessed cycle-exact VIC tricks, or
@@ -412,10 +443,12 @@ correct typed/effect program
   -> freeze resources and emit
 ```
 
-This is a responsibility flow, not a required count of passes or IRs. Feedback must have a bounded
-monotonic measure. The implementation plan may combine adjacent steps when one small structure
-retains every fact and each responsibility remains independently testable. (AR-011, AR-012,
-AR-018, AR-023)
+This is a responsibility flow, not a required count of passes or IRs. Every optimized mode searches
+the same admitted frontier to a proved fixed point; only final cost ordering differs. Feedback must
+have a finite state space, finite lattice, or monotonic well-founded measure. The implementation
+plan may combine adjacent steps when one small structure retains every fact and each responsibility
+remains independently testable.
+(AR-011, AR-012, AR-018, AR-023, AR-046)
 
 ### Minimum transformation families — complexity XL
 
@@ -444,7 +477,7 @@ The existing build evidence gains an optimizer section; no new standalone artifa
 | Identity | Specification 4 identity, expert `2.0.0` content commit, compiler commit, target/profile, mode, safety settings, ACME/VICE identity where used |
 | Candidate | stable ID, owning scope, source spans, semantic operation/path mapping, preconditions, hard rejection reason |
 | Cost | separate code/data/padding/helper/table/package bytes; path cycles and page ranges; ZP, RAM/SFA, stack, scratch, traffic, setup/load costs |
-| Selection | baseline, viable alternatives, closure point, mode ordering, selected result, exact tie-break or balanced incomparability |
+| Selection | baseline, enumerated and pruned alternatives, exhaustion/fixed-point evidence, closure point, mode ordering, selected result, exact tie-break or balanced incomparability |
 | Proof | behavior-oracle case, assembly/cost expectation, counterexample, assembled addresses/bytes, VICE/hardware evidence status |
 | Parity | expert baseline identity, equivalent obligations, local result by measure/path, whole-program result, linked meet-only debt issue |
 
@@ -477,7 +510,7 @@ boundary. (AR-011, AR-023, AR-026)
 
 | RD | Contract with RD-08 |
 |---|---|
-| RD-01 | Supplies frozen Specification 4, expert `2.0.0`, and AR-045 policy. A discrepancy reopens authority; optimizer tests never redefine it. |
+| RD-01 | Supplies frozen Specification 4, expert `2.0.0`, and AR-045/AR-046 policy plus the sourced combined optimization inventory. A discrepancy reopens authority; optimizer tests never redefine it. |
 | RD-02 | Supplies the deterministic small monorepo/compiler service. RD-08 adds no workspace merely to mirror a pass taxonomy. |
 | RD-03 | Supplies the original-art M1 rebuilt under all modes as a compiler fixture, never a bundled game framework. |
 | RD-04 | Supplies complete `none` semantics, SFA, legal machine lowering, ACME, artifacts, and behavior oracles. RD-08 postpones none of them. |
@@ -499,6 +532,7 @@ boundary. (AR-011, AR-023, AR-026)
 | Cost closure | always local / smallest complete owning scope | Defer reversible candidates until all decisive downstream costs close | Prevents locally cheap helpers, tables, or layouts from losing globally. | AR-045 |
 | Correctness reference | optimized implementation / complete `none` first | Complete `none` first | Optimizers cannot conceal missing language or lowering behavior. | AR-023, AR-033 |
 | Architecture | pass framework / public plugins / responsibility-driven minimum | Smallest representations and direct rules with current consumers | Avoids rebuilding an optimizer support product. | AR-011, AR-012 |
+| Technique frontier | 6502 tricks only / imported modern framework / combined qualified knowledge | Combined modern-plus-6502 finite frontier | Retains modern whole-program leverage while making exact 6502/C64 proof and cost the admission authority. | AR-046 |
 | Game knowledge | compiler-owned systems / workload recognition and qualification | Optimize user-authored game code only | Blend65 is a language/compiler, not an engine. | AR-038 |
 | Runtime profile data | PGO/autotuning / none | None | No runtime, instrumentation, tuning files, or guessed frequencies. | AR-002, AR-045 |
 
@@ -563,7 +597,7 @@ boundary. (AR-011, AR-023, AR-026)
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Authority:** RD-08 implementation binds one frozen Specification 4 identity, one
-   expert `2.0.0` content commit, and all 45 resolved AR decisions; no v3 implementation/test or
+   expert `2.0.0` content commit, and all 46 resolved AR decisions; no v3 implementation/test or
    feasibility matrix acts as optimizer authority.
 2. [ ] **AC-02 — Mode surface:** Manifest/schema/CLI cases accept exactly `none`, `balanced`,
    `speed`, and `size`; default `build`/`run` records `balanced`; invalid spelling fails before
@@ -673,14 +707,20 @@ boundary. (AR-011, AR-023, AR-026)
 37. [ ] **AC-37 — Deferral expiry:** Closeout answers the mandatory deferral-expiry question,
     records every inspected register/Won't-Have/future/ledger/debt location, and assigns each expired
     item before RD-08 is marked complete.
+38. [ ] **AC-38 — Combined-frontier completion:** Expert `2.0.0` supplies the sourced modern-plus-
+    6502 inventory. Seeded cases prove identical discovery depth in all optimized modes, complete
+    enumeration and justified pruning, cost-selected structured peepholes, a multi-group fixed
+    point, deterministic failure on nonconvergence, bounded exact search for one tractable region,
+    and rejection of an unbounded universal-optimality claim or imported framework assumption.
 
 ---
 
 ## Completion Outcome
 
 RD-08 is complete only when all four modes are deterministic, the three optimized modes implement
-the exact approved complete-cost policy, every selected transformation is semantically proved and
-measured from final output, no local code falls below the expert floor, and each optimized mode
-demonstrates a real whole-program win. The result remains a small ahead-of-time compiler: no
-runtime optimizer, game engine, pass/tuning product, PGO system, or hidden resource cost has been
-added.
+the exact approved complete-cost policy and exhaust the same combined qualified frontier to proved
+closure, every selected transformation is semantically proved and measured from final output, no
+local code falls below the expert floor, and each optimized mode demonstrates a real whole-program
+win. The result is frontier-optimal within its frozen expert/compiler identity and remains a small
+ahead-of-time compiler: no universal-optimality claim, runtime optimizer, game engine, pass/tuning
+product, PGO system, or hidden resource cost has been added.

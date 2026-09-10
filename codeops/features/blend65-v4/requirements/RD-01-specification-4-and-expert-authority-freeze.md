@@ -25,7 +25,7 @@ v3 tests, readiness artifacts, scoreboards, and feasibility snapshots remain aud
 none may define language or expert doctrine.
 
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
-> AR-034, AR-035, and AR-038 through AR-045.
+> AR-034, AR-035, and AR-038 through AR-046.
 
 ---
 
@@ -184,14 +184,29 @@ none may define language or expert doctrine.
   policy, including hard constraints, deferred whole-program adjudication, Pareto `balanced`,
   frequency-free lexicographic `speed`/`size`, stable exact-tie behavior, and the prohibition on
   weights, hotness, PGO, and a tuning DSL. Add discriminating qualification cases for tradeoffs,
-  downstream cost reversal, and hard-budget rejection. (AR-014, AR-023, AR-034, AR-038 through
-  AR-045)
-- [ ] **R1.22 — Requalify according to blast radius.** Every one of the 107 expert qualification
-  cases must retain admissible green evidence under the `2.0.0` candidate. Use deterministic
+  downstream cost reversal, and hard-budget rejection. Freeze a deep, sourced optimization
+  inventory that combines applicable modern target-neutral and whole-program techniques with
+  NMOS 6510 and C64-specific instruction, resource, layout, banking, and peephole knowledge. For
+  modern techniques, cover at least exact constant/range/known-bit propagation, CFG simplification,
+  unreachable/dead-work removal, alias/effect-qualified value and memory reuse, interprocedural
+  reachability/effects, finite-target devirtualization, specialization, inlining/outlining, tail
+  calls, aggregate scalarization, copy elision, direct construction, canonical induction,
+  loop-invariant motion, strength reduction, measured unrolling, and liveness/interference. Connect
+  them explicitly to accumulator/register/flag/carry reuse, addressing modes, global ZP allocation,
+  SFA, inline/helper/table selection, page and branch layout, banking, and structured peepholes. For
+  each technique family, record applicability, preserved semantic facts, 6502/C64 interaction,
+  smallest counterexample, complete cost terms, behavior oracle, assembly/cost oracle, and
+  qualification expectations. Record frontier exhaustion, fixed-point proof, structured
+  cost-selected peepholes, bounded exact-search conditions, and frontier-optimal terminology.
+  Import algorithms and proof ideas, not another compiler's architecture, implementation, target
+  assumptions, broad pass catalog, or framework. (AR-014, AR-023, AR-034, AR-038 through AR-046)
+- [ ] **R1.22 — Requalify according to blast radius.** Every pre-existing expert qualification
+  case and every new AR-046 case must retain admissible green evidence under the `2.0.0` candidate;
+  no existing case may disappear merely to keep a fixed total count. Use deterministic
   structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
   each corrected case and dependency-traced regression, and independent review of the correction
   and its blast radius. Do not require a lucky simultaneous 107-answer transcript and do not
-  invalidate unrelated evidence for an evaluator-only omission. (AR-014, AR-034)
+  invalidate unrelated evidence for an evaluator-only omission. (AR-014, AR-034, AR-046)
 - [ ] **R1.23 — Activate atomically and freeze.** The candidate becomes active only after the
   specification crosswalk, Language Guard, all required expert evidence, independent review, links,
   topology, source keys, content hashes, and release record pass together. The release record binds
@@ -413,6 +428,7 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 | Expert release identity | `2.0.0` / `1.1.0` / `1.0.1` | `2.0.0` | Replacing the governing language authority is a breaking expert-baseline change. | AR-034 |
 | Normative targets | Qualified C64 only / all five historical targets / provisional appendices in active spec | Qualified C64 profiles only | Matches authority to evidence without weakening target-neutral architecture. | AR-035 |
 | Product boundary | Reusable game systems / compiler with game-workload qualification | Compiler and narrow platform library | Retains expert game knowledge without turning Blend65 into an engine or gameplay library. | AR-038 |
+| Optimizer knowledge | 6502 tricks only / imported modern framework / combined qualified knowledge | Deep modern-plus-6502 inventory with no imported framework | Gives the compiler modern whole-program leverage while keeping every choice grounded in exact 6502/C64 semantics and costs. | AR-046 |
 | Low-level source surface | Five curated controls / external assembly / arbitrary opcode calls | Five curated controls | Stable complete semantics with no external ABI or hidden register state. | AR-006 |
 | Arrays and aggregates | Historical restrictions / fixed modern values / dynamic runtime model | Fixed modern values | Modern source behavior without heap or dynamic frames. | AR-016, AR-017 |
 | Function values | Recognized sinks only / finite typed values / raw calls | Finite typed values | Expressive bounded calls compatible with whole-program SFA proof. | AR-018 |
@@ -425,7 +441,7 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Input identity:** The transition record names the exact Specification 3 identity,
-   expert `1.0.0` identity/content commit, source Git commit, and all 45 resolved Blend65 v4 AR
+   expert `1.0.0` identity/content commit, source Git commit, and all 46 resolved Blend65 v4 AR
    decisions; no compiler implementation or v3 test is listed as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.
@@ -488,17 +504,20 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 18. [ ] **AC-18 — Diagnostic integrity:** Every new invalid class has one unique documented error
     code, message template, triggering example, correction, and normative owner; a registry-to-spec
     check reports zero missing, duplicate, dead, or conflicting entries.
-19. [ ] **AC-19 — Expert version and product boundary:** Every active
+19. [ ] **AC-19 — Expert version, product boundary, and optimizer knowledge:** Every active
     router/reference/qualification file identifies expert baseline `2.0.0` and the same frozen
     Specification 4 identity. Technique knowledge and Q-P workloads remain available, but no active
     text presents game algorithms, modules, renderers, scheduling, or policies as a Blend65
     engine/library deliverable. Asset guidance ends at compile-time ingestion, conversion, typed
     data/metadata/symbols, exact external ABI, and placement/package facts; runtime consumers are
-    user-authored Blend65 programs.
-    (AR-038)
-20. [ ] **AC-20 — Qualification coverage:** The coverage matrix still contains exactly 107 unique
-    cases with all required fields, and each case has admissible green evidence under the
-    `2.0.0` candidate according to the accepted composed-evidence rule.
+    user-authored Blend65 programs. The active optimization reference contains the combined
+    modern-plus-6502 inventory and complete admission/proof/cost fields required by R1.21 without
+    importing a general optimizer framework or another compiler's target assumptions. (AR-038,
+    AR-046)
+20. [ ] **AC-20 — Qualification coverage:** The coverage matrix accounts for all 107 pre-existing
+    unique case identities plus every newly approved AR-046 case, with all required fields and
+    admissible green evidence under the `2.0.0` candidate according to the accepted composed-
+    evidence rule. No existing identity is silently removed to preserve an arbitrary case count.
 21. [ ] **AC-21 — Qualification independence:** Independent changed-surface and blast-radius review
     reports zero unresolved critical or major knowledge, oracle, authority, or coverage defects.
 22. [ ] **AC-22 — Atomic release:** The sole active release record binds expert `2.0.0`, its exact

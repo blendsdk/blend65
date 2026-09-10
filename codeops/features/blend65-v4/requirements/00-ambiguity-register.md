@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 45 items resolved
-> **Last Updated**: 2026-09-10 16:02 CEST
+> **Status**: ✅ GATE PASSED — all 46 items resolved
+> **Last Updated**: 2026-09-10 16:53 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -51,6 +51,7 @@
 | AR-043 | Runtime ownership / loading concurrency | What does the first KERNAL loader do when user-installed IRQ/NMI callbacks or player/audio ticks may be active? | Require explicit quiescence and prove it / silently suspend and reconstruct user activity / permit continued activity under a new continuity contract | Require the user program to explicitly stop/restore its own callback and audio routes before `load()`, while the required stock KERNAL service route remains active. Reuse the recognized install/uninstall state to reject any call where quiescence is not proved. Do not silently stop/restart application behavior or claim timing continuity. A later fastloader may qualify an explicit continuity contract. | ✅ Resolved |
 | AR-044 | Safety / corrupted runtime disk data | The stock KERNAL relocating `LOAD` accepts a destination address but no maximum length. What guarantee does the first loader make if a packaged load-unit file is later corrupted or replaced with a valid longer file? | Trust the compiler-produced D64 and diagnose only observable KERNAL/end-address failure / add a custom bounded and checksummed transport now / stage and validate before copying | Define the exact compiler-produced D64 as the trusted deployable unit. The baseline wrapper reports KERNAL failure and rejects a returned end address unequal to `destination + sizeof(unit)`, but it cannot promise containment after a longer altered file has already been transferred. Add no checksum, staging copy, or custom bounded transport to the KERNAL-first slice; record this as an explicit hardware/toolchain limitation and require a later qualified loader for hostile or independently mutable media. | ✅ Resolved |
 | AR-045 | Behavioral (complex) / optimizer goal selection | When correct 6502 candidates trade cycles against bytes or scarce resources, how do `balanced`, `speed`, and `size` choose deterministically without guessing workload frequency? | Complete-cost Pareto/lexicographic policy / one profile-owned weighted scalar / user-configurable weights and hotness | Use the complete-cost Pareto/lexicographic policy. Reject hard-constraint failures first and defer choices whose helper, SFA, ZP, layout, banking, loader, or packaging costs are not yet closed. `balanced` selects only a candidate that dominates the baseline and every competitor across reachable bytes, every relevant semantic-path cycle bound, and scarce-resource peaks; otherwise it retains the baseline while keeping independent dominance wins. `speed` lexicographically minimizes worst-to-best path cycles, then bytes, then the fixed resource order stated in the resolution note. `size` minimizes reachable bytes, then the same cycle vector, then resources. Exact cost ties alone use stable candidate identity. Add no weights, hotness annotations, policy DSL, PGO, or guessed frequency. | ✅ Resolved |
+| AR-046 | Behavioral (complex) / optimizer frontier and search completion | What belongs in the qualified optimization frontier, and what proves that an optimized mode has searched it deeply enough: combined modern and 6502-specific techniques exhausted to proved closure, only traditional 6502 tricks, a broad imported modern optimizer framework, globally exhaustive assembly search, or a heuristic pass budget? | Finite combined modern-plus-6502 frontier exhausted to proved closure, with structured peepholes and bounded exact search / 6502 tricks only / broad imported optimizer framework or catalog / globally exhaustive search across all equivalent programs / heuristic fixed-pass or first-good completion | Freeze a deep, sourced modern-plus-6502 optimization knowledge inventory into expert baseline `2.0.0`, then use the same finite evidence-qualified candidate frontier for `balanced`, `speed`, and `size`. Admit concrete techniques by Blend65 semantics, current consumer, complete rule packet, exact 6502/full-program costs, two independent oracles, and expert parity—not by historical or modern provenance. Exhaust that frontier at the smallest complete owning scope, repeat affected groups to a proved deterministic fixed point, and run structured contextual peephole optimization. Permit exact enumeration only for explicitly small finite regions with an independent equivalence oracle. Import algorithms and proof ideas, never another compiler's architecture or target assumptions. Never stop at the first improvement or certify success through an iteration cap. Claim frontier-optimality, not universal mathematical optimality; a newly discovered winning expert candidate reopens the frontier as parity debt. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -951,6 +952,84 @@ tie. It never licenses a candidate that does not fit.
 
 **Direct user decision:** The user approved the complete-cost Pareto/lexicographic policy.
 
+### AR-046 — Optimization search completion and peephole depth
+
+The approved mode-selection policy says how to choose among closed candidates, but it does not yet
+say when candidate discovery and repeated optimization are complete. A fixed pass count or greedy
+first improvement can miss an already-known expert form merely because of pass order. At the other
+extreme, searching every equivalent 6502 program is not a bounded compiler obligation and cannot
+support an honest general optimality claim.
+
+The recommended policy gives all three optimized modes the same optimization depth; only AR-045's
+cost ordering differs. At each smallest complete owning scope, start from the correct `none`
+baseline and enumerate every applicable candidate in the compiler version's finite,
+evidence-qualified expert rule inventory. Retain combinations whose helper, reachability, SFA/ZP,
+layout, branch, loader, or packaging interaction can change the final result. Do not stop at the
+first improvement or after a configured number of rounds. Prune only candidates proved infeasible
+or proved unable to win by closed costs or admissible dominance bounds; retain open and
+incomparable alternatives until their decisive scope closes.
+
+Repeat affected fact propagation, transformation, reachability, helper/table selection, resource
+binding, SFA closure, layout, branch repair, and packaging feedback until facts, candidates, costs,
+feasibility, and resources reach a proved deterministic fixed point. Every repeated group needs a
+finite state space, finite lattice, or monotonic well-founded measure. An iteration cap may detect
+and diagnose nonconvergence but cannot certify success; nonconvergence fails atomically.
+
+Every optimized mode includes structured contextual peephole cleanup. It operates on symbolic
+machine instructions only after required flag, register, liveness, effect, alias, and layout facts
+exist. It includes the unchanged baseline and every applicable qualified substitution and chooses
+by cost rather than greedy first match. It cannot reconstruct erased semantic facts, rewrite ACME
+text, change MMIO or bus behavior, or invent storage after SFA closure.
+
+Exact enumeration or superoptimization is permitted only for explicitly small finite regions with
+fixed CPU legality, live-in/live-out state, effects, memory and interrupt assumptions, a sequence
+bound, complete costs, and an independent decidable equivalence oracle. The honest result is
+**frontier-optimal**: the best proven candidate in the active compiler's complete qualified finite
+frontier after whole-program closure. A newly discovered expert candidate that wins is a parity
+defect that reopens the frontier; it does not prove that the previous compiler had searched every
+possible program.
+
+The frontier deliberately combines two knowledge families. Modern target-neutral and whole-program
+techniques include exact constant/range/known-bit propagation, CFG simplification, unreachable and
+dead-work removal, alias/effect-qualified value reuse and memory forwarding, interprocedural effect
+and reachability analysis, finite-target devirtualization, specialization, inlining/outlining,
+tail calls, aggregate scalarization, copy elision, direct construction, canonical induction,
+loop-invariant motion, address/arithmetic strength reduction, measured unrolling, and
+liveness/interference analysis. These feed rather than replace NMOS 6510 instruction selection,
+register/flag/carry reuse, addressing-mode selection, ZP allocation, helper/table/inline choices,
+branch and page layout, banking, SFA re-closure, and structured peepholes.
+
+Technique provenance never grants admission. Modern algorithms must use Blend65 width, signedness,
+wrap, evaluation-order, short-circuit, volatile/MMIO, alias, lifetime, interrupt-domain, placement,
+and storage semantics. They may not assume undefined signed overflow, freely reorderable memory,
+abundant registers, cheap spills, stack-framed locals, flat memory, caches, uniform instruction
+cost, or instruction count as a performance proxy. A choice that later 6510 flags/registers,
+SFA/ZP, helpers/tables, layout, banking, loading, or packaging can reverse remains open until those
+costs close.
+
+RD-01 must freeze this combined knowledge before expert baseline `2.0.0` activates. The skill
+records a deep sourced inventory with applicability, semantic preconditions, 6502/C64 interaction,
+counterexample, costs, and qualification expectations. It imports algorithms and proof ideas, not
+another compiler's implementation or architecture. It does not create a broad SSA/pass framework,
+LLVM dependency, e-graph, registry, rule DSL, or complete textbook suite in anticipation of future
+use. A representation or shared mechanism is added only when a concrete admitted transformation
+needs facts the existing smallest structure cannot safely carry and it passes the anti-
+overengineering gate. RD-08 implements and qualifies the admitted transformations; the frozen
+skill remains authority rather than being edited opportunistically during implementation.
+
+**Independent challenge:** Converged on the finite combined-frontier policy. It strengthened the
+proposal by requiring identical search depth in every optimized mode, cost-selected rather than
+greedy peepholes, explicit frontier-optimal terminology, and admission by proof and target fit
+rather than technique origin. Strongest counterargument: combining semantic-to-layout feedback can
+make the frontier and implementation substantially harder. The bounded answer is current consumers,
+complete rule packets, the smallest required representations, proved decomposition, canonical
+deduplication, dominance bounds, and small exact domains—not a prebuilt general framework or silent
+heuristic cutoff.
+
+**Direct user decision:** The user approved the combined modern-plus-6502 frontier, expert `2.0.0`
+knowledge freeze, proved fixed-point completion, structured cost-selected peepholes, and bounded exact
+search policy.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
@@ -976,4 +1055,8 @@ both, and the gate passes again. RD-05 review then exposed and resolved AR-038's
 engine product boundary; the gate passes with the corrected scope.
 RD-08 authoring then exposed AR-045 because the approved mode names and broad priorities did not
 define how to resolve non-dominating complete-cost candidates. The user approved the complete-cost
-Pareto/lexicographic policy, so the gate passes with all 45 items resolved.
+Pareto/lexicographic policy. RD-08 review then exposed AR-046 because the selected costs did not
+define which modern and 6502-specific techniques belong in the frontier or how deeply candidate
+discovery, repetition, and peephole optimization must run. The user approved the combined finite
+frontier, expert `2.0.0` knowledge freeze, and proved-closure policy, so the gate passes with all 46
+items resolved.

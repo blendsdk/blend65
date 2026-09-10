@@ -4,7 +4,8 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-07 are approved and RD-08 is drafted
+> **Artifact status**: Working discovery record; RD-01 through RD-07 are approved and RD-08 is
+> drafted with all 46 ambiguity decisions resolved
 
 ## Authority and evidence
 
@@ -77,7 +78,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. AR-001 through AR-045 are resolved.
+None. AR-001 through AR-046 are resolved.
 
 ## Approved first C64 production profile
 
@@ -663,4 +664,8 @@ only for exact complete-cost ties. RD-08 preserves the complete correct `none` c
 closure, official NMOS 6510 legality, independent behavior and assembly/cost oracles, the local
 expert floor, measured whole-program wins, and user ownership of all game algorithms. It adds no
 weights, PGO, tuning DSL, pass/plugin framework, runtime optimizer, game engine, fastloader, or
-compressor. After approval, draft RD-09 for developer tooling and debug evidence.
+compressor. AR-046 now requires expert baseline `2.0.0` to freeze a deep combined modern-plus-6502
+technique inventory and every optimized mode to exhaust its admitted finite frontier to proved
+closure, including structured cost-selected peepholes and bounded exact search only for small
+finite regions. RD-01 and RD-08 contain that approved correction. After RD-08 approval, draft RD-09
+for developer tooling and debug evidence.
