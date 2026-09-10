@@ -77,10 +77,10 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-- **AR-042:** Select the first concrete loader/compression implementation for
-  `c64-pal-d64-kernal-6581`. The recommendation is a built-in KERNAL sequential loader with
-  uncompressed directly placed load units, no fastloader/compressor in the first slice, and no
-  public plugin framework.
+- **AR-043:** Decide how the first KERNAL loader interacts with user-installed IRQ/NMI callbacks
+  and audio/player ticks. The recommendation is explicit user-controlled quiescence with a
+  compile-time proof at `load()`, while the required stock KERNAL service route stays active; no
+  hidden stop/restart behavior or unproved continuity.
 
 ## Approved first C64 production profile
 
@@ -665,5 +665,7 @@ player scheduler, mixer, scene runtime, or game architecture. AR-039 and AR-041 
 Koala Color RAM and background bytes while identifying only their low nibbles as hardware color
 meaning; AR-040 fixes the first native-format baseline and producer-fixture gate. RD-07 is next and
 owns `loadable const`, explicit transfer/publication, D64 construction, loader/decompressor
-selection, overlay liveness, and IRQ/audio/resource evidence. Authoring is paused at AR-042 because
-the concrete first loader/compression implementation has not yet been selected.
+selection, overlay liveness, and IRQ/audio/resource evidence. AR-042 selects a built-in KERNAL
+sequential loader with uncompressed directly placed units and no first-slice fastloader,
+compressor, or plugin system. Authoring is paused at AR-043 for the exact user IRQ/NMI/audio
+activity rule around that loader.
