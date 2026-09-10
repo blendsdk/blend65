@@ -3,7 +3,7 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-09-10 09:19
+> **Last Updated**: 2026-09-10 09:44
 > **Progress**: 0 / 10 (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -17,7 +17,7 @@
 |---|---|---|---|---|---|---|---|
 | RD-01 | Specification 4.0 and Expert Authority Freeze | [RD-01](requirements/RD-01-specification-4-and-expert-authority-freeze.md) | — | RD Drafted | ✏️ | 2026-09-10 | — |
 | RD-02 | Clean V4 Foundation and Deterministic Project Model | [RD-02](requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-01 |
-| RD-03 | Playable M1 Complete Pipeline | — | — | Backlog | ⬜ | 2026-09-10 | depends on RD-02 |
+| RD-03 | Playable M1 Complete Pipeline | [RD-03](requirements/RD-03-playable-m1-complete-pipeline.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-02 |
 | RD-04 | Complete Language and Correct Unoptimized Compiler | — | — | Backlog | ⬜ | 2026-09-10 | depends on RD-03 |
 | RD-05 | C64 Platform Profiles and Game Systems | — | — | Backlog | ⬜ | 2026-09-10 | depends on RD-04 |
 | RD-06 | Native Assets, Scene Composition, and Resident Layout | — | — | Backlog | ⬜ | 2026-09-10 | depends on RD-04, RD-05 |

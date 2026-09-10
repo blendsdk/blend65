@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 36 items resolved
-> **Last Updated**: 2026-09-10 09:03 CEST
+> **Status**: ✅ GATE PASSED — all 37 items resolved
+> **Last Updated**: 2026-09-10 15:45 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -32,7 +32,7 @@
 | AR-024 | Scope / platform | Which additional C64 profiles must be qualified before v4 is production-complete: PAL takeover, NTSC, and/or 8580, and what C64U enablement must exist at that boundary? | Baseline only / eight exact base-C64 identities plus mandatory C64U readiness / implement C64U before base-C64 completion | Qualify the PAL/NTSC × KERNAL/takeover × 6581/8580 matrix as eight exact base-C64 profile identities. Before that production gate closes, pass a mandatory C64U-readiness architecture gate and create an owned C64U successor feature. Implement C64U next, but do not block base-C64 production on Ultimate-specific feature implementation. | ✅ Resolved |
 | AR-025 | Scope / migration | What happens to v3 compiler, readiness, tests, and false target packages on the v4 branch after salvage inventory? | Retain v3 topology / duplicate under `legacy/` / Git-preserved inventory-led clean branch | Preserve v3 through its recorded commit, Git history, and parked worktree; do not copy it into a v4 legacy directory. Inventory every candidate, then port only requirement-owned, independently proven units that are cheaper and safer than replacement. Remove v3 implementation, readiness packages/workflows, inherited tests, and false target packages from the v4 branch before creating the smallest real C64 package graph. | ✅ Resolved |
 | AR-026 | Non-functional | How does v4 observe host compiler and editor responsiveness, and what evidence reopens incremental compilation? | Hard wall-clock acceptance thresholds / no measurement / observational milestone trends | Record phase-separated check/build, ACME, LSP-request, and peak-memory measurements with project, asset, host, compiler, and configuration identity at relevant milestones. Trend them without wall-clock test, CI, or release failure. Reconsider incremental compilation only when real projects show noticeable delay, profiling attributes it substantially to repeated unchanged analysis, and smaller focused repairs cannot solve it. | ✅ Resolved |
-| AR-027 | Scope / delivery | What is the first independently useful, qualified v4 milestone before production completion? | Compiler skeleton / complete unoptimized language / playable complete-pipeline vertical slice | Make M1 a playable PAL/KERNAL/6581 sprite loop built with `optimization: none`. It uses a real project, shared frontend/LSP, qualified SpritePad asset, joystick/fire interaction, normal BASIC return, complete semantic/SFA/lowering/ACME/PRG/VICE path, independent behavior and assembly/cost expectations, full resource/debug evidence, and an early C64U-readiness review. Later features remain real vertical slices, not placeholders. | ✅ Resolved |
+| AR-027 | Scope / delivery | What is the first independently useful, qualified v4 milestone before production completion? | Compiler skeleton / complete unoptimized language / playable complete-pipeline vertical slice | Make M1 a playable PAL/KERNAL/6581 vertical slice built with `optimization: none`. It uses a real project, shared frontend/LSP, qualified SpritePad input, joystick/fire interaction, normal BASIC return, complete semantic/SFA/lowering/ACME/PRG/VICE path, independent behavior and assembly/cost expectations, full resource/debug evidence, and an early C64U-readiness review. AR-037 fixes the exact product as a bounded Invaders-style microgame. Later features remain real vertical slices, not placeholders. | ✅ Resolved |
 | AR-028 | Integration / module discovery | How does an entry module's named import locate `.blend` files when filenames have no language meaning and several files may contribute to one module? | One contained source-root module index / path-based imports / explicit source-file inventory | Add one required `sourceRoot` resolved relative to `blend65.json`, independent of the process working directory. Recursively index contained `.blend` files, then compile the entry module's reachable graph. | ✅ Resolved |
 | AR-029 | Scope / assets and packaging | Does C64 production include compiler-owned delivery of assets that cannot remain resident in the initial PRG, and what artifact/loader boundary owns it? | Resident PRG only / coordinated disk image and explicit load units / external packaging and loader tools | Include compiler-owned, opt-in disk delivery before C64 production completion. Keep `embed()` resident by default; package explicit nonresident load units with the startup PRG, link only used loader/decompressor code, qualify the disk profile separately, and expose all transport/lifetime/IRQ/audio/resource costs. | ✅ Resolved |
 | AR-030 | Scope / portability | How does one codebase vary declarations and behavior across exact C64 profiles and later machines without contaminating target-neutral semantics? | Separate profile-specific entry modules plus compile-time profile constants / add a dedicated conditional-compilation language surface | Use shared modules plus selectable entry modules and immutable compile-time profile constants. Permit recorded `--target` and `--entry` overrides of the manifest defaults. Do not add a preprocessor or conditional-declaration language feature until a real later target demonstrates unavoidable duplication. | ✅ Resolved |
@@ -42,6 +42,7 @@
 | AR-034 | Naming / authority versioning | Which semantic-version category identifies the expert-skill release whose governing language authority changes from Specification 3 to Specification 4? | Major `2.0.0` / minor `1.1.0` / patch `1.0.1` | Publish the Specification 4 expert baseline as `2.0.0`. | ✅ Resolved |
 | AR-035 | Scope / specification authority | Which target appendices and platform claims are normative in Specification 4 while v4 implements and qualifies only C64? | Only qualified C64 targets normative / all five existing appendices normative / retain four non-normative provisional appendices inside the active spec | Make only qualified C64 profiles normative; remove the four unqualified target appendices from the active specification and retain future-target constraints as explicit non-support material. | ✅ Resolved |
 | AR-036 | Technical (complexity escalation) | Does the clean v4 foundation retain Turborepo and pre-emptive Vite configuration, or use the toolchain's direct build/test graph until a real consumer proves more machinery is needed? | Yarn workspaces + TypeScript project references + Vitest only / retain Turborepo and current Vite placeholders | Retain the useful v3 monorepo setup: Yarn classic workspaces, Turborepo, stable TypeScript 7, and Vitest, with no ESLint or replacement linter. Do not carry unused Vite placeholders; add Vite or another bundler only for a real packaging consumer. | ✅ Resolved |
+| AR-037 | Scope / M1 product and asset provenance | Does M1 remain a single-sprite interaction or become a bounded Invaders-style game, and when must the authentic SpritePad 3.80 input exist? | Keep the single-sprite loop / bounded original-art Invaders-style microgame / faithful full game recreation | Use a bounded original-art Invaders-style microgame: one player, six invaders, and one shared projectile/explosion sprite fit the eight hardware sprites without multiplexing. Include fixed enemy state, ordinary loops/functions, simple source-level collision, win/loss, and normal BASIC return; exclude score, lives, shields, enemy projectiles, audio, scrolling, IRQ callbacks, loaders, and optimization. The user will later supply an official SpritePad C64 Pro 3.80 template and exports; that evidence is required before RD-03 planning or asset-decoder implementation, not before requirements authoring. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -450,14 +451,15 @@ responsiveness. Asset conversion, ACME, filesystem, or isolated phase costs are 
 source rather than answered with an unrelated general cache. Generated-C64 speed, bytes, memory,
 timing, and expert parity retain their separate mandatory qualification gates.
 
-### AR-027 — M1 playable complete-pipeline sprite loop
+### AR-027 — M1 playable complete-pipeline vertical slice
 
 The first independently useful milestone is a small interactive program for
 `c64-pal-prg-kernal-6581`, built with `optimization: none`. A developer opens its real
 `blend65.json` project in VS Code, receives shared-frontend lexical/syntax/semantic diagnostics,
 checks and builds it, imports a qualified current SpritePad representation, launches the resulting
-PRG through `blendc run`, moves one hardware sprite using joystick input, changes a visible
-color/animation state with fire, and exits through the profile's normal return-to-BASIC contract.
+PRG through `blendc run`, interacts through joystick/fire, reaches visible game state, and exits
+through the profile's normal return-to-BASIC contract. AR-037 later refined this product journey to
+the bounded original-art Invaders-style microgame without changing the complete-pipeline decision.
 
 M1 implements only the coherent language slice the program needs: modules/imports, `const`/`let`,
 required scalar types and conversions, expressions and assignment, `if`/`while`/standard `for`,
@@ -472,14 +474,14 @@ IR, whole-program/SFA analysis, target-neutral lowering, C64/6502 lowering, inst
 placement, ACME serialization, PRG packaging, VICE execution, and source/debug/resource evidence.
 No stage may pass unresolved or untyped material through solely to make the demo work.
 
-Qualification injects deterministic joystick/fire input in VICE and checks position, visible
+Qualification injects deterministic joystick/fire input in VICE and checks entity state, visible
 state, asset bytes/placement, and normal exit. Each implemented semantic path has an independent
 behavior oracle and an assembly/cost expectation; SpritePad bytes are placed once, correctly
 aligned and VIC-visible without runtime copying; local generated code meets the expert floor; all
 SFA/memory/ZP/stack/asset/cycle/debug reports are complete; LSP and CLI share the frontend; and one
 relevant boundary qualification follows directed tests. M1 does not use the v3 readiness suite and
-must pass an early C64U-readiness architecture review. It is useful for small interactive demos but
-is not production-complete Blend65.
+must pass an early C64U-readiness architecture review. It is a real microgame but is not
+production-complete Blend65.
 
 ### AR-028 — Deterministic module-to-file discovery
 
@@ -723,16 +725,44 @@ excluded.
 orchestration and caching capability is retained without treating it as equivalent to TypeScript
 project references or Yarn workspace management.
 
+### AR-037 — Bounded Invaders-style M1 and authentic SpritePad handoff
+
+The user approved replacing the one-sprite M1 interaction with a deliberately small, original-art
+Invaders-style game. A faithful recreation was rejected for M1 because its formation scale,
+barriers, scoring, lives, enemy projectiles, audio, and rendering strategy would pull the general
+game-system and asset work of RD-05 and RD-06 into the first compiler slice.
+
+M1 instead uses exactly eight simultaneous hardware sprites: one player, six invaders, and one
+slot shared by the active projectile or its short explosion. It requires no sprite multiplexer,
+application IRQ handler, scrolling, loader, audio system, or optimizer. The game deliberately
+exercises fixed aggregate state, a standard `for` loop, ordinary and nested calls, exact-width
+arithmetic, source-level collision, multiple SpritePad records, joystick input, frame updates,
+terminal win/loss state, restoration, and normal BASIC return. The art and project identity are
+original and do not copy another game's distributed assets.
+
+The user will purchase SpritePad C64 Pro 3.80 and later provide a producer-generated template,
+native `.spd` file, relevant exports, settings, and provenance. Distinct nonblank placeholder
+records make byte order, offsets, colors, and record boundaries observable. Final art
+will be reduced to exact C64 sprite grids and imported through the official producer before its
+output becomes the qualification fixture. SpritePad remains an authoring/qualification producer;
+the compiler, Linux build, and CI never invoke it. The artifact is not needed to author these
+requirements, but it is a hard prerequisite before RD-03 implementation planning or the decoder
+qualification task. Missing evidence blocks that boundary rather than authorizing a guessed format.
+
+**Direct user decision:** The user approved the bounded Invaders-style M1 and confirmed that the
+SpritePad project may be supplied later, before the format-dependent work begins.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 36 items are resolved. The user confirmed the consolidated scope and explicitly approved
+All 37 items are resolved. The user confirmed the consolidated scope and explicitly approved
 AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,
 integration, terminology, authority, deferral, and complexity-evidence review found no unresolved
 material choice. AR-024's already-decided C64U ownership timing was retained, and the proposed
 RD-10 wording was corrected to hand off to the already-owned successor rather than create it late.
 The Phase 2B gate passed. Phase 3 authoring surfaced and resolved AR-034 and AR-035 before RD-01;
 RD-01 was then approved and committed. RD-02 authoring surfaced AR-036 before the document was
-written; the user resolved it and the gate passes again.
+written. RD-03 authoring surfaced AR-037's product and producer-fixture boundary; the user resolved
+both, and the gate passes again.

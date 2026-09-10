@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working notes only; no requirement document has been authored
+> **Artifact status**: Working discovery record; RD-01 through RD-03 are drafted
 
 ## Authority and evidence
 
@@ -72,7 +72,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. The complete 36-item register is resolved and the Zero-Ambiguity Gate passed.
+None. The complete 37-item register is resolved and the Zero-Ambiguity Gate passed.
 
 ## Approved first C64 production profile
 
@@ -117,7 +117,7 @@ project directives, and coding standards; they are not presented as false choice
 |---|---|
 | Feature gaps | AR-015 through AR-019 cover addressability, aggregates, nested fixed arrays, finite indirect calls, and compile-time game-data generation. Existing language semantics otherwise come from the selected v4 specification identity. |
 | Behavioral gaps | AR-023 owns visible optimization modes. Atomic failure, evaluation order, overflow, unsafe-check behavior, MMIO effects, IRQ/SFA overlap, and target legality already have authoritative contracts. |
-| Scope ambiguities | AR-014, AR-024, AR-025, and AR-027 own specification authority, production C64 profile coverage, v3-tree disposition, and the first qualified milestone. |
+| Scope ambiguities | AR-014, AR-024, AR-025, AR-027, and AR-037 own specification authority, production C64 profile coverage, v3-tree disposition, the first qualified milestone, and its exact product/asset boundary. |
 | Technical unknowns | Representation/pass/package counts remain implementation-plan decisions constrained by responsibility contracts, not product requirements. TypeScript 7, Node 22, Yarn classic, ACME, VICE, SFA, and no general linter are already explicit product/toolchain decisions. |
 | Edge cases | The expert baseline already governs recursion rejection, nested calls, array ordinal promotion, unchecked addressing, optional checks, BCD, local-address escape, IRQ/NMI entry, banking, asset validation, tool failure, and selected-profile mismatch. Journey review will test their composition. |
 | Integration points | AR-021 and AR-022 own editor and project/build integration. ACME serialization, VICE execution, native asset handlers, debug metadata, and CLI/LSP frontend sharing are confirmed scope. |
@@ -327,14 +327,22 @@ its independent mandatory expert-output gates.
 
 ## Approved first useful milestone
 
-M1 is a playable sprite loop for `c64-pal-prg-kernal-6581` built with `optimization: none`. It uses
-a real JSONC project, the shared CLI/LSP frontend, qualified current SpritePad input, joystick/fire
-interaction, one visible state change, normal return to BASIC, and every real compiler stage through
-ACME, PRG, and deterministic VICE execution. The implemented language slice is deliberately small
-but coherent; advanced language, IRQ, audio, loader, and optimizer features arrive as later
-vertical slices rather than placeholders. M1 requires independent behavior and assembly/cost
-expectations, one-copy VIC-correct asset placement, complete SFA/resource/debug evidence, directed
-tests plus one boundary qualification, expert local output, and an early C64U-readiness review.
+M1 is a bounded, original-art Invaders-style microgame for `c64-pal-prg-kernal-6581` built with
+`optimization: none`. One player, six invaders, and one shared projectile/explosion slot use the
+eight hardware sprites without multiplexing. It uses a real JSONC project, the shared CLI/LSP
+frontend, qualified current SpritePad input, joystick/fire interaction, fixed enemy state, ordinary
+loops/functions, simple source-level collision, win/loss, normal return to BASIC, and every real
+compiler stage through ACME, PRG, and deterministic VICE execution. Score, lives, barriers, enemy
+projectiles, audio, scrolling, application IRQ callbacks, loaders, and optional optimization remain
+later vertical capabilities. M1 requires independent behavior and assembly/cost expectations,
+one-copy VIC-correct asset placement, complete SFA/resource/debug evidence, directed tests plus one
+boundary qualification, expert local output, and an early C64U-readiness review.
+
+The official SpritePad C64 Pro 3.80 native project and exports are an explicit prerequisite before
+RD-03 implementation planning or asset-decoder work, not before requirements authoring. The user
+will provide a producer-generated template with distinct placeholders and provenance, then save the
+final exact C64 art through the official producer. The compiler and Linux/CI workflow consume the
+committed bytes and never invoke SpritePad.
 
 ## Comparable-system feature selection
 
@@ -416,7 +424,7 @@ PRG, RAM, ZP, hardware-stack, or runtime-cycle cost.
 | Check | Read one coherent project snapshot, validate manifest/source/import/type/effect/profile/asset facts, and return stable diagnostics without lowering, ACME, packaging, or published outputs. | Covered. Final machine-layout failures remain build diagnostics; `check` reports only facts provable before target lowering. |
 | Build | Reuse the same frontend result, close whole-program/SFA storage, lower and optimize under the selected mode, solve placement, serialize ACME, assemble/package, then atomically publish the profile's primary deployable artifact plus evidence. | Covered by AR-008, AR-022, AR-023, and AR-032. Any changed input, stage error, ACME failure, collision, or no-space result prevents publication of a mixed set. |
 | Run | Perform a fresh successful build, bind the exact output hashes and selected VICE profile, launch only that profile's primary artifact, and report emulator/tool failure distinctly from compiler success. | Covered by AR-009, AR-022, and AR-032. A failed build never launches an older artifact. |
-| Resident asset | Resolve literal `embed()`, validate exact handler/version/selector, retain symbolic identity and constraints, place one requested representation at the hardware-visible address, and report bytes/residency. | Covered by the active specification, expert asset contracts, AR-020, and M1 in AR-027. Required producer fixtures remain qualification prerequisites rather than assumed parser proof. |
+| Resident asset | Resolve literal `embed()`, validate exact handler/version/selector, retain symbolic identity and constraints, place one requested representation at the hardware-visible address, and report bytes/residency. | Covered by the active specification, expert asset contracts, AR-020, and M1 in AR-027/AR-037. Required producer fixtures remain qualification prerequisites rather than assumed parser proof. |
 | Large asset or scene | Import and compose data that cannot coexist in one resident image, declare a fixed `loadable const` unit and compatible destination, select load windows/overlays, package transport bytes, load/decompress, publish, and preserve or pause IRQ/audio safely. | Covered by AR-029 and AR-031. |
 | Multi-profile build | Build shared game code for PAL/NTSC, KERNAL/takeover, SID variants, then add a C64U-specific path without redefining core semantics. | Covered by AR-030: compile-time facts for ordinary differences, recorded target/entry overrides, and separate reachable platform modules for different hardware APIs. |
 | Specification transition | Apply all accepted language changes once to Specification 4.0, run the Language Guard, version/qualify one expert skill, freeze both identities, then begin semantic implementation. | Covered by AR-014; no implementation-only override or parallel live specification is allowed. |
@@ -489,7 +497,8 @@ gain no v3 compatibility promise.
 - Impact-based specification, implementation, boundary, ACME, VICE, and targeted real-hardware
   evidence without recreating the v3 readiness product; host responsiveness is observed but never a
   wall-clock pass gate.
-- M1 as the first real playable PAL/KERNAL/6581 resident-PRG sprite loop, followed by complete
+- M1 as the first real playable PAL/KERNAL/6581 resident-PRG Invaders-style microgame, followed by
+  complete
   vertical slices rather than horizontal placeholders.
 - A mandatory C64U architecture-readiness gate and an owned C64U follow-on feature as the first
   platform expansion after base C64.
@@ -550,7 +559,7 @@ gain no v3 compatibility promise.
 | Primary artifact | The one deployable file owned by a profile: `<name>.prg` for PRG profiles or `<name>.d64` for the first disk profile. |
 | `sourceRoot` | The manifest-relative contained directory whose `.blend` files form the deterministic module index. |
 | Reachable module graph | The entry module plus only the modules reached through its named imports for the selected build. |
-| M1 | The first independently useful vertical milestone: a playable, unoptimized PAL/KERNAL/6581 sprite loop through the complete real pipeline. |
+| M1 | The first independently useful vertical milestone: a bounded, original-art, unoptimized PAL/KERNAL/6581 Invaders-style microgame through the complete real pipeline. |
 | Expert parity | The local floor that generated code is no worse than competent hand-written 6502 assembly, with whole-program compiler advantages expected to beat the realistic expert result. |
 | VICE-verified / hardware-unverified | Evidence that passed on the pinned emulator but has not yet received the targeted physical-hardware checks required for silicon-sensitive behavior. |
 | Build evidence | Deterministic assembly, symbols, maps, placement, SFA, resources, costs, diagnostics, hashes, and debug metadata tied to one coherent input and profile identity. |
@@ -562,7 +571,7 @@ gain no v3 compatibility promise.
 |---|---|---|
 | RD-01 — Specification 4.0 and Expert Authority Freeze | Apply every accepted language decision in one controlled specification transition, pass all Language Guard rules, version and requalify the expert skill once, then freeze both identities. | Ends with complete, internally consistent language and expert authorities. It contains no compiler implementation. |
 | RD-02 — Clean V4 Foundation and Deterministic Project Model | Create the sibling v4 worktree, record the exact v3 salvage inventory, remove rejected topology, establish the TypeScript 7/no-ESLint toolchain, smallest real package graph, one `blend65.json` project model, coherent snapshots, and shared high-level compiler-service/CLI foundations. | Ends with a minimal green v4 foundation that can load and validate a deterministic project without recreating readiness infrastructure. |
-| RD-03 — Playable M1 Complete Pipeline | Deliver one real PAL/KERNAL/6581 sprite game loop from source, CLI, and minimum editor support through parsing, analysis, semantic representation, SFA, target lowering, ACME, PRG, and VICE using `optimization: none`. Import a qualified SpritePad asset, read joystick/fire state, update visible state, and restore/return to BASIC. | Ends with one useful, qualified, fully connected product slice plus independent behavior and assembly/cost evidence. No stage is a placeholder. |
+| RD-03 — Playable M1 Complete Pipeline | Deliver one bounded original-art PAL/KERNAL/6581 Invaders-style game from source, CLI, and minimum editor support through parsing, analysis, semantic representation, SFA, target lowering, ACME, PRG, and VICE using `optimization: none`. Import qualified SpritePad assets, update one player, six invaders, and one projectile/explosion slot from joystick/fire input, resolve simple collision and win/loss, then restore/return to BASIC. | Ends with one useful, qualified, fully connected product slice plus independent behavior and assembly/cost evidence. No stage is a placeholder. |
 | RD-04 — Complete Language and Correct Unoptimized Compiler | Implement all Specification 4.0 language semantics and diagnostics across the real pipeline, including calls, aggregates, arrays, function values, compile-time functions, intrinsics, safety options, ABI/effects, SFA closure, legalization, and correct `optimization: none` output. | Ends with the complete language compiling correctly for the first C64 profile before optional optimization is added. |
 | RD-05 — C64 Platform Profiles and Game Systems | Complete startup, banking, interrupts, timing, named hardware access, platform APIs, and reusable game facilities for PAL/NTSC, KERNAL/takeover, and 6581/8580. Cover sprites, multiplexing, scrolling, double buffering, input, SID music/effects, collision, fixed pools, and state dispatch through real slices. | Ends with all eight approved resident-PRG profile identities and their relevant C64 game-system behavior qualified. |
 | RD-06 — Native Assets, Scene Composition, and Resident Layout | Implement and qualify current SpritePad, CharPad, PSID, Koala, and raw handlers; deterministic compile-time asset/scene composition; Integrator-style refinement; exact placement, banking, alignment, deduplication, and one-copy resident layout. | Ends with resident game assets transformed, placed, consumed, and reported as an expert C64 developer would expect. |
@@ -636,5 +645,5 @@ integration.
 
 ## Resume point
 
-`RD-01` is approved and committed. `RD-02` is approved with the Turbo-enabled monorepo boundary.
-Author RD-03 around the playable M1 vertical slice; any new material choice reopens the gate.
+`RD-01` and `RD-02` are approved and committed. `RD-03` is drafted around the playable M1 vertical
+slice and awaits user review; any new material choice reopens the gate.

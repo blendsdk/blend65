@@ -1,0 +1,636 @@
+# RD-03: Playable M1 Complete Pipeline
+
+> **Document**: RD-03-playable-m1-complete-pipeline.md
+> **Status**: Draft
+> **Created**: 2026-09-10
+> **Project**: Blend65 v4
+> **Depends On**: RD-01, RD-02
+> **CodeOps Artifact Schema**: 1
+
+---
+
+## Feature Overview
+
+M1 is the first useful Blend65 v4 product slice: a bounded, original-art Invaders-style microgame
+that compiles with `optimization: none`, runs on the exact `c64-pal-prg-kernal-6581` profile, uses
+all eight hardware sprites without multiplexing, responds to joystick port 2, reaches a visible win
+or loss, and returns normally to BASIC. It starts from the real `blend65.json` project model and
+crosses every required boundary: shared frontend, whole-program semantics, Static Frame Allocation
+(SFA), target-neutral lowering, C64/6510 lowering, instruction selection, resource binding, layout,
+ACME 0.97, PRG packaging, and VICE 3.10 execution.
+
+This is not a compiler skeleton. Every stage implements the complete contract required by the M1
+source and focused boundary cases. No stage may forward unresolved or untyped material, emit a
+placeholder operation, claim a future target, or compensate for missing analysis with unusual
+source. M1 deliberately remains a narrow language and platform slice; RD-04 completes
+Specification 4, later RDs add the broader game systems, assets, optimization, and production
+tooling.
+
+> **Decisions:** AR-002, AR-004 through AR-014, AR-020 through AR-030, AR-032 through AR-037.
+> **Primary M1 decisions:** AR-027 and AR-037.
+
+---
+
+## Functional Requirements
+
+### Must Have
+
+#### One useful public journey — complexity XL
+
+- [ ] **R3.1 — Ship one real M1 project.** Provide a contained `blend65.json` project whose entry
+  graph builds one playable SpritePad-backed Invaders-style microgame for
+  `c64-pal-prg-kernal-6581` with `optimization: none`, `boundsCheck: false`, and
+  `divisionZeroCheck: false`. The project is the same source used for CLI, editor, assembly,
+  artifact, and VICE qualification. Its name and art are original; it imports no game ROM, copied
+  sprite sheet, or other third-party game asset. (AR-022, AR-023, AR-027, AR-037)
+- [ ] **R3.2 — Define the observable game exactly.** Use sprite 0 for one player, sprites 1 through
+  6 for six invaders, and sprite 7 for either the one active player projectile or its two-frame
+  explosion. The player moves left/right from joystick port 2; a rising fire edge creates a
+  projectile only when that slot is idle. A fixed enemy-state array, an ordinary `for` loop, and
+  source-level rectangular collision update the six invaders. Destroying all six enters the win
+  state; an invader reaching the player line enters the loss state. After either terminal state is
+  visible, a released-then-pressed fire action restores compiler-owned machine state and returns
+  through the profile's BASIC-return contract. The exact constants and update order are fixed by
+  the behavior table below. (AR-013, AR-027, AR-037)
+- [ ] **R3.3 — Provide truthful CLI commands.** `blendc check` performs project loading, reachable
+  module/frontend analysis, and every selected-profile check provable before layout. `blendc build`
+  performs a fresh complete pipeline and atomically publishes the M1 artifact set. `blendc run`
+  performs its own successful fresh build, launches that exact PRG in configured VICE, and never
+  runs a stale artifact after any failure. Exit statuses distinguish source/compiler, assembler,
+  packaging, tool-discovery, emulator-start, and emulator-runtime failures. (AR-009, AR-022,
+  AR-032)
+- [ ] **R3.4 — Add only the minimum real editor slice.** A small language server reuses the exact
+  project/frontend service to publish lexical, syntax, module, and semantic diagnostics for `.blend`
+  documents. A thin VS Code extension registers the language, starts that server over stdio, and
+  shows diagnostics. This real bundle may introduce Vite. Build/run commands, navigation, rename,
+  formatting, debug integration, and the complete production editor surface remain RD-09 work.
+  (AR-021, AR-027, AR-036)
+
+#### Complete frontend for the admitted slice — complexity XL
+
+- [ ] **R3.5 — Implement the real lexer contract.** Tokenize the complete lexical forms exercised
+  by M1 and its focused cases from Specification 4, retaining exact UTF-8 byte spans, literal
+  spelling/value, comments, keywords, operators, maximal-munch behavior, and recoverable lexical
+  diagnostics. The lexer has no C64, address, SpritePad, ACME, or machine-cost knowledge. (AR-014,
+  AR-027)
+- [ ] **R3.6 — Implement the real parser contract.** Parse the admitted declarations, modules,
+  imports, types, statements, fixed arrays, structs, calls, postfix forms, and expressions with one
+  precedence-owning Pratt expression parser. Parse the familiar three-clause
+  `for (initializer; condition; update)` through the ordinary expression parser; do not restore the
+  v3 range loop or create a special loop-expression grammar. Syntax recovery must retain useful
+  independent diagnostics without making recovered nodes valid semantic input. (AR-014, AR-027)
+- [ ] **R3.7 — Build the reachable module graph from language headers.** Use RD-02's deterministic
+  source snapshot to parse module headers, merge legal same-module contributions, resolve qualified
+  imports, detect collisions/missing exports and initializer cycles, locate exactly one selected
+  entry `main`, and analyze only its reachable graph plus profile-provided modules. Filenames do not
+  define modules and circular declaration-only imports remain legal. (AR-028, AR-030)
+- [ ] **R3.8 — Implement the coherent semantic slice.** Correctly resolve and type the M1 forms:
+  module/import/export; module and local `const`/`let`; `byte`, `sbyte`, `word`, `sword`, `boolean`,
+  and `void`; conversions; unary/binary/assignment expressions; `if`, `while`, standard `for`,
+  `break`, `continue`, and `return`; ordinary functions and nested calls; the fixed arrays and
+  structs used by M1; variable-address `PEEK`/`POKE`; literal `embed()`; and the exact selected C64
+  profile APIs used by the program. Implemented behavior comes only from frozen Specification 4,
+  not from v3 behavior or tests. The game must express its fixed six-element enemy state and
+  collision functions directly; a compiler limitation may not force hand-unrolled enemy logic or
+  raw VIC writes. (AR-003, AR-006, AR-014, AR-027, AR-037)
+- [ ] **R3.9 — Preserve modern evaluation behavior.** Enforce left-to-right evaluation, exact
+  intermediate widths and wrapping, right-associative value-producing assignment, single
+  evaluation of places and operands, short-circuit control, fixed-array ordinal promotion, and
+  correct nested-call staging. `POKE(variableAddress, value)` and nested calls are mandatory
+  positive cases; requiring literals or source-written temporaries is a compiler defect. (AR-002,
+  AR-006, AR-015 through AR-018)
+- [ ] **R3.10 — Keep diagnostics authoritative and terminal.** Use Specification 4 codes, severities,
+  messages, UTF-8 primary/related spans, notes/help, stable ordering, and cascade suppression for
+  every admitted invalid class. Poison may support independent frontend recovery but cannot enter
+  SFA, lowering, layout, ACME, or artifact publication. Any error suppresses all runnable-looking
+  output. (AR-003, AR-014, AR-025)
+
+#### Small accountable representations and SFA — complexity XL
+
+- [ ] **R3.11 — Add only representations with an M1 consumer.** Use the smallest typed semantic and
+  machine representations that preserve every M1 distinction needed downstream: widths,
+  signedness, wrap, place/value identity, evaluation order, CFG edges, volatility, memory access
+  width/count/order, calls/effects, alias/escape, symbolic storage, placement constraints, source
+  provenance, target capability, registers, flags, clobbers, and costs. Do not create a generic IR
+  framework, textual pseudo-assembly, pass registry, or one package/class per responsibility.
+  (AR-012, AR-025, AR-027)
+- [ ] **R3.12 — Lower control flow explicitly.** Represent branches, short circuit, early return,
+  and the standard `for` initializer/condition/body/update/end edges explicitly. `continue` reaches
+  update; `break` and `return` do not. The generic correct CFG is required even if one M1 loop also
+  admits a smaller proved machine form. (AR-014, AR-027)
+- [ ] **R3.13 — Close the real whole-program graph.** Determine startup, module initializers,
+  `main`, direct and finite resolved call targets, platform operations, and compiler-selected helper
+  edges. Reject recursive strongly connected components. Do not infer safety by omitting an unknown
+  call, callback, or target edge. M1 has no IRQ callback and must not create an interrupt dispatcher.
+  (AR-018, AR-027)
+- [ ] **R3.14 — Complete SFA for all execution storage.** Allocate every parameter, return, local,
+  argument-staging value, expression temporary, spill, indirect-address pointer pair, and helper
+  scratch required by the admitted program. Nested calls such as `f(1, f(2, 3))` preserve the outer
+  argument without false recursion. Globals, fixed enemy state, and sprite assets remain outside
+  SFA. (AR-002, AR-015, AR-027, AR-037)
+- [ ] **R3.15 — Enforce final storage closure.** Target legalization and resource binding return
+  every new temporary, spill, pointer, or helper byte to SFA. Recompute interference and placement
+  through a bounded monotonic process, then freeze a closure certificate before final layout and
+  emission. No later stage or ACME macro may invent function-lifetime RAM or zero page. (AR-002,
+  AR-012, AR-027)
+- [ ] **R3.16 — Add no hidden runtime.** M1 links no heap, software stack, dispatcher, scheduler,
+  generic safety handler, asset copier, or library runtime. Required startup/return code and any
+  selected direct helper are explicit profile/compiler output with complete ownership and cost.
+  (AR-002, AR-006, AR-013, AR-023)
+
+#### C64/6510 backend, platform behavior, and placement — complexity XL
+
+- [ ] **R3.17 — Compose target facts without leaking them upstream.** Bind the normative
+  `c64-pal-prg-kernal-6581` profile as independently owned CPU, C64 machine, ACME serializer, and
+  PRG packager facts. Shared frontend and semantic representations contain no `$Dxxx`, VIC, CIA,
+  SID, KERNAL-address, ACME-syntax, PRG-header, PAL-cycle, or 6510-opcode assumption. (AR-012,
+  AR-013, AR-024, AR-027)
+- [ ] **R3.18 — Lower named platform intent at zero abstraction cost.** The Specification 4 C64
+  profile APIs used by M1 own frame-boundary observation, joystick-port-2 sampling, sprite
+  enable/position/pointer/color for all eight slots, border result indication, and normal exit. They
+  lower to the same direct volatile operations and already-required control flow an expert would
+  write—without generic dispatch, hidden calls, duplicate register reads/writes, runtime address
+  discovery, or data copying. Ordinary game source does not need VIC/CIA magic numbers. Collision
+  and game-state rules remain ordinary target-neutral source rather than hidden platform behavior.
+  (AR-007, AR-013, AR-027, AR-037)
+- [ ] **R3.19 — Keep raw memory access correct and separate.** Focused full-pipeline cases prove
+  variable and expression addresses for byte and word `PEEK`/`POKE`, little-endian word access,
+  exactly-once address/value evaluation, volatile access identity/order, modulo-65536 address
+  behavior, and any SFA-owned indirect pointer pair. The M1 game uses named C64 APIs where they
+  express the intended device operation; raw memory intrinsics remain available for deliberate
+  low-level work. (AR-006, AR-027)
+- [ ] **R3.20 — Select legal documented NMOS output.** Target legalization, instruction selection,
+  register/flag binding, mandatory CFG layout, and branch repair produce structured legal
+  `nmos6510` machine operations restricted to the documented NMOS instruction set. The C64 machine
+  model owns the 6510 `$0000/$0001` port separately. Do not use undocumented or CMOS-only opcodes,
+  ambient carry or decimal assumptions, opaque ACME macros, or optional optimizer transforms.
+  `optimization: none` still includes correct constant evaluation, dead unreachable exclusion,
+  legal instruction selection, SFA/resource binding, layout, and branch repair. (AR-002, AR-023,
+  AR-027)
+- [ ] **R3.21 — Qualify the current SpritePad input before use.** Before RD-03 implementation
+  planning or asset-decoder work, obtain the user-owned native project and relevant exports produced
+  by the official SpritePad C64 Pro 3.80 application. Record producer/version, execution environment,
+  settings, provenance, and SHA-256; retain a distinguishable nonblank template and the final
+  producer-saved art project. The consumed SPD v5 schema review validates signature, version,
+  counts, complete 64-byte records, used attributes, tails, exact EOF, record order, and requested
+  selector. A handmade file, v3 parser, extension, passing legacy test, or comparative parser alone
+  cannot establish qualification. SpritePad is never invoked by the compiler, Linux build, or CI.
+  Missing evidence blocks the format-dependent boundary rather than requirements authoring or a
+  guessed implementation. (AR-014, AR-027, AR-037)
+- [ ] **R3.22 — Emit only the selected asset representation.** `embed(path, "sprites")` produces
+  the exact typed native 64-byte record array required by Specification 4. The final M1 game project
+  contains exactly eight records: player, two two-frame invader designs, projectile, and two-frame
+  explosion. The `"sprites"` selector emits all eight in source order; it is not a record-subset
+  query. Unrequested attributes, tiles, animation metadata, overlays, derived selector outputs, or
+  duplicate raw payloads are not emitted. A broader format-probe fixture may remain test-only but
+  is never linked into M1. The compile-time handler allocates no SFA storage and adds no runtime
+  parsing or conversion code. (AR-007, AR-020, AR-027, AR-037)
+- [ ] **R3.23 — Place sprite art once where the VIC reads it.** Platform layout assigns the selected
+  records one non-overlapping, 64-byte-aligned interval wholly inside the active 16-KiB VIC bank,
+  outside character-ROM visibility conflicts and the active 1-KiB screen matrix. Derive every
+  sprite pointer from final bank-relative placement; multiple hardware sprites may deliberately
+  share one immutable record. The PRG loads the bytes directly at their final address; no startup
+  or frame-time copy, duplicate representation, or runtime division is allowed. (AR-007, AR-020,
+  AR-027, AR-037)
+- [ ] **R3.24 — Implement exact startup and BASIC return.** Emit the profile's 12-byte BASIC
+  auto-start line at `$0801`–`$080C`, enter generated startup at `$080D`, establish required stack,
+  decimal, banking, I/O, VIC/CIA, and interrupt assumptions, execute reachable module initializers
+  once, and enter `main` through the specified fallthrough boundary. Save and restore every
+  compiler-owned machine/register/device field changed by M1 and return safely to BASIC. Do not
+  disable or replace the cooperative KERNAL IRQ merely to simplify the program. (AR-013, AR-027)
+
+#### Terminal emission, artifacts, and execution — complexity XL
+
+- [ ] **R3.25 — Keep ACME emission terminal.** Serialize the final structured machine program to
+  deterministic ACME 0.97 source with explicit CPU, origin, segments, align fill, stable labels,
+  parenthesized expressions, and deliberate addressing widths. The emitter performs no semantic
+  optimization, storage allocation, target policy, asset parsing, or string-based branch repair.
+  (AR-012, AR-027)
+- [ ] **R3.26 — Invoke and verify ACME exactly.** Discover ACME outside project configuration,
+  require version 0.97, and invoke it with an argument array using `--cpu 6502` so ACME rejects
+  undocumented forms while the compiler separately models the 6510 port. Supply explicit
+  format/output/report/symbol options and `--strict-segments`, and treat any diagnostic/error as
+  build failure. Verify process status, report, symbol list, actual bytes, segment ranges,
+  addressing widths, asset bytes, and PRG header/body agreement before publication. (AR-022,
+  AR-027, AR-032)
+- [ ] **R3.27 — Publish one coherent evidence set atomically.** A successful build publishes the
+  PRG plus deterministic assembly, labels, memory/segment map, asset map, SFA/closure report,
+  zero-page and hardware-stack report, code/data/padding and path-cycle report, source/debug map,
+  selected-profile/tool identities, options/overrides, and input/output SHA-256 values. All files
+  bind one snapshot and build identity. A failed build publishes none of the new set and leaves no
+  stale file looking current. (AR-008, AR-010, AR-022, AR-032)
+- [ ] **R3.28 — Run the exact fresh PRG in VICE 3.10.** `blendc run` verifies `x64sc` version 3.10,
+  selects the recorded PAL C64 model/profile settings, launches only the newly built PRG, reports
+  the bounded status `VICE-verified / hardware-unverified`, and owns reliable cancellation and
+  child cleanup. Interactive run leaves control with the developer; automated qualification stops
+  VICE externally after observing the return contract. (AR-009, AR-013, AR-027)
+- [ ] **R3.29 — Exercise real emulated joystick input deterministically.** The qualification driver
+  uses one version-pinned VICE-supported control-port input mechanism to replay a checked-in,
+  requirements-derived PAL-frame trace that moves the player, launches projectiles, destroys all
+  six invaders, displays the win state, releases fire, presses it again, and returns to BASIC. It
+  must exercise the emulated joystick-port-2/CIA path—not patch game variables, alive flags, the
+  selected branch, or expected VIC registers. A separate pure behavior case reaches loss by letting
+  the formation reach the player line; one final VICE boundary run is sufficient unless platform
+  behavior changes. The implementation plan must first prove and record the smallest reliable VICE
+  3.10 injection mechanism; skipped or unavailable input evidence is `Unknown`, never a pass.
+  (AR-027, AR-037)
+
+#### Independent proof without a readiness product — complexity XL
+
+- [ ] **R3.30 — Derive specification tests before implementation.** Re-author immutable
+  `*.spec.test.ts` cases from RD-01/RD-03 and pinned CPU/C64/ACME/VICE authorities for each admitted
+  stage and public command. Keep implementation-focused `*.impl.test.ts` cases separate. Do not
+  copy v3 expectations merely because they pass. (AR-004, AR-025, AR-027)
+- [ ] **R3.31 — Prove each transition, not just the final demo.** Directed cases observe tokens,
+  syntax/recovery, module resolution, types/effects, semantic operations/CFG, call roots, SFA homes,
+  storage closure, target legalization, machine operations, layout, ACME text, assembled bytes,
+  PRG structure, and VICE behavior. Each transition states what it consumes, preserves, produces,
+  rejects, and must never own. (AR-003, AR-012, AR-027)
+- [ ] **R3.32 — Use an independent behavior oracle.** Define expected source results and machine
+  effects independently of the compiler: joystick samples, update order, all entity states and
+  per-frame coordinates, fire-edge/projectile/explosion transitions, collision results, win/loss,
+  volatile access count/order, sprite placement/visibility, startup, restored state, and return.
+  Comparing two compiler paths or reading generated assembly is supporting evidence only. (AR-002,
+  AR-027, AR-037)
+- [ ] **R3.33 — Use an independent expert assembly and cost oracle.** Before accepting codegen,
+  write or obtain an equivalent hand-authored ACME M1 twin under the identical profile, startup,
+  input, asset, frame, and return obligations. Compare final assembled code/data/padding, ZP, SFA,
+  stack, memory traffic, and relevant path cycles. Generated local routines may not exceed the
+  expert cost frontier. Record a whole-program win; if the best honest result only meets the expert,
+  create the authorized GitHub parity-debt issue with the exact delta and path to a win. A result
+  worse than the equivalent expert is an M1 defect. The twin implements the same fixed entity,
+  collision, and terminal-state behavior rather than a smaller sprite demonstration. (AR-002,
+  AR-027, AR-037)
+- [ ] **R3.34 — Keep verification impact-based.** During implementation run the affected stage or
+  package cases. At M1 closeout run the complete new v4 foundation/frontend/compiler/CLI/editor
+  boundary suite, the one M1 ACME build, and the one M1 VICE qualification path. Do not import v3's
+  readiness suites, game matrix, thousands of unrelated tests, repeated full-corpus batches, or a
+  replacement qualification framework. VICE remains a local sequential tier and is absent from
+  shared CI; ACME and pure artifact/oracle checks run in CI. (AR-025, AR-026, AR-027)
+- [ ] **R3.35 — Pass the early C64U-readiness review.** Confirm from the implemented seams that
+  shared semantics/IR contain no C64 address or device assumptions; CPU, machine, serializer, and
+  packager facts are independent; storage identity can later represent banked or transfer-only
+  memory; DMA effects and independent clocks have owners; and no speculative C64U code/package was
+  created. A failed item corrects the seam now; it does not add a plugin framework. (AR-024,
+  AR-027)
+
+### Should Have
+
+- [ ] **R3.36 — Keep the M1 source readable — complexity S.** The example should read as a small
+  modern game program: named entity state, ordinary loops/functions, visible collision rules, and
+  direct win/loss flow. Hardware-specific intent uses named C64 APIs, comments explain game intent,
+  and compiler mechanics such as SFA homes, VIC block arithmetic, or ACME syntax do not appear in
+  ordinary source. (AR-002, AR-007, AR-037)
+- [ ] **R3.37 — Record observational host measurements — complexity S.** At M1 closeout record
+  separately attributable check, frontend, SFA/lowering, ACME, complete build/run startup, LSP
+  diagnostic, and peak-host-memory observations for the real M1 project. No numeric threshold may
+  fail a test, milestone, or release. (AR-026)
+
+### Won't Have (Out of Scope)
+
+- Complete Specification 4 language coverage, aggregate returns, function values, compile-time
+  functions, all placement forms, all safety paths, every diagnostic, or every low-level intrinsic;
+  RD-04 owns complete correct `optimization: none` coverage.
+- Optional target-neutral or machine optimization for `balanced`, `speed`, or `size`; an optimizer
+  catalog, pass DSL, plugin system, or general peephole framework. RD-08 owns optional optimization.
+- IRQ callbacks, raster scheduling, multiplexing, scrolling, double buffering, audio/SFX,
+  generalized collision facilities, loaders, overlays, D64 delivery, or aggressive VIC techniques.
+  M1 contains only its exact ordinary-source projectile-versus-invader rectangles; RD-05 through
+  RD-07 own reusable vertical capabilities.
+- A faithful Space Invaders recreation, copied art, scores, lives, barriers, enemy projectiles,
+  attract mode, multiple levels, or a reusable game engine. These would obscure the compiler proof
+  and pull later game-system work into M1.
+- CharPad, PSID, Koala, general SpritePad selector coverage, scene composition, derived assets, or
+  runtime-loadable assets. M1 qualifies only the exact resident SpritePad surface it consumes.
+- Production LSP/VS Code navigation, completion, hover, signature help, rename, formatting,
+  build/run UI, generated-artifact browsing, source debugger, or owned debug adapter. RD-09 owns the
+  production tooling surface.
+- NTSC, takeover, 8580, D64, C64U, X16, Atari, another CPU, another emitter, or another packager
+  implementation. Their constraints may test the seam but cannot appear as support.
+- A readiness service, dashboard, score, broad game corpus, feasibility matrix dependency, remote
+  build/test service, persistent compiler daemon, or mandatory incremental compilation.
+
+---
+
+## Technical Requirements
+
+### M1 end-to-end contract — complexity XL
+
+```text
+blend65.json + coherent source/asset snapshot
+  -> lexer -> parser -> reachable module graph -> semantic analysis
+  -> typed semantic operations + explicit CFG
+  -> whole-program roots/effects/lifetimes -> SFA plan
+  -> selected C64/6510 legalization -> machine operations/resource binding
+  -> final SFA closure -> platform layout -> mandatory CFG layout/branch repair
+  -> deterministic ACME 0.97 -> verified bytes/report/symbols
+  -> verified PRG + coherent evidence publication
+  -> VICE 3.10 exact-profile execution
+```
+
+Each arrow has a typed success/failure result and a direct proof. Adjacent responsibilities may
+share a package or module when their contracts remain independently visible. A later implementation
+plan decides the smallest consumer-driven package graph; this diagram does not authorize one
+package, class, or pass per arrow.
+
+### M1 language coverage matrix — complexity XL
+
+| Surface | Positive boundary required in RD-03 | Explicitly deferred boundary |
+|---|---|---|
+| Modules | merged contributions, qualified imports/exports, selected entry and deterministic initialization | broad production-scale namespace/tooling coverage |
+| Values | required scalar types/conversions, module/local `const`/`let`, assignment values | complete aggregate value/return surface |
+| Expressions | precedence, left-to-right effects, calls, indexing, fields, dynamic addresses | every Specification 4 operator/type combination |
+| Control | `if`, `while`, three-clause `for`, `break`, `continue`, `return`, short circuit | complete switch/fallthrough matrix |
+| Functions | direct ordinary calls, nested calls, scalar return, recursion rejection | function values and interrupt functions |
+| Aggregates | fixed arrays and structs used by M1, correct ordinal promotion | nested/unsized parameters and full copy/return matrix |
+| Intrinsics | variable-address `PEEK`/`POKE`, exact `embed()` use | remaining intrinsic families and optional safety paths |
+| Platform | frame boundary, joystick 2, all eight sprites, normal exit | IRQ/audio/loading and other C64 systems |
+
+Every positive row reaches actual 6510 bytes through at least one focused fixture. A deferred row
+has no fake node, empty handler, package, or success result.
+
+### M1 input and behavior oracle — complexity L
+
+The game uses only fixed state and compile-time constants:
+
+| State | Exact M1 value |
+|---|---|
+| Runtime sprite ownership | 0 player; 1–6 corresponding invaders; 7 projectile or explosion |
+| Display | high-resolution, unexpanded sprites; black background/border during play; prior owned values saved for exit |
+| Player | `(160, 220)`, color `3`, horizontal range `48..296`, one pixel per frame |
+| Invaders | alive at `(72,72)`, `(112,72)`, `(152,72)`, `(192,72)`, `(232,72)`, `(272,72)`; alternating art A/B; color `5`; initial direction right |
+| Formation | one horizontal pixel every eighth update; reverse and descend eight pixels instead when the next live outer edge would leave `48..320`; toggle both designs' animation frame on each move/descent |
+| Projectile | one maximum, color `1`; spawn at `(player.x, 199)` on a fire rising edge while idle; move four pixels upward per update; hide when its logical top passes `50` |
+| Projectile hitbox | two pixels wide at `x + 11..x + 12`, eight pixels high at `y..y + 7` |
+| Invader hitbox | the live sprite rectangle `x..x + 23`, `y..y + 20`; the lowest array index wins an otherwise simultaneous hit |
+| Explosion | reuses sprite 7 at the hit invader position in color `8` for exactly two updates, one selected frame per update, then becomes idle |
+| Win | all six `alive` fields are false; freeze player/formation, set border color `5`, and finish any just-started two-frame explosion |
+| Loss | any live invader's bottom reaches player `y = 220`; freeze play and set border color `2` |
+| Exit | after sprite 7 is idle and a terminal frame has been published, observe fire released and then a new press; restore owned state and return to BASIC |
+
+Each PAL update performs these steps in order: wait for the qualified frame boundary; sample
+joystick port 2 exactly once; process terminal explosion/exit state or, while playing, clamp player
+left/right motion; advance an existing projectile or explosion; advance the formation when its
+eighth-frame counter is due; resolve at most one projectile hit in ascending enemy index order;
+spawn a new projectile from a rising fire edge only if sprite 7 is now idle; determine win/loss;
+select animation records; and publish each required sprite register plus the result border once.
+Opposing left/right inputs produce no motion. Up and down are ignored. Holding fire never repeats.
+
+Before compiler implementation, the specification tier freezes one complete predetermined input
+trace and its per-frame entity/VIC expectations from this table using an independent reference
+model. The VICE driver replays those inputs without observing or adapting to compiler state. Its
+boundary journey destroys all six invaders, publishes the win state, releases and presses fire,
+then observes restoration and BASIC return. A smaller independent pure case proves the loss path.
+The driver also observes active screen pointer bytes, resident sprite bytes, and deterministic
+rendered-frame signatures. It never overwrites expected results to make the test pass.
+
+### SFA closure record — complexity L
+
+The M1 report and test fixture enumerate:
+
+| Class | Required evidence |
+|---|---|
+| Parameters/returns | type, width, caller staging, incoming/return home or register, live range |
+| Locals/temporaries | source owner, definition/use, lexical and CFG lifetime, alias/address state |
+| Calls | direct edge, left-to-right argument order, values live across each call, stack return bytes |
+| Pointer pairs | exact dynamic-memory operation, two-byte ZP/RAM placement and interrupt contract |
+| Spills/helpers | creation reason, clobbers, scratch, nested-call safety and returned SFA demand |
+| Closure | deterministic final homes, interference, resource totals and no-new-storage assertion |
+
+Because M1 installs no application IRQ/NMI handler, its own SFA execution domain is mainline. The
+profile still accounts for the cooperative KERNAL interrupt path in machine-state, hardware-stack,
+CIA, and timing evidence; absence of an M1 handler does not mean interrupts are absent.
+
+### Asset and layout record — complexity L
+
+The layout proof records the SpritePad source identity, each selected record and sharing relation,
+the emitted interval, alignment and padding, VIC bank and bank-relative blocks, active screen-matrix
+interval and pointer slots, CPU/VIC visibility, PRG segment ownership, and every simultaneously
+resident code/data/global/SFA range. Useful payload bytes and reserved address-space bytes remain
+separate. Each selected record occurs once in the PRG body and once in its final loaded RAM location
+because those are the same bytes loaded to their final address—not two runtime copies.
+
+### Artifact publication — complexity L
+
+The primary artifact name is `<name>.prg`. Supporting files use deterministic documented names and
+machine-readable schemas. Publication occurs through a temporary sibling set followed by one
+commit/rename boundary only after compiler, ACME, byte, layout, and packaging validation succeeds.
+The build identity covers Specification 4, expert skill `2.0.0`, compiler commit, project snapshot,
+target, options, overrides, SpritePad input, ACME identity, and every output hash.
+
+### Verification topology — complexity XL
+
+| Tier | Runs when | Evidence |
+|---|---|---|
+| Directed frontend/stage | While changing its owner | Small positive, boundary, negative, poison, and transition cases |
+| Package/feature | When an M1 package or cross-package seam changes | Complete affected M1 specification and implementation cases |
+| ACME/artifact | When machine, emitter, layout, or packaging changes; at M1 closeout | One exact M1 assembly/report/symbol/byte/PRG proof plus small rejection probes |
+| VICE | When runtime/platform/run behavior changes; once at M1 closeout | One sequential exact-profile program/input/display/return proof |
+| Editor boundary | When frontend/LSP/extension changes; at M1 closeout | Shared diagnostics and forbidden frontend-to-backend dependency proof |
+| Expert comparison | When generated M1 machine output changes; at M1 closeout | Equivalent hand-authored twin and complete resource ledger |
+| Hardware | Not required for M1's documented routine behavior | Later targeted QA for timing/silicon-sensitive production claims |
+
+A skip is visible as `Unknown`. Only the relevant tier reruns during correction; the complete M1
+set runs once at the accepted milestone boundary.
+
+---
+
+## Integration Points
+
+### With RD-01 (Specification 4 and Expert Authority)
+
+RD-03 consumes the exact frozen Specification 4 file inventory/hashes, expert `2.0.0` release,
+diagnostic registry, C64 profile, SpritePad contract, and knowledge-source identities. A mismatch
+stops implementation or reopens the authority gate; compiler convenience cannot reinterpret them.
+
+### With RD-02 (Foundation and Project Model)
+
+RD-03 consumes the sibling worktree, salvage inventory, TypeScript 7/Yarn/Turbo/Vitest foundation,
+typed project snapshot, diagnostic foundation, public compiler/CLI boundaries, and direct import
+boundary test. Any v3 component used here must already have a qualifying RD-02 disposition and new
+v4 proof.
+
+### With RD-04 (Complete Correct Unoptimized Compiler)
+
+RD-04 extends the same real representations and pipeline to all Specification 4 behavior. It does
+not replace an M1 shortcut architecture, because M1 may contain no semantic or target shortcut.
+Every deferred M1 language surface has an explicit RD-04 owner.
+
+### With RD-08 (Optimization and Expert Output)
+
+M1's `none` mode and independent behavior/expert twin become the correctness and cost baseline.
+RD-08 may add optional transformations but cannot make `none` semantically incomplete or repair
+facts that M1 erased too early.
+
+### With RD-09 (Developer Tooling)
+
+RD-09 extends the real shared frontend, LSP transport, VS Code client, and debug map created here.
+The language server remains unable to import codegen, packaging, or emulator control.
+
+### With blend65-c64u/RD-01
+
+The early readiness review records concrete extension pressure and any corrected seam. It creates
+no C64U target identity or support claim; the owned successor activates only after RD-10 handoff.
+
+---
+
+## Non-Functional Requirements
+
+### Correctness and determinism — complexity XL
+
+- Identical frozen inputs produce byte-identical diagnostics, assembly, evidence, and PRG output
+  regardless of checkout path, working directory, filesystem enumeration, Turbo scheduling, locale,
+  or CPU concurrency.
+- Every stage failure is typed and attributed to its owner. Expected input/tool failures never
+  become internal crashes, stale artifacts, or later-stage guesses.
+- No compiler code path reads the game-feasibility matrix or v3 readiness status.
+
+### Generated target quality — complexity XL
+
+- Modern source remains ordinary and readable; platform APIs carry necessary hardware intent.
+- Local output meets or beats the equivalent expert routine under complete cost accounting.
+- Whole-program results pursue a measurable win. A meet-only result receives the authorized debt
+  issue; a worse result blocks M1.
+- Routine runtime evidence is `VICE-verified / hardware-unverified`; M1 claims no cycle-exact or
+  universal-silicon result.
+
+### Host responsiveness — complexity S
+
+- Measurements are observations, not pass/fail thresholds.
+- The implementation investigates measured dominant work before adding persistent caches,
+  incremental compilation, workers, a daemon, or a readiness system.
+
+### Maintainability — complexity L
+
+- Public APIs and non-trivial invariants are documented for junior maintainers.
+- Every module has one clear behavior owner and no speculative generalization.
+- Production files remain within project size guidance; generated tables/data are machine-produced
+  and separately identified.
+
+---
+
+## Security Considerations
+
+- Treat source, JSONC, SpritePad bytes, paths, ACME/VICE output, monitor frames, and subprocess
+  failures as untrusted input. Validate lengths, enums, identities, containment, protocol frames,
+  timeouts, and process output bounds.
+- Invoke ACME and VICE with argument arrays and canonical executable paths. Project data cannot
+  insert shell commands, options, includes, output paths, ACME source, or VICE monitor commands.
+- Bind VICE monitors to fresh loopback-only ports, authenticate ownership by exact child/session,
+  bound all waits and retained responses, cancel cleanly, and never connect to an unrelated service.
+- VS Code workspace analysis is allowed without trust, but this RD adds no editor-triggered process
+  execution. Later build/run commands require workspace trust.
+- Source and asset content remains local. No telemetry, upload, remote Turbo cache, credential, or
+  network service is introduced.
+
+---
+
+## Scope Decisions
+
+| Decision | Options considered | Chosen | Rationale | AR Ref |
+|---|---|---|---|---|
+| First milestone | Skeleton / complete language first / playable vertical slice | Playable vertical slice | Proves the real architecture before expanding breadth. | AR-027 |
+| M1 product | Single-sprite interaction / bounded Invaders-style microgame / faithful full recreation | Bounded original-art microgame | Exercises a coherent game slice while fitting eight sprites and excluding later engine systems. | AR-037 |
+| Optimization | Default balanced / optional subset / `none` | `none` | Separates correctness and expert selection from optional transforms. | AR-023, AR-027 |
+| Editor | None / diagnostics-only real slice / production tooling | Diagnostics-only real slice | Creates the shared frontend consumer without pulling RD-09 forward. | AR-021, AR-027 |
+| Asset | Raw bytes / current qualified SpritePad / broad asset set | Current qualified SpritePad supplied before RD-03 planning | Forces authentic asset identity and placement into the first real architecture without making a Windows application a build dependency. | AR-007, AR-027, AR-037 |
+| Device access | Game uses raw addresses / named zero-cost APIs / hidden engine | Named zero-cost APIs | Modern source with expert direct output. | AR-002, AR-007 |
+| VICE input | Patch program variables / real emulated joyport / manual-only | Real emulated joyport | Tests the actual platform API and CIA path. | AR-027 |
+| Runtime | General runtime / targeted helpers / no hidden runtime | No hidden runtime | Matches SFA and the constrained C64 contract. | AR-002 |
+| Proof | Final demo only / every transition plus final boundary | Every transition plus final boundary | Prevents one working fixture from hiding invalid stages. | AR-003, AR-027 |
+
+---
+
+## Acceptance Criteria
+
+1. [ ] **AC-01 — One authoritative M1 project:** One checked-in manifest/source/SpritePad project
+   with original art, the exact eight-sprite product scope, exact profile, and `none` options
+   supplies CLI, editor, build, twin, and runtime proof.
+2. [ ] **AC-02 — Public check:** `blendc check` reports stable authoritative frontend/profile
+   diagnostics, emits no compiler artifact, and reaches no target/backend process for frontend-only
+   success or failure.
+3. [ ] **AC-03 — Public build:** `blendc build` crosses every named pipeline stage and atomically
+   publishes one coherent verified artifact/evidence set only on success.
+4. [ ] **AC-04 — Public run:** `blendc run` rebuilds first, launches only its exact successful PRG,
+   distinguishes tool/runtime errors, and never launches a stale prior artifact.
+5. [ ] **AC-05 — Minimum editor:** Opening the M1 project publishes the same lexer/parser/module/
+   semantic diagnostics through the bundled VS Code client and language server; the server imports
+   no target, codegen, packager, or emulator code.
+6. [ ] **AC-06 — Lexer boundary:** Focused cases prove exact tokens/UTF-8 spans, maximal munch,
+   literals/comments, and recovery for every admitted M1 lexical form without target facts.
+7. [ ] **AC-07 — Parser boundary:** Focused cases prove precedence, postfix/call/index/field forms,
+   standard three-clause `for`, recovery, and rejection of the removed range loop.
+8. [ ] **AC-08 — Module boundary:** Multi-file fixtures prove merged modules, qualified imports,
+   reachable-only analysis, declaration-only circular imports, collisions, missing exports,
+   initializer cycles, and exact selected `main` independent of filenames.
+9. [ ] **AC-09 — Semantic boundary:** Each R3.8 surface has at least one positive and one decisive
+   invalid case with the exact Specification 4 type/effect/diagnostic result.
+10. [ ] **AC-10 — Modern-expression traps:** Full-pipeline cases prove nested calls,
+    `POKE(variableAddress, value)`, right-associative assignment values, exactly-once effectful
+    places, short circuit, and array index promotion without source workarounds.
+11. [ ] **AC-11 — Poison containment:** Injected independent source errors produce their root
+    diagnostics without cascades, SFA/lowering/ACME access, crash, or runnable-looking output.
+12. [ ] **AC-12 — Representation payload:** Transition assertions show every distinction in R3.11
+    present until its responsible consumer deliberately discharges it; no later stage guesses.
+13. [ ] **AC-13 — CFG behavior:** Branch/loop fixtures prove condition and clause order,
+    `continue`/`break`/`return` edges, short circuit, and generic correct fallback.
+14. [ ] **AC-14 — Whole-program roots:** Startup, initializers, `main`, nested calls, platform
+    operations, and selected helpers are present; dead source is absent and recursion is rejected.
+15. [ ] **AC-15 — Complete SFA:** The nested-call and dynamic-address fixtures enumerate and place
+    every activation-owned home with correct interference and no global/asset ownership leakage.
+16. [ ] **AC-16 — Final closure:** A seeded late pointer/spill/helper request returns to SFA and
+    changes the closure certificate; a seeded post-closure storage request fails before emission.
+17. [ ] **AC-17 — No runtime:** Link/symbol/map inspection finds no heap, software stack,
+    dispatcher, scheduler, safety handler, asset copier, or generic runtime object.
+18. [ ] **AC-18 — Target separation:** Structural and synthetic forbidden-edge tests prove shared
+    frontend/semantic code contains no C64/6510/ACME/PRG knowledge and future constraints add no
+    target packages.
+19. [ ] **AC-19 — Platform API parity:** Each M1 C64 API produces the same volatile operations,
+    count/order, state, and equal-or-better cost as its expert direct sequence with no hidden call.
+20. [ ] **AC-20 — Memory intrinsics:** Full-pipeline byte/word cases at constant, variable,
+    expression, page-edge, and `$FFFF` addresses prove exact access/evaluation/order and pointer
+    resource behavior.
+21. [ ] **AC-21 — Legal machine program:** Every emitted opcode/addressing mode is legal documented
+    NMOS 6502/6510 behavior; flags/carry/decimal state and branch ranges are accounted explicitly.
+22. [ ] **AC-22 — SpritePad qualification:** The native 3.80 template/final project, exports,
+    settings, hashes, schema evidence, and malformed/version/EOF cases prove the consumed SPD v5
+    surface. The official producer is absent from build/CI; missing evidence blocks rather than
+    skips qualification.
+23. [ ] **AC-23 — Requested-only asset:** Actual PRG bytes/map contain exactly one copy of each of
+    the final project's eight native sprite records, permit deliberate pointer sharing, and
+    contain no duplicate raw representation or unrequested derived/optional selector output.
+24. [ ] **AC-24 — VIC-correct placement:** Final addresses prove 64-byte alignment, one-bank
+    containment, screen/pointer compatibility, visibility, no overlap, derived pointer correctness,
+    and no runtime copy/division.
+25. [ ] **AC-25 — Startup and restoration:** Byte and VICE observations prove the `$0801` stub,
+    `$080D` entry, established state, initializer order, fallthrough to `main`, preserved cooperative
+    KERNAL IRQ, restored owned state, and normal return to BASIC.
+26. [ ] **AC-26 — ACME terminal boundary:** Source inspection and seeded failures prove the emitter
+    only serializes final decisions; strict ACME invocation, actual report/symbol/byte checks, and
+    output suppression behave exactly.
+27. [ ] **AC-27 — Coherent artifacts:** Every required evidence file has one build identity and
+    correct hash; an input change or seeded compiler/ACME/layout/package failure publishes no mixed
+    or stale set.
+28. [ ] **AC-28 — Deterministic VICE input:** The predetermined real-joyport trace produces the
+    exact table-derived player, six-invader, projectile/explosion, collision, win, rendered-sprite,
+    release/press, and return results without observing or patching program state.
+29. [ ] **AC-29 — VICE return:** The same run observes the final win frame, fire release and new
+    press, restoration, and exact BASIC-return boundary, then the driver stops VICE externally
+    without target debug-cart or injected exit code.
+30. [ ] **AC-30 — Independent behavior oracle:** Deliberately breaking movement direction, update
+    order, fire-edge behavior, entity indexing, collision, win/loss, pointer placement, volatile
+    order, restoration, or return causes the matching oracle to fail independently of assembly
+    shape.
+31. [ ] **AC-31 — Expert output:** The hand-authored equivalent twin and generated program use the
+    same obligations and complete resource ledger; no generated local result is worse, a
+    whole-program win is recorded, or each honest meet has its authorized actionable debt issue.
+32. [ ] **AC-32 — Determinism:** Byte-identical copies built from different absolute paths and
+    working directories produce identical normalized diagnostics, assembly, evidence, and PRG.
+33. [ ] **AC-33 — Focused verification:** The closeout records directed checks plus one relevant
+    boundary suite, one ACME M1 proof, and one sequential VICE M1 proof; no v3 readiness/game matrix
+    or repeated unrelated full suite ran.
+34. [ ] **AC-34 — C64U seam review:** Every R3.35 item has evidence and any failed shared seam is
+    corrected without creating C64U implementation or plugin scaffolding.
+35. [ ] **AC-35 — Deferral-expiry closeout:** The closeout answers whether M1 invalidated any
+    deferral reason in the v4 register, Specification 4 future considerations, expert skill records,
+    or expressiveness ledger. Every expired deferral has an owner before RD-03 closes.
