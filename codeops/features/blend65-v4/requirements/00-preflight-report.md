@@ -388,7 +388,12 @@ That requires destructive rollback of a valid build and races readers/concurrent
 **Recommendation:** Option A, with acceptance cases on both sides of the publication boundary.
 
 **Confidence:** High. **Hardening:** Challenger selected Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. Publication is the no-return point: cancellation
+before its atomic commit publishes nothing; cancellation after it preserves the valid build and
+terminates only the owned VICE/monitor execution. The result distinguishes successful build from
+cancelled run, including a deterministic race case at the commit boundary.
+**Correction Status:** Queued for the accepted-fixes batch; PF-011 remains open until cancellation,
+publication, CLI/LSP result reporting, and qualification cases share this exact boundary.
 
 ### PF-012: Interrupt install/restore has no closed ownership lifecycle 🟠 MAJOR
 
