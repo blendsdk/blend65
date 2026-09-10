@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 47 items resolved
-> **Last Updated**: 2026-09-10 17:31 CEST
+> **Status**: ✅ GATE PASSED — all 48 items resolved
+> **Last Updated**: 2026-09-10 18:10 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -53,6 +53,7 @@
 | AR-045 | Behavioral (complex) / optimizer goal selection | When correct 6502 candidates trade cycles against bytes or scarce resources, how do `balanced`, `speed`, and `size` choose deterministically without guessing workload frequency? | Complete-cost Pareto/lexicographic policy / one profile-owned weighted scalar / user-configurable weights and hotness | Use the complete-cost Pareto/lexicographic policy. Reject hard-constraint failures first and defer choices whose helper, SFA, ZP, layout, banking, loader, or packaging costs are not yet closed. `balanced` selects only a candidate that dominates the baseline and every competitor across reachable bytes, every relevant semantic-path cycle bound, and scarce-resource peaks; otherwise it retains the baseline while keeping independent dominance wins. `speed` lexicographically minimizes worst-to-best path cycles, then bytes, then the fixed resource order stated in the resolution note. `size` minimizes reachable bytes, then the same cycle vector, then resources. Exact cost ties alone use stable candidate identity. Add no weights, hotness annotations, policy DSL, PGO, or guessed frequency. | ✅ Resolved |
 | AR-046 | Behavioral (complex) / optimizer frontier and search completion | What belongs in the qualified optimization frontier, and what proves that an optimized mode has searched it deeply enough: combined modern and 6502-specific techniques exhausted to proved closure, only traditional 6502 tricks, a broad imported modern optimizer framework, globally exhaustive assembly search, or a heuristic pass budget? | Finite combined modern-plus-6502 frontier exhausted to proved closure, with structured peepholes and bounded exact search / 6502 tricks only / broad imported optimizer framework or catalog / globally exhaustive search across all equivalent programs / heuristic fixed-pass or first-good completion | Freeze a deep, sourced modern-plus-6502 optimization knowledge inventory into expert baseline `2.0.0`, then use the same finite evidence-qualified candidate frontier for `balanced`, `speed`, and `size`. Admit concrete techniques by Blend65 semantics, current consumer, complete rule packet, exact 6502/full-program costs, two independent oracles, and expert parity—not by historical or modern provenance. Exhaust that frontier at the smallest complete owning scope, repeat affected groups to a proved deterministic fixed point, and run structured contextual peephole optimization. Permit exact enumeration only for explicitly small finite regions with an independent equivalence oracle. Import algorithms and proof ideas, never another compiler's architecture or target assumptions. Never stop at the first improvement or certify success through an iteration cap. Claim frontier-optimality, not universal mathematical optimality; a newly discovered winning expert candidate reopens the frontier as parity debt. | ✅ Resolved |
 | AR-047 | UX / VS Code execution commands | How do `Run in VICE` and `Build and Run` differ when every run must successfully build a fresh artifact in the same invocation, and how are unsaved build inputs handled? | Keep only `Build` and fresh `Run in VICE`, saving relevant dirty build inputs first / retain a separate existing-artifact rerun path with strict currentness proof plus `Build and Run` | Expose only `Blend65: Build` and `Blend65: Run in VICE`; remove redundant `Build and Run`. Before either command, save dirty open project inputs consumed by that operation; abort with an actionable message if saving is declined or fails. `Run in VICE` performs a fresh build and launches only that invocation's artifact. The LSP continues to analyze unsaved snapshots independently. | ✅ Resolved |
+| AR-048 | Scope (complex) / production host matrix | Which host operating-system and architecture combinations receive the complete production compiler, editor, ACME, and VICE workflow, and how are machine-local tools selected? | Linux x64 plus Windows x64 production, with other Node 22 hosts best-effort / Linux x64 only / Linux, Windows, and macOS across x64 and ARM64 | Qualify `linux/x64` and `win32/x64` on Node 22 first. Treat macOS and other Node 22 hosts as best-effort until independently qualified. Prefer validated machine-local configuration, then deterministic automatic discovery of pinned ACME and VICE; keep paths out of portable projects and never auto-install tools. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -1065,6 +1066,75 @@ required for this bounded editor-command decision.
 
 **Direct user decision:** The user approved the recommended one-fresh-run-path contract.
 
+### AR-048 — Production host support matrix
+
+RD-02 and RD-09 require deterministic behavior on every supported host and path model, while RD-10
+must make the production claim. The requirements do not yet identify those hosts. Node, VS Code,
+VICE, and ACME availability alone cannot qualify Blend65's complete workflow: the compiler, CLI,
+LSP, packaged VS Code extension, ACME invocation, fresh VICE launch, cancellation, path handling,
+and atomic artifact publication must all work together on every production host.
+
+**Recommended — two concrete production hosts:** define the initial host contract as follows.
+
+| Support class | Host identities | Contract |
+|---|---|---|
+| Production | `linux/x64`, `win32/x64`, both on Node 22 | Qualify the complete advertised workflow on clean hosts, including compiler library, CLI `check`/`build`/`run`, LSP, packaged VS Code extension, ACME, VICE, cancellation/process cleanup, paths, and artifacts. |
+| Best-effort | `darwin/x64`, `darwin/arm64`, `linux/arm64`, and other Node 22 hosts | Do not deliberately block them, but make no release or defect-response promise until each receives the same qualification. |
+| Unsupported | Hosts outside the declared Node 22 range and 32-bit or unknown architectures | Diagnose the unsupported host where practical; make no compatibility claim. |
+
+Linux x64 matches the present development and CI environment. Windows x64 is a real product path
+because the C64 asset-authoring ecosystem includes Windows-only or Windows-first tools, and RD-02
+already requires Windows drive, UNC, separator, and case-insensitive path behavior. Windows also
+exercises process-tree cancellation and executable discovery that Linux cannot prove. Production
+qualification therefore needs a real clean Windows host or CI runner; a Linux simulation of Windows
+paths is supporting evidence only.
+
+The viable smaller option is Linux x64 production only. It reduces release work but leaves a known
+asset-authoring host and its distinct path/process semantics outside the supported workflow. The
+viable broader option is Linux, Windows, and macOS across x64 and ARM64. Node, VS Code, and VICE
+reach those systems, but that does not prove the Blend65/ACME/VICE integration, and no current
+Blend65 consumer justifies multiplying the initial release matrix.
+
+**Second-guessing:** Windows process-tree cleanup, binary discovery, and actual ACME/VICE 3.10
+distribution identities may require focused host code. The bounded answer is exactly two explicit
+host paths behind the process/filesystem seams already required by real consumers, plus clean-host
+acceptance. Do not build a generalized host-adapter or plugin framework. If the exact pinned Windows
+toolchain cannot be installed or controlled reliably during implementation, reopen this decision
+rather than silently weakening the production claim.
+
+**Evidence limitation:** the current repository CI is Ubuntu-only, and v3 process-control behavior
+is audit evidence rather than v4 authority. Exact pinned Windows executable names, install layouts,
+monitor behavior, and process cleanup remain unknown until a clean-host probe. The official Node,
+VS Code, VICE, and ACME support statements establish viability, not Blend65 qualification.
+
+**Independent challenge:** The challenger changed the initial broad-platform instinct to the bounded
+Linux x64 plus Windows x64 matrix. Its strongest counterargument was that Windows integration could
+distract from compiler delivery. The recommended boundary contains that risk without pretending
+Linux proves the Windows workflow and without creating a host framework.
+
+**Confidence:** High. **Hardening:** Independent challenger completed; the recommendation changed in
+response to the challenge.
+
+**Tool discovery refinement:** `blend65.json` remains portable and cannot contain executable paths.
+CLI and VS Code share one optional machine-local JSONC file containing only `schemaVersion`,
+`acmePath`, and `x64scPath`. Its production locations are
+`${XDG_CONFIG_HOME:-$HOME/.config}/blend65/tools.jsonc` on Linux and
+`%APPDATA%\blend65\tools.jsonc` on Windows. A configured absolute path wins and must resolve to a
+regular executable with the pinned compatible identity; if it is invalid, the operation fails
+rather than silently choosing another binary. For an omitted key or absent file, discovery searches
+the process `PATH` and then a fixed, documented, production-qualified list of ordinary host install
+locations. Candidates are checked in deterministic order; the first compatible identity wins, and
+the selected canonical path, version, and executable hash are recorded in host-side build evidence.
+Discovery never downloads, installs, modifies, or executes project-provided commands, arguments, or
+paths. `check` and ordinary LSP analysis need neither tool; `build` requires ACME and `run` requires
+ACME plus `x64sc`, with actionable discovery/version diagnostics only when the requested operation
+needs the missing tool. Additional known install locations may enter the list only with an exact
+supported-tool distribution and a clean-host qualification case; this is not a plugin registry.
+
+**Direct user decision:** The user selected Linux and Windows first, kept macOS outside the initial
+production claim, and required automatic ACME/VICE discovery with a machine-local configuration
+fallback or override. The bounded contract above keeps tool paths outside portable projects.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
@@ -1098,3 +1168,7 @@ items resolved. RD-09 authoring then exposed AR-047: its approved command list c
 for the same fresh-build-and-run behavior, and unsaved build-input handling was unspecified. The
 user approved the single fresh-run command and save-or-abort input contract, so the gate passes
 again with all 47 items resolved.
+RD-10 authoring then exposed AR-048: the approved requirements require all supported host/path
+models to work but did not define the production host matrix. The user selected Node 22 on Linux
+x64 and Windows x64 first, best-effort macOS/other Node 22 hosts, and deterministic machine-local
+tool configuration plus automatic discovery. The gate passes again with all 48 items resolved.

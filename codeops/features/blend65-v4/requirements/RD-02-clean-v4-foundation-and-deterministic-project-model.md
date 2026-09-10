@@ -25,7 +25,7 @@ snapshot and exposes it through one typed host-facing service. It does not prete
 compile Blend65 before RD-03 supplies the first real frontend and complete pipeline.
 
 > **Decisions:** AR-004, AR-005, AR-011, AR-012, AR-014, AR-021 through AR-023, AR-025,
-> AR-026, AR-028, AR-030, AR-032, AR-033, AR-035, and AR-036.
+> AR-026, AR-028, AR-030, AR-032, AR-033, AR-035, AR-036, and AR-048.
 
 ---
 
@@ -398,8 +398,11 @@ profile, manifest target, or implementation. (AR-024, AR-035)
 - Identical manifest and file bytes produce identical canonical project-relative identities,
   ordering, hashes, diagnostics, and snapshot identity regardless of checkout path or working
   directory.
-- Path behavior is defined for supported Node 22 hosts without weakening containment on symbolic
-  links, case-insensitive filesystems, Windows drive/UNC syntax, or POSIX paths.
+- Path behavior is production-qualified on Node 22 for `linux/x64` and `win32/x64` without
+  weakening containment on symbolic links, case-insensitive filesystems, Windows drive/UNC syntax,
+  or POSIX paths. macOS, Linux ARM64, and other Node 22 hosts remain best-effort until they pass the
+  same complete qualification; 32-bit/unknown architectures and hosts outside the declared Node 22
+  range are unsupported. (AR-048)
 - Locale, wall-clock time, directory enumeration, Turbo scheduling, and CPU concurrency cannot
   change observable outputs.
 
@@ -503,9 +506,10 @@ profile, manifest target, or implementation. (AR-024, AR-035)
 14. [ ] **AC-14 — Project discovery:** Tests from the project directory, a nested directory, an
     unrelated directory, and with an explicit relative and absolute `--project` path prove that the
     nearest or explicit manifest wins and that its directory is always the project root.
-15. [ ] **AC-15 — Path containment:** Tests reject absolute manifest content paths, lexical `..`
-    escape, symlink escape, symlink cycle, wrong file type, unreadable path, case-only collision,
-    and canonical identity outside the project root on every supported host path model.
+15. [ ] **AC-15 — Path containment:** Native Node 22 tests on `linux/x64` and `win32/x64` reject
+    absolute manifest content paths, lexical `..` escape, symlink escape, symlink cycle, wrong file
+    type, unreadable path, case-only collision, and canonical identity outside the project root.
+    Linux simulation of Windows paths is supporting evidence only, not Windows qualification.
 16. [ ] **AC-16 — Source inventory:** A fixture tree returns only regular `.blend` files under
     `sourceRoot` in canonical case-sensitive ASCII order, independent of creation/enumeration order;
     zero files and limit excess each produce their specified diagnostic.

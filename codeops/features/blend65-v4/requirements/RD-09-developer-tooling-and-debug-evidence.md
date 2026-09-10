@@ -16,7 +16,9 @@ the compiler semantics and project model established by RD-02 through RD-04. A m
 edit versioned unsaved source, receive the same authoritative diagnostics as `blendc check`, inspect
 language and target information, navigate and safely rename symbols, format a document, explicitly
 build, and launch only a freshly built artifact in VICE. Editor convenience never creates a second
-parser, type system, project model, asset model, or compiler path. (AR-003, AR-021, AR-022, AR-047)
+parser, type system, project model, asset model, or compiler path. The complete workflow is initially
+production-qualified on Node 22 for Linux x64 and Windows x64. (AR-003, AR-021, AR-022, AR-047,
+AR-048)
 
 The language server remains a frontend consumer: ordinary editor requests never import or execute
 target lowering, optimization, code generation, ACME, packaging, or VICE. The thin VS Code client
@@ -27,7 +29,7 @@ evidence enables a later source-debugger decision without adding a Blend65-owned
 any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
 
 > **Decisions:** AR-002 through AR-005, AR-008 through AR-012, AR-014, AR-020 through AR-028,
-> AR-030, AR-032, AR-033, AR-036, AR-038, AR-045 through AR-047.
+> AR-030, AR-032, AR-033, AR-036, AR-038, and AR-045 through AR-048.
 
 ---
 
@@ -58,11 +60,20 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
   Expected failures have stable machine-readable categories and concise human output without a
   stack trace. A failed or cancelled build publishes no mixed artifact set; a failed or cancelled
   run never launches an older artifact. (AR-022, AR-025)
-- [ ] **R9.5 — Keep tool discovery outside the project manifest.** ACME and VICE executable
-  selection comes only from explicit invocation state or editor/user settings and resolves to a
-  validated executable. No `blend65.json`, `.blend` file, asset, environment interpolation, or
-  diagnostic text may add executable paths, shell fragments, options, or monitor commands.
-  (AR-022)
+- [ ] **R9.5 — Keep tool discovery machine-local and deterministic.** `blend65.json` cannot contain
+  executable paths. CLI and VS Code share one optional JSONC tools file at
+  `${XDG_CONFIG_HOME:-$HOME/.config}/blend65/tools.jsonc` on Linux and
+  `%APPDATA%\blend65\tools.jsonc` on Windows. It permits only `schemaVersion`, optional absolute
+  `acmePath`, and optional absolute `x64scPath`. A configured path wins and must be a canonical
+  regular executable with the pinned compatible identity; an invalid configured path fails without
+  fallback. For each omitted key or an absent file, search the process `PATH`, then a fixed,
+  documented, production-qualified host-location list; validate candidates in deterministic order
+  and select the first compatible identity. Record canonical path, version, and executable hash in
+  host-side build evidence. Never download or install a tool, invoke a shell, or accept a path,
+  argument, option, or monitor command from project/source/asset/diagnostic content. `check` and
+  ordinary LSP analysis require no external tool; `build` requires ACME and `run` requires ACME plus
+  `x64sc`. Missing or incompatible tools fail only the operation that needs them with an actionable
+  diagnostic. (AR-022, AR-048)
 - [ ] **R9.6 — Preserve exact cancellation ownership.** Cancelling `check` stops outstanding
   analysis; cancelling `build` also terminates owned ACME work and removes unpublished temporary
   output; cancelling `run` terminates owned build or VICE work as applicable. Cancellation waits
@@ -755,3 +766,14 @@ C64U implementation.
 35. [ ] **AC-35 — Deferral-expiry closeout:** The closeout explicitly answers whether RD-09 expired
     any deferral rationale. Any newly due debugger integration, incremental-analysis, editor,
     portability, or expressiveness work has an owned backlog row before RD-09 is marked complete.
+36. [ ] **AC-36 — Deterministic tool discovery:** On clean production Linux x64 and Windows x64
+    hosts, cases cover no config, each single-key override, both overrides, PATH discovery, every
+    qualified standard install location, multiple compatible candidates, wrong version, missing
+    executable, non-file path, valid and broken symlinks, malformed/unknown-key config, and invalid
+    configured path. They prove canonical symlink resolution plus the exact precedence and failure
+    behavior in R9.5 and record selected tool identities.
+37. [ ] **AC-37 — Complete production host workflow:** Native Node 22 qualification on both
+    `linux/x64` and `win32/x64` covers the packaged compiler/CLI/LSP/VS Code extension, `check`,
+    `build`, fresh `run`, ACME/VICE discovery and invocation, cancellation/process-tree cleanup,
+    path semantics, and atomic artifacts. Emulated Windows paths on Linux cannot satisfy the Windows
+    case. macOS and other Node 22 results are reported as best-effort until the same boundary passes.
