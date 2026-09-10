@@ -95,10 +95,18 @@ the parked worktree.
   one-past construction without adding pointer, reference, view, or slice types. (AR-015)
 - [ ] **R1.10 — Apply finite typed function values.** Specification 4 must define exact
   `fn(...)` signatures for named ordinary functions, assignment/storage/passing/return/call rules,
-  finite-target proof, signature mismatch, target-set merging, devirtualization freedom, and
-  distinct non-callable interrupt-handler values accepted only by compatible platform sinks. It
-  must reject closures, captures, unknown indirect calls, conversion from raw `word` to a callable,
-  and hidden runtime registries or dispatchers. (AR-018)
+  precise target provenance, signature mismatch, target-set merging, devirtualization freedom, and
+  distinct non-callable interrupt-handler values accepted only by compatible platform sinks. When
+  precise provenance is lost but the closed program remains finite, the callable set widens to
+  every address-taken source function with the exact signature and that proved finite superset
+  governs calls, effects, recursion, stack, interrupt, and SFA reasoning. Reject only a call for
+  which no finite source target set can be proved, closures, captures, conversion from raw `word` to
+  a callable, and hidden runtime registries or dispatchers. Each interrupt sink has a statically
+  proved LIFO installation stack: restore matches the active top, control-flow joins agree, and
+  repeated or nested installation is legal only with finite proved depth and balance. Only required
+  predecessor words are allocated. A raw vector write remains legal low-level access but invalidates
+  helper ownership, so a later helper restore is diagnosed; no runtime registry, token, ownership
+  flag, scheduler, or hidden lifecycle service is introduced. (AR-018)
 - [ ] **R1.11 — Apply deterministic compile-time functions.** `comptime function` must reuse the
   normal typed language over bounded compile-time state, permit direct calls and aggregate returns,
   and reject runtime state, MMIO, low-level intrinsics, indirect calls, recursion, arbitrary host
@@ -189,11 +197,19 @@ the parked worktree.
   background. Add primary source-governance records and qualification cases for the 1541 D64
   geometry/directory/BAM/data-chain contract, the selected C64 KERNAL loader ABI and resource
   effects, explicit application quiescence, and `HLE-010`; do not teach a general loader framework
-  or claim containment against altered media. Record AR-045's exact complete-cost optimizer mode
-  policy, including hard constraints, deferred whole-program adjudication, Pareto `balanced`,
-  frequency-free lexicographic `speed`/`size`, stable exact-tie behavior, and the prohibition on
-  weights, hotness, PGO, and a tuning DSL. Add discriminating qualification cases for tradeoffs,
-  downstream cost reversal, and hard-budget rejection. Freeze a deep, sourced optimization
+  or claim containment against altered media. Record AR-045's exact optimizer-mode boundary and
+  complete-cost policy. `none` is the deterministic correctness-only predefined direct lowering and
+  runs every mandatory semantic, legalization, SFA, resource, layout, branch, emission, and package
+  step without optional candidate enumeration, rewriting, B/R/T comparison, or expert-parity gate;
+  its policy is reproducible under the recorded compiler identity and may improve in a later compiler
+  version. Every optimized mode exhausts the same finite candidate frontier. `balanced` selects only
+  a no-regression Pareto dominance result, `speed` orders `T` then `R` then `B`, and `size` orders `B`
+  then `R` then `T`, followed only by stable ID for an exact complete-cost tie. `B` is logical
+  compiler-generated target-loadable program/data bytes, `R` is the ordered selected-profile memory
+  resource vector, and `T` is the comparable semantic-path cycle vector. D64 filesystem/container
+  bytes are hard package-capacity and evidence facts, never B/R/T preference inputs. Preserve the
+  prohibition on weights, hotness, PGO, and a tuning DSL. Add discriminating qualification cases
+  for tradeoffs, downstream cost reversal, and hard-budget rejection. Freeze a deep, sourced optimization
   inventory that combines applicable modern target-neutral and whole-program techniques with
   NMOS 6510 and C64-specific instruction, resource, layout, banking, and peephole knowledge. For
   modern techniques, cover at least exact constant/range/known-bit propagation, CFG simplification,
@@ -481,9 +497,12 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 9. [ ] **AC-09 — Aggregate/address contract:** Examples cover struct and fixed-array assignment and
    return, caller-owned return storage, alias-safe copies, addresses of parameters/fields/elements,
    single evaluation, const provenance, contained local use, and every prohibited escape.
-10. [ ] **AC-10 — Function-value contract:** Examples cover singleton devirtualization eligibility,
-    multi-target finite sets, stored and returned function values, signature mismatch, handler-kind
-    mismatch, target erasure to `word`, and rejection of raw-word calls and unknown targets.
+10. [ ] **AC-10 — Function-value and handler-lifecycle contract:** Examples cover singleton
+    devirtualization eligibility, precise and widened multi-target finite sets, stored and returned
+    function values, signature mismatch, handler-kind mismatch, target erasure to `word`, rejection
+    of raw-word calls and genuinely unbounded targets, per-sink balanced LIFO install/restore,
+    control-flow joins, bounded nesting and predecessor-word cost, and diagnosis of helper restore
+    after a raw vector write invalidates ownership.
 11. [ ] **AC-11 — Compile-time contract:** The specification defines exact results for every input
     to `sin8` and `cos8`, a reproducible exact rule plus boundary vectors for `sin16` and `cos16`,
     and deterministic diagnostics for forbidden effects and exhausted budgets.
@@ -524,9 +543,11 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     engine/library deliverable. Asset guidance ends at compile-time ingestion, conversion, typed
     data/metadata/symbols, exact external ABI, and placement/package facts; runtime consumers are
     user-authored Blend65 programs. The active optimization reference contains the combined
-    modern-plus-6502 inventory and complete admission/proof/cost fields required by R1.21 without
-    importing a general optimizer framework or another compiler's target assumptions. (AR-038,
-    AR-046)
+    modern-plus-6502 inventory, the correctness-only `none` boundary, the identical optimized-mode
+    frontier, exact `balanced`, `speed` (`T`/`R`/`B`), and `size` (`B`/`R`/`T`) order, logical
+    target-byte `B` definition with D64 container overhead excluded, and complete
+    admission/proof/cost fields required by R1.21 without importing a general optimizer framework or
+    another compiler's target assumptions. (AR-038, AR-046)
 20. [ ] **AC-20 — Qualification coverage:** The coverage matrix accounts for all 107 pre-existing
     unique case identities plus every newly approved AR-046 case, with all required fields and
     admissible green evidence under the `2.0.0` candidate according to the accepted composed-

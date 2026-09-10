@@ -46,8 +46,22 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   handlers for SpritePad C64 Pro 3.80 project files with SPD v5, CharPad C64 Pro 3.88 project files
   with CTM v9, the self-contained directly callable PSID v1–v4 subset, and classic 10,003-byte
   Koala files. Preserve one-argument raw byte inclusion only for extensions that the selected
-  profile has not registered. Do not infer adjacent format generations or add a public handler
-  plugin framework. (AR-012, AR-040)
+  profile has not registered. Before implementation planning or decoder work for any named native
+  family, its owned evidence checkpoint must contain the exact producer/interchange identity,
+  representative minimum/complete/wide or otherwise boundary-complete files, settings and
+  provenance, redistribution disposition, SHA-256 values, expected typed selector outputs, and
+  independently derived malformed/adjacent-version cases. Missing evidence blocks that family and
+  RD-06 closeout; it cannot be replaced by a handmade file, v3 parser, comparative decoder, or
+  guessed schema. This is a short data-fixture gate, not an asset workflow or registry. Do not infer
+  adjacent format generations or add a public handler plugin framework. The project owner supplies
+  and approves retention of the latest SpritePad and CharPad producer-saved projects, exports,
+  settings, version evidence, and available authoritative format material. The compiler
+  implementation owner creates the data-only fixture manifest, independent expected selector
+  bytes/types/hashes, malformed and adjacent-version derivations, and the public/interchange PSID,
+  Koala, and raw fixtures. RD-03's eight-sprite M1 handoff satisfies only its own bounded SPD
+  surface; it does not satisfy RD-06's complete SpritePad matrix or any CharPad checkpoint. Each
+  handoff records its owner and completion before the corresponding format-dependent plan can pass
+  its gate. (AR-012, AR-037, AR-040)
 - [ ] **R6.2 — Keep handlers outside language semantics and SFA.** The core language owns the
   bounded literal `embed(path[, selector])` expression and typed constant result. The selected
   platform owns handler identity, selector meanings, hardware constraints, and compatibility. A
@@ -74,8 +88,8 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   or composite selector remains symbolic until layout. Only reachable selected representations
   emit; parsing a project file must not emit unselected components, alternate encodings, offsets,
   names, metadata tables, or copies.
-- [ ] **R6.7 — Deduplicate only canonical embedded identity.** Declarations resolving to the same
-  canonical path, resolved selector including a handler default, and output representation alias
+- [ ] **R6.7 — Deduplicate only resolved embedded identity.** Declarations resolving to the same
+  filesystem identity, resolved selector including a handler default, and output representation alias
   one immutable object and address. Different selectors or representations remain distinct even
   when their bytes happen to match. No general constant-folding or layout pass may merge distinct
   address-observable objects under `optimization: none`. (AR-023)
@@ -248,8 +262,10 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   selected-profile layout solves them. No frontend, handler, or emitter guesses a final address.
 - [ ] **R6.39 — Use interval-based resident layout.** Model every simultaneously live object as a
   physical interval plus its CPU and device views. Prove alignment, containment, nonoverlap,
-  banking, character-ROM windows, and every reserved range. A scalar total never substitutes for
-  the interval proof.
+  banking, character-ROM windows, and every reserved range. Code, SFA, globals, assets, player data,
+  loaders/helpers, padding, and platform reservations are solved together after final selected
+  machine forms and SFA closure; code receives no hidden priority over hardware-constrained data.
+  A scalar total never substitutes for the interval proof.
 - [ ] **R6.40 — Place one copy at the final consumer address.** Prefer direct compile-time
   placement, bank selection, and derived register/pointer fields over runtime copying. No handler
   emits a convenience duplicate, implicit offset table, or runtime-transcoded form. Any deliberate
@@ -264,7 +280,9 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   padding, and reserved address space separately. An active screen occupies its complete 1,024-byte
   interval, whose final eight bytes are its sprite-pointer table rather than another allocation.
   Color RAM occupies 1,024 hardware addresses although a Koala payload supplies 1,000 visible-cell
-  bytes. Never double-count padding already included in final interval endpoints.
+  bytes. For every compatible residency and CPU/VIC view, also report every free interval, total
+  free bytes, and the largest contiguous hole. Never double-count padding already included in final
+  interval endpoints.
 - [ ] **R6.43 — Reject impossible resident sets honestly.** A 16-KiB VIC bank cannot hold 256 native
   64-byte sprite records together with an active screen: the records alone occupy `[0,$4000)`.
   More than 256 records cannot fit in one bank. If the reachable resident set cannot satisfy all
@@ -285,7 +303,14 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   object report source path identity without leaking host-specific absolute roots, input hash,
   handler/version/selector, logical type/shape, output hash, payload bytes, emitted bytes,
   alignment/padding, physical interval, CPU/VIC visibility, bank, aliases, writable ranges, and
-  zero/runtime costs. Unavailable evidence is `Unknown`, never zero. (AR-008, AR-022)
+  zero/runtime costs. These files use RD-03's direct version-1 sidecar schemas, semantic `buildId`,
+  immutable generation, canonical ordering/types, and fail-closed decoder rules. `.memory.json` is
+  produced only after final machine selection, SFA closure, joint target layout, ACME assembly, and
+  reconciliation with actual symbols/segments; it records each physical half-open interval,
+  owner/kind, residency/lifetime, CPU mapping, VIC view, ZP/stack class, free interval/largest hole,
+  and runtime-memory-safety proof status. Any proved overlap, overflow, exhaustion,
+  visibility/banking/alignment failure, or ACME mismatch is a hard diagnostic before publication.
+  Unavailable timing evidence is `Unknown`, never zero. (AR-008, AR-022)
 
 #### Diagnostics, qualification, and closeout — complexity XL
 
@@ -293,12 +318,13 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   diagnostics for missing/empty files, missing defaults, unknown/unavailable selectors, illegal
   mutable/runtime use, nonliteral paths/selectors, raw-selector misuse, extent/type mismatch,
   malformed/unsupported format, unsatisfied placement, incompatible SID profile, missing audio
-  contract/operation, and unsafe player overlap. W10150 reports embedded-data pressure at the
-  profile's configured threshold, or 75% of its binary-size budget when omitted; W10151 reports
-  declarations that share one canonical embedded object. A failed import or layout publishes no
-  target artifact.
+  contract/operation, and unsafe player overlap. W10151 reports declarations that share one
+  canonical embedded object. There is no percentage-based embedded-data warning: exact final
+  interval accounting and hard placement/resource failures own capacity truth. A failed import,
+  layout, or ACME reconciliation publishes no target artifact.
 - [ ] **R6.48 — Make diagnostics useful to modern developers.** Every diagnostic names the source
-  declaration, canonical project-relative asset, detected handler/identity where safe, exact failed
+  declaration, exact host-exposed project-relative asset spelling plus resolved identity, detected
+  handler/identity where safe, exact failed
   field/offset/count/constraint, declared versus required type or range, and one actionable remedy.
   Binary parser failures never dump arbitrary asset contents or host absolute paths.
 - [ ] **R6.49 — Bind parser evidence to authentic fixtures.** Maintain one data-only fixture
@@ -317,13 +343,22 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   not replace producer provenance and exact output proof.
 - [ ] **R6.52 — Report qualification honestly.** Public status names each handler, exact accepted
   identity, completed fixture roles, supported selectors, selected profiles, and evidence level.
-  Missing producer evidence leaves that parser facet `Unknown` or `Verified partial`; it cannot be
-  called qualified because the compiler accepts a guessed comparative schema.
+  Missing required producer/interchange evidence blocks implementation and qualification of that
+  handler family and therefore blocks RD-06 closeout; it cannot be labelled `Verified partial` to
+  permit a guessed comparative schema. Optional physical listening evidence may remain explicitly
+  bounded without weakening the required parser/byte fixtures.
 - [ ] **R6.53 — Close deferrals and version dependencies.** Before RD-06 closes, answer whether its
   deliverables expired any deferral rationale, walk the ambiguity register, Won't Have lists,
   Specification 4 future considerations, and expressiveness ledger, and re-own every due item.
   Bind all evidence to the frozen Specification 4 identity and active expert baseline `2.0.0`.
   (AR-014, AR-034)
+
+#### Required tooling metadata handoff — complexity M
+
+- [ ] **R6.55 — Expose frontend asset metadata.** Make parsed selector names, exact types,
+  availability, provenance, and pre-layout constraints available through the shared semantic model
+  so RD-09 can provide completion, hover, and diagnostics without importing codegen or final layout.
+  Unknown final addresses remain unknown until build. (AR-021)
 
 ### Should Have
 
@@ -331,10 +366,6 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   handler family, CharPad representation boundary, callable versus embed-only audio, Koala display
   data, raw inclusion, same-output aliasing, and one user-authored compile-time refinement. They
   teach asset consumption without prescribing a game or renderer architecture. (AR-003, AR-038)
-- [ ] **R6.55 — Expose frontend asset metadata — complexity M.** Make parsed selector names, exact
-  types, availability, provenance, and pre-layout constraints available through the shared
-  semantic model so RD-09 can provide completion, hover, and diagnostics without importing
-  codegen or final layout. Unknown final addresses remain unknown until build. (AR-021)
 - [ ] **R6.56 — Record host import observations — complexity S.** At RD-06 closeout record per-handler
   parse/type/layout/build duration and peak host memory against the named fixtures. These are
   trends, not wall-clock pass/fail gates and do not authorize an incremental cache. (AR-011,
@@ -372,7 +403,7 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
 
 ```text
 literal embed declaration
-  -> contained canonical path + coherent input bytes
+  -> exact host-spelled project path + separate contained resolved identity + coherent input bytes
   -> selected-profile extension candidate
   -> exact signature/version/structure validation
   -> enumerated opaque selector + exact Blend65 type
@@ -388,7 +419,7 @@ mutable parser object, runtime asset handle, generic property bag, or public han
 
 | Record | Required fields |
 |---|---|
-| Input identity | Canonical project-relative path, input SHA-256, coherent-snapshot identity |
+| Input identity | Exact host-exposed project-relative spelling, separate resolved alias/containment identity, input SHA-256, coherent-snapshot identity |
 | Handler identity | Target profile, handler key, accepted format/version, evidence-fixture identity |
 | Selected output | Resolved selector/default, exact scalar or fixed type/shape, output SHA-256 |
 | Placement intent | Size, alignment, fixed address, no-cross, region, CPU/device view, writability |
@@ -490,8 +521,10 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 ### With RD-02 (Clean V4 Foundation and Deterministic Project Model)
 
 - Uses the manifest's contained asset paths, coherent input snapshot, selected target profile,
-  atomic output transaction, and explicit internal platform boundary without adding a plugin
-  framework or separate asset build system.
+  immutable-generation publication routine, and explicit internal platform boundary without adding
+  a plugin framework or separate asset build system. Only v3's raw asset-reader/embed mechanics may
+  enter the salvage inventory; every native SpritePad, CharPad, PSID, and Koala codec and its
+  qualification fixtures are new RD-03/RD-06 work behind the authentic-evidence gates.
 
 ### With RD-03 (Playable M1 Complete Pipeline)
 
@@ -600,7 +633,8 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 ## Security Considerations
 
 - **Data sensitivity:** Asset files contain no required credentials, personal data, secrets, or
-  network data. Reports use canonical project-relative identities and hashes, not host absolute
+  network data. Reports use exact host-exposed project-relative spellings, separate resolved
+  alias/containment identities, and hashes, not host absolute
   paths or arbitrary binary dumps.
 - **Input validation:** Treat every asset as untrusted binary input. Use bounded reads,
   overflow-safe length/count/index arithmetic, exact magic/version/field validation, conditional
@@ -642,7 +676,7 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 5. [ ] **AC-05 — Requested-only emission:** For every multi-component fixture, selecting one output
    emits only its reachable bytes and metadata. Unselected alternate encodings, names, offsets,
    tables, and components are absent from the PRG and asset report.
-6. [ ] **AC-06 — Canonical aliasing:** Two declarations of the same canonical path/resolved
+6. [ ] **AC-06 — Resolved aliasing:** Two declarations of the same resolved filesystem identity/
    selector/representation share one address and one byte count; a different selector or
    representation remains a distinct object.
 7. [ ] **AC-07 — SPD identity and records:** Authentic 3.80 fixtures prove ASCII `SPD` v5, exact
@@ -722,9 +756,11 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
     conflicting constraint and publish no ACME/PRG artifact.
 31. [ ] **AC-31 — Complete asset report:** Every selected/derived output contains all R6.46 fields;
     scalar compile-time metadata, artifact bytes, final residency, import work, and runtime access
-    or transfer are separate quantities, with missing evidence reported as `Unknown` rather than
-    zero. Threshold and canonical-alias fixtures trigger W10150 and W10151 without changing output
-    identity or byte counts.
+    or transfer are separate quantities, with unavailable timing evidence reported as `Unknown`
+    rather than zero. Exact final occupied/free intervals, largest compatible holes, CPU/VIC views,
+    SFA/ZP/stack ownership, runtime-memory-safety proof status, and ACME reconciliation are present;
+    canonical-alias fixtures trigger W10151 without changing output identity or byte counts. No
+    percentage-based embedded-data warning exists.
 32. [ ] **AC-32 — Authentic fixture manifest:** Every accepted producer/interchange fixture has
     provenance, pinned identity, redistribution disposition, SHA-256, expected selector inventory,
     output type/length/hash, and negative-derivation lineage. No invented fixture fills a required

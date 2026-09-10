@@ -50,7 +50,10 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
   covering v3 production packages, tests, examples, scripts, workflows, fixtures, native-format
   codecs, ACME/VICE adapters, documentation, and CodeOps artifacts. Classify every candidate as
   `port`, `adapt`, `rewrite`, `discard`, or `reference-only`, with one owner and evidence for the
-  choice. (AR-004, AR-025)
+  choice. V3 native SpritePad, CharPad, PSID/SID, Koala, and player-format code and fixtures default
+  to new v4 work because none is a current-producer-qualified codec. Raw file reading, contained
+  path handling, hashing, and literal one-argument raw-embed mechanics may be assessed separately.
+  (AR-004, AR-025, AR-040)
 - [ ] **R2.4 — Admit salvage only under proof.** A `port` or `adapt` decision must name its v4
   requirement, show Specification 4 compatibility, pass a focused implementation-independent
   contract test, have no dependency on discarded v3 architecture, and demonstrate less risk and
@@ -112,10 +115,13 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
   production configuration model. (AR-022, AR-028)
 - [ ] **R2.15 — Define exact key behavior.** `schemaVersion` initially accepts only `1`; `name`,
   `sourceRoot`, `entry`, `target`, and `outDir` are required; `assetPaths` is an optional ordered
-  list of contained directories; `outDir` is a contained directory; `optimization` is exactly
+  list of contained directories; `outDir` is relative contained compiler-owned output state;
+  `optimization` is exactly
   `none`, `balanced`, `speed`, or `size`; and both safety keys are booleans. When omitted,
   `optimization` is `balanced`, `assetPaths` is empty, and both safety switches are `false`. The
-  project name and all path values must satisfy documented, platform-independent validation.
+  project `name` is one nonempty literal output basename: reject separators, NUL, `.` and `..`, or
+  any value that could escape `outDir`, but never rewrite it. Path values satisfy the exact host
+  filesystem and containment rules below.
   (AR-022, AR-023, AR-028)
 - [ ] **R2.16 — Discover the nearest project predictably.** Without `--project`, project discovery
   starts at the caller's working directory and walks upward to the nearest `blend65.json`. With
@@ -123,15 +129,21 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
   directory—not the process working directory—is always the project root. Failure to find or read a
   manifest is a structured diagnostic. (AR-022, AR-028)
 - [ ] **R2.17 — Resolve contained paths from the manifest.** `sourceRoot`, `assetPaths`, and
-  `outDir` are relative to the manifest directory. Canonicalization must reject absolute values,
-  `..` escape, symlink escape, type mismatch, unreadable paths, and paths whose resolved identity
-  falls outside the project root. The explicit `--project` path itself may be absolute because it
-  selects the root rather than declaring project content. (AR-022, AR-028)
+  `outDir` are relative to the manifest directory. Resolve input paths through their real host
+  identities and reject absolute values, `..` escape, symlink escape, type mismatch, unreadable
+  inputs, and identities outside the project root. `outDir` may be absent before a build: validate
+  its nearest existing canonical parent, permit the compiler to create missing contained
+  components only during publication, and reject a required directory occupied by a file or any
+  symlink/race escape. An explicit source or asset inside `outDir` is invalid. The explicit
+  `--project` path itself may be absolute because it selects the root rather than declaring project
+  content. (AR-022, AR-028)
 - [ ] **R2.18 — Inventory source files deterministically.** Recursively enumerate only regular
-  `.blend` files under `sourceRoot`, using canonical project-relative paths in case-sensitive ASCII
-  order. Ignore no file through globs or hidden implicit rules. Diagnose duplicate canonical
-  identity, case-only collision on a case-insensitive host, symlink cycles, unreadable entries, and
-  files that disappear during collection. (AR-022, AR-028)
+  `.blend` files under `sourceRoot`, excluding the complete `outDir` subtree before traversal even
+  when `sourceRoot` is `.`. Preserve every filename exactly as exposed by the host, including case,
+  spaces, and Unicode; perform no normalization, case folding, rewriting, or cross-host collision
+  rejection. For stable internal sorting only, represent separators as `/` and compare the exact
+  host-exposed path bytes/code points deterministically. Diagnose duplicate resolved identity,
+  symlink cycles, unreadable entries, and files that disappear during collection. (AR-022, AR-028)
 - [ ] **R2.19 — Separate file inventory from language meaning.** RD-02 supplies exact source bytes,
   paths, hashes, and stable source identities but does not invent a second scanner for module
   headers. RD-03's real lexer/parser builds the module index, permits legal multi-file merged
@@ -150,15 +162,19 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
 #### Coherent host snapshot and diagnostics — complexity L
 
 - [ ] **R2.22 — Read one coherent input snapshot.** One project load must bind the exact manifest,
-  source-file inventory, bytes, canonical paths, and hashes it observed. If any file changes,
+  source-file inventory, bytes, resolved identities, exact host-exposed relative paths, and hashes
+  it observed. Exclude `outDir` and every prior generation from discovery and every input or build
+  identity hash before walking. If any input file changes,
   disappears, changes identity, or escapes containment while the snapshot is being created, the
   complete load retries from the manifest or fails; it cannot return mixed old/new input. A retry
   remains bounded and cannot become a watcher, persistent cache, or incremental compiler. (AR-011,
   AR-022, AR-028)
 - [ ] **R2.23 — Use stable source identities.** Source identities and diagnostic ordering derive
-  from canonical project-relative paths and UTF-8 byte spans, never JavaScript UTF-16 indexes,
-  filesystem enumeration order, absolute checkout paths, locale, or process working directory.
-  Host/LSP coordinate conversion remains explicit at the consumer boundary. (AR-021, AR-025)
+  from exact host-exposed project-relative spellings represented with `/` separators and UTF-8 byte
+  spans, while a separate resolved filesystem identity owns containment and alias detection. They
+  never derive from JavaScript UTF-16 indexes, filesystem enumeration order, absolute checkout
+  paths, locale, or process working directory. Host/LSP coordinate conversion remains explicit at
+  the consumer boundary. (AR-021, AR-025)
 - [ ] **R2.24 — Expose one typed project-loading service.** The foundation library returns either a
   complete immutable project snapshot plus structured non-error observations, or structured
   diagnostics with no usable snapshot. Expected user/configuration failures are values rather than
@@ -304,12 +320,12 @@ future language server -X-> target lowering/codegen/packaging/emulator
 | Key | Required | Initial contract |
 |---|---|---|
 | `schemaVersion` | Yes | Integer `1`; any other value is unsupported |
-| `name` | Yes | Non-empty, platform-independent artifact-safe project name |
+| `name` | Yes | Nonempty literal output basename; no separator, NUL, `.`/`..`, escape, or rewriting |
 | `sourceRoot` | Yes | One relative contained directory holding recursively discovered `.blend` files |
 | `entry` | Yes | Qualified Blend65 module identity, never a filesystem path |
 | `target` | Yes | Exact normative Specification 4 C64 profile identity |
 | `assetPaths` | No | Ordered list of relative contained directories; omitted means `[]` |
-| `outDir` | Yes | Relative contained output directory; it cannot overlap source input files |
+| `outDir` | Yes | Relative contained compiler-owned output state; excluded from all input discovery and identity hashes |
 | `optimization` | No | `none`, `balanced`, `speed`, or `size`; omitted means `balanced` |
 | `boundsCheck` | No | Boolean; omitted means `false` |
 | `divisionZeroCheck` | No | Boolean; omitted means `false` |
@@ -320,15 +336,15 @@ schema contains no generic extension map. (AR-022, AR-023, AR-028)
 
 ### Path and snapshot model — complexity L
 
-All project content paths follow this sequence:
+All project input paths follow this sequence:
 
 ```text
 manifest text
   -> typed JSONC value
   -> manifest-relative lexical path
-  -> canonical filesystem identity
+  -> resolved filesystem identity while preserving exact host-exposed spelling
   -> containment/type/readability check
-  -> stable project-relative identity
+  -> exact host-exposed project-relative identity with `/` separator representation
   -> bytes + SHA-256 hash in one coherent snapshot
 ```
 
@@ -337,11 +353,17 @@ retry work with documented host-safety limits. Exceeding a limit is a diagnostic
 and observed value, not a crash or partial snapshot. Limits protect the host compiler; they do not
 change Blend65 array or target-memory semantics. (AR-022, AR-028)
 
+`outDir` follows a separate output-state path. Its nearest existing parent must resolve inside the
+project, missing contained components may be created only by publication, and the whole subtree is
+excluded before any source or asset walk. Prior valid immutable generations are normal contents,
+not inputs. A sourceRoot of `.` is therefore valid with a nested output directory. Blend65 does not
+impose cross-host filename portability: it reads the exact names accepted by the current host.
+
 ### Diagnostic foundation — complexity M
 
 Each project diagnostic contains a stable code, severity, concise message, primary UTF-8 source
 span when available, related spans for conflicts, and actionable correction. Ordering is stable by
-canonical source identity, byte offset, severity, code, and message tie-break. Root causes suppress
+exact project-relative source identity, byte offset, severity, code, and message tie-break. Root causes suppress
 causal cascades where a trustworthy fact is unavailable. Diagnostics never expose a host stack
 trace for expected input errors and never convert an invalid project into a usable partial
 snapshot. (AR-021, AR-022, AR-025)
@@ -399,9 +421,10 @@ profile, manifest target, or implementation. (AR-024, AR-035)
 
 ### Determinism and portability — complexity M
 
-- Identical manifest and file bytes produce identical canonical project-relative identities,
-  ordering, hashes, diagnostics, and snapshot identity regardless of checkout path or working
-  directory.
+- Identical manifest bytes, file bytes, and exact project-relative spellings produce identical
+  source identities, ordering, hashes, diagnostics, and snapshot identity regardless of checkout
+  path or working directory. Different spellings are different source identities even when their
+  bytes match.
 - Path behavior is production-qualified on Node 22 for `linux/x64` and `win32/x64` without
   weakening containment on symbolic links, case-insensitive filesystems, Windows drive/UNC syntax,
   or POSIX paths. macOS, Linux ARM64, and other Node 22 hosts remain best-effort until they pass the
@@ -508,17 +531,22 @@ profile, manifest target, or implementation. (AR-024, AR-035)
     comments, and trailing commas loads to the exact typed values and defaults defined by R2.15.
 13. [ ] **AC-13 — Manifest negative cases:** Separate tests reject every missing required key,
     duplicate key, unknown key, unsupported `schemaVersion`, wrong JSON type, invalid enum, and
-    invalid project-name/path value with a stable diagnostic and source span.
+    invalid path value plus empty, separator-containing, NUL-containing, `.`/`..`, and escaping
+    project names with a stable diagnostic and source span. A legal name is preserved literally.
 14. [ ] **AC-14 — Project discovery:** Tests from the project directory, a nested directory, an
     unrelated directory, and with an explicit relative and absolute `--project` path prove that the
     nearest or explicit manifest wins and that its directory is always the project root.
 15. [ ] **AC-15 — Path containment:** Native Node 22 tests on `linux/x64` and `win32/x64` reject
-    absolute manifest content paths, lexical `..` escape, symlink escape, symlink cycle, wrong file
-    type, unreadable path, case-only collision, and canonical identity outside the project root.
-    Linux simulation of Windows paths is supporting evidence only, not Windows qualification.
+    absolute manifest content paths, lexical `..` escape, symlink escape/race, symlink cycle, wrong
+    input file type, unreadable input, resolved identity outside the project root, a file where an
+    output directory is required, and an explicit source/asset inside `outDir`. First-build creation
+    of a missing contained `outDir` succeeds. Linux simulation of Windows paths is supporting
+    evidence only, not Windows qualification.
 16. [ ] **AC-16 — Source inventory:** A fixture tree returns only regular `.blend` files under
-    `sourceRoot` in canonical case-sensitive ASCII order, independent of creation/enumeration order;
-    zero files and limit excess each produce their specified diagnostic.
+    `sourceRoot` in deterministic exact-spelling order, independent of creation/enumeration order;
+    preserves case, spaces, and Unicode without normalization or folding; and excludes a nested
+    `outDir` plus its prior generations before traversal when `sourceRoot` is `.`. Zero files and
+    limit excess each produce their specified diagnostic.
 17. [ ] **AC-17 — No filename semantics:** Renaming a `.blend` file without changing its bytes
     changes only path/source identity, not a fabricated module name; RD-02 contains no module-header
     scanner or path-based import rule.
@@ -532,8 +560,10 @@ profile, manifest target, or implementation. (AR-024, AR-035)
     one complete pre-change snapshot, one complete post-retry snapshot, or a structured failure;
     it never returns manifest/source bytes or hashes from different states.
 21. [ ] **AC-21 — Path-independent identity:** Two byte-identical project copies at different
-    absolute paths and invoked from different working directories produce identical stable
-    project-relative ordering, input hashes, and diagnostics after absolute host roots are removed.
+    absolute paths, with the same project-relative spellings, and invoked from different working
+    directories produce identical stable project-relative ordering, input hashes, and diagnostics
+    after absolute host roots are removed; repeated builds and added prior output generations do
+    not change those input identities.
 22. [ ] **AC-22 — UTF-8 source coordinates:** Fixtures with ASCII, multi-byte BMP characters, and
     astral characters prove source spans use UTF-8 byte offsets and convert explicitly to host/LSP
     coordinates without shifting the next diagnostic.

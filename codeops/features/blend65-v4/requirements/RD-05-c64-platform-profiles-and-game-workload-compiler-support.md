@@ -152,9 +152,17 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   terminal contract. Only reachable entry/body variants are emitted. (AR-013, AR-018, AR-024)
 - [ ] **R5.16 — Make handler installation reversible.** Every replaceable vector operation has the
   corresponding Specification 4 restore/uninstall operation, retains exactly one page-safe saved
-  predecessor where chaining/restoration needs it, and updates two-byte vectors only in a proven
-  safe transaction. Restoring a handler cannot silently discard another owner installed after it;
-  ownership misuse receives a compile-time diagnostic where statically visible. (AR-013, AR-018)
+  predecessor per active installation where chaining/restoration needs it, and updates two-byte
+  vectors only in a proven safe transaction. Compile-time state is maintained independently for
+  each interrupt sink as a LIFO stack of exact owners and predecessors: installation pushes the
+  exact handler, restoration may pop only the current top, and every branch join and loop back-edge
+  must agree on the same stack. Balanced conditional or nested installation is legal; duplicate,
+  stale, out-of-order, uncertain, or cross-sink restoration is rejected. A raw or external vector
+  write remains available for deliberate low-level management but invalidates the high-level proof
+  for that sink on every reachable path. Pre-write high-level frames can no longer be restored, and
+  later high-level install/restore operations remain unavailable until a separately specified
+  profile reset boundary begins a new ownership proof. No runtime flag, token, registry, or hidden
+  manager is emitted. (AR-013, AR-018)
 - [ ] **R5.17 — Close every interrupt route before emission.** For each enabled source, enumerate
   source and entry kind, vector/link storage, acknowledgement owner, terminal owner, enabled peer
   sources, nesting/re-entry, bank visibility, SFA interference, shared state, handler/wrapper bytes,
@@ -340,8 +348,18 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   VIC bank intervals, alignment/padding, screen-pointer tails, code, immutable/mutable data, BSS,
   globals, SFA, user/compiler ZP, hardware-stack peak by domain, vector/saved-link storage, device
   shadows, selected library/player code and state, replicas, startup/exit, IRQ/NMI routes, frame
-  budgets, and every unresolved physical-QA bound. Useful payload and reserved address space remain
-  separate totals. (AR-008, AR-013)
+  budgets, and every unresolved physical-QA bound. For every occupied or reserved interval, the
+  versioned `.memory.json` record includes its half-open physical range, exact size, owner/kind,
+  source/import identity, mutability, alignment/contiguity, residency/lifetime, CPU mapping, VIC
+  bank/visibility, and ZP/stack class. Each compatible residency and CPU/VIC view reports every free
+  interval, total free bytes, largest contiguous hole, and proved stack headroom. Useful payload,
+  padding, and reserved address space remain separate totals. The final ledger is reconciled with
+  ACME symbols/segments before publication; a proved overlap, overflow, resource exhaustion,
+  visibility/banking failure, or mismatch is a hard error with exact blockers and compatible holes.
+  Bounded raw-memory effects are checked against the ledger; unbounded `POKE`, `asm_*`, or imported
+  effects remain expressible but are listed with `runtimeMemorySafety: unproven` rather than being
+  misreported as a whole-program safety proof. The report conforms to RD-03's direct versioned
+  sidecar contract and immutable build generation. (AR-008, AR-013)
 - [ ] **R5.48 — Make platform failures actionable.** Diagnostics name the exact profile, source
   operation/object/handler, violated device or ownership rule, required versus available bytes,
   range/alignment/bank/timing facts, shortest call/preemption path, and a realistic remedy. A
@@ -352,12 +370,15 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   restoration, and timing signatures from Specification 4 plus hardware semantics—not generated
   assembly or a second compiler path. Optimized-versus-unoptimized comparison remains supporting
   evidence only. (AR-002, AR-008, AR-038)
-- [ ] **R5.50 — Enforce expert assembly and complete cost expectations.** Every platform operation
+- [ ] **R5.50 — Record expert assembly and complete cost expectations.** Every platform operation
   and selected hardware integration or workload path has an equal-contract hand-written reference
   or independently reviewed expert bound. Compare final assembled bytes, hot/cold/worst-path cycles
-  after final placement, setup, data, padding, ZP, SFA, stack, interrupt, and frame effects. A local
-  result below expert parity is a defect, not acceptable because optimization is `none`. (AR-002,
-  AR-008, AR-023, AR-038)
+  after final placement, setup, data, padding, ZP, SFA, stack, interrupt, and frame effects. Under
+  `optimization: none`, correct behavior, legal deterministic canonical lowering, explicit effects,
+  and complete accounting are acceptance gates; an expert-cost delta is recorded as RD-08 input and
+  does not fail RD-05 or create parity debt by itself. Zero-cost named hardware operations still
+  cannot add semantic abstraction overhead such as dispatch, hidden calls, duplicate volatile
+  accesses, or copies. (AR-002, AR-008, AR-023, AR-038)
 - [ ] **R5.51 — Keep verification impact-based.** During implementation run focused profile,
   hardware-operation, game-workload, assembly, and VICE cases for the changed family. At each
   completed family run its complete relevant qualification; at RD closeout run the integrated
@@ -567,9 +588,10 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 
 ### Target performance and resources — complexity XL
 
-- Every direct platform operation meets the equivalent expert assembly floor under
+- Every direct platform operation has correct deterministic canonical lowering under
   `optimization: none`. Reports include all code, data, padding, ZP, SFA, stack, shadow, adapter,
-  interrupt, setup, and worst-path cycle costs.
+  interrupt, setup, worst-path cycle costs, and measured expert deltas; cost parity becomes an
+  RD-08 optimization goal rather than an RD-05 correctness gate.
 - Platform convenience adds no generic runtime dispatch, hidden copy, scheduler, registry, or
   application-policy payload. Hardware abstractions are zero cost for their declared contract.
 
@@ -661,9 +683,11 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 12. [ ] **AC-12 — Interrupt sink variants:** One source handler used by every compatible selected
     sink emits only the reachable CINV-chain, exclusive-CINV, raw IRQ, NMINV, or raw NMI variants;
     each has the required entry D state, saves, acknowledgement, terminal, and restored status.
-13. [ ] **AC-13 — Reversible installation:** Install/restore cases preserve the exact predecessor,
-    keep every indirect saved link off an NMOS-invalid `$xxFF` start, reject stale ownership, and
-    never expose a torn vector to a reachable IRQ/NMI.
+13. [ ] **AC-13 — Reversible installation:** Per-sink LIFO install/restore cases preserve every exact
+    predecessor, admit proved nested and balanced conditional lifecycles, keep every indirect saved
+    link off an NMOS-invalid `$xxFF` start, and never expose a torn vector to a reachable IRQ/NMI.
+    Duplicate, stale, out-of-order, branch-uncertain, cross-sink, and raw-write-invalidated ownership
+    each fail at compile time without emitting a runtime ownership flag or manager.
 14. [ ] **AC-14 — Complete route ledger:** For every installed route, the report includes every
     enabled source, entry kind, vector/link, acknowledgement and terminal owner, nesting,
     visibility, SFA interference, generated/existing-ROM bytes, stack peak, and complete path
@@ -739,12 +763,16 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 34. [ ] **AC-34 — Independent behavior:** Deliberate defects in input polarity, volatile count,
     sprite order, scroll edge, publication timing, audio cue, collision order, status restore, and
     banking are detected by oracles that do not read generated assembly as expected behavior.
-35. [ ] **AC-35 — Expert output:** Each direct operation, exact adapter, and user-authored workload
-    path meets its equal-contract expert byte/cycle/resource floor from final assembled addresses.
-    A below-floor result fails; optional RD-08 optimization is not accepted as a future excuse.
+35. [ ] **AC-35 — Expert baseline:** Each direct operation, exact adapter, and user-authored workload
+    path records its equal-contract expert byte/cycle/resource comparison from final assembled
+    addresses. `optimization: none` fails incorrect behavior, illegal lowering, hidden abstraction
+    overhead, or incomplete accounting, but not a cost delta alone; RD-08 owns the parity gate for
+    optimizing modes.
 36. [ ] **AC-36 — Complete report:** The report contains every R5.47 category and reconciles useful
-    payload, reserved address ranges, replicas, and final artifact bytes without omission or double
-    counting.
+    payload, padding, reserved address ranges, replicas, every free interval/largest hole, CPU/VIC
+    views, runtime-memory-safety proof status, and final ACME artifact bytes without omission or
+    double counting. Removing a required versioned field or seeding an ACME/layout mismatch fails
+    before publication.
 37. [ ] **AC-37 — Diagnostics:** Each invalid ownership, model, address, bank, alignment, timing,
     capacity, route, source-kind, or resource case names its profile, source owner, exact violated
     fact, demand/availability where applicable, and a usable remedy; no runnable artifact appears.

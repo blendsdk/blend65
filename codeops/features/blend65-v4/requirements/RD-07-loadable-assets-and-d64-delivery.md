@@ -49,16 +49,22 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   ordinary parameter. It may use compile-time queries and pass the declaration only as the first
   argument of a compatible selected-profile load operation. Diagnostics identify the exact illegal
   operation and the explicit destination/load pattern. (AR-002, AR-031)
-- [ ] **R7.3 — Keep the destination ordinary and fixed.** The destination is separately declared
-  mutable fixed storage with exactly the load unit's logical type and size. It may be module or
-  lifetime-valid function storage and may carry legal `place(...)` constraints. Unsized parameter
-  views, constants, MMIO, loadable values, temporaries, partial fields, incompatible nominal
-  structs, and mismatched extents are rejected. (AR-016, AR-017, AR-020, AR-031)
+- [ ] **R7.3 — Accept every proved mutable fixed place.** The destination is any ordinary mutable,
+  lifetime-valid place with exactly the load unit's logical type and size. A module object, local,
+  parameter place, matching field or nested field, or fixed-array element/subaggregate is legal
+  when flow and layout prove its complete interval, visibility, alignment, nonoverlap, lifetime, and
+  publication behavior. The place expression is evaluated exactly once. Constants, MMIO, loadable
+  values, temporaries without stable storage, incompatible nominal structs, mismatched extents, and
+  any place whose complete destination set cannot be proven are rejected. A field is not rejected
+  merely because it is part of a larger object, and no root-only restriction may be defended as a
+  platform limitation. (AR-016, AR-017, AR-020, AR-031)
 - [ ] **R7.4 — Expose one direct C64 operation.** The public operation is
   `c64.loader.load(unit, destination): boolean`. Both arguments are evaluated exactly once. The
-  compiler resolves the unit, disk entry, exact destination address, and byte count statically;
-  source supplies no runtime filename, device number, size, pointer, descriptor, or loader handle.
-  (AR-007, AR-031, AR-042)
+  compiler resolves the unit, disk entry, exact byte count, and either one exact destination address
+  or a finite statically proved set of complete legal intervals. A dynamic place calculation is
+  lowered once to X/Y only after every possible interval passes the same layout and lifetime proof;
+  source supplies no runtime filename, device number, size, descriptor, or loader handle. (AR-007,
+  AR-031, AR-042)
 - [ ] **R7.5 — Model publication through normal control flow.** Entry to `load()` makes the complete
   destination indeterminate. Its `true` result edge marks every byte definitely initialized with
   the load unit's logical value. Its `false` edge leaves every byte indeterminate. Existing
@@ -85,10 +91,16 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   by RD-01/RD-05/RD-06. It is not an alias for a PRG profile. Other PAL/NTSC, SID, takeover, drive,
   or target combinations remain unavailable until separately qualified. (AR-024, AR-032)
 - [ ] **R7.10 — Publish one primary deployable artifact.** A successful disk-profile build
-  atomically publishes `<name>.d64` plus the common `.asm`, `.labels`, `.memory.json`,
-  `.assets.json`, `.costs.json`, `.debug.json`, and `.build.json` evidence. The boot PRG and unit
-  files are contained components, not separate advertised products. Any failure publishes none of
-  the new set, and `run` never launches a stale artifact. (AR-008, AR-022, AR-032)
+  stages `<name>.d64` plus the common `.asm`, `.labels`, `.memory.json`, `.assets.json`,
+  `.costs.json`, `.debug.json`, and `.build.json` evidence inside one immutable build generation,
+  then atomically replaces the current-generation record. The direct JSON sidecars conform to their
+  RD-03 versioned schemas and `.build.json` hashes every other contained artifact. The boot PRG and
+  unit files are contained components, not separate advertised products. Any failure or pre-commit
+  cancellation leaves the prior current generation intact, and `run` never launches a stale or
+  mixed artifact. The same short per-project publication lock, run pin, and bounded retention rule
+  retains the current generation, active runs, and newest unpinned predecessor and deletes only
+  older unpinned generations; RD-07 adds no disk-specific transaction or cache layer. (AR-008,
+  AR-022, AR-032)
 - [ ] **R7.11 — Serialize one exact physical format.** Emit a 174,848-byte, 35-track, single-sided
   Commodore 1541 D64 without an error-information table. Use 256-byte sectors, standard track-18
   BAM/directory structures, DOS type `2A`, closed PRG entries, 254 payload bytes per linked data
@@ -119,15 +131,22 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   image has 664 available data blocks and at most 144 directory entries; the boot component leaves
   at most 143 distinct unit files. Exceeding either exact limit is a compile-time packaging error
   with the largest contributors and grouping remedy, never truncation or an extended/nonstandard
-  image.
+  image. D64 image length, allocated-sector count, directory/BAM/link overhead, tail padding, and
+  unused fill are capacity and reporting facts only; they never contribute to optimizer program-byte
+  metric `B`, target-memory vector `R`, or candidate selection. Any future load-order/latency policy
+  requires its own explicit packager oracle rather than being called `size` optimization.
 - [ ] **R7.16 — Preserve visible directory integrity.** Every entry is closed, uniquely named,
   correctly typed, length-counted, and reachable through one acyclic in-range sector chain; no
   allocated sector is shared by different files, marked free, orphaned, or referenced twice.
   Unused bytes and sectors use one deterministic fill value. Directory ordering remains stable.
 - [ ] **R7.17 — Bind `run` to the fresh D64.** `blendc run` performs a successful build in the same
-  invocation, verifies the published D64/evidence hashes, attaches that exact image to VICE drive
-  8, and starts its first boot entry under the exact `c64-pal-d64-kernal-6581` model. Build,
-  mount/autostart, emulator, timeout, and observation failures remain distinct. (AR-009, AR-032)
+  invocation, pins the exact immutable generation returned by that build without re-resolving the
+  current record, verifies its D64/evidence hashes, attaches that exact image to VICE drive 8, and
+  starts its first boot entry under the exact `c64-pal-d64-kernal-6581` model. Publication is the
+  no-return point: pre-commit cancellation publishes nothing, while cancellation after commit
+  retains that generation and stops only VICE and its monitor/control work. Build, mount/autostart,
+  emulator, timeout,
+  cancellation, and observation failures remain distinct. (AR-009, AR-032)
 
 #### KERNAL-first transfer — complexity XL
 
@@ -137,7 +156,8 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   fastloader, decompressor, drive code, registry, or general runtime is present. (AR-029, AR-042)
 - [ ] **R7.19 — Lower through the documented KERNAL contract.** Emit the exact selected-ROM
   `SETLFS`, `SETNAM`, and `LOAD` call sequence. Use secondary address zero so `LOAD` consumes the
-  file header but relocates the payload to the statically selected destination in X/Y. Reuse the
+  file header but relocates the payload to the destination address evaluated once for this call and
+  supplied in X/Y. Reuse the
   boot device captured by the disk-profile startup; source never hardcodes drive 8 or a filename.
 - [ ] **R7.20 — Validate complete success.** `true` requires clear KERNAL carry/error status and a
   returned end address exactly equal to the low 16 bits of conceptual
@@ -189,8 +209,9 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   prior contents cease to be the logical value.
 - [ ] **R7.29 — Permit one unit at several valid destinations.** Because the baseline uses a
   relocating KERNAL load, one packaged unit may load into several exact-type destinations. Each
-  call receives its own placement, liveness, visibility, quiescence, end-address, and cost proof;
-  one disk file remains canonical. No destination-specific duplicate is emitted.
+  call and every member of a finite dynamic-place destination set receives its own placement,
+  liveness, visibility, quiescence, end-address, and cost proof; one disk file remains canonical.
+  No destination-specific duplicate is emitted.
 - [ ] **R7.30 — Forbid destructive overlap.** A destination interval cannot overlap executing or
   reachable code, a live return address, hardware stack, active SFA home, loader code/state,
   KERNAL/ROM-required workspace, vector/saved link, active player data, MMIO, reserved range, or any
@@ -240,7 +261,17 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
 - [ ] **R7.40 — Publish complete memory/lifetime evidence.** `.memory.json` identifies loader and
   KERNAL reservations, every possible destination interval, mutually exclusive sequential states,
   CPU/VIC mappings, ROM/I/O visibility, prohibited overlap, interrupt/player quiescence, and the
-  successful publication point. It never labels disk-only bytes as resident RAM.
+  successful publication point. For every occupied or reserved interval it includes the half-open
+  physical range, exact size, owner/kind, source/import identity, mutability,
+  alignment/contiguity, residency/lifetime, CPU mapping, VIC bank/visibility, and ZP/stack class.
+  Each compatible residency and CPU/VIC view reports every free interval, total free bytes, largest
+  contiguous hole, and stack headroom. The versioned report is emitted only after final machine
+  selection, SFA closure, joint layout, ACME assembly, and symbol/segment reconciliation. A proved
+  overlap, overflow, resource exhaustion, visibility/banking/alignment failure, or mismatch is a
+  hard diagnostic naming the request, blockers, and compatible holes before the generation can be
+  published. Bounded runtime writes are checked against the ledger; unbounded raw writes remain
+  expressible but appear as source-linked effects with `runtimeMemorySafety: unproven`. Disk-only
+  bytes are never labelled as resident RAM.
 - [ ] **R7.41 — Prove the codec independently.** Byte-level tests parse the generated image without
   using the production serializer and verify exact image length, geometry, BAM/free counts,
   directory entries, names/types/blocks, every acyclic sector chain, component bytes, deterministic
@@ -269,16 +300,20 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   `2.0.0`, with the later bounded-loader reconsideration trigger. Re-own every due item. (AR-014,
   AR-034)
 
+#### Required tooling metadata handoff — complexity M
+
+- [ ] **R7.48 — Expose pre-build and final metadata.** The shared semantic model exposes logical
+  loadable type/size/provenance, illegal uses, and known destination compatibility to RD-09 without
+  importing packaging. Build-only views expose directory, sector, address, strategy, quiescence,
+  memory-proof status, and cost facts after final layout. This required handoff conforms to the
+  direct versioned sidecar schemas and immutable generation identity.
+
 ### Should Have
 
 - [ ] **R7.47 — Provide focused examples — complexity M.** Include one level-like composite load,
   sequential reuse of one destination, the required `if`/failure path, explicit callback/audio
   quiescence and restoration, automatic omission of an unreachable unit, and a disk-capacity
   diagnostic. Examples remain application source, not a framework or game engine.
-- [ ] **R7.48 — Expose pre-build and final metadata — complexity M.** The shared semantic model
-  exposes logical loadable type/size/provenance, illegal uses, and known destination compatibility
-  to RD-09 without importing packaging. Build-only views expose directory, sector, address,
-  strategy, quiescence, and cost facts after final layout.
 - [ ] **R7.49 — Record host responsiveness — complexity S.** At closeout record D64 serialization,
   independent decode, build, and bounded-run duration plus peak host memory for named fixtures.
   These are comparable observations, not wall-clock pass/fail gates or authorization for a cache.
@@ -547,9 +582,11 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 2. [ ] **AC-02 — Illegal uses:** Reads, indexing, address-of, mutation, casts, ordinary arguments,
    returns, iteration, and storage of a loadable value each produce their stable Specification 4
    diagnostic and no target artifact.
-3. [ ] **AC-03 — Destination compatibility:** Exact mutable fixed global/local destinations pass;
-   constants, partial fields, temporaries, unsized views, MMIO, nominal mismatch, extent mismatch,
-   expired local storage, and placement conflict fail independently.
+3. [ ] **AC-03 — Destination compatibility:** Exact mutable fixed globals, locals, parameter places,
+   matching fields/nested fields, and fixed-array elements/subaggregates pass when every possible
+   complete interval is proved and the place evaluates once. Constants, unstable temporaries, MMIO,
+   nominal/extent mismatch, expired storage, and unproved interval/visibility/alignment/overlap fail
+   independently; no root-only rejection is accepted.
 4. [ ] **AC-04 — Definite publication:** True/false branches, early returns, joins, loops, retries,
    and full reassignment prove exact destination initialization state without a runtime flag.
 5. [ ] **AC-05 — Reachability:** Unreachable units and load calls add zero disk entries, filenames,
@@ -573,9 +610,10 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
     overflow fail before publication with exact contributors.
 13. [ ] **AC-13 — No external packager:** Build succeeds without VICE/c1541 except when `run` or the
     emulator tier is requested; static inspection finds no shell command, hook, or plugin path.
-14. [ ] **AC-14 — Fresh run:** `run` mounts drive 8 with only the fresh hash-bound D64 and starts its
-    first entry. Failed build, stale file, missing/wrong VICE, mount failure, timeout, and program
-    failure remain distinct.
+14. [ ] **AC-14 — Fresh run:** `run` pins one newly published generation, mounts drive 8 with only
+    that generation's hash-bound D64, and starts its first entry. Failed build, stale or mixed files,
+    missing/wrong VICE, mount failure, timeout, cancellation, and program failure remain distinct;
+    post-commit cancellation preserves the complete generation.
 15. [ ] **AC-15 — KERNAL call contract:** Assembly and runtime evidence prove exact SETLFS/SETNAM/
     relocating LOAD arguments, boot-device reuse, filename bytes, destination X/Y, declared
     clobbers, and restored state.
@@ -603,7 +641,8 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
     fixed destination, each successful edge exposes exact new contents, and only one destination
     interval is resident.
 24. [ ] **AC-24 — Several destinations:** One unit loads into two compatible legal destinations
-    using one disk entry; each call has its own exact end-address and interval proof.
+    and through one finite dynamic-place case using one disk entry; each possible address has its own
+    exact end-address and interval proof, and the place expression evaluates exactly once.
 25. [ ] **AC-25 — Overlap rejection:** Code, live SFA, stack, vectors, loader/KERNAL workspaces,
     MMIO, active player data, resident objects, and illegal VIC/bank mappings each fail before ACME
     with every conflicting owner.
@@ -618,10 +657,14 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 29. [ ] **AC-29 — Complete disk report:** Every R7.38 D64/component field decodes back to the exact
     image bytes; unavailable values are `Unknown`, not omitted or zero.
 30. [ ] **AC-30 — Complete cost report:** Every R7.39 byte/resource/time category is separate and
-    reconciled; KERNAL ROM code is existing zero-output code, not free runtime work.
+    reconciled; KERNAL ROM code is existing zero-output code, not free runtime work. D64 allocation
+    and filesystem overhead remain capacity/reporting fields and never enter optimizer `B`, `R`, or
+    candidate selection.
 31. [ ] **AC-31 — Complete memory report:** Disk-only, resident boot, destination, mutually
-    exclusive states, loader/KERNAL, mappings, quiescence, and publication appear without double
-    counting or false simultaneous residency.
+    exclusive states, loader/KERNAL, mappings, quiescence, publication, occupied/free intervals,
+    largest compatible holes, CPU/VIC views, SFA/ZP/stack ownership, runtime-memory-safety proof
+    status, and final ACME reconciliation appear without double counting or false simultaneous
+    residency. A seeded omission, overlap, resource failure, or ACME mismatch prevents publication.
 32. [ ] **AC-32 — Bounded VICE path:** The fresh D64 boots and completes load/success/failure/basic-
     return observations on pinned VICE 3.10; emulator evidence remains hardware-bounded.
 33. [ ] **AC-33 — Targeted real hardware:** A stock PAL C64 with the pinned KERNAL and named

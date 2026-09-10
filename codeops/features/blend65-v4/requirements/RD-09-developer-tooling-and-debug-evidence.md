@@ -4,7 +4,7 @@
 > **Status**: Draft
 > **Created**: 2026-09-10
 > **Project**: Blend65 v4
-> **Depends On**: RD-04
+> **Depends On**: RD-04 to start; RD-05, RD-06, RD-07, and RD-08 to close
 > **CodeOps Artifact Schema**: 1
 
 ---
@@ -26,7 +26,9 @@ owns editor integration and explicit trusted command execution. The compiler als
 versioned `.debug.json` evidence that preserves final source-to-machine mappings, function context,
 symbols, SFA variable homes, types, live ranges, bank identity, and optimized-location state. This
 evidence enables a later source-debugger decision without adding a Blend65-owned debug adapter or
-any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
+any target runtime cost now. The bounded frontend/editor milestone may start after RD-04. Final
+build/debug integration and RD-09 closeout require RD-05 through RD-08's platform, asset, load-unit,
+optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
 
 > **Decisions:** AR-002 through AR-005, AR-008 through AR-012, AR-014, AR-020 through AR-028,
 > AR-030, AR-032, AR-033, AR-036, AR-038, and AR-045 through AR-048.
@@ -52,33 +54,40 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
   or single-file production mode. (AR-022, AR-028, AR-030)
 - [ ] **R9.3 — Keep CLI commands behaviorally complete.** `blendc check` stops before target
   lowering and output publication; `blendc build` runs the complete selected pipeline and
-  atomically publishes its artifact set; `blendc run` performs its own successful fresh build and
-  launches only that invocation's primary artifact. All three report the same stable diagnostics
-  as the host service for the same saved snapshot. (AR-009, AR-022, AR-032)
+  publishes one immutable build generation through the approved staging/current-record protocol;
+  `blendc run` performs its own successful fresh build, pins that invocation's generation, and
+  launches only its primary artifact. All three report the same stable diagnostics as the host
+  service for the same saved snapshot. (AR-009, AR-022, AR-032)
 - [ ] **R9.4 — Distinguish operation outcomes.** The typed API and CLI distinguish successful
   completion, source/project/compiler diagnostics, external-tool failure, and user cancellation.
   Expected failures have stable machine-readable categories and concise human output without a
-  stack trace. A failed or cancelled build publishes no mixed artifact set; a failed or cancelled
-  run never launches an older artifact. (AR-022, AR-025)
+  stack trace. A failed or pre-publication-cancelled build publishes no new generation. A run result
+  distinguishes a successfully published build from later emulator cancellation and never launches
+  an older or unpinned artifact. (AR-022, AR-025)
 - [ ] **R9.5 — Keep tool discovery machine-local and deterministic.** `blend65.json` cannot contain
   executable paths. CLI and VS Code share one optional JSONC tools file at
   `${XDG_CONFIG_HOME:-$HOME/.config}/blend65/tools.jsonc` on Linux and
-  `%APPDATA%\blend65\tools.jsonc` on Windows. It permits only `schemaVersion`, optional absolute
-  `acmePath`, and optional absolute `x64scPath`. A configured path wins and must be a canonical
-  regular executable with the pinned compatible identity; an invalid configured path fails without
-  fallback. For each omitted key or an absent file, search the process `PATH`, then a fixed,
-  documented, production-qualified host-location list; validate candidates in deterministic order
-  and select the first compatible identity. Record canonical path, version, and executable hash in
-  host-side build evidence. Never download or install a tool, invoke a shell, or accept a path,
-  argument, option, or monitor command from project/source/asset/diagnostic content. `check` and
-  ordinary LSP analysis require no external tool; `build` requires ACME and `run` requires ACME plus
-  `x64sc`. Missing or incompatible tools fail only the operation that needs them with an actionable
-  diagnostic. (AR-022, AR-048)
+  `%APPDATA%\blend65\tools.jsonc` on Windows. A present file requires integer `schemaVersion: 1`
+  and permits only optional absolute-string `acmePath` and `x64scPath`; unknown or duplicate keys,
+  wrong types, a missing version, and unsupported versions are stable configuration diagnostics. A
+  configured path wins and must resolve to a canonical regular executable with the pinned compatible
+  identity; an invalid configured path fails without fallback. For each omitted key or an absent
+  file, use only normal process-`PATH` lookup and its native ordering. `PATH` is host execution
+  authority; there is no fixed-install-location registry or special rejection of a project-contained
+  `PATH` entry. Record canonical path and version in normal build evidence; an executable hash is
+  qualification provenance outside portable build identity. Never download or install a tool,
+  invoke a shell, or accept a path, argument, option, or monitor command from project/source/asset/
+  diagnostic content. Compiler-library use, assembly emission, `check`, and ordinary LSP analysis do
+  not load or validate the tools file and require no external tool; binary production requires ACME,
+  and `run` requires ACME plus `x64sc`. Missing or incompatible tools fail only the operation that
+  needs them with an actionable diagnostic. (AR-022, AR-048)
 - [ ] **R9.6 — Preserve exact cancellation ownership.** Cancelling `check` stops outstanding
-  analysis; cancelling `build` also terminates owned ACME work and removes unpublished temporary
-  output; cancelling `run` terminates owned build or VICE work as applicable. Cancellation waits
-  for owned child cleanup and cannot leave a process, monitor port, lock, or apparently successful
-  result behind. (AR-021, AR-022)
+  analysis; cancellation observed before build publication terminates owned ACME work and removes
+  only that invocation's unpublished staging directory. Publication is the no-return point: after
+  the current-generation record commits, the valid build remains published and a later `run`
+  cancellation terminates only its owned VICE/monitor work. Cancellation waits for owned child and
+  pin cleanup and cannot leave a process, monitor port, or lock behind. The structured result reports
+  build success separately from later run cancellation. (AR-021, AR-022)
 
 #### Versioned editor snapshots and diagnostics — complexity L
 
@@ -89,7 +98,7 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
   (AR-021, AR-022)
 - [ ] **R9.8 — Associate documents by the project rule.** Each open `.blend` document uses the
   nearest containing `blend65.json` found by AR-022/AR-028 discovery. Documents resolving to the
-  same canonical manifest share one project context; documents in different projects remain
+  same resolved manifest share one project context; documents in different projects remain
   isolated. A project-wide operation never crosses a manifest root, and a document with no valid
   project receives the shared project diagnostic rather than an invented implicit project.
   (AR-021, AR-022, AR-028)
@@ -98,8 +107,9 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
   diagnostics, symbols, edits, completion, hover, or navigation for an older version. Project,
   manifest, source, asset, profile, or settings changes invalidate only affected contexts and
   schedule a new authoritative result. (AR-011, AR-021, AR-026)
-- [ ] **R9.10 — Convert coordinates explicitly.** Compiler spans retain canonical project-relative
-  source identity and UTF-8 byte offsets. The language-server boundary converts them to and from
+- [ ] **R9.10 — Convert coordinates explicitly.** Compiler spans retain exact host-exposed
+  project-relative spelling, a separate resolved identity, and UTF-8 byte offsets. The
+  language-server boundary converts them to and from
   protocol line/character coordinates without changing compiler identity. ASCII, multibyte UTF-8,
   astral Unicode, CRLF, LF, empty files, and end-of-file spans must not shift the following token or
   edit. (AR-021, AR-022)
@@ -206,10 +216,11 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
   save, edit, diagnostic, completion, or formatter request automatically executes a tool or VICE.
   (AR-021, AR-022)
 - [ ] **R9.29 — Route commands through the authoritative operation.** The extension supplies the
-  active project identity, effective machine-local tool settings, cancellation, and an output sink
-  to the public compiler/CLI adapter. It does not reconstruct command arguments from diagnostic
-  text, invoke a shell, publish artifacts itself, or mark success before the operation's structured
-  result confirms it. (AR-012, AR-021, AR-022)
+  active project identity, cancellation, and an output sink to the public compiler/CLI adapter. For
+  a tool-requiring command only, the adapter loads the shared version-1 machine-local tools file and
+  applies its config-or-`PATH` rule. The extension does not reconstruct command arguments from
+  diagnostic text, invoke a shell, publish artifacts itself, or mark success before the operation's
+  structured result confirms it. (AR-012, AR-021, AR-022)
 - [ ] **R9.30 — Provide cancellable progress and useful output.** Build and run show one progress
   operation with project, profile, phase, and cancellation. Problems receives compiler diagnostics;
   the dedicated Blend65 Output channel receives bounded phase/tool summaries and the final artifact
@@ -224,8 +235,9 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
 - [ ] **R9.32 — Open generated evidence without creating an artifact browser.** After a successful
   build, explicit commands can open the emitted assembly, labels, memory map, asset map, cost report,
   debug map, and build record, and reveal the primary deployable artifact. Paths come from a valid
-  contained `.build.json` record and must match its artifact hashes. The UI identifies the record's
-  build identity; opening old evidence does not claim that it matches current unsaved source.
+  contained `.build.json` in one immutable generation and must match its artifact hashes. The UI
+  identifies the record's build identity and whether that generation is current; opening old
+  evidence does not claim that it matches current unsaved source.
   (AR-008, AR-021, AR-022, AR-032)
 - [ ] **R9.33 — Package one self-contained supported extension.** The release extension starts the
   matching language server and uses the matching protocol/API schema without asking users to clone
@@ -236,16 +248,17 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
 #### Portable compiler debug evidence — complexity XL
 
 - [ ] **R9.34 — Emit one versioned debug artifact.** Every successful build emits `.debug.json`
-  under the same atomic build identity as the primary artifact, assembly, labels, maps, costs, and
-  `.build.json`. It records its schema version, compiler/specification/expert-skill identities,
+  in the same immutable build generation as the primary artifact, assembly, labels, maps, costs,
+  and `.build.json`. It records its schema version, compiler/specification/expert-skill identities,
   target profile, CPU, optimization/safety settings, source/asset hashes, final artifact hash, and
-  address-space model. A failed build publishes no replacement debug artifact. (AR-008, AR-010,
-  AR-022)
-- [ ] **R9.35 — Keep source identity portable and exact.** Debug sources use canonical
-  project-relative identities, content hashes, and UTF-8 byte spans with optional line indexes for
-  consumers. Rebuilding a byte-identical project under a different absolute root produces the same
-  normalized debug artifact. Host absolute paths, process working directory, timestamps, random
-  IDs, and traversal order do not affect semantic identity. (AR-010, AR-022, AR-026)
+  address-space model. A failed or pre-publication-cancelled build publishes no replacement debug
+  artifact. (AR-008, AR-010, AR-022)
+- [ ] **R9.35 — Keep source identity portable and exact.** Debug sources preserve exact
+  host-exposed project-relative spellings, separate resolved containment/alias identities, content
+  hashes, and UTF-8 byte spans with optional line indexes for consumers. Rebuilding a project with
+  the same relative spellings and bytes under a different absolute root produces the same debug
+  artifact. Host absolute paths, process working directory, timestamps, random IDs, and traversal
+  order do not affect semantic identity. (AR-010, AR-022, AR-026)
 - [ ] **R9.36 — Map final machine ranges to source meaning.** Each reachable final instruction or
   contiguous machine range records its address-space/bank/load-unit identity, address interval,
   originating source span or explicit compiler-generated classification, containing function and
@@ -291,10 +304,19 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
 
 - [ ] **R9.43 — Derive specification tests before implementation families.** Author immutable
   `*.spec.test.ts` cases from Specification 4, this RD, the selected project/target contracts, and
-  the pinned protocol/client contracts. Cover each language-server operation, stale/cancel edge,
-  trust boundary, command flow, and debug schema invariant with positive, boundary, negative, and
-  interaction cases. Implementation tests remain separate and cannot weaken these oracles.
-  (AR-014, AR-021, AR-025)
+  the pinned protocol/client contracts. Before RD-09 consumers or tests are implemented, require the
+  producer-owned compact independent versioned contracts for `.assets.json`, `.memory.json`,
+  `.costs.json`, and `.build.json` plus the debug contract; each producer freezes its contract before
+  first publication. Each root requires integer `schemaVersion: 1`; rejects missing/unsupported
+  versions, duplicate or unknown fields, and wrong types; fixes required/optional fields; and permits
+  the exact string `"Unknown"` only where its field contract admits unavailable evidence, never as an
+  omitted, zero, or null value. Deterministic files use UTF-8 without BOM, LF, lexicographically
+  ordered object keys, and schema-defined array order. A future incompatible contract bumps the
+  major integer and older readers issue an unsupported-major diagnostic rather than guessing. Cover
+  each language-server operation, stale/cancel edge, trust boundary, command flow, and schema
+  invariant with positive, boundary, negative, and interaction cases. Add no shared schema registry,
+  service, framework, or database. Implementation tests remain separate and cannot weaken these
+  oracles. (AR-014, AR-021, AR-025)
 - [ ] **R9.44 — Prove shared semantics structurally and behaviorally.** Direct dependency tests
   forbid frontend/language-server imports of codegen, optimizer, packager, VICE, or process-adapter
   packages. Paired CLI/LSP fixtures prove identical diagnostics, symbol/type facts, profile/asset
@@ -305,11 +327,12 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
   request, document changes, cancellation, trust, commands, output, and artifact opening. Mock only
   the editor or operating-system boundary that cannot run in the test host; never mock the compiler
   service whose sharing is under proof. (AR-021, AR-025)
-- [ ] **R9.46 — Qualify debug evidence independently.** Validate the JSON schema, identity hashes,
-  all range/location invariants, labels/maps/artifact cross-links, `none` plus every optimized mode,
-  inlining/removal/rematerialization, direct/finite calls, SFA overlays, interrupt variants, banked
-  assets, and load units. Separately inspect the target artifact to prove that debug emission adds
-  no bytes, storage, initialization, or cycles. (AR-008, AR-010, AR-023)
+- [ ] **R9.46 — Qualify evidence independently.** Validate every public JSON sidecar against its own
+  frozen schema and unsupported-major behavior, then validate identity hashes, all range/location
+  invariants, labels/maps/artifact cross-links, `none` plus every optimized mode, inlining/removal/
+  rematerialization, direct/finite calls, SFA overlays, interrupt variants, banked assets, and load
+  units. Separately inspect the target artifact to prove that debug emission adds no bytes, storage,
+  initialization, or cycles. (AR-008, AR-010, AR-023)
 - [ ] **R9.47 — Keep verification impact-based.** During implementation run only affected
   compiler-service, language-server, extension, formatter, command, or debug-evidence cases. At the
   RD closeout run the complete tooling boundary once, including package/build qualification and
@@ -324,7 +347,10 @@ any target runtime cost now. (AR-008, AR-010, AR-021, AR-025)
 - [ ] **R9.49 — Recheck deferrals and expressiveness.** At closeout, scan the ambiguity register,
   all RD Won't Have sections, Specification 4 future considerations, and the expressiveness ledger.
   Reopen any deferral whose reason expired, record any modern-developer workflow restriction, and
-  assign a new owner before this RD closes. (AR-002, AR-003, AR-010, AR-033)
+  assign a new owner before this RD closes. RD-09 cannot close until RD-05 through RD-08 have
+  completed the required platform, frontend-asset, load-unit, optimizer, final-location, and evidence
+  schema handoffs and the final build/debug integration milestone has consumed them. (AR-002,
+  AR-003, AR-010, AR-033)
 
 ### Should Have
 
@@ -393,16 +419,47 @@ trusted VS Code commands enter the backend branch. Package dependency tests enfo
 convention and code review alone are insufficient. One concrete module may serve several adjacent
 responsibilities, but a convenience import cannot create a frontend-to-codegen edge.
 
+### Build generation and evidence identity — complexity L
+
+Each build writes and validates a unique staging directory, renames it once to an immutable
+`buildId` generation, then atomically replaces one small current-generation record. A short
+per-project lock coordinates only generation publication, current-record replacement, run pinning,
+and cleanup. Each run pins its own generation until all owned VICE/monitor work ends. Failed work
+removes only its staging directory. Cleanup retains the current generation, every actively pinned
+generation, and the newest unpinned predecessor; it deletes only older unpinned generations while
+holding the same lock. This is one direct host-side routine, not a transaction or storage framework,
+and adds no target bytes, storage, startup work, or cycles.
+
+The configured relative `outDir` is compiler-owned output state, never an input or input-identity
+source. Discovery excludes the output subtree before walking sources/assets even when `sourceRoot`
+is `.`, and the directory may contain prior generations. Publication validates the nearest existing
+canonical parent and creates only missing contained components; absolute/escaping paths, a file in
+place of a required directory, symlink escape, and declared input inside the output tree fail before
+staging or child-process launch.
+
+`buildId` derives only from canonical semantic inputs and portable tool identities. `.build.json`
+contains that ID and hashes every other generated artifact, explicitly excluding itself. If a
+summary of the generated set is needed, it is a separately named output digest and never feeds back
+into `buildId`. Host-specific executable paths and hashes, duration, and peak memory are provenance
+outside portable identity. `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` evolve
+independently under the schema contracts frozen by R9.43; no reader guesses an unsupported major.
+
+Publication is the build no-return point. Cancellation observed before the current record commits
+publishes nothing. Once it commits, the immutable generation remains a successful valid build;
+later run cancellation releases its pin after terminating only the owned VICE process tree and
+monitor connection. A race at the commit boundary is resolved by the observed commit order and can
+never report the generation as both unpublished and current.
+
 ### Snapshot and request model — complexity L
 
 | Identity | Required behavior |
 |---|---|
-| Project | Canonical `blend65.json` identity and RD-02 coherent saved snapshot |
-| Document | Canonical project-relative identity plus monotonically increasing open-document version |
+| Project | Resolved `blend65.json` identity and RD-02 coherent saved snapshot |
+| Document | Exact host-exposed project-relative spelling plus resolved identity and monotonically increasing open-document version |
 | Overlay set | Latest open bytes for every document in that project at request start |
 | Request | Project snapshot, overlay versions, requested document/version, method, and cancellation token |
 | Publication | Allowed only if all response-dependent identities and document versions remain current |
-| Build/run | Saved coherent filesystem snapshot only; dirty consumed open inputs are saved or the command aborts |
+| Build/run | Saved coherent filesystem snapshot only; dirty consumed open inputs are saved or the command aborts; each successful run pins its committed immutable generation |
 
 Full project re-analysis is permitted. Incremental text synchronization does not imply an
 incremental compiler. The implementation may coalesce superseded work and retain bounded in-memory
@@ -630,8 +687,9 @@ C64U implementation.
 
 > **Traceability:** Every scope decision references
 > [00-ambiguity-register.md](00-ambiguity-register.md). Exact protocol method shapes, public API
-> types, debug schema fields, and client packaging are fixed in the RD-09 implementation plan
-> within these approved behavioral boundaries; they cannot expand the product surface.
+> types, independent sidecar/debug schema fields, and client packaging are fixed at R9.43's
+> schema-first milestone before their consumers or specification tests are implemented; they remain
+> within these approved behavioral boundaries and cannot expand the product surface.
 
 ---
 
@@ -712,20 +770,23 @@ C64U implementation.
     and VICE monitor creation are denied before process launch. Granting trust still requires the
     explicit command.
 21. [ ] **AC-21 — Fresh run:** `Blend65: Run in VICE` saves relevant inputs, completes one fresh
-    successful build, and launches exactly its hash-bound primary artifact. Seeded save, compiler,
-    ACME, packaging, and cancellation failures launch nothing; a prior valid artifact is never used.
+    successful build, pins its immutable generation, and launches exactly its hash-bound primary
+    artifact. Seeded save, compiler, ACME, packaging, and pre-publication cancellation failures
+    launch nothing; a prior or unpinned artifact is never used.
 22. [ ] **AC-22 — Cancellation cleanup:** Cancelling check, ACME build, VICE startup, and a running
-    owned VICE session produces the cancellation category, terminates all owned processes and
-    monitor connections, removes unpublished temporary output, and leaves no newly published or
-    runnable-looking artifact set.
+    owned VICE session terminates all owned processes and monitor connections and removes only
+    unpublished staging. Deterministic cases on both sides of the commit boundary prove that
+    pre-commit cancellation publishes nothing, while post-commit cancellation preserves the valid
+    generation, reports build success plus cancelled run, and releases its run pin.
 23. [ ] **AC-23 — Problems, progress, and output:** One successful and one failing Build/Run case
     show project/profile/phase progress, structured Problems diagnostics, bounded Output summary,
     final artifact or failure category, and no complete source/asset content, raw stack trace,
     unrelated monitor data, or unnecessary absolute path.
 24. [ ] **AC-24 — Artifact access:** For a valid successful build record, every R9.32 command opens
-    or reveals the exact contained hash-matching artifact. Missing, malformed, path-escaping,
-    symlink-escaping, hash-mismatched, or mixed-build records execute nothing and report the failed
-    validation. Historical evidence is identified by its build identity rather than called current.
+    or reveals the exact contained hash-matching artifact from one immutable generation. Missing,
+    malformed, path-escaping, symlink-escaping, hash-mismatched, mixed-build, or stale current-record
+    cases execute nothing and report the failed validation. Historical evidence is identified by
+    its build identity rather than called current.
 25. [ ] **AC-25 — Debug identity and portability:** `.debug.json` validates against its frozen
     schema and matches compiler/spec/skill/profile/CPU/mode/safety/source/asset/build/artifact
     identities. Two byte-identical projects at different roots produce byte-identical normalized
@@ -742,8 +803,10 @@ C64U implementation.
     address space, bank/visibility, load unit, publication, and residence facts needed to interpret
     each location without widening language `word` or flattening distinct physical identities.
 29. [ ] **AC-29 — Cross-artifact coherence:** Every debug symbol/range agrees with `.labels`,
-    `.memory.json`, `.assets.json`, `.build.json`, and the hashed PRG/D64 bytes; deliberately changing
-    any address, bank, range, hash, or build identity fails validation.
+    `.memory.json`, `.assets.json`, `.build.json`, and the hashed PRG/D64 bytes. Each JSON sidecar
+    validates independently under its versioned schema; `.build.json` hashes every other artifact
+    but not itself. Deliberately changing any address, bank, range, hash, build identity, required
+    field, or schema major fails validation.
 30. [ ] **AC-30 — Zero target debug cost:** Building the same frozen project with required debug
     evidence validation disabled only in the test observer produces byte-identical assembly,
     primary artifact, maps, target symbols, memory/ZP/SFA/stack totals, startup path, and VICE
@@ -767,13 +830,16 @@ C64U implementation.
     any deferral rationale. Any newly due debugger integration, incremental-analysis, editor,
     portability, or expressiveness work has an owned backlog row before RD-09 is marked complete.
 36. [ ] **AC-36 — Deterministic tool discovery:** On clean production Linux x64 and Windows x64
-    hosts, cases cover no config, each single-key override, both overrides, PATH discovery, every
-    qualified standard install location, multiple compatible candidates, wrong version, missing
-    executable, non-file path, valid and broken symlinks, malformed/unknown-key config, and invalid
-    configured path. They prove canonical symlink resolution plus the exact precedence and failure
-    behavior in R9.5 and record selected tool identities.
+    hosts, cases cover an absent file; required integer `schemaVersion: 1`; each omitted key,
+    single-key override, and both overrides; normal `PATH` ordering; wrong or missing version;
+    missing executable; non-file path; valid and broken symlinks; duplicate/unknown keys; wrong
+    types; missing/unsupported schema version; and invalid configured paths. They prove direct
+    config-then-`PATH` precedence, no fallback from an invalid explicit path, and no fixed-location
+    registry. `check` and ordinary LSP cases prove that they do not load or validate the file.
 37. [ ] **AC-37 — Complete production host workflow:** Native Node 22 qualification on both
     `linux/x64` and `win32/x64` covers the packaged compiler/CLI/LSP/VS Code extension, `check`,
     `build`, fresh `run`, ACME/VICE discovery and invocation, cancellation/process-tree cleanup,
-    path semantics, and atomic artifacts. Emulated Windows paths on Linux cannot satisfy the Windows
-    case. macOS and other Node 22 results are reported as best-effort until the same boundary passes.
+    path semantics, immutable-generation publication/current-record replacement, concurrent build
+    and run pinning, bounded retention, and cleanup. Emulated Windows paths on Linux cannot satisfy
+    the Windows case. macOS and other Node 22 results are reported as best-effort until the same
+    boundary passes.

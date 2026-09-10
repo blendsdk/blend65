@@ -73,14 +73,14 @@ no compiler architecture, package, or compatibility obligation. (AR-005, AR-025)
 |---|---|---|---|
 | **AR** | [Ambiguity Register](00-ambiguity-register.md) | Forty-eight resolved product, language, architecture, target, evidence, and workflow decisions | — |
 | **RD-01** | [Specification 4.0 and Expert Authority Freeze](RD-01-specification-4-and-expert-authority-freeze.md) | Applies accepted language changes once, qualifies expert `2.0.0`, and freezes both authorities in the prepared v4 worktree | Phase 0 bootstrap |
-| **RD-02** | [Clean V4 Foundation and Deterministic Project Model](RD-02-clean-v4-foundation-and-deterministic-project-model.md) | Creates the clean monorepo, package boundaries, project model, diagnostics, and atomic build foundation | RD-01 |
+| **RD-02** | [Clean V4 Foundation and Deterministic Project Model](RD-02-clean-v4-foundation-and-deterministic-project-model.md) | Creates the clean monorepo, package boundaries, project model, diagnostics, and immutable-generation build foundation | RD-01 |
 | **RD-03** | [Playable M1 Complete Pipeline](RD-03-playable-m1-complete-pipeline.md) | Delivers a playable Space Invaders-style vertical proof through real assets, ACME, and VICE | RD-01, RD-02 |
 | **RD-04** | [Complete Language and Correct Unoptimized Compiler](RD-04-complete-language-correct-unoptimized-compiler.md) | Implements all Specification 4 semantics and correct `optimization: none` output | RD-01, RD-02, RD-03 |
 | **RD-05** | [C64 Platform Profiles and Game-Workload Compiler Support](RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | Implements eight C64 profiles and proves user-authored game workloads without shipping an engine | RD-01 through RD-04 |
 | **RD-06** | [Native Assets, Compile-Time Composition, and Resident Layout](RD-06-native-assets-compile-time-composition-and-resident-layout.md) | Adds exact asset handlers, typed compile-time refinement, and one-copy resident placement | RD-01 through RD-05 |
 | **RD-07** | [Loadable Assets and D64 Delivery](RD-07-loadable-assets-and-d64-delivery.md) | Adds explicit loadable values, one deterministic D64 profile, and bounded KERNAL loading | RD-01 through RD-06 |
 | **RD-08** | [Optimization and Expert Output](RD-08-optimization-and-expert-output.md) | Exhausts the qualified modern-plus-6502 frontier for balanced, speed, and size goals | RD-01 through RD-07 |
-| **RD-09** | [Developer Tooling and Debug Evidence](RD-09-developer-tooling-and-debug-evidence.md) | Completes the compiler API, CLI, LSP, thin VS Code client, formatter, and portable debug evidence | RD-04 |
+| **RD-09** | [Developer Tooling and Debug Evidence](RD-09-developer-tooling-and-debug-evidence.md) | Completes the compiler API, CLI, LSP, thin VS Code client, formatter, and portable debug evidence | RD-04 to start; RD-05 through RD-08 to close |
 | **RD-10** | [Production Qualification and C64U Handoff](RD-10-production-qualification-and-c64u-handoff.md) | Closes the Linux/Windows C64 production claim and hands proved architecture seams to the C64U feature | RD-05 through RD-09 |
 
 ## Dependency Graph
@@ -91,7 +91,7 @@ Phase 0  Record final v3 commit and create the v4 worktree
        └─ RD-02  Foundation and project model
             └─ RD-03  Playable M1 pipeline
                  └─ RD-04  Complete correct unoptimized compiler
-                      ├─ RD-09  Developer tooling and debug evidence ─────────────┐
+                      ├─ RD-09  Tooling starts; final integration waits RD-05..08 ┐
                       └─ RD-05  C64 profiles and workload support                 │
                            └─ RD-06  Native assets and resident layout            │
                                 └─ RD-07  Loadable assets and D64                  │
@@ -102,8 +102,11 @@ Phase 0  Record final v3 commit and create the v4 worktree
                                      RD-07 ─────────────────────────────────────────┘
 ```
 
-RD-09 can proceed in parallel after RD-04 is stable. RD-10 begins only after RD-05 through RD-09
-are complete. The separate `blend65-c64u/RD-01` remains dependent on RD-10's evidence handoff.
+RD-09 has two explicit milestones. Its bounded frontend/editor work can proceed in parallel after
+RD-04 is stable. Its final build/debug integration and closeout require the platform, asset,
+load-unit, optimizer, and final-location handoffs from RD-05 through RD-08. RD-10 begins only after
+RD-05 through RD-09 are complete. The separate `blend65-c64u/RD-01` remains dependent on RD-10's
+evidence handoff.
 
 ## Suggested Implementation Order
 
@@ -114,7 +117,7 @@ are complete. The separate `blend65-c64u/RD-01` remains dependent on RD-10's evi
 | **B: Foundation** | RD-02 | Prepared v4 worktree verified; deterministic monorepo, project model, diagnostics, and public compiler service established |
 | **C: First vertical proof** | RD-03 | Small playable M1 through compiler, SpritePad asset, ACME, PRG, and VICE |
 | **D: Complete unoptimized capability** | RD-04 → RD-05 → RD-06 → RD-07 | Complete language, C64 platform, native resident assets, and explicit disk delivery before optional optimization |
-| **E: Optimization and tooling** | RD-08 and RD-09 | Expert-quality optimized output plus the production CLI/editor workflow; RD-09 may start after RD-04 |
+| **E: Optimization and tooling** | RD-08 and RD-09 | Expert-quality optimized output plus the production CLI/editor workflow; RD-09 may start after RD-04 but closes only after RD-05 through RD-08 |
 | **F: Production qualification** | RD-10 | Bounded C64 production claim, targeted physical QA, deferral closure, and C64U handoff |
 
 M1 is a development milestone, not a reduced production language or a game framework. Production
@@ -137,14 +140,14 @@ completion requires the entire active language and approved C64 surface.
 | Product boundary | Compiler, language, platform operations, and asset conversion—not a game engine | AR-038 |
 | Optimization | Correct `none` first; then one finite qualified frontier exhausted under three cost orderings | AR-023, AR-045, AR-046 |
 | Developer tooling | Public compiler service, frontend-only LSP, thin trusted VS Code client, and portable debug evidence | AR-010, AR-021, AR-047 |
-| Production hosts | Node 22 on Linux x64 and Windows x64; deterministic local ACME/VICE discovery | AR-048 |
+| Production hosts | Node 22 on Linux x64 and Windows x64; machine-local tools configuration followed only by normal process-`PATH` ACME/VICE discovery | AR-048 |
 | Verification | Directed checks during work, complete relevant boundary at major checkpoints, targeted physical QA near release | AR-008, AR-011, AR-024, AR-026 |
 
 ## Final Requirements Validation
 
 | Check | Result |
 |---|---|
-| Document inventory | 10 RDs, 435 Must requirements, 26 Should requirements, 75 explicit exclusions, and 358 acceptance criteria |
+| Document inventory | 10 RDs, 438 Must requirements, 23 Should requirements, 75 explicit exclusions, and 358 acceptance criteria |
 | Ambiguity gate | AR-001 through AR-048 are all `✅ Resolved`; no deferred or assumed executable decision remains |
 | Dependencies | Every declared RD exists; dependency graph is acyclic; implementation order respects prerequisites |
 | Cross-references | Every local Markdown link and every referenced AR identity resolves |
@@ -159,15 +162,15 @@ completion requires the entire active language and approved C64 surface.
 
 | Concern group | Disposition | Owner |
 |---|---|---|
-| Audit trail, export, observability | Atomic build/debug/asset/memory/cost/release evidence; no server audit service | RD-02, RD-03, RD-06 through RD-10 |
-| API and artifact versioning | Specification, package, schema, profile, asset, debug, tool, and evidence identities are explicit | RD-01, RD-02, RD-06, RD-09, RD-10 |
+| Audit trail, export, observability | Immutable build generations plus versioned debug/asset/memory/cost/build/release evidence; no server audit service | RD-02, RD-03, RD-06 through RD-10 |
+| API and artifact versioning | Specification, package, independent sidecar schema, profile, asset, debug, tool, and evidence identities are explicit | RD-01, RD-02, RD-06, RD-09, RD-10 |
 | Errors, empty states, onboarding | Stable diagnostics, empty/new-project behavior, first-project docs, examples, and actionable remedies | RD-02 through RD-10 |
-| Loading/progress/cancellation/offline use | Bounded local progress and owned process-tree cancellation; builds require no network or automatic download | RD-02, RD-07, RD-09, RD-10 |
+| Loading/progress/cancellation/offline use | Bounded local progress, publication as the build no-return point, and owned process-tree cancellation; builds require no network or automatic download | RD-02, RD-07, RD-09, RD-10 |
 | Accessibility, localization, timezones | Textual diagnostics/evidence are keyboard accessible; target text encodings are explicit; host locale/time/path cannot change output | RD-01, RD-02, RD-05, RD-09, RD-10 |
-| Backup, deletion, disaster recovery | Local source control remains the backup authority; atomic staging preserves last known good outputs; no hosted data exists | RD-02, RD-09, RD-10 |
+| Backup, deletion, disaster recovery | Local source control remains the backup authority; immutable generations retain current, active pins, and one unpinned predecessor; no hosted data exists | RD-02, RD-09, RD-10 |
 | Search, pagination, mobile, email, admin UI | N/A: Blend65 exposes no web/mobile application, list service, mailer, or administrator surface | Product boundary |
 | Accounts, sessions, privacy, GDPR, retention | N/A: no accounts, authentication service, personal-data store, telemetry service, or remote API | Every RD security section |
-| Configuration and feature selection | One contained `blend65.json`, one optional machine-local tools JSONC file, closed profile/mode/safety values | RD-02, RD-08 through RD-10 |
+| Configuration and feature selection | One contained `blend65.json`, one optional machine-local `tools.jsonc` schema version 1, closed profile/mode/safety values | RD-02, RD-08 through RD-10 |
 | Input validation and injection | Closed schemas/allowlists, canonical contained paths, structured ACME/process arguments, no shell or executable project hooks | RD-02, RD-03, RD-06, RD-07, RD-09, RD-10 |
 | Rate limiting and resource exhaustion | Remote rate limiting is N/A; local parser/evaluator/process/output/retry/concurrency budgets are bounded | RD-01, RD-02, RD-06 through RD-10 |
 | Secrets, encryption, infrastructure | No secrets or sensitive network transport; least-privilege local/CI execution; no daemon, database, or public listener | Every RD security section |
@@ -182,4 +185,6 @@ completion requires the entire active language and approved C64 surface.
 5. Update the roadmap at each lifecycle transition.
 6. Do not begin semantic compiler implementation until RD-01 has frozen Specification 4 and the
    expert `2.0.0` baseline together.
-7. Continue in dependency order, allowing RD-09 to overlap only after RD-04 is stable.
+7. Continue in dependency order. RD-09's bounded frontend/editor milestone may overlap after RD-04
+   is stable; do not close RD-09 until RD-05 through RD-08 have supplied their required schemas and
+   final evidence handoffs.

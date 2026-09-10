@@ -169,15 +169,18 @@ product. (AR-038)
   legal instruction selection, SFA/resource binding, layout, and branch repair. (AR-002, AR-023,
   AR-027)
 - [ ] **R3.21 — Qualify the current SpritePad input before use.** Before RD-03 implementation
-  planning or asset-decoder work, obtain the user-owned native project and relevant exports produced
-  by the official SpritePad C64 Pro 3.80 application. Record producer/version, execution environment,
-  settings, provenance, and SHA-256; retain a distinguishable nonblank template and the final
-  producer-saved art project. The consumed SPD v5 schema review validates signature, version,
+  planning or asset-decoder work, the project owner supplies and approves retention of the
+  user-owned native project and relevant exports produced by the official SpritePad C64 Pro 3.80
+  application; the compiler implementation owner records and independently checks the fixture.
+  Record producer/version, execution environment, settings, provenance, redistribution disposition,
+  and SHA-256; retain a distinguishable nonblank template and the final producer-saved art project.
+  The consumed SPD v5 schema review validates signature, version,
   counts, complete 64-byte records, used attributes, tails, exact EOF, record order, and requested
   selector. A handmade file, v3 parser, extension, passing legacy test, or comparative parser alone
   cannot establish qualification. SpritePad is never invoked by the compiler, Linux build, or CI.
   Missing evidence blocks the format-dependent boundary rather than requirements authoring or a
-  guessed implementation. (AR-014, AR-027, AR-037)
+  guessed implementation. This bounded eight-sprite evidence does not satisfy RD-06's complete
+  SpritePad/CharPad fixture gates. (AR-014, AR-027, AR-037)
 - [ ] **R3.22 — Emit only the selected asset representation.** `embed(path, "sprites")` produces
   the exact typed native 64-byte record array required by Specification 4. The final M1 game project
   contains exactly eight records: player, two two-frame invader designs, projectile, and two-frame
@@ -217,14 +220,20 @@ product. (AR-038)
 - [ ] **R3.27 — Publish one coherent evidence set atomically.** A successful build publishes the
   PRG plus deterministic assembly, labels, memory/segment map, asset map, SFA/closure report,
   zero-page and hardware-stack report, code/data/padding and path-cycle report, source/debug map,
-  selected-profile/tool identities, options/overrides, and input/output SHA-256 values. All files
-  bind one snapshot and build identity. A failed build publishes none of the new set and leaves no
-  stale file looking current. (AR-008, AR-010, AR-022, AR-032)
+  selected-profile/tool identities, options/overrides, and input/output SHA-256 values. Each JSON
+  sidecar conforms to its small direct versioned schema. All files bind one snapshot and semantic
+  build identity inside one immutable generation; one atomically replaced current-generation
+  record publishes the complete set. A failed or pre-commit-cancelled build publishes no new
+  generation as current and leaves no stale file looking current. (AR-008, AR-010, AR-022, AR-032)
 - [ ] **R3.28 — Run the exact fresh PRG in VICE 3.10.** `blendc run` verifies `x64sc` version 3.10,
-  selects the recorded PAL C64 model/profile settings, launches only the newly built PRG, reports
-  the bounded status `VICE-verified / hardware-unverified`, and owns reliable cancellation and
-  child cleanup. Interactive run leaves control with the developer; automated qualification stops
-  VICE externally after observing the return contract. (AR-009, AR-013, AR-027)
+  pins the exact immutable generation returned by its own build without re-resolving the current
+  record, selects that generation's recorded PAL C64 model/profile settings, launches only its PRG,
+  reports the bounded status
+  `VICE-verified / hardware-unverified`, and owns reliable cancellation and child cleanup.
+  Publication is the no-return point: cancellation before the current-generation commit publishes
+  nothing, while cancellation after it preserves the complete build and stops only VICE and its
+  monitor/control work. Interactive run leaves control with the developer; automated qualification
+  stops VICE externally after observing the return contract. (AR-009, AR-013, AR-027)
 - [ ] **R3.29 — Exercise real emulated joystick input deterministically.** The qualification driver
   uses one version-pinned VICE-supported control-port input mechanism to replay a checked-in,
   requirements-derived PAL-frame trace that moves the player, launches projectiles, destroys all
@@ -253,15 +262,14 @@ product. (AR-038)
   volatile access count/order, sprite placement/visibility, startup, restored state, and return.
   Comparing two compiler paths or reading generated assembly is supporting evidence only. (AR-002,
   AR-027, AR-037)
-- [ ] **R3.33 — Use an independent expert assembly and cost oracle.** Before accepting codegen,
+- [ ] **R3.33 — Establish an independent expert assembly and cost baseline.** Before accepting codegen,
   write or obtain an equivalent hand-authored ACME M1 twin under the identical profile, startup,
   input, asset, frame, and return obligations. Compare final assembled code/data/padding, ZP, SFA,
-  stack, memory traffic, and relevant path cycles. Generated local routines may not exceed the
-  expert cost frontier. Record a whole-program win; if the best honest result only meets the expert,
-  create the authorized GitHub parity-debt issue with the exact delta and path to a win. A result
-  worse than the equivalent expert is an M1 defect. The twin implements the same fixed entity,
-  collision, and terminal-state behavior rather than a smaller sprite demonstration. (AR-002,
-  AR-027, AR-037)
+  stack, memory traffic, and relevant path cycles. Under `optimization: none`, correctness and
+  deterministic canonical lowering are acceptance gates; expert-cost comparison is recorded as the
+  RD-08 optimization baseline and does not fail M1 or create parity debt. The twin implements the
+  same fixed entity, collision, and terminal-state behavior rather than a smaller sprite
+  demonstration. (AR-002, AR-023, AR-027, AR-037)
 - [ ] **R3.34 — Keep verification impact-based.** During implementation run the affected stage or
   package cases. At M1 closeout run the complete new v4 foundation/frontend/compiler/CLI/editor
   boundary suite, the one M1 ACME build, and the one M1 VICE qualification path. Do not import v3's
@@ -365,7 +373,7 @@ The game uses only fixed state and compile-time constants:
 | Projectile | one maximum, color `1`; spawn at `(player.x, 199)` on a fire rising edge while idle; move four pixels upward per update; hide when its logical top passes `50` |
 | Projectile hitbox | two pixels wide at `x + 11..x + 12`, eight pixels high at `y..y + 7` |
 | Invader hitbox | the live sprite rectangle `x..x + 23`, `y..y + 20`; the lowest array index wins an otherwise simultaneous hit |
-| Explosion | reuses sprite 7 at the hit invader position in color `8` for exactly two updates, one selected frame per update, then becomes idle |
+| Explosion | the projectile-hit update removes the winning invader, consumes the projectile, and publishes explosion frame 1 at the hit position in color `8` with count 1; the next update publishes frame 2 with count 2; the following update makes sprite 7 idle before fire-edge spawning and terminal exit handling |
 | Win | all six `alive` fields are false; freeze player/formation, set border color `5`, and finish any just-started two-frame explosion |
 | Loss | any live invader's bottom reaches player `y = 220`; freeze play and set border color `2` |
 | Exit | after sprite 7 is idle and a terminal frame has been published, observe fire released and then a new press; restore owned state and return to BASIC |
@@ -377,6 +385,8 @@ eighth-frame counter is due; resolve at most one projectile hit in ascending ene
 spawn a new projectile from a rising fire edge only if sprite 7 is now idle; determine win/loss;
 select animation records; and publish each required sprite register plus the result border once.
 Opposing left/right inputs produce no motion. Up and down are ignored. Holding fire never repeats.
+Resolving a projectile hit is itself the first explosion update; there is no unrendered or
+zero-count explosion state between collision and frame 1.
 
 Before compiler implementation, the specification tier freezes one complete predetermined input
 trace and its per-frame entity/VIC expectations from this table using an independent reference
@@ -415,10 +425,71 @@ because those are the same bytes loaded to their final address—not two runtime
 ### Artifact publication — complexity L
 
 The primary artifact name is `<name>.prg`. Supporting files use deterministic documented names and
-machine-readable schemas. Publication occurs through a temporary sibling set followed by one
-commit/rename boundary only after compiler, ACME, byte, layout, and packaging validation succeeds.
-The build identity covers Specification 4, expert skill `2.0.0`, compiler commit, project snapshot,
-target, options, overrides, SpritePad input, ACME identity, and every output hash.
+machine-readable schemas. The producer stages one complete immutable generation and atomically
+replaces one small current-generation record only after compiler, ACME, byte, layout, and packaging
+validation succeeds. Readers resolve that record once and retain the selected generation for their
+whole operation, so concurrent builds cannot expose mixed siblings. The semantic `buildId` is the
+lowercase SHA-256 of canonical Specification 4, compiler, project snapshot, target, options,
+overrides, SpritePad input, and portable ACME semantic identities; it does not hash outputs that
+contain the `buildId`. `.build.json` hashes every other published artifact, excludes its own bytes
+from that output digest, and records host executable provenance separately from portable identity.
+
+A short per-project lock coordinates only staging-directory commit, current-record replacement,
+run pin acquisition/release, and cleanup; compilation and ACME execution do not hold it. `run` pins
+the exact generation returned by its own build rather than resolving a possibly newer current
+record. Failed work removes only its unique staging directory. Cleanup retains the current
+generation, every actively pinned generation, and the newest unpinned predecessor, and removes only
+older unpinned generations while holding the same lock. This is one direct output routine, not a
+general transaction, cache, or readiness service. Linux and Windows must prove competing builds,
+reader pinning, failed staging, atomic current replacement, active-run retention, stale-pin recovery,
+and deterministic bounded cleanup.
+
+The first public sidecars use these direct schemas; they are not a registry or database:
+
+| Sidecar | Required schema identity and payload |
+|---|---|
+| `.build.json` | `kind: "blend65.build"`; required `generationId: string`, `semanticInputs: object`, `portableTools: ToolIdentity[]`, `hostProvenance: object`, `artifacts: ArtifactDigest[]`, and `artifactSetSha256: string`. Every `ArtifactDigest` requires `path`, `kind`, `bytes`, and `sha256`; the array covers every published file except `.build.json` itself. Host paths, executable hashes, durations, and peak host memory occur only in `hostProvenance` and never affect `buildId` or `artifactSetSha256`. |
+| `.assets.json` | `kind: "blend65.assets"`; required `generationId: string` and `assets: AssetRecord[]`. Each record requires `sourcePath`, `inputSha256`, `handler`, `handlerVersion`, `selector`, `logicalType`, `shape: integer[]`, `outputSha256`, `payloadBytes`, `emittedBytes`, `aliases: string[]`, `constraints: object[]`, and `placement: object`. |
+| `.memory.json` | `kind: "blend65.memory"`; required `generationId: string`, `sfaClosureSha256: string`, `acmeReconciled: boolean`, `runtimeMemorySafety: "proved" | "unproven"`, `unboundedEffects: object[]`, `intervals: MemoryInterval[]`, and `views: MemoryView[]`. `MemoryInterval` and `MemoryView` contain the exact ledger and free-space fields defined below. |
+| `.costs.json` | `kind: "blend65.costs"`; required `generationId: string` and `entries: CostEntry[]`. Each entry requires `owner`, `kind`, `emittedBytes`, and one tagged `cycles` object: `{ kind: "exact", value }`, `{ kind: "range", minimum, maximum }`, `{ kind: "symbolic", expression }`, or `{ kind: "unknown" }`. |
+
+Every sidecar also requires the JSON integer `schemaVersion: 1` and `buildId: string`. Counts,
+addresses, sizes, shape elements, and cycle bounds are nonnegative JSON integers; identities, names,
+kinds, paths, hashes, and symbolic cycle expressions are JSON strings; records are JSON objects;
+collections are canonically ordered JSON arrays. Hashes are 64 lowercase hexadecimal characters.
+Source and asset paths preserve their exact host-exposed project-relative spelling with `/` used
+only as the evidence separator representation; separate resolved identities own containment and
+alias checks. Memory intervals are half-open
+`{ start, end, size }` objects where `start` is `0..65535`, `end` is `1..65536`, and
+`size = end - start`. All fields listed above are required. The only unavailable representation is
+the tagged `{ kind: "unknown" }` cycle value or a field that explicitly admits the exact string
+`Unknown`; zero, omission, and `null` never mean unavailable.
+
+Canonical sidecar bytes are UTF-8 without BOM, use LF, end in one newline, sort object keys and
+unordered arrays by unsigned UTF-8 byte order of their declared stable identity, and use decimal
+integer spelling without exponent or insignificant fractional syntax. A schema-version-1 producer emits
+only declared fields. A version-1 consumer rejects a missing required field, duplicate or unknown
+field, wrong JSON type, unknown `kind`, invalid range/order, or unsupported integer schema version
+with a stable unsupported-major artifact-schema diagnostic. Any incompatible future contract bumps
+that integer. A consumer never guesses, silently upgrades, or rewrites evidence. Each sidecar
+evolves independently and no registry or shared schema service is introduced.
+
+The successful-build memory ledger is produced after optimization-none selection, final SFA
+closure, target layout, ACME assembly, and reconciliation with ACME's actual symbols, bytes, and
+segments. Every occupied or reserved interval records its physical identity, half-open range, exact
+size, owner/kind, source or imported identity, mutability, alignment/contiguity, residency/lifetime,
+CPU mapping requirements, VIC bank/visibility where applicable, and zero-page/stack class. For each
+compatible residency and CPU/VIC view it reports total occupied and free bytes, every free interval,
+largest contiguous hole, useful payload, padding, reservations, zero-page allocation, and proved
+hardware-stack peak/headroom without double counting. A proved overlap, overflow, exhaustion,
+visibility/banking/alignment failure, or ACME disagreement is a hard error before publication and
+names the request, constraints, conflicting owners, and largest compatible holes.
+
+Raw variable-address `PEEK`/`POKE`, `asm_*`, imported code, or a later runtime loader does not make
+static placement approximate. A bounded effect is checked against this ledger. An unbounded effect
+remains expressible but sets `runtimeMemorySafety` to `unproven` and lists its source sites and
+effect classes; the compiler never converts that honest boundary into a whole-program memory-safety
+claim or injects a hidden runtime check.
 
 ### Verification topology — complexity XL
 
@@ -460,7 +531,8 @@ Every deferred M1 language surface has an explicit RD-04 owner.
 
 ### With RD-08 (Optimization and Expert Output)
 
-M1's `none` mode and independent behavior/expert twin become the correctness and cost baseline.
+M1's `none` mode and independent behavior/expert twin become the correctness and measured cost
+baseline; expert-cost parity is not an acceptance gate for `none`.
 RD-08 may add optional transformations but cannot make `none` semantically incomplete or repair
 facts that M1 erased too early.
 
@@ -490,9 +562,8 @@ no C64U target identity or support claim; the owned successor activates only aft
 ### Generated target quality — complexity XL
 
 - Modern source remains ordinary and readable; platform APIs carry necessary hardware intent.
-- Local output meets or beats the equivalent expert routine under complete cost accounting.
-- Whole-program results pursue a measurable win. A meet-only result receives the authorized debt
-  issue; a worse result blocks M1.
+- `optimization: none` produces correct deterministic canonical machine code and complete cost
+  evidence. Its measured expert delta seeds RD-08 but is not a parity acceptance gate or debt trigger.
 - Routine runtime evidence is `VICE-verified / hardware-unverified`; M1 claims no cycle-exact or
   universal-silicon result.
 
@@ -551,10 +622,12 @@ no C64U target identity or support claim; the owned successor activates only aft
 2. [ ] **AC-02 — Public check:** `blendc check` reports stable authoritative frontend/profile
    diagnostics, emits no compiler artifact, and reaches no target/backend process for frontend-only
    success or failure.
-3. [ ] **AC-03 — Public build:** `blendc build` crosses every named pipeline stage and atomically
-   publishes one coherent verified artifact/evidence set only on success.
-4. [ ] **AC-04 — Public run:** `blendc run` rebuilds first, launches only its exact successful PRG,
-   distinguishes tool/runtime errors, and never launches a stale prior artifact.
+3. [ ] **AC-03 — Public build:** `blendc build` crosses every named pipeline stage, reconciles final
+   ACME bytes/symbols/segments, and publishes one coherent immutable artifact/evidence generation
+   through the atomic current record only on success.
+4. [ ] **AC-04 — Public run:** `blendc run` rebuilds first, pins and launches only its exact
+   successful generation, distinguishes build/tool/runtime/cancellation errors, never launches a
+   stale prior artifact, and preserves a completed generation when cancellation occurs after commit.
 5. [ ] **AC-05 — Minimum editor:** Opening the M1 project publishes the same lexer/parser/module/
    semantic diagnostics through the bundled VS Code client and language server; the server imports
    no target, codegen, packager, or emulator code.
@@ -587,8 +660,9 @@ no C64U target identity or support claim; the owned successor activates only aft
 18. [ ] **AC-18 — Target separation:** Structural and synthetic forbidden-edge tests prove shared
     frontend/semantic code contains no C64/6510/ACME/PRG knowledge and future constraints add no
     target packages.
-19. [ ] **AC-19 — Platform API parity:** Each M1 C64 API produces the same volatile operations,
-    count/order, state, and equal-or-better cost as its expert direct sequence with no hidden call.
+19. [ ] **AC-19 — Platform API directness:** Each M1 C64 API produces the same required volatile
+    operations, count/order, and state as its expert direct sequence with no hidden call. Exact cost
+    deltas are recorded for RD-08 and do not fail `none` solely for being above the expert baseline.
 20. [ ] **AC-20 — Memory intrinsics:** Full-pipeline byte/word cases at constant, variable,
     expression, page-edge, and `$FFFF` addresses prove exact access/evaluation/order and pointer
     resource behavior.
@@ -610,12 +684,16 @@ no C64U target identity or support claim; the owned successor activates only aft
 26. [ ] **AC-26 — ACME terminal boundary:** Source inspection and seeded failures prove the emitter
     only serializes final decisions; strict ACME invocation, actual report/symbol/byte checks, and
     output suppression behave exactly.
-27. [ ] **AC-27 — Coherent artifacts:** Every required evidence file has one build identity and
-    correct hash; an input change or seeded compiler/ACME/layout/package failure publishes no mixed
-    or stale set.
+27. [ ] **AC-27 — Coherent artifacts:** Every required evidence file passes its direct version-1
+    schema, has one semantic build and immutable generation identity, and has the correct hash. A
+    concurrent reader pins one complete generation; an input change, pre-commit cancellation, or
+    seeded compiler/ACME/layout/package failure publishes no mixed or stale set. Post-commit run
+    cancellation preserves that build and stops only emulator/control work.
 28. [ ] **AC-28 — Deterministic VICE input:** The predetermined real-joyport trace produces the
     exact table-derived player, six-invader, projectile/explosion, collision, win, rendered-sprite,
-    release/press, and return results without observing or patching program state.
+    release/press, and return results without observing or patching program state. A hit update
+    publishes explosion frame/count 1, its next update publishes frame/count 2, and the following
+    update makes sprite 7 idle; no zero-count delay is accepted.
 29. [ ] **AC-29 — VICE return:** The same run observes the final win frame, fire release and new
     press, restoration, and exact BASIC-return boundary, then the driver stops VICE externally
     without target debug-cart or injected exit code.
@@ -623,9 +701,9 @@ no C64U target identity or support claim; the owned successor activates only aft
     order, fire-edge behavior, entity indexing, collision, win/loss, pointer placement, volatile
     order, restoration, or return causes the matching oracle to fail independently of assembly
     shape.
-31. [ ] **AC-31 — Expert output:** The hand-authored equivalent twin and generated program use the
-    same obligations and complete resource ledger; no generated local result is worse, a
-    whole-program win is recorded, or each honest meet has its authorized actionable debt issue.
+31. [ ] **AC-31 — Expert baseline:** The hand-authored equivalent twin and generated program use the
+    same obligations and complete resource ledger. Exact local and whole-program deltas are recorded
+    as RD-08 input; cost alone neither fails `optimization: none` nor creates parity debt.
 32. [ ] **AC-32 — Determinism:** Byte-identical copies built from different absolute paths and
     working directories produce identical normalized diagnostics, assembly, evidence, and PRG.
 33. [ ] **AC-33 — Focused verification:** The closeout records directed checks plus one relevant

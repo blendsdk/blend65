@@ -20,11 +20,12 @@ continue to default to `balanced`. (AR-002, AR-003, AR-023, AR-033)
 
 Candidate selection uses one deterministic complete-cost policy. Correctness, observable timing,
 MMIO/effect order, ABI, selected-profile legality, placement, memory fit, and final SFA closure are
-hard constraints. `balanced` accepts only a complete Pareto win; `speed` minimizes the worst
-relevant path first; `size` minimizes all reachable emitted/resident bytes first. No mode guesses
+hard constraints. `balanced` accepts only a complete no-regression Pareto win; `speed` orders the
+comparable semantic-path cycle vector `T`, resource vector `R`, then logical target-loadable bytes
+`B`; `size` orders `B`, then `R`, then `T`. No mode guesses
 execution frequency or hides a byte/cycle/resource tradeoff behind weights. Every transformation
 has an independent behavior oracle and a separate assembly/cost oracle. Local expert parity is the
-floor, while the compiler must beat realistic expert whole-program output through global facts,
+optimized-mode floor, while the compiler must beat realistic expert whole-program output through global facts,
 allocation, specialization, reachability, and layout. Every optimized mode exhausts the same finite,
 evidence-qualified modern-plus-6502 candidate frontier to proved closure; the modes differ only in
 final cost ordering. The honest result is frontier-optimal, never a claim that every conceivable
@@ -48,8 +49,11 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
   AR-030)
 - [ ] **R8.2 — Preserve `none` as the correctness reference.** `none` keeps every RD-04 mandatory
   correctness, legalization, instruction-selection, SFA, layout, branch-repair, emission, and
-  packaging step while disabling the optional transformations owned by this RD. Optimized modes
-  consume that semantic baseline; they cannot make an otherwise incomplete operation correct.
+  packaging step while disabling the optional transformations owned by this RD. It uses RD-04's
+  deterministic predefined direct lowering without candidate enumeration, rewrite search, B/R/T
+  comparison, or expert-parity gating; reproducibility is bound to the recorded compiler identity,
+  and that direct policy may improve between compiler versions. Optimized modes consume that semantic
+  baseline; they cannot make an otherwise incomplete operation correct.
   (AR-023, AR-033)
 - [ ] **R8.3 — Filter hard constraints before preferences.** Reject any candidate that changes
   specified values, evaluation order, volatility, MMIO count/order/bus behavior, observable timing,
@@ -61,15 +65,22 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
   helper/table reachability, shared setup, ZP/SFA interference, register spills, branch distance,
   layout/padding, banking, loading, packaging, and other consumers cannot reverse it. Otherwise
   retain the finite viable alternatives until function or whole-program closure and recompute
-  after reachability, helper selection, SFA closure, layout, branch repair, and packaging. (AR-018,
+  after reachability, helper selection, SFA closure, layout, and branch repair. Packaging remains a
+  hard feasibility/evidence boundary but its D64 container representation never changes B/R/T
+  preference. (AR-018,
   AR-023, AR-045, AR-046)
 - [ ] **R8.5 — Use one complete cost vector.** Every candidate records `B`, `T`, and `R`:
-  `B` counts each byte of the reachable shipped representation once; `T` is the comparable cycle
-  cost for every relevant semantic path class; and `R` is zero-page peak, combined resident
+  `B` counts logical compiler-generated target-loadable program/data bytes. For a PRG build it
+  includes generated PRG code, initialized data, embedded payload, helpers, tables, loader, padding,
+  and branch repair. For D64 it counts logical compiler-generated target payloads only and excludes
+  the fixed image length, BAM, directory, sector links/tails/fill, and host evidence/archive
+  compression. `T` is the comparable cycle cost for every relevant semantic path class; and `R` is
+  zero-page peak, combined resident
   RAM/SFA peak, hardware-stack peak, compiler/helper scratch, then any other profile-owned capacity
   in stable profile order. Costs include code, data, helpers, tables, padding, branch repair,
-  deliberate replication, calls, setup, page alternatives, banking/loading, and packaging
-  contribution. A loadable byte contributes once to `B` and separately to `R` only while resident;
+  deliberate replication, calls, setup, page alternatives, banking, and loading. D64 filesystem and
+  container properties are separately reconciled hard-capacity/evidence facts, never optimization
+  preference. A loadable byte contributes once to `B` and separately to `R` only while resident;
   those are different resources, not duplicate size accounting. (AR-008, AR-023, AR-029, AR-045)
 - [ ] **R8.6 — Compare equivalent path classes.** Path classes come from source/semantic control
   and target contracts, not accidental optimized block names. Each candidate maps the same input,
@@ -85,10 +96,11 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
   by a hidden preference. (AR-023, AR-045)
 - [ ] **R8.8 — Apply the exact `speed` rule.** Sort comparable semantic-path cycle bounds from
   worst to best and lexicographically minimize that vector. Break a cycle-vector tie by minimizing
-  `B`, then the ordered `R` vector from R8.5. This is frequency-free minimax selection; average,
-  guessed-hot, or source-order weighting is forbidden. (AR-023, AR-045)
-- [ ] **R8.9 — Apply the exact `size` rule.** Lexicographically minimize `B`, then the same
-  worst-to-best cycle vector, then the ordered `R` vector from R8.5. A one-byte reduction may win
+  the ordered `R` vector from R8.5, then `B`. This is frequency-free minimax selection; average,
+  guessed-hot, or source-order weighting is forbidden. Statically proved loop counts and explicit
+  timing contracts remain semantic/cost facts, not frequency weights. (AR-023, AR-045)
+- [ ] **R8.9 — Apply the exact `size` rule.** Lexicographically minimize `B`, then the ordered `R`
+  vector from R8.5, then the same worst-to-best cycle vector. A one-byte reduction may win
   even when it is slower, but never when it violates a hard timing or resource contract. (AR-023,
   AR-045)
 - [ ] **R8.10 — Break only exact ties mechanically.** When two candidates have identical complete
@@ -306,8 +318,8 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
   machine/profile. Report code, data, padding, ZP, SFA, stack, scratch, traffic, cycles, setup, and
   dependency costs separately; no universal weighted ratio is allowed. (AR-008, AR-023, AR-045)
 - [ ] **R8.47 — Enforce the local expert floor.** For each implemented operation/routine and active
-  mode objective, generated output must meet or beat the smallest competent expert sequence for
-  the same contract. A worse result blocks the checkpoint. An honest meet is allowed only when no
+  optimized-mode objective, generated output must meet or beat the smallest competent expert
+  sequence for the same contract. A worse result blocks the checkpoint. An honest meet is allowed only when no
   current better candidate exists and automatically creates or links one authorized GitHub
   parity-debt issue with source/assembly, complete delta, and the specific missing transform,
   representation, allocation change, or platform primitive needed to beat it. Issue creation never
@@ -375,6 +387,11 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
   future consideration whose rationale may have expired because the optimizer, closed cost model,
   or whole-program facts now exist. Reopen and assign each expired item; no deferral may name a
   completed RD-08 slice as its future owner. (AR-002, AR-014)
+- [ ] **R8.58 — Preserve optimizer evidence for RD-09.** Expose stable source spans, machine ranges,
+  optimized-away values, rematerialized values, and final homes through the existing debug/evidence
+  contracts so later editor/debug integration can explain optimized code. RD-08 does not build an
+  owned debug adapter or make ordinary LSP requests run code generation. This mandatory schema-first
+  handoff must exist before RD-09 closes. (AR-010, AR-021)
 
 ### Should Have
 
@@ -382,11 +399,6 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
   the existing structured evidence as source-associated selected/rejected transformations, cost
   deltas, and limiting constraints. Keep normal builds quiet and deterministic. Add no interactive
   tuning UI, optimizer debugger, or permanent trace database. (AR-008, AR-011, AR-021, AR-045)
-- [ ] **R8.58 — Preserve optimizer evidence for RD-09.** Expose stable source spans, machine ranges,
-  optimized-away values, rematerialized values, and final homes through the existing debug/evidence
-  contracts so later editor/debug integration can explain optimized code. RD-08 does not build an
-  owned debug adapter or make ordinary LSP requests run code generation. (AR-010, AR-021)
-
 ### Won't Have (Out of Scope)
 
 - A fifth optimization mode, pass-level user switches, weights, hotness annotations, profile-guided
@@ -417,17 +429,19 @@ at the owning scope is closed:
 
 | Mode | Primary comparison | Secondary comparison | Tertiary comparison | Incomparable result |
 |---|---|---|---|---|
-| `none` | Correct expert-qualified baseline | — | — | Use required legal baseline or report its exact hard resource failure. |
+| `none` | Deterministic predefined correct direct lowering | — | — | Use the required legal baseline or report its exact hard resource failure; perform no candidate comparison or expert-parity gate. |
 | `balanced` | Pareto dominance across every `B`, `T`, and `R` component | — | Exact ties use stable ID only | Keep feasible baseline; if none is feasible, diagnose and recommend explicit `speed` or `size`. |
-| `speed` | Worst-to-best semantic-path cycle vector | All reachable emitted/resident bytes `B` | Ordered scarce-resource vector `R` | Lexicographic order decides without frequency. |
-| `size` | All reachable emitted/resident bytes `B` | Worst-to-best semantic-path cycle vector | Ordered scarce-resource vector `R` | Lexicographic order decides without frequency. |
+| `speed` | Worst-to-best semantic-path cycle vector `T` | Ordered scarce-resource vector `R` | Logical target-loadable bytes `B` | Lexicographic order decides without frequency. |
+| `size` | Logical target-loadable bytes `B` | Ordered scarce-resource vector `R` | Worst-to-best semantic-path cycle vector `T` | Lexicographic order decides without frequency. |
 
 The stable `R` order is zero-page peak, combined resident RAM/SFA peak, hardware-stack peak,
 compiler/helper scratch, then additional profile capacities in stable profile-declared order.
 Every capacity is already a hard feasibility barrier; the order is consulted only when higher
-priorities tie. `B` reports its components separately and counts each physical shipped byte once,
-even though the same data may also occupy a reported runtime interval. `T` never turns best/worst
-paths into an average without measured authority. (AR-045)
+priorities tie. `B` reports logical compiler-generated target-loadable program/data components
+separately; D64 filesystem/container overhead is excluded and remains separate package evidence and
+a hard capacity constraint. The same logical data may also occupy a reported runtime interval in
+`R`; these are different dimensions. `T` never turns best/worst paths into an average without
+measured authority. (AR-045)
 
 ### Candidate lifetime and feedback — complexity L
 
@@ -476,7 +490,7 @@ The existing build evidence gains an optimizer section; no new standalone artifa
 |---|---|
 | Identity | Specification 4 identity, expert `2.0.0` content commit, compiler commit, target/profile, mode, safety settings, ACME/VICE identity where used |
 | Candidate | stable ID, owning scope, source spans, semantic operation/path mapping, preconditions, hard rejection reason |
-| Cost | separate code/data/padding/helper/table/package bytes; path cycles and page ranges; ZP, RAM/SFA, stack, scratch, traffic, setup/load costs |
+| Cost | exact reconciled `B` components separate from D64/container evidence; path-cycle `T` and page ranges; ordered `R` components including ZP, resident RAM/SFA, stack, scratch, and selected-profile capacities; traffic and setup/load costs |
 | Selection | baseline, enumerated and pruned alternatives, exhaustion/fixed-point evidence, closure point, mode ordering, selected result, exact tie-break or balanced incomparability |
 | Proof | behavior-oracle case, assembly/cost expectation, counterexample, assembled addresses/bytes, VICE/hardware evidence status |
 | Parity | expert baseline identity, equivalent obligations, local result by measure/path, whole-program result, linked meet-only debt issue |
@@ -604,13 +618,16 @@ boundary. (AR-011, AR-023, AR-026)
    `speed`, and `size`; default `build`/`run` records `balanced`; invalid spelling fails before
    compilation; safety/target/entry settings remain independent.
 3. [ ] **AC-03 — `none` boundary:** Seeded optional transforms are absent in `none`, while every
-   mandatory correctness/legalization/SFA/layout/branch/package step and expert local floor still
-   passes.
+   mandatory correctness/legalization/SFA/layout/branch/package step still passes. No optional
+   candidate enumeration, rewrite search, B/R/T comparison, or expert-parity gate runs.
 4. [ ] **AC-04 — Hard filters:** Cases prove semantic, MMIO, timing, ABI, opcode, placement,
    memory, stack, SFA, and loader/package violations reject a candidate before mode preference.
-5. [ ] **AC-05 — Complete cost:** A fixture with code, helper, table, padding, ZP, SFA, stack,
-   scratch, page, branch, loader, and package costs reports every component and reconciles to final
-   assembled addresses and artifact bytes.
+5. [ ] **AC-05 — Complete cost:** A fixture with code, initialized data, BSS/globals, assets,
+   helper, table, alignment/padding, ZP, SFA/resident RAM, stack, scratch, platform reservations,
+   page, branch, loader, and package costs reports every component and reconciles CPU/physical/VIC
+   views, residency groups, occupied/free intervals, largest compatible holes, final assembled
+   addresses, and artifact bytes. D64 filesystem/container bytes are separately reconciled evidence,
+   not B/R/T preference terms.
 6. [ ] **AC-06 — Path equivalence:** Branch, loop-bound, success/failure, IRQ, page-cross, and
    bank/load fixtures map the same semantic path classes across candidates; an unknown term cannot
    win selection.
@@ -620,16 +637,18 @@ boundary. (AR-011, AR-023, AR-026)
    incomparable candidates, compilation produces an actionable mode/resource diagnostic and no
    artifact; explicit `speed` and `size` each select their respective feasible result.
 9. [ ] **AC-09 — `speed`:** A larger/faster fixture selects the lexicographically lowest
-   worst-to-best cycle vector, then bytes, then R8.5 resource order; no average or frequency field
-   participates.
-10. [ ] **AC-10 — `size`:** A smaller/slower fixture selects the fewest reachable bytes, then the
-    cycle vector, then R8.5 resource order while honoring a seeded hard timing bound.
+   worst-to-best cycle vector, then R8.5 resource order, then bytes; no average or frequency field
+   participates, while a statically proved loop count and an explicit timing contract affect the
+   qualified path cost as real facts.
+10. [ ] **AC-10 — `size`:** A smaller/slower fixture selects the fewest logical target-loadable
+    bytes, then R8.5 resource order, then the cycle vector while honoring a seeded hard timing bound.
 11. [ ] **AC-11 — Tie and stability:** Exact complete-cost ties select the same stable candidate ID
     across repeated clean builds and randomized internal discovery order; a non-identical cost
     cannot be decided by ID.
 12. [ ] **AC-12 — Deferred closure:** A locally winning helper/table candidate that loses after
-    reachability, SFA, layout, branch repair, or D64 closure is retained until that boundary and
-    rejected from the final artifact.
+    reachability, SFA, layout, branch repair, or a D64 hard-capacity check is retained until that
+    boundary and rejected from the final artifact; container representation never reverses B/R/T
+    preference.
 13. [ ] **AC-13 — Semantic preservation:** Boundary cases cover width/wrap, full-precision
     constants, signed comparisons/shifts/division/remainder, zero divisor, BCD, evaluation order,
     short circuit, volatile access, aliasing, and optional safety checks with independent results.
@@ -677,8 +696,8 @@ boundary. (AR-011, AR-023, AR-026)
     a separate exact/bounded assembly-cost expectation, and a counterexample; differential
     optimized/`none` execution alone cannot satisfy the criterion.
 28. [ ] **AC-28 — Expert local floor:** Equivalent-work comparison covers all R8.46 obligations;
-    no local ratio exceeds 1.0 for the active mode objective. Every exact meet has a created GitHub
-    issue with complete delta and a concrete path to a future win; no issue action pushes.
+    no local ratio exceeds 1.0 for each optimized-mode objective. Every exact meet has a created
+    GitHub issue with complete delta and a concrete path to a future win; no issue action pushes.
 29. [ ] **AC-29 — Whole-program wins:** Against independent realistic expert baselines, `balanced`
     is no worse in every complete component and strictly better in at least one, while `speed` and
     `size` each win under their exact lexicographic order. Every local floor and hard constraint
@@ -687,9 +706,16 @@ boundary. (AR-011, AR-023, AR-026)
     feasible baseline, nonconvergence, illegal instruction, cost-closure failure, resource
     exhaustion, and stale/inconsistent facts each produce source-associated diagnostics and no new
     output set or stale `run` launch.
-31. [ ] **AC-31 — Evidence:** `.costs.json` and `.build.json` contain every R8.12/report field and
-    reconcile with `.asm`, labels, memory/assets/debug maps, assembled bytes, primary artifact, and
-    VICE observations for every qualification case.
+31. [ ] **AC-31 — Evidence:** Final `.memory.json`, `.costs.json`, and `.build.json` contain every
+    R8.12/report field after optimization, helper discovery, final SFA/layout, branch repair, and
+    ACME; reconcile with `.asm`, labels, assets/debug maps, assembled bytes, primary artifact, and
+    VICE observations; and separately report code, initialized data, BSS/globals, SFA, ZP, stack,
+    assets, helpers, loader/scratch, alignment/padding, platform reservations, CPU/physical/VIC views,
+    residency groups, occupied/free intervals, and largest compatible holes. Every overlap,
+    overflow, visibility, alignment, contiguity, banking, ZP, SFA, stack, general-memory, or
+    reconciliation failure prevents publication and names required versus available capacity,
+    blockers, compatible holes, and remedies. Unproved dynamic low-level ranges bound the report's
+    guarantee rather than adding runtime code or rejecting legal source.
 32. [ ] **AC-32 — Determinism:** Two clean builds for every mode and representative PRG/D64 project
     produce identical selected IDs, assembly, maps, diagnostics, and artifact hashes under the same
     recorded toolchain identity.

@@ -178,15 +178,17 @@ reopen that scope only if its real implementation proves substantial unavoidable
 The approved disk-delivery path exposed and AR-032 resolved the remaining contradiction: AR-022 had
 required every build to publish `<name>.prg`, while a loadable game is complete only as a disk image
 containing its boot PRG and load units. Each profile now owns one primary deployable artifact. The
-first disk profile is `c64-pal-d64-kernal-6581`, which atomically publishes `<name>.d64` plus the
-common evidence set; `blendc run` mounts and starts only that newly built image.
+first disk profile is `c64-pal-d64-kernal-6581`; its immutable generation contains `<name>.d64`
+plus the common evidence set. `blendc run` pins that newly built generation and mounts only its
+image.
 
 ## Approved deterministic source discovery
 
 One required `sourceRoot` in `blend65.json` is resolved relative to the manifest directory, never
-the process working directory. It names one relative, canonical, project-contained directory;
+the process working directory. It names one relative, resolved, project-contained directory;
 absolute paths and escapes are invalid. The compiler recursively indexes its `.blend` files in
-canonical path order to map qualified module identities, supports legal multi-file merged modules,
+deterministic exact host-spelling order after representing separators as `/`, without filename
+normalization or case folding, to map qualified module identities and supports legal multi-file merged modules,
 then analyzes only the entry module's reachable import graph. Profile-provided platform modules are
 resolved separately. This preserves path-independent language modules without restoring source
 globs or an explicit source-file inventory.
@@ -215,10 +217,13 @@ arithmetic without a runtime descriptor system.
 ## Approved typed function-value model
 
 V4 supports `fn(...)` values for named ordinary `RTS` functions. Their signatures are exact, and
-they may be stored, passed, returned, selected, and called only while whole-program analysis retains
-a finite target set. Interrupt-handler values are a separate non-callable kind accepted only by
-compatible recognized sinks. Explicit conversion to `word` erases proof; a raw `word` cannot become
-callable. There are no lambdas, closures, captures, unknown indirect calls, or dynamic code loading.
+they may be stored, passed, returned, selected, and called while whole-program analysis proves a
+finite target set. It preserves precise provenance where possible and otherwise widens a closed
+program to every address-taken source function with the exact signature. Only a call with no
+provable finite source set is rejected. Interrupt-handler values are a separate non-callable kind
+accepted only by compatible recognized sinks. Explicit conversion to `word` erases proof; a raw
+`word` cannot become callable. There are no lambdas, closures, captures, raw callable addresses, or
+dynamic code loading.
 Indirect lowering is cost-selected and domain-correct: singleton targets become direct calls;
 finite sets use the best measured dispatch or trampoline; and domain-specific SFA variants are
 selected by context rather than sharing unsafe storage. No universal dispatcher or runtime library
@@ -269,11 +274,43 @@ and independent bounds/division safety switches. The required `sourceRoot` suppl
 imports define reachable source membership and asset declarations define packaged data.
 Include/exclude globs and duplicate inventories do not exist. All paths remain inside the project
 root. Machine-local ACME/VICE discovery stays outside the shared manifest, which cannot execute
-scripts, hooks, plugins, or arbitrary tools. Manifest-based `blendc check`, `build`, and `run`
-share one configuration path; `run` launches VICE only after its own successful build. A successful
-build atomically publishes the profile-owned primary artifact plus assembly, labels, memory, asset,
-cost, debug, and identity/hash evidence. Production mode has no competing single-file configuration
-model.
+scripts, hooks, plugins, or arbitrary tools. Tool-requiring CLI and trusted VS Code commands read the
+optional host tools file first and otherwise use normal process `PATH`; compiler-library use,
+`check`, and ordinary LSP analysis neither require nor validate that file. Manifest-based `blendc
+check`, `build`, and `run` share one project path; `run` launches VICE only after its own successful
+build. A successful build validates a unique staging directory, renames it once to an immutable
+build-ID generation, and atomically replaces one small current-generation record. Production mode
+has no competing single-file configuration model.
+
+`outDir` is compiler-owned output state, not project input. It is excluded from source/asset
+discovery and input hashes, including when `sourceRoot` is `.`, and may contain prior immutable
+generations. Publication validates the nearest existing canonical parent and creates only missing
+contained components. Absolute or escaping paths, a file where a directory is required, symlink
+escape, and an explicitly declared source or asset inside the output tree are errors.
+
+A short per-project lock coordinates only generation commit, current-record replacement, run
+pinning, and cleanup. A run pins its own immutable generation; failed work removes only its unique
+staging directory. Cleanup retains the current generation, every active pin, and the newest unpinned
+predecessor, deleting only older unpinned generations while holding the lock. Publication is the
+build no-return point: cancellation observed before commit publishes nothing; cancellation after
+commit preserves the valid build and later run cancellation terminates only owned VICE/monitor work.
+
+`.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` each have an independent compact
+versioned schema rooted at integer `schemaVersion: 1`. Each rejects duplicate/unknown fields, wrong
+types, and missing/unsupported versions; fixes required/optional fields; and uses the exact string
+`"Unknown"` only for fields that admit unavailable evidence. Deterministic encoding is UTF-8 without
+BOM with LF, lexicographically ordered object keys, and schema-defined array order; an incompatible
+future contract bumps the major integer. `buildId` covers canonical semantic inputs and portable
+tool identities only.
+`.build.json` hashes every other artifact and never itself; host paths, executable hashes, duration,
+and peak memory are provenance outside portable identity. A separate output digest may summarize the
+generated set without changing `buildId`.
+
+When present, the host `tools.jsonc` requires integer `schemaVersion: 1` and permits only optional
+absolute-string `acmePath` and `x64scPath`. Unknown or duplicate keys, wrong types, missing or
+unsupported schema versions, and invalid explicit paths are diagnostics. An invalid explicit path
+does not fall back; an omitted key or absent file uses normal `PATH` ordering. There is no fixed
+install-location registry, download, shell, or project-controlled executable configuration.
 
 ## Approved optimizer modes
 
@@ -428,8 +465,8 @@ PRG, RAM, ZP, hardware-stack, or runtime-cycle cost.
 | Project discovery | Start below a project, find the nearest `blend65.json`, resolve its required `sourceRoot` relative to the manifest, index contained `.blend` module headers, locate the entry module, then follow named imports. | Covered by AR-022 and AR-028; process working directory does not affect the source set. |
 | Editor session | Open trusted or untrusted workspace, analyze versioned unsaved text, cancel stale requests, navigate/rename/format, inspect profile/assets, then explicitly build or run. | Covered by AR-021/AR-022. Build and run use a coherent saved filesystem snapshot; the extension offers Save All or Cancel for dirty project inputs. Untrusted workspaces never execute tools. |
 | Check | Read one coherent project snapshot, validate manifest/source/import/type/effect/profile/asset facts, and return stable diagnostics without lowering, ACME, packaging, or published outputs. | Covered. Final machine-layout failures remain build diagnostics; `check` reports only facts provable before target lowering. |
-| Build | Reuse the same frontend result, close whole-program/SFA storage, lower and optimize under the selected mode, solve placement, serialize ACME, assemble/package, then atomically publish the profile's primary deployable artifact plus evidence. | Covered by AR-008, AR-022, AR-023, and AR-032. Any changed input, stage error, ACME failure, collision, or no-space result prevents publication of a mixed set. |
-| Run | Perform a fresh successful build, bind the exact output hashes and selected VICE profile, launch only that profile's primary artifact, and report emulator/tool failure distinctly from compiler success. | Covered by AR-009, AR-022, and AR-032. A failed build never launches an older artifact. |
+| Build | Reuse the same frontend result, close whole-program/SFA storage, lower and optimize under the selected mode, solve placement, serialize ACME, assemble/package in unique staging, then commit one immutable generation and replace the current record. | Covered by AR-008, AR-022, AR-023, and AR-032. Any changed input, stage error, ACME failure, collision, no-space result, or pre-commit cancellation prevents publication; a post-commit cancellation preserves the valid build. |
+| Run | Perform a fresh successful build, pin that invocation's immutable generation, bind its exact output hashes and selected VICE profile, and launch only its primary artifact. | Covered by AR-009, AR-022, and AR-032. A failed/pre-commit-cancelled build launches nothing; cancellation after publication reports build success separately and terminates only owned VICE/monitor execution. |
 | Resident asset | Resolve literal `embed()`, validate exact handler/version/selector, retain symbolic identity and constraints, place one requested representation at the hardware-visible address, and report bytes/residency. | Covered by the active specification, expert asset contracts, AR-020, and M1 in AR-027/AR-037. Required producer fixtures remain qualification prerequisites rather than assumed parser proof. |
 | Large asset or scene | Import and compose data that cannot coexist in one resident image, declare a fixed `loadable const` unit and compatible destination, select load windows/overlays, package transport bytes, load/decompress, publish, and preserve or pause IRQ/audio safely. | Covered by AR-029 and AR-031. |
 | Multi-profile build | Build shared game code for PAL/NTSC, KERNAL/takeover, SID variants, then add a C64U-specific path without redefining core semantics. | Covered by AR-030: compile-time facts for ordinary differences, recorded target/entry overrides, and separate reachable platform modules for different hardware APIs. |
@@ -441,7 +478,7 @@ PRG, RAM, ZP, hardware-stack, or runtime-cycle cost.
 
 | Boundary | Required behavior | Authority or open item |
 |---|---|---|
-| Source indexing | Fixed `.blend` extension, canonical contained paths, deterministic ordering, legal merged modules, declaration collisions, case-sensitive identities, symlink escape rejection, unreadable/vanished files, and profile-provided modules outside the project index. | AR-028 |
+| Source indexing | Fixed `.blend` extension, separately resolved containment identities, exact host-exposed filename spelling, deterministic `/`-separator ordering, legal merged modules, declaration collisions, symlink escape rejection, unreadable/vanished files, and profile-provided modules outside the project index. | AR-028 |
 | Configuration | Nearest manifest wins; duplicate/unknown keys, invalid schema/profile/options, output escape, and nested-project ambiguity are diagnosed. | AR-022 |
 | Coherent inputs | A build consumes one stable source/asset/config snapshot. A file changing during the read is retried as a whole or fails; it never yields mixed hashes/artifacts. | Determinism and AR-022 build identity |
 | Modules and startup | Circular declaration imports remain legal; missing exports, duplicates, multiple/no `main`, and cyclic initializer effects are diagnosed with paths. | Active language specification |
@@ -454,7 +491,7 @@ PRG, RAM, ZP, hardware-stack, or runtime-cycle cost.
 | Low-level effects | Variable-address `PEEK`/`POKE` remains volatile and ordered; only the five admitted `asm_*` names exist and their exact flag/stack/control effects constrain optimization. | AR-006 and active intrinsic contract |
 | Compile-time evaluation | No runtime/MMIO/host-nondeterministic effects; exact integer math is specified byte-for-byte; exhaustion produces a deterministic diagnostic instead of a hang or partial result. | AR-019; exact algorithms/limits are Specification 4.0 tasks |
 | Optimization | Every mode preserves behavior, MMIO, ABI, memory, timing, debug provenance, and placement; each transform has an independent oracle and assembly/cost expectation. | AR-023 and expert parity contract |
-| Tool and artifact failure | Missing/wrong ACME or VICE, assembler error, timeout, hash mismatch, output collision, no-space, or packaging failure retains distinct status and cannot publish/run a stale mixed set. | AR-009/AR-022 and artifact evidence contract |
+| Tool and artifact failure | Missing/wrong ACME or VICE, invalid tools schema, assembler error, timeout, hash mismatch, output collision, no-space, or packaging failure retains distinct status and cannot publish/run a stale mixed set. Publication is the no-return point; later run cancellation preserves the committed build. | AR-009/AR-022 and artifact evidence contract |
 | Loader/overlay lifetime | No live code, return address, vector, SFA home, pointer, handler, player, or asset may be overwritten; interrupt/audio pause or continuity and publication are explicit. | AR-029 and AR-031 |
 | Debug evidence | Optimized ranges, split liveness, bank-qualified symbols, SFA homes, and source spans remain representable without adding target runtime bytes. | AR-010 |
 | C64U readiness | Core `word` stays 16-bit while physical storage identity may be wider/banked/transfer-only; DMA and independent clocks remain explicit. | AR-024 |
@@ -620,7 +657,7 @@ The diagram is compact; the exact dependency rules are:
 | RD-06 | RD-04, RD-05 | Native transformation needs complete language semantics and real C64 placement/platform rules. |
 | RD-07 | RD-04, RD-05, RD-06 | Loading and D64 packaging extend the proven value, platform, asset, and layout models. |
 | RD-08 | RD-04, RD-05, RD-06, RD-07 | Optimization follows the complete correct unoptimized path and must cover resident and loadable programs. |
-| RD-09 | RD-04 | Full tooling needs stable complete semantics. It may proceed alongside RD-05 through RD-08; RD-03 already supplies its minimum real editor/CLI slice. |
+| RD-09 | RD-04 to start; RD-05, RD-06, RD-07, and RD-08 to close | A bounded frontend/editor milestone may proceed once complete semantics are stable. Final build/debug integration consumes the later platform, asset, loading, optimization, and final-location evidence handoffs. |
 | RD-10 | RD-05, RD-06, RD-07, RD-08, RD-09 | Production qualification integrates every C64 delivery and developer-facing capability. |
 
 ### Delivery phases
@@ -630,7 +667,7 @@ The diagram is compact; the exact dependency rules are:
 | A — Authority and foundation | RD-01, RD-02 | Frozen semantics and a minimal green clean-slate project foundation. |
 | B — First useful slice | RD-03 | A playable, inspectable, unoptimized C64 program through the real pipeline. |
 | C — Complete unoptimized production capability | RD-04, RD-05, RD-06, RD-07 | Complete language, C64 platform behavior, game-workload qualification, native assets, and resident plus D64 delivery before optimization. |
-| D — Optimize and complete tooling | RD-08 and RD-09 | Expert-quality generated code and a production developer workflow. RD-09 may run in parallel once RD-04 is stable. |
+| D — Optimize and complete tooling | RD-08 and RD-09 | Expert-quality generated code and a production developer workflow. RD-09 may start in parallel once RD-04 is stable but cannot close before RD-05 through RD-08. |
 | E — Production qualification and handoff | RD-10 | Evidence-backed C64 completion and an owned C64U successor. |
 
 Every implementation RD must produce a real end-to-end capability and use directed checks while it
@@ -642,8 +679,8 @@ an owned user-visible behavior.
 
 | Integration | Direction and trust boundary | Owning RDs | Required contract |
 |---|---|---|---|
-| ACME assembler | Compiler launches a pinned local executable and consumes its output. Source and paths are untrusted inputs to a safely constructed process invocation. | RD-03, RD-04, RD-08, RD-10 | Exact supported identity, deterministic dialect serialization, contained canonical paths, distinct tool diagnostics, and no artifact publication after failure. |
-| VICE 3.10 `x64sc` | CLI/test harness launches and controls a local emulator; VICE is the normal runtime oracle, not universal hardware proof. | RD-03, RD-05, RD-07, RD-09, RD-10 | Exact profile launch, timeouts, fresh artifact hash binding, observable-state capture, distinct emulator failure, and bounded hardware follow-up. |
+| ACME assembler | A tool-requiring CLI or trusted editor command launches the configured or normal-`PATH` executable directly and consumes its output. Project/source/asset content remains untrusted input. | RD-03, RD-04, RD-08, RD-10 | Exact supported identity, deterministic dialect serialization, contained canonical paths, distinct tool diagnostics, argument-array invocation, and no artifact publication after failure. |
+| VICE 3.10 `x64sc` | CLI/test harness launches the machine-local configured or normal-`PATH` emulator directly; VICE is the normal runtime oracle, not universal hardware proof. | RD-03, RD-05, RD-07, RD-09, RD-10 | Exact profile launch, immutable-generation pinning, timeouts, fresh artifact hash binding, observable-state capture, distinct emulator failure/cancellation, and bounded hardware follow-up. |
 | VS Code through LSP stdio | A thin extension exchanges versioned text and language requests with the shared frontend service. Workspace files and command execution are trust boundaries. | RD-03, RD-09 | Cancellation, stale-result rejection, workspace trust, no codegen dependency for ordinary editor requests, and a coherent saved snapshot for build/run. |
 | Native asset files | The compiler reads local producer files through literal, contained paths and version-specific handlers. Files are untrusted binary input. | RD-03, RD-06, RD-07 | Exact signature/version/size validation, bounded parsing, canonical provenance, deterministic selected output, and producer-generated fixtures. |
 | D64 packaging and loading | The compiler packages a boot PRG and reachable load units; the target loader consumes the resulting disk layout. | RD-07, RD-10 | One atomic primary artifact, exact filenames/locations, complete loader and decompressor resource ownership, publication semantics, and no stale partial image. |

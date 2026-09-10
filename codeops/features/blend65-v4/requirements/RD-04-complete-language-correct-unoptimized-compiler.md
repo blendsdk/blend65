@@ -210,10 +210,14 @@ language semantics.
   workaround for SFA. (AR-002, AR-016)
 - [ ] **R4.30 — Complete typed finite function values.** Named ordinary functions may be stored,
   assigned, selected, passed, returned, and called through exact `fn(...)` types while whole-program
-  analysis retains a finite compatible target set. Preserve target identity separately from its
-  numeric address, merge sets safely, devirtualize singleton sets, and select a measured finite
-  dispatch/trampoline form for larger sets. Raw `word` cannot become callable; there are no lambdas,
-  closures, captures, unknown calls, or runtime registry. (AR-018)
+  analysis retains a finite compatible target set. Preserve precise target provenance separately
+  from numeric address and merge sets safely. When precise provenance is unavailable but the closed
+  program is finite, widen to every address-taken source function with the exact signature and use
+  that proved superset for call, effect, recursion, stack, interrupt, and SFA analysis. Devirtualize
+  singleton sets and use a predefined legal finite dispatch/trampoline form for larger sets. Reject
+  only when no finite source target set is provable. Raw `word` cannot become callable; there are no
+  lambdas, closures, captures, runtime callable registry, dynamic frame, or universal dispatcher.
+  (AR-018)
 - [ ] **R4.31 — Reject recursion without rejecting nested evaluation.** Detect every reachable
   direct or indirect recursive strongly connected component and report the complete cycle before
   allocation. Calls such as `f(1, f(2, 3))` are legal and use distinct staging rather than being
@@ -222,7 +226,11 @@ language semantics.
   values distinct and non-callable except through compatible recognized sinks. Select raw,
   firmware-mediated, or ordinary callback entry variants only from the exact profile contract;
   model mainline/IRQ/NMI preemption, decimal state, A/X/Y/flag ownership, `RTI` versus `RTS`, vector
-  compatibility, reentrancy, shared-state lost-update/tearing warnings, and finite overlap. A
+  compatibility, reentrancy, shared-state lost-update/tearing warnings, and finite overlap. Preserve
+  the frozen per-sink ownership facts: a statically proved LIFO install stack, top-matching restore,
+  agreeing control-flow joins, finite balanced nesting, exact predecessor-word demand, and raw-vector
+  writes that invalidate helper ownership and make a later helper restore erroneous. No runtime
+  registry, token, flag, scheduler, or hidden lifecycle state implements this contract. A
   minimal first-profile interrupt qualification may prove this compiler contract; reusable C64
   IRQ scheduling and takeover facilities remain RD-05 work. (AR-013, AR-018, AR-024)
 - [ ] **R4.33 — Complete deterministic compile-time functions.** Execute `comptime function` code
@@ -258,17 +266,21 @@ language semantics.
   representations to retain width, signedness, constant/runtime context, wrap, nominal type,
   place/value identity, evaluation order, selected control arm, volatility, memory width/count/order,
   alias/escape, symbolic storage, array ordinal/extent/stride, aggregate shape, callable target set,
-  execution domain/entry variant, placement, calls/helpers/clobbers, target capability, costs, and
-  source/debug association until each fact's accountable consumer. (AR-002, AR-012)
+  execution domain/entry variant, interrupt-sink ownership state and predecessor demand, placement,
+  calls/helpers/clobbers, target capability, costs, and source/debug association until each fact's
+  accountable consumer. (AR-002, AR-012)
 - [ ] **R4.38 — Build explicit control and effect graphs.** Represent all branch, loop, switch,
   short-circuit, conditional, call, return, interrupt, safety-stop, and unreachable edges. Track
-  ordered RAM/MMIO/CPU effects and per-parameter retaining summaries. No later pass may infer
-  semantic order or volatility from emitted text. (AR-003, AR-012, AR-018)
+  ordered RAM/MMIO/CPU effects, interrupt install/restore/raw-invalidation ownership transitions,
+  and per-parameter retaining summaries. No later pass may infer semantic order, volatility, or
+  sink ownership from emitted text. (AR-003, AR-012, AR-018)
 - [ ] **R4.39 — Close the complete whole-program graph.** Include entry/startup, deterministic
   module initializers, direct calls, every finite indirect target, address-taken/exported roots,
-  recognized callback/interrupt roots, and compiler-selected helpers. Unknown or escaped calls are
-  diagnosed or handled by an explicit conservative contract, never dropped. Reject recursion and
-  retain dead-source exclusion without erasing required diagnostics. (AR-018, AR-022, AR-030)
+  recognized callback/interrupt roots, and compiler-selected helpers. Use precise callable targets
+  when proved; otherwise widen a signature-compatible call to every address-taken source function
+  of that exact signature. Reject it only when no finite source target set can be proved, and never
+  drop an imprecise edge. Reject recursion and retain dead-source exclusion without erasing required
+  diagnostics. (AR-018, AR-022, AR-030)
 - [ ] **R4.40 — Allocate every execution home through SFA.** Cover parameters, returns, caller
   staging, locals, address-taken storage, expression temporaries, aggregate destinations, spills,
   indirect pointer pairs, finite-dispatch state, domain variants, saved machine state, and helper
@@ -290,9 +302,10 @@ language semantics.
 
 - [ ] **R4.43 — Lower every scalar operation legally.** Select correct documented NMOS 6510
   sequences for each width/signedness combination of arithmetic, comparison, shifts, multiply,
-  divide/remainder, conversions, boolean operations, and BCD. Helpers are selected only where they
-  beat an inline legal form under complete cost and have explicit clobber/scratch/reentrancy
-  contracts. (AR-002, AR-023)
+  divide/remainder, conversions, boolean operations, and BCD. `none` uses one predefined,
+  deterministic correct direct sequence or required legal helper for each closed semantic case; it
+  does not enumerate inline/helper alternatives or compare them by B/R/T. Every helper has explicit
+  clobber, scratch, reentrancy, and storage contracts. (AR-002, AR-023)
 - [ ] **R4.44 — Lower control, aggregates, arrays, and calls completely.** Implement generic correct
   CFG lowering, switch, short circuit, aggregate construction/copy/return, fixed/nested array
   addressing, exact/unsized borrows, dynamic addresses, direct and finite indirect calls, safety
@@ -308,14 +321,24 @@ language semantics.
   constant/comptime evaluation, unreachable exclusion, semantic canonicalization, instruction
   selection, helper choice, resource binding, SFA closure, layout, branch repair, emission, and
   packaging. It performs no optional target-neutral or machine transformation, has no hidden
-  peephole catalog, and never depends on `balanced`, `speed`, or `size` to generate correct or legal
-  code. (AR-012, AR-023)
+  peephole catalog, candidate enumeration, rewrite search, B/R/T comparison, or expert-parity gate,
+  and never depends on `balanced`, `speed`, or `size` to generate correct or legal code. Its direct
+  policy is deterministic for the recorded compiler identity and may improve in later compiler
+  versions without becoming an optimization search. (AR-012, AR-023)
 - [ ] **R4.47 — Complete layout, terminal emission, and evidence.** Place code, globals, user ZP,
   SFA, constants, and admitted resident assets without overlap; honor `place(...)`, banking,
   visibility, alignment, no-cross, reserved regions, branch layout, and the profile's startup/exit.
   Serialize deterministic ACME, verify its report/symbols/bytes, package the PRG, and atomically
-  publish assembly, labels, memory/asset/SFA/ZP/stack/cost/debug maps and hashes. (AR-007, AR-008,
-  AR-020, AR-022)
+  publish assembly, labels, memory/asset/SFA/ZP/stack/cost/debug maps and hashes. Final
+  `.memory.json` and `.costs.json` reconcile after required helper discovery, final SFA/layout,
+  branch repair, and ACME. They separately report code, initialized data, BSS/globals, SFA, ZP,
+  stack, assets, helpers, loader/scratch, alignment/padding, platform reservations, CPU/physical/VIC
+  views, residency groups, occupied/free intervals, and largest compatible holes. Any overlap,
+  overflow, visibility, alignment, contiguity, banking, ZP, SFA, stack, general-memory, or
+  reconciliation failure prevents publication and names required versus available capacity,
+  blocking intervals, compatible holes, and remedies. Dynamic `POKE` and admitted low-level access
+  remain legal; an unproved dynamic range limits the report's guarantee instead of adding a runtime
+  check or source rejection. (AR-007, AR-008, AR-020, AR-022)
 - [ ] **R4.48 — Keep the profile claim honest.** At RD-04 closeout, claim complete Specification 4
   core-language and `optimization: none` compilation only for the implemented first-profile surface.
   Platform APIs, asset handlers, loading, or deployment owned by RD-05 through RD-07 remain named
@@ -386,9 +409,10 @@ language semantics.
   unsupported-profile result only.
 - Production LSP/VS Code completion, navigation, rename, formatting, build/run UI, artifact browser,
   or debugger integration. RD-09 owns those; RD-04 only extends shared diagnostics.
-- Recursion, heap allocation, dynamic arrays, slices, views, closures, lambdas, unknown indirect
-  calls, type aliases, labelled break, switch ranges, inline assembly, external assembly functions,
-  arbitrary opcode intrinsics, or a general runtime. Specification 4 rejects or defers them.
+- Recursion, heap allocation, dynamic arrays, slices, views, closures, lambdas, indirect calls with
+  no provable finite source target set, type aliases, labelled break, switch ranges, inline assembly,
+  external assembly functions, arbitrary opcode intrinsics, or a general runtime. Specification 4
+  rejects or defers them.
 - C64U, X16, Atari, another CPU, assembler dialect, artifact packager, public plugin system, or
   empty future-target packages.
 - V3 compatibility, v3 tests as authority, readiness services, dashboards, game-feasibility scores,
@@ -443,8 +467,9 @@ asset formats, and artifact modes are not falsely implemented merely to increase
 | Platform placement, mandatory CFG layout, and branch repair | Profile-independent facts rewritten to match one C64 idiom |
 | ACME serialization, byte verification, packaging, and evidence | String rewrites that change program decisions |
 
-Required selection still uses the best legal expert sequence for the operation under its complete
-contract. Calling a poor sequence “unoptimized” does not excuse output below the expert floor.
+Required selection uses one predefined, deterministic, competent legal sequence for the operation
+under its complete correctness and resource contract. `none` does not search alternatives or gate
+on expert optimality; its measured costs become explicit RD-08 optimization input.
 
 ### SFA and ABI completion record — complexity XL
 
@@ -643,13 +668,16 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     returns preserve values, effects, ABI, SFA homes, clobbers, and stack peak without a source
     parameter limit.
 23. [ ] **AC-23 — Function values:** Singleton and multi-target cases prove signature/type flow,
-    storage/pass/return/call, safe target-set merging, devirtualization or measured dispatch, erased
-    address rejection, and no runtime registry.
+    storage/pass/return/call, precise target retention, safe merging, signature-compatible widening
+    to all address-taken source functions when required, devirtualization or predefined finite
+    dispatch, genuinely unbounded and erased-address rejection, and no runtime registry.
 24. [ ] **AC-24 — Recursion:** Direct, mutual, and finite-indirect cycles report complete paths before
     allocation; repeated sequential and nested argument calls remain legal.
 25. [ ] **AC-25 — Interrupt semantics:** Focused first-profile cases prove recognized sink/type,
     selected entry variant, `RTS`/`RTI`, save/restore, decimal state, vector compatibility, domain-
-    specific SFA homes, bounded stack, reentrancy rejection, and shared-state warnings.
+    specific SFA homes, bounded stack, reentrancy rejection, shared-state warnings, per-sink balanced
+    LIFO install/restore across joins and nesting, exact predecessor-word allocation, and diagnosis of
+    helper restore after raw-vector ownership invalidation without hidden runtime lifecycle state.
 26. [ ] **AC-26 — Compile-time functions:** Exact constants, aggregate/table returns, trigonometric
     goldens, acyclic calls, budget failures, forbidden effects/inputs, determinism, and zero target
     execution code/storage are proven.
@@ -675,16 +703,18 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     operations, correct flags/addressing/branches/banking, verified ACME bytes, and correct VICE
     behavior without an optional optimizer.
 34. [ ] **AC-34 — `none` boundary:** Seeded optional transforms remain absent while every mandatory
-    correctness/selection/SFA/layout/emission step still runs and reports its decisions.
+    correctness/selection/SFA/layout/emission step still runs and reports its decisions. No optional
+    alternative enumeration, rewrite search, B/R/T ranking, or expert-parity gate runs.
 35. [ ] **AC-35 — Layout and artifacts:** Placement conflicts fail completely; successful builds
     atomically publish one coherent PRG and complete deterministic assembly/map/SFA/resource/cost/
     debug/hash evidence verified against ACME output.
 36. [ ] **AC-36 — Independent behavior:** Deliberate defects in values, effect order, aliasing,
     aggregate contents, flags, checks, MMIO, interrupts, or return state fail their independent
     oracle even if generated assembly shape or another compiler path agrees.
-37. [ ] **AC-37 — Expert output:** Each operation family has a complete equal-contract hand-written
-    frontier; no generated result is worse, and every honest meet has an authorized issue with exact
-    delta and RD-08 path to a win.
+37. [ ] **AC-37 — Optimization baseline evidence:** Each operation family records exact assembled
+    bytes, path costs, resources, and an equal-contract hand-written reference for RD-08. RD-04 uses
+    that evidence to expose optimization opportunities but does not gate correctness-only `none` on
+    expert parity or create meet-only parity debt.
 38. [ ] **AC-38 — Honest platform boundary:** Later C64 APIs/formats/loading and every future target
     fail as explicit unavailable/unknown capability rather than compiling, linking a stub, or
     appearing in a support score.

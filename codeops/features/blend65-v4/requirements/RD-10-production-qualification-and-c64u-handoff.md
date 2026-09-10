@@ -54,10 +54,12 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   cannot prove a public capability that is missing, differently wired, or excluded from the shipped
   package. (AR-009, AR-021, AR-022)
 - [ ] **R10.4 — Preserve atomic failure.** Any compiler diagnostic, ACME failure, packaging error,
-  VICE failure, tool mismatch, cancelled operation, evidence mismatch, or qualification failure
-  prevents production approval and cannot publish or launch a stale, mixed, partial, or
-  runnable-looking artifact set. Preserve the last known good release record as historical evidence
-  without relabelling it as the current candidate. (AR-022, AR-032, AR-048)
+  tool mismatch, evidence mismatch, qualification failure, or cancellation observed before the
+  publication commit prevents production approval and cannot publish or launch a stale, mixed,
+  partial, or runnable-looking artifact set. Publication is the no-return point: later VICE failure
+  or run cancellation preserves the successfully committed immutable generation while terminating
+  only owned execution. Preserve the last known good release record as historical evidence without
+  relabelling it as the current candidate. (AR-022, AR-032, AR-048)
 - [ ] **R10.5 — Publish one bounded support statement.** Name only the exact language identity,
   compiler version/candidate commit, nine C64 profiles, native asset/adapter versions, optimization
   modes, safety options, Linux/Windows hosts, tools, and evidence levels that passed. Distinguish
@@ -100,19 +102,23 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   `win32/x64` environments, install the locked workspace, build/package the public products, run
   language/project/security tests, execute CLI `check`/`build`/fresh `run`, start the LSP, exercise
   the packaged VS Code extension, discover pinned ACME/VICE, cancel owned child trees, and validate
-  atomic artifacts. Linux simulation of Windows paths or processes is supporting evidence only.
+  unique staging, immutable-generation commit, atomic current-record replacement, run pinning, and
+  retention cleanup. Linux simulation of Windows paths or processes is supporting evidence only.
   (AR-021, AR-022, AR-036, AR-047, AR-048)
 - [ ] **R10.12 — Prove cross-host output identity.** Both production hosts build the same frozen
   release projects under identical profiles, modes, and safety options. Normalized assembly,
   labels, maps, debug evidence, packaged PRG/D64 bytes, diagnostics, and semantic query results are
-  byte-identical where their contracts exclude host identity. Host-side records may differ only in
-  explicitly declared tool path/hash, host, duration, and peak-memory fields. (AR-022, AR-026,
-  AR-032, AR-048)
+  byte-identical where their contracts exclude host identity. `buildId` covers only canonical
+  semantic inputs and portable tool identities; `.build.json` hashes every other artifact and never
+  itself. Host-side records may differ only in explicitly declared tool path/hash, host, duration,
+  and peak-memory provenance fields outside portable identity. (AR-022, AR-026, AR-032, AR-048)
 - [ ] **R10.13 — Qualify deterministic tool discovery.** On both hosts, prove the exact machine-local
-  tools-file precedence, PATH lookup, qualified ordinary install locations, version checks,
-  canonical executable identity, diagnostic behavior, and no-download/no-shell boundary from
-  RD-09. `check` and ordinary LSP work with no external tools; `build` fails clearly without ACME;
-  `run` fails clearly without ACME or `x64sc` and never launches a stale artifact. (AR-022, AR-048)
+  version-1 tools-file precedence, normal process-`PATH` lookup, version checks, canonical executable
+  identity, diagnostic behavior, and no-download/no-shell boundary from RD-09. There is no ordinary-
+  install-location registry. `check` and ordinary LSP do not load the file and work with no external
+  tools; assembly emission remains available without tools; binary production fails clearly without
+  ACME; `run` fails clearly without ACME or `x64sc` and never launches a stale artifact. (AR-022,
+  AR-048)
 - [ ] **R10.14 — Bound non-production hosts honestly.** macOS, Linux ARM64, and other Node 22 hosts
   remain best-effort even if individual checks pass. Hosts outside the declared Node 22 range and
   32-bit or unknown architectures are unsupported. Promotion requires the same native end-to-end
@@ -146,13 +152,14 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   deterministic compile-time composition, Integrator-style refinement, one-copy placement,
   assembled bytes, runtime consumers, and negative format/profile cases. Comparative decoders or
   guessed fixtures cannot qualify a handler. (AR-019, AR-020, AR-038 through AR-041)
-- [ ] **R10.19 — Requalify every optimizer mode.** For `none`, `balanced`, `speed`, and `size`, run
-  the complete relevant transformation matrix with an independent behavior oracle and separate
-  assembly/resource expectation. No local qualified result may lose to equivalent expert work for
-  its selected objective. Every meet-only result has an authorized GitHub issue with measured delta
-  and a concrete path to a future win; every optimized mode demonstrates its required realistic
-  whole-program win without hiding bytes, tables, ZP, SFA, stack, scratch, load, or timing cost.
-  (AR-023, AR-045, AR-046)
+- [ ] **R10.19 — Requalify every optimizer mode.** `none` passes complete correctness,
+  determinism, direct-lowering, resource, and no-optional-search evidence. `balanced`, `speed`, and
+  `size` additionally run the complete relevant transformation matrix with an independent behavior
+  oracle and separate assembly/resource expectation. No local optimized result may lose to
+  equivalent expert work for its selected objective. Every optimized meet-only result has an
+  authorized GitHub issue with measured delta and a concrete path to a future win; each optimized
+  mode demonstrates its required realistic whole-program win without hiding bytes, tables, ZP,
+  SFA, stack, scratch, load, or timing cost. (AR-023, AR-045, AR-046)
 - [ ] **R10.20 — Prove workload expressibility without shipping an engine.** The self-contained
   sprite multiplexing, scrolling, double buffering, input, SID music/effects, fixed-pool,
   collision, state-dispatch, loading, and M1 programs compile and run as user-authored Blend65.
@@ -317,7 +324,7 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
 | Resident C64 | Eight exact PRG profiles, profile facts, bytes, fresh VICE run, complete costs | A missing dimension cannot inherit another profile's result |
 | Assets | Exact producer fixtures/format versions, selectors, derived bytes, layout, consumer behavior, negatives | A guessed/comparative fixture leaves that handler unqualified |
 | D64/loading | One exact D64 profile, structure, trusted media, KERNAL load behavior, real drive | No implication of another disk profile or hostile-media containment |
-| Optimization | Four modes, two independent oracles, complete costs, expert floor, whole-program wins, linked debt | A regression or untracked meet-only result blocks that mode |
+| Optimization | Correct direct `none`; three frontier-searched modes with two independent oracles, complete costs, expert floor, whole-program wins, and linked debt | A `none` correctness/search-boundary failure or optimized regression/untracked meet blocks that mode |
 | Tooling | Public API/CLI/LSP/VS Code package, trust, cancellation, debug/evidence coherence | Source-tree-only or mocked public path cannot qualify |
 | Hosts/tools | Native Linux/Windows Node 22, deterministic discovery, ACME 0.97, VICE 3.10 | Required host/tool unknown blocks that production host |
 | Physical C64 | Targeted PAL/NTSC, KERNAL/takeover, 6581/8580, timing/CIA/banking, and one D64 drive path | Required unverified/contradictory behavior blocks the affected claim |
@@ -444,13 +451,13 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 | Owner | RD-10 contract |
 |---|---|
 | RD-01 | Consume one frozen Specification 4 and expert `2.0.0`; requalify changed authority before proceeding. |
-| RD-02 | Consume the clean locked project/package model, atomic outputs, and native Linux/Windows paths; add no second model. |
+| RD-02 | Consume the clean locked project/package model, compiler-owned output-state rules, immutable generations/current record, and native Linux/Windows paths; add no second model. |
 | RD-03/RD-04 | Reuse M1 and the complete `optimization: none` language/SFA/lowering path without retaining M1's subset as a limit. |
 | RD-05 | Consume eight resident profiles, platform APIs, user-authored workloads, costs, VICE evidence, and physical assignments. |
 | RD-06 | Consume exact producer fixtures, adapter identities, composition, Integrator-style refinement, and interval placement. |
 | RD-07 | Consume the one trusted-media KERNAL D64, quiescence/publication, HLE-010, and named real-drive QA. |
 | RD-08 | Consume four-mode qualification, independent oracles, full costs, expert-floor results, program wins, and parity debt. |
-| RD-09 | Consume public CLI/LSP/VS Code/debug/tool-discovery behavior and qualify it on both production hosts. |
+| RD-09 | Consume public CLI/LSP/VS Code/debug, independent sidecar schemas, config-or-`PATH` tool discovery, and generation/pinning behavior and qualify them on both production hosts. |
 | `blend65-c64u/RD-01` | Receive passed seam evidence, unknowns, sources, ownership, and a first target-native proof seed—never implementation claims. |
 
 ---
@@ -472,8 +479,9 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 
 - Every shipped target operation and optimization reports complete bytes, data, padding, ZP, SFA,
   hardware stack, scratch, memory traffic, path cycles, loader/transfer, and timing obligations.
-- Local expert parity is the floor and realistic whole-program improvement is required as defined by
-  RD-08. Host compiler speed is observational and never substitutes for target quality.
+- Local expert parity and realistic whole-program improvement apply to the three optimized modes as
+  defined by RD-08. `none` reports its competent direct-lowering costs without an expert-optimality
+  gate. Host compiler speed is observational and never substitutes for target quality.
 
 ### Host responsiveness — complexity S
 
@@ -563,7 +571,9 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
    source paths or relying on a source checkout. A working internal helper with a broken package
    entry cannot pass.
 4. [ ] **AC-04 — Atomic failure:** Seeded compiler, ACME, packager, VICE, cancellation, hash, and
-   qualification failures each publish no new mixed/runnable artifact and launch no prior artifact.
+   qualification failures before publication each publish no new generation and launch no prior
+   artifact. A deterministic commit-boundary race proves a post-commit VICE failure/cancellation
+   preserves the valid build, reports build success separately, and only terminates owned execution.
 5. [ ] **AC-05 — Release record:** `docs/releases/v4-production-qualification.md` contains every
    required section from R10.6, links/hash-binds each reused evidence item, records the final
    candidate disposition, and contains no readiness percentage or feasibility score.
@@ -581,14 +591,26 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
    failure. It contains no all-tests rerun after each local fix and no new readiness service.
 10. [ ] **AC-10 — Native host qualification:** Clean Node 22 `linux/x64` and `win32/x64` runs each
     install, build, package, check, build/run a project, start LSP/packaged VS Code, discover tools,
-    cancel owned process trees, and validate artifacts. Wine, containers pretending to be Windows,
+    cancel owned process trees, and validate unique staging, immutable generation/current-record
+    publication, concurrent build/run pins, and bounded retention. Current, active pins, and the
+    newest unpinned predecessor survive cleanup; only older unpinned generations are deleted under
+    the project lock. First and repeated builds prove that `outDir` is creatable compiler-owned
+    output state excluded from discovery/hashes, including under `sourceRoot: "."`; file, symlink,
+    escape, and declared-input collisions fail safely. Wine, containers pretending to be Windows,
     or path fixtures cannot replace the native Windows run.
 11. [ ] **AC-11 — Cross-host determinism:** Both hosts build all frozen release projects. Normalized
-    assembly, labels, maps, diagnostics, debug evidence, PRGs, and D64s are byte-identical; only
-    declared host/tool-path/hash/timing/memory record fields may differ.
+    assembly, labels, maps, diagnostics, debug evidence, PRGs, and D64s are byte-identical. Each of
+    `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` passes its independent versioned
+    schema, exact `Unknown`/field/canonical-encoding rules, and unsupported-major cases. Identical
+    semantic inputs and portable tool identities yield the same `buildId`; `.build.json` excludes
+    itself from its artifact hashes. Only declared host/tool-path/hash/timing/memory provenance fields
+    may differ.
 12. [ ] **AC-12 — Tool discovery:** Configured path, absent config, single omitted key, PATH, every
-    qualified install location, multiple candidate, wrong-version, broken-symlink, and missing-tool
-    cases pass RD-09 precedence on both hosts. No case downloads a tool or invokes a shell.
+    valid override combination, native PATH ordering, wrong-version, broken-symlink, and missing-tool
+    cases pass RD-09 precedence on both hosts. Present-file cases require integer `schemaVersion: 1`
+    and reject missing/unsupported versions, duplicate/unknown keys, wrong types, and invalid explicit
+    paths without fallback. `check` and ordinary LSP do not load the file. No fixed install-location
+    case, download, or shell exists.
 13. [ ] **AC-13 — Best-effort boundary:** Public support documentation labels macOS, Linux ARM64,
     and other Node 22 hosts best-effort, labels out-of-range/32-bit/unknown hosts unsupported, and
     contains no inference of macOS production support from Unix similarity.
@@ -607,11 +629,12 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     CharPad, PSID, GoatTracker, Koala, and raw identity pass selectors, malformed boundaries,
     deterministic derivation, placement, assembled bytes, and a runtime consumer. A comparative-
     decoder-only fixture remains unqualified.
-18. [ ] **AC-18 — Optimizer qualification:** All four modes pass independent behavior and
-    assembly/cost expectations, complete resource accounting, deterministic frontier closure, and
-    representative whole-program cases. No local selected-objective ratio exceeds 1.0; every exact
-    meet links an authorized issue, and `balanced`, `speed`, and `size` each record the required
-    realistic whole-program win.
+18. [ ] **AC-18 — Optimizer qualification:** All four modes pass independent behavior,
+    assembly/cost, complete-resource, and representative whole-program cases. `none` additionally
+    proves deterministic direct lowering and absence of optional search. `balanced`, `speed`, and
+    `size` prove deterministic frontier closure; no local selected-objective ratio exceeds 1.0,
+    every exact meet links an authorized issue, and each records the required realistic
+    whole-program win.
 19. [ ] **AC-19 — Compiler-not-engine boundary:** Package/API/binary inspection and the user-authored
     workload programs prove all named game workloads run without any public or injected renderer,
     entity/state, multiplexer, scrolling, scheduler, mixer, scene, or gameplay system.

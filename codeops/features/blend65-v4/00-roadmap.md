@@ -25,5 +25,5 @@
 | RD-06 | Native Assets, Compile-Time Composition, and Resident Layout | [RD-06](requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04, RD-05 |
 | RD-07 | Loadable Assets and D64 Delivery | [RD-07](requirements/RD-07-loadable-assets-and-d64-delivery.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04, RD-05, RD-06 |
 | RD-08 | Optimization and Expert Output | [RD-08](requirements/RD-08-optimization-and-expert-output.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04, RD-05, RD-06, RD-07 |
-| RD-09 | Developer Tooling and Debug Evidence | [RD-09](requirements/RD-09-developer-tooling-and-debug-evidence.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-04 |
+| RD-09 | Developer Tooling and Debug Evidence | [RD-09](requirements/RD-09-developer-tooling-and-debug-evidence.md) | — | RD Drafted | ✏️ | 2026-09-10 | starts after RD-04; closes after RD-05, RD-06, RD-07, and RD-08 |
 | RD-10 | Production Qualification and C64U Handoff | [RD-10](requirements/RD-10-production-qualification-and-c64u-handoff.md) | — | RD Drafted | ✏️ | 2026-09-10 | depends on RD-05, RD-06, RD-07, RD-08, RD-09 |
