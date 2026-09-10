@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-06 are approved
+> **Artifact status**: Working discovery record; RD-01 through RD-06 are approved and RD-07 is drafted
 
 ## Authority and evidence
 
@@ -77,10 +77,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-- **AR-044:** Decide the corrupted-media guarantee for the first KERNAL loader. The recommendation
-  is to trust the exact compiler-produced D64, report KERNAL or returned-length failure, and state
-  honestly that stock `LOAD` cannot contain a readable longer replacement file; no checksum,
-  staging copy, or custom bounded transport enters the first slice.
+None. The complete 44-item register is resolved and the Zero-Ambiguity Gate passed.
 
 ## Approved first C64 production profile
 
@@ -659,7 +656,8 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-06` are approved and committed. RD-06 owns exact native asset ingestion,
+`RD-01` through `RD-06` are approved and committed. RD-07 is drafted for user review. RD-06 owns
+exact native asset ingestion,
 user-authored compile-time refinement, and resident placement without a compiler-owned renderer,
 player scheduler, mixer, scene runtime, or game architecture. AR-039 and AR-041 preserve complete
 Koala Color RAM and background bytes while identifying only their low nibbles as hardware color
@@ -668,5 +666,6 @@ owns `loadable const`, explicit transfer/publication, D64 construction, loader/d
 selection, overlay liveness, and IRQ/audio/resource evidence. AR-042 selects a built-in KERNAL
 sequential loader with uncompressed directly placed units and no first-slice fastloader,
 compressor, or plugin system. AR-043 requires the program to make its user callback/audio routes
-explicitly quiescent while retaining the KERNAL service route. Authoring is paused at AR-044 for
-the baseline guarantee when a packaged runtime disk file is later corrupted or replaced.
+explicitly quiescent while retaining the KERNAL service route. AR-044 treats the exact generated
+D64 as trusted and records the stock loader's inability to contain a readable longer replacement
+file as hardware limitation `HLE-010`. The gate is closed; review and approval of RD-07 are next.

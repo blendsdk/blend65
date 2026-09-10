@@ -25,7 +25,7 @@ v3 tests, readiness artifacts, scoreboards, and feasibility snapshots remain aud
 none may define language or expert doctrine.
 
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
-> AR-034, AR-035, and AR-038 through AR-041.
+> AR-034, AR-035, and AR-038 through AR-044.
 
 ---
 
@@ -129,6 +129,12 @@ none may define language or expert doctrine.
   Koala, and raw fallback contract. Koala Color RAM and background components preserve complete
   source bytes while identifying only their low nibbles as VIC-II color meaning; Specification 4
   removes the prior zero-high-nibble rejection. (AR-039 through AR-041)
+  The D64 profile uses one optional, built-in, uncompressed KERNAL sequential loader. Its
+  `SETLFS`/`SETNAM`/relocating-`LOAD` ABI, boot-device reuse, explicit application-route
+  quiescence, direct destination write, success/failure publication, and exact D64/1541 format are
+  normative. The compiler-produced D64 is trusted; `HLE-010` records that stock `LOAD` has no
+  destination-length bound and therefore cannot contain a readable longer replacement before its
+  returned end address is checked. (AR-042 through AR-044)
 - [ ] **R1.16 — Remove false target authority.** `spec/appendix-c64u.md`,
   `spec/appendix-cx16.md`, `spec/appendix-a800xl.md`, and `spec/appendix-a7800.md` must not remain
   active normative Specification 4 documents. Git preserves their drafts. Concise future-target
@@ -171,7 +177,10 @@ none may define language or expert doctrine.
   platform support. No active file may still claim baseline `1.0.0`, Specification 3 authority, or
   a Blend65 game-engine product surface after activation. Koala knowledge and its qualification
   cases must also implement the accepted exact-byte/low-nibble distinction for both Color RAM and
-  background. (AR-014, AR-034, AR-038 through AR-041)
+  background. Add primary source-governance records and qualification cases for the 1541 D64
+  geometry/directory/BAM/data-chain contract, the selected C64 KERNAL loader ABI and resource
+  effects, explicit application quiescence, and `HLE-010`; do not teach a general loader framework
+  or claim containment against altered media. (AR-014, AR-034, AR-038 through AR-044)
 - [ ] **R1.22 — Requalify according to blast radius.** Every one of the 107 expert qualification
   cases must retain admissible green evidence under the `2.0.0` candidate. Use deterministic
   structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
@@ -411,7 +420,7 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Input identity:** The transition record names the exact Specification 3 identity,
-   expert `1.0.0` identity/content commit, source Git commit, and all 38 resolved Blend65 v4 AR
+   expert `1.0.0` identity/content commit, source Git commit, and all 44 resolved Blend65 v4 AR
    decisions; no compiler implementation or v3 test is listed as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.
@@ -461,7 +470,9 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     modules contain only target hardware operations and exact external adapters, not gameplay
     algorithms or engine policy. Its native-asset inventory contains exactly AR-040's initial
     formats, and its Koala contract accepts and preserves nonzero high nibbles in Color RAM and
-    background while exposing only low-nibble hardware meaning. (AR-038 through AR-041)
+    background while exposing only low-nibble hardware meaning. Its D64 profile defines the exact
+    KERNAL sequential-load, explicit-quiescence, trusted-media, and standard 35-track D64 contracts,
+    including `HLE-010`. (AR-038 through AR-044)
 16. [ ] **AC-16 — False targets removed:** The four historical non-C64 appendix paths are absent
     from the normative inventory and cannot be selected as active target IDs. Any retained C64U,
     X16, or Atari text explicitly says non-normative, unqualified, and not compiler support.

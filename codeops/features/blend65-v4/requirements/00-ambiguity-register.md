@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: 🚨 GATE REOPENED — AR-044 pending
-> **Last Updated**: 2026-09-10 14:47 CEST
+> **Status**: ✅ GATE PASSED — all 44 items resolved
+> **Last Updated**: 2026-09-10 14:55 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -49,7 +49,7 @@
 | AR-041 | Data / native asset compatibility | Does AR-039's exact-byte preservation also apply to the classic Koala file's final one-byte background color? | Preserve the complete source byte while documenting low-nibble hardware meaning / reject a nonzero high nibble / silently normalize to the low nibble | Apply the same rule as Color RAM: accept and preserve the complete background source byte, expose `value & $0f` as its VIC-II color meaning, and neither reject nor silently normalize solely because an unused high bit is nonzero. | ✅ Resolved |
 | AR-042 | Platform / initial disk transport | Which concrete loader and compression contract is the first qualified implementation for `c64-pal-d64-kernal-6581`? | KERNAL sequential load with uncompressed load units / a specific fastloader and compressor from the first slice / a generic loader-plugin system | Qualify one built-in KERNAL sequential loader with uncompressed, directly placed load units; link it only when reachable. Keep strategy identity and complete resource/cost evidence in the internal boundary, but add no fastloader, compressor, or public plugin framework until a separately measured game workload justifies and qualifies one. | ✅ Resolved |
 | AR-043 | Runtime ownership / loading concurrency | What does the first KERNAL loader do when user-installed IRQ/NMI callbacks or player/audio ticks may be active? | Require explicit quiescence and prove it / silently suspend and reconstruct user activity / permit continued activity under a new continuity contract | Require the user program to explicitly stop/restore its own callback and audio routes before `load()`, while the required stock KERNAL service route remains active. Reuse the recognized install/uninstall state to reject any call where quiescence is not proved. Do not silently stop/restart application behavior or claim timing continuity. A later fastloader may qualify an explicit continuity contract. | ✅ Resolved |
-| AR-044 | Safety / corrupted runtime disk data | The stock KERNAL relocating `LOAD` accepts a destination address but no maximum length. What guarantee does the first loader make if a packaged load-unit file is later corrupted or replaced with a valid longer file? | Trust the compiler-produced D64 and diagnose only observable KERNAL/end-address failure / add a custom bounded and checksummed transport now / stage and validate before copying | **Pending user decision. Recommended:** define the exact compiler-produced D64 as the trusted deployable unit. The baseline wrapper reports KERNAL failure and rejects a returned end address unequal to `destination + sizeof(unit)`, but it cannot promise containment after a longer altered file has already been transferred. Add no checksum, staging copy, or custom bounded transport to the KERNAL-first slice; record this as an explicit hardware/toolchain limitation and require a later qualified loader for hostile or independently mutable media. | 🚨 Pending |
+| AR-044 | Safety / corrupted runtime disk data | The stock KERNAL relocating `LOAD` accepts a destination address but no maximum length. What guarantee does the first loader make if a packaged load-unit file is later corrupted or replaced with a valid longer file? | Trust the compiler-produced D64 and diagnose only observable KERNAL/end-address failure / add a custom bounded and checksummed transport now / stage and validate before copying | Define the exact compiler-produced D64 as the trusted deployable unit. The baseline wrapper reports KERNAL failure and rejects a returned end address unequal to `destination + sizeof(unit)`, but it cannot promise containment after a longer altered file has already been transferred. Add no checksum, staging copy, or custom bounded transport to the KERNAL-first slice; record this as an explicit hardware/toolchain limitation and require a later qualified loader for hostile or independently mutable media. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -904,25 +904,27 @@ the destination before that postcondition is checked. A staging buffer would dup
 and add a copy; a truly bounded/checksummed transport would be a different custom loader rather than
 the approved minimal KERNAL implementation.
 
-The recommended contract treats the atomic compiler-produced D64 as the trusted deployable unit.
+The recommended contract treats the atomic compiler-produced D64 as the trusted deployable unit
+and records the exception as `HLE-010` in Specification 4 and expert baseline `2.0.0`.
 The wrapper returns `false` on KERNAL failure or an unexpected final address and never publishes a
 successful logical value in those cases, but the documentation states that a replaced or corrupted
 yet readable longer component is outside the baseline containment guarantee. No checksum, staging
 copy, or custom transport is silently added. A later qualified loader may provide stronger media
 integrity with its exact code, memory, timing, and drive compatibility costs.
 
-**Direct user decision:** Pending.
+**Direct user decision:** The user approved the trusted compiler-produced D64 boundary and its
+explicit containment limitation.
 
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-AR-001 through AR-043 are resolved, and the user approved RD-06. The user selected AR-042's
+All 44 items are resolved, and the user approved RD-06. The user selected AR-042's
 KERNAL-first, uncompressed loader baseline and AR-043's explicit-quiescence rule. Continuing the
-RD-07 boundary scan exposed AR-044: stock KERNAL `LOAD` cannot enforce a destination length before
-transfer, so the baseline's corrupted-media guarantee requires an explicit user decision. The gate
-is reopened until that decision. RD-06 authoring had exposed AR-041's equivalent
+RD-07 boundary scan exposed AR-044 because stock KERNAL `LOAD` cannot enforce a destination length
+before transfer; the user approved the trusted-D64 boundary and explicit limitation. The gate
+passes again. RD-06 authoring had exposed AR-041's equivalent
 policy for the distinct Koala background byte; the user approved the same exact-byte preservation
 rule. Earlier RD-06 work exposed AR-039's Koala Color RAM source-byte policy;
 the user approved exact byte preservation with separate low-nibble hardware meaning, so the gate
