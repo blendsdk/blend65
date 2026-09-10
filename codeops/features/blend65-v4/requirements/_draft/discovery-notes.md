@@ -77,10 +77,10 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-- **AR-043:** Decide how the first KERNAL loader interacts with user-installed IRQ/NMI callbacks
-  and audio/player ticks. The recommendation is explicit user-controlled quiescence with a
-  compile-time proof at `load()`, while the required stock KERNAL service route stays active; no
-  hidden stop/restart behavior or unproved continuity.
+- **AR-044:** Decide the corrupted-media guarantee for the first KERNAL loader. The recommendation
+  is to trust the exact compiler-produced D64, report KERNAL or returned-length failure, and state
+  honestly that stock `LOAD` cannot contain a readable longer replacement file; no checksum,
+  staging copy, or custom bounded transport enters the first slice.
 
 ## Approved first C64 production profile
 
@@ -667,5 +667,6 @@ meaning; AR-040 fixes the first native-format baseline and producer-fixture gate
 owns `loadable const`, explicit transfer/publication, D64 construction, loader/decompressor
 selection, overlay liveness, and IRQ/audio/resource evidence. AR-042 selects a built-in KERNAL
 sequential loader with uncompressed directly placed units and no first-slice fastloader,
-compressor, or plugin system. Authoring is paused at AR-043 for the exact user IRQ/NMI/audio
-activity rule around that loader.
+compressor, or plugin system. AR-043 requires the program to make its user callback/audio routes
+explicitly quiescent while retaining the KERNAL service route. Authoring is paused at AR-044 for
+the baseline guarantee when a packaged runtime disk file is later corrupted or replaced.

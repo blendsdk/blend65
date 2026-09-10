@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: 🚨 GATE REOPENED — AR-043 pending
-> **Last Updated**: 2026-09-10 14:38 CEST
+> **Status**: 🚨 GATE REOPENED — AR-044 pending
+> **Last Updated**: 2026-09-10 14:47 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -48,7 +48,8 @@
 | AR-040 | Scope / native asset baseline | Which external asset identities and adapters form the initial qualified C64 production baseline? | Current pinned producer/interchange identities only / broad backward-compatible generations / raw files only | Use explicit built-in handlers for SpritePad C64 Pro 3.80 project files with SPD v5, CharPad C64 Pro 3.88 project files with CTM v9, the self-contained directly callable PSID v1–v4 subset, classic Koala files, and raw files with unregistered extensions. Qualify GoatTracker 2.77 as the first exact player/export adapter. Do not guess older/newer generations, infer SFX from PSID, or add a public handler/plugin framework. Producer-generated fixtures are mandatory before claiming each parser qualified. | ✅ Resolved |
 | AR-041 | Data / native asset compatibility | Does AR-039's exact-byte preservation also apply to the classic Koala file's final one-byte background color? | Preserve the complete source byte while documenting low-nibble hardware meaning / reject a nonzero high nibble / silently normalize to the low nibble | Apply the same rule as Color RAM: accept and preserve the complete background source byte, expose `value & $0f` as its VIC-II color meaning, and neither reject nor silently normalize solely because an unused high bit is nonzero. | ✅ Resolved |
 | AR-042 | Platform / initial disk transport | Which concrete loader and compression contract is the first qualified implementation for `c64-pal-d64-kernal-6581`? | KERNAL sequential load with uncompressed load units / a specific fastloader and compressor from the first slice / a generic loader-plugin system | Qualify one built-in KERNAL sequential loader with uncompressed, directly placed load units; link it only when reachable. Keep strategy identity and complete resource/cost evidence in the internal boundary, but add no fastloader, compressor, or public plugin framework until a separately measured game workload justifies and qualifies one. | ✅ Resolved |
-| AR-043 | Runtime ownership / loading concurrency | What does the first KERNAL loader do when user-installed IRQ/NMI callbacks or player/audio ticks may be active? | Require explicit quiescence and prove it / silently suspend and reconstruct user activity / permit continued activity under a new continuity contract | **Pending user decision. Recommended:** require the user program to explicitly stop/restore its own callback and audio routes before `load()`, while the required stock KERNAL service route remains active. Reuse the recognized install/uninstall state to reject any call where quiescence is not proved. Do not silently stop/restart application behavior or claim timing continuity. A later fastloader may qualify an explicit continuity contract. | 🚨 Pending |
+| AR-043 | Runtime ownership / loading concurrency | What does the first KERNAL loader do when user-installed IRQ/NMI callbacks or player/audio ticks may be active? | Require explicit quiescence and prove it / silently suspend and reconstruct user activity / permit continued activity under a new continuity contract | Require the user program to explicitly stop/restore its own callback and audio routes before `load()`, while the required stock KERNAL service route remains active. Reuse the recognized install/uninstall state to reject any call where quiescence is not proved. Do not silently stop/restart application behavior or claim timing continuity. A later fastloader may qualify an explicit continuity contract. | ✅ Resolved |
+| AR-044 | Safety / corrupted runtime disk data | The stock KERNAL relocating `LOAD` accepts a destination address but no maximum length. What guarantee does the first loader make if a packaged load-unit file is later corrupted or replaced with a valid longer file? | Trust the compiler-produced D64 and diagnose only observable KERNAL/end-address failure / add a custom bounded and checksummed transport now / stage and validate before copying | **Pending user decision. Recommended:** define the exact compiler-produced D64 as the trusted deployable unit. The baseline wrapper reports KERNAL failure and rejects a returned end address unequal to `destination + sizeof(unit)`, but it cannot promise containment after a longer altered file has already been transferred. Add no checksum, staging copy, or custom bounded transport to the KERNAL-first slice; record this as an explicit hardware/toolchain limitation and require a later qualified loader for hostile or independently mutable media. | 🚨 Pending |
 
 ## Resolution Notes
 
@@ -890,6 +891,26 @@ required routes inactive at the call, it emits a targeted compile-time diagnosti
 not silently pause, resume, or promise uninterrupted music/raster timing. A future qualified
 fastloader may add a distinct, measured continuity contract without changing `loadable const`.
 
+**Direct user decision:** The user approved explicit application-controlled quiescence as the best
+first-loader contract.
+
+### AR-044 — Runtime integrity boundary of stock KERNAL `LOAD`
+
+The approved KERNAL path can perform a relocating load at the destination selected by the program,
+but its API has no maximum-length argument. The compiler can prove the exact file bytes and length
+inside the D64 it creates, and the wrapper can inspect the KERNAL carry/error result plus the
+returned end address. It cannot stop a different but readable longer file from overwriting beyond
+the destination before that postcondition is checked. A staging buffer would duplicate scarce RAM
+and add a copy; a truly bounded/checksummed transport would be a different custom loader rather than
+the approved minimal KERNAL implementation.
+
+The recommended contract treats the atomic compiler-produced D64 as the trusted deployable unit.
+The wrapper returns `false` on KERNAL failure or an unexpected final address and never publishes a
+successful logical value in those cases, but the documentation states that a replaced or corrupted
+yet readable longer component is outside the baseline containment guarantee. No checksum, staging
+copy, or custom transport is silently added. A later qualified loader may provide stronger media
+integrity with its exact code, memory, timing, and drive compatibility costs.
+
 **Direct user decision:** Pending.
 
 ## Gate Notes
@@ -897,10 +918,11 @@ fastloader may add a distinct, measured continuity contract without changing `lo
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-AR-001 through AR-042 are resolved, and the user approved RD-06. The user selected AR-042's
-KERNAL-first, uncompressed loader baseline. Continuing the RD-07 boundary scan exposed AR-043:
-the initial loader still needs an explicit contract for user IRQ/NMI/audio activity, so the gate is
-reopened until the user decides it. RD-06 authoring had exposed AR-041's equivalent
+AR-001 through AR-043 are resolved, and the user approved RD-06. The user selected AR-042's
+KERNAL-first, uncompressed loader baseline and AR-043's explicit-quiescence rule. Continuing the
+RD-07 boundary scan exposed AR-044: stock KERNAL `LOAD` cannot enforce a destination length before
+transfer, so the baseline's corrupted-media guarantee requires an explicit user decision. The gate
+is reopened until that decision. RD-06 authoring had exposed AR-041's equivalent
 policy for the distinct Koala background byte; the user approved the same exact-byte preservation
 rule. Earlier RD-06 work exposed AR-039's Koala Color RAM source-byte policy;
 the user approved exact byte preservation with separate low-nibble hardware meaning, so the gate
