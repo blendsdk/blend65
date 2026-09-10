@@ -19,7 +19,7 @@
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
 | blend65-expert-skillset | [→](features/blend65-expert-skillset/00-roadmap.md) | v1.0.0 is the single active qualified Blend65 domain-expert baseline at content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`; C64-first 6502/compiler/game knowledge, SFA doctrine, modular target architecture, qualification, and release are complete | 1/1 RD; 7/7 phases | ✅ | 2026-09-09 |
-| blend65-v4 | [→](features/blend65-v4/00-roadmap.md) | Requirements gate passed; RD-01 through RD-03 approved; RD-04 drafted for review and 6 RDs remain in backlog | 0/10 RDs | ⬜ | 2026-09-10 |
+| blend65-v4 | [→](features/blend65-v4/00-roadmap.md) | Requirements gate passed; RD-01 through RD-04 approved; RD-05 drafted for review and 5 RDs remain in backlog | 0/10 RDs | ⬜ | 2026-09-10 |
 | blend65-c64u | [→](features/blend65-c64u/00-roadmap.md) | Owned successor to v4 C64; requirements discovery follows the v4 production-readiness handoff | 0/1 RDs | ⬜ | 2026-09-10 |
 | compiler-readiness | [→](features/compiler-readiness/00-roadmap.md) | RD-05 Phase 3 remains paused; RD-08 correction round two is active for 1 critical and 13 major independent re-review findings; checkpoint remains uncommitted | RD-05 34/70; RD-08 21/62; 4/8 roadmap RDs | 🔄 | 2026-09-03 |
 | game-optimizer-codegen | [→](features/game-optimizer-codegen/00-roadmap.md) | Requirements gate passed: 18 comprehensive RDs and 26 resolved architecture decisions define the C64-first, target-profile-driven whole-program optimizer, expert backend, proof system and commercial game corpus; preflight next | 0/18 | 🔄 | 2026-07-24 |

@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-03 are approved and RD-04 is drafted
+> **Artifact status**: Working discovery record; RD-01 through RD-04 are approved and RD-05 is drafted
 
 ## Authority and evidence
 
@@ -645,7 +645,7 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-03` are approved and committed. `RD-04` is drafted around complete
-Specification 4 core-language semantics and correct `optimization: none` compilation while later
-C64 platform/assets/loading remain honestly unavailable until RD-05 through RD-07. It awaits user
-review; any new material choice reopens the gate.
+`RD-01` through `RD-04` are approved and committed. `RD-05` is drafted around the eight exact
+resident-PRG C64 profiles and explicit, zero-cost or fully costed C64 game systems. Native asset
+and scene handlers, disk loading, optional optimization, and complete tooling remain owned by
+RD-06 through RD-09. RD-05 awaits user review; any new material choice reopens the gate.
