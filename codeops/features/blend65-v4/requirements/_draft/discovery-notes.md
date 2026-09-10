@@ -77,9 +77,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-- **AR-039:** Decide whether the Koala handler preserves and accepts nonzero unused high nibbles in
-  Color RAM source bytes, rejects them, or silently normalizes them. The recommended rule preserves
-  exact source bytes and documents that only the low nibble has hardware meaning.
+None. The complete 39-item register is resolved and the Zero-Ambiguity Gate passed.
 
 ## Approved first C64 production profile
 
@@ -663,5 +661,5 @@ C64 profiles, general hardware/platform operations, and representative user-auth
 workloads without defining an engine. RD-06 is next: it owns native asset ingestion, validation,
 conversion into typed Blend65 data and metadata, deterministic compile-time asset refinement, and
 resident placement. It must not introduce a compiler-owned renderer, player scheduler, mixer,
-scene runtime, or game architecture. RD-06 authoring is paused at AR-039, the Koala Color RAM
-high-nibble policy.
+scene runtime, or game architecture. AR-039 is resolved: Koala Color RAM source bytes remain exact,
+while only their low nibbles carry hardware color meaning. Author RD-06 next.
