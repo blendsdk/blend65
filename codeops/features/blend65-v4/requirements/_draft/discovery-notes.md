@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-07 are approved
+> **Artifact status**: Working discovery record; RD-01 through RD-07 are approved and RD-08 is drafted
 
 ## Authority and evidence
 
@@ -77,7 +77,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. The complete 44-item register is resolved and the Zero-Ambiguity Gate passed.
+None. AR-001 through AR-045 are resolved.
 
 ## Approved first C64 production profile
 
@@ -656,19 +656,11 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-07` are approved. RD-07 owns truthful `loadable const` values, explicit
-transfer/publication, deterministic standard-D64 construction, the optional KERNAL-first loader,
-application-controlled quiescence, and trusted-media limitation `HLE-010`. RD-06 owns exact native
-asset ingestion,
-user-authored compile-time refinement, and resident placement without a compiler-owned renderer,
-player scheduler, mixer, scene runtime, or game architecture. AR-039 and AR-041 preserve complete
-Koala Color RAM and background bytes while identifying only their low nibbles as hardware color
-meaning; AR-040 fixes the first native-format baseline and producer-fixture gate. RD-07 is next and
-owns `loadable const`, explicit transfer/publication, D64 construction, loader/decompressor
-selection, overlay liveness, and IRQ/audio/resource evidence. AR-042 selects a built-in KERNAL
-sequential loader with uncompressed directly placed units and no first-slice fastloader,
-compressor, or plugin system. AR-043 requires the program to make its user callback/audio routes
-explicitly quiescent while retaining the KERNAL service route. AR-044 treats the exact generated
-D64 as trusted and records the stock loader's inability to contain a readable longer replacement
-file as hardware limitation `HLE-010`. The gate is closed. RD-08 optimization and expert-output
-authoring is next; any new material choice discovered there reopens the register before drafting.
+`RD-01` through `RD-07` are approved. `RD-08` is drafted and awaits user review. AR-045 fixes one
+complete-cost optimizer policy: hard feasibility first; deferred adjudication until downstream
+costs close; Pareto-only `balanced`; frequency-free lexicographic `speed` and `size`; and stable ID
+only for exact complete-cost ties. RD-08 preserves the complete correct `none` compiler, SFA
+closure, official NMOS 6510 legality, independent behavior and assembly/cost oracles, the local
+expert floor, measured whole-program wins, and user ownership of all game algorithms. It adds no
+weights, PGO, tuning DSL, pass/plugin framework, runtime optimizer, game engine, fastloader, or
+compressor. After approval, draft RD-09 for developer tooling and debug evidence.

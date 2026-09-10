@@ -25,7 +25,7 @@ v3 tests, readiness artifacts, scoreboards, and feasibility snapshots remain aud
 none may define language or expert doctrine.
 
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
-> AR-034, AR-035, and AR-038 through AR-044.
+> AR-034, AR-035, and AR-038 through AR-045.
 
 ---
 
@@ -180,7 +180,12 @@ none may define language or expert doctrine.
   background. Add primary source-governance records and qualification cases for the 1541 D64
   geometry/directory/BAM/data-chain contract, the selected C64 KERNAL loader ABI and resource
   effects, explicit application quiescence, and `HLE-010`; do not teach a general loader framework
-  or claim containment against altered media. (AR-014, AR-034, AR-038 through AR-044)
+  or claim containment against altered media. Record AR-045's exact complete-cost optimizer mode
+  policy, including hard constraints, deferred whole-program adjudication, Pareto `balanced`,
+  frequency-free lexicographic `speed`/`size`, stable exact-tie behavior, and the prohibition on
+  weights, hotness, PGO, and a tuning DSL. Add discriminating qualification cases for tradeoffs,
+  downstream cost reversal, and hard-budget rejection. (AR-014, AR-023, AR-034, AR-038 through
+  AR-045)
 - [ ] **R1.22 — Requalify according to blast radius.** Every one of the 107 expert qualification
   cases must retain admissible green evidence under the `2.0.0` candidate. Use deterministic
   structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
@@ -420,7 +425,7 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Input identity:** The transition record names the exact Specification 3 identity,
-   expert `1.0.0` identity/content commit, source Git commit, and all 44 resolved Blend65 v4 AR
+   expert `1.0.0` identity/content commit, source Git commit, and all 45 resolved Blend65 v4 AR
    decisions; no compiler implementation or v3 test is listed as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.

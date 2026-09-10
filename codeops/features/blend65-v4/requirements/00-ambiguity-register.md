@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 44 items resolved
-> **Last Updated**: 2026-09-10 15:24 CEST
+> **Status**: ✅ GATE PASSED — all 45 items resolved
+> **Last Updated**: 2026-09-10 16:02 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -50,6 +50,7 @@
 | AR-042 | Platform / initial disk transport | Which concrete loader and compression contract is the first qualified implementation for `c64-pal-d64-kernal-6581`? | KERNAL sequential load with uncompressed load units / a specific fastloader and compressor from the first slice / a generic loader-plugin system | Qualify one built-in KERNAL sequential loader with uncompressed, directly placed load units; link it only when reachable. Keep strategy identity and complete resource/cost evidence in the internal boundary, but add no fastloader, compressor, or public plugin framework until a separately measured game workload justifies and qualifies one. | ✅ Resolved |
 | AR-043 | Runtime ownership / loading concurrency | What does the first KERNAL loader do when user-installed IRQ/NMI callbacks or player/audio ticks may be active? | Require explicit quiescence and prove it / silently suspend and reconstruct user activity / permit continued activity under a new continuity contract | Require the user program to explicitly stop/restore its own callback and audio routes before `load()`, while the required stock KERNAL service route remains active. Reuse the recognized install/uninstall state to reject any call where quiescence is not proved. Do not silently stop/restart application behavior or claim timing continuity. A later fastloader may qualify an explicit continuity contract. | ✅ Resolved |
 | AR-044 | Safety / corrupted runtime disk data | The stock KERNAL relocating `LOAD` accepts a destination address but no maximum length. What guarantee does the first loader make if a packaged load-unit file is later corrupted or replaced with a valid longer file? | Trust the compiler-produced D64 and diagnose only observable KERNAL/end-address failure / add a custom bounded and checksummed transport now / stage and validate before copying | Define the exact compiler-produced D64 as the trusted deployable unit. The baseline wrapper reports KERNAL failure and rejects a returned end address unequal to `destination + sizeof(unit)`, but it cannot promise containment after a longer altered file has already been transferred. Add no checksum, staging copy, or custom bounded transport to the KERNAL-first slice; record this as an explicit hardware/toolchain limitation and require a later qualified loader for hostile or independently mutable media. | ✅ Resolved |
+| AR-045 | Behavioral (complex) / optimizer goal selection | When correct 6502 candidates trade cycles against bytes or scarce resources, how do `balanced`, `speed`, and `size` choose deterministically without guessing workload frequency? | Complete-cost Pareto/lexicographic policy / one profile-owned weighted scalar / user-configurable weights and hotness | Use the complete-cost Pareto/lexicographic policy. Reject hard-constraint failures first and defer choices whose helper, SFA, ZP, layout, banking, loader, or packaging costs are not yet closed. `balanced` selects only a candidate that dominates the baseline and every competitor across reachable bytes, every relevant semantic-path cycle bound, and scarce-resource peaks; otherwise it retains the baseline while keeping independent dominance wins. `speed` lexicographically minimizes worst-to-best path cycles, then bytes, then the fixed resource order stated in the resolution note. `size` minimizes reachable bytes, then the same cycle vector, then resources. Exact cost ties alone use stable candidate identity. Add no weights, hotness annotations, policy DSL, PGO, or guessed frequency. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -915,12 +916,47 @@ integrity with its exact code, memory, timing, and drive compatibility costs.
 **Direct user decision:** The user approved the trusted compiler-produced D64 boundary and its
 explicit containment limitation.
 
+### AR-045 — Deterministic optimizer goal selection
+
+The four optimizer modes are approved, but a complete target cost model does not by itself decide
+whether a larger/faster or smaller/slower candidate wins. A hidden scalar weight would encode an
+imaginary workload when no execution frequencies exist. User-configurable weights or hotness would
+turn compiler competence into a tuning language and multiply qualification states.
+
+The recommended policy filters correctness, observable timing, MMIO/effect order, ABI, target
+legality, user placement/banking, memory fit, and final SFA closure as hard constraints. It compares
+the complete cost at the smallest owning scope: local only when helper/table inclusion, ZP/SFA
+interference, branch distance, layout, padding, banking, loading, or shared setup cannot change the
+result; otherwise after the relevant function or whole-program facts close.
+
+The cost vector separates all reachable emitted/resident bytes; cycles for every comparable
+semantic path class, including call/helper/page/bank/load/setup effects; and ZP, RAM/SFA peak,
+hardware-stack peak, scratch, and other scarce profile resources. `balanced` applies only strict
+Pareto wins with no regression in any component. `speed` uses a frequency-free minimax ordering:
+worst-path cycles first, then the remaining path bounds, bytes, and resources. `size` orders bytes
+first, then those cycle bounds and resources. The expert parity floor applies to candidate creation
+and each mode's equivalent-work objective; the selector cannot excuse a poor baseline.
+
+**Independent challenge:** Converged on the recommendation and strengthened it from local
+byte/cycle comparison to complete closed-program cost with deferred adjudication when downstream
+costs can still change. Strongest counterargument: conservative `balanced` deliberately declines a
+real `+2 bytes / -40 cycles` win, but `speed` and `size` express those honest preferences without
+inventing knowledge in the default mode.
+
+The fixed resource comparison order is the order approved in the recommendation: zero-page peak,
+resident RAM/SFA peak, hardware-stack peak, compiler/helper scratch, then any additional
+profile-owned capacity in the profile's stable declared order. Capacity and legality remain hard
+constraints, so this order is consulted only after the mode's byte and complete cycle priorities
+tie. It never licenses a candidate that does not fit.
+
+**Direct user decision:** The user approved the complete-cost Pareto/lexicographic policy.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 44 items are resolved, and the user approved RD-07. The user selected AR-042's
+AR-001 through AR-044 are resolved, and the user approved RD-07. The user selected AR-042's
 KERNAL-first, uncompressed loader baseline and AR-043's explicit-quiescence rule. Continuing the
 RD-07 boundary scan exposed AR-044 because stock KERNAL `LOAD` cannot enforce a destination length
 before transfer; the user approved the trusted-D64 boundary and explicit limitation. The gate
@@ -938,3 +974,6 @@ RD-01 was then approved and committed. RD-02 authoring surfaced AR-036 before th
 written. RD-03 authoring surfaced AR-037's product and producer-fixture boundary; the user resolved
 both, and the gate passes again. RD-05 review then exposed and resolved AR-038's compiler-versus-
 engine product boundary; the gate passes with the corrected scope.
+RD-08 authoring then exposed AR-045 because the approved mode names and broad priorities did not
+define how to resolve non-dominating complete-cost candidates. The user approved the complete-cost
+Pareto/lexicographic policy, so the gate passes with all 45 items resolved.
