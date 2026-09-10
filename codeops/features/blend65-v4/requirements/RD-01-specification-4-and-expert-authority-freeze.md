@@ -158,9 +158,12 @@ none may define language or expert doctrine.
   record against the frozen Specification 4 identity. Correct current wording that presents
   sprite multiplexing, scrolling, buffering, fixed pools, collision, state dispatch, or other game
   algorithms as compiler-supplied systems or APIs: retain their expert knowledge and qualification
-  value while making application policy explicitly user-authored. No active file may still claim
-  baseline `1.0.0`, Specification 3 authority, or a Blend65 game-engine product surface after
-  activation. (AR-014, AR-034, AR-038)
+  value while making application policy explicitly user-authored. Correct any asset-pipeline text
+  that promises a compiler-owned renderer, scene runtime, player scheduler, mixer, or game
+  architecture: asset handlers stop at typed data, metadata, symbols, exact imported-player ABI,
+  and placement/package facts. Typed hardware APIs remain general platform support. No active file
+  may still claim baseline `1.0.0`, Specification 3 authority, or a Blend65 game-engine product
+  surface after activation. (AR-014, AR-034, AR-038)
 - [ ] **R1.22 — Requalify according to blast radius.** Every one of the 107 expert qualification
   cases must retain admissible green evidence under the `2.0.0` candidate. Use deterministic
   structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
@@ -462,7 +465,10 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 19. [ ] **AC-19 — Expert version and product boundary:** Every active
     router/reference/qualification file identifies expert baseline `2.0.0` and the same frozen
     Specification 4 identity. Technique knowledge and Q-P workloads remain available, but no active
-    text presents game algorithms, modules, or policies as a Blend65 engine/library deliverable.
+    text presents game algorithms, modules, renderers, scheduling, or policies as a Blend65
+    engine/library deliverable. Asset guidance ends at compile-time ingestion, conversion, typed
+    data/metadata/symbols, exact external ABI, and placement/package facts; runtime consumers are
+    user-authored Blend65 programs.
     (AR-038)
 20. [ ] **AC-20 — Qualification coverage:** The coverage matrix still contains exactly 107 unique
     cases with all required fields, and each case has admissible green evidence under the

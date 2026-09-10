@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-04 are approved and RD-05 is drafted
+> **Artifact status**: Working discovery record; RD-01 through RD-05 are approved
 
 ## Authority and evidence
 
@@ -47,6 +47,10 @@ interaction is a compiler and machine-semantics concern rather than a distribute
   scrolling, multiplexing, double buffering, and Integrator-style compile-time composition as
   compiler architecture pressures from the beginning. Implement capabilities vertically without
   turning the compiler into a game engine. (AR-038)
+- Treat Blend65 as a general compiler for games, renderers, tools, and other C64 software. Its only
+  game-oriented convenience is compile-time ingestion, validation, conversion, typing, and target
+  integration of externally authored assets. Hardware access and delivery are general platform
+  support; every runtime game or rendering algorithm remains user-authored. (AR-038)
 - Design all intrinsic families from the beginning: volatile memory, CPU-control `asm_*`, queries,
   packed BCD, target encodings, and `embed()`. No arbitrary inline-assembly blocks.
 - Share one frontend/compiler service between CLI and LSP. The VS Code extension and language
@@ -73,7 +77,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. The complete 37-item register is resolved and the Zero-Ambiguity Gate passed.
+None. The complete 38-item register is resolved and the Zero-Ambiguity Gate passed.
 
 ## Approved first C64 production profile
 
@@ -118,7 +122,7 @@ project directives, and coding standards; they are not presented as false choice
 |---|---|
 | Feature gaps | AR-015 through AR-019 cover addressability, aggregates, nested fixed arrays, finite indirect calls, and compile-time game-data generation. Existing language semantics otherwise come from the selected v4 specification identity. |
 | Behavioral gaps | AR-023 owns visible optimization modes. Atomic failure, evaluation order, overflow, unsafe-check behavior, MMIO effects, IRQ/SFA overlap, and target legality already have authoritative contracts. |
-| Scope ambiguities | AR-014, AR-024, AR-025, AR-027, and AR-037 own specification authority, production C64 profile coverage, v3-tree disposition, the first qualified milestone, and its exact product/asset boundary. |
+| Scope ambiguities | AR-014, AR-024, AR-025, AR-027, AR-037, and AR-038 own specification authority, production C64 profile coverage, v3-tree disposition, the first qualified milestone, and the general-compiler versus game-engine boundary. |
 | Technical unknowns | Representation/pass/package counts remain implementation-plan decisions constrained by responsibility contracts, not product requirements. TypeScript 7, Node 22, Yarn classic, ACME, VICE, SFA, and no general linter are already explicit product/toolchain decisions. |
 | Edge cases | The expert baseline already governs recursion rejection, nested calls, array ordinal promotion, unchecked addressing, optional checks, BCD, local-address escape, IRQ/NMI entry, banking, asset validation, tool failure, and selected-profile mismatch. Journey review will test their composition. |
 | Integration points | AR-021 and AR-022 own editor and project/build integration. ACME serialization, VICE execution, native asset handlers, debug metadata, and CLI/LSP frontend sharing are confirmed scope. |
@@ -581,7 +585,7 @@ gain no v3 compatibility promise.
 | RD-03 — Playable M1 Complete Pipeline | Deliver one bounded original-art PAL/KERNAL/6581 Invaders-style game from source, CLI, and minimum editor support through parsing, analysis, semantic representation, SFA, target lowering, ACME, PRG, and VICE using `optimization: none`. Import qualified SpritePad assets, update one player, six invaders, and one projectile/explosion slot from joystick/fire input, resolve simple collision and win/loss, then restore/return to BASIC. | Ends with one useful, qualified, fully connected product slice plus independent behavior and assembly/cost evidence. No stage is a placeholder. |
 | RD-04 — Complete Language and Correct Unoptimized Compiler | Implement all Specification 4.0 language semantics and diagnostics across the real pipeline, including calls, aggregates, arrays, function values, compile-time functions, intrinsics, safety options, ABI/effects, SFA closure, legalization, and correct `optimization: none` output. | Ends with the complete language compiling correctly for the first C64 profile before optional optimization is added. |
 | RD-05 — C64 Platform Profiles and Game-Workload Compiler Support | Complete startup, banking, interrupts, timing, named hardware access, and narrow platform APIs for PAL/NTSC, KERNAL/takeover, and 6581/8580. Prove that user-authored sprite multiplexing, scrolling, double buffering, input, SID music/effects, fixed pools, collision, and state dispatch compile and run correctly without shipping those algorithms as an engine. | Ends with all eight approved resident-PRG profile identities and their relevant hardware operations and representative game workloads qualified. |
-| RD-06 — Native Assets, Compile-Time Composition, and Resident Layout | Implement and qualify current SpritePad, CharPad, PSID, Koala, and raw handlers; deterministic compile-time asset composition; Integrator-style refinement; exact placement, banking, alignment, deduplication, and one-copy resident layout. | Ends with resident game assets transformed, placed, consumed, and reported as an expert C64 developer would expect, with no runtime scene graph or renderer implied. |
+| RD-06 — Native Assets, Compile-Time Composition, and Resident Layout | Implement and qualify current SpritePad, CharPad, PSID, Koala, and raw handlers; deterministic compile-time data composition; Integrator-style asset refinement; exact placement, banking, alignment, deduplication, and one-copy resident layout. | Ends with resident assets converted into typed Blend65 data, metadata, symbols, and placement/package facts. User-authored programs consume them; no runtime renderer, player scheduler, mixer, scene system, or game architecture is supplied. |
 | RD-07 — Loadable Assets and D64 Delivery | Implement `loadable const`, compatible mutable destinations, explicit load success/failure, one qualified disk profile, atomic D64 packaging, loader/decompressor selection, overlays, liveness, and IRQ/audio/timing contracts. | Ends with `c64-pal-d64-kernal-6581` producing and running one complete D64 whose reachable load units work without a hidden general runtime. |
 | RD-08 — Optimization and Expert Output | Implement target-neutral and C64-machine optimization for `balanced`, `speed`, and `size`, retaining `none` as the correctness reference. Qualify each transformation with an independent behavior oracle and assembly/cost expectation. | Ends with expert parity as the local floor, measured whole-program wins, complete resource reports, and explicit GitHub debt for any qualified meet-only result. |
 | RD-09 — Developer Tooling and Debug Evidence | Complete the public compiler API, CLI, production LSP, thin VS Code client, canonical formatter, diagnostics/navigation/rename, trusted build/run workflow, generated-artifact access, and compiler debug metadata. | Ends with a coherent modern editing and command-line workflow. It preserves debugger information but does not build a Blend65-owned debug adapter. |
@@ -652,8 +656,9 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-04` are approved and committed. `RD-05` is drafted around the eight exact
-resident-PRG C64 profiles, narrow hardware/platform operations, and representative user-authored
-game workloads. Compile-time native asset composition, disk loading, optional optimization, and
-complete tooling remain owned by RD-06 through RD-09. RD-05 awaits user review; any new material
-choice reopens the gate.
+`RD-01` through `RD-05` are approved and committed. RD-05 establishes the eight exact resident-PRG
+C64 profiles, general hardware/platform operations, and representative user-authored game
+workloads without defining an engine. RD-06 is next: it owns native asset ingestion, validation,
+conversion into typed Blend65 data and metadata, deterministic compile-time asset refinement, and
+resident placement. It must not introduce a compiler-owned renderer, player scheduler, mixer,
+scene runtime, or game architecture. Any new material choice reopens the gate.

@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
 > **Status**: ✅ GATE PASSED — all 38 items resolved
-> **Last Updated**: 2026-09-10 20:15 CEST
+> **Last Updated**: 2026-09-10 12:58 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -43,7 +43,7 @@
 | AR-035 | Scope / specification authority | Which target appendices and platform claims are normative in Specification 4 while v4 implements and qualifies only C64? | Only qualified C64 targets normative / all five existing appendices normative / retain four non-normative provisional appendices inside the active spec | Make only qualified C64 profiles normative; remove the four unqualified target appendices from the active specification and retain future-target constraints as explicit non-support material. | ✅ Resolved |
 | AR-036 | Technical (complexity escalation) | Does the clean v4 foundation retain Turborepo and pre-emptive Vite configuration, or use the toolchain's direct build/test graph until a real consumer proves more machinery is needed? | Yarn workspaces + TypeScript project references + Vitest only / retain Turborepo and current Vite placeholders | Retain the useful v3 monorepo setup: Yarn classic workspaces, Turborepo, stable TypeScript 7, and Vitest, with no ESLint or replacement linter. Do not carry unused Vite placeholders; add Vite or another bundler only for a real packaging consumer. | ✅ Resolved |
 | AR-037 | Scope / M1 product and asset provenance | Does M1 remain a single-sprite interaction or become a bounded Invaders-style game, and when must the authentic SpritePad 3.80 input exist? | Keep the single-sprite loop / bounded original-art Invaders-style microgame / faithful full game recreation | Use a bounded original-art Invaders-style microgame: one player, six invaders, and one shared projectile/explosion sprite fit the eight hardware sprites without multiplexing. Include fixed enemy state, ordinary loops/functions, simple source-level collision, win/loss, and normal BASIC return; exclude score, lives, shields, enemy projectiles, audio, scrolling, IRQ callbacks, loaders, and optimization. The user will later supply an official SpritePad C64 Pro 3.80 template and exports; that evidence is required before RD-03 planning or asset-decoder implementation, not before requirements authoring. | ✅ Resolved |
-| AR-038 | Scope / product boundary | Since games are Blend65's primary use case, does v4 ship reusable game-engine/gameplay systems or qualify a language/compiler that lets developers write them? | Ship reusable game systems / compiler and narrow platform integration with game workloads as qualification / separate optional engine product | Blend65 remains a 6502-family language, AOT compiler, toolchain, and narrow target-platform library—not a game engine, framework, or gameplay library. It may ship typed zero-cost hardware operations, local timing/ownership contracts, compile-time asset handling, and exact player/loader/format adapters. Game loops, entity/fixed-pool modules, collision systems, state machines/dispatchers, renderers, scene graphs, sprite-multiplexing or scrolling engines, double-buffer managers, and audio mixers/schedulers remain user-authored algorithms. The compiler must express, lower, diagnose, and optimize those workloads correctly. Examples and Q-P workloads are qualification oracles only, never public game modules. | ✅ Resolved |
+| AR-038 | Scope / product boundary | Since games are Blend65's primary use case, does v4 ship reusable game-engine/gameplay systems or qualify a general language/compiler that lets developers write them? | Ship reusable game systems / general compiler plus narrow asset and platform integration, with game workloads as qualification / separate optional engine product | Blend65 remains a general 6502-family language, AOT compiler, toolchain, and narrow target-platform library for games and other software—not a game engine, framework, or gameplay library. Its only game-oriented convenience is compile-time ingestion, validation, conversion, typing, and target integration of external assets such as sprites, charsets, maps, images, and SID content. Typed hardware access and low-level delivery are general platform services. Game loops, entities/pools, collision, state dispatch, renderers, scene graphs, sprite-multiplexing, scrolling, buffering, audio scheduling/mixing, and every other application algorithm remain user-authored. Asset adapters may expose data, metadata, symbols, placement constraints, and an exact player ABI, never runtime game policy. The compiler must express, lower, diagnose, and optimize those workloads correctly. Examples and Q-P workloads are qualification oracles only, never public game modules. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -761,20 +761,28 @@ second product layer. Requirements that said Blend65 would provide reusable fixe
 state-dispatch, multiplexing, scrolling, or buffer systems could therefore authorize the wrong
 product even when they also prohibited a hidden mandatory runtime.
 
-The accepted boundary separates three responsibilities. The compiler owns normal language
-expressiveness, correct and expert-quality lowering, diagnostics, layout, optimization, evidence,
-and compile-time asset transformation. The narrow C64 platform library owns typed hardware access,
-local timing and ownership contracts, and exact adapters to selected external players, loaders, and
-asset formats. The application owns its game loop, entities and pools, collision policy, state
-model, renderer, sprite scheduling algorithm, scrolling strategy, buffer lifecycle, and audio
-policy. The compiler may recognize and improve a user-authored pattern only when its semantics and
-cost are proved; recognition never injects a gameplay subsystem or changes application policy.
+The accepted boundary separates three responsibilities. The compiler owns a general programming
+language for games, renderers, tools, and any other software the selected 6502 machine can support:
+normal expressiveness, correct and expert-quality lowering, diagnostics, layout, optimization, and
+evidence. The narrow C64 platform library owns general typed hardware access plus local timing,
+ownership, delivery, and packaging contracts. The toolchain's only game-oriented convenience is
+compile-time ingestion, validation, conversion, typing, and target integration of externally
+authored sprites, charsets, maps, images, SID content, and similar assets. Those handlers may
+produce typed data, metadata, symbols, placement constraints, and exact player-call information;
+they do not own runtime behavior.
+
+The application owns its game loop, entities and pools, collision policy, state model, renderer,
+sprite scheduling algorithm, scrolling strategy, buffer lifecycle, audio tick placement, cue
+policy, mixing/scheduling, and every other application algorithm. The compiler may recognize and
+improve a user-authored pattern only when its semantics and cost are proved; recognition never
+injects a gameplay subsystem or changes application policy.
 
 Q-P13, Q-P16, the M1 microgame, and later scrolling, buffering, and audio slices remain valuable
 because they prove that ordinary Blend65 can express real game workloads and that the generated
 machine code meets the expert bar. They are test programs and evidence fixtures, not installed
 modules, templates that define architecture, or public engine APIs. Compile-time asset composition
-builds bytes and placement; it does not create a runtime scene graph or renderer.
+builds typed bytes, metadata, symbols, and placement/package facts; it does not create a runtime
+scene graph, renderer, player scheduler, mixer, or game architecture.
 
 The active expert `1.0.0` knowledge remains frozen until RD-01's already-approved `2.0.0`
 transition. RD-01 must correct ambiguous phrases such as “game-system recommendation,” “engine
@@ -784,7 +792,10 @@ transition, not a silent mid-journey skill edit.
 
 **Direct user decision:** The user explicitly required the requirements to be corrected to the
 maximum extent possible because treating Blend65 as a game system or engine would create a
-different product.
+different product. The user then clarified that Blend65 must be a great general compiler with which
+developers can write games, renderers, and any other C64 software. Only asset-format ingestion and
+conversion into Blend65's typed target domain is deliberately game-oriented; building the game or
+engine remains the user's responsibility.
 
 ## Gate Notes
 

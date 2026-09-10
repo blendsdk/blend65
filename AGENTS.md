@@ -250,15 +250,21 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
 ### Project-specific
 
 - **Compiler product boundary (NON-NEGOTIABLE):** Blend65 is a 6502-family language, AOT compiler,
-  toolchain, and narrow target-platform library. Games are its primary workload and qualification
-  case, but Blend65 is not a game engine, game framework, or gameplay library. Do not add built-in
+  toolchain, and narrow target-platform library for games, renderers, tools, and any other software
+  its qualified machines can support. Games are its primary workload and qualification case, but
+  Blend65 is not a game engine, game framework, or gameplay library. Do not add built-in
   game loops, entity or fixed-pool modules, collision systems, state machines/dispatchers,
   renderers, scene graphs, sprite-multiplexer or scrolling engines, double-buffer managers, audio
   mixers/schedulers, or similar game-policy systems. The compiler must let developers write these
-  normally in Blend65, lower them correctly, and optimize proved patterns where legal. Typed
-  zero-cost hardware operations, local timing/ownership contracts, compile-time asset handling,
-  and exact player/loader/format adapters remain valid compiler/platform responsibilities. Game
-  examples and expert workloads are qualification oracles, not product APIs or support libraries.
+  normally in Blend65, lower them correctly, and optimize proved patterns where legal. The only
+  game-oriented convenience owned by the toolchain is compile-time ingestion, validation,
+  conversion, typing, and target integration of externally authored assets such as sprites,
+  charsets, maps, images, and SID content. Asset handling may expose typed data, metadata, symbols,
+  placement constraints, and an exact imported-player ABI; it must not supply a renderer, player
+  scheduler, mixer, scene runtime, or gameplay policy. Typed zero-cost hardware operations and
+  local timing/ownership contracts are general target-platform support, while low-level loaders
+  and artifact packaging are general delivery support. Game examples and expert workloads are
+  qualification oracles, not product APIs or support libraries.
 - **Skill/implementation independence:** the frozen language specification, explicit product
   decisions, the proven SFA function-storage doctrine, and primary hardware/tool evidence may
   shape the expert skill. Existing compiler code, tests, roadmaps, readiness artifacts, scoreboards,

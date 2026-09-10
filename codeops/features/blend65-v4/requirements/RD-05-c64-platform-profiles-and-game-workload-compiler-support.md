@@ -11,20 +11,21 @@
 
 ## Feature Overview
 
-RD-05 turns the complete, correct `optimization: none` compiler into a complete base-C64
-development platform. It implements all eight approved resident-PRG target profiles, exact startup
-and return, ROM and RAM banking, IRQ/NMI ownership, raster timing, named VIC-II/CIA/SID access,
-input, direct sprites, and exact external player integration. It also proves that normal Blend65 can
-express and correctly compile user-authored sprite multiplexing, scrolling, buffering, fixed-pool,
-collision, state-dispatch, and audio workloads. Those programs are qualification evidence, not
-compiler-supplied gameplay systems. (AR-038)
+RD-05 turns the complete, correct `optimization: none` compiler into a complete general base-C64
+development platform for games and other software. It implements all eight approved resident-PRG
+target profiles, exact startup and return, ROM and RAM banking, IRQ/NMI ownership, raster timing,
+named VIC-II/CIA/SID access, input, direct sprites, and exact external player integration. It also
+proves that normal Blend65 can express and correctly compile user-authored sprite multiplexing,
+scrolling, buffering, fixed-pool, collision, state-dispatch, and audio workloads. Those programs are
+qualification evidence, not compiler-supplied gameplay systems. (AR-038)
 
 The narrow platform library hides incidental hardware lore from a modern developer but never owns
-game policy. A constant hardware operation lowers to the same direct register access or short
-sequence an expert would write. An exact selected player or loader adapter links only its reachable
-code and data, with every byte, cycle, zero-page location, SFA home, stack byte, interrupt path, and
-placement constraint reported. Blend65 ships no game engine, gameplay framework, or reusable
-game-policy modules, whether mandatory or opt-in. (AR-002, AR-012, AR-038)
+application policy. Its hardware operations are general C64 support, not game-engine features. A
+constant hardware operation lowers to the same direct register access or short sequence an expert
+would write. An exact selected player or loader adapter links only its reachable code and data,
+with every byte, cycle, zero-page location, SFA home, stack byte, interrupt path, and placement
+constraint reported. Blend65 ships no game engine, gameplay framework, or reusable game-policy
+modules, whether mandatory or opt-in. (AR-002, AR-012, AR-038)
 
 RD-05 owns C64 platform behavior and game-workload qualification, not native authoring-file
 conversion or gameplay algorithms. It may consume the already-qualified M1 SpritePad fixture and
@@ -45,7 +46,7 @@ The following boundary is normative for RD-05:
 | Entities/pools | Arrays, structs, word-capable indexing, legal layout optimization, and resource evidence | Entity model, capacity/lifecycle, active/free policy, and overflow behavior |
 | Collision | Exact VIC-II latch access and correct/optimized compilation of ordinary source | Broad/narrow algorithms, result ordering, precision, and overflow policy |
 | State dispatch | `switch`, tables, finite function values, SFA-safe lowering, and legal specialization | States, transitions, events, and update order |
-| Assets | Compile-time parsing, validation, transformation, placement, deduplication, and packaging | Asset choice and application meaning; no runtime scene graph or renderer is inferred |
+| Assets | Compile-time ingestion, validation, conversion, typing, metadata/symbol publication, placement, deduplication, and packaging | Asset choice and every runtime consumer, including rendering, playback scheduling, mixing, scene organization, and gameplay meaning |
 
 Complete examples may demonstrate every application-owned technique, but they remain source
 programs and qualification evidence. They do not create supported game APIs. (AR-038)
@@ -510,7 +511,8 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 
 - Supplies device, bank, mode, pointer, audio-adapter, and resource contracts that native asset
   handlers must satisfy. RD-06 replaces internal/reference fixtures with qualified producer formats
-  without adding a runtime scene graph, renderer, or game semantics. (AR-038)
+  and emits typed data, metadata, symbols, external-player ABI facts, and placement/package facts.
+  It adds no runtime scene graph, renderer, player scheduler, mixer, or game semantics. (AR-038)
 
 ### With RD-07 (Loadable Assets and D64 Delivery)
 
@@ -726,5 +728,6 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
     support, examples, and documentation finds no built-in or shipped game loop, entity/pool,
     collision, state-machine/dispatcher, renderer/scene-graph, sprite-multiplexer, scrolling,
     double-buffer-manager, or audio-mixer/scheduler API. Q-P13, Q-P16, and complete game examples
-    are classified only as qualification fixtures. Typed hardware operations and exact external
-    adapters remain separately identifiable. (AR-038)
+    are classified only as qualification fixtures. Typed hardware operations are identified as
+    general platform support. Asset adapters expose only compile-time conversion results and exact
+    external ABI/placement facts; their runtime consumers remain user-authored. (AR-038)
