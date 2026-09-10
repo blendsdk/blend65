@@ -1,10 +1,12 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — REVIEW IN PROGRESS — 19 pending findings (13 major, 6 minor); PF-001 resolved
-> **Iteration**: 1 — first scan
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 9 open findings (8 major, 1 minor); PF-001–PF-020 resolved
+> **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
-> **Artifact Commit**: `e7a9f09a30d503de2fb14d90ec111fbb2f06aa45`
-> **Artifact Digest**: `47d78bfe759199cbc95497bced857741181b615bff65168987fbe5650df07846`
+> **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
+> **Artifact Digest**: `2703a18519925c907e462baa674a73e69a6a5c116debc37864bb399977f7f658`
+> **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
+> except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
 > five external tool/filesystem source families checked
 > **Expert Lineage**: `blend65-domain-expert` 1.0.0, content commit
@@ -40,7 +42,7 @@ and [POSIX `rename`](https://pubs.opengroup.org/onlinepubs/9799919799/functions/
 rename publishes one entry, and replacing an existing non-empty directory is not a portable
 Linux/Windows set-transaction primitive.
 
-## Summary by Dimension
+## Iteration 1 Summary by Dimension
 
 | # | Dimension | Findings | Highest severity |
 |---|---|---:|---|
@@ -58,7 +60,7 @@ Linux/Windows set-transaction primitive.
 | 12 | Consistency | 2 | 🟡 MINOR |
 | 13 | Codebase Alignment | 1 | 🟡 MINOR |
 
-## Summary by Severity
+## Iteration 1 Summary by Severity
 
 | Severity | Count | Status |
 |---|---:|---|
@@ -126,8 +128,8 @@ boundary. The original challenger conclusion depended on the broader portability
 longer governs this refined decision.
 **User Decision:** Accepted revised Option A on 2026-09-10. Blend65 reads filenames as the host
 exposes them and imposes no casing or Unicode portability restriction.
-**Correction Status:** Queued for the accepted-fixes batch; PF-002 remains open until the affected
-requirements and acceptance criteria are corrected and verified.
+**Resolution:** Applied in `54bf32b`; exact host-spelling, literal basename, path, and acceptance
+contracts now agree. The deep rescan found the separate Windows basename edge case in PF-025.
 
 ### PF-003: Unknown indirect calls have two conflicting outcomes 🟠 MAJOR
 
@@ -154,8 +156,8 @@ genuinely unknown target.
 original challenger correctly rejected unbounded calls but did not distinguish them from a safe
 closed-world over-approximation.
 **User Decision:** Accepted revised Option A on 2026-09-10.
-**Correction Status:** Queued for the accepted-fixes batch; PF-003 remains open until AR-018, R4.30,
-R4.39, and their acceptance evidence use the same finite-set rule.
+**Resolution:** Applied and verified in `54bf32b`; AR-018, RD-01, RD-04, RD-08, and their acceptance
+evidence use the same precise-then-finite-widening rule.
 
 ### PF-004: RD-09 can close before its required producers 🟠 MAJOR
 
@@ -181,8 +183,8 @@ RD-05 through RD-08. The corresponding producer handoffs are only Should require
 **Confidence:** High. **Hardening:** Challenger selected Option A.
 **User Decision:** Accepted Option A on 2026-09-10. RD-09 has a bounded frontend/editor milestone
 after RD-04 and a final build/debug integration milestone after RD-05 through RD-08.
-**Correction Status:** Queued for the accepted-fixes batch; PF-004 remains open until the dependency
-graph, RD-09 closeout gate, and producer handoffs are corrected and verified.
+**Resolution:** Applied and verified in `54bf32b`; the dependency graph, RD-09 milestone/closeout
+gate, mandatory producer handoffs, index, discovery notes, and roadmap agree.
 
 ### PF-005: Native asset evidence gates have no complete owner 🟠 MAJOR
 
@@ -208,8 +210,8 @@ can block planning, but the dependency graph names no owner or checkpoint.
 **Confidence:** High. **Hardening:** Challenger confirmed the finding and fail-closed gate.
 **User Decision:** Accepted Option A on 2026-09-10. The M1 SpritePad evidence is due before RD-03
 planning; complete SpritePad and CharPad matrices are due only before their RD-06 handler plans.
-**Correction Status:** Queued for the accepted-fixes batch; PF-005 remains open until the dependency
-graph, ownership, evidence gates, and fail-closed acceptance cases are corrected and verified.
+**Resolution:** Applied and verified in `54bf32b`; the M1 and full-handler evidence gates now have
+explicit owners, timing, provenance, retention, and format-local fail-closed behavior.
 
 ### PF-006: Sibling files cannot be published as one atomic set 🟠 MAJOR
 
@@ -237,9 +239,8 @@ Bound inactive retention while exempting current and actively pinned generations
 **Confidence:** High. **Hardening:** Challenger selected and narrowed Option A.
 **User Decision:** Accepted Option A on 2026-09-10. The publication mechanism is one direct
 host-side routine and adds no target bytes, storage, startup work, or cycles.
-**Correction Status:** Queued for the accepted-fixes batch; PF-006 remains open until the artifact
-layout, current record, lock/pin protocol, retention rule, and Linux/Windows acceptance cases are
-corrected and verified.
+**Resolution:** The accepted immutable-generation model was applied in `54bf32b`. Deep rescan found
+two remaining generation-identity and stale-pin edge cases, now tracked as PF-021 and PF-026.
 
 ### PF-007: Tool discovery trust boundary was defined too broadly 🟠 MAJOR
 
@@ -275,9 +276,8 @@ qualification evidence without becoming a discovery trust framework.
 user clarified the intended CLI-owned config-or-`PATH` boundary.
 **User Decision:** Accepted revised Option A on 2026-09-10. The user explicitly rejected additional
 discovery machinery: the CLI looks only at machine-local configuration and then normal `PATH`.
-**Correction Status:** Queued for the accepted-fixes batch; PF-007 remains open until RD-09, RD-10,
-AR-048, and their acceptance cases consistently express the revised capability matrix and discovery
-boundary.
+**Resolution:** Applied and verified in `54bf32b`; the compiler/tool capability matrix and
+config-or-normal-`PATH` discovery boundary agree. PF-029 tracks the remaining Windows token probe.
 
 ### PF-008: Public evidence sidecars have no versioned schemas 🟠 MAJOR
 
@@ -306,8 +306,9 @@ versioned contract with exact field types, required/optional rules, unavailable-
 representation, unknown-field behavior, canonical encoding where determinism requires it, and an
 unsupported-major diagnostic. This creates no shared schema framework, registry, service, or
 database.
-**Correction Status:** Queued for the accepted-fixes batch; PF-008 remains open until the four
-schemas and their consumer-focused qualification requirements are made explicit and consistent.
+**Resolution:** The four independent schema envelopes and evolution rules were applied in
+`54bf32b`. Deep rescan found incomplete nested field contracts and debug-schema ordering, tracked as
+PF-022 and PF-023.
 
 ### PF-009: Build identity can hash itself and absorb host-specific data 🟠 MAJOR
 
@@ -335,8 +336,8 @@ self-reference.
 portable tool identities, artifact digests cover generated outputs other than `.build.json`, and
 host-specific paths, executable hashes, timings, and memory measurements remain provenance outside
 the portable identity. `.build.json` never contributes to the identity it contains.
-**Correction Status:** Queued for the accepted-fixes batch; PF-009 remains open until the identity,
-artifact-digest, and host-provenance boundaries are stated consistently with qualification cases.
+**Resolution:** The portable semantic identity, artifact-digest, self-exclusion, and host-provenance
+boundaries were applied in `54bf32b`; PF-021 tracks their remaining generation-key collision.
 
 ### PF-010: `outDir` lifecycle and containment are undefined 🟠 MAJOR
 
@@ -365,9 +366,8 @@ walking inputs.
 **Confidence:** High. **Hardening:** Challenger selected Option A.
 **User Decision:** Accepted refined Option A on 2026-09-10. Directory creation and validation stay
 one bounded filesystem responsibility rather than becoming a workspace or storage framework.
-**Correction Status:** Queued for the accepted-fixes batch; PF-010 remains open until the manifest,
-path/snapshot model, generation publication, and first/repeated-build qualification cases express
-this lifecycle consistently.
+**Resolution:** Applied and verified in `54bf32b`; `outDir` is excluded output state with first-build,
+repeat-build, containment, collision, and `sourceRoot: "."` coverage.
 
 ### PF-011: Cancelling a running VICE session cannot undo its completed build 🟠 MAJOR
 
@@ -392,8 +392,8 @@ That requires destructive rollback of a valid build and races readers/concurrent
 before its atomic commit publishes nothing; cancellation after it preserves the valid build and
 terminates only the owned VICE/monitor execution. The result distinguishes successful build from
 cancelled run, including a deterministic race case at the commit boundary.
-**Correction Status:** Queued for the accepted-fixes batch; PF-011 remains open until cancellation,
-publication, CLI/LSP result reporting, and qualification cases share this exact boundary.
+**Resolution:** Applied and verified in `54bf32b`; publication is the deterministic no-return point
+and post-commit run cancellation preserves the successful build.
 
 ### PF-012: Interrupt install/restore has no closed ownership lifecycle 🟠 MAJOR
 
@@ -423,8 +423,8 @@ agree. Repeated or nested use is legal when maximum depth and balance are finite
 only the required predecessor words allocated. A raw vector write remains legal low-level access
 but invalidates helper ownership, so a later helper restore is diagnosed. No runtime registry,
 token, flag, scheduler, or hidden lifecycle is emitted.
-**Correction Status:** Queued for the accepted-fixes batch; PF-012 remains open until installation,
-restore, storage, control-flow, raw-vector, quiescence, and qualification rules share this model.
+**Resolution:** Applied and verified in `54bf32b`; per-sink LIFO ownership, predecessor storage,
+control-flow joins, raw-vector invalidation, quiescence, and acceptance rules now agree.
 
 ### PF-013: Loader destinations reject valid addressable places 🟠 MAJOR
 
@@ -453,8 +453,8 @@ publication state are statically proved. This includes fields, indexed elements,
 aggregate parameters when the caller/alias proof closes. The place expression evaluates once.
 Constants, temporaries, MMIO, expired storage, mismatched extents, and unproved ranges remain
 invalid. Loading stays direct to final storage with no descriptor, staging buffer, or hidden copy.
-**Correction Status:** Queued for the accepted-fixes batch; PF-013 remains open until RD-01,
-AR-015/AR-016, RD-07, and loader qualification cases consistently admit the complete place model.
+**Resolution:** The complete proved-place destination model was applied in `54bf32b`. PF-024 tracks
+the newly exposed definite-assignment rule for a runtime-selected member of a finite place set.
 
 ### PF-014: Optimizer size and packaging cost domains are conflated 🟠 MAJOR
 
@@ -491,9 +491,8 @@ D64 allocation as an optimizer objective.
 **User Decision:** Accepted revised Option A on 2026-09-10. The user explicitly confirmed that
 `size` means generated program/PRG size and target-memory usage; known D64 container size is
 irrelevant to optimization.
-**Correction Status:** Queued for the accepted-fixes batch; PF-014 remains open until RD-07, RD-08,
-AR-023, AR-045, the cost schemas, and mode qualification cases consistently define `B`, `R`, `T`,
-the corrected orderings, and the packaging exclusion.
+**Resolution:** Applied and verified in `54bf32b`; `B`, `R`, `T`, hard feasibility, corrected mode
+orders, and the D64/container exclusion now agree.
 
 ### PF-015: M1 explosion update counting is ambiguous 🟡 MINOR
 
@@ -518,8 +517,8 @@ selected Option A.
 explosion frame 1/count 1, the next update publishes frame 2/count 2, and the following update makes
 the explosion idle. This freezes only the M1 Blend65 fixture, independent behavior oracle, and VICE
 frame expectations; it adds no compiler intrinsic, runtime support, game abstraction, or engine.
-**Correction Status:** Queued for the accepted-fixes batch; PF-015 remains open until the RD-03
-state table, update order, predetermined trace, pure oracle, and VICE criteria share this count.
+**Resolution:** Applied and verified in `54bf32b`; collision update publishes frame/count 1, the next
+update frame/count 2, and the following update makes the slot idle throughout RD-03.
 
 ### PF-016: `optimization: none` needs deterministic backend policy, not frozen assembly 🟡 MINOR
 
@@ -554,9 +553,8 @@ initial freeze recommendation with Option A.
 working program without extra size/speed optimization effort, `speed` as exhaustive cycle-first
 work, and `size` as exhaustive program-size/memory-first work. The user accepted the recommendation
 to retain exactly four modes and not add a redundant or ambiguous `max` mode.
-**Correction Status:** Queued for the accepted-fixes batch; PF-016 remains open until RD-04, RD-08,
-AR-023, AR-045/AR-046, parity wording, and mode qualification cases consistently express this
-boundary.
+**Resolution:** Applied and verified in `54bf32b`; `none` is correct deterministic direct lowering
+without optional search or parity gating, while optimized-mode obligations remain intact.
 
 ### PF-017: V3 has no qualified native asset codec to salvage 🟡 MINOR
 
@@ -579,8 +577,8 @@ checkout contains raw asset/embed mechanics, not that qualified native-format im
 `embed(path)` mechanics are possible salvage candidates. SpritePad, CharPad, SID/PSID, Koala, and
 other native-format codecs plus their current-producer fixtures are new v4 work and must qualify
 against their exact accepted format contracts without guessing from partial implementations.
-**Correction Status:** Queued for the accepted-fixes batch; PF-017 remains open until AR-025 and
-the salvage inventory/asset prerequisites consistently distinguish raw mechanics from new codecs.
+**Resolution:** Applied and verified in `54bf32b`; only raw mechanics are plausible v3 asset salvage,
+while native codecs and current-producer fixtures are new v4 work.
 
 ### PF-018: Embedded-data threshold can misstate whole-program memory safety 🟡 MINOR
 
@@ -621,9 +619,8 @@ and makes the developer-facing reconciliation fields explicit.
 **User Decision:** Accepted revised Option A on 2026-09-10. The user requires assembly-grade exact
 post-optimization accounting so a statically impossible layout fails with an explanation rather
 than producing a program that later corrupts memory.
-**Correction Status:** Queued for the accepted-fixes batch; PF-018 remains open until RD-04 through
-RD-06, RD-08, W10150 references, evidence schemas, and qualification cases consistently implement
-the exact report/failure contract and remove the threshold.
+**Resolution:** Applied and verified in `54bf32b`; W10150 and its threshold are gone, and final exact
+post-ACME memory/cost evidence plus hard resource diagnostics are required.
 
 ### PF-019: `tools.jsonc` has an undefined schema version 🟡 MINOR
 
@@ -647,8 +644,8 @@ keys, wrong types, a missing version, and unsupported versions are configuration
 omitted key uses normal `PATH`; an invalid explicit path does not fall back. An absent file uses
 `PATH`. Operations that need no external tool, including `check` and ordinary LSP analysis, do not
 load or validate the file. This is one direct format check, not a schema framework.
-**Correction Status:** Queued for the accepted-fixes batch; PF-019 remains open until RD-09,
-AR-048, the tools schema, diagnostics, CLI/VS Code sharing, and qualification cases agree.
+**Resolution:** Applied and verified in `54bf32b`; schema version 1, exact keys, precedence, lazy
+loading, diagnostics, and CLI/VS Code sharing agree.
 
 ### PF-020: AR-023 retains a superseded hot-path speed rule 🟡 MINOR
 
@@ -671,19 +668,187 @@ and defer to the final frequency-free policy: hard constraints first, then `spee
 complete comparable semantic-path cycle vector `T`, target-memory resource vector `R`, program
 bytes `B`, and stable tie-break. Statically proved loop counts and explicit timing contracts remain
 real semantic/cost facts; guessed frequency, annotations, profiling, and weights remain absent.
-**Correction Status:** Queued for the accepted-fixes batch; PF-020 remains open until AR-023,
-AR-045, RD-08, and optimizer qualification cases state one consistent active policy.
+**Resolution:** Applied and verified in `54bf32b`; no active optimizer requirement uses declared or
+guessed hotness, and speed uses `T → R → B`.
+
+## Iteration 2 — Deep Rescan
+
+Three independent audit clusters rescanned all thirteen dimensions after the accepted correction
+commit, and the primary reviewer repeated cross-document searches, count checks, formatting checks,
+and codebase grounding. Duplicate reports were merged. Each finding below survived an explicit
+refutation attempt.
+
+### Iteration 2 Summary
+
+| Dimension | Open findings | Highest severity |
+|---|---:|---|
+| Ambiguities / assumptions | 2 | 🟠 MAJOR |
+| Contradictions / consistency | 3 | 🟠 MAJOR |
+| Completeness / dependencies / ordering | 2 | 🟠 MAJOR |
+| Feasibility / codebase alignment | 1 | 🟠 MAJOR |
+| Testability / security / edge cases | 5 | 🟠 MAJOR |
+| Scope creep | 0 | — |
+
+Several findings span dimensions; the unique total is eight major and one minor.
+
+### PF-021: Portable `buildId` cannot name every immutable publication generation 🟠 MAJOR
+
+**Dimensions:** 3, 6, 9, 12, 13
+**Location:** `RD-03:427-456,553-557,707-708`; `RD-09:422-443,839-844`;
+`RD-10:108-114,601-607`; `00-ambiguity-register.md:372-375`
+**Problem:** Equivalent or concurrent builds share one portable `buildId`, but their required
+per-invocation host path/hash/duration/memory provenance may differ. A second nonempty directory
+cannot be renamed over the first immutable `buildId` directory, and reuse would retain the wrong
+invocation evidence. `generationId` exists but has no governing relationship to either identity.
+
+| Option | Description | Tradeoff |
+|---|---|---|
+| A — **Recommended** | Use a unique opaque host publication token only for directory/current-record/pin ownership. Keep `buildId` and all portable sidecars deterministic; put the token and host observations only in the nonportable build-publication record, whose hash the current record binds. | Preserves every invocation and avoids cache/reuse semantics; normalized portable evidence excludes declared publication fields. |
+| B | Keep a content-addressed `buildId` directory, move all volatile provenance elsewhere, and validate/reuse an identical existing generation. | Simpler directory identity, but introduces reuse semantics and loses per-invocation evidence from the generation. |
+
+**Recommendation:** Option A. It cleanly separates semantic reproducibility from host publication
+ownership without a cache, database, or transaction framework.
+**Decision:** Pending.
+
+### PF-022: `.debug.json` is published before its schema exists 🟠 MAJOR
+
+**Dimensions:** 1, 4, 5, 11
+**Location:** `RD-03:220-225,447-475`; `RD-07:93-98`; `RD-09:250-319,502-519`
+**Problem:** RD-03 and RD-07 publish a source/debug artifact, but RD-03's schema table omits
+`.debug.json`; RD-09 later defers its exact shape to a plan that starts after RD-04. The first
+producer therefore cannot author implementation-blind tests or promise a stable public artifact.
+
+| Option | Description | Tradeoff |
+|---|---|---|
+| A — **Recommended** | Freeze the complete `.debug.json` version-1 envelope and record unions before RD-03 specification tests. RD-03 populates the admitted M1 facts; RD-09 consumes the same schema. | Preserves day-one debug evidence and prevents retroactive format replacement. |
+| B | Make the M1 map explicitly private and omit public `.debug.json` until RD-09. | Smaller M1 schema work, but weakens the accepted day-one debug-evidence direction. |
+
+**Recommendation:** Option A.
+**Decision:** Pending.
+
+### PF-023: The four direct sidecar schemas still contain untyped nested objects 🟠 MAJOR
+
+**Dimensions:** 4, 7, 12
+**Location:** `RD-03:447-473`; `RD-09:303-319`
+**Problem:** `semanticInputs`, `hostProvenance`, `constraints`, `placement`, and
+`unboundedEffects` are only `object`; several named record types have no field contract; unordered
+arrays have no stable identity; `artifactSetSha256` has no exact derivation; and invalid v1 data is
+not distinguished cleanly from an unsupported-major error. The accepted PF-008 correction is not
+yet testable at field level.
+
+**Only viable correction — Recommended:** Freeze small direct field-level schemas, closed tagged
+unions, required/optional rules, stable array identities/order, and digest derivations before the
+first specification test. Use separate diagnostics for malformed supported-v1 data and an
+unsupported major. Add no registry, service, database, generator, or schema framework.
+**Decision:** Pending.
+
+### PF-024: A runtime-selected loader destination has no sound flow-state rule 🟠 MAJOR
+
+**Dimensions:** 1, 7, 9
+**Location:** `RD-07:52-72,209-213,584-590,642-644`
+**Problem:** A load may select one of several proved places at runtime, but the true/false flow edges
+do not say which possible place becomes initialized or indeterminate. Marking all candidates is
+unsound; marking none prevents the approved modern source behavior.
+
+**Only viable correction — Recommended:** Capture the once-evaluated concrete place symbolically.
+At runtime, success initializes only that place and failure invalidates only that place. A later
+read is accepted only when control-flow and alias analysis prove that it denotes the captured place
+on every reaching path. Add unchanged-index, changed-index, alias, join, loop, and failure cases;
+add no runtime token or descriptor.
+**Decision:** Pending.
+
+### PF-025: The literal output basename is unsafe on Windows 🟠 MAJOR
+
+**Dimensions:** 8, 9
+**Location:** `RD-02:116-145,530-544`
+**Problem:** Rejecting separators, NUL, `.` and `..` does not exclude Windows device names,
+alternate-data-stream colons, invalid filename characters, or trailing dot/space semantics. Such a
+name can violate the required ordinary contained regular-file output model. This concerns the
+manifest output basename, not source filenames.
+
+| Option | Description | Tradeoff |
+|---|---|---|
+| A — **Recommended** | Preserve the literal name but require every derived artifact name to be one ordinary regular filename on the current host. Add native Windows device, ADS colon, invalid-character, and trailing-dot/space rejection cases. | Matches host reality without normalizing or restricting source filenames. |
+| B | Adopt one restrictive cross-host portable basename grammar. | Easier uniformity, but rejects legal host names and conflicts with the exact-host-name direction. |
+
+**Recommendation:** Option A.
+**Decision:** Pending.
+
+### PF-026: Stale run-pin recovery has no race-safe contract 🟠 MAJOR
+
+**Dimensions:** 7, 8, 9
+**Location:** `RD-03:437-445`; `RD-09:422-429`; `RD-10:592-599`
+**Problem:** Cleanup must reclaim stale pins, but no rule distinguishes a crashed owner from a live
+process without PID reuse or timeout races. A false stale decision deletes active output; a false
+live decision defeats the bounded-retention claim.
+
+| Option | Description | Tradeoff |
+|---|---|---|
+| A — **Recommended** | Delete only with race-free proof that no live holder exists. A normal owner removes its pin. An uncertain or crash-left pin is retained and diagnosed for deliberate manual cleanup; PID, age, or marker existence alone never authorizes deletion. | Safest and smallest; rare crashed pins can accumulate until the user cleans output state. |
+| B | Add platform-specific process-creation identity and qualified liveness probing. | Can reclaim crashed pins automatically, but adds host machinery before a measured need. |
+
+**Recommendation:** Option A. It favors data safety and simplicity over an automatic stale-pin
+system.
+**Decision:** Pending.
+
+### PF-027: V4 silently inherits a non-platform-forced ban on lexical shadowing 🟠 MAJOR
+
+**Dimensions:** 2, 3
+**Location:** `README.md:27-29,133-134`; `RD-01:67-71`; `RD-04:91-95`;
+`spec/evaluations/F013-control-flow.md:194-224`
+**Problem:** V4's modern-developer directive rejects compiler-convenience restrictions, yet the
+unchanged-v3 bucket preserves blanket “no shadowing.” The recorded v3 rationale says it is stricter
+than C and is not a 6502 resource limitation.
+
+| Option | Description | Tradeoff |
+|---|---|---|
+| A — **Recommended** | Allow lexical shadowing in a nested child scope while retaining same-scope duplicate errors, unambiguous symbol identity, and normal definite-assignment rules. | Matches mainstream lexical languages with no runtime or target cost. |
+| B | Keep blanket no-shadowing as an explicit Blend65 product exception. | Simpler name lookup, but violates the modern-language directive without a platform reason. |
+
+**Recommendation:** Option A.
+**Decision:** Pending.
+
+### PF-028: Compile-time evaluation budgets are observable but undefined 🟠 MAJOR
+
+**Dimensions:** 1, 4, 7
+**Location:** `00-ambiguity-register.md:247-260`; `RD-01:110-115`; `RD-04:236-240`
+**Problem:** Requirements promise deterministic step and memory exhaustion behavior but define no
+counted operation, logical storage unit, exact limit, or exhaustion boundary. Source acceptance may
+therefore vary by implementation or host allocator.
+
+**Only viable correction — Recommended:** Before Specification 4/expert activation, freeze exact
+versioned abstract-evaluator budgets: counted step operations, logical storage accounting, call
+depth if relevant, fixed numeric limits, and the precise exhaustion point. Keep host process memory
+as a defensive outer failure only. Qualify each semantic limit at `N` and `N+1` on Linux and
+Windows.
+**Decision:** Pending.
+
+### PF-029: Windows automatic `PATH` lookup has no frozen executable tokens 🟡 MINOR
+
+**Dimensions:** 2, 7, 13
+**Location:** `RD-09:67-83`; `00-ambiguity-register.md:1181-1184`; `README.md:150-151`
+**Problem:** Normal `PATH` ordering is defined, but the Windows executable query names,
+`PATHEXT` behavior, and version probes remain explicitly unknown. Automatic discovery cannot yet be
+implemented or qualified exactly.
+
+| Option | Description | Tradeoff |
+|---|---|---|
+| A — **Recommended** | Make a clean Windows probe a pre-RD-09-planning prerequisite and freeze exact query tokens, native extension handling, and version commands from that evidence. | Preserves config-or-PATH behavior without guessing from v3. |
+| B | Require explicit Windows tool paths and drop automatic PATH lookup there. | Avoids the probe but contradicts the accepted cross-host DX. |
+
+**Recommendation:** Option A.
+**Decision:** Pending.
 
 ## Audit Guardrails and Result
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
-- The PF-001 requirements correction has been applied. PF-002 through PF-020 have accepted
-  resolutions recorded here and remain queued for the authorized cross-document correction batch.
+- PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
+- The deep rescan found PF-021 through PF-029; none has been silently corrected.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with all 20 decisions complete and 19 accepted corrections pending
-application and deep rescan.
+**Current Result:** **BLOCKED** with PF-001 through PF-020 resolved and nine deep-rescan findings
+awaiting decisions.
