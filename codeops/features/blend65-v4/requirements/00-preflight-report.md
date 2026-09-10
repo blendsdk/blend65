@@ -641,7 +641,14 @@ cannot be assumed.
 | A — only viable | Require integer `schemaVersion: 1`, reject missing/unsupported versions with stable diagnostics, and add AC-36 cases. | Exact and fail closed. | Small extra negative-test surface. |
 
 **Recommendation:** Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. A present `tools.jsonc` requires integer
+`schemaVersion: 1`; `acmePath` and `x64scPath` are optional absolute strings. Unknown/duplicate
+keys, wrong types, a missing version, and unsupported versions are configuration diagnostics. An
+omitted key uses normal `PATH`; an invalid explicit path does not fall back. An absent file uses
+`PATH`. Operations that need no external tool, including `check` and ordinary LSP analysis, do not
+load or validate the file. This is one direct format check, not a schema framework.
+**Correction Status:** Queued for the accepted-fixes batch; PF-019 remains open until RD-09,
+AR-048, the tools schema, diagnostics, CLI/VS Code sharing, and qualification cases agree.
 
 ### PF-020: AR-023 retains a superseded hot-path speed rule 🟡 MINOR
 
