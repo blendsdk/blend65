@@ -443,6 +443,14 @@ must first determine whether an existing VICE-capable adapter can consume the co
 only a proven semantic gap may reopen the larger owned-adapter proposal. The debug artifact has no
 PRG, RAM, ZP, hardware-stack, or runtime-cycle cost.
 
+The first producer owns the public contract: RD-03 freezes the complete `.debug.json` version-1
+root, tagged records, index rules, ordering, and rejection behavior before its specification tests
+or implementation. RD-03 emits the applicable M1 records; RD-04 through RD-08 populate only the
+already-admitted language, platform, asset, load-unit, and optimization forms; RD-09 consumes and
+validates the contract and performs the bounded adapter probe. No phase may silently add a
+version-1 field, serialize internal compiler objects, or turn this evidence into a runtime or a
+general debugger/schema framework.
+
 ### F5 complexity-escalation approval evidence
 
 - **Original goal:** Later full source-level debugging for modern Blend65 users in VS Code.

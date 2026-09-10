@@ -94,7 +94,9 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   stages `<name>.d64` plus the common `.asm`, `.labels`, `.memory.json`, `.assets.json`,
   `.costs.json`, `.debug.json`, and `.build.json` evidence inside one immutable build generation,
   then atomically replaces the current-generation record. The direct JSON sidecars conform to their
-  RD-03 versioned schemas and `.build.json` hashes every other contained artifact. The boot PRG and
+  RD-03 versioned schemas; `.debug.json` populates the existing load-unit, publication, residence,
+  address-space, location, and final-range record families without redefining them, and `.build.json`
+  hashes every other contained artifact. The boot PRG and
   unit files are contained components, not separate advertised products. Any failure or pre-commit
   cancellation leaves the prior current generation intact, and `run` never launches a stale or
   mixed artifact. The same short per-project publication lock, run pin, and bounded retention rule
@@ -253,6 +255,8 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   label/ID, boot entry, ordered directory, BAM, allocation policy, and profile/loader identities.
   Each component records logical/source/output hashes, directory bytes/name/type, load header,
   start/end track-sector chain, block count, byte length, destination calls, and aliasing.
+  The same identities populate the RD-03-frozen debug version-1 load-unit and artifact records; no
+  separate loader debug format is introduced.
 - [ ] **R7.39 — Publish complete runtime costs.** `.costs.json` separately reports boot-resident
   bytes, loader code/data, per-unit filename bytes, call-site bytes, SFA/temp/ZP/stack, KERNAL ROM
   bytes as existing zero-output code, logical and disk bytes, sector overhead, destination

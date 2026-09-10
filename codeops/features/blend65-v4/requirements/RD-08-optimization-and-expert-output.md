@@ -390,8 +390,11 @@ equivalent 6502 program was searched. (AR-008, AR-023, AR-026, AR-038, AR-045, A
 - [ ] **R8.58 — Preserve optimizer evidence for RD-09.** Expose stable source spans, machine ranges,
   optimized-away values, rematerialized values, and final homes through the existing debug/evidence
   contracts so later editor/debug integration can explain optimized code. RD-08 does not build an
-  owned debug adapter or make ordinary LSP requests run code generation. This mandatory schema-first
-  handoff must exist before RD-09 closes. (AR-010, AR-021)
+  owned debug adapter or make ordinary LSP requests run code generation. Populate the RD-03-frozen
+  debug version-1 optimization, inlined-context, split-location, rematerialized, optimized-away, and
+  final-range forms without redefining the schema. Any missing representational fact blocks the
+  producer and requires explicit schema evolution rather than an implementation-only field. (AR-010,
+  AR-021)
 
 ### Should Have
 

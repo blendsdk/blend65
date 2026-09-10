@@ -329,7 +329,10 @@ language semantics.
   SFA, constants, and admitted resident assets without overlap; honor `place(...)`, banking,
   visibility, alignment, no-cross, reserved regions, branch layout, and the profile's startup/exit.
   Serialize deterministic ACME, verify its report/symbols/bytes, package the PRG, and atomically
-  publish assembly, labels, memory/asset/SFA/ZP/stack/cost/debug maps and hashes. Final
+  publish assembly, labels, memory/asset/SFA/ZP/stack/cost/debug maps and hashes. Populate the
+  RD-03-frozen debug version-1 function, call/inlining-context, symbol, exact-type, SFA-location,
+  availability, generated-origin, and final-range records for every applicable complete-language
+  path without redefining the schema. Final
   `.memory.json` and `.costs.json` reconcile after required helper discovery, final SFA/layout,
   branch repair, and ACME. They separately report code, initialized data, BSS/globals, SFA, ZP,
   stack, assets, helpers, loader/scratch, alignment/padding, platform reservations, CPU/physical/VIC

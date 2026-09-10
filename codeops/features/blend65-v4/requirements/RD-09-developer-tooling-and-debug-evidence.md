@@ -247,15 +247,18 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
 
 #### Portable compiler debug evidence — complexity XL
 
-- [ ] **R9.34 — Emit one versioned debug artifact.** Every successful build emits `.debug.json`
-  in the same immutable build generation as the primary artifact, assembly, labels, maps, costs,
-  and `.build.json`. It records its schema version, compiler/specification/expert-skill identities,
+- [ ] **R9.34 — Consume the first-producer debug contract.** Every successful build emits
+  `.debug.json` under the complete version-1 contract frozen by RD-03 before its first tests and
+  implementation. It resides in the same immutable build generation as the primary artifact,
+  assembly, labels, maps, costs, and `.build.json`. It records its schema version,
+  compiler/specification/expert-skill identities,
   target profile, CPU, optimization/safety settings, source/asset hashes, final artifact hash, and
   address-space model. A failed or pre-publication-cancelled build publishes no replacement debug
   artifact. (AR-008, AR-010, AR-022)
 - [ ] **R9.35 — Keep source identity portable and exact.** Debug sources preserve exact
-  host-exposed project-relative spellings, separate resolved containment/alias identities, content
-  hashes, and UTF-8 byte spans with optional line indexes for consumers. Rebuilding a project with
+  host-exposed project-relative spellings, content hashes, and UTF-8 byte spans with optional line
+  indexes for consumers. The compiler validates containment and alias identity separately but does
+  not serialize host-specific resolved identities into debug evidence. Rebuilding a project with
   the same relative spellings and bytes under a different absolute root produces the same debug
   artifact. Host absolute paths, process working directory, timestamps, random IDs, and traversal
   order do not affect semantic identity. (AR-010, AR-022, AR-026)
@@ -306,8 +309,9 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   `*.spec.test.ts` cases from Specification 4, this RD, the selected project/target contracts, and
   the pinned protocol/client contracts. Before RD-09 consumers or tests are implemented, require the
   producer-owned compact independent versioned contracts for `.assets.json`, `.memory.json`,
-  `.costs.json`, and `.build.json` plus the debug contract; each producer freezes its contract before
-  first publication. Each root requires integer `schemaVersion: 1`; rejects missing/unsupported
+  `.costs.json`, and `.build.json`; each producer freezes its contract before first publication.
+  Consume the already-frozen RD-03 debug version-1 contract without replacing it. Each root requires
+  integer `schemaVersion: 1`; rejects missing/unsupported
   versions, duplicate or unknown fields, and wrong types; fixes required/optional fields; and permits
   the exact string `"Unknown"` only where its field contract admits unavailable evidence, never as an
   omitted, zero, or null value. Deterministic files use UTF-8 without BOM, LF, lexicographically
@@ -507,11 +511,15 @@ public compiler in-process or starts the matching `blendc` executable is a packa
 either case it uses a typed/versioned operation boundary, argument arrays for child processes, and
 the same behavior as the public CLI. It cannot implement a third build pipeline.
 
-### Debug artifact conceptual schema — complexity XL
+### Debug artifact consumer map — complexity XL
+
+The normative root, exact records, tagged unions, index rules, ordering, encoding, and rejection
+behavior are frozen in RD-03's **Debug JSON version 1 — first-producer contract**. This table only
+maps those records to RD-09 consumers; it does not redefine them.
 
 | Record | Required facts |
 |---|---|
-| Header | Schema/compiler/specification/skill/profile/CPU/mode/safety/build identities and artifact hashes |
+| Header | Schema/compiler/specification/skill/profile/CPU/mode/safety identities and artifact hashes |
 | Sources | Project-relative identity, content hash, UTF-8 span basis, optional deterministic line index |
 | Address spaces | CPU-visible/banked/overlay/load-unit/transfer-only identity and profile visibility conditions |
 | Functions | Qualified source identity, declaration, entry variants, call/inlining context, machine ranges |
@@ -520,11 +528,11 @@ the same behavior as the public CLI. It cannot implement a third build pipeline.
 | Range map | Final bank-qualified half-open machine range, source span/generated cause, function context, optimization provenance |
 | Load state | Load unit, destination/address space, publication/residence interval needed to interpret a location |
 
-All address intervals are half-open and validated after final layout. Schema evolution must be
-explicit: readers reject an unsupported major schema identity rather than guessing fields. Exact
-field names and serialization types are fixed in the RD-09 implementation plan and schema before
-specification tests; they cannot drift independently between compiler, extension, and adapter
-probe.
+All address intervals are half-open and validated after final layout. RD-09 implements consumers,
+artifact access, validation, and the bounded adapter probe against the frozen contract. A missing
+representational fact blocks its producing RD and requires explicit schema evolution; neither an
+implementation nor the RD-09 plan may silently add a version-1 field. Readers reject unsupported
+schema majors rather than guessing.
 
 ### Diagnostic and output ownership — complexity M
 

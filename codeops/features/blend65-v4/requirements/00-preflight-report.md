@@ -1,6 +1,6 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 8 open findings (7 major, 1 minor); PF-001–PF-021 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 7 open findings (6 major, 1 minor); PF-001–PF-022 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
@@ -11,7 +11,7 @@
 > five external tool/filesystem source families checked
 > **Expert Lineage**: `blend65-domain-expert` 1.0.0, content commit
 > `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`
-> **Last Updated**: 2026-09-10
+> **Last Updated**: 2026-09-11
 
 > **SAME-SESSION REVIEW:** This artifact was created in the current logical session. Same-agent bias
 > risk is elevated. Parallel independent audit clusters and one independent design challenger were
@@ -682,15 +682,15 @@ refutation attempt.
 
 | Dimension | Open findings | Highest severity |
 |---|---:|---|
-| Ambiguities / assumptions | 2 | 🟠 MAJOR |
+| Ambiguities / assumptions | 1 | 🟠 MAJOR |
 | Contradictions / consistency | 2 | 🟠 MAJOR |
-| Completeness / dependencies / ordering | 2 | 🟠 MAJOR |
+| Completeness / dependencies / ordering | 1 | 🟠 MAJOR |
 | Feasibility / codebase alignment | 0 | — |
 | Testability / security / edge cases | 4 | 🟠 MAJOR |
 | Scope creep | 0 | — |
 
-Several findings span dimensions. The deep rescan found eight major and one minor; PF-021 is now
-resolved, leaving seven major and one minor.
+Several findings span dimensions. The deep rescan found eight major and one minor; PF-021 and
+PF-022 are now resolved, leaving six major and one minor.
 
 ### PF-021: Portable `buildId` cannot name every immutable publication generation 🟠 MAJOR
 
@@ -735,11 +735,28 @@ producer therefore cannot author implementation-blind tests or promise a stable 
 
 | Option | Description | Tradeoff |
 |---|---|---|
-| A — **Recommended** | Freeze the complete `.debug.json` version-1 envelope and record unions before RD-03 specification tests. RD-03 populates the admitted M1 facts; RD-09 consumes the same schema. | Preserves day-one debug evidence and prevents retroactive format replacement. |
+| A — **Selected** | Freeze the complete `.debug.json` version-1 envelope and record unions before RD-03 specification tests. RD-03 populates the admitted M1 facts; RD-09 consumes the same schema. | Preserves day-one debug evidence and prevents retroactive format replacement. |
 | B | Make the M1 map explicitly private and omit public `.debug.json` until RD-09. | Smaller M1 schema work, but weakens the accepted day-one debug-evidence direction. |
 
-**Recommendation:** Option A.
-**Decision:** Pending.
+**Recommendation:** Option A, bounded to facts already approved for v4. It defines the public
+evidence seam before its first producer without serializing AST/IL internals or designing a
+universal debugger format.
+
+**Confidence:** High. **Hardening:** An independent challenger selected Option A and tested the
+strongest objection: freezing the schema too early could create speculative surface. The correction
+therefore admits only approved v4 source, function/context, SFA location, platform/address-space,
+asset, load-unit, optimization, and final-range facts, and each producing RD emits only applicable
+records.
+
+**Decision:** Accepted by the user on 2026-09-11 with the instruction to choose the best option.
+
+**Resolution:** Applied across AR-022, RD-03 through RD-09, and discovery notes. RD-03 now owns the
+exact version-1 root, closed records/unions, index relationships, canonical encoding/order, and
+fail-closed validation before its specification tests or producer implementation. RD-04 through
+RD-08 populate existing record families; RD-09 consumes, validates, and runs the bounded adapter
+probe. The artifact has zero target cost and adds no runtime, instrumentation, DAP service, schema
+registry, or framework. A later representational change requires explicit schema evolution rather
+than a silent version-1 field.
 
 ### PF-023: The four direct sidecar schemas still contain untyped nested objects 🟠 MAJOR
 
@@ -858,13 +875,13 @@ implemented or qualified exactly.
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
-- The deep rescan found PF-021 through PF-029. PF-021 was corrected after the user's explicit
-  decision; PF-022 through PF-029 remain unchanged and pending.
+- The deep rescan found PF-021 through PF-029. PF-021 and PF-022 were corrected after the user's
+  explicit decisions; PF-023 through PF-029 remain unchanged and pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-021 resolved and eight deep-rescan findings
+**Current Result:** **BLOCKED** with PF-001 through PF-022 resolved and seven deep-rescan findings
 awaiting decisions.

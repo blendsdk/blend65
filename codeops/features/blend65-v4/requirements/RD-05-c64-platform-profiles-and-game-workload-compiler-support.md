@@ -408,7 +408,9 @@ programs and qualification evidence. They do not create supported game APIs. (AR
 - [ ] **R5.55 — Preserve readable machine evidence — complexity M.** Generated ACME uses stable
   labels for startup, handlers, schedules, buffers, player calls, and safety/late paths. Maps and
   reports connect each emitted range and machine effect to the selected source operation and
-  profile contract without becoming a second source of truth. (AR-008, AR-010)
+  profile contract without becoming a second source of truth. They populate the RD-03-frozen debug
+  version-1 address-space, bank/visibility, profile, interrupt entry-variant, function-context,
+  symbol-location, and final-range records without redefining the schema. (AR-008, AR-010)
 - [ ] **R5.56 — Record host responsiveness observations — complexity S.** At the completed RD-05
   boundary, record phase-separated check/build/ACME/VICE-control duration and peak host memory for
   its representative real slices. These values are trends, never wall-clock pass/fail gates.
