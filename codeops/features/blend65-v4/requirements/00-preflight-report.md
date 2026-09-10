@@ -134,20 +134,28 @@ requirements and acceptance criteria are corrected and verified.
 **Dimension:** 3 — Logical Contradictions
 **Location:** `00-ambiguity-register.md:213-236`;
 `RD-04-complete-language-correct-unoptimized-compiler.md:211-216,267-271`
-**The Problem:** AR-018 and R4.30 require a finite compiler-proven target set and reject unknown or
-escaped targets. R4.39 also permits an undefined “explicit conservative contract.” No raw callable
-address, external ABI, dynamic loader, runtime registry, or SFA contract can close that alternative.
+**The Problem:** AR-018 and R4.30 require a finite compiler-proven target set and reject genuinely
+unknown or escaped targets. R4.39 also permits an undefined “explicit conservative contract.” The
+wording does not distinguish a safe finite over-approximation of known source functions from a
+genuinely unbounded raw or external target, so implementations could either reject ordinary typed
+function-value flows too early or admit calls that SFA/effect/stack analysis cannot close.
 
 **Options:**
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A — only viable in current scope | Remove the conservative alternative and reject calls whose finite target set cannot be proved. | Matches the approved finite function-value model and closes SFA/effect/stack analysis. | Does not provide unrestricted raw calls, which were already rejected. |
+| A — accepted | First track precise target provenance through assignments, aggregates, parameters, returns, and merges. When exact provenance becomes imprecise but the closed program still supplies a finite set, conservatively include every address-taken source function with the exact signature. Treat that finite superset as proved input to call-graph, effect, recursion, stack, interrupt, and SFA analysis. Reject only when no finite source target set can be proved. Add no raw callable address, runtime registry, dynamic frame, or universal dispatcher. | Preserves ordinary modern function-value use and makes the compiler widen safely before rejecting source. | A conservative superset may reserve more static storage or require a larger measured dispatch until analysis becomes more precise. |
 
-**Recommendation:** Option A. Defining the other path would create a new ABI/runtime language feature.
+**Recommendation:** Revised Option A. A finite conservative superset is still consistent with
+AR-018 and requires no runtime feature. It is the compiler's required fallback before diagnosing a
+genuinely unknown target.
 
-**Confidence:** High. **Hardening:** Challenger confirmed Option A.
-**User Decision:** Pending
+**Confidence:** High. **Hardening:** Deeper review added the missing finite-superset option. The
+original challenger correctly rejected unbounded calls but did not distinguish them from a safe
+closed-world over-approximation.
+**User Decision:** Accepted revised Option A on 2026-09-10.
+**Correction Status:** Queued for the accepted-fixes batch; PF-003 remains open until AR-018, R4.30,
+R4.39, and their acceptance evidence use the same finite-set rule.
 
 ### PF-004: RD-09 can close before its required producers 🟠 MAJOR
 
