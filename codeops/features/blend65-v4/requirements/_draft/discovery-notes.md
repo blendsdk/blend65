@@ -77,7 +77,9 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. The complete 39-item register is resolved and the Zero-Ambiguity Gate passed.
+- **AR-041:** Decide whether the final Koala background-color byte follows AR-039's exact-byte
+  preservation rule. The recommendation is to preserve all eight source bits while exposing only
+  the low nibble as VIC-II color meaning.
 
 ## Approved first C64 production profile
 
@@ -662,4 +664,6 @@ workloads without defining an engine. RD-06 is next: it owns native asset ingest
 conversion into typed Blend65 data and metadata, deterministic compile-time asset refinement, and
 resident placement. It must not introduce a compiler-owned renderer, player scheduler, mixer,
 scene runtime, or game architecture. AR-039 is resolved: Koala Color RAM source bytes remain exact,
-while only their low nibbles carry hardware color meaning. Author RD-06 next.
+while only their low nibbles carry hardware color meaning. AR-040 records the previously approved
+exact native-format baseline and producer-fixture gate. RD-06 is drafted but paused at AR-041, the
+equivalent rule for the separate final Koala background byte.

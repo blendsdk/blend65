@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 39 items resolved
-> **Last Updated**: 2026-09-10 13:11 CEST
+> **Status**: 🚨 GATE REOPENED — AR-041 pending
+> **Last Updated**: 2026-09-10 13:32 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -45,6 +45,8 @@
 | AR-037 | Scope / M1 product and asset provenance | Does M1 remain a single-sprite interaction or become a bounded Invaders-style game, and when must the authentic SpritePad 3.80 input exist? | Keep the single-sprite loop / bounded original-art Invaders-style microgame / faithful full game recreation | Use a bounded original-art Invaders-style microgame: one player, six invaders, and one shared projectile/explosion sprite fit the eight hardware sprites without multiplexing. Include fixed enemy state, ordinary loops/functions, simple source-level collision, win/loss, and normal BASIC return; exclude score, lives, shields, enemy projectiles, audio, scrolling, IRQ callbacks, loaders, and optimization. The user will later supply an official SpritePad C64 Pro 3.80 template and exports; that evidence is required before RD-03 planning or asset-decoder implementation, not before requirements authoring. | ✅ Resolved |
 | AR-038 | Scope / product boundary | Since games are Blend65's primary use case, does v4 ship reusable game-engine/gameplay systems or qualify a general language/compiler that lets developers write them? | Ship reusable game systems / general compiler plus narrow asset and platform integration, with game workloads as qualification / separate optional engine product | Blend65 remains a general 6502-family language, AOT compiler, toolchain, and narrow target-platform library for games and other software—not a game engine, framework, or gameplay library. Its only game-oriented convenience is compile-time ingestion, validation, conversion, typing, and target integration of external assets such as sprites, charsets, maps, images, and SID content. Typed hardware access and low-level delivery are general platform services. Game loops, entities/pools, collision, state dispatch, renderers, scene graphs, sprite-multiplexing, scrolling, buffering, audio scheduling/mixing, and every other application algorithm remain user-authored. Asset adapters may expose data, metadata, symbols, placement constraints, and an exact player ABI, never runtime game policy. The compiler must express, lower, diagnose, and optimize those workloads correctly. Examples and Q-P workloads are qualification oracles only, never public game modules. | ✅ Resolved |
 | AR-039 | Data / native asset compatibility | How does the Koala handler treat nonzero unused high bits in the 1,000 Color RAM source bytes? | Preserve and accept exact source bytes while documenting low-nibble hardware meaning / reject any nonzero high nibble / silently normalize every byte to its low nibble | Accept and preserve all eight source bits, expose the low nibble as the hardware color meaning, and never reject or silently normalize an otherwise exact classic Koala file solely because unused high bits are nonzero. | ✅ Resolved |
+| AR-040 | Scope / native asset baseline | Which external asset identities and adapters form the initial qualified C64 production baseline? | Current pinned producer/interchange identities only / broad backward-compatible generations / raw files only | Use explicit built-in handlers for SpritePad C64 Pro 3.80 project files with SPD v5, CharPad C64 Pro 3.88 project files with CTM v9, the self-contained directly callable PSID v1–v4 subset, classic Koala files, and raw files with unregistered extensions. Qualify GoatTracker 2.77 as the first exact player/export adapter. Do not guess older/newer generations, infer SFX from PSID, or add a public handler/plugin framework. Producer-generated fixtures are mandatory before claiming each parser qualified. | ✅ Resolved |
+| AR-041 | Data / native asset compatibility | Does AR-039's exact-byte preservation also apply to the classic Koala file's final one-byte background color? | Preserve the complete source byte while documenting low-nibble hardware meaning / reject a nonzero high nibble / silently normalize to the low nibble | **Pending user decision. Recommended:** apply the same rule as Color RAM: accept and preserve the complete background source byte, expose `value & $0f` as its VIC-II color meaning, and neither reject nor silently normalize solely because an unused high bit is nonzero. | 🚨 Pending |
 
 ## Resolution Notes
 
@@ -813,12 +815,52 @@ explicit normalization if it wants it.
 
 **Direct user decision:** The user approved the recommended preserve-and-accept contract.
 
+### AR-040 — Exact initial native-asset baseline
+
+During the expert-skill requirements work, the user explicitly approved direct support for the
+current SpritePad and CharPad project formats, PSID music/player integration, Koala images, and raw
+assets. The user chose the most recent pinned producer versions as the starting point rather than
+spending the initial implementation on old application generations. The same work selected
+GoatTracker 2.77 as the first exact music-plus-SFX adapter and kept other players dependent on their
+own complete evidence.
+
+The v4 baseline therefore contains explicit built-in C64 handlers, not a general plugin framework:
+
+- SpritePad C64 Pro 3.80 with observable SPD v5 identity;
+- CharPad C64 Pro 3.88 with observable CTM v9 identity;
+- the exact self-contained directly callable PSID v1–v4 subset;
+- classic 10,003-byte Koala files; and
+- raw byte inclusion only for extensions without a registered handler.
+
+Producer release names are provenance, not bytes encoded inside SPD/CTM files. Each handler remains
+unqualified until producer-generated fixtures and exact expected outputs prove its complete
+accepted surface. A different format generation or player family is a later explicit qualification,
+not a compatibility guess.
+
+**Direct user decision:** This records the user's prior explicit acceptance of the individual
+formats, latest-pinned-version policy, and GoatTracker-first adapter choice.
+
+### AR-041 — Koala background-byte preservation
+
+AR-039 explicitly resolved the 1,000 Color RAM bytes, but a classic Koala file also ends with one
+background-color byte whose VIC-II meaning is limited to the low nibble. Extending AR-039 to that
+separate component without confirmation would silently make a new format-policy decision.
+
+The recommended contract is consistent across both color-bearing components: accept and preserve
+the exact source byte and its hash/provenance, document `value & $0f` as the hardware meaning, and
+never reject or silently normalize an otherwise exact Koala file solely because the unused high
+nibble is nonzero.
+
+**Direct user decision:** Pending.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 39 items are resolved. RD-06 authoring exposed AR-039's Koala Color RAM source-byte policy;
+AR-001 through AR-040 are resolved. RD-06 authoring then exposed AR-041's equivalent policy for
+the distinct Koala background byte, so the gate is reopened until the user decides it. Earlier
+RD-06 work exposed AR-039's Koala Color RAM source-byte policy;
 the user approved exact byte preservation with separate low-nibble hardware meaning, so the gate
 passes again. Before that discovery, the user confirmed the consolidated scope and explicitly
 approved AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,
