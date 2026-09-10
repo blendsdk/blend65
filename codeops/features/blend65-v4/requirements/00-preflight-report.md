@@ -417,7 +417,14 @@ diagnosed; ordinary typed use stays safe.
 
 **Confidence:** Medium-high. **Hardening:** Challenger selected Option A and refined it from a
 single-state rule to provable LIFO nesting.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. Each interrupt sink has a statically proved
+LIFO installation stack; restores must match the active top installation and branch joins must
+agree. Repeated or nested use is legal when maximum depth and balance are finite and provable, with
+only the required predecessor words allocated. A raw vector write remains legal low-level access
+but invalidates helper ownership, so a later helper restore is diagnosed. No runtime registry,
+token, flag, scheduler, or hidden lifecycle is emitted.
+**Correction Status:** Queued for the accepted-fixes batch; PF-012 remains open until installation,
+restore, storage, control-flow, raw-vector, quiescence, and qualification rules share this model.
 
 ### PF-013: Loader destinations reject valid addressable places 🟠 MAJOR
 
