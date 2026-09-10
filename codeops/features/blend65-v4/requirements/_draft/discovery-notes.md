@@ -1,11 +1,11 @@
 # Blend65 v4 Requirements Discovery Notes
 
 > **Mode**: Full Discovery
-> **Phase**: 4 — Validation and finalization
+> **Phase**: 4 — Complete
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-10 are approved, all 48 ambiguity
-> decisions are resolved, and final requirements-set validation is active
+> **Artifact status**: Complete discovery record; RD-01 through RD-10 are approved, all 48 ambiguity
+> decisions are resolved, and the requirements set passed final validation
 
 ## Authority and evidence
 
@@ -657,8 +657,9 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-10` are approved. Phase 4 requirements-set validation is active. AR-048 fixes
-the initial production host matrix at Node 22 on
+`RD-01` through `RD-10` are approved and final requirements-set validation passed. Preflight the
+complete requirements set next, then plan and execute RD-01 before semantic compiler implementation.
+AR-048 fixes the initial production host matrix at Node 22 on
 `linux/x64` and `win32/x64`; macOS and other Node 22 hosts remain best-effort until independently
 qualified. CLI and VS Code share deterministic ACME/VICE discovery and one optional machine-local
 tools file; portable project manifests cannot contain executable paths. This contract is now
@@ -676,6 +677,4 @@ finite regions. RD-01 and RD-08 contain that approved correction. AR-047 removes
 `Build and Run` command: VS Code exposes `Build` and fresh-build `Run in VICE`, saving consumed
 dirty inputs or aborting before execution. RD-09 completes the shared compiler service, frontend-
 only language server, thin trusted VS Code client, and host-only portable debug evidence without an
-owned debugger. After RD-10 and requirements validation, plan and execute RD-01
-before any semantic compiler implementation so Specification 4 and expert baseline `2.0.0`
-activate together.
+owned debugger. RD-01 must activate Specification 4 and expert baseline `2.0.0` together.

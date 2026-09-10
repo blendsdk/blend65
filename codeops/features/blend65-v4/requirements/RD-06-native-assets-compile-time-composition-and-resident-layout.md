@@ -553,6 +553,50 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 
 ---
 
+## Non-Functional Requirements
+
+### Correctness and determinism — complexity XL
+
+- Identical frozen source, asset bytes, selectors, profile, compiler, and tool identities produce
+  identical typed values, derived bytes, layout, generated ACME, reports, and PRG bytes regardless
+  of checkout path or filesystem enumeration.
+- Malformed input, unsupported format identity, impossible placement, or compile-time evaluation
+  failure publishes no partial typed value or runnable-looking artifact. Missing producer evidence
+  remains `Unknown` rather than becoming an inferred pass.
+
+### Target performance and resources — complexity XL
+
+- Selected resident data is placed once where its target consumer reads it. Every useful byte,
+  emitted byte, padding interval, reservation, alias, and explicit runtime transfer/access cost is
+  reported separately and reconciles with the final artifact.
+- Asset convenience adds no runtime parser, conversion step, copy, scheduler, renderer, mixer,
+  registry, or unselected representation. User-authored compile-time work contributes zero target
+  instructions, SFA storage, stack use, or helper payload.
+
+### Host responsiveness — complexity S
+
+- Record phase-separated parse, type, compile-time evaluation, layout, ACME, and peak-memory trends
+  for the named fixtures without using wall-clock or memory thresholds as correctness gates.
+
+### Maintainability and portability — complexity L
+
+- Keep each exact format handler, typed semantic boundary, compile-time evaluator, interval layout,
+  serializer, and evidence decoder independently testable. Do not create a public handler plugin
+  API, generic asset graph, external converter pipeline, or monolithic asset subsystem.
+- Core `embed()`, typed constants, compile-time evaluation, and placement intent contain no
+  SpritePad, CharPad, PSID, Koala, VIC-II, SID, C64 address, or D64 assumption. The selected target
+  owns concrete handler and hardware constraints.
+
+### Documentation and accessibility — complexity M
+
+- Diagnostics and reports identify the project-relative file, exact format/version, selector,
+  failed field or constraint, expected type/range, and a practical remedy without dumping binary
+  content or relying on visual/audio output alone.
+- Examples document direct asset use and application-owned runtime consumption without presenting
+  a renderer, scene, animation, or audio policy as compiler functionality.
+
+---
+
 ## Security Considerations
 
 - **Data sensitivity:** Asset files contain no required credentials, personal data, secrets, or

@@ -307,7 +307,7 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
 
 ## Technical Requirements
 
-### Source surface
+### Source surface — complexity L
 
 ```blend
 struct LevelData {
@@ -342,7 +342,7 @@ The exact interrupt/audio operation names come from the selected Specification 4
 appendix; this example shows ownership and control flow, not a promise of these placeholder
 spellings. No operation receives a path string or dynamic unit ID.
 
-### Compilation and runtime flow
+### Compilation and runtime flow — complexity XL
 
 ```text
 loadable const declaration
@@ -357,7 +357,7 @@ loadable const declaration
   -> true-edge publication or false-edge indeterminate destination
 ```
 
-### D64 geometry and naming contract
+### D64 geometry and naming contract — complexity L
 
 | Item | Required value |
 |---|---|
@@ -376,7 +376,7 @@ The build report is the authoritative mapping from Blend65 declarations to disk 
 never relies on those internal names, so a later qualified transport can change its private disk
 organization without changing the language.
 
-### Publication state
+### Publication state — complexity M
 
 | Program point | Destination state | Legal observation |
 |---|---|---|
@@ -389,7 +389,7 @@ organization without changing the language.
 This is compile-time definite-assignment state plus ordinary blocking execution. It is not a
 runtime typestate object, option/result allocation, generation counter, or hidden validity byte.
 
-### KERNAL adapter boundary
+### KERNAL adapter boundary — complexity L
 
 | Boundary | Contract |
 |---|---|
@@ -402,7 +402,7 @@ runtime typestate object, option/result allocation, generation counter, or hidde
 | Integrity | Exact generated D64 trusted; no pre-transfer maximum-length containment |
 | Cost | Every emitted byte, reservation, stack/ZP/SFA term, and measured/unknown time reported |
 
-### Evidence lineage
+### Evidence lineage — complexity M
 
 Implementation binds Specification 4 and expert baseline `2.0.0`. RD-01 must add exact source
 governance and qualification cases for the documented C64 KERNAL `SETLFS`/`SETNAM`/`LOAD`
@@ -506,31 +506,31 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 
 ## Non-Functional Requirements
 
-### Determinism
+### Determinism — complexity L
 
 - Identical authoritative inputs produce byte-identical D64, directory/BAM/sector layout, contained
   files, loader code, reports, and hashes regardless of checkout path, locale, working directory,
   host filesystem enumeration, or Turbo scheduling.
 
-### Correctness and safety
+### Correctness and safety — complexity XL
 
 - No target artifact is published unless language flow, SFA closure, resident/destination layout,
   D64 structure, KERNAL ABI, quiescence, and independent byte oracles all pass.
 - A result is never described as memory-safe beyond the trusted generated-media boundary.
 
-### Performance and resources
+### Performance and resources — complexity L
 
 - The baseline emits no compression, staging copy, dynamic registry, scheduler, or unused loader.
   Report real bytes and resource reservations; measure host responsiveness and available load timing
   without flaky pass/fail thresholds.
 
-### Maintainability
+### Maintainability — complexity L
 
 - Keep loadable semantics, C64 transport, D64 serialization, interval layout, evidence decoding,
   and VICE observation independently testable through small public boundaries. Do not create a
   generic VFS, loader plugin system, or monolithic build/readiness harness.
 
-### Portability
+### Portability — complexity L
 
 - Core `loadable const` and transfer effects contain no D64, KERNAL, C64 address, or 1541 fact.
   Profile-owned strategy and artifact implementations provide those facts. C64U or another target

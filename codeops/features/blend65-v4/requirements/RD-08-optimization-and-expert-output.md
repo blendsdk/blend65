@@ -566,26 +566,26 @@ boundary. (AR-011, AR-023, AR-026)
 
 ## Non-Functional Requirements
 
-### Correctness and determinism
+### Correctness and determinism — complexity XL
 
 - Optimized output is semantically equivalent for every declared input and observable machine
   state. Identical build identities produce identical decisions and bytes.
 - Internal failure never publishes a partial, stale, or unverified artifact.
 
-### Target performance and resources
+### Target performance and resources — complexity XL
 
 - Every claimed improvement is measured from assembled output and final layout under the complete
   selected profile. Source-operation counts and intermediate instruction counts are not proof.
 - Local expert parity is mandatory; each optimized mode demonstrates at least one complete
   whole-program win in its own primary objective.
 
-### Host responsiveness
+### Host responsiveness — complexity S
 
 - Record phase-separated optimizer time and peak host memory with project, compiler, mode, host,
   asset, and configuration identity. Treat trends as observations, not wall-clock pass/fail gates.
   Reopen incremental compilation only through AR-026's measured trigger.
 
-### Maintainability
+### Maintainability — complexity L
 
 - A transformation exists only with a current failing/optimization case, complete rule packet, and
   direct proof. No generalized framework is justified by anticipated future rules alone.
@@ -597,8 +597,9 @@ boundary. (AR-011, AR-023, AR-026)
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Authority:** RD-08 implementation binds one frozen Specification 4 identity, one
-   expert `2.0.0` content commit, and all 46 resolved AR decisions; no v3 implementation/test or
-   feasibility matrix acts as optimizer authority.
+   expert `2.0.0` content commit, and the complete resolved Blend65 v4 ambiguity register from
+   AR-001 through AR-048; no v3 implementation/test or feasibility matrix acts as optimizer
+   authority.
 2. [ ] **AC-02 — Mode surface:** Manifest/schema/CLI cases accept exactly `none`, `balanced`,
    `speed`, and `size`; default `build`/`run` records `balanced`; invalid spelling fails before
    compilation; safety/target/entry settings remain independent.

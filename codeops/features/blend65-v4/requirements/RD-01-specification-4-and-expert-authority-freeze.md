@@ -441,8 +441,9 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Input identity:** The transition record names the exact Specification 3 identity,
-   expert `1.0.0` identity/content commit, source Git commit, and all 46 resolved Blend65 v4 AR
-   decisions; no compiler implementation or v3 test is listed as authority.
+   expert `1.0.0` identity/content commit, source Git commit, and the complete resolved Blend65 v4
+   ambiguity register from AR-001 through AR-048; no compiler implementation or v3 test is listed
+   as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.
 3. [ ] **AC-03 — Normative inventory:** One checked normative inventory resolves every normative

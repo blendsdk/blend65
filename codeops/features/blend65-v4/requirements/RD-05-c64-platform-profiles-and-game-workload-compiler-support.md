@@ -555,6 +555,47 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 
 ---
 
+## Non-Functional Requirements
+
+### Correctness and determinism — complexity XL
+
+- Identical frozen source, assets, profile, compiler, tool, and configuration identities produce
+  identical machine behavior, generated ACME, resource evidence, and PRG bytes. Unavailable or
+  silicon-sensitive evidence remains explicitly bounded rather than guessed.
+- A platform, interrupt, banking, timing, or resource failure produces no runnable-looking
+  artifact and cannot be repaired by changing ordinary source into a hardware-shaped workaround.
+
+### Target performance and resources — complexity XL
+
+- Every direct platform operation meets the equivalent expert assembly floor under
+  `optimization: none`. Reports include all code, data, padding, ZP, SFA, stack, shadow, adapter,
+  interrupt, setup, and worst-path cycle costs.
+- Platform convenience adds no generic runtime dispatch, hidden copy, scheduler, registry, or
+  application-policy payload. Hardware abstractions are zero cost for their declared contract.
+
+### Host responsiveness — complexity S
+
+- Record phase-separated compiler, ACME, VICE-control, and peak-memory trends for the representative
+  workloads without turning duration or memory observations into pass/fail thresholds.
+
+### Maintainability and portability — complexity L
+
+- Keep CPU, machine profile, platform operations, user-authored workload fixtures, evidence, and
+  physical-QA ownership independently reviewable. Repeated profile facts may share typed
+  components, but the eight qualified identities remain explicit.
+- Shared language, semantic, SFA, CPU, serializer, and packager-independent code contains no C64
+  address, device, PRG, screen-code, or timing assumption. This seam adds no public plugin
+  framework, future-target stub, or game-engine layer.
+
+### Documentation and accessibility — complexity M
+
+- Platform diagnostics, reports, profile facts, timing bounds, and hardware-verification status
+  are available as readable text and do not rely on emulator video, audio, or color alone.
+- Examples explain modern Blend65 intent and the exact platform limitation involved without
+  requiring users to infer raw register folklore or adopt a compiler-owned game architecture.
+
+---
+
 ## Security Considerations
 
 - **Data sensitivity:** No credentials, personal data, network data, or secrets are processed.
