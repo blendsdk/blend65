@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-08 are approved and all 47
+> **Artifact status**: Working discovery record; RD-01 through RD-09 are approved and all 47
 > ambiguity decisions are resolved
 
 ## Authority and evidence
@@ -657,7 +657,7 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-08` are approved. AR-045 fixes one
+`RD-01` through `RD-09` are approved. AR-045 fixes one
 complete-cost optimizer policy: hard feasibility first; deferred adjudication until downstream
 costs close; Pareto-only `balanced`; frequency-free lexicographic `speed` and `size`; and stable ID
 only for exact complete-cost ties. RD-08 preserves the complete correct `none` compiler, SFA
@@ -669,6 +669,8 @@ technique inventory and every optimized mode to exhaust its admitted finite fron
 closure, including structured cost-selected peepholes and bounded exact search only for small
 finite regions. RD-01 and RD-08 contain that approved correction. AR-047 removes the redundant
 `Build and Run` command: VS Code exposes `Build` and fresh-build `Run in VICE`, saving consumed
-dirty inputs or aborting before execution. Draft RD-09 for developer tooling and debug evidence
-next. After RD-10 and requirements validation, plan and execute RD-01 before any semantic compiler
-implementation so Specification 4 and expert baseline `2.0.0` activate together.
+dirty inputs or aborting before execution. RD-09 completes the shared compiler service, frontend-
+only language server, thin trusted VS Code client, and host-only portable debug evidence without an
+owned debugger. Draft RD-10 next. After RD-10 and requirements validation, plan and execute RD-01
+before any semantic compiler implementation so Specification 4 and expert baseline `2.0.0`
+activate together.

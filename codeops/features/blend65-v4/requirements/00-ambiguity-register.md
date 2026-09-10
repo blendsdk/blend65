@@ -302,11 +302,12 @@ deterministic full-document formatter with no option framework. Generated, platf
 ambiguous, or unsafe rename/fix requests are rejected rather than guessed.
 
 The VS Code extension is a thin client. It supplies syntax highlighting, comments, bracket and
-indentation rules, automatic language-server startup, project/profile status, explicit `Build`,
-`Run in VICE`, and `Build and Run` commands, cancellation, Problems/Output integration, change
-refresh, and commands to open emitted assembly, labels, memory/asset maps, and cost reports. Opening
-an untrusted workspace may analyze text but cannot launch tools or VICE; execution requires trust
-and an explicit user command.
+indentation rules, automatic language-server startup, project/profile status, explicit `Build` and
+fresh-build `Run in VICE` commands, cancellation, Problems/Output integration, change refresh, and
+commands to open emitted assembly, labels, memory/asset maps, and cost reports. AR-047 removed the
+redundant `Build and Run` command and requires save-or-abort handling for dirty consumed inputs.
+Opening an untrusted workspace may analyze text but cannot launch tools or VICE; execution requires
+trust and an explicit user command.
 
 The initial production surface does not include a Blend65-owned debug adapter, visual asset or
 memory editors, a package manager, a plugin marketplace, a configurable formatting framework,
