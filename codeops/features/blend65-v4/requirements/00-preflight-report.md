@@ -447,7 +447,14 @@ is compiler-convenience leakage, not a 6510 or KERNAL restriction.
 **Recommendation:** Option A. A root-only rule violates the project's modern-input prime directive.
 
 **Confidence:** High. **Hardening:** Challenger confirmed Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. A loader destination may be any mutable,
+lifetime-valid, exact-typed place whose complete interval, visibility, alignment, overlap, and
+publication state are statically proved. This includes fields, indexed elements, compositions, and
+aggregate parameters when the caller/alias proof closes. The place expression evaluates once.
+Constants, temporaries, MMIO, expired storage, mismatched extents, and unproved ranges remain
+invalid. Loading stays direct to final storage with no descriptor, staging buffer, or hidden copy.
+**Correction Status:** Queued for the accepted-fixes batch; PF-013 remains open until RD-01,
+AR-015/AR-016, RD-07, and loader qualification cases consistently admit the complete place model.
 
 ### PF-014: D64 makes the `size` objective constant unless allocated cost is defined 🟠 MAJOR
 
