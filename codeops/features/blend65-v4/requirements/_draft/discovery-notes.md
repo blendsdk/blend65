@@ -4,8 +4,8 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-07 are approved and RD-08 is
-> drafted with all 46 ambiguity decisions resolved
+> **Artifact status**: Working discovery record; RD-01 through RD-08 are approved with all 46
+> ambiguity decisions resolved
 
 ## Authority and evidence
 
@@ -657,7 +657,7 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-07` are approved. `RD-08` is drafted and awaits user review. AR-045 fixes one
+`RD-01` through `RD-08` are approved. AR-045 fixes one
 complete-cost optimizer policy: hard feasibility first; deferred adjudication until downstream
 costs close; Pareto-only `balanced`; frequency-free lexicographic `speed` and `size`; and stable ID
 only for exact complete-cost ties. RD-08 preserves the complete correct `none` compiler, SFA
@@ -667,5 +667,6 @@ weights, PGO, tuning DSL, pass/plugin framework, runtime optimizer, game engine,
 compressor. AR-046 now requires expert baseline `2.0.0` to freeze a deep combined modern-plus-6502
 technique inventory and every optimized mode to exhaust its admitted finite frontier to proved
 closure, including structured cost-selected peepholes and bounded exact search only for small
-finite regions. RD-01 and RD-08 contain that approved correction. After RD-08 approval, draft RD-09
-for developer tooling and debug evidence.
+finite regions. RD-01 and RD-08 contain that approved correction. Draft RD-09 for developer tooling
+and debug evidence next; after RD-10 and requirements validation, plan and execute RD-01 before any
+semantic compiler implementation so Specification 4 and expert baseline `2.0.0` activate together.
