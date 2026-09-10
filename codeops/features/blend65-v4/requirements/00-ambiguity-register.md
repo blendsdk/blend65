@@ -1,0 +1,686 @@
+# Ambiguity Register: Blend65 v4 Requirements
+
+> **Status**: ✅ GATE PASSED — all 35 items resolved
+> **Last Updated**: 2026-09-10 08:04 CEST
+> **CodeOps Artifact Schema**: 1
+
+| # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
+|---|---|---|---|---|---|
+| AR-001 | Naming | Which nested CodeOps feature owns the v4 requirements? | Reuse `blend65-ri` / create `blend65-v4` | Create `blend65-v4`. | ✅ Resolved |
+| AR-002 | Scope | What must be true before v4 is called production-complete? | Complete active language and C64 expert-output bar / smaller partial compiler | Qualified development milestones are allowed, but production completion requires the complete active language for C64 with correct behavior and expert-quality output. | ✅ Resolved |
+| AR-003 | Stakeholders | Who is the primary product audience? | Modern C64 game developer / assembly-first expert | The modern C64 game developer is primary; advanced 6502 developers, contributors, and VS Code users remain supported secondary stakeholders. | ✅ Resolved |
+| AR-004 | Scope | Must v4 preserve any v3 compatibility? | Preserve active-spec source compatibility / preserve broader v3 behavior / preserve none | No v3 compatibility of any kind. The active language specification is a conformance authority, not a compatibility promise. | ✅ Resolved |
+| AR-005 | Technical | Where and how is v4 developed? | Same checkout / independent repository / sibling worktree in the same repository | Use `/home/gevik/workdir/github/blend65.ri/v4` as a sibling worktree on `feature/v4-rebuild`; keep the present checkout as parked v3 evidence. | ✅ Resolved |
+| AR-006 | Technical (complexity escalation) | What curated low-level instruction surface exists beyond the thirteen CPU-control intrinsics? | Current thirteen only / evidence-qualified subset of additional instruction intrinsics / narrow ACME external routines | Use exactly `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop` in the initial v4 source language. Every v4 source intrinsic must satisfy the approved finite admission rule. Do not provide inline assembly blocks, external assembly functions, parameterized opcode calls, or the other eight v3 CPU-control names. Full selected-CPU instruction coverage remains internal to the backend. | ✅ Resolved |
+| AR-007 | Feature gaps | Does v4 provide automatic placement and explicit low-level placement control? | Automatic only / automatic with expert overrides | Include automatic placement plus explicit expert overrides where hardware or measured constraints require them. | ✅ Resolved |
+| AR-008 | UX & presentation | Which inspectable compiler outputs are required? | Final binary only / assembly plus complete resource and placement evidence | Include ASM, labels, memory and asset maps, cycles, bytes, ZP, stack, and SFA reporting. | ✅ Resolved |
+| AR-009 | Integration points | Is one-command VICE execution part of the developer workflow? | Manual emulator launch / CLI and VS Code build-and-run | Include one-command build and VICE run from the CLI and VS Code. | ✅ Resolved |
+| AR-010 | Technical (complexity escalation) | Must v4 build and own a complete source debugger? | VICE monitor only / preserve debug metadata and test existing adapters first / build an owned DAP now | Preserve and emit compiler debug information; do not commit now to a complete Blend65-owned debug adapter. | ✅ Resolved |
+| AR-011 | Non-functional gaps | Is an incremental compiler or persistent compilation cache required initially? | Build now / require measured need | Skip initially. Full re-analysis is accepted until measured editor/compiler performance proves the need. | ✅ Resolved |
+| AR-012 | Technical | Is a public third-party target/asset plugin framework required? | Public dynamic plugin framework / explicit built-in modular components | Skip the public plugin framework. Build explicit qualified C64 components and extract shared internal seams only from multiple real consumers. | ✅ Resolved |
+| AR-013 | Technical | Which C64 execution, video, ROM, startup, and interrupt profile is the first production baseline? | Cooperative PAL KERNAL-loaded PRG / raw-takeover-first / NTSC-first | Implement `c64-pal-prg-kernal-6581` first: stock unexpanded PAL C64, NMOS 6510, PAL VIC-II timing, one 6581 SID at `$D400`, KERNAL-loaded PRG with BASIC `SYS` autostart at `$0801`, BASIC ROM out, KERNAL and I/O visible, and cooperative KERNAL CINV IRQ chaining. A normal exit restores compiler-owned startup state and returns to BASIC; unresolved exclusive ownership prevents normal return. Model profile selection from day one. Later qualify separate PAL takeover and NTSC profiles rather than unsafe flag combinations. AR-024 refined the original profile ID to make the SID model explicit. | ✅ Resolved |
+| AR-014 | Scope / authority | Which specification identity governs v4 after accepted language changes diverged from frozen spec v3.0? | One active Specification 4.0 in `spec/` / parallel v3 and v4 specification trees / v3 plus implementation overrides | Create one Blend65 Language Specification 4.0 in `spec/`. Resolve all v4 language decisions first, apply them in one controlled specification phase, pass the Language Guard, update/version/qualify the expert skill once, then freeze both identities before semantic compiler implementation. Git and the parked v3 worktree preserve Specification 3.0; do not maintain parallel active specification trees or implementation-only overrides. | ✅ Resolved |
+| AR-015 | Feature gaps / language | Does v4 support taking addresses of fields, array elements, and function parameters? | Keep v3 name-only restrictions / complete addressable-place support | Support `&` on every real addressable storage place, including parameters, nested struct fields, and indexed array elements. The result remains `word`; add no pointer, reference, view, or slice type. Evaluate place/index expressions once, retain hidden lifetime and read-only provenance through derivation, apply the ordinary constant/checked/unchecked array-index contract, reject implicit one-past addresses, and reject literals, temporaries, and inlined scalar constants. Add no runtime checker, descriptor, copy, heap, or helper. | ✅ Resolved |
+| AR-016 | Feature gaps / language | What aggregate value model does v4 provide for struct/array returns, copies, assignments, and parameter passing? | Keep v3 restrictions / normal value semantics with zero-copy parameters and copy-eliding returns | Fixed arrays and structs have value semantics for assignment and return. Require exact compatible type and extent; forbid returning unsized `T[]`. Keep aggregate parameters as mutable or `const` zero-copy borrows. Use caller-owned return storage, direct construction, and copy elision. Explicit requested copies preserve source-value semantics and report their cost. Add no mandatory runtime, heap, dynamic frame, or copy intrinsic. | ✅ Resolved |
+| AR-017 | Feature gaps / language | Does v4 support nested fixed arrays as true multidimensional storage? | Flatten manually / fixed rectangular arrays with an optional outer-unsized parameter extent / fully unsized or jagged arrays | Support contiguous row-major nested fixed arrays. Every stored extent is fixed. A borrowed parameter may omit only its outermost extent, such as `const byte[][4]`; the inner extents remain fixed. Reject `byte[][]`, `byte[25][]`, dynamic extents, jagged arrays, slices, and views. | ✅ Resolved |
+| AR-018 | Feature gaps / language | Does v4 support typed function pointers and statically bounded indirect calls beyond recognized platform callbacks? | Keep recognized sinks only / typed finite-target function values / unrestricted raw-address calls | Support typed `fn(...)` values for named ordinary functions. They may be stored, passed, returned, and called only while the compiler preserves a finite, signature-compatible target set. Interrupt-handler values are distinct, non-callable, and accepted only by compatible platform sinks. Permit explicit erasure to `word`, but never conversion from a raw `word` to a callable value. Add no closures, captures, unknown indirect calls, universal dispatcher, or runtime library. | ✅ Resolved |
+| AR-019 | Feature gaps / game development | Does v4 provide deterministic compile-time table generation for game data such as sine and lookup tables? | External generation only / separate comprehension DSL / restricted `comptime function` declarations | Add bounded deterministic `comptime function` declarations that reuse normal Blend65 expressions, control flow, fixed values, and aggregate returns. They emit no target code or storage beyond returned constants. Forbid runtime effects and nondeterministic host inputs. Include byte-exact integer-phase `sin8`, `cos8`, `sin16`, and `cos16` compile-time functions. | ✅ Resolved |
+| AR-020 | UX / language | How are the approved expert placement and alignment overrides expressed without creating a general attribute framework? | Project configuration only / general annotations / one closed `place(...)` declaration modifier | Add one expert-only `place(...)` modifier with exactly `at`, `align`, `noCross`, and typed profile `region` constraints. Automatic placement remains the default and platform/asset constraints are applied automatically. Explicit constraints may strengthen but never weaken them. Add no general annotation or extension mechanism. | ✅ Resolved |
+| AR-021 | UX / integration | Which LSP and VS Code capabilities are required for the first production release? | Syntax/diagnostics only / focused production language tooling / full IDE and owned debugger | Deliver live frontend/profile/asset diagnostics, completion, hover, signature help, definition, references, safe rename, symbols, semantic tokens, bounded code actions, and one canonical full-document formatter. The thin VS Code extension adds language configuration, project/profile status, explicit build/VICE commands, cancellation, diagnostics/output, and generated-artifact access. It adds no owned debugger, visual designer, package manager, formatting framework, or general refactoring engine. | ✅ Resolved |
+| AR-022 | Integration / data | How does a Blend65 project declare source files, target profile, assets, build outputs, and options? | Broad file-glob/override configuration / one manifest and entry-derived graph / scriptable build system | Use one upward-discovered JSONC `blend65.json` with a schema version, project name, one entry module, exact target profile, contained source/asset paths and output directory, optimization mode, and independent safety options. Imports define reachable sources and asset declarations define packaged data. Provide manifest-based `check`, `build`, and `run`; atomically publish the profile-owned primary artifact and evidence set. Add no scripts, hooks, plugins, package manager, globs, or second single-file production model. AR-028, AR-030, and AR-032 refine discovery, overrides, and artifact identity. | ✅ Resolved |
+| AR-023 | Behavioral / UX | Which optimizer modes are user-visible, and which mode is the production default? | Boolean optimization switch / pass-level switches / four goal-oriented modes | Support exactly `none`, `balanced`, `speed`, and `size`; default production `build` and `run` to `balanced`. `none` disables optional transformations but retains every correctness, SFA, legalization, layout, and packaging step. Optimized modes run both machine-independent and target-machine optimization under different cost priorities. Hard correctness, timing, memory, placement, MMIO, and ABI contracts always outrank preference. | ✅ Resolved |
+| AR-024 | Scope / platform | Which additional C64 profiles must be qualified before v4 is production-complete: PAL takeover, NTSC, and/or 8580, and what C64U enablement must exist at that boundary? | Baseline only / eight exact base-C64 identities plus mandatory C64U readiness / implement C64U before base-C64 completion | Qualify the PAL/NTSC × KERNAL/takeover × 6581/8580 matrix as eight exact base-C64 profile identities. Before that production gate closes, pass a mandatory C64U-readiness architecture gate and create an owned C64U successor feature. Implement C64U next, but do not block base-C64 production on Ultimate-specific feature implementation. | ✅ Resolved |
+| AR-025 | Scope / migration | What happens to v3 compiler, readiness, tests, and false target packages on the v4 branch after salvage inventory? | Retain v3 topology / duplicate under `legacy/` / Git-preserved inventory-led clean branch | Preserve v3 through its recorded commit, Git history, and parked worktree; do not copy it into a v4 legacy directory. Inventory every candidate, then port only requirement-owned, independently proven units that are cheaper and safer than replacement. Remove v3 implementation, readiness packages/workflows, inherited tests, and false target packages from the v4 branch before creating the smallest real C64 package graph. | ✅ Resolved |
+| AR-026 | Non-functional | How does v4 observe host compiler and editor responsiveness, and what evidence reopens incremental compilation? | Hard wall-clock acceptance thresholds / no measurement / observational milestone trends | Record phase-separated check/build, ACME, LSP-request, and peak-memory measurements with project, asset, host, compiler, and configuration identity at relevant milestones. Trend them without wall-clock test, CI, or release failure. Reconsider incremental compilation only when real projects show noticeable delay, profiling attributes it substantially to repeated unchanged analysis, and smaller focused repairs cannot solve it. | ✅ Resolved |
+| AR-027 | Scope / delivery | What is the first independently useful, qualified v4 milestone before production completion? | Compiler skeleton / complete unoptimized language / playable complete-pipeline vertical slice | Make M1 a playable PAL/KERNAL/6581 sprite loop built with `optimization: none`. It uses a real project, shared frontend/LSP, qualified SpritePad asset, joystick/fire interaction, normal BASIC return, complete semantic/SFA/lowering/ACME/PRG/VICE path, independent behavior and assembly/cost expectations, full resource/debug evidence, and an early C64U-readiness review. Later features remain real vertical slices, not placeholders. | ✅ Resolved |
+| AR-028 | Integration / module discovery | How does an entry module's named import locate `.blend` files when filenames have no language meaning and several files may contribute to one module? | One contained source-root module index / path-based imports / explicit source-file inventory | Add one required `sourceRoot` resolved relative to `blend65.json`, independent of the process working directory. Recursively index contained `.blend` files, then compile the entry module's reachable graph. | ✅ Resolved |
+| AR-029 | Scope / assets and packaging | Does C64 production include compiler-owned delivery of assets that cannot remain resident in the initial PRG, and what artifact/loader boundary owns it? | Resident PRG only / coordinated disk image and explicit load units / external packaging and loader tools | Include compiler-owned, opt-in disk delivery before C64 production completion. Keep `embed()` resident by default; package explicit nonresident load units with the startup PRG, link only used loader/decompressor code, qualify the disk profile separately, and expose all transport/lifetime/IRQ/audio/resource costs. | ✅ Resolved |
+| AR-030 | Scope / portability | How does one codebase vary declarations and behavior across exact C64 profiles and later machines without contaminating target-neutral semantics? | Separate profile-specific entry modules plus compile-time profile constants / add a dedicated conditional-compilation language surface | Use shared modules plus selectable entry modules and immutable compile-time profile constants. Permit recorded `--target` and `--entry` overrides of the manifest defaults. Do not add a preprocessor or conditional-declaration language feature until a real later target demonstrates unavoidable duplication. | ✅ Resolved |
+| AR-031 | Language / asset lifetime | What source contract distinguishes resident `embed()` values from packaged load units that are not readable until explicitly loaded? | Reuse ordinary `const byte[]` unsafely / manifest-only asset inventory / explicit typed `loadable const` declaration and destination | Add the narrow `loadable const` declaration modifier. It retains an exact fixed logical type and compile-time metadata but is not CPU-readable storage. It loads explicitly through a selected-profile loader into a compatible mutable fixed destination; success publishes the complete value, while failure returns `false` and leaves destination contents unspecified. | ✅ Resolved |
+| AR-032 | Integration / artifact identity | What is the primary output and `run` behavior for the approved disk-delivery profile, given AR-022 currently hardcodes `<name>.prg`? | Always publish a standalone PRG plus optional D64 / make the qualified profile own one primary deployable artifact | Make each profile own one primary deployable artifact. PRG profiles publish `<name>.prg`; `c64-pal-d64-kernal-6581` publishes `<name>.d64` containing its boot PRG and reachable load units. `run` attaches and starts only the freshly built primary artifact; common evidence remains atomic. | ✅ Resolved |
+| AR-033 | Scope / document structure | How should the confirmed v4 scope be decomposed into requirements without driving another horizontal, framework-first implementation? | Ten vertically ordered capability RDs / one RD per compiler pass / a few monolithic RDs | Use ten vertically ordered capability RDs, with M1 in RD-03 and the complete correct `optimization: none` compiler before optional optimizer work. | ✅ Resolved |
+| AR-034 | Naming / authority versioning | Which semantic-version category identifies the expert-skill release whose governing language authority changes from Specification 3 to Specification 4? | Major `2.0.0` / minor `1.1.0` / patch `1.0.1` | Publish the Specification 4 expert baseline as `2.0.0`. | ✅ Resolved |
+| AR-035 | Scope / specification authority | Which target appendices and platform claims are normative in Specification 4 while v4 implements and qualifies only C64? | Only qualified C64 targets normative / all five existing appendices normative / retain four non-normative provisional appendices inside the active spec | Make only qualified C64 profiles normative; remove the four unqualified target appendices from the active specification and retain future-target constraints as explicit non-support material. | ✅ Resolved |
+
+## Resolution Notes
+
+### AR-004 — No v3 compatibility
+
+No one uses or has previously used Blend65 v3. V4 therefore carries no source, configuration, CLI,
+API, package, diagnostic, generated-assembly, binary, artifact, or migration obligation for v3.
+V3 remains available only as Git history, audit evidence, and component-level salvage input.
+
+### AR-010 — Approved simplified debugging complexity
+
+- **Original goal:** Later full source-level debugging for modern Blend65 users in VS Code.
+- **Extra system or support code:** A versioned compiler debug-information artifact and later
+  emulator-adapter integration.
+- **Why it may be needed:** VICE exposes machine state but does not know Blend65 source spans,
+  types, optimized liveness, SFA homes, or bank-qualified object identity.
+- **Evidence:** VICE 3.10 documents breakpoints, watchpoints, registers, memory, labels, and a stable
+  binary-monitor interface. V3 contains source-provenance, SFA-home, VICE-control, and ACME-label
+  evidence, but no source debugger.
+- **Smallest solution that still works:** ACME/VICE labels plus direct VICE-monitor use. This does
+  not satisfy the accepted modern source-debugging outcome.
+- **Extra cost:** One host-side schema/serializer, source and live-location preservation, bank-aware
+  mapping, focused qualification, and a later interoperability probe. There is no PRG, RAM, ZP,
+  hardware-stack, or runtime-cycle cost.
+- **Independent verdict:** `Simplify` — preserve the information and user outcome without selecting
+  or building an owned DAP now.
+- **Direct user decision:** “Preserve and emit the compiler debug information, but do not commit now
+  to building a complete Blend65-owned debug adapter.”
+
+The compiler must preserve enough information from its first relevant representations to emit:
+
+- machine-address ranges mapped to source spans;
+- function and call context;
+- SFA variable homes, types, and live ranges;
+- symbols and bank identities; and
+- the facts needed for source breakpoints, stepping, and variable inspection.
+
+Before choosing an adapter implementation, a focused interoperability test must determine whether
+an existing VICE-capable adapter can consume the compiler information correctly. A Blend65-owned
+DAP is not authorized unless that probe demonstrates a semantic or integration gap and a new
+complexity decision approves the larger subsystem.
+
+### AR-006 — Approved curated instruction surface
+
+- **Original goal:** Give advanced developers a safe, predictable escape for low-level C64 needs
+  without restoring an unstructured `asm { ... }` block.
+- **Extra system or support code:** External ACME function declarations and modules, plus manifest
+  mappings, an external-call ABI, effect and clobber declarations, stack/SFA integration, symbol
+  validation, path controls, and dedicated qualification.
+- **Why it may be needed:** An external routine could express a machine operation or third-party
+  assembly routine that ordinary Blend65 and its platform library cannot express.
+- **Evidence:** V3 can concatenate referenced ACME text, but its analysis does not prove the full
+  callee, interference, effect, and stack contract required for a safe external call. The finite
+  NMOS 6502 audit also showed that almost every useful opcode belongs in normal source semantics,
+  a target API, or backend instruction selection instead of a source opcode call.
+- **Smallest solution that still works:** Keep ordinary Blend65 operations and zero-cost platform
+  APIs as the main surface and admit only source instructions with stable, complete semantics. The
+  initial set is the five controls below; a missing modern-language or platform operation is fixed
+  at its real semantic level.
+- **Extra cost:** At least one language surface, project configuration, trusted ABI/effect model,
+  call-graph and SFA participation, ACME symbol/range validation, and permanent safety and cost
+  qualification for arbitrary project-owned assembly.
+- **Independent verdict:** `Simplify` — a narrow, trusted ACME extern boundary was viable if an
+  external-call capability remained required, but an object format, linker, dialect system, or
+  plugin layer was not. The user's later clarification removed the extern requirement entirely,
+  and the finite instruction audit produced the smaller source surface.
+- **Direct user decision:** Approve exactly `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and
+  `asm_nop`; do not add external assembly functions, inline assembly blocks, or other opcode-shaped
+  source calls.
+
+An `asm_*` source intrinsic is admitted only when it solves a demonstrated low-level need that
+ordinary Blend65 or a zero-cost platform API cannot express, has complete typed inputs/results and
+machine effects, needs no persistent hidden A/X/Y/flag state between calls, exposes no assembler
+labels or compiler-owned storage, is legal for the selected CPU, and has exact optimization, SFA,
+byte, cycle, stack, memory, and bus contracts. An intrinsic whose name promises one instruction
+must emit that instruction exactly; a larger semantic operation uses a semantic or platform API
+name instead.
+
+The finite NMOS 6502 family audit is recorded in
+`_draft/instruction-intrinsic-audit.md`. The approved initial source set is exactly
+`asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop`.
+
+### AR-013 — First C64 production profile
+
+The first implemented production profile is `c64-pal-prg-kernal-6581`:
+
+- stock unexpanded PAL C64 using the NMOS 6510 and PAL VIC-II timing;
+- one SID at `$D400`, initially qualified for 6581 behavior;
+- KERNAL-loaded PRG with a BASIC `SYS` autostart at `$0801`;
+- BASIC ROM banked out while KERNAL ROM and I/O remain visible;
+- cooperative KERNAL CINV IRQ chaining by default; and
+- a normal return that restores compiler-owned startup state and returns to BASIC, while an
+  unreleased exclusive resource makes normal return invalid.
+
+The architecture represents execution profiles from day one, but raw takeover and NTSC behavior
+are separately qualified profiles. They are not independent switches that may be combined without
+a complete memory, startup, interrupt, loader, audio, timing, and verification contract.
+
+### AR-014 — Single Specification 4.0 authority
+
+V4 is governed by one active Blend65 Language Specification 4.0. Language decisions are collected
+before changing `spec/`; they are then applied as one controlled baseline update, checked against
+the complete Language Guard, reconciled into one newly versioned and qualified expert skill, and
+frozen before semantic compiler implementation begins. The requirements register preserves every
+decision feeding that update. Git history and the parked v3 worktree preserve Specification 3.0,
+so a duplicate live specification tree would add drift without preserving anything new.
+
+### AR-015 — Complete addressable-place support
+
+The v3 name-only restriction was compiler convenience rather than a 6502 constraint. Specification
+4.0 therefore permits `&` on any real storage place: variables, parameters, nested fields, indexed
+elements, and their compositions. The result stays `word`; no pointer/reference/view/slice type is
+introduced. Index/place expressions evaluate once. Constant, checked, and unchecked indexing keep
+their normal behavior, and one-past addressing requires explicit arithmetic rather than implicit
+array permission.
+
+Derived addresses retain the base object's hidden lifetime and read-only provenance. Local and
+scalar-parameter homes cannot escape their active invocation; aggregate-parameter addresses inherit
+their caller origin; known writes through const-derived addresses are rejected. Literals,
+temporaries, and inlined scalar constants remain non-addressable. The proof is compile-time only and
+adds no runtime checker, descriptor, copy, heap, or helper.
+
+### AR-016 — Aggregate value semantics without a runtime
+
+Fixed arrays and structs are ordinary values for assignment and return. Source and destination
+types, including every fixed-array extent, must match exactly. An unsized aggregate parameter such
+as `T[]` is a borrowed parameter form and cannot be a return type.
+
+Aggregate parameters retain the zero-copy model: `name: T` is a mutable borrow and
+`name: const T` is a read-only borrow. Aggregate returns use caller-owned hidden destinations,
+direct construction, and copy elision, so returning a value does not imply a dynamic stack frame or
+an avoidable temporary. When source code explicitly requests a value copy, aliasing must preserve
+source-value semantics and the compiler must report its measured byte and cycle cost. The backend
+may select expert inline code or a specialized shared sequence according to measured whole-program
+cost, but any helper scratch closes before SFA. V4 adds no generic runtime library, heap, dynamic
+frame, or separate `copy()` intrinsic.
+
+### AR-017 — Fixed rectangular multidimensional arrays
+
+Specification 4.0 supports nested fixed arrays as true contiguous row-major storage. Dimensions are
+written and indexed from outermost to innermost: `byte[25][40]` is 25 rows of 40 bytes and is
+accessed as `map[row][column]`. Every stored extent is a compile-time constant. Nested initializers
+must conform to the declared rectangular shape, and assignment and return follow AR-016's exact
+type-and-shape rule.
+
+A borrowed parameter may omit only its outermost extent. For example, `const byte[][4]` accepts any
+fixed row count whose rows contain exactly four bytes. The call supplies the base address and outer
+count without copying; the inner extent gives the compiler a static row stride. `length(map)` is
+the supplied outer count and `length(map[row])` is the fixed inner extent. Forms such as
+`byte[][]` and `byte[25][]` are invalid because their element stride is unknown. V4 adds no dynamic
+extent, jagged-array, slice, view, heap, or runtime descriptor model.
+
+Each subscript follows the ordinary constant, checked, or unchecked ordinal rules independently.
+Address-of applies to rows and elements under AR-015. Lowering uses the complete inner object size
+for each stride and must strength-reduce or hoist address work where expert 6502 code would do so.
+
+### AR-018 — Typed finite-target function values
+
+Specification 4.0 adds `fn(parameter-types): return-type` as the callable type of named ordinary
+functions. `&ordinaryFunction` produces a signature-exact function value. Function values may be
+assigned, stored in fixed arrays or structs, passed, returned, selected, and called. V4 adds no
+lambdas, closures, captured environments, dynamic code loading, or callable raw addresses.
+
+An ordinary function value denotes an `RTS` target. An `interrupt function` produces a distinct,
+non-callable handler value whose entry ABI is selected only by a compatible recognized platform
+sink. Explicit conversion of either value to `word` is an expert proof-erasing operation; a raw
+`word` can never be converted back into a callable or handler value.
+
+Every indirect call requires a finite compiler-proven set of signature-compatible source targets.
+Points-to provenance follows assignments, aggregate storage, parameters, returns, and conditional
+merges; an unknown or escaped target is a compile-time error. Call-graph, effect, hardware-stack,
+bank-visibility, and SFA analysis include the complete feasible target set and every overlapping
+execution domain.
+
+The backend devirtualizes singleton targets and chooses the measured expert form for larger sets:
+direct comparisons, a decision tree, a jump table, specialization, or an indirect trampoline. If
+the same source target needs different SFA machine variants by execution domain, a context-specific
+finite dispatch maps the stored target identity to the correct variant; it may not call an unsafe
+shared home. All ROM, RAM, ZP, stack, byte, and cycle costs are reported. No universal dispatcher,
+runtime registry, dynamic frame, or runtime library is introduced.
+
+### AR-019 — Deterministic compile-time functions
+
+Specification 4.0 adds `comptime function` declarations for programmatic constant-data generation.
+They reuse normal Blend65 local variables, fixed arrays and structs, expressions, conditions,
+loops, direct calls to other compile-time functions, and AR-016 aggregate returns. Arguments and
+every externally read value must be compile-time constants. Returned values may initialize scalar,
+struct, or fixed-array constants and then participate normally in placement, alignment,
+deduplication, memory maps, and debug provenance.
+
+A compile-time function may read constant data, including an already validated `embed()` result. It
+may not access MMIO; use `PEEK`, `POKE`, or `asm_*`; modify runtime state; make indirect calls; read
+files directly; observe time, randomness, environment, or network state; or call runtime-only
+functions. Recursion remains forbidden. Deterministic execution-step and host-memory limits prevent
+non-terminating or hostile evaluation and produce source diagnostics rather than a compiler hang.
+Ordinary Blend65 typing, overflow, conversion, division, and bounds rules govern evaluation.
+
+The initial compile-time math surface includes `sin8(byte): sbyte`, `cos8(byte): sbyte`,
+`sin16(word): sword`, and `cos16(word): sword`. Their phase covers one complete turn and their
+integer results, extrema, symmetry, and rounding are normative and byte-exact; implementation may
+not delegate observable results to a host-dependent floating-point library. A compile-time
+function emits no 6502 instructions, SFA home, hardware-stack use, helper, or runtime library. Only
+the returned constant data consumes target storage.
+
+### AR-020 — Closed expert placement modifier
+
+Specification 4.0 adds one closed `place(...)` declaration modifier. Its initial named constraint
+set is exactly:
+
+- `at: address` — require one exact target address;
+- `align: size` — require the starting address to be a multiple of the size;
+- `noCross: size` — require the complete emitted object to remain within one naturally aligned
+  window of that size; and
+- `region: symbol` — require a typed placement region exported by the selected target profile.
+
+Addresses and sizes are compile-time integer values. Alignment and no-cross sizes are positive
+powers of two in the target's representable placement domain. A profile-region value is a typed
+compiler symbol, not a magic string. One clause may combine compatible constraints. The modifier
+immediately precedes a module-level stored-data or function declaration; after `export` it is
+written `export place(...) ...`. It may refine an item inside a `zeropage` block, including an exact
+profile-available zero-page address. A placed scalar `const` is deliberately materialized and
+becomes addressable rather than inlined. Locals, parameters, fields, types, and compiler-owned SFA
+homes cannot be source-placed.
+
+Automatic placement is authoritative for normal code. Platform APIs, asset handlers, instruction
+selection, and timing contracts add their required constraints without user syntax. An explicit
+`place(...)` clause can strengthen those facts but cannot waive visibility, banking, alignment,
+ownership, reserved-memory, or target-legality rules. Constraints on aliases of one canonical
+embedded object are combined; conflict is a diagnostic, never silent replication. Unsatisfiable or
+conflicting constraints report the object, every contributing requirement, and occupied ranges.
+The modifier adds no runtime action, copying, hidden reservation framework, or general annotation
+extension point.
+
+### AR-021 — Focused production language tooling
+
+The production language server shares the compiler's lexer, parser, typed semantic model,
+diagnostics, source spans, project graph, target-profile metadata, and asset-handler metadata. It
+analyzes versioned unsaved document snapshots, supports cancellation, and discards stale results.
+Normal editor requests never import or execute target lowering, code generation, assembly,
+packaging, or VICE.
+
+Its required protocol surface is live lexical, syntax, semantic, import, target-profile, asset, and
+placement diagnostics; context-aware completion including `embed()` paths/selectors and typed
+placement regions; hover; signature help; definition; references; safe project-wide rename;
+document/workspace symbols; semantic tokens; bounded compiler-provided code actions; and one
+deterministic full-document formatter with no option framework. Generated, platform-owned,
+ambiguous, or unsafe rename/fix requests are rejected rather than guessed.
+
+The VS Code extension is a thin client. It supplies syntax highlighting, comments, bracket and
+indentation rules, automatic language-server startup, project/profile status, explicit `Build`,
+`Run in VICE`, and `Build and Run` commands, cancellation, Problems/Output integration, change
+refresh, and commands to open emitted assembly, labels, memory/asset maps, and cost reports. Opening
+an untrusted workspace may analyze text but cannot launch tools or VICE; execution requires trust
+and an explicit user command.
+
+The initial production surface does not include a Blend65-owned debug adapter, visual asset or
+memory editors, a package manager, a plugin marketplace, a configurable formatting framework,
+general automated refactoring, or mandatory incremental compiler/cache infrastructure. AR-010's
+debug-information artifact remains required for later adapter interoperability.
+
+### AR-022 — One deterministic project and build model
+
+One JSONC `blend65.json` manifest defines a production project. It has comments and trailing commas,
+a required configuration schema version, project/output name, one entry source module, one exact
+qualified target profile, project-contained asset search paths, project-contained output directory,
+the AR-023 optimization mode, and independent `boundsCheck` and `divisionZeroCheck` options. The
+nearest manifest found by walking upward defines the project root. Unknown keys, duplicate keys,
+invalid values, and unsupported schema versions are errors.
+
+The entry module's imports define the complete source graph; there are no include/exclude globs or
+second source inventory. Literal `embed()` declarations define the asset graph, with search first
+relative to the declaring source and then through manifest asset paths. Every source, import,
+asset, and output path is canonicalized and contained by the project root. One invocation builds
+one target profile. Host-specific ACME and VICE executable discovery belongs to user/editor
+settings or explicit invocation state, not the shared project file. The manifest cannot run shell
+commands, scripts, hooks, plugins, or arbitrary host tools.
+
+The CLI surface is `blendc check`, `blendc build`, and `blendc run`, each accepting an optional
+explicit `--project` manifest path and otherwise using upward discovery. `check` stops before target
+lowering/ACME; `build` emits the binary and all required evidence; `run` launches VICE only after
+that same invocation builds successfully. Production compilation requires a manifest rather than
+a parallel single-file configuration model. Explicit command-line diagnostic, safety, or
+optimization overrides are recorded in build evidence.
+
+A successful build atomically publishes the selected profile's one primary deployable artifact
+plus `.asm`, `.labels`, `.memory.json`, `.assets.json`, `.costs.json`, `.debug.json`, and
+`.build.json`. The build record binds compiler, specification, expert-skill, target-profile,
+assembler, option, source/asset hash, and artifact-hash identities. Failure cannot publish a mixed
+partial output set or cause `run` to launch an older artifact. AR-032 defines PRG and D64 primary
+outputs. V3's JSONC parsing and upward discovery are salvage evidence only; its broad configuration
+and compatibility behavior are not inherited.
+
+### AR-023 — Four goal-oriented optimizer modes
+
+The manifest's `optimization` value is exactly `none`, `balanced`, `speed`, or `size`.
+`balanced` is the default for production `build` and `run`; `check` performs no target code
+generation. An explicit CLI override is allowed only when the effective value is recorded in build
+evidence. Bounds and division checks are independent options and never implied by an optimizer
+mode.
+
+`none` is a supported executable baseline, not an invalid or deliberately poor compiler path. It
+retains language-required constant evaluation, typed lowering, complete SFA allocation, legal
+instruction selection, ABI and flag preservation, branch-range repair, platform placement,
+assembly, and packaging. It disables optional propagation, elimination, strength reduction,
+inlining, loop transformation, specialization, and machine peepholes. This provides a stable full
+pipeline before optional optimizers and a supporting differential-execution path.
+
+`balanced`, `speed`, and `size` run both the machine-independent whole-program optimizer and the
+target-machine optimizer. `balanced` uses the documented complete target cost model; `speed`
+prioritizes worst-case and declared hot-path cycles after hard memory constraints; `size`
+prioritizes emitted and resident bytes after hard timing constraints. Deterministic tie-breakers
+include the other charged resources. Correctness, observable timing, memory budgets, MMIO order,
+banking, placement, stack, SFA, target legality, and ABI obligations are hard constraints in every
+mode.
+
+There are no public per-pass switches. A transformation without a complete proof is not applied;
+the resulting missed expert optimization remains visible parity debt rather than a semantic risk.
+Every mode preserves accurate debug provenance and reports optimizer identities plus ROM, RAM, ZP,
+SFA, stack, data, byte, cycle, page, and layout effects. Independent semantic oracles remain
+authoritative; optimized-versus-`none` differential execution is supporting evidence only. Expert
+comparison uses the same goal and hard constraints as the selected mode.
+
+### AR-024 — Base C64 production matrix and C64U successor
+
+C64U is a required named successor, not an unspecified future possibility. The base C64 production
+gate does not need to implement REU, turbo, Ultimate storage, or expanded SID topology, but it may
+not close around assumptions that would force another compiler rewrite to add them.
+
+Before that gate can close, the architecture must preserve target-neutral frontend and semantic IR;
+symbolic address-space and placement identities; a distinction among directly CPU-addressable,
+banked, and transfer-only storage; platform-owned wider physical addresses without widening core
+Blend65 `word`; explicit transfer/DMA effects and costs; independent CPU/video/audio clock facts;
+device and firmware-qualified profiles; multiple coordinated packaging artifacts; and emulator
+plus real-hardware evidence levels. Assets and globals remain outside SFA regardless of their
+address space. These are semantic seams and closeout checks, not permission to build an empty
+plugin framework or speculative C64U packages before a real C64U consumer is implemented.
+
+Base-C64 production requires these exact qualified identities:
+
+- `c64-pal-prg-kernal-6581`;
+- `c64-pal-prg-kernal-8580`;
+- `c64-pal-prg-takeover-6581`;
+- `c64-pal-prg-takeover-8580`;
+- `c64-ntsc-prg-kernal-6581`;
+- `c64-ntsc-prg-kernal-8580`;
+- `c64-ntsc-prg-takeover-6581`; and
+- `c64-ntsc-prg-takeover-8580`.
+
+The original AR-013 baseline ID is refined to `c64-pal-prg-kernal-6581`, making its already-selected
+SID model explicit. Qualification is factored by shared language/CPU semantics, video standard,
+execution ownership, and SID model rather than multiplying every compiler test eightfold. Each
+concrete identity still receives a bounded end-to-end build and VICE smoke test, with targeted
+real-hardware QA for timing- and SID-sensitive claims.
+
+C64U is the first target-family expansion after base C64. During requirements structuring it
+receives an owned follow-on feature covering REU, turbo, storage, firmware, SID topology, packaging,
+and target-specific verification. Base-C64 production is not blocked on those implementations, but
+it is blocked on the architecture-readiness facts above and on assigning that successor ownership.
+
+### AR-025 — Git-preserved, inventory-led clean v4 branch
+
+Execution records the exact final v3 source commit and creates the sibling
+`/home/gevik/workdir/github/blend65.ri/v4` worktree on `feature/v4-rebuild`. Git history and the
+parked v3 worktree are the complete archive; v4 does not duplicate them under `legacy/`, retain an
+old source subtree, or promise compatibility with package names or behavior.
+
+Before removal, a component-level salvage inventory classifies every candidate as port unchanged,
+adapt, rewrite, discard, or reference-only and cites its v4 requirement and proof. A port requires
+Specification 4.0 compatibility, a focused independent contract test, no dependency on discarded
+v3 architecture, and demonstrably less risk/work than a clean implementation. Likely candidates
+include isolated source-span/diagnostic rendering, JSONC discovery, ACME/VICE process adapters, and
+qualified asset codecs/fixtures. Lexer and Pratt-parser mechanics require Spec 4 audits. Semantic
+analysis, IL, SFA implementation, lowering, code generation, optimization, compiler orchestration,
+CLI behavior, and editor tooling default to redesign/rewrite.
+
+V3 tests are evidence, not executable authority. New immutable specification tests derive from v4
+requirements; old cases are recreated only when their behavior remains authoritative. The v4
+branch removes `readiness`, `readiness-execution`, their gate/scoreboard workflow, unselected tests,
+and false/unimplemented target packages. Minimal ACME/VICE runners and authoritative fixtures may
+survive as ordinary test utilities. Directed tests run during work and complete relevant
+qualification runs only at major boundaries.
+
+After inventory, v4 creates only packages required by a real implemented C64 compiler path. It adds
+no empty Atari, X16, C64U, debugger, readiness, or plugin packages. Exact package boundaries remain
+an architecture-plan decision constrained by the approved responsibility seams, not by the twelve
+v3 package names.
+
+### AR-026 — Observational host compiler and editor responsiveness
+
+Host-tool responsiveness is measured, recorded, and trended but is not a wall-clock acceptance
+gate. Measurements separate cold/warm `blendc check`, compiler phases, ACME, complete `build`, LSP
+diagnostics/completion/hover/definition/references/rename requests, and peak host memory. Every
+record binds the real qualified example or project size, asset input sizes, compiler/configuration,
+host CPU/RAM/OS/filesystem, Node, and ACME identities so comparisons remain honest.
+
+No duration threshold fails a unit test, normal verification, shared CI job, milestone, or release.
+Measurements run only when a performance-sensitive path changes, at a major compiler/editor
+milestone, and at release qualification. Existing qualified examples are used as they grow; v4 does
+not create a synthetic 10,000-line game or a parallel readiness product solely to satisfy this
+observation.
+
+AR-011's incremental-compilation deferral expires only when real projects exhibit a noticeable
+developer-facing editor or build delay, profiling attributes a substantial part to re-analysis of
+unchanged input, and smaller algorithmic or focused in-memory repairs cannot restore acceptable
+responsiveness. Asset conversion, ACME, filesystem, or isolated phase costs are repaired at their
+source rather than answered with an unrelated general cache. Generated-C64 speed, bytes, memory,
+timing, and expert parity retain their separate mandatory qualification gates.
+
+### AR-027 — M1 playable complete-pipeline sprite loop
+
+The first independently useful milestone is a small interactive program for
+`c64-pal-prg-kernal-6581`, built with `optimization: none`. A developer opens its real
+`blend65.json` project in VS Code, receives shared-frontend lexical/syntax/semantic diagnostics,
+checks and builds it, imports a qualified current SpritePad representation, launches the resulting
+PRG through `blendc run`, moves one hardware sprite using joystick input, changes a visible
+color/animation state with fire, and exits through the profile's normal return-to-BASIC contract.
+
+M1 implements only the coherent language slice the program needs: modules/imports, `const`/`let`,
+required scalar types and conversions, expressions and assignment, `if`/`while`/standard `for`,
+ordinary functions and nested calls, basic structs/fixed arrays and correct ordinal promotion,
+variable-address `PEEK`/`POKE`, `embed()`, and named joystick/VIC/screen/exit platform APIs. Typed
+function values, nested arrays, compile-time functions, IRQ callbacks, audio, advanced loaders, and
+optional optimizers remain later vertical slices. Their approved semantics constrain the
+architecture, but M1 creates no fake implementation or empty package for them.
+
+M1 must exercise project loading, source graph, lexer, parser, semantic analysis, typed semantic
+IR, whole-program/SFA analysis, target-neutral lowering, C64/6502 lowering, instruction selection,
+placement, ACME serialization, PRG packaging, VICE execution, and source/debug/resource evidence.
+No stage may pass unresolved or untyped material through solely to make the demo work.
+
+Qualification injects deterministic joystick/fire input in VICE and checks position, visible
+state, asset bytes/placement, and normal exit. Each implemented semantic path has an independent
+behavior oracle and an assembly/cost expectation; SpritePad bytes are placed once, correctly
+aligned and VIC-visible without runtime copying; local generated code meets the expert floor; all
+SFA/memory/ZP/stack/asset/cycle/debug reports are complete; LSP and CLI share the frontend; and one
+relevant boundary qualification follows directed tests. M1 does not use the v3 readiness suite and
+must pass an early C64U-readiness architecture review. It is useful for small interactive demos but
+is not production-complete Blend65.
+
+### AR-028 — Deterministic module-to-file discovery
+
+AR-022 currently leaves a broken link in the project journey. Blend65 imports a qualified module
+identity rather than a file path, filenames have no language meaning, and multiple `.blend` files
+may merge into one module. Starting from one entry module therefore cannot locate the files that
+declare its imports unless the project first creates a bounded module index.
+
+The recommended correction is one required, project-contained source root. The compiler
+recursively indexes only `.blend` files below that root in canonical path order, reads their module
+headers, and then analyzes only the entry module's reachable import graph. This preserves the
+language's module/file separation without restoring include/exclude globs or an explicit source-file
+inventory. Profile-provided platform modules resolve outside this project source root. Path-based
+imports were rejected because they would make filesystem layout part of language identity; an
+explicit file list was rejected because it recreates the duplicate source inventory removed by
+AR-022. Exact merged-module declaration-collision, case, symlink-containment, unreadable-file, and
+changing-input rules remain part of the project contract.
+
+The user approved `sourceRoot` as a required manifest path resolved from the directory containing
+`blend65.json`, never from the process working directory. It is one relative, canonical,
+project-contained directory; absolute paths and escapes are rejected. `blendc check`, `build`, and
+`run`, explicit `--project` use, upward manifest discovery, and the language server therefore see
+the same source set regardless of the caller's current directory.
+
+### AR-029 — Large-asset delivery and loader ownership
+
+The resident PRG path proves asset import and placement but cannot represent a game whose complete
+assets do not fit simultaneously in RAM or the initial load image. The accepted game-engineering
+direction already requires loader windows, overlays, SID/IRQ continuity, and Integrator-style
+composition to influence architecture. The product boundary to resolve was whether C64 production
+itself must create a coordinated disk artifact and explicit load units, or whether that would remain
+an external/later responsibility. Any accepted loader path must be opt-in game functionality rather
+than a hidden compiler runtime and must expose transport, destination, liveness, scratch, timing,
+interrupt/audio, publication, and restoration costs.
+
+The user approved compiler-owned, opt-in disk delivery as part of C64 production. Resident PRG
+builds and ordinary `embed()` remain valid and do not acquire loader code. A separately qualified
+disk profile packages the startup PRG and explicit load units; it links only the selected
+loader/decompressor implementation and never installs a universal runtime. Static analysis and
+build evidence own destination/overlay liveness, banking, scratch, worst-case output, transfer
+timing, IRQ/audio policy, publication, restoration, and complete artifact/residency costs. The
+first M1 milestone remains resident and PRG-only.
+
+### AR-030 — Target-dependent source selection
+
+The project has exact PAL/NTSC, execution-ownership, and SID profiles and a mandatory C64U successor,
+but it has not decided whether v4 adds conditional-compilation syntax. The smallest current model is
+separate profile-specific entry modules/manifests over shared target-neutral modules, plus immutable
+compile-time profile constants for ordinary value/timing choices. A dedicated conditional language
+surface would reduce some entry wiring but would add grammar, name-resolution, diagnostics, LSP,
+and conformance obligations before a non-C64 consumer demonstrates which distinctions are actually
+needed.
+
+The user approved the smaller model without separate manifests. `blend65.json` supplies one default
+entry module and exact target profile; `blendc --entry` and `--target` may select another entry and
+qualified profile for one invocation, and the effective values and input/artifact hashes are
+recorded in build evidence. Shared target-neutral modules are imported normally. Profile-provided
+modules expose immutable compile-time facts such as video standard and frame rate. A branch whose
+condition is a profile constant is resolved and removed as mandatory compile-time evaluation even
+under `optimization: none`, so it has no target bytes or cycles. Fundamentally different hardware
+wiring uses separate reachable entry/platform modules within the same `sourceRoot`; target-specific
+modules outside the selected reachable graph receive only the header indexing needed for module
+discovery and are not semantically checked against the wrong profile.
+
+V4 adds no textual preprocessor, `#if`, conditional declaration system, or build-variant framework.
+The C64U follow-on must record whether its real implementation demonstrates substantial unavoidable
+duplication. Only that evidence may reopen a dedicated conditional-compilation proposal.
+
+### AR-031 — Explicit loadable-value contract
+
+An ordinary embedded fixed array or struct is a resident value: source may index it, take its
+address, and pass it according to normal aggregate rules. Giving the same type behavior to bytes
+that exist only on disk would be unsound because generated code could read the destination before a
+successful load.
+
+The recommended source model is a narrow `loadable const` declaration. Its initializer is a
+compile-time fixed scalar, array, struct, or explicitly composed asset value, but the declaration
+denotes an immutable packaged load unit rather than CPU-readable storage. Source may use its
+compile-time type/size/provenance and pass it only to a compatible selected-profile loader
+operation; ordinary reads, indexing, address-of, mutation, and ordinary parameter passing are
+errors. Loading targets a separately declared mutable fixed destination of the exact logical type,
+including a destination constrained with `place(...)`. On successful return, source reads the
+destination normally. A composite struct loadable is one coordinated load unit, so maps, charset,
+colors, masks, and tables can travel together without a second manifest inventory. The packager may
+store a compressed representation, but the declared logical type and reported worst-case
+destination size remain exact. No runtime descriptor, heap, hidden copy, or persistent asset handle
+is introduced.
+
+The user approved this model. `c64.loader.load(loadable, destination)` returns `boolean`: `true`
+publishes the complete logical value in the destination; `false` leaves that destination's contents
+unspecified and source must not treat them as loaded. The call is explicit and is the only runtime
+transfer; a project with no reachable load call links no loader. A loadable declaration can group a
+whole level or scene as a fixed struct, allowing one reusable fixed destination to hold mutually
+exclusive maps, charsets, colors, collision data, music, masks, or generated tables.
+
+### AR-032 — Profile-owned primary artifact
+
+AR-022's fixed `<name>.prg` output is correct for the eight approved resident PRG profiles but
+contradicts AR-029 when the startup program and load units form one deployable disk image. Publishing
+a standalone bootstrap PRG beside the D64 as if both were complete primary products is misleading:
+the PRG cannot satisfy its declared load operations without the packaged units.
+
+The recommended correction makes each qualified profile own exactly one primary deployable
+artifact. Existing `*-prg-*` profiles publish `<name>.prg`. The first disk profile is
+`c64-pal-d64-kernal-6581`; it publishes `<name>.d64`, containing the boot PRG and every reachable
+load unit under deterministic compiler-owned directory identities. `blendc run` for that profile
+attaches the newly built D64 to VICE and starts its boot entry; it cannot run a standalone or stale
+PRG. The common `.asm`, `.labels`, `.memory.json`, `.assets.json`, `.costs.json`, `.debug.json`, and
+`.build.json` evidence remains atomic, and the build record additionally binds the disk directory,
+contained file/load-unit ranges, compression/loader identities, and hashes. Internal bootstrap or
+load-unit files may exist in staging but are not separately published as complete deliverables.
+
+Only `c64-pal-d64-kernal-6581` is required for the initial C64 production disk-delivery slice. Other
+video/ownership/SID disk combinations require their own qualified identities when demanded; the
+existing eight PRG profiles remain the base resident-production matrix.
+
+The user approved this profile-owned artifact model. The D64 is the only published primary binary
+for `c64-pal-d64-kernal-6581`; its bootstrap PRG and load-unit files remain contained components,
+not separately advertised complete programs. `blendc run` mounts that exact newly built D64 and
+starts its boot entry. All component identities, directory entries, ranges, compression/loader
+identities, and hashes remain available through the atomic evidence set.
+
+### AR-033 — Minimum vertical RD decomposition
+
+The proposed structure uses ten requirement documents ordered by useful capability and production
+dependency rather than one document per compiler pass. RD-03 owns M1 as a complete playable path;
+RD-04 then completes the language and correct `optimization: none` compiler before optional
+optimizer work begins. Platform, asset, loader, optimizer, and tooling documents extend real
+working paths. Cross-cutting internal responsibilities remain acceptance contracts inside their
+owning vertical capability instead of becoming empty packages or independent framework projects.
+
+One RD per lexer/parser/analyzer/IL/SFA/codegen pass was rejected because it would recreate the
+horizontal development failure the v4 direction is correcting. A few monolithic RDs were rejected
+because language conformance, assets/loading, platform behavior, optimizer proof, and editor
+tooling have distinct acceptance authorities and would become too large to review or qualify
+independently.
+
+The user approved the proposed ten-RD structure, dependency graph, delivery phases, glossary, and
+integration map. The detailed structure is recorded in `_draft/discovery-notes.md` and becomes the
+authoring boundary for Phase 3.
+
+### AR-034 — Expert baseline version for Specification 4
+
+RD-01 must publish one exact expert-skill version and content identity so every later audit can
+bind to it. The existing baseline is `1.0.0` and its governing language identity is Specification
+3. Replacing that authority with Specification 4 changes language semantics, qualification
+oracles, and the decisions the skill gives to later compiler work.
+
+The recommended version is `2.0.0`. This is a breaking authority replacement, not a compatible
+knowledge correction, so a major bump communicates the real scope and prevents Spec-3-dependent
+audits from treating the new baseline as interchangeable. `1.1.0` would understate that break;
+`1.0.1` is reserved for compatible corrections and is not credible here. Only one version remains
+active after atomic qualification and activation, regardless of the number chosen.
+
+The user approved `2.0.0`. Specification 3 expert baseline `1.0.0` remains only in Git history
+after the newly qualified Specification 4 baseline activates atomically.
+
+### AR-035 — Normative target set in Specification 4
+
+The current specification calls all five platform appendices draft and provisional, but its
+feature axiom, introduction, platform-profile chapter, and Language Guard still require every
+feature to compile and run across C64, C64U, X16, Atari 800XL, and Atari 7800. V4 explicitly
+implements and qualifies only C64, and the recovery audit found the non-C64 implementation paths
+to be false scaffolds or incompatible C64 reuse. Keeping all five normative would make
+Specification 4 impossible to satisfy honestly.
+
+**Recommended:** make only qualified C64 profile identities normative in the first Specification
+4 release. Rewrite universality and emulator clauses to cover every qualified active target, plus
+a mandatory portability review against recorded future-target constraints. Remove the C64U, X16,
+Atari 800XL, and Atari 7800 appendices from the active normative specification; Git preserves
+their drafts, while concise future considerations retain only non-support constraints. Unknown or
+planned target IDs are rejected. A later target activates only after it gains pinned expert
+evidence, a normative appendix, a real target-native CPU/machine/serializer/packager path, complete
+core-language requalification, emulator evidence, necessary hardware QA, and atomic activation.
+C64U remains the explicitly owned next feature; running a C64 artifact in compatibility mode is
+not the same claim as supporting a `c64u` target profile.
+
+**Independent verdict:** Choose the recommendation. Retaining provisional appendices inside the
+active specification is theoretically workable, but readers and tools can still mistake them for
+authority and the drafts add synchronization cost. Removing them risks losing cross-target design
+pressure; the explicit future-target constraint register, target-neutral responsibility rules,
+and C64U-readiness gates preserve that pressure without making a false support claim.
+
+**Confidence:** High. The challenger would reconsider the in-tree non-normative option only if a
+mechanically enforced normative-document manifest made those appendices impossible to cite as
+authority; none exists.
+
+The user approved the recommendation. Specification 4 therefore has one normative active target
+family: its qualified C64 profiles. C64U remains the owned next feature, but C64 compatibility mode
+does not constitute a `c64u` compiler target. X16 and Atari target authority will be created only by
+their later evidence-qualified feature work.
+
+## Gate Notes
+
+The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
+The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
+decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
+All 35 items are resolved. The user confirmed the consolidated scope and explicitly approved
+AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,
+integration, terminology, authority, deferral, and complexity-evidence review found no unresolved
+material choice. AR-024's already-decided C64U ownership timing was retained, and the proposed
+RD-10 wording was corrected to hand off to the already-owned successor rather than create it late.
+The Phase 2B gate passed. Phase 3 authoring then surfaced AR-034 and AR-035 before any RD was
+written; both are now explicitly resolved and the gate passes again. New material ambiguities found
+during authoring reopen it under the surface-during-authoring rule.
