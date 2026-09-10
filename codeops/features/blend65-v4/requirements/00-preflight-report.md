@@ -534,14 +534,29 @@ overconstrain future compiler improvement; reusing `balanced` would make `none` 
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A | Define `none` as disabling optional optimization/rewrite passes while a deterministic backend policy and stable tie-breakers select legal code. Bind reproducibility to compiler identity and allow that policy to improve between compiler versions. | Stable per build identity without fossilizing codegen. | Assembly may intentionally change after a compiler upgrade. |
+| A | Define `none` as the complete correctness path with no optional candidate discovery, rewrite passes, or `B`/`R`/`T` comparison. Apply one predefined deterministic legal lowering policy, bind reproducibility to compiler identity, and allow that policy to improve between compiler versions. | Produces a fully working baseline without secretly running an optimizer or fossilizing codegen. | Assembly may intentionally change after a compiler upgrade. |
 | B | Freeze every canonical lowering pattern in Specification 4/expert authority. | Maximally stable assembly. | Turns backend engineering into permanent language semantics. |
 
-**Recommendation:** Option A.
+**Recommendation:** Refined Option A. `none` performs every operation required for a correct runnable
+program: semantic/compile-time evaluation, legalization, deterministic instruction selection, SFA,
+resource binding, placement, branch repair, emission, and packaging. It does not enumerate or
+measure alternatives for optional propagation, elimination, inlining, outlining, specialization,
+strength reduction, loop transformation, or peephole optimization. Its predefined lowering must be
+sensible and correct but is not required to exhaust expert optimization opportunities. `balanced`,
+`speed`, and `size` perform the same deep finite candidate discovery and differ only in selection:
+no-regression dominance, `T -> R -> B`, and `B -> R -> T`, respectively. There is no `max` mode:
+when smaller and faster conflict it has no honest unique result; when they do not, `balanced`
+already selects the win.
 
 **Confidence:** High. **Hardening:** Challenger downgraded the issue to minor and replaced the
 initial freeze recommendation with Option A.
-**User Decision:** Pending
+**User Decision:** Accepted refined Option A on 2026-09-10. The user defined `none` as a 100%
+working program without extra size/speed optimization effort, `speed` as exhaustive cycle-first
+work, and `size` as exhaustive program-size/memory-first work. The user accepted the recommendation
+to retain exactly four modes and not add a redundant or ambiguous `max` mode.
+**Correction Status:** Queued for the accepted-fixes batch; PF-016 remains open until RD-04, RD-08,
+AR-023, AR-045/AR-046, parity wording, and mode qualification cases consistently express this
+boundary.
 
 ### PF-017: V3 has no qualified native asset codec to salvage 🟡 MINOR
 
