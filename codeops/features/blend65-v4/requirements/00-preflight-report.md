@@ -331,7 +331,12 @@ break required Linux/Windows output identity.
 self-reference.
 
 **Confidence:** High. **Hardening:** Challenger selected and refined Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. `buildId` covers canonical semantic inputs and
+portable tool identities, artifact digests cover generated outputs other than `.build.json`, and
+host-specific paths, executable hashes, timings, and memory measurements remain provenance outside
+the portable identity. `.build.json` never contributes to the identity it contains.
+**Correction Status:** Queued for the accepted-fixes batch; PF-009 remains open until the identity,
+artifact-digest, and host-provenance boundaries are stated consistently with qualification cases.
 
 ### PF-010: `outDir` lifecycle and containment are undefined 🟠 MAJOR
 
