@@ -514,7 +514,12 @@ is explosion update one, so the pure oracle and VICE trace may disagree by one f
 
 **Confidence:** High. **Hardening:** Challenger retained the finding but downgraded it to minor and
 selected Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. The collision update immediately publishes
+explosion frame 1/count 1, the next update publishes frame 2/count 2, and the following update makes
+the explosion idle. This freezes only the M1 Blend65 fixture, independent behavior oracle, and VICE
+frame expectations; it adds no compiler intrinsic, runtime support, game abstraction, or engine.
+**Correction Status:** Queued for the accepted-fixes batch; PF-015 remains open until the RD-03
+state table, update order, predetermined trace, pure oracle, and VICE criteria share this count.
 
 ### PF-016: `optimization: none` needs deterministic backend policy, not frozen assembly 🟡 MINOR
 
