@@ -582,22 +582,48 @@ against their exact accepted format contracts without guessing from partial impl
 **Correction Status:** Queued for the accepted-fixes batch; PF-017 remains open until AR-025 and
 the salvage inventory/asset prerequisites consistently distinguish raw mechanics from new codecs.
 
-### PF-018: Embedded-data warning refers to an impossible configuration 🟡 MINOR
+### PF-018: Embedded-data threshold can misstate whole-program memory safety 🟡 MINOR
 
 **Dimension:** 12 — Consistency
 **Location:** `RD-06-native-assets-compile-time-composition-and-resident-layout.md:292-299,723-727`;
 `RD-02-clean-v4-foundation-and-deterministic-project-model.md:104-115,298-315`
 **The Problem:** W10150 uses a profile's “configured threshold” with a 75% fallback, but no profile
-requirement or permitted project key owns that configuration.
+requirement or permitted project key owns that configuration. More importantly, an embedded-data
+percentage cannot prove whether a complete C64 program fits: a lower percentage may fail through
+fragmentation, alignment, banking, VIC visibility, zero-page, SFA, stack, helper, or loader
+constraints, while a higher percentage may be valid. Existing requirements already demand most
+layout evidence and hard failures, making the heuristic redundant and potentially misleading.
 
 **Options:**
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A — only viable in current scope | Make the initial threshold exactly 75% of the selected profile's binary budget. | Deterministic; adds no configuration. | Changing it later requires an explicit requirement update. |
+| A | Remove W10150. Always publish exact reconciled memory/cost evidence for successful builds and return exact structured placement diagnostics for failures; record bounded raw runtime-memory uncertainty without rejecting ordinary dynamic access. | Gives developers assembly-grade accounting without a false safety threshold. | Requires the existing reports and diagnostics to name complete final-layout facts. |
+| B | Keep W10150 with a fixed 75% threshold. | Small wording change. | Remains arbitrary and can warn on valid programs while missing impossible layouts. |
 
-**Recommendation:** Option A. Adding a new user option would be unjustified scope.
-**User Decision:** Pending
+**Recommendation:** Option A. After optimization, helper discovery, final SFA closure, layout, and
+branch repair, reconcile ACME symbols/segments/bytes against the compiler plan before publication.
+Successful `.memory.json`/`.costs.json` evidence separates code, initialized data, BSS/globals, SFA,
+ZP, stack, assets, helpers, loader/scratch, alignment/padding, platform reservations, CPU/physical/
+VIC views, residency groups, occupied/free intervals, and largest compatible holes. A proved
+overlap, overflow, visibility, alignment, contiguity, banking, ZP/SFA/stack/general-memory
+exhaustion, or reconciliation mismatch is a hard pre-publication diagnostic naming required versus
+available bytes, blockers, compatible holes, and remedies. Dynamic `POKE`/low-level operations stay
+legal; when their range is unproved, evidence names the exact source sites and bounds the safety
+claim rather than adding a runtime or rejecting the program. Code and data receive no universal
+priority: hard constraints and explicit placement govern, then the selected optimizer ranks only
+fully feasible candidates. Add no dashboard, readiness score, history service, or threshold option.
+
+**Confidence:** High. **Hardening:** Independent re-review rejected the heuristic and confirmed the
+exact-report/hard-failure boundary. Severity remains minor because RD-04 through RD-06 already
+require most of this evidence and failure behavior; the correction removes the misleading warning
+and makes the developer-facing reconciliation fields explicit.
+**User Decision:** Accepted revised Option A on 2026-09-10. The user requires assembly-grade exact
+post-optimization accounting so a statically impossible layout fails with an explanation rather
+than producing a program that later corrupts memory.
+**Correction Status:** Queued for the accepted-fixes batch; PF-018 remains open until RD-04 through
+RD-06, RD-08, W10150 references, evidence schemas, and qualification cases consistently implement
+the exact report/failure contract and remove the threshold.
 
 ### PF-019: `tools.jsonc` has an undefined schema version 🟡 MINOR
 
