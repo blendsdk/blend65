@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 38 items resolved
-> **Last Updated**: 2026-09-10 12:58 CEST
+> **Status**: 🚨 GATE REOPENED — AR-039 pending
+> **Last Updated**: 2026-09-10 13:02 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -44,6 +44,7 @@
 | AR-036 | Technical (complexity escalation) | Does the clean v4 foundation retain Turborepo and pre-emptive Vite configuration, or use the toolchain's direct build/test graph until a real consumer proves more machinery is needed? | Yarn workspaces + TypeScript project references + Vitest only / retain Turborepo and current Vite placeholders | Retain the useful v3 monorepo setup: Yarn classic workspaces, Turborepo, stable TypeScript 7, and Vitest, with no ESLint or replacement linter. Do not carry unused Vite placeholders; add Vite or another bundler only for a real packaging consumer. | ✅ Resolved |
 | AR-037 | Scope / M1 product and asset provenance | Does M1 remain a single-sprite interaction or become a bounded Invaders-style game, and when must the authentic SpritePad 3.80 input exist? | Keep the single-sprite loop / bounded original-art Invaders-style microgame / faithful full game recreation | Use a bounded original-art Invaders-style microgame: one player, six invaders, and one shared projectile/explosion sprite fit the eight hardware sprites without multiplexing. Include fixed enemy state, ordinary loops/functions, simple source-level collision, win/loss, and normal BASIC return; exclude score, lives, shields, enemy projectiles, audio, scrolling, IRQ callbacks, loaders, and optimization. The user will later supply an official SpritePad C64 Pro 3.80 template and exports; that evidence is required before RD-03 planning or asset-decoder implementation, not before requirements authoring. | ✅ Resolved |
 | AR-038 | Scope / product boundary | Since games are Blend65's primary use case, does v4 ship reusable game-engine/gameplay systems or qualify a general language/compiler that lets developers write them? | Ship reusable game systems / general compiler plus narrow asset and platform integration, with game workloads as qualification / separate optional engine product | Blend65 remains a general 6502-family language, AOT compiler, toolchain, and narrow target-platform library for games and other software—not a game engine, framework, or gameplay library. Its only game-oriented convenience is compile-time ingestion, validation, conversion, typing, and target integration of external assets such as sprites, charsets, maps, images, and SID content. Typed hardware access and low-level delivery are general platform services. Game loops, entities/pools, collision, state dispatch, renderers, scene graphs, sprite-multiplexing, scrolling, buffering, audio scheduling/mixing, and every other application algorithm remain user-authored. Asset adapters may expose data, metadata, symbols, placement constraints, and an exact player ABI, never runtime game policy. The compiler must express, lower, diagnose, and optimize those workloads correctly. Examples and Q-P workloads are qualification oracles only, never public game modules. | ✅ Resolved |
+| AR-039 | Data / native asset compatibility | How does the Koala handler treat nonzero unused high bits in the 1,000 Color RAM source bytes? | Preserve and accept exact source bytes while documenting low-nibble hardware meaning / reject any nonzero high nibble / silently normalize every byte to its low nibble | **Pending user decision. Recommended:** accept and preserve all eight source bits, expose the low nibble as the hardware color meaning, and never reject or silently normalize an otherwise exact classic Koala file solely because unused high bits are nonzero. | 🚨 Pending |
 
 ## Resolution Notes
 
@@ -797,13 +798,30 @@ developers can write games, renderers, and any other C64 software. Only asset-fo
 conversion into Blend65's typed target domain is deliberately game-oriented; building the game or
 engine remains the user's responsibility.
 
+### AR-039 — Koala Color RAM source-byte preservation
+
+The classic Koala payload contains 1,000 Color RAM bytes, but C64 Color RAM observes only the low
+nibble. Existing external files may carry nonzero values in the unused high nibble. RD-06 cannot
+claim exact format handling without deciding whether those source bits are accepted and preserved.
+
+The recommended contract accepts and preserves each complete source byte in the selected typed
+data and provenance. Hardware-facing metadata states that only `value & $0f` affects Color RAM.
+The compiler does not reject a structurally exact file solely because an unused high bit is set,
+and it does not silently normalize the imported bytes. This retains source fidelity, accepts wider
+historic producer output, keeps hashes and deduplication honest, and lets user-authored code choose
+explicit normalization if it wants it.
+
+**Direct user decision:** Pending.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 38 items are resolved. The user confirmed the consolidated scope and explicitly approved
-AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,
+AR-001 through AR-038 are resolved. RD-06 authoring then exposed AR-039's Koala Color RAM
+source-byte policy, so the gate is reopened until the user decides it. Before that discovery, the
+user confirmed the consolidated scope and explicitly approved AR-033's Phase 2 decomposition. The
+final 12-category, journey, edge-case, dependency,
 integration, terminology, authority, deferral, and complexity-evidence review found no unresolved
 material choice. AR-024's already-decided C64U ownership timing was retained, and the proposed
 RD-10 wording was corrected to hand off to the already-owned successor rather than create it late.
