@@ -241,29 +241,43 @@ host-side routine and adds no target bytes, storage, startup work, or cycles.
 layout, current record, lock/pin protocol, retention rule, and Linux/Windows acceptance cases are
 corrected and verified.
 
-### PF-007: Automatic PATH discovery can execute project-controlled tools 🟠 MAJOR
+### PF-007: Tool discovery trust boundary was defined too broadly 🟠 MAJOR
 
 **Dimension:** 8 — Security Blind Spots
 **Location:** `00-ambiguity-register.md:1118-1132`;
 `RD-09-developer-tooling-and-debug-evidence.md:63-76,596-607,769-774`
-**Codebase Evidence:** v3's `packages/compiler/src/acme/discover-acme.ts:102-119` joins every
-non-empty PATH component without rejecting relative or project-contained entries.
-**The Problem:** PATH may contain `.`, an empty or relative component, `node_modules/.bin`, a project
-directory, or a symlink into one. A hostile project can supply `acme` or `x64sc`; checking its
-claimed version already executes it, and a later hash does not establish trust.
+**Codebase Evidence:** v3's `packages/compiler/src/acme/discover-acme.ts:102-119` demonstrates
+ordinary process-`PATH` discovery, but v4 deliberately assigns discovery to the CLI rather than the
+compiler library.
+**The Problem:** The requirements mixed portable project input, host-controlled process `PATH`, and
+extra fixed-location discovery into one security boundary. This invited special rejection rules for
+ordinary `PATH` entries and a qualified-install-location registry even though the intended product
+contract is only a machine-local override followed by normal host `PATH` lookup. It also obscured
+that ACME and VICE are optional CLI capabilities rather than compiler-core dependencies.
 
 **Options:**
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A | For automatic discovery reject empty, relative, drive-relative, and canonically project-contained PATH entries/candidates, including symlinks. Permit an explicit absolute machine-local tools-file path to authorize a deliberate project-local tool. | Retains normal PATH convenience without violating the stated trust boundary. | Project-local tool users must configure it explicitly. |
-| B | Remove PATH discovery and allow only fixed host locations or explicit configuration. | Smallest trust model. | Worse developer experience on ordinary Linux/Windows installs. |
+| A | Make the CLI use an explicit machine-local `tools.jsonc` path first and otherwise normal process-`PATH` lookup. Treat `PATH` as host execution authority, remove fixed-location discovery and special project-contained-entry rejection, and keep all executable paths/commands out of portable project, source, and asset input. | Matches normal command-line behavior, preserves deliberate host configuration, and keeps the compiler library independent of external tools. | A user-controlled `PATH` may deliberately select a local executable, as with other CLI programs. |
+| B | Permit only explicit machine-local configuration and remove automatic `PATH` discovery. | Minimizes discovery behavior. | Adds needless setup and contradicts the approved automatic-discovery experience. |
 
-**Recommendation:** Option A, with qualification cases for `.`, empty components,
-`node_modules/.bin`, drive-relative Windows paths, and symlink-to-project candidates.
+**Recommendation:** Option A. A configured path wins and an invalid configured path fails clearly
+without fallback. Otherwise the CLI uses normal OS `PATH` ordering and validates the selected
+tool's compatible identity. It spawns the executable directly with an argument array, never through
+a shell. No-tools operation still permits compiler-library use, source checking, LSP analysis, and
+assembly emission; ACME adds PRG/D64 production, while VICE adds emulator execution only. An
+explicit operation fails only when its required capability is absent and never publishes partial or
+stale success. Canonical path and version are normal build evidence; an executable hash may remain
+qualification evidence without becoming a discovery trust framework.
 
-**Confidence:** High. **Hardening:** Challenger selected Option A.
-**User Decision:** Pending
+**Confidence:** High. **Hardening:** The initial challenger recommendation was superseded after the
+user clarified the intended CLI-owned config-or-`PATH` boundary.
+**User Decision:** Accepted revised Option A on 2026-09-10. The user explicitly rejected additional
+discovery machinery: the CLI looks only at machine-local configuration and then normal `PATH`.
+**Correction Status:** Queued for the accepted-fixes batch; PF-007 remains open until RD-09, RD-10,
+AR-048, and their acceptance cases consistently express the revised capability matrix and discovery
+boundary.
 
 ### PF-008: Public evidence sidecars have no versioned schemas 🟠 MAJOR
 
