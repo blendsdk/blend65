@@ -456,27 +456,44 @@ invalid. Loading stays direct to final storage with no descriptor, staging buffe
 **Correction Status:** Queued for the accepted-fixes batch; PF-013 remains open until RD-01,
 AR-015/AR-016, RD-07, and loader qualification cases consistently admit the complete place model.
 
-### PF-014: D64 makes the `size` objective constant unless allocated cost is defined 🟠 MAJOR
+### PF-014: Optimizer size and packaging cost domains are conflated 🟠 MAJOR
 
 **Dimension:** 1 — Ambiguities
 **Location:** `RD-07-loadable-assets-and-d64-delivery.md:92-96,235-239`;
 `RD-08-optimization-and-expert-output.md:66-73,90-93,418-430`
-**The Problem:** Every standard D64 is 174,848 bytes. If `B` counts every shipped physical byte, all
-candidates tie and `size` cannot prefer a smaller program or asset set. If free-sector fill is
-excluded, the current “each physical shipped byte” wording and directory/BAM/sector overhead
-attribution remain undefined.
+**The Problem:** The requirements allow fixed D64 container and filesystem-allocation properties to
+enter `B`, even though `optimization: size` is intended to minimize generated target-program bytes
+and target-memory use. Every standard D64 is 174,848 bytes, so its physical length is constant; its
+sector allocation is packaging capacity/evidence rather than a measure of generated program
+quality. The current `B -> T -> R` order also lets equal-byte candidates prefer speed before lower
+target-memory pressure, contrary to the intended size goal.
 
 **Options:**
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A | Count reachable allocated payload plus attributable directory, BAM, link, tail, and sector-allocation overhead in `B`; exclude deterministic unallocated fill from selection and report the full image size separately. | Measures actual C64 storage consumption and preserves a meaningful size mode. | Shared filesystem overhead needs exact no-double-count attribution. |
-| B | Optimize compressed host archive size. | Produces variable numbers. | Measures distribution compression, not the generated C64 artifact. |
+| A | Define `B` as compiler-generated target-loadable program/data bytes, `R` as the selected profile's ordered target-memory resource vector, and `T` as qualified comparable cycle costs. Select `size` by `B -> R -> T`, `speed` by `T -> R -> B`, and `balanced` only by no-regression dominance. Keep D64 length/allocation/overhead outside these orderings as fit constraints and packaging evidence. | Matches developer intent, preserves distinct physical resources, and keeps packaging from steering code generation. | Requires precise component definitions and mode-specific qualification cases. |
+| B | Let D64 allocated blocks and filesystem overhead participate in `B`. | Can prefer a disk representation using fewer blocks. | Makes compiler optimization depend on packaging granularity rather than program quality and contradicts the intended meaning of `size`. |
 
-**Recommendation:** Option A.
+**Recommendation:** Option A. For a PRG build, `B` corresponds to the target PRG bytes, including
+generated code, initialized data, embedded payload, reachable helpers/tables, loader, padding, and
+branch repair. For D64, it covers logical compiler-generated target payloads, never the fixed image,
+BAM/directory/link/tail/fill, host evidence, or archive compression. A byte may contribute to both
+`B` and `R` because shipped program size and simultaneous target residency are distinct resources;
+they are never added into one weighted score. Hard correctness, timing, memory, banking, stack,
+zero-page, and disk-capacity limits filter candidates before any mode preference. `none` performs
+required deterministic correct lowering without optional optimization. All optimized modes exhaust
+the same finite qualified candidate frontier; only their final ordering differs.
 
-**Confidence:** High. **Hardening:** Challenger confirmed Option A.
-**User Decision:** Pending
+**Confidence:** High. **Hardening:** The original challenger result was reopened after the user
+clarified the intended size goal. Independent re-review confirmed revised Option A and rejected
+D64 allocation as an optimizer objective.
+**User Decision:** Accepted revised Option A on 2026-09-10. The user explicitly confirmed that
+`size` means generated program/PRG size and target-memory usage; known D64 container size is
+irrelevant to optimization.
+**Correction Status:** Queued for the accepted-fixes batch; PF-014 remains open until RD-07, RD-08,
+AR-023, AR-045, the cost schemas, and mode qualification cases consistently define `B`, `R`, `T`,
+the corrected orderings, and the packaging exclusion.
 
 ### PF-015: M1 explosion update counting is ambiguous 🟡 MINOR
 
