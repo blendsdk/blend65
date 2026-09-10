@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
 > **Status**: ✅ GATE PASSED — all 44 items resolved
-> **Last Updated**: 2026-09-10 14:55 CEST
+> **Last Updated**: 2026-09-10 15:24 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -920,7 +920,7 @@ explicit containment limitation.
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 44 items are resolved, and the user approved RD-06. The user selected AR-042's
+All 44 items are resolved, and the user approved RD-07. The user selected AR-042's
 KERNAL-first, uncompressed loader baseline and AR-043's explicit-quiescence rule. Continuing the
 RD-07 boundary scan exposed AR-044 because stock KERNAL `LOAD` cannot enforce a destination length
 before transfer; the user approved the trusted-D64 boundary and explicit limitation. The gate
