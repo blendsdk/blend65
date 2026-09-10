@@ -666,17 +666,24 @@ text superseded.
 | A — only viable | Rewrite AR-023's speed sentence to the AR-045 minimax rule and explicitly record that AR-045 supersedes the old wording. | One consistent active optimizer policy. | Small cross-reference edit. |
 
 **Recommendation:** Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. AR-023 must remove declared-hot-path wording
+and defer to the final frequency-free policy: hard constraints first, then `speed` selects by the
+complete comparable semantic-path cycle vector `T`, target-memory resource vector `R`, program
+bytes `B`, and stable tie-break. Statically proved loop counts and explicit timing contracts remain
+real semantic/cost facts; guessed frequency, annotations, profiling, and weights remain absent.
+**Correction Status:** Queued for the accepted-fixes batch; PF-020 remains open until AR-023,
+AR-045, RD-08, and optimizer qualification cases state one consistent active policy.
 
 ## Audit Guardrails and Result
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
-- Only the user-approved PF-001 requirements correction has been applied; PF-002 through PF-020
-  remain pending.
+- The PF-001 requirements correction has been applied. PF-002 through PF-020 have accepted
+  resolutions recorded here and remain queued for the authorized cross-document correction batch.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with 19 findings pending user decisions and correction/rescan.
+**Current Result:** **BLOCKED** with all 20 decisions complete and 19 accepted corrections pending
+application and deep rescan.
