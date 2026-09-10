@@ -4,8 +4,8 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-08 are approved with all 46
-> ambiguity decisions resolved
+> **Artifact status**: Working discovery record; RD-01 through RD-08 are approved and all 47
+> ambiguity decisions are resolved
 
 ## Authority and evidence
 
@@ -78,7 +78,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. AR-001 through AR-046 are resolved.
+None. AR-001 through AR-047 are resolved.
 
 ## Approved first C64 production profile
 
@@ -667,6 +667,8 @@ weights, PGO, tuning DSL, pass/plugin framework, runtime optimizer, game engine,
 compressor. AR-046 now requires expert baseline `2.0.0` to freeze a deep combined modern-plus-6502
 technique inventory and every optimized mode to exhaust its admitted finite frontier to proved
 closure, including structured cost-selected peepholes and bounded exact search only for small
-finite regions. RD-01 and RD-08 contain that approved correction. Draft RD-09 for developer tooling
-and debug evidence next; after RD-10 and requirements validation, plan and execute RD-01 before any
-semantic compiler implementation so Specification 4 and expert baseline `2.0.0` activate together.
+finite regions. RD-01 and RD-08 contain that approved correction. AR-047 removes the redundant
+`Build and Run` command: VS Code exposes `Build` and fresh-build `Run in VICE`, saving consumed
+dirty inputs or aborting before execution. Draft RD-09 for developer tooling and debug evidence
+next. After RD-10 and requirements validation, plan and execute RD-01 before any semantic compiler
+implementation so Specification 4 and expert baseline `2.0.0` activate together.

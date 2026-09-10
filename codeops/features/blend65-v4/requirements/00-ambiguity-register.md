@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 46 items resolved
-> **Last Updated**: 2026-09-10 16:53 CEST
+> **Status**: ✅ GATE PASSED — all 47 items resolved
+> **Last Updated**: 2026-09-10 17:31 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -52,6 +52,7 @@
 | AR-044 | Safety / corrupted runtime disk data | The stock KERNAL relocating `LOAD` accepts a destination address but no maximum length. What guarantee does the first loader make if a packaged load-unit file is later corrupted or replaced with a valid longer file? | Trust the compiler-produced D64 and diagnose only observable KERNAL/end-address failure / add a custom bounded and checksummed transport now / stage and validate before copying | Define the exact compiler-produced D64 as the trusted deployable unit. The baseline wrapper reports KERNAL failure and rejects a returned end address unequal to `destination + sizeof(unit)`, but it cannot promise containment after a longer altered file has already been transferred. Add no checksum, staging copy, or custom bounded transport to the KERNAL-first slice; record this as an explicit hardware/toolchain limitation and require a later qualified loader for hostile or independently mutable media. | ✅ Resolved |
 | AR-045 | Behavioral (complex) / optimizer goal selection | When correct 6502 candidates trade cycles against bytes or scarce resources, how do `balanced`, `speed`, and `size` choose deterministically without guessing workload frequency? | Complete-cost Pareto/lexicographic policy / one profile-owned weighted scalar / user-configurable weights and hotness | Use the complete-cost Pareto/lexicographic policy. Reject hard-constraint failures first and defer choices whose helper, SFA, ZP, layout, banking, loader, or packaging costs are not yet closed. `balanced` selects only a candidate that dominates the baseline and every competitor across reachable bytes, every relevant semantic-path cycle bound, and scarce-resource peaks; otherwise it retains the baseline while keeping independent dominance wins. `speed` lexicographically minimizes worst-to-best path cycles, then bytes, then the fixed resource order stated in the resolution note. `size` minimizes reachable bytes, then the same cycle vector, then resources. Exact cost ties alone use stable candidate identity. Add no weights, hotness annotations, policy DSL, PGO, or guessed frequency. | ✅ Resolved |
 | AR-046 | Behavioral (complex) / optimizer frontier and search completion | What belongs in the qualified optimization frontier, and what proves that an optimized mode has searched it deeply enough: combined modern and 6502-specific techniques exhausted to proved closure, only traditional 6502 tricks, a broad imported modern optimizer framework, globally exhaustive assembly search, or a heuristic pass budget? | Finite combined modern-plus-6502 frontier exhausted to proved closure, with structured peepholes and bounded exact search / 6502 tricks only / broad imported optimizer framework or catalog / globally exhaustive search across all equivalent programs / heuristic fixed-pass or first-good completion | Freeze a deep, sourced modern-plus-6502 optimization knowledge inventory into expert baseline `2.0.0`, then use the same finite evidence-qualified candidate frontier for `balanced`, `speed`, and `size`. Admit concrete techniques by Blend65 semantics, current consumer, complete rule packet, exact 6502/full-program costs, two independent oracles, and expert parity—not by historical or modern provenance. Exhaust that frontier at the smallest complete owning scope, repeat affected groups to a proved deterministic fixed point, and run structured contextual peephole optimization. Permit exact enumeration only for explicitly small finite regions with an independent equivalence oracle. Import algorithms and proof ideas, never another compiler's architecture or target assumptions. Never stop at the first improvement or certify success through an iteration cap. Claim frontier-optimality, not universal mathematical optimality; a newly discovered winning expert candidate reopens the frontier as parity debt. | ✅ Resolved |
+| AR-047 | UX / VS Code execution commands | How do `Run in VICE` and `Build and Run` differ when every run must successfully build a fresh artifact in the same invocation, and how are unsaved build inputs handled? | Keep only `Build` and fresh `Run in VICE`, saving relevant dirty build inputs first / retain a separate existing-artifact rerun path with strict currentness proof plus `Build and Run` | Expose only `Blend65: Build` and `Blend65: Run in VICE`; remove redundant `Build and Run`. Before either command, save dirty open project inputs consumed by that operation; abort with an actionable message if saving is declined or fails. `Run in VICE` performs a fresh build and launches only that invocation's artifact. The LSP continues to analyze unsaved snapshots independently. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -1030,6 +1031,39 @@ heuristic cutoff.
 knowledge freeze, proved fixed-point completion, structured cost-selected peepholes, and bounded exact
 search policy.
 
+### AR-047 — VS Code run command identity and unsaved inputs
+
+AR-021 names three explicit VS Code commands: `Build`, `Run in VICE`, and `Build and Run`.
+AR-022 separately requires every `run` invocation to build successfully and to launch only the
+fresh artifact produced by that same invocation. Those decisions make `Run in VICE` and
+`Build and Run` behaviorally identical unless one is given a second, weaker artifact-currentness
+contract. RD-09 must not publish duplicate commands or silently weaken the fresh-artifact rule.
+
+**Recommended — one fresh-run path:** expose `Blend65: Build` and `Blend65: Run in VICE`. Remove
+the redundant `Build and Run` command. Before either command, save the dirty open project inputs
+that the operation will consume. If the user declines a save or any save fails, abort before
+building or launching and report the affected input. `Run in VICE` performs the complete fresh
+build required by AR-022 and launches only that invocation's profile-owned primary artifact. Live
+LSP analysis remains independent and continues to use versioned unsaved editor snapshots.
+
+The other viable option is to retain `Run in VICE` as a no-build rerun command and keep
+`Build and Run` as the fresh path. The no-build command would have to prove that the existing
+artifact's recorded source, asset, manifest, profile, option, and tool identities still match the
+current saved project and reject dirty relevant editor inputs. This is safe in principle, but it
+creates a second launch contract, artifact-currentness logic, and more user-visible failure states
+before measured build latency demonstrates a need.
+
+**Second-guessing:** The strongest argument for a distinct no-build rerun is faster repetition of
+an unchanged binary. The current product has no measured build delay that justifies the extra
+surface, while one-command fresh run is already approved and deterministic. If milestone timing
+later proves that rebuilding unchanged inputs causes a material delay, a separately approved,
+hash-proven rerun command can be added without weakening the normal fresh-run path.
+
+**Confidence:** High. **Hardening:** Standard in-context challenge; no independent challenger was
+required for this bounded editor-command decision.
+
+**Direct user decision:** The user approved the recommended one-fresh-run-path contract.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
@@ -1059,4 +1093,7 @@ Pareto/lexicographic policy. RD-08 review then exposed AR-046 because the select
 define which modern and 6502-specific techniques belong in the frontier or how deeply candidate
 discovery, repetition, and peephole optimization must run. The user approved the combined finite
 frontier, expert `2.0.0` knowledge freeze, and proved-closure policy, so the gate passes with all 46
-items resolved.
+items resolved. RD-09 authoring then exposed AR-047: its approved command list contained two names
+for the same fresh-build-and-run behavior, and unsaved build-input handling was unspecified. The
+user approved the single fresh-run command and save-or-abort input contract, so the gate passes
+again with all 47 items resolved.
