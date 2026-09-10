@@ -575,7 +575,12 @@ checkout contains raw asset/embed mechanics, not that qualified native-format im
 | A — only viable | Name raw asset-reader/embed mechanics as the actual candidates and state that native codecs/fixtures are new RD-03/RD-06 work. | Makes the inventory truthful. | Small wording correction. |
 
 **Recommendation:** Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. Only v3's raw file-reading, path, hashing, and
+`embed(path)` mechanics are possible salvage candidates. SpritePad, CharPad, SID/PSID, Koala, and
+other native-format codecs plus their current-producer fixtures are new v4 work and must qualify
+against their exact accepted format contracts without guessing from partial implementations.
+**Correction Status:** Queued for the accepted-fixes batch; PF-017 remains open until AR-025 and
+the salvage inventory/asset prerequisites consistently distinguish raw mechanics from new codecs.
 
 ### PF-018: Embedded-data warning refers to an impossible configuration 🟡 MINOR
 
