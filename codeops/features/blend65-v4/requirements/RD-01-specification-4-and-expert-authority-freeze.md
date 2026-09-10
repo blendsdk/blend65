@@ -25,7 +25,7 @@ v3 tests, readiness artifacts, scoreboards, and feasibility snapshots remain aud
 none may define language or expert doctrine.
 
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
-> AR-034, AR-035, and AR-038.
+> AR-034, AR-035, and AR-038 through AR-041.
 
 ---
 
@@ -125,6 +125,10 @@ none may define language or expert doctrine.
   remains `c64-pal-prg-kernal-6581`. The appendix may define narrow hardware operations and exact
   external adapters, but no game-engine, gameplay-module, or application-policy API. (AR-013,
   AR-024, AR-029, AR-032, AR-035, AR-038)
+  Its native-asset baseline is exactly the approved SPD v5, CTM v9, PSID v1–v4 subset, classic
+  Koala, and raw fallback contract. Koala Color RAM and background components preserve complete
+  source bytes while identifying only their low nibbles as VIC-II color meaning; Specification 4
+  removes the prior zero-high-nibble rejection. (AR-039 through AR-041)
 - [ ] **R1.16 — Remove false target authority.** `spec/appendix-c64u.md`,
   `spec/appendix-cx16.md`, `spec/appendix-a800xl.md`, and `spec/appendix-a7800.md` must not remain
   active normative Specification 4 documents. Git preserves their drafts. Concise future-target
@@ -161,9 +165,13 @@ none may define language or expert doctrine.
   value while making application policy explicitly user-authored. Correct any asset-pipeline text
   that promises a compiler-owned renderer, scene runtime, player scheduler, mixer, or game
   architecture: asset handlers stop at typed data, metadata, symbols, exact imported-player ABI,
-  and placement/package facts. Typed hardware APIs remain general platform support. No active file
-  may still claim baseline `1.0.0`, Specification 3 authority, or a Blend65 game-engine product
-  surface after activation. (AR-014, AR-034, AR-038)
+  and placement/package facts. Integrator-style composition, conflict detection, mask generation,
+  and representation construction are user-authored compile-time Blend65 workloads that the skill
+  teaches and qualifies, not compiler-supplied scene operations. Typed hardware APIs remain general
+  platform support. No active file may still claim baseline `1.0.0`, Specification 3 authority, or
+  a Blend65 game-engine product surface after activation. Koala knowledge and its qualification
+  cases must also implement the accepted exact-byte/low-nibble distinction for both Color RAM and
+  background. (AR-014, AR-034, AR-038 through AR-041)
 - [ ] **R1.22 — Requalify according to blast radius.** Every one of the 107 expert qualification
   cases must retain admissible green evidence under the `2.0.0` candidate. Use deterministic
   structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
@@ -451,7 +459,9 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     approved PRG profile identities and `c64-pal-d64-kernal-6581`; the first profile's PAL,
     KERNAL, BASIC-return, banking, CINV, 6510, and 6581 facts agree across all owners. Its public
     modules contain only target hardware operations and exact external adapters, not gameplay
-    algorithms or engine policy. (AR-038)
+    algorithms or engine policy. Its native-asset inventory contains exactly AR-040's initial
+    formats, and its Koala contract accepts and preserves nonzero high nibbles in Color RAM and
+    background while exposing only low-nibble hardware meaning. (AR-038 through AR-041)
 16. [ ] **AC-16 — False targets removed:** The four historical non-C64 appendix paths are absent
     from the normative inventory and cannot be selected as active target IDs. Any retained C64U,
     X16, or Atari text explicitly says non-normative, unqualified, and not compiler support.

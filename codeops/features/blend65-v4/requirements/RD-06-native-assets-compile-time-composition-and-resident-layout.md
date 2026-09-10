@@ -32,7 +32,7 @@ image. RD-08 separately owns automatic cost-guided representation choice and opt
 transformations. (AR-023, AR-029, AR-031, AR-033)
 
 > **Decisions:** AR-002 through AR-004, AR-007, AR-008, AR-012 through AR-014, AR-019 through
-> AR-023, AR-025, AR-026, AR-029 through AR-035, and AR-038 through AR-040.
+> AR-023, AR-025, AR-026, AR-029 through AR-035, and AR-038 through AR-041.
 
 ---
 
@@ -142,8 +142,9 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
 
 #### PSID data and exact player adapters — complexity XL
 
-- [ ] **R6.20 — Parse only the qualified PSID subset.** Accept ASCII `PSID` v1–v4 with version-correct
-  header lengths and big-endian fields, nonempty payload, songs in `1..256`, valid start song,
+- [ ] **R6.20 — Parse only the qualified PSID subset.** Accept ASCII `PSID` v1–v4 with data offset
+  `$0076` for v1 or `$007C` for v2–v4, version-correct header lengths and big-endian fields,
+  nonempty payload, songs in `1..256`, valid start song,
   supported flags, nonwrapping load range, init inside the emitted interval, and a nonzero play
   address inside that interval. Reject RSID, Compute! MUS, PlaySID-dependent flags, invalid reserved
   fields/relocation ranges, unsupported SID addresses/topology, and structurally invalid input.
@@ -153,11 +154,11 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   first two little-endian payload bytes as the effective load address. A zero init address resolves
   to that effective load address. Expose `"data"` as immutable bytes, `"init_address"` and
   `"play_address"` as words, with `"data"` as the default.
-- [ ] **R6.22 — Preserve declared compatibility sets.** Retain PSID clock and SID-model meanings as
-  Unknown, PAL/6581, NTSC/8580, or Both without conflation. A specific incompatible video, model,
-  SID address, or multi-SID topology is E10261. Unknown remains valid for embed-only data but does
-  not prove callable compatibility; no retiming, retuning, filter translation, or hardware
-  activation occurs.
+- [ ] **R6.22 — Preserve declared compatibility sets.** Retain the video-standard meanings
+  Unknown, PAL, NTSC, and Both independently from the SID-model meanings Unknown, MOS6581,
+  MOS8580, and Both. A specific incompatible video, model, SID address, or multi-SID topology is
+  E10261. Unknown remains valid for embed-only data but does not prove callable compatibility; no
+  retiming, retuning, filter translation, or hardware activation occurs.
 - [ ] **R6.23 — Separate PSID parsing from callable audio.** A plain PSID supplies data plus init and
   play addresses; it never implies sound effects, voice arbitration, writable state, cadence,
   interrupt ownership, or a safe ABI. Callable use requires provenance matching one exact
@@ -189,12 +190,11 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   `"screen"` and `"color_ram"` each yield `const byte[1000]`, and `"background"` yields `byte`.
   Emit only requested components. Do not expose the file load address, a target base, bank,
   register field, combined image, renderer, or hidden Color RAM copy. (AR-038)
-- [ ] **R6.29 — Preserve Color RAM source bytes exactly.** Accept nonzero unused high nibbles,
-  preserve all eight bits in imported typed data and provenance, and report that only
-  `value & $0f` has Color RAM hardware meaning. Never reject or silently normalize a structurally
-  valid Koala file solely because an unused high bit is nonzero. AR-041 separately owns whether the
-  same source-preservation rule applies to the final background byte; do not implement that part
-  until the ambiguity is resolved. (AR-039)
+- [ ] **R6.29 — Preserve Koala color source bytes exactly.** Accept nonzero unused high nibbles in
+  both the 1,000 Color RAM bytes and the final background byte. Preserve all eight bits in imported
+  typed data and provenance, and report that only `value & $0f` has VIC-II color meaning. Never
+  reject or silently normalize a structurally valid Koala file solely because an unused high bit
+  is nonzero. (AR-039, AR-041)
 - [ ] **R6.30 — Keep display transfer explicit.** `"bitmap"` carries 8-KiB alignment;
   `"screen"` carries 1-KiB alignment; both must be visible in the same selected VIC bank. Color RAM
   remains separate hardware at `$D800`; user-authored source explicitly transfers the 1,000
@@ -222,15 +222,17 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   source representation; it does not invent a representation, decide game policy, infer update
   frequency, or add a runtime consumer. Optional cost-guided choice belongs to RD-08. (AR-023,
   AR-033, AR-038)
-- [ ] **R6.35 — Diagnose C64 data conflicts without changing intent.** Compile-time checks reject
-  invalid dimensions, indices, mode/color combinations, and unsatisfied target constraints with
-  the originating source/asset location and available legal choices. They never silently recolor,
-  crop, reorder, flatten, repack, or replace user-selected values.
+- [ ] **R6.35 — Keep asset-policy analysis user-authored.** Native handlers diagnose only their
+  exact file-format constraints, and selected-profile layout diagnoses only its hardware
+  constraints. User-authored compile-time Blend65 owns panel composition, color-clash detection,
+  mask/priority derivation, and representation policy and may return those results as ordinary
+  typed metadata. The compiler evaluates and preserves that source exactly; it does not infer scene
+  semantics or silently recolor, crop, reorder, flatten, repack, or replace selected values.
 - [ ] **R6.36 — Prove Integrator-style refinement as a workload.** Q-P15 uses user-authored
   compile-time source to build a large visible area from repeated elements/panels, foreground
   objects, occlusion masks, and at least one multicolor attribute conflict. It compares two
   explicitly selected credible data representations and proves exact result bytes, reuse,
-  padding, alignment, VIC visibility, mask/priority metadata, conflict diagnostics, and absence of
+  padding, alignment, VIC visibility, mask/priority metadata, conflict results, and absence of
   hidden copies. It does not publish a renderer or scene API. (AR-038)
 - [ ] **R6.37 — Keep runtime proof application-owned.** A qualification program may render or play
   the resulting data to prove usability, draw order, foreground occlusion, changed-panel behavior,
@@ -291,8 +293,10 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   diagnostics for missing/empty files, missing defaults, unknown/unavailable selectors, illegal
   mutable/runtime use, nonliteral paths/selectors, raw-selector misuse, extent/type mismatch,
   malformed/unsupported format, unsatisfied placement, incompatible SID profile, missing audio
-  contract/operation, and unsafe player overlap. A failed import or layout publishes no target
-  artifact.
+  contract/operation, and unsafe player overlap. W10150 reports embedded-data pressure at the
+  profile's configured threshold, or 75% of its binary-size budget when omitted; W10151 reports
+  declarations that share one canonical embedded object. A failed import or layout publishes no
+  target artifact.
 - [ ] **R6.48 — Make diagnostics useful to modern developers.** Every diagnostic names the source
   declaration, canonical project-relative asset, detected handler/identity where safe, exact failed
   field/offset/count/constraint, declared versus required type or range, and one actionable remedy.
@@ -536,7 +540,7 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 | Product boundary | Asset conversion plus engine behavior / asset conversion only | Typed compile-time asset integration only | Lets developers build any software without making the compiler own game architecture. | AR-038 |
 | Initial formats | Current exact identities / broad version compatibility / raw only | SPD v5, CTM v9, PSID v1–v4 subset, Koala classic, raw fallback | Matches explicitly approved current workflows and fail-closed evidence. | AR-040 |
 | Format extensibility | Public plugin API / explicit built-in handlers | Built-in handlers only | Avoids a speculative second product and keeps each contract qualified. | AR-012 |
-| Koala high bits | Reject / normalize / preserve | Preserve exact bytes; low nibble is hardware meaning | Retains source fidelity and accepts valid historic producer output. | AR-039 |
+| Koala high bits | Reject / normalize / preserve | Preserve Color RAM and background bytes; low nibble is hardware meaning | Retains source fidelity and accepts valid historic producer output. | AR-039, AR-041 |
 | Composition | New scene DSL/runtime / ordinary compile-time source | `comptime function` plus fixed values | Reuses the language and produces no target runtime. | AR-019, AR-038 |
 | Representation choice | Automatic now / explicit now, optimize later | Source selects under `none`; RD-08 may optimize | Keeps correctness independent from optimizer policy. | AR-023, AR-033 |
 | Residency | Hidden loading / resident values / explicit later load units | Resident only in RD-06 | Keeps ordinary `embed()` truthful; RD-07 owns transport. | AR-029, AR-031 |
@@ -624,8 +628,9 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
     invalid indices, every block truncation, and trailing bytes produce E10204 before allocation or
     output publication.
 16. [ ] **AC-16 — PSID versions and load rules:** Fixed-load and payload-load-address fixtures for
-    versions 1–4 prove version-correct data offsets, big-endian headers, little-endian embedded load
-    address removal, zero-init resolution, exact payload bytes, and nonzero in-range play address.
+    versions 1–4 prove data offset `$0076` for v1 and `$007C` for v2–v4, big-endian headers,
+    little-endian embedded load-address removal, zero-init resolution, exact payload bytes, and
+    nonzero in-range play address.
 17. [ ] **AC-17 — PSID rejection and compatibility:** RSID, MUS, PlaySID dependency, zero play,
     malformed offsets/ranges, unsupported SID address/topology, and specific profile mismatch
     produce E10204 or E10261 according to structural versus compatibility ownership.
@@ -638,12 +643,13 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 20. [ ] **AC-20 — No audio engine:** Static and binary inspection finds no compiler-installed IRQ,
     scheduler, mixer, generic queue, dispatcher, runtime name table, or unrequested player feature.
     User source contains every tick/cue call site; unsafe overlap is E10258.
-21. [ ] **AC-21 — Koala exact layout:** Zero-pattern, patterned, and nonzero-high-nibble 10,003-byte
-    fixtures prove `$6000`, component lengths `8000/1000/1000/1`, exact requested output hashes,
-    selector-required behavior, and requested-only emission.
-22. [ ] **AC-22 — Koala nibble preservation:** Every Color RAM source byte, including nonzero high
-    bits, is preserved byte-for-byte; metadata reports low-nibble hardware meaning. No case is
-    rejected or normalized solely for an unused high bit.
+21. [ ] **AC-21 — Koala exact layout:** Zero-pattern, patterned, Color-RAM-high-nibble, and
+    background-high-nibble 10,003-byte fixtures prove `$6000`, component lengths
+    `8000/1000/1000/1`, exact requested output hashes, selector-required behavior, and
+    requested-only emission.
+22. [ ] **AC-22 — Koala nibble preservation:** Every Color RAM and background source byte,
+    including nonzero high bits, is preserved byte-for-byte; metadata reports low-nibble hardware
+    meaning. No case is rejected or normalized solely for an unused high bit.
 23. [ ] **AC-23 — Koala hardware placement:** Bitmap and screen resolve to legal aligned locations
     in one VIC bank and yield exact derived `$D018` fields. The build contains no implicit Color RAM
     transfer; a user-authored transfer's bytes and cycles appear separately.
@@ -653,10 +659,10 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 25. [ ] **AC-25 — Compile-time-only refinement:** A `comptime function` reads embedded data and
     returns exact fixed arrays/structs with no target instructions, SFA homes, stack use, helper,
     file read, MMIO access, or runtime conversion.
-26. [ ] **AC-26 — Integrator-style Q-P15:** The workload proves repeated elements/panels,
-    foreground occlusion, one multicolor conflict, two explicit source-selected representations,
-    exact output bytes/hashes, reuse/padding/visibility, conflict diagnostics, and no hidden copies
-    or public renderer/scene API.
+26. [ ] **AC-26 — Integrator-style Q-P15:** User-authored compile-time source proves repeated
+    elements/panels, foreground occlusion, one detected multicolor conflict represented as exact
+    typed metadata, two explicit source-selected representations, exact output bytes/hashes,
+    reuse/padding/visibility, and no hidden copies or public renderer/scene API.
 27. [ ] **AC-27 — Runtime consumer boundary:** Q-P15's user-authored renderer produces the expected
     VICE-visible draw/occlusion/update behavior and worst-case cycle record. Its code cost is
     separate from assets and no equivalent renderer/support module is linked by the compiler.
@@ -673,7 +679,8 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 31. [ ] **AC-31 — Complete asset report:** Every selected/derived output contains all R6.46 fields;
     scalar compile-time metadata, artifact bytes, final residency, import work, and runtime access
     or transfer are separate quantities, with missing evidence reported as `Unknown` rather than
-    zero.
+    zero. Threshold and canonical-alias fixtures trigger W10150 and W10151 without changing output
+    identity or byte counts.
 32. [ ] **AC-32 — Authentic fixture manifest:** Every accepted producer/interchange fixture has
     provenance, pinned identity, redistribution disposition, SHA-256, expected selector inventory,
     output type/length/hash, and negative-derivation lineage. No invented fixture fills a required

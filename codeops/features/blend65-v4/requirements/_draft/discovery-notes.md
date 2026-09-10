@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-05 are approved
+> **Artifact status**: Working discovery record; RD-01 through RD-05 are approved and RD-06 is drafted
 
 ## Authority and evidence
 
@@ -77,9 +77,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-- **AR-041:** Decide whether the final Koala background-color byte follows AR-039's exact-byte
-  preservation rule. The recommendation is to preserve all eight source bits while exposing only
-  the low nibble as VIC-II color meaning.
+None. The complete 41-item register is resolved and the Zero-Ambiguity Gate passed.
 
 ## Approved first C64 production profile
 
@@ -665,5 +663,5 @@ conversion into typed Blend65 data and metadata, deterministic compile-time asse
 resident placement. It must not introduce a compiler-owned renderer, player scheduler, mixer,
 scene runtime, or game architecture. AR-039 is resolved: Koala Color RAM source bytes remain exact,
 while only their low nibbles carry hardware color meaning. AR-040 records the previously approved
-exact native-format baseline and producer-fixture gate. RD-06 is drafted but paused at AR-041, the
-equivalent rule for the separate final Koala background byte.
+exact native-format baseline and producer-fixture gate. AR-041 applies the same preservation rule
+to the separate final Koala background byte. RD-06 is drafted and awaits user review.
