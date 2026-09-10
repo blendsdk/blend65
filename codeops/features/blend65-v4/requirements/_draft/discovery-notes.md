@@ -279,7 +279,7 @@ optional host tools file first and otherwise use normal process `PATH`; compiler
 `check`, and ordinary LSP analysis neither require nor validate that file. Manifest-based `blendc
 check`, `build`, and `run` share one project path; `run` launches VICE only after its own successful
 build. A successful build validates a unique staging directory, renames it once to an immutable
-build-ID generation, and atomically replaces one small current-generation record. Production mode
+generation-ID directory, and atomically replaces one small current-generation record. Production mode
 has no competing single-file configuration model.
 
 `outDir` is compiler-owned output state, not project input. It is excluded from source/asset
@@ -295,19 +295,20 @@ predecessor, deleting only older unpinned generations while holding the lock. Pu
 build no-return point: cancellation observed before commit publishes nothing; cancellation after
 commit preserves the valid build and later run cancellation terminates only owned VICE/monitor work.
 
-`.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` each have an independent compact
-versioned schema rooted at integer `schemaVersion: 1`. Each rejects duplicate/unknown fields, wrong
-types, and missing/unsupported versions; fixes required/optional fields; and uses the exact string
-`"Unknown"` only for fields that admit unavailable evidence. Deterministic encoding is UTF-8 without
-BOM with LF, lexicographically ordered object keys, and schema-defined array order; an incompatible
-future contract bumps the major integer. Every successful artifact-producing invocation assigns the
+`.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` each have an independent complete
+direct version-1 contract frozen in RD-03 before its first producer tests. The contracts close every
+root and tagged union, required/forbidden field, stable array identity/order, digest derivation, and
+local/cross-artifact invariant. E10267 diagnoses malformed envelopes and supported-version values;
+E10268 diagnoses only a correct kind with an unsupported positive integer version. Deterministic
+encoding is UTF-8 without BOM with LF, lexicographically ordered object keys, and schema-defined
+array order; an incompatible future contract bumps that sidecar's integer version. Every successful artifact-producing invocation assigns the
 lowercase canonical UUID v4 returned by Node `crypto.randomUUID()` as one unique opaque
 `generationId` used only for its immutable directory, current record, and run pins. An existing
 target generation fails publication rather than being overwritten or reused.
 `.build.json` records canonical semantic inputs and portable tool identities, hashes every other
-artifact and never itself, and stores `generationId`, host paths, executable hashes, duration, and
-peak memory as invocation provenance outside reproducibility comparison. A separate output digest
-may summarize the deterministic generated set. Equivalent builds create distinct generations but
+artifact directly and never itself, and stores `generationId`, host paths, executable hashes,
+duration, and peak memory as invocation provenance outside reproducibility comparison. It stores no
+redundant aggregate artifact hash. Equivalent builds create distinct generations but
 retain identical deterministic outputs; generations are never reused as cache entries.
 
 When present, the host `tools.jsonc` requires integer `schemaVersion: 1` and permits only optional

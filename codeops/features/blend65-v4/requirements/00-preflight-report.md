@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 7 open findings (6 major, 1 minor); PF-001–PF-022 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 6 open findings (5 major, 1 minor); PF-001–PF-023 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `2703a18519925c907e462baa674a73e69a6a5c116debc37864bb399977f7f658`
+> **Artifact Digest**: `c1002b3ea3b6e4e27a7f475fa96c849566491bd995bb90f1eb8a052bca262383`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -683,14 +683,14 @@ refutation attempt.
 | Dimension | Open findings | Highest severity |
 |---|---:|---|
 | Ambiguities / assumptions | 1 | 🟠 MAJOR |
-| Contradictions / consistency | 2 | 🟠 MAJOR |
-| Completeness / dependencies / ordering | 1 | 🟠 MAJOR |
+| Contradictions / consistency | 1 | 🟠 MAJOR |
+| Completeness / dependencies / ordering | 0 | — |
 | Feasibility / codebase alignment | 0 | — |
-| Testability / security / edge cases | 4 | 🟠 MAJOR |
+| Testability / security / edge cases | 3 | 🟠 MAJOR |
 | Scope creep | 0 | — |
 
-Several findings span dimensions. The deep rescan found eight major and one minor; PF-021 and
-PF-022 are now resolved, leaving six major and one minor.
+Several findings span dimensions. The deep rescan found eight major and one minor; PF-021 through
+PF-023 are now resolved, leaving five major and one minor.
 
 ### PF-021: Portable `buildId` cannot name every immutable publication generation 🟠 MAJOR
 
@@ -772,7 +772,18 @@ yet testable at field level.
 unions, required/optional rules, stable array identities/order, and digest derivations before the
 first specification test. Use separate diagnostics for malformed supported-v1 data and an
 unsupported major. Add no registry, service, database, generator, or schema framework.
-**Decision:** Pending.
+**Confidence:** High. **Hardening:** An independent challenger agreed that complete direct schemas
+must be frozen in RD-03 before producer tests. It challenged the proposed persisted aggregate
+artifact hash as redundant: the atomic current record already hashes `.build.json`, whose exact
+artifact array directly hashes every other artifact. That simplification was incorporated.
+**Decision:** Accepted by the user on 2026-09-11 with the instruction to choose the best option.
+**Resolution:** RD-03 now freezes the four exact version-1 roots, all nested records and tagged
+unions, required and forbidden fields, stable ordering, direct digest chain, M1 population,
+memory/effect accounting, and optimizer cost/decision evidence. It also fixes validation
+precedence: E10267 is malformed-envelope or malformed-supported-version evidence; E10268 is only an
+unsupported positive integer version and does not inspect its payload. RD-01 owns those diagnostic
+contracts; RD-09 consumes the producer schemas unchanged. The correction adds no runtime, registry,
+service, database, generator, or shared schema framework.
 
 ### PF-024: A runtime-selected loader destination has no sound flow-state rule 🟠 MAJOR
 
@@ -875,13 +886,13 @@ implemented or qualified exactly.
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
-- The deep rescan found PF-021 through PF-029. PF-021 and PF-022 were corrected after the user's
-  explicit decisions; PF-023 through PF-029 remain unchanged and pending.
+- The deep rescan found PF-021 through PF-029. PF-021 through PF-023 were corrected after the
+  user's explicit decisions; PF-024 through PF-029 remain unchanged and pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-022 resolved and seven deep-rescan findings
+**Current Result:** **BLOCKED** with PF-001 through PF-023 resolved and six deep-rescan findings
 awaiting decisions.

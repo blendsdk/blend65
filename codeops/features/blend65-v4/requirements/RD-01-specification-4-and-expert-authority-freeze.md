@@ -179,6 +179,10 @@ the parked worktree.
   an exact grammar rule, type/effect/storage behavior, positive example, boundary example,
   interaction coverage, and unique actionable diagnostic for each invalid class. The diagnostics
   registry and normative chapters must agree exactly, with no implementation-only error rule.
+  Reserve E10267 for malformed supported-version public artifact evidence and E10268 only for an
+  unsupported positive integer public artifact schema version. Their distinct messages and
+  ownership follow RD-03's validation precedence and must enter the registry before any public
+  sidecar producer specification test.
   (AR-002, AR-003, AR-014)
 - [ ] **R1.21 — Publish expert baseline `2.0.0`.** Reconcile the expert router, every affected
   knowledge reference, source-governance record, qualification oracle, coverage matrix, and release

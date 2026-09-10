@@ -307,20 +307,16 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
 
 - [ ] **R9.43 — Derive specification tests before implementation families.** Author immutable
   `*.spec.test.ts` cases from Specification 4, this RD, the selected project/target contracts, and
-  the pinned protocol/client contracts. Before RD-09 consumers or tests are implemented, require the
-  producer-owned compact independent versioned contracts for `.assets.json`, `.memory.json`,
-  `.costs.json`, and `.build.json`; each producer freezes its contract before first publication.
-  Consume the already-frozen RD-03 debug version-1 contract without replacing it. Each root requires
-  integer `schemaVersion: 1`; rejects missing/unsupported
-  versions, duplicate or unknown fields, and wrong types; fixes required/optional fields; and permits
-  the exact string `"Unknown"` only where its field contract admits unavailable evidence, never as an
-  omitted, zero, or null value. Deterministic files use UTF-8 without BOM, LF, lexicographically
-  ordered object keys, and schema-defined array order. A future incompatible contract bumps the
-  major integer and older readers issue an unsupported-major diagnostic rather than guessing. Cover
-  each language-server operation, stale/cancel edge, trust boundary, command flow, and schema
-  invariant with positive, boundary, negative, and interaction cases. Add no shared schema registry,
-  service, framework, or database. Implementation tests remain separate and cannot weaken these
-  oracles. (AR-014, AR-021, AR-025)
+  the pinned protocol/client contracts. Consume all five complete first-producer version-1 sidecar
+  contracts frozen by RD-03 without replacing or extending them. Test every closed root, tagged
+  union, required/forbidden field, stable array order, digest rule, local invariant, and
+  cross-artifact relationship. Apply RD-03's validation precedence exactly: E10267 diagnoses a
+  malformed envelope or supported-version payload, while E10268 diagnoses only a correct kind with
+  an unsupported positive integer schema version and does not inspect that payload. Cover each
+  language-server operation, stale/cancel edge, trust boundary, command flow, and schema invariant
+  with positive, boundary, negative, and interaction cases. Add no shared schema registry, service,
+  framework, or database. Implementation tests remain separate and cannot weaken these oracles.
+  (AR-014, AR-021, AR-025)
 - [ ] **R9.44 — Prove shared semantics structurally and behaviorally.** Direct dependency tests
   forbid frontend/language-server imports of codegen, optimizer, packager, VICE, or process-adapter
   packages. Paired CLI/LSP fixtures prove identical diagnostics, symbol/type facts, profile/asset
@@ -453,8 +449,8 @@ Reproducibility compares the recorded semantic inputs, portable tool identities,
 output hashes.
 Host-specific executable paths and hashes, duration, peak memory, and `generationId` are
 invocation provenance outside that comparison. `.assets.json`, `.memory.json`, `.costs.json`, and
-`.build.json` evolve independently under the schema contracts frozen by R9.43; no reader guesses an
-unsupported major.
+`.build.json` evolve independently under the producer contracts frozen by RD-03 and consumed by
+R9.43; no reader guesses an unsupported major.
 
 Publication is the build no-return point. Cancellation observed before the current record commits
 publishes nothing. Once it commits, the immutable generation remains a successful valid build;
@@ -703,8 +699,8 @@ C64U implementation.
 
 > **Traceability:** Every scope decision references
 > [00-ambiguity-register.md](00-ambiguity-register.md). Exact protocol method shapes, public API
-> types, independent sidecar/debug schema fields, and client packaging are fixed at R9.43's
-> schema-first milestone before their consumers or specification tests are implemented; they remain
+> types and client packaging are fixed at R9.43's schema-first tooling milestone. Sidecar and debug
+> schemas are already frozen by RD-03 before their first producers and are consumed unchanged; all remain
 > within these approved behavioral boundaries and cannot expand the product surface.
 
 ---

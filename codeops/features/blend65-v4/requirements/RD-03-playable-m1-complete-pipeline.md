@@ -452,10 +452,10 @@ The first public sidecars use these direct schemas; they are not a registry or d
 
 | Sidecar | Required schema identity and payload |
 |---|---|
-| `.build.json` | `kind: "blend65.build"`; required `generationId: string`, `semanticInputs: object`, `portableTools: ToolIdentity[]`, `hostProvenance: object`, `artifacts: ArtifactDigest[]`, and `artifactSetSha256: string`. Every `ArtifactDigest` requires `path`, `kind`, `bytes`, and `sha256`; the array covers every published file except `.build.json` itself. Host paths, executable hashes, durations, peak host memory, and `generationId` never affect `artifactSetSha256` or reproducibility comparison. |
-| `.assets.json` | `kind: "blend65.assets"`; required `assets: AssetRecord[]`. Each record requires `sourcePath`, `inputSha256`, `handler`, `handlerVersion`, `selector`, `logicalType`, `shape: integer[]`, `outputSha256`, `payloadBytes`, `emittedBytes`, `aliases: string[]`, `constraints: object[]`, and `placement: object`. |
-| `.memory.json` | `kind: "blend65.memory"`; required `sfaClosureSha256: string`, `acmeReconciled: boolean`, `runtimeMemorySafety: "proved" | "unproven"`, `unboundedEffects: object[]`, `intervals: MemoryInterval[]`, and `views: MemoryView[]`. `MemoryInterval` and `MemoryView` contain the exact ledger and free-space fields defined below. |
-| `.costs.json` | `kind: "blend65.costs"`; required `entries: CostEntry[]`. Each entry requires `owner`, `kind`, `emittedBytes`, and one tagged `cycles` object: `{ kind: "exact", value }`, `{ kind: "range", minimum, maximum }`, `{ kind: "symbolic", expression }`, or `{ kind: "unknown" }`. |
+| `.build.json` | `kind: "blend65.build"`; exact root and records are frozen under **Build JSON version 1** below. |
+| `.assets.json` | `kind: "blend65.assets"`; exact root and records are frozen under **Assets JSON version 1** below. |
+| `.memory.json` | `kind: "blend65.memory"`; exact root and records are frozen under **Memory JSON version 1** below. |
+| `.costs.json` | `kind: "blend65.costs"`; exact root and records are frozen under **Costs JSON version 1** below. |
 | `.debug.json` | `kind: "blend65.debug"`; the complete version-1 root, record unions, references, ordering, and validation contract is frozen below before any RD-03 specification test or producer implementation. |
 
 The current-generation record is `<outDir>/current.json`: canonical UTF-8 JSON without BOM, with
@@ -467,6 +467,8 @@ Every sidecar also requires the JSON integer `schemaVersion: 1`. Counts,
 addresses, sizes, shape elements, and cycle bounds are nonnegative JSON integers; identities, names,
 kinds, paths, hashes, and symbolic cycle expressions are JSON strings; records are JSON objects;
 collections are canonically ordered JSON arrays. Hashes are 64 lowercase hexadecimal characters.
+String identities and paths are nonempty. Arrays contain no duplicate records under their declared
+identity. JSON `null` is never admitted.
 Source and asset paths preserve their exact host-exposed project-relative spelling with `/` used
 only as the evidence separator representation; separate resolved identities own containment and
 alias checks. Memory intervals are half-open
@@ -477,12 +479,327 @@ the tagged `{ kind: "unknown" }` cycle value or a field that explicitly admits t
 
 Canonical sidecar bytes are UTF-8 without BOM, use LF, end in one newline, sort object keys and
 unordered arrays by unsigned UTF-8 byte order of their declared stable identity, and use decimal
-integer spelling without exponent or insignificant fractional syntax. A schema-version-1 producer emits
-only declared fields. A version-1 consumer rejects a missing required field, duplicate or unknown
-field, wrong JSON type, unknown `kind`, invalid range/order, or unsupported integer schema version
-with a stable unsupported-major artifact-schema diagnostic. Any incompatible future contract bumps
-that integer. A consumer never guesses, silently upgrades, or rewrites evidence. Each sidecar
-evolves independently and no registry or shared schema service is introduced.
+integer spelling without exponent or insignificant fractional syntax. A schema-version-1 producer
+emits only declared fields. Consumer validation has this fixed precedence:
+
+1. invalid JSON, a duplicate key, a non-object root, a wrong or missing `kind`, or a missing,
+   noninteger, or nonpositive `schemaVersion` reports E10267 as a malformed envelope;
+2. a correct `kind` with a positive integer `schemaVersion` other than `1` reports E10268 without
+   inspecting that version's payload;
+3. a version-1 missing, unknown, mistyped, out-of-range, misordered, dangling, or internally
+   inconsistent field reports E10267 and names the sidecar, JSON pointer, and failed invariant; and
+4. only a complete valid version-1 value proceeds to digest and cross-artifact validation.
+
+RD-01 adds both unique codes and message contracts to the Specification 4 diagnostic registry
+before any producer specification test. A consumer never guesses, silently upgrades, or rewrites
+evidence. Because version 1 rejects unknown fields and union tags, every future field, record, or
+admitted union value changes that sidecar's integer schema version. Each sidecar evolves
+independently; no registry, service, database, generator, or shared runtime schema framework is
+introduced.
+
+The following value shapes are repeated contracts, not a shared decoder dependency:
+
+- `DigestRecord` is exactly `{ path: string, bytes: integer, sha256: string }`. Its path is
+  project-relative for an input and generation-relative for an artifact.
+- `IdentityRecord` is exactly `{ name: string, version: string, sha256: string }`.
+- `SourceSiteRecord` is exactly
+  `{ path: string, startByte: integer, endByte: integer }`; locally it satisfies
+  `0 <= startByte <= endByte`. Complete-generation validation resolves the path through the build
+  source inventory and proves that `endByte` fits the named source bytes.
+- `MeasuredValue` is exactly one of `{ kind: "exact", value: integer }`,
+  `{ kind: "range", minimum: integer, maximum: integer }`,
+  `{ kind: "symbolic", expression: string, variables: DomainVariable[] }`, or
+  `{ kind: "unknown" }`. A range satisfies `minimum <= maximum`.
+  `DomainVariable` is exactly `{ name: string, minimum: integer, maximum: integer }`, has a unique
+  name, and satisfies `minimum <= maximum`.
+
+These repeated shapes do not couple sidecar versions. Each version-1 decoder validates its own
+root and every nested value directly.
+
+Unless a schema below states a semantic order, record arrays sort by the named record ID, then by
+their remaining canonical fields; scalar identity arrays sort by unsigned UTF-8 byte order.
+Semantic order is retained for asset-search precedence, array shape dimensions, machine paths,
+routes, disk directory and sector-chain order, and portable command options. Source-site arrays
+sort by path, start byte, and end byte unless a field explicitly preserves execution order. Free
+intervals and physical copies sort by address space, bank, start, and end. These rules cover empty
+and singleton arrays as well as larger collections.
+
+#### Build JSON version 1 — publication and reproducibility contract
+
+The root contains exactly:
+
+| Field | Exact JSON contract |
+|---|---|
+| `kind`, `schemaVersion` | Literal `"blend65.build"` and integer `1` |
+| `generationId` | Canonical lowercase UUID v4 used only for publication ownership |
+| `semanticInputs` | `SemanticInputsRecord` |
+| `portableTools` | `PortableToolRecord[]` |
+| `hostProvenance` | `HostProvenanceRecord` |
+| `package` | `PackageRecord` |
+| `artifacts` | `ArtifactDigestRecord[]`; every published file except `.build.json`, exactly once |
+
+`SemanticInputsRecord` is exactly
+`{ projectName: string, sourceRoot: string, entryModule: string, assetSearchPaths: string[], manifest: DigestRecord, sources: DigestRecord[], assets: DigestRecord[], compiler: IdentityRecord, specification: IdentityRecord, expertSkill: IdentityRecord, target: TargetSelectionRecord, options: BuildOptionsRecord, overrides: OverrideRecord[] }`.
+`assetSearchPaths` preserves manifest precedence order; source and asset digest arrays sort by path
+and then hash.
+`TargetSelectionRecord` is exactly
+`{ profileId: string, cpuId: string, emitterId: string, packagerId: string }`.
+`BuildOptionsRecord` is exactly
+`{ optimization: OptimizationMode, boundsCheck: boolean, divisionZeroCheck: boolean }`, where
+`OptimizationMode` is `"none"`, `"balanced"`, `"speed"`, or `"size"`.
+`OverrideRecord` is exactly one of
+`{ name: "target", value: string }`, `{ name: "entry", value: string }`,
+`{ name: "optimization", value: OptimizationMode }`,
+`{ name: "boundsCheck", value: boolean }`, or
+`{ name: "divisionZeroCheck", value: boolean }`. It records only CLI values that differ from the
+manifest, with at most one record per name.
+Overrides occur in `target`, `entry`, `optimization`, `boundsCheck`, `divisionZeroCheck` order after
+omitting names whose effective value equals the manifest.
+
+`PortableToolRecord` is exactly
+`{ name: string, version: string, semanticOptions: string[] }`. It contains only output-affecting
+portable identity and preserves semantic option order; `portableTools` sorts by name/version.
+`HostProvenanceRecord` is exactly
+`{ platform: HostPlatform, architecture: "x64", nodeVersion: string, tools: HostToolRecord[], durationMilliseconds: ObservedInteger, peakRssBytes: ObservedInteger }`, where `HostPlatform` is
+`"linux"` or `"win32"`, `ObservedInteger` is a nonnegative integer or literal `"Unknown"`, and
+`HostToolRecord` is exactly `{ name: string, canonicalPath: string, sha256: string }`; tools sort by
+name then canonical path. Hostname,
+username, environment dumps, timestamps, and unrelated process data are forbidden.
+
+`ArtifactDigestRecord` is exactly
+`{ path: string, kind: ArtifactKind, bytes: integer, sha256: string }`, where `ArtifactKind` is
+`"primary"`, `"assembly"`, `"labels"`, `"assets"`, `"memory"`, `"costs"`, or `"debug"`.
+Paths are unique, generation-relative, contained, and ordered by path; `.build.json` is forbidden.
+Reproducibility compares `semanticInputs`, `portableTools`, and the complete `artifacts` array.
+A consumer may derive an ephemeral hash of that canonical array for comparison, but version 1 does
+not persist a redundant aggregate identity.
+
+`PackageRecord` is exactly one of:
+
+- `{ kind: "prg", artifactPath: string, loadAddress: integer, endAddress: integer }`, where the
+  half-open loaded range is within the selected CPU address space and `artifactPath` resolves to
+  the primary PRG digest; or
+- `{ kind: "d64", artifactPath: string, imageBytes: 174848, dosType: "2A", diskLabelPetsciiHex: string, diskIdPetsciiHex: string, bamSha256: string, directorySha256: string, allocationPolicyId: string, freeBlocks: integer, bootComponentId: string, components: DiskComponentRecord[] }`, where
+  `artifactPath` resolves to the primary D64 digest.
+
+`DiskComponentRecord` is exactly
+`{ id: string, logicalSha256: string, source: ComponentSourceRecord, outputSha256: string, directoryNamePetsciiHex: string, fileType: "PRG", loadAddress: integer, startTrack: integer, startSector: integer, endTrack: integer, endSector: integer, blocks: integer, bytes: integer, destinationCalls: SourceSiteRecord[], aliases: string[] }`.
+`ComponentSourceRecord` is exactly
+`{ kind: "input", path: string, sha256: string }` or
+`{ kind: "generated", identity: string, sha256: string }`. Component IDs, directory names, and
+sector chains are unique and occur in on-disk directory order; `bootComponentId` resolves exactly
+once. Hex strings contain lowercase pairs, destination calls are in source order, and aliases are
+sorted and unique.
+
+#### Assets JSON version 1 — selected-data and placement contract
+
+The root contains exactly `{ kind: "blend65.assets", schemaVersion: 1, assets: AssetRecord[] }`.
+Each `AssetRecord` contains exactly
+`{ id: string, inputs: AssetInputRecord[], handler: string, handlerVersion: string, selector: string, logicalType: string, shape: integer[], outputSha256: string, payloadBytes: integer, emittedBytes: integer, aliases: string[], constraints: AssetConstraintRecord[], placement: AssetPlacementRecord }`.
+
+`AssetInputRecord` is exactly `{ path: string, bytes: integer, sha256: string }`. `id` is the
+lowercase SHA-256 of the canonical JSON encoding of
+`{ handler, handlerVersion, selector, logicalType, shape, outputSha256 }`; it therefore identifies
+one canonical selected value without depending on discovery order. Inputs are ordered by path/hash;
+aliases are qualified Blend65 symbols sorted and unique. `shape` contains the fully resolved fixed
+extents; `payloadBytes` is the selected value's byte width and matches the bytes hashed by
+`outputSha256`. `emittedBytes` is the total selected payload bytes emitted across physical copies,
+excluding alignment padding. Raw inclusion uses handler `"raw"`, version `"1"`, selector `"raw"`,
+and logical type `"const byte[]"` with one concrete extent.
+The root `assets` array sorts by asset ID. `inputs` sorts by path/hash; aliases sort by qualified
+symbol. Shape dimensions remain in declared type order.
+
+`AssetConstraintRecord` is exactly one of the following. Every form includes
+`origin: "source" | "handler" | "profile"`:
+
+- `{ kind: "at", origin, addressSpaceId: string, start: integer }` plus optional `bankId`;
+- `{ kind: "align", origin, bytes: integer }`, where bytes is a nonzero power of two;
+- `{ kind: "noCross", origin, boundaryBytes: integer }`, where the boundary is nonzero;
+- `{ kind: "region", origin, regionId: string }`;
+- `{ kind: "visibility", origin, consumer: "cpu" | "vic" | "player" | "loader", conditionId: string }`;
+- `{ kind: "writable", origin, startOffset: integer, endOffset: integer }`; or
+- `{ kind: "contiguous", origin }`.
+
+Constraint arrays sort by kind, origin, and their remaining canonical fields. Writable ranges are
+half-open, non-overlapping, and fit `payloadBytes`.
+
+`PlacedRangeRecord` is exactly
+`{ addressSpaceId: string, start: integer, end: integer, alignmentBytes: integer, paddingBeforeBytes: integer, residencyId: string, visibility: string[], writableRanges: ByteRangeRecord[] }` plus optional `bankId`.
+`ByteRangeRecord` is exactly `{ start: integer, end: integer }`; it is half-open and relative to the
+selected payload. A placed range is half-open, has size `payloadBytes`, satisfies its constraints,
+and names sorted unique visibility identities. `AssetPlacementRecord` is exactly one of:
+
+- `{ kind: "single", range: PlacedRangeRecord }`;
+- `{ kind: "replicated", copies: PlacedRangeRecord[], consumer: string, hardwareConstraint: string, extraBytes: integer, cycleBenefit: MeasuredValue }`, with at least two copies and
+  `extraBytes = emittedBytes - payloadBytes`; or
+- `{ kind: "loadable", loadUnitId: string, artifactPath: string, destinations: PlacedRangeRecord[] }`,
+  where every possible successful destination is named, `artifactPath` resolves to the D64 primary
+  artifact, `loadUnitId` resolves to exactly one package component, and disk-only bytes are not
+  called resident.
+
+For `single`, `emittedBytes = payloadBytes`; for `replicated`, `emittedBytes` is the sum of copy
+sizes; for `loadable`, it is the contained component payload size rather than the sum of mutually
+exclusive destinations. An empty placement or a compiler-convenience copy is invalid.
+
+#### Memory JSON version 1 — reconciled physical ledger contract
+
+The root contains exactly
+`{ kind: "blend65.memory", schemaVersion: 1, profileId: string, sfaClosureSha256: string, acmeReconciled: true, runtimeMemorySafety: RuntimeMemorySafety, residencies: ResidencyRecord[], unboundedEffects: UnboundedEffectRecord[], intervals: MemoryIntervalRecord[], views: MemoryViewRecord[], stackDomains: StackDomainRecord[] }`.
+Only an ACME-reconciled successful generation can contain this file, so `acmeReconciled` is the
+literal `true`. `RuntimeMemorySafety` is `"proved"` or `"unproven"`; it is `"unproven"` exactly when
+`unboundedEffects` is nonempty.
+
+`ResidencyRecord` is exactly `{ kind: "always", id: string }` or
+`{ kind: "exclusive", id: string, group: string }`. Every interval names one or more residency IDs.
+A view includes every `always` residency and at most one member of each exclusive group.
+
+`MemoryIntervalRecord` contains exactly
+`{ id: string, addressSpaceId: string, start: integer, end: integer, size: integer, owner: MemoryOwnerRecord, kind: MemoryKind, origin: MemoryOriginRecord, mutability: MutabilityKind, alignmentBytes: integer, contiguity: ContiguityRecord, residencyIds: string[], cpuMappings: string[], resourceClass: ResourceClass, payloadBytes: integer, paddingBytes: integer, reservedBytes: integer }` plus optional `bankId`, `noCrossBytes`, `vic`, and `loadUnitId`.
+The interval is half-open; `size = end - start = payloadBytes + paddingBytes + reservedBytes`.
+`alignmentBytes` is a nonzero power of two. `noCrossBytes`, when present, is nonzero and the range
+does not cross that boundary. Residency and mapping arrays are sorted and unique.
+
+The closed memory types are:
+
+- `MemoryOwnerRecord`: `{ kind: MemoryOwnerKind, id: string }`, where `MemoryOwnerKind` is
+  `"function"`, `"helper"`, `"symbol"`, `"asset"`, `"compiler"`, `"platform"`, or `"loadUnit"`;
+- `MemoryKind`: `"code"`, `"initializedData"`, `"bss"`, `"global"`, `"sfa"`, `"zeroPage"`,
+  `"hardwareStack"`, `"asset"`, `"helper"`, `"loader"`, `"scratch"`, `"padding"`,
+  `"reservation"`, `"vector"`, `"deviceShadow"`, `"replica"`, `"existingRom"`, or
+  `"loadDestination"`;
+- `MemoryOriginRecord`: `{ kind: "source", site: SourceSiteRecord }`,
+  `{ kind: "asset", assetId: string }`, `{ kind: "import", path: string, sha256: string }`, or
+  `{ kind: "generated", identity: string }`;
+- `MutabilityKind`: `"immutable"`, `"mutable"`, or `"reserved"`;
+- `ResourceClass`: `"general"`, `"zeroPage"`, `"hardwareStack"`, or `"device"`;
+- `ContiguityRecord`: `{ kind: "single" }` or
+  `{ kind: "group", id: string, index: integer, count: integer }`; group members cover every index
+  once and are adjacent in index order; and
+- `vic`: exactly `{ bankId: string, visibility: string[] }` with sorted unique conditions.
+
+Interval IDs are unique. Canonical interval order is address space, bank, start, end, kind, owner,
+then ID. Overlap is valid only when no `MemoryViewRecord` activates both intervals; every other
+overlap is E10267. Disk-container bytes never appear as RAM intervals.
+
+`UnboundedEffectRecord` is exactly one of
+`{ kind: "dynamicRead", site: SourceSiteRecord, addressSpaceId: string, accessBytes: integer | "Unknown" }`,
+`{ kind: "dynamicWrite", site: SourceSiteRecord, addressSpaceId: string, accessBytes: integer | "Unknown" }`,
+`{ kind: "machineState", site: SourceSiteRecord, effectClass: string }`, or
+`{ kind: "importedCode", site: SourceSiteRecord, effectClass: string }`.
+Records are ordered by source site and kind. They limit the static safety claim but never inject a
+runtime guard or reject otherwise legal low-level source.
+
+`MemoryViewRecord` is exactly
+`{ id: string, consumer: "cpu" | "vic", addressSpaceId: string, start: integer, end: integer, activeResidencyIds: string[], visibility: string[], capacityBytes: integer, occupiedBytes: integer, payloadBytes: integer, paddingBytes: integer, reservedBytes: integer, zeroPageBytes: integer, freeBytes: integer, freeIntervals: FreeIntervalRecord[], largestFreeBytes: integer }` plus optional `bankId`.
+`FreeIntervalRecord` is exactly `{ start: integer, end: integer, size: integer }` and obeys the
+common half-open interval rule. Within each view, active occupied intervals and free intervals
+partition `[start, end)` without overlap; `capacityBytes = end - start`,
+`occupiedBytes + freeBytes = capacityBytes`,
+`payloadBytes + paddingBytes + reservedBytes = occupiedBytes`, and `largestFreeBytes` equals the
+largest free interval or zero when none exists. Active residency and visibility arrays are sorted
+and unique.
+
+`StackDomainRecord` is exactly
+`{ id: string, route: string[], capacityBytes: integer, peakBytes: integer, headroomBytes: integer }`.
+Routes name the bounded call/interrupt path in entry order;
+`peakBytes + headroomBytes = capacityBytes`. An unbounded stack route or a route exceeding capacity
+fails before publication. `sfaClosureSha256` is SHA-256 of the canonical JSON encoding, without
+trailing LF, of the ordered projection
+`{ id, addressSpaceId, bankId?, start, end, owner, kind, resourceClass, residencyIds }[]` for every
+final interval whose `kind` is `"sfa"`, `"zeroPage"`, or `"scratch"` and whose owner kind is
+`"function"` or `"helper"`.
+
+#### Costs JSON version 1 — final resources and optimizer decisions
+
+The root contains exactly
+`{ kind: "blend65.costs", schemaVersion: 1, mode: OptimizationMode, totals: CostVectorRecord, entries: CostEntryRecord[], decisions: OptimizationDecisionRecord[] }`.
+
+`CostEntryRecord` is exactly one of:
+
+- `{ kind: "bytes", id: string, owner: CostOwnerRecord, component: ByteCostComponent, accounting: ByteAccounting, bytes: integer, sourceSites: SourceSiteRecord[], dependencyIds: string[] }`;
+- `{ kind: "blocks", id: string, owner: CostOwnerRecord, component: "diskFile" | "diskMetadata" | "sectorOverhead", blocks: integer, sourceSites: SourceSiteRecord[], dependencyIds: string[] }`; or
+- `{ kind: "cycles", id: string, owner: CostOwnerRecord, pathId: string, cycles: MeasuredValue, traffic: TrafficRecord[], sourceSites: SourceSiteRecord[], dependencyIds: string[] }`.
+
+`CostOwnerRecord` is `{ kind: CostOwnerKind, id: string }`, where `CostOwnerKind` is
+`"function"`, `"symbol"`, `"asset"`, `"compiler"`, `"platform"`, `"loadUnit"`, or `"candidate"`.
+`ByteCostComponent` is `"code"`, `"initializedData"`, `"bss"`, `"global"`, `"sfa"`,
+`"zeroPage"`, `"hardwareStack"`, `"asset"`, `"helper"`, `"table"`, `"loader"`, `"scratch"`,
+`"padding"`, `"reservation"`, `"diskFile"`, `"diskMetadata"`, `"sectorOverhead"`,
+`"existingRom"`, `"callSite"`, `"startup"`, `"exit"`, `"branchRepair"`, `"replication"`, or
+`"platform"`.
+`ByteAccounting` is `"program"`, `"residentRam"`, `"zeroPage"`, `"sfa"`,
+`"hardwareStack"`, `"scratch"`, `"diskFile"`, `"diskContainer"`, or `"existingRom"`.
+
+The admitted accounting/component pairs are exact:
+
+| Accounting | Admitted byte components |
+|---|---|
+| `program` | `code`, `initializedData`, `asset`, `helper`, `table`, `loader`, `padding`, `callSite`, `startup`, `exit`, `branchRepair`, `replication`, `platform` |
+| `residentRam` | every `program` component plus `bss`, `global`, `sfa`, `zeroPage`, `hardwareStack`, `scratch`, and `reservation` |
+| `zeroPage` | `sfa`, `zeroPage`, `scratch`, or `reservation` |
+| `sfa` | `sfa` |
+| `hardwareStack` | `hardwareStack` |
+| `scratch` | `scratch` |
+| `diskFile`, `diskContainer` | every component except `bss`, `sfa`, `zeroPage`, `hardwareStack`, `scratch`, `reservation`, and `existingRom` |
+| `existingRom` | `existingRom` |
+
+Every other pair is malformed version-1 evidence.
+
+One physical object may have entries in multiple accounting dimensions—for example program bytes
+that are also resident RAM—but has at most one entry for each accounting dimension. `program`
+entries sum to optimizer `B`; D64 filesystem and container overhead use only `diskFile` or
+`diskContainer`. `zeroPage`, `sfa`, `hardwareStack`, and `scratch` are classified views of physical
+use and are not added to `residentRam` a second time. `existingRom` records already-present work and
+contributes zero program bytes. Entry IDs are unique. Byte entries sort by kind, accounting,
+component, owner kind, owner ID, then ID; block entries by kind, component, owner kind, owner ID,
+then ID; and cycle entries by kind, path ID, owner kind, owner ID, then ID. Dependencies are sorted
+unique entry IDs. Final
+totals come from reconciled liveness/residency and path composition rather than blindly summing
+entries whose lifetimes are mutually exclusive.
+
+`TrafficRecord` is exactly
+`{ kind: "read" | "write" | "rmw" | "bankSwitch" | "loaderTransfer", target: string, count: MeasuredValue }`.
+Cycle paths are derived from stable semantic/profile path classes, not optimized block names, and
+are ordered by `pathId`. Traffic is ordered by kind/target. An unavailable cycle or traffic count
+uses `{ kind: "unknown" }`, never zero.
+
+`CostVectorRecord` is exactly
+`{ programBytes: integer, pathCycles: PathCycleRecord[], resources: ResourceCostRecord[] }`.
+`PathCycleRecord` is exactly `{ pathId: string, cycles: MeasuredValue }`.
+`ResourceCostRecord` is exactly
+`{ kind: "standard", id: StandardResourceId, value: integer }` or
+`{ kind: "profile", id: string, value: integer }`, where `StandardResourceId` is `"zeroPage"`,
+`"residentRam"`, `"hardwareStack"`, or `"scratch"`. Standard resources occur exactly once in that
+order, followed by unique profile resources in profile-declared order. This is the exact optimizer
+`B`, `T`, and `R` vector: `programBytes` is `B`, path cycles sorted worst-to-best are `T`, and the
+resource array is `R`. The root `totals` equals the selected final program.
+Its `programBytes` equals the reconciled sum of `program` byte entries; standard resources equal
+the corresponding final memory/stack ledger values; and each path cycle equals the composed cycle
+entries for that path. Profile resources define their entry mapping in the selected profile.
+
+`OptimizationDecisionRecord` contains exactly
+`{ id: string, scope: string, mode: "balanced" | "speed" | "size", sourceSites: SourceSiteRecord[], closurePoint: ClosurePoint, baselineCandidateId: string, selectedCandidateId: string, candidates: CandidateRecord[], incomparableComponents: CostComponentRef[], tieBreak: TieBreakRecord }`.
+`ClosurePoint` is `"local"`, `"function"`, `"wholeProgram"`, `"postLayout"`, or
+`"postPackaging"`. A `CandidateRecord` is exactly
+`{ id: string, feasibility: { kind: "feasible", vector: CostVectorRecord } }` or
+`{ id: string, feasibility: { kind: "rejected", reasons: HardRejectionRecord[] } }`.
+`HardRejectionRecord` is exactly
+`{ kind: "semantics" | "timing" | "memory" | "zeroPage" | "stack" | "sfa" | "scratch" | "layout" | "banking" | "loading" | "packaging" | "cpu" | "safety" | "unknownCost", detail: string, sourceSites: SourceSiteRecord[] }`.
+`CostComponentRef` is exactly `"B"`, `"T:<pathId>"`, or `"R:<resourceId>"`.
+`TieBreakRecord` is `{ kind: "none" }` or
+`{ kind: "stableId", candidateIds: string[] }`.
+
+Decision and candidate IDs are unique; decisions and candidates sort by ID; baseline and selected IDs resolve to
+feasible candidates; a rejected candidate is never selected. Incomparable components and tie-break
+IDs are sorted and unique. A stable-ID tie break is present only when every tied candidate has an
+identical complete vector. `decisions` is empty for `mode: "none"`; other modes record every
+consequential selection or retained baseline without becoming a pass log or tuning database.
+
+For M1, the build sidecar publishes the PRG artifact set, the SpritePad source is represented by one
+selected resident asset record, the memory sidecar contains the complete reconciled ledger, and the
+cost sidecar uses `mode: "none"` with an empty `decisions` array. Later asset, packaging, and
+optimization RDs populate the already-defined variants; they do not silently extend these schemas
+or fabricate unavailable observations.
 
 #### Debug JSON version 1 — first-producer contract
 
