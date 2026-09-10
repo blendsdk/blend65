@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 41 items resolved
-> **Last Updated**: 2026-09-10 13:45 CEST
+> **Status**: 🚨 GATE REOPENED — AR-042 pending
+> **Last Updated**: 2026-09-10 14:27 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -47,6 +47,7 @@
 | AR-039 | Data / native asset compatibility | How does the Koala handler treat nonzero unused high bits in the 1,000 Color RAM source bytes? | Preserve and accept exact source bytes while documenting low-nibble hardware meaning / reject any nonzero high nibble / silently normalize every byte to its low nibble | Accept and preserve all eight source bits, expose the low nibble as the hardware color meaning, and never reject or silently normalize an otherwise exact classic Koala file solely because unused high bits are nonzero. | ✅ Resolved |
 | AR-040 | Scope / native asset baseline | Which external asset identities and adapters form the initial qualified C64 production baseline? | Current pinned producer/interchange identities only / broad backward-compatible generations / raw files only | Use explicit built-in handlers for SpritePad C64 Pro 3.80 project files with SPD v5, CharPad C64 Pro 3.88 project files with CTM v9, the self-contained directly callable PSID v1–v4 subset, classic Koala files, and raw files with unregistered extensions. Qualify GoatTracker 2.77 as the first exact player/export adapter. Do not guess older/newer generations, infer SFX from PSID, or add a public handler/plugin framework. Producer-generated fixtures are mandatory before claiming each parser qualified. | ✅ Resolved |
 | AR-041 | Data / native asset compatibility | Does AR-039's exact-byte preservation also apply to the classic Koala file's final one-byte background color? | Preserve the complete source byte while documenting low-nibble hardware meaning / reject a nonzero high nibble / silently normalize to the low nibble | Apply the same rule as Color RAM: accept and preserve the complete background source byte, expose `value & $0f` as its VIC-II color meaning, and neither reject nor silently normalize solely because an unused high bit is nonzero. | ✅ Resolved |
+| AR-042 | Platform / initial disk transport | Which concrete loader and compression contract is the first qualified implementation for `c64-pal-d64-kernal-6581`? | KERNAL sequential load with uncompressed load units / a specific fastloader and compressor from the first slice / a generic loader-plugin system | **Pending user decision. Recommended:** qualify one built-in KERNAL sequential loader with uncompressed, directly placed load units; link it only when reachable. Keep strategy identity and complete resource/cost evidence in the internal boundary, but add no fastloader, compressor, or public plugin framework until a separately measured game workload justifies and qualifies one. | 🚨 Pending |
 
 ## Resolution Notes
 
@@ -853,14 +854,34 @@ nibble is nonzero.
 
 **Direct user decision:** The user approved the consistent preserve-and-accept contract.
 
+### AR-042 — First qualified disk loader and compression baseline
+
+AR-029 approved compiler-owned opt-in disk delivery, and AR-032 fixed the first D64 profile and
+primary artifact. Neither decision chose the concrete transport implementation. That choice changes
+linked code, disk layout, loading time, scratch/ZP/stack use, interrupt and audio behavior, failure
+handling, real-drive evidence, and whether a new external tool or runtime subsystem enters v4.
+
+The recommended first slice is one built-in sequential loader using the selected C64 KERNAL load
+contract and uncompressed load units placed directly at their declared destinations. It is linked
+only when a reachable `c64.loader.load(...)` call exists. The design records an internal strategy
+identity plus complete costs so a later qualified fastloader or compressor can replace the
+transport without changing `loadable const`, but it exposes no speculative public loader-plugin
+system. This is the smallest implementation that proves the complete D64/load/publication path;
+fastloader and compression support should follow only with a measured workload, exact external
+identity, complete resource contract, VICE proof, and targeted real-drive QA.
+
+**Direct user decision:** Pending.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 41 items are resolved. RD-06 authoring exposed AR-041's equivalent policy for the distinct
-Koala background byte; the user approved the same exact-byte preservation rule, so the gate passes
-again. Earlier RD-06 work exposed AR-039's Koala Color RAM source-byte policy;
+AR-001 through AR-041 are resolved, and the user approved RD-06. Preparing RD-07 exposed AR-042:
+the approved D64 product boundary does not yet name its first loader/compression implementation, so
+the gate is reopened until the user decides it. RD-06 authoring had exposed AR-041's equivalent
+policy for the distinct Koala background byte; the user approved the same exact-byte preservation
+rule. Earlier RD-06 work exposed AR-039's Koala Color RAM source-byte policy;
 the user approved exact byte preservation with separate low-nibble hardware meaning, so the gate
 passes again. Before that discovery, the user confirmed the consolidated scope and explicitly
 approved AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,

@@ -4,7 +4,7 @@
 > **Phase**: 3 — Authoring ready
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Working discovery record; RD-01 through RD-05 are approved and RD-06 is drafted
+> **Artifact status**: Working discovery record; RD-01 through RD-06 are approved
 
 ## Authority and evidence
 
@@ -77,7 +77,10 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. The complete 41-item register is resolved and the Zero-Ambiguity Gate passed.
+- **AR-042:** Select the first concrete loader/compression implementation for
+  `c64-pal-d64-kernal-6581`. The recommendation is a built-in KERNAL sequential loader with
+  uncompressed directly placed load units, no fastloader/compressor in the first slice, and no
+  public plugin framework.
 
 ## Approved first C64 production profile
 
@@ -656,12 +659,11 @@ integration.
 
 ## Resume point
 
-`RD-01` through `RD-05` are approved and committed. RD-05 establishes the eight exact resident-PRG
-C64 profiles, general hardware/platform operations, and representative user-authored game
-workloads without defining an engine. RD-06 is next: it owns native asset ingestion, validation,
-conversion into typed Blend65 data and metadata, deterministic compile-time asset refinement, and
-resident placement. It must not introduce a compiler-owned renderer, player scheduler, mixer,
-scene runtime, or game architecture. AR-039 is resolved: Koala Color RAM source bytes remain exact,
-while only their low nibbles carry hardware color meaning. AR-040 records the previously approved
-exact native-format baseline and producer-fixture gate. AR-041 applies the same preservation rule
-to the separate final Koala background byte. RD-06 is drafted and awaits user review.
+`RD-01` through `RD-06` are approved and committed. RD-06 owns exact native asset ingestion,
+user-authored compile-time refinement, and resident placement without a compiler-owned renderer,
+player scheduler, mixer, scene runtime, or game architecture. AR-039 and AR-041 preserve complete
+Koala Color RAM and background bytes while identifying only their low nibbles as hardware color
+meaning; AR-040 fixes the first native-format baseline and producer-fixture gate. RD-07 is next and
+owns `loadable const`, explicit transfer/publication, D64 construction, loader/decompressor
+selection, overlay liveness, and IRQ/audio/resource evidence. Authoring is paused at AR-042 because
+the concrete first loader/compression implementation has not yet been selected.
