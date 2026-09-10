@@ -173,13 +173,16 @@ RD-05 through RD-08. The corresponding producer handoffs are only Should require
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A | Keep RD-04 as the start gate, require RD-05–RD-08 before final RD-09 closeout, promote consumed handoffs to Must, and establish schema-first milestones. | Preserves useful parallel frontend work and makes closure truthful. | RD-09 remains a long-lived parallel stream. |
+| A — accepted | Keep RD-04 as the start gate, require RD-05–RD-08 before final RD-09 closeout, promote consumed handoffs to Must, and establish schema-first milestones. | Preserves useful parallel frontend work and makes closure truthful. | RD-09 remains a long-lived parallel stream. |
 | B | Split early editor work and later debug/build integration into separate RDs. | Makes dependencies visually simple. | Adds another lifecycle boundary without reducing product work. |
 
 **Recommendation:** Option A. It corrects the dependency truth with less workflow structure.
 
 **Confidence:** High. **Hardening:** Challenger selected Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. RD-09 has a bounded frontend/editor milestone
+after RD-04 and a final build/debug integration milestone after RD-05 through RD-08.
+**Correction Status:** Queued for the accepted-fixes batch; PF-004 remains open until the dependency
+graph, RD-09 closeout gate, and producer handoffs are corrected and verified.
 
 ### PF-005: Native asset evidence gates have no complete owner 🟠 MAJOR
 
