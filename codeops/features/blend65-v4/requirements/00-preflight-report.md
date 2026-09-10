@@ -228,14 +228,18 @@ files. The requirements also do not define ownership when concurrent builds/runs
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A | Publish immutable build-ID generation directories, then atomically replace one small current-generation record. A run pins its own generation. Failed work cleans only its staging directory; retained generations cannot be removed while in use. | Portable one-entry commit; no mixed set; correct concurrent run identity. | Changes output layout and needs direct Windows proof plus a bounded retention rule. |
+| A — accepted | Build and validate in a unique staging directory; rename it once to an immutable build-ID generation; then atomically replace one small current-generation record. A short per-project lock coordinates only publication, run pinning, and cleanup. Each run pins its own generation. Failed work cleans only its staging directory. Retain the current generation, every actively pinned generation, and the most recent unpinned predecessor; delete only older unpinned generations under the same lock. | Portable one-entry commit; no mixed set; correct concurrent run identity; bounded inactive retention; previous-good recovery. | Changes output layout and needs direct Linux/Windows publication, failure, concurrency, and cleanup proof. |
 | B | Serialize same-project builds and define another portable whole-set publication protocol. | Simpler concurrency. | Serialization alone does not make sibling replacement atomic; the set protocol remains missing. |
 
 **Recommendation:** Option A, implemented directly rather than as a generic transaction framework.
-Begin with conservative retention; add cleanup only with explicit ownership and active-run safety.
+Bound inactive retention while exempting current and actively pinned generations from cleanup.
 
 **Confidence:** High. **Hardening:** Challenger selected and narrowed Option A.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. The publication mechanism is one direct
+host-side routine and adds no target bytes, storage, startup work, or cycles.
+**Correction Status:** Queued for the accepted-fixes batch; PF-006 remains open until the artifact
+layout, current record, lock/pin protocol, retention rule, and Linux/Windows acceptance cases are
+corrected and verified.
 
 ### PF-007: Automatic PATH discovery can execute project-controlled tools 🟠 MAJOR
 
