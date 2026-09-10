@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 35 items resolved
-> **Last Updated**: 2026-09-10 08:04 CEST
+> **Status**: ✅ GATE PASSED — all 36 items resolved
+> **Last Updated**: 2026-09-10 09:03 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -41,6 +41,7 @@
 | AR-033 | Scope / document structure | How should the confirmed v4 scope be decomposed into requirements without driving another horizontal, framework-first implementation? | Ten vertically ordered capability RDs / one RD per compiler pass / a few monolithic RDs | Use ten vertically ordered capability RDs, with M1 in RD-03 and the complete correct `optimization: none` compiler before optional optimizer work. | ✅ Resolved |
 | AR-034 | Naming / authority versioning | Which semantic-version category identifies the expert-skill release whose governing language authority changes from Specification 3 to Specification 4? | Major `2.0.0` / minor `1.1.0` / patch `1.0.1` | Publish the Specification 4 expert baseline as `2.0.0`. | ✅ Resolved |
 | AR-035 | Scope / specification authority | Which target appendices and platform claims are normative in Specification 4 while v4 implements and qualifies only C64? | Only qualified C64 targets normative / all five existing appendices normative / retain four non-normative provisional appendices inside the active spec | Make only qualified C64 profiles normative; remove the four unqualified target appendices from the active specification and retain future-target constraints as explicit non-support material. | ✅ Resolved |
+| AR-036 | Technical (complexity escalation) | Does the clean v4 foundation retain Turborepo and pre-emptive Vite configuration, or use the toolchain's direct build/test graph until a real consumer proves more machinery is needed? | Yarn workspaces + TypeScript project references + Vitest only / retain Turborepo and current Vite placeholders | Retain the useful v3 monorepo setup: Yarn classic workspaces, Turborepo, stable TypeScript 7, and Vitest, with no ESLint or replacement linter. Do not carry unused Vite placeholders; add Vite or another bundler only for a real packaging consumer. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -671,16 +672,67 @@ family: its qualified C64 profiles. C64U remains the owned next feature, but C64
 does not constitute a `c64u` compiler target. X16 and Atari target authority will be created only by
 their later evidence-qualified feature work.
 
+### AR-036 — Minimum v4 build orchestration
+
+- **Original goal:** Establish the smallest maintainable TypeScript 7/Yarn foundation that builds
+  the public compiler library, CLI, shared frontend/LSP, and later VS Code client in dependency
+  order with focused verification.
+- **Extra system or support code:** Turborepo's second task graph/cache configuration and Vite
+  configurations before any package has a demonstrated bundling requirement.
+- **Why it may be needed:** A larger multi-package build can benefit from affected-package
+  filtering, parallel non-TypeScript tasks, and reusable local or remote caching.
+- **Evidence:** TypeScript project references already provide dependency-aware, incremental
+  TypeScript compilation in the correct order, while Yarn workspaces provide installation,
+  linking, workspace relationships, and script coordination. Turbo is broader rather than
+  identical: it can coordinate TypeScript and non-TypeScript tasks with parallel execution,
+  task-level caching, affected-package filtering, and remote caching. The first v4 foundation has
+  not yet demonstrated a task graph or build cost that needs those capabilities. The current CLI
+  and VS Code Vite configurations explicitly reserve future bundling, but no package build invokes
+  them. CI has Yarn dependency caching but no demonstrated persistent or remote Turbo cache.
+  Removing the v3 readiness subsystem also removes the main source of its oversized task graph.
+- **Smallest solution that still works:** Use Yarn classic workspaces, stable TypeScript 7 project
+  references and root `tsc -b --stopOnBuildErrors`, plus Vitest. Preserve package boundaries with
+  a small direct import-graph test. Add a bundler only when the VS Code or another concrete
+  packaging consumer needs one; reconsider a task runner only after measured build/test cost or
+  several non-TypeScript tasks demonstrate the need.
+- **Extra cost:** Another dependency and configuration graph, duplicated task ordering and cache
+  invalidation concepts, additional CI behavior, and placeholder bundler files that must be
+  maintained without producing a current artifact.
+- **Independent verdict:** `Unnecessary for the initial foundation` — choose the direct
+  Yarn/TypeScript/Vitest foundation. TypeScript project references cover compilation ordering, but
+  not Turbo's broader orchestration features. Turbo has a credible later use after real task
+  volume, affected-package workflows, or profiling establishes its value.
+- **Direct user decision:** Retain the v3-style monorepo setup with Turbo, then explicitly confirm
+  Yarn classic workspaces, Turborepo, stable TypeScript 7, Vitest, no ESLint or replacement linter,
+  and Vite only when a concrete package needs bundling.
+
+**Decision outcome:** The user chose the broader Turbo-enabled monorepo foundation. RD-02 includes
+Turbo as the single cross-workspace task orchestrator from the start while TypeScript project
+references continue to own TypeScript compilation dependencies. Vite remains excluded until a
+real packaging consumer requires it. This approval does not authorize the twelve-package v3
+topology, readiness workflows, duplicated task graphs, remote-cache infrastructure, or placeholder
+bundler configurations.
+
+**Strongest counterargument:** The initial foundation does not yet demonstrate enough task volume
+to justify Turbo, so retaining it adds configuration and cache semantics before their benefit is
+measured. The approved boundary contains that cost: Turbo owns only the real root task graph, no
+remote-cache service or duplicate dependency graph is added, and unused Vite configuration remains
+excluded.
+
+**Confidence:** High that the approved boundary is internally coherent. Turbo's distinct
+orchestration and caching capability is retained without treating it as equivalent to TypeScript
+project references or Yarn workspace management.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 35 items are resolved. The user confirmed the consolidated scope and explicitly approved
+All 36 items are resolved. The user confirmed the consolidated scope and explicitly approved
 AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,
 integration, terminology, authority, deferral, and complexity-evidence review found no unresolved
 material choice. AR-024's already-decided C64U ownership timing was retained, and the proposed
 RD-10 wording was corrected to hand off to the already-owned successor rather than create it late.
-The Phase 2B gate passed. Phase 3 authoring then surfaced AR-034 and AR-035 before any RD was
-written; both are now explicitly resolved and the gate passes again. New material ambiguities found
-during authoring reopen it under the surface-during-authoring rule.
+The Phase 2B gate passed. Phase 3 authoring surfaced and resolved AR-034 and AR-035 before RD-01;
+RD-01 was then approved and committed. RD-02 authoring surfaced AR-036 before the document was
+written; the user resolved it and the gate passes again.

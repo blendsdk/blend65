@@ -72,7 +72,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. The complete 35-item register is resolved and the Zero-Ambiguity Gate passed.
+None. The complete 36-item register is resolved and the Zero-Ambiguity Gate passed.
 
 ## Approved first C64 production profile
 
@@ -636,6 +636,5 @@ integration.
 
 ## Resume point
 
-The Zero-Ambiguity Gate passes with all 35 items resolved. Author `RD-01` from the approved
-structure and present it for user review before authoring `RD-02`. Any new material choice found
-during authoring appends the next AR item and reopens the gate.
+`RD-01` is approved and committed. `RD-02` is approved with the Turbo-enabled monorepo boundary.
+Author RD-03 around the playable M1 vertical slice; any new material choice reopens the gate.
