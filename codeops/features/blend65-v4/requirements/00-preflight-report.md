@@ -100,28 +100,34 @@ proves its source ancestry and RD-01 head, and names its first green **RD-02 fou
 rather than the first v4 commit. AR-025 and the feature roadmap carry the same ordering. No worktree
 was created while applying this requirements correction.
 
-### PF-002: Cross-platform project names and path identities are undefined 🟠 MAJOR
+### PF-002: Source paths and artifact names have no exact preservation contract 🟠 MAJOR
 
 **Dimension:** 1 — Ambiguities
 **Location:** `RD-02-clean-v4-foundation-and-deterministic-project-model.md:110-131,298-315,501-515`
-**The Problem:** “Platform-independent validation” and “case-sensitive ASCII order” do not define a
-project-name grammar, Unicode normalization, non-ASCII ordering, reserved Windows names, or
-normalization/case collisions. Linux and Windows can accept different identities and AC-13/AC-16
-have no exact oracle.
+**The Problem:** “Platform-independent validation” and “case-sensitive ASCII order” do not define
+whether Blend65 preserves or rewrites host-exposed source paths, how it orders them without changing
+their identity, or which separate safety rule keeps the manifest `name` from becoming an output
+path. The original finding incorrectly assumed that Blend65 should police cross-host filename
+equivalence. The user clarified that source filenames must be read as the host exposes them, without
+a compiler-imposed casing or Unicode portability policy.
 
 **Options:**
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A | Use a portable ASCII grammar for the artifact/project `name`; allow Unicode physical paths; derive logical identities in specified NFC form with `/`; sort unsigned UTF-8 bytes; reject normalization and host-case collisions. | Modern path support with deterministic portable identities. | Requires careful collision and filesystem-alias tests. |
-| B | Restrict all project names and paths to portable ASCII. | Smallest path model. | Needlessly rejects ordinary modern filesystem paths. |
+| A — accepted | Preserve source path spelling, casing, spaces, and Unicode exactly as exposed by the host; apply no Unicode normalization, case folding, or case-collision rejection. For repeatable processing only, sort exact host-exposed project-relative path identities after representing separators as `/`. Validate manifest `name` separately as one literal output basename: non-empty, no path separators or NUL, not `.` or `..`, and incapable of escaping `outDir`; never rewrite it. Report a host filesystem rejection normally. | Reads filenames as supplied, keeps filename semantics out of Blend65, preserves deterministic processing, and retains output containment. | A filename set representable on one host is not promised to be representable on another; that is explicitly outside the compiler contract. |
 
-**Recommendation:** Option A. It keeps the public artifact name safe without forcing developers to
-rename normal Unicode project directories.
+**Recommendation:** Revised Option A. Deterministic ordering is an internal compiler operation, not
+a filename policy. Cross-host filename equivalence was rejected as an invented compiler concern;
+only output-path containment remains required.
 
-**Confidence:** High. **Hardening:** Challenger selected Option A and refined physical versus
-logical normalization.
-**User Decision:** Pending
+**Confidence:** High. **Hardening:** The recommendation changed after the user clarified the product
+boundary. The original challenger conclusion depended on the broader portability assumption and no
+longer governs this refined decision.
+**User Decision:** Accepted revised Option A on 2026-09-10. Blend65 reads filenames as the host
+exposes them and imposes no casing or Unicode portability restriction.
+**Correction Status:** Queued for the accepted-fixes batch; PF-002 remains open until the affected
+requirements and acceptance criteria are corrected and verified.
 
 ### PF-003: Unknown indirect calls have two conflicting outcomes 🟠 MAJOR
 
