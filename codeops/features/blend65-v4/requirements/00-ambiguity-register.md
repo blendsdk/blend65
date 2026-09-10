@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 37 items resolved
-> **Last Updated**: 2026-09-10 15:45 CEST
+> **Status**: ✅ GATE PASSED — all 38 items resolved
+> **Last Updated**: 2026-09-10 20:15 CEST
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -43,6 +43,7 @@
 | AR-035 | Scope / specification authority | Which target appendices and platform claims are normative in Specification 4 while v4 implements and qualifies only C64? | Only qualified C64 targets normative / all five existing appendices normative / retain four non-normative provisional appendices inside the active spec | Make only qualified C64 profiles normative; remove the four unqualified target appendices from the active specification and retain future-target constraints as explicit non-support material. | ✅ Resolved |
 | AR-036 | Technical (complexity escalation) | Does the clean v4 foundation retain Turborepo and pre-emptive Vite configuration, or use the toolchain's direct build/test graph until a real consumer proves more machinery is needed? | Yarn workspaces + TypeScript project references + Vitest only / retain Turborepo and current Vite placeholders | Retain the useful v3 monorepo setup: Yarn classic workspaces, Turborepo, stable TypeScript 7, and Vitest, with no ESLint or replacement linter. Do not carry unused Vite placeholders; add Vite or another bundler only for a real packaging consumer. | ✅ Resolved |
 | AR-037 | Scope / M1 product and asset provenance | Does M1 remain a single-sprite interaction or become a bounded Invaders-style game, and when must the authentic SpritePad 3.80 input exist? | Keep the single-sprite loop / bounded original-art Invaders-style microgame / faithful full game recreation | Use a bounded original-art Invaders-style microgame: one player, six invaders, and one shared projectile/explosion sprite fit the eight hardware sprites without multiplexing. Include fixed enemy state, ordinary loops/functions, simple source-level collision, win/loss, and normal BASIC return; exclude score, lives, shields, enemy projectiles, audio, scrolling, IRQ callbacks, loaders, and optimization. The user will later supply an official SpritePad C64 Pro 3.80 template and exports; that evidence is required before RD-03 planning or asset-decoder implementation, not before requirements authoring. | ✅ Resolved |
+| AR-038 | Scope / product boundary | Since games are Blend65's primary use case, does v4 ship reusable game-engine/gameplay systems or qualify a language/compiler that lets developers write them? | Ship reusable game systems / compiler and narrow platform integration with game workloads as qualification / separate optional engine product | Blend65 remains a 6502-family language, AOT compiler, toolchain, and narrow target-platform library—not a game engine, framework, or gameplay library. It may ship typed zero-cost hardware operations, local timing/ownership contracts, compile-time asset handling, and exact player/loader/format adapters. Game loops, entity/fixed-pool modules, collision systems, state machines/dispatchers, renderers, scene graphs, sprite-multiplexing or scrolling engines, double-buffer managers, and audio mixers/schedulers remain user-authored algorithms. The compiler must express, lower, diagnose, and optimize those workloads correctly. Examples and Q-P workloads are qualification oracles only, never public game modules. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -729,8 +730,8 @@ project references or Yarn workspace management.
 
 The user approved replacing the one-sprite M1 interaction with a deliberately small, original-art
 Invaders-style game. A faithful recreation was rejected for M1 because its formation scale,
-barriers, scoring, lives, enemy projectiles, audio, and rendering strategy would pull the general
-game-system and asset work of RD-05 and RD-06 into the first compiler slice.
+barriers, scoring, lives, enemy projectiles, audio, and rendering strategy would pull the broader
+platform, workload-qualification, and asset work of RD-05 and RD-06 into the first compiler slice.
 
 M1 instead uses exactly eight simultaneous hardware sprites: one player, six invaders, and one
 slot shared by the active projectile or its short explosion. It requires no sprite multiplexer,
@@ -752,12 +753,45 @@ qualification task. Missing evidence blocks that boundary rather than authorizin
 **Direct user decision:** The user approved the bounded Invaders-style M1 and confirmed that the
 SpritePad project may be supplied later, before the format-dependent work begins.
 
+### AR-038 — Compiler with game workloads, not a game engine
+
+The user corrected a material scope error during RD-05 review: Blend65 is a 6502 programming
+language and compiler whose strongest use case is game development; game development is not a
+second product layer. Requirements that said Blend65 would provide reusable fixed-pool, collision,
+state-dispatch, multiplexing, scrolling, or buffer systems could therefore authorize the wrong
+product even when they also prohibited a hidden mandatory runtime.
+
+The accepted boundary separates three responsibilities. The compiler owns normal language
+expressiveness, correct and expert-quality lowering, diagnostics, layout, optimization, evidence,
+and compile-time asset transformation. The narrow C64 platform library owns typed hardware access,
+local timing and ownership contracts, and exact adapters to selected external players, loaders, and
+asset formats. The application owns its game loop, entities and pools, collision policy, state
+model, renderer, sprite scheduling algorithm, scrolling strategy, buffer lifecycle, and audio
+policy. The compiler may recognize and improve a user-authored pattern only when its semantics and
+cost are proved; recognition never injects a gameplay subsystem or changes application policy.
+
+Q-P13, Q-P16, the M1 microgame, and later scrolling, buffering, and audio slices remain valuable
+because they prove that ordinary Blend65 can express real game workloads and that the generated
+machine code meets the expert bar. They are test programs and evidence fixtures, not installed
+modules, templates that define architecture, or public engine APIs. Compile-time asset composition
+builds bytes and placement; it does not create a runtime scene graph or renderer.
+
+The active expert `1.0.0` knowledge remains frozen until RD-01's already-approved `2.0.0`
+transition. RD-01 must correct ambiguous phrases such as “game-system recommendation,” “engine
+structures,” and fixed-pool or multiplexer APIs while retaining the underlying technique knowledge
+and Q-P evidence. This is an explicit product-authority correction in the controlled versioned
+transition, not a silent mid-journey skill edit.
+
+**Direct user decision:** The user explicitly required the requirements to be corrected to the
+maximum extent possible because treating Blend65 as a game system or engine would create a
+different product.
+
 ## Gate Notes
 
 The systematic 12-category scan and the end-to-end journey/edge-case composition re-scan have run.
 The latter found AR-028 through AR-030; resolving AR-029 exposed the narrower source-contract
 decision AR-031, and the final consistency scan exposed AR-032's PRG/D64 artifact contradiction.
-All 37 items are resolved. The user confirmed the consolidated scope and explicitly approved
+All 38 items are resolved. The user confirmed the consolidated scope and explicitly approved
 AR-033's Phase 2 decomposition. The final 12-category, journey, edge-case, dependency,
 integration, terminology, authority, deferral, and complexity-evidence review found no unresolved
 material choice. AR-024's already-decided C64U ownership timing was retained, and the proposed
@@ -765,4 +799,5 @@ RD-10 wording was corrected to hand off to the already-owned successor rather th
 The Phase 2B gate passed. Phase 3 authoring surfaced and resolved AR-034 and AR-035 before RD-01;
 RD-01 was then approved and committed. RD-02 authoring surfaced AR-036 before the document was
 written. RD-03 authoring surfaced AR-037's product and producer-fixture boundary; the user resolved
-both, and the gate passes again.
+both, and the gate passes again. RD-05 review then exposed and resolved AR-038's compiler-versus-
+engine product boundary; the gate passes with the corrected scope.

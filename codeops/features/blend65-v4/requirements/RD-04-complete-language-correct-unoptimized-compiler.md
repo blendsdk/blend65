@@ -14,7 +14,8 @@
 RD-04 extends the proven M1 pipeline until every core-language construct, semantic rule,
 diagnostic, ABI obligation, and `optimization: none` lowering in the frozen Blend65 Language
 Specification 4.0 is implemented correctly for the first C64 profile. It completes the language
-before optional optimization or broad platform/game facilities are added.
+before optional optimization or the remaining target-platform integrations are added. Game
+algorithms remain ordinary user code. (AR-038)
 
 This is not a second compiler path and not a horizontal collection of disconnected parser or IR
 features. Each added language family crosses the existing real pipeline through legal NMOS 6510
@@ -25,12 +26,13 @@ mechanics, or fabricate future platform support.
 
 The completion claim is deliberately bounded. RD-04 completes the language and unoptimized
 compiler for profile-independent programs and the already-qualified first-profile surface. RD-05
-through RD-07 add the remaining C64 platform/game APIs, asset families, and disk loading. A source
+through RD-07 add the remaining C64 hardware APIs, asset families, and disk loading. A source
 form requiring one of those not-yet-qualified facilities receives an honest selected-profile
 capability diagnostic; it does not silently succeed, gain placeholder output, or weaken its core
 language semantics.
 
-> **Decisions:** AR-002 through AR-004, AR-006 through AR-025, AR-027 through AR-035, and AR-037.
+> **Decisions:** AR-002 through AR-004, AR-006 through AR-025, AR-027 through AR-035, and AR-037
+> through AR-038.
 
 ---
 
@@ -372,10 +374,11 @@ language semantics.
 
 - Optional `balanced`, `speed`, or `size` transformations, a generic optimizer/pass registry,
   optimization barrier, or performance claims based on transformed code. RD-08 owns optimization.
-- The complete reusable C64 platform/game library, takeover and NTSC behavior, SID music/effects,
-  sprite multiplexing, scrolling, double buffering, generalized collision/pools/state dispatch, or
-  raster scheduling. RD-05 owns these real vertical slices.
-- CharPad, PSID, Koala, broad SpritePad surface, scene/Integrator refinement, derived graphics,
+- The complete C64 hardware/platform library, takeover and NTSC behavior, SID music/effects,
+  sprite, scrolling, buffering, and raster-timing support. RD-05 owns those target-specific
+  capabilities and qualifies user-authored game workloads; it does not own gameplay modules for
+  collision, pools, or state dispatch. (AR-038)
+- CharPad, PSID, Koala, broad SpritePad surface, compile-time Integrator refinement, derived graphics,
   automatic asset placement across complete games, or general resident-asset qualification. RD-06
   owns them.
 - A loader, decompressor, overlay lifetime, `loadable const` transfer implementation, D64 packager,

@@ -44,8 +44,9 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 - Establish horizontal contract and feature-pressure coverage before implementation, then deliver
   behavior in complete vertical slices. Do not build placeholder frameworks that fabricate support.
 - Treat sprites, charsets, bitmaps, SID music/effects, native asset formats, loaders, overlays,
-  scrolling, multiplexing, double buffering, and Integrator-style composition as architecture
-  pressures from the beginning. Implement formats and techniques vertically.
+  scrolling, multiplexing, double buffering, and Integrator-style compile-time composition as
+  compiler architecture pressures from the beginning. Implement capabilities vertically without
+  turning the compiler into a game engine. (AR-038)
 - Design all intrinsic families from the beginning: volatile memory, CPU-control `asm_*`, queries,
   packed BCD, target encodings, and `embed()`. No arbitrary inline-assembly blocks.
 - Share one frontend/compiler service between CLI and LSP. The VS Code extension and language
@@ -482,14 +483,16 @@ gain no v3 compatibility promise.
   assets, exact profiles, recorded target/entry overrides, coherent snapshots, atomic outputs, and
   one documented programmatic check/build API shared by CLI and language tooling.
 - C64-native SpritePad 3.80/SPD v5, CharPad 3.88/CTM v9, qualified PSID v1–v4, Koala, raw assets,
-  deterministic compile-time asset/scene composition, exact placement, and no hidden copies.
+  deterministic compile-time asset composition, exact placement, and no hidden copies.
 - Resident PRG delivery for the eight approved PAL/NTSC × KERNAL/takeover × 6581/8580 profiles,
   plus one qualified `c64-pal-d64-kernal-6581` profile with explicit load units and a profile-owned
   loader/decompressor contract.
-- C64 platform APIs and compiler realization for game loops, input, interrupts, sprite
-  multiplexing, scrolling, double buffering, graphics/scene composition, SID music and effects,
-  fixed pools/collision/state dispatch, loading, overlays, and related expert patterns when their
-  vertical slice is implemented.
+- C64 platform APIs and compiler capabilities sufficient for user-authored game loops, input,
+  interrupts, sprite multiplexing, scrolling, double buffering, graphics composition, SID music and
+  effects, fixed pools, collision, state dispatch, loading, overlays, and related expert patterns.
+  Only hardware and exact external-integration operations belong to the platform library; game
+  algorithms remain ordinary source, and game-shaped slices remain qualification workloads.
+  (AR-038)
 - `none`, `balanced`, `speed`, and `size` optimizer modes with independent semantic and assembly/cost
   expectations and complete resource evidence.
 - A production LSP and thin VS Code client, compiler debug metadata, manifest-based `check`,
@@ -523,6 +526,9 @@ gain no v3 compatibility promise.
   separately sourced and qualified features may reuse only proven shared contracts.
 - Automatic support for old/unregistered native asset generations or unqualified player/loader
   formats.
+- A built-in game engine, framework, or gameplay library, including game loops, entity/pool modules,
+  collision systems, state machines/dispatchers, renderers, scene graphs, sprite-multiplexing or
+  scrolling engines, double-buffer managers, and audio mixers/schedulers. (AR-038)
 
 ### Explicit later triggers
 
@@ -543,13 +549,14 @@ gain no v3 compatibility promise.
 
 | Term | Meaning in v4 |
 |---|---|
-| Blend65 v4 | The clean-slate compiler, tooling, and C64 production system governed by Specification 4.0. It has no v3 compatibility obligation. |
+| Blend65 v4 | The clean-slate language, AOT compiler, tooling, and narrow C64 platform library governed by Specification 4.0. It has no v3 compatibility obligation and is not a game engine. |
 | Specification 4.0 | The single language authority produced by the controlled v4 specification transition and frozen before semantic compiler implementation. |
 | Expert baseline | The single active, versioned, qualified `blend65-domain-expert` skill used to judge language, compiler, 6502, and C64 decisions. |
 | CPU model | The selected processor's instruction, register, flag, stack, interrupt, and cycle semantics. The first model is NMOS 6510-compatible. |
 | Platform | The complete machine environment around a CPU: memory map, chips, clocks, banking, startup, interrupts, operating ROMs, and delivery media. |
 | Target profile | One exact, qualified CPU/platform/startup/video/audio/artifact identity. A profile is not a bag of independent switches. |
-| Platform library | Compiler-owned, typed, target-specific operations that expose hardware and game facilities without forcing ordinary users to encode hardware lore. |
+| Platform library | Compiler-owned, typed, target-specific hardware operations and exact external integration adapters that remove incidental machine lore without owning game policy or algorithms. |
+| Game workload | A user-authored program or focused fixture used to prove language expressiveness, target correctness, resource use, and expert output. It is not a shipped engine or library module. |
 | Semantic IR | The target-neutral typed representation after frontend analysis, retaining source meaning, effects, storage requirements, and debug provenance. |
 | Machine representation | The selected-CPU and selected-platform representation used for legalization, instruction selection, resource binding, and machine optimization. |
 | Static Frame Allocation (SFA) | The sole general model for parameters, returns, locals, temporaries, spills, and helper scratch for function execution. It is not the machine's global or asset layout system. |
@@ -573,8 +580,8 @@ gain no v3 compatibility promise.
 | RD-02 — Clean V4 Foundation and Deterministic Project Model | Create the sibling v4 worktree, record the exact v3 salvage inventory, remove rejected topology, establish the TypeScript 7/no-ESLint toolchain, smallest real package graph, one `blend65.json` project model, coherent snapshots, and shared high-level compiler-service/CLI foundations. | Ends with a minimal green v4 foundation that can load and validate a deterministic project without recreating readiness infrastructure. |
 | RD-03 — Playable M1 Complete Pipeline | Deliver one bounded original-art PAL/KERNAL/6581 Invaders-style game from source, CLI, and minimum editor support through parsing, analysis, semantic representation, SFA, target lowering, ACME, PRG, and VICE using `optimization: none`. Import qualified SpritePad assets, update one player, six invaders, and one projectile/explosion slot from joystick/fire input, resolve simple collision and win/loss, then restore/return to BASIC. | Ends with one useful, qualified, fully connected product slice plus independent behavior and assembly/cost evidence. No stage is a placeholder. |
 | RD-04 — Complete Language and Correct Unoptimized Compiler | Implement all Specification 4.0 language semantics and diagnostics across the real pipeline, including calls, aggregates, arrays, function values, compile-time functions, intrinsics, safety options, ABI/effects, SFA closure, legalization, and correct `optimization: none` output. | Ends with the complete language compiling correctly for the first C64 profile before optional optimization is added. |
-| RD-05 — C64 Platform Profiles and Game Systems | Complete startup, banking, interrupts, timing, named hardware access, platform APIs, and reusable game facilities for PAL/NTSC, KERNAL/takeover, and 6581/8580. Cover sprites, multiplexing, scrolling, double buffering, input, SID music/effects, collision, fixed pools, and state dispatch through real slices. | Ends with all eight approved resident-PRG profile identities and their relevant C64 game-system behavior qualified. |
-| RD-06 — Native Assets, Scene Composition, and Resident Layout | Implement and qualify current SpritePad, CharPad, PSID, Koala, and raw handlers; deterministic compile-time asset/scene composition; Integrator-style refinement; exact placement, banking, alignment, deduplication, and one-copy resident layout. | Ends with resident game assets transformed, placed, consumed, and reported as an expert C64 developer would expect. |
+| RD-05 — C64 Platform Profiles and Game-Workload Compiler Support | Complete startup, banking, interrupts, timing, named hardware access, and narrow platform APIs for PAL/NTSC, KERNAL/takeover, and 6581/8580. Prove that user-authored sprite multiplexing, scrolling, double buffering, input, SID music/effects, fixed pools, collision, and state dispatch compile and run correctly without shipping those algorithms as an engine. | Ends with all eight approved resident-PRG profile identities and their relevant hardware operations and representative game workloads qualified. |
+| RD-06 — Native Assets, Compile-Time Composition, and Resident Layout | Implement and qualify current SpritePad, CharPad, PSID, Koala, and raw handlers; deterministic compile-time asset composition; Integrator-style refinement; exact placement, banking, alignment, deduplication, and one-copy resident layout. | Ends with resident game assets transformed, placed, consumed, and reported as an expert C64 developer would expect, with no runtime scene graph or renderer implied. |
 | RD-07 — Loadable Assets and D64 Delivery | Implement `loadable const`, compatible mutable destinations, explicit load success/failure, one qualified disk profile, atomic D64 packaging, loader/decompressor selection, overlays, liveness, and IRQ/audio/timing contracts. | Ends with `c64-pal-d64-kernal-6581` producing and running one complete D64 whose reachable load units work without a hidden general runtime. |
 | RD-08 — Optimization and Expert Output | Implement target-neutral and C64-machine optimization for `balanced`, `speed`, and `size`, retaining `none` as the correctness reference. Qualify each transformation with an independent behavior oracle and assembly/cost expectation. | Ends with expert parity as the local floor, measured whole-program wins, complete resource reports, and explicit GitHub debt for any qualified meet-only result. |
 | RD-09 — Developer Tooling and Debug Evidence | Complete the public compiler API, CLI, production LSP, thin VS Code client, canonical formatter, diagnostics/navigation/rename, trusted build/run workflow, generated-artifact access, and compiler debug metadata. | Ends with a coherent modern editing and command-line workflow. It preserves debugger information but does not build a Blend65-owned debug adapter. |
@@ -604,7 +611,7 @@ The diagram is compact; the exact dependency rules are:
 | RD-02 | RD-01 | The clean foundation must use the frozen authorities. |
 | RD-03 | RD-02 | M1 proves the real foundation and full pipeline. |
 | RD-04 | RD-03 | Complete language work extends a working vertical compiler rather than a skeleton. |
-| RD-05 | RD-04 | Platform/game systems consume a complete correct unoptimized language pipeline. |
+| RD-05 | RD-04 | C64 platform support and representative game workloads consume a complete correct unoptimized language pipeline. |
 | RD-06 | RD-04, RD-05 | Native transformation needs complete language semantics and real C64 placement/platform rules. |
 | RD-07 | RD-04, RD-05, RD-06 | Loading and D64 packaging extend the proven value, platform, asset, and layout models. |
 | RD-08 | RD-04, RD-05, RD-06, RD-07 | Optimization follows the complete correct unoptimized path and must cover resident and loadable programs. |
@@ -617,7 +624,7 @@ The diagram is compact; the exact dependency rules are:
 |---|---|---|
 | A — Authority and foundation | RD-01, RD-02 | Frozen semantics and a minimal green clean-slate project foundation. |
 | B — First useful slice | RD-03 | A playable, inspectable, unoptimized C64 program through the real pipeline. |
-| C — Complete unoptimized production capability | RD-04, RD-05, RD-06, RD-07 | Complete language, C64 game/platform behavior, native assets, and resident plus D64 delivery before optimization. |
+| C — Complete unoptimized production capability | RD-04, RD-05, RD-06, RD-07 | Complete language, C64 platform behavior, game-workload qualification, native assets, and resident plus D64 delivery before optimization. |
 | D — Optimize and complete tooling | RD-08 and RD-09 | Expert-quality generated code and a production developer workflow. RD-09 may run in parallel once RD-04 is stable. |
 | E — Production qualification and handoff | RD-10 | Evidence-backed C64 completion and an owned C64U successor. |
 
@@ -646,6 +653,7 @@ integration.
 ## Resume point
 
 `RD-01` through `RD-04` are approved and committed. `RD-05` is drafted around the eight exact
-resident-PRG C64 profiles and explicit, zero-cost or fully costed C64 game systems. Native asset
-and scene handlers, disk loading, optional optimization, and complete tooling remain owned by
-RD-06 through RD-09. RD-05 awaits user review; any new material choice reopens the gate.
+resident-PRG C64 profiles, narrow hardware/platform operations, and representative user-authored
+game workloads. Compile-time native asset composition, disk loading, optional optimization, and
+complete tooling remain owned by RD-06 through RD-09. RD-05 awaits user review; any new material
+choice reopens the gate.

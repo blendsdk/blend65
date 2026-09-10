@@ -25,7 +25,7 @@ v3 tests, readiness artifacts, scoreboards, and feasibility snapshots remain aud
 none may define language or expert doctrine.
 
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
-> AR-034, and AR-035.
+> AR-034, AR-035, and AR-038.
 
 ---
 
@@ -39,7 +39,7 @@ none may define language or expert doctrine.
   Git commit, Specification 3 content identity `BLEND65-SPEC-P3-4bf8a989`, expert-skill version
   `1.0.0`, expert content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`, and every approved
   ambiguity-register decision consumed by the transition. Existing compiler behavior is not an
-  input authority. (AR-004, AR-014)
+  input authority. (AR-004, AR-014, AR-038)
 - [ ] **R1.2 — Produce one Specification 4.0 tree.** Update the existing `spec/` tree in one
   controlled change. Do not create a parallel live `spec-v4/`, retain a second active Specification
   3 tree, or publish implementation-only semantic overrides. Git history and the parked v3
@@ -122,7 +122,9 @@ none may define language or expert doctrine.
   the eight `c64-{pal|ntsc}-prg-{kernal|takeover}-{6581|8580}` identities plus
   `c64-pal-d64-kernal-6581`. Their CPU, video, startup, ROM/banking, IRQ ownership, SID topology,
   artifact, exit, loader, and evidence contracts must be exact. The first implementation profile
-  remains `c64-pal-prg-kernal-6581`. (AR-013, AR-024, AR-029, AR-032, AR-035)
+  remains `c64-pal-prg-kernal-6581`. The appendix may define narrow hardware operations and exact
+  external adapters, but no game-engine, gameplay-module, or application-policy API. (AR-013,
+  AR-024, AR-029, AR-032, AR-035, AR-038)
 - [ ] **R1.16 — Remove false target authority.** `spec/appendix-c64u.md`,
   `spec/appendix-cx16.md`, `spec/appendix-a800xl.md`, and `spec/appendix-a7800.md` must not remain
   active normative Specification 4 documents. Git preserves their drafts. Concise future-target
@@ -153,8 +155,12 @@ none may define language or expert doctrine.
   (AR-002, AR-003, AR-014)
 - [ ] **R1.21 — Publish expert baseline `2.0.0`.** Reconcile the expert router, every affected
   knowledge reference, source-governance record, qualification oracle, coverage matrix, and release
-  record against the frozen Specification 4 identity. No active file may still claim baseline
-  `1.0.0` or Specification 3 authority after activation. (AR-014, AR-034)
+  record against the frozen Specification 4 identity. Correct current wording that presents
+  sprite multiplexing, scrolling, buffering, fixed pools, collision, state dispatch, or other game
+  algorithms as compiler-supplied systems or APIs: retain their expert knowledge and qualification
+  value while making application policy explicitly user-authored. No active file may still claim
+  baseline `1.0.0`, Specification 3 authority, or a Blend65 game-engine product surface after
+  activation. (AR-014, AR-034, AR-038)
 - [ ] **R1.22 — Requalify according to blast radius.** Every one of the 107 expert qualification
   cases must retain admissible green evidence under the `2.0.0` candidate. Use deterministic
   structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
@@ -381,6 +387,7 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 | Specification authority | One updated tree / parallel v3+v4 trees / implementation overrides | One updated Specification 4 tree | Prevents authority drift; Git preserves v3. | AR-014 |
 | Expert release identity | `2.0.0` / `1.1.0` / `1.0.1` | `2.0.0` | Replacing the governing language authority is a breaking expert-baseline change. | AR-034 |
 | Normative targets | Qualified C64 only / all five historical targets / provisional appendices in active spec | Qualified C64 profiles only | Matches authority to evidence without weakening target-neutral architecture. | AR-035 |
+| Product boundary | Reusable game systems / compiler with game-workload qualification | Compiler and narrow platform library | Retains expert game knowledge without turning Blend65 into an engine or gameplay library. | AR-038 |
 | Low-level source surface | Five curated controls / external assembly / arbitrary opcode calls | Five curated controls | Stable complete semantics with no external ABI or hidden register state. | AR-006 |
 | Arrays and aggregates | Historical restrictions / fixed modern values / dynamic runtime model | Fixed modern values | Modern source behavior without heap or dynamic frames. | AR-016, AR-017 |
 | Function values | Recognized sinks only / finite typed values / raw calls | Finite typed values | Expressive bounded calls compatible with whole-program SFA proof. | AR-018 |
@@ -393,7 +400,7 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 ## Acceptance Criteria
 
 1. [ ] **AC-01 — Input identity:** The transition record names the exact Specification 3 identity,
-   expert `1.0.0` identity/content commit, source Git commit, and all 35 resolved Blend65 v4 AR
+   expert `1.0.0` identity/content commit, source Git commit, and all 38 resolved Blend65 v4 AR
    decisions; no compiler implementation or v3 test is listed as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.
@@ -439,7 +446,9 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     exact effects and costs, and no hidden trap/runtime routine is mandatory.
 15. [ ] **AC-15 — C64 target set:** The normative target inventory contains exactly the eight
     approved PRG profile identities and `c64-pal-d64-kernal-6581`; the first profile's PAL,
-    KERNAL, BASIC-return, banking, CINV, 6510, and 6581 facts agree across all owners.
+    KERNAL, BASIC-return, banking, CINV, 6510, and 6581 facts agree across all owners. Its public
+    modules contain only target hardware operations and exact external adapters, not gameplay
+    algorithms or engine policy. (AR-038)
 16. [ ] **AC-16 — False targets removed:** The four historical non-C64 appendix paths are absent
     from the normative inventory and cannot be selected as active target IDs. Any retained C64U,
     X16, or Atari text explicitly says non-normative, unqualified, and not compiler support.
@@ -450,8 +459,11 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 18. [ ] **AC-18 — Diagnostic integrity:** Every new invalid class has one unique documented error
     code, message template, triggering example, correction, and normative owner; a registry-to-spec
     check reports zero missing, duplicate, dead, or conflicting entries.
-19. [ ] **AC-19 — Expert version:** Every active router/reference/qualification file identifies
-    expert baseline `2.0.0` and the same frozen Specification 4 identity.
+19. [ ] **AC-19 — Expert version and product boundary:** Every active
+    router/reference/qualification file identifies expert baseline `2.0.0` and the same frozen
+    Specification 4 identity. Technique knowledge and Q-P workloads remain available, but no active
+    text presents game algorithms, modules, or policies as a Blend65 engine/library deliverable.
+    (AR-038)
 20. [ ] **AC-20 — Qualification coverage:** The coverage matrix still contains exactly 107 unique
     cases with all required fields, and each case has admissible green evidence under the
     `2.0.0` candidate according to the accepted composed-evidence rule.

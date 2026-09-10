@@ -23,10 +23,11 @@ This is not a compiler skeleton. Every stage implements the complete contract re
 source and focused boundary cases. No stage may forward unresolved or untyped material, emit a
 placeholder operation, claim a future target, or compensate for missing analysis with unusual
 source. M1 deliberately remains a narrow language and platform slice; RD-04 completes
-Specification 4, later RDs add the broader game systems, assets, optimization, and production
-tooling.
+Specification 4; later RDs add broader C64 platform support, compile-time assets, optimization,
+and production tooling. Game-shaped programs remain qualification workloads, not a second engine
+product. (AR-038)
 
-> **Decisions:** AR-002, AR-004 through AR-014, AR-020 through AR-030, AR-032 through AR-037.
+> **Decisions:** AR-002, AR-004 through AR-014, AR-020 through AR-030, AR-032 through AR-038.
 > **Primary M1 decisions:** AR-027 and AR-037.
 
 ---
@@ -293,15 +294,16 @@ tooling.
   RD-04 owns complete correct `optimization: none` coverage.
 - Optional target-neutral or machine optimization for `balanced`, `speed`, or `size`; an optimizer
   catalog, pass DSL, plugin system, or general peephole framework. RD-08 owns optional optimization.
-- IRQ callbacks, raster scheduling, multiplexing, scrolling, double buffering, audio/SFX,
-  generalized collision facilities, loaders, overlays, D64 delivery, or aggressive VIC techniques.
-  M1 contains only its exact ordinary-source projectile-versus-invader rectangles; RD-05 through
-  RD-07 own reusable vertical capabilities.
+- IRQ callbacks, raster scheduling, multiplexing, scrolling, double buffering, audio/SFX, loaders,
+  overlays, D64 delivery, or aggressive VIC techniques. M1 contains only its exact ordinary-source
+  projectile-versus-invader rectangles; RD-05 through RD-07 own the compiler, hardware, asset, and
+  delivery capabilities needed by broader user-authored workloads. (AR-038)
 - A faithful Space Invaders recreation, copied art, scores, lives, barriers, enemy projectiles,
   attract mode, multiple levels, or a reusable game engine. These would obscure the compiler proof
-  and pull later game-system work into M1.
-- CharPad, PSID, Koala, general SpritePad selector coverage, scene composition, derived assets, or
-  runtime-loadable assets. M1 qualifies only the exact resident SpritePad surface it consumes.
+  and turn a compiler qualification fixture into a second product. (AR-038)
+- CharPad, PSID, Koala, general SpritePad selector coverage, compile-time asset composition, derived
+  assets, or runtime-loadable assets. M1 qualifies only the exact resident SpritePad surface it
+  consumes.
 - Production LSP/VS Code navigation, completion, hover, signature help, rename, formatting,
   build/run UI, generated-artifact browsing, source debugger, or owned debug adapter. RD-09 owns the
   production tooling surface.
@@ -530,7 +532,7 @@ no C64U target identity or support claim; the owned successor activates only aft
 | Decision | Options considered | Chosen | Rationale | AR Ref |
 |---|---|---|---|---|
 | First milestone | Skeleton / complete language first / playable vertical slice | Playable vertical slice | Proves the real architecture before expanding breadth. | AR-027 |
-| M1 product | Single-sprite interaction / bounded Invaders-style microgame / faithful full recreation | Bounded original-art microgame | Exercises a coherent game slice while fitting eight sprites and excluding later engine systems. | AR-037 |
+| M1 product | Single-sprite interaction / bounded Invaders-style microgame / faithful full recreation | Bounded original-art microgame | Exercises a coherent compiler slice while fitting eight sprites and excluding later platform/workload capabilities. | AR-037, AR-038 |
 | Optimization | Default balanced / optional subset / `none` | `none` | Separates correctness and expert selection from optional transforms. | AR-023, AR-027 |
 | Editor | None / diagnostics-only real slice / production tooling | Diagnostics-only real slice | Creates the shared frontend consumer without pulling RD-09 forward. | AR-021, AR-027 |
 | Asset | Raw bytes / current qualified SpritePad / broad asset set | Current qualified SpritePad supplied before RD-03 planning | Forces authentic asset identity and placement into the first real architecture without making a Windows application a build dependency. | AR-007, AR-027, AR-037 |

@@ -249,6 +249,16 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
 
 ### Project-specific
 
+- **Compiler product boundary (NON-NEGOTIABLE):** Blend65 is a 6502-family language, AOT compiler,
+  toolchain, and narrow target-platform library. Games are its primary workload and qualification
+  case, but Blend65 is not a game engine, game framework, or gameplay library. Do not add built-in
+  game loops, entity or fixed-pool modules, collision systems, state machines/dispatchers,
+  renderers, scene graphs, sprite-multiplexer or scrolling engines, double-buffer managers, audio
+  mixers/schedulers, or similar game-policy systems. The compiler must let developers write these
+  normally in Blend65, lower them correctly, and optimize proved patterns where legal. Typed
+  zero-cost hardware operations, local timing/ownership contracts, compile-time asset handling,
+  and exact player/loader/format adapters remain valid compiler/platform responsibilities. Game
+  examples and expert workloads are qualification oracles, not product APIs or support libraries.
 - **Skill/implementation independence:** the frozen language specification, explicit product
   decisions, the proven SFA function-storage doctrine, and primary hardware/tool evidence may
   shape the expert skill. Existing compiler code, tests, roadmaps, readiness artifacts, scoreboards,
