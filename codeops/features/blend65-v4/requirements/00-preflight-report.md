@@ -354,10 +354,20 @@ file, symlink, source overlap, or stale generation.
 | A | Treat `outDir` as output state, not hashed input. Validate its lexical path and nearest existing canonical parent, exclude it from discovery, create only missing contained components during publication, and reject escape/file/input collisions. | Normal first-build experience with safe containment. | Must defend directory creation against filesystem races. |
 | B | Require a pre-existing empty contained directory and diagnose absence/non-empty state. | Simpler host logic. | Unnecessarily hostile for normal builds and repeated builds. |
 
-**Recommendation:** Option A, coordinated with PF-006's generation model.
+**Recommendation:** Refined Option A, coordinated with PF-006's generation model. Treat `outDir`
+exclusively as compiler-owned output state. It is a relative contained path that the compiler may
+create, is excluded from all input discovery and identity hashes, and may hold valid prior
+generations. Reject absolute or escaping paths, a required directory occupied by a file, symlink
+escape, and any explicitly declared source/asset inside the output tree. A nested output directory
+remains valid when `sourceRoot` is `.`, because discovery excludes the output subtree before
+walking inputs.
 
 **Confidence:** High. **Hardening:** Challenger selected Option A.
-**User Decision:** Pending
+**User Decision:** Accepted refined Option A on 2026-09-10. Directory creation and validation stay
+one bounded filesystem responsibility rather than becoming a workspace or storage framework.
+**Correction Status:** Queued for the accepted-fixes batch; PF-010 remains open until the manifest,
+path/snapshot model, generation publication, and first/repeated-build qualification cases express
+this lifecycle consistently.
 
 ### PF-011: Cancelling a running VICE session cannot undo its completed build 🟠 MAJOR
 
