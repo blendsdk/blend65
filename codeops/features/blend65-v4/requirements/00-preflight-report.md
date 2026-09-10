@@ -201,12 +201,15 @@ can block planning, but the dependency graph names no owner or checkpoint.
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A — only viable for approved scope | Add explicit owner-supplied evidence gates before RD-03 and RD-06 planning, including provenance, expected decoded meaning, retention/redistribution status, and fail-closed behavior. | Prevents guessed proprietary formats and keeps the approved scope. | Progress depends on external producer evidence. |
+| A — accepted | Before RD-03 planning, require the user-supplied SpritePad 3.80 M1 project, native file, relevant exports/settings, provenance, hashes, distinguishable expected records, and retention status; qualify only the SPD v5 surface M1 consumes. Before RD-06 plans each full handler, require the corresponding complete current-producer SpritePad 3.80 or CharPad 3.88 fixture matrix, expected decoded values, provenance, hashes, and retention/redistribution decision. Missing evidence pauses only that format and never authorizes guessed parsing or silent scope reduction. | Prevents guessed proprietary formats, preserves the approved surface, and delays the larger evidence burden until its actual consumer. | Format-dependent planning still depends on external producer evidence. |
 
 **Recommendation:** Option A. Reducing native-format scope would reverse an approved product decision.
 
 **Confidence:** High. **Hardening:** Challenger confirmed the finding and fail-closed gate.
-**User Decision:** Pending
+**User Decision:** Accepted Option A on 2026-09-10. The M1 SpritePad evidence is due before RD-03
+planning; complete SpritePad and CharPad matrices are due only before their RD-06 handler plans.
+**Correction Status:** Queued for the accepted-fixes batch; PF-005 remains open until the dependency
+graph, ownership, evidence gates, and fail-closed acceptance cases are corrected and verified.
 
 ### PF-006: Sibling files cannot be published as one atomic set 🟠 MAJOR
 
