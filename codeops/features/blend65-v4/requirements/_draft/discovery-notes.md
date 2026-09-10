@@ -157,10 +157,14 @@ asset provenance remain available at compile time, but ordinary reads, indexing,
 mutation, and ordinary value passing are invalid. A selected-profile loader explicitly transfers it
 into a compatible mutable fixed destination, which may use automatic placement or `place(...)`.
 The C64 operation returns `boolean`: success publishes the complete logical value; failure leaves
-destination contents unspecified. Fixed composite structs let a complete level or Integrator-style
-scene travel as one load unit and reuse one destination across mutually exclusive levels. There is
-no heap, descriptor, hidden load/copy, or persistent runtime asset handle, and unused loader support
-does not link.
+only the once-evaluated physical destination range indeterminate after a possible partial transfer.
+The compiler retains a fresh captured range/provenance identity and correlates it with the boolean
+result. Success initializes only that range; unselected candidates retain their incoming state.
+Later reads use normal byte-granular definite-initialization and must/may/not-alias proof across
+branches, stored results, joins, loops, and repeated loads. Fixed composite structs let a complete
+level or Integrator-style scene travel as one load unit and reuse one destination across mutually
+exclusive levels. There is no heap, runtime token, descriptor, validity byte, bitmap, read check,
+hidden load/copy, or persistent runtime asset handle, and unused loader support does not link.
 
 ## Approved multi-profile source model
 

@@ -53,11 +53,13 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   lifetime-valid place with exactly the load unit's logical type and size. A module object, local,
   parameter place, matching field or nested field, or fixed-array element/subaggregate is legal
   when flow and layout prove its complete interval, visibility, alignment, nonoverlap, lifetime, and
-  publication behavior. The place expression is evaluated exactly once. Constants, MMIO, loadable
-  values, temporaries without stable storage, incompatible nominal structs, mismatched extents, and
-  any place whose complete destination set cannot be proven are rejected. A field is not rejected
-  merely because it is part of a larger object, and no root-only restriction may be defended as a
-  platform limitation. (AR-016, AR-017, AR-020, AR-031)
+  publication behavior. The place expression is evaluated exactly once into a compiler-only
+  captured physical byte range with root/provenance, address space, bank, base/index/address value,
+  and half-open bounds. Constants, MMIO, loadable values, temporaries without stable storage,
+  incompatible nominal structs, mismatched extents, and any place whose complete destination set
+  cannot be proven are rejected. A field is not rejected merely because it is part of a larger
+  object, and no root-only restriction may be defended as a platform limitation. (AR-016, AR-017,
+  AR-020, AR-031)
 - [ ] **R7.4 — Expose one direct C64 operation.** The public operation is
   `c64.loader.load(unit, destination): boolean`. Both arguments are evaluated exactly once. The
   compiler resolves the unit, disk entry, exact byte count, and either one exact destination address
@@ -65,11 +67,21 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   lowered once to X/Y only after every possible interval passes the same layout and lifetime proof;
   source supplies no runtime filename, device number, size, descriptor, or loader handle. (AR-007,
   AR-031, AR-042)
-- [ ] **R7.5 — Model publication through normal control flow.** Entry to `load()` makes the complete
-  destination indeterminate. Its `true` result edge marks every byte definitely initialized with
-  the load unit's logical value. Its `false` edge leaves every byte indeterminate. Existing
-  definite-assignment flow handles `if`, early return, joins, loops, and repeated loads; no hidden
-  runtime loaded flag or descriptor is emitted. (AR-031)
+- [ ] **R7.5 — Model publication through normal control flow.** Each evaluated call creates a fresh
+  compiler-only capture/result identity. Entry makes only the captured range indeterminate. Its
+  `true` result edge marks only that range definitely initialized with this load unit's logical
+  value; its `false` edge leaves only that range indeterminate because a partial transfer may have
+  occurred. Every must-not-alias candidate preserves its incoming state. Must-alias names observe
+  the strong update; may-alias or partially overlapping names receive only byte-granular facts that
+  are valid for every possible selection. A later read is legal only when its complete range is
+  definitely initialized on every reaching path; it may rely on this load's logical value only when
+  dominated by its successful result and proved must-alias with the capture on every reaching path.
+  An independent later assignment may establish its own value fact. Joins meet predecessor facts,
+  loops use the normal monotone fixed point, and every repeated call gets a fresh identity. No
+  hidden runtime flag, token, descriptor, bitmap, validity byte, or read check is emitted.
+  Equal source spelling alone is not identity when an index/base is volatile or may have changed.
+  Keep the relation sparse and symbolic; do not enumerate every array element or introduce a
+  general theorem solver. (AR-031)
 - [ ] **R7.6 — Package only runtime-reachable units.** A loadable declaration whose load operation
   is unreachable contributes no D64 entry, filename data, loader call site, or resident bytes.
   Reachable canonical aliases share one disk file. Different logical objects remain distinct even
@@ -178,10 +190,11 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   exit restores all state promised by the selected profile and reports every unavoidable clobber;
   it never calls a ROM routine while KERNAL or required I/O is unavailable.
 - [ ] **R7.23 — Require application quiescence.** `load()` is mainline-only. At the call, flow and
-  route analysis must prove every user-installed IRQ/NMI callback and audio/player tick explicitly
-  stopped/restored. The stock KERNAL service route required by the loader remains active. Unknown,
-  conditionally active, or externally installed application routes are rejected with an actionable
-  diagnostic. (AR-018, AR-043)
+  route analysis must prove every user-installed IRQ/NMI callback, audio/player tick, and other
+  selected-profile asynchronous observer or writer explicitly stopped/restored. The stock KERNAL
+  service route required by the loader remains active. Unknown, conditionally active, externally
+  installed, or unqualified DMA activity is rejected with an actionable diagnostic. C64U DMA is not
+  implied by this C64 contract. (AR-018, AR-043)
 - [ ] **R7.24 — Add no hidden pause or timing promise.** The loader never silently uninstalls,
   snapshots, restarts, or reconstructs application callbacks, music, effects, frame counters, or
   gameplay state. It claims no stable raster, frame, or audio cadence during the call. Source owns
@@ -193,9 +206,11 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   destination. Document this as a selected-loader hardware/toolchain limitation; do not describe
   the wrapper as memory-safe against corrupted or hostile media. (AR-044)
 - [ ] **R7.26 — Keep failure recovery application-owned.** On `false`, destination bytes are
-  indeterminate and cannot be read until fully reassigned or a later successful load. Source may
-  retry, show an error, return to a menu, or terminate using ordinary language/platform features.
-  The compiler supplies no modal UI, retry loop, error text, disk prompt, or policy engine.
+  indeterminate and cannot be read until fully reassigned or a later successful load. For a dynamic
+  destination this invalidates only the captured range; a proved unselected initialized candidate
+  remains readable. A read that may alias the invalidated range is rejected. Source may retry, show
+  an error, return to a menu, or terminate using ordinary language/platform features. The compiler
+  supplies no modal UI, retry loop, error text, disk prompt, or policy engine. (AR-031)
 
 #### Layout, reuse, and publication — complexity XL
 
@@ -213,7 +228,8 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   relocating KERNAL load, one packaged unit may load into several exact-type destinations. Each
   call and every member of a finite dynamic-place destination set receives its own placement,
   liveness, visibility, quiescence, end-address, and cost proof; one disk file remains canonical.
-  No destination-specific duplicate is emitted.
+  The runtime choice is represented by that call's captured range, not by marking every candidate
+  selected. No destination-specific duplicate is emitted.
 - [ ] **R7.30 — Forbid destructive overlap.** A destination interval cannot overlap executing or
   reachable code, a live return address, hardware stack, active SFA home, loader code/state,
   KERNAL/ROM-required workspace, vector/saved link, active player data, MMIO, reserved range, or any
@@ -224,16 +240,20 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   Derive VIC bank/base/pointer fields from the destination, never from the disk address.
 - [ ] **R7.32 — Publish only after the blocking call returns.** Mainline cannot observe bytes during
   the synchronous transfer. Quiescence prevents user interrupt consumers from observing partial
-  state. The successful return edge is the sole publication point; no pointer flip, callback,
-  event, flag, or hidden notification is emitted automatically. (AR-043)
+  state. The successful return edge is the sole publication point for the captured range; no
+  pointer flip, callback, event, flag, or hidden notification is emitted automatically. (AR-043)
 - [ ] **R7.33 — Preserve address/provenance rules.** Addresses and aliases of the destination retain
   their normal lifetime and identity across loads; they refer to the same mutable storage whose
-  contents change on success. A loadable value itself never gains an address. Optimizers cannot
-  cache destination contents across the effectful load operation.
+  contents change on success. Must-alias names observe the captured-range update; may-alias names do
+  not receive definite-initialization credit, and partial overlap is tracked by byte range. A
+  loadable value itself never gains an address. Optimizers cannot cache destination contents across
+  the effectful load operation or across a later ordinary, interrupt, external, or DMA write.
 - [ ] **R7.34 — Keep transfer effects explicit in IL.** The semantic/machine representations carry
-  unit identity, destination identity/range, complete write effect, blocking KERNAL/IO effect,
-  failure edge, quiescence requirement, and strategy/profile identity until lowering. No generic
-  call or byte-copy operation may erase these facts before layout and evidence.
+  unit identity, fresh capture/result identity, evaluated destination range/provenance, finite
+  candidate ranges, selected-range strong update, unselected-range preservation, complete write
+  effect, blocking KERNAL/IO effect, failure edge, quiescence requirement, and strategy/profile
+  identity until their consumers discharge them. No generic call or byte-copy operation may erase
+  these facts before analysis, layout, lowering, and evidence.
 - [ ] **R7.35 — Close all storage before final layout.** Loader code, filenames, KERNAL adapter
   state, call temporaries, SFA destinations, and all reserved work areas are known before final
   interval solving. The emitter and D64 serializer cannot invent helper code, scratch, or copies.
@@ -243,10 +263,12 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
 
 - [ ] **R7.36 — Define the complete diagnostic boundary.** Specification 4 assigns unique stable
   diagnostics for illegal loadable use, incompatible destination, unsupported profile, unresolved
-  unit, unproved quiescence, destructive overlap, invalid mapping, destination overflow, too many
-  entries, insufficient disk blocks, duplicate/invalid encoded names, D64 structural failure,
-  KERNAL contract mismatch, and unavailable loader strategy. No diagnostic invents a workaround or
-  emits a partial artifact.
+  unit, unproved captured-range success/alias at a read, unproved quiescence, destructive overlap,
+  invalid mapping, destination overflow, too many entries, insufficient disk blocks,
+  duplicate/invalid encoded names, D64 structural failure, KERNAL contract mismatch, and unavailable
+  loader strategy. The captured-range diagnostic points to the read, governing load, and the
+  mutation, join, or failure edge that prevents proof. No diagnostic invents a workaround or emits
+  a partial artifact.
 - [ ] **R7.37 — Make diagnostics useful to modern developers.** Name the loadable declaration,
   logical type/size, destination and interval, active route or conflicting owner, selected profile,
   disk blocks/entries required and available, exact failed rule, and one direct source/configuration
@@ -264,9 +286,10 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   `Unknown`, never zero.
 - [ ] **R7.40 — Publish complete memory/lifetime evidence.** `.memory.json` identifies loader and
   KERNAL reservations, every possible destination interval, mutually exclusive sequential states,
-  CPU/VIC mappings, ROM/I/O visibility, prohibited overlap, interrupt/player quiescence, and the
-  successful publication point. For every occupied or reserved interval it includes the half-open
-  physical range, exact size, owner/kind, source/import identity, mutability,
+  CPU/VIC mappings, ROM/I/O visibility, prohibited overlap, selected-profile asynchronous-agent
+  quiescence, and the successful call-site publication point. The report lists static possible
+  ranges and never claims to know which runtime range was selected. For every occupied or reserved
+  interval it includes the half-open physical range, exact size, owner/kind, source/import identity, mutability,
   alignment/contiguity, residency/lifetime, CPU mapping, VIC bank/visibility, and ZP/stack class.
   Each compatible residency and CPU/VIC view reports every free interval, total free bytes, largest
   contiguous hole, and stack headroom. The versioned report is emitted only after final machine
@@ -283,8 +306,11 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   oracle.
 - [ ] **R7.42 — Prove source and flow semantics independently.** Specification tests cover every
   allowed compile-time use, forbidden resident use, exact/mismatched destination, success/failure
-  definite assignment, joins/loops/retries, reachability, aliases, several destinations, and
-  callback/audio state. Tests derive from Specification 4 rather than current implementation.
+  definite assignment, unchanged and changed indexes, volatile indexes, saved addresses,
+  must/may/not aliases, partial overlaps, joins, stored results, loops, covering loops, retries,
+  repeated overlapping loads, prior initialized candidates, reachability, several destinations,
+  and every profile-declared asynchronous observer/writer. Tests derive from Specification 4 rather
+  than current implementation.
 - [ ] **R7.43 — Prove the final machine path.** Focused ACME/VICE cases load byte patterns and
   composite values from the freshly built D64 into final destinations, verify exact bytes and
   surrounding canaries for the trusted artifact, exercise KERNAL error/short-load paths, and prove
@@ -319,9 +345,9 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   quiescence and restoration, automatic omission of an unreachable unit, and a disk-capacity
   diagnostic. Examples remain application source, not a framework or game engine.
 - [ ] **R7.49 — Record host responsiveness — complexity S.** At closeout record D64 serialization,
-  independent decode, build, and bounded-run duration plus peak host memory for named fixtures.
-  These are comparable observations, not wall-clock pass/fail gates or authorization for a cache.
-  (AR-011, AR-026)
+  independent decode, captured-range flow/alias analysis, build, and bounded-run duration plus peak
+  host memory for named fixtures. These are comparable observations, not wall-clock pass/fail gates,
+  proof budgets, or authorization for a cache or theorem solver. (AR-011, AR-026)
 
 ### Won't Have (Out of Scope)
 
@@ -393,7 +419,7 @@ loadable const declaration
   -> compiler-owned D64 serialization + independent structural oracle
   -> KERNAL relocating LOAD into the final destination
   -> carry/end-address validation
-  -> true-edge publication or false-edge indeterminate destination
+  -> true-edge publication or false-edge invalidation of the captured range
 ```
 
 ### D64 geometry and naming contract — complexity L
@@ -420,9 +446,9 @@ organization without changing the language.
 | Program point | Destination state | Legal observation |
 |---|---|---|
 | Before first complete assignment/load | Existing bits; not definitely initialized | No read on an uninitialized path |
-| During synchronous load | Partially overwritten; application routes quiescent | No mainline or user callback observation |
-| `true` result edge | Exact complete logical value | Ordinary reads, indexing, address use, and passing |
-| `false` result edge | Indeterminate complete destination | Full assignment or another successful load before read |
+| During synchronous load | Captured range partially overwritten; other candidates retain their state; asynchronous agents quiescent | No mainline or selected-profile asynchronous observation |
+| `true` result edge | Captured range is the exact complete logical value; unselected candidates retain their state | Ordinary use where every reaching path proves complete initialization; loaded-value reasoning additionally requires must-alias success proof |
+| `false` result edge | Captured range is indeterminate; unselected candidates retain their state | Full assignment or another successful load before a read that may alias the captured range |
 | After later successful replacement | New exact logical value in same storage | Existing valid destination addresses observe new contents |
 
 This is compile-time definite-assignment state plus ordinary blocking execution. It is not a
@@ -592,9 +618,12 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
    matching fields/nested fields, and fixed-array elements/subaggregates pass when every possible
    complete interval is proved and the place evaluates once. Constants, unstable temporaries, MMIO,
    nominal/extent mismatch, expired storage, and unproved interval/visibility/alignment/overlap fail
-   independently; no root-only rejection is accepted.
+   independently; no root-only rejection is accepted. The captured destination is the evaluated
+   physical range and provenance, not the source expression spelling or every candidate.
 4. [ ] **AC-04 — Definite publication:** True/false branches, early returns, joins, loops, retries,
-   and full reassignment prove exact destination initialization state without a runtime flag.
+   stored results, unchanged/changed/volatile indexes, saved addresses, must/may aliases, partial
+   overlaps, repeated loads, covering loops, prior initialized candidates, and full reassignment
+   prove exact byte-range initialization state without target-side validity state.
 5. [ ] **AC-05 — Reachability:** Unreachable units and load calls add zero disk entries, filenames,
    code, data, reservations, and report aliases; reachable canonical aliases share one entry.
 6. [ ] **AC-06 — Resident separation:** An ordinary embedded asset remains resident and directly
@@ -628,7 +657,9 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 16. [ ] **AC-16 — Exact success:** A complete unit clears error, returns the exact one-past-end
     address, yields `true`, initializes every destination byte, and preserves canaries.
 17. [ ] **AC-17 — Observable failures:** File-not-found/device/abort/read error, short payload, and
-    unexpected returned end address yield `false` and leave the destination indeterminate by flow.
+    unexpected returned end address yield `false`, leave only the captured range indeterminate by
+    flow, preserve every proved unselected candidate, and reject a later may-alias read with related
+    source spans.
 18. [ ] **AC-18 — Trusted-media boundary:** The generated D64 and unit hashes are exact; a
     VICE-only test using an isolated sacrificial destination and bounded observation canaries
     demonstrates that a controlled longer replacement is detected only after prior overwrite, and
@@ -641,7 +672,8 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
     the selected KERNAL adapter and its required data.
 21. [ ] **AC-21 — Explicit quiescence:** Calls with no user routes or with proved prior
     restore/stop operations compile. Active, conditional, unknown, raw/external, or reinstalled
-    callback/NMI/player routes fail at the call with the exact route and remedy.
+    callback/NMI/player routes and every selected-profile external/DMA agent fail at the call with
+    the exact route and remedy unless proved absent or quiescent.
 22. [ ] **AC-22 — No hidden lifecycle:** Binary and trace inspection finds no automatic callback,
     music, effect, loading-screen, retry, prompt, state-save, uninstall, reinstall, scheduler, or
     registry behavior.
@@ -650,7 +682,8 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
     interval is resident.
 24. [ ] **AC-24 — Several destinations:** One unit loads into two compatible legal destinations
     and through one finite dynamic-place case using one disk entry; each possible address has its own
-    exact end-address and interval proof, and the place expression evaluates exactly once.
+    exact end-address and interval proof, the place expression evaluates exactly once, and flow
+    updates only the captured range while preserving must-not-alias candidates.
 25. [ ] **AC-25 — Overlap rejection:** Code, live SFA, stack, vectors, loader/KERNAL workspaces,
     MMIO, active player data, resident objects, and illegal VIC/bank mappings each fail before ACME
     with every conflicting owner.
@@ -658,8 +691,9 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
     load/read/fetch correctly under exact mapping transitions; I/O-space and hidden-loader cases
     reject without device writes.
 27. [ ] **AC-27 — Effect preservation:** Optimizer-none IL and machine output retain the complete
-    blocking write/failure/quiescence/profile effect; no memory read or MMIO operation crosses the
-    load call illegally.
+    capture/result correlation, selected-range update, unselected preservation, blocking
+    write/failure/quiescence/profile effect; no memory read or MMIO operation crosses the load call
+    illegally.
 28. [ ] **AC-28 — Closed allocation:** Loader, filenames, KERNAL state, SFA/temp/ZP/stack, destination
     and reserved intervals reconcile before emission; the emitter/packager introduces none later.
 29. [ ] **AC-29 — Complete disk report:** Every R7.38 D64/component field decodes back to the exact

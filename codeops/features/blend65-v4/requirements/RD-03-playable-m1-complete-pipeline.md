@@ -635,7 +635,8 @@ and names sorted unique visibility identities. `AssetPlacementRecord` is exactly
 - `{ kind: "loadable", loadUnitId: string, artifactPath: string, destinations: PlacedRangeRecord[] }`,
   where every possible successful destination is named, `artifactPath` resolves to the D64 primary
   artifact, `loadUnitId` resolves to exactly one package component, and disk-only bytes are not
-  called resident.
+  called resident. `destinations` is the static finite candidate set; it never claims which range a
+  runtime call selected and contains no validity token or execution trace.
 
 For `single`, `emittedBytes = payloadBytes`; for `replicated`, `emittedBytes` is the sum of copy
 sizes; for `loadable`, it is the contained component payload size rather than the sum of mutually
@@ -858,7 +859,7 @@ The indexed record arrays use these exact shapes:
 | `LocationRecord` | `{ symbolIndex: integer, liveRangeIndexes: integer[], availability: AvailabilityRecord }` plus optional integer `contextIndex`. `contextIndex` is required for parameters, returns, locals, and temporaries; forbidden for functions, globals, constants, and assets; and present for helper scratch exactly when the scratch belongs to a recorded function context. Every referenced live range belongs to that context when present. `liveRangeIndexes` names the final machine ranges over which the availability applies; it is empty only for a context-free object whose location applies for its complete resident lifetime. |
 | `RangeRecord` | `{ machine: MachineRangeRecord, origin: SourceOrigin | GeneratedOrigin, owner: RangeOwner, optimizationIndexes: integer[] }` plus optional `contextIndex`, present exactly for bytes attached to a recorded `FunctionRecord`; generated startup, loader, and platform-helper bytes use a platform owner and omit it. |
 | `OptimizationRecord` | `{ stage: string, rule: string, result: OptimizationResult, sourceSpans: SpanRecord[], outputRangeIndexes: integer[] }`; eliminated results have no output ranges. |
-| `LoadUnitRecord` | `{ name: string, kind: LoadUnitKind, publication: PublicationKind, artifact: ArtifactRecord, residence: MachineRangeRecord[] }`; residence is empty when no final resident interval exists. |
+| `LoadUnitRecord` | `{ name: string, kind: LoadUnitKind, publication: PublicationKind, artifact: ArtifactRecord, residence: MachineRangeRecord[] }`; residence is empty when no final resident interval exists. It lists static possible resident ranges and never claims which runtime range a call selected. |
 
 The remaining closed types are:
 

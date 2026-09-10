@@ -115,7 +115,9 @@ language semantics.
   left to right; evaluate every place, index, address, and value exactly once; preserve
   right-associative value-producing assignment; and implement selected-arm `?:` plus short-circuit
   `&&`/`||` without evaluating an unselected effect. Nested calls require compiler-owned staging,
-  never source-written temporaries. (AR-002, AR-003)
+  never source-written temporaries. When a later conditional effect depends on an evaluated place,
+  retain its physical byte range and provenance as a compiler-only flow fact rather than
+  reevaluating the expression. (AR-002, AR-003, AR-031)
 - [ ] **R4.14 — Implement every legal operator.** Cover unary, arithmetic, bitwise, logical,
   comparison, shift, conditional, simple assignment, and compound assignment over every legal
   width/signedness combination. Signed comparison, signed right shift, wide shifts, quotient
@@ -141,7 +143,11 @@ language semantics.
   report always-false and unreachable paths as specified, and distinguish indeterminate stored bits
   from optimizer undefined behavior. An uninitialized mutable declaration emits no implicit clear.
   Warnings for a nonzero uninitialized array and for a function-local maybe-read-before-assignment
-  are independent and may both apply. (AR-002, AR-014)
+  are independent and may both apply. The flow model admits correlated conditional memory effects:
+  strong updates apply only to a proved captured range and its must-aliases, may-aliases receive no
+  initialization credit, unselected ranges preserve their incoming state, joins meet facts from
+  every predecessor, and loops use the ordinary monotone fixed point. A feature may define a hard
+  read error after an effect that can partially invalidate storage. (AR-002, AR-014, AR-031)
 - [ ] **R4.19 — Complete enum semantics.** Preserve byte-backed nominal identity, declaration-order
   auto-numbering, explicit constant values, duplicate-value legality, unique names, qualified member
   access, export visibility, enum-to-byte conversion, explicit byte-to-enum conversion, and
@@ -190,9 +196,11 @@ language semantics.
 - [ ] **R4.27 — Implement complete addressable-place behavior.** `&` accepts all real storage
   places, including parameters and composed field/index expressions, evaluates them once, and
   yields `word`. Track local-origin and read-only provenance through copies, casts, conditionals,
-  `lo`/`hi`, arithmetic, and bitwise derivation. Reject the first return, longer-lived store,
+  `lo`/`hi`, arithmetic, and bitwise derivation. Alias analysis distinguishes must-alias, may-alias,
+  partial overlap, and must-not-alias for those physical ranges without exposing a new source type.
+  Reject the first return, longer-lived store,
   asynchronous publication, retaining/unproved call, or opaque escape; loaded data does not inherit
-  address provenance. (AR-015)
+  address provenance. (AR-015, AR-031)
 - [ ] **R4.28 — Implement placement and loadable-value semantics.** Parse, type, preserve, and
   validate the closed `place(at, align, noCross, region)` modifier on its legal declaration kinds.
   Implement `loadable const` as fixed compile-time-known nonresident data that cannot be read,
@@ -267,13 +275,16 @@ language semantics.
   place/value identity, evaluation order, selected control arm, volatility, memory width/count/order,
   alias/escape, symbolic storage, array ordinal/extent/stride, aggregate shape, callable target set,
   execution domain/entry variant, interrupt-sink ownership state and predecessor demand, placement,
-  calls/helpers/clobbers, target capability, costs, and source/debug association until each fact's
-  accountable consumer. (AR-002, AR-012)
+  captured physical range/provenance, correlated result identity, conditional strong/weak memory
+  updates, calls/helpers/clobbers, target capability, costs, and source/debug association until each
+  fact's accountable consumer. (AR-002, AR-012, AR-031)
 - [ ] **R4.38 — Build explicit control and effect graphs.** Represent all branch, loop, switch,
   short-circuit, conditional, call, return, interrupt, safety-stop, and unreachable edges. Track
   ordered RAM/MMIO/CPU effects, interrupt install/restore/raw-invalidation ownership transitions,
-  and per-parameter retaining summaries. No later pass may infer semantic order, volatility, or
-  sink ownership from emitted text. (AR-003, AR-012, AR-018)
+  per-parameter retaining summaries, and the correlation between a call result and its captured
+  conditional memory effect even when the result is stored before it is tested. No later pass may
+  infer semantic order, volatility, or sink ownership from emitted text. (AR-003, AR-012, AR-018,
+  AR-031)
 - [ ] **R4.39 — Close the complete whole-program graph.** Include entry/startup, deterministic
   module initializers, direct calls, every finite indirect target, address-taken/exported roots,
   recognized callback/interrupt roots, and compiler-selected helpers. Use precise callable targets
@@ -638,7 +649,8 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
    operand-width runtime wrap, association, shifts, signed comparison/division/remainder, and no
    host-number leakage.
 10. [ ] **AC-10 — Expression effects:** Mutation probes prove left-to-right and exactly-once
-    evaluation, assignment values, nested calls, short circuit, and selected conditional arms.
+    evaluation, assignment values, nested calls, short circuit, selected conditional arms, and
+    retained range/provenance identity for a later correlated conditional effect.
 11. [ ] **AC-11 — Division boundary:** Constant zero errors; default runtime zero terminates with
     bounded effects; enabled checks stop before division with the exact no-runtime C64 terminal
     sequence and complete cost report.
@@ -648,7 +660,8 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     type/value checks, one default, nested exits, generic lowering, and measured selected forms.
 14. [ ] **AC-14 — Initialization:** Cases distinguish existing stored bits, function-local
     maybe-read warnings, independent uninitialized-array warnings, explicit initialization, startup
-    ordering, and absence of blanket clear code.
+    ordering, conditional strong/weak updates, predecessor joins, loop fixed points, and absence of
+    blanket clear code.
 15. [ ] **AC-15 — Fixed arrays:** Cases cover zero/maximum extents, total-size failure, inference,
     fill/string/nested initializers, row-major shape, arrays of structs, and per-level `length`.
 16. [ ] **AC-16 — Ordinals and bounds:** Cases cover every integer-producing subscript operator,
@@ -666,7 +679,7 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     word length, mutable/const transitive access, forwarding, aliasing, and invalid scalar `const`.
 21. [ ] **AC-21 — Address provenance:** Legal composed addresses evaluate once and remain contained;
     every copy/derivation, non-retaining call, escape class, sequential reuse, and overlapping-domain
-    case produces the exact lifetime/SFA result.
+    case produces the exact lifetime/SFA and must/may/not-alias result.
 22. [ ] **AC-22 — Ordinary calls:** Direct/cross-module/nested calls and scalar/aggregate parameters/
     returns preserve values, effects, ABI, SFA homes, clobbers, and stack peak without a source
     parameter limit.
@@ -695,7 +708,8 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     signature/version/selector/type/size validation, deduplication, provenance, failure suppression,
     symbolic placement, and no runtime parsing/copy.
 30. [ ] **AC-30 — Representation payload:** Transition probes show every R4.37 fact present until
-    its named consumer discharges it; no backend or emitter guesses source semantics.
+    its named consumer discharges it, including captured-range/result correlations; no backend or
+    emitter guesses source semantics.
 31. [ ] **AC-31 — Complete roots and SFA:** Evidence enumerates all roots/edges/domains/homes,
     liveness/interference/alias/escape, overlays, ZP/stack, helper feedback, deterministic convergence,
     and final no-new-storage closure.

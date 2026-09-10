@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 6 open findings (5 major, 1 minor); PF-001–PF-023 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 5 open findings (4 major, 1 minor); PF-001–PF-024 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `c1002b3ea3b6e4e27a7f475fa96c849566491bd995bb90f1eb8a052bca262383`
+> **Artifact Digest**: `9b54477a145efdd18748f2dcc5cf0d5d8ac76a0d0a2f323ed12c97810ec0229f`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -793,12 +793,28 @@ service, database, generator, or shared schema framework.
 do not say which possible place becomes initialized or indeterminate. Marking all candidates is
 unsound; marking none prevents the approved modern source behavior.
 
-**Only viable correction — Recommended:** Capture the once-evaluated concrete place symbolically.
-At runtime, success initializes only that place and failure invalidates only that place. A later
-read is accepted only when control-flow and alias analysis prove that it denotes the captured place
-on every reaching path. Add unchanged-index, changed-index, alias, join, loop, and failure cases;
-add no runtime token or descriptor.
-**Decision:** Pending.
+**Only viable correction — Recommended:** Give each evaluated load call a fresh compiler-only
+capture/result identity containing the selected physical byte range and provenance. Success
+initializes only that range; failure invalidates only that range; every definitely unselected range
+preserves its incoming state. A later read is legal when its complete range is initialized on every
+reaching path. It may rely on this load's logical value only when the successful result dominates
+the read and must-alias analysis relates it to the captured range on every reaching path. Qualify
+unchanged/changed/volatile indexes, stored results, must/may aliases, partial overlap, joins, loops,
+repeated loads, failure, and asynchronous observers. Add no runtime token, descriptor, validity
+byte, bitmap, or read check.
+**Confidence:** High. **Hardening:** An independent challenger confirmed the finding and the
+compiler-only design. It refined “place” to the evaluated physical byte range plus provenance,
+broadened quiescence to every selected-profile asynchronous agent, and identified the need for a
+distinct hard diagnostic rather than the ordinary function-local uninitialized warning.
+**Decision:** Accepted by the user on 2026-09-11 with the instruction to choose the best option.
+**Resolution:** RD-01 now requires the exact Specification 4 semantics and diagnostic. RD-04 retains
+captured range/result correlations in ordinary flow, alias, control, and effect facts. RD-07 defines
+byte-granular strong/weak updates, predecessor meets, loop fixed points, repeated-call invalidation,
+failure behavior, quiescence, diagnostics, and complete acceptance coverage. RD-03 clarifies that
+its frozen sidecars list static possible ranges rather than runtime selections, so no schema or
+runtime-state field was added. AR-031/AR-043 and discovery notes carry the same durable rule. Target
+cost is zero beyond the already-required destination address evaluation and ordinary reported call
+storage; exact host analysis cost remains unknown until implementation measurement.
 
 ### PF-025: The literal output basename is unsafe on Windows 🟠 MAJOR
 
@@ -886,13 +902,13 @@ implemented or qualified exactly.
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
-- The deep rescan found PF-021 through PF-029. PF-021 through PF-023 were corrected after the
-  user's explicit decisions; PF-024 through PF-029 remain unchanged and pending.
+- The deep rescan found PF-021 through PF-029. PF-021 through PF-024 were corrected after the
+  user's explicit decisions; PF-025 through PF-029 remain unchanged and pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-023 resolved and six deep-rescan findings
+**Current Result:** **BLOCKED** with PF-001 through PF-024 resolved and five deep-rescan findings
 awaiting decisions.

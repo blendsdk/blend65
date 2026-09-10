@@ -118,8 +118,13 @@ the parked worktree.
   Placement constraints can strengthen but never weaken profile, visibility, banking, alignment,
   ownership, or reserved-range facts. A loadable value retains a fixed logical type and provenance
   but is not readable, indexable, addressable, mutable, or ordinarily passable until an explicit
-  selected-profile load succeeds into a compatible mutable fixed destination. (AR-020, AR-029,
-  AR-031)
+  selected-profile load succeeds into a compatible mutable fixed destination. A dynamic destination
+  captures its once-evaluated physical byte range and provenance in compiler flow state. Success
+  initializes only that range, failure invalidates only that range, and every unselected candidate
+  preserves its incoming state. Later reads require definite initialization on every reaching path;
+  claiming the newly loaded logical value additionally requires must-alias proof against the
+  captured range. This introduces no target token, descriptor, validity byte, or read check.
+  (AR-020, AR-029, AR-031)
 - [ ] **R1.13 — Apply the finite low-level intrinsic surface.** The only opcode-shaped source
   operations are `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop`, each with exact CPU,
   flag, stack, scheduling, optimizer, and selected-profile legality semantics. Variable-address
@@ -148,10 +153,11 @@ the parked worktree.
   removes the prior zero-high-nibble rejection. (AR-039 through AR-041)
   The D64 profile uses one optional, built-in, uncompressed KERNAL sequential loader. Its
   `SETLFS`/`SETNAM`/relocating-`LOAD` ABI, boot-device reuse, explicit application-route
-  quiescence, direct destination write, success/failure publication, and exact D64/1541 format are
-  normative. The compiler-produced D64 is trusted; `HLE-010` records that stock `LOAD` has no
-  destination-length bound and therefore cannot contain a readable longer replacement before its
-  returned end address is checked. (AR-042 through AR-044)
+  and selected-profile external/DMA-agent quiescence, direct destination write, captured-range
+  success/failure publication, and exact D64/1541 format are normative. The compiler-produced D64
+  is trusted; `HLE-010` records that stock `LOAD` has no destination-length bound and therefore
+  cannot contain a readable longer replacement before its returned end address is checked.
+  (AR-042 through AR-044)
 - [ ] **R1.16 — Remove false target authority.** `spec/appendix-c64u.md`,
   `spec/appendix-cx16.md`, `spec/appendix-a800xl.md`, and `spec/appendix-a7800.md` must not remain
   active normative Specification 4 documents. Git preserves their drafts. Concise future-target
@@ -182,8 +188,12 @@ the parked worktree.
   Reserve E10267 for malformed supported-version public artifact evidence and E10268 only for an
   unsupported positive integer public artifact schema version. Their distinct messages and
   ownership follow RD-03's validation precedence and must enter the registry before any public
-  sidecar producer specification test.
-  (AR-002, AR-003, AR-014)
+  sidecar producer specification test. Add a distinct error for a read whose range may have been
+  invalidated by a failed or uncorrelated load: its primary span is the read and its related spans
+  identify the governing load plus the mutation, join, or failure edge that prevents a definite
+  must-alias success proof. This is stricter than the ordinary function-local uninitialized warning
+  because a failed KERNAL transfer may have partially overwritten a global, parameter, field, or
+  array element. (AR-002, AR-003, AR-014, AR-031)
 - [ ] **R1.21 — Publish expert baseline `2.0.0`.** Reconcile the expert router, every affected
   knowledge reference, source-governance record, qualification oracle, coverage matrix, and release
   record against the frozen Specification 4 identity. Correct current wording that presents
@@ -513,7 +523,9 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 12. [ ] **AC-12 — Placement/loadable contract:** Positive and negative examples cover every
     `place(...)` key, combined constraints, illegal target, collision, unsatisfied region,
     `loadable const` compile-time use, illegal direct reads/addressing, compatible destination,
-    successful publication, and failed-load unspecified destination.
+    successful publication, failed-load unspecified destination, unchanged and changed dynamic
+    indexes, must/may aliases, joins, loops, repeated loads, partial overlaps, and preservation of
+    every definitely unselected candidate without runtime state.
 13. [ ] **AC-13 — Intrinsic contract:** The normative intrinsic inventory contains exactly the five
     admitted `asm_*` names. Every other opcode-shaped source name, inline assembly block, and
     external assembly function is rejected, while `POKE(variableAddress, value)` remains legal and
