@@ -11,7 +11,7 @@
 > only when initializers exist. Closes **RD-18 AC-4**.
 > **Status**: Planning Complete · Zero-Ambiguity Gate ✅ PASSED (2026-07-10, `00-ambiguity-register.md`; AR-1…AR-13 + imported I-1…I-3)
 > **Created**: 2026-07-10
-> **Implements**: blend65-ri/RD-18 (Slice 5b — the module-system half of the Slice-5 row; closes AC-4)
+> **Implements**: blend65-ri/RD-18
 > **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md) (Slice 5 row; AC-4)
 > **CodeOps Skills Version**: 3.3.1
 

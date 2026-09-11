@@ -4,7 +4,7 @@
 > and tier-2 (>256-byte) arrays via `(zp),Y` indirect addressing — completing RD-18 Slice 7
 > **Status**: Planning Complete
 > **Created**: 2026-07-12
-> **Implements**: blend65-ri/RD-18 acceptance item 6 (closes it) — the "pointer surface" half of
+> **Implements**: blend65-ri/RD-18
 > the Slice-7 split per the 7a plan's AR-1 (RD-18's slice map titles row 7 "Aggregates")
 > **CodeOps Skills Version**: 3.3.1
 

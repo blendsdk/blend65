@@ -8,7 +8,7 @@
 > exhaustiveness are out of scope (→ Slice 7, AR-2). Closes RD-18 AC-3.
 > **Status**: Planning Complete · Zero-Ambiguity Gate ✅ PASSED (2026-07-07, `00-ambiguity-register.md`; AR-1…AR-14)
 > **Created**: 2026-07-07
-> **Implements**: blend65-ri/RD-18 (Slice 4b — the `switch` portion of the Slice-4 row; closes AC-3; Parked Q4)
+> **Implements**: blend65-ri/RD-18
 > **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md) (Slice 4 row; AC-3; Parked Q4)
 > **CodeOps Skills Version**: 3.2.0
 

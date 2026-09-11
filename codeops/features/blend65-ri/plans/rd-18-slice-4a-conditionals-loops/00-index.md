@@ -8,7 +8,7 @@
 > is out of scope (→ Slice 4b, AR-1).
 > **Status**: Planning Complete · Zero-Ambiguity Gate ✅ PASSED (2026-07-06, `00-ambiguity-register.md`; AR-1…AR-15)
 > **Created**: 2026-07-06
-> **Implements**: blend65-ri/RD-18 (Slice 4a — the conditional/loop portion of the Slice-4 row + AC-3)
+> **Implements**: blend65-ri/RD-18
 > **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md) (Slice 4 row; AC-3; Parked Q3)
 > **CodeOps Skills Version**: 3.2.0
 

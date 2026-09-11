@@ -12,7 +12,7 @@
 > `00-ambiguity-register.md`, AR-1…AR-14) · Preflight ✅ PASSED (2026-07-11,
 > `00-preflight-report.md`, 13/13 findings resolved + fixes applied)
 > **Created**: 2026-07-11
-> **Implements**: blend65-ri/RD-18 (Slice 6 row; closes AC-5)
+> **Implements**: blend65-ri/RD-18
 > **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md) (Slice 6 row; AC-5)
 > **CodeOps Skills Version**: 3.3.1
 

@@ -3,7 +3,7 @@
 > **Feature**: Arrays, structs, and enums end-to-end through the direct-addressing surface — typing → SFA → IL → 6502 → data section → real VICE
 > **Status**: Planning Complete — preflight passed (13/13 resolved), accepted fixes applied 2026-07-11
 > **Created**: 2026-07-11
-> **Implements**: blend65-ri/RD-18 (acceptance item 6 — 7a half; closes at 7b)
+> **Implements**: blend65-ri/RD-18
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview

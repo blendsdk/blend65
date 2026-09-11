@@ -1,7 +1,7 @@
 # RD-09: ACME Emitter & Assembler Integration — Implementation Plan
 
 > **Feature**: Serialize the `InstrProgram` to ACME `.asm` text and drive ACME to a platform binary
-> **Implements**: RD-09
+> **Implements**: blend65-ri/RD-09
 > **Status**: Planning Complete
 > **Created**: 2026-06-10
 

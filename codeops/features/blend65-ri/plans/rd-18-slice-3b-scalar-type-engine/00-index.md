@@ -6,7 +6,7 @@
 > and mixed-signedness is rejected with **E10081**.
 > **Status**: Planning Complete · Preflight ✅ PASSED (2026-07-05, `00-preflight-report.md`; AR-11 code-reconciliation applied)
 > **Created**: 2026-07-05
-> **Implements**: blend65-ri/RD-18 (Slice 3b)
+> **Implements**: blend65-ri/RD-18
 > **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md) (Slice 3b row + AC-2)
 > **CodeOps Skills Version**: 3.2.0
 

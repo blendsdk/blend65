@@ -2,7 +2,7 @@
 
 > **Feature**: The peephole optimizer stage — v1 thin passthrough between codegen (RD-07) and
 >   the ACME emitter (RD-09).
-> **Implements**: RD-08
+> **Implements**: blend65-ri/RD-08
 > **Status**: Planning Complete
 > **Created**: 2026-06-10
 > **CodeOps Version**: see repo `package.json`

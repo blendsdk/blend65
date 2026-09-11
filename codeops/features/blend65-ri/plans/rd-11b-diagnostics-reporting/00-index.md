@@ -3,7 +3,7 @@
 > **Feature**: Complete the RD-11 diagnostics engine in `@blend65/core` — the `SourceMap` registry, the severity-policy layer, the terminal/JSON diagnostic renderers, and the `ResourceReport` aggregator with its terminal (Ch 11 §6 build summary) and JSON renderers
 > **Status**: Planning Complete
 > **Created**: 2026-07-03
-> **Implements**: blend65-ri/RD-11 (the RD-11b slice — RD-11a shipped ✅, archived at `codeops/_archive/rd-11a-diagnostics-core/`)
+> **Implements**: blend65-ri/RD-11
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview

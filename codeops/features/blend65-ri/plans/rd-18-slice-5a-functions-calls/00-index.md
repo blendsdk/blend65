@@ -11,7 +11,7 @@
 > closes there.
 > **Status**: Planning Complete · Zero-Ambiguity Gate ✅ PASSED (2026-07-10, `00-ambiguity-register.md`; AR-1…AR-16)
 > **Created**: 2026-07-10
-> **Implements**: blend65-ri/RD-18 (Slice 5a — the calling-convention half of the Slice-5 row; AC-4 partial, closes at 5b)
+> **Implements**: blend65-ri/RD-18
 > **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md) (Slice 5 row; AC-4)
 > **CodeOps Skills Version**: 3.3.1
 

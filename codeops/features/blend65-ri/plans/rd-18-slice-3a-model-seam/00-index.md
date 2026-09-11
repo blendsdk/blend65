@@ -5,7 +5,7 @@
 > VICE through the real model path.
 > **Status**: Planning Complete
 > **Created**: 2026-07-05
-> **Implements**: blend65-ri/RD-18 (Slice 3a)
+> **Implements**: blend65-ri/RD-18
 > **CodeOps Skills Version**: 3.2.0
 
 ## Overview
