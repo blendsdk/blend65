@@ -105,8 +105,11 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
 - [ ] **R7.10 — Publish one primary deployable artifact.** A successful disk-profile build
   stages `<name>.d64` plus the common `.asm`, `.labels`, `.memory.json`, `.assets.json`,
   `.costs.json`, `.debug.json`, and `.build.json` evidence inside one immutable build generation,
-  then atomically replaces the current-generation record. The direct JSON sidecars conform to their
-  RD-03 versioned schemas; `.debug.json` populates the existing load-unit, publication, residence,
+  then atomically replaces the current-generation record. This is the complete final component set:
+  only the primary D64 derives from the literal validated manifest basename, while every sidecar
+  has the fixed name shown. Materialize and validate the set before staging under RD-02/RD-03's
+  native ordinary-file, alias, exclusive-ownership, and prior-generation-preservation rules. The
+  direct JSON sidecars conform to their RD-03 versioned schemas; `.debug.json` populates the existing load-unit, publication, residence,
   address-space, location, and final-range record families without redefining them, and `.build.json`
   hashes every other contained artifact. The boot PRG and
   unit files are contained components, not separate advertised products. Any failure or pre-commit
@@ -643,8 +646,10 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
     hashes. Their `.build.json` files differ only in `generationId` and declared host provenance;
     their semantic-input, portable-tool, and artifact-hash projections match exactly.
 12. [ ] **AC-12 — Capacity boundaries:** Exactly fitting block and directory cases succeed; one
-    excess block, one excess unit entry, name collision, unrepresentable identity, and arithmetic
-    overflow fail before publication with exact contributors.
+    excess block, one excess unit entry, D64-directory name collision, unrepresentable disk
+    identity, host artifact-component alias/collision/limit, occupied non-regular output, and
+    arithmetic overflow fail before publication with exact contributors and preserve the prior
+    current generation.
 13. [ ] **AC-13 — No external packager:** Build succeeds without VICE/c1541 except when `run` or the
     emulator tier is requested; static inspection finds no shell command, hook, or plugin path.
 14. [ ] **AC-14 — Fresh run:** `run` pins one newly published generation, mounts drive 8 with only

@@ -119,9 +119,16 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
   `optimization` is exactly
   `none`, `balanced`, `speed`, or `size`; and both safety keys are booleans. When omitted,
   `optimization` is `balanced`, `assetPaths` is empty, and both safety switches are `false`. The
-  project `name` is one nonempty literal output basename: reject separators, NUL, `.` and `..`, or
-  any value that could escape `outDir`, but never rewrite it. Path values satisfy the exact host
-  filesystem and containment rules below.
+  project `name` is one nonempty, well-formed Unicode scalar sequence used literally as the primary
+  artifact basename. Reject `/`, `\`, NUL, control characters U+0001 through U+001F,
+  `<`, `>`, `:`, `"`, `|`, `?`, `*`, `.` and `..`, a final ASCII space or period, and a
+  Windows device stem matched with ASCII case-insensitivity before the first period: `CON`, `PRN`,
+  `AUX`, `NUL`, `COM1` through `COM9`, `LPT1` through `LPT9`, and the `COM`/`LPT` forms ending in
+  superscript `¹`, `²`, or `³`. Preserve every accepted code point, including casing,
+  Unicode, internal spaces, and internal periods; never normalize, fold, slug, truncate, or rewrite
+  it. Do not impose a guessed component-length limit: the final artifact gate and host filesystem
+  own actual limits. These output-name rules never apply to source or asset filenames. Path values
+  satisfy the exact host filesystem and containment rules below.
   (AR-022, AR-023, AR-028)
 - [ ] **R2.16 — Discover the nearest project predictably.** Without `--project`, project discovery
   starts at the caller's working directory and walks upward to the nearest `blend65.json`. With
@@ -182,9 +189,19 @@ compile Blend65 before RD-03 supplies the first real frontend and complete pipel
   diagnostics; it does not claim semantic `check`, `build`, or `run` completion before RD-03.
   (AR-021, AR-022, AR-033)
 - [ ] **R2.25 — Fail without publishing compiler artifacts.** RD-02 creates no `.asm`, labels,
-  binary, memory/assets/cost/debug reports, or emulator output. Invalid input cannot leave a
-  runnable-looking artifact or a partially published project snapshot. Temporary host data is
-  cleaned or remains outside the configured output directory. (AR-022, AR-025, AR-032)
+  binary, memory/assets/cost/debug reports, or emulator output. It nevertheless supplies the pure
+  basename validator required by R2.15 so later producers cannot reinterpret the project name.
+  Before any later artifact-producing RD invokes a tool or publishes, it must materialize its
+  complete selected-profile artifact-component set and reject duplicate or host-aliased names.
+  Staging is uniquely owned, and attempted creation—not a guessed numeric limit or stat-then-write
+  check—decides whether the native filesystem admits each component. Compiler-written generation
+  files use exclusive creation; a native limit, symlink, device, directory, occupied path,
+  truncation, overwrite, or merge inside that generation fails. The separately specified
+  atomic replacement of `current.json` is the only publication overwrite. A failure removes only
+  that incomplete unique staging area and preserves the prior current generation. Invalid input
+  cannot leave a runnable-looking artifact or a partially published project snapshot. Temporary
+  host data is cleaned or remains outside the configured output directory. (AR-022, AR-025,
+  AR-032)
 
 #### Focused proof without readiness machinery — complexity M
 
@@ -320,7 +337,7 @@ future language server -X-> target lowering/codegen/packaging/emulator
 | Key | Required | Initial contract |
 |---|---|---|
 | `schemaVersion` | Yes | Integer `1`; any other value is unsupported |
-| `name` | Yes | Nonempty literal output basename; no separator, NUL, `.`/`..`, escape, or rewriting |
+| `name` | Yes | Literal primary-artifact basename satisfying the shared Linux/Windows lexical safety floor in R2.15; accepted spelling is preserved exactly |
 | `sourceRoot` | Yes | One relative contained directory holding recursively discovered `.blend` files |
 | `entry` | Yes | Qualified Blend65 module identity, never a filesystem path |
 | `target` | Yes | Exact normative Specification 4 C64 profile identity |
@@ -357,7 +374,9 @@ change Blend65 array or target-memory semantics. (AR-022, AR-028)
 project, missing contained components may be created only by publication, and the whole subtree is
 excluded before any source or asset walk. Prior valid immutable generations are normal contents,
 not inputs. A sourceRoot of `.` is therefore valid with a nested output directory. Blend65 does not
-impose cross-host filename portability: it reads the exact names accepted by the current host.
+impose cross-host portability on input/source/asset filenames: it reads the exact names accepted by
+the current host. The separate manifest `name` follows R2.15 because it controls a
+compiler-produced primary artifact on both declared production hosts.
 
 ### Diagnostic foundation — complexity M
 
@@ -366,7 +385,11 @@ span when available, related spans for conflicts, and actionable correction. Ord
 exact project-relative source identity, byte offset, severity, code, and message tie-break. Root causes suppress
 causal cascades where a trustworthy fact is unavailable. Diagnostics never expose a host stack
 trace for expected input errors and never convert an invalid project into a usable partial
-snapshot. (AR-021, AR-022, AR-025)
+snapshot. An invalid manifest `name` points to `/name` and distinguishes ill-formed Unicode,
+forbidden character, trailing character, dot-name, and reserved-device-stem reasons; it escapes the
+offending code point and never proposes a silent rewrite. A later native artifact failure identifies
+the logical artifact and final component plus a stable host error code when useful, but exposes no
+absolute host path or stack. (AR-021, AR-022, AR-025)
 
 ### Verification topology — complexity M
 
@@ -376,9 +399,9 @@ RD-02 uses only direct proof:
 |---|---|
 | Toolchain | Clean install, TypeScript 7 identity, package build order, strict typecheck, no lint task |
 | Workspaces | Public exports resolve; dependency cycles and forbidden frontend/backend imports fail |
-| Manifest | Valid JSONC plus each missing, duplicate, unknown, wrong-type, and unsupported-version case |
+| Manifest | Valid JSONC plus each missing, duplicate, unknown, wrong-type, unsupported-version, and output-basename case |
 | Discovery | Nearest/explicit manifest behavior from several working directories |
-| Paths | Relative resolution, absolute rejection for content, `..`/symlink escape, case collision, unreadable/wrong-type paths |
+| Paths | Relative resolution, absolute rejection for content, `..`/symlink escape, source identity preservation, final artifact-component collision/alias, and unreadable/wrong-type paths |
 | Inventory | Stable `.blend` ordering, empty source root, deep tree limit, file replacement/disappearance |
 | Snapshot | Identical hashes for identical input and no mixed result under a controlled mid-read change |
 | Salvage | One focused proof per port/adaptation and a structural check that rejected packages/workflows are absent |
@@ -531,8 +554,15 @@ profile, manifest target, or implementation. (AR-024, AR-035)
     comments, and trailing commas loads to the exact typed values and defaults defined by R2.15.
 13. [ ] **AC-13 — Manifest negative cases:** Separate tests reject every missing required key,
     duplicate key, unknown key, unsupported `schemaVersion`, wrong JSON type, invalid enum, and
-    invalid path value plus empty, separator-containing, NUL-containing, `.`/`..`, and escaping
-    project names with a stable diagnostic and source span. A legal name is preserved literally.
+    invalid path value. Basename cases cover empty and ill-formed Unicode strings; every forbidden
+    character and control character; `.`/`..`; trailing ASCII space/period; and every reserved
+    device stem, including mixed-case and extension-bearing cases such as `NuL`, `NUL.txt`, and
+    `COM¹.map`; and escaping names,
+    with the exact reason, `/name` source span, and escaped offending point. Near misses including
+    `CONSOLE`, `COM0`, `COM10`, `LPT0`, and `.temp` are accepted. Legal casing, Unicode, internal
+    spaces, and internal periods are preserved literally. A source filename such as `NUL.blend` or
+    `a:b.blend` remains an exact input identity on any host that admits it; the output validator is
+    never applied to the source inventory.
 14. [ ] **AC-14 — Project discovery:** Tests from the project directory, a nested directory, an
     unrelated directory, and with an explicit relative and absolute `--project` path prove that the
     nearest or explicit manifest wins and that its directory is always the project root.
@@ -540,8 +570,11 @@ profile, manifest target, or implementation. (AR-024, AR-035)
     absolute manifest content paths, lexical `..` escape, symlink escape/race, symlink cycle, wrong
     input file type, unreadable input, resolved identity outside the project root, a file where an
     output directory is required, and an explicit source/asset inside `outDir`. First-build creation
-    of a missing contained `outDir` succeeds. Linux simulation of Windows paths is supporting
-    evidence only, not Windows qualification.
+    of a missing contained `outDir` succeeds. An injected filesystem boundary proves that the
+    complete derived artifact set rejects duplicate/native-alias components, actual host component
+    limits, existing symlink/device/directory paths, and exclusive-create collisions without
+    changing the prior current generation; no universal numeric filename limit is asserted. Linux
+    simulation of Windows paths is supporting evidence only, not Windows qualification.
 16. [ ] **AC-16 — Source inventory:** A fixture tree returns only regular `.blend` files under
     `sourceRoot` in deterministic exact-spelling order, independent of creation/enumeration order;
     preserves case, spaces, and Unicode without normalization or folding; and excludes a nested

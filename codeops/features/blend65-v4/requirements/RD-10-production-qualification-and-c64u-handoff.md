@@ -102,11 +102,14 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   `win32/x64` environments, install the locked workspace, build/package the public products, run
   language/project/security tests, execute CLI `check`/`build`/fresh `run`, start the LSP, exercise
   the packaged VS Code extension, discover pinned ACME/VICE, cancel owned child trees, and validate
-  unique staging, immutable-generation commit, atomic current-record replacement, run pinning, and
-  retention cleanup. Linux simulation of Windows paths or processes is supporting evidence only.
-  (AR-021, AR-022, AR-036, AR-047, AR-048)
+  the shared manifest-basename predicate, exact PRG/D64 and fixed-sidecar component plans, native
+  component limits and aliases, unique staging, ordinary-file/exclusive ownership,
+  immutable-generation commit, atomic current-record replacement, run pinning, and retention
+  cleanup. Linux simulation of Windows paths or processes is supporting evidence only. (AR-021,
+  AR-022, AR-036, AR-047, AR-048)
 - [ ] **R10.12 — Prove cross-host output identity.** Both production hosts build the same frozen
-  release projects under identical profiles, modes, and safety options. Normalized assembly,
+  release projects under identical profiles, modes, safety options, and manifest names admitted by
+  the shared Linux/Windows lexical floor. Normalized assembly,
   labels, maps, debug evidence, packaged PRG/D64 bytes, diagnostics, and semantic query results are
   byte-identical where their contracts exclude host identity. `.build.json` records canonical
   semantic inputs and portable tool identities and hashes every other artifact, never itself.
@@ -595,15 +598,22 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     cancel owned process trees, and validate unique staging, immutable generation/current-record
     publication, concurrent build/run pins, and bounded retention. Current, active pins, and the
     newest unpinned predecessor survive cleanup; only older unpinned generations are deleted under
-    the project lock. First and repeated builds prove that `outDir` is creatable compiler-owned
-    output state excluded from discovery/hashes, including under `sourceRoot: "."`; file, symlink,
-    escape, and declared-input collisions fail safely. Wine, containers pretending to be Windows,
-    or path fixtures cannot replace the native Windows run.
+    the project lock. The same accepted Unicode/space/period basename set is preserved on both
+    hosts; every forbidden character, Windows reserved stem, native component-limit boundary,
+    host alias, exclusive-create race, and occupied symlink/device/directory fails before
+    publication without changing the prior current generation. First and repeated builds prove
+    that `outDir` is creatable compiler-owned output state excluded from discovery/hashes,
+    including under `sourceRoot: "."`; file, symlink, escape, and declared-input collisions fail
+    safely. Wine, containers pretending to be Windows, or path fixtures cannot replace the native
+    Windows run.
 11. [ ] **AC-11 — Cross-host determinism:** Both hosts build all frozen release projects. Normalized
     assembly, labels, maps, diagnostics, debug evidence, PRGs, and D64s are byte-identical. Each of
     `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` passes its independent versioned
     schema, exact `Unknown`/field/canonical-encoding rules, and unsupported-major cases. Identical
-    semantic inputs and portable tool identities yield identical deterministic output hashes;
+    semantic inputs and portable tool identities yield identical deterministic output hashes. The
+    artifact inventory is exactly one literal-name primary PRG or D64 plus the fixed common
+    sidecars; generated assembly contains no `!to`, manifest name, or output path, and ACME receives
+    output ownership only through separate validated direct arguments. Only
     `.build.json` excludes itself from its artifact hashes. Only `generationId` and declared
     host/tool-path/hash/timing/memory provenance fields may differ.
 12. [ ] **AC-12 — Tool discovery:** Configured path, absent config, single omitted key, PATH, every

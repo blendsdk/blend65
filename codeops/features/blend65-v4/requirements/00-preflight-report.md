@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 5 open findings (4 major, 1 minor); PF-001–PF-024 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 4 open findings (3 major, 1 minor); PF-001–PF-025 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `9b54477a145efdd18748f2dcc5cf0d5d8ac76a0d0a2f323ed12c97810ec0229f`
+> **Artifact Digest**: `9b6b66b19be97cde24e633edda4fd658bf7acaea6cb6feb7bf569889ca4fd2e6`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -825,13 +825,42 @@ alternate-data-stream colons, invalid filename characters, or trailing dot/space
 name can violate the required ordinary contained regular-file output model. This concerns the
 manifest output basename, not source filenames.
 
+**Grounding:** Microsoft's filename contract reserves the device stems even with extensions,
+forbids the named punctuation/control range, and warns against trailing ASCII period/space. Node's
+filesystem contract makes `:` an alternate-data-stream selector on NTFS and supplies exclusive
+creation for compiler-owned files. ACME 0.97 officially accepts output, format, report, and symbol
+paths as command-line options, so no project-controlled output name needs to enter generated
+assembly. Primary sources: [Windows naming rules](https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file),
+[Node.js filesystem API](https://nodejs.org/api/fs.html), and
+[ACME 0.97 QuickRef](https://github.com/martinpiper/ACME/blob/master/docs/QuickRef.txt).
+
 | Option | Description | Tradeoff |
 |---|---|---|
-| A — **Recommended** | Preserve the literal name but require every derived artifact name to be one ordinary regular filename on the current host. Add native Windows device, ADS colon, invalid-character, and trailing-dot/space rejection cases. | Matches host reality without normalizing or restricting source filenames. |
-| B | Adopt one restrictive cross-host portable basename grammar. | Easier uniformity, but rejects legal host names and conflicts with the exact-host-name direction. |
+| A — **Recommended after hardening** | Preserve input/source filenames exactly as each host exposes them. Give only manifest `name` a small shared Linux/Windows lexical safety floor; preserve accepted spelling. Materialize the exact profile-owned output component set, reject aliases before tool execution, let exclusive unique staging expose real native limits/ordinary-file failures, and pass output ownership to ACME only through separate direct arguments. | Rejects a few names Linux could emit so one declared production project cannot fail merely because it is built on Windows; adds no source-path portability policy or rewriting. |
+| B | Validate the derived output components only on the current host. | Preserves every Linux-valid basename, but allows a production project manifest that is valid on Linux and intrinsically unbuildable on the equally supported Windows host. |
 
-**Recommendation:** Option A.
-**Decision:** Pending.
+**Recommendation:** Option A. Apply the shared floor only to the single compiler-owned basename,
+then let the real native filesystem decide component-length and alias constraints. This is smaller
+and more predictable than a slug, portability grammar, filesystem-capability database, or
+host-specific manifest meaning.
+
+**Confidence:** High. **Hardening:** The required independent challenger diverged from the original
+current-host-only recommendation. It established that Windows is a declared production host, so a
+shared lexical floor is warranted for this one compiler-controlled basename while source and asset
+filenames remain host-native. It also closed two adjacent gaps: validate the complete derived
+artifact plan before staging, and keep the project name/output path out of generated ACME source by
+using direct `--format`, `--outfile`, `--report`, and `--symbollist` arguments.
+**Decision:** Applied on 2026-09-11 under the user's instruction to proceed and standing direction
+to choose the best option.
+**Resolution:** AR-022 and RD-02 now freeze the pure basename predicate: well-formed Unicode; no
+separators, NUL/C0 controls, Windows-invalid punctuation, dot names, trailing ASCII space/period, or
+ASCII-case-insensitive reserved device stem (including extension and superscript-number forms).
+Accepted casing, Unicode, internal spaces, and periods are preserved literally; source/asset names
+are explicitly excluded. RD-03 and RD-07 freeze the exact PRG/D64 plus fixed-sidecar component sets,
+native alias/limit and ordinary-file/exclusive-ownership gates, prior-current preservation, and
+driver-owned ACME output arguments without `!to`. RD-10 qualifies the same behavior on native
+Linux/Windows. The correction has zero target bytes/cycles and adds no rewrite, slug, filename
+framework, capability database, runtime, or readiness service.
 
 ### PF-026: Stale run-pin recovery has no race-safe contract 🟠 MAJOR
 
@@ -903,12 +932,12 @@ implemented or qualified exactly.
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
 - The deep rescan found PF-021 through PF-029. PF-021 through PF-024 were corrected after the
-  user's explicit decisions; PF-025 through PF-029 remain unchanged and pending.
+  user's explicit decisions. PF-025 is now corrected; PF-026 through PF-029 remain pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-024 resolved and five deep-rescan findings
+**Current Result:** **BLOCKED** with PF-001 through PF-025 resolved and four deep-rescan findings
 awaiting decisions.

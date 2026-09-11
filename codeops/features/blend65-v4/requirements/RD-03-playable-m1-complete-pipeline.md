@@ -209,19 +209,32 @@ product. (AR-038)
   deterministic ACME 0.97 source with explicit CPU, origin, segments, align fill, stable labels,
   parenthesized expressions, and deliberate addressing widths. The emitter performs no semantic
   optimization, storage allocation, target policy, asset parsing, or string-based branch repair.
-  (AR-012, AR-027)
+  Generated source contains no `!to` directive and never interpolates the manifest `name`, final
+  output path, or another raw project string as ACME source syntax. Program values and symbols are
+  emitted only through their typed compiler-owned serializers. The compiler driver is the sole
+  owner of output name and format. (AR-012, AR-022, AR-027)
 - [ ] **R3.26 — Invoke and verify ACME exactly.** Discover ACME outside project configuration,
   require version 0.97, and invoke it with an argument array using `--cpu 6502` so ACME rejects
-  undocumented forms while the compiler separately models the 6510 port. Supply explicit
-  format/output/report/symbol options and `--strict-segments`, and treat any diagnostic/error as
+  undocumented forms while the compiler separately models the 6510 port. Supply `--format cbm`,
+  `--outfile`, `--report`, and `--symbollist` as separate direct arguments containing the validated
+  canonical staging paths for `<name>.prg`, fixed staging-only `.acme.report`, and published fixed
+  `.labels`, plus `--strict-segments`; generated source is fixed `.asm`. Do not use a shell or
+  permit project data to become an option. Before invocation, require the three output paths to be
+  distinct and absent inside the unique staging directory. After invocation, require every expected
+  output to be an ordinary regular file at its planned identity; reject a symlink, device,
+  directory, alias, unexpected file, stale output, or overwrite. Treat any diagnostic/error as
   build failure. Verify process status, report, symbol list, actual bytes, segment ranges,
-  addressing widths, asset bytes, and PRG header/body agreement before publication. (AR-022,
-  AR-027, AR-032)
+  addressing widths, asset bytes, and PRG header/body agreement, then remove `.acme.report` before
+  publication. (AR-022, AR-027, AR-032)
 - [ ] **R3.27 — Publish one coherent evidence set atomically.** A successful build publishes the
   PRG plus deterministic assembly, labels, memory/segment map, asset map, SFA/closure report,
   zero-page and hardware-stack report, code/data/padding and path-cycle report, source/debug map,
-  selected-profile/tool identities, options/overrides, and input/output SHA-256 values. Each JSON
-  sidecar conforms to its small direct versioned schema. All files bind one snapshot through
+  selected-profile/tool identities, options/overrides, and input/output SHA-256 values. The
+  selected profile materializes and validates the complete final component set before staging:
+  `<name>.prg`, `.asm`, `.labels`, `.memory.json`, `.assets.json`, `.costs.json`, `.debug.json`, and
+  `.build.json` for M1. The basename is preserved literally only in the primary artifact; fixed
+  sidecar components never derive from it. Each JSON sidecar conforms to its small direct versioned
+  schema. All files bind one snapshot through
   explicit semantic-input and output hashes inside one uniquely named immutable generation; one
   atomically replaced current-generation
   record publishes the complete set. A failed or pre-commit-cancelled build publishes no new
@@ -425,12 +438,23 @@ because those are the same bytes loaded to their final address—not two runtime
 
 ### Artifact publication — complexity L
 
-The primary artifact name is `<name>.prg`. Supporting files use deterministic documented names and
-machine-readable schemas. The producer assigns the lowercase canonical UUID v4 returned by Node
-`crypto.randomUUID()` as one unique opaque `generationId`, stages one complete immutable generation
+The complete M1 generation contains exactly `<name>.prg`, `.asm`, `.labels`, `.memory.json`,
+`.assets.json`, `.costs.json`, `.debug.json`, and `.build.json`; no other ACME or compiler output is
+published. Before tool invocation or publication, the selected-profile artifact plan validates
+every final component separately. Pure checks reject duplicate names and known host aliases;
+creation inside the unique staging directory decides actual native component/path limits and
+ordinary-file ownership without guessing a universal maximum filename length. The project basename uses
+RD-02's shared Linux/Windows lexical safety floor and is preserved literally; source and asset
+filenames remain outside that rule. The producer assigns the lowercase canonical UUID v4 returned
+by Node `crypto.randomUUID()` as one unique opaque `generationId`, stages one complete immutable generation
 under that name, and atomically replaces one small current-generation record only after compiler,
 ACME, byte, layout, and packaging validation succeeds. An existing target generation fails
-publication rather than being overwritten or reused. The current record
+publication rather than being overwritten or reused. Every compiler-owned file is created
+exclusively and must remain the expected ordinary regular file; symlinks, devices, directories,
+truncation, overwrite, merging, and stat-then-write authorization inside the immutable generation
+are forbidden. The deliberately replaced publication component is only fixed
+`<outDir>/current.json`; the generation directory name is the canonical UUID v4 already specified,
+so neither is derived from project data. The current record
 contains the `generationId` and the SHA-256 of the generation's `.build.json`. Readers resolve the
 record once and retain the selected generation for their whole operation, so concurrent builds
 cannot expose mixed siblings. `.build.json` records the canonical Specification 4, compiler,
@@ -1032,6 +1056,8 @@ no C64U target identity or support claim; the owned successor activates only aft
   timeouts, and process output bounds.
 - Invoke ACME and VICE with argument arrays and canonical executable paths. Project data cannot
   insert shell commands, options, includes, output paths, ACME source, or VICE monitor commands.
+  ACME output ownership is expressed only through the driver's separate `--format`, `--outfile`,
+  `--report`, and `--symbollist` arguments; generated source contains no `!to` directive.
 - Bind VICE monitors to fresh loopback-only ports, authenticate ownership by exact child/session,
   bound all waits and retained responses, cancel cleanly, and never connect to an unrelated service.
 - VS Code workspace analysis is allowed without trust, but this RD adds no editor-triggered process
@@ -1125,13 +1151,18 @@ no C64U target identity or support claim; the owned successor activates only aft
     `$080D` entry, established state, initializer order, fallthrough to `main`, preserved cooperative
     KERNAL IRQ, restored owned state, and normal return to BASIC.
 26. [ ] **AC-26 — ACME terminal boundary:** Source inspection and seeded failures prove the emitter
-    only serializes final decisions; strict ACME invocation, actual report/symbol/byte checks, and
-    output suppression behave exactly.
+    only serializes final decisions and contains no `!to`, manifest name, or output path. Invocation
+    inspection proves the exact separate `--format cbm`, `--outfile`, `--report`, and
+    `--symbollist` argument values under the validated staging root. Strict ACME invocation,
+    actual report/symbol/byte checks, and output suppression behave exactly.
 27. [ ] **AC-27 — Coherent artifacts:** Every required evidence file passes its direct version-1
-    schema, has one semantic-input record and immutable generation identity, and has the correct hash. A
-    concurrent reader pins one complete generation; an input change, pre-commit cancellation, or
-    seeded compiler/ACME/layout/package failure publishes no mixed or stale set. Post-commit run
-    cancellation preserves that build and stops only emulator/control work.
+    schema, has one semantic-input record and immutable generation identity, and has the correct
+    hash. Cases cover the exact PRG and fixed-sidecar component set, basename preservation, native
+    component-length rejection, case/alias collision, occupied symlink/non-regular paths, and
+    exclusive-create collision. A concurrent reader pins one complete generation; an input change,
+    pre-commit cancellation, or seeded compiler/ACME/layout/package failure publishes no mixed or
+    stale set and preserves the prior current generation. Post-commit run cancellation preserves
+    that build and stops only emulator/control work.
 28. [ ] **AC-28 — Deterministic VICE input:** The predetermined real-joyport trace produces the
     exact table-derived player, six-invader, projectile/explosion, collision, win, rendered-sprite,
     release/press, and return results without observing or patching program state. A hit update

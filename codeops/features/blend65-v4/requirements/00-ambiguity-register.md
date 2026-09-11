@@ -27,7 +27,7 @@
 | AR-019 | Feature gaps / game development | Does v4 provide deterministic compile-time table generation for game data such as sine and lookup tables? | External generation only / separate comprehension DSL / restricted `comptime function` declarations | Add bounded deterministic `comptime function` declarations that reuse normal Blend65 expressions, control flow, fixed values, and aggregate returns. They emit no target code or storage beyond returned constants. Forbid runtime effects and nondeterministic host inputs. Include byte-exact integer-phase `sin8`, `cos8`, `sin16`, and `cos16` compile-time functions. | ✅ Resolved |
 | AR-020 | UX / language | How are the approved expert placement and alignment overrides expressed without creating a general attribute framework? | Project configuration only / general annotations / one closed `place(...)` declaration modifier | Add one expert-only `place(...)` modifier with exactly `at`, `align`, `noCross`, and typed profile `region` constraints. Automatic placement remains the default and platform/asset constraints are applied automatically. Explicit constraints may strengthen but never weaken them. Add no general annotation or extension mechanism. | ✅ Resolved |
 | AR-021 | UX / integration | Which LSP and VS Code capabilities are required for the first production release? | Syntax/diagnostics only / focused production language tooling / full IDE and owned debugger | Deliver live frontend/profile/asset diagnostics, completion, hover, signature help, definition, references, safe rename, symbols, semantic tokens, bounded code actions, and one canonical full-document formatter. The thin VS Code extension adds language configuration, project/profile status, explicit build/VICE commands, cancellation, diagnostics/output, and generated-artifact access. It adds no owned debugger, visual designer, package manager, formatting framework, or general refactoring engine. | ✅ Resolved |
-| AR-022 | Integration / data | How does a Blend65 project declare source files, target profile, assets, build outputs, and options? | Broad file-glob/override configuration / one manifest and entry-derived graph / scriptable build system | Use one upward-discovered JSONC manifest and entry-derived graph. Preserve exact host filenames, validate a separate literal artifact basename, exclude `outDir` output state from inputs, and publish one uniquely named immutable generation through an atomic current record. Four exact direct non-debug sidecar schemas plus one first-producer debug version-1 contract and explicit input/output hashes describe the result. Add no scripts, hooks, plugins, package manager, globs, schema framework, content-addressed cache, or second production model. | ✅ Resolved |
+| AR-022 | Integration / data | How does a Blend65 project declare source files, target profile, assets, build outputs, and options? | Broad file-glob/override configuration / one manifest and entry-derived graph / scriptable build system | Use one upward-discovered JSONC manifest and entry-derived graph. Preserve exact host input filenames. Validate the separate literal artifact basename against one small Linux/Windows lexical safety floor, preserve accepted spelling, materialize and natively validate the complete profile-owned output set, and keep project data out of ACME source. Exclude `outDir` output state from inputs and publish one uniquely named immutable generation through an atomic current record. Four exact direct non-debug sidecar schemas plus one first-producer debug version-1 contract and explicit input/output hashes describe the result. Add no scripts, hooks, plugins, package manager, globs, filename rewriting, schema framework, content-addressed cache, or second production model. | ✅ Resolved |
 | AR-023 | Behavioral / UX | Which optimizer modes are user-visible, and which mode is the production default? | Boolean optimization switch / pass-level switches / four goal-oriented modes | Support exactly `none`, `balanced`, `speed`, and `size`; default production `build` and `run` to `balanced`. `none` is correct deterministic direct lowering with no optional search. The other three exhaust the same finite frontier: balanced accepts no-regression dominance, speed orders cycles/resources/program bytes, and size orders program bytes/resources/cycles. Hard constraints always win; no `max`, weights, hotness, or D64-size objective exists. | ✅ Resolved |
 | AR-024 | Scope / platform | Which additional C64 profiles must be qualified before v4 is production-complete: PAL takeover, NTSC, and/or 8580, and what C64U enablement must exist at that boundary? | Baseline only / eight exact base-C64 identities plus mandatory C64U readiness / implement C64U before base-C64 completion | Qualify the PAL/NTSC × KERNAL/takeover × 6581/8580 matrix as eight exact base-C64 profile identities. Before that production gate closes, pass a mandatory C64U-readiness architecture gate and create an owned C64U successor feature. Implement C64U next, but do not block base-C64 production on Ultimate-specific feature implementation. | ✅ Resolved |
 | AR-025 | Scope / migration | What happens to v3 compiler, readiness, tests, and false target packages on the v4 branch after salvage inventory? | Retain v3 topology / duplicate under `legacy/` / Git-preserved inventory-led clean branch | Preserve v3 in Git and the parked worktree. Port only independently proven units cheaper and safer than replacement, then remove rejected v3 surfaces before the smallest real C64 graph. Only raw file/path/hash/embed mechanics are plausible asset salvage; native codecs and current-producer fixtures are new v4 work. | ✅ Resolved |
@@ -339,8 +339,16 @@ relative to the declaring source and then through manifest asset paths. Paths ar
 contained by the project root while preserving the exact spelling, case, spaces, and Unicode
 exposed by the host filesystem; Blend65 performs no Unicode normalization, case folding, filename
 rewriting, or cross-host case-collision policy. Internal deterministic ordering uses `/` only as a
-separator representation. The manifest `name` is a separate nonempty literal output basename: it
-contains no separator or NUL, is not `.` or `..`, cannot escape `outDir`, and is never rewritten.
+separator representation. These input rules impose no cross-host filename policy. The manifest
+`name` is a separate nonempty, well-formed Unicode scalar sequence used literally as the primary
+artifact basename on both production hosts. Reject `/`, `\`, NUL, U+0001 through U+001F,
+`<`, `>`, `:`, `"`, `|`, `?`, `*`, `.` and `..`, a final ASCII space or period, and these Windows
+device stems with ASCII case-insensitive comparison of the substring before the first period:
+`CON`, `PRN`, `AUX`, `NUL`, `COM1` through `COM9`, `LPT1` through `LPT9`, and `COM`/`LPT` ending in
+superscript `¹`, `²`, or `³`. Preserve every accepted code point, including casing,
+Unicode, internal spaces, and internal periods. Never normalize, fold, slug, truncate, or rewrite
+the name, and do not guess a universal filename-length limit. This predicate never applies to
+source or asset filenames.
 `outDir` is a relative contained output-state path that may be created and is excluded before every
 source/asset discovery walk and build-identity hash. Reject absolute or escaping output paths,
 symlink escape, a required directory occupied by a file, or an explicitly declared source/asset
@@ -356,11 +364,22 @@ that same invocation builds successfully. Production compilation requires a mani
 a parallel single-file configuration model. Explicit command-line diagnostic, safety, or
 optimization overrides are recorded in build evidence.
 
-A successful build writes the selected profile's primary deployable artifact plus `.asm`,
-`.labels`, `.memory.json`, `.assets.json`, `.costs.json`, `.debug.json`, and `.build.json` into a
-new immutable generation directory under `outDir`, completes and reconciles that generation, then
+A successful build first materializes its complete final component plan: the literal-name primary
+deployable artifact plus fixed `.asm`, `.labels`, `.memory.json`, `.assets.json`, `.costs.json`,
+`.debug.json`, and `.build.json`. Before invoking a tool it checks component uniqueness and native
+aliases; exclusive creation inside the new uniquely owned generation under `outDir` decides actual
+filesystem limits and ordinary-file ownership without a guessed maximum or stat-then-write race. It
+never follows or replaces a symlink/device/directory, overwrites or merges a file, or authorizes a
+later overwrite inside the immutable generation. Compiler-written
+generation files use exclusive creation. The only deliberate replacement is fixed
+`<outDir>/current.json`; the generation directory is the canonical UUID v4 already specified, so
+neither publication-control name derives from project data. ACME receives
+output format/name/report/symbol paths only as separate direct arguments;
+the generated assembly contains no `!to`, manifest name, or output path. The build completes and
+reconciles that generation, then
 atomically replaces one small current-generation record under a short publication lock. Failure
-cannot expose a mixed generation. `run` resolves and pins that generation until VICE exits. Cleanup
+removes only its unique incomplete staging area, cannot expose a mixed generation, and preserves
+the prior current record. `run` resolves and pins that generation until VICE exits. Cleanup
 keeps the current generation, every active-run generation, and at least the most recent unpinned
 predecessor. The build record binds portable semantic inputs and output digests without hashing
 itself. AR-032 defines PRG and D64 primary outputs. V3's JSONC parsing and upward discovery are
