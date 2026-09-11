@@ -90,14 +90,22 @@ language semantics.
   (AR-022, AR-028, AR-030)
 - [ ] **R4.9 — Complete names, scopes, and declarations.** Implement declaration-order
   independence where specified; mandatory annotations; duplicate, unknown, and reserved-name
-  handling; block/function/module scopes; no shadowing; zero-page blocks; structs; enums;
-  functions; variables; constants; placement; and contextual validity. Each declaration has one
-  stable symbol identity shared by compiler and LSP. (AR-003, AR-014, AR-020, AR-021)
+  handling; block/function/module scopes; ordinary nested lexical shadowing; zero-page blocks;
+  structs; enums; functions; variables; constants; placement; and contextual validity. A function's
+  parameters and outermost body share one duplicate domain. A `for` initializer scopes its
+  condition, update, and body, while the body is a child scope. A new declaration becomes visible
+  after its initializer, and lookup always selects the nearest visible declaration. Same-scope
+  collisions remain errors; reserved names remain unavailable. Each declaration has one stable
+  symbol identity, independent of spelling, shared by semantic analysis, SFA, optimization, LSP,
+  and debug evidence. (AR-003, AR-014, AR-020, AR-021)
 - [ ] **R4.10 — Implement the complete active diagnostic registry.** Emit every applicable
   Specification 4 error and warning with its exact code, severity, template, primary/related UTF-8
   spans, notes/help, cascade suppression, and stable ordering. Do not reuse retired codes or create
   implementation-only public diagnostics. Profile and resource failures name the selected profile,
-  violated constraint, source owner, and relevant cost or limit. (AR-003, AR-008, AR-014)
+  violated constraint, source owner, and relevant cost or limit. Retire and reserve E10101; legal
+  shadowing emits no default warning. Same-scope duplicates use E10003 with both declaration
+  locations, while reserved intrinsic redeclarations retain their dedicated reserved-name
+  diagnostic. (AR-003, AR-008, AR-014)
 
 #### Complete scalar semantics, expressions, and control flow — complexity XL
 
@@ -637,12 +645,19 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
    UTF-8/maximal-munch rule and lexical diagnostic with exact byte spans.
 5. [ ] **AC-05 — Complete parser:** Decisive cases cover every grammar production, precedence and
    associativity relation, contextual form, recovery boundary, and removed syntax.
-6. [ ] **AC-06 — Modules and symbols:** Multi-file cases prove deterministic source discovery,
-   imports/exports/aliases, merged modules, visibility, scopes, declarations, initializer order,
-   selected entry, cycles, collisions, and stable symbol identity.
+6. [ ] **AC-06 — Modules, scopes, and symbols:** Multi-file cases prove deterministic source
+   discovery, imports/exports/aliases, merged modules, visibility, declarations, initializer order,
+   selected entry, cycles, and collisions. Scope matrices cover module-to-parameter/local,
+   parameter/local-to-child-block, `for` header/body, nested-loop, and sibling name reuse;
+   same-scope and reserved-name failures; outer-name lookup in a shadowing initializer; and exact
+   resolution before, inside, and after the child scope. Stable identities keep same-spelling
+   declarations separate through definite assignment, effects, SFA, optimization, LSP, and debug
+   evidence. A manually renamed equivalent has identical target behavior and resource cost.
 7. [ ] **AC-07 — Diagnostic registry:** Every applicable active error/warning is triggered by at
    least one focused oracle with exact code/severity/template/spans/order/cascade behavior; retired
-   and implementation-only public codes are absent.
+   and implementation-only public codes are absent. E10101 remains reserved and unissued, legal
+   shadowing has no default diagnostic, E10003 covers same-scope duplicates, and reserved intrinsic
+   redeclarations use their dedicated diagnostic.
 8. [ ] **AC-08 — Scalar types:** Full type matrices prove literal typing, annotations, nominal enums,
    promotion, signedness, casts, assignment, compound assignment, and object-size limits.
 9. [ ] **AC-09 — Arithmetic contexts:** Paired constant/runtime cases prove full-precision constants,
@@ -656,6 +671,9 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     sequence and complete cost report.
 12. [ ] **AC-12 — Control flow:** CFG and runtime cases prove every statement, scope, loop clause,
     continue/break/return edge, canonical wrap diagnostic, and legal modular-loop counterexample.
+    Loop cases also prove that condition/update references select the header binding, a body-local
+    shadow selects its distinct binding only inside the body, and the outer binding resumes after
+    the loop.
 13. [ ] **AC-13 — Switch:** Cases prove automatic break, terminal fallthrough, multiple constants,
     type/value checks, one default, nested exits, generic lowering, and measured selected forms.
 14. [ ] **AC-14 — Initialization:** Cases distinguish existing stored bits, function-local

@@ -134,6 +134,7 @@ completion requires the entire active language and approved C64 surface.
 | Function storage | SFA is the sole general function-execution storage model, not a whole-machine allocator | AR-007, AR-018 |
 | Target structure | Explicit CPU, machine, serializer, packager, asset, optimizer, and tooling responsibilities without a public plugin framework | AR-012, AR-035 |
 | Arrays and aggregates | Fixed arrays and structs have normal value semantics; no heap or dynamic arrays | AR-016, AR-017 |
+| Lexical scope | Familiar nested shadowing with same-scope duplicate errors and stable declaration identities | AR-014 |
 | Assembly escape surface | Five curated `asm_*` controls only; no free-form inline or external assembly ABI | AR-006 |
 | C64 production | Eight exact resident PRG profiles and one PAL/KERNAL/6581 D64 profile | AR-024, AR-029 |
 | Assets | Exact built-in current-format handlers plus ordinary typed compile-time refinement | AR-019, AR-037, AR-040 |

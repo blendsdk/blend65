@@ -19,7 +19,7 @@
 | AR-011 | Non-functional gaps | Is an incremental compiler or persistent compilation cache required initially? | Build now / require measured need | Skip initially. Full re-analysis is accepted until measured editor/compiler performance proves the need. | ✅ Resolved |
 | AR-012 | Technical | Is a public third-party target/asset plugin framework required? | Public dynamic plugin framework / explicit built-in modular components | Skip the public plugin framework. Build explicit qualified C64 components and extract shared internal seams only from multiple real consumers. | ✅ Resolved |
 | AR-013 | Technical | Which C64 execution, video, ROM, startup, and interrupt profile is the first production baseline? | Cooperative PAL KERNAL-loaded PRG / raw-takeover-first / NTSC-first | Implement `c64-pal-prg-kernal-6581` first with the documented cooperative KERNAL contract and normal restoration/return. Recognized interrupt helper ownership is a compile-time per-sink LIFO stack; raw vector writes remain legal but invalidate helper restore proof. Model later PAL takeover and NTSC behavior as separate qualified profiles, not unsafe flag combinations. AR-024 makes the SID model explicit. | ✅ Resolved |
-| AR-014 | Scope / authority | Which specification identity governs v4 after accepted language changes diverged from frozen spec v3.0? | One active Specification 4.0 in `spec/` / parallel v3 and v4 specification trees / v3 plus implementation overrides | Create one Blend65 Language Specification 4.0 in `spec/`. Resolve all v4 language decisions first, apply them in one controlled specification phase, pass the Language Guard, update/version/qualify the expert skill once, then freeze both identities before semantic compiler implementation. Git and the parked v3 worktree preserve Specification 3.0; do not maintain parallel active specification trees or implementation-only overrides. | ✅ Resolved |
+| AR-014 | Scope / authority | Which specification identity governs v4 after accepted language changes diverged from frozen spec v3.0? | One active Specification 4.0 in `spec/` / parallel v3 and v4 specification trees / v3 plus implementation overrides | Create one Blend65 Language Specification 4.0 in `spec/`. Resolve all v4 language decisions first, including ordinary nested lexical shadowing, apply them in one controlled specification phase, pass the Language Guard, update/version/qualify the expert skill once, then freeze both identities before semantic compiler implementation. Git and the parked v3 worktree preserve Specification 3.0; do not maintain parallel active specification trees or implementation-only overrides. | ✅ Resolved |
 | AR-015 | Feature gaps / language | Does v4 support taking addresses of fields, array elements, and function parameters? | Keep v3 name-only restrictions / complete addressable-place support | Support `&` on every real addressable storage place, including parameters, nested struct fields, and indexed array elements. The result remains `word`; add no pointer, reference, view, or slice type. Evaluate place/index expressions once, retain hidden lifetime and read-only provenance through derivation, apply the ordinary constant/checked/unchecked array-index contract, reject implicit one-past addresses, and reject literals, temporaries, and inlined scalar constants. Add no runtime checker, descriptor, copy, heap, or helper. | ✅ Resolved |
 | AR-016 | Feature gaps / language | What aggregate value model does v4 provide for struct/array returns, copies, assignments, and parameter passing? | Keep v3 restrictions / normal value semantics with zero-copy parameters and copy-eliding returns | Fixed arrays and structs have value semantics for assignment and return. Require exact compatible type and extent; forbid returning unsized `T[]`. Keep aggregate parameters as mutable or `const` zero-copy borrows. Use caller-owned return storage, direct construction, and copy elision. Explicit requested copies preserve source-value semantics and report their cost. Add no mandatory runtime, heap, dynamic frame, or copy intrinsic. | ✅ Resolved |
 | AR-017 | Feature gaps / language | Does v4 support nested fixed arrays as true multidimensional storage? | Flatten manually / fixed rectangular arrays with an optional outer-unsized parameter extent / fully unsized or jagged arrays | Support contiguous row-major nested fixed arrays. Every stored extent is fixed. A borrowed parameter may omit only its outermost extent, such as `const byte[][4]`; the inner extents remain fixed. Reject `byte[][]`, `byte[25][]`, dynamic extents, jagged arrays, slices, and views. | ✅ Resolved |
@@ -167,6 +167,23 @@ the complete Language Guard, reconciled into one newly versioned and qualified e
 frozen before semantic compiler implementation begins. The requirements register preserves every
 decision feeding that update. Git history and the parked v3 worktree preserve Specification 3.0,
 so a duplicate live specification tree would add drift without preserving anything new.
+
+Specification 4 replaces v3's compiler-convenience ban on lexical shadowing with ordinary nested
+lexical scope. A declaration may shadow an ordinary declaration in a parent module, function, loop,
+or block scope; sibling scopes may independently reuse a name; and lookup selects the nearest
+visible declaration. A function's parameters and outermost body declarations share one duplicate
+domain. A `for` initializer owns a scope covering its condition, update, and body; its body is a
+child scope and may shadow the header declaration. A new declaration becomes visible only after its
+initializer completes, so a shadowing initializer can read the previously visible outer binding.
+Leaving a child scope restores the outer binding. Same-scope collisions remain E10003. Keywords,
+reserved intrinsic names, and the special `main` contract remain unavailable for shadowing under
+their dedicated rules. E10101 is retired and reserved; legal shadowing has no default warning.
+
+Every declaration receives a stable symbol identity independent of spelling. Name resolution,
+definite assignment, effects, SFA liveness/interference/homes, optimization, LSP navigation and
+rename, and debug evidence operate on that identity rather than a name-keyed map. Two live bindings
+with the same spelling cost exactly what two differently named bindings would cost; the language
+change adds no target runtime, ROM, RAM, ZP, stack, or cycle overhead.
 
 ### AR-015 — Complete addressable-place support
 

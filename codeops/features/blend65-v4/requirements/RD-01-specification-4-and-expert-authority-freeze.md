@@ -69,12 +69,18 @@ the parked worktree.
   contradictory summaries, stale examples, and silent changes are defects. A checked transition
   crosswalk must account for every prior normative path and every deliberate addition, change,
   move, or removal. (AR-014)
-- [ ] **R1.6 — Apply the approved modern control-flow and integer rules.** Specification 4 must
+- [ ] **R1.6 — Apply the approved modern control-flow, scope, and integer rules.** Specification 4 must
   define the familiar three-clause `for` statement, increasing and decreasing iteration through
   ordinary expressions, deterministic fixed-width wrapping, rejection of a provably
   finite-looking loop whose explicitly typed counter must wrap before termination, and expert
   lowering freedom that does not change observable source values. It must remove obsolete range
-  loop syntax and preserve ordinary side-effect and exit ordering. (AR-002, AR-003, AR-014)
+  loop syntax and preserve ordinary side-effect and exit ordering. It must permit ordinary nested
+  lexical shadowing while retaining same-scope duplicate and reserved-name errors. Parameters and
+  a function's outermost body share one duplicate domain; a `for` initializer scopes its condition,
+  update, and body; the body is a child scope; and a new binding becomes visible after its
+  initializer. Lookup, definite assignment, LSP/debug identity, and SFA use stable declaration
+  identity rather than spelling. Retire and reserve E10101 without adding a default shadowing
+  warning or target cost. (AR-002, AR-003, AR-014)
 - [ ] **R1.7 — Apply the complete fixed-array model.** All stored arrays remain fixed, contiguous
   values with extents and total object sizes in the 16-bit representable domain. Specification 4
   must define extent inference, parameter-only outer unsizing, stable `word` results for
@@ -500,10 +506,15 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
 6. [ ] **AC-06 — Grammar agreement:** Every Specification 4 syntax form has one production in
    `grammar.ebnf.md`; every normative positive example parses under that grammar, and every
    normative invalid syntax example is rejected by the grammar validator.
-7. [ ] **AC-07 — Modern loop contract:** The normative statement and grammar define one ordinary
-   three-clause `for` form; old range-loop syntax is absent; evaluation ordering, `continue`,
-   `break`, return, wrap, and provably unreachable finite termination are covered by positive and
-   negative examples.
+7. [ ] **AC-07 — Modern loop and scope contract:** The normative statement and grammar define one
+   ordinary three-clause `for` form; old range-loop syntax is absent; evaluation ordering,
+   `continue`, `break`, return, wrap, and provably unreachable finite termination are covered by
+   positive and negative examples. Focused scope cases prove module-to-parameter/local,
+   parameter/local-to-child-block, `for` header/body, nested-loop, and sibling reuse; same-scope and
+   reserved-name rejection; outer-name lookup in a shadowing initializer; correct before/inside/
+   after resolution; and stable distinct identities through definite assignment, SFA, LSP, and
+   debug evidence. An equivalent manually renamed program has identical target behavior and
+   resources. E10101 is retired and reserved, and legal shadowing emits no default diagnostic.
 8. [ ] **AC-08 — Complete array contract:** Normative examples cover fixed extents below, at, and
    above 255; byte and word index variables; `arr[i + 10]` selecting element 265 when `i` is byte
    255; explicit byte narrowing selecting element 9; nested row-major arrays; outer-unsized
@@ -551,7 +562,9 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     list.
 18. [ ] **AC-18 — Diagnostic integrity:** Every new invalid class has one unique documented error
     code, message template, triggering example, correction, and normative owner; a registry-to-spec
-    check reports zero missing, duplicate, dead, or conflicting entries.
+    check reports zero missing, duplicate, dead, or conflicting entries. E10101 is retired and
+    reserved, legal shadowing emits no diagnostic, same-scope duplicates use E10003 with both
+    declaration locations, and reserved intrinsic redeclarations retain their dedicated diagnostic.
 19. [ ] **AC-19 — Expert version, product boundary, and optimizer knowledge:** Every active
     router/reference/qualification file identifies expert baseline `2.0.0` and the same frozen
     Specification 4 identity. Technique knowledge and Q-P workloads remain available, but no active

@@ -161,13 +161,17 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   merged-module members, imports, platform APIs, and asset declarations to their canonical source
   or bundled read-only declaration location. References return only semantically identical uses in
   the current project, including callable values and recognized callback sinks; spelling matches,
-  shadowed names, generated labels, and another project are excluded. (AR-018, AR-021, AR-028)
+  distinct shadowed bindings, generated labels, and another project are excluded. Before, inside,
+  and after a shadowing child scope, definition and references follow the nearest visible stable
+  declaration identity rather than its spelling. (AR-014, AR-018, AR-021, AR-028)
 - [ ] **R9.19 — Rename only when it is provably safe.** Project-wide rename is available for
   user-owned source declarations whose complete semantic reference set is known. It rejects names
   that are invalid, reserved, colliding, ambiguous, generated, platform-owned, asset-selector
   schema names, external/read-only declarations, or dependent on poisoned analysis. Before
   returning edits it revalidates the requested document version and all affected file identities;
-  every edit is non-overlapping and remains inside the project. (AR-021, AR-022)
+  every edit is non-overlapping and remains inside the project. A rename edits only the selected
+  stable declaration identity and its references; it must reject a result that would capture, hide,
+  or merge another binding even when the original spellings differ. (AR-014, AR-021, AR-022)
 - [ ] **R9.20 — Return structured symbols.** Document symbols preserve source nesting and order for
   modules, declarations, functions, parameters, locals, fields, constants, variables, and relevant
   assets. Workspace symbols search the current project only, return deterministic qualified names
@@ -276,14 +280,17 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   entry variants, machine labels/ranges, bank/address-space identity, and relevant calling or
   interrupt context for every emitted source-owned function and stored object. Compiler-generated
   helpers, startup, loader, and platform objects remain separately classified and source-linked
-  where a source operation caused them. (AR-008, AR-010, AR-018)
+  where a source operation caused them. Distinct declarations with the same spelling have distinct
+  stable identities and scopes and are never merged in the debug map. (AR-008, AR-010, AR-014,
+  AR-018)
 - [ ] **R9.38 — Describe SFA variables without inventing runtime state.** For parameters, returns,
   locals, temporaries exposed by source mapping, and helper scratch needed for call context, record
   exact type, function/domain instance, final static home, byte width, valid live intervals, aliases
   or composed locations, and availability state. The schema distinguishes available, optimized
   away, constant, rematerializable, split, and unavailable values rather than claiming a stale home.
-  It never adds a runtime descriptor, stack frame, shadow memory, or instrumentation. (AR-010,
-  AR-016, AR-018, AR-023)
+  Same-spelling bindings remain distinct by stable declaration identity; hiding never proves the
+  outer binding dead or permits an invalid overlay. It never adds a runtime descriptor, stack frame,
+  shadow memory, or instrumentation. (AR-010, AR-014, AR-016, AR-018, AR-023)
 - [ ] **R9.39 — Preserve banked and loadable identity.** A location is never just a flat 16-bit
   number when the selected profile requires CPU-visible, banked, overlay, load-unit, or transfer-
   only identity. The debug map records the selected address space, bank/visibility condition,
@@ -748,11 +755,14 @@ C64U implementation.
    call shows no guessed winning signature.
 10. [ ] **AC-10 — Definition and references:** Merged-module, imported, shadowed, finite function-
     value, callback-sink, platform declaration, and same-spelling/different-project fixtures return
-    exactly the semantic definition/reference set required by R9.18.
+    exactly the semantic definition/reference set required by R9.18. Before, inside, and after a
+    shadowing scope, same-spelling bindings remain separate and resolve to the nearest visible stable
+    identity.
 11. [ ] **AC-11 — Safe rename:** A user-owned symbol rename updates every semantic project reference
     with non-overlapping contained edits. Invalid spelling, collision, platform/generated/read-only
     identity, poisoned analysis, stale document version, changed file hash, and cross-project
-    request each return no edits and an actionable reason.
+    request each return no edits and an actionable reason. Same-spelling shadowed declarations are
+    not edited together, and a rename that would capture, hide, or merge another binding is rejected.
 12. [ ] **AC-12 — Symbols and semantic tokens:** Document/workspace symbol fixtures preserve exact
     scope, source order, qualification, result bounds, and project boundary. Semantic-token fixtures
     distinguish the supported declaration/reference and proven modifiers while invalid regions use
@@ -821,7 +831,8 @@ C64U implementation.
 27. [ ] **AC-27 — SFA location truth:** Nested calls, aggregate return, overlays, mainline/IRQ
     variants, constant propagation, optimized-away value, rematerializable value, and unavailable
     value fixtures record exact type, domain, location/live interval, and availability without
-    claiming an invalid static home.
+    claiming an invalid static home. Same-spelling shadowed bindings retain distinct stable
+    identities, and an outer binding live across an inner shadow is not incorrectly overlaid.
 28. [ ] **AC-28 — Bank/load identity:** Resident, banked, overlay, and loadable fixtures record the
     address space, bank/visibility, load unit, publication, and residence facts needed to interpret
     each location without widening language `word` or flattening distinct physical identities.

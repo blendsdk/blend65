@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 3 open findings (2 major, 1 minor); PF-001–PF-026 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 2 open findings (1 major, 1 minor); PF-001–PF-027 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `305cee9bdae3acf66adc37e76281a80ab6eadb6c3177606c71d9c685c55352f8`
+> **Artifact Digest**: `87430d08603c485a2011b3f9cb3f38fc4cf2907b54a6803f3f3cc5301954aa73`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -912,11 +912,23 @@ than C and is not a 6502 resource limitation.
 
 | Option | Description | Tradeoff |
 |---|---|---|
-| A — **Recommended** | Allow lexical shadowing in a nested child scope while retaining same-scope duplicate errors, unambiguous symbol identity, and normal definite-assignment rules. | Matches mainstream lexical languages with no runtime or target cost. |
+| A — **Selected** | Allow lexical shadowing in a nested child scope while retaining same-scope duplicate errors, unambiguous symbol identity, and normal definite-assignment rules. | Matches mainstream lexical languages with no runtime or target cost. |
 | B | Keep blanket no-shadowing as an explicit Blend65 product exception. | Simpler name lookup, but violates the modern-language directive without a platform reason. |
 
 **Recommendation:** Option A.
-**Decision:** Pending.
+**Confidence:** High. **Hardening:** An independent challenger selected Option A and required exact
+module/function/block/loop scope boundaries, post-initializer visibility, stable symbol identity,
+capture-safe rename, shadow-aware debug/SFA evidence, and diagnostic retirement.
+**Decision:** Applied on 2026-09-11 after the user confirmed that this requires no new source syntax
+or user-facing scope concept.
+**Resolution:** Specification 4 permits ordinary nested lexical shadowing. Same-scope collisions
+remain E10003; parameters and the function's outermost body share one duplicate domain; a `for`
+header scopes its condition, update, and body while the body is a child scope; and a new binding
+becomes visible after its initializer, allowing that initializer to read the outer binding. Keywords,
+reserved intrinsics, and `main` keep their dedicated restrictions. E10101 is retired and reserved,
+and legal shadowing emits no default warning. Stable declaration identity now governs semantic
+analysis, SFA, optimization, LSP navigation/rename, and debug evidence. The correction adds no
+runtime or target ROM, RAM, ZP, stack, or cycle cost.
 
 ### PF-028: Compile-time evaluation budgets are observable but undefined 🟠 MAJOR
 
