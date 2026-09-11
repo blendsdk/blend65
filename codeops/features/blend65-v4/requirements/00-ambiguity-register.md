@@ -379,10 +379,17 @@ the generated assembly contains no `!to`, manifest name, or output path. The bui
 reconciles that generation, then
 atomically replaces one small current-generation record under a short publication lock. Failure
 removes only its unique incomplete staging area, cannot expose a mixed generation, and preserves
-the prior current record. `run` resolves and pins that generation until VICE exits. Cleanup
-keeps the current generation, every active-run generation, and at least the most recent unpinned
-predecessor. The build record binds portable semantic inputs and output digests without hashing
-itself. AR-032 defines PRG and D64 primary outputs. V3's JSONC parsing and upward discovery are
+the prior current record. Before releasing that lock, `run` exclusively creates its own empty
+ordinary pin at `<outDir>/.pins/<generationId>/<pinId>.pin`, then retains the pin until every owned
+VICE/monitor reader stops. Every compiler-owned reader that keeps a generation beyond the lock does
+the same with a distinct UUID-v4 `pinId`. Cleanup holds the lock through deletion and keeps the
+current generation, its immediate predecessor in lock-serialized publication order, and every
+pinned generation. It deletes only other provably unpinned generations. Normal released-pin
+retention is bounded to current plus one predecessor. A crash-left, malformed, unreadable, or
+otherwise uncertain pin fails closed and is diagnosed for deliberate recovery after all project
+operations stop; PID, process existence, age, and clocks never authorize deletion. The build record
+binds portable semantic inputs and output digests without hashing itself. AR-032 defines PRG and D64
+primary outputs. V3's JSONC parsing and upward discovery are
 salvage evidence only; its broad configuration and compatibility behavior are not inherited. V3
 raw file reading, path handling, hashing, and literal `embed(path)` mechanics are candidates only.
 V3 contains no qualified native SpritePad, CharPad, SID, or Koala codec or current-producer fixture

@@ -167,7 +167,7 @@ completion requires the entire active language and approved C64 surface.
 | Errors, empty states, onboarding | Stable diagnostics, empty/new-project behavior, first-project docs, examples, and actionable remedies | RD-02 through RD-10 |
 | Loading/progress/cancellation/offline use | Bounded local progress, publication as the build no-return point, and owned process-tree cancellation; builds require no network or automatic download | RD-02, RD-07, RD-09, RD-10 |
 | Accessibility, localization, timezones | Textual diagnostics/evidence are keyboard accessible; target text encodings are explicit; host locale/time/path cannot change output | RD-01, RD-02, RD-05, RD-09, RD-10 |
-| Backup, deletion, disaster recovery | Local source control remains the backup authority; immutable generations retain current, active pins, and one unpinned predecessor; no hosted data exists | RD-02, RD-09, RD-10 |
+| Backup, deletion, disaster recovery | Local source control remains the backup authority; normal cleanup retains current, its immediate predecessor, and active pins; uncertain pins fail closed until deliberate recovery; no hosted data exists | RD-02, RD-09, RD-10 |
 | Search, pagination, mobile, email, admin UI | N/A: Blend65 exposes no web/mobile application, list service, mailer, or administrator surface | Product boundary |
 | Accounts, sessions, privacy, GDPR, retention | N/A: no accounts, authentication service, personal-data store, telemetry service, or remote API | Every RD security section |
 | Configuration and feature selection | One contained `blend65.json`, one optional machine-local `tools.jsonc` schema version 1, closed profile/mode/safety values | RD-02, RD-08 through RD-10 |

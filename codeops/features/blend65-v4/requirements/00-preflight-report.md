@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 4 open findings (3 major, 1 minor); PF-001–PF-025 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 3 open findings (2 major, 1 minor); PF-001–PF-026 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `9b6b66b19be97cde24e633edda4fd658bf7acaea6cb6feb7bf569889ca4fd2e6`
+> **Artifact Digest**: `305cee9bdae3acf66adc37e76281a80ab6eadb6c3177606c71d9c685c55352f8`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -230,17 +230,19 @@ files. The requirements also do not define ownership when concurrent builds/runs
 
 | Option | Description | Pros | Cons |
 |---|---|---|---|
-| A — accepted | Build and validate in a unique staging directory; rename it once to an immutable build-ID generation; then atomically replace one small current-generation record. A short per-project lock coordinates only publication, run pinning, and cleanup. Each run pins its own generation. Failed work cleans only its staging directory. Retain the current generation, every actively pinned generation, and the most recent unpinned predecessor; delete only older unpinned generations under the same lock. | Portable one-entry commit; no mixed set; correct concurrent run identity; bounded inactive retention; previous-good recovery. | Changes output layout and needs direct Linux/Windows publication, failure, concurrency, and cleanup proof. |
+| A — accepted | Build and validate in a unique staging directory; rename it once to an immutable build-ID generation; then atomically replace one small current-generation record. A short per-project lock coordinates only publication, run pinning, and cleanup. Each run pins its own generation. Failed work cleans only its staging directory. Retain the current generation, every actively pinned generation, and one previous-good predecessor; delete only other provably unpinned generations under the same lock. | Portable one-entry commit; no mixed set; correct concurrent run identity; normal-operation bounded retention; previous-good recovery. | Changes output layout and needs direct Linux/Windows publication, failure, concurrency, and cleanup proof; uncertain pins are a fail-safe exception to the bound. |
 | B | Serialize same-project builds and define another portable whole-set publication protocol. | Simpler concurrency. | Serialization alone does not make sibling replacement atomic; the set protocol remains missing. |
 
 **Recommendation:** Option A, implemented directly rather than as a generic transaction framework.
-Bound inactive retention while exempting current and actively pinned generations from cleanup.
+Bound normal released-pin retention while exempting current, actively pinned, and uncertain
+generations from cleanup.
 
 **Confidence:** High. **Hardening:** Challenger selected and narrowed Option A.
 **User Decision:** Accepted Option A on 2026-09-10. The publication mechanism is one direct
 host-side routine and adds no target bytes, storage, startup work, or cycles.
 **Resolution:** The accepted immutable-generation model was applied in `54bf32b`. Deep rescan found
-two remaining generation-identity and stale-pin edge cases, now tracked as PF-021 and PF-026.
+two remaining generation-identity and stale-pin edge cases, tracked and resolved as PF-021 and
+PF-026.
 
 ### PF-007: Tool discovery trust boundary was defined too broadly 🟠 MAJOR
 
@@ -877,7 +879,27 @@ live decision defeats the bounded-retention claim.
 
 **Recommendation:** Option A. It favors data safety and simplicity over an automatic stale-pin
 system.
-**Decision:** Pending.
+**Confidence:** High. **Hardening:** An independent challenger selected Option A and required a
+fail-closed namespace, lock-ordered acquisition/release, exact multi-holder and crash cases, and an
+explicit qualification of the storage bound. Node documents that promise-based filesystem
+operations are not synchronized and require application coordination, while Microsoft documents
+that a PID identifies a process only for its lifetime; neither supports PID/age reclamation as a
+safe ownership proof. See [Node 22 filesystem promises](https://nodejs.org/docs/latest-v22.x/api/fs.html)
+and [Microsoft process identifiers](https://learn.microsoft.com/en-us/windows/win32/procthread/process-handles-and-identifiers).
+**Decision:** Applied on 2026-09-11 under the user's instruction to proceed and standing direction
+to choose the best option.
+**Resolution:** RD-03 now owns one private
+`<outDir>/.pins/<generationId>/<pinId>.pin` protocol. Every compiler-owned reader acquires its own
+exclusive empty regular pin under the project lock before starting work, and releases only that pin
+under the same lock after all owned work stops. Cleanup holds the lock through deletion and retains
+current, the immediately replaced current generation, and every pinned or uncertain generation;
+only other provably unpinned generations may be removed. UUID spelling and filesystem time do not
+define publication order. Malformed, unreadable, partial, crash-left, or release-failed state stops
+affected cleanup and produces deliberate-recovery guidance; PID, age, clock, command-line, and
+process-existence observations are hints only. Normal clean-shutdown retention is bounded to current
+plus one predecessor, while uncertain pins are an explicit safety exception. RD-07, RD-09, RD-10,
+AR-022, discovery, and acceptance cases now share that contract. It adds no daemon, native liveness
+layer, public cleanup command, transaction/cache framework, runtime, or target bytes/cycles.
 
 ### PF-027: V4 silently inherits a non-platform-forced ban on lexical shadowing 🟠 MAJOR
 
@@ -932,12 +954,13 @@ implemented or qualified exactly.
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
 - The deep rescan found PF-021 through PF-029. PF-021 through PF-024 were corrected after the
-  user's explicit decisions. PF-025 is now corrected; PF-026 through PF-029 remain pending.
+  user's explicit decisions. PF-025 and PF-026 are now corrected; PF-027 through PF-029 remain
+  pending.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
 - The roadmap does not advance while any critical or major finding is unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-025 resolved and four deep-rescan findings
+**Current Result:** **BLOCKED** with PF-001 through PF-026 resolved and three deep-rescan findings
 awaiting decisions.

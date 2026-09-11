@@ -55,9 +55,10 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
 - [ ] **R9.3 — Keep CLI commands behaviorally complete.** `blendc check` stops before target
   lowering and output publication; `blendc build` runs the complete selected pipeline and
   publishes one immutable build generation through the approved staging/current-record protocol;
-  `blendc run` performs its own successful fresh build, pins that invocation's generation, and
-  launches only its primary artifact. All three report the same stable diagnostics as the host
-  service for the same saved snapshot. (AR-009, AR-022, AR-032)
+  `blendc run` performs its own successful fresh build, durably pins that invocation's generation
+  before releasing the publication lock, and launches only its primary artifact after pin
+  acquisition succeeds. All three report the same stable diagnostics as the host service for the
+  same saved snapshot. (AR-009, AR-022, AR-032)
 - [ ] **R9.4 — Distinguish operation outcomes.** The typed API and CLI distinguish successful
   completion, source/project/compiler diagnostics, external-tool failure, and user cancellation.
   Expected failures have stable machine-readable categories and concise human output without a
@@ -85,9 +86,11 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   analysis; cancellation observed before build publication terminates owned ACME work and removes
   only that invocation's unpublished staging directory. Publication is the no-return point: after
   the current-generation record commits, the valid build remains published and a later `run`
-  cancellation terminates only its owned VICE/monitor work. Cancellation waits for owned child and
-  pin cleanup and cannot leave a process, monitor port, or lock behind. The structured result reports
-  build success separately from later run cancellation. (AR-021, AR-022)
+  cancellation terminates only its owned VICE/monitor work. Cancellation waits for owned child
+  cleanup and releases exactly its pin under the project lock only after that work stops. A failed
+  pin release leaves the conservative pin in place and reports manual recovery; it never guesses
+  from PID, age, or process existence. No lock or owned process/monitor may remain. The structured
+  result reports build success separately from later run cancellation. (AR-021, AR-022)
 
 #### Versioned editor snapshots and diagnostics — complexity L
 
@@ -426,12 +429,16 @@ Each artifact-producing build assigns the lowercase canonical UUID v4 returned b
 directory, renames it once to that immutable generation, then atomically replaces one small
 current-generation record containing the `generationId` and the SHA-256 of its `.build.json`. An
 existing target generation fails publication rather than being overwritten or reused. A short
-per-project lock coordinates only generation publication, current-record replacement, run pinning,
-and cleanup. Each run pins its own generation until all owned VICE/monitor work ends. Failed work
-removes only its staging directory. Cleanup retains the current generation, every actively pinned
-generation, and the newest unpinned predecessor; it deletes only older unpinned generations while
-holding the same lock. This is one direct host-side routine, not a transaction or storage framework,
-and adds no target bytes, storage, startup work, or cycles.
+per-project lock coordinates only generation publication, current-record replacement, pinning, and
+cleanup. Every compiler-owned reader that keeps a generation after releasing the lock first creates
+its distinct RD-03 pin; each run creates its pin before its publication critical section ends and
+keeps it until all owned VICE/monitor work ends. Failed work removes only its staging directory.
+Publication cleanup retains the current generation, the current record's immediate predecessor, and
+every pinned generation; it deletes only other provably unpinned generations while holding the same
+lock. Normal released-pin retention is bounded to current plus one predecessor. Uncertain or
+crash-left pins fail closed, are diagnosed, and remain until deliberate manual recovery. This is one
+direct host-side routine, not a transaction, liveness, or storage framework, and adds no target
+bytes, storage, startup work, or cycles.
 
 The configured relative `outDir` is compiler-owned output state, never an input or input-identity
 source. Discovery excludes the output subtree before walking sources/assets even when `sourceRoot`
@@ -782,14 +789,17 @@ C64U implementation.
     and VICE monitor creation are denied before process launch. Granting trust still requires the
     explicit command.
 21. [ ] **AC-21 — Fresh run:** `Blend65: Run in VICE` saves relevant inputs, completes one fresh
-    successful build, pins its immutable generation, and launches exactly its hash-bound primary
-    artifact. Seeded save, compiler, ACME, packaging, and pre-publication cancellation failures
-    launch nothing; a prior or unpinned artifact is never used.
+    successful build, durably pins its immutable generation before releasing the publication lock,
+    and launches exactly its hash-bound primary artifact only after pin acquisition. Seeded save,
+    compiler, ACME, packaging, pin-acquisition, and pre-publication cancellation failures launch
+    nothing; a prior or unpinned artifact is never used.
 22. [ ] **AC-22 — Cancellation cleanup:** Cancelling check, ACME build, VICE startup, and a running
     owned VICE session terminates all owned processes and monitor connections and removes only
     unpublished staging. Deterministic cases on both sides of the commit boundary prove that
     pre-commit cancellation publishes nothing, while post-commit cancellation preserves the valid
-    generation, reports build success plus cancelled run, and releases its run pin.
+    generation, reports build success plus cancelled run, and releases its exact run pin only after
+    owned execution stops. A seeded release failure retains and diagnoses that pin rather than
+    reclaiming it from PID, age, or process-existence evidence.
 23. [ ] **AC-23 — Problems, progress, and output:** One successful and one failing Build/Run case
     show project/profile/phase progress, structured Problems diagnostics, bounded Output summary,
     final artifact or failure category, and no complete source/asset content, raw stack trace,
@@ -853,6 +863,9 @@ C64U implementation.
     `linux/x64` and `win32/x64` covers the packaged compiler/CLI/LSP/VS Code extension, `check`,
     `build`, fresh `run`, ACME/VICE discovery and invocation, cancellation/process-tree cleanup,
     path semantics, immutable-generation publication/current-record replacement, concurrent build
-    and run pinning, bounded retention, and cleanup. Emulated Windows paths on Linux cannot satisfy
-    the Windows case. macOS and other Node 22 results are reported as best-effort until the same
-    boundary passes.
+    and reader pinning, normal bounded retention, and fail-closed cleanup. It covers opposing
+    cleanup/pin interleavings, multiple holders, process death at acquisition/start/release
+    boundaries, malformed or unreadable pin state, PID reuse, clock change, and deliberate orphan
+    recovery; no time advance or liveness hint permits automatic deletion. Emulated Windows paths
+    on Linux cannot satisfy the Windows case. macOS and other Node 22 results are reported as
+    best-effort until the same boundary passes.

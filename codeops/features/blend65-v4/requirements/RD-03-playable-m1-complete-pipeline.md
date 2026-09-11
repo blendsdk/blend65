@@ -241,13 +241,17 @@ product. (AR-038)
   generation as current and leaves no stale file looking current. (AR-008, AR-010, AR-022, AR-032)
 - [ ] **R3.28 — Run the exact fresh PRG in VICE 3.10.** `blendc run` verifies `x64sc` version 3.10,
   pins the exact immutable generation returned by its own build without re-resolving the current
-  record, selects that generation's recorded PAL C64 model/profile settings, launches only its PRG,
-  reports the bounded status
+  record before releasing the publication lock, selects that generation's recorded PAL C64
+  model/profile settings, and launches only its PRG after pin acquisition succeeds. It reports the
+  bounded status
   `VICE-verified / hardware-unverified`, and owns reliable cancellation and child cleanup.
   Publication is the no-return point: cancellation before the current-generation commit publishes
   nothing, while cancellation after it preserves the complete build and stops only VICE and its
-  monitor/control work. Interactive run leaves control with the developer; automated qualification
-  stops VICE externally after observing the return contract. (AR-009, AR-013, AR-027)
+  monitor/control work. Normal completion or cancellation releases exactly that run's pin under the
+  project lock only after all owned readers and processes stop; failed release retains the pin and
+  reports deliberate manual recovery instead of guessing that it is stale. Interactive run leaves
+  control with the developer; automated qualification stops VICE externally after observing the
+  return contract. (AR-009, AR-013, AR-022, AR-027)
 - [ ] **R3.29 — Exercise real emulated joystick input deterministically.** The qualification driver
   uses one version-pinned VICE-supported control-port input mechanism to replay a checked-in,
   requirements-derived PAL-frame trace that moves the player, launches projectiles, destroys all
@@ -463,14 +467,20 @@ identities. It hashes every other published artifact, excludes its own bytes, an
 `generationId` and host executable provenance separately from reproducibility comparison.
 
 A short per-project lock coordinates only staging-directory commit, current-record replacement,
-run pin acquisition/release, and cleanup; compilation and ACME execution do not hold it. `run` pins
-the exact generation returned by its own build rather than resolving a possibly newer current
-record. Failed work removes only its unique staging directory. Cleanup retains the current
-generation, every actively pinned generation, and the newest unpinned predecessor, and removes only
-older unpinned generations while holding the same lock. This is one direct output routine, not a
-general transaction, cache, or readiness service. Linux and Windows must prove competing builds,
-reader pinning, failed staging, atomic current replacement, active-run retention, stale-pin recovery,
-and deterministic bounded cleanup.
+pin acquisition/release, and cleanup; compilation and ACME execution do not hold it. Any
+compiler-owned operation that retains a generation path after releasing the lock first owns a
+distinct pin. `run` pins the exact generation returned by its own build rather than resolving a
+possibly newer current record. Failed work removes only its unique staging directory. Publication
+cleanup retains the new current generation, every pinned generation, and the generation named by
+the current record immediately before replacement; it removes only other unpinned generations while
+holding the same lock. This immediate predecessor is defined by lock-serialized publication order,
+never UUID spelling or filesystem time. After successful cleanup in normal released-pin operation,
+complete-generation retention is therefore bounded to current plus one predecessor; live,
+crash-left, malformed, or otherwise uncertain pins are explicit fail-safe exceptions. This is one
+direct output routine, not a general transaction, cache, liveness service, or readiness service.
+Linux and Windows must prove competing builds, reader pinning, failed staging, atomic current
+replacement, active-run retention, crash-left-pin retention and diagnosis, and deterministic normal
+cleanup.
 
 The first public sidecars use these direct schemas; they are not a registry or database:
 
@@ -486,6 +496,29 @@ The current-generation record is `<outDir>/current.json`: canonical UTF-8 JSON w
 one LF terminator and lexicographically ordered keys. It contains exactly integer
 `schemaVersion: 1`, canonical lowercase UUID-v4 `generationId`, and lowercase 64-hexadecimal
 `buildJsonSha256`. Missing, duplicate, unknown, or malformed fields invalidate the record.
+
+The private pin namespace is `<outDir>/.pins/<generationId>/<pinId>.pin`, where both path identities
+are independently generated lowercase canonical UUID v4 values. A pin is an exclusively created,
+closed, zero-byte ordinary regular file under compiler-owned ordinary directories; no pin content,
+PID, timestamp, heartbeat, or lease is interpreted. Under the project lock, a reader selects and
+validates one generation, creates its own pin, and releases the lock only after the file is visible.
+`run` performs that acquisition after its generation and current record commit but before the same
+publication critical section ends. No reader, VICE process, or monitor work starts before successful
+pin acquisition. Several holders of one generation use separate pin files, so the generation stays
+protected until the last holder releases its own file under the lock after all owned work stops.
+
+Cleanup acquires the same lock, reads current and pin state once, and holds the lock through every
+deletion. Any directory entry inside a canonical generation pin directory protects that generation,
+even when the entry is malformed or only partly created. An unknown entry at `.pins`, unreadable pin
+state, symlink, non-directory where a directory is required, or ownership ambiguity stops automatic
+generation cleanup and produces a structured diagnostic. An empty canonical generation pin
+directory means no holder and may be removed with its unpinned generation. A process identifier,
+process-existence probe, command line, file age, or wall-clock observation may be reported as a hint
+but never authorizes pin or generation deletion. A crash after acquisition therefore leaves a safe
+conservative pin; a crash before acquisition cannot have started the reader. Automatic build/run
+never reclaims an uncertain pin. Recovery is deliberate and destructive: the diagnostic identifies
+the pin and generation where possible and directs the user to stop every Blend65/VICE operation for
+the project before manually removing the named orphan pin or reproducible output directory.
 
 Every sidecar also requires the JSON integer `schemaVersion: 1`. Counts,
 addresses, sizes, shape elements, and cycle bounds are nonnegative JSON integers; identities, names,
@@ -1095,8 +1128,10 @@ no C64U target identity or support claim; the owned successor activates only aft
    ACME bytes/symbols/segments, and publishes one coherent immutable artifact/evidence generation
    through the atomic current record only on success.
 4. [ ] **AC-04 — Public run:** `blendc run` rebuilds first, pins and launches only its exact
-   successful generation, distinguishes build/tool/runtime/cancellation errors, never launches a
-   stale prior artifact, and preserves a completed generation when cancellation occurs after commit.
+   successful generation after its exclusive pin is visible, distinguishes build/pin/tool/runtime/
+   cancellation errors, never launches a stale prior artifact, and preserves a completed generation
+   when cancellation occurs after commit. Completion releases only its own pin after all owned work
+   stops; failed release is diagnosed and retained.
 5. [ ] **AC-05 — Minimum editor:** Opening the M1 project publishes the same lexer/parser/module/
    semantic diagnostics through the bundled VS Code client and language server; the server imports
    no target, codegen, packager, or emulator code.
@@ -1159,10 +1194,15 @@ no C64U target identity or support claim; the owned successor activates only aft
     schema, has one semantic-input record and immutable generation identity, and has the correct
     hash. Cases cover the exact PRG and fixed-sidecar component set, basename preservation, native
     component-length rejection, case/alias collision, occupied symlink/non-regular paths, and
-    exclusive-create collision. A concurrent reader pins one complete generation; an input change,
+    exclusive-create collision. Deterministic barriers prove cleanup-before-pin and
+    pin-before-cleanup interleavings, several holders of one generation, hard process death after
+    acquisition and reader start, release only after owned work stops, and exact current/immediate-
+    predecessor preservation. Malformed, partial, unreadable, and crash-left pins fail closed;
+    reused PIDs, clock changes, and advanced time never authorize deletion. An input change,
     pre-commit cancellation, or seeded compiler/ACME/layout/package failure publishes no mixed or
     stale set and preserves the prior current generation. Post-commit run cancellation preserves
-    that build and stops only emulator/control work.
+    that build, stops only emulator/control work, and either releases its exact pin or reports its
+    conservative retention.
 28. [ ] **AC-28 — Deterministic VICE input:** The predetermined real-joyport trace produces the
     exact table-derived player, six-invader, projectile/explosion, collision, win, rendered-sprite,
     release/press, and return results without observing or patching program state. A hit update

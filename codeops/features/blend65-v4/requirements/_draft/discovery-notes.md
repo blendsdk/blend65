@@ -292,12 +292,18 @@ generations. Publication validates the nearest existing canonical parent and cre
 contained components. Absolute or escaping paths, a file where a directory is required, symlink
 escape, and an explicitly declared source or asset inside the output tree are errors.
 
-A short per-project lock coordinates only generation commit, current-record replacement, run
-pinning, and cleanup. A run pins its own immutable generation; failed work removes only its unique
-staging directory. Cleanup retains the current generation, every active pin, and the newest unpinned
-predecessor, deleting only older unpinned generations while holding the lock. Publication is the
-build no-return point: cancellation observed before commit publishes nothing; cancellation after
-commit preserves the valid build and later run cancellation terminates only owned VICE/monitor work.
+A short per-project lock coordinates only generation commit, current-record replacement, reader
+pinning, and cleanup. Before releasing the lock, any compiler-owned reader that keeps a generation
+creates its own empty ordinary pin at `<outDir>/.pins/<generationId>/<pinId>.pin`; `run` pins its
+fresh generation in the publication critical section. Failed work removes only its unique staging
+directory. Cleanup retains current, the immediately replaced current generation, and every pinned
+generation, deleting only other provably unpinned generations while holding the lock. Normal
+released-pin retention is bounded to current plus that one predecessor. Crash-left, malformed,
+unreadable, or uncertain pins fail closed and are diagnosed for deliberate recovery; PID, age,
+clock, and process-liveness hints never authorize deletion. Publication is the build no-return
+point: cancellation observed before commit publishes nothing; cancellation after commit preserves
+the valid build and later run cancellation terminates only owned VICE/monitor work before releasing
+its pin.
 
 `.assets.json`, `.memory.json`, `.costs.json`, and `.build.json` each have an independent complete
 direct version-1 contract frozen in RD-03 before its first producer tests. The contracts close every
@@ -483,7 +489,7 @@ general debugger/schema framework.
 | Editor session | Open trusted or untrusted workspace, analyze versioned unsaved text, cancel stale requests, navigate/rename/format, inspect profile/assets, then explicitly build or run. | Covered by AR-021/AR-022. Build and run use a coherent saved filesystem snapshot; the extension offers Save All or Cancel for dirty project inputs. Untrusted workspaces never execute tools. |
 | Check | Read one coherent project snapshot, validate manifest/source/import/type/effect/profile/asset facts, and return stable diagnostics without lowering, ACME, packaging, or published outputs. | Covered. Final machine-layout failures remain build diagnostics; `check` reports only facts provable before target lowering. |
 | Build | Reuse the same frontend result, close whole-program/SFA storage, lower and optimize under the selected mode, solve placement, materialize and validate the exact profile-owned artifact-component set, serialize ACME without `!to`, assemble/package in unique staging through direct output arguments, then commit one immutable generation and replace the current record. | Covered by AR-008, AR-022, AR-023, and AR-032. Any invalid output basename/component, native limit or alias, occupied non-regular output, changed input, stage error, ACME failure, collision, no-space result, or pre-commit cancellation prevents publication and preserves the prior current record; a post-commit cancellation preserves the valid build. |
-| Run | Perform a fresh successful build, pin that invocation's immutable generation, bind its exact output hashes and selected VICE profile, and launch only its primary artifact. | Covered by AR-009, AR-022, and AR-032. A failed/pre-commit-cancelled build launches nothing; cancellation after publication reports build success separately and terminates only owned VICE/monitor execution. |
+| Run | Perform a fresh successful build, create that invocation's durable generation pin before releasing the publication lock, bind its exact output hashes and selected VICE profile, and launch only its primary artifact after pin acquisition. | Covered by AR-009, AR-022, and AR-032. A failed/pre-commit-cancelled build or failed pin acquisition launches nothing; cancellation after publication reports build success separately, terminates only owned VICE/monitor execution, then releases its exact pin or diagnoses safe retention. |
 | Resident asset | Resolve literal `embed()`, validate exact handler/version/selector, retain symbolic identity and constraints, place one requested representation at the hardware-visible address, and report bytes/residency. | Covered by the active specification, expert asset contracts, AR-020, and M1 in AR-027/AR-037. Required producer fixtures remain qualification prerequisites rather than assumed parser proof. |
 | Large asset or scene | Import and compose data that cannot coexist in one resident image, declare a fixed `loadable const` unit and compatible destination, select load windows/overlays, package transport bytes, load/decompress, publish, and preserve or pause IRQ/audio safely. | Covered by AR-029 and AR-031. |
 | Multi-profile build | Build shared game code for PAL/NTSC, KERNAL/takeover, SID variants, then add a C64U-specific path without redefining core semantics. | Covered by AR-030: compile-time facts for ordinary differences, recorded target/entry overrides, and separate reachable platform modules for different hardware APIs. |
@@ -697,7 +703,7 @@ an owned user-visible behavior.
 | Integration | Direction and trust boundary | Owning RDs | Required contract |
 |---|---|---|---|
 | ACME assembler | A tool-requiring CLI or trusted editor command launches the configured or normal-`PATH` executable directly and consumes its output. Project/source/asset content remains untrusted input. | RD-03, RD-04, RD-08, RD-10 | Exact supported identity, deterministic dialect serialization, contained canonical paths, distinct tool diagnostics, argument-array invocation, and no artifact publication after failure. |
-| VICE 3.10 `x64sc` | CLI/test harness launches the machine-local configured or normal-`PATH` emulator directly; VICE is the normal runtime oracle, not universal hardware proof. | RD-03, RD-05, RD-07, RD-09, RD-10 | Exact profile launch, immutable-generation pinning, timeouts, fresh artifact hash binding, observable-state capture, distinct emulator failure/cancellation, and bounded hardware follow-up. |
+| VICE 3.10 `x64sc` | CLI/test harness launches the machine-local configured or normal-`PATH` emulator directly; VICE is the normal runtime oracle, not universal hardware proof. | RD-03, RD-05, RD-07, RD-09, RD-10 | Exact profile launch, fail-closed immutable-generation pinning, timeouts, fresh artifact hash binding, observable-state capture, distinct emulator failure/cancellation, and bounded hardware follow-up. |
 | VS Code through LSP stdio | A thin extension exchanges versioned text and language requests with the shared frontend service. Workspace files and command execution are trust boundaries. | RD-03, RD-09 | Cancellation, stale-result rejection, workspace trust, no codegen dependency for ordinary editor requests, and a coherent saved snapshot for build/run. |
 | Native asset files | The compiler reads local producer files through literal, contained paths and version-specific handlers. Files are untrusted binary input. | RD-03, RD-06, RD-07 | Exact signature/version/size validation, bounded parsing, canonical provenance, deterministic selected output, and producer-generated fixtures. |
 | D64 packaging and loading | The compiler packages a boot PRG and reachable load units; the target loader consumes the resulting disk layout. | RD-07, RD-10 | One atomic primary artifact, exact filenames/locations, complete loader and decompressor resource ownership, publication semantics, and no stale partial image. |

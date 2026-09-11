@@ -104,9 +104,10 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   the packaged VS Code extension, discover pinned ACME/VICE, cancel owned child trees, and validate
   the shared manifest-basename predicate, exact PRG/D64 and fixed-sidecar component plans, native
   component limits and aliases, unique staging, ordinary-file/exclusive ownership,
-  immutable-generation commit, atomic current-record replacement, run pinning, and retention
-  cleanup. Linux simulation of Windows paths or processes is supporting evidence only. (AR-021,
-  AR-022, AR-036, AR-047, AR-048)
+  immutable-generation commit, atomic current-record replacement, reader pinning, normal bounded
+  retention, fail-closed uncertain-pin handling, and deliberate orphan recovery. Linux simulation
+  of Windows paths or processes is supporting evidence only. (AR-021, AR-022, AR-036, AR-047,
+  AR-048)
 - [ ] **R10.12 — Prove cross-host output identity.** Both production hosts build the same frozen
   release projects under identical profiles, modes, safety options, and manifest names admitted by
   the shared Linux/Windows lexical floor. Normalized assembly,
@@ -596,9 +597,13 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
 10. [ ] **AC-10 — Native host qualification:** Clean Node 22 `linux/x64` and `win32/x64` runs each
     install, build, package, check, build/run a project, start LSP/packaged VS Code, discover tools,
     cancel owned process trees, and validate unique staging, immutable generation/current-record
-    publication, concurrent build/run pins, and bounded retention. Current, active pins, and the
-    newest unpinned predecessor survive cleanup; only older unpinned generations are deleted under
-    the project lock. The same accepted Unicode/space/period basename set is preserved on both
+    publication, concurrent build/reader pins, and normal bounded retention. Current, every active
+    or uncertain pin, and the immediate predecessor from lock-serialized publication order survive
+    cleanup; only other provably unpinned generations are deleted under the project lock. Barriers
+    cover both cleanup/pin orders, multiple holders, process death at acquisition/start/release
+    boundaries, malformed or unreadable state, PID reuse, and clock changes. Uncertain state blocks
+    affected cleanup and requires a diagnostic plus deliberate recovery; no PID, time, or liveness
+    hint authorizes deletion. The same accepted Unicode/space/period basename set is preserved on both
     hosts; every forbidden character, Windows reserved stem, native component-limit boundary,
     host alias, exclusive-create race, and occupied symlink/device/directory fails before
     publication without changing the prior current generation. First and repeated builds prove

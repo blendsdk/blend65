@@ -114,10 +114,11 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   hashes every other contained artifact. The boot PRG and
   unit files are contained components, not separate advertised products. Any failure or pre-commit
   cancellation leaves the prior current generation intact, and `run` never launches a stale or
-  mixed artifact. The same short per-project publication lock, run pin, and bounded retention rule
-  retains the current generation, active runs, and newest unpinned predecessor and deletes only
-  older unpinned generations; RD-07 adds no disk-specific transaction or cache layer. (AR-008,
-  AR-022, AR-032)
+  mixed artifact. The same short per-project publication lock and private pin protocol retain the
+  current generation, its immediate predecessor, every active or uncertain pin, and delete only
+  other provably unpinned generations. Normal released-pin retention is bounded; a crash-left or
+  ambiguous pin fails closed and requires diagnosed deliberate cleanup. RD-07 adds no disk-specific
+  transaction, liveness, or cache layer. (AR-008, AR-022, AR-032)
 - [ ] **R7.11 — Serialize one exact physical format.** Emit a 174,848-byte, 35-track, single-sided
   Commodore 1541 D64 without an error-information table. Use 256-byte sectors, standard track-18
   BAM/directory structures, DOS type `2A`, closed PRG entries, 254 payload bytes per linked data
@@ -158,11 +159,12 @@ its interface has no maximum-length input. (AR-032, AR-042 through AR-044)
   Unused bytes and sectors use one deterministic fill value. Directory ordering remains stable.
 - [ ] **R7.17 — Bind `run` to the fresh D64.** `blendc run` performs a successful build in the same
   invocation, pins the exact immutable generation returned by that build without re-resolving the
-  current record, verifies its D64/evidence hashes, attaches that exact image to VICE drive 8, and
-  starts its first boot entry under the exact `c64-pal-d64-kernal-6581` model. Publication is the
-  no-return point: pre-commit cancellation publishes nothing, while cancellation after commit
-  retains that generation and stops only VICE and its monitor/control work. Build, mount/autostart,
-  emulator, timeout,
+  current record before releasing the publication lock, verifies its D64/evidence hashes, attaches
+  that exact image to VICE drive 8 only after pin acquisition, and starts its first boot entry under
+  the exact `c64-pal-d64-kernal-6581` model. Publication is the no-return point: pre-commit
+  cancellation publishes nothing, while cancellation after commit retains that generation and
+  stops only VICE and its monitor/control work before releasing its exact pin. Build,
+  pin-acquisition/release, mount/autostart, emulator, timeout,
   cancellation, and observation failures remain distinct. (AR-009, AR-032)
 
 #### KERNAL-first transfer — complexity XL
@@ -653,9 +655,11 @@ mandate to copy a game loader or framework. (AR-014, AR-034, AR-042 through AR-0
 13. [ ] **AC-13 — No external packager:** Build succeeds without VICE/c1541 except when `run` or the
     emulator tier is requested; static inspection finds no shell command, hook, or plugin path.
 14. [ ] **AC-14 — Fresh run:** `run` pins one newly published generation, mounts drive 8 with only
-    that generation's hash-bound D64, and starts its first entry. Failed build, stale or mixed files,
-    missing/wrong VICE, mount failure, timeout, cancellation, and program failure remain distinct;
-    post-commit cancellation preserves the complete generation.
+    that generation's hash-bound D64, and starts its first entry only after the durable pin is
+    visible. Failed build, pin acquisition, stale or mixed files, missing/wrong VICE, mount failure,
+    timeout, cancellation, and program failure remain distinct; post-commit cancellation preserves
+    the complete generation and releases only its own pin after owned work stops, or diagnoses a
+    safely retained pin when release fails.
 15. [ ] **AC-15 — KERNAL call contract:** Assembly and runtime evidence prove exact SETLFS/SETNAM/
     relocating LOAD arguments, boot-device reuse, filename bytes, destination X/Y, declared
     clobbers, and restored state.
