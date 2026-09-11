@@ -142,7 +142,7 @@ completion requires the entire active language and approved C64 surface.
 | Product boundary | Compiler, language, platform operations, and asset conversion—not a game engine | AR-038 |
 | Optimization | Correct `none` first; then one finite qualified frontier exhausted under three cost orderings | AR-023, AR-045, AR-046 |
 | Developer tooling | Public compiler service, frontend-only LSP, thin trusted VS Code client, and portable debug evidence | AR-010, AR-021, AR-047 |
-| Production hosts | Node 22 on Linux x64 and Windows x64; machine-local tools configuration followed only by normal process-`PATH` ACME/VICE discovery | AR-048 |
+| Production hosts | Node 22 on Linux x64 and Windows x64; machine-local tools configuration followed by ordered exact-token PATH discovery (`acme`/`x64sc` or `.exe`) and direct version probes | AR-048 |
 | Verification | Directed checks during work, complete relevant boundary at major checkpoints, targeted physical QA near release | AR-008, AR-011, AR-024, AR-026 |
 
 ## Final Requirements Validation

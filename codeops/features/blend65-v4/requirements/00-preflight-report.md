@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 1 open finding (1 minor); PF-001–PF-028 resolved
+> **Status**: PASS — DEEP RESCAN COMPLETE — 0 open findings; PF-001–PF-029 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `9267f0ab4d5daed7db301caae2a49c2767b732697fbfec9d9ef0bf05d40cecea`
+> **Artifact Digest**: `2d361a1ed6bb750bd632ba2a7c12dd58aa32a39526d9592100534e49b1e42093`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -279,7 +279,8 @@ user clarified the intended CLI-owned config-or-`PATH` boundary.
 **User Decision:** Accepted revised Option A on 2026-09-10. The user explicitly rejected additional
 discovery machinery: the CLI looks only at machine-local configuration and then normal `PATH`.
 **Resolution:** Applied and verified in `54bf32b`; the compiler/tool capability matrix and
-config-or-normal-`PATH` discovery boundary agree. PF-029 tracks the remaining Windows token probe.
+config-or-normal-`PATH` discovery boundary agree. PF-029 subsequently closed the Windows token and
+version-probe detail.
 
 ### PF-008: Public evidence sidecars have no versioned schemas 🟠 MAJOR
 
@@ -684,15 +685,15 @@ refutation attempt.
 
 | Dimension | Open findings | Highest severity |
 |---|---:|---|
-| Ambiguities / assumptions | 1 | 🟠 MAJOR |
-| Contradictions / consistency | 1 | 🟠 MAJOR |
+| Ambiguities / assumptions | 0 | — |
+| Contradictions / consistency | 0 | — |
 | Completeness / dependencies / ordering | 0 | — |
 | Feasibility / codebase alignment | 0 | — |
-| Testability / security / edge cases | 3 | 🟠 MAJOR |
+| Testability / security / edge cases | 0 | — |
 | Scope creep | 0 | — |
 
 Several findings span dimensions. The deep rescan found eight major and one minor; PF-021 through
-PF-023 are now resolved, leaving five major and one minor.
+PF-029 are now resolved, leaving no open finding.
 
 ### PF-021: Portable `buildId` cannot name every immutable publication generation 🟠 MAJOR
 
@@ -968,24 +969,34 @@ implemented or qualified exactly.
 
 | Option | Description | Tradeoff |
 |---|---|---|
-| A — **Recommended** | Make a clean Windows probe a pre-RD-09-planning prerequisite and freeze exact query tokens, native extension handling, and version commands from that evidence. | Preserves config-or-PATH behavior without guessing from v3. |
+| A — **Selected and completed** | Freeze exact query tokens, native extension handling, and version commands from official ACME/VICE evidence, then require native clean-Windows qualification of the implemented contract. | Preserves config-or-PATH behavior without guessing from v3 or deferring the requirements gap. |
 | B | Require explicit Windows tool paths and drop automatic PATH lookup there. | Avoids the probe but contradicts the accepted cross-host DX. |
 
 **Recommendation:** Option A.
-**Decision:** Pending.
+**Decision:** Applied on 2026-09-11 under the user's standing direction to choose the best option.
+**Resolution:** Linux PATH lookup queries only `acme` and `x64sc`; Windows queries only `acme.exe`
+and `x64sc.exe`. Both scan inherited PATH entries in order. Blend65 does not use `PATHEXT`, a shell,
+`where.exe`, registry/App Paths, fixed install locations, or extensionless Windows aliases. The first
+canonical regular candidate is authoritative; a wrong identity fails without searching later.
+ACME is probed directly with `--version` and must report release 0.97; VICE is probed directly with
+`-version` and must report `x64sc` 3.10 or 3.10.0, with exact bounded grammar for an optional official
+SVN revision. Configured paths retain precedence and may use any filename but pass the same identity
+checks. The official [ACME 0.97 Windows distribution](https://sourceforge.net/projects/acme-crossass/files/win32/)
+and [VICE command-line manual](https://vice-emu.sourceforge.io/manual/vice.pdf) ground the executable
+names and probes; VICE 3.10 source fixes the emitted version shape. Native Windows qualification
+still proves the implementation, but no product decision remains deferred to it.
 
 ## Audit Guardrails and Result
 
 - No compiler, ACME, VICE, readiness, or feasibility-matrix suite was run.
 - PF-001 through PF-020 were applied, validated, and committed at `54bf32b` before the deep rescan.
 - The deep rescan found PF-021 through PF-029. PF-021 through PF-024 were corrected after the
-  user's explicit decisions. PF-025 and PF-026 are now corrected; PF-027 through PF-029 remain
-  pending.
+  user's explicit decisions. PF-025 through PF-029 are also corrected; final verification reports
+  no open finding.
 - The scan found no unapproved game engine, runtime, readiness product, plugin framework, or
   nondeterministic performance gate.
 - Optimizer fixed-point qualification, tooling breadth, physical QA, and C64U readiness are large
   but bounded by explicit user-approved scope and testable evidence.
-- The roadmap does not advance while any critical or major finding is unresolved.
+- The requirements set may advance because no critical or major finding remains unresolved.
 
-**Current Result:** **BLOCKED** with PF-001 through PF-026 resolved and three deep-rescan findings
-awaiting decisions.
+**Current Result:** **PASS** with PF-001 through PF-029 resolved and zero open findings.

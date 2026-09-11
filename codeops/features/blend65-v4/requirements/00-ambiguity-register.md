@@ -53,7 +53,7 @@
 | AR-045 | Behavioral (complex) / optimizer goal selection | When correct 6502 candidates trade cycles against bytes or scarce resources, how do `balanced`, `speed`, and `size` choose deterministically without guessing workload frequency? | Complete-cost Pareto/lexicographic policy / one profile-owned weighted scalar / user-configurable weights and hotness | Filter hard constraints first. Let `B` be target-loadable compiler program/data bytes, `R` the stable target-resource vector, and `T` comparable semantic-path cycles. Balanced accepts only no-regression dominance; speed orders `T → R → B`; size orders `B → R → T`. Fixed D64/container/evidence bytes never enter selection. Use no weights, hotness annotations, policy DSL, PGO, guessed frequency, or `max` mode. | ✅ Resolved |
 | AR-046 | Behavioral (complex) / optimizer frontier and search completion | What belongs in the qualified optimization frontier, and what proves that an optimized mode has searched it deeply enough: combined modern and 6502-specific techniques exhausted to proved closure, only traditional 6502 tricks, a broad imported modern optimizer framework, globally exhaustive assembly search, or a heuristic pass budget? | Finite combined modern-plus-6502 frontier exhausted to proved closure, with structured peepholes and bounded exact search / 6502 tricks only / broad imported optimizer framework or catalog / globally exhaustive search across all equivalent programs / heuristic fixed-pass or first-good completion | Freeze a deep, sourced modern-plus-6502 optimization knowledge inventory into expert baseline `2.0.0`, then use the same finite evidence-qualified candidate frontier for `balanced`, `speed`, and `size`. Admit concrete techniques by Blend65 semantics, current consumer, complete rule packet, exact 6502/full-program costs, two independent oracles, and expert parity—not by historical or modern provenance. Exhaust that frontier at the smallest complete owning scope, repeat affected groups to a proved deterministic fixed point, and run structured contextual peephole optimization. Permit exact enumeration only for explicitly small finite regions with an independent equivalence oracle. Import algorithms and proof ideas, never another compiler's architecture or target assumptions. Never stop at the first improvement or certify success through an iteration cap. Claim frontier-optimality, not universal mathematical optimality; a newly discovered winning expert candidate reopens the frontier as parity debt. | ✅ Resolved |
 | AR-047 | UX / VS Code execution commands | How do `Run in VICE` and `Build and Run` differ when every run must successfully build a fresh artifact in the same invocation, and how are unsaved build inputs handled? | Keep only `Build` and fresh `Run in VICE`, saving relevant dirty build inputs first / retain a separate existing-artifact rerun path with strict currentness proof plus `Build and Run` | Expose only `Blend65: Build` and `Blend65: Run in VICE`; remove redundant `Build and Run`. Before either command, save dirty open project inputs consumed by that operation; abort with an actionable message if saving is declined or fails. `Run in VICE` performs a fresh build and launches only that invocation's artifact. The LSP continues to analyze unsaved snapshots independently. | ✅ Resolved |
-| AR-048 | Scope (complex) / production host matrix | Which host operating-system and architecture combinations receive the complete production compiler, editor, ACME, and VICE workflow, and how are machine-local tools selected? | Linux x64 plus Windows x64 production, with other Node 22 hosts best-effort / Linux x64 only / Linux, Windows, and macOS across x64 and ARM64 | Qualify `linux/x64` and `win32/x64` on Node 22 first; other Node 22 hosts are best-effort. The compiler library is tool-free. Tool-requiring CLI/editor commands read optional machine-local `tools.jsonc` schema 1, using valid explicit absolute paths first and otherwise normal process `PATH`; invalid explicit paths do not fall back. Projects cannot supply tools and nothing auto-installs them. | ✅ Resolved |
+| AR-048 | Scope (complex) / production host matrix | Which host operating-system and architecture combinations receive the complete production compiler, editor, ACME, and VICE workflow, and how are machine-local tools selected? | Linux x64 plus Windows x64 production, with other Node 22 hosts best-effort / Linux x64 only / Linux, Windows, and macOS across x64 and ARM64 | Qualify `linux/x64` and `win32/x64` on Node 22 first; other Node 22 hosts are best-effort. The compiler library is tool-free. Tool-requiring CLI/editor commands read optional machine-local `tools.jsonc` schema 1, using valid explicit absolute paths first and otherwise one ordered process-`PATH` scan for `acme`/`x64sc` on Linux or `acme.exe`/`x64sc.exe` on Windows. Do not consult `PATHEXT`, a shell, registry, or install-location list. Validate with ACME `--version` and VICE `-version`; invalid explicit paths or the first PATH match with an incompatible identity do not fall back. Projects cannot supply tools and nothing auto-installs them. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -1273,6 +1273,27 @@ binary, and `run` additionally needs VICE. Processes are spawned directly with a
 never through a shell. Paths and versions are normal build evidence; executable hashes are
 qualification provenance, not a runtime trust system.
 
+The PATH algorithm is exact. Split the inherited `PATH` using Node's host `path.delimiter`, skip
+empty entries, resolve relative entries against the operation working directory, and inspect entries
+in order. Linux queries only the literal filenames `acme` and `x64sc`; Windows queries only
+`acme.exe` and `x64sc.exe`. Canonicalize each candidate and require its target to be an ordinary
+regular file; Linux also requires executable permission, while Windows requires successful direct
+`.exe` process creation. The first qualifying file is authoritative. Blend65 does not expand
+`PATHEXT`, invoke `where.exe`, consult Windows App Paths/the registry or fixed installation
+directories, try extensionless Windows aliases, or invoke a shell. A configured absolute path may
+have any filename, but it must pass the same canonical-file, direct-execution, and version-identity
+checks. A wrong version or failed probe on the configured path or first PATH match is a diagnostic,
+not permission to search for a later binary.
+
+The version probes are direct bounded child-process invocations with empty project-controlled
+arguments. ACME receives exactly `--version`; successful normalized stdout/stderr must contain a
+line beginning `This is ACME, release 0.97` with a version-token boundary. VICE receives exactly
+`-version`; successful normalized output must contain one line matching
+`x64sc(?:\.exe)? \(VICE 3\.10(?:\.0)?(?: SVN r[0-9]+)?\)`. Either probe requires exit status zero.
+CRLF versus LF and the selected output stream do not change identity. The complete matched line,
+canonical path, parsed portable version, and qualification-only executable hash are recorded under
+their existing evidence ownership.
+
 The viable smaller option is Linux x64 production only. It reduces release work but leaves a known
 asset-authoring host and its distinct path/process semantics outside the supported workflow. The
 viable broader option is Linux, Windows, and macOS across x64 and ARM64. Node, VS Code, and VICE
@@ -1287,9 +1308,12 @@ toolchain cannot be installed or controlled reliably during implementation, reop
 rather than silently weakening the production claim.
 
 **Evidence limitation:** the current repository CI is Ubuntu-only, and v3 process-control behavior
-is audit evidence rather than v4 authority. Exact pinned Windows executable names, install layouts,
-monitor behavior, and process cleanup remain unknown until a clean-host probe. The official Node,
-VS Code, VICE, and ACME support statements establish viability, not Blend65 qualification.
+is audit evidence rather than v4 authority. The official ACME 0.97 Windows distribution supplies
+`acme.exe`; the official VICE interface names `x64sc`, whose Windows distribution supplies
+`x64sc.exe`; ACME documents `--version`, and VICE documents `-version`. Exact install locations are
+deliberately irrelevant because only configuration and PATH are supported. Monitor behavior and
+process cleanup still require the normal clean-Windows production qualification; official support
+statements establish the executable contract, not a passing Blend65 result.
 
 **Independent challenge:** The challenger changed the initial broad-platform instinct to the bounded
 Linux x64 plus Windows x64 matrix. Its strongest counterargument was that Windows integration could
@@ -1315,7 +1339,11 @@ Discovery never downloads, installs, modifies, or executes project-provided comm
 paths. `check` and ordinary LSP analysis do not load or validate this file. Assembly emission needs
 no tool; a binary `build` requires ACME and `run` additionally requires `x64sc`, with actionable
 diagnostics only when the requested operation needs the missing capability. Processes use direct
-argument arrays and never a shell.
+argument arrays and never a shell. Linux PATH discovery queries `acme` and `x64sc`; Windows queries
+`acme.exe` and `x64sc.exe`. Ordered scanning ignores `PATHEXT`, registry/App Paths, fixed install
+locations, and extensionless Windows aliases. ACME identity is probed with exactly `--version` and
+VICE identity with exactly `-version`; the first qualifying PATH file is authoritative and an
+incompatible identity fails without searching later entries.
 
 **Direct user decision:** The user selected Linux and Windows first, kept macOS outside the initial
 production claim, and required automatic ACME/VICE discovery with a machine-local configuration

@@ -73,15 +73,25 @@ optimizer, and final-location handoffs. (AR-008, AR-010, AR-021, AR-025)
   wrong types, a missing version, and unsupported versions are stable configuration diagnostics. A
   configured path wins and must resolve to a canonical regular executable with the pinned compatible
   identity; an invalid configured path fails without fallback. For each omitted key or an absent
-  file, use only normal process-`PATH` lookup and its native ordering. `PATH` is host execution
-  authority; there is no fixed-install-location registry or special rejection of a project-contained
-  `PATH` entry. Record canonical path and version in normal build evidence; an executable hash is
-  qualification provenance outside portable reproducibility comparison. Never download or install a tool,
-  invoke a shell, or accept a path, argument, option, or monitor command from project/source/asset/
-  diagnostic content. Compiler-library use, assembly emission, `check`, and ordinary LSP analysis do
-  not load or validate the tools file and require no external tool; binary production requires ACME,
-  and `run` requires ACME plus `x64sc`. Missing or incompatible tools fail only the operation that
-  needs them with an actionable diagnostic. (AR-022, AR-048)
+  file, split inherited `PATH` by Node's host delimiter, skip empty entries, resolve relative entries
+  against the operation working directory, and inspect in order for exactly `acme`/`x64sc` on Linux
+  or `acme.exe`/`x64sc.exe` on Windows. Canonical targets must be ordinary regular files; Linux also
+  requires executable permission and Windows requires direct `.exe` process creation. The first
+  qualifying file is authoritative. Do not use `PATHEXT`, `where.exe`, extensionless Windows aliases,
+  registry/App Paths, fixed install locations, or a shell. Probe ACME with exactly `--version` and
+  require a successful line beginning `This is ACME, release 0.97`; probe VICE with exactly
+  `-version` and require the `x64sc` VICE 3.10 identity, admitting release spelling `3.10` or `3.10.0`
+  and an optional official SVN revision suffix. CRLF/LF and stdout/stderr placement are immaterial;
+  exit status zero and the exact tool-specific identity are mandatory. A failed probe or incompatible
+  configured/first-PATH binary fails without later fallback. `PATH` is host execution authority;
+  project-contained entries are not specially rejected. Record canonical path, matched version line,
+  and parsed version in normal build evidence; an executable hash is qualification provenance outside
+  portable reproducibility comparison. Never download or install a tool or accept a path, argument,
+  option, or monitor command from project/source/asset/diagnostic content. Compiler-library use,
+  assembly emission, `check`, and ordinary LSP analysis do not load or validate the tools file and
+  require no external tool; binary production requires ACME, and `run` requires ACME plus `x64sc`.
+  Missing or incompatible tools fail only the operation that needs them with an actionable
+  diagnostic. (AR-022, AR-048)
 - [ ] **R9.6 — Preserve exact cancellation ownership.** Cancelling `check` stops outstanding
   analysis; cancellation observed before build publication terminates owned ACME work and removes
   only that invocation's unpublished staging directory. Publication is the no-return point: after

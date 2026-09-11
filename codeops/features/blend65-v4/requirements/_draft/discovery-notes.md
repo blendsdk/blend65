@@ -286,6 +286,12 @@ build. A successful build validates a unique staging directory, renames it once 
 generation-ID directory, and atomically replaces one small current-generation record. Production mode
 has no competing single-file configuration model.
 
+PATH discovery is intentionally literal: Linux queries `acme` and `x64sc`, Windows queries
+`acme.exe` and `x64sc.exe`, and both preserve inherited PATH order. Blend65 does not consult
+`PATHEXT`, a shell, `where.exe`, registry/App Paths, or install-location lists. ACME `--version` must
+identify release 0.97 and VICE `-version` must identify `x64sc` 3.10/3.10.0. The first qualifying PATH
+file is authoritative; an incompatible version fails without searching later entries.
+
 `outDir` is compiler-owned output state, not project input. It is excluded from source/asset
 discovery and input hashes, including when `sourceRoot` is `.`, and may contain prior immutable
 generations. Publication validates the nearest existing canonical parent and creates only missing

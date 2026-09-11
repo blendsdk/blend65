@@ -118,12 +118,13 @@ evidence packet to the already-owned `blend65-c64u` feature. (AR-024, AR-035, AR
   may differ only in `generationId` and explicitly declared tool path/hash, host, duration, and
   peak-memory provenance fields outside that comparison. (AR-022, AR-026, AR-032, AR-048)
 - [ ] **R10.13 — Qualify deterministic tool discovery.** On both hosts, prove the exact machine-local
-  version-1 tools-file precedence, normal process-`PATH` lookup, version checks, canonical executable
-  identity, diagnostic behavior, and no-download/no-shell boundary from RD-09. There is no ordinary-
-  install-location registry. `check` and ordinary LSP do not load the file and work with no external
-  tools; assembly emission remains available without tools; binary production fails clearly without
-  ACME; `run` fails clearly without ACME or `x64sc` and never launches a stale artifact. (AR-022,
-  AR-048)
+  version-1 tools-file precedence, ordered process-`PATH` scan, exact Linux `acme`/`x64sc` and Windows
+  `acme.exe`/`x64sc.exe` tokens, no-`PATHEXT` rule, canonical executable identity, ACME `--version`,
+  VICE `-version`, accepted output/version grammar, diagnostic behavior, and no-download/no-shell
+  boundary from RD-09. There is no ordinary-install-location registry. `check` and ordinary LSP do
+  not load the file and work with no external tools; assembly emission remains available without
+  tools; binary production fails clearly without ACME; `run` fails clearly without ACME or `x64sc`
+  and never launches a stale artifact. (AR-022, AR-048)
 - [ ] **R10.14 — Bound non-production hosts honestly.** macOS, Linux ARM64, and other Node 22 hosts
   remain best-effort even if individual checks pass. Hosts outside the declared Node 22 range and
   32-bit or unknown architectures are unsupported. Promotion requires the same native end-to-end
@@ -625,8 +626,12 @@ verification already owned by each RD and adds only cross-RD/host/profile journe
     valid override combination, native PATH ordering, wrong-version, broken-symlink, and missing-tool
     cases pass RD-09 precedence on both hosts. Present-file cases require integer `schemaVersion: 1`
     and reject missing/unsupported versions, duplicate/unknown keys, wrong types, and invalid explicit
-    paths without fallback. `check` and ordinary LSP do not load the file. No fixed install-location
-    case, download, or shell exists.
+    paths without fallback. Linux probes only `acme`/`x64sc`; Windows probes only
+    `acme.exe`/`x64sc.exe`; `PATHEXT`, `where.exe`, registry/App Paths, install-location probing,
+    extensionless Windows aliases, and a shell are absent. Direct ACME `--version` and VICE
+    `-version` cases cover CRLF/LF, stdout/stderr, exact compatible identities, malformed output,
+    nonzero exit, and first-match wrong-version failure without later search. `check` and ordinary
+    LSP do not load the file. No download exists.
 13. [ ] **AC-13 — Best-effort boundary:** Public support documentation labels macOS, Linux ARM64,
     and other Node 22 hosts best-effort, labels out-of-range/32-bit/unknown hosts unsupported, and
     contains no inference of macOS production support from Unix similarity.
