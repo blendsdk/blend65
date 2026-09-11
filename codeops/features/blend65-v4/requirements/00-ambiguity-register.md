@@ -24,7 +24,7 @@
 | AR-016 | Feature gaps / language | What aggregate value model does v4 provide for struct/array returns, copies, assignments, and parameter passing? | Keep v3 restrictions / normal value semantics with zero-copy parameters and copy-eliding returns | Fixed arrays and structs have value semantics for assignment and return. Require exact compatible type and extent; forbid returning unsized `T[]`. Keep aggregate parameters as mutable or `const` zero-copy borrows. Use caller-owned return storage, direct construction, and copy elision. Explicit requested copies preserve source-value semantics and report their cost. Add no mandatory runtime, heap, dynamic frame, or copy intrinsic. | ✅ Resolved |
 | AR-017 | Feature gaps / language | Does v4 support nested fixed arrays as true multidimensional storage? | Flatten manually / fixed rectangular arrays with an optional outer-unsized parameter extent / fully unsized or jagged arrays | Support contiguous row-major nested fixed arrays. Every stored extent is fixed. A borrowed parameter may omit only its outermost extent, such as `const byte[][4]`; the inner extents remain fixed. Reject `byte[][]`, `byte[25][]`, dynamic extents, jagged arrays, slices, and views. | ✅ Resolved |
 | AR-018 | Feature gaps / language | Does v4 support typed function pointers and statically bounded indirect calls beyond recognized platform callbacks? | Keep recognized sinks only / typed finite-target function values / unrestricted raw-address calls | Support typed `fn(...)` values for named ordinary functions. Track precise targets through storage and control flow; when precision is lost in a closed program, use every address-taken signature-compatible source function as a finite conservative set. Reject only when no finite source set is provable. Interrupt-handler values remain distinct and sink-only. Add no raw callable address, closure, runtime registry, universal dispatcher, or runtime library. | ✅ Resolved |
-| AR-019 | Feature gaps / game development | Does v4 provide deterministic compile-time table generation for game data such as sine and lookup tables? | External generation only / separate comprehension DSL / restricted `comptime function` declarations | Add bounded deterministic `comptime function` declarations that reuse normal Blend65 expressions, control flow, fixed values, and aggregate returns. They emit no target code or storage beyond returned constants. Forbid runtime effects and nondeterministic host inputs. Include byte-exact integer-phase `sin8`, `cos8`, `sin16`, and `cos16` compile-time functions. | ✅ Resolved |
+| AR-019 | Feature gaps / game development | Does v4 provide deterministic compile-time table generation for game data such as sine and lookup tables? | External generation only / separate comprehension DSL / restricted `comptime function` declarations | Add bounded deterministic `comptime function` declarations that reuse normal Blend65 expressions, control flow, fixed values, and aggregate returns. They emit no target code or storage beyond returned constants. Forbid runtime effects and nondeterministic host inputs. Include byte-exact integer-phase `sin8`, `cos8`, `sin16`, and `cos16` compile-time functions. `comptime-budget-v1` fixes one compilation-wide 16,777,216-step, 16-MiB-live-logical-memory, and 512-active-call boundary with exact pre-operation failure and no configuration surface. | ✅ Resolved |
 | AR-020 | UX / language | How are the approved expert placement and alignment overrides expressed without creating a general attribute framework? | Project configuration only / general annotations / one closed `place(...)` declaration modifier | Add one expert-only `place(...)` modifier with exactly `at`, `align`, `noCross`, and typed profile `region` constraints. Automatic placement remains the default and platform/asset constraints are applied automatically. Explicit constraints may strengthen but never weaken them. Add no general annotation or extension mechanism. | ✅ Resolved |
 | AR-021 | UX / integration | Which LSP and VS Code capabilities are required for the first production release? | Syntax/diagnostics only / focused production language tooling / full IDE and owned debugger | Deliver live frontend/profile/asset diagnostics, completion, hover, signature help, definition, references, safe rename, symbols, semantic tokens, bounded code actions, and one canonical full-document formatter. The thin VS Code extension adds language configuration, project/profile status, explicit build/VICE commands, cancellation, diagnostics/output, and generated-artifact access. It adds no owned debugger, visual designer, package manager, formatting framework, or general refactoring engine. | ✅ Resolved |
 | AR-022 | Integration / data | How does a Blend65 project declare source files, target profile, assets, build outputs, and options? | Broad file-glob/override configuration / one manifest and entry-derived graph / scriptable build system | Use one upward-discovered JSONC manifest and entry-derived graph. Preserve exact host input filenames. Validate the separate literal artifact basename against one small Linux/Windows lexical safety floor, preserve accepted spelling, materialize and natively validate the complete profile-owned output set, and keep project data out of ACME source. Exclude `outDir` output state from inputs and publish one uniquely named immutable generation through an atomic current record. Four exact direct non-debug sidecar schemas plus one first-producer debug version-1 contract and explicit input/output hashes describe the result. Add no scripts, hooks, plugins, package manager, globs, filename rewriting, schema framework, content-addressed cache, or second production model. | ✅ Resolved |
@@ -273,9 +273,43 @@ deduplication, memory maps, and debug provenance.
 A compile-time function may read constant data, including an already validated `embed()` result. It
 may not access MMIO; use `PEEK`, `POKE`, or `asm_*`; modify runtime state; make indirect calls; read
 files directly; observe time, randomness, environment, or network state; or call runtime-only
-functions. Recursion remains forbidden. Deterministic execution-step and host-memory limits prevent
+functions. Recursion remains forbidden. Deterministic execution-step and logical-memory limits prevent
 non-terminating or hostile evaluation and produce source diagnostics rather than a compiler hang.
 Ordinary Blend65 typing, overflow, conversion, division, and bounds rules govern evaluation.
+
+`comptime-budget-v1` applies one shared counter set to every compile-time root in one `check` or
+`build`, consumed in deterministic semantic evaluation order. It permits exactly 16,777,216 steps,
+16,777,216 bytes of peak live logical evaluator-owned value storage, and 512 active compile-time
+function invocations. The root invocation is depth 1. The operation requiring step 16,777,217, an
+allocation that would make live logical storage exceed 16,777,216 bytes, or a call that would enter
+depth 513 fails before that operation, mutation, argument evaluation, or function body executes.
+The failed evaluation is poisoned and no target artifact is emitted.
+
+One step is charged before evaluating each selected expression node, executing each statement node,
+starting each loop iteration, entering each compile-time function, and initializing, copying, or
+materializing each logical aggregate byte. Short-circuited expressions and unselected branches cost
+nothing. Caching or memoization may reduce host work but must charge the same abstract steps as an
+uncached evaluation.
+
+Live logical memory uses Blend65 language widths: scalars use their defined byte width and arrays
+and structs use normative `sizeof`. Parameters, locals, expression temporaries, in-progress
+aggregates, return values, and retained generated constants count while live. Aliases do not add a
+second charge; an existing immutable constant or validated embedded asset read without copying is
+not charged again. Storage is released at its defined full-expression, block, call, or evaluation-
+phase lifetime boundary. Host object overhead, allocator behavior, and process memory do not affect
+source acceptance. A real host allocation/OOM failure is a separate bounded compiler failure, never
+a language-budget diagnostic, and publishes no artifact when the process can report or clean up.
+
+The v1 limits are fixed, not configurable through source, manifest, environment, or CLI. A changed
+accounting unit or lower limit is a breaking language change; a raised limit expands accepted source
+but still requires a new budget/specification version. The exact diagnostics are:
+
+- E10269: `Compile-time evaluation step budget exceeded — 'comptime-budget-v1' allows 16777216 steps; attempted step 16777217 while evaluating root '<root>'`.
+- E10270: `Compile-time evaluation memory budget exceeded — 'comptime-budget-v1' allows 16777216 live logical bytes; allocating <requested> bytes would require <attempted> while evaluating root '<root>'`.
+- E10271: `Compile-time call-depth budget exceeded — 'comptime-budget-v1' allows 512 active calls; call to '<callee>' would enter depth 513 while evaluating root '<root>'`.
+
+The primary span is the failing expression, statement, allocation-producing operation, or call. A
+related span identifies the root invocation.
 
 The initial compile-time math surface includes `sin8(byte): sbyte`, `cos8(byte): sbyte`,
 `sin16(word): sword`, and `cos16(word): sword`. Their phase covers one complete turn and their

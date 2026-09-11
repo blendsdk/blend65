@@ -1,10 +1,10 @@
 # Preflight Report: Blend65 v4 Requirements
 
-> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 2 open findings (1 major, 1 minor); PF-001–PF-027 resolved
+> **Status**: BLOCKED — DEEP RESCAN COMPLETE — 1 open finding (1 minor); PF-001–PF-028 resolved
 > **Iteration**: 2 — accepted corrections applied and deep-rescanned
 > **Artifact**: requirements set at `codeops/features/blend65-v4/requirements/`
 > **Artifact Commit**: `54bf32b2a784ea2cd38cf0b01c8142f77cd108fe`
-> **Artifact Digest**: `87430d08603c485a2011b3f9cb3f38fc4cf2907b54a6803f3f3cc5301954aa73`
+> **Artifact Digest**: `9267f0ab4d5daed7db301caae2a49c2767b732697fbfec9d9ef0bf05d40cecea`
 > **Digest Method**: SHA-256 of the sorted `sha256sum` records for every requirements Markdown file
 > except this report
 > **Codebase Grounded**: 31 representative source/config/test files examined; all 12 workspaces and
@@ -938,12 +938,25 @@ runtime or target ROM, RAM, ZP, stack, or cycle cost.
 counted operation, logical storage unit, exact limit, or exhaustion boundary. Source acceptance may
 therefore vary by implementation or host allocator.
 
-**Only viable correction — Recommended:** Before Specification 4/expert activation, freeze exact
+**Only viable correction — Selected:** Before Specification 4/expert activation, freeze exact
 versioned abstract-evaluator budgets: counted step operations, logical storage accounting, call
 depth if relevant, fixed numeric limits, and the precise exhaustion point. Keep host process memory
 as a defensive outer failure only. Qualify each semantic limit at `N` and `N+1` on Linux and
 Windows.
-**Decision:** Pending.
+**Confidence:** High. **Hardening:** An independent challenger selected one fixed compilation-wide
+budget and supplied exact charge, memory, depth, diagnostic, versioning, and qualification rules.
+Comparison with GCC, Clang, MSVC, Rust, and Zig confirmed that bounded compile-time evaluation is
+ordinary compiler practice; the Blend65 values are deliberately generous for bounded 6502 table and
+asset generation without importing enterprise metaprogramming controls.
+**Decision:** Applied on 2026-09-11 under the user's direction to choose the best option.
+**Resolution:** `comptime-budget-v1` permits exactly 16,777,216 abstract steps, 16,777,216 bytes of
+peak live logical Blend65 value storage, and 512 active calls across every root in one `check` or
+`build`. Each exceeding operation fails before execution or mutation. Expressions, statements,
+loop iterations, function entries, and each aggregate byte have exact charges; aliases, immutable
+referenced inputs, lifetimes, short circuit, unselected branches, and cache-equivalent accounting
+are defined. E10269/E10270/E10271 distinguish the three limits. The contract is not configurable,
+host allocation does not affect source acceptance, host OOM is a separate compiler failure, and
+the evaluator emits no target runtime or partial artifact.
 
 ### PF-029: Windows automatic `PATH` lookup has no frozen executable tokens 🟡 MINOR
 

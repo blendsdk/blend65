@@ -138,6 +138,7 @@ completion requires the entire active language and approved C64 surface.
 | Assembly escape surface | Five curated `asm_*` controls only; no free-form inline or external assembly ABI | AR-006 |
 | C64 production | Eight exact resident PRG profiles and one PAL/KERNAL/6581 D64 profile | AR-024, AR-029 |
 | Assets | Exact built-in current-format handlers plus ordinary typed compile-time refinement | AR-019, AR-037, AR-040 |
+| Compile-time safety | Fixed `comptime-budget-v1`: 16,777,216 steps, 16 MiB live logical values, 512 active calls | AR-019 |
 | Product boundary | Compiler, language, platform operations, and asset conversion—not a game engine | AR-038 |
 | Optimization | Correct `none` first; then one finite qualified frontier exhausted under three cost orderings | AR-023, AR-045, AR-046 |
 | Developer tooling | Public compiler service, frontend-only LSP, thin trusted VS Code client, and portable debug evidence | AR-010, AR-021, AR-047 |

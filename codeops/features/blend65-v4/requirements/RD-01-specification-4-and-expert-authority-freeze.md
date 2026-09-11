@@ -118,7 +118,11 @@ the parked worktree.
   and reject runtime state, MMIO, low-level intrinsics, indirect calls, recursion, arbitrary host
   input, and nondeterminism. `sin8`, `cos8`, `sin16`, and `cos16` must have normative phase,
   amplitude, extrema, symmetry, rounding, and byte-exact results. Exhausted execution or memory
-  budgets produce deterministic source diagnostics and no partial target output. (AR-019)
+  budgets produce deterministic source diagnostics and no partial target output. Freeze
+  `comptime-budget-v1` as one non-configurable compilation-wide budget: 16,777,216 abstract steps,
+  16,777,216 bytes of peak live logical Blend65 value storage, and 512 active calls with the root at
+  depth 1. Define exact charge, lifetime/release, alias/copy, short-circuit, caching-equivalence, and
+  pre-operation N/N+1 behavior. Host allocator usage cannot affect source acceptance. (AR-019)
 - [ ] **R1.12 — Apply explicit placement and loadable-value syntax.** Specification 4 must define
   the closed `place(at, align, noCross, region)` declaration modifier and `loadable const` values.
   Placement constraints can strengthen but never weaken profile, visibility, banking, alignment,
@@ -194,7 +198,10 @@ the parked worktree.
   Reserve E10267 for malformed supported-version public artifact evidence and E10268 only for an
   unsupported positive integer public artifact schema version. Their distinct messages and
   ownership follow RD-03's validation precedence and must enter the registry before any public
-  sidecar producer specification test. Add a distinct error for a read whose range may have been
+  sidecar producer specification test. Reserve E10269, E10270, and E10271 respectively for
+  `comptime-budget-v1` step, live-logical-memory, and active-call-depth exhaustion. Each names the
+  budget version, exact limit and attempted usage, root invocation, and failing source span. Add a
+  distinct error for a read whose range may have been
   invalidated by a failed or uncorrelated load: its primary span is the read and its related spans
   identify the governing load plus the mutation, join, or failure edge that prevents a definite
   must-alias success proof. This is stricter than the ordinary function-local uninitialized warning
@@ -530,7 +537,13 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     after a raw vector write invalidates ownership.
 11. [ ] **AC-11 — Compile-time contract:** The specification defines exact results for every input
     to `sin8` and `cos8`, a reproducible exact rule plus boundary vectors for `sin16` and `cos16`,
-    and deterministic diagnostics for forbidden effects and exhausted budgets.
+    and deterministic diagnostics for forbidden effects and exhausted budgets. Direct meter tests
+    prove the three production constants and exact N/N+1 pre-operation behavior without executing
+    millions of fixture operations. Reduced-limit evaluator fixtures prove expression, statement,
+    loop-iteration, call-entry, and per-aggregate-byte charging; short-circuit and unselected-branch
+    exclusion; alias versus copy accounting; deterministic lifetime release; compilation-wide root
+    sharing; cache-equivalent abstract cost; depths 512/513; poison/no-output behavior; and identical
+    Linux/Windows results.
 12. [ ] **AC-12 — Placement/loadable contract:** Positive and negative examples cover every
     `place(...)` key, combined constraints, illegal target, collision, unsatisfied region,
     `loadable const` compile-time use, illegal direct reads/addressing, compatible destination,

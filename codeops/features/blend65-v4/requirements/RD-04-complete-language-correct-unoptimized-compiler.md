@@ -254,7 +254,11 @@ language semantics.
   fixed storage, constants, validated embedded data, and aggregate returns. Reject runtime/MMIO,
   low-level intrinsics, indirect calls, recursion, arbitrary host input, nondeterminism, and budget
   exhaustion with no partial target data. Implement byte-exact `sin8`, `cos8`, `sin16`, and `cos16`;
-  emit only their resulting constants. (AR-019)
+  emit only their resulting constants. Enforce non-configurable `comptime-budget-v1` across all
+  roots in deterministic semantic order: exactly 16,777,216 abstract steps, 16,777,216 bytes of
+  peak live logical Blend65 value storage, and 512 active calls with the root at depth 1. Charge and
+  release exactly as AR-019 defines; fail before the N+1 operation or mutation; and keep abstract
+  accounting invariant under host representation, caching, Linux, and Windows. (AR-019)
 - [ ] **R4.34 — Complete memory, size, and profile queries.** Implement variable/expression-address
   `PEEK`/`POKE` byte and word access, little-endian order, modulo-65536 continuation, exactly-once
   effects, volatility, `lo`, `hi`, stable-word `sizeof`, `offsetof`, and `length`, including runtime
@@ -713,8 +717,13 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     LIFO install/restore across joins and nesting, exact predecessor-word allocation, and diagnosis of
     helper restore after raw-vector ownership invalidation without hidden runtime lifecycle state.
 26. [ ] **AC-26 — Compile-time functions:** Exact constants, aggregate/table returns, trigonometric
-    goldens, acyclic calls, budget failures, forbidden effects/inputs, determinism, and zero target
-    execution code/storage are proven.
+    goldens, acyclic calls, forbidden effects/inputs, determinism, and zero target execution code/
+    storage are proven. Direct meter tests prove the production limits and exact N/N+1 behavior
+    without millions of executed fixture operations. Reduced-limit fixtures cover every step charge,
+    empty infinite loops, selected/unselected branches, aggregate fill/copy/return, aliasing,
+    lifetime release, all-root sharing, cached/uncached equivalence, depths 512/513, E10269/E10270/
+    E10271 spans and payloads, poisoning, and no published output. Linux and Windows produce
+    identical results; host OOM remains a distinct compiler failure.
 27. [ ] **AC-27 — Placement and loadable semantics:** Every legal placement owner/constraint and
     conflict is proven; loadable values reject every invalid ordinary use and the resident profile
     reports transfer unavailability without a stub or emitted loader.

@@ -229,7 +229,9 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   typed expressions, loops, conditions, fixed storage, direct compile-time calls, and aggregate
   returns. It cannot read files except through literal `embed()`, observe environment/time/random
   state, access MMIO, call runtime or indirect functions, or emit target instructions, SFA homes,
-  stack use, helpers, or runtime conversion code. (AR-019)
+  stack use, helpers, or runtime conversion code. It consumes the same compilation-wide,
+  non-configurable `comptime-budget-v1` as every other compile-time root; asset refinement does not
+  receive a hidden second quota. (AR-019)
 - [ ] **R6.34 — Make every transformation explicit in source.** Source may construct repeated
   panel data, occlusion masks, draw-priority metadata, address/clipping tables, dirty-region data,
   or pre-shifted forms. Under `optimization: none`, the compiler evaluates exactly the selected
@@ -739,7 +741,9 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
     bypasses its registered handler.
 25. [ ] **AC-25 — Compile-time-only refinement:** A `comptime function` reads embedded data and
     returns exact fixed arrays/structs with no target instructions, SFA homes, stack use, helper,
-    file read, MMIO access, or runtime conversion.
+    file read, MMIO access, or runtime conversion. Its steps and live copied/materialized values
+    consume the shared `comptime-budget-v1`, while a referenced immutable validated embed is not
+    charged again merely for being visible.
 26. [ ] **AC-26 — Integrator-style Q-P15:** User-authored compile-time source proves repeated
     elements/panels, foreground occlusion, one detected multicolor conflict represented as exact
     typed metadata, two explicit source-selected representations, exact output bytes/hashes,
