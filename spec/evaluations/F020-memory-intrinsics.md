@@ -11,7 +11,7 @@
 
 Memory intrinsics are built-in functions for direct memory access, byte extraction, and compile-time size queries. Unlike F012's CPU control intrinsics (which emit single-opcode CPU state operations), memory intrinsics take parameters and return values — they are the bridge between Blend65's type-safe variable system and the raw memory-mapped I/O hardware of 6502 platforms.
 
-Blend65 v3 provides **9 memory intrinsics** in three categories:
+Blend65 4 provides **9 memory intrinsics** in three categories:
 
 | Category | Functions | Purpose |
 |----------|-----------|---------|
@@ -42,7 +42,11 @@ Blend65 v3 provides **9 memory intrinsics** in three categories:
 
 **Rationale:** On 6502 platforms, any address could be a hardware I/O register with side effects. Reading CIA $DC0D clears interrupt flags. Writing VIC-II $D011 at the wrong moment tears the display. The compiler cannot determine which addresses are RAM vs I/O — this is platform-specific and may change at runtime (bank switching). Therefore, all direct memory access via peek/poke is treated as having potential side effects.
 
-**Optimizer contract:** The compiler SHOULD tag peek/poke/peekw/pokew AST nodes as side-effectful. The optimizer MUST preserve the order and execution of all side-effectful operations. This is the same contract used by F012's asm_*() intrinsics (CC-3: clobber-all semantics). Regular variable access (`let x: byte = score;`) is NOT side-effectful and CAN be optimized.
+**Optimizer contract:** The compiler preserves the order and execution of all memory-intrinsic
+effects. This is the same ordering boundary used by F012's exact `asm_*()` machine effects; it does
+not imply that unaffected registers or flags are clobbered. Regular variable access
+(`let x: byte = score;`) is not inherently volatile and may be optimized when normal alias and
+effect rules allow it.
 
 | Access Type | Side-Effectful | Optimizer Can Optimize |
 |-------------|---------------|----------------------|
@@ -100,6 +104,10 @@ poke(address: word, value: byte): void
 ```
 
 Writes a single byte to the specified memory address.
+
+The address expression is evaluated once before the value expression, and the value expression is
+then evaluated once before the write. This makes `poke(variableAddress, value)` an ordinary legal
+form without requiring the developer to expose a temporary or constant address.
 
 ```blend65
 poke($D020, 14);                          // Set border to light blue
@@ -667,10 +675,11 @@ function waitForRasterLine(line: byte): void {
 }
 
 function setColors(border: byte, background: byte): void {
+    asm_php();
     asm_sei();
     poke(BORDER_COLOR, border);
     poke(BG_COLOR, background);
-    asm_cli();
+    asm_plp();
 }
 
 function main(): void {
@@ -687,7 +696,8 @@ function main(): void {
 ```blend65
 module IRQ;
 
-const IRQ_VECTOR: word = $0314;
+import { setIRQ } from c64.system;
+
 const RASTER_ENABLE: word = $D01A;
 const RASTER_LINE_REG: word = $D012;
 const VIC_CTRL: word = $D011;
@@ -700,12 +710,10 @@ interrupt function rasterHandler(): void {
 }
 
 function installRasterIRQ(line: byte): void {
-    asm_sei();
-    pokew(IRQ_VECTOR, &rasterHandler);
+    setIRQ(&rasterHandler);
     poke(RASTER_LINE_REG, line);
     poke(VIC_CTRL, peek(VIC_CTRL) & $7F);   // Clear bit 7 (raster line high bit)
     poke(RASTER_ENABLE, peek(RASTER_ENABLE) | $01);  // Enable raster interrupt
-    asm_cli();
 }
 ```
 

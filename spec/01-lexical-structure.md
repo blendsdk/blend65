@@ -229,9 +229,7 @@ lo      hi      sizeof   offsetof   length
 
 **CPU control intrinsics** (→ Ch 12):
 ```
-asm_sei   asm_cli   asm_pha   asm_pla
-asm_php   asm_plp   asm_clc   asm_sec
-asm_cld   asm_sed   asm_clv   asm_nop   asm_brk
+asm_sei   asm_cli   asm_php   asm_plp   asm_nop
 ```
 
 **Data-inclusion intrinsic** (→ Ch 13):
@@ -257,7 +255,7 @@ sin8   cos8   sin16   cos16
 All four encoding names are reserved on every target so declaration meaning does not change with
 the selected platform. Calling a name unavailable in the selected profile is E10125.
 
-**Total: 33 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
+**Total: 25 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
 
 **Design rationale:** Keeping these as identifiers (not keywords) keeps the keyword table small and
 the lexer simple. The semantic analyzer resolves intrinsic calls, produces **E10212** for intrinsic

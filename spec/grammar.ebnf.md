@@ -449,12 +449,8 @@ intrinsic_call  = cpu_intrinsic
 cpu_intrinsic   = cpu_intrinsic_name , "(" , ")" ;
 
 cpu_intrinsic_name = "asm_sei" | "asm_cli"
-                   | "asm_pha" | "asm_pla"
                    | "asm_php" | "asm_plp"
-                   | "asm_clc" | "asm_sec"
-                   | "asm_cld" | "asm_sed"
-                   | "asm_clv"
-                   | "asm_nop" | "asm_brk" ;
+                   | "asm_nop" ;
 
 trig_intrinsic  = ( "sin8" | "cos8" ) , "(" , expression , ")"
                 | ( "sin16" | "cos16" ) , "(" , expression , ")" ;
@@ -542,7 +538,7 @@ contextual_keyword = "as" ;
 valid identifier elsewhere. The former range words `until`, `to`, `downto`, and `step` are ordinary
 identifiers with no contextual role.
 
-### 9.4 Reserved Built-in Names (33 total)
+### 9.4 Reserved Built-in Names (25 total)
 
 ```ebnf
 reserved_builtin = "peek" | "poke" | "peekw" | "pokew"
@@ -550,10 +546,8 @@ reserved_builtin = "peek" | "poke" | "peekw" | "pokew"
                  | "embed" | "bcd_add" | "bcd_sub"
                  | "petscii" | "screen_codes" | "atascii" | "internal_codes"
                  | "sin8" | "cos8" | "sin16" | "cos16"
-                 | "asm_sei" | "asm_cli" | "asm_pha" | "asm_pla"
-                 | "asm_php" | "asm_plp" | "asm_clc" | "asm_sec"
-                 | "asm_cld" | "asm_sed" | "asm_clv"
-                 | "asm_nop" | "asm_brk" ;
+                 | "asm_sei" | "asm_cli" | "asm_php" | "asm_plp"
+                 | "asm_nop" ;
 ```
 
 ### 9.5 Numeric Literals
@@ -704,7 +698,7 @@ All grammar productions listed alphabetically for quick reference:
 | `program` | §2.1 | One source compilation unit |
 | `qualified_name` | §2.3 | Dot-separated module identity |
 | `relational_expr` | §6.2 | `<`, `<=`, `>`, `>=` |
-| `reserved_builtin` | §9.4 | 33 reserved built-in identifiers; `main` is separately entry-reserved |
+| `reserved_builtin` | §9.4 | 25 reserved built-in identifiers; `main` is separately entry-reserved |
 | `return_stmt` | §5.10 | `return [expression];` |
 | `return_type` | §3.2 | `void` or any complete value type; unsized parameter arrays are rejected semantically |
 | `shift_expr` | §6.2 | `<<`, `>>` |

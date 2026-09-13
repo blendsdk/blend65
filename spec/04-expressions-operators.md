@@ -137,10 +137,18 @@ trigger that diagnostic.
   otherwise unspecified values of their declared result types. The sequence must terminate and may
   have only its declared arithmetic effects. The optimizer must not assume that a runtime divisor is
   nonzero and must not use the unspecified result to alter surrounding observable behavior.
-- Runtime, `--division-zero-check`: the compiler emits an inline check before the division. Operands
-  are evaluated once. A zero divisor branches to the platform's source-labelled, non-returning safety
-  stop before division occurs. A sound nonzero proof removes the check. This option is off by default
-  and links no runtime library.
+- Runtime, `--division-zero-check`: the compiler evaluates the left operand and divisor once from
+  left to right, then emits an inline zero test before division. A zero divisor branches to the
+  platform's source-labelled, non-returning safety stop before division occurs. A sound nonzero
+  proof removes the check. This option is off by default, is independent of `--bounds-check`, and
+  links no runtime library.
+
+On C64, the safety-stop body is exactly `SEI` followed by a `JMP` to its own label: 4 ROM bytes,
+2 cycles to disable maskable IRQs, then 3 cycles per self-loop iteration. It uses no RAM, zero page,
+hardware-stack byte, error string, handler, or returning path. NMI and external hardware continue
+under the selected profile. The build evidence reports the actual successful-path test, branch,
+layout, operand staging, and any SFA/register cost; those costs depend on operand width and location
+and are never hidden behind a fixed estimate.
 
 The default rule is a documented 6502 hardware-limitation exception: the processor has no division
 instruction or native zero-divisor result, and memory-constrained builds do not pay for a software

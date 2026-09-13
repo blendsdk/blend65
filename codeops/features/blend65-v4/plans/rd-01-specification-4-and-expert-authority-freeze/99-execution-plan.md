@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13 17:02
-> **Progress**: 11/31 tasks (35%)
+> **Last Updated**: 2026-09-13 17:23
+> **Progress**: 12/31 tasks (39%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -64,7 +64,7 @@ expert artifact changed.
 - [x] 2.1.4 Reconcile typed finite function values, target-set widening, handler kinds, per-sink LIFO install/restore ownership, raw-vector invalidation, lexical/type owners, examples, grammar, and diagnostics — `spec/01-lexical-structure.md`, `spec/02-type-system.md`, `spec/04-expressions-operators.md`, `spec/06-functions.md`, `spec/07-structs.md`, `spec/08-arrays-strings.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F006-address-of.md`, `spec/evaluations/F007-interrupt-functions.md`, `spec/evaluations/F016-type-system.md`, `spec/evaluations/F018-functions.md`, `spec/evaluations/F021-lexical-structure.md` ✅ (completed: 2026-09-13 16:10)
 - [x] 2.1.5 Reconcile typed compile-time functions, exact AR-050 results, `comptime-budget-v1` charging and failure behavior, lexical owners, examples, grammar, diagnostics E10269–E10271, and the owning Guard evaluation — `spec/01-lexical-structure.md`, `spec/04-expressions-operators.md`, `spec/06-functions.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F021-lexical-structure.md`, `spec/evaluations/F025-comptime-functions.md` ✅ (completed: 2026-09-13 16:25)
 - [x] 2.1.6 Reconcile `place(...)`, `loadable const`, declaration owners, captured-range publication/invalidation, must-alias flow, examples, grammar, and diagnostics — `spec/01-lexical-structure.md`, `spec/03-variables.md`, `spec/11-memory-model.md`, `spec/13-data-inclusion.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F005-memory-placement.md`, `spec/evaluations/F015-data-inclusion.md`, `spec/evaluations/F019-variables.md`, `spec/evaluations/F021-lexical-structure.md` ✅ (completed: 2026-09-13 17:02)
-- [ ] 2.1.7 Reconcile the exact five `asm_*` controls, their reserved lexical names, variable-address PEEK/POKE, checked/unchecked bounds and division, no-runtime boundary, examples, grammar, and diagnostics — `spec/01-lexical-structure.md`, `spec/04-expressions-operators.md`, `spec/08-arrays-strings.md`, `spec/12-intrinsics.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F012-cpu-control-intrinsics.md`, `spec/evaluations/F017-operators.md`, `spec/evaluations/F020-memory-intrinsics.md`, `spec/evaluations/F021-lexical-structure.md`
+- [x] 2.1.7 Reconcile the exact five `asm_*` controls, their reserved lexical names, variable-address PEEK/POKE, checked/unchecked bounds and division, no-runtime boundary, examples, grammar, and diagnostics — `spec/01-lexical-structure.md`, `spec/04-expressions-operators.md`, `spec/08-arrays-strings.md`, `spec/12-intrinsics.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F012-cpu-control-intrinsics.md`, `spec/evaluations/F017-operators.md`, `spec/evaluations/F020-memory-intrinsics.md`, `spec/evaluations/F021-lexical-structure.md` ✅ (completed: 2026-09-13 17:23)
 - [ ] 2.1.8 Run the whole-language semantic, grammar, diagnostic, stale-restriction, link, and formatting checks; repair only derived inconsistencies and record the Phase 2 portions of V-05–V-07 — `spec/`, `08-closeout.md`, `99-execution-plan.md`
 
 **Phase gate:** Every approved language decision has one consistent normative meaning, grammar,

@@ -442,9 +442,15 @@ multiply, `__mul8` is not linked.
 - **Runtime zero divisor, default mode:** The selected finite division sequence runs without an
   injected check, trap, handler, fallback, or extra scratch. Quotient and remainder are valid-width
   but otherwise unspecified. The optimizer may not assume the divisor is nonzero.
-- **`--division-zero-check`:** An inline once-evaluated pre-division check enters the selected
-  platform's non-returning safety stop on zero. Sound nonzero proof removes the check. No runtime
-  library is linked.
+- **`--division-zero-check`:** The operands are evaluated once from left to right. An inline
+  pre-division test enters the selected platform's non-returning safety stop on zero. Sound nonzero
+  proof removes the check. The option is off by default, independent of `--bounds-check`, and links
+  no runtime library.
+
+For C64, the terminal body is exactly `SEI` followed by a self-looping `JMP`: 4 ROM bytes, 2 cycles
+to set I, then 3 cycles per loop iteration, with no RAM, zero page, stack byte, handler, string, or
+returning edge. NMI and hardware continue. The build report gives the exact successful-path test,
+branch, layout, staging, and SFA/register cost for the selected width and operand locations.
 
 ```blend65
 const BAD: byte = 10 / 0;         // ❌ E10160: division by zero in constant expression

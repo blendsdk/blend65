@@ -1,6 +1,6 @@
 # Chapter 12 — CPU Control & Memory Intrinsics
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F012, F020
@@ -11,13 +11,14 @@
 
 Blend65 provides three categories of built-in functions (intrinsics) that bridge the gap between the type-safe language and the raw 6502 hardware:
 
-- **CPU control intrinsics** (13 functions) — each compiles to its exact 6502 instruction bytes
-  with no linked helper. These handle operations the language cannot express: interrupt control,
-  hardware stack manipulation, CPU flag management, timing, and software interrupts.
+- **CPU control intrinsics** (5 functions) — each compiles to its exact 6502 instruction with no
+  linked helper. They expose only interrupt-mask control, status save/restore, and exact NOP timing.
 - **Packed-BCD arithmetic intrinsics** (2 functions) — deterministic unsigned decimal addition and subtraction, lowered inline without a linked runtime.
 - **Memory intrinsics** (9 functions) — direct memory access, byte extraction, and compile-time size queries. These bridge the type system and memory-mapped I/O.
 
-There are no `asm { }` blocks in Blend65 v3. The curated intrinsic set covers all game development needs without the compiler complexity of embedded assembly (→ F012 design rationale).
+There are no inline assembly blocks, external assembly functions, parameterized opcode calls, or
+source-visible compiler registers. The backend still uses every legal instruction for the selected
+CPU; the five-name limit applies only to source code.
 
 ---
 
@@ -29,101 +30,33 @@ All CPU control intrinsics are parameterless void functions:
 
 ```ebnf
 cpu_intrinsic_call = cpu_intrinsic_name , "(" , ")" ;
-cpu_intrinsic_name = "asm_sei" | "asm_cli" | "asm_pha" | "asm_pla"
-                   | "asm_php" | "asm_plp" | "asm_clc" | "asm_sec"
-                   | "asm_cld" | "asm_sed" | "asm_clv" | "asm_nop"
-                   | "asm_brk" ;
+cpu_intrinsic_name = "asm_sei" | "asm_cli" | "asm_php" | "asm_plp"
+                   | "asm_nop" ;
 ```
 
 ### 2.2 Complete Reference
 
 #### Interrupt Control
 
-| Function | Opcode | Bytes | Cycles | Effect |
-|----------|--------|-------|--------|--------|
-| `asm_sei()` | `SEI` | 1 | 2 | Set interrupt disable — maskable IRQs ignored |
-| `asm_cli()` | `CLI` | 1 | 2 | Clear interrupt disable — maskable IRQs enabled |
+| Function | Opcode | Bytes | Cycles | Exact effect |
+|----------|--------|-------|--------|--------------|
+| `asm_sei()` | `SEI` (`$78`) | 1 | 2 | Sets I. Maskable IRQ recognition is disabled; NMI is unaffected. A, X, Y, S, N, V, D, Z, C, and memory are preserved. |
+| `asm_cli()` | `CLI` (`$58`) | 1 | 2 | Clears I. Maskable IRQ recognition is enabled according to the selected CPU's instruction-boundary rules; NMI is unaffected. A, X, Y, S, N, V, D, Z, C, and memory are preserved. |
+| `asm_php()` | `PHP` (`$08`) | 1 | 3 | Writes represented P with B and bit 5 set to the page-one hardware stack, then decrements S. Registers and live flags are preserved. |
+| `asm_plp()` | `PLP` (`$28`) | 1 | 4 | Increments S, reads one status-save byte, and restores N, V, D, I, Z, and C. B is not a persistent processor flag. A, X, Y, and other memory are preserved. |
+| `asm_nop()` | `NOP` (`$EA`) | 1 | 2 | Advances PC and consumes exactly two CPU cycles without changing registers, flags, stack, or data memory. |
 
-#### Stack Manipulation
+`asm_php()` adds one explicit status-save entry to the current function's relative hardware-stack
+state; `asm_plp()` removes the top status-save entry. E10248 rejects a pull below the function-entry
+state, unequal status-save depths at a reachable join or loop backedge, or a nonempty status-save
+state at any exit. Caller entries, return addresses, interrupt frames, and compiler-generated ABI
+saves are separate and cannot be consumed by source. Every live status save contributes one byte to
+the whole-program stack peak. The analysis adds no instructions or SFA storage.
 
-| Function | Opcode | Bytes | Cycles | Effect |
-|----------|--------|-------|--------|--------|
-| `asm_pha()` | `PHA` | 1 | 3 | Push accumulator onto hardware stack |
-| `asm_pla()` | `PLA` | 1 | 4 | Pull accumulator from hardware stack |
-| `asm_php()` | `PHP` | 1 | 3 | Push processor status onto hardware stack |
-| `asm_plp()` | `PLP` | 1 | 4 | Pull processor status from hardware stack |
-
-The compiler tracks a LIFO sequence of explicit stack-entry kinds through control flow:
-`asm_pha()` pushes an accumulator-save entry, while `asm_php()` pushes a status-save entry.
-`asm_pla()` may consume only the top accumulator-save entry, and `asm_plp()` may consume only the
-top status-save entry. Every reachable join and loop backedge must have the same kind sequence, and
-every ordinary or interrupt exit must restore the empty sequence relative to that activation's
-entry (E10248). Thus nested `PHA; PHP; PLP; PLA` is legal, while `PHA; PLP` is rejected even though
-its byte depth balances.
-
-Each callee and interrupt handler starts with its own empty relative explicit-stack sequence.
-Caller-held entries, call return addresses, automatic interrupt bytes, and compiler-generated ABI
-saves remain separately owned and cannot be consumed by source intrinsics. The whole-program stack
-peak includes all of them. This analysis adds no runtime code or SFA storage. The operations remain
-ordered machine effects and may not be removed, reordered, or paired across incompatible control
-flow.
-
-#### Carry Flag
-
-| Function | Opcode | Bytes | Cycles | Effect |
-|----------|--------|-------|--------|--------|
-| `asm_clc()` | `CLC` | 1 | 2 | Clear carry flag |
-| `asm_sec()` | `SEC` | 1 | 2 | Set carry flag |
-
-#### Decimal Mode
-
-| Function | Opcode | Bytes | Cycles | Effect |
-|----------|--------|-------|--------|--------|
-| `asm_cld()` | `CLD` | 1 | 2 | Clear decimal mode (binary arithmetic) |
-| `asm_sed()` | `SED` | 1 | 2 | Set the processor's decimal flag for raw `ADC`/`SBC` use |
-
-Ordinary Blend65 arithmetic never changes meaning with the processor's decimal or carry flags.
-`+`, `-`, `+=`, and `-=` always have the binary fixed-width semantics from Chapters 02 and 04.
-`asm_sed()` is a literal expert hardware-state escape; it does not turn those operators into BCD.
-The compiler tracks D through control flow. E10255 rejects a path that reaches ordinary
-arithmetic, effective-address formation, a call, a return/interrupt terminal, or a join with a
-different D state before `asm_cld()`. It never inserts a hidden CLD/SED pair to repair source.
-
-Compiler-generated interrupt entries are a deliberate ABI boundary: they establish binary mode
-before the first Blend65 handler statement or ordinary helper call, preserve the interrupted
-status, and charge the exact entry cost. An explicit `asm_sed()` inside a handler starts a new raw
-decimal-state region and retains the same E10255 boundaries.
-
-#### Overflow Flag
-
-| Function | Opcode | Bytes | Cycles | Effect |
-|----------|--------|-------|--------|--------|
-| `asm_clv()` | `CLV` | 1 | 2 | Clear overflow flag |
-
-No `asm_sev()` — the 6502 has no "set overflow" instruction.
-
-#### Timing & Debug
-
-| Function | Opcode | Bytes | Cycles | Effect |
-|----------|--------|-------|--------|--------|
-| `asm_nop()` | `NOP` | 1 | 2 | No operation — waste exactly 2 cycles |
-| `asm_brk()` | `BRK` + `$EA` padding | 2 | 7 to handler entry | Profile-bound synchronous software interrupt |
-
-`asm_brk()` exposes the CPU operation; it does not define a debugger, monitor, trap service, or
-runtime. The compiler emits only `$00 $EA`. The padding byte is mandatory because an NMOS
-6502-family `BRK` pushes the address after that byte.
-
-A reachable call is legal only when the selected platform profile supplies an exact `brk_contract`
-(→ Ch 15). The contract identifies the active vector and handler, declares whether the handler
-returns with `RTI` to the instruction after the padding byte or never returns, and records every
-register, flag, memory, banking, and MMIO requirement/effect. E10259 rejects the call when that
-proof is absent.
-
-Whole-program stack analysis always charges the CPU's three pushed bytes (return PC high, return PC
-low, and status) plus the contract's maximum additional handler stack use. A returning contract
-adds a successor after the padding byte and applies its declared preserved/clobbered state there. A
-non-returning contract has no normal successor. The compiler never installs a handler or vector,
-injects a catch path, or links support code for `asm_brk()`.
+Every CPU-control call is an ordered machine effect. The compiler emits the named instruction
+exactly once and never removes, combines, duplicates, or reorders it. It may preserve facts about
+registers and flags that the exact instruction does not modify. `asm_nop()` is also a timing effect,
+so surrounding work cannot move across it.
 
 ### 2.3 CPU Control Rules
 
@@ -131,10 +64,10 @@ injects a catch path, or links support code for `asm_brk()`.
 |------|----------|
 | CC-1: Parameters | None. Return type is `void`. |
 | CC-2: Valid locations | Anywhere a statement is valid (function bodies, control flow blocks, interrupt handlers) |
-| CC-3: Register clobber | After an ordinary `asm_*()` call, compiler assumes **all registers (A, X, Y) and flags may be modified**. A returning `asm_brk()` applies the exact preservation, clobber, and machine effects from its required profile contract. |
+| CC-3: Machine effects | The compiler applies the exact effects in §2.2; it does not invent a clobber-all boundary or expose hidden register communication. |
 | CC-4: No expressions | `asm_*()` is a statement, not an expression. Cannot appear inside an expression. |
 | CC-5: Optimization | Compiler must **never** reorder, remove, or combine `asm_*()` calls. They are opaque barriers. |
-| CC-6: BRK contract | A reachable `asm_brk()` requires the selected profile's exact BRK control-flow, stack, and machine-effect contract; otherwise E10259. |
+| CC-6: Closed surface | Every other `asm_*` spelling is an ordinary unresolved name. Inline assembly, external assembly functions, and parameterized opcode calls are not language forms. |
 
 ### 2.4 Example: Critical Section
 
@@ -244,6 +177,11 @@ compiler-owned two-byte zero-page pair. That pair is invocation-private scratch:
 its lifetime, may overlay it only with non-interfering storage, and separates it across overlapping
 mainline/IRQ/NMI domains. It is not a hidden runtime or an uncharged fixed reservation.
 
+All four memory-access intrinsics are volatile. Arguments evaluate exactly once from left to right;
+the access then occurs exactly once in source order relative to every other volatile access, call,
+and CPU-control effect. Runtime addresses are ordinary legal `word` expressions. The compiler may
+optimize address calculation and storage allocation when those observable rules remain unchanged.
+
 ### 3.2 Byte Extraction
 
 | Function | Signature | Effect | Cost |
@@ -290,17 +228,11 @@ function diagnostics; Chapter 14 owns every public template.
 
 | Code | Trigger | Rejected behavior or consequence |
 |------|---------|----------------------------------|
-| E10171 | A CPU-control intrinsic receives any argument, or another intrinsic receives the wrong number. | The call is rejected. |
+| E10171 | An intrinsic receives the wrong number of arguments. | The call is rejected. |
 | E10172 | An intrinsic argument has an incompatible type. | The call is rejected. |
-| E10248 | Control-flow analysis finds an explicit pull below function entry, a pull of the wrong saved kind, unequal kind sequences at a reachable join/backedge, or a nonempty sequence on exit. | The containing function is rejected because its entry stack state is not preserved. |
+| E10248 | Control-flow analysis finds `asm_plp()` below function entry, unequal status-save depths at a reachable join/backedge, or a nonempty status-save state on exit. | The containing function is rejected because its entry stack state is not preserved. |
 | E10252 | A visible raw interrupt-entry address is written directly to a recognized firmware vector that requires another entry ABI. | The write is rejected; use the profile installer that selects the correct entry variant. |
 | E10254 | A statically known packed-BCD operand contains a nibble from `$A` through `$F`. | The BCD operation is rejected; use a valid packed-decimal value. |
-| E10255 | An `asm_sed()` path reaches an ordinary arithmetic/address/call/exit boundary or a control-flow join with a different decimal state before `asm_cld()`. | The containing function is rejected; raw decimal state may not change ordinary language semantics. |
-| E10259 | A reachable `asm_brk()` has no exact BRK contract in the selected platform profile. | Compilation is rejected because BRK control flow, stack use, and machine effects cannot be proved. |
-
-W10121 is retired. Blend65 defines no debug/release build distinction, and an explicit low-level
-operation is not itself suspicious. The required profile contract and E10259 provide the safety
-boundary.
 
 ---
 
@@ -309,8 +241,8 @@ boundary.
 | Feature | Interaction |
 |---------|-------------|
 | **Expressions** (→ Ch 04) | Memory and BCD intrinsics appear in expression position. CPU-control intrinsics are statements only. Ordinary arithmetic remains binary regardless of D/C. `sizeof` and `offsetof` are compile-time; `length` folds only for fixed arrays and otherwise reads an any-size parameter's carried word count. |
-| **Functions** (→ Ch 06) | `asm_*()` calls are valid inside function bodies. The compiler's register allocation treats them as opaque barriers (CC-3). |
-| **Interrupts** (→ Ch 06, §7) | Recognized platform installers own atomic vector updates and entry-variant selection. Explicit stack intrinsics remain available inside handlers, but they do not replace or duplicate the selected ABI's register-save contract. |
+| **Functions** (→ Ch 06) | The five `asm_*()` calls are valid inside function bodies. The compiler preserves their exact machine effects and ordering. |
+| **Interrupts** (→ Ch 06, §7) | Recognized platform installers own atomic vector updates and entry-variant selection. `asm_php()`/`asm_plp()` may save and restore status inside a handler, but they do not replace or consume the selected ABI's stack entries. |
 | **Type system** (→ Ch 02) | `peek()` returns `byte`. `peekw()` returns `word`. `poke()` accepts any byte-compatible type (including enums via implicit widening). BCD operations require matching unsigned byte/word operands and return that same width. |
 | **Enums** (→ Ch 09) | Enum values widen to `byte` for `poke()`. `peek()` returns `byte` — use `EnumName(peek(...))` to narrow back. |
-| **Platform profile** (→ Ch 15) | Encoding intrinsics (`petscii()`, `screen_codes()`, etc.) are platform-specific. CPU control and memory syntax is shared, but reachable `asm_brk()` additionally requires an exact target `brk_contract`. |
+| **Platform profile** (→ Ch 15) | Encoding intrinsics (`petscii()`, `screen_codes()`, etc.) are platform-specific. CPU-control and memory syntax is shared; instruction legality and interrupt timing still follow the selected CPU/profile. |

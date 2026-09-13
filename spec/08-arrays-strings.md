@@ -231,9 +231,17 @@ across `$FFFF` to `$0000`; the selected platform's active bank and MMIO mapping 
 read or written. The optimizer must not assume that a runtime index is in bounds.
 
 **Runtime, `--bounds-check`**: The compiler emits an inline check before address formation or any
-memory/MMIO access. The base and index operands are evaluated once. Failure branches to the
-platform's source-labelled, non-returning safety stop. A sound in-bounds proof removes the check.
-This option is off by default and links no runtime library.
+memory/MMIO access. The base and index operands are evaluated once, and a signed index is tested
+for both `index >= 0` and `index < extent`. Failure branches to the platform's source-labelled,
+non-returning safety stop. A sound in-bounds proof removes the check. This option is off by default,
+is independent of `--division-zero-check`, and links no runtime library.
+
+On C64, the safety-stop body is exactly `SEI` followed by a `JMP` to its own label: 4 ROM bytes,
+2 cycles to disable maskable IRQs, then 3 cycles per self-loop iteration. It uses no RAM, zero page,
+hardware-stack byte, error string, handler, or returning path. NMI and external hardware continue
+under the selected profile. The build evidence reports the actual successful-path comparisons,
+branches, layout, operand staging, and any SFA/register cost; these depend on index width, signedness,
+extent, and location and are never hidden behind a fixed estimate.
 
 The default rule is a documented hardware-limitation exception. It preserves zero default check
 cost while making the exact 16-bit address-space behavior explicit.

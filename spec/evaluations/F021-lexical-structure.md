@@ -250,9 +250,7 @@ peek    poke    peekw    pokew
 lo      hi      sizeof   offsetof   length
 
 // CPU control intrinsics (F012)
-asm_sei   asm_cli   asm_pha   asm_pla
-asm_php   asm_plp   asm_clc   asm_sec
-asm_cld   asm_sed   asm_clv   asm_nop   asm_brk
+asm_sei   asm_cli   asm_php   asm_plp   asm_nop
 
 // Data/arithmetic intrinsics (F012, F015)
 embed   bcd_add   bcd_sub
@@ -267,7 +265,7 @@ sin8   cos8   sin16   cos16
 The four encoding names remain reserved on every target. An unavailable encoding call is E10125,
 not a user-function call.
 
-**Total: 33 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
+**Total: 25 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
 
 **Rules:**
 - The lexer does NOT distinguish these from regular identifiers — it produces `IDENTIFIER` for all of them.
@@ -995,7 +993,8 @@ This is standard C behavior and requires no lexer-level disambiguation.
 - `peek`, `poke`, `peekw`, `pokew`, `lo`, `hi`, `sizeof`, `offsetof`, `length` are reserved built-in identifiers.
 
 ### With F012 (CPU control intrinsics)
-- All `asm_*` names are reserved built-in identifiers.
+- Exactly `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop` are reserved built-in
+  identifiers. Other `asm_*` spellings have no special lexical or semantic status.
 - `bcd_add` and `bcd_sub` are reserved semantic arithmetic intrinsics with explicit operands.
 
 ### With F014 (Arrays and target encodings)
@@ -1230,4 +1229,4 @@ None. All 23 rules pass.
 
 **✅ ACCEPTED**
 
-F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F025 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 83 token types, 36 keywords, 33 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.
+F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F025 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 83 token types, 36 keywords, 25 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.

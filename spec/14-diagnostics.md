@@ -218,18 +218,16 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10245 | Ch 06 / Ch 11 | `Execution path '<path>' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design` |
 | E10246 | Ch 06 | `Parameter '<name>' uses 'const' with non-aggregate type '<type>' — const parameters require an array or struct` |
 | E10247 | Ch 06 | `Cannot prove the entry ABI of the value passed to function-address sink '<sink>' — pass a provenance-preserving function address or use an explicit raw hardware boundary` |
-| E10248 | Ch 06 / Ch 11 / Ch 12 | `Explicit stack operations in '<name>' do not preserve a valid function-entry stack state on every path — <detail>` |
+| E10248 | Ch 06 / Ch 11 / Ch 12 | `Status-save operations in '<name>' do not preserve the function-entry stack state on every path — <detail>` |
 | E10249 | Ch 08 | `Encoding '<encoding>' cannot represent literal character or escape '<item>' as the required byte on platform '<platform>' — select an available named encoding or use '\xNN' for an exact byte` |
 | E10250 | F015 / Ch 13 | `'embed()' selector must be a string literal — found '<expr>'` |
 | E10251 | F014 / Ch 08 | `Character-map argument must be a string literal — available maps for '<encoding>' on '<platform>': <list>` |
 | E10252 | Ch 06 / Ch 12 | `Raw interrupt-entry address for '<name>' cannot be written directly to firmware vector '<vector>' — use '<sink>' so the compiler selects the required entry variant` |
 | E10253 | Ch 06 / Ch 08 | `Array use at '<site>' has no compile-time-known extent — add '[N]', use an extent-inferencing initializer, or keep 'T[]' as an outermost parameter form` |
 | E10254 | Ch 12 | `Packed-BCD operand '<value>' contains a non-decimal digit — every nibble must be 0 through 9` |
-| E10255 | Ch 12 | `Raw decimal mode reaches '<boundary>' before 'asm_cld()' — ordinary Blend65 operations require binary mode` |
 | E10256 | F015 / Ch 13 / C64 | `Audio operation '<operation>' requires a qualified player contract for asset '<name>' — embedded data alone is not a callable player ABI` |
 | E10257 | F015 / Ch 13 / C64 | `Audio player contract '<contract>' does not provide <detail> — available forms: <list>` |
 | E10258 | F015 / C64 | `Audio operation '<operation>' can overlap non-reentrant player contract '<contract>' across '<domain_a>' and '<domain_b>'` |
-| E10259 | Ch 12 / Ch 15 | `Selected platform profile '<platform>' has no proven BRK control-flow and handler contract — 'asm_brk()' cannot be analyzed safely` |
 | E10260 | Ch 04 / Ch 06 / Ch 11 | `Address derived from '<name>' escapes its lifetime through <sink> — the address may only be used while its origin is alive or passed to a proven non-retaining parameter; move persistent data to module scope or keep it caller-owned` |
 | E10261 | F015 / Ch 13 / Ch 15 / C64 | `SID asset '<path>' requires <asset_configuration>, which is incompatible with profile '<profile>' selection <profile_configuration> — choose a compatible asset/profile or provide a matching qualified player contract for unknown metadata` |
 | E10262 | F008 / Ch 05 | `Loop counter '<name>' repeats within <range> before condition bound <bound> can be reached — use '<suggested_type>' or make deliberate wrap/infinite control explicit` |
@@ -347,10 +345,12 @@ code with the same number.
 | E10201 embedded file missing | E10130; E10201 remains invalid `offsetof` type. |
 | E10202 embedded size mismatch | E10140; E10202 remains invalid `offsetof` field. |
 | E10203 unknown asset selector | E10133; E10203 remains invalid `length` argument. |
+| E10255 raw decimal-state violation | Retired with `asm_cld()`/`asm_sed()`; typed BCD operations own decimal mode internally. |
+| E10259 missing BRK contract | Retired with `asm_brk()`; the initial Specification 4 source surface has no BRK operation. |
 | W10130 unreachable code | W10131; W10130 remains constant-false condition. |
 | W10060 word loop counter | Retired; choosing a narrower machine induction representation is an optimizer proof, not a source-level warning. |
-| W10120 decimal-mode warning | Retired; E10255 now rejects a raw decimal-state path that reaches an ordinary semantic boundary or mismatched join. |
-| W10121 release-build BRK warning | Retired; Blend65 has no debug/release semantic mode. `asm_brk()` is an intentional profile-bound hardware operation, and E10259 rejects a reachable use whose control flow, stack, and machine effects are not proven. |
+| W10120 decimal-mode warning | Retired with the raw decimal-control source operations; typed BCD operations own decimal mode internally. |
+| W10121 release-build BRK warning | Retired with `asm_brk()`; Blend65 has no debug/release semantic mode or initial v4 BRK operation. |
 
 Message wording changes that do not change a predicate keep the accepted feature/evaluation code.
 In particular, W10174 now states both left- and signed-right-shift saturation results.
