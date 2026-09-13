@@ -58,8 +58,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   F001 discovery, duplicate-module, or diagnostic-stability contract.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Historical pass under the pre-AR-P42 identity only; it does not qualify the
-  corrected prompt, crosswalk, or `BLEND65-SPEC-P3-4bf8a989` candidate.
+- **Focused result:** Pass — the corrected Specification 4 Phase-4 isolated evaluator and
+  independent grade passed the current prompt and crosswalk.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -238,8 +238,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Disqualifying outcomes:** Reopens stack frames without new necessity proof; invents public raw push/pull or BRK controls; lets source intrinsics consume caller, return-address, interrupt, or compiler-generated stack bytes; or injects a handler/runtime.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — the AR-P29 kind-state and AR-P31 BRK contract pass comprehensive
-  evaluation and independent correction grading; definitive isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed the current kind-state and BRK contract.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -580,11 +580,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Disqualifying outcomes:** Makes SFA a universal asset manager, copies for convenience, or silently promotes the evaluation selector table above the normative C64 profile.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — after the first definitive run exposed missing local CharPad
-  representation detail, the corrected candidate exhaustively covers handler identity, exact
-  selector types/availability, canonical/packed/split forms, diagnostics, requested-only costs,
-  placement, SFA ownership, and Koala. The focused evaluator, independent grade, cross-domain
-  regression, and independent correction review all pass; definitive full isolation remains.
+- **Focused result:** Pass — after correction, the Specification 4 Phase-4 isolated evaluator,
+  independent grade, and native-handler regression passed the current CharPad and Koala contract.
 - **Definitive result:** Pass — the complete `BLEND65-SPEC-P3-4bf8a989` coverage sample exposed
   the defect, and the corrected focused evaluator and independent grade passed Q-L26. Exact hashes
   and the admissibility boundary are recorded in `qualification/release.md`.
@@ -722,9 +719,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   per-variant reachability and complete cost report; E10252 at the exact write; and a remedy
   separated from any finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — all three sink sequences, entry ownership, acknowledgement, page-wrap
-  constraint, SFA domains, exact static costs, and no-runtime boundary pass comprehensive
-  evaluation and independent correction grading; definitive isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed all three sink sequences, ownership, SFA, and exact-cost requirements.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -764,9 +760,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   sites, semantic IL nodes/effects, inline byte and word instruction sequences, interrupt-state
   proof, complete bytes/cycles/storage/helper accounting, and a remedy separated from any finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — types, evaluation, modulo behavior, invalid-digit boundaries, IL,
-  inline lowering, safe coalescing, diagnostics, and static costs pass comprehensive evaluation
-  and independent correction grading; definitive isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed the packed-BCD semantics, lowering, diagnostics, and exact-cost requirements.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -825,8 +820,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   full-domain word and byte counterexamples; optimization preconditions, emitted legal sequence,
   clobbers, and complete cost; and a remedy separated from any finding in the existing compiler.
 - **Red-baseline result:** Not run.
-- **Focused result:** Historical pass under the superseded pre-AR-P38 oracle; correction rerun is
-  required before definitive qualification.
+- **Focused result:** Pass — the corrected Specification 4 Phase-4 isolated evaluator and
+  independent grade passed the full-domain loop oracle.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -913,10 +908,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   inheritance and mismatch traces; E10261 ownership; embed-only versus callable-audio decisions;
   player-contract refinements; future-target rejection; and complete ROM/RAM/ZP/cycle costs.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — exact timing/profile fields, PSID flag matrix and inheritance,
-  Unknown closure, topology, C64U deployment/turbo split, zero-conversion boundary, and complete
-  cost ownership pass comprehensive evaluation and independent correction grading; definitive
-  isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed the current PSID identity, topology, C64U, and complete-cost contract.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in

@@ -153,8 +153,9 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 - **Disqualifying outcomes:** Omits the program from the scoreboard and calls parity good; defends aggregate-return rejection as Specification 4, 6502, or SFA law; claims unverified compiler support; or mandates an intermediate copy/runtime without evaluating direct destination construction.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — the evaluator classified the expressiveness boundary `Incorrect`, kept
-  it outside any finite parity ratio, and required an owned language/compiler gap plus proof.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator classified the
+  expressiveness boundary `Incorrect`, kept it outside any finite parity ratio, and required an
+  owned language/compiler gap plus proof; the independent grade passed.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in

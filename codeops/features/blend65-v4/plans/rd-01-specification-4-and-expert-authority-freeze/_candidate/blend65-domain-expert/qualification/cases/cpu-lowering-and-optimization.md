@@ -463,8 +463,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   per-mode selection trace, hard-budget rejection, D64 accounting split, and two independent
   behavior and assembly/cost oracles.
 - **Red-baseline result:** Not run; new AR-045/AR-046 case.
-- **Focused result:** Pending isolated candidate evaluation.
-- **Definitive result:** Pending isolated candidate evaluation.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-C25; exact evidence is recorded in `../release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
 
 ## Q-C26 — A local optimizer win reverses after whole-program closure
 
@@ -492,8 +492,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   cost reversal, final feasibility and B/R/T table, selection trace, behavior oracle, and assembled
   shape/cost oracle.
 - **Red-baseline result:** Not run; new AR-046 case.
-- **Focused result:** Pending isolated candidate evaluation.
-- **Definitive result:** Pending isolated candidate evaluation.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-C26; exact evidence is recorded in `../release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
 
 ## Q-C27 — Prove frontier exhaustion, contextual peepholes, and bounded exact search
 
@@ -526,8 +526,8 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   fixed-point proof; peephole fact packet and choice; exact-search bound/equivalence proof when
   used; per-mode selection evidence; and separate behavior and assembly/cost oracles.
 - **Red-baseline result:** Not run; new AR-046 case.
-- **Focused result:** Pending isolated candidate evaluation.
-- **Definitive result:** Pending isolated candidate evaluation.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-C27; exact evidence is recorded in `../release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
 
 ## Q-C23 — Specialize an indirect access by modifying an absolute operand
 

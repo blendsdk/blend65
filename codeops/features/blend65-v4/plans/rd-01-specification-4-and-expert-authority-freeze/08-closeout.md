@@ -836,7 +836,7 @@ the nine named C64 profiles. Other machines remain visibly non-normative future 
 
 | Reconciled area | Frozen candidate rule |
 |---|---|
-| Product boundary | The compiler/toolchain owns language behavior, optimization, target primitives, and compile-time asset handling. Game loops, entities, collision, renderers, multiplexers, scrolling, buffering, and audio policy remain user-authored qualification workloads. |
+| Product boundary | The compiler/toolchain owns language behavior, optimization, target primitives, and asset ingestion, imported-format validation, typing, placement, and packaging. Scene composition, conflict detection, representation construction, game loops, entities, collision, renderers, multiplexers, scrolling, buffering, and audio policy remain user-authored qualification workloads. |
 | Optimizer | `none` is direct correctness-only lowering. `balanced`, `speed`, and `size` search the same finite modern-plus-6502 frontier to proved closure and select by the exact B/R/T Pareto or lexicographic rules. No framework, registry, DSL, PGO, hotness, or open-ended search was introduced. |
 | D64 | `CBM-1541-D64-35` freezes 35-track geometry, 174,848 bytes, 683 sectors, track-18 BAM/directory, 664 data blocks, 144-entry limit, `$82` PRG type, and exact sector-link/final-length rules. Allocation and interleave remain packager choices. |
 | KERNAL loader | `CBM-C64-KERNAL-LOAD-03` freezes `$FFBA`/`$FFBD`/`$FFD5`, secondary-address-zero relocation, direct writes, one-past-end success, carry/error behavior, `$BA` device state, and `HLE-010` trusted-media scope without a staging copy. |
@@ -890,12 +890,41 @@ evidence.
 The correction loop stayed within existing authority. It repaired exact semantic, hardware, cost,
 and answer-completeness defects without adding a framework, runtime, dependency, or game-policy
 API. The final runtime-payload digest is
-`5f0de16323d86a7d91d733832df088cbd68a594370f854f974ca00eb65b1bc5d`; the 51 changed H2 records
-hash to `9e6a7ce5e25276a9c10791d7fedf87737752badb798a1c07f177ce24b5296f04`, and the 16 changed case
-records hash to `d1ee91b87d54753136c6db323ded62dccd84209e20e92cb0e1447d8491dbd49f`.
+`af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9`; the 51 changed H2 records
+hash to `c5042ecc87910558e727779be7db9d6870c9219f3fc2e39efb92ad9ede8a8136`, and the 16 changed case
+records hash to `d6869018aa8fc980767dc3e8810b355fa60e7e2fbbcc284346eb36a1d8b70baf`.
+
+The Phase 4 reviewer found two evidence defects before freeze. The first assigned Q-P15 scene
+composition and scene-specific conflict diagnostics too broadly to the compiler. The second left
+current Phase 4 results unstated in parts of the matrix and the 16 changed/new case records. The
+user authorized both narrow corrections. Q-P15 then passed a fresh isolated evaluator and
+independent grade; its packet/output hashes are
+`3d452eb2e13ca80b36c8560d2ee6f9243e026efc56a9c14e9e9fef707db5f6f7` and
+`f3de138a8e76a24a7f678cd791e58d3d5c85a67a515497b0fc5ed0839518ec0f`, and its grade hash is
+`80a240f1b8e32d8ee372f2b8c5aa43e9094f774d6bd51e1e255d4848988298ae`.
 
 Task 4.1.6 direct validation passed: Prettier, both skill validators, both local-link sweeps,
 CodeOps plan parsing, 111-case/coverage-row equality, regular-file topology, whitespace, frozen
 `spec/`, unchanged live expert, and specification-test integrity are green. Compiler, assembler,
 VICE, readiness, and repository-wide suites did not run because they cannot validate this
 documentation-only authority transition.
+
+### Independent Phase 4 review and candidate freeze
+
+The final reviewer first reported two major findings and one minor finding. The user authorized
+the direct corrections. Q-P15 product ownership was narrowed, all 16 changed/new case records and
+their matrix rows were reconciled to current evidence, and plan progress was corrected. The
+focused Q-P15 evaluator and grader passed after the content correction. The reviewer then found
+one path-basis error in the recorded qualification digest; correcting the record to the established
+candidate-root method produced
+`6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e`.
+
+The same reviewer re-ran the checks and returned **No findings**. It reproduced the four Q-P15
+evidence hashes, runtime digest, 51-section closure digest, 16-case closure digest, and
+qualification-payload digest. It also confirmed formatting, both link sweeps, plan parsing, both
+skill validators, whitespace, the frozen specification, the unchanged live expert, and unchanged
+specification tests. The final candidate full-tree record digest is
+`f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341`.
+
+Phase 4 is complete. Candidate 2.0.0 is qualified and frozen for a user activation decision. It is
+not active; expert 1.0.0 remains the single live baseline until Phase 5 is explicitly authorized.

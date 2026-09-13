@@ -1581,9 +1581,9 @@ historical 1.0.0 evidence and are not relabelled as current.
 | Record | SHA-256 / result |
 |---|---|
 | Active 1.0.0 runtime payload | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
-| Candidate 2.0.0 runtime payload | `5f0de16323d86a7d91d733832df088cbd68a594370f854f974ca00eb65b1bc5d` |
-| Changed H2-section comparison | 51 records; `9e6a7ce5e25276a9c10791d7fedf87737752badb798a1c07f177ce24b5296f04` |
-| Changed case-section comparison | 16 records; `d1ee91b87d54753136c6db323ded62dccd84209e20e92cb0e1447d8491dbd49f` |
+| Candidate 2.0.0 runtime payload | `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9` |
+| Changed H2-section comparison | 51 records; `c5042ecc87910558e727779be7db9d6870c9219f3fc2e39efb92ad9ede8a8136` |
+| Changed case-section comparison | 16 records; `d6869018aa8fc980767dc3e8810b355fa60e7e2fbbcc284346eb36a1d8b70baf` |
 | Runtime files | 15 total; 13 changed; `references/c64-hardware.md` and `references/mos-6502-family.md` byte-identical controls |
 | Case identities | 107 prior identities preserved plus Q-C25, Q-C26, Q-C27, and Q-P22 = 111 unique |
 
@@ -1674,7 +1674,7 @@ relative-path-sorted GNU record-stream method.
 | Routing/evidence | Q-R01/Q-R02/Q-R05/Q-R08/Q-R10/Q-R11: `329f991ff73a56355678ebaf52097bb43f48b92a6c186df78bf052de0094dd5f` / `9f1311d0f9f76fdae3f110ace56778009e306da909c785359bedcacc9c4c6681`; Q-R04: `25430a2cf0237ad7c4ad1f20d31830393754e137cd20bc63a5a6e19c3c1ce7d2` / `aafcd46b3297d49e56bf241898cb95c79ea83f21fecb007f07989eb62900b29a`; Q-R03: `fff3710bf570ca03137d99f5598d678f7431d4e9e04aa0cc587c07527904ed1e` / `dac939a8e86a0ab523e526202778f1dd2eb2a217a97ff75c32b92ae9b701f05d` |
 | Language/architecture/SFA | Q-L08/Q-L11/Q-L26/Q-L29: `652965694470ee986a768b0b137a31fe73548f267574b46242208bc13ef5b120` / `5d84fe5190621471a39fbdb2112adb87cb1890637887e683147119d16c1f227e`; Q-L03/Q-L14/Q-L20/Q-L21: `8083b5bb55d6d39b213c2cbafa0198e1fee50390b91c06da6edcf1d37085e3d2` / `ff24ceeea4fe3d36c656b7ac36d532951aad7795656d6c50a296e0c0568867fb`; Q-L33: `8cc3e2c66761d8e6ae7928064c0b404f9a8207320f3fdf943be350c5920ddca6` / `29ab5383f82f2360baaadf583ee4417e62f0f6271a768bbd50d5ad1f8a0d2d99`; Q-L01/Q-L30: `7f55f2868d86b8d43eb1776cf83bfa118164a432779732bc3c783c2deb92f341` / `d3f55b90da905a6480a269af0873fab6ee9e1ef23c0c0a35c79a2d48592217c9`; Q-L31: `a9014fd0fbc051cc2466b8d6784a3c705038303d169f047a6a415ccd0aa93a27` / `f73fa90ccbb77573a0d186a7f77acedafe640674fe208f090aec837b2f023353`; Q-L19: `635014ded39a3cd75384145f61d9623ef4df63cb1419971f51036fd603574eed` / `119c374d535d578ad0017c68cc2c85733b711ad72a5d804e56a2a3ce1a670e61` |
 | CPU/lowering/optimization | Q-C07: `4dd8c8a2eb8fe128de4b1429e10d26d9905db89d5f8c3d210b1c5007633cc7f8` / `4399a8aae01414cf599bee36b36e8457ce2ba13d6ec05619ca021a7518f11095`; Q-C10/Q-C13/Q-C15/Q-C18/Q-C19/Q-C21–Q-C27: `d91311ca89713d848f3eb5c794fda1af127665d2ac53da695183515398341798` / `ce23c45cec3d8e1a9fcd1859903961538c1d41ba0a297bc93d52bde54b74fafd` |
-| C64/platform/games | Q-P16/Q-P20/Q-P21/Q-P08: `ba4a49306888d7009b42e931e87a714daadaef1a971009feb36cb9939d6640d0` / `c8b057de39816fed09472dcc702af0d2e818d4836601085ef333ebe3411b0953`; Q-P13/Q-P15: `4cf8de6f9d1fb14363e4f246906cbd4ca75fb723cb5e34c6f488f0a86086f7a8` / `400b9c0bf58addd835f4856978b6d0b458da31c383287af34e9fe6456ee7612e`; Q-P11: `0ef387401958609dfe825855983c0c15340c851d844a97ef27048726955a1a96` / `c97cca5a302b3c44dae5d0efdf61b234de7dcd568ec0ec471f74d262fe8461a2`; Q-P07/Q-P12/Q-P22: `08e750dc54dc7317b50c8ee175f09db3220c24e7971793e8f07a31c92d101a31` / `a62dd1653de50a102e1af38a119c5acf50783492884fbb43ea056a6c7b2c3c6d` |
+| C64/platform/games | Q-P16/Q-P20/Q-P21/Q-P08: `ba4a49306888d7009b42e931e87a714daadaef1a971009feb36cb9939d6640d0` / `c8b057de39816fed09472dcc702af0d2e818d4836601085ef333ebe3411b0953`; Q-P13: `4cf8de6f9d1fb14363e4f246906cbd4ca75fb723cb5e34c6f488f0a86086f7a8` / `400b9c0bf58addd835f4856978b6d0b458da31c383287af34e9fe6456ee7612e`; corrected Q-P15: `3d452eb2e13ca80b36c8560d2ee6f9243e026efc56a9c14e9e9fef707db5f6f7` / `f3de138a8e76a24a7f678cd791e58d3d5c85a67a515497b0fc5ed0839518ec0f`; Q-P11: `0ef387401958609dfe825855983c0c15340c851d844a97ef27048726955a1a96` / `c97cca5a302b3c44dae5d0efdf61b234de7dcd568ec0ec471f74d262fe8461a2`; Q-P07/Q-P12/Q-P22: `08e750dc54dc7317b50c8ee175f09db3220c24e7971793e8f07a31c92d101a31` / `a62dd1653de50a102e1af38a119c5acf50783492884fbb43ea056a6c7b2c3c6d` |
 | Parity/recovery/portability | Q-A06/Q-A08/Q-A09/Q-A17: `e0d500681b23f98de50120ddada1507d9ce3572971ccf77ea703f3db1e982d3e` / `132fb45253896a6ed43ab283515124bbb6f1b39e1c35fa07fba4cedb42bf4569` |
 
 ### Independent grades
@@ -1684,16 +1684,31 @@ relative-path-sorted GNU record-stream method.
 | Routing/evidence | `65b9f7cb1d47c64de9cdd14fd6689449d0f0cc4a90a3c8f5e56080069e921063` | 8/8 Pass; both controls Pass |
 | Language/architecture/SFA | `72645fc1be8ca6dc537ddb19bca1091d7b1541ac50c80bcaff448722d390617c`, then focused correction grades `b5ad9c9912a03181904a41c8bba3d86ab29d67eccac279c4d3b2bb7481dd4bda`, `1080a164ebf67630b1ef1f23c250107c1281153bdacc4df17bd9216c3804028e`, and `a519d4cbb643d412054901352418c44bfc95aa8c475f6bdd84ce53ee6a7018bb` | 13/13 Pass after response-only corrections and one BCD-completeness repair; both controls Pass |
 | CPU/lowering/optimization | `120c81e7e44029d1b19b799b9f8e98688f62bc843de0fea534b58cb00094e6ea` | 13/13 Pass; both controls Pass |
-| C64/platform/games | `9dc23a54f3c5508118920c46fbc7f0c880ae472c40986a1db327c291ea37c950` | 10/10 Pass; both controls Pass |
+| C64/platform/games | `9dc23a54f3c5508118920c46fbc7f0c880ae472c40986a1db327c291ea37c950`; corrected Q-P15 `80a240f1b8e32d8ee372f2b8c5aa43e9094f774d6bd51e1e255d4848988298ae` | 10/10 Pass after the focused Q-P15 ownership correction; both controls Pass |
 | Parity/recovery/portability | `75ec7915262d1c12e749607f553dcf13af98c949cce6333fb9552b2766d8d7d6` | 4/4 Pass; both controls Pass |
 
 The fail-closed correction loop repaired only concrete omissions: corpus membership/digest scope,
 grammar and loop boundaries, BCD completeness, SID timing/profile fields, NMI costs, D64
 directory/loading rules, static-replication proof, scene-policy ownership, and the HLE-010
 trusted-media boundary. It added no framework, runtime, dependency, or game-policy API. Candidate
-runtime payload is `5f0de16323d86a7d91d733832df088cbd68a594370f854f974ca00eb65b1bc5d`;
+runtime payload is `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9`;
 the qualification payload excluding this self-recording release file is
-`f2ac1995b8618572e64b2f293845160dfaba141463369c9122544678b5b6ac77`.
+`6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e`.
+
+### Phase 4 review correction
+
+The independent phase review found that Q-P15 assigned scene composition and scene-specific
+conflict diagnostics too broadly to the compiler, and that the matrix and 16 changed/new case
+records did not all state their current Phase 4 result. The user authorized both corrections.
+Q-P15 now keeps composition, conflict detection, masks, attributes, priority, representation
+construction, rendering, and scene policy in user-authored Blend65. The toolchain boundary is
+limited to ingestion, imported-format validation, typing, placement, packaging, correct lowering,
+and proved optimization. A fresh isolated Q-P15 evaluator and independent grader both passed. The
+grader packet-tree digest is
+`c565505697545d1b149c306c5603237d1feaab06e2cdbe31a16bb4620626ab88`.
+The same independent reviewer then reproduced all four Q-P15 hashes, the runtime, H2, case, and
+qualification-payload digests, and returned **No findings**. It also confirmed that `spec/`, the
+single active expert 1.0.0 tree, and every `*.spec.test.*` file remain unchanged.
 
 ## Freeze Declaration
 

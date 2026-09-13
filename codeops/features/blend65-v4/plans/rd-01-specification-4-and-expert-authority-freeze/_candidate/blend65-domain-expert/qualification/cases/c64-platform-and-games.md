@@ -279,11 +279,11 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evaluator prompt:** “Implement an Integrator-style compile-time asset-composition workload in ordinary Blend65 for a large visible game area. State exact machine/video/chip and banking/interrupt assumptions. Separate user-authored composition/rendering policy from compiler-owned asset ingestion, semantics, placement, and proved optimization; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Reusable elements/panels, scene composition input, foreground/occlusion/priority rules, multicolor attributes, memory and draw/mask budgets, emitted layout, loader/visibility contract, and runtime renderer trace.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
-- **Expected decision invariants:** Keeps composition, mask/priority decisions, representation choice, and rendering policy in user-authored compile-time/runtime Blend65. The compiler provides exact asset bytes/types/metadata/symbols, conflict diagnostics, placement/package facts, correct lowering, and proved optimization. It supplies no renderer or scene runtime. The case proves both emitted assets and the user-authored runtime behavior.
+- **Expected decision invariants:** Keeps scene composition, conflict detection, mask/priority decisions, representation construction, and rendering policy in user-authored compile-time/runtime Blend65. The compiler provides asset ingestion, imported-format validation, exact bytes/types/metadata/symbols, placement/package facts, correct lowering, and proved optimization. It supplies no scene-specific diagnostics, renderer, or scene runtime. The case proves both emitted assets and the user-authored runtime behavior.
 - **Disqualifying outcomes:** Says only “use Integrator/build an editor,” adds a compiler-owned renderer/scene API, flattens everything into generic copying, ignores attribute/mask/runtime costs, or leaves asset ingestion/placement unowned.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
+- **Focused result:** Pass — the corrected Specification 4 Phase-4 isolated evaluator and independent grade passed Q-P15; exact evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -300,7 +300,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Declares one layout universally best, adds a compiler-owned entity/collision/state framework, or leaves the required lowering as descriptive lore.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
-- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-P16; exact evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -385,7 +385,7 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Disqualifying outcomes:** Adds a compiler/library multiplexer or scheduler, merely describes the trick, or assumes the shipped compiler can consult the skill.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: fail — game idioms are listed, but sprite multiplexing is not mapped to deterministic compiler/API ownership, costs, hazards, and proof (`c64-game-systems.md:82-97`).
-- **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-P21; exact evidence is recorded in `qualification/release.md`.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -426,5 +426,5 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   output/container/RAM/ZP/stack/cycle costs; and an independent malformed/longer-media boundary
   check.
 - **Red-baseline result:** Not run; new Specification 4 case.
-- **Focused result:** Pending isolated candidate evaluation.
-- **Definitive result:** Pending isolated candidate evaluation.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-P22; exact evidence is recorded in `qualification/release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.

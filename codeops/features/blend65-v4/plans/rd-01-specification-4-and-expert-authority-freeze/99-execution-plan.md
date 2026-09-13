@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13 21:05
-> **Progress**: 25/31 tasks (81%)
+> **Last Updated**: 2026-09-14 01:37
+> **Progress**: 27/31 tasks (87%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -117,7 +117,7 @@ reproducible digest, complete concise transition record, and zero unexplained se
 - [x] 4.1.4 Update only affected casebook expectations, add or strengthen the required AR-046 cases, and validate every existing case identity/required field without deleting or weakening one — `_candidate/blend65-domain-expert/qualification/cases/`, `_candidate/blend65-domain-expert/qualification/coverage-matrix.md` ✅ (completed: 2026-09-13 20:59)
 - [x] 4.1.5 Derive and record the byte-level router/reference/source/oracle dependency closure, changed/dependent case set, fixed unchanged controls, and strictly eligible inherited-evidence set — `_candidate/blend65-domain-expert/qualification/`, `08-closeout.md` ✅ (completed: 2026-09-13 21:08)
 - [x] 4.1.6 Run deterministic candidate validation and the existing filesystem-isolated model procedure for every changed/dependent case plus one fixed unchanged control per casebook; require packet-read success, repository-read failure, a separate oracle-bearing grader, and fail-closed behavior, then record outputs, grades, and hashes — `_candidate/blend65-domain-expert/qualification/`, `08-closeout.md` ✅ (completed: 2026-09-14 00:45)
-- [ ] 4.1.7 Obtain one final independent evidence/domain review, resolve and re-review any critical/major finding, then commit and freeze the exact candidate digest and approval evidence packet while confirming the live skill is unchanged — `_candidate/blend65-domain-expert/`, `08-closeout.md`, `99-execution-plan.md`
+- [x] 4.1.7 Obtain one final independent evidence/domain review, resolve and re-review any critical/major finding, then commit and freeze the exact candidate digest and approval evidence packet while confirming the live skill is unchanged — `_candidate/blend65-domain-expert/`, `08-closeout.md`, `99-execution-plan.md` ✅ (completed: 2026-09-14 01:37)
 
 **Phase gate:** The isolated candidate and impact-based evidence are complete, independently
 reviewed, immutable, and ready for a user decision. The live expert remains 1.0.0.
