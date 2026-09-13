@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)
+> **Guard**: Pass (all 27 rules)
 
 ## Description
 
@@ -171,5 +171,5 @@ language operation.
 | F3 Optimizer-friendly | Pass — exact effects preserve more facts while fixed ordering protects machine behavior. |
 | F4 Stability classification | Pass — the closed set is stable for Specification 4. |
 
-**Verdict**: ✅ **ACCEPTED** — all 23 Language Guard rules pass. The source surface is the exact
+**Verdict**: ✅ **ACCEPTED** — all 27 Language Guard rules pass. The source surface is the exact
 five-name set above; full instruction coverage remains a backend responsibility.

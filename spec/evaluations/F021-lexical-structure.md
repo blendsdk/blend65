@@ -262,7 +262,7 @@ petscii   screen_codes   atascii   internal_codes
 sin8   cos8   sin16   cos16
 ```
 
-The four encoding names remain reserved on every target. An unavailable encoding call is E10125,
+The four encoding names remain reserved in every qualified profile. An unavailable encoding call is E10125,
 not a user-function call.
 
 **Total: 25 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
@@ -1223,7 +1223,7 @@ loader name, or placement-key token type is added.
 
 ### Escape Hatches Applied
 
-None. All 23 rules pass.
+None. All 27 rules pass.
 
 ### Verdict
 

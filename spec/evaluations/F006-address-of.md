@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)  
+> **Guard**: Pass (all 27 rules)
 > **Replaces v2**: `@variable` (address-of operator), `@address` (built-in address type)
 
 ## Description

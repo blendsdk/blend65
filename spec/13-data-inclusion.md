@@ -238,7 +238,7 @@ This chapter owns the asset-import predicates below. Chapter 14 owns their publi
 | E10144 | The declared type does not match the selector type enumerated for the parsed file. | The declaration is rejected and the diagnostic reports the required type. |
 | E10204 | The handler cannot parse the file or its signature/version is not registered by the selected profile. | No asset bytes are emitted. |
 | E10250 | The optional selector argument is present but is not a string literal. | The expression is rejected before handler lookup. |
-| E10261 | A valid SID asset's specific video, SID-model, or multi-SID requirement is incompatible with the selected C64/C64U profile or its player contract. | The asset is rejected before emission or callable-audio lowering; no automatic conversion or contradictory override is attempted. |
+| E10261 | A valid SID asset's specific video, SID-model, or multi-SID requirement is incompatible with the selected C64 profile or its player contract. | The asset is rejected before emission or callable-audio lowering; no automatic conversion or contradictory override is attempted. |
 | E10274 | Source uses a loadable declaration as resident data rather than as compile-time metadata or a load-unit argument. | The use is rejected; no resident address is invented. |
 | E10275 | The selected profile has no compatible load operation or the destination lacks an exact fixed mutable range with all required proofs. | The load call is rejected before packaging or emission. |
 | E10276 | A later read lacks definite initialization on every reaching path or lacks must-alias proof with the successful captured range. | The read is rejected without a runtime check. |
@@ -311,7 +311,7 @@ handler may attach provenance from the emitted `MUSIC` object to an exact hash-b
 `&MUSIC`; otherwise the bytes remain legal embedded data and a call is E10256. No SFX operation is
 ever inferred from a plain PSID header.
 
-The C64/C64U handler also validates the asset's specific video-standard, SID-model, and multi-SID
+The C64 handler also validates the asset's specific video-standard, SID-model, and multi-SID
 requirements against the selected profile. A known incompatibility is E10261. Unknown PSID metadata
 makes no claim and permits embed-only data; callable use requires its exact player contract to close
 the uncertainty. The compiler never treats Unknown as proof, contradicts a specific header, or

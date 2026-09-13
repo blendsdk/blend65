@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)  
+> **Guard**: Pass (all 27 rules)
 > **Replaces v2**: Formalizes if/else (v2 §5 "If Statement"), while (v2 §5 "While Loop"), do-while (v2 §5 "Do-While Loop"), and adds formal block scoping rules absent from v2.
 
 ## Description
@@ -800,7 +800,7 @@ infinite loops, fundamental to game programming.**
 
 ## Language Guard Verdict
 
-- **P1 Cross-platform compilable** ✅ — If/else, while, do-while compile to standard branch/jump instructions available on all 6502 variants across all target platforms.
+- **P1 Cross-profile compilable** ✅ — If/else, while, and do-while use the same legal branch/jump instructions in every qualified profile.
 - **P2 Platform-meaningful** ✅ — Conditional logic and loops are fundamental to every program on every platform. Game loops, state machines, input polling, collision detection — all require these constructs.
 - **P3 No platform assumptions** ✅ — No hardware addresses, chip names, or platform-specific details anywhere in this feature. All examples use abstract names.
 - **P4 Resource-scalable** ✅ — Control flow overhead is minimal and predictable (2–3 bytes per branch, 3 bytes per JMP). Block scoping with SFA integration helps conserve RAM through frame slot reuse.

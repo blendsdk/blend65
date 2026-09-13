@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)  
+> **Guard**: Pass (all 27 rules)
 > **Replaces v2**: Undefined fall-through behavior, empty case fall-through pattern
 
 ## Description

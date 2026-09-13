@@ -354,17 +354,11 @@ facility.
 
 The platform profile defines the default encoding (→ Ch 15):
 
-| Platform | Default Encoding | Default Map | Available Named Encodings |
-|----------|------------------|-------------|---------------------------|
+| Qualified family | Default Encoding | Default Map | Available Named Encodings |
+|------------------|------------------|-------------|---------------------------|
 | C64 | `screen_codes` | `upper_graphics` | `petscii`, `screen_codes` |
-| C64 Ultimate | `screen_codes` | `upper_graphics` | `petscii`, `screen_codes` |
-| CX16 | `raw` | `raw` | None; specialized maps await the X16 expert extension |
-| Atari 800XL | `raw` | `raw` | None; specialized maps await the Atari expert extension |
-| Atari 7800 | `raw` | `raw` | None |
 
-The C64 defaults match direct screen-memory game code. The other targets use the exact
-`ascii-raw-v1` identity map as a conservative byte baseline until their platform-specific maps are
-qualified; this does not claim that ASCII bytes are native display codes on those machines.
+These defaults match direct C64 screen-memory code across every qualified profile.
 
 ### STR-3 — Encoding Intrinsics
 
@@ -394,18 +388,17 @@ an unknown encoding or map key.
 Using an encoding not available for the target platform is E10125:
 
 ```blend65
-// Compiling for Atari 800XL:
-const MSG: byte[] = petscii("HI");  // ❌ E10125: 'petscii' is unavailable for 'a800xl'
+const MSG: byte[] = atascii("HI"); // ❌ E10125: 'atascii' is unavailable for the selected C64 profile
 ```
 
 Encoding intrinsic availability (→ Ch 15 platform profile):
 
-| Intrinsic | C64 / C64U | CX16 | Atari 800XL | Atari 7800 |
-|-----------|------------|------|-------------|------------|
-| `petscii()` | ✅ | ❌ | ❌ | ❌ |
-| `screen_codes()` | ✅ | ❌ | ❌ | ❌ |
-| `atascii()` | ❌ | ❌ | Reserved, inactive | ❌ |
-| `internal_codes()` | ❌ | ❌ | Reserved, inactive | ❌ |
+| Intrinsic | Qualified C64 profiles |
+|-----------|------------------------|
+| `petscii()` | ✅ |
+| `screen_codes()` | ✅ |
+| `atascii()` | Reserved, inactive |
+| `internal_codes()` | Reserved, inactive |
 
 There is no `raw()` intrinsic. An unwrapped literal uses the target's default encoding and map.
 

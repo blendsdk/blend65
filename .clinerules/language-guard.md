@@ -1,33 +1,31 @@
 # Blend65 Language Guard
 
-> **Version**: 1.0  
-> **Date**: May 25, 2026  
-> **Purpose**: Quality gate for every language feature in the Blend65 v3 specification.  
+> **Version**: 2.0
+> **Date**: September 13, 2026
+> **Purpose**: Quality gate for every changed language feature in Blend65 Specification 4.
 > **Rule**: No feature enters the specification without passing this guard.
 
 ---
 
 ## How to Use This Document
 
-1. **Before adding any feature** to the v3 spec, create a Feature Evaluation (see template below)
-2. **Check the feature against all 23 rules** across 5 categories
+1. **Before adding any feature** to Specification 4, create a Feature Evaluation (see template below)
+2. **Check the feature against all 27 named rules** across 5 categories
 3. **Mark each rule** as ✅ Pass, ⚠️ Conditional (explain), or ❌ Fail
-4. **If a rule fails**, apply an Escape Hatch (Tier 1-5) or reject the feature
+4. **If a rule fails**, apply one authorized resolution or reject the feature
 5. **Record the verdict** and the reasoning — this creates a permanent decision log
 
 ---
 
-## Target Platforms
+## Qualified Target Scope
 
-All rules apply against these platforms unless an Escape Hatch is invoked:
+The guard applies to every qualified active profile in
+[`spec/15-platform-profile.md`](../spec/15-platform-profile.md). Specification 4 has one qualified
+target family: the Commodore 64. It contains eight PRG profiles covering PAL/NTSC, KERNAL/takeover,
+and 6581/8580 combinations, plus the bounded `c64-pal-d64-kernal-6581` disk profile.
 
-| Platform | CPU | RAM | Notes |
-|----------|-----|-----|-------|
-| Commodore 64 | 6502 @ 1MHz | 64KB | Primary target, largest community |
-| C64 Ultimate | 6502 + extensions | 64KB+ | C64 variant with hardware extensions (REU, etc.) |
-| Commander X16 | 65C02 @ 8MHz | 512KB+ banked | Modern 6502 design, generous resources |
-| Atari 800XL | 6502 @ 1.79MHz | 64KB | Different I/O architecture (ANTIC/GTIA/POKEY) |
-| Atari 7800 | 6502C @ 1.19MHz | 4KB (+cart RAM) | Tightest constraints, DMA display (MARIA) |
+Future-target constraints in `spec/future-considerations.md` receive a separate portability review.
+They are non-normative, are not selectable target IDs, and do not create a support claim.
 
 ---
 
@@ -35,47 +33,55 @@ All rules apply against these platforms unless an Escape Hatch is invoked:
 
 > *"Does this feature work everywhere Blend65 targets?"*
 
-### P1 — Cross-Platform Compilable
+### P1 — Cross-Profile Compilable
 
-The feature must be compilable to working machine code on **all** target platforms. The compiler must be able to generate correct code for this feature regardless of which `--platform` flag is set.
+The feature must compile to working machine code for every qualified active profile. Selecting a
+profile must not change core-language meaning.
 
 **What this means in practice:**
-- The feature cannot depend on hardware that only one platform has
-- The feature cannot require memory layouts specific to one platform
-- If the feature uses different codegen strategies per platform, each strategy must be defined
+- A core feature cannot depend on hardware available in only one profile
+- A core feature cannot require a profile-specific memory layout
+- If lowering varies by profile, every qualified variation must be defined
 
 **What this does NOT mean:**
-- It does NOT mean the feature must be equally *efficient* on all platforms
-- It does NOT mean the feature must be equally *practical* on all platforms (see P2)
-- Resource limits (e.g., 4KB on 7800) are a P4 concern, not a P1 failure
+- It does NOT mean the feature must be equally *efficient* in every profile
+- It does NOT mean target-platform library operations belong in the core language
+- Resource limits are a P4 concern, not a P1 failure
 
-### P2 — Platform-Meaningful
+### P2 — Profile-Meaningful
 
-The feature must be practically useful on all target platforms. It is not enough to be technically compilable — the feature must solve real problems developers face on each platform.
+The feature must be practically useful across the qualified active profiles. It is not enough to be
+technically compilable.
 
-**Test:** Can you write a meaningful code example using this feature for each target platform? If the answer is "technically yes, but nobody would ever do this on platform X," the feature fails P2 for that platform.
+**Test:** Can you write a meaningful C64 example using the feature without relying on one accidental
+profile configuration? If not, the feature fails P2.
 
 ### P3 — No Platform Assumptions in Core
 
-The feature's core language definition must not reference any specific hardware, memory address, register, character encoding, or platform name. All platform-specific details belong exclusively in platform profiles and platform libraries.
+The feature's core language definition must not make any target-specific hardware, address,
+register, character encoding, or platform identity part of universal semantics. Such details belong
+only in platform profiles and platform libraries.
 
 **Red flags that violate P3:**
-- Any hex address in a core spec document (e.g., `$D020`, `$0400`)
-- Any hardware chip name (VIC-II, SID, ANTIC, MARIA, POKEY, TIA)
-- Any character encoding name (PETSCII, ATASCII)
-- Any platform name in a core language rule
+- A target address or register made part of a universal core rule
+- A hardware chip made part of core semantics instead of a target-library contract
+- A character encoding selected by the core language instead of the profile
+- A platform example presented as the only legal source form
 
 ### P4 — Resource-Scalable
 
-The feature must degrade gracefully across platforms with different resource levels. The compiler must **warn** when resource limits are approached, not silently generate broken code.
+The feature must remain correct across qualified profiles with different reserved ranges, firmware
+ownership, artifact forms, and timing. The compiler must diagnose an unsatisfied hard limit and may
+warn when a documented soft threshold is approached; it must never silently generate broken code.
 
 **Resource dimensions to consider:**
-- RAM: 4KB (7800) → 64KB (C64, 800XL) → 512KB+ (CX16)
-- Zero page: varies by platform and KERNAL usage
-- ROM/binary size: cartridge limits on 7800, disk-based on C64
-- CPU speed: 1MHz (C64) → 1.19MHz (7800) → 1.79MHz (800XL) → 8MHz (CX16)
+- RAM and zero page available after profile reservations
+- KERNAL or takeover ownership of memory, vectors, and I/O
+- PRG or D64 packaging limits
+- PAL/NTSC timing and 6581/8580 compatibility requirements
 
-**The rule:** The language supports the feature everywhere. The platform profile defines the practical limits. The compiler enforces those limits with clear diagnostics.
+**The rule:** Core language meaning is stable. The selected profile defines practical limits and
+target-library availability. The compiler enforces both with clear diagnostics.
 
 ---
 
@@ -85,7 +91,8 @@ The feature must degrade gracefully across platforms with different resource lev
 
 ### H1 — 6502 Implementable
 
-The feature must be compilable to standard 6502 machine code without requiring hardware capabilities the CPU does not have.
+The feature must compile to legal NMOS 6510/6502 machine code for every qualified Specification 4
+profile without requiring capabilities the CPU does not have.
 
 **The 6502 does NOT have:**
 - Hardware multiply or divide
@@ -102,7 +109,7 @@ The feature must be compilable to standard 6502 machine code without requiring h
 - Carry flag for multi-byte arithmetic
 - Decimal mode (BCD)
 - IRQ and NMI interrupts
-- 151 CPU cycles per PAL scanline, 113 per NTSC scanline
+- 63 CPU cycles per PAL scanline and 65 per NTSC scanline on the qualified C64 models
 
 ### H2 — Cost Transparency
 
@@ -119,7 +126,7 @@ The feature must work within the Static Frame Allocation model:
 - All memory allocation is determined at compile time
 - No dynamic allocation (no malloc, no heap)
 - No recursion (each function has exactly one frame instance)
-- The call graph is statically known
+- The call graph is statically bounded, including every finite function-value target set
 - Frame memory can be reused for functions with non-overlapping lifetimes
 
 ### H4 — Memory Footprint Documented
@@ -219,9 +226,11 @@ Errors caused by feature misuse should be caught at **compile time** wherever po
 
 ### L8 — Feature Interaction Documented
 
-How this feature interacts with **every other language feature** must be explicitly defined.
+Every material interaction with existing language features must be explicitly defined. Do not
+create a pairwise checklist for combinations that cannot affect syntax, types, effects, storage,
+control flow, or cost.
 
-**For each existing feature, answer:**
+**For each material interaction, answer:**
 - Can they be combined? (e.g., struct inside array? For-loop inside switch? Asm block inside function?)
 - If yes, what is the semantics?
 - If no, is this enforced at compile time with a clear error?
@@ -232,10 +241,9 @@ How this feature interacts with **every other language feature** must be explici
 ### L9 — Documentable with Examples
 
 The feature must be explainable with:
-1. A **short prose description** (1-2 paragraphs max)
-2. A **basic usage example** (the common case)
-3. A **pattern example** (a real-world use case, e.g., game loop, sprite handling)
-4. An **edge case example** (boundary conditions, limits)
+1. A **short prose description**
+2. A **representative positive example**
+3. A **boundary or invalid example** where one exists
 
 If you cannot write clear, concise examples for the feature, the feature is too complex.
 
@@ -268,7 +276,7 @@ There must be a **known, documented approach** to generating 6502 machine code f
 - What 6502 instructions are used?
 - What is the typical code pattern?
 - Are runtime support routines needed? If so, what are they?
-- Does the codegen vary per platform? If so, how?
+- Does the codegen vary per qualified profile? If so, how?
 
 This does NOT need to be optimized code — it needs to be **correct** code with a documented strategy.
 
@@ -287,11 +295,12 @@ The feature must have clear, enumerable test cases at **every compiler stage**:
 
 ### C5 — Runtime Verifiable
 
-The generated code for this feature must be testable in an emulator with **deterministic expected results** across all target platforms:
+The generated code for this feature must be testable in VICE 3.10 with **deterministic expected
+results** across every qualified profile:
 
 - Write a `.blend` program using the feature
-- Compile for each target platform
-- Run in the platform's emulator (VICE, x16emu, Altirra, Stella/7800)
+- Compile for each qualified profile
+- Run the bounded program in VICE 3.10; add targeted real-hardware QA where silicon-sensitive
 - Verify that memory locations / register values / output match expected results
 
 This ensures the feature doesn't just compile — it **runs correctly**.
@@ -344,57 +353,38 @@ This sets clear expectations for anyone writing Blend65 code. Experimental featu
 
 ---
 
-## Escape Hatches
+## Authorized Resolutions
 
-When a feature **cannot** pass all 23 rules, apply the appropriate escape hatch:
+When a proposed feature cannot pass all 27 rules, use the smallest applicable resolution below.
+These resolutions classify or constrain a feature; they do not silently waive a failed rule.
 
-### Tier 1: Platform Subset (Compiler Warning)
+### Tier 1: Profile Constraint
 
-**When:** Feature works on most platforms but is constrained on one or more (e.g., large arrays on 7800's 4KB RAM).
+**When:** A core feature is valid across the qualified profiles but one profile has a smaller
+documented resource limit.
 
 **Resolution:**
-- Feature is included in the core language
-- The compiler emits a **warning** when targeting constrained platforms
-- The platform profile defines the specific limits
-- Code still compiles — the developer is informed, not blocked
-
-**Example:** `warning[W0103]: array of 256 bytes exceeds recommended frame size for platform 'a7800' (max: 128 bytes)`
+- The feature remains in the core language
+- The platform profile defines the exact limit
+- An unsatisfied hard limit is a compile-time error
+- A warning is used only for a documented soft threshold
 
 ### Tier 2: Platform Library (Not Core Language)
 
-**When:** Feature is inherently platform-specific (e.g., VIC-II sprites, MARIA display lists, SID music).
+**When:** The operation is inherently target-specific, such as VIC-II display control or SID audio.
 
 **Resolution:**
 - NOT a core language feature — it's a **platform library**
-- Accessed via `import { ... } from c64.vic` / `import { ... } from a7800.maria`
+- Accessed through the typed C64 platform library
 - The core language provides the building blocks (peek, poke, structs, arrays) that platform libraries use
-- Platform libraries are documented in platform profile appendixes, not in the core spec
+- Platform libraries are documented in the C64 appendix, not as universal core semantics
 
-### Tier 3: Conditional Compilation
+### Tier 3: Reject or Defer
 
-**When:** Feature behavior genuinely differs per platform in ways a library can't abstract.
-
-**Resolution:**
-- Minimal `#if platform` / `#elif` / `#endif` preprocessor directive
-- Use **sparingly** — heavy use of conditional compilation indicates a design problem
-- If more than 10% of a codebase needs conditional compilation, the abstraction layer needs improvement
-
-### Tier 4: Feature Flag (Opt-In)
-
-**When:** Feature is powerful but too expensive or complex for constrained platforms.
+**When:** A proposal cannot meet the language, hardware, or qualified-profile contract.
 
 **Resolution:**
-- Feature is available but **opt-in** via compiler flag (e.g., `--enable-multiply-operator`)
-- Disabled by default on constrained platforms, enabled by default on capable ones
-- The platform profile sets the default for each flag
-- When disabled, using the feature produces a clear compile-time error explaining why and how to opt in
-
-### Tier 5: Reject / Defer
-
-**When:** Feature fundamentally cannot work on a target platform and no workaround exists.
-
-**Resolution:**
-- Feature is **removed** from the v3 spec or **deferred** to a future version
+- The feature is absent from Specification 4 or deferred to a future version
 - A **rejection document** is written explaining:
   - What the feature was
   - Why it was rejected
@@ -405,7 +395,8 @@ When a feature **cannot** pass all 23 rules, apply the appropriate escape hatch:
 
 ## Feature Evaluation Template
 
-Every language feature must be evaluated using this template before being included in the v3 specification. Completed evaluations are stored in `spec/evaluations/`.
+Every language feature must be evaluated using this template before being included in Specification
+4. Completed evaluations are stored in `spec/evaluations/`.
 
 ```markdown
 
@@ -484,7 +475,7 @@ Every language feature must be evaluated using this template before being includ
 | F3 Optimizer-friendly | ✅/⚠️/❌ | |
 | F4 Stability classification | ✅/⚠️/❌ | |
 
-## Escape Hatches Applied
+## Authorized Resolutions Applied
 
 [None, or list which tier(s) were applied and why]
 
@@ -497,14 +488,39 @@ Every language feature must be evaluated using this template before being includ
 
 ---
 
+## Specification 4 Transition Evaluation
+
+This is the complete Guard result for the feature groups changed while creating Specification 4.
+Every code in **Passed rules** is ✅ Pass. Every code in **Conditional rules** is ⚠️ Conditional
+with its authorized resolution stated below. No rule failed.
+
+| Group | Changed feature group | Passed rules | Conditional rules |
+|-------|-----------------------|--------------|-------------------|
+| G1 | Three-clause loops, effect/exit ordering, lexical shadowing, declaration identity | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G2 | Fixed-width arithmetic, direct-subscript promotion, fixed arrays | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G3 | Aggregate assignment/return, caller-owned destinations, addressable places | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G4 | Typed finite function values, indirect calls, interrupt installation ownership | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G5 | Typed compile-time functions and bounded trigonometric evaluation | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G6 | `place(...)`, `loadable const`, captured-range publication and invalidation | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G7 | Five `asm_*` controls, variable-address PEEK/POKE, checked/unchecked arithmetic safety | P1–P4, H1–H5, L1–L9, C1–C5, F1–F4 | None |
+| G8 | Nine qualified C64 profiles and the typed target-library boundary | P3–P4, H1–H5, L1–L9, C1–C5, F1–F4 | P1, P2 — Tier 2: target-specific operations stay outside the core language and are available only through a selected qualified profile |
+| G9 | Raw/SPD/CTM/PSID/Koala assets and bounded D64 loading | P3–P4, H1–H5, L1–L9, C1–C5, F1–F4 | P1, P2 — Tier 2: formats and loading are selected-profile services, not universal core semantics |
+
+The portability review also passes. G1–G7 keep target-specific hardware out of core semantics. G8
+and G9 deliberately isolate C64 facts behind profile and platform-library boundaries. A future
+target must qualify its own CPU, memory, artifact, library, asset, emulator, and hardware evidence;
+these C64 contracts do not become its defaults.
+
+---
+
 ## Rule Summary (Quick Reference)
 
 | Category | # | Rule | One-Line Summary |
 |----------|---|------|------------------|
-| Platform | P1 | Cross-platform compilable | Must compile on all target platforms |
-| Platform | P2 | Platform-meaningful | Must be useful, not just possible |
+| Platform | P1 | Cross-profile compilable | Must compile for every qualified profile |
+| Platform | P2 | Profile-meaningful | Must be useful across qualified profiles |
 | Platform | P3 | No platform assumptions | Core spec never mentions specific hardware |
-| Platform | P4 | Resource-scalable | Warn on constraint, don't break |
+| Platform | P4 | Resource-scalable | Diagnose hard limits; warn only at documented soft thresholds |
 | Hardware | H1 | 6502 implementable | Must compile without absent hardware |
 | Hardware | H2 | Cost transparency | Cycle/byte cost must be predictable |
 | Hardware | H3 | SFA compatible | Must work with static frame allocation |
@@ -517,13 +533,13 @@ Every language feature must be evaluated using this template before being includ
 | Language | L5 | No redundancy | No duplicate functionality |
 | Language | L6 | Error messages defined | Every misuse has a specific error |
 | Language | L7 | Compile-time failure preferred | Catch errors before runtime |
-| Language | L8 | Feature interaction documented | All combinations explicitly defined |
-| Language | L9 | Documentable with examples | Prose + 3 code examples minimum |
+| Language | L8 | Feature interaction documented | Every material interaction is defined |
+| Language | L9 | Documentable with examples | Short prose plus positive and boundary/invalid examples |
 | Compiler | C1 | Lexer/parser implementable | Standard tokenization and parsing |
 | Compiler | C2 | Semantic analysis defined | Types, scope, validation fully spec'd |
 | Compiler | C3 | Code generation strategy | Known 6502 codegen approach exists |
 | Compiler | C4 | Unit testable | Test cases at every compiler stage |
-| Compiler | C5 | Runtime verifiable | Emulator-testable on all platforms |
+| Compiler | C5 | Runtime verifiable | VICE-testable across qualified profiles |
 | Future | F1 | Extensible | No breaking changes to extend later |
 | Future | F2 | Platform-profile ready | Variations via profile, not hardcoded |
 | Future | F3 | Optimizer-friendly | Doesn't block future optimization |

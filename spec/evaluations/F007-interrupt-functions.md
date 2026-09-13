@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)
+> **Guard**: Pass (all 27 rules)
 
 ## Description
 
@@ -11,7 +11,7 @@ compiler materializes the entry/exit variant required by the compiler-recognized
 raw CPU-vector variant saves registers and ends in `RTI`; a firmware-mediated variant honors the
 firmware frame already on the stack and uses its declared chain or restore tail. Interrupt
 functions are a **core language feature** because interrupts are a 6502-family CPU capability
-shared by all target platforms.
+shared by all qualified profiles.
 
 ## Syntax
 
@@ -251,7 +251,7 @@ export function installHandlers(): void {
 
 ## Language Guard Verdict
 
-- **P1 Cross-platform** ✅ — The 6502 CPU has IRQ and NMI on all target platforms. Interrupt handling is a CPU feature, not platform-specific.
+- **P1 Cross-profile** ✅ — Every qualified C64 profile has the same 6510 IRQ and NMI mechanisms.
 - **P2 Platform-meaningful** ✅ — Every target platform uses interrupts for raster effects, VBI, keyboard, timers, etc.
 - **P3 No platform assumptions** ✅ — The source-level handler is platform-neutral. The selected profile owns the raw or firmware-mediated entry/exit variant.
 - **H1 6502 implementable** ✅ — Raw entry uses the standard save/restore/`RTI` sequence; firmware variants are emitted only from an exact profile contract.

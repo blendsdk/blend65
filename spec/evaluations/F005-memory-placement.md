@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)  
+> **Guard**: Pass (all 27 rules)
 > **Replaces v2**: `@zp`, `@ram`, `@data` storage class prefixes
 
 ## Description
@@ -139,27 +139,22 @@ Constants are automatically placed in the data/ROM section by the compiler:
 ```blend65
 module Data;
 
-// Compiler places these in the data section
-// On cartridge platforms (7800), this is ROM
-// On disk platforms (C64), this is a data segment loaded into RAM
+// Compiler places these in the selected C64 profile's data section
 const SINE_TABLE: byte[256] = [/* precomputed values */];
 const SPRITE_DATA: byte[63] = [0xFF, 0x3C, /* ... */];
 const GREETING: byte[14] = [/* "HELLO, WORLD!" */];
 ```
 
-The platform profile defines where the "data section" physically maps:
+The selected C64 profile defines where the data section physically maps:
 
-| Platform | `const` data goes to | Notes |
-|----------|---------------------|-------|
-| C64 | RAM (data segment) | Loaded from disk into RAM |
-| CX16 | Banked RAM or ROM | Depends on build config |
-| Atari 800XL | RAM (data segment) | Loaded from disk/cartridge |
-| Atari 7800 | Cartridge ROM | Physical read-only |
+| Qualified family | `const` data goes to | Notes |
+|------------------|----------------------|-------|
+| C64 | Profile-declared data segment | Exact placement follows the selected PRG or D64 contract |
 
-## v2 Migration Guide
+## Historical v2-to-Specification-4 Syntax Map
 
-| v2 Syntax | v3 Syntax |
-|-----------|-----------|
+| v2 Syntax | Specification 4 syntax |
+|-----------|------------------------|
 | `@zp let playerX: byte = 10;` | `zeropage { playerX: byte = 10; }` |
 | `@ram let buffer: byte[256];` | `let buffer: byte[256];` |
 | `@data const table: byte[256] = [...];` | `const table: byte[256] = [...];` |

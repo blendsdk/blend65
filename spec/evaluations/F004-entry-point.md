@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)
+> **Guard**: Pass (all 27 rules)
 
 ## Description
 
@@ -69,4 +69,3 @@ blend65c --library --platform c64 utils.blend math.blend
 - **L1** ✅ — No syntax ambiguity — `main` is just a function name with special linker meaning
 - **L3** ✅ — Every C/TypeScript developer understands `main()`
 - **C3** ✅ — Codegen: startup sequence (CPU init → variable init) falls through into `main`'s body (F019)
-

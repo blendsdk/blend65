@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)
+> **Guard**: Pass (all 27 rules)
 
 ## Description
 
@@ -74,4 +74,3 @@ Both files contribute to the `Game.Logic` module. The compiler merges their expo
 - **L3 Beginner-friendly** ✅ — Familiar to TypeScript/C# developers
 - **L4 Minimal** ✅ — One keyword, one name, one semicolon
 - **C1 Lexer/parser** ✅ — `KW_MODULE`, `IDENTIFIER` (with dots), `SEMICOLON`
-

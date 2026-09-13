@@ -207,10 +207,10 @@ A nested conditional compiles to a cascade of branches, equivalent to an `if`/`e
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| P1 Cross-platform compilable | ✅ | Pure branch + load; no platform-specific hardware. Compiles identically on all targets. |
-| P2 Platform-meaningful | ✅ | Value selection (clamping, flag→value, color/state choice) is ubiquitous on every target. |
+| P1 Cross-profile compilable | ✅ | Pure branch plus load; no target-specific hardware. Compiles identically for every qualified profile. |
+| P2 Profile-meaningful | ✅ | Value selection (clamping, flag-to-value, color/state choice) is useful in every qualified profile. |
 | P3 No platform assumptions | ✅ | Core definition references no address, register, chip, or encoding. |
-| P4 Resource-scalable | ✅ | Generates the same code as the equivalent `if`/`else`; no resource amplification. Identical on 4KB 7800 and 512KB CX16. |
+| P4 Resource-scalable | ✅ | Generates the same code as the equivalent `if`/`else`; no resource amplification. |
 
 ### Hardware / 6502 Feasibility (H)
 
@@ -368,4 +368,4 @@ function widen(useWide: boolean, w: word, b: byte): word {
 
 **✅ ACCEPTED** (Stable)
 
-The conditional operator passes all 23 Language Guard rules. It is purely additive (no existing program uses `?`), reuses existing infrastructure (F013 boolean conditions, F016 unification, F017 short-circuit branch-to-load codegen), and introduces exactly one new error code (E10162). It compiles to the same cost as the equivalent `if`/`else` and provides concise value selection in expression contexts — particularly as function arguments and intrinsic operands — that `if`/`else` cannot express without a temporary variable.
+The conditional operator passes all 27 Language Guard rules. It is purely additive (no existing program uses `?`), reuses existing infrastructure (F013 boolean conditions, F016 unification, F017 short-circuit branch-to-load codegen), and introduces exactly one new error code (E10162). It compiles to the same cost as the equivalent `if`/`else` and provides concise value selection in expression contexts — particularly as function arguments and intrinsic operands — that `if`/`else` cannot express without a temporary variable.

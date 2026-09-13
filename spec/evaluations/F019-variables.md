@@ -539,7 +539,7 @@ const SINE_TABLE: byte[4] = [0, 90, 127, 90];
 
 **Generated:**
 ```asm
-; In data section (ROM on cartridge platforms, loaded data on disk platforms):
+; In the selected C64 profile's data section:
 _SINE_TABLE:
     .byte 0, 90, 127, 90    ; placed at assemble time — no runtime init
 ```
@@ -957,7 +957,7 @@ function main(): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| P1 Cross-platform compilable | ✅ | `let` and resident `const` use ordinary storage on all targets; `loadable const` creates no target code unless the selected profile supplies an explicit load operation |
+| P1 Cross-profile compilable | ✅ | `let` and resident `const` use ordinary storage in every qualified profile; `loadable const` creates no target code unless the selected profile supplies an explicit load operation |
 | P2 Platform-meaningful | ✅ | Variable declarations are essential on every platform |
 | P3 No platform assumptions | ✅ | No addresses, chip names, or platform references. Memory placement is via platform profile (F005) |
 | P4 Resource-scalable | ✅ | Build summary reports exact RAM/ROM cost. Compiler warns on resource limits |
@@ -1005,4 +1005,4 @@ function main(): void {
 | F3 Optimizer-friendly | ✅ | Resident constants remain foldable; load effects invalidate exact ranges; package-only declarations create no target object until a reachable load needs transport bytes |
 | F4 Stability classification | ✅ | **Stable** — the three explicit declaration/residency forms and mandatory type annotations are fixed |
 
-**Verdict: ✅ ACCEPTED — all 23 rules pass**
+**Verdict: ✅ ACCEPTED — all 27 rules pass**

@@ -463,7 +463,7 @@ The review used `blend65-domain-expert` 1.0.0 at qualified content commit
 `knowledge/sfa-and-abi.md`.
 
 Phase 2 therefore satisfies the assigned portions of V-05, V-06, V-07, and V-16. The remaining
-target, corpus-freeze, source-authority, and final all-23 Guard checks stay in Phase 3 as planned.
+target, corpus-freeze, source-authority, and final complete Guard checks stay in Phase 3 as planned.
 
 ## Phase 3: C64 Authority and Specification Freeze
 
@@ -497,3 +497,21 @@ the content.
 | `build-plan.md` | `e1f091ebd224decc287298ef9021599eb42f3d1aaaceb6afe19cfbf64b1d3029` | Obsolete workflow record removed | RD-01 closeout and Git history |
 | `preflight-report.md` | `5cea653e346c03f3fcb1acf05a4e8d27828ad348a8bdbbcde582e596862deedb` | Obsolete workflow record removed | RD-01 closeout and Git history |
 | `v2-to-v3-migration.md` | `881eca2b359ff183452b335df6ce2044de517810db28a55ff90f422e692a269c` | Obsolete migration record removed | Phase 1 P3 baseline and final P3→4 crosswalk |
+
+### Language Guard and whole-spec consistency
+
+The pre-existing Guard contained 27 named rules although its prose said 23. Specification 4
+corrects that clerical count without adding or removing a rule. All 27 results are recorded for each
+of nine changed feature groups; G8 and G9 use the existing platform-library condition for their
+C64-specific services, and no result fails.
+
+The Guard now applies to qualified profiles and treats future machines only as non-normative
+portability inputs. Its resolution section contains only profile constraints, platform-library
+classification, and reject/defer. The prior conditional-compilation and feature-flag tiers were
+removed because Specification 4 defines neither mechanism.
+
+Direct checks confirmed 18 versioned normative owners, 27 rules across nine groups, 181 matching
+active diagnostic codes, the required grammar owners, no stale Phase 2 restriction, no false active
+target or game-policy claim, valid links, formatted Markdown, valid plan topology, clean whitespace,
+and no changed `*.spec.test.*` file. Task 3.1.7 records the final repeatable commands after the
+inventory and crosswalk are frozen.

@@ -841,7 +841,7 @@ function insertScore(name0: byte, name1: byte, name2: byte, score: word): void {
 
 ### Escape Hatches Applied
 
-None. All 23 rules pass.
+None. All 27 rules pass.
 
 ### Verdict
 

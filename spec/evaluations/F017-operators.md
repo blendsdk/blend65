@@ -1143,7 +1143,7 @@ function updatePhysics(): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| **P1** Cross-platform compilable | ✅ | All operators compile to standard 6502 instructions available on every target platform |
+| **P1** Cross-profile compilable | ✅ | All operators lower to legal instructions for every qualified profile |
 | **P2** Platform-meaningful | ✅ | Arithmetic, bitwise, and logical operators are fundamental to every program |
 | **P3** No platform assumptions | ✅ | No platform-specific operators. Runtime subroutines are linked per-platform but the operators are universal |
 | **P4** Resource-scalable | ✅ | Warnings for expensive operations (W10170-W10172). Developers can choose cheaper alternatives on constrained platforms |
@@ -1167,8 +1167,8 @@ function updatePhysics(): void {
 | **C4** Unit testable | ✅ | Each operator × type combination is a test case. Each codegen tier is independently testable |
 | **C5** Runtime verifiable | ✅ | All operations produce deterministic results verifiable in emulator |
 | **F1** Extensible | ✅ | The conditional `? :` is defined in F024. New operators don't require changing existing ones |
-| **F2** Platform-profile ready | ✅ | Runtime subroutines can be platform-optimized (e.g., CX16's faster CPU might have different cycle counts in documentation) |
+| **F2** Platform-profile ready | ✅ | Any profile-specific cost or helper choice remains explicit in the selected profile |
 | **F3** Optimizer-friendly | ✅ | Constant folding, strength reduction, and peephole optimization all applicable. `+= 1` → `INC` is a standard optimization |
 | **F4** Stability classification | ✅ | **Stable** — standard operators with decades of precedent |
 
-**Verdict: ✅ ACCEPTED — all 23 rules pass**
+**Verdict: ✅ ACCEPTED — all 27 rules pass**

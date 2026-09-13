@@ -720,4 +720,4 @@ function chainOrder(): void {
 | **F3** Optimizer-friendly | ✅ | Explicit types enable type-aware optimizations. No inference means no type deduction overhead |
 | **F4** Stability classification | ✅ | **Stable** — six types and their interaction rules are fundamental and will not change |
 
-**Verdict: ✅ ACCEPTED — all 23 rules pass**
+**Verdict: ✅ ACCEPTED — all 27 rules pass**

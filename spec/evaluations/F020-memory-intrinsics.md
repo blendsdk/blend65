@@ -827,4 +827,4 @@ function profileFunction(): word {
 | F3 Optimizer-friendly | ✅ | Side-effectful contract (MI-1) gives clear memory rules. Fixed queries fold; any-size `length` may fold only when caller facts prove the value. |
 | F4 Stability classification | ✅ | **Stable** — peek/poke/sizeof/length are fundamental and universal across all 6502 programming |
 
-**Verdict: ✅ ACCEPTED — all 23 rules pass**
+**Verdict: ✅ ACCEPTED — all 27 rules pass**

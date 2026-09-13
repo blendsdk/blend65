@@ -13,16 +13,12 @@ target-platform library for the MOS 6502 family. It provides a modern, C-like de
 experience while generating machine code that meets the hard real-time and memory constraints of
 8-bit hardware.
 
-Blend65 supports games, renderers, demos, tools, and any other software its qualified machines can
-run. It is purpose-built for machines that have:
+Blend65 supports games, renderers, demos, tools, and other software on its qualified Commodore 64
+profiles. Those profiles have a MOS 6510-class CPU at PAL or NTSC C64 speed, 64 KiB of address
+space, banked ROM and I/O visibility, VIC-II cycle constraints, and a 256-byte hardware stack.
 
-- A single CPU running at 1–8 MHz
-- Between 4 KB and 512 KB of RAM (often banked)
-- No operating system, no virtual memory, no memory protection
-- Display hardware that demands cycle-counted code on specific scanlines
-- A 256-byte hardware stack shared between the program and the CPU
-
-The language exists so that developers can write games, demos, tools, and system software for these machines in a structured, type-safe language — without sacrificing the control and efficiency that assembly language provides.
+The language lets modern developers write that software in a structured, type-safe form while the
+compiler preserves the control and efficiency expected from expert assembly.
 
 ---
 
@@ -119,27 +115,30 @@ The core specification never references specific hardware addresses, chip names,
 
 ## 4. The Language Guard
 
-The Language Guard is a 23-rule quality gate organized into five categories. Every language feature must pass all 23 rules (or invoke an explicit escape hatch) before entering the specification.
+The Language Guard is a 27-rule quality gate organized into five categories. Every changed language
+feature must pass all 27 rules or have an explicit authorized condition before entering the
+specification.
 
 | Category | Rules | Focus |
 |----------|-------|-------|
-| **P** — Platform Universality | P1–P4 | Works on all targets; useful on all targets; no platform assumptions; resource-scalable |
+| **P** — Platform Universality | P1–P4 | Works across qualified profiles; useful across them; no core platform assumptions; resource-scalable |
 | **H** — Hardware / 6502 Feasibility | H1–H5 | Compiles to 6502; cost is transparent; SFA compatible; memory footprint known; fully deterministic |
 | **L** — Language Design Quality | L1–L9 | Unambiguous; consistent; beginner-friendly; minimal; non-redundant; error messages defined; compile-time failures preferred; interactions documented; documentable with examples |
 | **C** — Compiler Implementability | C1–C5 | Lexable/parseable; semantic analysis defined; codegen strategy exists; unit-testable; runtime-verifiable in emulators |
 | **F** — Future-Proofing | F1–F4 | Extensible; platform-profile ready; optimizer-friendly; stability-classified |
 
-When a feature cannot pass all rules, one of five **escape hatch tiers** applies:
+When a feature cannot pass all rules, one of three **authorized resolution tiers** applies:
 
 | Tier | Name | When Used |
 |------|------|-----------|
-| 1 | Platform Subset | Feature works but is constrained on some platforms → compiler warning |
-| 2 | Platform Library | Feature is inherently platform-specific → not in core, provided as a library |
-| 3 | Conditional Compilation | Behavior genuinely differs per platform → minimal `#if platform` directive |
-| 4 | Feature Flag | Feature is too expensive for constrained platforms → opt-in via compiler flag |
-| 5 | Reject / Defer | Feature fundamentally cannot work → removed or deferred to a future version |
+| 1 | Profile Constraint | A qualified profile owns an exact hard limit or documented soft threshold |
+| 2 | Platform Library | A target-specific operation stays outside the core language |
+| 3 | Reject / Defer | A proposal that cannot meet the contract stays out of this specification |
 
-The complete Language Guard with all 23 rules, escape hatch definitions, and the feature evaluation template is maintained as a separate operational document (`.clinerules/language-guard.md`). The guard is not part of the language specification — it is the process by which the specification is validated.
+The complete Language Guard with all 27 named rules, authorized resolutions, and the feature
+evaluation template is maintained as a separate operational document
+(`.clinerules/language-guard.md`). The guard is not part of the language specification; it is the
+process used to validate specification changes.
 
 ---
 
@@ -219,4 +218,4 @@ so. Core examples do not turn a C64 address or device into universal language me
 |----------|---------|
 | Feature evaluations (`evaluations/F001–F024`) | The *why* behind each language feature — rationale, alternatives considered, Language Guard evaluation |
 | Future considerations (`future-considerations.md`) | Deferred and resolved `FUT-NNN` entries, plus rejected features (REJ-001, REJ-002) |
-| Language Guard (`.clinerules/language-guard.md`) | The 23-rule quality gate and evaluation template |
+| Language Guard (`.clinerules/language-guard.md`) | The 27-rule quality gate and evaluation template |

@@ -252,7 +252,7 @@ petscii   screen_codes   atascii   internal_codes
 sin8   cos8   sin16   cos16
 ```
 
-All four encoding names are reserved on every target so declaration meaning does not change with
+All four encoding names are reserved in every qualified profile so declaration meaning does not change with
 the selected platform. Calling a name unavailable in the selected profile is E10125.
 
 **Total: 25 globally reserved built-in identifiers, plus the entry-reserved name `main`.**

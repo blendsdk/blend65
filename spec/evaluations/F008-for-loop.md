@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)  
+> **Guard**: Pass (all 27 rules)
 > **Compatibility note**: Replaces the provisional `until`/`to`/`downto`/`step` range form with
 > one C/JavaScript-style three-clause loop.
 
@@ -359,7 +359,7 @@ expression rules.
 
 ### Platform Universality
 
-- **P1 Cross-platform compilable** ✅ — ordinary control flow compiles on every target CPU.
+- **P1 Cross-profile compilable** ✅ — ordinary control flow compiles for every qualified profile.
 - **P2 Platform-meaningful** ✅ — initialization/condition/update loops are common in games and tools.
 - **P3 No platform assumptions** ✅ — the semantic contract names no platform address or device.
 - **P4 Resource-scalable** ✅ — no mandatory storage or helper; selected costs are reported.

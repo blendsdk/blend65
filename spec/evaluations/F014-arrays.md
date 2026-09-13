@@ -348,15 +348,9 @@ The compiler encodes the string using the platform profile's `default_encoding` 
 
 The platform profile defines the default encoding:
 
-| Platform | Default Encoding | Default Map | Available Named Encodings |
-|----------|------------------|-------------|---------------------------|
+| Qualified family | Default Encoding | Default Map | Available Named Encodings |
+|------------------|------------------|-------------|---------------------------|
 | C64 | `screen_codes` | `upper_graphics` | `petscii`, `screen_codes` |
-| C64 Ultimate | `screen_codes` | `upper_graphics` | `petscii`, `screen_codes` |
-| CX16 | `raw` | `raw` | None; specialized maps await the X16 expert extension |
-| Atari 800XL | `raw` | `raw` | None; specialized maps await the Atari expert extension |
-| Atari 7800 | `raw` | `raw` | None |
-
-The default can be overridden in the platform profile configuration.
 
 #### STR-3: Encoding Intrinsics (Cast-Style)
 
@@ -388,8 +382,7 @@ rejects a non-literal map argument, and E10125 rejects an unavailable encoding o
 Using an encoding not available for the target platform is a compile error:
 
 ```blend65
-// Compiling for Atari 800XL:
-const MSG: byte[] = petscii("HI");  // ❌ E10125: 'petscii' is unavailable for 'a800xl'
+const MSG: byte[] = atascii("HI"); // ❌ E10125: unavailable for the selected C64 profile
 ```
 
 #### STR-4: Raw Bytes, No Automatic Termination
@@ -919,9 +912,7 @@ the array origin's lifetime and read-only provenance (F006).
 ### AR-A9: Default encoding choice rationale
 
 Games overwhelmingly write directly to screen memory, not through OS I/O routines. Therefore the
-C64/C64U default is `screen_codes` with the power-on `upper_graphics` ROM map. CX16 and Atari
-targets keep the exact `ascii-raw-v1` byte baseline until separate expert extensions qualify their
-machine-specific text maps; this baseline is not a claim about display hardware.
+Every qualified C64 profile defaults to `screen_codes` with the power-on `upper_graphics` ROM map.
 
 Developers using C64 KERNAL output routines select PETSCII explicitly: `petscii("HELLO")`.
 
@@ -929,12 +920,12 @@ Developers using C64 KERNAL output routines select PETSCII explicitly: `petscii(
 
 Encoding intrinsics are platform-specific. The platform profile defines which are available:
 
-| Intrinsic | C64 / C64U | CX16 | Atari 800XL | Atari 7800 |
-|-----------|------------|------|-------------|------------|
-| `petscii()` | ✅ | ❌ | ❌ | ❌ |
-| `screen_codes()` | ✅ | ❌ | ❌ | ❌ |
-| `atascii()` | ❌ | ❌ | Reserved, inactive | ❌ |
-| `internal_codes()` | ❌ | ❌ | Reserved, inactive | ❌ |
+| Intrinsic | Qualified C64 profiles |
+|-----------|------------------------|
+| `petscii()` | ✅ |
+| `screen_codes()` | ✅ |
+| `atascii()` | Reserved, inactive |
+| `internal_codes()` | Reserved, inactive |
 
 Using an unavailable intrinsic → E10125.
 
@@ -1164,7 +1155,7 @@ function cycleColors(): void {
 
 ### Escape Hatches Applied
 
-None. All 23 rules pass.
+None. All 27 rules pass.
 
 ### Verdict
 

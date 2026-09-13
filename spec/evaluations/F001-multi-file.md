@@ -2,7 +2,7 @@
 
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
-> **Guard**: Pass (all 23 rules)
+> **Guard**: Pass (all 27 rules)
 
 ## Description
 
@@ -18,4 +18,3 @@ The Blend65 compiler accepts multiple source files (`.blend`) as input and compi
 ## Language Guard Verdict
 
 No ambiguities. Standard compiler capability. Passes all platform (P1–P4), hardware (H1–H5), and compiler (C1–C5) rules trivially.
-

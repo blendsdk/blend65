@@ -1,6 +1,6 @@
 # Chapter 09 — Enums
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F022
@@ -296,7 +296,7 @@ templates, spans, suppression, and history.
 | **Type system** (→ Ch 02) | Enums are a derived type with nominal typing. Enum→byte is an implicit widening; byte→enum is an explicit cast. Cast syntax (`EnumName(expr)`) follows the same mechanism as `byte(expr)`/`word(expr)`. |
 | **Variables** (→ Ch 03) | Enum-typed `let`/`const` variables occupy 1 byte. A `const` enum value is an inlined byte constant. |
 | **Operators** (→ Ch 04) | Arithmetic/bitwise operators force enum→byte (EN-9); the result is `byte`, not the enum type. `==`/`!=` work within same enum type or against byte. Ordered comparisons operate on byte value. |
-| **Statements** (→ Ch 05) | Enums are a valid switch expression type. `case EnumName.MEMBER:` is the idiomatic form. No mandatory exhaustiveness in v3. |
+| **Statements** (→ Ch 05) | Enums are a valid switch expression type. `case EnumName.MEMBER:` is the idiomatic form. Specification 4 does not require exhaustive switches. |
 | **Functions** (→ Ch 06) | Enum types valid as parameter and return types. Passing a bare byte to an enum parameter → E10235; returning an enum where byte expected widens implicitly. |
 | **Structs** (→ Ch 07) | Enum fields in structs: `dir: Direction;` occupies 1 byte. Struct literals use member access: `{ dir: Direction.UP }`. |
 | **Arrays** (→ Ch 08) | Enum arrays: `Direction[8]` — each element 1 byte. Array initializers use member access. |

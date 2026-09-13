@@ -237,7 +237,8 @@ let i: byte = MAX;    // compiles as: LDA #8 / STA i
 
 ### 4.3 Aggregate Constant Placement
 
-Aggregate `const` values (arrays, structs) are placed in the **data section**. The platform profile maps the data section to ROM (for cartridge-based platforms like Atari 7800) or a designated RAM area (for disk-based platforms like C64).
+Aggregate `const` values (arrays, structs) are placed in the **data section**. The selected C64
+profile maps that section into its declared artifact and memory layout.
 
 ```blend65
 const TABLE: byte[4] = [10, 20, 30, 40];    // 4 bytes in data section
@@ -290,12 +291,9 @@ rule, or create hidden storage.
 
 The platform profile defines how many zero-page bytes are available (→ Ch 15). The compiler tracks total ZP usage across all modules. Exceeding the budget → E10032.
 
-| Platform | Default-profile ZP budget | Profile range |
-|----------|---------------------------|---------------|
-| C64 / C64U | 142 bytes | `$02`–`$8F` |
-| CX16 | 94 bytes | `$22`–`$7F` |
-| Atari 800XL | 128 bytes | `$80`–`$FF` |
-| Atari 7800 | 64 bytes | `$40`–`$7F` |
+| Qualified family | Default-profile ZP budget | Profile range |
+|------------------|---------------------------|---------------|
+| C64 | 142 bytes | `$02`–`$8F` |
 
 These are the exact current default profiles, not general hardware maxima. A custom profile may
 choose a different proven-safe range and budget.

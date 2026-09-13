@@ -256,13 +256,11 @@ Format handlers declare alignment requirements for their selectors. The compiler
 Handler alignment remains automatic. Source may add a stronger `place(align: ...)` constraint, but
 cannot weaken or replace the handler requirement.
 
-| Platform | Asset | Alignment | Why |
-|----------|-------|-----------|-----|
+| Qualified family | Asset | Alignment | Why |
+|------------------|-------|-----------|-----|
 | C64 | Sprites (SpritePad) | 64 bytes | VIC-II addresses sprites at block × 64 |
 | C64 | Character sets | 2048 bytes | VIC-II character memory at 2KB boundaries within bank |
 | C64 | Bitmap data | 8192 bytes | VIC-II bitmap at 8KB boundary within bank |
-| Atari 800XL | Player/Missile graphics | 256 bytes | ANTIC PMBASE register uses page-aligned address |
-| Atari 7800 | MARIA graphics | Varies | MARIA tile data alignment depends on mode |
 
 ### 3.2 Compiler Guarantees
 
@@ -555,7 +553,7 @@ make player-owned state ROM-safe. The build report includes all those selected c
 GoatTracker 2.77 is the first qualified adapter family, including its optional player-native SFX
 entry and feature-pruned export. A minimal SFX-only player and a hash-bound custom player are equal
 supported paths. SID Factory II is only the next adapter candidate until independently qualified;
-GTUltra and multi-SID need a later multi-SID/C64U profile.
+GTUltra and multi-SID need a later, separately qualified profile.
 
 #### Koala Paint (.kla / .koa)
 
@@ -581,21 +579,16 @@ then return the already-positioned bitmap and screen fields with no emitted runt
 selected `"color_ram"` bytes still require an explicit, costed transfer to the C64 color-RAM
 window; the format handler never hides that copy.
 
-### 5.3 Other Platform Profiles
+### 5.3 Future Target Profiles
 
-Other platforms follow the same handler boundary but do not gain a format merely because a likely
-tool or extension can be named. The initial Atari 800XL and Atari 7800 profiles expose raw embedding
-only. Their native/project handlers are deferred to their separately researched expert-skill
-extensions, which must pin exact versions or observable identities, selector types, validation,
-emitted layouts, placement rules, costs, and fixtures before updating the platform appendix.
-The initial Commander X16 profile also exposes raw embedding only. Its first separately qualified
-platform-skill extension will reconsider official ZSM revision 1, then any BMX or conversion format
-whose identity, transformation, layout, and fixtures can be pinned. No Atari decision supplies or
-removes X16 support.
+A future target does not gain an asset format merely because a likely tool or extension can be
+named. Each handler requires separately qualified evidence for its exact versions or observable
+identities, selector types, validation, emitted layouts, placement rules, costs, and fixtures.
+This paragraph is a non-normative portability constraint and does not activate another target.
 
 ### 5.4 Universal Raw Fallback
 
-Raw inclusion is not a registered format handler. It applies on **all** platforms when the file's
+Raw inclusion is not a registered format handler. It applies in every qualified profile when the file's
 extension is absent from the selected profile's `embed_formats`, including `.bin` when no profile
 has explicitly registered that extension:
 
@@ -956,7 +949,7 @@ those ranges use writable placement and are included in the exact resource repor
 | **F3** Optimizer-friendly | ✅ | Ordinary embedded data is read-only; a qualified player's declared writable ranges carry effects and cannot be propagated as constants, while unused unreferenced assets remain removable |
 | **F4** Stability classification | ✅ | **Stable** — `embed()` syntax and raw mode. **Provisional** — format handler interface (may be refined as more formats are implemented) |
 
-**Verdict: ✅ ACCEPTED — all 23 rules pass**
+**Verdict: ✅ ACCEPTED — all 27 rules pass**
 
 ---
 

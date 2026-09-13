@@ -1,6 +1,6 @@
 # Chapter 10 — Modules & Program Structure
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F001, F002, F003, F004

@@ -539,7 +539,8 @@ induction narrowing may still select a cheaper machine representation.
 
 ### ST-A7: What about `boolean` ↔ signed conversions?
 
-**Not allowed.** `boolean` is not convertible to/from signed types. This is consistent with v3's approach: boolean is a logical type, not a numeric type.
+**Not allowed.** `boolean` is not convertible to or from signed types. Specification 4 treats it as
+a logical type, not a numeric type.
 
 ```blend65
 let b: boolean = true;
@@ -778,7 +779,7 @@ v2 had no signed types. Common v2 patterns and their v3 equivalents:
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| P1 Cross-platform compilable | ✅ | Two's complement is universal across all target 6502 variants |
+| P1 Cross-profile compilable | ✅ | Two's-complement lowering is identical across qualified profiles |
 | P2 Platform-meaningful | ✅ | Game physics, signed math needed on every platform |
 | P3 No platform assumptions | ✅ | No hardware references in core definition |
 | P4 Resource-scalable | ✅ | Same storage size as unsigned; no additional RAM cost |
@@ -828,7 +829,7 @@ v2 had no signed types. Common v2 patterns and their v3 equivalents:
 
 ### Escape Hatches Applied
 
-None. All 23 rules pass.
+None. All 27 rules pass.
 
 ### Verdict
 

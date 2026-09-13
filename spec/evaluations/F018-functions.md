@@ -703,7 +703,9 @@ cannot be reversed.
 
 ### FN-A5: What about the `callback` keyword from v2?
 
-**Dropped.** In v2, `callback` marked functions whose addresses might be taken (for SFA liveness). In v3, the compiler detects this automatically when it encounters `&functionName`. No separate keyword needed.
+**Dropped.** In v2, `callback` marked functions whose addresses might be taken (for SFA liveness).
+Specification 4 derives the finite target set from typed function-value flow. No separate keyword is
+needed.
 
 ### FN-A6: Can exported functions from different modules have the same name?
 
@@ -724,7 +726,9 @@ If both are imported without alias, E10003 applies (duplicate declaration in sco
 
 ### FN-A7: Are tail calls optimized?
 
-**Not in v3.** The compiler always generates JSR/RTS. Tail call optimization (converting the last call in a function from JSR to JMP, saving 2 bytes of stack) is a future optimization opportunity. It does not change language semantics. See also FUT-016 (stack-free calling convention).
+**Not in Specification 4.** The compiler uses JSR/RTS for ordinary calls. Tail-call optimization
+(converting the final call from JSR to JMP and saving two stack bytes) remains a future optimization
+that does not change language semantics. See also FUT-016 (stack-free calling convention).
 
 ### FN-A8: What is the maximum call depth?
 

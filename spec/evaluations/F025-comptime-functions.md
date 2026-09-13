@@ -200,7 +200,7 @@ root invocation.
 | Rule | Result | Reason |
 |---|---|---|
 | P1 Cross-platform compilable | ✅ | Evaluation is host-side and its typed constant result is target-independent |
-| P2 Platform-meaningful | ✅ | Lookup tables, masks, maps, and generated constants are useful on every target |
+| P2 Profile-meaningful | ✅ | Lookup tables, masks, maps, and generated constants are useful in every qualified profile |
 | P3 No platform assumptions | ✅ | Core semantics name no target hardware or address |
 | P4 Resource-scalable | ✅ | Evaluation adds no target runtime cost; retained data uses ordinary target budgets |
 | H1 6502 implementable | ✅ | No evaluator code runs on the target |

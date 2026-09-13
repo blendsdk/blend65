@@ -76,7 +76,7 @@ distinct, non-callable type; recognized installation sinks enforce handler ABI a
 **What was deferred**: Analyze the call graph when a function is reachable from mainline and an
 interrupt handler, instead of merely documenting possible SFA corruption.
 
-**How it was resolved**: v3 models entry ABI and execution domain separately. It follows every
+**How it was resolved**: Specification 4 models entry ABI and execution domain separately. It follows every
 compiler-visible mainline, IRQ, NMI, bounded nested-interrupt, and callback root through its complete
 helper closure. Overlapping activations receive disjoint invocation-private SFA homes. Shared
 globals, assets, and MMIO remain shared; visible lost-update and torn multi-byte hazards receive
@@ -126,7 +126,9 @@ outer: for (let y: byte = 0; y < 25; y += 1) {
 }
 ```
 
-**Why deferred**: In v3, multi-level exit is handled with a flag variable (`let found: boolean = false; ... if (found) { break; }`). This is explicit, works everywhere, and doesn't require new syntax. Labeled `break` is a convenience feature — it saves a few lines but adds grammar complexity (label declarations, label scoping rules).
+**Why deferred**: In Specification 4, multi-level exit uses a flag variable
+(`let found: boolean = false; ... if (found) { break; }`). This is explicit and needs no new syntax.
+Labeled `break` would add label declarations and label-scoping rules for a small convenience.
 
 **Reconsideration criteria**:
 - Real-world Blend65 code frequently uses deeply nested loops with multi-level exit
@@ -156,7 +158,9 @@ switch (score) {
 }
 ```
 
-**Why deferred**: Adds grammar complexity (`..` range operator in case context), requires the compiler to expand ranges into value sets or generate range-check code (CMP + BCS/BCC patterns). The same functionality can be achieved with `if/else if` chains or multiple comma-separated values. Keeping switch minimal in v3 (Language Guard L4).
+**Why deferred**: Adds grammar complexity (`..` in case context) and requires value-set expansion or
+range-check code. Specification 4 already expresses the behavior with `if`/`else if` or several
+comma-separated values, so the smaller switch form satisfies Language Guard L4.
 
 **Reconsideration criteria**:
 - Real-world Blend65 code frequently switches on value ranges (score tiers, ASCII character classes, etc.)
@@ -240,7 +244,9 @@ does not silently add that support surface.
 copy(screenBuffer, backBuffer, 1000);  // Copy 1000 bytes
 ```
 
-**Why deferred**: Developers can use an explicit for loop to copy array elements. The loop approach is transparent (H2) and works for all cases. A `copy()` intrinsic would be an optimization — the compiler could use an optimized unrolled loop or page-aligned strategy. Not essential for v3's minimum viable language.
+**Why deferred**: Specification 4 defines aggregate assignment and return with alias-safe copy
+semantics and direct construction. A separate `copy()` intrinsic would duplicate that language
+surface; implementation optimization belongs in lowering.
 
 **Reconsideration criteria**:
 - Real-world Blend65 code frequently copies arrays (sprite data, screen buffers, level maps)
@@ -319,7 +325,7 @@ stores the return point address into its selected pair and uses `JMP`; the match
 returns through that same pair:
 
 ```asm
-; Standard JSR/RTS (current v3):
+; Standard JSR/RTS (Specification 4):
   JSR _foo          ; 6 cycles, 2 bytes on hardware stack
   ; ...
 _foo:
@@ -340,7 +346,7 @@ _foo:
 
 **Tradeoffs**:
 
-| Aspect | JSR/RTS (v3 default) | JMP-threaded (FUT-016) |
+| Aspect | JSR/RTS (Specification 4 default) | JMP-threaded (FUT-016) |
 |--------|---------------------|------------------------|
 | Stack usage per call | 2 bytes | 0 bytes |
 | Static RAM per allocated activation variant | 0 bytes | 2 bytes |
@@ -357,7 +363,9 @@ Every cost is reported per allocated activation/entry variant. ROM and static RA
 the same source function needs several simultaneous homes; “no recursion” alone never proves that
 one source function can be active only once.
 
-**Why deferred**: JSR/RTS is faster, smaller, and the standard approach. Typical game code uses 10-30 bytes of the 256-byte hardware stack — well within budget. The stack-free approach is only valuable for extreme cases (very deep call chains, interrupt-heavy code on Atari 7800 with 4KB RAM).
+**Why deferred**: JSR/RTS is faster, smaller, and the standard approach. Typical game code uses
+10–30 bytes of the qualified C64 profile's 256-byte hardware stack, which is well within budget.
+The stack-free approach is only valuable if measured programs approach that budget.
 
 **Reconsideration criteria**:
 - Real-world Blend65 programs encounter stack overflow issues
@@ -381,7 +389,9 @@ barrier();           // Optimizer must not move operations across this point
 lives = lives - 1;
 ```
 
-**Why deferred**: In v3, peek/poke ordering is guaranteed by MI-1, and asm_*() calls act as implicit barriers (F012 CC-3). Barrier for regular variable reordering is only needed when the optimizer performs cross-statement reordering — a feature that doesn't exist yet. The stub optimizer does nothing, so barrier() would be a no-op.
+**Why deferred**: Specification 4 already fixes PEEK/POKE ordering in MI-1, and the five `asm_*`
+controls have their exact effects. Any future optimizer must preserve those effects. A general
+`barrier()` would add source surface without a distinct current contract.
 
 **Reconsideration criteria**:
 - The optimizer implements cross-statement reordering or instruction scheduling
@@ -398,7 +408,9 @@ lives = lives - 1;
 
 **What**: Separate `volatile_read(addr)` and `volatile_write(addr, val)` functions that are guaranteed side-effectful, alongside potentially optimizable `peek()`/`poke()` variants.
 
-**Why deferred**: In v3, ALL peek/poke are side-effectful by design (MI-1). On 6502, the compiler cannot distinguish RAM from I/O hardware registers — any address could be either. Making all peek/poke volatile is the safe, simple default. Separate volatile variants would only be useful if a future optimizer could prove certain peek/poke addresses are pure RAM, allowing elimination of redundant reads. This requires sophisticated address analysis that doesn't exist.
+**Why deferred**: In Specification 4, every PEEK/POKE is side-effectful and volatile-ordered by
+MI-1. Separate volatile variants would be redundant unless a future proof system can distinguish
+ordinary RAM from MMIO without weakening that contract.
 
 **Reconsideration criteria**:
 - The optimizer can prove address ranges are pure RAM (e.g., via platform profile memory maps)
@@ -472,19 +484,18 @@ erased to its underlying type during semantic analysis (as sketched in F016 TS-A
 2. **Conflicts with the nominal-typing stance.** F022 enums were deliberately made *nominal*
    (a distinct type requiring an explicit cast). A transparent alias is the opposite philosophy
    and would sit awkwardly beside enums.
-3. **Obscures cost on constrained platforms.** The most-wanted case, `type Buffer = byte[1000]`,
-   hides a large allocation behind a friendly name — working against F016's "the type IS the
-   design decision" thesis and the Language Guard's cost-transparency rules (H2, H4). On a 4KB
-   Atari 7800 this is actively harmful.
+3. **Obscures cost.** The most-wanted case, `type Buffer = byte[1000]`, hides a large allocation
+   behind a friendly name, working against F016's cost-visible type rules and the Language Guard's
+   H2/H4 requirements.
 4. **Redundant with good naming.** A well-named declaration (`spriteIndex: byte`) communicates
    the same intent without adding a language feature, a declaration form, and new error codes.
-5. **Audience.** Blend65 targets close-to-the-hardware developers on deliberately constrained
-   platforms. They name things precisely and do not need synonym sugar (Language Guard L4, L5).
+5. **Audience.** A transparent alias looks type-safe to a modern programmer while enforcing no
+   distinction. Clear declaration names or a future nominal type are less misleading (L4, L5).
 
 **Status of the `type` keyword**: The `type` keyword **remains reserved** (F021 LS-9). It is
 retained to protect future type-related syntax. Using `type` as an identifier is a syntax error.
 
-**Reconsideration bar** (high): Only revisit if v3 later gains complex composite types — for
+**Reconsideration bar** (high): Only revisit if a later specification adds composite forms for
 example function-pointer types or fixed-string types — where aliasing earns real ergonomic value.
 Even then, prefer a **nominal newtype** (a distinct type, like enums) over a transparent alias.
 

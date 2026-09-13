@@ -25,7 +25,7 @@ let facing: Direction = Direction.UP;
 ```
 
 **Key design principles:**
-- **Byte-backed only** — every enum is represented as a `byte` (values 0–255). No word-backed enums in v3.
+- **Byte-backed only** — every enum is represented as a `byte` (values 0–255). Specification 4 has no word-backed enums.
 - **Nominal type** — `Direction` is a distinct type, not an alias for `byte`. A function declared `move(d: Direction)` will not accept a bare `byte`.
 - **Asymmetric conversion (enum *is-a* byte)** — an enum value converts *to* `byte` implicitly (widening to its representation is always safe), but a `byte` converts *to* an enum only through an explicit `EnumName(expr)` cast (narrowing an arbitrary byte into a named set is the programmer's assertion).
 - **Zero overhead** — members are compile-time constants; no runtime tables, no storage beyond the one byte the value occupies.
@@ -267,7 +267,7 @@ After `A = 10`, the next auto member is `11`, not `1`. Auto-numbering always con
 | Feature | Interaction |
 |---------|-------------|
 | **F003 Module contents & visibility** | Enums are module-level declarations; may be `export`ed. Exporting an enum exports the type and all members (EN-13). |
-| **F009 Switch statement** | Enums are a valid switch expression type (F009 SW-10). `case Direction.UP:` is the idiomatic form. Case values may be enum members or byte literals (which widen). No mandatory exhaustiveness in v3 — exhaustiveness checking is a future addition (see future-considerations.md). |
+| **F009 Switch statement** | Enums are a valid switch expression type (F009 SW-10). `case Direction.UP:` is the idiomatic form. Case values may be enum members or byte literals (which widen). Specification 4 has no mandatory exhaustiveness; see `future-considerations.md`. |
 | **F011 Structs** | An enum may be a struct field type (`dir: Direction;`). The field occupies 1 byte. Struct literals use member access: `{ dir: Direction.UP }`. |
 | **F014 Arrays** | Enums may be array element types (`let path: Direction[8];`). Each element is 1 byte. Array initializers use member access. |
 | **F016 Type system** | Enum→byte is an implicit widening conversion (EN-9), added to F016's conversion model. Byte→enum is an explicit cast using the same cast syntax as `byte()`/`word()`. Enums are nominal — unlike the transparent type aliases that were evaluated and rejected (REJ-001). |
@@ -468,7 +468,7 @@ function demo(): void {
 
 ### Escape Hatches Applied
 
-None. All 23 rules pass.
+None. All 27 rules pass.
 
 ### Verdict
 

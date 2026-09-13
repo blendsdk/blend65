@@ -263,8 +263,8 @@ If total ZP allocation exceeds the platform budget → E10032.
 
 ### 5.1 Stack Purpose
 
-In Blend65, the hardware stack uses the selected profile's proven-writable part of page one
-(normally `$0100`–`$01FF`; `$0140`–`$01FF` on Atari 7800). It is used for:
+In Blend65, the hardware stack uses the selected profile's proven-writable `$0100`–`$01FF` page-one
+range. It is used for:
 - **Return addresses** — 2 bytes per active `JSR` (function call)
 - **Interrupt context** — 3 bytes CPU push (P, PCL, PCH) + 3 bytes register save (A, X, Y)
 - **Source status saves** — each live `asm_php()` contributes one byte until its matching
