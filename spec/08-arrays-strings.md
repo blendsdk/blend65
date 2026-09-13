@@ -179,7 +179,7 @@ let a: byte[2][3] = [[1, 2, 3], [4, 5, 6]];
 let b: byte[2][3];
 let wrong: byte[3][2];
 b = a;             // ✅ exact element type and extents
-wrong = a;         // ❌ incompatible fixed-array shape
+wrong = a;         // ❌ E10080: incompatible fixed-array shape
 
 function makeTile(): byte[2][3] {
     return [[1, 2, 3], [4, 5, 6]]; // ✅ exact-shape fixed value
@@ -820,6 +820,7 @@ message templates, spans, suppression, and history.
 
 | Code | Trigger | Rejected behavior or consequence |
 |------|---------|----------------------------------|
+| E10080 | A fixed-array assignment or return has a different element type or ordered extent list. | The assignment or return is rejected; aggregate values require exact compatibility. |
 | E10110 | An array extent is not a compile-time constant expression. | The array declaration is rejected. |
 | E10112 | An initializer supplies more elements than the declared extent. | The initializer is rejected. |
 | E10113 | A const array initializer leaves elements unspecified. | The declaration is rejected because const storage must be fully defined. |

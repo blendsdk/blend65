@@ -23,9 +23,12 @@ interrupt function <name>(): void {
 
 **EBNF:**
 ```ebnf
-interrupt_function = [ "export" ] , "interrupt" , "function" , identifier
+interrupt_function = [ "export" ] , [ place_clause ] , "interrupt" , "function" , identifier
                    , "(" , ")" , ":" , "void" , block ;
 ```
+
+`place_clause` is the closed F005/Chapter 03 modifier for the emitted handler entry. Automatic
+placement remains the default.
 
 ## Rules
 
@@ -162,15 +165,16 @@ if (temporary) {
 
 setIRQ(&first);
 pokew(CINV, peekw(SAVED_VECTOR)); // legal raw write invalidates IRQ helper ownership
-restoreIRQ();                     // E10268
+restoreIRQ();                     // E10278
 ```
 
 Finite balanced nesting is legal and allocates exactly one two-byte predecessor word per
 simultaneously live install that must later restore or chain. Unbounded nesting is E10245. A restore
-with no matching top, a cross-sink or out-of-order restore, unequal ownership at a join, or an
-unbalanced exit is E10268. A legal raw write to the sink's vector invalidates helper ownership, so
-a later helper restore is also E10268. This is static proof only: no runtime token, flag, registry,
-scheduler, or dispatcher is added.
+with no matching top, a cross-sink or out-of-order restore, unequal ownership at a join, or unequal
+per-sink transformations among a function's exits is E10278. A consistent net install may return
+to the caller, which continues with the resulting ownership state. A legal raw write to the sink's
+vector invalidates helper ownership, so a later helper restore is also E10278. This is static proof
+only: no runtime token, flag, registry, scheduler, or dispatcher is added.
 
 ## Examples
 
@@ -222,7 +226,7 @@ export function installHandlers(): void {
 | 4 | INT-4 | Shared globals, assets, and MMIO | They remain shared. Statically visible lost-update and torn multi-byte hazards receive warnings. |
 | 5 | INT-5 | Unbounded storage-bearing self-overlap | Compile error; Blend65 does not add dynamic frames or a runtime selector. |
 | 6 | INT-6 | Nested installation and restoration | Each recognized sink has a compile-time LIFO ownership stack; finite balanced nesting is legal and charged exactly. |
-| 7 | INT-7 | Raw vector write after helper installation | The write remains legal when its ABI is legal, invalidates that sink's helper ownership, and makes a later helper restore E10268. |
+| 7 | INT-7 | Raw vector write after helper installation | The write remains legal when its ABI is legal, invalidates that sink's helper ownership, and makes a later helper restore E10278. |
 
 ## Errors
 
@@ -234,7 +238,7 @@ export function installHandlers(): void {
 | E10245 | Invocation-private overlap cannot be statically bounded | [Chapter 14](../14-diagnostics.md) |
 | E10247 | Recognized sink receives erased or unknown handler provenance | [Chapter 14](../14-diagnostics.md) |
 | E10252 | Raw interrupt entry is written directly to an incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
-| E10268 | Per-sink install/restore ownership is invalid or was invalidated by a raw vector write | [Chapter 14](../14-diagnostics.md) |
+| E10278 | Per-sink install/restore ownership or a function's ownership transformation is invalid | [Chapter 14](../14-diagnostics.md) |
 
 ## Warnings
 

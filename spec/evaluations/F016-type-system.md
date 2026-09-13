@@ -538,7 +538,7 @@ declaration's extent placeholder or an outermost any-size parameter.
 
 | Code | Source | Rule Enforced |
 |------|--------|--------------|
-| E10080 | F010 / F018 | Cross-signedness implicit conversion or exact function-signature mismatch |
+| E10080 | F010 / F011 / F014 / F018 | Cross-signedness implicit conversion, exact function-signature mismatch, or incompatible fixed aggregate assignment/return |
 | E10081 | F010 | Mixed signed/unsigned in expression |
 | E10082 | F010 | Implicit narrowing |
 | E10083 | F010 | Negate unsigned type |

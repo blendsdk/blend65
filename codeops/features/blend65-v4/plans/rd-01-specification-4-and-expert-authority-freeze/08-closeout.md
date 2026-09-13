@@ -350,14 +350,14 @@ runtime, framework, generator, schema, dependency, or test harness.
 | Three-clause loops and scopes | One grammar and semantic model; ordinary nested shadowing; same-scope E10003; E10101 and range-loop diagnostics retired |
 | Fixed arithmetic and arrays | Width and direct-subscript rules agree; fixed arrays have exact-shape value assignment/return; extents and size diagnostics agree |
 | Aggregates and addresses | Caller-owned aggregate return and alias-safe value copies agree; parameters, fields, and indexed elements are addressable places; E10041/E10042 restrictions are retired |
-| Function values and interrupts | Typed finite target sets, distinct handler kinds, and per-sink LIFO ownership agree across types, functions, grammar, examples, and E10267/E10268 |
+| Function values and interrupts | Typed finite target sets, distinct handler kinds, and per-sink LIFO ownership agree across types, functions, grammar, examples, and E10277/E10278; E10267/E10268 retain their reserved public-artifact meanings |
 | Compile-time functions | Typed source form, deterministic root order, exact integer trigonometry, and E10269–E10271 agree |
 | Placement and loadable data | The closed `place(...)` keys, package-only `loadable const`, captured-range publication, and E10272–E10276 agree |
 | Intrinsics and safety | Exactly five CPU controls remain; variable-address memory access is ordered; bounds and division modes are explicit; no runtime is introduced |
 | Deferred-feature register | FUT-001, FUT-002, FUT-003, FUT-009, FUT-010, FUT-013, and FUT-014 now record their approved Specification 4 resolutions |
 
 The active diagnostic set in Chapter 14 and the feature-index discovery table contain the same
-179 codes. Searches over the live semantic corpus found old range, address, aggregate, intrinsic,
+181 codes. Searches over the live semantic corpus found old range, address, aggregate, intrinsic,
 and BRK spellings only where rejection or retirement history intentionally names them. Phase 3
 still owns target/version statements and deletion of the obsolete build, preflight, and migration
 records; this pass did not pull that separate work forward.
@@ -375,17 +375,82 @@ failed operation and a failed build publishes no target artifact.
 
 ### Phase 2 direct verification
 
-| Check | Result |
+| Command | Exit | Result |
+|---|---:|---|
+| `if rg -n 'for_range\|range_for\|E10101\|E10041\|E10042\|E10093\|E10119\|E10120\|brk_contract\|asm_(pha\|pla\|brk\|sed\|cld\|clv\|clc\|sec)\(' spec/0[1-9]-*.md spec/1[0-3]-*.md spec/grammar.ebnf.md; then exit 1; fi` | 0 | No obsolete Phase 2 restriction remains in active normative chapters or the master grammar |
+| Literal diagnostic-set Node block below | 0 | Chapter 14 and the feature index contain the same 181 active codes |
+| Literal V-06 Node block below | 0 | Two runs reproduce both fingerprints and ten representative values |
+| Literal V-07 Node block below | 0 | All required `comptime-budget-v1` clauses are present |
+| `git diff --name-only 003cba8 -- '*.md' \| xargs npx prettier --check` | 0 | Every Phase 2 changed Markdown file is formatted |
+| `python3 /home/gevik/.codex/plugins/cache/codeops-marketplace/codeops/1.2.0/scripts/validate_markdown_links.py spec codeops/features/blend65-v4` | 0 | All local links resolve |
+| `python3 /home/gevik/.codex/plugins/cache/codeops-marketplace/codeops/1.2.0/scripts/codeops_plan.py --root . --plan codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze --json` | 0 | 31 tasks parse; 13 verified; no plan problem |
+| `if git diff --name-only 003cba8 -- '*.spec.test.*' \| grep -q .; then exit 1; fi` | 0 | The immutable specification-test tier is untouched |
+| `if find spec -type l -print -quit \| grep -q .; then exit 1; fi` | 0 | The specification contains no symlink |
+| `git diff --check` | 0 | No whitespace error |
+
+The diagnostic-set check was:
+
+```bash
+node --input-type=module <<'NODE'
+import { readFileSync } from 'node:fs';
+const chapter = readFileSync('spec/14-diagnostics.md', 'utf8').split('## 5. Retirement')[0];
+const index = readFileSync('spec/00-feature-index.md', 'utf8').split('Retired codes, former draft')[0];
+const codes = (source) => new Set([...source.matchAll(/^\| ([EW]\d{5}) \|/gm)].map((match) => match[1]));
+const chapterCodes = codes(chapter);
+const indexCodes = codes(index);
+if ([...chapterCodes].some((code) => !indexCodes.has(code)) || [...indexCodes].some((code) => !chapterCodes.has(code))) throw new Error('diagnostic mismatch');
+console.log(chapterCodes.size);
+NODE
+```
+
+The V-06 check was:
+
+```bash
+node --input-type=module <<'NODE'
+import { createHash } from 'node:crypto';
+const roundAway = (value) => value < 0 ? -Math.floor(-value + 0.5) : Math.floor(value + 0.5);
+const generate = (width, cosine = false) => {
+  const count = 2 ** width;
+  const amplitude = 2 ** (width - 1) - 1;
+  const values = Array.from({ length: count }, (_, phase) => roundAway(amplitude * (cosine ? Math.cos(2 * Math.PI * phase / count) : Math.sin(2 * Math.PI * phase / count))));
+  const bytes = width === 8 ? Buffer.from(values.map((value) => value & 0xff)) : Buffer.from(values.flatMap((value) => [value & 0xff, (value >> 8) & 0xff]));
+  return { values, hash: createHash('sha256').update(bytes).digest('hex') };
+};
+for (let run = 0; run < 2; run += 1) {
+  const sin8 = generate(8);
+  const sin16 = generate(16);
+  const cos8 = generate(8, true);
+  if (sin8.hash !== 'fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259') throw new Error('sin8 hash');
+  if (sin16.hash !== 'e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50') throw new Error('sin16 hash');
+  for (const [actual, expected] of [[sin8.values[0],0],[cos8.values[0],127],[sin8.values[32],90],[sin8.values[64],127],[sin8.values[128],0],[sin8.values[192],-127],[sin16.values[8192],23170],[sin16.values[16384],32767],[sin16.values[32768],0],[sin16.values[49152],-32767]]) if (actual !== expected) throw new Error('representative value');
+}
+NODE
+```
+
+The V-07 check was:
+
+```bash
+node --input-type=module <<'NODE'
+import { readFileSync } from 'node:fs';
+const source = ['spec/06-functions.md','spec/evaluations/F025-comptime-functions.md','spec/14-diagnostics.md'].map((path) => readFileSync(path, 'utf8')).join('\n');
+for (const phrase of ['comptime-budget-v1','16,777,216','16,777,217','depth 512','depth 513','Short-circuited','An alias adds no','copied, or materialized','Caching','released at its','before argument evaluation','emits no target artifact','E10269','E10270','E10271']) if (!source.includes(phrase)) throw new Error(`missing: ${phrase}`);
+NODE
+```
+
+### Phase 2 quality-review corrections
+
+The first independent review reported six major consistency findings and one minor evidence
+finding. The user authorized the following direct corrections on 2026-09-13:
+
+| Finding | Resolution |
 |---|---|
-| `rg` stale-restriction scan over the active semantic corpus | No unexplained Phase 2 restriction remains |
-| One-shot Chapter 14/feature-index code-set comparison | 179 active diagnostic codes match exactly |
-| Phase 1 trigonometry oracle, repeated twice | Both fingerprints and ten representative values match |
-| One-shot `comptime-budget-v1` clause check | Charges, limits, lifetimes, failure boundary, diagnostics, and no-partial-artifact rule are present |
-| `npx prettier --check` on every Phase 2 changed file | Pass |
-| `validate_markdown_links.py spec codeops/features/blend65-v4` | Pass |
-| `codeops_plan.py ... --json` | 31 tasks parse; 13 verified after this task |
-| `git diff --name-only 003cba8..HEAD -- '*.spec.test.*'` | Empty; the immutable specification-test tier is untouched |
-| `find spec -type l -print` and `git diff --check` | No symlink and no whitespace error |
+| RV-001 | Restored E10267/E10268 to their required public-artifact meanings; moved the two language errors to unused E10277/E10278 |
+| RV-002 | Permitted exact-signature function values and same-kind handler values in conditional expressions |
+| RV-003 | Added optional `place_clause` to ordinary and interrupt function fragments; compile-time functions remain unplaceable |
+| RV-004 | Defined install/restore ownership as an interprocedural state transformation; consistent net installs transfer to the caller, while selected-profile termination owns the final boundary |
+| RV-005 | Extended E10080 to incompatible exact aggregate assignment and return and added owning examples/tables |
+| RV-006 | Made the read primary and the governing load plus blocking flow/alias fact related spans for E10276 |
+| RV-007 | Replaced shorthand verification evidence with the literal commands and numeric exits above |
 
 Phase 2 therefore satisfies the assigned portions of V-05, V-06, V-07, and V-16. The remaining
 target, corpus-freeze, source-authority, and final all-23 Guard checks stay in Phase 3 as planned.

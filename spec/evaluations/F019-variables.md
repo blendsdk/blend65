@@ -663,6 +663,9 @@ shows their ROM, storage, and exact, bounded, or runtime-dependent cycle cost.
 | E10275 | Incompatible or unproved selected-profile load destination | [Chapter 14](../14-diagnostics.md) |
 | E10276 | Read lacks definite initialization or captured-range must-alias proof | [Chapter 14](../14-diagnostics.md) |
 
+E10276 points primarily at the read. Related spans identify the governing load and the mutation,
+join, failure edge, or alias fact that prevents definite must-alias success.
+
 ### New Warning Codes
 
 | Code | Rationale condition | Public presentation |

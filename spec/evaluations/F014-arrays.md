@@ -177,7 +177,7 @@ let a: byte[2][3] = [[1, 2, 3], [4, 5, 6]];
 let b: byte[2][3];
 let wrong: byte[3][2];
 b = a;             // ✅ exact element type and extents
-wrong = a;         // ❌ incompatible fixed-array shape
+wrong = a;         // ❌ E10080: incompatible fixed-array shape
 
 function makeTile(): byte[2][3] {
     return [[1, 2, 3], [4, 5, 6]]; // ✅ exact-shape fixed value
@@ -944,6 +944,7 @@ Using an unavailable intrinsic → E10125.
 
 | Code | Public presentation |
 |------|---------|
+| E10080 | [Chapter 14](../14-diagnostics.md) — incompatible fixed-array assignment or return type |
 | E10110 | [Chapter 14](../14-diagnostics.md) |
 | E10112 | [Chapter 14](../14-diagnostics.md) |
 | E10113 | [Chapter 14](../14-diagnostics.md) |

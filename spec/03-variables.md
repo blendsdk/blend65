@@ -531,6 +531,9 @@ templates, spans, suppression, and history.
 | E10275 | A load operation's unit, selected profile, or destination does not prove the required exact type, complete mutable interval, lifetime, alignment, visibility, and nonoverlap. | The load call is rejected. |
 | E10276 | A read cannot prove complete initialization on every reaching path or cannot must-alias the successful captured range whose value it claims. | The read is rejected; no runtime check is inserted. |
 
+For E10276, the read is the primary span. Related spans identify the governing load and the exact
+mutation, join, failure edge, or alias fact that breaks the must-alias success proof.
+
 ### Warning Conditions
 
 | Code | Trigger | Consequence |

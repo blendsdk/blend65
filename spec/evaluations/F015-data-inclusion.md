@@ -608,6 +608,9 @@ fallback.
 | E10275 | [Chapter 14](../14-diagnostics.md) | A selected-profile load or its destination cannot prove the exact required contract |
 | E10276 | [Chapter 14](../14-diagnostics.md) | A read lacks definite initialization or must-alias proof for a successful captured range |
 
+E10276 points primarily at the read. Related spans identify the governing load and the mutation,
+join, failure edge, or alias fact that prevents definite must-alias success.
+
 ### Warnings
 
 | Code | Public presentation | Rationale trigger |

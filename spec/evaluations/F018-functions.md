@@ -49,7 +49,7 @@ function clamp(value: word, min: word, max: word): word {
 ### Function Declaration
 
 ```ebnf
-function_decl = [ "export" ] , "function" , identifier
+function_decl = [ "export" ] , [ place_clause ] , "function" , identifier
               , "(" , [ parameter_list ] , ")"
               , ":" , return_type
               , function_body ;
@@ -62,7 +62,8 @@ function_body  = "{" , { statement } , "}" ;
 ```
 
 `value_type` is the shared master-grammar production; this fragment does not define a competing
-function-only type alias.
+function-only type alias. `place_clause` is the closed F005/Chapter 03 modifier for an emitted
+ordinary function. It is not valid on `comptime function`, which has no target entry.
 
 ### Function Call
 
@@ -336,7 +337,7 @@ The compiler tracks target identity through scalar and aggregate storage, parame
 and conditional merges. A singleton is eligible for a direct call. If exact provenance is lost
 inside the closed program, the compiler widens to every address-taken source function with the
 exact signature. That finite set feeds effects, recursion, stack, interrupt overlap, and SFA. If no
-finite source set can be proven, E10267 rejects the call.
+finite source set can be proven, E10277 rejects the call.
 
 There are no lambdas, closures, captures, dynamically loaded targets, raw-address-to-function
 conversions, or universal runtime dispatcher. Explicit conversion to `word` is one-way proof
@@ -357,7 +358,7 @@ let raw: word = word(exact);
 raw(1); // E10175: erased word is not callable
 
 pokew(&exact, peekw($0330)); // raw mutation invalidates exact's typed target proof
-exact(1);                    // E10267: no finite source target set remains
+exact(1);                    // E10277: no finite source target set remains
 ```
 
 For typed storage whose exact flow set is unavailable but has not crossed a raw boundary, the safe
@@ -745,8 +746,10 @@ Accepted sinks add the selected variant and complete helper closure to SFA and s
 Each sink has an independent compile-time LIFO ownership stack. An install pushes the current
 predecessor and a matching restore pops the active top. Every join must agree on every sink's full
 stack. Finite balanced nesting allocates one two-byte predecessor word per simultaneous live
-install. Underflow, out-of-order or cross-sink restore, unequal joins, unbalanced exits, and restore
-after a raw vector write invalidates ownership are E10268. Unbounded nesting is E10245. No runtime
+install. Underflow, out-of-order or cross-sink restore, unequal joins or function-exit
+transformations, and restore after a raw vector write invalidates ownership are E10278. A
+function may return a consistent net install to its caller; the caller then owns that resulting
+state. Unbounded nesting is E10245. No runtime
 token, flag, registry, scheduler, or dispatcher is added.
 
 At an explicit proof boundary, the compiler keeps every known address-taken function reachable but
@@ -785,8 +788,8 @@ only and adds no ABI field or runtime code.
 | E10252 | Raw interrupt entry written to incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
 | E10253 | Unsized array used as a return type or value | [Chapter 14](../14-diagnostics.md) |
 | E10260 | Local-origin address reaches a retaining or unproven call/return path | [Chapter 14](../14-diagnostics.md) |
-| E10267 | Typed function call has no finite compiler-proven source target set | [Chapter 14](../14-diagnostics.md) |
-| E10268 | Interrupt install/restore ownership is invalid or was invalidated by a raw vector write | [Chapter 14](../14-diagnostics.md) |
+| E10277 | Typed function call has no finite compiler-proven source target set | [Chapter 14](../14-diagnostics.md) |
+| E10278 | Interrupt install/restore ownership or a function's ownership transformation is invalid | [Chapter 14](../14-diagnostics.md) |
 
 ## Warning Codes
 

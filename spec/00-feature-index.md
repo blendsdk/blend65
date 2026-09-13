@@ -105,7 +105,7 @@ source spans, suppression, and retirement history.
 | E10074 | F009 | `fallthrough` must be the last statement in a case body — it cannot be inside an if/while/for block, and no statements may follow it |
 | E10075 | F009 | Cannot switch on type `<type>` — switch expression must be `byte`, `sbyte`, `word`, `sword`, or an enum type |
 | E10076 | F009 | Only one `default` clause is allowed per switch statement |
-| E10080 | F010 | Cannot implicitly convert `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
+| E10080 | Types / aggregates / functions | Cannot implicitly convert `<from_type>` to `<to_type>`; exact aggregate and function types must match |
 | E10081 | F010 | Cannot mix signed type `<type_a>` with unsigned type `<type_b>` in expression — cast one operand |
 | E10082 | F010 | Cannot implicitly narrow `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
 | E10083 | F010 | Cannot negate unsigned type `<type>` — use `sbyte`/`sword` for signed arithmetic |
@@ -219,8 +219,8 @@ source spans, suppression, and retirement history.
 | E10264 | F014 / arrays | Compile-time array extent is not an integer in the representable range `0..65535` |
 | E10265 | F011 / F014 / aggregates | Fixed array or struct type requires more than 65535 bytes |
 | E10266 | F020 / size query | `sizeof` is applied to an unsized array type with no standalone extent |
-| E10267 | F018 / functions | A typed indirect call has no finite compiler-proven source-function target set |
-| E10268 | F007 / F018 / interrupts | Per-sink interrupt install/restore ownership is invalid |
+| E10267 | Public artifacts / RD-03 | A public artifact is malformed at the envelope or supported schema version |
+| E10268 | Public artifacts / RD-03 | A correct public artifact kind has an unsupported positive integer schema version |
 | E10269 | F025 / compile time | `comptime-budget-v1` would exceed 16777216 abstract steps |
 | E10270 | F025 / compile time | `comptime-budget-v1` would exceed 16777216 live logical bytes |
 | E10271 | F025 / compile time | `comptime-budget-v1` would enter active call depth 513 |
@@ -229,6 +229,8 @@ source spans, suppression, and retirement history.
 | E10274 | F015 / F019 / loadable data | A `loadable const` is used as resident storage or an address |
 | E10275 | F015 / F019 / loading | A load destination cannot prove one complete compatible mutable range |
 | E10276 | F019 / loading | A read cannot prove successful initialization and must-alias of the captured range |
+| E10277 | F018 / functions | A typed indirect call has no finite compiler-proven source-function target set |
+| E10278 | F007 / F018 / interrupts | Per-sink interrupt install/restore ownership or a function ownership transformation is invalid |
 
 ### Warning Codes
 

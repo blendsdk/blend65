@@ -45,7 +45,7 @@ origin remains subject to E10260 on any retaining or otherwise unproven path.
 
 **How it was resolved**: Typed `fn(...)` values support assignment, storage, parameters, returns,
 conditional selection, and indirect calls while the compiler retains a finite set of possible
-source targets. E10267 rejects a call after that proof is lost. Interrupt handlers remain a
+source targets. E10277 rejects a call after that proof is lost. Interrupt handlers remain a
 distinct, non-callable type; recognized installation sinks enforce handler ABI and LIFO ownership.
 
 ---

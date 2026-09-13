@@ -207,6 +207,9 @@ This chapter owns the asset-import predicates below. Chapter 14 owns their publi
 | E10275 | The selected profile has no compatible load operation or the destination lacks an exact fixed mutable range with all required proofs. | The load call is rejected before packaging or emission. |
 | E10276 | A later read lacks definite initialization on every reaching path or lacks must-alias proof with the successful captured range. | The read is rejected without a runtime check. |
 
+E10276 uses the unsafe read as its primary span and supplies related spans for the governing load
+and the mutation, join, failure edge, or alias fact that prevents the proof.
+
 ### Warning Conditions
 
 | Code | Trigger | Consequence |

@@ -141,6 +141,8 @@ function createEnemy(x: byte, y: byte): Enemy {
 }
 
 let boss: Enemy = createEnemy(100, 50);
+
+let point: Position = createEnemy(100, 50); // ❌ E10080: distinct struct types
 ```
 
 The caller owns `boss`, supplies it as the hidden return destination, and the callee can construct
@@ -468,6 +470,7 @@ templates, spans, suppression, and history.
 
 | Code | Trigger | Rejected behavior or consequence |
 |------|---------|----------------------------------|
+| E10080 | A struct assignment or return value does not have the exact declared struct type. | The assignment or return is rejected; field layout similarity does not convert nominal struct types. |
 | E10090 | A struct declaration has no fields. | The declaration is rejected. |
 | E10091 | A struct directly contains a field of its own type. | The declaration is rejected. |
 | E10092 | Struct field containment forms an indirect type cycle. | Every declaration in the cycle is rejected. |

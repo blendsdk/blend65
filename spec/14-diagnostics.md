@@ -121,7 +121,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10074 | F009 / Ch 05 | `'fallthrough' must be the last statement in a case body and cannot be nested in another control-flow block` |
 | E10075 | F009 / Ch 05 | `Cannot switch on type '<type>' — use an integer or enum expression` |
 | E10076 | F009 / Ch 05 | `Only one 'default' clause is allowed per switch statement` |
-| E10080 | F010 / Ch 02 | `Cannot implicitly convert '<from_type>' to '<to_type>' — <detail>` |
+| E10080 | F010 / F011 / F014 / F018 / Ch 02 | `Cannot implicitly convert '<from_type>' to '<to_type>' — <detail>` |
 | E10081 | F010 / Ch 02 | `Cannot mix signed type '<type_a>' with unsigned type '<type_b>' — cast one operand` |
 | E10082 | F010 / Ch 02 | `Cannot implicitly narrow '<from_type>' to '<to_type>' — use '<to_type>(<expr>)'` |
 | E10083 | F010 / Ch 02 | `Cannot negate unsigned type '<type>' — use 'sbyte' or 'sword' for signed arithmetic` |
@@ -235,8 +235,8 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10264 | F014 / Ch 08 | `Array extent '<expr>' must be a compile-time integer in 0..65535 — found <value_or_type>` |
 | E10265 | F011 / F014 / Ch 07 / Ch 08 | `Type '<type>' requires <N> bytes — fixed array and struct types are limited to 65535 bytes` |
 | E10266 | F020 / Ch 04 | `'sizeof' requires a fixed-size type — unsized array type '<type>[]' has no standalone extent` |
-| E10267 | F018 / Ch 06 | `Cannot prove a finite source-function target set for call through '<expression>' of type '<type>' — keep the value within closed-program typed storage` |
-| E10268 | F007 / F018 / Ch 06 | `Interrupt ownership for sink '<sink>' is invalid at '<operation>' — <detail>` |
+| E10267 | Public artifacts / RD-03 | `Malformed public artifact '<artifact>' at '<location>' — <failed envelope or supported-version invariant>` |
+| E10268 | Public artifacts / RD-03 | `Unsupported public artifact schema version <actual> for '<artifact>' — supported version: 1` |
 | E10269 | F025 / Ch 06 | `Compile-time evaluation step budget exceeded — 'comptime-budget-v1' allows 16777216 steps; attempted step 16777217 while evaluating root '<root>'` |
 | E10270 | F025 / Ch 06 | `Compile-time evaluation memory budget exceeded — 'comptime-budget-v1' allows 16777216 live logical bytes; allocating <requested> bytes would require <attempted> while evaluating root '<root>'` |
 | E10271 | F025 / Ch 06 | `Compile-time call-depth budget exceeded — 'comptime-budget-v1' allows 512 active calls; call to '<callee>' would enter depth 513 while evaluating root '<root>'` |
@@ -245,6 +245,17 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10274 | F015 / F019 / Ch 03 / Ch 13 | `Loadable constant '<name>' has no resident value or address — use compile-time metadata or pass it to a compatible selected-profile load operation` |
 | E10275 | F015 / F019 / Ch 03 / Ch 11 / Ch 13 | `Cannot load '<unit>' into '<destination>' — <reason>` |
 | E10276 | F019 / Ch 03 / Ch 11 / Ch 13 | `Cannot prove '<read>' is the complete initialized value from load '<load>' — <failure_edge_mutation_join_or_alias_reason>` |
+| E10277 | F018 / Ch 06 | `Cannot prove a finite source-function target set for call through '<expression>' of type '<type>' — keep the value within closed-program typed storage` |
+| E10278 | F007 / F018 / Ch 06 | `Interrupt ownership for sink '<sink>' is invalid at '<operation>' — <detail>` |
+
+E10267 owns invalid JSON, duplicate keys, non-object roots, wrong or missing artifact kinds,
+nonpositive or noninteger schema versions, and every malformed supported-version value. Its
+`<location>` names the JSON input for an envelope failure or the JSON pointer for a field failure;
+the detail names the failed invariant. E10268 applies only when the kind is correct and the schema
+version is a positive integer other than 1; that payload is not inspected.
+
+For E10276, the unsafe read is the primary span. Related spans identify the governing load and the
+mutation, control-flow join, failure edge, or alias fact that prevents definite must-alias success.
 
 ---
 

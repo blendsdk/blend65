@@ -390,6 +390,9 @@ This chapter owns resource and allocation predicates; Chapter 14 owns their cano
 | E10275 | A load destination cannot prove one complete compatible mutable range for every possible selection. | The load call is rejected before emission. |
 | E10276 | A read is not definitely initialized on every path or cannot must-alias the successful captured range it relies on. | The read is rejected without adding target state. |
 
+E10276 points primarily at the rejected read. Related spans identify the governing load and the
+mutation, join, failure edge, or alias fact that prevents a definite must-alias success state.
+
 ### Warning Conditions
 
 | Code | Trigger | Consequence |

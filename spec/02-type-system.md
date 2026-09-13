@@ -593,7 +593,7 @@ severities, message templates, spans, suppression, and history.
 
 | Code | Trigger | Rejected behavior or consequence |
 |------|---------|----------------------------------|
-| E10080 | An implicit conversion crosses signed and unsigned integer families, or two function signatures differ. | The conversion is rejected; integer cross-signedness requires an explicit cast, while function signatures must match exactly. |
+| E10080 | An implicit conversion crosses signed and unsigned integer families, two function signatures differ, or fixed aggregate assignment/return types are not exactly compatible. | The conversion is rejected; integer cross-signedness requires an explicit cast, while function signatures and complete aggregate types must match exactly. |
 | E10081 | One integer operation mixes signed and unsigned operands without an explicit cast. | The expression is rejected. |
 | E10082 | An implicit conversion narrows an integer value. | The conversion is rejected; an explicit cast is required. |
 | E10083 | Unary minus is applied to an unsigned integer. | The expression is rejected. |

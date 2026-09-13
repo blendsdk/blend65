@@ -32,7 +32,7 @@ Key design principles:
 ### 2.1 Syntax
 
 ```ebnf
-function_decl  = [ "export" ] , "function" , identifier
+function_decl  = [ "export" ] , [ place_clause ] , "function" , identifier
                , "(" , [ parameter_list ] , ")"
                , ":" , return_type
                , block ;
@@ -51,6 +51,8 @@ return_type    = "void" | value_type ;
 The shared master `value_type` production includes primitive, struct, enum, array, and ordinary
 function-value types. Every complete value type is valid as a return type. An unsized `T[]`
 parameter form is not a complete value and is rejected as a return type with E10253.
+`place_clause` is the closed Chapter 03 placement modifier. It may constrain an emitted ordinary or
+interrupt function. A `comptime function` has no target entry and cannot be placed (E10272).
 
 ### 2.2 Examples
 
@@ -387,7 +389,7 @@ without changing source identity.
 For a multi-target call, the backend chooses and reports the measured cheapest legal sequence for
 that target set and context, such as direct comparisons, a decision tree, a jump table, or an
 indirect trampoline. It does not add a universal dispatcher or runtime registry. If an opaque or
-external boundary leaves no finite source target set, E10267 rejects the call.
+external boundary leaves no finite source target set, E10277 rejects the call.
 
 ### 4.4 Non-Retaining Address Parameters
 
@@ -671,7 +673,7 @@ optional optimization. Interrupt functions remain a core language feature becaus
 ### 7.2 Syntax
 
 ```ebnf
-interrupt_function = [ "export" ] , "interrupt" , "function" , identifier
+interrupt_function = [ "export" ] , [ place_clause ] , "interrupt" , "function" , identifier
                    , "(" , ")" , ":" , "void" , block ;
 ```
 
@@ -825,10 +827,18 @@ restoreIRQ();     // restores the predecessor of first
 The compiler allocates exactly one two-byte predecessor word for each simultaneously live install
 that must later restore or chain. Those words and their lifetimes close through SFA and appear in
 the resource report. An unbounded nesting path is E10245. A restore with no matching top, a
-cross-sink or out-of-order restore, unequal ownership at a join, or an unbalanced exit is E10268.
+cross-sink or out-of-order restore, or unequal ownership at a join is E10278.
+
+Ownership is an interprocedural compile-time effect, not a block-scope rule. Every return from a
+function must have the same per-sink stack transformation. A net install is legal and transfers the
+resulting ownership state to the caller, so a small `installIRQ()` wrapper may return normally. The
+caller continues analysis from that state, including across later calls. Different transformations
+on different exits are E10278. At the whole-program boundary, a returning profile requires the
+entry ownership state to be restored before normal program return; a non-returning terminal path
+may retain installed handlers only when its selected profile contract explicitly permits it.
 
 A direct raw write to a sink's vector remains legal when its ABI rules permit that write, but it
-invalidates the helper-owned stack for that sink. A later helper restore is E10268 because its
+invalidates the helper-owned stack for that sink. A later helper restore is E10278 because its
 saved predecessor is no longer known to be current. This proof adds no runtime token, flag,
 registry, scheduler, or dispatcher.
 
@@ -937,8 +947,8 @@ public presentation.
 | E10252 | A compiler-visible raw interrupt-entry address is written directly to a recognized firmware vector that requires another entry ABI. | The write is rejected; use the profile API that selects the correct entry variant. |
 | E10253 | A return type or returned aggregate uses unsized `T[]` rather than a complete fixed shape. | The return is rejected; use a fixed extent or keep `T[]` as a borrowed parameter form. |
 | E10260 | An address derived from local-origin storage reaches a return, persistent/raw/MMIO store, asynchronous publication, retaining or unknown call, or another opaque escape. | The escaping use is rejected; use a proven non-retaining call, module-level storage, or caller-owned data. |
-| E10267 | A call through a typed function value has no finite compiler-proven source target set. | The call is rejected; keep the value inside closed-program typed storage. |
-| E10268 | An interrupt helper restore does not match the active per-sink LIFO owner, control-flow states disagree, or a raw vector write invalidated ownership. | The lifecycle operation is rejected; balance the sink's installs and restores. |
+| E10277 | A call through a typed function value has no finite compiler-proven source target set. | The call is rejected; keep the value inside closed-program typed storage. |
+| E10278 | An interrupt helper restore does not match the active per-sink LIFO owner, control-flow or function-exit transformations disagree, or a raw vector write invalidated ownership. | The lifecycle operation is rejected; make the per-sink ownership transformation consistent. |
 | E10269 | A selected compile-time node would charge abstract step 16,777,217. | The root is poisoned before the node or any effect. |
 | E10270 | A compile-time allocation would exceed 16,777,216 live logical bytes. | The root is poisoned before allocation or mutation. |
 | E10271 | A compile-time call would enter active depth 513. | The root is poisoned before argument evaluation or callee entry. |

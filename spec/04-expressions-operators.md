@@ -293,8 +293,11 @@ conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr
 ### 7.2 Rules
 
 1. **Condition must be `boolean`** — non-boolean produces **E10100** (→ Ch 05).
-2. **Both arms must have compatible types** — same type, or same-signedness with auto-promotion (→ Ch 02, TS-4). Incompatible types produce **E10162**.
-3. **Arm types must be scalar** — struct and array types are not valid (only `byte`, `sbyte`, `word`, `sword`, `boolean`, and enum types).
+2. **Both arms must have compatible types** — the same type, the same function signature, the same
+   interrupt-handler kind, or same-signedness integers with auto-promotion (→ Ch 02, TS-4).
+   Incompatible types produce **E10162**.
+3. **Aggregate arms are not valid** — fixed structs and arrays are not conditional-expression
+   results. Primitive, enum, exact ordinary-function, and same-kind handler values are valid.
 4. **Only the selected arm is evaluated** — side effects in the unselected arm do not occur.
 5. **Right-associative at precedence level 2** — `a ? b : c ? d : e` parses as `a ? b : (c ? d : e)`; conditional binds below `||` and above assignment.
 
@@ -309,6 +312,9 @@ conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr
 | `boolean` | `boolean` | `boolean` |
 | Enum A | Enum A | Enum A |
 | Enum A | Enum B | ❌ E10162 |
+| `fn(byte): void` | same signature | `fn(byte): void`; target sets merge |
+| Handler kind K | Handler kind K | Handler kind K; usable only by a compatible sink |
+| Different function signatures or handler kinds | Any | ❌ E10162 |
 
 ### 7.4 Examples
 
@@ -320,6 +326,9 @@ let addr: word = useAlt ? $D020 : $D021;
 // Nested (right-associative):
 let priority: byte = isUrgent ? 3 : isNormal ? 2 : 1;
 // Parses as: isUrgent ? 3 : (isNormal ? 2 : 1)
+
+let update: fn(byte): void = useLeft ? &moveLeft : &moveRight;
+setIRQ(useRaster ? &rasterIRQ : &musicIRQ);
 ```
 
 ### 7.5 6502 Cost

@@ -598,6 +598,7 @@ struct InternalState { ... }                     // Module-private
 
 | Code | Public presentation |
 |------|---------|
+| E10080 | [Chapter 14](../14-diagnostics.md) — incompatible struct assignment or return type |
 | E10090 | [Chapter 14](../14-diagnostics.md) |
 | E10091 | [Chapter 14](../14-diagnostics.md) |
 | E10092 | [Chapter 14](../14-diagnostics.md) |

@@ -3,7 +3,7 @@
 > **Status**: ✅ ACCEPTED  
 > **Stability**: stable  
 > **Depends on**: F013 (control flow / boolean conditions), F016 (type system, auto-promotion), F017 (operators, precedence)  
-> **Interacts with**: F010 (signed types), F014 (arrays), F020 (memory intrinsics), F022 (enums)
+> **Interacts with**: F007 (interrupt handlers), F010 (signed types), F014 (arrays), F018 (function values), F020 (memory intrinsics), F022 (enums)
 
 ---
 
@@ -94,6 +94,10 @@ The result type of the conditional expression is the **unified type** of its two
 - If both arms have the same type `T`, the result type is `T`.
 - If the arms are integer types of different widths (e.g., `byte` and `word`), the result is the **wider** type, with the narrower arm zero/sign-extended per F016.
 - If the arms are integer types of different signedness, this is a mixed-signedness error (E10081, shared with F010) — the developer must cast one arm.
+- If both arms have the same exact ordinary-function signature, the result has that signature and
+  its finite target set is the union of both arms.
+- If both arms have the same interrupt-handler kind, the result keeps that non-callable kind and
+  may flow only to a compatible recognized sink.
 - If the arms are otherwise incompatible (e.g., `byte` and `boolean`, two different enum types, `byte` and a struct), it is an error (E10162).
 
 ```blend65
@@ -107,11 +111,17 @@ The result of the conditional expression is then subject to the **same assignmen
 
 ### CO-4: Operand Categories
 
-The arms may be any value expression of a permitted type: literals, variables, constants, function calls, array element reads, struct field reads, intrinsic calls (`peek`, `lo`, `hi`, etc.), and nested conditional expressions. The arms may **not** be whole structs or whole arrays (consistent with F017 OP-A6 — no operators on aggregate types); use field/element access to select scalar values.
+The arms may be any value expression of a permitted type: literals, variables, constants, function
+calls, array element reads, struct field reads, intrinsic calls (`peek`, `lo`, `hi`, etc.), exact
+ordinary-function values, same-kind handler values, and nested conditional expressions. The arms
+may **not** be whole structs or whole arrays (consistent with F017 OP-A6 — no operators on
+aggregate types); use field/element access to select scalar values.
 
 ```blend65
 let hp: byte = boss ? enemies[0].hp : enemies[1].hp;   // ✅ field reads
 let e: Enemy = pickEnemy ? a : b;                      // ❌ E10162 — whole struct arms not allowed
+let update: fn(byte): void = chooseLeft ? &left : &right; // ✅ finite target set merges
+setIRQ(useRaster ? &rasterIRQ : &musicIRQ);                // ✅ same handler kind
 ```
 
 ### CO-5: Enums
@@ -233,7 +243,7 @@ A nested conditional compiles to a cascade of branches, equivalent to an `if`/`e
 | C1 Lexer/parser implementable | ✅ | `?` and `:` are single-char tokens (already lexed for other uses; `:` exists for type annotations). Recursive-descent: after parsing a logical-or expression, if `?` follows, parse `expression`, require `:`, parse a conditional-expression (right recursion). No symbol-table lookup needed. |
 | C2 Semantic analysis defined | ✅ | Condition must type-check as `boolean`; arm types unified via F016 rules; result type defined; narrowing checked at assignment site. |
 | C3 Code generation strategy | ✅ | Branch-to-load cascade (Part 2). Same lowering as `if`/`else` assigning a temp. |
-| C4 Unit testable | ✅ | Lexer: `?`→QUESTION, `:`→COLON. Parser: conditional-expression node with cond/then/else children; nesting right-associative. Semantic: E10100/E10081/E10162/E10082 paths. Codegen: branch+load patterns for byte/word/enum arms. |
+| C4 Unit testable | ✅ | Lexer: `?`→QUESTION, `:`→COLON. Parser: conditional-expression node with cond/then/else children; nesting right-associative. Semantic: E10100/E10081/E10162/E10082 paths and function/handler target-set merges. Codegen: branch+load patterns for byte/word/enum/function arms. |
 | C5 Runtime verifiable | ✅ | Emulator test: assign via ternary, verify the destination holds the selected value and the untaken arm's side effect did **not** occur, across all platforms. |
 
 ### Future-Proofing (F)
@@ -277,7 +287,8 @@ There are no new warning codes. The cost warnings of any operators *inside* the 
 | F014 Arrays | Arms may be array *element* reads; whole arrays are not valid arms (E10162). A ternary may compute an index: `buf[hi ? 1 : 0]`. |
 | F020 Memory intrinsics | Arms may be `peek`/`lo`/`hi`/`sizeof`/etc. A ternary may be an argument to `poke`: `poke(reg, on ? 1 : 0)`. Intrinsic side effects in an untaken arm do not occur (CO-2). |
 | F022 Enums | Same enum on both arms → that enum type. Different enums → E10162 (consistent with E10236). |
-| F018 Functions | Arms may be function calls; an untaken arm's call is not executed (CO-2). A ternary may be a call argument or a `return` expression. |
+| F018 Functions | Arms may be function calls or exact-signature function values; function target sets merge. An untaken arm's call is not executed (CO-2). A ternary may be a call argument or a `return` expression. |
+| F007 Interrupts | Same-kind handler arms remain non-callable and may flow only to a compatible recognized sink; different kinds are E10162. |
 | F011 Structs | Whole-struct arms are not allowed (E10162); select scalar fields instead. |
 
 ---
