@@ -331,9 +331,10 @@ zero-page or absolute condition/result homes. Other arms add their own evaluatio
 &expression
 ```
 
-The `&` operator returns the address of an addressable storage place, or the code address of a
-function, as a `word` value. Direct addresses are fixed at link time; parameter, field, and indexed
-element addresses may require runtime calculation.
+For an addressable storage place, `&` returns a `word` address. For an ordinary function name it
+returns the exact typed function value, and for an interrupt function it returns a distinct handler
+value (→ Ch 06). Storage addresses may be fixed at link time; parameter, field, and indexed element
+addresses may require runtime calculation.
 
 ```ebnf
 address_of_expr = "&" , unary_expr ;
@@ -346,7 +347,8 @@ address_of_expr = "&" , unary_expr ;
 | Module-level variable (`let`) | ✅ | Returns RAM address |
 | Local variable (`let` inside function) | ✅ with lifetime restriction | SFA gives the local a static address for its active source lifetime; E10260 rejects a possible escape |
 | Zeropage variable | ✅ | Returns zero-page address (0–255) |
-| Function name | ✅ | Returns function entry point address |
+| Ordinary function name | ✅ | Returns its exact `fn(...)` value |
+| Interrupt function name | ✅ | Returns a distinct non-callable handler value |
 | `const` scalar | ❌ E10040 | Scalar constants are inlined; no address |
 | `const` array | ✅ | Array constants have ROM addresses |
 | Scalar parameter | ✅ with lifetime restriction | Local-origin borrow bounded by the invocation |
@@ -419,28 +421,38 @@ rules. There is no special implicit one-past element, so a known `&items[length(
 An end address may be formed explicitly by ordinary `word` arithmetic from a valid place address.
 That arithmetic has normal modulo-65536 semantics and does not introduce a pointer type.
 
-### 8.4 Return Type
+### 8.4 Result Type
 
-`&` always returns `word` — addresses are 16-bit unsigned values on all target platforms.
+For storage places, `&` returns `word` because storage addresses are 16-bit unsigned values on all
+target platforms. Function operands follow the typed rules in §8.5.
 
 ```blend65
 let vel: sbyte = -3;
 let addr: word = &vel;         // ✅ word (address is always unsigned)
 
-let handler: word = &myFunc;   // ✅ function address for callback installation
+let update: fn(byte): void = &movePlayer; // ✅ exact ordinary-function type
 ```
 
-### 8.5 Function Addresses and Callbacks
+### 8.5 Function Values and Raw Addresses
 
-`&functionName` yields the function's entry point address, enabling callback patterns:
+`&ordinaryFunction` has the function's exact `fn(...)` signature and is callable. It retains a
+finite source target set through typed storage, parameters, returns, aggregates, and conditional
+merges. `&interruptFunction` has a distinct non-callable handler kind accepted only by a compatible
+compiler-recognized platform sink (→ Ch 06).
 
 ```blend65
-function onVSync(): void { ... }
-poke(IRQ_VECTOR_LO, lo(&onVSync));
-poke(IRQ_VECTOR_HI, hi(&onVSync));
+function update(id: byte): void { }
+let callback: fn(byte): void = &update;
+callback(1);
+
+let rawAddress: word = word(callback); // explicit one-way proof erasure
 ```
 
-The compiler detects `&fn` usage and ensures the function is emitted at a stable address (not inlined or eliminated).
+Explicit conversion of either function-value kind to `word` exposes the code address and erases
+callable or handler proof. The compiler may still retain a visible source dependency for
+reachability and unsafe-use diagnostics. A raw word cannot convert back. Address-taking keeps every
+possible source function live and ensures each required entry variant has a stable address; it
+does not forbid inlining at other call sites.
 
 ### 8.6 6502 Cost
 

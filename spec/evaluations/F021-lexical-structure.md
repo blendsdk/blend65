@@ -10,7 +10,7 @@
 
 ## Description
 
-This feature defines the complete lexical structure of Blend65 v3 — the rules by which source text is decomposed into tokens. The lexer (tokenizer) is the first stage of the compiler pipeline: it reads UTF-8 source files and produces a stream of typed tokens that the parser consumes.
+This feature defines the complete lexical structure of Blend65 4 — the rules by which source text is decomposed into tokens. The lexer (tokenizer) is the first stage of the compiler pipeline: it reads UTF-8 source files and produces a stream of typed tokens that the parser consumes.
 
 Blend65 uses ASCII-range grammar and identifiers. Source files are UTF-8; keywords, identifiers,
 operators, punctuation, and literal delimiters use only U+0000–U+007F. String and character literal
@@ -171,7 +171,7 @@ These conventions are recommended but not enforced by the compiler:
 
 Keywords are reserved words that cannot be used as identifiers. The lexer matches identifier-shaped tokens against the keyword table and produces keyword-specific token types.
 
-**32 keywords in 7 categories:**
+**33 keywords in 7 categories:**
 
 #### Module system (F001, F002, F003)
 
@@ -182,7 +182,7 @@ module    import    export    from
 #### Functions (F018, F007)
 
 ```
-function    return    interrupt
+function    return    interrupt    fn
 ```
 
 #### Control flow (F008, F009, F013)
@@ -227,7 +227,7 @@ enum    type
 
 ```ebnf
 keyword = "module" | "import" | "export" | "from"
-        | "function" | "return" | "interrupt"
+        | "function" | "return" | "interrupt" | "fn"
         | "if" | "else" | "while" | "do" | "for"
         | "switch" | "case" | "default" | "fallthrough"
         | "break" | "continue"
@@ -650,14 +650,14 @@ CHAR            // Character literals ('.')
 IDENTIFIER      // User-defined names and reserved built-in identifiers
 ```
 
-### Keywords (32 types)
+### Keywords (33 types)
 
 ```
 // Module system
 KW_MODULE  KW_IMPORT  KW_EXPORT  KW_FROM
 
 // Functions
-KW_FUNCTION  KW_RETURN  KW_INTERRUPT
+KW_FUNCTION  KW_RETURN  KW_INTERRUPT  KW_FN
 
 // Control flow
 KW_IF  KW_ELSE  KW_WHILE  KW_DO  KW_FOR
@@ -719,7 +719,7 @@ DOT                 // .
 EOF                 // End of input
 ```
 
-**Total: 79 token types** (3 literal + 1 identifier + 32 keyword + 32 operator + 10 punctuation + 1 special)
+**Total: 80 token types** (3 literal + 1 identifier + 33 keyword + 32 operator + 10 punctuation + 1 special)
 
 ---
 
@@ -826,7 +826,7 @@ source_file     = { token } , ? end of file ? ;
 
 **Question:** Could `$` ever be used as a standalone operator or symbol (like v2's `@`)?
 
-**Resolution:** No. In Blend65 v3, `$` is **exclusively** a hex literal prefix. It must always be followed by at least one hex digit. A bare `$` produces error E10214. This avoids any ambiguity with other uses.
+**Resolution:** No. In Blend65 4, `$` is **exclusively** a hex literal prefix. It must always be followed by at least one hex digit. A bare `$` produces error E10214. This avoids any ambiguity with other uses.
 
 ### LS-A2: `0b` / `0x` vs. identifier starting with `0`
 
@@ -868,7 +868,7 @@ This is standard C behavior and requires no lexer-level disambiguation.
 
 **Question:** Could single quotes be needed for other purposes in the future?
 
-**Resolution:** In Blend65 v3, single quotes **exclusively** delimit character literals. If a future version needs single-quoted syntax for something else (e.g., lifetime annotations), it would require a breaking change. This is acceptable because the current usage is clean and conventional.
+**Resolution:** In Blend65 4, single quotes **exclusively** delimit character literals. If a future version needs single-quoted syntax for something else (e.g., lifetime annotations), it would require a breaking change. This is acceptable because the current usage is clean and conventional.
 
 ### LS-A8: Numeric literal overflow at lexer level
 
@@ -1207,4 +1207,4 @@ None. All 23 rules pass.
 
 **✅ ACCEPTED**
 
-F021 formalizes the complete lexical structure of Blend65 v3, consolidating all token definitions established across F001–F024 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 79 token types, 32 keywords, 29 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.
+F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F024 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 80 token types, 33 keywords, 29 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.

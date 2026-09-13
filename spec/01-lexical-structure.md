@@ -1,6 +1,6 @@
 # Chapter 01 — Lexical Structure
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F021
@@ -134,7 +134,7 @@ These conventions are recommended but not enforced by the compiler:
 
 Keywords are reserved words that cannot be used as identifiers. The lexer matches identifier-shaped tokens against the keyword table and produces keyword-specific token types.
 
-**32 keywords in 7 categories:**
+**33 keywords in 7 categories:**
 
 **Module system** (→ Ch 10):
 ```
@@ -143,7 +143,7 @@ module    import    export    from
 
 **Functions** (→ Ch 06):
 ```
-function    return    interrupt
+function    return    interrupt    fn
 ```
 
 **Control flow** (→ Ch 05):
@@ -181,7 +181,7 @@ enum    type
 
 ```ebnf
 keyword = "module" | "import" | "export" | "from"
-        | "function" | "return" | "interrupt"
+        | "function" | "return" | "interrupt" | "fn"
         | "if" | "else" | "while" | "do" | "for"
         | "switch" | "case" | "default" | "fallthrough"
         | "break" | "continue"
@@ -602,7 +602,7 @@ Every token carries position information for error reporting:
 
 ## 12. Complete Token Type Enumeration
 
-**79 token types** total:
+**80 token types** total:
 
 ### Literals (3)
 
@@ -620,11 +620,11 @@ Boolean literals are keywords (`KW_TRUE`, `KW_FALSE`), not a separate literal ty
 |-----------|-------------|
 | `IDENTIFIER` | User-defined names and reserved built-in identifiers |
 
-### Keywords (32)
+### Keywords (33)
 
 ```
 KW_MODULE    KW_IMPORT    KW_EXPORT    KW_FROM
-KW_FUNCTION  KW_RETURN    KW_INTERRUPT
+KW_FUNCTION  KW_RETURN    KW_INTERRUPT  KW_FN
 KW_IF        KW_ELSE      KW_WHILE     KW_DO       KW_FOR
 KW_SWITCH    KW_CASE      KW_DEFAULT   KW_FALLTHROUGH
 KW_BREAK     KW_CONTINUE

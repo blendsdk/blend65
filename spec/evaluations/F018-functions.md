@@ -129,11 +129,13 @@ function clearBuffer(buffer: byte[1000]): void {
 }
 ```
 
-This is compiler-managed — there is no `ref` keyword. The developer does not choose; the compiler always uses by-reference for structs and arrays, by-value for scalars.
+This is compiler-managed — there is no `ref` keyword. The developer does not choose; the compiler
+uses by-reference for structs and arrays, and by-value for scalars, enums, and ordinary function
+values. A function-value parameter occupies the same two-byte frame home as a `word`.
 
 The `const` modifier (F014 CP-1..5) prevents modification of by-reference parameters. It is valid
-only on struct and array parameters; scalar and enum parameters are already copied by value, so a
-`const` qualifier on them is rejected with E10246:
+only on struct and array parameters; other parameters are already copied by value, so a `const`
+qualifier on them is rejected with E10246:
 
 ```blend65
 function countNonZero(data: const byte[256]): byte {
@@ -310,21 +312,60 @@ There is no hard limit on the number of parameters a function can have. The prac
 
 If the total frame allocation exceeds platform memory, the compiler reports an existing resource error (platform-specific). In practice, functions rarely need more than 6-8 parameters.
 
-### FN-12 — Functions Are Not Values
+### FN-12 — Typed Function Values
 
-Functions cannot be assigned to variables, passed as parameters, or stored in data structures. The only way to reference a function is `&functionName` (F006), which returns a `word` containing the code address.
+`fn(P1, P2, ...): R` is the exact type of an ordinary source function. `&functionName` produces a
+value of that type. Function values may be assigned, stored in fixed arrays or structs, passed,
+returned, selected, and called. Signatures match only when every parameter type and qualifier,
+array extent, and return type matches.
 
 ```blend65
-let fn: word = &clearScreen;     // ✅ address as word (F006)
-// There is no way to "call" fn — it's just a number
-// Pass it to an API that accepts an ordinary code address.
+function left(id: byte): void { }
+function right(id: byte): void { }
+
+function choose(useLeft: boolean): fn(byte): void {
+    return useLeft ? &left : &right;
+}
+
+let update: fn(byte): void = &left;
+let updates: (fn(byte): void)[2] = [&left, &right];
+update(3);
 ```
 
-Function values and indirect calls remain outside v3. The compiler nevertheless preserves
-function identity and available entry variants while an address stays visible to
-compiler-recognized platform operations. Direct scalar storage/copy does not by itself erase the
-finite provenance set; integer
-transformation, address escape, unknown external use, and raw memory do.
+The compiler tracks target identity through scalar and aggregate storage, parameters, returns,
+and conditional merges. A singleton is eligible for a direct call. If exact provenance is lost
+inside the closed program, the compiler widens to every address-taken source function with the
+exact signature. That finite set feeds effects, recursion, stack, interrupt overlap, and SFA. If no
+finite source set can be proven, E10267 rejects the call.
+
+There are no lambdas, closures, captures, dynamically loaded targets, raw-address-to-function
+conversions, or universal runtime dispatcher. Explicit conversion to `word` is one-way proof
+erasure; the resulting word is not callable (E10175).
+
+The following cases define the target-set boundary:
+
+```blend65
+let exact: fn(byte): void = &left;
+exact(1); // singleton: eligible for a direct call
+
+let selected: fn(byte): void = useLeft ? &left : &right;
+selected(1); // precise finite set: { left, right }
+
+let wrong: fn(word): void = &left; // E10080: signature mismatch
+
+let raw: word = word(exact);
+raw(1); // E10175: erased word is not callable
+
+pokew(&exact, peekw($0330)); // raw mutation invalidates exact's typed target proof
+exact(1);                    // E10267: no finite source target set remains
+```
+
+For typed storage whose exact flow set is unavailable but has not crossed a raw boundary, the safe
+widening is every address-taken source function with that exact signature. This may include a
+function not assigned on the current path. It is deliberately conservative and remains finite.
+
+A call evaluates its function-value target expression exactly once before its arguments, then
+evaluates arguments left to right. Any two-byte target staging home closes through SFA.
 
 ---
 
@@ -340,7 +381,7 @@ Blend65 uses a **Static Frame Allocation** calling convention that eliminates al
 ├──────────────┬───────────────────────────────────────────┤
 │ Parameters   │ Static frame (fixed addresses in RAM)     │
 │ Locals       │ Static frame (fixed addresses in RAM)     │
-│ Scalar return│ Registers (A for 8-bit, A/X for 16-bit)  │
+│ Scalar/fn ret│ Registers (A for 8-bit, A/X for 16-bit)  │
 │ Aggregate ret│ Caller-owned destination                 │
 │ Return addr  │ Hardware stack via JSR/RTS (2 bytes)      │
 └──────────────┴───────────────────────────────────────────┘
@@ -398,7 +439,7 @@ Caller                           Callee
 2. Evaluate arguments (left→right)
 3. Store arguments and any materialized destination address
 4. JSR callee_address  ────────► 5. Execute body
-                                 6. Return scalar in A/A-X, or construct aggregate in destination
+                                 6. Return scalar/function in A/A-X, or construct aggregate in destination
                                  7. RTS
 8. Use completed result       ◄─┘
 ```
@@ -654,9 +695,10 @@ function addToScore(score: word): void {    // ✅ parameter shadows module decl
 
 ### FN-A4: Can you take the address of a function?
 
-**Yes** — `&functionName` returns a `word` containing the function's code address (F006). This
-works for both regular and exported functions. For interrupt functions, a recognized platform
-installer consumes the typed address provenance and selects its required entry variant (F007).
+**Yes.** For an ordinary function, `&functionName` has its exact `fn(...)` type. For an interrupt
+function it produces a distinct, non-callable handler value accepted only by a compatible
+recognized platform sink. Explicit conversion of either kind to `word` erases that proof and
+cannot be reversed.
 
 ### FN-A5: What about the `callback` keyword from v2?
 
@@ -693,13 +735,19 @@ absent.
 
 ### FN-A9: What happens when a function address reaches a callback or interrupt API?
 
-The selected profile names recognized sinks, accepted source kinds, materialized entry variants,
-and execution domains. Function identity follows direct scalar declarations, assignments, copies,
-identity casts, and conditional merges while all possible sources remain known and storage does not
-escape. An incompatible known source is E10244; erased or unknown provenance at a recognized sink
-is E10247. A visible raw interrupt entry written to an exactly known incompatible firmware vector
-is E10252; only a genuinely opaque memory/vector use escapes certification. Accepted sinks add the
-selected callback variant and complete helper closure to SFA and stack analysis.
+The selected profile names recognized sinks, accepted handler kinds, materialized entry variants,
+execution domains, and paired restore operations. A handler value flows directly or through a
+same-kind conditional to its sink and has no user-spellable storage type. An incompatible known kind is E10244; erased or unknown provenance at a
+recognized sink is E10247. A visible raw interrupt entry written to an exactly known incompatible
+firmware vector is E10252; only a genuinely opaque memory/vector use escapes certification.
+Accepted sinks add the selected variant and complete helper closure to SFA and stack analysis.
+
+Each sink has an independent compile-time LIFO ownership stack. An install pushes the current
+predecessor and a matching restore pops the active top. Every join must agree on every sink's full
+stack. Finite balanced nesting allocates one two-byte predecessor word per simultaneous live
+install. Underflow, out-of-order or cross-sink restore, unequal joins, unbalanced exits, and restore
+after a raw vector write invalidates ownership are E10268. Unbounded nesting is E10245. No runtime
+token, flag, registry, scheduler, or dispatcher is added.
 
 At an explicit proof boundary, the compiler keeps every known address-taken function reachable but
 cannot validate an external caller, return convention, or execution domain beyond that boundary.
@@ -737,6 +785,8 @@ only and adds no ABI field or runtime code.
 | E10252 | Raw interrupt entry written to incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
 | E10253 | Unsized array used as a return type or value | [Chapter 14](../14-diagnostics.md) |
 | E10260 | Local-origin address reaches a retaining or unproven call/return path | [Chapter 14](../14-diagnostics.md) |
+| E10267 | Typed function call has no finite compiler-proven source target set | [Chapter 14](../14-diagnostics.md) |
+| E10268 | Interrupt install/restore ownership is invalid or was invalidated by a raw vector write | [Chapter 14](../14-diagnostics.md) |
 
 ## Warning Codes
 
@@ -755,10 +805,11 @@ only and adds no ABI field or runtime code.
 
 ### With F006 (Address-of)
 
-`&functionName` returns a `word` with the function's code address. This works for any function
-(regular, exported, interrupt). The compiler marks the function as address-taken for reachability
-and preserves its function identity and source kind through compiler-recognized consumers. An
-interrupt sink may select a specialized entry address rather than the raw numeric payload.
+`&ordinaryFunction` has its exact `fn(...)` type; `&interruptFunction` has a distinct handler kind.
+The compiler marks either source as address-taken for reachability and preserves its identity
+through typed consumers. An interrupt sink may select a specialized entry address rather than the
+raw numeric payload. An explicit conversion to `word` erases callable or sink proof; a visible
+source dependency may remain for reachability and unsafe-use diagnostics.
 `&local` remains a lifetime-bounded borrow: a callee argument must be transitively non-retaining,
 and E10260 rejects a return, persistent publication, or unproven boundary.
 
@@ -771,6 +822,7 @@ Interrupt functions follow a sink-selected calling convention:
 - Ordinary helpers retain `JSR`/`RTS` and may be reused from mainline and interrupt domains
 - Overlapping invocation-private storage gets disjoint SFA homes; globals, assets, and MMIO stay shared
 - Unbounded storage-bearing self-overlap is a compile-time error
+- Recognized install and restore operations obey a compile-time per-sink LIFO ownership stack
 - Every reachable variant, page-safe link word, decimal/status wrapper, stack byte, and cost is reported; no dispatcher/runtime is added
 - All other F018 rules apply (no recursion, static frame, etc.)
 

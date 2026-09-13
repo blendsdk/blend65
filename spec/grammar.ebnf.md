@@ -133,19 +133,30 @@ type            = "void" | value_type ;
 value_type      = integer_type
                 | "boolean"
                 | array_type
+                | function_type
                 | qualified_name ;       (* struct or enum name *)
 
 integer_type    = "byte" | "sbyte" | "word" | "sword" ;
 
 array_type      = array_element_type , array_extent , { array_extent } ;
-array_element_type = integer_type | "boolean" | qualified_name ;
+array_element_type = integer_type | "boolean" | qualified_name
+                   | "(" , function_type , ")" ;
 array_extent    = "[" , [ const_expression ] , "]" ;
+
+function_type   = "fn" , "(" , [ function_type_params ] , ")"
+                , ":" , return_type ;
+function_type_params = function_type_param , { "," , function_type_param } ;
+function_type_param = [ "const" ] , value_type ;
 ```
 
 **Parsing note:** `qualified_name` in `type` is a local or module-qualified struct/enum name. The
 semantic pass resolves whether the name refers to a struct, enum, or is undefined. Chapter 14 owns
 the canonical unknown-type diagnostic.
 This avoids context-sensitivity in the parser.
+
+Function types contain parameter types but no parameter names. The parameter qualifiers, parameter
+types, array extents, and return type are all part of the exact signature. Parentheses distinguish
+an array of function values, `(fn(byte): void)[2]`, from a function returning an array.
 
 Array dimensions are written outermost to innermost. The grammar admits an omitted extent in any
 dimension so parsing stays context-free; semantic analysis permits at most one, outermost omission,
@@ -479,11 +490,11 @@ The lexical production admits every identifier-shaped spelling. Semantic analysi
 and reserved intrinsic names in declaration positions; the entry-reserved spelling `main` is legal
 only for the exact Chapter-10 entry-function declaration (→ Ch 01, §5–§7).
 
-### 9.2 Keywords (32 total)
+### 9.2 Keywords (33 total)
 
 ```ebnf
 keyword         = "module" | "import" | "export" | "from"
-                | "function" | "return" | "interrupt"
+                | "function" | "return" | "interrupt" | "fn"
                 | "if" | "else" | "while" | "do" | "for"
                 | "switch" | "case" | "default" | "fallthrough"
                 | "break" | "continue"
@@ -627,6 +638,9 @@ All grammar productions listed alphabetically for quick reference:
 | `for_stmt` | §5.8 | Three-clause C/JavaScript-style loop |
 | `for_update` | §5.8 | Expression-list update of a for loop |
 | `function_decl` | §3.2 | Function with mandatory return annotation |
+| `function_type` | §4 | Exact ordinary-function value signature |
+| `function_type_param` | §4 | One unnamed function-type parameter |
+| `function_type_params` | §4 | Comma-separated function-type parameters |
 | `hex_digit` | §9.5 | `0`…`F` |
 | `hex_literal` | §9.5 | `$FF`, `0xFF` |
 | `identifier` | §9.1 | User-defined name |
@@ -676,7 +690,7 @@ All grammar productions listed alphabetically for quick reference:
 | `zeropage_block` | §3.1 | Module-level zero-page declarations |
 | `zeropage_var` | §3.1 | Mutable zero-page declaration |
 
-**Total productions: 96**
+**Total productions: 99**
 
 ---
 

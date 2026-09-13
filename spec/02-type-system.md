@@ -11,7 +11,9 @@
 
 Blend65 4 is **fully explicitly typed** — every variable, constant, parameter, and return type requires an explicit type annotation. There is no type inference. This is a deliberate design choice: on the 6502, the difference between `byte` and `word` directly determines memory usage, register allocation, and cycle counts. The developer states their intent; the compiler enforces it.
 
-This chapter defines the complete type system: the six primitive types, derived types (arrays, structs, enums), the rules for how types interact in expressions and assignments, explicit cast semantics, and the enum conversion model.
+This chapter defines the complete type system: the six primitive types, derived types (arrays,
+structs, enums, and function values), the rules for how types interact in expressions and
+assignments, explicit cast semantics, and the enum conversion model.
 
 ---
 
@@ -42,13 +44,43 @@ Blend65 has exactly **six primitive types**:
 
 ### 2.2 Derived Types
 
-Derived types are composite constructs built from primitive types. They are not first-class types in the same way as primitives.
+Derived types build on primitive and named types. Fixed aggregates and ordinary function values
+may be assigned, stored, passed, and returned subject to their own rules.
 
 | Derived Type | Example | Defined In |
 |-------------|---------|------------|
 | Fixed array | `byte[256]`, `byte[25][40]` | → Ch 08 |
 | Struct | `struct Player { x: byte; y: byte; }` | → Ch 07 |
 | Enum | `enum Direction { UP, DOWN, LEFT, RIGHT }` | → Ch 09 |
+| Function value | `fn(byte, word): boolean` | → Ch 06 |
+
+### 2.3 Function Types
+
+`fn(P1, P2, ...): R` is the type of an ordinary source function with exactly those parameter
+types and return type. Parameter names are omitted. A `const` aggregate parameter keeps its
+qualifier in the function type, for example `fn(const byte[], word): void`.
+
+Function signatures are invariant: parameter count, parameter qualifiers, parameter types, array
+extents, and return type must match exactly. There is no parameter variance, return covariance, or
+integer promotion between function types. An incompatible assignment uses E10080.
+For a function mismatch, its detail names the first differing parameter, qualifier, extent, or
+return type and states that no cast can repair the signature.
+
+The address of an ordinary function has its exact function type. Ordinary function values may be
+assigned, stored in fixed arrays or structs, passed, returned, selected by a conditional, and
+called. When materialized, a function value occupies one target address word; optimization may
+remove that storage. Its compile-time target set is separate proof information, not a runtime tag.
+
+An interrupt function produces a distinct handler value, not an ordinary `fn` value. It is not
+callable and may appear only as a compatible compiler-recognized platform-sink argument, in a
+conditional expression whose other result has the same handler kind, or in an explicit `word`
+conversion (→ Ch 06). No user-spellable handler type or conversion to an ordinary function type
+exists.
+
+An explicit `word(functionValue)` conversion exposes the code address and erases the callable
+type and target proof. A raw `word` cannot be converted back to a function or handler value. This
+one-way boundary permits low-level address use without introducing closures, dynamic loading, or a
+runtime registry.
 
 ---
 
@@ -346,6 +378,7 @@ loads/stores. Widening rows give the complete standalone stored forms displayed 
 | Widen signed (sbyte→sword) | Sign-extend high byte | 16–21 cycles, 17–20 bytes for the complete stored form |
 | Narrow (word→byte, sword→sbyte) | Select low byte | No added instruction when the low byte is already available |
 | Narrow cross-sign (word→sbyte, sword→byte) | Select low byte and reinterpret | No added instruction when the low byte is already available |
+| Function or handler value → `word` | Expose the address and erase callable/sink proof | No bit conversion; ordinary materialization cost still applies |
 
 These costs do not merge distinct variables or remove an ordinary assignment. In
 `let s: sbyte = sbyte(b)`, `b` and `s` remain independent objects whenever
@@ -364,8 +397,12 @@ though no additional bit-conversion instruction is needed.
 | Anything → `void` | ❌ E10152 |
 | Struct → any type | ❌ E10153 |
 | Array → any type | ❌ E10153 |
+| Function or handler value → `word` | ✅ one-way address exposure |
+| Function or handler value → any other type | ❌ E10153 |
 
-Casts work only between the four integer types (`byte`, `sbyte`, `word`, `sword`) and for enum conversions (§8).
+Casts work only between the four integer types (`byte`, `sbyte`, `word`, `sword`), for enum
+conversions (§8), and for the one-way function/handler-to-`word` boundary. No cast from `word` to a
+function or handler type exists.
 
 ---
 
@@ -556,7 +593,7 @@ severities, message templates, spans, suppression, and history.
 
 | Code | Trigger | Rejected behavior or consequence |
 |------|---------|----------------------------------|
-| E10080 | An implicit conversion crosses signed and unsigned integer families. | The conversion is rejected; an explicit cast is required. |
+| E10080 | An implicit conversion crosses signed and unsigned integer families, or two function signatures differ. | The conversion is rejected; integer cross-signedness requires an explicit cast, while function signatures must match exactly. |
 | E10081 | One integer operation mixes signed and unsigned operands without an explicit cast. | The expression is rejected. |
 | E10082 | An implicit conversion narrows an integer value. | The conversion is rejected; an explicit cast is required. |
 | E10083 | Unary minus is applied to an unsigned integer. | The expression is rejected. |
@@ -565,7 +602,7 @@ severities, message templates, spans, suppression, and history.
 | E10150 | A declaration omits a required type annotation. | The declaration is rejected. |
 | E10151 | Boolean participates in arithmetic or bitwise operations. | The expression is rejected. |
 | E10152 | A cast has `void` as source or destination. | The cast is rejected. |
-| E10153 | A cast targets or consumes a struct or array type. | The cast is rejected. |
+| E10153 | A cast targets or consumes a struct or array, or converts a function/handler value to anything except `word`. | The unsupported cast is rejected. |
 | E10154 | An ordered comparison has a boolean operand. | The comparison is rejected. |
 | E10235 | A byte value reaches an enum destination without an explicit enum cast. | The conversion is rejected. |
 | E10236 | A comparison combines two different nominal enum types. | The comparison is rejected. |

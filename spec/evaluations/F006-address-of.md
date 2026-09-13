@@ -7,9 +7,10 @@
 
 ## Description
 
-The `&` operator returns the storage address of an addressable place, or the code address of a
-function, as a `word` value. A direct object's address is normally fixed at link time; a parameter,
-field, or indexed element address may be computed at runtime. This replaces v2's `@variable`
+The `&` operator returns a `word` storage address for an addressable place. On an ordinary function
+it returns the exact typed function value; on an interrupt function it returns a distinct handler
+value. A direct object's address is normally fixed at link time; a parameter, field, or indexed
+element address may be computed at runtime. This replaces v2's `@variable`
 syntax, which conflicted with storage class prefixes (`@zp`) and the type alias (`@address`).
 
 The v2 `@address` built-in type is removed. Addresses are simply `word` values. (Type aliases such as `type Address = word;` were evaluated and **rejected** — see `future-considerations.md` → REJ-001 — so use the `word` type directly and choose a self-documenting variable name.)
@@ -29,12 +30,12 @@ address_of_expr = "&" , unary_expr ;
 
 | Rule | Decision |
 |------|----------|
-| Return type | `word` (16-bit unsigned — same as a memory address on 6502) |
+| Result type for storage | `word` (16-bit unsigned — same as a memory address on 6502) |
 | On module-level variables | ✅ Valid — returns RAM address |
 | On local variables | ✅ Valid as a non-escaping borrow — SFA gives locals static addresses, but E10260 rejects any possible use beyond the local's dynamic source lifetime |
 | On `zeropage` variables | ✅ Valid — returns ZP address (0x00–0xFF, fits in `word`) |
-| On functions | ✅ Valid — returns the code address of the function |
-| On `interrupt` functions | ✅ Valid — returns the code address (see F007) |
+| On ordinary functions | ✅ Valid — returns the exact `fn(...)` value |
+| On `interrupt` functions | ✅ Valid — returns a distinct non-callable handler value (see F007) |
 | On array/struct `const` | ✅ Valid — stored in data section, has an address |
 | On scalar `const` | ❌ **E10040** — scalar constants are inlined, no address exists |
 | On scalar parameters | ✅ Valid — local-origin borrow bounded by the active invocation |
@@ -44,12 +45,12 @@ address_of_expr = "&" , unary_expr ;
 | On literals (`&42`) | ❌ **E10043** — literals have no address |
 | On temporaries/value expressions (`&(x+y)`) | ❌ **E10043** — no storage place exists |
 
-While a function address remains compiler-visible, it retains source function identity and source
-handler kind in addition to its `word` representation. A recognized interrupt-handler sink rejects
-an ordinary `RTS` function, selects the exact raw or firmware-mediated entry variant, and
-contributes that execution root to SFA. The sink may therefore install a specialized address rather
-than the raw numeric payload. Opaque integer/address escape erases proof; a visible write to an
-exactly known incompatible firmware vector is E10252 rather than an escape hatch.
+An ordinary function value retains its exact signature and finite source target set through typed
+flows. A recognized interrupt-handler sink accepts only the distinct handler kind, selects the
+exact raw or firmware-mediated entry variant, and contributes that execution root to SFA. Explicit
+conversion of either kind to `word` exposes its address and erases callable or sink proof; a raw
+word cannot convert back. A visible source dependency may remain for reachability and E10252
+unsafe-use diagnosis.
 
 For any storage place, the base, field path, and index expressions are evaluated exactly once.
 The ordinary `word` result retains hidden lifetime and mutable/read-only provenance from its base.
@@ -121,9 +122,9 @@ function gameLoop(): void {
 }
 
 function main(): void {
-    let irqAddr: word = &onRasterIRQ;    // Code address of interrupt handler
-    let loopAddr: word = &gameLoop;       // Code address of regular function
-    
+    let irqAddr: word = word(&onRasterIRQ); // explicit raw handler address
+    let loop: fn(): void = &gameLoop;       // typed ordinary function value
+
     // Install through the platform-specific, compiler-recognized sink.
     setIRQ(&onRasterIRQ);
 }
@@ -186,7 +187,8 @@ function main(): void {
 ## Language Guard Verdict
 
 - **P1 Cross-platform** ✅ — Memory addresses are universal on 6502. All platforms use 16-bit addresses.
-- **P3 No platform assumptions** ✅ — `&` returns a `word` with no platform-specific semantics.
+- **P3 No platform assumptions** ✅ — Storage addresses are `word`; function and handler values
+  retain platform-neutral source identity until a selected platform sink chooses an entry variant.
 - **H1 6502 implementable** ✅ — Fixed addresses load as constants; parameter/field/element places
   use the same 16-bit address calculation already needed for access.
 - **H2 Cost transparency** ✅ — `&x` itself costs no memory access; any dynamic base, field, or index
@@ -197,12 +199,13 @@ function main(): void {
   borrows extend liveness only to their last legal use; unsafe persistence is rejected rather than
   silently pinning an automatic local.
 - **H5 Deterministic** ✅ — Every valid use produces a well-defined address. Every invalid use produces a compile error.
-- **L1 Unambiguous** ✅ — `&` has exactly one meaning. No overloading with other uses.
+- **L1 Unambiguous** ✅ — The resolved operand kind determines the result without context-sensitive
+  parsing.
 - **L2 Consistent** ✅ — `&` for address-of is the same convention as C and Rust.
 - **L3 Beginner-friendly** ✅ — Any C developer recognizes `&variable`.
 - **L6 Errors actionable** ✅ — E10260 identifies the escape path and recommends module-level or
   caller-owned storage. This avoids C-style dangling-address undefined behavior without a heap.
-- **L4 Minimal** ✅ — One operator and one result type, accepted exactly on real storage places and
-  functions; no pointer/reference/view type is added.
+- **L4 Minimal** ✅ — One operator yields a storage address, ordinary function value, or handler
+  value from the resolved operand; no general pointer/reference/view type is added.
 - **L5 No redundancy** ✅ — Replaces both `@variable` and `@address` type from v2.
 - **C1 Lexer/parser** ✅ — `AMPERSAND`, `IDENTIFIER`. Standard unary prefix operator.

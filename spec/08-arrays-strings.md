@@ -43,7 +43,8 @@ let cursor: byte = '_';
 
 ```ebnf
 array_type        = array_element_type , array_extent , { array_extent } ;
-array_element_type = integer_type | "boolean" | qualified_name ;
+array_element_type = integer_type | "boolean" | qualified_name
+                   | "(" , function_type , ")" ;
 array_extent      = "[" , [ const_expression ] , "]" ;
 
 array_literal     = "[" , [ array_init_content ] , "]" ;
@@ -52,14 +53,16 @@ array_init_content = expression , { "," , expression }
                    | ";" , expression ;
 ```
 
-`qualified_name` resolves semantically to an enum or struct type. String literals and named
+`qualified_name` resolves semantically to an enum or struct type. Parentheses around a function
+type make `(fn(byte): void)[2]` an array of function values rather than a function returning an
+array. String literals and named
 encoding calls are ordinary expressions in this fragment; the initializer rules below restrict
 how their byte sequences may be combined. Array indexing is the `"[" , expression , "]"`
 alternative of the master grammar's `postfix_op`; it is not a second expression production.
 
 ### 2.2 Element Types
 
-Arrays can hold any non-`void` primitive type, enum type, or struct type:
+Arrays can hold any non-`void` primitive type, enum type, struct type, or ordinary function type:
 
 | Element Type | Size per Element | Notes |
 |-------------|-----------------|-------|
@@ -70,6 +73,7 @@ Arrays can hold any non-`void` primitive type, enum type, or struct type:
 | `boolean` | 1 byte | Flag arrays (alive/dead, visible/hidden) |
 | Enum type | 1 byte | Nominal state, kind, and mode tables (→ Ch 09) |
 | Struct type | `sizeof(Type)` | Game entities, direction tables (→ Ch 07) |
+| Function type | 2 bytes when materialized | Exact-signature callback tables (→ Ch 06) |
 
 ---
 

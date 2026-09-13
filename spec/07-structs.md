@@ -59,6 +59,7 @@ Struct fields can be:
 | Enum type | `state: ActorState;` | 1 byte, with nominal enum type |
 | Fixed-size array | `name: byte[3];` | Element size × count |
 | Another struct | `pos: Position;` | Size of nested struct |
+| Function type | `update: fn(byte): void;` | 2 bytes when materialized |
 
 Fields **cannot** be:
 - `void`

@@ -34,7 +34,7 @@ interrupt_function = [ "export" ] , "interrupt" , "function" , identifier
 | Signature | Must be `(): void` — no parameters, no return value |
 | Wrong signature | **E10050**: compile error |
 | Can it be called as a normal function? | **No** — **E10051**: compile error |
-| Can you take its address? | **Yes** — `&myHandler` returns `word` (code address) |
+| Can you take its address? | **Yes** — `&myHandler` produces a distinct, non-callable handler value for compatible platform sinks |
 | Can it access module variables? | **Yes** — including `zeropage` variables |
 | Can it call other functions? | **Yes** — ordinary helpers keep their `JSR`/`RTS` ABI; the compiler accounts for their interrupt execution domain |
 | Can it be exported? | **Yes** — `export interrupt function ...` |
@@ -76,7 +76,7 @@ saved A/X/Y before it jumps through CINV at `$0314/$0315`. The corresponding gen
 variant does not save those registers again. Its tail either jumps indirectly through a dedicated
 two-byte saved-previous-CINV link (`setIRQ`) or jumps to the profile-declared KERNAL restore/`RTI`
 tail (`setIRQExclusive`). The chained form wraps the body with `PHP; CLD` and `PLP`, preserving the
-prior handler's entry flags; its link may not begin at `$xxFF` on NMOS. Exclusive and raw forms use
+prior handler's entry flags; each live predecessor word may not begin at `$xxFF` on NMOS. Exclusive and raw forms use
 `CLD` and rely on their eventual `RTI` to restore the interrupted status. A raw-vector sink selects
 the save/restore/`RTI` variant instead. Only
 reachable variants are emitted; every duplicate body, link word, stack effect, byte, and cycle path
@@ -128,19 +128,49 @@ import { setRawIRQ } from c64.system;
 setRawIRQ(&onRasterIRQ);          // advanced raw save/restore/RTI path
 
 // E10252 in the default C64 profile: CINV is entered after KERNAL saved A/X/Y.
-pokew($0314, &onRasterIRQ);
+pokew($0314, word(&onRasterIRQ));
 ```
 
-A compiler-recognized interrupt-handler sink accepts only an `interrupt function`; passing an
-ordinary `RTS` function is E10244. The selected platform profile names every recognized sink, its
-accepted source kind, materialized entry variant, execution domain, and interrupt source.
-Provenance survives direct scalar declaration, assignment, copy, identity cast, and conditional
-selection while every possible source remains known and the storage does not escape. A recognized
-sink rejects erased or unknown provenance with E10247 and may install the specialized variant
-rather than the raw numeric `word`. Arithmetic, bitwise transformation, non-identity casts,
-address escape, aggregates/arrays, and unknown external boundaries erase the proof. A direct raw
-write to an exactly recognized incompatible firmware vector is E10252; a genuinely opaque raw
-memory boundary keeps the function reachable but cannot validate the caller or return convention.
+A compiler-recognized interrupt-handler sink accepts only the distinct value produced by
+`&interruptFunction`; passing an ordinary `fn(...)` value is E10244. The selected platform profile
+names every recognized sink, its accepted handler kind, materialized entry variant, execution
+domain, interrupt source, and paired restore operation. A handler value may flow directly or
+through a same-kind conditional to its sink; it has no user-spellable storage type. A recognized sink rejects erased or unknown
+provenance with E10247 and may install a specialized variant rather than the raw source address.
+Explicit conversion to `word`, integer transformation, and opaque raw/external use erase the sink
+type proof. The compiler still retains a visible source dependency for reachability and unsafe-use
+diagnostics. A raw word cannot convert back to a handler value. A direct raw write to an exactly recognized
+incompatible firmware vector is E10252; a genuinely opaque raw memory boundary keeps the function
+reachable but cannot validate the caller or return convention.
+
+### Install and restore ownership
+
+Every recognized interrupt sink has its own compile-time LIFO ownership stack. Each install pushes
+the current predecessor. The paired restore must pop the active top, and all reachable paths into a
+control-flow join must agree on the complete stack for every sink.
+
+```blend65
+setIRQ(&first);
+setIRQ(&second);  // two predecessor words are live
+restoreIRQ();
+restoreIRQ();
+
+if (temporary) {
+    setIRQ(&overlay);
+    restoreIRQ();
+} // valid join: both paths have the same empty ownership stack
+
+setIRQ(&first);
+pokew(CINV, peekw(SAVED_VECTOR)); // legal raw write invalidates IRQ helper ownership
+restoreIRQ();                     // E10268
+```
+
+Finite balanced nesting is legal and allocates exactly one two-byte predecessor word per
+simultaneously live install that must later restore or chain. Unbounded nesting is E10245. A restore
+with no matching top, a cross-sink or out-of-order restore, unequal ownership at a join, or an
+unbalanced exit is E10268. A legal raw write to the sink's vector invalidates helper ownership, so
+a later helper restore is also E10268. This is static proof only: no runtime token, flag, registry,
+scheduler, or dispatcher is added.
 
 ## Examples
 
@@ -191,6 +221,8 @@ export function installHandlers(): void {
 | 3 | INT-3 | Interrupt handler frame and scratch storage | All invocation-private storage, including late helper scratch, is separated across overlapping execution domains. |
 | 4 | INT-4 | Shared globals, assets, and MMIO | They remain shared. Statically visible lost-update and torn multi-byte hazards receive warnings. |
 | 5 | INT-5 | Unbounded storage-bearing self-overlap | Compile error; Blend65 does not add dynamic frames or a runtime selector. |
+| 6 | INT-6 | Nested installation and restoration | Each recognized sink has a compile-time LIFO ownership stack; finite balanced nesting is legal and charged exactly. |
+| 7 | INT-7 | Raw vector write after helper installation | The write remains legal when its ABI is legal, invalidates that sink's helper ownership, and makes a later helper restore E10268. |
 
 ## Errors
 
@@ -202,6 +234,7 @@ export function installHandlers(): void {
 | E10245 | Invocation-private overlap cannot be statically bounded | [Chapter 14](../14-diagnostics.md) |
 | E10247 | Recognized sink receives erased or unknown handler provenance | [Chapter 14](../14-diagnostics.md) |
 | E10252 | Raw interrupt entry is written directly to an incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
+| E10268 | Per-sink install/restore ownership is invalid or was invalidated by a raw vector write | [Chapter 14](../14-diagnostics.md) |
 
 ## Warnings
 

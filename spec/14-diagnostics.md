@@ -121,7 +121,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10074 | F009 / Ch 05 | `'fallthrough' must be the last statement in a case body and cannot be nested in another control-flow block` |
 | E10075 | F009 / Ch 05 | `Cannot switch on type '<type>' — use an integer or enum expression` |
 | E10076 | F009 / Ch 05 | `Only one 'default' clause is allowed per switch statement` |
-| E10080 | F010 / Ch 02 | `Cannot implicitly convert '<from_type>' to '<to_type>' — use '<to_type>(<expr>)'` |
+| E10080 | F010 / Ch 02 | `Cannot implicitly convert '<from_type>' to '<to_type>' — <detail>` |
 | E10081 | F010 / Ch 02 | `Cannot mix signed type '<type_a>' with unsigned type '<type_b>' — cast one operand` |
 | E10082 | F010 / Ch 02 | `Cannot implicitly narrow '<from_type>' to '<to_type>' — use '<to_type>(<expr>)'` |
 | E10083 | F010 / Ch 02 | `Cannot negate unsigned type '<type>' — use 'sbyte' or 'sword' for signed arithmetic` |
@@ -162,7 +162,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10150 | F016 / Ch 02 | `Type annotation required for <declaration> '<name>' — add ': <type>'` |
 | E10151 | F016 / Ch 02 | `Cannot use 'boolean' in an arithmetic or bitwise expression` |
 | E10152 | F016 / Ch 02 | `Cannot cast to or from 'void'` |
-| E10153 | F016 / Ch 02 | `Cannot cast a struct or array — casts support integer and enum conversions only` |
+| E10153 | F016 / Ch 02 | `Cannot cast '<from_type>' to '<to_type>' — casts support integer/enum conversions and one-way function/handler conversion to word only` |
 | E10154 | F017 / Ch 04 | `Cannot apply '<op>' to 'boolean' — ordered comparisons are not valid for boolean operands` |
 | E10160 | F017 / Ch 04 | `Division by zero in constant expression` |
 | E10161 | F017 / Ch 04 | `Shift amount must have unsigned type 'byte' or 'word' — found '<type>'` |
@@ -214,7 +214,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10241 | Ch 02 | `Unknown type '<name>'` |
 | E10242 | Ch 07 | `Struct '<type>' has no field '<name>'` |
 | E10243 | Ch 07 | `Struct initializer for '<type>' contains unknown field '<name>'` |
-| E10244 | Ch 06 | `Ordinary function '<name>' uses 'RTS' and cannot be installed in interrupt-handler sink '<sink>' — use an interrupt function` |
+| E10244 | Ch 06 | `Ordinary function value '<name>' cannot be installed in interrupt-handler sink '<sink>' — use an interrupt function` |
 | E10245 | Ch 06 / Ch 11 | `Execution path '<path>' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design` |
 | E10246 | Ch 06 | `Parameter '<name>' uses 'const' with non-aggregate type '<type>' — const parameters require an array or struct` |
 | E10247 | Ch 06 | `Cannot prove the entry ABI of the value passed to function-address sink '<sink>' — pass a provenance-preserving function address or use an explicit raw hardware boundary` |
@@ -237,6 +237,8 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10264 | F014 / Ch 08 | `Array extent '<expr>' must be a compile-time integer in 0..65535 — found <value_or_type>` |
 | E10265 | F011 / F014 / Ch 07 / Ch 08 | `Type '<type>' requires <N> bytes — fixed array and struct types are limited to 65535 bytes` |
 | E10266 | F020 / Ch 04 | `'sizeof' requires a fixed-size type — unsized array type '<type>[]' has no standalone extent` |
+| E10267 | F018 / Ch 06 | `Cannot prove a finite source-function target set for call through '<expression>' of type '<type>' — keep the value within closed-program typed storage` |
+| E10268 | F007 / F018 / Ch 06 | `Interrupt ownership for sink '<sink>' is invalid at '<operation>' — <detail>` |
 
 ---
 

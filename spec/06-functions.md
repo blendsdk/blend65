@@ -117,12 +117,14 @@ function clearBuffer(buffer: byte[1000]): void {
 }
 ```
 
-This is compiler-managed — there is no `ref` keyword. The compiler always uses by-reference for structs and arrays, by-value for scalars. The developer does not choose.
+This is compiler-managed — there is no `ref` keyword. The compiler always uses by-reference for
+structs and arrays, and by-value for scalars, enums, and ordinary function values. A function-value
+parameter occupies the same two-byte frame home as a `word`. The developer does not choose.
 
 The `const` modifier prevents modification of by-reference parameters (→ Ch 08, const parameter
-rules). It is valid only on array and struct parameters, because scalar and enum parameters are
-already copied by value. Applying it to a scalar or enum parameter is E10246 rather than a silently
-ignored qualifier:
+rules). It is valid only on array and struct parameters, because other parameters are already
+copied by value. Applying it to any non-aggregate parameter is E10246 rather than a silently ignored
+qualifier:
 
 ```blend65
 function countNonZero(data: const byte[256]): byte {
@@ -290,17 +292,31 @@ foo(nextValue(), nextValue(), nextValue());
 
 There is no hard limit on the number of parameters a function can have. The practical limit is determined by the platform's memory budget — each parameter consumes frame memory, and SFA must fit all frames within available RAM. If total frame allocation exceeds platform memory, the compiler reports a resource error. In practice, functions rarely need more than 6–8 parameters.
 
-### FN-12 — Functions Are Not Values
+### FN-12 — Typed Function Values
 
-Functions cannot be assigned to variables, passed as parameters, or stored in data structures. The only way to reference a function is `&functionName` (→ Ch 04, §8), which returns a `word` containing the function's code address.
+`fn(P1, P2, ...): R` is the exact type of an ordinary source function. `&functionName` produces a
+value of that type. Function values may be assigned, stored in fixed arrays or structs, passed,
+returned, selected, and called. Parameter types and qualifiers, array extents, and the return type
+must match exactly (→ Ch 02).
 
 ```blend65
-let fn: word = &clearScreen;     // ✅ address as word
-// There is no way to "call" fn — it's just a number
-// Pass it to an API that accepts an ordinary code address.
+function moveLeft(id: byte): void { }
+function moveRight(id: byte): void { }
+
+function choose(left: boolean): fn(byte): void {
+    return left ? &moveLeft : &moveRight;
+}
+
+let update: fn(byte): void = &moveLeft;
+let updates: (fn(byte): void)[2] = [&moveLeft, &moveRight];
+update(3);
+
+let wrong: fn(word): void = &moveLeft; // ❌ E10080: exact signature mismatch
 ```
 
-Typed function pointers and indirect calls are deferred to a future version (FUT-003).
+There are no lambdas, closures, captures, dynamically loaded targets, or raw-address-to-function
+conversion. Explicit `word(update)` conversion exposes an address and permanently erases the
+callable type and proof; the resulting `word` is not callable (E10175).
 
 ### FN-13 — Parameter Scope and Shadowing
 
@@ -336,14 +352,39 @@ function_call = identifier , "(" , [ argument_list ] , ")" ;
 argument_list = expression , { "," , expression } ;
 ```
 
+This fragment shows the direct-name form. The master grammar's postfix call also permits any
+expression whose type is an ordinary function type, such as `table[index](value)` or
+`choose(flag)(value)`.
+
 ### 4.2 Rules
 
-- The identifier must resolve to a function (E10175 if it is not a function).
+- The call target must be a named ordinary function or an expression with an exact `fn(...)` type
+  (E10175 otherwise). Interrupt-handler values are not callable (E10051).
 - The number of arguments must match the number of parameters (E10171).
 - Each argument type must be compatible with the corresponding parameter type according to the type rules (→ Ch 02). Argument type mismatch is E10172.
 - Auto-promotion applies: a `byte` argument for a `word` parameter is promoted (same signedness family). Mixed signedness is an error (E10081, → Ch 02).
+- For a call through a function-value expression, the target expression is evaluated exactly once
+  before any argument. Arguments then retain their guaranteed left-to-right order. Any target
+  staging value is part of SFA.
 
-### 4.3 Non-Retaining Address Parameters
+### 4.3 Finite Target Proof
+
+The compiler tracks the possible source functions for every function value through assignments,
+aggregate fields and elements, parameters, returns, and conditional merges. A singleton set may be
+devirtualized to a direct call. A larger precise set remains a finite indirect call.
+
+If typed control flow loses exact provenance, a closed program widens the set to every
+address-taken source function with the exact signature. The resulting finite superset feeds call
+effects, recursion cycles, hardware-stack analysis, interrupt overlap, and SFA before code
+emission. Context-specific machine variants may map one source function to distinct safe SFA homes
+without changing source identity.
+
+For a multi-target call, the backend chooses and reports the measured cheapest legal sequence for
+that target set and context, such as direct comparisons, a decision tree, a jump table, or an
+indirect trampoline. It does not add a universal dispatcher or runtime registry. If an opaque or
+external boundary leaves no finite source target set, E10267 rejects the call.
+
+### 4.4 Non-Retaining Address Parameters
 
 When an argument depends on `&local`, the compiler proves a non-retaining contract for that exact
 parameter position. The proof is transitive over every reachable path: the callee may dereference,
@@ -375,7 +416,7 @@ Blend65 uses a **Static Frame Allocation** calling convention that eliminates al
 ├──────────────┬───────────────────────────────────────────┤
 │ Parameters   │ Static frame (fixed addresses in RAM)     │
 │ Locals       │ Static frame (fixed addresses in RAM)     │
-│ Scalar return│ Registers (A for 8-bit, A/X for 16-bit)  │
+│ Scalar/fn ret│ Registers (A for 8-bit, A/X for 16-bit)  │
 │ Aggregate ret│ Caller-owned destination                 │
 │ Return addr  │ Hardware stack via JSR/RTS (2 bytes)      │
 └──────────────┴───────────────────────────────────────────┘
@@ -414,11 +455,13 @@ The compiler allocates frame instances using the static call and execution-domai
 |------|----------|
 | `byte` / `sbyte` / `boolean` parameter | 1 byte |
 | `word` / `sword` parameter | 2 bytes |
+| Ordinary function-value parameter | 2 bytes |
 | Struct or exact `T[N]` array parameter (by-reference) | 2 bytes (base address) |
 | Any-size `T[]` array parameter (by-reference) | 4 bytes (base address + word element count) |
 | Materialized aggregate-return destination address | 2 bytes; zero when a fixed-address variant encodes it directly |
 | Local `byte` / `sbyte` / `boolean` variable | 1 byte |
 | Local `word` / `sword` variable | 2 bytes |
+| Materialized local function value | 2 bytes |
 
 The table gives the cost of one logical item in one frame instance. The total static RAM cost is the
 sum of the allocated instance ranges after frame coloring. Instances with proven non-overlapping
@@ -434,7 +477,7 @@ Caller                           Callee
 2. Evaluate arguments (left→right)
 3. Store arguments and any materialized destination address
 4. JSR callee_address  ────────► 5. Execute body
-                                 6. Return scalar in A/A-X, or construct aggregate in destination
+                                 6. Return scalar/function in A/A-X, or construct aggregate in destination
                                  7. RTS
 8. Use completed result       ◄─┘
 ```
@@ -643,7 +686,7 @@ interrupt function onRasterIRQ(): void {
 |------|----------|
 | Signature | Must be `(): void` — no parameters, no return value (E10050 if wrong) |
 | Can it be called as a normal function? | **No** — E10051 |
-| Can you take its address? | **Yes** — `&onRasterIRQ` returns `word` (code address) |
+| Can you take its address? | **Yes** — `&onRasterIRQ` produces a distinct, non-callable handler value for compatible platform sinks |
 | Can it access module variables? | **Yes** — including `zeropage` variables |
 | Can it call other functions? | **Yes** — ordinary helpers retain their `JSR`/`RTS` ABI; SFA accounts for the interrupt execution domain (§7.5) |
 | Can it be exported? | **Yes** — `export interrupt function ...` |
@@ -752,7 +795,7 @@ setRawIRQ(&onRasterIRQ);
 
 // E10252 on the default C64 profile: $0314 is a post-save KERNAL CINV hook,
 // but &onRasterIRQ denotes the raw-entry address outside a recognized sink.
-pokew($0314, &onRasterIRQ);
+pokew($0314, word(&onRasterIRQ));
 ```
 
 The C64 platform details and costs are defined by its profile (→ Ch 15 and Appendix A). A direct
@@ -761,7 +804,31 @@ that a raw-entry address is being written to a sink with a different ABI, E10252
 address or vector that has become opaque remains an explicit unsafe hardware boundary; the
 compiler keeps the function reachable but cannot certify the external entry/exit convention.
 
-### 7.8 Stack Cost
+### 7.8 Install and Restore Ownership
+
+Each compiler-recognized interrupt sink has an independent compile-time LIFO stack. An install
+pushes that sink's currently installed predecessor; its matching restore must pop the active top.
+All reachable predecessors of a control-flow join must agree on the complete stack for every sink.
+Nested and repeated installation is legal when the compiler can prove a finite balanced maximum.
+
+```blend65
+setIRQ(&first);
+setIRQ(&second);  // two saved predecessor words are live for the IRQ sink
+restoreIRQ();     // restores the predecessor of second
+restoreIRQ();     // restores the predecessor of first
+```
+
+The compiler allocates exactly one two-byte predecessor word for each simultaneously live install
+that must later restore or chain. Those words and their lifetimes close through SFA and appear in
+the resource report. An unbounded nesting path is E10245. A restore with no matching top, a
+cross-sink or out-of-order restore, unequal ownership at a join, or an unbalanced exit is E10268.
+
+A direct raw write to a sink's vector remains legal when its ABI rules permit that write, but it
+invalidates the helper-owned stack for that sink. A later helper restore is E10268 because its
+saved predecessor is no longer known to be current. This proof adds no runtime token, flag,
+registry, scheduler, or dispatcher.
+
+### 7.9 Stack Cost
 
 | Item | Stack Bytes |
 |------|-------------|
@@ -780,28 +847,33 @@ assumed entry.
 
 ## 8. Address-of for Functions
 
-The `&` operator applied to a function name yields an address-compatible `word` (→ Ch 04, §8).
-While the value remains compiler-visible, the compiler also retains the source function identity
-and source handler kind for platform-sink checking, entry-variant selection, and execution-domain
-analysis. Outside a compiler-recognized sink, `&interruptFunction` denotes its raw-entry address.
-The selected platform profile identifies every recognized function-address sink, accepted source
-kind, materialized entry variant, and execution domain.
+For an ordinary function, `&functionName` has the function's exact `fn(...)` type (→ Ch 02). For an
+interrupt function, it produces a distinct non-callable handler value. The selected platform
+profile identifies every recognized interrupt sink, its accepted handler kind, materialized entry
+variant, execution domain, and paired restore operation.
 
 ```blend65
-let handler: word = &onRasterIRQ;    // interrupt function address
-let util: word = &clearScreen;       // regular function address
+let update: fn(byte): void = &movePlayer;
+update(1);                         // typed call
+let rawUpdate: word = word(update); // explicit one-way proof erasure
+rawUpdate(1);                      // ❌ E10175: word is not callable
+
+setIRQ(&onRasterIRQ);              // handler kind accepted by this sink
+setIRQ(&movePlayer);               // ❌ E10244: ordinary function kind
 ```
 
-Address-taking makes the function live. Provenance follows direct scalar declaration, assignment,
-copy, identity cast, and conditional selection while every possible source function remains known
-and the storage has not escaped through an address, aggregate, array, raw memory operation, or
-unknown external boundary. A recognized sink accepts the value only when every possible source has
-its required source kind; an incompatible known source is E10244 and erased/unknown provenance is
-E10247. A recognized sink consumes the retained identity and may therefore install a specialized
-entry address rather than the raw numeric payload. Arithmetic, bitwise transformation,
-non-identity casts, address escape, and unknown raw memory operations erase provenance. A direct
-write whose destination is an exactly recognized incompatible vector is E10252; a genuinely opaque
-raw boundary keeps an address-taken function reachable but cannot validate the external caller or
+Address-taking makes the source function live. Ordinary function target sets follow typed scalar
+and aggregate storage, parameters, returns, and conditional selection as defined in §4.3. A handler
+value may flow directly or through a same-kind conditional to a compatible sink. It has no
+user-spellable storage type. A recognized sink rejects an incompatible known kind with E10244 and
+erased or unknown handler provenance with E10247. It may install a specialized entry variant
+instead of the raw source address.
+
+Explicit conversion of either value kind to `word`, integer transformation, and an opaque raw or
+external boundary erase callable or handler proof. The compiler still retains source dependency
+when it remains visible for reachability and unsafe-use diagnostics. A raw word cannot convert back. A direct write
+of a visible raw interrupt-entry address to a recognized incompatible vector is E10252; a genuinely
+opaque raw boundary keeps the source function reachable but cannot validate the external caller or
 return convention. No hidden runtime check is added.
 
 ---
@@ -854,12 +926,14 @@ public presentation.
 | E10051 | Source code directly calls an interrupt-entry function. | The call is rejected; ordinary helpers remain callable. |
 | E10244 | A known ordinary `RTS` function reaches a compiler-recognized interrupt-handler sink. | The ABI mismatch is rejected. |
 | E10245 | A mainline/IRQ/NMI/callback path may re-enter without a static bound while consuming invocation-private storage or hardware stack. | Finite SFA homes or stack peak cannot be proven, so compilation fails. |
-| E10246 | A `const` parameter resolves to a scalar or enum type rather than an array or struct. | The redundant/ineligible qualifier is rejected. |
+| E10246 | A `const` parameter resolves to a non-aggregate type rather than an array or struct. | The redundant/ineligible qualifier is rejected. |
 | E10247 | A compiler-recognized function-address sink receives a value whose function/ABI provenance is erased or unknown. | The sink call is rejected; use a provenance-preserving value or an explicit raw hardware boundary. |
 | E10248 | Explicit stack intrinsics underflow function entry, pull the wrong saved kind, join unequal kind sequences, or leave a nonempty relative sequence on exit. | The function is rejected because deterministic `RTS`/`RTI` state cannot be preserved. |
 | E10252 | A compiler-visible raw interrupt-entry address is written directly to a recognized firmware vector that requires another entry ABI. | The write is rejected; use the profile API that selects the correct entry variant. |
 | E10253 | A return type or returned aggregate uses unsized `T[]` rather than a complete fixed shape. | The return is rejected; use a fixed extent or keep `T[]` as a borrowed parameter form. |
 | E10260 | An address derived from local-origin storage reaches a return, persistent/raw/MMIO store, asynchronous publication, retaining or unknown call, or another opaque escape. | The escaping use is rejected; use a proven non-retaining call, module-level storage, or caller-owned data. |
+| E10267 | A call through a typed function value has no finite compiler-proven source target set. | The call is rejected; keep the value inside closed-program typed storage. |
+| E10268 | An interrupt helper restore does not match the active per-sink LIFO owner, control-flow states disagree, or a raw vector write invalidated ownership. | The lifecycle operation is rejected; balance the sink's installs and restores. |
 
 ### Warning Conditions
 
@@ -877,8 +951,8 @@ public presentation.
 | Feature | Interaction |
 |---------|-------------|
 | **Entry point** (→ Ch 10) | `main()` follows all Ch 06 rules. Signature must be `function main(): void`. Entry-point rules are additional constraints on top of function rules. |
-| **Address-of** (→ Ch 04, §8) | `&functionName` returns `word`. Compiler marks functions as address-taken for SFA liveness. A local-origin address remains a borrow bounded by that local's dynamic lifetime; E10260 rejects a return, longer-lived store, or retaining/unknown call. |
-| **Type system** (→ Ch 02) | Return type annotation required (TS-1). Argument types must match parameter types. Auto-promotion applies (TS-4). Mixed signedness is E10081 (→ Ch 02). |
+| **Address-of** (→ Ch 04, §8) | Ordinary functions produce exact `fn(...)` values; interrupt functions produce distinct handler values. Explicit conversion to `word` is one-way proof erasure. A local-origin storage address remains a borrow bounded by that local's dynamic lifetime; E10260 rejects a return, longer-lived store, or retaining/unknown call. |
+| **Type system** (→ Ch 02) | Return type annotation required (TS-1). Function signatures match exactly. Call arguments follow parameter compatibility, including ordinary integer promotion and E10081 mixed-signedness rejection. |
 | **Control flow** (→ Ch 05) | `return` is a control flow statement. Ordinary nested shadowing applies inside function bodies. Parameters and outermost-body declarations share one E10003 duplicate domain. E10102 (not all paths return) is enforced for non-void functions. |
 | **Structs** (→ Ch 07) | Parameters are zero-copy borrows (FN-3). Fixed structs are ordinary exact-type assignment and return values. `const` prevents mutation through a borrowed parameter or derived address. |
 | **Arrays** (→ Ch 08) | Parameters are zero-copy borrows (FN-3). Fixed arrays are ordinary exact-shape assignment and return values; unsized `T[]` remains parameter-only. `const` prevents mutation through a borrowed parameter or derived address. |

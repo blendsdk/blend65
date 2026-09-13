@@ -42,13 +42,25 @@ Blend65 4 has exactly six primitive types:
 | Logical | `boolean` | Logical operators only, used in conditions |
 | No-value | `void` | Function return type only |
 
-**Derived types** (not first-class types — composite constructs built from the above):
+**Derived types:**
 
 | Derived Type | Example | Defined In |
 |-------------|---------|------------|
 | Fixed array | `byte[256]`, `byte[25][40]` | F014 |
 | Struct | `struct Player { x: byte, y: byte }` | F011 |
 | Enum | `enum Direction { UP, DOWN, LEFT, RIGHT }` | F022 (byte-backed nominal) |
+| Function value | `fn(byte, word): boolean` | F018 |
+
+Fixed aggregates and ordinary function values may be assigned, stored, passed, and returned under
+their governing rules. A function signature includes its exact parameter types and qualifiers,
+array extents, and return type. Function signatures are invariant: no promotion, variance, or
+shape conversion applies between them.
+
+`&ordinaryFunction` has the exact `fn(...)` type. A materialized value occupies one target address
+word, while the compiler separately tracks its finite source target set. An interrupt function
+produces a distinct, non-callable handler value accepted only by a compatible recognized platform
+sink. Explicit conversion of either kind to `word` erases that proof, and a raw `word` cannot be
+converted back. These rules require no closure object, runtime tag, registry, or dispatcher.
 
 
 ---
@@ -374,6 +386,7 @@ loads or stores. Widening rows give the complete standalone stored forms display
 | Widen signed (sbyte→sword) | Sign-extend high byte | 16–21 cycles, 17–20 bytes for the complete stored form |
 | Narrow (word→byte, sword→sbyte) | Select low byte | No added instruction when the low byte is already available |
 | Narrow cross-sign (word→sbyte) | Select low byte and reinterpret | No added instruction when the low byte is already available |
+| Function or handler value → `word` | Expose the address and erase callable/sink proof | No bit conversion; ordinary materialization cost still applies |
 
 ### TS-11: Cast Restrictions
 
@@ -385,8 +398,11 @@ loads or stores. Widening rows give the complete standalone stored forms display
 | Anything → `void` | ❌ E10152 |
 | Struct → any type | ❌ E10153 |
 | Array → any type | ❌ E10153 |
+| Function or handler value → `word` | ✅ one-way address exposure |
+| Function or handler value → any other type | ❌ E10153 |
 
-Casts only work between the four integer types (`byte`, `sbyte`, `word`, `sword`).
+Casts work between the four integer types, under the enum rules, and for the one-way
+function/handler-to-`word` boundary. No raw `word` converts back to a function or handler value.
 
 ---
 
@@ -513,7 +529,7 @@ declaration's extent placeholder or an outermost any-size parameter.
 | E10150 | [Chapter 14](../14-diagnostics.md) | Declaration without type annotation |
 | E10151 | [Chapter 14](../14-diagnostics.md) | Boolean operand in `+`, `-`, `*`, etc. |
 | E10152 | [Chapter 14](../14-diagnostics.md) | `void(expr)` or cast to void |
-| E10153 | [Chapter 14](../14-diagnostics.md) | `byte(myStruct)` or `byte(myArray)` |
+| E10153 | [Chapter 14](../14-diagnostics.md) | Unsupported aggregate or function/handler cast |
 | E10264 | [Chapter 14](../14-diagnostics.md) | Array extent outside the compile-time integer `0..65535` domain |
 | E10265 | [Chapter 14](../14-diagnostics.md) | Complete fixed array or struct type exceeds 65535 bytes |
 | E10266 | [Chapter 14](../14-diagnostics.md) | `sizeof` is applied to an unsized array type |
@@ -522,7 +538,7 @@ declaration's extent placeholder or an outermost any-size parameter.
 
 | Code | Source | Rule Enforced |
 |------|--------|--------------|
-| E10080 | F010 | Cross-signedness implicit conversion |
+| E10080 | F010 / F018 | Cross-signedness implicit conversion or exact function-signature mismatch |
 | E10081 | F010 | Mixed signed/unsigned in expression |
 | E10082 | F010 | Implicit narrowing |
 | E10083 | F010 | Negate unsigned type |
