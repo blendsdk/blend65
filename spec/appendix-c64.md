@@ -216,8 +216,22 @@ exactly once in Chapter 10 order and enters `main`.
 
 #### Cooperative KERNAL profiles
 
-The four `*-kernal-*` PRG profiles and the D64 profile set the owned low banking bits to `$36`
-(BASIC ROM out, KERNAL ROM and I/O visible) while preserving unrelated `$0000/$0001` port state.
+The compiler owns mask `$07` in both 6510 processor-port registers: `$0000` is the data-direction
+register and `$0001` is the port data latch/readback. At entry it captures both register readbacks.
+It preserves bits 3–7, first writes `(saved_port & $f8) | mapping` to `$0001`, and then writes
+`saved_ddr | $07` to `$0000`; this makes LORAM, HIRAM, and CHAREN outputs without a transient new
+latch value. `mapping` is `$06` for the cooperative mapping and `$05` for takeover. Therefore the
+complete low-bit register/latch values commonly written as `$36` and `$35` are examples for a
+`saved_port & $f8` value of `$30`, not unconditional whole-byte stores.
+
+Bits 3–7 retain their original direction and observable value throughout. A bit that remains an
+input has no software-readable hidden output-latch value, so the profile neither changes its
+direction nor claims to preserve unobservable latent state. On normal exit the compiler writes the
+captured `$0001` readback before restoring the captured `$0000` direction byte; this restores every
+observable port value and direction that the profile owns or can capture.
+
+The four `*-kernal-*` PRG profiles and the D64 profile use the cooperative `$06` low-bit mapping
+(BASIC ROM out, KERNAL ROM and I/O visible).
 They use the pinned 901227-03 KERNAL entry/vector contracts. CINV/NMINV chain or explicitly
 exclusive helpers are available; raw hardware-vector helpers are not. A returning `main` must have
 balanced every helper-owned interrupt stack and released every exclusive resource. The epilogue
@@ -227,8 +241,9 @@ state and executes `RTS` to BASIC.
 #### Raw takeover profiles
 
 The four `*-takeover-*` profiles install complete IRQ `$FFFE/$FFFF` and NMI `$FFFA/$FFFB` vectors
-in underlying RAM before changing the owned banking bits to `$35` (BASIC and KERNAL execution out,
-I/O visible). Both the ROM route before the change and the RAM route after it must be valid; an NMI
+in underlying RAM before changing the owned latch bits to `$05` under mask `$07` (BASIC and KERNAL
+execution out, I/O visible). Both the ROM route before the change and the RAM route after it must be
+valid; an NMI
 cannot be made safe by `SEI`. During application execution the program owns every enabled IRQ/NMI
 source, acknowledgement, vector, entry wrapper, nesting bound, and terminal `RTI`. KERNAL calls and
 CINV/NMINV helpers are unavailable. A returning `main` restores all captured machine state and
@@ -583,8 +598,10 @@ zero-page ranges, cadence assumptions, and code/data/cycle costs.
 
 GoatTracker, SID Factory II, and other player/export families are not additional native asset
 handlers. A payload becomes callable only through an exact hash-bound `audio_player_contracts`
-entry. The baseline profile has no universal entry; later qualified adapters may add one without
-changing the five asset forms or supplying a scheduler or mixer.
+entry. The baseline profiles have no universal entry. GoatTracker 2.77 must be the first
+player-adapter family qualified; until its exact player/export hash and ABI evidence pass that
+gate, the maps remain empty. Adding that qualified entry later does not change the five asset forms
+or supply a scheduler or mixer.
 
 ### 7.4 Koala Paint (`.kla` / `.koa`)
 
@@ -810,7 +827,10 @@ video_standard: pal
 clock_mhz: 0.985248
 runtime_ownership: cooperative_kernal
 kernal_rom: 901227-03
-cpu_port_mapping: $36
+processor_port:
+  owned_mask: $07
+  ddr_bits: $07
+  latch_bits: $06
 
 sid_chips:
   - address: $D400
@@ -959,12 +979,71 @@ warnings:
   warn_embed_percent: 75
 ```
 
+The takeover delta replaces, rather than extends, all four interrupt-routing maps from the first
+record:
+
+```yaml
+interrupt_entry_variants:
+  c64_raw_irq:
+    accepted_source_kind: interrupt_handler
+    register_save_owner: compiler
+    handler_entry_stack_bytes: 6
+    decimal_mode_on_body_entry: binary
+    entry_status_policy: restore_by_rti
+    entry_normalization_bytes: 1
+    entry_normalization_cycles: 2
+    terminal: rti
+    static_link_bytes: 0
+  c64_raw_nmi:
+    accepted_source_kind: interrupt_handler
+    register_save_owner: compiler
+    handler_entry_stack_bytes: 6
+    decimal_mode_on_body_entry: binary
+    entry_status_policy: restore_by_rti
+    entry_normalization_bytes: 1
+    entry_normalization_cycles: 2
+    terminal: rti
+    static_link_bytes: 0
+
+function_address_sinks:
+  c64.system.setRawIRQ:
+    accepted_source_kind: interrupt_handler
+    entry_variant: c64_raw_irq
+    execution_domain: irq
+    interrupt_source: irq
+  c64.system.setRawNMI:
+    accepted_source_kind: interrupt_handler
+    entry_variant: c64_raw_nmi
+    execution_domain: nmi
+    interrupt_source: nmi
+
+recognized_interrupt_vectors:
+  $FFFE:
+    entry_contract: c64_raw_irq
+    required_installer: c64.system.setRawIRQ
+  $FFFA:
+    entry_contract: c64_raw_nmi
+    required_installer: c64.system.setRawNMI
+
+raw_interrupt_paths:
+  irq:
+    vector_address: $FFFE
+    vector_bytes: [$FFFE, $FFFF]
+    writable_when: processor_port_mask_07_outputs_and_latch_05
+    active_when: processor_port_mask_07_outputs_and_latch_05
+  nmi:
+    vector_address: $FFFA
+    vector_bytes: [$FFFA, $FFFB]
+    writable_when: processor_port_mask_07_outputs_and_latch_05
+    active_when: processor_port_mask_07_outputs_and_latch_05
+```
+
 The other eight records are exact closed deltas from the first record:
 
 | Profile ID | Exact delta |
 |------------|-------------|
 | `c64-pal-prg-kernal-8580` | `sid_chips[0].model = mos8580` |
-| `c64-pal-prg-takeover-6581` | `runtime_ownership = raw_takeover`; `cpu_port_mapping = $35`; no KERNAL/CINV/NMINV call path while the application runs; raw IRQ/NMI vectors and all enabled sources owned; `stack_reserve = 0` |
+| `c64-pal-prg-takeover-6581` | `runtime_ownership = raw_takeover`; processor-port owned mask `$07`, DDR low bits `$07`, and latch low bits `$05`; replace all four interrupt-routing maps with the takeover maps above; no KERNAL call path while the application runs; all enabled IRQ/NMI sources owned; `stack_reserve = 0` |
 | `c64-pal-prg-takeover-8580` | takeover delta above plus `sid_chips[0].model = mos8580` |
 | `c64-ntsc-prg-kernal-6581` | `video_standard = ntsc`; `clock_mhz = 1.022730`; 263 lines × 65 cycles; later NTSC VIC-II record |
 | `c64-ntsc-prg-kernal-8580` | NTSC delta above plus `sid_chips[0].model = mos8580` |

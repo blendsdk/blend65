@@ -314,7 +314,7 @@ NODE
 ```
 
 Phase 3 therefore freezes the normative specification identity as
-`BLEND65-SPEC-4-415831d3a0949d7e183673c56eec8c422e5f44eb74a8d50639ef96c6156b46e2`.
+`BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`.
 No compiler, runtime, package, executable test, or expert-skill file changed in this phase.
 
 The external-source row used this literal command after retrieving the pinned sources:
@@ -514,7 +514,7 @@ portability inputs. Its resolution section contains only profile constraints, pl
 classification, and reject/defer. The prior conditional-compilation and feature-flag tiers were
 removed because Specification 4 defines neither mechanism.
 
-Direct checks confirmed 18 versioned normative owners, 27 rules across nine groups, 181 matching
+Direct checks confirmed 18 versioned normative owners, 27 rules across nine groups, 182 matching
 active diagnostic codes, the required grammar owners, no stale Phase 2 restriction, no false active
 target or game-policy claim, valid links, formatted Markdown, valid plan topology, clean whitespace,
 and no changed `*.spec.test.*` file. Task 3.1.7 records the final repeatable commands after the
@@ -531,7 +531,7 @@ The bytewise-sorted GNU `sha256sum` records for the 18 normative files produce t
 identity:
 
 ```text
-BLEND65-SPEC-4-415831d3a0949d7e183673c56eec8c422e5f44eb74a8d50639ef96c6156b46e2
+BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa
 ```
 
 The following raw hashes capture every retained file after the non-normative feature-index rewrite.
@@ -540,7 +540,7 @@ They are the final at-rest Specification 4 values for this phase.
 ```text
 ab393b09a630b8b8db90c7fb5e273ff0bbef1e5299c2902affbf4a33d43a6b0a  00-feature-index.md
 74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  00-introduction.md
-6f2364cf4ea6e3a9e1f46aa1ca42936a4f6ca6a3c0dbf0db35385f794727c9b7  00-normative-inventory.md
+49e044ff0192ff40152d005e576bc9338de7620f999f4ea4e5a2405667b693b2  00-normative-inventory.md
 4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  01-lexical-structure.md
 bb928c436facada2a3be8d40b0d13a7a3e10384bad108e1610d6d5f96113590a  02-type-system.md
 e8c017b9671b9cf1c8ac633cf4aee59fd1591df13ea94ddab323b7c42a11807d  03-variables.md
@@ -554,9 +554,9 @@ a5ad0cc83e34867de7b1e1ada3d94efb1a136230cf199578c7a0d7a283a57383  10-modules.md
 0097af18c1763ea50450eb0476afb2ee4d2c309afe7bb9c4fd476917ec926925  11-memory-model.md
 925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  12-intrinsics.md
 29a16540be2a29cc4d4e5ba3bed0e407b9644dd25d4acc803666cf3df71079e7  13-data-inclusion.md
-96ad1e7f3320cf07a98f31ca9b60dbbda7ba324cbad2a7edf137e5bd0542336c  14-diagnostics.md
-53ba67bd0c8629216a40000437954c05e495cc29100a806b6b42f655776ae115  15-platform-profile.md
-c5b2a38a29410da0c3bb84642a9e24f4ef7419971c255ea8499d4255b2ddca68  appendix-c64.md
+1231f7280a6dfc056e1cc26d4c5f7f4493d2ebe5c1a3f907e2226f3421bac336  14-diagnostics.md
+9ed9c41cf7ed22cfc4d557951e5e0f3f9c0fcba7e4d4a2ff63cc35694234ba73  15-platform-profile.md
+d25aca0e45d520a5a1044a60aa30f8078277e93617f2017b9c8e11c4fa321e27  appendix-c64.md
 cd79fa582b71c3126916f455f6d623c3c1a8fd35b064cae22ee4a311261a19df  evaluations/F001-multi-file.md
 d522d443a3f946ac6d0201ada84d45e321c35094e951bd3ecb1d616bd9f1d98a  evaluations/F002-modules.md
 9673502debd656fe4733a160454d1d86ed6adcbf70fb7bc68325f67d49385920  evaluations/F003-module-contents.md
@@ -571,7 +571,7 @@ bb503f0aa1aff317c71cb8a61c5e071b9f3c8bbeea1476438306f3b82c60dc04  evaluations/F0
 c06a710a4dca63f35d91af4850f2ba1aa6e94c06e1bd89bc81b0d5720c96fc5c  evaluations/F012-cpu-control-intrinsics.md
 1a36d5db689bb97d84b93318e604a7da31a36c38dc057993c3192c0907731faa  evaluations/F013-control-flow.md
 938d3adb011bb60eac49dcfe160c65c48b2279aa610a1bb2c82cb3171c53ba2f  evaluations/F014-arrays.md
-c1ce67c3d4c1120e6d2cfb1a5b34664cb99ed47b37692d6d4010474ed9f889f8  evaluations/F015-data-inclusion.md
+cc383e7d7258c1cb7eecd8a51bffa360098fda5ddfbb2a8752061a5e647a942f  evaluations/F015-data-inclusion.md
 0ccfec6274dadc849eb93a3440bb090f9b24f77119f7b297fa5217f827608f4e  evaluations/F016-type-system.md
 ecf5e10be85f9610c20d400aac6dbda2cc8dea0a1edbbccfce2b87a32e7ff44d  evaluations/F017-operators.md
 02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  evaluations/F018-functions.md
@@ -662,6 +662,25 @@ Every material Specification 3 to Specification 4 change falls into one of these
 The complete Git diff from the frozen P3 baseline was reviewed against those groups. No material
 change remains unexplained, and no hunk-level ledger or duplicate migration document was created.
 
+### Phase 3 independent-review corrections
+
+The first independent review reported four major specification gaps. On 2026-09-13 the user
+authorized one bounded correction pass with no new runtime, framework, or player implementation.
+
+| Finding | Authorized resolution |
+|---------|-----------------------|
+| RV-001 | Takeover profiles replace all four inherited interrupt-routing maps with complete raw IRQ/NMI variants, sinks, recognized vectors, and `$FFFE/$FFFF` plus `$FFFA/$FFFB` paths. |
+| RV-002 | E10279 now owns every unknown, partial, or unqualified profile selection, with one canonical message, examples, and correction. |
+| RV-003 | AR-040 now distinguishes adapter order from active qualification: GoatTracker 2.77 remains the first adapter RD-06 must qualify, while baseline maps stay empty until exact hash-bound evidence and ABI facts exist. |
+| RV-004 | The 6510 banking record now owns mask `$07`, makes bits 0–2 outputs, applies latch bits `$06` or `$05`, preserves unrelated observable state, and restores captured port/direction state. |
+
+The final independent re-review reported no findings and confirmed RV-001 through RV-004 resolved.
+It independently reproduced the 18/27 inventory, central digest, all 45 raw hashes, 182-code
+registry, formatting, links, plan parse, clean whitespace, and unchanged `*.spec.test.*` set. The
+corrections are direct Markdown changes; they add no runtime, framework, generalized validator, or
+player implementation. Security and performance audits were not applicable to this documentation-
+only diff.
+
 ### Phase 3 final direct verification
 
 | Command | Exit | Result |
@@ -743,11 +762,14 @@ const grammar = readFileSync('spec/grammar.ebnf.md', 'utf8');
 for (const phrase of ['do_while_stmt','function_type','comptime_decl','place_clause','loadable_const_decl','asm_sei','asm_cli','asm_php','asm_plp','asm_nop']) assert(grammar.includes(phrase), `grammar ${phrase}`);
 const diagnostics = readFileSync('spec/14-diagnostics.md', 'utf8').split('## 5. Retirement')[0];
 const codes = [...diagnostics.matchAll(/^\| ([EW]\d{5}) \|/gm)].map((match) => match[1]);
-assert(codes.length === 181 && new Set(codes).size === 181 && !diagnostics.includes('E10101'), 'diagnostics');
+assert(codes.length === 182 && new Set(codes).size === 182 && !diagnostics.includes('E10101'), 'diagnostics');
 const languageOwners = normative.filter((path) => !['00-introduction.md','14-diagnostics.md','15-platform-profile.md','appendix-c64.md'].includes(path)).map((path) => readFileSync(join('spec', path), 'utf8')).join('\n');
 assert(!/for_range|range_for|E10101|E10041|E10042|E10093|E10119|E10120|brk_contract|asm_(pha|pla|brk|sed|cld|clv|clc|sec)\(/.test(languageOwners), 'stale form');
 assert(!/[EW]\d{5}/.test(readFileSync('spec/00-feature-index.md', 'utf8')), 'copied diagnostics');
-console.log('V-05 PASS: 27 rules x 9 groups; grammar owners; 181 unique diagnostics; stale forms absent');
+assert(diagnostics.includes('| E10279 | Ch 15 |'), 'profile diagnostic owner');
+const profileChapter = readFileSync('spec/15-platform-profile.md', 'utf8');
+for (const phrase of ['E10279','c64-pal','c64-pal-d64-kernal-8580','c64u-pal']) assert(profileChapter.includes(phrase), `profile diagnostic ${phrase}`);
+console.log('V-05 PASS: 27 rules x 9 groups; grammar owners; 182 unique diagnostics including E10279; stale forms absent');
 const roundAway = (value) => value < 0 ? -Math.floor(-value + 0.5) : Math.floor(value + 0.5);
 const trig = (width, cosine = false) => { const n = 2 ** width; const a = 2 ** (width - 1) - 1; const values = Array.from({ length: n }, (_, p) => roundAway(a * (cosine ? Math.cos(2 * Math.PI * p / n) : Math.sin(2 * Math.PI * p / n)))); const bytes = width === 8 ? Buffer.from(values.map((v) => v & 255)) : Buffer.from(values.flatMap((v) => [v & 255, (v >> 8) & 255])); return { values, hash: hash(bytes) }; };
 for (let run = 0; run < 2; run += 1) { const s8 = trig(8); const c8 = trig(8, true); const s16 = trig(16); assert(s8.hash === 'fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259' && s16.hash === 'e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50', 'trig hash'); for (const [a, e] of [[s8.values[0],0],[c8.values[0],127],[s8.values[32],90],[s8.values[64],127],[s8.values[128],0],[s8.values[192],-127],[s16.values[8192],23170],[s16.values[16384],32767],[s16.values[32768],0],[s16.values[49152],-32767]]) assert(a === e, 'trig value'); }
@@ -759,6 +781,9 @@ const profileSection = readFileSync('spec/15-platform-profile.md', 'utf8').split
 const profiles = [...profileSection.matchAll(/^\| `(c64-[^`]+)` \|/gm)].map((match) => match[1]);
 const expectedProfiles = ['c64-pal-prg-kernal-6581','c64-pal-prg-kernal-8580','c64-pal-prg-takeover-6581','c64-pal-prg-takeover-8580','c64-ntsc-prg-kernal-6581','c64-ntsc-prg-kernal-8580','c64-ntsc-prg-takeover-6581','c64-ntsc-prg-takeover-8580','c64-pal-d64-kernal-6581'];
 assert(JSON.stringify(profiles) === JSON.stringify(expectedProfiles), 'profiles');
+const c64 = readFileSync('spec/appendix-c64.md', 'utf8');
+for (const phrase of ['owned_mask: $07','ddr_bits: $07','latch_bits: $06','latch low bits `$05`','c64_raw_irq','c64_raw_nmi','c64.system.setRawIRQ','c64.system.setRawNMI','vector_bytes: [$FFFE, $FFFF]','vector_bytes: [$FFFA, $FFFB]','replaces, rather than extends, all four interrupt-routing maps']) assert(c64.includes(phrase), `takeover ${phrase}`);
+for (const phrase of ['audio_player_contracts: {}','GoatTracker 2.77 must be the first','until its exact player/export hash and ABI evidence pass']) assert(c64.includes(phrase), `audio qualification ${phrase}`);
 const asmText = readFileSync('spec/12-intrinsics.md', 'utf8').split('cpu_intrinsic_name =')[1].split('```')[0];
 assert(JSON.stringify([...asmText.matchAll(/"(asm_[a-z]+)"/g)].map((m) => m[1])) === JSON.stringify(['asm_sei','asm_cli','asm_php','asm_plp','asm_nop']), 'asm set');
 const assets = readFileSync('spec/13-data-inclusion.md', 'utf8');

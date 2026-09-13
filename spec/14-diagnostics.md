@@ -247,6 +247,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10276 | F019 / Ch 03 / Ch 11 / Ch 13 | `Cannot prove '<read>' is the complete initialized value from load '<load>' — <failure_edge_mutation_join_or_alias_reason>` |
 | E10277 | F018 / Ch 06 | `Cannot prove a finite source-function target set for call through '<expression>' of type '<type>' — keep the value within closed-program typed storage` |
 | E10278 | F007 / F018 / Ch 06 | `Interrupt ownership for sink '<sink>' is invalid at '<operation>' — <detail>` |
+| E10279 | Ch 15 | `Target profile '<profile>' is not a complete qualified profile ID — choose one of: <qualified_profiles>` |
 
 E10267 owns invalid JSON, duplicate keys, non-object roots, wrong or missing artifact kinds,
 nonpositive or noninteger schema versions, and every malformed supported-version value. Its

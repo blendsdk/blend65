@@ -550,10 +550,12 @@ resume behavior; cadence, reentrancy, and call domains; CIA/SID/filter ownership
 assumptions; and feature-dependent byte/cycle costs. Source `const` prevents user writes but does not
 make player-owned state ROM-safe. The build report includes all those selected costs and ranges.
 
-GoatTracker 2.77 is the first qualified adapter family, including its optional player-native SFX
-entry and feature-pruned export. A minimal SFX-only player and a hash-bound custom player are equal
-supported paths. SID Factory II is only the next adapter candidate until independently qualified;
-GTUltra and multi-SID need a later, separately qualified profile.
+GoatTracker 2.77 is the first adapter family that must be qualified, including its optional
+player-native SFX entry and feature-pruned export. It is not active merely because a PSID payload or
+producer name is present: the selected profile must contain the exact evidence-backed hash-bound
+entry first. A minimal SFX-only player and a hash-bound custom player are equal supported paths.
+SID Factory II is only the next adapter candidate until independently qualified; GTUltra and
+multi-SID need a later, separately qualified profile.
 
 #### Koala Paint (.kla / .koa)
 

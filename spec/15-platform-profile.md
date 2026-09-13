@@ -38,8 +38,12 @@ through independent switches.
 | `c64-pal-d64-kernal-6581` | PAL | cooperative KERNAL | MOS 6581 at `$D400` | D64 |
 
 `c64-pal-prg-kernal-6581` is the first implementation profile. Unknown IDs, partial IDs, and
-unqualified combinations are errors before lowering and produce no artifact. Running a C64
-artifact on compatible hardware does not create another compiler target.
+unqualified combinations produce E10279 before lowering and no artifact. E10279 owns every target
+selection that is not exactly one complete ID in the table above. For example, `c64-pal` is a
+partial ID, `c64-pal-d64-kernal-8580` is an unqualified combination, and `c64u-pal` is unknown; each
+is E10279. The correction is to select one complete listed ID without adding independent video,
+SID, ownership, or artifact switches. Running a C64 artifact on compatible hardware does not create
+another compiler target.
 
 ---
 
@@ -296,6 +300,12 @@ platform: c64
 cpu: mos6510-nmos
 video_standard: pal
 clock_mhz: 0.985248
+runtime_ownership: cooperative_kernal
+
+processor_port:
+  owned_mask: $07
+  ddr_bits: $07
+  latch_bits: $06
 
 sid_chips:
   - address: $D400
@@ -323,6 +333,10 @@ interrupt_sources:
     may_preempt: [mainline, irq, nmi, callback]
     masks_self_on_entry: true
     external_reentry_bound: unbounded
+  nmi:
+    may_preempt: [mainline, irq, nmi, callback]
+    masks_self_on_entry: false
+    external_reentry_bound: unbounded
 
 interrupt_entry_variants:
   c64_kernal_cinv_chain:
@@ -347,14 +361,21 @@ interrupt_entry_variants:
     terminal: jump_firmware_restore_tail
     terminal_address: $EA81
     static_link_bytes: 0
-  raw_irq:
+  c64_kernal_nminv_chain:
     accepted_source_kind: interrupt_handler
     register_save_owner: compiler
-    handler_entry_stack_bytes: 6   # CPU P/PCL/PCH + compiler A/X/Y
+    handler_entry_stack_bytes: 7
+    decimal_mode_on_body_entry: binary
+    entry_status_policy: preserve_and_restore_before_chain
+    terminal: jump_saved_previous_vector
+    static_link_bytes: 2
+    static_link_low_byte_max: $FE
+  c64_kernal_nminv_exclusive:
+    accepted_source_kind: interrupt_handler
+    register_save_owner: compiler
+    handler_entry_stack_bytes: 6
     decimal_mode_on_body_entry: binary
     entry_status_policy: restore_by_rti
-    entry_normalization_bytes: 1   # CLD
-    entry_normalization_cycles: 2
     terminal: rti
     static_link_bytes: 0
 
@@ -369,11 +390,24 @@ function_address_sinks:
     entry_variant: c64_kernal_cinv_exclusive
     execution_domain: irq
     interrupt_source: irq
+  c64.system.setNMI:
+    accepted_source_kind: interrupt_handler
+    entry_variant: c64_kernal_nminv_chain
+    execution_domain: nmi
+    interrupt_source: nmi
+  c64.system.setNMIExclusive:
+    accepted_source_kind: interrupt_handler
+    entry_variant: c64_kernal_nminv_exclusive
+    execution_domain: nmi
+    interrupt_source: nmi
 
 recognized_interrupt_vectors:
   $0314:
     entry_contract: c64_kernal_cinv_postsave
     required_installer: c64.system.setIRQ
+  $0318:
+    entry_contract: c64_kernal_nminv_presave
+    required_installer: c64.system.setNMI
 
 # Empty in the default KERNAL-active profile. A raw C64 profile may add $FFFE
 # only with a fixed proof that RAM there is the active hardware vector.
