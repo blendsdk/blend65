@@ -171,7 +171,7 @@ These conventions are recommended but not enforced by the compiler:
 
 Keywords are reserved words that cannot be used as identifiers. The lexer matches identifier-shaped tokens against the keyword table and produces keyword-specific token types.
 
-**33 keywords in 7 categories:**
+**34 keywords in 7 categories:**
 
 #### Module system (F001, F002, F003)
 
@@ -179,10 +179,10 @@ Keywords are reserved words that cannot be used as identifiers. The lexer matche
 module    import    export    from
 ```
 
-#### Functions (F018, F007)
+#### Functions (F018, F007, F025)
 
 ```
-function    return    interrupt    fn
+function    return    interrupt    fn    comptime
 ```
 
 #### Control flow (F008, F009, F013)
@@ -227,7 +227,7 @@ enum    type
 
 ```ebnf
 keyword = "module" | "import" | "export" | "from"
-        | "function" | "return" | "interrupt" | "fn"
+        | "function" | "return" | "interrupt" | "fn" | "comptime"
         | "if" | "else" | "while" | "do" | "for"
         | "switch" | "case" | "default" | "fallthrough"
         | "break" | "continue"
@@ -259,12 +259,15 @@ embed   bcd_add   bcd_sub
 
 // Target encoding intrinsics (F014)
 petscii   screen_codes   atascii   internal_codes
+
+// Compile-time trigonometry intrinsics (F025)
+sin8   cos8   sin16   cos16
 ```
 
 The four encoding names remain reserved on every target. An unavailable encoding call is E10125,
 not a user-function call.
 
-**Total: 29 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
+**Total: 33 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
 
 **Rules:**
 - The lexer does NOT distinguish these from regular identifiers — it produces `IDENTIFIER` for all of them.
@@ -650,14 +653,14 @@ CHAR            // Character literals ('.')
 IDENTIFIER      // User-defined names and reserved built-in identifiers
 ```
 
-### Keywords (33 types)
+### Keywords (34 types)
 
 ```
 // Module system
 KW_MODULE  KW_IMPORT  KW_EXPORT  KW_FROM
 
 // Functions
-KW_FUNCTION  KW_RETURN  KW_INTERRUPT  KW_FN
+KW_FUNCTION  KW_RETURN  KW_INTERRUPT  KW_FN  KW_COMPTIME
 
 // Control flow
 KW_IF  KW_ELSE  KW_WHILE  KW_DO  KW_FOR
@@ -719,7 +722,7 @@ DOT                 // .
 EOF                 // End of input
 ```
 
-**Total: 80 token types** (3 literal + 1 identifier + 33 keyword + 32 operator + 10 punctuation + 1 special)
+**Total: 81 token types** (3 literal + 1 identifier + 34 keyword + 32 operator + 10 punctuation + 1 special)
 
 ---
 
@@ -976,7 +979,11 @@ This is standard C behavior and requires no lexer-level disambiguation.
 - All operator tokens are defined here. Precedence and semantics are in F017; tokenization is here.
 
 ### With F018 (Functions)
-- `function`, `return` are keywords.
+- `function`, `return`, and function-type `fn` are keywords.
+
+### With F025 (Compile-time functions)
+- `comptime` is a keyword.
+- `sin8`, `cos8`, `sin16`, and `cos16` are reserved built-in identifiers.
 
 ### With F019 (Variables & constants)
 - `let`, `const` are keywords.
@@ -1207,4 +1214,4 @@ None. All 23 rules pass.
 
 **✅ ACCEPTED**
 
-F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F024 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 80 token types, 33 keywords, 29 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.
+F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F025 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 81 token types, 34 keywords, 33 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.

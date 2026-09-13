@@ -37,15 +37,20 @@ function_decl  = [ "export" ] , "function" , identifier
                , ":" , return_type
                , block ;
 
+comptime_decl  = [ "export" ] , "comptime" , "function" , identifier
+               , "(" , [ parameter_list ] , ")"
+               , ":" , return_type
+               , block ;
+
 parameter_list = parameter , { "," , parameter } ;
 parameter      = identifier , ":" , [ "const" ] , value_type ;
 
 return_type    = "void" | value_type ;
 ```
 
-The shared master `value_type` production includes primitive types, struct and enum type names, and
-array types. Every complete value type is valid as a return type. An unsized `T[]` parameter form is
-not a complete value and is rejected as a return type with E10253.
+The shared master `value_type` production includes primitive, struct, enum, array, and ordinary
+function-value types. Every complete value type is valid as a return type. An unsized `T[]`
+parameter form is not a complete value and is rejected as a return type with E10253.
 
 ### 2.2 Examples
 
@@ -922,6 +927,7 @@ public presentation.
 | E10102 | A value-returning function has a reachable path that exits without a value. | The function is rejected. |
 | E10180 | The call graph contains a direct self-edge. | Recursion is rejected. |
 | E10181 | The call graph contains an indirect cycle. | Recursion is rejected with the ordered cycle. |
+| E10191 | A compile-time function or call depends on runtime/host state or uses a forbidden operation. | Compile-time evaluation is rejected at the prohibited source span. |
 | E10050 | An interrupt function differs from `(): void`. | The entry declaration is rejected. |
 | E10051 | Source code directly calls an interrupt-entry function. | The call is rejected; ordinary helpers remain callable. |
 | E10244 | A known ordinary `RTS` function reaches a compiler-recognized interrupt-handler sink. | The ABI mismatch is rejected. |
@@ -934,6 +940,9 @@ public presentation.
 | E10260 | An address derived from local-origin storage reaches a return, persistent/raw/MMIO store, asynchronous publication, retaining or unknown call, or another opaque escape. | The escaping use is rejected; use a proven non-retaining call, module-level storage, or caller-owned data. |
 | E10267 | A call through a typed function value has no finite compiler-proven source target set. | The call is rejected; keep the value inside closed-program typed storage. |
 | E10268 | An interrupt helper restore does not match the active per-sink LIFO owner, control-flow states disagree, or a raw vector write invalidated ownership. | The lifecycle operation is rejected; balance the sink's installs and restores. |
+| E10269 | A selected compile-time node would charge abstract step 16,777,217. | The root is poisoned before the node or any effect. |
+| E10270 | A compile-time allocation would exceed 16,777,216 live logical bytes. | The root is poisoned before allocation or mutation. |
+| E10271 | A compile-time call would enter active depth 513. | The root is poisoned before argument evaluation or callee entry. |
 
 ### Warning Conditions
 
@@ -953,6 +962,7 @@ public presentation.
 | **Entry point** (→ Ch 10) | `main()` follows all Ch 06 rules. Signature must be `function main(): void`. Entry-point rules are additional constraints on top of function rules. |
 | **Address-of** (→ Ch 04, §8) | Ordinary functions produce exact `fn(...)` values; interrupt functions produce distinct handler values. Explicit conversion to `word` is one-way proof erasure. A local-origin storage address remains a borrow bounded by that local's dynamic lifetime; E10260 rejects a return, longer-lived store, or retaining/unknown call. |
 | **Type system** (→ Ch 02) | Return type annotation required (TS-1). Function signatures match exactly. Call arguments follow parameter compatibility, including ordinary integer promotion and E10081 mixed-signedness rejection. |
+| **Compile-time functions** (§13) | Reuse ordinary types, expressions, blocks, loops, and aggregate returns under a pure bounded evaluator. They emit constants only and have no target ABI or SFA frame. |
 | **Control flow** (→ Ch 05) | `return` is a control flow statement. Ordinary nested shadowing applies inside function bodies. Parameters and outermost-body declarations share one E10003 duplicate domain. E10102 (not all paths return) is enforced for non-void functions. |
 | **Structs** (→ Ch 07) | Parameters are zero-copy borrows (FN-3). Fixed structs are ordinary exact-type assignment and return values. `const` prevents mutation through a borrowed parameter or derived address. |
 | **Arrays** (→ Ch 08) | Parameters are zero-copy borrows (FN-3). Fixed arrays are ordinary exact-shape assignment and return values; unsized `T[]` remains parameter-only. `const` prevents mutation through a borrowed parameter or derived address. |
@@ -1114,3 +1124,94 @@ function applyMovement(dx: sbyte, dy: sbyte): void {
 //   [return to processInput]            2 bytes
 //   Total: 4 bytes of hardware stack
 ```
+
+---
+
+## 13. Compile-Time Functions
+
+### 13.1 Declaration and Use
+
+A compile-time function is a module-level typed function evaluated by the compiler:
+
+```blend65
+comptime function makeWave(): sbyte[256] {
+    let values: sbyte[256] = [; 0];
+    for (let phase: word = 0; phase < 256; phase += 1) {
+        values[phase] = sin8(byte(phase));
+    }
+    return values;
+}
+
+const WAVE: sbyte[256] = makeWave();
+```
+
+The optional `export` modifier precedes `comptime`. Parameters, return types, local declarations,
+expressions, conditions, loops, fixed arrays and structs, and caller-owned aggregate returns use
+their ordinary language rules. Every argument and externally read value must be a compile-time
+constant. A successful call is replaced by its constant result and emits no target instruction,
+function body, SFA frame, stack use, zero-page scratch, or runtime helper. Only a retained result
+occupies target data bytes.
+
+Compile-time functions may mutate their own evaluator-local `let` values and may read existing
+constants, including already validated embedded data. They may directly call other compile-time
+functions and the four compile-time trigonometry intrinsics (→ Ch 04, §9.4).
+
+They may not read or modify runtime state or MMIO; call an ordinary runtime or interrupt function;
+make an indirect call; use `peek`, `peekw`, `poke`, `pokew`, or any `asm_*` intrinsic; invoke
+`embed()` inside the function; or observe files, time, randomness, environment, network, or other
+host state. E10191 rejects the prohibited dependency or operation at its source span. Taking the
+address of a compile-time function is E10043 because it has no target entry point. Direct and
+indirect recursion remain E10180 and E10181.
+
+### 13.2 Deterministic Root Order
+
+A compile-time root is one outermost constant-expression evaluation requested by semantic
+analysis. Dependencies run first. Among ready roots, the owning declaration's fully qualified name
+uses case-sensitive ASCII order; multiple roots within one owner follow the grammar's left-to-right
+source order. Normal expression and statement evaluation order then applies inside the root. This
+order is independent of file paths, compiler-input order, host scheduling, and caching.
+
+### 13.3 `comptime-budget-v1`
+
+One non-configurable counter set is shared by every root in one `check` or `build`:
+
+| Resource | Exact limit | First rejected attempt |
+|---|---:|---|
+| Abstract steps | 16,777,216 | Step 16,777,217 |
+| Peak live logical value storage | 16,777,216 bytes | Any allocation that would exceed the limit |
+| Active compile-time calls | 512 | A call that would enter depth 513 |
+
+The first function or trigonometry-intrinsic invocation in a root is depth 1. Each nested direct
+call increments the active depth and return decrements it. A call that would enter depth 513 fails
+before argument evaluation or callee entry.
+
+One step is charged before each selected expression-node evaluation, statement-node execution,
+loop iteration, compile-time function or intrinsic entry, and logical aggregate byte initialized,
+copied, or materialized. Repeated execution charges repeatedly. Short-circuited expressions and
+unselected branches charge nothing. A memoized or cached implementation must charge exactly as if
+the uncached semantic evaluation ran, including the same logical live-memory transitions.
+
+Logical memory uses Blend65 widths: scalars and function values use their defined byte size;
+arrays and structs use normative `sizeof`. Parameters, locals, expression temporaries, in-progress
+aggregates, return values, and retained generated constants count while live. An alias adds no
+bytes. Reading an existing immutable constant or validated embedded asset without copying adds no
+second charge. A semantic copy or materialization counts its bytes and the corresponding aggregate-byte
+steps. “Copy” means the unoptimized language-semantic copy: host sharing, direct construction,
+or copy elision cannot change the charge or logical lifetime. Storage is released at its defined
+full-expression, block, call, or compile-time-evaluation phase boundary; later allocation uses the
+reduced live total.
+
+The operation that would exceed a limit fails before its node, effect, mutation, argument
+evaluation, allocation, or body entry. Exactly 16,777,216 steps or live bytes and depth 512 are
+legal. The failed root and dependent results are poisoned, evaluator-internal partial values are
+discarded, and the `build` emits no target artifact. A host allocation failure is a separate
+bounded compiler failure, never E10270, and also publishes no artifact when it can be reported or
+cleaned up.
+
+The limits and accounting are not configurable through source, manifest, environment, or CLI.
+Changing an accounting unit or lowering a limit is a breaking language change; raising a limit
+requires a new named budget/specification version.
+
+E10269, E10270, and E10271 name `comptime-budget-v1`, the exact limit and attempted usage, and the
+root. Their primary span is the rejected node, allocation-producing operation, or call; a related
+span identifies the root invocation.

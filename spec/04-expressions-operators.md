@@ -349,6 +349,7 @@ address_of_expr = "&" , unary_expr ;
 | Zeropage variable | ✅ | Returns zero-page address (0–255) |
 | Ordinary function name | ✅ | Returns its exact `fn(...)` value |
 | Interrupt function name | ✅ | Returns a distinct non-callable handler value |
+| Compile-time function name | ❌ E10043 | Compile-time functions emit no target entry point |
 | `const` scalar | ❌ E10040 | Scalar constants are inlined; no address |
 | `const` array | ✅ | Array constants have ROM addresses |
 | Scalar parameter | ✅ with lifetime restriction | Local-origin borrow bounded by the invocation |
@@ -620,6 +621,50 @@ length(DATA)    // 100
   particular use when that preserves behavior.
 - Evaluated at compile time for a fixed-extent array. For an any-size array parameter, it loads the
   full 16-bit element count supplied by the caller and is not a constant expression.
+
+### 9.4 Compile-Time Integer Trigonometry
+
+These four reserved intrinsics evaluate only at compile time:
+
+| Intrinsic | Signature | Result range |
+|---|---|---:|
+| `sin8` | `fn(byte): sbyte` | `-127..127` |
+| `cos8` | `fn(byte): sbyte` | `-127..127` |
+| `sin16` | `fn(word): sword` | `-32767..32767` |
+| `cos16` | `fn(word): sword` | `-32767..32767` |
+
+These signatures define argument and result checking; the reserved intrinsics are not function
+values and cannot be addressed or called indirectly (E10043).
+
+For width `k` in `{8, 16}`, let `N = 2^k`, `A = 2^(k-1)-1`, and let unsigned phase `p`
+denote `p/N` turns:
+
+```text
+sin_k(p) = roundNearestAwayFromZero(A × sin(2πp/N))
+cos_k(p) = sin_k((p + N/4) mod N)
+```
+
+Nearest values are selected; an exact half is rounded away from zero. Equivalently, use
+`floor(x + 0.5)` when `x >= 0` and `ceil(x - 0.5)` when `x < 0`. The formula defines every result;
+it does not prescribe the compiler's calculation algorithm.
+
+| Input | Result | Input | Result |
+|---|---:|---|---:|
+| `sin8(0)` | 0 | `cos8(0)` | 127 |
+| `sin8(32)` | 90 | `sin8(64)` | 127 |
+| `sin8(128)` | 0 | `sin8(192)` | -127 |
+| `sin16(8192)` | 23170 | `sin16(16384)` | 32767 |
+| `sin16(32768)` | 0 | `sin16(49152)` | -32767 |
+
+The canonical `sin8` stream encodes phases `0..255` as one two's-complement byte per result and has
+SHA-256 `fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259`. The canonical
+`sin16` stream encodes phases `0..65535` as little-endian two's-complement words and has SHA-256
+`e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50`. Cosine uses the stated
+wrapped quarter-turn relation.
+
+Arguments and results participate in the shared compile-time evaluation budget (→ Ch 06). The
+intrinsics emit no target instructions, runtime helper, RAM, or zero-page storage. Only a retained
+resulting constant occupies target bytes.
 
 ---
 

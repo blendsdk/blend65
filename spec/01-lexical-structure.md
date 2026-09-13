@@ -134,7 +134,7 @@ These conventions are recommended but not enforced by the compiler:
 
 Keywords are reserved words that cannot be used as identifiers. The lexer matches identifier-shaped tokens against the keyword table and produces keyword-specific token types.
 
-**33 keywords in 7 categories:**
+**34 keywords in 7 categories:**
 
 **Module system** (→ Ch 10):
 ```
@@ -143,7 +143,7 @@ module    import    export    from
 
 **Functions** (→ Ch 06):
 ```
-function    return    interrupt    fn
+function    return    interrupt    fn    comptime
 ```
 
 **Control flow** (→ Ch 05):
@@ -181,7 +181,7 @@ enum    type
 
 ```ebnf
 keyword = "module" | "import" | "export" | "from"
-        | "function" | "return" | "interrupt" | "fn"
+        | "function" | "return" | "interrupt" | "fn" | "comptime"
         | "if" | "else" | "while" | "do" | "for"
         | "switch" | "case" | "default" | "fallthrough"
         | "break" | "continue"
@@ -249,10 +249,15 @@ bcd_add   bcd_sub
 petscii   screen_codes   atascii   internal_codes
 ```
 
+**Compile-time trigonometry intrinsics** (→ Ch 04, Ch 06):
+```
+sin8   cos8   sin16   cos16
+```
+
 All four encoding names are reserved on every target so declaration meaning does not change with
 the selected platform. Calling a name unavailable in the selected profile is E10125.
 
-**Total: 29 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
+**Total: 33 globally reserved built-in identifiers, plus the entry-reserved name `main`.**
 
 **Design rationale:** Keeping these as identifiers (not keywords) keeps the keyword table small and
 the lexer simple. The semantic analyzer resolves intrinsic calls, produces **E10212** for intrinsic
@@ -602,7 +607,7 @@ Every token carries position information for error reporting:
 
 ## 12. Complete Token Type Enumeration
 
-**80 token types** total:
+**81 token types** total:
 
 ### Literals (3)
 
@@ -620,11 +625,11 @@ Boolean literals are keywords (`KW_TRUE`, `KW_FALSE`), not a separate literal ty
 |-----------|-------------|
 | `IDENTIFIER` | User-defined names and reserved built-in identifiers |
 
-### Keywords (33)
+### Keywords (34)
 
 ```
 KW_MODULE    KW_IMPORT    KW_EXPORT    KW_FROM
-KW_FUNCTION  KW_RETURN    KW_INTERRUPT  KW_FN
+KW_FUNCTION  KW_RETURN    KW_INTERRUPT  KW_FN       KW_COMPTIME
 KW_IF        KW_ELSE      KW_WHILE     KW_DO       KW_FOR
 KW_SWITCH    KW_CASE      KW_DEFAULT   KW_FALLTHROUGH
 KW_BREAK     KW_CONTINUE

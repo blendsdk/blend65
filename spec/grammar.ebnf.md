@@ -39,6 +39,7 @@ program         = module_decl , { top_level_item } ;
 
 top_level_item  = import_stmt
                 | function_decl
+                | comptime_decl
                 | interrupt_decl
                 | struct_decl
                 | enum_decl
@@ -84,6 +85,11 @@ zeropage_var    = [ "export" ] , identifier , ":" , value_type
 
 ```ebnf
 function_decl   = [ "export" ] , "function" , identifier
+                , "(" , [ param_list ] , ")"
+                , ":" , return_type
+                , block ;
+
+comptime_decl   = [ "export" ] , "comptime" , "function" , identifier
                 , "(" , [ param_list ] , ")"
                 , ":" , return_type
                 , block ;
@@ -402,7 +408,8 @@ const_expression = expression ;
 
 A `const_expression` is syntactically identical to `expression`. The **semantic pass**
 verifies that all operands are compile-time constants (literal values, `const` variables,
-`sizeof`, `offsetof`, fixed-array `length`, `lo`, `hi`). An any-size parameter's `length` is a
+`sizeof`, `offsetof`, fixed-array `length`, `lo`, `hi`, compile-time function calls, and compile-time
+trigonometry intrinsics). An any-size parameter's `length` is a
 runtime word and therefore fails this semantic check. Chapter 14 owns the canonical diagnostic when a
 runtime value appears in a constant-expression context.
 
@@ -416,6 +423,7 @@ runtime value appears in a constant-expression context.
 intrinsic_call  = cpu_intrinsic
                 | memory_intrinsic
                 | query_intrinsic
+                | trig_intrinsic
                 | ( "bcd_add" | "bcd_sub" ) , "(" , expression , "," , expression , ")"
                 | ( "petscii" | "screen_codes" | "atascii" | "internal_codes" )
                   , "(" , ( string_literal | char_literal ) , [ "," , string_literal ] , ")"
@@ -430,6 +438,9 @@ cpu_intrinsic_name = "asm_sei" | "asm_cli"
                    | "asm_cld" | "asm_sed"
                    | "asm_clv"
                    | "asm_nop" | "asm_brk" ;
+
+trig_intrinsic  = ( "sin8" | "cos8" ) , "(" , expression , ")"
+                | ( "sin16" | "cos16" ) , "(" , expression , ")" ;
 ```
 
 All reserved built-ins are identifier-shaped lexer tokens rather than keywords. In primary
@@ -490,11 +501,11 @@ The lexical production admits every identifier-shaped spelling. Semantic analysi
 and reserved intrinsic names in declaration positions; the entry-reserved spelling `main` is legal
 only for the exact Chapter-10 entry-function declaration (→ Ch 01, §5–§7).
 
-### 9.2 Keywords (33 total)
+### 9.2 Keywords (34 total)
 
 ```ebnf
 keyword         = "module" | "import" | "export" | "from"
-                | "function" | "return" | "interrupt" | "fn"
+                | "function" | "return" | "interrupt" | "fn" | "comptime"
                 | "if" | "else" | "while" | "do" | "for"
                 | "switch" | "case" | "default" | "fallthrough"
                 | "break" | "continue"
@@ -514,13 +525,14 @@ contextual_keyword = "as" ;
 valid identifier elsewhere. The former range words `until`, `to`, `downto`, and `step` are ordinary
 identifiers with no contextual role.
 
-### 9.4 Reserved Built-in Names (29 total)
+### 9.4 Reserved Built-in Names (33 total)
 
 ```ebnf
 reserved_builtin = "peek" | "poke" | "peekw" | "pokew"
                  | "lo" | "hi" | "sizeof" | "offsetof" | "length"
                  | "embed" | "bcd_add" | "bcd_sub"
                  | "petscii" | "screen_codes" | "atascii" | "internal_codes"
+                 | "sin8" | "cos8" | "sin16" | "cos16"
                  | "asm_sei" | "asm_cli" | "asm_pha" | "asm_pla"
                  | "asm_php" | "asm_plp" | "asm_clc" | "asm_sec"
                  | "asm_cld" | "asm_sed" | "asm_clv"
@@ -616,6 +628,7 @@ All grammar productions listed alphabetically for quick reference:
 | `const_decl` | §3.1 | Top-level `const` declaration |
 | `const_decl_local` | §5.2 | Local `const` declaration |
 | `const_expression` | §6.8 | Compile-time evaluable expression context |
+| `comptime_decl` | §3.2 | Compile-time-only typed function declaration |
 | `contextual_keyword` | §9.3 | Import-alias `as` |
 | `continue_stmt` | §5.10 | `continue;` |
 | `cpu_intrinsic` | §7.1 | CPU-control intrinsic call |
@@ -670,7 +683,7 @@ All grammar productions listed alphabetically for quick reference:
 | `program` | §2.1 | One source compilation unit |
 | `qualified_name` | §2.3 | Dot-separated module identity |
 | `relational_expr` | §6.2 | `<`, `<=`, `>`, `>=` |
-| `reserved_builtin` | §9.4 | 29 reserved built-in identifiers; `main` is separately entry-reserved |
+| `reserved_builtin` | §9.4 | 33 reserved built-in identifiers; `main` is separately entry-reserved |
 | `return_stmt` | §5.10 | `return [expression];` |
 | `return_type` | §3.2 | `void` or any complete value type; unsized parameter arrays are rejected semantically |
 | `shift_expr` | §6.2 | `<<`, `>>` |
@@ -682,6 +695,7 @@ All grammar productions listed alphabetically for quick reference:
 | `struct_literal` | §6.6 | Context-typed `{ field: value }` |
 | `switch_stmt` | §5.9 | Switch statement |
 | `top_level_item` | §2.1 | Any declaration after the module header |
+| `trig_intrinsic` | §7.1 | Exact compile-time integer trigonometry call |
 | `type` | §4 | Value type or `void` |
 | `unary_expr` | §6.3 | Prefix or postfix-based expression |
 | `value_type` | §4 | Any non-void type |
@@ -690,7 +704,7 @@ All grammar productions listed alphabetically for quick reference:
 | `zeropage_block` | §3.1 | Module-level zero-page declarations |
 | `zeropage_var` | §3.1 | Mutable zero-page declaration |
 
-**Total productions: 99**
+**Total productions: 101**
 
 ---
 

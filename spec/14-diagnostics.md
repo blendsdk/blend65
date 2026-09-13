@@ -27,7 +27,7 @@ maximum unless this registry explicitly records a migration.
 ## 2. Presentation Contract
 
 ```text
-error[E10043]: Address-of requires an addressable storage place or function — '<expr>' is a temporary value
+error[E10043]: Address-of requires an addressable storage place or target function — '<expr>' has no target address
   --> player.blend:42:13
    |
 42 |     let p: word = &(score + 1);
@@ -110,7 +110,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10033 | F005 / Ch 03 | `Unexpected '<keyword>' in zeropage block — declare '[export] name: type [= expression];' without 'let' or 'const'` |
 | E10034 | Ch 11 | `Output binary (<size> bytes) exceeds platform '<platform>' maximum binary size (<limit> bytes)` |
 | E10040 | F006 / Ch 04 | `Cannot take address of constant '<name>' — an inlined scalar constant has no storage address` |
-| E10043 | F006 / Ch 04 | `Address-of requires an addressable storage place or function — '<expr>' is a literal or temporary value` |
+| E10043 | F006 / F025 / Ch 04 | `Address-of requires an addressable storage place or target function — '<expr>' has no target address` |
 | E10050 | F007 / Ch 06 | `Interrupt function '<name>' must have signature '(): void' — found '<actual>'` |
 | E10051 | F007 / Ch 06 | `Cannot call interrupt function '<name>' directly — use '&<name>' for installation in an interrupt-entry sink` |
 | E10063 | F008 / Ch 05 | `'<keyword>' can only be used inside a loop body` |
@@ -177,7 +177,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10180 | F018 / Ch 06 | `Direct recursion — function '<name>' calls itself; use iteration or an explicit fixed-capacity work structure` |
 | E10181 | F018 / Ch 06 | `Indirect recursion detected — cycle: <fn1> → <fn2> → ... → <fn1>` |
 | E10190 | F019 / Ch 03 | `Const declaration '<name>' requires an initializer` |
-| E10191 | F019 / Ch 03 | `Const initializer must be a compile-time constant expression — found '<expr>'` |
+| E10191 | F019 / F025 / Ch 03 / Ch 06 | `Expression must be compile-time evaluable — <detail>` |
 | E10192 | F019 / Ch 03 | `Cannot assign to const '<name>'` |
 | E10194 | Ch 10 | `Circular module initializer dependency: <ordered_cycle>` |
 | E10200 | F020 / Ch 04 | `'sizeof' requires a type name — found '<expr>'` |
@@ -239,6 +239,9 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10266 | F020 / Ch 04 | `'sizeof' requires a fixed-size type — unsized array type '<type>[]' has no standalone extent` |
 | E10267 | F018 / Ch 06 | `Cannot prove a finite source-function target set for call through '<expression>' of type '<type>' — keep the value within closed-program typed storage` |
 | E10268 | F007 / F018 / Ch 06 | `Interrupt ownership for sink '<sink>' is invalid at '<operation>' — <detail>` |
+| E10269 | F025 / Ch 06 | `Compile-time evaluation step budget exceeded — 'comptime-budget-v1' allows 16777216 steps; attempted step 16777217 while evaluating root '<root>'` |
+| E10270 | F025 / Ch 06 | `Compile-time evaluation memory budget exceeded — 'comptime-budget-v1' allows 16777216 live logical bytes; allocating <requested> bytes would require <attempted> while evaluating root '<root>'` |
+| E10271 | F025 / Ch 06 | `Compile-time call-depth budget exceeded — 'comptime-budget-v1' allows 512 active calls; call to '<callee>' would enter depth 513 while evaluating root '<root>'` |
 
 ---
 
@@ -332,7 +335,7 @@ code with the same number.
 | E10172 missing return on a path | E10102; E10172 remains argument type mismatch. |
 | E10174 recursion | E10180/E10181; E10174 remains bare return in a non-void function. |
 | E10175 eight-parameter maximum | Retired; there is no language parameter-count limit. |
-| E10191 assignment to const | E10192; E10191 remains non-constant const initializer. |
+| E10191 assignment to const | E10192; E10191 remains compile-time evaluability failure. |
 | E10192 const without initializer | E10190; E10192 remains assignment to const. |
 | E10193 non-constant initializer | E10191; E10193 is retired. |
 | E10200 embed outside const | E10134; E10200 remains invalid `sizeof` argument. |
