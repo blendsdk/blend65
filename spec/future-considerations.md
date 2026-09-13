@@ -1,14 +1,14 @@
-# Blend65 v3 — Future Considerations
+# Blend65 — Future Considerations
 
 > **Created**: May 25, 2026  
-> **Purpose**: Living document tracking features explicitly deferred from v3 for potential inclusion in future versions.  
+> **Purpose**: Living document tracking deferred, resolved, and rejected language ideas.
 > **Rule**: Items are added here when a design decision consciously defers functionality. Each item records what was deferred, why, and under what conditions it should be reconsidered.
 
 ---
 
 ## How to Use This Document
 
-- When a feature evaluation defers functionality (e.g., "not in v3 — keep it minimal"), add an entry here.
+- When a feature evaluation defers functionality, add an entry here.
 - Each entry has a **source** (the feature evaluation that created it), a **description**, and **reconsideration criteria**.
 - Items are NOT promises — they are candidates for future evaluation against the Language Guard.
 
@@ -16,68 +16,37 @@
 
 ## Deferred Items
 
-### FUT-001: Address-of on struct fields and array elements
+### ~~FUT-001: Address-of on struct fields and array elements~~ — ✅ RESOLVED
 
 > **Source**: F006 (Address-of Operator), Ambiguity AO-4  
-> **Deferred from**: v3
-> **Priority**: Medium
+> **Resolved in**: Specification 4
 
-**What**: Allow `&myStruct.field` and `&buffer[5]` to return the memory address of a struct field or array element.
-
-**Why deferred**: Keeps the `&` operator minimal in v3 (Language Guard L4). A named,
-addressable object can be adjusted manually with `&variable + offset` only while the derived
-address remains within that object's lifetime. This is not a universal substitute: function
-parameters cannot be addressed in v3, and local-derived addresses retain the local's provenance
-and may not escape its source lifetime.
-
-**Reconsideration criteria**:
-- Real-world Blend65 code frequently needs field/element addresses
-- A clean syntax exists that doesn't introduce pointer arithmetic ambiguities
-- The codegen cost is predictable and documented
+**How it was resolved**: `&` accepts every real addressable storage place, including nested struct
+fields and indexed array elements. Each place component is evaluated once. The result preserves
+the origin's lifetime and read-only provenance, and E10260 rejects an escaping local-origin address.
 
 ---
 
-### FUT-002: Address-of on function parameters
+### ~~FUT-002: Address-of on function parameters~~ — ✅ RESOLVED
 
 > **Source**: F006 (Address-of Operator), Ambiguity AO-3  
-> **Deferred from**: v3  
-> **Priority**: Low
+> **Resolved in**: Specification 4
 
-**What**: Allow `&param` inside a function to get the address of a parameter.
-
-**Why deferred**: In SFA, parameters have static addresses, so this is technically safe. However, it's confusing — the parameter's address is a compiler implementation detail, and exposing it encourages fragile code patterns. Simpler to copy the parameter to a local variable and take `&local`.
-
-**Reconsideration criteria**:
-- Compelling use case where copying to a local is insufficient
-- Clear semantics that don't confuse beginners
+**How it was resolved**: Parameters are borrowed storage places, so `&param` returns their address
+without forcing a copy. Mutability and lifetime follow the parameter contract; a caller-local
+origin remains subject to E10260 on any retaining or otherwise unproven path.
 
 ---
 
-### FUT-003: First-class typed function pointers and indirect calls — REFINED
+### ~~FUT-003: First-class typed function values and indirect calls~~ — ✅ RESOLVED
 
 > **Source**: F007 (Interrupt Functions), Ambiguity INT-2
-> **Deferred from**: v3
-> **Priority**: Medium
+> **Resolved in**: Specification 4
 
-**What remains future**: Add first-class function pointer values and source-level indirect calls.
-The type system for those values would need to distinguish ordinary `RTS` callees from callback-only
-interrupt handlers and their raw or firmware-mediated entry variants.
-
-**What is no longer deferred**: A full function-pointer type system is not required to make known
-platform operations safe. The selected platform profile declares recognized sinks. The compiler
-preserves a finite set of possible function identities and entry ABIs through direct scalar
-declarations, assignments, copies, identity casts, and conditional selection while storage remains
-unescaped. An interrupt-handler sink accepts only an `interrupt function` and selects its exact raw
-or firmware-mediated entry variant; an IRQ-context callback sink may accept an ordinary `RTS`
-helper. Incompatible known provenance is E10244; erased or unknown provenance at a recognized sink
-is E10247. Integer transformation, address escape, or an unknown external boundary erases proof.
-An exactly visible raw write to a known incompatible firmware vector is E10252; only a genuinely
-opaque raw-memory boundary escapes certification.
-
-**Reconsideration criteria**:
-- A real program needs to store or select among callable function values
-- A minimal function-pointer type system can preserve ABI and execution-domain facts
-- The feature passes the full Language Guard evaluation
+**How it was resolved**: Typed `fn(...)` values support assignment, storage, parameters, returns,
+conditional selection, and indirect calls while the compiler retains a finite set of possible
+source targets. E10267 rejects a call after that proof is lost. Interrupt handlers remain a
+distinct, non-callable type; recognized installation sinks enforce handler ABI and LIFO ownership.
 
 ---
 
@@ -117,7 +86,8 @@ types. Passing an ordinary function is a compile-time error. A visible raw entry
 incompatible firmware vector is also rejected; a genuinely opaque address remains an unsafe proof
 boundary.
 
-FUT-003 now covers only true first-class callable values and indirect calls.
+Typed callable values are now resolved by FUT-003; this entry records the separate interrupt-sink
+part of that completed design.
 
 ---
 
@@ -191,47 +161,26 @@ switch (score) {
 
 ---
 
-### FUT-009: Address-of on struct fields
+### ~~FUT-009: Address-of on struct fields~~ — ✅ RESOLVED
 
 > **Source**: F011 (Structs), Ambiguity SR-A5  
-> **Deferred from**: v3  
-> **Priority**: Medium
+> **Resolved in**: Specification 4
 
-**What**: Allow `&player.hp` to return the address of a specific struct field. For module-level structs, the address is compile-time constant. For by-reference parameters, requires runtime address calculation.
-
-**Why deferred**: Overlaps with FUT-001. For a named, addressable struct object, developers may
-compute `&struct + offsetof(StructType, field)` while the derived address stays within the
-object's lifetime. That workaround does not apply to a by-reference parameter because `&param`
-is E10041. Until FUT-001, FUT-002, or FUT-009 is implemented, a caller that needs a parameter
-field address must pass that address separately.
-
-**Reconsideration criteria**:
-- FUT-001 is implemented (address-of on sub-expressions)
-- Common enough pattern in real-world code to justify compiler support
-- Runtime address calculation cost is documented and acceptable
+**How it was resolved**: This duplicate of FUT-001 is resolved by the same storage-place rule.
+`&player.hp` and a parameter-field address are ordinary address expressions with one evaluation of
+their base and with the base's provenance preserved.
 
 ---
 
-### FUT-010: Aggregate return values
+### ~~FUT-010: Aggregate return values~~ — ✅ RESOLVED
 
 > **Source**: F011 (Structs), Rule SR-2; F014 (Arrays), array-return rule
-> **Deferred from**: v3  
-> **Priority**: Low
+> **Resolved in**: Specification 4
 
-**What**: Allow functions to return fixed structs and fixed arrays, such as
-`function createEnemy(): Enemy` or `function makePattern(): byte[16]`.
-
-**Why deferred**: The current v3 restriction is language-design debt, not a 6502 hardware
-necessity. The preferred redesign is a caller-owned hidden return destination integrated with
-SFA: the caller supplies the final storage and the callee constructs the aggregate directly
-there. This needs complete alias, lifetime, nested-call, interrupt-domain, resource, and
-diagnostic rules before it can become normative. It does not require a heap or general runtime.
-
-**Reconsideration criteria**:
-- Caller-owned destination passing is specified for structs and fixed arrays
-- Direct construction and copy elision are proved without changing observable source behavior
-- Alias, lifetime, nested-call, IRQ/NMI overlap, SFA closure, and complete costs are specified
-- Existing E10093/E10120 call sites have a clear migration and diagnostic path
+**How it was resolved**: Fixed structs and fixed arrays are ordinary exact-shape return values.
+The caller supplies a hidden destination closed through SFA, and the callee constructs directly
+there when legal. Alias-safe value semantics, nested calls, lifetime, interrupt overlap, and
+resource reporting are defined without a heap or generic runtime. E10093 and E10120 are retired.
 
 ---
 
@@ -250,7 +199,9 @@ extern function rasterEffect(): void;
 
 The assembly is written in a real assembler (KickAssembler, ca65, DASM) and linked with the Blend65 compiler output.
 
-**Why deferred**: Requires a linker, a defined binary/object format, a calling convention specification, and external tool dependency. The curated `asm_*()` intrinsics + language features + memory intrinsics cover all game development needs without external assembly. The only use cases that genuinely require hand-written assembly are demo-scene effects (FLD, VSP, AGSP, FLI) — cycle-counted techniques not used in commercial games.
+**Why deferred**: This needs a defined ABI and object/link contract, symbol and placement rules,
+tool integration, and qualification of register, flag, stack, and memory effects. Specification 4
+does not silently add that support surface.
 
 **Reconsideration criteria**:
 - Real-world Blend65 users need cycle-counted assembly sequences (demo scene, advanced raster effects)
@@ -281,53 +232,26 @@ copy(screenBuffer, backBuffer, 1000);  // Copy 1000 bytes
 
 ---
 
-### FUT-013: Compile-time table generation
+### ~~FUT-013: Compile-time table generation~~ — ✅ RESOLVED
 
 > **Source**: F014 (Arrays), Gap 8  
-> **Deferred from**: v3  
-> **Priority**: Low
+> **Resolved in**: Specification 4
 
-**What**: Allow compile-time expressions to generate const array contents:
-
-```blend65
-// Future syntax (TBD):
-const SINE: byte[256] = comptime { [byte(128 + 127 * sin(i * 2 * PI / 256)) for i in 0..256] };
-```
-
-**Why deferred**: Requires a compile-time expression evaluator with math functions (sin, cos, etc.). In v3, lookup tables are hand-written or generated by an external tool and pasted into source. This is adequate for the initial release.
-
-**Reconsideration criteria**:
-- Community demand for programmatically generated lookup tables
-- A clean compile-time expression syntax is designed
-- The evaluator can be implemented without adding significant compiler complexity
-- The feature passes the full Language Guard evaluation
+**How it was resolved**: Typed `comptime function` declarations generate ordinary constant
+aggregates with deterministic evaluation, exact integer trigonometry, and the fixed
+`comptime-budget-v1` step, live-memory, and call-depth limits. Successful evaluation emits only
+the retained constant data; failure emits no artifact.
 
 ---
 
-### FUT-014: Manual alignment attribute
+### ~~FUT-014: Manual alignment attribute~~ — ✅ RESOLVED
 
 > **Source**: F015 (Data Inclusion), Deferred Items  
-> **Deferred from**: v3  
-> **Priority**: Medium
+> **Resolved in**: Specification 4
 
-**What**: A language-level attribute to specify memory alignment for any `const` data declaration, not just embedded assets:
-
-```blend65
-// Future syntax (TBD):
-@align(256)
-const SINE_TABLE: byte[256] = [0, 3, 6, 9, ...];
-
-@align(64)
-const SPRITE_DATA: byte[192] = [0x00, 0x7E, 0x00, ...];
-```
-
-**Why deferred**: In v3, alignment is handled automatically by format handlers for embedded assets (F015). For hand-written data, the linker/platform profile can handle placement. Adding a general alignment attribute requires designing an attribute syntax system (which v3 doesn't have) and defining how it interacts with all declaration types. The `@` symbol was explicitly removed from v3 to resolve the v2 overloading problem, so a new attribute syntax would need careful design.
-
-**Reconsideration criteria**:
-- Real-world Blend65 code frequently needs aligned hand-written tables (page-aligned lookup tables for performance)
-- An attribute syntax is designed that doesn't reintroduce the v2 `@` ambiguity
-- The feature passes the full Language Guard evaluation
-- Interaction with `zeropage`, `let`, and `const` is fully specified
+**How it was resolved**: The closed `place(...)` modifier supplies `at`, `align`, `noCross`, and
+`region` constraints for module-level stored data and emitted functions. Automatic placement
+remains the default. This solves manual alignment without introducing a general annotation system.
 
 ---
 
@@ -484,20 +408,20 @@ a second loop grammar.
 
 | ID | Description | Priority | Depends On |
 |----|-------------|----------|------------|
-| FUT-001 | `&` on struct fields / array elements | Medium | — |
-| FUT-002 | `&` on function parameters | Low | — |
-| FUT-003 | First-class typed function pointers and indirect calls — REFINED | Medium | — |
+| ~~FUT-001~~ | ~~`&` on struct fields / array elements~~ — ✅ RESOLVED | — | — |
+| ~~FUT-002~~ | ~~`&` on function parameters~~ — ✅ RESOLVED | — | — |
+| ~~FUT-003~~ | ~~Typed function values and indirect calls~~ — ✅ RESOLVED | — | — |
 | ~~FUT-004~~ | ~~Call-graph reentrancy analysis~~ — ✅ RESOLVED (execution-domain SFA) | — | — |
 | ~~FUT-005~~ | ~~Type-safe interrupt installation~~ — ✅ RESOLVED (recognized platform sinks and entry variants) | — | — |
 | FUT-006 | Labeled `break` for nested loops | Low | — |
 | FUT-007 | Range cases in switch statements | Low | — |
 | ~~FUT-008~~ | ~~Const struct parameters~~ — ✅ RESOLVED (F014) | — | — |
-| FUT-009 | Address-of on struct fields | Medium | FUT-001, F011 |
-| FUT-010 | Aggregate return values | Low | F011, F014 |
+| ~~FUT-009~~ | ~~Address-of on struct fields~~ — ✅ RESOLVED | — | — |
+| ~~FUT-010~~ | ~~Aggregate return values~~ — ✅ RESOLVED | — | — |
 | FUT-011 | External assembly linking (`extern function`) | Low | F012 |
 | FUT-012 | Array copy intrinsic (`copy()`) | Medium | F014 |
-| FUT-013 | Compile-time table generation | Low | F014 |
-| FUT-014 | Manual alignment attribute | Medium | F015 |
+| ~~FUT-013~~ | ~~Compile-time table generation~~ — ✅ RESOLVED | — | — |
+| ~~FUT-014~~ | ~~Manual alignment attribute~~ — ✅ RESOLVED | — | — |
 | FUT-015 | Common image format conversion | Low | F015 |
 | FUT-016 | Stack-free calling convention (`--no-stack-calls`) | Medium | F018 |
 | FUT-017 | Optimization barrier intrinsic (`barrier()`) | Low | F020 |
@@ -554,7 +478,7 @@ Even then, prefer a **nominal newtype** (a distinct type, like enums) over a tra
 > **Status**: ❌ REJECTED  
 > **Source**: F012 (CPU Control Intrinsics), Ambiguities CC-A1 and CC-A2  
 > **Rejected from**: v3  
-> **Escape hatch**: External assembly linking — see FUT-011
+> **Related future item**: External assembly linking — see FUT-011
 
 **What it was**: Two related ways of exposing raw 6502 assembly to Blend65 programmers,
 both inherited from / sketched in v2:
@@ -583,20 +507,15 @@ both inherited from / sketched in v2:
    Increment/decrement → `+= 1` / `-= 1`. A 150-function API is a huge API + test surface for
    incomplete coverage of things the language expresses better (Language Guard L4, L5).
 
-**Chosen alternative**: The 13 curated **CPU control intrinsics** in F012 (`asm_sei`, `asm_cli`,
-`asm_pha`, `asm_pla`, `asm_php`, `asm_plp`, `asm_clc`, `asm_sec`, `asm_cld`, `asm_sed`, `asm_clv`,
-`asm_nop`, `asm_brk`). These cover exactly the operations the language *cannot* express, each
-compiling to a single opcode with full cost transparency. Validated against three demanding C64
-game architectures (The Last Ninja, Commando, Giana Sisters) — no game technique required
-cycle-counted inline assembly.
+**Chosen alternative**: The exact five parameterless **CPU control intrinsics** in F012 are
+`asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop`. They expose only stable machine effects
+that ordinary typed source cannot express. Packed-decimal arithmetic is separate and compiler-owned.
 
 Packed-decimal source uses the separate `bcd_add()` and `bcd_sub()` semantic operations. They
 lower inline while ordinary `+` and `-` remain binary; they do not expand the raw opcode API.
 
-**Escape hatch for the 1%**: The genuinely cycle-counted cases (demo-scene effects such as FLD,
-VSP, AGSP, FLI, and self-modifying code) are served by **FUT-011 (external assembly linking via
-`extern function`)** — hand-written assembly in a real assembler, linked with the compiler output.
-That is the sanctioned path; this rejection is *not* a dead end.
+External assembly remains the deferred FUT-011 proposal. It is not a current language form or a
+sanctioned escape path in Specification 4.
 
 **Reconsideration bar** (high): Only revisit if real-world Blend65 code repeatedly needs
 cycle-counted assembly sequences that FUT-011 external linking cannot satisfy, AND a design exists

@@ -3,7 +3,7 @@
 > **Status**: ✅ ACCEPTED  
 > **Stability**: stable  
 > **Depends on**: None (foundational — all other features depend on this)  
-> **Referenced by**: Every feature (F001–F020, F022)
+> **Referenced by**: Every accepted feature (F001–F022, F024–F025; F023 is retired)
 
 
 ---

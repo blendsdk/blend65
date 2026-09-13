@@ -164,7 +164,7 @@ This specification is organized into 16 chapters:
 | 09 | Enums | Byte-backed nominal types, asymmetric conversion |
 | 10 | Modules & Multi-File | Module declarations, imports/exports, entry point |
 | 11 | Memory Model & SFA | Static frame allocation, zero-page budget, address model |
-| 12 | CPU Control & Intrinsics | 13 curated CPU controls, explicit packed BCD, and memory intrinsics |
+| 12 | CPU Control & Intrinsics | Five exact CPU controls, explicit packed BCD, and memory intrinsics |
 | 13 | Data Inclusion & Asset Embedding | `embed()`, format selectors, const-only placement |
 | 14 | Diagnostics: Error & Warning Registry | Complete E1xxxx / W1xxxx tables |
 | 15 | Conformance & Platform Profile Contract | What a platform profile must define |

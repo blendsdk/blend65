@@ -9,7 +9,7 @@
 
 ## Description
 
-Blend65 v3 adds two signed integer types to complement the existing unsigned `byte` and `word`:
+Blend65 defines two signed integer types to complement the unsigned `byte` and `word`:
 
 | Type | Size | Range | Storage |
 |------|------|-------|---------|

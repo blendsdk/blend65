@@ -862,7 +862,7 @@ message templates, spans, suppression, and history.
 | **For loops** (→ Ch 05) | `for (let i: word = 0; i < length(arr); i += 1)` visits every valid index once; proven induction narrowing may still use an 8-bit machine counter. |
 | **Modules** (→ Ch 10) | Arrays can be exported. Ordinary and loadable const arrays are valid module-level exports, but only the ordinary form is resident. |
 | **Memory model** (→ Ch 11) | `let` arrays → RAM segment. Ordinary `const` arrays → ROM/data segment. `loadable const` arrays → package only. `zeropage` arrays → ZP range. |
-| **Address-of** (→ Ch 04) | `&arr` returns base address as `word`. `&arr[i]` (element address) deferred to future version. |
+| **Address-of** (→ Ch 04) | `&arr` returns the base address as `word`; `&arr[i]` returns the address of the selected element after evaluating the index once. Both preserve the origin's lifetime and read-only provenance. |
 | **Platform profile** (→ Ch 15) | Encoding tables, immutable character maps, defaults, and available encoding intrinsics — all defined in platform profile. |
 
 ---

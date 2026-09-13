@@ -267,10 +267,8 @@ In Blend65, the hardware stack uses the selected profile's proven-writable part 
 (normally `$0100`–`$01FF`; `$0140`–`$01FF` on Atari 7800). It is used for:
 - **Return addresses** — 2 bytes per active `JSR` (function call)
 - **Interrupt context** — 3 bytes CPU push (P, PCL, PCH) + 3 bytes register save (A, X, Y)
-- **Synchronous `BRK` context** — 3 bytes pushed by the CPU plus the selected profile contract's
-  maximum additional handler stack use
-- **Explicit stack intrinsics** — each live `asm_pha()` or `asm_php()` contributes one byte until
-  its kind-correct `asm_pla()` or `asm_plp()` pull
+- **Source status saves** — each live `asm_php()` contributes one byte until its matching
+  `asm_plp()`
 
 Parameters, locals, and return values **never** touch the hardware stack.
 
@@ -297,17 +295,9 @@ One possible simultaneous path:
 The six-byte entry is charged once for every interrupt entry that can be live simultaneously; it is
 not pre-subtracted as a single fixed allowance. `asm_cli()` and platform non-maskable sources affect
 which entries can overlap. An unbounded re-entry path is rejected with E10245. A finite peak beyond
-capacity is E10238. Explicit-stack analysis tracks the ordered kind sequence, not only byte depth.
-Pulls may not consume pre-entry state or a different saved kind; joins and loop backedges require
-identical sequences; all exits must restore the empty relative sequence (E10248). An explicit-stack
-cycle whose depth grows without a static bound is E10245.
-
-A reachable `asm_brk()` is a separate synchronous control-flow edge, not an ordinary call or a
-generic asynchronous interrupt root. The edge always contributes the CPU's three pushed bytes plus
-the selected `brk_contract.handler_stack_peak`. A returning contract continues after BRK's mandatory
-padding byte; a non-returning contract terminates that path. E10259 rejects the operation when the
-selected profile cannot prove this control flow and peak. The compiler never reserves SFA storage,
-installs a handler, or links support code for BRK.
+capacity is E10238. Source status-stack analysis tracks relative depth. Pulls may not consume
+pre-entry state; joins and loop backedges require identical depths; all exits must restore the empty
+relative state (E10248). A status-save cycle whose depth grows without a static bound is E10245.
 
 ### 5.3 Stack Depth Warning
 
@@ -393,7 +383,7 @@ This chapter owns resource and allocation predicates; Chapter 14 owns their cano
 | E10034 | The final output binary exceeds the selected platform's binary-size limit. | Artifact emission fails. |
 | E10238 | RAM, data, array, frame, or another target resource exceeds its selected-profile budget. | The named resource cannot be placed. |
 | E10245 | A storage-bearing execution path or hardware-stack path can overlap itself without a static bound. | SFA/stack analysis cannot prove a finite peak. |
-| E10248 | An explicit stack-intrinsic path pops above function entry, pulls the wrong saved kind, joins unequal kind sequences, or exits with a nonempty relative sequence. | Safe deterministic `RTS`/`RTI` state cannot be preserved. |
+| E10248 | A source status-save path pops above function entry, joins unequal depths, or exits with a nonempty relative state. | Safe deterministic `RTS`/`RTI` state cannot be preserved. |
 | E10260 | A local-origin address or derived fragment may remain observable after its local's dynamic source lifetime. | SFA cannot safely reuse the home, so the escaping use is rejected rather than pinned. |
 | E10272 | A `place(...)` clause has an illegal owner, key, duplicate key, value, or region. | The declaration is rejected before layout. |
 | E10273 | The intersection of explicit and automatic placement constraints is empty. | Layout fails; no requirement is weakened and no copy is introduced. |

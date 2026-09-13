@@ -913,7 +913,8 @@ let buf: byte[40];
 let addr: word = &buf;     // ✅ base address of array
 ```
 
-`&arr[i]` (address of element) remains deferred (F006, E10042).
+`&arr[i]` returns the selected element's address after evaluating the index once. The result keeps
+the array origin's lifetime and read-only provenance (F006).
 
 ### AR-A9: Default encoding choice rationale
 
@@ -977,7 +978,7 @@ Using an unavailable intrinsic → E10125.
 |---------|------------|
 | F003 Module contents | Arrays/consts at module level. length() as constant expression |
 | F005 Memory placement | `let` → RAM, `const` → data/ROM, `zeropage { arr: byte[4]; }` → ZP |
-| F006 Address-of | `&arr` → word (base address). `&arr[i]` deferred (E10042) |
+| F006 Address-of | `&arr` returns the base address; `&arr[i]` returns the selected element address and preserves origin provenance |
 | F008 For loop | `for (let i: word = 0; i < length(arr); i += 1)` visits every valid index once; the optimizer may narrow the machine induction state when proven safe |
 | F010 Signed types | Signed types are valid as elements and indices; known negative indices are E10240, checked runtime indices test the lower bound, and unchecked indices sign-extend into the 16-bit address domain |
 | F011 Structs | Arrays as struct fields and arrays of structs are both valid. Const params apply to both; layout choice remains explicit and costed |

@@ -282,33 +282,6 @@ root.
 | `recognized_interrupt_vectors` | `map` | Exact vector base address → firmware/raw ABI identity and required platform installer |
 | `raw_interrupt_paths` | `map` | Optional source ID → vector address and fixed profile proof that the hardware vector is writable and active |
 
-#### BRK Contract
-
-`brk_contract` is optional. Its absence means that the profile cannot prove what a reachable
-`asm_brk()` does, so that call is E10259. A contract is declarative metadata; it never asks the
-compiler to install a vector, emit a handler, or link a runtime.
-
-When present, the contract defines all of these facts:
-
-| Field | Type | Description |
-|---|---|---|
-| `vector` | `word` | Active CPU IRQ/BRK vector used by the selected memory/banking configuration |
-| `handler_identity` | `string` | Exact ROM, monitor, application-handler, or image identity that proves the behavior |
-| `return_mode` | `rti_after_padding` or `nonreturning` | Whether execution resumes after the compiler-emitted padding byte or has no normal successor |
-| `handler_stack_peak` | non-negative integer | Maximum additional live stack bytes beyond the CPU's three BRK-pushed bytes, including nested calls in the declared handler path |
-| `preserves` / `clobbers` | closed register/flag sets | Exact A/X/Y and processor-status facts visible if the handler returns |
-| `entry_requirements` | closed machine-state record | Required interrupt, decimal, banking, vector, memory, and MMIO state on entry |
-| `machine_effects` | closed effect record | Memory, banking, MMIO, and other externally observable effects before return or termination |
-| `reentry_bound` | non-negative finite integer | Maximum additional nested entry count already included in `handler_stack_peak`; `unbounded` is invalid for a usable contract |
-
-The compiler emits exactly `$00 $EA` for `asm_brk()`. Stack analysis charges three CPU bytes plus
-`handler_stack_peak` on the synchronous BRK edge. `rti_after_padding` adds a control-flow successor
-after `$EA` and applies the declared post-handler machine state. `nonreturning` adds no normal
-successor. The build report names every reachable BRK site, the selected contract identity, return
-mode, vector, and the separate CPU/handler stack charges.
-
----
-
 ## 4. Example Platform Profile (C64)
 
 ```
@@ -399,8 +372,6 @@ recognized_interrupt_vectors:
 # only with a fixed proof that RAM there is the active hardware vector.
 raw_interrupt_paths: {}
 
-# No brk_contract: the default profile does not promise a safe returning BRK handler.
-
 output:
   output_format: prg
   load_address:  $0801
@@ -478,8 +449,6 @@ limitation exceptions. Those exceptions still define control flow, width, effect
 | Division by zero (`--division-zero-check`) | Inline pre-division check; failure enters the platform safety stop |
 | Packed-BCD invalid digit (constant) | Compile-time E10254 |
 | Packed-BCD invalid digit (runtime) | Exact selected-CPU decimal `ADC`/`SBC` result; no injected validation |
-| Reachable `asm_brk()` without a profile contract | Compile-time E10259 |
-| Reachable `asm_brk()` with a profile contract | Exact `$00 $EA`; profile-defined returning or non-returning edge and machine effects; no injected handler/runtime |
 | Valid SID asset with incompatible specific video/model/topology requirement | Compile-time E10261; no automatic conversion or contradictory override |
 
 ### 5.4 Optional Safety Instrumentation

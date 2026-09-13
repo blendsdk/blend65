@@ -137,7 +137,8 @@ while (running) {
 
 If `break` or `continue` appears in a switch that is **not** inside a loop, it produces **E10063** (same error as break/continue outside a loop).
 
-**⚠️ v2 migration note**: In C-style switch, `break` exits the switch. In Blend65 v3, `break` exits the enclosing loop. This is a semantic change that must be reviewed during migration.
+**⚠️ migration note**: In C-style switch, `break` exits the switch. In Blend65, `break`
+exits the enclosing loop. This semantic difference must be reviewed when porting C-style code.
 
 ## Switch Expression Types
 

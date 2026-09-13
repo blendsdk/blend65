@@ -626,25 +626,11 @@ address has the wrong stack/exit ABI for CINV. Truly opaque vector writes remain
 The setter is a vector-ownership operation, not a multi-listener runtime; code that layers or
 restores different handlers must preserve a valid chain.
 
-### 9.3 BRK Contract
-
-The stock 901227-03 KERNAL does not make BRK a generic returning debugger call. Its hardware
-IRQ/BRK vector enters `PULS`, which pushes A/X/Y, tests the stacked B flag, and dispatches BRK
-through CBRK at `$0316/$0317`. KERNAL initialization points CBRK at `TIMB`; that routine restores
-system vectors and I/O, initializes the screen, and jumps to the BASIC warm start instead of
-returning with `RTI`.
-
-The default C64 profile therefore omits `brk_contract`. It cannot promise a useful returning path,
-an exact bounded handler stack peak, or machine effects suitable for an arbitrary game state.
-Reachable `asm_brk()` is E10259 under this profile. A custom profile may expose it only after
-pinning the active vector/handler and the complete contract from Chapter 15. The emitted program
-still contains only `$00 $EA`; Blend65 never installs a BRK handler or runtime.
-
-### 9.4 VIC-II Bank Considerations
+### 9.3 VIC-II Bank Considerations
 
 VIC-II can address 16 KB banks (selected via CIA2 $DD00). The default profile assumes Bank 0 ($0000–$3FFF). Programs using other banks should adjust `code_start` in a custom profile to avoid placing code in the VIC-II visible area.
 
-### 9.5 Optional Safety Stop
+### 9.4 Optional Safety Stop
 
 The default unchecked array contract emits no bounds handling. Its effective address is computed
 modulo 65536; a multi-byte element continues from `$FFFF` to `$0000`, and each byte observes the
@@ -757,8 +743,6 @@ recognized_interrupt_vectors:
 
 raw_interrupt_paths: {}
 
-# brk_contract omitted: stock KERNAL BRK does not satisfy the required game-program contract
-
 output:
   output_format:  prg
   load_address:   $0801
@@ -815,7 +799,6 @@ warnings:
 | function_address_sinks | ✅ `setIRQ` and `setIRQExclusive`; `setRawIRQ` requires a raw profile |
 | recognized_interrupt_vectors | ✅ `$0314` → KERNAL CINV post-save contract |
 | raw_interrupt_paths | ✅ empty in the default KERNAL-active profile |
-| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ prg |
 | load_address | ✅ $0801 |
 | reset_vector | N/A (disk-based, not cartridge) |

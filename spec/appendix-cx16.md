@@ -303,8 +303,6 @@ budgets:
   max_ram:         38655
   max_zp:          94
 
-# brk_contract omitted: no exact handler/control-flow contract is qualified in this baseline
-
 output:
   output_format:  prg
   load_address:   $0801
@@ -336,7 +334,6 @@ warnings:
 | max_binary_size | ✅ 38655 |
 | max_ram | ✅ 38655 |
 | max_zp | ✅ 94 |
-| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ prg |
 | load_address | ✅ $0801 |
 | reset_vector | N/A (SD-card loaded, not cartridge) |

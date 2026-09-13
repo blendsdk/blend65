@@ -502,8 +502,8 @@ invent storage.
 | Each active call level | 2 bytes (return address) |
 | Interrupt entry (CPU push) | 3 bytes (P, PCL, PCH) |
 | Interrupt register save | 3 bytes (A, X, Y via PHA/TXA PHA/TYA PHA) |
-| `asm_pha()` / `asm_php()` | 1 byte until its matching pull |
-| `asm_pla()` / `asm_plp()` | Releases 1 byte previously pushed in the same function activation |
+| `asm_php()` | 1 byte until its matching `asm_plp()` |
+| `asm_plp()` | Releases 1 byte previously pushed in the same function activation |
 
 **Example budget (C64):**
 
@@ -528,13 +528,12 @@ unbounded interrupt re-entry is E10245; a finite peak that exceeds the derived u
 peak that reaches the profile's `warn_stack_peak` value, or 80% of derived usable capacity rounded
 down when that optional field is absent.
 
-Within each function, explicit-stack analysis begins with an empty relative kind sequence.
-`asm_pha()`/`asm_php()` add accumulator-save/status-save entries, and `asm_pla()`/`asm_plp()` must
-consume the matching top entry. Reachable joins and loop backedges require identical sequences, and
-every return/interrupt exit must restore the empty relative sequence. E10248 rejects underflow,
-kind mismatch, unequal join state, or a nonempty exit. A caller may hold explicit entries across a
-call, but the callee receives its own empty relative sequence and cannot consume caller-owned,
-return-address, interrupt-entry, or compiler-generated ABI bytes.
+Within each function, source status-stack analysis begins with an empty relative state.
+`asm_php()` adds one status-save entry and `asm_plp()` consumes the top status-save entry. Reachable
+joins and loop backedges require equal depths, and every return/interrupt exit must restore the
+empty relative state. E10248 rejects underflow, unequal join state, or a nonempty exit. A caller may
+hold entries across a call, but the callee receives its own empty relative state and cannot consume
+caller-owned, return-address, interrupt-entry, or compiler-generated ABI bytes.
 
 ---
 
@@ -728,8 +727,8 @@ The NMOS 6502/6510 does not clear decimal mode on interrupt entry. Every compile
 interrupt entry therefore establishes `D=0` before the first Blend65 statement or ordinary helper
 call. This gives handler arithmetic the normal binary-language baseline. `RTI` restores the
 hardware-stacked interrupted status, including its original decimal flag, so a raw or exclusive
-variant needs no separate status save. An explicit `asm_sed()` inside the handler remains legal and
-is governed by the ordinary decimal-mode diagnostics. The compiler may remove an entry
+variant needs no separate status save. Packed-BCD operations manage decimal mode internally. The
+compiler may remove an entry
 normalization only when a sound proof preserves both the body-entry and outgoing status contracts.
 
 A compiler-recognized platform sink may select another entry variant for the same source handler.
@@ -934,7 +933,7 @@ public presentation.
 | E10245 | A mainline/IRQ/NMI/callback path may re-enter without a static bound while consuming invocation-private storage or hardware stack. | Finite SFA homes or stack peak cannot be proven, so compilation fails. |
 | E10246 | A `const` parameter resolves to a non-aggregate type rather than an array or struct. | The redundant/ineligible qualifier is rejected. |
 | E10247 | A compiler-recognized function-address sink receives a value whose function/ABI provenance is erased or unknown. | The sink call is rejected; use a provenance-preserving value or an explicit raw hardware boundary. |
-| E10248 | Explicit stack intrinsics underflow function entry, pull the wrong saved kind, join unequal kind sequences, or leave a nonempty relative sequence on exit. | The function is rejected because deterministic `RTS`/`RTI` state cannot be preserved. |
+| E10248 | Source status-save operations underflow function entry, join unequal depths, or leave a nonempty relative state on exit. | The function is rejected because deterministic `RTS`/`RTI` state cannot be preserved. |
 | E10252 | A compiler-visible raw interrupt-entry address is written directly to a recognized firmware vector that requires another entry ABI. | The write is rejected; use the profile API that selects the correct entry variant. |
 | E10253 | A return type or returned aggregate uses unsized `T[]` rather than a complete fixed shape. | The return is rejected; use a fixed extent or keep `T[]` as a borrowed parameter form. |
 | E10260 | An address derived from local-origin storage reaches a return, persistent/raw/MMIO store, asynchronous publication, retaining or unknown call, or another opaque escape. | The escaping use is rejected; use a proven non-retaining call, module-level storage, or caller-owned data. |

@@ -264,12 +264,12 @@ const MAX: byte = 8;
 MAX = 10;                              // ❌ E10192: cannot assign to const 'MAX'
 ```
 
-**Cannot assign whole arrays or structs:**
+**Fixed arrays and structs use value assignment:**
 
 ```blend65
 let a: byte[4] = [1, 2, 3, 4];
 let b: byte[4] = [5, 6, 7, 8];
-a = b;                                 // ❌ E10119: cannot assign whole array (F014)
+a = b;                                 // ✅ exact-shape copy with alias-safe value semantics
 ```
 
 **A for-header `let` remains mutable:**
@@ -386,10 +386,10 @@ function drawLives(): void {
 
 Array mutability is controlled by `let` vs `const` (consolidating F014 rules):
 
-| | Element Mutation | Array Reassignment |
-|----------|------------------|-------------------|
-| `let` | ✅ Allowed | ❌ Never (E10119) |
-| `const` | ❌ Not Allowed (E10192) | ❌ Never (E10119) |
+|  | Element Mutation | Exact-shape array assignment |
+|----------|------------------|------------------------------|
+| `let` | ✅ Allowed | ✅ Allowed |
+| `const` | ❌ Not allowed (E10192) | ❌ Not allowed (E10192) |
 
 ```blend65
 let mutable: byte[4] = [1, 2, 3, 4];
@@ -682,7 +682,6 @@ shows their ROM, storage, and exact, bounded, or runtime-dependent cycle cost.
 | E10031 | F005 | Constants not allowed in zeropage block |
 | E10033 | F005 | `let`/`const` keyword inside zeropage block |
 | E10003 | F013 | Declaration duplicates a name in the same scope, including a parameter/outermost-body collision |
-| E10119 | F014 | Cannot assign whole array |
 | E10150 | F016 | Type annotation required |
 | E10084 | F010 | Value out of range for type |
 

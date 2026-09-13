@@ -359,8 +359,6 @@ budgets:
   max_ram:         1536
   max_zp:          64
 
-# brk_contract omitted: no exact handler/control-flow contract is qualified in this baseline
-
 output:
   output_format:  a78
   load_address:   $8000
@@ -393,7 +391,6 @@ warnings:
 | max_binary_size | ✅ 32752 |
 | max_ram | ✅ 1536 |
 | max_zp | ✅ 64 |
-| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ a78 |
 | load_address | ✅ $8000 |
 | reset_vector | ✅ $8000 |

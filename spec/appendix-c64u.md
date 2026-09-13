@@ -251,16 +251,6 @@ profile proves that its hardware vector is writable and active. A replacement or
 may not inherit these exact sinks merely because the machine is a C64 Ultimate; it needs a profile
 whose entry and tail addresses are independently qualified.
 
-### 9.6 BRK Compatibility
-
-The base compatibility profile also omits `brk_contract`. C64 compatibility does not prove that a
-particular Ultimate ROM, monitor, cartridge, or freezer configuration owns BRK with stable return,
-stack, and machine-effect behavior. Reachable `asm_brk()` is therefore E10259 unless a separately
-pinned C64U configuration supplies the complete Chapter-15 contract. The compiler never injects a
-handler or monitor bridge.
-
----
-
 ## 10. Complete Profile
 
 ```yaml
@@ -350,8 +340,6 @@ recognized_interrupt_vectors:
 
 raw_interrupt_paths: {}
 
-# brk_contract omitted: exact ROM/monitor configuration is not part of this profile
-
 output:
   output_format:  prg
   load_address:   $0801
@@ -408,7 +396,6 @@ warnings:
 | function_address_sinks | ✅ `setIRQ` and `setIRQExclusive`; raw installer profile-gated |
 | recognized_interrupt_vectors | ✅ `$0314` → KERNAL CINV post-save contract |
 | raw_interrupt_paths | ✅ empty in the base compatibility profile |
-| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ prg |
 | load_address | ✅ $0801 |
 | reset_vector | N/A (disk-based, not cartridge) |

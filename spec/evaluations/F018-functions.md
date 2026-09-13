@@ -646,7 +646,7 @@ bounded domains can overlap; absence of recursion does not by itself collapse th
 | Interrupt entry (CPU push) | 3 bytes (P, PCL, PCH) |
 | Interrupt register save | 3 bytes (A, X, Y via PHA/TXA PHA/TYA PHA) |
 | Chained CINV status preservation | 1 byte while `PHP`/`PLP` brackets the handler body |
-| Live explicit push | 1 byte per `asm_pha()`/`asm_php()` until its pull |
+| Live explicit status save | 1 byte per `asm_php()` until its `asm_plp()` |
 
 **Example budget (C64):**
 

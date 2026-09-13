@@ -313,8 +313,6 @@ budgets:
   max_ram:         40960
   max_zp:          128
 
-# brk_contract omitted: no exact handler/control-flow contract is qualified in this baseline
-
 output:
   output_format:  xex
   load_address:   $2000
@@ -346,7 +344,6 @@ warnings:
 | max_binary_size | ✅ 40960 |
 | max_ram | ✅ 40960 |
 | max_zp | ✅ 128 |
-| brk_contract | N/A — omitted; reachable `asm_brk()` is E10259 |
 | output_format | ✅ xex |
 | load_address | ✅ $2000 |
 | reset_vector | N/A (disk-loaded, not cartridge) |

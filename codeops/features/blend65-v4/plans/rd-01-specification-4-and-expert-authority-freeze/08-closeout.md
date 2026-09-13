@@ -335,3 +335,57 @@ test tier, and the strict three-document Phase 1 scope.
 
 Phase 1 therefore meets V-01, V-06, V-07, and V-16. It creates evidence only and introduces no
 implementation mechanism.
+
+## Phase 2: Complete Language Reconciliation
+
+Phase 2 started from tree `6fef4ce0d7848bc3e14c175045866364cc6986ed` (commit `003cba8`).
+Its seven authoring tasks reconciled only the accepted AR-006, AR-014–AR-020, AR-031, and AR-050
+language decisions. The final pass repaired derived copies of those decisions; it added no syntax,
+runtime, framework, generator, schema, dependency, or test harness.
+
+### V-05 semantic, grammar, and diagnostic evidence
+
+| Changed language group | Consistency result |
+|---|---|
+| Three-clause loops and scopes | One grammar and semantic model; ordinary nested shadowing; same-scope E10003; E10101 and range-loop diagnostics retired |
+| Fixed arithmetic and arrays | Width and direct-subscript rules agree; fixed arrays have exact-shape value assignment/return; extents and size diagnostics agree |
+| Aggregates and addresses | Caller-owned aggregate return and alias-safe value copies agree; parameters, fields, and indexed elements are addressable places; E10041/E10042 restrictions are retired |
+| Function values and interrupts | Typed finite target sets, distinct handler kinds, and per-sink LIFO ownership agree across types, functions, grammar, examples, and E10267/E10268 |
+| Compile-time functions | Typed source form, deterministic root order, exact integer trigonometry, and E10269–E10271 agree |
+| Placement and loadable data | The closed `place(...)` keys, package-only `loadable const`, captured-range publication, and E10272–E10276 agree |
+| Intrinsics and safety | Exactly five CPU controls remain; variable-address memory access is ordered; bounds and division modes are explicit; no runtime is introduced |
+| Deferred-feature register | FUT-001, FUT-002, FUT-003, FUT-009, FUT-010, FUT-013, and FUT-014 now record their approved Specification 4 resolutions |
+
+The active diagnostic set in Chapter 14 and the feature-index discovery table contain the same
+179 codes. Searches over the live semantic corpus found old range, address, aggregate, intrinsic,
+and BRK spellings only where rejection or retirement history intentionally names them. Phase 3
+still owns target/version statements and deletion of the obsolete build, preflight, and migration
+records; this pass did not pull that separate work forward.
+
+### V-06 and V-07 oracle reproduction
+
+The Phase 1 trigonometry command was run twice. Both runs reproduced the canonical `sin8` and
+`sin16` SHA-256 fingerprints and all ten representative sine/cosine values. The Phase 2 normative
+text carries those same formulas, encodings, ranges, values, and fingerprints.
+
+Direct inspection of Chapter 06, F025, and Chapter 14 confirmed one `comptime-budget-v1` meaning
+for every selected-node charge, aggregate byte, short-circuit, alias/copy, cache-equivalent charge,
+lifetime release, exact N/N+1 boundary, and call depth 512/513. E10269–E10271 reject before the
+failed operation and a failed build publishes no target artifact.
+
+### Phase 2 direct verification
+
+| Check | Result |
+|---|---|
+| `rg` stale-restriction scan over the active semantic corpus | No unexplained Phase 2 restriction remains |
+| One-shot Chapter 14/feature-index code-set comparison | 179 active diagnostic codes match exactly |
+| Phase 1 trigonometry oracle, repeated twice | Both fingerprints and ten representative values match |
+| One-shot `comptime-budget-v1` clause check | Charges, limits, lifetimes, failure boundary, diagnostics, and no-partial-artifact rule are present |
+| `npx prettier --check` on every Phase 2 changed file | Pass |
+| `validate_markdown_links.py spec codeops/features/blend65-v4` | Pass |
+| `codeops_plan.py ... --json` | 31 tasks parse; 13 verified after this task |
+| `git diff --name-only 003cba8..HEAD -- '*.spec.test.*'` | Empty; the immutable specification-test tier is untouched |
+| `find spec -type l -print` and `git diff --check` | No symlink and no whitespace error |
+
+Phase 2 therefore satisfies the assigned portions of V-05, V-06, V-07, and V-16. The remaining
+target, corpus-freeze, source-authority, and final all-23 Guard checks stay in Phase 3 as planned.

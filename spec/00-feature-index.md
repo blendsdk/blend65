@@ -1,4 +1,4 @@
-# Blend65 v3 — Language Feature Index
+# Blend65 4 — Language Feature Index
 
 > **Created**: May 25, 2026  
 > **Purpose**: Discovery index for every language feature, design decision, and diagnostic code.
@@ -17,7 +17,7 @@ These are foundational decisions — not features. They are **givens** that all 
 | A1 | C-like syntax | Curly braces, semicolons, `name: type` annotations, C-style operators |
 | A2 | Static Frame Allocation (SFA) | All memory allocation at compile time. No heap, no recursion, static call graph |
 | A3 | Bounded behavior | Every input has defined control/effects/width, produces a compile-time error, or uses an explicitly registered narrow hardware-limitation exception |
-| A4 | Explicit over implicit | No hidden code execution and no unenumerated coercions. An implicit conversion exists only where a normative rule explicitly defines it—TS-4 and TS-14 in spec v3.0; otherwise conversion must be explicit or is invalid. |
+| A4 | Explicit over implicit | No hidden code execution and no unenumerated coercions. An implicit conversion exists only where a normative rule explicitly defines it—TS-4 and TS-14 in Specification 4; otherwise conversion must be explicit or is invalid. |
 | A5 | Multi-platform | Must compile to all target platforms: C64, C64 Ultimate, CX16, Atari 800XL, Atari 7800 |
 
 ---
@@ -49,6 +49,7 @@ These are foundational decisions — not features. They are **givens** that all 
 | F021 | Lexical structure (tokens, keywords, literals, operators, comments) | ✅ Accepted | Pass | [evaluations/F021-lexical-structure.md](evaluations/F021-lexical-structure.md) |
 | F022 | Enums (byte-backed nominal type, asymmetric conversion) | ✅ Accepted | Pass | [evaluations/F022-enums.md](evaluations/F022-enums.md) |
 | F024 | Conditional (ternary) operator (`cond ? a : b`) | ✅ Accepted | Pass | [evaluations/F024-conditional-operator.md](evaluations/F024-conditional-operator.md) |
+| F025 | Compile-time functions and trigonometry | ✅ Accepted | Pass | [evaluations/F025-comptime-functions.md](evaluations/F025-comptime-functions.md) |
 
 ---
 
@@ -62,7 +63,9 @@ These are foundational decisions — not features. They are **givens** that all 
 
 > **Note**: Feature ID **F023** (type aliases) was consciously **rejected** and its ID is **retired** — it is never reused. See `future-considerations.md` → REJ-001 for the full decision record. The `type` keyword remains reserved (F021 LS-9).
 >
-> **Note**: Inline assembly — `asm { }` blocks and the full v2-style `asm_*()` opcode API — was consciously **rejected**. See `future-considerations.md` → REJ-002 for the full decision record. What Blend65 *does* provide is the 13 curated CPU-control intrinsics (F012); the sanctioned escape hatch for cycle-counted code is external assembly linking (FUT-011).
+> **Note**: Inline assembly, external assembly functions, and the full v2-style `asm_*()` opcode
+> API are absent. See `future-considerations.md` → REJ-002 and FUT-011. Blend65 provides exactly
+> `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop` (F012).
 
 
 
@@ -91,8 +94,6 @@ source spans, suppression, and retirement history.
 | E10033 | F005 | Unexpected `<keyword>` in zeropage block — declarations use `name: type` syntax without let/const |
 | E10034 | Memory model | Output binary exceeds the selected platform budget |
 | E10040 | F006 | Cannot take address of constant `<name>` — scalar constants are inlined and have no memory address |
-| E10041 | F006 | Cannot take address of parameter `<name>` — copy it to a local variable first |
-| E10042 | F006 | Cannot take address of field or array element `<expr>` — this address form is not supported |
 | E10043 | F006 | Address-of requires a named variable or function — found `<expr>` |
 | E10050 | F007 | Interrupt function `<name>` must have signature `(): void` — found `<actual>` |
 | E10051 | F007 | Cannot call interrupt function `<name>` directly — use `&<name>` to get its address for installation |
@@ -113,13 +114,11 @@ source spans, suppression, and retirement history.
 | E10090 | F011 | Struct `<name>` must have at least one field |
 | E10091 | F011 | Struct `<name>` cannot contain a field of its own type — self-referencing structs are not allowed |
 | E10092 | F011 | Circular struct dependency: `<struct_a>` contains `<struct_b>` which contains `<struct_a>` |
-| E10093 | F011 | Cannot return struct type `<name>` from function — pass a struct parameter instead |
 | E10094 | F011 | Cannot pass `const` struct `<name>` to a mutable parameter — use a const parameter or a mutable copy |
 | E10095 | F011 | Cannot compare structs with `<op>` — compare individual fields instead |
 | E10096 | F011 | Struct literal must initialize all fields — missing field `<field>` |
 | E10097 | F011 | Struct literal fields must be in declaration order — expected `<expected>`, found `<found>` |
 | E10100 | F013 | Condition must be type `boolean` — found `<type>`. Use an explicit comparison (e.g., `<expr> != 0`) |
-| E10101 | F013 | Variable `<name>` shadows declaration in enclosing scope (line `<N>`) — use a different name |
 | E10102 | F013 | Not all code paths return a value in function `<name>` — add a return statement or ensure all branches return |
 | E10110 | F014 | Array size must be a compile-time constant expression — found `<expr>` |
 | E10112 | F014 | Array initializer has `<N>` elements but array size is `<M>` |
@@ -127,8 +126,6 @@ source spans, suppression, and retirement history.
 | E10114 | F014 | Fill syntax `[...; fill]` requires explicit array size — use `type[N] = [values; fill]` |
 | E10115 | F014 | Fill value must be a single element — found string or array |
 | E10116 | F014 | Cannot mix string literals with value elements in array initializer |
-| E10119 | F014 | Cannot assign whole array — copy elements individually using a loop |
-| E10120 | F014 | Cannot return array type from function — use an array parameter instead |
 | E10121 | F014 | Cannot compare arrays with `<op>` — compare individual elements |
 | E10122 | F014 | Cannot pass const `<name>` to mutable parameter `<param>` — add `const` to parameter or copy to mutable variable |
 | E10123 | F014 | Cannot modify const parameter `<name>` — parameter is declared `const` |
@@ -149,7 +146,7 @@ source spans, suppression, and retirement history.
 | E10150 | F016 | Type annotation required for declaration `<name>` — add `: <type>` |
 | E10151 | F016 | Cannot use `boolean` in arithmetic/bitwise expression — boolean is a logical type, not numeric |
 | E10152 | F016 | Cannot cast to or from `void` |
-| E10153 | F016 | Cannot cast struct or array types — only integer types (`byte`, `sbyte`, `word`, `sword`) support casts |
+| E10153 | F016 | Unsupported aggregate or function/handler cast; callable values support only their defined one-way conversion to `word` |
 | E10154 | F017 | Cannot apply `<op>` to `boolean` — ordered comparisons (`<`, `>`, `<=`, `>=`) are not valid for boolean operands |
 | E10160 | F017 | Division by zero in constant expression |
 | E10161 | F017 | Shift amount must be unsigned type (`byte` or `word`) — found `<type>` |
@@ -205,18 +202,16 @@ source spans, suppression, and retirement history.
 | E10245 | SFA / stack | Execution overlap or hardware-stack use has no static bound |
 | E10246 | Functions | `const` parameter is not an array or struct |
 | E10247 | Interrupts | Function-address sink receives erased or unknown ABI provenance |
-| E10248 | Functions / intrinsics | Explicit stack operations do not preserve a valid function-entry stack state |
+| E10248 | Functions / intrinsics | Source status-save operations do not preserve the function-entry stack state |
 | E10249 | Strings / characters | Selected encoding cannot represent a literal character or symbolic escape as the required byte |
 | E10250 | F015 | `embed()` selector argument must be a string literal |
 | E10251 | F014 | Character-map argument must be a string literal |
 | E10252 | Interrupts / memory | Raw interrupt entry is written to a recognized incompatible firmware vector |
 | E10253 | Arrays | Array storage has no explicit or initializer-inferred compile-time extent |
 | E10254 | Intrinsics | Statically known packed-BCD operand contains a non-decimal nibble |
-| E10255 | Intrinsics | Raw decimal state reaches an ordinary semantic boundary or mismatched control-flow join |
 | E10256 | F015 / C64 audio | Embedded asset has no qualified callable player contract |
 | E10257 | F015 / C64 audio | Selected player contract lacks the requested operation, cue, ID form/range, or logical voice |
 | E10258 | F015 / interrupts | Reachability permits overlapping calls to a non-reentrant audio-player contract |
-| E10259 | Intrinsics / platform profile | Reachable `asm_brk()` has no proven BRK control-flow and handler contract |
 | E10260 | F006 / functions / SFA | Local-origin address or derived fragment may escape its dynamic source lifetime |
 | E10261 | F015 / platform profile / C64 | SID asset requirements are incompatible with the selected video/SID topology or player contract |
 | E10262 | F008 / control flow | Finite-looking canonical loop counter repeats before its invariant condition can become false |
@@ -224,6 +219,16 @@ source spans, suppression, and retirement history.
 | E10264 | F014 / arrays | Compile-time array extent is not an integer in the representable range `0..65535` |
 | E10265 | F011 / F014 / aggregates | Fixed array or struct type requires more than 65535 bytes |
 | E10266 | F020 / size query | `sizeof` is applied to an unsized array type with no standalone extent |
+| E10267 | F018 / functions | A typed indirect call has no finite compiler-proven source-function target set |
+| E10268 | F007 / F018 / interrupts | Per-sink interrupt install/restore ownership is invalid |
+| E10269 | F025 / compile time | `comptime-budget-v1` would exceed 16777216 abstract steps |
+| E10270 | F025 / compile time | `comptime-budget-v1` would exceed 16777216 live logical bytes |
+| E10271 | F025 / compile time | `comptime-budget-v1` would enter active call depth 513 |
+| E10272 | F005 / F019 / placement | A `place(...)` owner, key, or value is invalid |
+| E10273 | F005 / F015 / placement | Explicit and automatic placement constraints cannot be satisfied together |
+| E10274 | F015 / F019 / loadable data | A `loadable const` is used as resident storage or an address |
+| E10275 | F015 / F019 / loading | A load destination cannot prove one complete compatible mutable range |
+| E10276 | F019 / loading | A read cannot prove successful initialization and must-alias of the captured range |
 
 ### Warning Codes
 

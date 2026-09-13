@@ -340,11 +340,11 @@ const HP_OFFSET: word = offsetof(Enemy, hp);       // 2
 const FRAME_OFFSET: word = offsetof(Enemy, frame); // 4
 ```
 
-**Use case:** Manual pointer arithmetic when `&struct.field` is not available (deferred to FUT-001):
+**Use case:** Deriving a field address from a type and a separately supplied base address:
 
 ```blend65
-// Compute address of boss.hp manually
-let hpAddr: word = &boss + offsetof(Enemy, hp);
+// A typed field place can use &boss.hp directly. offsetof remains useful for a raw base.
+let hpAddr: word = enemyBase + offsetof(Enemy, hp);
 poke(hpAddr, 100);    // Set boss.hp to 100 via peek/poke
 ```
 
