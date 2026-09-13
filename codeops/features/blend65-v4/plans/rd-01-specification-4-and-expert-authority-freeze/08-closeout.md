@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
 > **Status**: In progress
-> **Last Updated**: 2026-09-13 12:35
+> **Last Updated**: 2026-09-13 12:43
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -182,3 +182,84 @@ or function body executes. The failed root is poisoned and no target artifact is
 
 E10269, E10270, and E10271 each name `comptime-budget-v1`, the exact limit and attempted usage, the
 root invocation, the failing source span, and a related root span.
+
+### Pinned C64 source records
+
+These three records are the complete external-source packet for the Phase 3 D64/KERNAL/Koala
+clauses. They freeze source facts only; they add no loader framework, allocation policy, or asset
+runtime.
+
+#### `CBM-1541-D64-35` — standard 35-track disk and D64 geometry
+
+- **Authority and pins:** Commodore's *VIC-1541 Floppy Drive User's Manual*, manufacturer
+  publication preserved at
+  <https://www.commodore.ca/wp-content/uploads/2018/11/commodore_vic_1541_floppy_drive_users_manual.pdf>,
+  SHA-256 `b98f28916579d63c5f18ded32c04ed07d3e87c9fb3155abc988c2fdd41b3fd97`;
+  recovered original Commodore DOS 2.6 source `DOS_1541_05` at `mist64/cbmsrc` commit
+  `01bd60f162ef92212ef0cb67546ae8f42be34168`, with `romtblsf.src` SHA-256
+  `f0938ecdee9d3d8dd39443a2d106f6714ebbc3b3fcec643d13c62ab491448b1c`, `tst2.src`
+  SHA-256 `9e18edc1f3ccb3b8c383b3d4f47f780c716c9bf9daefe26f953ac736332711f4`, and
+  `tst4.src` SHA-256 `e6ca75b5f84317269585945ff6c1d0f4c66353d15f742779436000efb6952a46`.
+  VICE 3.10 tag `3.10.0`, commit `4d283a2e7dd59b7e378524878e81ecc7826b700c`, pins the
+  host-image mapping: `vice/src/diskimage.h` SHA-256
+  `f611ef0b3059edd57859d0ef39231ee0421825a470b4cc32df447def92c64588`,
+  `vice/src/diskimage/diskimage.c` SHA-256
+  `ddc53b5ebc6bf181dda9f1088b26a760aca4df9f5cba138a9cfa730cea42e251`, and
+  `vice/src/diskimage/fsimage-check.c` SHA-256
+  `ffdcac825ed79140885fd8e1d872d762fa65f4ffdcd1cd92711f0108164153c3`.
+- **Exact facts:** tracks 1–17 have 21 sectors, 18–24 have 19, 25–30 have 18, and 31–35
+  have 17: 683 sectors total. A headerless, error-table-free D64 stores the 256-byte sectors in
+  track/sector order and is 174,848 bytes. Track 18 is the system track, leaving 664 data blocks.
+  BAM is 18/0 and the directory begins at 18/1. Each directory sector has eight entries, so the
+  18 available directory sectors hold at most 144 entries. A closed PRG entry has type byte `$82`.
+  File-sector bytes 0–1 are the next track/sector and bytes 2–255 hold up to 254 data bytes. In the
+  final sector, byte 0 is zero and byte 1 is the last used byte index, so its payload count is
+  `byte1 - 1`.
+- **Precise locations:** manual printed pages 10, 24–27, and 55–57; DOS
+  `romtblsf.src::numsec/maxtrk`, `tst4.src::nxtbuf`, and `tst2.src::rdbyt`; VICE
+  `D64_FILE_SIZE_35`, `sector_map_d64`, `disk_image_speed_map`, and
+  `fsimage_check_sector`.
+- **Limit:** these records define geometry and interpretation. They do not select RD-07's later
+  measured sector allocation/interleave policy.
+
+#### `CBM-C64-KERNAL-LOAD-03` — KERNAL 901227-03 loader ABI
+
+- **Authority and pin:** recovered original Commodore C64 KERNAL 901227-03 source at
+  `mist64/cbmsrc` commit `01bd60f162ef92212ef0cb67546ae8f42be34168`. Exact file hashes are
+  `init` `a19581404b6a7bddaac322c06f3bc5c7f5b442b81175c50acdfd6c48a0dcd180`,
+  `load` `c4ee7c1abb358a6caa4e91f30937e7d71b099f621a8f7e8388cd4e10c37ad6c7`,
+  `vectors` `7e5a1954d592b4ff48ace641f9432795a6a9a37c1f3b97d4b52333f5324ef714`,
+  `declare` `d7ea21632b3a4e2d2282bf12a284325267a3eca39f6d24f2759e78a14b182fe2`,
+  and `errorhandler` `5282c6bffaa68db16105858ca8437c969294a1271e8255eeed5a5f14d63a0db1`.
+- **Exact facts:** jump-table entries are `SETLFS` `$FFBA`, `SETNAM` `$FFBD`, and `LOAD` `$FFD5`.
+  `SETLFS` takes logical file/device/secondary address in A/X/Y; `SETNAM` takes length in A and
+  filename address in X/Y. `LOAD` takes 0 in A for load and, when the secondary address is 0, the
+  relocating destination in X/Y. Successful serial load writes directly from that address until
+  end-of-information, returns the one-past-end address in X/Y, and clears carry. Errors return an
+  error number in A with carry set. The current device is `FA` at `$BA`; reusing it for the boot
+  device is project policy built on that recorded state, not a ROM requirement.
+- **Resources and integrity bound:** the path uses KERNAL state including `STATUS`, `VERCK`,
+  `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, and `FA`, plus serial/KERNAL service calls.
+  `LOAD` has no destination-length parameter and stores each received byte before testing the final
+  returned address. This is the source fact behind `HLE-010`: a readable longer replacement can
+  overwrite beyond the expected range before the wrapper detects the wrong end address.
+- **Precise locations:** `vectors` jump table; `init::SETNAM/SETLFS`; `load::LOADSP/NLOAD`,
+  `LD25`–`LD90`, and `LD180`–`LD190`; `declare` `$90` workspace; `errorhandler::ERROR1`–`EREXIT`.
+
+#### `KOALA-NATIVE-003` — classic Koala layout
+
+- **Authority and pins:** Codebase64 graphics-formats list v0.03 raw record, retrieved
+  2026-09-13 from
+  <https://codebase64.net/doku.php?id=base:c64_grafix_files_specs_list_v0.03&do=export_raw>,
+  SHA-256 `e544700ddff4288239260d14a5c5be3ee5fa956e0132cbdf345ff02f0b1077e0`;
+  independently pinned Retropixels producer at commit
+  `a5caf5b889eff11528768cf6b1d16585c47b4122`, `cli/README.md` SHA-256
+  `ef1cd543b019f972286bcc6b872a7038d68ec92427aaaf62e87eb52fdd605945`.
+- **Exact facts:** the accepted uncompressed file is exactly 10,003 bytes: little-endian `$6000`,
+  8,000 bitmap bytes, 1,000 screen bytes, 1,000 Color RAM bytes, and one background byte, in that
+  order.
+- **Precise locations:** Codebase64 “Koala Painter 2” address table and Retropixels
+  `cli/README.md` “Output formats” table.
+- **Limit:** neither source is the original Koala Painter manual. They establish the classic byte
+  layout, not selector names or unused-high-nibble behavior. Exact full-byte preservation with only
+  low-nibble VIC-II color meaning is the separately approved AR-039/AR-041 project policy.
