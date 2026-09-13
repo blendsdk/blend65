@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13
-> **Progress**: 0/31 tasks (0%)
+> **Last Updated**: 2026-09-13 12:31
+> **Progress**: 1/31 tasks (3%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -38,8 +38,11 @@ CodeOps spec-test file/RED template.
 
 > **Lenses**: input authority, determinism, scope containment
 > **Checks**: V-01, V-06, V-07, V-16
+> **Phase baseline tree**: `80803ebbebc89f82e482b1652e74531c2b25aae4`
+> **Expected modification set**: `08-closeout.md`, this execution plan, and the feature roadmap
+> **Scope mode**: strict — RD-01 authority work only
 
-- [ ] 1.1.1 Verify the Phase 0 worktree, branch, ancestry, parked-v3 status, P3 identity, expert 1.0.0 identity/content commit, and resolved AR-001–AR-050 set; freeze the current 50 `spec/` paths, raw hashes, and authority roles before any `spec/` or skill edit — `08-closeout.md`
+- [x] 1.1.1 Verify the Phase 0 worktree, branch, ancestry, parked-v3 status, P3 identity, expert 1.0.0 identity/content commit, and resolved AR-001–AR-050 set; freeze the current 50 `spec/` paths, raw hashes, and authority roles before any `spec/` or skill edit — `08-closeout.md` ✅ (completed: 2026-09-13 12:31)
 - [ ] 1.1.2 Record the exact AR-050 trigonometric formula, ranges, representative vectors, byte encodings, and two canonical fingerprints as the implementation-independent oracle — `08-closeout.md`
 - [ ] 1.1.3 Record the three `comptime-budget-v1` limits and exact charging/lifetime/boundary examples that later normative prose must satisfy — `08-closeout.md`
 - [ ] 1.1.4 Capture and hash-pin the primary D64/1541 geometry, C64 KERNAL loader, and Koala records needed by the C64 clauses before those facts freeze — `08-closeout.md`
