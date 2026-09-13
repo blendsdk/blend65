@@ -1,7 +1,7 @@
 # Ambiguity Register: Blend65 v4 Requirements
 
-> **Status**: ✅ GATE PASSED — all 48 items resolved
-> **Last Updated**: 2026-09-11
+> **Status**: ✅ GATE PASSED — all 50 items resolved
+> **Last Updated**: 2026-09-13
 > **CodeOps Artifact Schema**: 1
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -54,6 +54,8 @@
 | AR-046 | Behavioral (complex) / optimizer frontier and search completion | What belongs in the qualified optimization frontier, and what proves that an optimized mode has searched it deeply enough: combined modern and 6502-specific techniques exhausted to proved closure, only traditional 6502 tricks, a broad imported modern optimizer framework, globally exhaustive assembly search, or a heuristic pass budget? | Finite combined modern-plus-6502 frontier exhausted to proved closure, with structured peepholes and bounded exact search / 6502 tricks only / broad imported optimizer framework or catalog / globally exhaustive search across all equivalent programs / heuristic fixed-pass or first-good completion | Freeze a deep, sourced modern-plus-6502 optimization knowledge inventory into expert baseline `2.0.0`, then use the same finite evidence-qualified candidate frontier for `balanced`, `speed`, and `size`. Admit concrete techniques by Blend65 semantics, current consumer, complete rule packet, exact 6502/full-program costs, two independent oracles, and expert parity—not by historical or modern provenance. Exhaust that frontier at the smallest complete owning scope, repeat affected groups to a proved deterministic fixed point, and run structured contextual peephole optimization. Permit exact enumeration only for explicitly small finite regions with an independent equivalence oracle. Import algorithms and proof ideas, never another compiler's architecture or target assumptions. Never stop at the first improvement or certify success through an iteration cap. Claim frontier-optimality, not universal mathematical optimality; a newly discovered winning expert candidate reopens the frontier as parity debt. | ✅ Resolved |
 | AR-047 | UX / VS Code execution commands | How do `Run in VICE` and `Build and Run` differ when every run must successfully build a fresh artifact in the same invocation, and how are unsaved build inputs handled? | Keep only `Build` and fresh `Run in VICE`, saving relevant dirty build inputs first / retain a separate existing-artifact rerun path with strict currentness proof plus `Build and Run` | Expose only `Blend65: Build` and `Blend65: Run in VICE`; remove redundant `Build and Run`. Before either command, save dirty open project inputs consumed by that operation; abort with an actionable message if saving is declined or fails. `Run in VICE` performs a fresh build and launches only that invocation's artifact. The LSP continues to analyze unsaved snapshots independently. | ✅ Resolved |
 | AR-048 | Scope (complex) / production host matrix | Which host operating-system and architecture combinations receive the complete production compiler, editor, ACME, and VICE workflow, and how are machine-local tools selected? | Linux x64 plus Windows x64 production, with other Node 22 hosts best-effort / Linux x64 only / Linux, Windows, and macOS across x64 and ARM64 | Qualify `linux/x64` and `win32/x64` on Node 22 first; other Node 22 hosts are best-effort. The compiler library is tool-free. Tool-requiring CLI/editor commands read optional machine-local `tools.jsonc` schema 1, using valid explicit absolute paths first and otherwise one ordered process-`PATH` scan for `acme`/`x64sc` on Linux or `acme.exe`/`x64sc.exe` on Windows. Do not consult `PATHEXT`, a shell, registry, or install-location list. Validate with ACME `--version` and VICE `-version`; invalid explicit paths or the first PATH match with an incompatible identity do not fall back. Projects cannot supply tools and nothing auto-installs them. | ✅ Resolved |
+| AR-049 | Technical / authority verification | How much process is required to freeze Specification 4 and requalify expert `2.0.0`? | **Recommended after complexity reassessment:** one central normative inventory plus deterministic corpus digest and raw final hashes; one concise `prior path / disposition / governing decision / destination` crosswalk; exact direct checks with durable evidence; impact-based qualification of changed and transitively dependent expert cases plus one unchanged control per casebook and all-case structural checks; one final independent evidence/domain review; candidate bytes remain outside the live skill until explicit approval. Remove per-file identity stamps, passive Markdown test files, the complete 107-case blind rerun, hunk-level ledgers, arbitrary file/row batching, and duplicate reviews. | User authorized the simplification reset on 2026-09-13 and confirmed proceeding after reviewing its prevention contract. | ✅ Resolved |
+| AR-050 | Language semantics | What exact observable integer rule governs `sin8`, `cos8`, `sin16`, and `cos16`? | **Recommended after independent challenge:** for width `k`, unsigned phase `p` denotes `p / 2^k` turns; amplitude is `2^(k-1)-1`; sine is the nearest integer to `amplitude × sin(2πp / 2^k)` with exact halves rounded away from zero; cosine is sine at a wrapped quarter-turn offset. This yields symmetric ranges `-127..127` and `-32767..32767`, exact half-turn negation, safe negation without signed-minimum overflow, and no prescribed compiler algorithm. Freeze independently reproduced exhaustive sine-stream fingerprints and representative vectors; derive cosine through the quarter-turn relation. | User accepted the recommendation on 2026-09-13. | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -1386,3 +1388,36 @@ RD-10 authoring then exposed AR-048: the approved requirements require all suppo
 models to work but did not define the production host matrix. The user selected Node 22 on Linux
 x64 and Windows x64 first, best-effort macOS/other Node 22 hosts, and deterministic machine-local
 tool configuration plus automatic discovery. The gate passes again with all 48 items resolved.
+
+RD-01 planning later exposed disproportionate authority-verification machinery: 108 tasks, passive
+Markdown test artifacts, per-file self-referential identity stamps, a complete blind 107-case
+rerun, and repeated administrative batching. After a dedicated complexity reassessment and an
+independent challenge, the user authorized AR-049's direct impact-based replacement. The reset
+then isolated AR-050 as the sole remaining product decision: exact observable integer trigonometry.
+
+### AR-050 — Exact integer trigonometry
+
+For `k = 8` or `16`, let `N = 2^k`, `A = 2^(k-1)-1`, and let unsigned phase `p` denote exactly
+`p/N` turns. The recommended observable rule is:
+
+- `sin_k(p) = roundNearestAwayFromZero(A × sin(2πp/N))`;
+- `cos_k(p) = sin_k((p + N/4) mod N)`.
+
+Representative cardinal and diagonal results are `sin8(0)=0`, `cos8(0)=127`,
+`sin8(32)=90`, `sin8(64)=127`, `sin8(128)=0`, `sin8(192)=-127`,
+`sin16(8192)=23170`, `sin16(16384)=32767`, `sin16(32768)=0`, and
+`sin16(49152)=-32767`. Independent high-precision generation reproduced these canonical sine
+streams:
+
+- `sin8`, phases `0..255`, one two's-complement byte per result:
+  `sha256:fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259`;
+- `sin16`, phases `0..65535`, little-endian two's-complement words:
+  `sha256:e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50`.
+
+Scaling to the signed minimum was rejected because it breaks exact half-turn negation and makes the
+negative extreme overflow when negated. Truncation was rejected because it biases magnitudes.
+Normative full tables were rejected because the mathematical rule and fingerprints are smaller and
+do not prescribe the implementation.
+
+The user accepted this rule on 2026-09-13. The requirements Zero-Ambiguity Gate passes with all 50
+items resolved.

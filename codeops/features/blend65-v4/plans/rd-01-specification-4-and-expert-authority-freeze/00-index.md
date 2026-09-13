@@ -1,80 +1,60 @@
 # Specification 4.0 and Expert Authority Freeze Implementation Plan
 
-> **Feature**: Replace the active language and expert authorities with one qualified C64-only
-> Specification 4.0 baseline
+> **Feature**: Publish one qualified C64-only Specification 4.0 and matching expert authority
 > **Status**: Planning Complete
 > **Created**: 2026-09-13
+> **Revised**: 2026-09-13 after the accepted simplification reset
 > **Implements**: blend65-v4/RD-01
 > **CodeOps Artifact Schema**: 1
 
-## Overview
+## Outcome
 
-This plan turns the approved Blend65 v4 language decisions into one active Specification 4.0 tree,
-then reconciles and qualifies the single active `blend65-domain-expert` skill as version `2.0.0`.
-The work freezes exact content identities before any v4 compiler semantics are implemented.
+This plan edits the existing `spec/` tree into the one active Specification 4.0 corpus, reconciles
+an isolated `blend65-domain-expert` 2.0.0 candidate to that corpus, qualifies only the changed and
+dependent expert cases, and activates the exact approved candidate. Compiler implementation starts
+later in RD-02.
 
-The transition preserves unchanged Specification 3 behavior, replaces only behavior authorized by
-the v4 ambiguity register, makes C64 the only normative target family, and records a checked P3→4
-crosswalk. Existing compiler code remains audit evidence, never semantic authority.
+## Minimum-Sufficient Design
 
-## Minimum-Sufficient Baseline
+- Keep one specification tree and one live expert skill.
+- Keep one central normative inventory and content digest; record raw final hashes at closeout.
+- Use one four-column Specification 3→4 crosswalk plus a final semantic-diff review.
+- Validate specification content with direct acceptance checks, not passive Markdown test files or
+  a new documentation-test framework.
+- Build and qualify the expert candidate outside the live skill path. Check every case structurally,
+  but rerun model evaluation only for changed/dependent cases plus one fixed unchanged control from
+  each casebook.
+- Use one final independent evidence/domain review before explicit activation approval.
 
-**Original goal:** Publish one internally consistent, qualified Specification 4.0 and one matching
-expert `2.0.0` authority that later RDs can implement without semantic drift.
+This is the five-phase design accepted in AR-P7. It removes the per-file identity stamps, 107-case
+model rerun, hunk ledger, arbitrary file-count batching, and duplicated review layers rejected by
+AR-049.
 
-**Smallest viable design:** Edit the existing `spec/` tree in place; reuse the current Markdown
-expert references, five casebooks, coverage matrix, composed-evidence qualification, and one active
-release record; add only the normative inventory, plan-local oracle/evidence files, new required
-cases, and RD closeout. See AR-P1, AR-P3, AR-P5, and AR-P6.
+## Documents
 
-**Excluded machinery:** No parallel spec tree, compiler changes, generalized documentation or test
-framework, evidence database, new runtime, target plugin system, evaluator service, or second skill
-release tree. See AR-P1, AR-P3, and RD-01 Won't Have.
-
-**Approved complexity:** Eight bounded execution phases and the normalized content-identity rule.
-See AR-P2 and AR-P5.
-
-## Document Index
-
-| # | Document | Description |
-|---|---|---|
-| AR | [Ambiguity Register](00-ambiguity-register.md) | All six resolved plan decisions |
-| 00 | [Index](00-index.md) | Goal, minimum design, and navigation |
-| 01 | [Requirements](01-requirements.md) | Thin RD-01 scope delta |
-| 02 | [Current State](02-current-state.md) | Existing authority and gap analysis |
-| 03-01 | [Authority and Identity](03-01-authority-and-identity.md) | Bootstrap, inventory, crosswalk, digest, and freeze records |
-| 03-02 | [Core Language Reconciliation](03-02-core-language-reconciliation.md) | Control flow, scope, integers, arrays, aggregates, and addresses |
-| 03-03 | [Closed Program Semantics](03-03-closed-program-semantics.md) | Function values, comptime, placement, loading, intrinsics, and safety |
-| 03-04 | [C64, Guard, and Diagnostics](03-04-c64-guard-and-diagnostics.md) | Honest target authority and whole-spec integrity |
-| 03-05 | [Expert Authority](03-05-expert-authority.md) | Router, knowledge, sources, cases, and product boundary |
-| 03-06 | [Qualification and Activation](03-06-qualification-and-activation.md) | Evidence, approval, atomic activation, and closeout |
-| 07 | [Testing Strategy](07-testing-strategy.md) | Immutable ST cases and direct verification |
-| 99 | [Execution Plan](99-execution-plan.md) | Eight phases and task checklist |
-
-## Quick Reference
-
-### Execution Boundary
-
-Use `codeops:exec-plan` on this plan only. Phases 1–7 prepare and qualify immutable candidate
-content. Phase 8 stops for the explicit user approval required by RD-01 R1.24 before the sole active
-release record is changed.
-
-### Key Decisions
-
-| Decision | Outcome |
+| Document | Purpose |
 |---|---|
-| Planning scope | RD-01 only; implementation starts in RD-02 (AR-P1) |
-| Decomposition | Eight reviewable phases (AR-P2) |
-| Oracle method | Existing Markdown casebooks and composed evidence (AR-P3) |
-| Verification | Direct documentation/skill checks only (AR-P4) |
-| Spec identity | Inventory-selected, normalized SHA-256 corpus digest (AR-P5) |
-| Artifact owners | Inventory in `spec/`; summary in feature index; crosswalk/freeze in `08-closeout.md` (AR-P6) |
+| [Ambiguity Register](00-ambiguity-register.md) | Ten resolved plan decisions |
+| [Requirements](01-requirements.md) | RD-01 scope and accepted planning constraints |
+| [Current State](02-current-state.md) | Existing authorities, gaps, and risks |
+| [Specification Reconciliation](03-01-specification-reconciliation.md) | Baseline, exact oracles, and language semantics |
+| [C64 Authority and Freeze](03-02-c64-authority-and-freeze.md) | C64, Guard, diagnostics, inventory, crosswalk, and digest |
+| [Expert Candidate and Activation](03-03-expert-candidate-and-activation.md) | Isolated candidate, impact qualification, approval, and activation |
+| [Testing Strategy](07-testing-strategy.md) | Direct, observable acceptance checks |
+| [Execution Plan](99-execution-plan.md) | Five phases and 31 ordered tasks |
 
-## Related Files
+## Execution Boundary
 
-- `spec/**/*.md` and `.clinerules/language-guard.md`
-- `.agents/skills/blend65-domain-expert/{SKILL.md,agents,references,qualification}`
-- `codeops/features/blend65-v4/requirements/00-ambiguity-register.md`
-- `codeops/features/blend65-v4/requirements/RD-01-specification-4-and-expert-authority-freeze.md`
-- `codeops/features/blend65-v4/00-phase-0-handoff.md`
-- `codeops/features/blend65-v4/00-roadmap.md`
+Use `codeops:exec-plan` for this plan. Phase 5 must stop after presenting the immutable candidate
+and evidence packet. The live skill cannot change until the user explicitly approves that exact
+candidate. Commits are automatic at coherent green checkpoints; pushes are never automatic.
+
+## Authority Inputs
+
+- [RD-01](../../requirements/RD-01-specification-4-and-expert-authority-freeze.md)
+- [V4 ambiguity register](../../requirements/00-ambiguity-register.md), AR-001–AR-050
+- [Phase 0 handoff](../../00-phase-0-handoff.md)
+- `spec/` Specification 3 input, identity `BLEND65-SPEC-P3-4bf8a989`
+- `.agents/skills/blend65-domain-expert/` 1.0.0 input, content commit
+  `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`
+- `.clinerules/language-guard.md`

@@ -39,7 +39,7 @@ owned debugger adapter, visual designer, package manager, automatic tool downloa
 compressor, or speculative future-target package.
 
 **Approved complexity:** The material support surfaces and complexity escalations are resolved in
-[the ambiguity register](00-ambiguity-register.md), AR-001 through AR-048.
+[the ambiguity register](00-ambiguity-register.md), AR-001 through AR-050.
 
 ## Mandatory Phase 0 Bootstrap
 
@@ -71,7 +71,7 @@ no compiler architecture, package, or compatibility obligation. (AR-005, AR-025)
 
 | # | Document | Description | Depends On |
 |---|---|---|---|
-| **AR** | [Ambiguity Register](00-ambiguity-register.md) | Forty-eight resolved product, language, architecture, target, evidence, and workflow decisions | — |
+| **AR** | [Ambiguity Register](00-ambiguity-register.md) | Fifty resolved product, language, architecture, target, evidence, and workflow decisions | — |
 | **RD-01** | [Specification 4.0 and Expert Authority Freeze](RD-01-specification-4-and-expert-authority-freeze.md) | Applies accepted language changes once, qualifies expert `2.0.0`, and freezes both authorities in the prepared v4 worktree | Phase 0 bootstrap |
 | **RD-02** | [Clean V4 Foundation and Deterministic Project Model](RD-02-clean-v4-foundation-and-deterministic-project-model.md) | Creates the clean monorepo, package boundaries, project model, diagnostics, and immutable-generation build foundation | RD-01 |
 | **RD-03** | [Playable M1 Complete Pipeline](RD-03-playable-m1-complete-pipeline.md) | Delivers a playable Space Invaders-style vertical proof through real assets, ACME, and VICE | RD-01, RD-02 |
@@ -150,7 +150,7 @@ completion requires the entire active language and approved C64 surface.
 | Check | Result |
 |---|---|
 | Document inventory | 10 RDs, 438 Must requirements, 23 Should requirements, 75 explicit exclusions, and 358 acceptance criteria |
-| Ambiguity gate | AR-001 through AR-048 are all `✅ Resolved`; no deferred or assumed executable decision remains |
+| Ambiguity gate | AR-001 through AR-050 are all `✅ Resolved`; no deferred or assumed executable decision remains |
 | Dependencies | Every declared RD exists; dependency graph is acyclic; implementation order respects prerequisites |
 | Cross-references | Every local Markdown link and every referenced AR identity resolves |
 | Ownership | Language, SFA, CPU, machine, assets, layout, loading, optimizer, tooling, qualification, and C64U handoff each have one named owner |
@@ -158,7 +158,7 @@ completion requires the entire active language and approved C64 surface.
 | Security | Every RD covers local input validation, containment/injection, atomic failure, secrets, authorization applicability, resource bounds, and negative verification |
 | Verification economy | Skill/docs work avoids compiler/emulator suites; implementation uses directed checks and one complete relevant boundary at each major checkpoint |
 | Specification state | Existing `spec/` remains frozen until RD-01 performs the one authorized Specification 4 transition |
-| Roadmap | All ten rows are at `RD Drafted`; implementation progress remains 0/10 until plans execute |
+| Roadmap | Current lifecycle state is owned by the [feature roadmap](../00-roadmap.md); this requirements summary does not duplicate it |
 
 ## Commonly Forgotten Requirements — Final Check
 

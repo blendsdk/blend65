@@ -31,7 +31,7 @@ branch and leaves the current checkout parked as v3 evidence. Authority files ar
 the parked worktree.
 
 > **Decisions:** AR-004, AR-006, AR-014 through AR-020, AR-023, AR-024, AR-029 through AR-031,
-> AR-034, AR-035, and AR-038 through AR-046.
+> AR-034, AR-035, AR-038 through AR-046, AR-049, and AR-050.
 
 ---
 
@@ -59,16 +59,19 @@ the parked worktree.
   notes must be removed from the active specification tree or labelled non-normative by the
   inventory. (AR-004, AR-014, AR-035)
 - [ ] **R1.4 — Freeze a content-derived Specification 4 identity.** The completed normative corpus
-  receives one deterministic content identity. Every normative chapter, evaluation, qualification
-  artifact, and dependent release record must name that same identity before activation. (AR-014)
+  receives one deterministic content identity derived from the exact paths and bytes in the
+  normative inventory. The inventory owns that identity; qualification artifacts and the dependent
+  release record name it. Individual normative files do not carry self-referential identity
+  stamps. The closeout records raw final hashes. (AR-014, AR-049)
 
 #### Complete semantic reconciliation — complexity XL
 
 - [ ] **R1.5 — Preserve all unchanged language behavior.** Every Specification 3 behavior not
   explicitly changed by the approved transition remains defined in Specification 4. Omissions,
   contradictory summaries, stale examples, and silent changes are defects. A checked transition
-  crosswalk must account for every prior normative path and every deliberate addition, change,
-  move, or removal. (AR-014)
+  crosswalk records each prior path, its disposition, the governing decision, and its Specification
+  4 destination. A final semantic diff review rejects every unexplained behavior change. (AR-014,
+  AR-049)
 - [ ] **R1.6 — Apply the approved modern control-flow, scope, and integer rules.** Specification 4 must
   define the familiar three-clause `for` statement, increasing and decreasing iteration through
   ordinary expressions, deterministic fixed-width wrapping, rejection of a provably
@@ -116,13 +119,17 @@ the parked worktree.
 - [ ] **R1.11 — Apply deterministic compile-time functions.** `comptime function` must reuse the
   normal typed language over bounded compile-time state, permit direct calls and aggregate returns,
   and reject runtime state, MMIO, low-level intrinsics, indirect calls, recursion, arbitrary host
-  input, and nondeterminism. `sin8`, `cos8`, `sin16`, and `cos16` must have normative phase,
-  amplitude, extrema, symmetry, rounding, and byte-exact results. Exhausted execution or memory
-  budgets produce deterministic source diagnostics and no partial target output. Freeze
+  input, and nondeterminism. For width `k` (`8` or `16`), unsigned phase `p` denotes `p / 2^k`
+  turns, amplitude is `2^(k-1)-1`, and sine is the nearest integer to
+  `amplitude × sin(2πp / 2^k)` with exact halves rounded away from zero. Cosine is sine at a wrapped
+  quarter-turn offset. This yields the symmetric ranges `-127..127` and `-32767..32767`; the
+  implementation algorithm is unrestricted. Exhausted execution or memory budgets produce
+  deterministic source diagnostics and no partial target output. Freeze
   `comptime-budget-v1` as one non-configurable compilation-wide budget: 16,777,216 abstract steps,
   16,777,216 bytes of peak live logical Blend65 value storage, and 512 active calls with the root at
   depth 1. Define exact charge, lifetime/release, alias/copy, short-circuit, caching-equivalence, and
-  pre-operation N/N+1 behavior. Host allocator usage cannot affect source acceptance. (AR-019)
+  pre-operation N/N+1 behavior. Host allocator usage cannot affect source acceptance. (AR-019,
+  AR-050)
 - [ ] **R1.12 — Apply explicit placement and loadable-value syntax.** Specification 4 must define
   the closed `place(at, align, noCross, region)` declaration modifier and `loadable const` values.
   Placement constraints can strengthen but never weaken profile, visibility, banking, alignment,
@@ -253,17 +260,20 @@ the parked worktree.
   Import algorithms and proof ideas, not another compiler's architecture, implementation, target
   assumptions, broad pass catalog, or framework. (AR-014, AR-023, AR-034, AR-038 through AR-046)
 - [ ] **R1.22 — Requalify according to blast radius.** Every pre-existing expert qualification
-  case and every new AR-046 case must retain admissible green evidence under the `2.0.0` candidate;
-  no existing case may disappear merely to keep a fixed total count. Use deterministic
-  structural/source/oracle checks, one complete isolated blind coverage sample, focused reruns for
-  each corrected case and dependency-traced regression, and independent review of the correction
-  and its blast radius. Do not require a lucky simultaneous 107-answer transcript and do not
-  invalidate unrelated evidence for an evaluator-only omission. (AR-014, AR-034, AR-046)
+  identity remains present and structurally valid. Re-run each changed or transitively dependent
+  case in an isolated evaluator, plus one fixed unchanged control from each casebook. Existing green
+  evidence may be inherited only when every referenced knowledge and oracle input is byte-unchanged.
+  Add every required AR-046 case, and run one final independent review of the changed surface,
+  dependency closure, controls, and complete evidence packet. Do not repeat the full 107-case model
+  sample when the dependency proof closes. (AR-014, AR-034, AR-046, AR-049)
 - [ ] **R1.23 — Activate atomically and freeze.** The candidate becomes active only after the
-  specification crosswalk, Language Guard, all required expert evidence, independent review, links,
-  topology, source keys, content hashes, and release record pass together. The release record binds
-  `2.0.0` to its exact content commit and Specification 4 identity. Only one release is active;
-  earlier versions remain in Git history. (AR-014, AR-034)
+  specification crosswalk, Language Guard, all required expert evidence, final independent review,
+  links, topology, source keys, content hashes, and prepared release record pass together. The
+  qualified candidate stays outside the live skill path until approval. Activation copies the
+  approved content bytes unchanged. A following bookkeeping commit may change only
+  `qualification/release.md` to bind `2.0.0` to that exact content commit and Specification 4
+  identity. Every other file remains byte-identical, and only one release is active; earlier
+  versions remain in Git history. (AR-014, AR-034, AR-049)
 - [ ] **R1.24 — Obtain explicit authority approval.** Present the complete Specification 4 change
   summary, guard results, expert qualification evidence, removed target claims, remaining future
   constraints, and exact identities to the user before activation. Approval of this RD does not
@@ -319,25 +329,22 @@ For this transition, conflicts resolve in this order:
 No feasibility matrix, readiness result, scoreboard ratio, package topology, or historical
 implementation restriction can override the first four authorities. (AR-004, AR-014)
 
-### Required transition crosswalk — complexity L
+### Required transition crosswalk — complexity M
 
 The checked crosswalk must contain one row for every normative Specification 3 file and every
-Specification 4 addition. Each row records:
+Specification 4 addition. Each row records only the information needed to prove the transition:
 
 | Field | Required content |
 |---|---|
-| Prior path and identity | Exact Specification 3 source path and content identity, or `new` |
-| Authority role | Normative chapter, grammar, evaluation, C64 appendix, or non-normative future constraint |
+| Prior path | Exact Specification 3 source path, or `new` |
 | Disposition | Retained, changed, split, merged, added, or removed |
 | Governing decisions | Every applicable `AR-*` and prequalified semantic ruling |
-| Specification 4 destination | Exact normative destination path and section |
-| Semantics | Concise statement of preserved or changed observable behavior |
-| Compiler obligations | Parser, typing, effects, SFA, lowering, target, diagnostics, and evidence consumers affected |
-| Guard evidence | All applicable Language Guard rules and their results |
-| Skill impact | Router/reference/oracle cases affected and dependency closure |
+| Specification 4 destination | Exact normative destination path and section, or `removed` |
 
-A count-only inventory is insufficient. The crosswalk must expose conflicting summaries, stale
-examples, missing diagnostics, and old target claims before activation. (AR-014, AR-035)
+Exact source and destination membership must be checked against the baseline and final normative
+inventories. A final semantic-diff review must catch conflicting summaries, stale examples,
+missing diagnostics, and old target claims before activation. No hunk-level ledger or duplicated
+per-file impact schema is required. (AR-014, AR-035, AR-049)
 
 ### Normative Specification 4 structure — complexity M
 
@@ -369,20 +376,25 @@ claiming unqualified targets. In particular:
 
 The guard version and every evaluation must identify Specification 4.0. (AR-003, AR-014, AR-035)
 
-### Expert-skill `2.0.0` activation — complexity XL
+### Expert-skill `2.0.0` activation — complexity L
 
 The candidate update must follow the existing single-active-release policy:
 
-1. Build against the frozen candidate Specification 4 identity.
-2. Update the router and only the knowledge required by changed authority.
-3. Reconcile source provenance and remove stale target-support claims.
-4. Update affected oracles and dependency traces without weakening an expectation.
-5. Establish green evidence for all 107 cases under the accepted composed-evidence method.
-6. Complete independent changed-surface and blast-radius review.
-7. Validate exact router/reference/qualification topology, links, anchors, source keys, and hashes.
-8. Commit the qualified content, then bind its commit and Specification identity in the sole active
-   release record as bookkeeping that does not recursively bump the version.
-9. Atomically expose `2.0.0` as the only active baseline.
+1. Build an isolated candidate outside the live skill path against the frozen Specification 4
+   identity.
+2. Update only changed knowledge, its router paths, provenance, and affected oracle cases.
+3. Derive the transitive dependency closure of those changes. Check every case identity and
+   required field structurally, then rerun changed and dependent cases in isolation plus one fixed
+   unchanged control from each casebook. Existing evidence may be inherited only when every input
+   it references is byte-identical.
+4. Add the required AR-046 optimizer cases without removing or weakening an existing expectation.
+5. Complete one final independent evidence and domain review, and validate topology, links,
+   anchors, source keys, and hashes.
+6. Present the exact candidate and evidence for explicit user approval.
+7. After approval, copy the unchanged qualified candidate into the live skill path. Bind its
+   content commit and Specification identity by changing only the sole release record; every other
+   file remains byte-identical. If post-copy verification fails, restore the prior live tree instead
+   of leaving a partial activation.
 
 Qualification may use language-model evaluation where the existing cases require it, but it must
 not launch the Blend65 compiler, ACME, VICE, readiness workflows, or unrelated repository tests.
@@ -392,12 +404,10 @@ not launch the Blend65 compiler, ACME, VICE, readiness workflows, or unrelated r
 
 The closeout record must contain:
 
-- Specification 4 version and content identity;
-- normative file manifest and hashes;
-- expert skill version `2.0.0`, content commit, router hash, reference hashes, qualification hashes,
-  and release-record hash;
+- Specification 4 version, central normative inventory, corpus digest, and raw final file hashes;
+- expert skill version `2.0.0`, content commit, candidate hashes, and release-record hash;
 - Language Guard result and changed-feature evaluation list;
-- the complete transition and qualification crosswalks;
+- the concise transition crosswalk and qualification impact record;
 - unresolved findings, which must be zero at activation;
 - explicitly non-normative future-target constraints; and
 - the user approval that authorized activation.
@@ -497,22 +507,25 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
    `/home/gevik/workdir/github/blend65.ri/v4` on `feature/v4-rebuild`, names the branch's exact final
    v3 source commit, confirms that the parked v3 worktree remained unchanged, and names the exact
    Specification 3 identity, expert `1.0.0` identity/content commit, and complete resolved Blend65
-   v4 ambiguity register from AR-001 through AR-048; no compiler implementation or v3 test is
+   v4 ambiguity register from AR-001 through AR-050; no compiler implementation or v3 test is
    listed as authority.
 2. [ ] **AC-02 — Single spec:** Exactly one active language specification exists under `spec/`, its
    public version is `4.0`, and no active `spec-v4/` or duplicate Specification 3 tree exists.
 3. [ ] **AC-03 — Normative inventory:** One checked normative inventory resolves every normative
    chapter, grammar, evaluation, and C64 appendix path; every other retained file is explicitly
-   non-normative.
+   non-normative. The inventory defines one deterministic corpus identity and the closeout records
+   raw final hashes; individual normative files do not carry repeated identity stamps.
 4. [ ] **AC-04 — Complete crosswalk:** Every prior normative Specification 3 path and every new
-   Specification 4 path has exactly one transition-crosswalk row with disposition, authority,
-   semantics, consumers, guard result, and skill impact.
+   Specification 4 path has exactly one transition-crosswalk row with prior path, disposition,
+   governing decisions, and Specification 4 destination. Exact membership checks and a final
+   semantic-diff review report no missing source, destination, or material semantic change.
 5. [ ] **AC-05 — No stale identity:** Searching active normative and expert-skill files finds no
    claim that the active language is Specification 3, that the active expert baseline is `1.0.0`,
    or that v4 supports five target families.
 6. [ ] **AC-06 — Grammar agreement:** Every Specification 4 syntax form has one production in
-   `grammar.ebnf.md`; every normative positive example parses under that grammar, and every
-   normative invalid syntax example is rejected by the grammar validator.
+   `grammar.ebnf.md`. An independent consistency review confirms that every normative positive
+   example follows that grammar and every normative invalid syntax example has a precise rejection
+   point. RD-01 does not add a grammar validator.
 7. [ ] **AC-07 — Modern loop and scope contract:** The normative statement and grammar define one
    ordinary three-clause `for` form; old range-loop syntax is absent; evaluation ordering,
    `continue`, `break`, return, wrap, and provably unreachable finite termination are covered by
@@ -536,14 +549,15 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     control-flow joins, bounded nesting and predecessor-word cost, and diagnosis of helper restore
     after a raw vector write invalidates ownership.
 11. [ ] **AC-11 — Compile-time contract:** The specification defines exact results for every input
-    to `sin8` and `cos8`, a reproducible exact rule plus boundary vectors for `sin16` and `cos16`,
-    and deterministic diagnostics for forbidden effects and exhausted budgets. Direct meter tests
-    prove the three production constants and exact N/N+1 pre-operation behavior without executing
-    millions of fixture operations. Reduced-limit evaluator fixtures prove expression, statement,
-    loop-iteration, call-entry, and per-aggregate-byte charging; short-circuit and unselected-branch
-    exclusion; alias versus copy accounting; deterministic lifetime release; compilation-wide root
-    sharing; cache-equivalent abstract cost; depths 512/513; poison/no-output behavior; and identical
-    Linux/Windows results.
+    to `sin8`, `cos8`, `sin16`, and `cos16` by the AR-050 rule: for `k` in `{8,16}`, `N=2^k`,
+    `A=2^(k-1)-1`, unsigned phase `p` denotes `p/N` turns,
+    `sin_k(p)=round(A*sin(2*pi*p/N))` with exact halves away from zero, and
+    `cos_k(p)=sin_k((p+N/4) mod N)`. The result ranges are `-127..127` and
+    `-32767..32767`; the canonical table fingerprints and representative vectors recorded in
+    AR-050 reproduce exactly. The specification also defines the three production budget constants,
+    exact pre-operation charging, boundary examples, forbidden effects, exhausted-root poison/no-
+    output behavior, short-circuit exclusion, deterministic release, and depths 512/513 without
+    requiring an implementation algorithm or a separate meter-test framework.
 12. [ ] **AC-12 — Placement/loadable contract:** Positive and negative examples cover every
     `place(...)` key, combined constraints, illegal target, collision, unsatisfied region,
     `loadable const` compile-time use, illegal direct reads/addressing, compatible destination,
@@ -590,19 +604,21 @@ to the separately owned C64U feature. It supplies no C64U target-support claim. 
     target-byte `B` definition with D64 container overhead excluded, and complete
     admission/proof/cost fields required by R1.21 without importing a general optimizer framework or
     another compiler's target assumptions. (AR-038, AR-046)
-20. [ ] **AC-20 — Qualification coverage:** The coverage matrix accounts for all 107 pre-existing
-    unique case identities plus every newly approved AR-046 case, with all required fields and
-    admissible green evidence under the `2.0.0` candidate according to the accepted composed-
-    evidence rule. No existing identity is silently removed to preserve an arbitrary case count.
-21. [ ] **AC-21 — Qualification independence:** Independent changed-surface and blast-radius review
+20. [ ] **AC-20 — Qualification coverage:** Structural checks account for all 107 pre-existing
+    unique case identities plus every newly approved AR-046 case and all required fields. Isolated
+    model qualification reruns every changed and transitively dependent case plus one fixed
+    unchanged control from each casebook. Earlier evidence is inherited only when every referenced
+    input is byte-identical. No existing identity is removed or expectation weakened.
+21. [ ] **AC-21 — Qualification independence:** One final independent evidence and domain review
     reports zero unresolved critical or major knowledge, oracle, authority, or coverage defects.
 22. [ ] **AC-22 — Atomic release:** The sole active release record binds expert `2.0.0`, its exact
     qualified content commit, router/reference/qualification hashes, and Specification 4 identity;
     no second release record is active.
-23. [ ] **AC-23 — Direct verification only:** Formatting, links, anchors, topology, source keys,
-    hashes, crosswalks, guard evaluations, and relevant skill qualification pass. The recorded
-    command log contains no Blend65 compiler, ACME, VICE, readiness, emulator, or unrelated
-    repository test command.
+23. [ ] **AC-23 — Direct verification only:** Direct formatting, links, anchors, topology, source
+    keys, hashes, inventory/crosswalk membership, Guard evaluation, and impact-based skill
+    qualification checks pass. No documentation test framework is created. The recorded command
+    log contains no Blend65 compiler, ACME, VICE, readiness, emulator, or unrelated repository test
+    command.
 24. [ ] **AC-24 — Explicit activation approval:** The user receives the complete change summary and
     evidence named by R1.24 and explicitly approves activation before the release record becomes
     active.

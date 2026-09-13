@@ -1,47 +1,44 @@
 # Requirements: Specification 4.0 and Expert Authority Freeze
 
-> **Document**: 01-requirements.md
 > **Parent**: [Index](00-index.md)
-> **Source**:
-> [RD-01](../../requirements/RD-01-specification-4-and-expert-authority-freeze.md) — the OWNING
-> requirements document
+> **Owning source**:
+> [RD-01](../../requirements/RD-01-specification-4-and-expert-authority-freeze.md)
 
-## Scope of This Plan (Delta View)
+## In Scope
 
-### In This Plan
+- Verify and record the Phase 0 handoff, Specification 3 input, expert 1.0.0 input, and all resolved
+  AR-001–AR-050 decisions.
+- Reconcile RD-01 R1.2–R1.20 into the existing `spec/` tree and Language Guard.
+- Publish the central normative inventory, deterministic corpus digest, concise transition
+  crosswalk, final semantic-diff result, and raw final hashes.
+- Build expert 2.0.0 outside the live skill path, update only affected knowledge and cases, derive
+  the transitive impact set, and qualify it under R1.21–R1.23.
+- Obtain explicit approval of the exact candidate, activate it atomically, complete freeze and
+  deferral-expiry evidence, and update the feature roadmap.
 
-- RD-01 R1.1–R1.4: verify inputs, create the single Spec 4 tree, publish its inventory, and freeze
-  its identity.
-- RD-01 R1.5–R1.14: reconcile the approved language semantics without implementing the compiler.
-- RD-01 R1.15–R1.20: establish honest C64-only target authority, Guard results, and diagnostics.
-- RD-01 R1.21–R1.25: qualify and atomically activate expert `2.0.0`, then freeze both authorities.
-- RD-01 R1.26–R1.27: provide concise navigation and modern/game examples inside the owning clauses.
+## Out of Scope
 
-### Deferred / Out of This Plan
+- Compiler, package, CLI, LSP, editor, assembler, packager, runtime, or generated-artifact changes.
+- Compiler, ACME, VICE, readiness, emulator, game-corpus, or feasibility execution.
+- Normative C64U, X16, Atari 800XL, or Atari 7800 support.
+- A documentation test framework, evidence database, generalized evaluator service, second active
+  spec tree, or second live expert release.
 
-- Every compiler, package, CLI, LSP, editor, assembler, packager, and runtime change belongs to
-  RD-02 or later.
-- ACME, VICE, readiness, emulator, game-corpus, feasibility, and repository compiler suites do not
-  validate this documentation-and-skill-only RD.
-- C64U, X16, Atari 800XL, and Atari 7800 remain future constraints, not normative targets.
+## Accepted Planning Constraints
 
-## Plan-Local Decisions
+| Decision | Binding outcome |
+|---|---|
+| AR-P1 | Plan and execute RD-01 only. |
+| AR-P2 / AR-P7 | Replace the original eight-phase split with five outcome-oriented phases. |
+| AR-P3 / AR-P7 | Reuse the five casebooks; qualify by dependency impact and fixed controls. |
+| AR-P4 / AR-P7 | Run direct checks only; create no passive `tests/*.md` artifacts. |
+| AR-P5 / AR-P7 | One central inventory-derived digest; no repeated identity stamps. |
+| AR-P6 / AR-P7 | Inventory in `spec/`; crosswalk, hashes, approval, and freeze in one closeout. |
+| AR-P8 | Use the exact AR-050 `sin_k`/`cos_k` rule, vectors, ranges, and fingerprints. |
+| AR-P9 / AR-P10 | AR-P10 supersedes the unused test-pair proposal; RD-01 uses direct checks and independent review without test files. |
 
-| Decision | Chosen | AR Ref |
-|---|---|---|
-| Scope and context boundary | Plan and later execute RD-01 only | AR-P1 |
-| Phase structure | Eight bounded phases | AR-P2 |
-| Test/evidence method | Existing Markdown qualification plus direct checks | AR-P3 |
-| Verification boundary | Documentation, authority, and skill checks only | AR-P4 |
-| Content identity | Normalized manifest-selected SHA-256 | AR-P5 |
-| Durable artifact owners | Inventory, existing feature index, and one RD closeout | AR-P6 |
+## Completion Rule
 
-## Plan-Local Acceptance Criteria
-
-1. [ ] Every execution task changes no more than three files, except explicit deletion/set-equality
-   tasks whose complete path set is listed.
-2. [ ] Shared grammar, diagnostics, and Guard files have section-level ownership and are verified
-   after each phase that touches them.
-3. [ ] Specification tests are authored and observed RED before each phase's candidate content.
-4. [ ] No compiler or emulator command appears in the RD-01 verification log.
-5. [ ] The last phase cannot activate expert `2.0.0` without the user approval required by R1.24.
+Every RD-01 acceptance criterion must pass. The plan may group related Markdown edits into one
+coherent task because file-count batching is not a requirement. A task may not weaken semantics,
+qualification expectations, the explicit approval gate, or the single-active-authority rule.

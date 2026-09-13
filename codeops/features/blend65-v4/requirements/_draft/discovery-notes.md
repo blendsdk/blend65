@@ -4,7 +4,7 @@
 > **Phase**: 4 — Complete
 > **Started**: 2026-09-09
 > **Target feature**: `blend65-v4` (explicitly confirmed by the user)
-> **Artifact status**: Complete discovery record; RD-01 through RD-10 are approved, all 48 ambiguity
+> **Artifact status**: Complete discovery record; RD-01 through RD-10 are approved, all 50 ambiguity
 > decisions are resolved, and the requirements set passed final validation
 
 ## Authority and evidence
@@ -78,7 +78,7 @@ interaction is a compiler and machine-semantics concern rather than a distribute
 
 ## Open discovery questions
 
-None. AR-001 through AR-048 are resolved.
+None. AR-001 through AR-050 are resolved.
 
 ## Approved first C64 production profile
 

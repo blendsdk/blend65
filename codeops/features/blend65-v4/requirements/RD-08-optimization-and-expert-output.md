@@ -615,7 +615,7 @@ boundary. (AR-011, AR-023, AR-026)
 
 1. [ ] **AC-01 — Authority:** RD-08 implementation binds one frozen Specification 4 identity, one
    expert `2.0.0` content commit, and the complete resolved Blend65 v4 ambiguity register from
-   AR-001 through AR-048; no v3 implementation/test or feasibility matrix acts as optimizer
+   AR-001 through AR-050; no v3 implementation/test or feasibility matrix acts as optimizer
    authority.
 2. [ ] **AC-02 — Mode surface:** Manifest/schema/CLI cases accept exactly `none`, `balanced`,
    `speed`, and `size`; default `build`/`run` records `balanced`; invalid spelling fails before
