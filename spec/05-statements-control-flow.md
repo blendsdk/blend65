@@ -1,6 +1,6 @@
 # Chapter 05 — Statements & Control Flow
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F013, F008, F009
@@ -9,7 +9,9 @@
 
 ## 1. Overview
 
-This chapter defines the statement types and control flow constructs of Blend65 v3: blocks, `if`/`else`, `while`, `do-while`, `for` loops, `switch` statements, and the `break`/`continue`/`fallthrough` keywords. It also defines the canonical block definition and the boolean-condition rule that all control flow constructs share.
+This chapter defines Blend65's statement and control-flow constructs: blocks, `if`/`else`,
+`while`, `do-while`, `for` loops, `switch`, and the `break`/`continue`/`fallthrough` keywords. It
+also defines the canonical block and the Boolean-condition rule shared by those constructs.
 
 ---
 
@@ -55,19 +57,28 @@ if (x > 5) {
 // y is not visible here
 ```
 
-### 2.4 No Shadowing (CF-4 / E10101)
+### 2.4 Lexical Shadowing (CF-4)
 
-A variable declaration in an inner scope may **not** shadow a variable from an enclosing scope. Shadowing produces **E10101**.
+An ordinary declaration in a child scope may shadow a declaration in an enclosing module,
+function, loop, or block scope. References select the nearest visible declaration. A new binding
+becomes visible only after its initializer completes, so a shadowing initializer resolves the same
+name to the previously visible outer declaration.
 
 ```blend65
 let x: byte = 10;
 if (true) {
-    let x: byte = 20;     // ❌ E10101: 'x' shadows declaration in enclosing scope
+    let x: byte = x + 1;  // right side reads outer x; later uses read inner x
 }
+// x resolves to the outer declaration again
 ```
 
-This applies across all nesting levels: function parameters, outer blocks, for-header declarations,
-and module-level variables.
+Sibling scopes may independently reuse a name. Two declarations in the same scope remain E10003;
+for that rule, function parameters and the function's outermost body share one duplicate domain.
+Keywords, reserved intrinsic names, and `main` retain their dedicated restrictions.
+
+Every declaration has a stable identity independent of its spelling. Resolution, definite
+assignment, SFA, optimization, language tooling, and debug evidence use that identity, so legal
+shadowing adds no target cost.
 
 ---
 
@@ -245,12 +256,22 @@ only when its normal value-and-effect proof permits it.
 - An initializer declaration is one ordinary local `let` or `const`; the header delimiter replaces
   its trailing semicolon.
 - Its binding is visible in the condition, update, and body, but not after the loop.
-- The body is a nested block. Ordinary no-shadowing rule E10101 applies; there is no special loop
-  shadowing rule.
+- The body is a nested block and may shadow the header binding under the ordinary lexical rule.
+- A header binding becomes visible after its initializer completes. A same-named outer declaration
+  therefore remains visible within the initializer.
 - A `let` binding remains mutable in the body. A `const` uses ordinary E10190–E10192 rules.
 - An expression initializer introduces no binding and may update existing variables.
 - Header locals and expression temporaries use ordinary CFG liveness and SFA allocation. No hidden
   iterator, dynamic frame, or runtime support is created.
+
+```blend65
+let i: word = 2;
+for (let i: word = i; i < 4; i += 1) { // initializer reads outer i
+    let i: word = i + 100;              // initializer reads header i
+    poke($0400, byte(i));                // reads body i
+}
+// i is the outer declaration again
+```
 
 ### 7.4 Fixed-Width Boundary Behavior
 
@@ -533,7 +554,6 @@ severities, message templates, spans, suppression, and history.
 | E10075 | A switch expression is neither an integer nor an enum. | The switch is rejected. |
 | E10076 | A switch contains more than one `default` clause. | Every additional default clause is rejected. |
 | E10100 | An `if`, `while`, `do while`, or `for` condition does not have type `boolean`. | The condition is rejected; no truthiness conversion is inserted. |
-| E10101 | A local declaration shadows an enclosing declaration. | The inner declaration is rejected. |
 | E10239 | An identifier does not resolve in its lexical/module scope. | The reference is rejected. |
 | E10262 | Canonical induction proves that a finite-looking loop counter repeats before its condition can become false. | The loop is rejected; use a type that can represent the terminal state or make deliberate wrap/infinite control explicit. |
 

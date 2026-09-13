@@ -1,6 +1,6 @@
 # Chapter 03 — Variables & Constants
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F019, F005
@@ -130,6 +130,9 @@ MAX += 1;             // ❌ E10192: cannot assign to const
 | Function-local `let`/`const` | Block-scoped (→ Ch 05, §2.3) |
 | For-header local declaration | Scoped to the complete for statement: condition, update, and body (→ Ch 05, §7.3) |
 
+A function's parameters and its outermost body declarations share one duplicate-name domain. A
+nested block or loop body is a child scope.
+
 ### VAR-6 — Declaration Order Independent
 
 Module-level declarations can reference each other regardless of source order. The compiler resolves all module-level declarations in a first pass. Function-local declarations follow lexical order within the function body.
@@ -139,24 +142,32 @@ let x: byte = MAX;        // ✅ MAX is resolved in first pass
 const MAX: byte = 10;
 ```
 
-### VAR-7 — No Shadowing
+### VAR-7 — Lexical Shadowing
 
-A variable name in a nested scope must not duplicate a name in an enclosing scope (→ Ch 05, §2.4). This includes:
-- Function locals vs. module-level variables
-- Block-scoped locals vs. function parameters
-- For-header declaration vs. enclosing scope variables
+An ordinary declaration in a child scope may reuse a name from an enclosing module, function,
+loop, or block scope (→ Ch 05, §2.4). Lookup selects the nearest visible declaration. The new
+declaration becomes visible only after its initializer completes, so its initializer may read the
+previously visible outer declaration. Leaving the child scope restores the outer declaration.
 
 ```blend65
 let score: word = 0;
 
 function update(): void {
-    let score: word = 100;  // ❌ E10101: 'score' shadows module-level declaration
+    let score: word = score + 100;  // right side reads the module declaration
+    poke($0400, byte(score));       // reads the local declaration
 }
 ```
 
+Shadowing changes only name resolution. Every declaration receives a stable identity used by
+definite-assignment analysis, SFA liveness and homes, optimization, language tooling, and debug
+evidence. Two live declarations with the same spelling have the same target cost as an otherwise
+identical program that renames one of them. Keywords, reserved intrinsic names, and the special
+`main` contract remain unavailable under their dedicated rules.
+
 ### VAR-8 — No Duplicate Declarations in Same Scope
 
-Two declarations with the same name in the same scope → E10003.
+Two declarations with the same name in the same scope produce E10003. Function parameters and the
+function's outermost body share one scope for this rule.
 
 ```blend65
 let x: byte = 1;
@@ -351,7 +362,6 @@ templates, spans, suppression, and history.
 | E10031 | A `const` declaration appears inside `zeropage`. | The declaration is rejected; constants remain module-level compile-time declarations. |
 | E10032 | Requested zero-page storage exceeds the selected profile's allocatable range. | Placement fails. |
 | E10033 | A declaration inside `zeropage` begins with `let`, `const`, or another unexpected keyword instead of the block's `[export] name: type [= expression];` form. | The declaration is rejected. |
-| E10101 | A local declaration shadows an enclosing declaration. | The inner declaration is rejected. |
 | E10150 | A declaration omits its required type annotation. | The declaration is rejected. |
 | E10190 | A `const` declaration has no initializer. | The declaration is rejected. |
 | E10191 | A `const` initializer is not a compile-time constant expression. | The declaration is rejected. |
@@ -373,8 +383,8 @@ templates, spans, suppression, and history.
 |---------|-------------|
 | **Type system** (→ Ch 02) | All declarations require explicit type annotations (TS-1). Assignment follows type compatibility. Literal type rules (TS-2) apply to initializers. |
 | **Operators** (→ Ch 04) | Compound assignment (`+=`, `-=`, etc.) on `let` variables. Not allowed on `const` (E10192). |
-| **Control flow** (→ Ch 05) | Block scoping for function-local declarations. No shadowing (E10101). A for-header declaration is scoped to the complete for statement. |
-| **Functions** (→ Ch 06) | Function-local variables stored in SFA frame. Block-scoped locals with non-overlapping lifetimes share frame memory. Parameters are like `let` (mutable) unless marked `const`. |
+| **Control flow** (→ Ch 05) | Block scoping permits ordinary nested shadowing. Same-scope duplicates remain E10003. A for-header declaration is scoped to the complete for statement and its body is a child scope. |
+| **Functions** (→ Ch 06) | Function-local variables are stored in the SFA frame. Parameters and outermost-body declarations share one duplicate-name domain; nested declarations have distinct stable identities. Block-scoped locals with non-overlapping lifetimes may share frame memory. Parameters are like `let` (mutable) unless marked `const`. |
 | **Structs** (→ Ch 07) | Struct instances can be `let` or `const`. Const structs placed in data section. |
 | **Arrays** (→ Ch 08) | Array `let`/`const` controls element mutability. Const arrays must be fully initialized (E10113). |
 | **Enums** (→ Ch 09) | Enum-typed `let`/`const` occupy 1 byte. Const enum values are inlined. |

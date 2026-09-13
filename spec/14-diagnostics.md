@@ -97,7 +97,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 |------|-------|----------------------------|
 | E10001 | F002 / Ch 10 | `Module declaration required — every source file must begin with 'module <name>;'` |
 | E10002 | F002 / Ch 10 | `Only one module declaration is allowed per source file` |
-| E10003 | F002 / Ch 10 | `Duplicate declaration '<name>' in module '<module>' — also declared at <related_location>` |
+| E10003 | F002 / Ch 03 / Ch 05 / Ch 06 / Ch 10 | `Duplicate declaration '<name>' in the same scope — also declared at <related_location>` |
 | E10010 | F003 / Ch 10 | `Executable statements are not allowed at module level — place code inside a function` |
 | E10012 | Ch 10 | `'<name>' is not exported from module '<module>'` |
 | E10020 | F004 / Ch 10 | `No entry point found — define 'function main(): void' in any module` |
@@ -138,7 +138,6 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10096 | F011 / Ch 07 | `Struct literal must initialize all fields — missing '<field>'` |
 | E10097 | F011 / Ch 07 | `Struct literal fields must follow declaration order — expected '<expected>', found '<found>'` |
 | E10100 | F013 / Ch 05 | `Condition must have type 'boolean' — found '<type>'; use an explicit comparison` |
-| E10101 | F013 / Ch 05 | `'<name>' shadows a declaration in an enclosing scope at <related_location> — use a different name` |
 | E10102 | F013 / Ch 06 | `Not all code paths return a value in function '<name>'` |
 | E10110 | F014 / Ch 08 | `Array size must be a compile-time constant expression — found '<expr>'` |
 | E10112 | F014 / Ch 08 | `Array initializer has <N> elements but the declared size is <M>` |
@@ -293,7 +292,7 @@ code with the same number.
 | E10111 zero-length array | Retired; zero-length arrays are valid and every known index is E10240. |
 | E10060 read-only for-loop variable | Retired; a `let` declared in a three-clause for header has ordinary mutability. Assignment to a `const` remains E10192. |
 | E10061 range step is zero | Retired with the range-loop syntax; update expressions use ordinary expression semantics. |
-| E10062 nested for-loop variable | Retired; ordinary no-shadowing diagnostic E10101 governs every nested declaration. |
+| E10062 nested for-loop variable | Retired; nested loop declarations use ordinary lexical shadowing, while E10003 rejects a duplicate in the same scope. |
 | E10064 range end outside counter type | Retired with the range-loop syntax; ordinary conversion and comparison diagnostics govern header expressions. |
 | E10002 module declaration not first | E10237; E10002 remains the one-module-per-file condition. |
 | E10011 constant-only module initializer | Retired; runtime module `let` initialization is legal. |
@@ -304,6 +303,7 @@ code with the same number.
 | E10082 constant division by zero | E10160; E10082 remains implicit narrowing. |
 | E10083 wide shift | E10161 for invalid shift type or W10174 for a constant amount at least the width; E10083 remains unsigned negation. |
 | E10100 undeclared identifier | E10239; E10100 remains non-boolean condition. |
+| E10101 nested lexical shadowing | Retired and reserved; nested shadowing is legal, while E10003 rejects declarations in the same scope. |
 | E10112 platform array budget | E10238; E10112 remains array initializer count mismatch. |
 | E10114 invalid index type | E10263; E10114 remains fill syntax without explicit size. |
 | E10085 signed array index | Retired; all integer types are valid final indices under the Chapter-08 index-ordinal context. |

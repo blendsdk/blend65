@@ -1,6 +1,6 @@
 # Chapter 06 — Functions
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F018, F007
@@ -291,21 +291,28 @@ let fn: word = &clearScreen;     // ✅ address as word
 
 Typed function pointers and indirect calls are deferred to a future version (FUT-003).
 
-### FN-13 — No Shadowing
+### FN-13 — Parameter Scope and Shadowing
 
-A parameter name must not duplicate any module-level variable or constant name. Blend65 forbids a nested-scope name from shadowing an enclosing-scope name (→ Ch 05, §2.4). This rule applies to parameters within the function's scope, which is nested inside the module scope.
+A parameter may shadow an ordinary module-level declaration (→ Ch 05, §2.4). Parameters and the
+function's outermost body declarations share one duplicate-name domain, so an outermost local may
+not redeclare a parameter. A nested child block may shadow either one.
 
 ```blend65
 let score: word = 0;
 
-function addToScore(score: word): void {    // ❌ E10101: 'score' shadows module-level
-    // Which 'score' would this refer to?
+function addToScore(score: word): void {    // ✅ parameter shadows module score
+    let score: word = 1;                    // ❌ E10003: same duplicate domain
 }
 
-function addToScore(points: word): void {   // ✅ unique name
-    score += points;
+function adjustedScore(score: word): void {
+    if (score != 0) {
+        let score: word = score + 1;        // ✅ child binding; RHS reads parameter
+    }
 }
 ```
+
+Each binding has a stable declaration identity. Calls, definite assignment, SFA homes, tooling,
+and debug evidence never use spelling alone to distinguish these declarations.
 
 ---
 
@@ -844,7 +851,7 @@ public presentation.
 | **Entry point** (→ Ch 10) | `main()` follows all Ch 06 rules. Signature must be `function main(): void`. Entry-point rules are additional constraints on top of function rules. |
 | **Address-of** (→ Ch 04, §8) | `&functionName` returns `word`. Compiler marks functions as address-taken for SFA liveness. A local-origin address remains a borrow bounded by that local's dynamic lifetime; E10260 rejects a return, longer-lived store, or retaining/unknown call. |
 | **Type system** (→ Ch 02) | Return type annotation required (TS-1). Argument types must match parameter types. Auto-promotion applies (TS-4). Mixed signedness is E10081 (→ Ch 02). |
-| **Control flow** (→ Ch 05) | `return` is a control flow statement. Block scoping rules apply inside function bodies. E10101 (shadowing) applies to parameters vs. module-level names. E10102 (not all paths return) is enforced for non-void functions. |
+| **Control flow** (→ Ch 05) | `return` is a control flow statement. Ordinary nested shadowing applies inside function bodies. Parameters and outermost-body declarations share one E10003 duplicate domain. E10102 (not all paths return) is enforced for non-void functions. |
 | **Structs** (→ Ch 07) | Always passed by reference (FN-3). Cannot be returned (E10093). `const` modifier prevents modification. |
 | **Arrays** (→ Ch 08) | Always passed by reference (FN-3). Cannot be returned (E10120). `const` modifier prevents modification. |
 | **Enums** (→ Ch 09) | Enum values are `byte`-backed. Passed by value like any `byte`. Implicit enum→byte conversion applies in argument position. |

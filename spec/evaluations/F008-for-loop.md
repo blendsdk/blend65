@@ -92,14 +92,27 @@ for (let i: byte = 0; i < end; i += 1) {
 
 - A declaration in the initializer is visible in the condition, update, and body, but not after the
   loop.
-- The body is a nested block scope. Blend65's ordinary no-shadowing rule applies; there is no
-  for-specific shadowing rule.
+- The body is a nested block scope and may shadow the header binding under the ordinary lexical
+  rule. A header binding becomes visible only after its initializer completes, so a same-named
+  outer declaration remains visible within that initializer.
 - A `let` binding is mutable. Assigning it in the body is legal and has ordinary program meaning.
 - A `const` binding follows the normal constant-initializer and assignment rules.
 - An expression initializer introduces no binding and may reuse existing variables.
 - Header bindings, expression temporaries, and spills are ordinary function storage. SFA uses their
   real CFG liveness and interference; the loop introduces no dynamic frame, hidden iterator, or
   runtime state.
+
+An inner loop may therefore reuse an outer counter name without changing either declaration's
+identity:
+
+```blend65
+for (let i: word = 0; i < rows; i += 1) {
+    for (let i: word = i; i < columns; i += 1) { // initializer reads outer i
+        draw(i);                                 // reads inner i
+    }
+    updateRow(i);                                // reads outer i
+}
+```
 
 Because the counter is an ordinary variable, changing it in the body can change termination. This
 is expected in C/JavaScript-style loops and must not receive a special compiler restriction.
@@ -283,7 +296,7 @@ The loop reuses ordinary diagnostics:
 |---|---|
 | E10063 | `break` or `continue` appears outside a loop body |
 | E10100 | A present `for` condition is not `boolean` |
-| E10101 | A declaration in the for scope or body shadows an enclosing declaration |
+| E10003 | A declaration duplicates another declaration in the same scope |
 | E10262 | Canonical induction proves that a finite-looking counter repeats before its invariant condition can become false |
 | E10190/E10191/E10192 | Ordinary `const` initialization or assignment rules are violated |
 | W10190 | A function-local `let` may be read before assignment, including through a header path |
@@ -328,7 +341,7 @@ expression rules.
 | 3 | Initializer | One normal local `let`/`const` declaration or a left-to-right expression list. |
 | 4 | Condition | Evaluated before every iteration and must be `boolean`. |
 | 5 | Update | Left-to-right expression list after normal completion or `continue`; skipped by `break`/`return`. |
-| 6 | Scope | A distinct for scope contains the initializer binding; the body is its nested block. |
+| 6 | Scope | A distinct for scope contains the initializer binding; the body is a child scope and may shadow it. |
 | 7 | Mutability | Ordinary declaration rules; no read-only loop counter. |
 | 8 | Fixed-width behavior | Ordinary wrapping expressions; no hidden widening. E10262 rejects only a proved finite-looking unreachable termination. |
 | 9 | Full byte domain | Use a semantic type that represents the terminal value; proven lowering may use `INX/BNE` or `DEX/BNE`. |

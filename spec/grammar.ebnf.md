@@ -230,7 +230,9 @@ expression_list = expression , { "," , expression } ;
 **Parsing note:** The statement parser owns the two semicolon delimiters and closing parenthesis,
 and calls the ordinary expression parser for each present expression. Commas at the top level of an
 initializer/update clause delimit its left-to-right expression list; commas nested in calls or
-literals remain part of that expression. No symbol-table or target knowledge is required.
+literals remain part of that expression. Repeated identifier spellings are syntactically valid;
+the semantic scope rules distinguish legal child-scope shadowing from E10003 same-scope
+duplicates. No symbol-table or target knowledge is required.
 
 ### 5.9 Switch (→ Ch 05, §8)
 

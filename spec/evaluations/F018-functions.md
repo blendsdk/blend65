@@ -609,17 +609,17 @@ is E10245; a finite peak beyond raw capacity is E10238.
 
 ### FN-A3: Can parameters shadow module-level variables?
 
-**No.** E10101 (defined in F013) prohibits all shadowing. A parameter name that matches a module-level variable is an error — parameters live in the function's scope, which is nested inside the module scope, and Blend65 forbids a nested-scope name from shadowing an enclosing-scope name:
+**Yes.** A parameter may shadow an ordinary module-level declaration. The parameter and the
+function's outermost body share one duplicate-name domain, while a nested child block may shadow
+either declaration:
 
 ```blend65
 let score: word = 0;
 
-function addToScore(score: word): void {    // ❌ E10101: 'score' shadows module-level
-    // Which 'score' does this refer to?
+function addToScore(score: word): void {    // ✅ parameter shadows module declaration
+    let score: word = 1;                    // ❌ E10003: duplicates parameter
 }
 ```
-
-Use a different name: `addToScore(points: word)`.
 
 ### FN-A4: Can you take the address of a function?
 
@@ -763,7 +763,8 @@ Structs are always passed by reference (FN-3). The `const` modifier prevents mod
 
 - `return` is a control flow statement that exits the function
 - Block scoping rules (F013) apply inside function bodies
-- E10101 (shadowing) applies to parameters vs. module-level names
+- parameters and outermost-body declarations share one E10003 duplicate domain; nested shadowing
+  is legal and uses stable declaration identities
 - E10102 (not all paths return) is enforced for non-void functions
 
 ### With F014 (Arrays / Const Parameters)

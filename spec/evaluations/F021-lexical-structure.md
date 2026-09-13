@@ -943,6 +943,8 @@ This is standard C behavior and requires no lexer-level disambiguation.
 
 ### With F008 (For loop)
 - `for`, `break`, `continue` are keywords.
+- Former range words remain ordinary identifiers. Reusing an identifier spelling in a legal child
+  scope does not change tokenization; semantic analysis assigns distinct declaration identities.
 
 ### With F009 (Switch statement)
 - `switch`, `case`, `default`, `fallthrough` are keywords. Note: `fallthrough` is new in v3 (not in v2).
@@ -955,6 +957,8 @@ This is standard C behavior and requires no lexer-level disambiguation.
 
 ### With F013 (Control flow)
 - `if`, `else`, `while`, `do` are keywords.
+- Keywords and reserved intrinsic names cannot participate in lexical shadowing; ordinary
+  identifier spellings may shadow only under F013's semantic scope rules.
 
 ### With F014 (Arrays, strings, char literals)
 - String and char literal tokenization defined here. Encoding transformation happens at the semantic level (F014), not the lexer.

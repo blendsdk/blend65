@@ -646,7 +646,7 @@ shows their ROM, storage, and exact, bounded, or runtime-dependent cycle cost.
 |------|--------|--------------|
 | E10031 | F005 | Constants not allowed in zeropage block |
 | E10033 | F005 | `let`/`const` keyword inside zeropage block |
-| E10101 | F013 | Variable shadows outer scope |
+| E10003 | F013 | Declaration duplicates a name in the same scope, including a parameter/outermost-body collision |
 | E10119 | F014 | Cannot assign whole array |
 | E10150 | F016 | Type annotation required |
 | E10084 | F010 | Value out of range for type |
@@ -701,7 +701,9 @@ Struct instances can be `let` (mutable fields) or `const` (immutable fields, dat
 
 ### With F013 (Control Flow / Scoping)
 
-Block scoping (CF-3) applies to `let` and `const` declarations inside blocks. No shadowing (CF-4 / E10101). Name reuse in sequential non-overlapping scopes (CF-5). Definite-assignment analysis uses the control flow graph from F013.
+Block scoping (CF-3) applies to `let` and `const` declarations inside blocks. Ordinary child-scope
+shadowing is legal; same-scope duplicates remain E10003. Each declaration has a stable identity,
+and definite-assignment analysis uses that identity over the control-flow graph from F013.
 
 ### With F014 (Arrays)
 
@@ -939,7 +941,7 @@ function main(): void {
 | Rule | Status | Notes |
 |------|--------|-------|
 | C1 Lexer/parser implementable | ✅ | `KW_LET`, `KW_CONST` tokens. Standard recursive descent parsing. One declaration per statement — simple grammar |
-| C2 Semantic analysis defined | ✅ | Type checking (F016), const-expression evaluation, definite-assignment analysis, scope tracking (F013), shadowing check (E10101) |
+| C2 Semantic analysis defined | ✅ | Type checking (F016), const-expression evaluation, identity-based definite-assignment analysis, lexical scope tracking, and same-scope duplicate checks (F013) |
 | C3 Code generation strategy | ✅ | Module-level: init sequence (LDA/STA) + BSS reservation. Function-level: SFA frame allocation. Const: inline or data section |
 | C4 Unit testable | ✅ | Lexer: keyword tokens. Parser: let_decl/const_decl AST nodes. Semantic: const-eval, definite-assignment. Codegen: init sequence, frame layout |
 | C5 Runtime verifiable | ✅ | Compile programs, run in emulator, verify: initialized variables have correct values, const arrays in correct ROM locations, SFA frame allocation |
