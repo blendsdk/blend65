@@ -339,7 +339,8 @@ embed_formats:
 audio_player_contracts: {} # Exact qualified adapters add contract entries; PSID alone is insufficient
 ```
 
-The initial C64 profile accepts only the exact registered format identities below. SpritePad and
+Every Specification 4 profile accepts exactly five asset forms: raw unregistered bytes and the four
+registered handlers below. SpritePad and
 CharPad use pinned producer releases as qualification provenance plus observable file identities.
 Koala uses its fixed native layout. SID uses the hash-pinned HVSC PSID/RSID format-description
 snapshot named below rather than a producer-application version. The compiler never interprets
@@ -580,29 +581,27 @@ are player-owned state and the linker must place them in writable, visible memor
 reports the selected contract identity, enabled operations, placement, all player-owned memory and
 zero-page ranges, cadence assumptions, and code/data/cycle costs.
 
-The first qualified adapter is the hash-pinned GoatTracker 2.77 player/export family. It preserves
-that player's optional SFX support and feature-pruned exported code rather than imposing GoatTracker
-as the public API or adding a compiler mixer. A minimal SFX-only player and an exact custom-player
-contract are equally valid, lower-cost paths. SID Factory II is the next adapter candidate; it gains
-no callable ABI until its exact exporter/player contract and fixtures are separately qualified.
-GTUltra and multi-SID operation require a later multi-SID/C64U profile and are not implied by the
-stock single-SID C64 contract.
+GoatTracker, SID Factory II, and other player/export families are not additional native asset
+handlers. A payload becomes callable only through an exact hash-bound `audio_player_contracts`
+entry. The baseline profile has no universal entry; later qualified adapters may add one without
+changing the five asset forms or supplying a scheduler or mixer.
 
 ### 7.4 Koala Paint (`.kla` / `.koa`)
 
 The initial Koala handler accepts only the classic native 10,003-byte layout: the two-byte
 little-endian load address `$6000`, followed by 8,000 bitmap bytes, 1,000 screen-matrix bytes,
-1,000 color-RAM bytes, and one background-color byte. Every color-RAM byte and the background byte
-must have a zero upper nibble. The `.kla` and `.koa` extensions select the candidate handler but do
-not prove the format. A wrong load address, wrong length, invalid color byte, or malformed component
-is E10204. The load-address bytes are metadata and are not part of any selector result.
+1,000 Color RAM bytes, and one background-color byte. Every Color RAM byte and the background byte
+is accepted and preserved in full; only `value & $0f` carries VIC-II color meaning. A nonzero high
+nibble is not an error and is never normalized away. The `.kla` and `.koa` extensions select the
+candidate handler but do not prove the format. A wrong load address, wrong length, or malformed
+component is E10204. The load-address bytes are metadata and are not part of any selector result.
 
 | Selector | Type | Description |
 |----------|------|-------------|
 | `"bitmap"` | `const byte[8000]` | Native multicolor bitmap bytes; 8-KiB aligned and visible in the selected VIC bank |
 | `"screen"` | `const byte[1000]` | Native screen-matrix bytes; 1-KiB aligned and visible in the same selected VIC bank as `"bitmap"` |
-| `"color_ram"` | `const byte[1000]` | Native low-nibble color values; copying them to color RAM is an explicit runtime operation |
-| `"background"` | `byte` | Native low-nibble background color |
+| `"color_ram"` | `const byte[1000]` | Exact source bytes; low nibbles are the VIC-II colors and copying to Color RAM is explicit runtime work |
+| `"background"` | `byte` | Exact source byte; its low nibble is the VIC-II background color |
 
 The handler has no default selector; omission is E10132. It emits and reports only the explicitly
 selected component. It has no address, bank, base, or register-field selector.
@@ -621,6 +620,52 @@ vicScreenSelect(&SCREEN) = ((addressWithinVicBank / $0400) & $0f) << 4
 These operations emit no data, call, or runtime calculation. Color RAM is separate 4-bit hardware
 memory at `$D800` in the standard C64 profile; displaying the image therefore requires an explicit,
 costed transfer of the selected `"color_ram"` bytes. The handler must never hide that transfer.
+
+### 7.5 Standard D64 and KERNAL Sequential Load
+
+Only `c64-pal-d64-kernal-6581` provides runtime loading. Its primary artifact is one headerless,
+error-table-free 174,848-byte D64 containing the boot PRG and every reachable uncompressed load
+unit. The physical contract is fixed:
+
+| Tracks | Sectors per track | Sector numbers |
+|--------|------------------:|----------------|
+| 1–17 | 21 | 0–20 |
+| 18–24 | 19 | 0–18 |
+| 25–30 | 18 | 0–17 |
+| 31–35 | 17 | 0–16 |
+
+The 683 sectors are stored as raw 256-byte sectors in track/sector order. BAM is 18/0 and the
+directory starts at 18/1. File data does not use track 18, leaving 664 data blocks. Eighteen
+directory sectors with eight entries each permit at most 144 closed files. A closed PRG entry uses
+type `$82`. File-sector bytes 0–1 link to the next track/sector and bytes 2–255 carry up to 254 data
+bytes. In the final sector, byte 0 is zero and byte 1 is the last used byte index, so payload length
+is `byte1 - 1`. Any invalid geometry, BAM, directory, link, count, or capacity state is rejected.
+
+The built-in `kernal-sequential-uncompressed` transport is optional and linked only when a load call
+is reachable. It uses KERNAL 901227-03 exactly:
+
+1. Reuse the boot device recorded in KERNAL `FA`; source does not name a device or packaged filename.
+2. Call `SETLFS` at `$FFBA` with logical file in A, the boot device in X, and secondary address zero
+   in Y.
+3. Call `SETNAM` at `$FFBD` with the compiler-owned directory-name length in A and address in X/Y.
+4. Evaluate the mutable destination exactly once and call relocating `LOAD` at `$FFD5` with A zero
+   and that destination in X/Y.
+5. Return `true` only when carry is clear and returned X/Y equals the low 16 bits of conceptual
+   `destination + sizeof(unit)`. An exact end at `$10000` returns `$0000`; extending beyond it is a
+   compile-time error. KERNAL error, short transfer, or unexpected end returns `false`.
+
+Before the call, the source program explicitly stops and restores its own callback and audio routes
+and proves every other selected-profile asynchronous observer or writer absent or quiescent. The
+required stock KERNAL service route remains active. The compiler neither suspends application
+behavior nor promises timing continuity. KERNAL writes directly into the final destination. A
+successful boolean edge publishes only the captured destination range; failure invalidates only
+that range because a partial transfer may already have changed it.
+
+**HLE-010 — stock KERNAL load is trusted-media only.** `LOAD` has no maximum-length parameter and
+writes a received byte before its returned end address can be checked. The exact compiler-produced
+D64 is trusted. A readable longer replacement may overwrite beyond the expected destination before
+the wrapper returns `false`. No checksum, staging buffer, relocation copy, compressor, fastloader,
+custom bounded transport, or hostile-media containment is claimed.
 
 ---
 

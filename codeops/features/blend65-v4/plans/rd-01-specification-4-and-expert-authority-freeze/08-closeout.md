@@ -464,3 +464,20 @@ The review used `blend65-domain-expert` 1.0.0 at qualified content commit
 
 Phase 2 therefore satisfies the assigned portions of V-05, V-06, V-07, and V-16. The remaining
 target, corpus-freeze, source-authority, and final all-23 Guard checks stay in Phase 3 as planned.
+
+## Phase 3: C64 Authority and Specification Freeze
+
+### Native assets and D64/KERNAL source reconciliation
+
+The Specification 4 clauses were checked directly against the three source records pinned before
+the specification edit. No source was added or substituted.
+
+| Frozen source record | Specification result |
+|---|---|
+| `KOALA-NATIVE-003` | Classic 10,003-byte order is exact. All 1,001 color source bytes are preserved; only their low nibbles have VIC-II color meaning. This behavior comes from the accepted project policy because the layout sources do not define unused-bit policy. |
+| `CBM-1541-D64-35` | One 174,848-byte, 35-track, 683-sector image; exact track sector counts, 18/0 BAM, 18/1 directory start, 664 data blocks, 144-entry limit, closed `$82` PRG entries, 254-byte sector payloads, and final-sector length rule are normative. The later packager still owns its measured allocation/interleave policy. |
+| `CBM-C64-KERNAL-LOAD-03` | The selected 901227-03 wrapper uses `$FFBA`/`$FFBD`/`$FFD5`, secondary address zero, boot-device reuse, relocating X/Y destination, clear-carry success, and the ROM-exact one-past-end result. Application quiescence, direct destination write, captured-range publication/invalidation, and `HLE-010` trusted-media scope are explicit. |
+
+The active native asset set is exactly raw fallback, SPD v5, CTM v9, the qualified PSID v1–v4
+subset, and classic Koala. No loader plugin, fastloader, compressor, staging buffer, checksum,
+runtime registry, or extra native format was introduced.

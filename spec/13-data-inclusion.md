@@ -115,7 +115,14 @@ const DATA: byte[100] = embed("table.bin");        // ❌ E10140 if file is not 
 
 ### EMB-5 — Format Handlers Are Platform-Profile Defined
 
-Available format handlers and their selectors are defined in the platform profile (→ Ch 15). The core language defines only the `embed()` syntax — format support is extensible.
+Available format handlers and their selectors are defined by the selected qualified profile (→
+Ch 15). The core language defines only `embed()` syntax; source cannot register a handler or select
+an unqualified format generation.
+
+Every Specification 4 profile has exactly five asset forms: raw unregistered bytes, SpritePad Pro
+3.80 SPD v5, CharPad C64 Pro 3.88 CTM v9, the self-contained directly callable PSID v1–v4 subset,
+and classic Koala. `.kla` and `.koa` are two extensions for the same Koala form. No plugin registry,
+host callback, or additional native format is implied.
 
 An extension selects a candidate handler; it is not sufficient proof of a format. The handler must
 validate its magic/signature and supported version before producing a value. An unsupported or
@@ -173,6 +180,35 @@ boolean result. Success publishes only the captured range; failure leaves only t
 indeterminate after a possible partial transfer. Unselected must-not-alias candidates retain their
 incoming state. Chapter 03 defines the source-level definite-initialization rule, and Chapter 11
 defines its range semantics.
+
+### 4.2 C64 D64 Transfer
+
+Only `c64-pal-d64-kernal-6581` supplies a load operation. It packages each reachable loadable
+object as one uncompressed closed PRG file in a standard 35-track D64 and links the
+`kernal-sequential-uncompressed` transport only when a load call is reachable. The operation
+evaluates the mutable destination once, requires an exact logical type/size match, and captures its
+physical range before the transfer.
+
+Before calling KERNAL, source must explicitly stop and restore its own IRQ, NMI, audio, or other
+asynchronous routes and prove every selected-profile observer or writer of the destination and
+KERNAL workspace absent or quiescent. The stock KERNAL service route must remain active. The
+compiler does not pause or restart application behavior.
+
+The loader reuses the boot device, uses secondary address zero, and calls 901227-03 `SETLFS`
+`$FFBA`, `SETNAM` `$FFBD`, then relocating `LOAD` `$FFD5`. The destination is supplied once in X/Y.
+Success requires clear carry and the returned one-past-end X/Y address to equal the low 16 bits of
+`destination + sizeof(unit)`; an exact end at `$10000` is represented by `$0000`. Every KERNAL
+error, short transfer, unexpected end, or impossible interval returns `false`. Success publishes
+only the captured range. Failure invalidates only that range because a partial transfer may already
+have changed it. No staging buffer, relocation copy, decompressor, checksum, filename/device API,
+exception, or runtime registry is added.
+
+**HLE-010 — stock KERNAL load is trusted-media only.** `LOAD` has no maximum-length argument and
+writes each received byte before the wrapper can inspect the returned end address. The exact
+compiler-produced D64 is trusted. If a readable unit is later replaced by a longer file, bytes past
+the expected destination may already be overwritten before `false` is returned. Use a separately
+qualified bounded transport for hostile or independently mutable media; Specification 4 does not
+claim containment.
 
 ```
 ; embed("table.bin") — 256 bytes placed in data section
@@ -335,9 +371,12 @@ named and costed asset.
 The initial C64 Koala handler accepts the classic native 10,003-byte `.kla`/`.koa` layout only:
 little-endian load address `$6000`, 8,000 bitmap bytes, 1,000 screen-matrix bytes, 1,000 color-RAM
 bytes, and one background-color byte. The handler validates the exact length, load address, component
-boundaries, and zero upper nibbles for color values before exposing `"bitmap"`, `"screen"`,
-`"color_ram"`, or `"background"`. It has no default and emits only the selected component.
-Extensions are handler hints rather than proof; malformed input is E10204.
+boundaries, and complete bytes before exposing `"bitmap"`, `"screen"`, `"color_ram"`, or
+`"background"`. It preserves all eight bits of every Color RAM source byte and the background byte;
+only `value & $0f` has VIC-II color meaning. A nonzero high nibble is accepted and is neither
+discarded nor normalized. The handler has no default and emits only the selected component.
+Extensions are handler hints rather than proof; malformed length, load address, or structure is
+E10204.
 
 Koala placement is not file metadata. The separate zero-cost C64 operations
 `vicBitmapSelect(&BITMAP)` and `vicScreenSelect(&SCREEN)` validate 8-KiB and 1-KiB alignment,

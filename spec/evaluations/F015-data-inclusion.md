@@ -12,7 +12,9 @@
 The `embed()` intrinsic includes external binary data into the compiled program at compile time. It supports two modes:
 
 1. **Raw binary inclusion** — embeds file bytes directly, no format interpretation
-2. **Format-aware asset import** — uses platform-profile-registered format handlers to parse asset files (SpritePad, CharPad, SID, etc.) and extract specific data parts through literal selector keys
+2. **Format-aware asset import** — uses the selected profile's closed handlers for SpritePad SPD
+   v5, CharPad CTM v9, PSID v1–v4, and classic Koala; raw unregistered bytes are the fifth asset
+   form
 
 This eliminates the manual conversion step between third-party asset tools and Blend65 source code. Developers work directly with native asset file formats — the compiler handles parsing and extraction.
 
@@ -107,6 +109,33 @@ operation writes an existing exactly typed mutable fixed place, evaluates the de
 returns a boolean correlated with the captured physical byte range. Success publishes only that
 range; failure leaves only that range indeterminate. Compiler flow facts preserve every proved
 unselected range without emitting a handle, descriptor, validity byte, bitmap, or read check.
+
+### 1.5 Selected C64 D64 Load Operation
+
+Only `c64-pal-d64-kernal-6581` accepts a loadable unit at runtime. Its D64 is exactly 174,848 bytes:
+35 tracks, 256-byte sectors, 683 total sectors, BAM at 18/0, directory beginning at 18/1, and 664
+data blocks because file data never occupies track 18. Tracks 1–17 have 21 sectors, 18–24 have 19,
+25–30 have 18, and 31–35 have 17. A closed PRG directory entry has type `$82`; each linked sector
+holds 254 payload bytes after its next-track/sector link. A final sector has track zero and encodes
+its last used byte index in byte 1. The image has no error-information table.
+
+The optional `kernal-sequential-uncompressed` transport is linked only when reached. It reuses the
+boot device, sets secondary address zero, calls 901227-03 `SETLFS` `$FFBA`, `SETNAM` `$FFBD`, and
+relocating `LOAD` `$FFD5`, and passes the once-evaluated destination through X/Y. Source explicitly
+quiesces its IRQ/NMI/audio routes and proves other selected-profile observers or writers absent;
+the compiler does not suspend or reconstruct them. The required KERNAL service route stays active.
+
+Clear carry plus the exact returned one-past-end address means success. KERNAL error, short load,
+unexpected end, or an impossible destination interval returns `false`. Success publishes only the
+captured destination range; failure invalidates only that range because a partial transfer may have
+written it. The transport writes directly to the final object and adds no staging copy, checksum,
+decompressor, exception, filename/device surface, registry, or general runtime.
+
+`HLE-010` records the trusted-media boundary: stock `LOAD` has no destination-length parameter and
+stores bytes before the wrapper can compare the returned end. The compiler-produced D64 is trusted,
+but replacing a contained unit with a longer readable file may overwrite beyond the intended range
+before failure is known. Hostile or independently mutable media requires another qualified bounded
+transport.
 
 ## Part 2: Format-Aware Asset Import
 
@@ -533,15 +562,16 @@ GTUltra and multi-SID need a later multi-SID/C64U profile.
 The handler accepts only the classic native 10,003-byte file: two-byte little-endian load address
 `$6000`, 8,000 bitmap bytes, 1,000 screen-matrix bytes, 1,000 color-RAM bytes, and one background
 byte. The load address is validated and stripped. Every color-RAM byte and the background byte must
-have a zero upper nibble. An extension selects the candidate handler but does not prove the format;
-wrong length, address, component boundary, or color value is E10204.
+be preserved in full; only its low nibble has VIC-II color meaning. A nonzero high nibble is
+accepted and is not normalized. An extension selects the candidate handler but does not prove the
+format; wrong length, address, or component boundary is E10204.
 
 | Selector | Type | Alignment | Linker-Resolved | Description |
 |----------|------|-----------|----------------|-------------|
 | `"bitmap"` | `byte[8000]` | 8192 bytes and selected-VIC-bank visible | No | Bitmap pixel data |
 | `"screen"` | `byte[1000]` | 1024 bytes and same selected VIC bank as bitmap | No | Screen-matrix color data |
-| `"color_ram"` | `byte[1000]` | — | No | Low-nibble color-RAM data; runtime transfer is explicit |
-| `"background"` | `byte` | — | No | Background color |
+| `"color_ram"` | `byte[1000]` | — | No | Exact source bytes; low nibbles are the hardware colors and runtime transfer is explicit |
+| `"background"` | `byte` | — | No | Exact source byte; its low nibble is the hardware color |
 | **Default** | error | | | Requires selector |
 
 Only explicitly selected components are emitted and reported. Placement-dependent `$D018` fields
