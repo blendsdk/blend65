@@ -1,6 +1,6 @@
 # Chapter 15 — Conformance & Platform Profile Contract
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: Language Guard, F005, F015 (consolidated)
@@ -19,17 +19,27 @@ This chapter defines:
 
 ---
 
-## 2. Target Platforms
+## 2. Qualified Target Profiles
 
-Blend65 v3 targets five platforms:
+Specification 4 has exactly nine qualified target-profile identities. A profile is indivisible:
+video, ownership, SID, startup, banking, artifact, loader, resources, and evidence cannot be mixed
+through independent switches.
 
-| Platform ID | CPU | Clock | RAM | Notes |
-|-------------|-----|-------|-----|-------|
-| `c64` | 6502 | 1 MHz | 64 KB | Primary target, disk-based |
-| `c64u` | 6502 + extensions | 1 MHz+ | 64 KB+ | C64 Ultimate (REU, etc.) |
-| `cx16` | 65C02 | 8 MHz | 512 KB+ banked | Modern 6502 design |
-| `a800xl` | 6502 | 1.79 MHz | 64 KB | Atari 800XL |
-| `a7800` | 6502C | 1.79 MHz nominal | 4 KB + cart | Atari 7800; TIA/RIOT accesses slow to 1.19 MHz and MARIA DMA steals bus time |
+| Profile ID | Video | Runtime ownership | SID | Primary artifact |
+|------------|-------|-------------------|-----|------------------|
+| `c64-pal-prg-kernal-6581` | PAL | cooperative KERNAL | MOS 6581 at `$D400` | PRG |
+| `c64-pal-prg-kernal-8580` | PAL | cooperative KERNAL | MOS 8580 at `$D400` | PRG |
+| `c64-pal-prg-takeover-6581` | PAL | raw takeover | MOS 6581 at `$D400` | PRG |
+| `c64-pal-prg-takeover-8580` | PAL | raw takeover | MOS 8580 at `$D400` | PRG |
+| `c64-ntsc-prg-kernal-6581` | NTSC | cooperative KERNAL | MOS 6581 at `$D400` | PRG |
+| `c64-ntsc-prg-kernal-8580` | NTSC | cooperative KERNAL | MOS 8580 at `$D400` | PRG |
+| `c64-ntsc-prg-takeover-6581` | NTSC | raw takeover | MOS 6581 at `$D400` | PRG |
+| `c64-ntsc-prg-takeover-8580` | NTSC | raw takeover | MOS 8580 at `$D400` | PRG |
+| `c64-pal-d64-kernal-6581` | PAL | cooperative KERNAL | MOS 6581 at `$D400` | D64 |
+
+`c64-pal-prg-kernal-6581` is the first implementation profile. Unknown IDs, partial IDs, and
+unqualified combinations are errors before lowering and produce no artifact. Running a C64
+artifact on compatible hardware does not create another compiler target.
 
 ---
 
@@ -43,11 +53,12 @@ Every platform profile must define the following sections. The compiler validate
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `platform` | `string` | Selected target ID: `c64`, `c64u`, `cx16`, `a800xl`, or `a7800` in the v3 baseline |
-| `cpu` | `string` | Instruction-set identity: `6502` or `65c02` in the v3 baseline |
+| `profile_id` | `string` | One exact identity from §2; this is the only target-selection input |
+| `platform` | `string` | `c64` for every Specification 4 profile |
+| `cpu` | `string` | `mos6510-nmos`; legal NMOS 6502 instructions plus the 6510 port, with no undocumented opcode implied |
 | `clock_mhz` | positive finite number | Nominal CPU clock derived from the selected target timing record and used as the base for cycle-to-time reports |
 
-All three fields are required. The compiler rejects an unknown target/CPU identity, an unsupported
+All four fields are required. The compiler rejects an unknown target/CPU identity, an unsupported
 target/CPU combination, and a missing, zero, negative, or non-finite clock. `clock_mhz` is a derived
 timing fact, not a machine-configuration identity. When a target defines a named timing record, the
 profile value must match that record; changing the number cannot select another video standard,
@@ -56,18 +67,16 @@ DMA stalls separately; it must not encode an estimated average throughput as `cl
 
 #### C64 SID Configuration Identity
 
-A `c64` or `c64u` profile that registers the `sid_file` handler or any
-`audio_player_contracts` entry must also define:
+Every Specification 4 profile defines:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `video_standard` | `pal` or `ntsc` | Selected C64-compatible video and SID timing record |
 | `sid_chips` | non-empty ordered list of `{ address: word, model: mos6581 | mos8580 }` | Concrete SID-compatible endpoints exposed to the program |
 
-The current single-SID baselines contain exactly one endpoint at `$D400`. Its `model` is the
-deployment requirement used for asset and player-contract validation; on C64U the endpoint may be
-a physical socket or UltiSID implementation. Blend65 records this requirement in the build but does
-not discover or configure the hardware at runtime.
+Every profile contains exactly one endpoint at `$D400`. Its model is the deployment requirement
+used for asset and player-contract validation. Blend65 records this requirement in the build but
+does not discover, configure, retune, or emulate the hardware at runtime.
 
 The current C64-compatible timing records are versioned target facts:
 
@@ -76,11 +85,9 @@ The current C64-compatible timing records are versioned target facts:
 | `pal` | 985,248 | `0.985248` | 312 lines × 63 cycles | 19,656 | approximately 50.124542 |
 | `ntsc` | 1,022,730 | `1.022730` | 263 lines × 65 cycles | 17,095 | approximately 59.826265 |
 
-These records describe the qualified baseline configurations, not PAL-N, early NTSC VIC-II
-revisions, or every historical oscillator tolerance. Such variants require separately sourced and
-qualified timing records; they cannot be requested by overriding `clock_mhz`. A C64U turbo CPU
-profile likewise needs a separate execution-timing contract. The compatibility profile keeps the
-selected C64 video/SID timing and may not compare a PAL or NTSC SID asset against a turbo CPU rate.
+These records describe the qualified baseline configurations, not PAL-N, the early 262-line and
+64-cycle NTSC 6567R56A, or every oscillator tolerance. Such variants require separately sourced
+and qualified profiles; they cannot be requested by overriding `clock_mhz`.
 
 For a PSID asset, the handler intersects the file's declared video/model sets with the selected
 profile and any callable player contract. A specific incompatible declaration is E10261. `PAL and
@@ -134,14 +141,14 @@ the target memory map rather than assuming that every 6502-family system exposes
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `output_format` | `string` | Binary format: `prg`, `bin`, `rom`, `xex`, `a78` |
-| `load_address` | `word` | Required base load/placement address; a PRG writes it to the header, XEX uses it as the default segment/start basis, and a cartridge uses it as the image base |
-| `reset_vector` | `word` | Required exactly when the output format/profile writes or owns a reset vector; absent for disk-loaded PRG/XEX profiles |
+| `output_format` | `prg` or `d64` | The selected profile's one primary deployable format |
+| `load_address` | `word` | Base address of the resident PRG component; `$0801` for every Specification 4 profile |
+| `reset_vector` | `word` | Absent from all current KERNAL-loaded profiles; takeover owns live RAM vectors after startup rather than a cartridge reset vector |
 
-Every current profile requires `output_format` and `load_address`. Profile validation rejects a
-missing `reset_vector` for a vector-owning cartridge format and rejects a spurious `reset_vector`
-for a loader-owned format whose packaging does not write one. The output-format contract, rather
-than platform folklore, determines the condition.
+Every current profile requires `output_format` and `load_address`. A PRG profile publishes one
+`<name>.prg`. The D64 profile publishes one `<name>.d64`; its boot PRG and reachable load-unit files
+are contained components, not separate primary products. The selected profile, primary artifact,
+and sidecar evidence are one immutable generation.
 
 #### Character Encoding
 
@@ -152,9 +159,8 @@ than platform folklore, determines the condition.
 | `encodings` | `map` | Encoding name → `maps`; each map key names one immutable finite Unicode-scalar-to-byte mapping plus explicit symbolic-escape mappings or `unavailable`. |
 
 The registered names also determine which named conversion intrinsics exist. The current qualified
-intrinsic names are `petscii` and `screen_codes` on C64 and C64U. The names `atascii` and
-`internal_codes` are reserved but inactive until an Atari expert extension supplies exhaustive,
-source-backed maps. There is no generic `encode()` or `raw()` intrinsic. `\0` and `\xNN` bypass
+intrinsic names are `petscii` and `screen_codes` on every Specification 4 profile. There is no
+generic `encode()` or `raw()` intrinsic. `\0` and `\xNN` bypass
 these maps and always produce exact bytes. Every ordinary literal Unicode scalar and every other
 accepted escape is resolved by the selected encoding and map without normalization,
 transliteration, replacement, or lossy fallback. A missing scalar/escape mapping, or a
@@ -282,11 +288,12 @@ root.
 | `recognized_interrupt_vectors` | `map` | Exact vector base address → firmware/raw ABI identity and required platform installer |
 | `raw_interrupt_paths` | `map` | Optional source ID → vector address and fixed profile proof that the hardware vector is writable and active |
 
-## 4. Example Platform Profile (C64)
+## 4. First Platform Profile
 
 ```
+profile_id: c64-pal-prg-kernal-6581
 platform: c64
-cpu: 6502
+cpu: mos6510-nmos
 video_standard: pal
 clock_mhz: 0.985248
 
@@ -413,11 +420,11 @@ warnings:
 
 ### 5.1 Language Conformance
 
-A conforming Blend65 v3 compiler must:
+A conforming Blend65 4 compiler must:
 
 1. Accept any source program that conforms to the grammar in Ch 01 and the semantic rules in Ch 02–13
 2. Reject any source program that violates a rule, with the correct error code from Ch 14
-3. Generate correct machine code for all target platforms defined in §2
+3. Generate correct machine code only for the selected qualified profile defined in §2
 4. Produce deterministic output — the same source + profile = the same binary, byte for byte
 5. Report all diagnostics with the format specified in Ch 14, §1
 
@@ -469,10 +476,8 @@ A conforming compiler must produce a build summary (→ Ch 11, §6) that reports
 - Code, data, RAM, ZP usage (bytes and addresses)
 - SFA frame allocation with sharing statistics
 - Hardware stack peak usage
-- Reachable BRK sites, contract identity, return mode/vector, and separate three-byte CPU plus
-  handler stack charges
 - Startup routine cost (bytes and cycles)
-- Selected target, encoding, and immutable character-map identities
+- Selected profile, encoding, and immutable character-map identities
 - Selected audio-player contract identity, enabled operations, placement, ownership, writable state,
   and feature-dependent code/data/RAM/ZP/stack/cycle costs
 - Total binary size
@@ -489,7 +494,7 @@ Each chapter's features are classified per the Language Guard (→ `.clinerules/
 | **Provisional** | Designed but may be refined | Minor adjustments possible in next minor version |
 | **Experimental** | Exploratory, may be removed | No stability guarantee |
 
-### v3 Chapter Classifications
+### Specification 4 Chapter Classifications
 
 | Chapter | Classification | Notes |
 |---------|---------------|-------|

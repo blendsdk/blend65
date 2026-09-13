@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13 17:23
-> **Progress**: 12/31 tasks (39%)
+> **Last Updated**: 2026-09-13 18:30
+> **Progress**: 14/31 tasks (45%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -80,8 +80,12 @@ diagnostic, evaluation, and representative modern/game example. Unchanged P3 beh
 
 > **Lenses**: C64 accuracy, product boundary, corpus integrity, reproducibility
 > **Checks**: V-02–V-09, V-16
+> **Phase baseline tree**: `12b547ec09d6ebe65f6c5d54dddce03b07f0817f`
+> **Expected modification set**: `spec/`, `.clinerules/language-guard.md`, `08-closeout.md`, and
+> this execution plan
+> **Scope mode**: strict — C64 authority and Specification 4 freeze only
 
-- [ ] 3.1.1 Reconcile the exact nine C64 profiles and common/profile-specific CPU, video, startup, banking, IRQ, SID, artifact, exit, loader, resource, and evidence contracts — `spec/15-platform-profile.md`, `spec/appendix-c64.md`
+- [x] 3.1.1 Reconcile the exact nine C64 profiles and common/profile-specific CPU, video, startup, banking, IRQ, SID, artifact, exit, loader, resource, and evidence contracts — `spec/15-platform-profile.md`, `spec/appendix-c64.md` ✅ (completed: 2026-09-13 18:30)
 - [ ] 3.1.2 Reconcile the exact native-asset set, full-byte/low-nibble Koala meaning, standard 35-track D64/KERNAL sequential-load ABI, quiescence, publication, trusted-media boundary, and `HLE-010` against Phase 1's pinned primary records — `spec/13-data-inclusion.md`, `spec/appendix-c64.md`, `spec/evaluations/F015-data-inclusion.md`, `08-closeout.md`
 - [ ] 3.1.3 Reconcile the C64-only public/product statement and non-normative future-target constraints, then record dispositions and remove the four false-target appendices plus obsolete active workflow/migration files — `spec/00-introduction.md`, `spec/future-considerations.md`, `spec/appendix-c64u.md`, `spec/appendix-cx16.md`, `spec/appendix-a800xl.md`, `spec/appendix-a7800.md`, `spec/build-plan.md`, `spec/preflight-report.md`, `spec/v2-to-v3-migration.md`, `08-closeout.md`
 - [ ] 3.1.4 Update the Language Guard for Specification 4/qualified-target wording and complete all 23 results for every changed feature; close whole-tree grammar, diagnostic, example, link, target, and product-boundary consistency — `.clinerules/language-guard.md`, `spec/`

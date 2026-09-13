@@ -1,35 +1,64 @@
-# Appendix A — Platform Profile: Commodore 64 (`c64`)
+# Appendix A — Commodore 64 Qualified Profiles
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: provisional  
 > **Fills**: Every profile slot defined in Ch 15, §3
 
 ---
 
-## 1. Platform Summary
+## 1. Qualified Profile Set
+
+Specification 4 defines exactly these nine profiles. The profile ID selects the whole row; source
+cannot independently mix video, ownership, SID, or artifact fields.
+
+| Profile ID | Video record | Runtime ownership | SID endpoint | Primary artifact |
+|------------|--------------|-------------------|--------------|------------------|
+| `c64-pal-prg-kernal-6581` | PAL | cooperative KERNAL | `$D400`, MOS 6581 | `<name>.prg` |
+| `c64-pal-prg-kernal-8580` | PAL | cooperative KERNAL | `$D400`, MOS 8580 | `<name>.prg` |
+| `c64-pal-prg-takeover-6581` | PAL | raw takeover | `$D400`, MOS 6581 | `<name>.prg` |
+| `c64-pal-prg-takeover-8580` | PAL | raw takeover | `$D400`, MOS 8580 | `<name>.prg` |
+| `c64-ntsc-prg-kernal-6581` | NTSC | cooperative KERNAL | `$D400`, MOS 6581 | `<name>.prg` |
+| `c64-ntsc-prg-kernal-8580` | NTSC | cooperative KERNAL | `$D400`, MOS 8580 | `<name>.prg` |
+| `c64-ntsc-prg-takeover-6581` | NTSC | raw takeover | `$D400`, MOS 6581 | `<name>.prg` |
+| `c64-ntsc-prg-takeover-8580` | NTSC | raw takeover | `$D400`, MOS 8580 | `<name>.prg` |
+| `c64-pal-d64-kernal-6581` | PAL | cooperative KERNAL | `$D400`, MOS 6581 | `<name>.d64` |
+
+`c64-pal-prg-kernal-6581` is implemented first. The D64 profile is not an alias for its PRG
+counterpart: it adds a contained boot PRG, reachable load-unit files, and the loader contract in
+§5. Unknown IDs and every other combination are unavailable.
+
+### 1.1 Common Machine Contract
 
 | Field | Value |
 |-------|-------|
-| Platform ID | `c64` |
-| CPU | MOS 6510 (6502 + I/O port) |
+| Platform family | `c64` |
+| CPU | NMOS MOS 6510; documented NMOS 6502 instruction set plus the on-chip I/O port |
 | Clock | 0.985248 MHz (PAL baseline) / 1.022730 MHz (NTSC baseline) |
 | RAM | 64 KB total |
 | ROM | 20 KB (BASIC $A000–$BFFF, KERNAL $E000–$FFFF, Char ROM $D000–$DFFF) |
 | Graphics | VIC-II |
 | Sound | SID (6581/8580) |
-| Storage | Disk (1541), cartridge, tape |
-| Community | Largest active 6502 retrodev community |
+| Assembler | ACME 0.97 |
+| Emulator evidence | VICE 3.10 `x64sc`, with exact model/video/SID/ROM configuration recorded |
+| Hardware evidence | Targeted exact-profile QA for timing-, CIA-, SID-, banking-, and silicon-sensitive claims |
 
-The C64 is the **primary target** for Blend65. It has the largest community, the most tooling, and the best emulator support (VICE). Most Blend65 examples and tutorials should work on this platform first.
+Every profile is for a stock, unexpanded C64 with no cartridge, REU, turbo mode, additional SID,
+or undocumented opcode. A result proved only in VICE is reported as
+`VICE-verified / hardware-unverified` until its required physical checks pass. Compatibility claims
+never imply cycle-stable or analogue identity across unlisted VIC-II, CIA, SID, or board revisions.
 
 ---
 
 ## 2. Memory Map
 
-### 2.1 Default Configuration
+### 2.1 Common Allocatable Configuration
 
-The default profile assumes BASIC ROM is **banked out** (the compiler generates a startup sequence that writes to $01 to disable BASIC ROM), providing contiguous RAM from $0801 to $CFFF. The I/O area ($D000–$DFFF) and KERNAL ROM ($E000–$FFFF) remain active.
+All nine profiles use the same conservative general allocation range. BASIC ROM is banked out,
+I/O remains visible, and the resident image plus trailing mutable/SFA storage share `$0801–$CFFF`.
+KERNAL profiles keep KERNAL ROM visible. Takeover profiles expose RAM at `$E000–$FFFF` only for
+their owned vectors and explicitly placed storage; that range is not silently added to the general
+allocation budget.
 
 ```
 $0000–$0001  6510 I/O port (data direction + port)
@@ -47,7 +76,7 @@ $DE00–$DFFF  I/O expansion
 $E000–$FFFF  KERNAL ROM (active)
 ```
 
-### 2.2 Profile Values
+### 2.2 Common Profile Values
 
 ```
 memory:
@@ -66,8 +95,12 @@ memory:
 ### 2.3 Memory Map Notes
 
 - **Code and data share the same segment** ($0801–$CFFF). The linker interleaves code and const data; mutable data is placed after code.
-- **$0400–$07FF** (default screen) is not included in the usable range. Games that relocate the screen can reclaim this via a custom profile.
-- **KERNAL at $E000–$FFFF** is kept active by default for file I/O and IRQ handling. Programs that bank out KERNAL gain another 8 KB but must handle IRQs directly.
+- **$0400–$07FF** (default screen) is not included in the general range. A declaration may use it
+  only through explicit placement after proving that the selected program no longer needs the
+  screen/editor storage.
+- **KERNAL profiles** keep `$E000–$FFFF` ROM visible for file I/O and firmware interrupt entry.
+- **Takeover profiles** keep I/O visible but expose RAM at `$E000–$FFFF`; they own both raw vectors,
+  every enabled IRQ/NMI source, and every bank state in which an entry may occur.
 - The 12-byte BASIC line at $0801–$080C is part of the program image. `RUN` executes `SYS 2061`,
   which enters generated startup at $080D.
 
@@ -100,7 +133,9 @@ With BASIC ROM banked out and KERNAL active:
 | $FB–$FE | 4 | Free (always) | ✅ |
 | $FF | 1 | BASIC temp | ✅ (BASIC off) |
 
-**Default profile range**: `$02`–`$8F` = **142 zero-page bytes** available to the compiler.
+**Common profile range**: `$02`–`$8F` = **142 zero-page bytes** available to the compiler. Takeover
+does not silently reclaim KERNAL zero page; a later qualified profile may expose a larger exact
+range without changing these identities.
 
 ### 3.2 Profile Values
 
@@ -120,6 +155,11 @@ budgets:
   max_zp:          142      # $02–$8F
 ```
 
+`stack_capacity` is 256 in every profile. `stack_reserve` is 20 in cooperative KERNAL profiles and
+zero in takeover profiles. Takeover profiles instead charge every reachable raw IRQ/NMI frame,
+wrapper, explicit push, and call path to the proved program peak. This does not make the hardware
+stack available for SFA homes.
+
 ### 4.1 Budget Notes
 
 - **max_binary_size**: The PRG file includes a 2-byte load-address header, which is excluded from the
@@ -130,15 +170,18 @@ budgets:
   emitted prefix so the PRG loader does not overwrite its initial bits. Final placements must be
   disjoint and fit collectively; `max_binary_size` and `max_ram` do not grant two separate
   51,199-byte pools. The build report lists emitted payload and complete shared footprint separately.
-- **stack capacity**: 256 raw bytes minus the 20-byte KERNAL reserve leaves 236 bytes usable by
-  generated execution. Each simultaneously live interrupt entry, call return, and explicit stack
-  push is charged to the proven peak; no one-entry allowance is pre-subtracted.
+- **stack capacity**: A KERNAL profile has 236 bytes after its 20-byte firmware reserve. A takeover
+  profile has all 256 bytes subject to its complete generated raw-route peak. Each simultaneously
+  live interrupt entry, call return, and explicit stack push is charged; no generated entry is
+  pre-subtracted.
 - **Frame accounting**: Every SFA frame and static instance is reported exactly and the complete
   allocation must fit target RAM. There is no arbitrary single-frame warning threshold.
 
 ---
 
-## 5. Output Format
+## 5. Artifact, Startup, Banking, and Exit
+
+### 5.1 Resident PRG profiles
 
 ```
 output:
@@ -146,7 +189,7 @@ output:
   load_address:   $0801
 ```
 
-### 5.1 PRG Format
+#### PRG format
 
 The output is a standard C64 `.prg` file:
 
@@ -155,7 +198,7 @@ The output is a standard C64 `.prg` file:
 | $0000 | 2 bytes | Load address (little-endian): `$01 $08` |
 | $0002 | n bytes | Contiguous emitted payload; trailing BSS is not serialized |
 
-### 5.2 Startup Sequence
+#### Shared loaded entry
 
 The compiler generates a BASIC stub at $0801 that auto-starts the program:
 
@@ -165,15 +208,42 @@ $0801: $0B $08 $0A $00 $9E $32 $30 $36 $31 $00 $00 $00
 $080D: ← actual entry point (2061 = $080D)
 ```
 
-The generated startup code at $080D:
+Startup captures every compiler-owned machine value that a normal return must restore. It
+establishes the hardware-stack baseline, `D=0`, selected CPU mapping, declared interrupt/device
+state, CIA2 VIC-bank ownership, and language-required storage. It never recopies initialized bytes
+already loaded at their final address. It then evaluates each module/zeropage `let` initializer
+exactly once in Chapter 10 order and enters `main`.
 
-1. Writes `$36` to `$01` (bank out BASIC ROM, keep KERNAL + I/O).
-2. Evaluates every module/zeropage `let` initializer exactly once in the Chapter 10 schedule.
-   Constant stores, aggregate initialization, and runtime calls/expressions emit only their required
-   code; uninitialized mutable storage is not cleared, and `const` data is already in the image.
-3. Falls through directly into the `main()` body, with no `JSR` or `JMP` transition.
-4. If `main()` returns, its target epilogue writes `$37` to `$01` (restore BASIC) and executes `RTS`
-   to BASIC.
+#### Cooperative KERNAL profiles
+
+The four `*-kernal-*` PRG profiles and the D64 profile set the owned low banking bits to `$36`
+(BASIC ROM out, KERNAL ROM and I/O visible) while preserving unrelated `$0000/$0001` port state.
+They use the pinned 901227-03 KERNAL entry/vector contracts. CINV/NMINV chain or explicitly
+exclusive helpers are available; raw hardware-vector helpers are not. A returning `main` must have
+balanced every helper-owned interrupt stack and released every exclusive resource. The epilogue
+then restores the exact captured compiler-owned port, vector, device, interrupt, decimal, and stack
+state and executes `RTS` to BASIC.
+
+#### Raw takeover profiles
+
+The four `*-takeover-*` profiles install complete IRQ `$FFFE/$FFFF` and NMI `$FFFA/$FFFB` vectors
+in underlying RAM before changing the owned banking bits to `$35` (BASIC and KERNAL execution out,
+I/O visible). Both the ROM route before the change and the RAM route after it must be valid; an NMI
+cannot be made safe by `SEI`. During application execution the program owns every enabled IRQ/NMI
+source, acknowledgement, vector, entry wrapper, nesting bound, and terminal `RTI`. KERNAL calls and
+CINV/NMINV helpers are unavailable. A returning `main` restores all captured machine state and
+returns to BASIC; otherwise the source path must be proved nonreturning. An unbalanced interrupt
+owner or unsafe bank/vector transition is a compile-time error.
+
+### 5.2 D64 profile
+
+`c64-pal-d64-kernal-6581` publishes one standard 35-track D64 as its primary artifact. The image
+contains the cooperative PAL/6581 boot PRG and exactly the reachable uncompressed load-unit files.
+Its optional built-in KERNAL sequential loader is linked only when reached. It reuses the boot
+device, requires application IRQ/NMI/audio observers and writers to be explicitly quiescent while
+retaining the required KERNAL service route, and writes directly into the final destination. The
+exact transfer ABI, publication rules, disk geometry, and trusted-media limitation are defined
+with the loadable-asset contract in this appendix.
 
 ---
 
@@ -591,7 +661,7 @@ PAL-N, early NTSC, or every VIC-II revision.
 
 ### 9.2 IRQ Considerations
 
-The default profile is bound to the standard 901227-03 KERNAL IRQ path. The hardware IRQ vector
+Cooperative KERNAL profiles are bound to the standard 901227-03 KERNAL IRQ path. The hardware IRQ vector
 enters KERNAL PULS/PULS1, which saves A/X/Y and then jumps through CINV at `$0314/$0315`. A CINV
 handler is therefore entered with six live stack bytes: the CPU's P/PCL/PCH and KERNAL's saved
 A/X/Y. It must not push A/X/Y a second time and must not execute `RTI` directly.
@@ -602,13 +672,28 @@ variant uses `PHP; CLD` before the body and `PLP` before the chain, preserving t
 entry flags; this makes seven stack bytes live while the body runs. Exclusive and raw variants use
 `CLD` without another status push because their eventual `RTI` restores the interrupted status.
 
-The C64 platform library exposes three deliberately different tiers:
+The C64 platform library exposes three deliberately different IRQ tiers:
 
 | API | Availability and generated contract | Generated handler tail |
 |---|---|---|
 | `c64.system.setIRQ(&handler)` | Default. Atomically saves the current CINV in a dedicated page-safe two-byte static link and installs a no-second-save handler variant. `PHP; CLD` precedes the body; `PLP` restores entry flags before the handler chains. | Normalization/status wrapper: 3 bytes, 9 cycles, 1 stack byte. Tail: `JMP (saved_previous_cinv)` — 3 bytes, 5 cycles, plus the chained handler. |
 | `c64.system.setIRQExclusive(&handler)` | Advanced KERNAL takeover. Installs a no-second-save variant, enters the body through `CLD`, and does not call the previous CINV handler. The program owns every enabled IRQ source that can reach this path. | Normalization: 1 byte, 2 cycles. Tail: `JMP $EA81` — 3 bytes, 3 cycles, then the 901227-03 Y/X/A restore and `RTI` tail (22 cycles). |
-| `c64.system.setRawIRQ(&handler)` | Advanced and absent from this default KERNAL-active profile. It exists only in a selected raw profile that proves `$FFFE/$FFFF` is writable and is the active hardware vector. | Compiler A/X/Y save, `CLD`, restore, and direct `RTI` — 12 bytes, 37 cycles. |
+| `c64.system.setRawIRQ(&handler)` | Available only in a takeover profile after `$FFFE/$FFFF` is proved writable and active. | Compiler A/X/Y save, `CLD`, restore, and direct `RTI` — 12 bytes, 37 cycles. |
+
+The NMI routes are distinct because 901227-03 reaches NMINV at `$0318/$0319` without saving A/X/Y
+or clearing decimal mode:
+
+| API | Availability and generated contract | Generated wrapper |
+|---|---|---|
+| `c64.system.setNMI(&handler)` | Cooperative KERNAL profiles. Saves the prior NMINV in one page-safe two-byte link and leaves CIA2 ICR state for the prior handler. | `PHP`; save A/X/Y; `CLD`; body; restore Y/X/A; `PLP`; `JMP (saved_previous_nminv)` — 16 bytes, 43 cycles plus body and the variable prior-handler path. |
+| `c64.system.setNMIExclusive(&handler)` | Cooperative KERNAL profiles only when the program owns or replaces CIA2, RESTORE, cartridge, and every other NMI behavior. | Save A/X/Y; `CLD`; body; restore Y/X/A; `RTI` — 12 bytes, 37 cycles plus body. |
+| `c64.system.setRawNMI(&handler)` | Takeover profiles only, after `$FFFA/$FFFB` and every reachable bank state are proved valid. | Save A/X/Y; `CLD`; body; restore Y/X/A; `RTI` — 12 bytes, 37 cycles plus body. |
+
+Hardware acceptance adds 7 cycles and 3 stack bytes to every IRQ or NMI route. The 901227-03
+KERNAL IRQ path adds 29 cycles and 16 existing-ROM bytes before CINV; its NMI stub adds 7 cycles
+and 4 existing-ROM bytes before NMINV. Existing ROM bytes are reported separately from output
+bytes. Only reachable variants, saved links, and wrappers are emitted. Every replaceable sink has
+its matching restore operation and compile-time LIFO ownership proof.
 
 Installer code updates the two-byte vector inside a caller-state-preserving interrupt-disabled
 critical section; its actual emitted bytes and cycles are reported. The chain variant's two RAM
@@ -628,7 +713,12 @@ restores different handlers must preserve a valid chain.
 
 ### 9.3 VIC-II Bank Considerations
 
-VIC-II can address 16 KB banks (selected via CIA2 $DD00). The default profile assumes Bank 0 ($0000–$3FFF). Programs using other banks should adjust `code_start` in a custom profile to avoid placing code in the VIC-II visible area.
+VIC-II addresses one 16 KiB bank selected through the owned low bits of CIA2 `$DD00`, with their
+direction established in `$DD02`. Screen, charset, bitmap, sprite data, and sprite-pointer values
+derive from final placement in that bank. A bank switch preserves unrelated CIA2 bits and cannot
+move across an affected CPU or VIC access. Misalignment, mixed-bank placement, a character-ROM
+visibility conflict, or an unowned CIA2 update is rejected; the compiler never repairs it by
+copying the data or inventing a custom target profile.
 
 ### 9.4 Optional Safety Stop
 
@@ -652,16 +742,30 @@ The source label identifies the failed site in symbols and the build report; no 
 KERNAL call, runtime library, handler, or writable state is injected. `SEI` prevents further
 maskable IRQ entry. NMI, reset, and external hardware activity retain their real C64 behavior.
 
+### 9.5 Evidence Contract
+
+Every profile result records the exact profile ID, NMOS 6510 legality, video record, VIC-II/CIA/SID
+model assumptions, 901227-03 KERNAL identity when used, `$0000/$0001` and `$DD00/$DD02` ownership,
+enabled IRQ/NMI sources, memory/ZP/stack use, ACME 0.97 identity, artifact hash, VICE 3.10 `x64sc`
+configuration, initial state, stop condition, expected state, and return or nonreturning exit.
+Shared proofs may be factored by dimension, but each of the nine complete identities requires its
+own fresh artifact and bounded runtime observation. Raster, CIA-edge, SID analogue/revision,
+undocumented-silicon, cartridge/expansion, and unusual-banking claims require targeted physical QA.
+
 ---
 
-## 10. Complete Profile
+## 10. First Profile Record and Closed Deltas
 
 ```yaml
-# Blend65 Platform Profile: Commodore 64
+# Blend65 Platform Profile: first qualified identity
+profile_id: c64-pal-prg-kernal-6581
 platform: c64
-cpu: 6502
+cpu: mos6510-nmos
 video_standard: pal
 clock_mhz: 0.985248
+runtime_ownership: cooperative_kernal
+kernal_rom: 901227-03
+cpu_port_mapping: $36
 
 sid_chips:
   - address: $D400
@@ -689,6 +793,10 @@ interrupt_sources:
     may_preempt: [mainline, irq, nmi, callback]
     masks_self_on_entry: true
     external_reentry_bound: unbounded
+  nmi:
+    may_preempt: [mainline, irq, nmi, callback]
+    masks_self_on_entry: false
+    external_reentry_bound: unbounded
 
 interrupt_entry_variants:
   c64_kernal_cinv_chain:
@@ -713,14 +821,21 @@ interrupt_entry_variants:
     terminal: jump_firmware_restore_tail
     terminal_address: $EA81
     static_link_bytes: 0
-  raw_irq:
+  c64_kernal_nminv_chain:
+    accepted_source_kind: interrupt_handler
+    register_save_owner: compiler
+    handler_entry_stack_bytes: 7
+    decimal_mode_on_body_entry: binary
+    entry_status_policy: preserve_and_restore_before_chain
+    terminal: jump_saved_previous_vector
+    static_link_bytes: 2
+    static_link_low_byte_max: $FE
+  c64_kernal_nminv_exclusive:
     accepted_source_kind: interrupt_handler
     register_save_owner: compiler
     handler_entry_stack_bytes: 6
     decimal_mode_on_body_entry: binary
     entry_status_policy: restore_by_rti
-    entry_normalization_bytes: 1
-    entry_normalization_cycles: 2
     terminal: rti
     static_link_bytes: 0
 
@@ -735,17 +850,38 @@ function_address_sinks:
     entry_variant: c64_kernal_cinv_exclusive
     execution_domain: irq
     interrupt_source: irq
+  c64.system.setNMI:
+    accepted_source_kind: interrupt_handler
+    entry_variant: c64_kernal_nminv_chain
+    execution_domain: nmi
+    interrupt_source: nmi
+  c64.system.setNMIExclusive:
+    accepted_source_kind: interrupt_handler
+    entry_variant: c64_kernal_nminv_exclusive
+    execution_domain: nmi
+    interrupt_source: nmi
 
 recognized_interrupt_vectors:
   $0314:
     entry_contract: c64_kernal_cinv_postsave
     required_installer: c64.system.setIRQ
+  $0318:
+    entry_contract: c64_kernal_nminv_presave
+    required_installer: c64.system.setNMI
 
 raw_interrupt_paths: {}
 
 output:
   output_format:  prg
   load_address:   $0801
+
+exit:
+  normal_return: restore_compiler_owned_state_then_rts_to_basic
+
+evidence:
+  assembler: ACME-0.97
+  emulator: VICE-3.10-x64sc
+  physical_status: required_for_sensitive_claims
 
 encoding:
   default_encoding: screen_codes
@@ -778,9 +914,25 @@ warnings:
   warn_embed_percent: 75
 ```
 
+The other eight records are exact closed deltas from the first record:
+
+| Profile ID | Exact delta |
+|------------|-------------|
+| `c64-pal-prg-kernal-8580` | `sid_chips[0].model = mos8580` |
+| `c64-pal-prg-takeover-6581` | `runtime_ownership = raw_takeover`; `cpu_port_mapping = $35`; no KERNAL/CINV/NMINV call path while the application runs; raw IRQ/NMI vectors and all enabled sources owned; `stack_reserve = 0` |
+| `c64-pal-prg-takeover-8580` | takeover delta above plus `sid_chips[0].model = mos8580` |
+| `c64-ntsc-prg-kernal-6581` | `video_standard = ntsc`; `clock_mhz = 1.022730`; 263 lines × 65 cycles; later NTSC VIC-II record |
+| `c64-ntsc-prg-kernal-8580` | NTSC delta above plus `sid_chips[0].model = mos8580` |
+| `c64-ntsc-prg-takeover-6581` | NTSC delta plus the takeover delta |
+| `c64-ntsc-prg-takeover-8580` | NTSC and takeover deltas plus `sid_chips[0].model = mos8580` |
+| `c64-pal-d64-kernal-6581` | `output_format = d64`; the boot PRG retains the first record; the primary artifact contains the boot PRG and reachable load units; loader strategy `kernal-sequential-uncompressed` is available only when reached |
+
+These deltas are specification compression, not user-composable switches. Every unlisted field is
+the first record's contract.
+
 ---
 
-## Gate G3 Checklist (c64)
+## Gate G3 Checklist (first profile)
 
 | Profile Slot | Filled? |
 |---|---|
