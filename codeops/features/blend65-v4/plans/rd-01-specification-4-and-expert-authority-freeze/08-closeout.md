@@ -846,3 +846,21 @@ the nine named C64 profiles. Other machines remain visibly non-normative future 
 Task 4.1.3 verification passed: all candidate references declare baseline 2.0.0; formatting, skill
 validation, Markdown links, plan parsing, exact policy/source assertions, regular-file topology,
 unchanged live expert/specification checks, and whitespace validation are green.
+
+### Candidate qualification cases
+
+All 107 expert 1.0.0 case identities remain present. Four focused cases were added, producing 111
+unique candidate cases:
+
+| New case | Discriminating boundary |
+|---|---|
+| Q-C25 | Exact `none`/`balanced`/`speed`/`size` selection, D64 B accounting, complete-cost ties, and hard-budget rejection |
+| Q-C26 | A local win that reverses after helper/SFA/layout/packaging closure |
+| Q-C27 | Proved finite-frontier fixed point, structured cost-selected peepholes, bounded exact search, and frontier-optimal terminology |
+| Q-P22 | Exact D64 packaging plus KERNAL 901227-03 direct-load, quiescence, publication/invalidation, resources, and `HLE-010` |
+
+Affected aggregate-return, raw-intrinsic, Koala, PSID/profile, Integrator, entity, and sprite-
+multiplexer expectations now match Specification 4 and the compiler-versus-game-policy boundary.
+Structural verification found 11 required non-empty fields in every case, exact equality between
+the 111 case headings and coverage rows, and exact equality between the 45 coverage paths and the
+Specification 4 Markdown tree. No prior case identity was removed.

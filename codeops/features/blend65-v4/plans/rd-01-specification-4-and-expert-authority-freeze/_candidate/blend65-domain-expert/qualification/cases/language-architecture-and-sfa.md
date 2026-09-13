@@ -227,15 +227,15 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
-## Q-L11 — Proposal misuses hardware-stack ownership or BRK accounting
+## Q-L11 — Proposal misuses hardware-stack ownership or removed raw intrinsics
 
 - **Risk / coverage cells:** Critical; `LANG-L11`, `SFA-L11`.
 - **Oracle status:** `frozen-project` — the stated semantic/project invariant is internally consistent.
-- **Evaluator prompt:** “A proposal uses the hardware stack for all locals, tracks explicit `PHA`/`PHP`/`PLA`/`PLP` intrinsics by byte depth only so `PHA; PLP` passes, and treats reachable `asm_brk()` as a seven-cycle opcode with free fallthrough and no profile contract or stack charge. Determine the required language behavior and the responsible compiler boundary. Trace observable effects, entry ownership, stack kinds, BRK control flow, and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** The proposed stack-frame design, explicit push/pull paths, target stack budget, call/IRQ/BRK obligations, selected profile, and SFA doctrine.
+- **Evaluator prompt:** “A proposal uses the hardware stack for all locals and reintroduces `asm_pha`, `asm_pla`, or `asm_brk` because the 6502 has those instructions. Determine the required Specification 4 source behavior and responsible compiler boundary. Trace hardware-stack ownership, call/interrupt obligations, and storage lifetimes far enough to justify the decision, then state the smallest viable remedy.”
+- **Permitted raw artifacts:** The proposed stack-frame design, exact five Specification 4 CPU-control intrinsics, target stack budget, call/interrupt obligations, selected profile, and SFA doctrine.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Preserves SFA; distinguishes JSR/RTS/IRQ/generated-save/explicit-stack/BRK duties; tracks accumulator-save versus status-save kinds relative to each function entry; requires matching pulls, identical reachable join/backedge sequences, and empty exits; requires a profile contract for reachable BRK; charges three CPU bytes plus handler peak; models returning versus non-returning control flow; emits only `$00 $EA`; adds no runtime or SFA storage.
-- **Disqualifying outcomes:** Reopens stack frames without new necessity proof; accepts a cross-kind pull because byte depth happens to balance; lets source intrinsics consume caller, return-address, interrupt, or compiler-generated stack bytes; assumes BRK falls through, invokes a debugger, or has no stack/effect cost; injects a handler/runtime.
+- **Expected decision invariants:** Preserves SFA as the sole general function-storage model; distinguishes JSR/RTS, interrupt frames, generated saves, and the typed `asm_php`/`asm_plp` pair; rejects `asm_pha`, `asm_pla`, and `asm_brk` as absent reserved intrinsic names; requires status-stack balance on every join, backedge, and exit; and adds no runtime or stack-frame subsystem.
+- **Disqualifying outcomes:** Reopens stack frames without new necessity proof; invents public raw push/pull or BRK controls; lets source intrinsics consume caller, return-address, interrupt, or compiler-generated stack bytes; or injects a handler/runtime.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — the AR-P29 kind-state and AR-P31 BRK contract pass comprehensive
@@ -574,8 +574,9 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - For a classic Koala asset, accepts only the exact 10,003-byte `$6000` native layout, exposes only
   `"bitmap"`, `"screen"`, `"color_ram"`, and `"background"`, and has no default. It derives bitmap
   and screen `$D018` fields through zero-cost placement operations after validating their 8-KiB and
-  1-KiB alignments and common VIC-bank visibility. The color-RAM transfer remains explicit and
-  costed; `"bitmap_base"` and hidden copies are invalid.
+  1-KiB alignments and common VIC-bank visibility. Every source byte, including high nibbles of
+  Color RAM and background, is preserved; only `value & $0f` has VIC-II color meaning. The
+  color-RAM transfer remains explicit and costed; `"bitmap_base"` and hidden copies are invalid.
 - **Disqualifying outcomes:** Makes SFA a universal asset manager, copies for convenience, or silently promotes the evaluation selector table above the normative C64 profile.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
@@ -687,7 +688,7 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   `pokew($0314, &onRasterIRQ)`. Determine every emitted/rejected entry path, stack and terminal
   owner, static storage/cost obligation, and compiler boundary. State what changes when the raw
   vector is not proven writable and active.”
-- **Permitted raw artifacts:** Reconciled Chapters 06/12/14/15, C64/C64U appendices, F007, selected
+- **Permitted raw artifacts:** Reconciled Chapters 06/12/14/15, the C64 appendix, F007, selected
   profile metadata, handler/helper source, emitted entry fragments and build-cost report;
   CBM-C64-PRG-1982 printed pages 308/311; CBM-C64-KERNAL-03
   `irqfile::PULS/PULS1` and `editor.2::KPREND`; MOS-PGM-1976 Chapter 9.
@@ -701,8 +702,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   the body and ends in `JMP $EA81`; the program owns every enabled IRQ source it skips.
   `setRawIRQ` exists only with a profile-proven writable/active hardware vector and selects the
   compiler A/X/Y save/`CLD`/restore/direct-`RTI` variant. Raw/exclusive `RTI` restores the interrupted
-  decimal state, while the chain's `PLP` restores entry flags for the previous handler. Explicit
-  `asm_sed()` remains legal under its normal diagnostics. The body acknowledges VIC explicitly; the
+  decimal state, while the chain's `PLP` restores entry flags for the previous handler. Specification
+  4 exposes no raw decimal-mode intrinsic. The body acknowledges VIC explicitly; the
   compiler never guesses a source. The helper remains `JSR`/`RTS`, SFA separates every overlapping
   invocation-private home, and only reachable variants are emitted. Every body copy, installer,
   link word, normalization/status wrapper, ROM/RAM/ZP/stack byte, and full cycle path is reported.
@@ -735,10 +736,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Oracle status:** `frozen-project+hardware` after AR-P28 — ordinary binary meaning, explicit BCD
   ownership, zero-runtime lowering, and the runtime-invalid hardware exception are reconciled.
 - **Evaluator prompt:** “A function performs ordinary byte addition, `bcd_add()` on bytes,
-  `bcd_sub()` on words, a valid constant BCD fold, an invalid constant BCD call, and a raw
-  `asm_sed()` path that reaches an ordinary call before `asm_cld()`. Determine source behavior,
-  diagnostics, IL distinctions, target lowering, interrupt obligations, and every runtime helper
-  or storage cost. Also state what is allowed when a runtime operand contains `$A`–`$F`.”
+  `bcd_sub()` on words, a valid constant BCD fold, an invalid constant BCD call, and an attempted
+  `asm_sed()` call. Determine source behavior, diagnostics, IL distinctions, target lowering,
+  interrupt obligations, and every runtime helper or storage cost. Also state what is allowed when
+  a runtime operand contains `$A`–`$F`.”
 - **Permitted raw artifacts:** Reconciled Chapters 01/02/04/12/14, F012/F021, the master grammar,
   selected CPU/profile decimal-mode facts, candidate `blend65-semantics.md`, and candidate
   `il-and-optimization.md`.
@@ -751,9 +752,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   CPU's exact ordered decimal `ADC`/`SBC` result and are never optimized with unproved decimal
   algebra. IL preserves a distinct BCD operation and its effects. Lowering is inline and adds no
   helper, linked runtime, hidden validation, or unreported scratch. Region coalescing requires proof
-  of carry ownership, D-clear boundaries, control-flow safety, and interrupt preservation. The raw
-  path is E10255; W10120 is retired.
-- **Disqualifying outcomes:** Makes ordinary arithmetic depend on an earlier `asm_sed()`; silently
+  of carry ownership, D-clear boundaries, control-flow safety, and interrupt preservation.
+  `asm_sed` is not in the exact five public CPU-control intrinsics and is rejected as a reserved
+  unknown intrinsic; no raw-decimal diagnostic or escape is invented.
+- **Disqualifying outcomes:** Adds `asm_sed()` to the public language or makes ordinary arithmetic depend on ambient D; silently
   accepts an invalid constant; injects a runtime checker/helper; assumes runtime digits are valid;
   loses carry between word bytes; leaves D set; coalesces across a call/join/unsafe interrupt path;
   or reports the retired W10120 instead of E10255.
@@ -871,44 +873,39 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
-## Q-L33 — PSID identity meets C64, C64U, and multi-SID configuration
+## Q-L33 — PSID identity meets the active C64 profiles
 
 - **Risk / coverage cells:** Critical; `LANG-L33`, `PROFILE-L33`, `C64-L33`.
 - **Oracle status:** `frozen-project+external` after AR-P34/SC-133 — PSID metadata and selected
   deployment configuration must stay distinct, exact, and statically compatible.
-- **Evaluator prompt:** “Validate one SID-capable C64 profile selecting PAL plus MOS6581 and another
-  selecting NTSC plus MOS8580. Exercise PSID v1 and every PSID v2NG–v4 clock/model flag value,
-  including second- and third-SID address/model fields whose `00` model inherits the resolved
-  primary requirement. Compare embedding with callable audio when metadata is Unknown, check a
-  known mismatch, and assess C64U physical-SID versus UltiSID endpoints while turbo CPU mode is
-  available. State the exact profile, player-contract, diagnostic, conversion, hardware-activation,
-  and cost consequences.”
-- **Permitted raw artifacts:** Reconciled Chapters 13–15, F015, C64/C64U appendices,
-  `blend65-semantics.md`, `source-manifest.md`, the exact HVSC SID-format snapshot, the pinned
-  C64U `config/multi_sid.rst` and `sidplayer.rst` records, and an exact candidate player contract.
+- **Evaluator prompt:** “Validate active C64 profiles selecting PAL/NTSC and MOS6581/MOS8580.
+  Exercise PSID v1 and every PSID v2NG–v4 clock/model flag value, including unsupported
+  second-/third-SID requirements. Compare embedding with callable audio when metadata is Unknown
+  and check a known mismatch. State the exact profile, player-contract, diagnostic, conversion,
+  endpoint, and cost consequences.”
+- **Permitted raw artifacts:** Reconciled Chapters 13–15, F015, the C64 appendix,
+  `blend65-semantics.md`, `source-manifest.md`, the exact HVSC SID-format snapshot, and an exact
+  candidate player contract.
 - **Forbidden material:** This case's hidden invariants, coverage status, plans, current compiler
   behavior/tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Requires explicit `video_standard: pal | ntsc` and an ordered
-  `sid_chips` list of exact address/model endpoints for every SID-capable C64/C64U profile; the
-  current baseline has one `$D400` endpoint. Treats `clock_mhz` as the derived/validated PAL
+- **Expected decision invariants:** Requires explicit `video_standard: pal | ntsc` and exactly one
+  `$D400` SID endpoint/model for every active C64 profile. Treats `clock_mhz` as the derived/validated PAL
   985,248-Hz or NTSC 1,022,730-Hz CPU fact, never the video/SID identity. Preserves PSID v2NG–v4
   clock bits `00/01/10/11` as Unknown/PAL/NTSC/Both and primary model bits as
   Unknown/MOS6581/MOS8580/Both; PSID v1 is unspecified. Second/third `00` model fields inherit the
   resolved primary requirement. A specific incompatibility or unsupported multi-SID topology is
   E10261. Unknown is not Both: embed-only use remains legal, while callable audio requires an exact
   hash-bound contract to close every unknown field without contradicting specific metadata. No
-  cadence, pitch, filter, or model conversion occurs. C64U endpoint choice is a deployment
-  precondition, not runtime discovery/configuration; turbo CPU speed is never substituted for
-  PAL/NTSC SID timing and needs a separate qualified timing contract before use. All selected
-  player/topology state and costs remain explicit.
+  cadence, pitch, filter, model, endpoint, or target conversion occurs. C64 Ultimate and multi-SID
+  configurations remain future constraints, not active profiles. All selected player state and
+  costs remain explicit.
 - **Disqualifying outcomes:** Uses numeric clock alone as identity; conflates Unknown with Both;
   treats a secondary `00` model as independently either; silently retimes, retunes, or converts SID
-  output; accepts a known mismatch; calls unknown audio without a closing contract; describes all
-  C64U endpoints as emulated; lets the header activate hardware; changes SID cadence because turbo
-  CPU mode exists; or claims multi-SID support without exact address/model/contract agreement.
+  output; accepts a known mismatch; calls unknown audio without a closing contract; lets the header
+  activate hardware; or claims C64 Ultimate or multi-SID support in the active baseline.
 - **Evidence required to grade:** Exact profile fields and timing records; complete PSID flag matrix;
   inheritance and mismatch traces; E10261 ownership; embed-only versus callable-audio decisions;
-  player-contract refinements; C64U endpoint/turbo reasoning; and complete ROM/RAM/ZP/cycle costs.
+  player-contract refinements; future-target rejection; and complete ROM/RAM/ZP/cycle costs.
 - **Red-baseline result:** Not run.
 - **Focused result:** Pass — exact timing/profile fields, PSID flag matrix and inheritance,
   Unknown closure, topology, C64U deployment/turbo split, zero-conversion boundary, and complete

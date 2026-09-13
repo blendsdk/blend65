@@ -276,11 +276,11 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 
 - **Risk / coverage cells:** Major; `C64-P15`, `GAME-P15`.
 - **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
-- **Evaluator prompt:** “Design an Integrator-style compile-time scene/asset pipeline for a large visible game area. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
+- **Evaluator prompt:** “Implement an Integrator-style compile-time asset-composition workload in ordinary Blend65 for a large visible game area. State exact machine/video/chip and banking/interrupt assumptions. Separate user-authored composition/rendering policy from compiler-owned asset ingestion, semantics, placement, and proved optimization; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Reusable elements/panels, scene composition input, foreground/occlusion/priority rules, multicolor attributes, memory and draw/mask budgets, emitted layout, loader/visibility contract, and runtime renderer trace.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
-- **Expected decision invariants:** Composes reusable elements/panels; generates masks, foreground priority, and attribute-conflict evidence; chooses precomputation/representation from memory-versus-draw/mask cost; assigns compiler/toolchain, emitted layout, loader, visibility/IRQ ownership, and zero-cost renderer responsibilities; proves artifact and runtime behavior.
-- **Disqualifying outcomes:** Says only “use Integrator/build an editor,” flattens everything into generic copying, ignores attribute/mask/runtime costs, or leaves asset preparation unowned.
+- **Expected decision invariants:** Keeps composition, mask/priority decisions, representation choice, and rendering policy in user-authored compile-time/runtime Blend65. The compiler provides exact asset bytes/types/metadata/symbols, conflict diagnostics, placement/package facts, correct lowering, and proved optimization. It supplies no renderer or scene runtime. The case proves both emitted assets and the user-authored runtime behavior.
+- **Disqualifying outcomes:** Says only “use Integrator/build an editor,” adds a compiler-owned renderer/scene API, flattens everything into generic copying, ignores attribute/mask/runtime costs, or leaves asset ingestion/placement unowned.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
@@ -296,8 +296,8 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 - **Evaluator prompt:** “Design entity storage, collision, and state dispatch for a fixed game workload. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Fixed workload, hot queries/updates, entity fields, collision phases, state-dispatch needs, call/interrupt graph, and candidate layouts.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
-- **Expected decision invariants:** Chooses fixed pools and SoA/AoS from hot paths, models broad/narrow collision and function-pointer/SFA consequences, and gives a deterministic compiler/API disposition with behavior and assembly/resource proof.
-- **Disqualifying outcomes:** Declares one layout universally best or leaves engine structures as descriptive lore.
+- **Expected decision invariants:** Keeps pools, entity policy, collision, and state dispatch user-authored; compares SoA/AoS and other legal representations from the fixed workload; and requires the compiler to lower/optimize the chosen ordinary language forms with behavior and assembly/resource proof.
+- **Disqualifying outcomes:** Declares one layout universally best, adds a compiler-owned entity/collision/state framework, or leaves the required lowering as descriptive lore.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Not run; draft observations only.
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
@@ -378,11 +378,11 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
 
 - **Risk / coverage cells:** Major; `C64-P21`, `GAME-P21`.
 - **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
-- **Evaluator prompt:** “Bake a sprite-multiplexer technique into Blend65 support. State exact machine/video/chip and banking/interrupt assumptions. Choose a deterministic compiler, platform-API, local-contract, or diagnostic disposition; assign ownership; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
+- **Evaluator prompt:** “A developer writes a sprite multiplexer in ordinary Blend65. State exact machine/video/chip and banking/interrupt assumptions. Separate user-authored scheduling/drop policy from compiler lowering, optimization, typed VIC operations, and local timing/ownership contracts; account for bytes, cycles, memory, visibility, IRQ and loader costs; give one counterexample and the independent proof needed.”
 - **Permitted raw artifacts:** Desired sprite-multiplexer behavior, modern source/API sketch, target facts, schedule/data plan, SFA/IRQ graph, lowering/layout alternatives, and proof artifacts.
 - **Forbidden material:** This hidden oracle, planning/coverage conclusions, prior outputs, feasibility-matrix claims, legacy-skill conclusions, author history, and unallowlisted Web or repository content.
-- **Expected decision invariants:** Produces a deterministic realization plan spanning modern source API, schedule/data representation, SFA/IRQ interference, target facts, lowering/layout ownership, cost, and proof.
-- **Disqualifying outcomes:** Merely describes the trick or assumes the shipped compiler can consult the skill.
+- **Expected decision invariants:** Keeps the multiplexer algorithm, capacity, sorting, channel assignment, and late/drop policy user-authored. The compiler preserves modern source, SFA/IRQ safety, layout constraints, and expert code generation; the platform surface is limited to typed zero-cost VIC operations and explicit local timing/ownership contracts.
+- **Disqualifying outcomes:** Adds a compiler/library multiplexer or scheduler, merely describes the trick, or assumes the shipped compiler can consult the skill.
 - **Evidence required to grade:** Pinned hardware/practitioner sources after freeze, declared revision/model bounds, deterministic responsibility/precondition mapping, whole-program resource accounting, behavior proof, assembly/timing/layout expectations, VICE evidence where applicable, and targeted hardware-QA status for physical claims.
 - **Red-baseline result:** Draft observation: fail — game idioms are listed, but sprite multiplexing is not mapped to deterministic compiler/API ownership, costs, hazards, and proof (`c64-game-systems.md:82-97`).
 - **Focused result:** Pass — Phase-5 isolated content evaluation; decisive evidence is recorded in `qualification/release.md`.
@@ -390,3 +390,41 @@ The evaluator receives the prompt, the named raw artifacts, declared C64/video/c
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+## Q-P22 — Package and load a trusted D64 load unit through KERNAL 901227-03
+
+- **Risk / coverage cells:** Critical; `C64-P22`, `ARTIFACT-P22`, `LOAD-P22`.
+- **Oracle status:** `frozen-project+external` — Specification 4 and `HLE-010` supply policy;
+  `CBM-1541-D64-35` and `CBM-C64-KERNAL-LOAD-03` supply geometry and ROM ABI facts.
+- **Evaluator prompt:** “Package a boot PRG plus one reachable load unit in the active
+  `c64-pal-d64-kernal-6581` profile, then load that unit directly into its declared destination with
+  KERNAL 901227-03. Prove D64 geometry/directory/data chaining, call ABI, application quiescence,
+  success/failure publication, resource effects, and the trusted-media limit. Give the smallest
+  correct implementation; do not introduce a loader framework or staging copy.”
+- **Permitted raw artifacts:** The selected profile, file names/payloads/destinations, exact D64
+  bytes/map, KERNAL call sequence and workspace, application/interrupt state, returned X/Y/carry/A,
+  post-load visibility/invalidation state, and complete byte/cycle/resource report.
+- **Forbidden material:** This hidden oracle, plans, prior outputs, current compiler/tests as
+  authority, feasibility claims, unpinned disk/ROM lore, and unallowlisted repository/network data.
+- **Expected decision invariants:** Requires exactly 174,848 bytes and 683 sectors with the stated
+  track geometry, BAM 18/0, directory start 18/1, 664 data blocks, at most 144 entries, closed PRG
+  type `$82`, 254-byte payload chaining, and `byte1 - 1` final payload. Calls `$FFBA`, `$FFBD`, then
+  `$FFD5` with A=0, secondary address zero, and X/Y destination; consumes one-past-end X/Y on
+  carry-clear success or A/carry-set failure. Uses boot device `$BA` by declared policy. The
+  application and all conflicting observers/writers are absent or quiescent. Success publishes
+  only the captured destination range; failure invalidates only that range. KERNAL workspace,
+  call/clobber/cycle costs, disk payload/container capacity, and load window are explicit.
+  `HLE-010` permits direct loading only from trusted compiler-produced media because a readable
+  longer replacement can overwrite before end-address validation. No checksum, containment claim,
+  hidden copy, generic loader, or runtime framework is added.
+- **Disqualifying outcomes:** Treats a D64 as flat payload bytes; counts container overhead in
+  optimizer `B`; uses the file header address despite secondary address zero; calls LOAD before
+  quiescence; publishes an uncaptured or failed range; claims altered-media containment; omits ROM
+  workspace/resource effects; or adds a staging buffer/framework.
+- **Evidence required to grade:** Exact source keys and hashes; byte-level image/map and file-chain
+  proof; KERNAL register/carry trace; state-ownership and publication/invalidation trace; complete
+  output/container/RAM/ZP/stack/cycle costs; and an independent malformed/longer-media boundary
+  check.
+- **Red-baseline result:** Not run; new Specification 4 case.
+- **Focused result:** Pending isolated candidate evaluation.
+- **Definitive result:** Pending isolated candidate evaluation.
