@@ -452,5 +452,15 @@ finding. The user authorized the following direct corrections on 2026-09-13:
 | RV-006 | Made the read primary and the governing load plus blocking flow/alias fact related spans for E10276 |
 | RV-007 | Replaced shorthand verification evidence with the literal commands and numeric exits above |
 
+The first re-review confirmed RV-001–RV-007 resolved and found one minor example mismatch: a
+returning C64 `main` installed an IRQ handler without restoring entry ownership. The example now
+imports and calls `restoreIRQ()` before returning to BASIC. The final bounded re-review reported no
+findings. It also reconfirmed formatting, links, plan parsing, 181-code equality, V-06/V-07, clean
+whitespace, and that no `*.spec.test.*` file changed.
+
+The review used `blend65-domain-expert` 1.0.0 at qualified content commit
+`a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`, including the interrupt route-completion gate in
+`knowledge/sfa-and-abi.md`.
+
 Phase 2 therefore satisfies the assigned portions of V-05, V-06, V-07, and V-16. The remaining
 target, corpus-freeze, source-authority, and final all-23 Guard checks stay in Phase 3 as planned.

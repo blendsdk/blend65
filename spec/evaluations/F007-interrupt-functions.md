@@ -182,6 +182,8 @@ only: no runtime token, flag, registry, scheduler, or dispatcher is added.
 ```blend65
 module Game;
 
+import { restoreIRQ, setIRQ } from c64.system;
+
 zeropage {
     export rasterLine: byte = 0;
 }
@@ -192,9 +194,9 @@ interrupt function onRasterIRQ(): void {
 }
 
 function main(): void {
-    // Install the handler
     setIRQ(&onRasterIRQ);
     // ... game loop ...
+    restoreIRQ(); // returning profile restores entry ownership before returning to BASIC
 }
 ```
 
