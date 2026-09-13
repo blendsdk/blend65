@@ -581,3 +581,80 @@ f14a19ee370fbfe6de5c3a4b0c599d1a5cf4359863a2110efe2c1d3b303e2f4d  evaluations/F0
 e38910dbf5e9a710b8171081c1698730bfd835df058b6267d5b2edf54d0dbcea  future-considerations.md
 8d4533443a31067627f790540c5e1c3900a57cff52ea2b751908b4917e3fed94  grammar.ebnf.md
 ```
+
+### Specification 3 to Specification 4 crosswalk
+
+This crosswalk is non-normative transition evidence. It covers all 50 frozen Specification 3 paths
+and both Specification 4 additions. “Reconciled” means the path remains but its content was aligned
+with the cited accepted decisions; it is not a line-by-line change log.
+
+| Prior path | Disposition | Governing decisions | Specification 4 destination |
+|------------|-------------|---------------------|-----------------------------|
+| `00-feature-index.md` | Rewritten as concise non-normative navigation | AR-014, AR-049 | `00-feature-index.md` |
+| `00-introduction.md` | Reconciled; remains normative | AR-014, AR-035, AR-038, AR-049 | `00-introduction.md` |
+| `01-lexical-structure.md` | Reconciled; remains normative | AR-014, AR-019–AR-020, AR-031 | `01-lexical-structure.md` |
+| `02-type-system.md` | Reconciled; remains normative | AR-014, AR-016–AR-018 | `02-type-system.md` |
+| `03-variables.md` | Reconciled; remains normative | AR-014, AR-020, AR-031 | `03-variables.md` |
+| `04-expressions-operators.md` | Reconciled; remains normative | AR-014–AR-019 | `04-expressions-operators.md` |
+| `05-statements-control-flow.md` | Reconciled; remains normative | AR-006, AR-014 | `05-statements-control-flow.md` |
+| `06-functions.md` | Reconciled; remains normative | AR-014, AR-016, AR-018–AR-019 | `06-functions.md` |
+| `07-structs.md` | Reconciled; remains normative | AR-014–AR-016 | `07-structs.md` |
+| `08-arrays-strings.md` | Reconciled; remains normative | AR-014, AR-016–AR-017, AR-035 | `08-arrays-strings.md` |
+| `09-enums.md` | Version-aligned; semantics retained | AR-014 | `09-enums.md` |
+| `10-modules.md` | Version-aligned; semantics retained | AR-014 | `10-modules.md` |
+| `11-memory-model.md` | Reconciled; remains normative | AR-014–AR-016, AR-018, AR-031 | `11-memory-model.md` |
+| `12-intrinsics.md` | Reconciled; remains normative | AR-014, AR-015, AR-019 | `12-intrinsics.md` |
+| `13-data-inclusion.md` | Reconciled; remains normative | AR-012, AR-029, AR-031, AR-039–AR-044 | `13-data-inclusion.md` |
+| `14-diagnostics.md` | Reconciled as sole diagnostic registry | AR-014–AR-020, AR-031 | `14-diagnostics.md` |
+| `15-platform-profile.md` | Reconciled to exact C64-only profile authority | AR-013, AR-024, AR-032, AR-035, AR-042–AR-044 | `15-platform-profile.md` |
+| `appendix-a7800.md` | Removed as false active target authority | AR-035 | `future-considerations.md` (non-normative constraints only) |
+| `appendix-a800xl.md` | Removed as false active target authority | AR-035 | `future-considerations.md` (non-normative constraints only) |
+| `appendix-c64.md` | Reconciled; sole normative platform appendix | AR-013, AR-024, AR-032, AR-038–AR-044 | `appendix-c64.md` |
+| `appendix-c64u.md` | Removed as false active target authority | AR-024, AR-035 | `future-considerations.md` (non-normative successor constraints only) |
+| `appendix-cx16.md` | Removed as false active target authority | AR-035 | `future-considerations.md` (non-normative constraints only) |
+| `build-plan.md` | Removed obsolete workflow record | AR-004, AR-014, AR-049 | — (Git history and this closeout) |
+| `evaluations/F001-multi-file.md` | Retained non-normative evaluation | AR-014 | `evaluations/F001-multi-file.md` |
+| `evaluations/F002-modules.md` | Retained non-normative evaluation | AR-014 | `evaluations/F002-modules.md` |
+| `evaluations/F003-module-contents.md` | Retained non-normative evaluation | AR-014 | `evaluations/F003-module-contents.md` |
+| `evaluations/F004-entry-point.md` | Retained non-normative evaluation | AR-014 | `evaluations/F004-entry-point.md` |
+| `evaluations/F005-memory-placement.md` | Reconciled non-normative evaluation | AR-007, AR-020 | `evaluations/F005-memory-placement.md` |
+| `evaluations/F006-address-of.md` | Reconciled non-normative evaluation | AR-015 | `evaluations/F006-address-of.md` |
+| `evaluations/F007-interrupt-functions.md` | Reconciled non-normative evaluation | AR-013, AR-018 | `evaluations/F007-interrupt-functions.md` |
+| `evaluations/F008-for-loop.md` | Reconciled non-normative evaluation | AR-006, AR-014 | `evaluations/F008-for-loop.md` |
+| `evaluations/F009-switch-statement.md` | Retained non-normative evaluation | AR-014 | `evaluations/F009-switch-statement.md` |
+| `evaluations/F010-signed-types.md` | Reconciled non-normative evaluation | AR-014 | `evaluations/F010-signed-types.md` |
+| `evaluations/F011-structs.md` | Reconciled non-normative evaluation | AR-016 | `evaluations/F011-structs.md` |
+| `evaluations/F012-cpu-control-intrinsics.md` | Reconciled non-normative evaluation | AR-014 | `evaluations/F012-cpu-control-intrinsics.md` |
+| `evaluations/F013-control-flow.md` | Reconciled non-normative evaluation | AR-006, AR-014 | `evaluations/F013-control-flow.md` |
+| `evaluations/F014-arrays.md` | Reconciled non-normative evaluation | AR-016–AR-017, AR-035 | `evaluations/F014-arrays.md` |
+| `evaluations/F015-data-inclusion.md` | Reconciled non-normative evaluation | AR-029, AR-031, AR-039–AR-044 | `evaluations/F015-data-inclusion.md` |
+| `evaluations/F016-type-system.md` | Reconciled non-normative evaluation | AR-016–AR-018 | `evaluations/F016-type-system.md` |
+| `evaluations/F017-operators.md` | Reconciled non-normative evaluation | AR-014, AR-016 | `evaluations/F017-operators.md` |
+| `evaluations/F018-functions.md` | Reconciled non-normative evaluation | AR-016, AR-018–AR-019 | `evaluations/F018-functions.md` |
+| `evaluations/F019-variables.md` | Reconciled non-normative evaluation | AR-020, AR-031 | `evaluations/F019-variables.md` |
+| `evaluations/F020-memory-intrinsics.md` | Reconciled non-normative evaluation | AR-015 | `evaluations/F020-memory-intrinsics.md` |
+| `evaluations/F021-lexical-structure.md` | Reconciled non-normative evaluation | AR-006, AR-014, AR-019–AR-020, AR-031 | `evaluations/F021-lexical-structure.md` |
+| `evaluations/F022-enums.md` | Retained non-normative evaluation | AR-014 | `evaluations/F022-enums.md` |
+| `evaluations/F024-conditional-operator.md` | Retained non-normative evaluation | AR-014 | `evaluations/F024-conditional-operator.md` |
+| `future-considerations.md` | Reconciled as non-normative register and future-target constraint owner | AR-004, AR-014–AR-020, AR-024, AR-035 | `future-considerations.md` |
+| `grammar.ebnf.md` | Reconciled; remains normative | AR-006, AR-014–AR-020, AR-031 | `grammar.ebnf.md` |
+| `preflight-report.md` | Removed obsolete workflow record | AR-004, AR-014, AR-049 | — (Git history and this closeout) |
+| `v2-to-v3-migration.md` | Removed obsolete migration record | AR-004, AR-014 | — (Git history and this closeout) |
+| — (new) | Added compile-time-function evaluation | AR-019, AR-050 | `evaluations/F025-comptime-functions.md` |
+| — (new) | Added central membership and identity record | AR-049 | `00-normative-inventory.md` |
+
+### Semantic-diff review
+
+Every material Specification 3 to Specification 4 change falls into one of these accepted groups:
+
+| Change group | Reviewed result |
+|--------------|-----------------|
+| Authority | One active Specification 4 corpus replaces implementation overrides or parallel specs; Git preserves Specification 3 |
+| Language ergonomics | Normal loops/scopes, fixed arithmetic/arrays, aggregate values, addressable places, finite typed calls, bounded compile-time functions, placement/loadable data, and exact low-level safety controls are reconciled |
+| C64 authority | Exactly nine qualified profiles, five native asset forms, bounded D64/KERNAL loading, and one normative C64 appendix remain |
+| Product boundary | Target hardware, asset adapters, placement, and packaging remain; engine/game-policy systems do not become compiler or library features |
+| Removed authority | Four false target appendices and three obsolete workflow/migration records are absent; future constraints remain explicitly non-normative |
+| Process records | The feature index is navigation only; the central inventory/digest and this concise crosswalk replace duplicate diagnostic and migration authority |
+
+The complete Git diff from the frozen P3 baseline was reviewed against those groups. No material
+change remains unexplained, and no hunk-level ledger or duplicate migration document was created.
