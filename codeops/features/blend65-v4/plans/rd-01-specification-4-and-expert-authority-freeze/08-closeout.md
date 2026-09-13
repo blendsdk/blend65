@@ -515,3 +515,69 @@ active diagnostic codes, the required grammar owners, no stale Phase 2 restricti
 target or game-policy claim, valid links, formatted Markdown, valid plan topology, clean whitespace,
 and no changed `*.spec.test.*` file. Task 3.1.7 records the final repeatable commands after the
 inventory and crosswalk are frozen.
+
+### Specification 4 inventory and identity
+
+`spec/00-normative-inventory.md` classifies exactly 45 retained regular files: 18 normative and 27
+non-normative. All paths are relative to `spec/`; symlinks, duplicate paths, unlisted files, and
+paths outside that directory are invalid. The inventory is non-normative and excluded from the
+record stream.
+
+The bytewise-sorted GNU `sha256sum` records for the 18 normative files produce this central corpus
+identity:
+
+```text
+BLEND65-SPEC-4-415831d3a0949d7e183673c56eec8c422e5f44eb74a8d50639ef96c6156b46e2
+```
+
+The following raw hashes capture every retained file after inventory publication. Task 3.1.7
+refreshes this table after the non-normative feature-index and crosswalk work so the closeout ends
+with the final at-rest values.
+
+```text
+b8158e6a0bcba57478cb844c106e0344cd5c9c31c37d9a4ef5ba662f6c3e050f  00-feature-index.md
+74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  00-introduction.md
+6f2364cf4ea6e3a9e1f46aa1ca42936a4f6ca6a3c0dbf0db35385f794727c9b7  00-normative-inventory.md
+4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  01-lexical-structure.md
+bb928c436facada2a3be8d40b0d13a7a3e10384bad108e1610d6d5f96113590a  02-type-system.md
+e8c017b9671b9cf1c8ac633cf4aee59fd1591df13ea94ddab323b7c42a11807d  03-variables.md
+1dcefd066aee1e9a35e255172a5c772a442092ff57e8ebf2076803934ff2d4e8  04-expressions-operators.md
+187ea573d6ddaf6a033321f9118835c2b3442118e1e363dcd68bc634f59b0ab2  05-statements-control-flow.md
+fa33c4a76fcb003d7682c00c86a64321ec7751410f334832b3fbc570612aa7b1  06-functions.md
+a3afc05f37ab7118ed365ae570ff98ca05ac2ca73120b5b48280b58b98f8cd45  07-structs.md
+96dd85a7951afbb7245b7fb25e62d79643e8a8b30ca11dd53b9e6ea50af733ad  08-arrays-strings.md
+e0772e924b761ed16e58b14f72906d4fa3014ed3bf2e9886fd01759a127192d6  09-enums.md
+a5ad0cc83e34867de7b1e1ada3d94efb1a136230cf199578c7a0d7a283a57383  10-modules.md
+0097af18c1763ea50450eb0476afb2ee4d2c309afe7bb9c4fd476917ec926925  11-memory-model.md
+925c7eb49fd32093e2de791a8f4c8887e2797d2956429cf5974aca985933936c  12-intrinsics.md
+29a16540be2a29cc4d4e5ba3bed0e407b9644dd25d4acc803666cf3df71079e7  13-data-inclusion.md
+96ad1e7f3320cf07a98f31ca9b60dbbda7ba324cbad2a7edf137e5bd0542336c  14-diagnostics.md
+53ba67bd0c8629216a40000437954c05e495cc29100a806b6b42f655776ae115  15-platform-profile.md
+c5b2a38a29410da0c3bb84642a9e24f4ef7419971c255ea8499d4255b2ddca68  appendix-c64.md
+cd79fa582b71c3126916f455f6d623c3c1a8fd35b064cae22ee4a311261a19df  evaluations/F001-multi-file.md
+d522d443a3f946ac6d0201ada84d45e321c35094e951bd3ecb1d616bd9f1d98a  evaluations/F002-modules.md
+9673502debd656fe4733a160454d1d86ed6adcbf70fb7bc68325f67d49385920  evaluations/F003-module-contents.md
+dd7ef96a96873a1ff1ff1a9c3bf97ea07ece0717051ff485432b6a951abb8162  evaluations/F004-entry-point.md
+add33b6dd89783250bd495247264966aadee57d4dec3dc44a1698fdbe1442aa3  evaluations/F005-memory-placement.md
+13e3f8af5bc2d698a70827b111fab22c8aeaf6ed2f310031d6b8c61a83423760  evaluations/F006-address-of.md
+83b7baac19b72e8eeced5b156cd2ce79a56bfc1391739283e11009787669d95b  evaluations/F007-interrupt-functions.md
+bb503f0aa1aff317c71cb8a61c5e071b9f3c8bbeea1476438306f3b82c60dc04  evaluations/F008-for-loop.md
+2d5116b586c2abe6bb4ee43a2372f974dc90e719177443bfe714c53c542d72ce  evaluations/F009-switch-statement.md
+9013ae2793ba44f96c13e9fdb567b324e6bd5a8f331af9083605eff12fe2f359  evaluations/F010-signed-types.md
+4118af9de2c2b34022a883cddc5762e87bd164cda03ed38f47fe4f77577db026  evaluations/F011-structs.md
+c06a710a4dca63f35d91af4850f2ba1aa6e94c06e1bd89bc81b0d5720c96fc5c  evaluations/F012-cpu-control-intrinsics.md
+1a36d5db689bb97d84b93318e604a7da31a36c38dc057993c3192c0907731faa  evaluations/F013-control-flow.md
+938d3adb011bb60eac49dcfe160c65c48b2279aa610a1bb2c82cb3171c53ba2f  evaluations/F014-arrays.md
+c1ce67c3d4c1120e6d2cfb1a5b34664cb99ed47b37692d6d4010474ed9f889f8  evaluations/F015-data-inclusion.md
+0ccfec6274dadc849eb93a3440bb090f9b24f77119f7b297fa5217f827608f4e  evaluations/F016-type-system.md
+ecf5e10be85f9610c20d400aac6dbda2cc8dea0a1edbbccfce2b87a32e7ff44d  evaluations/F017-operators.md
+02a7600cf86659a1713d83891c4bbe08806b9c7a9c1686da2642c379c6ff2a42  evaluations/F018-functions.md
+15628edf3f35fb2252f20ad938b16b8b6006f32d196ffe0d8ffa8e496f3fa017  evaluations/F019-variables.md
+3a6d7e2e07dedfed392dc407e1cb598042f5aad270152740f99ae056e492b945  evaluations/F020-memory-intrinsics.md
+a77babccebc4b20ee55f062ace152674a46860ebb53fdec9fd2408b85eea441a  evaluations/F021-lexical-structure.md
+0d12f268294ce67560417599b4e2a88b69f743f7d4f00aaed9e412f4c5719e6f  evaluations/F022-enums.md
+66dc1c0ad8222f09871b3550ae032a0d0cfcecb7cf338174e85af29bdbd2d303  evaluations/F024-conditional-operator.md
+f14a19ee370fbfe6de5c3a4b0c599d1a5cf4359863a2110efe2c1d3b303e2f4d  evaluations/F025-comptime-functions.md
+e38910dbf5e9a710b8171081c1698730bfd835df058b6267d5b2edf54d0dbcea  future-considerations.md
+8d4533443a31067627f790540c5e1c3900a57cff52ea2b751908b4917e3fed94  grammar.ebnf.md
+```
