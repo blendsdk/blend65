@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
 > **Status**: In progress
-> **Last Updated**: 2026-09-13 12:34
+> **Last Updated**: 2026-09-13 12:35
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -131,3 +131,54 @@ This fixes results without prescribing a compiler algorithm.
 An independent one-shot Node calculation using `node:crypto`, phase-by-phase `Math.sin`, explicit
 half-away-from-zero rounding, and the stated encodings exited 0. It reproduced both ranges, all ten
 representative results, and both canonical fingerprints exactly.
+
+### `comptime-budget-v1` oracle
+
+One fixed, non-configurable counter set is shared by every compile-time root in one `check` or
+`build`, consumed in deterministic semantic evaluation order.
+
+| Resource | Exact limit | First rejected attempt |
+|---|---:|---|
+| Abstract steps | 16,777,216 | Step 16,777,217 |
+| Peak live logical Blend65 value storage | 16,777,216 bytes | Any allocation that would raise live storage above 16,777,216 bytes |
+| Active compile-time calls | 512, with the root at depth 1 | A call that would enter depth 513 |
+
+Every rejected operation fails before that operation, mutation, argument evaluation, allocation,
+or function body executes. The failed root is poisoned and no target artifact is emitted.
+
+#### Charging and lifetime rules
+
+- Charge one step before each selected expression node, statement node, loop iteration, function
+  entry, and each logical aggregate byte initialized, copied, or materialized.
+- Charge nothing for short-circuited expressions or unselected branches.
+- Caching may reduce host work but must charge the same abstract steps as uncached evaluation.
+- Count scalars at their language byte width and arrays/structs at normative `sizeof`.
+- Count live parameters, locals, expression temporaries, in-progress aggregates, return values, and
+  retained generated constants.
+- An alias adds no memory charge. Reading an existing immutable constant or validated embedded
+  asset without copying adds no second charge. A real copy or materialization charges its logical
+  bytes.
+- Release storage at its defined full-expression, block, call, or evaluation-phase lifetime
+  boundary. Released bytes may be reused by later deterministic work.
+- Host allocator overhead and caching strategy cannot change source acceptance. A host OOM is a
+  bounded compiler failure, not E10270, and publishes no artifact when it can report or clean up.
+
+#### Boundary examples
+
+| Case | Required result |
+|---|---|
+| Exactly 16,777,216 charged steps | Allowed |
+| A selected node would charge step 16,777,217 | E10269 before the node or any effect |
+| Exactly 16,777,216 logical bytes are live | Allowed |
+| An allocation would make 16,777,217 logical bytes live | E10270 before allocation or mutation |
+| Storage is released at its specified lifetime boundary before a later allocation | The later allocation uses the reduced live total |
+| A second name aliases existing storage | No extra memory charge |
+| The same value is explicitly copied | Charge the copied logical bytes and their aggregate-byte steps |
+| A right-hand expression is skipped by short-circuiting | No step or temporary-memory charge for that expression |
+| A memoized result replaces host recomputation | Charge as though the uncached semantic evaluation ran |
+| Earlier and later roots run in one `check` or `build` | They consume the same counters in deterministic semantic order |
+| Root plus nested calls reach depth 512 | Allowed |
+| A call would enter depth 513 | E10271 before argument evaluation or callee entry |
+
+E10269, E10270, and E10271 each name `comptime-budget-v1`, the exact limit and attempted usage, the
+root invocation, the failing source span, and a related root span.
