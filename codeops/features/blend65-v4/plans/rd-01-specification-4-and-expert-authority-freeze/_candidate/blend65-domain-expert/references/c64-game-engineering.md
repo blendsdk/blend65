@@ -694,6 +694,26 @@ object; never infer fit from payload size alone.
 | SID | `HVSC-SID-FORMAT-20260906` hash | self-contained directly callable PSID v1–v4 subset with exact header/payload/target validation | data, init address, nonzero play address; default data; reject RSID/MUS/PlaySID-dependent/unsupported topology; PSID alone does not provide SFX | header authority pinned; Blend65 subset and fixtures remain implementation proof |
 | Koala | `KOALA-NATIVE-003` classic layout cross-check | project contract: exactly 10,003 bytes with little-endian `$6000`, 8,000 bitmap, 1,000 screen, 1,000 Color RAM bytes, and one background byte | bitmap, screen, color_ram, background; selector required; preserve every source byte; only the low nibble of Color RAM/background is semantically consumed by VIC-II | layout and full-byte preservation policy are frozen; fixtures still qualify implementation behavior |
 
+Every active C64 profile selects `video_standard: pal | ntsc` and exactly one concrete SID at
+`$D400`, with model `mos6581` or `mos8580`. PAL uses 985,248 CPU cycles/second
+(`clock_mhz: 0.985248`); NTSC uses 1,022,730 (`clock_mhz: 1.022730`). Those clock values are derived
+profile facts, not substitutes for video or SID identity.
+
+PSID v1 has no clock/model flags and therefore asserts neither. PSID v2NG through v4 decode the
+two-bit fields exactly:
+
+| Field | `00` | `01` | `10` | `11` |
+|---|---|---|---|---|
+| clock, bits 2–3 | Unknown | PAL | NTSC | PAL and NTSC |
+| primary model, bits 4–5 | Unknown | MOS6581 | MOS8580 | MOS6581 and MOS8580 |
+| second model, bits 6–7 (v3+) | inherit primary | MOS6581 | MOS8580 | MOS6581 and MOS8580 |
+| third model, bits 8–9 (v4+) | inherit primary | MOS6581 | MOS8580 | MOS6581 and MOS8580 |
+
+Unknown is not Both: embed-only use remains legal, while callable audio needs a hash-bound player
+contract that closes every unknown without contradicting a specific field. The active profiles
+reject every second/third-SID requirement and every known clock/model mismatch with E10261; they do
+not activate hardware or retime, retune, filter-adapt, or translate a SID payload.
+
 The complete normative Blend65 selector/type rules come from
 [BLEND65-SPEC-4-5c6bac04, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
 provenance: SpritePad/CharPad files do not encode the producing application version. The format
@@ -840,25 +860,29 @@ unknown. Do not attribute the new compiler design below to the historical tool.
 
 1. **Import** exact native/raw assets through qualified handlers. Preserve element pixels, palette/
    attributes, dimensions, anchors, collision/occlusion metadata, and source identity.
-2. **Compose** reusable elements into panels/scenes at compile time from literal scene data. Resolve
-   transformations and deduplicate only byte-identical reusable components whose placement permits
-   sharing.
+2. **Author composition in Blend65** using ordinary typed data and code. Scene membership, draw
+   order, foreground/occlusion policy, transformations, and reusable-component identity belong to
+   the program, not to an asset handler or compiler-supplied scene system.
 3. **Validate** C64 mode/color constraints. Report cell/character attribute conflicts with source
    locations and available deterministic choices; never silently recolor.
-4. **Derive** foreground/occlusion masks, draw priority, clipping/address tables, dirty-region
-   metadata, or pre-shifted forms only when explicitly selected or cost-guided from declared update
-   frequency and budgets.
-5. **Choose representation** among reusable commands, panel references, precomposed cells/bitmap,
-   masks, deliberate immutable replication, and compressed streams by total asset bytes, padding,
-   loader/decompression cost, draw/erase/mask cycles, ZP/SFA scratch, and update frequency.
+4. **Author algorithms and derived data in Blend65.** The program owns foreground/occlusion masks,
+   draw priority, clipping/address tables, dirty-region policy, and any selected pre-shifted forms.
+   The compiler may optimize only proved equivalent patterns; it does not invent renderer policy.
+5. **Choose representation in the program** among reusable commands, panel references, precomposed
+   cells/bitmap, masks, deliberate immutable replication, and compressed streams. The compiler may
+   compare equivalent lowerings by total asset bytes, padding, loader/decompression cost,
+   draw/erase/mask cycles, ZP/SFA scratch, and update frequency, but it may not change user-visible
+   scene or rendering policy.
 6. **Place and package** the chosen bytes in VIC-visible/aligned regions or declared load windows;
    emit exact screen/charset/bitmap/Color RAM separation and a machine-readable build report.
 7. **Expose** typed asset bytes, metadata, symbols, placement constraints, and any exact imported
    ABI. The user-authored renderer consumes them; runtime never re-parses project files.
 
-This is compile-time asset handling, not an editor or scene framework. A compiler plugin/handler
-may produce ordinary link objects and constants. It may include an explicitly selected low-level
-loader or exact imported-player ABI, but never supplies a renderer or gameplay policy.
+This is compile-time asset handling plus ordinary user-authored Blend65, not an editor or scene
+framework. A compiler plugin/handler may ingest, validate, convert, type, place, and package assets
+as ordinary link objects and constants. It may include an explicitly selected low-level loader or
+exact imported-player ABI, but it never composes scenes, derives renderer algorithms, selects
+gameplay representations, or supplies a renderer or gameplay policy.
 
 ### Q-P15 proof shape
 

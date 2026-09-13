@@ -32,7 +32,9 @@ architecture decisions.
 - For any interrupt-sink or handler-route analysis, apply every item in
   `sfa-and-abi.md#interrupt-route-completion-gate`. Do not compress away callback-only identity,
   reachable-variant selection, full `RTI` status/D restoration, exact saved-link boundaries, or
-  existing-ROM versus output-byte costs.
+  existing-ROM versus output-byte costs. For a C64 route, also load
+  `c64-memory-and-runtime.md#interrupt-entry-and-exit-contracts` for vector, banking, firmware-entry,
+  and terminal-owner facts; add `c64-hardware.md` for the source device and acknowledgement.
 - For any C64 workload or game-system comparison, apply
   `c64-game-engineering.md#machine-bound-workload-completion-gate`. CPU-heavy work still names the
   exact machine/video/banking context, interrupt absence or complete routes, and loader/startup

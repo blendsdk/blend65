@@ -36,8 +36,10 @@ The following terms are used below:
   2.0.0. Earlier P3 entries below are provenance only and cannot override it.
 - **Version**: exact GNU SHA-256 record digest
   `5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`.
-- **Digest algorithm**: from the repository root,
-  `find spec -type f -name '*.md' -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum`.
+- **Digest algorithm**: extract the 18 paths in `spec/00-normative-inventory.md#normative-files`,
+  byte-sort those relative paths under `LC_ALL=C`, hash each raw file from inside `spec/` into a
+  GNU-style `<hash><two spaces><relative path><LF>` record, concatenate the records, then SHA-256
+  that exact stream. Non-normative files, including the inventory itself, are excluded.
 - **Location**: repository `spec/**/*.md`; 45 Markdown files, comprising 18 normative and 27
   non-normative files.
 - **Scope**: syntax, types, evaluation, effects, modules, storage, intrinsics, diagnostics, and the
@@ -1046,10 +1048,13 @@ which obligation differs before comparing emitted code or architecture.
   `mist64/cbmsrc/DOS_1541_05`; VICE `vice/src/diskimage*`.
 - **Exact facts**: tracks 1–17 have 21 sectors, 18–24 have 19, 25–30 have 18, and 31–35 have
   17: 683 sectors and 174,848 bytes. Track 18 is the system track, leaving 664 data blocks. BAM is
-  18/0; the directory starts at 18/1 and holds at most 144 entries. A closed PRG type is `$82`.
-  File-sector bytes 0–1 link to the next track/sector and bytes 2–255 hold up to 254 payload bytes.
-  In the final sector byte 0 is zero and byte 1 is the last used byte index, so payload is
-  `byte1 - 1`.
+  18/0; the directory starts at 18/1 and holds at most 144 entries. A directory sector has eight
+  32-byte slots based at offsets 0, 32, …, 224; sector-link bytes 0–1 occupy the first slot's
+  otherwise-reserved prefix. In each slot a simple closed PRG entry has type `$82` at relative byte
+  2, first-data track/sector at 3–4, a 16-byte PETSCII name padded with `$A0` at 5–20, and a
+  little-endian block count at 30–31; unused PRG fields are zero. File-sector bytes 0–1 link to the
+  next track/sector and bytes 2–255 hold up to 254 payload bytes. In the final sector byte 0 is zero
+  and byte 1 is the last used byte index, so payload is `byte1 - 1`.
 - **Precision**: manual printed pages 10, 24–27, and 55–57; DOS `numsec/maxtrk`, `nxtbuf`, and
   `rdbyt`; VICE `D64_FILE_SIZE_35`, `sector_map_d64`, `disk_image_speed_map`, and
   `fsimage_check_sector`.
@@ -1072,10 +1077,12 @@ which obligation differs before comparing emitted code or architecture.
 - **Location**:
   <https://www.commodore.ca/wp-content/uploads/2018/11/c64-programmers_reference_guide-05-basic_to_machine_language.pdf>;
   `mist64/cbmsrc` revision-03 KERNAL reconstruction.
-- **Exact facts**: `SETLFS` is `$FFBA`, `SETNAM` `$FFBD`, and `LOAD` `$FFD5`. Load uses A=0;
-  secondary address 0 makes X/Y the relocation destination. Success writes directly, returns the
-  one-past-end address in X/Y, and clears carry. Failure returns an error number in A with carry
-  set. Current device `FA` is at `$BA`.
+- **Exact facts**: `SETLFS` is `$FFBA` and receives logical file/device/secondary address in A/X/Y;
+  `SETNAM` is `$FFBD` and receives name length in A and name address in X/Y; `LOAD` is `$FFD5` and
+  receives A=0. Secondary address 0 makes X/Y the relocation destination. Success writes directly,
+  returns the one-past-end address in X/Y, and clears carry. Failure returns an error number in A
+  with carry set. Current device `FA` is at `$BA`. The path uses `STATUS`, `VERCK`, `MEMUSS`,
+  `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, and `FA`, plus serial/KERNAL service calls.
 - **Integrity limit**: `LOAD` has no maximum-length parameter and stores before the returned length
   can be checked. A readable longer replacement may overwrite past the expected range. `HLE-010`
   therefore limits this wrapper to trusted compiler-produced media; it adds no staging copy.

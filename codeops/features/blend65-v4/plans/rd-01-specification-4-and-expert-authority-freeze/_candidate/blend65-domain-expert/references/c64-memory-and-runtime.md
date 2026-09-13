@@ -212,17 +212,37 @@ return policy.
 The active D64 profile produces one headerless, error-table-free 35-track image of exactly 683
 256-byte sectors, or 174,848 bytes. Tracks 1–17 have 21 sectors, 18–24 have 19, 25–30 have 18, and
 31–35 have 17. Track 18 is the system track: BAM is 18/0, directory data begins at 18/1, 664 blocks
-remain for files, and at most 144 directory entries exist. A closed PRG directory entry uses type
-`$82`. Each file sector reserves bytes 0–1 for its next track/sector link and carries at most 254
-payload bytes. A final sector has zero in byte 0 and stores the last used byte index in byte 1, so
-its payload count is `byte1 - 1`. Allocation and interleave remain measured packager choices, not
-filesystem folklore. [CBM-1541-D64-35]
+remain for files, and at most 144 directory entries exist. Each directory sector has its next
+track/sector in bytes 0–1 and eight 32-byte slots based at offsets 0, 32, …, 224. Within each slot,
+relative bytes 0–1 are reserved (and carry the sector link in the first slot), byte 2 is closed-PRG
+type `$82`, bytes 3–4 are the first data track/sector, bytes 5–20 are the 16-byte PETSCII name padded
+with `$A0`, and bytes 30–31 are the little-endian data-block count; the REL, replacement, and other
+reserved fields are zero. The compiler gives each reachable unit a
+deterministic unique one-to-sixteen-byte PETSCII directory name and passes those same unpadded bytes
+to `SETNAM`; source does not manage disk names. Each file sector reserves bytes 0–1 for its next
+track/sector link and carries at most 254 payload bytes. A final sector has zero in byte 0 and stores
+the last used byte index in byte 1, so its payload count is `byte1 - 1`. Allocation and interleave
+remain measured packager choices, not filesystem folklore. [CBM-1541-D64-35]
 
 The cooperative revision-03 KERNAL wrapper calls `SETLFS` `$FFBA`, `SETNAM` `$FFBD`, then `LOAD`
-`$FFD5`. `LOAD` receives A=0 and, with secondary address zero, uses X/Y as the relocation
-destination. It writes directly, returns the one-past-end address in X/Y with carry clear on
-success, and returns an error number in A with carry set on failure. The current device `FA` is at
-`$BA`; reusing it for the boot device is explicit profile policy. [CBM-C64-KERNAL-LOAD-03]
+`$FFD5`. `SETLFS` receives the logical file number in A, the boot device read from KERNAL `FA`
+(`$BA`) in X, and secondary address zero in Y. `SETNAM` receives the directory-name length in A and
+its address in X/Y. `LOAD` receives A=0 and, because the secondary address is zero, uses X/Y as the
+relocation destination. It writes directly, returns the one-past-end address in X/Y with carry
+clear on success, and returns an error number in A with carry set on failure. Reusing `FA` is
+explicit profile policy. The path may change A/X/Y/status and KERNAL workspace including `STATUS`,
+`VERCK`, `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, and `FA`; callers preserve any live
+program state and measure the selected ROM/service path and hardware-stack peak rather than
+assuming a leaf-call ABI. [CBM-C64-KERNAL-LOAD-03]
+
+With compiler-owned immediate file/name/destination inputs, the three setup-and-call sequences are
+9 bytes/13 cycles through `JSR SETLFS` (`LDX $BA` uses zero-page addressing), 9 bytes/12 cycles
+through `JSR SETNAM`, and 9 bytes/12 cycles through `JSR LOAD`: 27 output bytes and 37 CPU cycles
+before the variable KERNAL/device
+work. A dynamic destination replaces the immediate X/Y loads and is charged from final assembly.
+The success/failure and expected-end checks, captured destination home, ROM/service cycles, KERNAL
+workspace, stack high-water, and disk-transfer time are reported separately; none is hidden in the
+27-byte setup figure.
 
 This ROM API has no maximum-length input and stores bytes before software can compare the returned
 end address. A readable longer replacement may overwrite past the declared load window before the

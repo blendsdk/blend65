@@ -868,13 +868,34 @@ Specification 4 Markdown tree. No prior case identity was removed.
 ### Qualification dependency closure
 
 The byte-level closure in candidate `qualification/release.md` identifies 51 changed runtime H2
-sections and 14 changed/new case sections. It requires 42 fresh cases. It admits 69 earlier cases
+sections and 16 changed/new case sections. It requires 43 fresh cases. It admits 68 earlier cases
 as byte-identical evidence inputs, of which five fixed controls (Q-R02, Q-L03, Q-C10, Q-P08, and
-Q-A06) will be rerun and 64 may inherit. The two sets are disjoint and cover all 111 cases. This is
+Q-A06) will be rerun and 63 may inherit. The two sets are disjoint and cover all 111 cases. This is
 the smallest conservative closure that retains the accepted section-level byte rule; it does not
 repeat unaffected cases merely because another heading in the same Markdown file changed.
 
-Task 4.1.5 verification passed: the recorded runtime and section identities reproduce; the 42/69
-partition covers all 111 cases exactly; five controls leave 64 inheritable results; formatting,
+Task 4.1.5 verification passed: the recorded runtime and section identities reproduce; the 43/68
+partition covers all 111 cases exactly; five controls leave 63 inheritable results; formatting,
 skill validation, YAML, local links, specification-test integrity, and the unchanged live expert
 and frozen specification checks are green.
+
+### Isolated qualification
+
+All 43 changed/dependent cases and five fixed controls passed filesystem-isolated evaluation and
+separate oracle grading. Each final process read its packet and was denied repository access. The
+candidate release record contains the case-group packet/output hashes and grade hashes; no failed
+case is hidden by an aggregate score. Sixty-three byte-identical cases remain eligible for inherited
+evidence.
+
+The correction loop stayed within existing authority. It repaired exact semantic, hardware, cost,
+and answer-completeness defects without adding a framework, runtime, dependency, or game-policy
+API. The final runtime-payload digest is
+`5f0de16323d86a7d91d733832df088cbd68a594370f854f974ca00eb65b1bc5d`; the 51 changed H2 records
+hash to `9e6a7ce5e25276a9c10791d7fedf87737752badb798a1c07f177ce24b5296f04`, and the 16 changed case
+records hash to `d1ee91b87d54753136c6db323ded62dccd84209e20e92cb0e1447d8491dbd49f`.
+
+Task 4.1.6 direct validation passed: Prettier, both skill validators, both local-link sweeps,
+CodeOps plan parsing, 111-case/coverage-row equality, regular-file topology, whitespace, frozen
+`spec/`, unchanged live expert, and specification-test integrity are green. Compiler, assembler,
+VICE, readiness, and repository-wide suites did not run because they cannot validate this
+documentation-only authority transition.

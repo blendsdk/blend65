@@ -29,7 +29,7 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   compiler/storage/effect consequence, one important interaction or failure boundary, the correct
   skill branch, and any genuinely inapplicable depth facet with a reason. Report contradictions,
   missing paths, shallow summaries, unsupported coverage, and duplicated authority.”
-- **Permitted raw artifacts:** The live `spec/**/*.md` path inventory, all 50 files in that
+- **Permitted raw artifacts:** The live `spec/**/*.md` path inventory, all 45 files in that
   inventory, the concrete A4/TS-4/TS-14 question above, and only the candidate
   `references/blend65-semantics.md` crosswalk/semantic rules plus the three candidate branch
   references it links for architecture, SFA/ABI, and IL/optimization consequences. The packet also
@@ -39,22 +39,22 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   the candidate: ACME is the selected assembler, and a parity result that only meets rather than
   beats the expert floor requires an authorized GitHub debt issue and never authorizes a push.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Exact 50-path set equality; correct normative/evaluation/
+- **Expected decision invariants:** Exact 45-path set equality; correct normative/evaluation/
   historical role; substantive per-path payload and consequence rather than inventory-only
   presence; correct branch routing; explicit justified N/A facets; no duplicated authority. ACME
   selection and automatic parity-debt issue recording are identified as product/process policy,
   never inferred from the language specification, CPU manuals, or current implementation. The
-  Atari 7800 is 1.79 MHz nominal with separately modeled 1.19 MHz TIA/RIOT accesses and MARIA DMA
-  stalls. A4 permits only the implicit conversions enumerated by TS-4 and TS-14. The future
+  A4 permits only the implicit conversions enumerated by TS-4 and TS-14. The future
   register is audited from its live entries rather than a duplicated endpoint. F001 is limited to
   supplied files, one binary, path-name irrelevance, and module-based cross-file references; it
   supplies no discovery, module-to-file, duplicate-module, or diagnostic-stability contract. The
-  audit must also recognize EXP-001 aggregate-return debt, exact W10190/W10141 scopes,
-  per-activation SFA costs, provenance-bounded address workarounds, and the migration/C64 HLE
-  disclosures introduced by SC-152..SC-155.
+  audit must also recognize fixed-aggregate returns as current language semantics while leaving
+  compiler implementation support unclaimed, exact W10190/W10141 scopes, per-activation SFA costs,
+  direct parameter/field/element addressability with provenance-bounded lifetimes, and the
+  migration/C64 HLE disclosures introduced by SC-152..SC-155.
 - **Disqualifying outcomes:** Answers only from skill prose; accepts the two project-policy claims
-  without the supplied hash-pinned policy excerpts; uses a flat 1.19 MHz A7800 CPU clock; rejects
-  TS-4/TS-14 conversions because of A4; trusts a duplicated future-item endpoint; or invents an
+  without the supplied hash-pinned policy excerpts; rejects TS-4/TS-14 conversions because of A4;
+  trusts a duplicated future-item endpoint; or invents an
   F001 discovery, duplicate-module, or diagnostic-stability contract.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
@@ -753,12 +753,13 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   algebra. IL preserves a distinct BCD operation and its effects. Lowering is inline and adds no
   helper, linked runtime, hidden validation, or unreported scratch. Region coalescing requires proof
   of carry ownership, D-clear boundaries, control-flow safety, and interrupt preservation.
-  `asm_sed` is not in the exact five public CPU-control intrinsics and is rejected as a reserved
-  unknown intrinsic; no raw-decimal diagnostic or escape is invented.
+  `asm_sed` is not in the exact five public CPU-control intrinsics and is rejected as an ordinary
+  unresolved name with E10239; no raw-decimal diagnostic or escape is invented.
 - **Disqualifying outcomes:** Adds `asm_sed()` to the public language or makes ordinary arithmetic depend on ambient D; silently
   accepts an invalid constant; injects a runtime checker/helper; assumes runtime digits are valid;
   loses carry between word bytes; leaves D set; coalesces across a call/join/unsafe interrupt path;
-  or reports the retired W10120 instead of E10255.
+  reports retired E10255 or W10120 instead of E10239; or invents a reserved-unknown-intrinsic
+  category for the unresolved name.
 - **Evidence required to grade:** Exact type/result table, constant/runtime examples, diagnostic
   sites, semantic IL nodes/effects, inline byte and word instruction sequences, interrupt-state
   proof, complete bytes/cycles/storage/helper accounting, and a remedy separated from any finding.
@@ -782,10 +783,11 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   optimization contracts: `for (let i: word = 0; i < length(page); i += 1) { use(page[i]); }` for a
   256-byte array; the same source with `i: byte` and `i < 256`; a loop whose initializer, condition,
   update list, and body contain calls or volatile accesses; and loops whose body uses `continue`,
-  `break`, or `return`. A proposal keeps the old range syntax because a Pratt parser and SFA would
-  otherwise be difficult. Decide the language behavior, exact lowering boundary, and smallest
-  expert optimization. State what is parsed by the statement parser, what SFA allocates, and
-  whether any runtime or second loop form is needed.”
+  `break`, or `return`. Also include a loop-local `loadable const` initializer and a body-local
+  declaration that shadows the header name. A proposal keeps the old range syntax because a Pratt
+  parser and SFA would otherwise be difficult. Decide the language behavior, exact lowering
+  boundary, and smallest expert optimization. State what is parsed by the statement parser, what
+  SFA allocates, and whether any runtime or second loop form is needed.”
 - **Permitted raw artifacts:** Reconciled Chapters 01/02/03/04/05/14, F008, the master grammar,
   candidate `blend65-semantics.md`, `compiler-architecture.md`, `sfa-and-abi.md`, and
   `il-and-optimization.md`; selected CPU `INX`/`DEX` and branch facts; source and emitted evidence
@@ -797,12 +799,15 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   omitted condition meaning true. The statement parser owns the header delimiters; it does not
   distort Pratt expression parsing or introduce a general comma operator. Initializer and update
   expression lists evaluate once per occurrence, left-to-right. A header declaration is an
-  ordinary mutable `let` or immutable `const` scoped through the condition, update, and body;
-  ordinary no-shadowing rules apply. The condition is Boolean. `continue` runs the update before
+  ordinary mutable `let`, immutable resident `const`, or package-only `loadable const` scoped
+  through the condition, update, and body. A `loadable const` emits no per-iteration
+  initialization, resident address, or SFA home; only an explicit selected-profile load transfers
+  its bytes. The body is a child scope and may shadow the header binding, while E10003 rejects a
+  duplicate in the same scope. The condition is Boolean. `continue` runs the update before
   retesting; `break` and `return` skip it. Counter arithmetic uses ordinary fixed-width wrap. The
   general lowering is a normal CFG and needs no runtime, hidden range state, new SFA model, or
-  generalized loop framework. SFA treats header locals and temporaries by ordinary liveness and
-  interference. The semantic-word 256-iteration form is correct; a proof may represent its
+  generalized loop framework. SFA treats resident header locals and temporaries by ordinary
+  liveness and interference. The semantic-word 256-iteration form is correct; a proof may represent its
   nonescaping induction state with one byte and use `INX` plus wrap-to-zero exit when all effects
   and the unobservable word terminal state permit. E10262 rejects the shown byte-typed `i < 256`
   canonical finite-looking form because the counter repeats before its invariant condition can
@@ -812,8 +817,9 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   SFA easier; changes left-to-right effects; sends the whole header through a Pratt parser; treats
   `continue` as a direct condition edge; gives the induction variable hidden mathematical range
   semantics; rejects the valid word form; accepts or silently repairs the byte counterexample;
-  injects a runtime; or builds a generalized optimization framework instead of one proved canonical
-  induction recognizer.
+  gives `loadable const` a runtime initializer or SFA home; forbids legal child-scope shadowing;
+  injects a runtime; or builds a generalized optimization framework instead of one proved
+  canonical induction recognizer.
 - **Evidence required to grade:** Exact grammar and scope; an effect trace for initializer,
   condition, body, update, and every exit; generic CFG edges; SFA liveness/interference treatment;
   full-domain word and byte counterexamples; optimization preconditions, emitted legal sequence,
