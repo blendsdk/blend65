@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13 20:39
-> **Progress**: 22/31 tasks (71%)
+> **Last Updated**: 2026-09-13 20:51
+> **Progress**: 23/31 tasks (74%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -113,7 +113,7 @@ reproducible digest, complete concise transition record, and zero unexplained se
 
 - [x] 4.1.1 Create a regular-file-only `_candidate/blend65-domain-expert/`, seeded byte-for-byte from active expert 1.0.0; reject symlinks/non-regular entries and record the live-tree and candidate seed hashes — `_candidate/blend65-domain-expert/`, `08-closeout.md` ✅ (completed: 2026-09-13 20:30)
 - [x] 4.1.2 Reconcile candidate router/metadata and language, compiler, SFA/ABI, diagnostic, and routing references to expert 2.0.0 and the frozen Spec 4 digest — `_candidate/blend65-domain-expert/SKILL.md`, `_candidate/blend65-domain-expert/agents/`, `_candidate/blend65-domain-expert/references/` ✅ (completed: 2026-09-13 20:39)
-- [ ] 4.1.3 Reconcile C64/D64/KERNAL/Koala, product-boundary, portability, evidence, and AR-045/AR-046 optimizer knowledge; copy Phase 1's pinned source records into source governance without importing a framework or game-policy API — `_candidate/blend65-domain-expert/references/`, `08-closeout.md`
+- [x] 4.1.3 Reconcile C64/D64/KERNAL/Koala, product-boundary, portability, evidence, and AR-045/AR-046 optimizer knowledge; copy Phase 1's pinned source records into source governance without importing a framework or game-policy API — `_candidate/blend65-domain-expert/references/`, `08-closeout.md` ✅ (completed: 2026-09-13 20:51)
 - [ ] 4.1.4 Update only affected casebook expectations, add or strengthen the required AR-046 cases, and validate every existing case identity/required field without deleting or weakening one — `_candidate/blend65-domain-expert/qualification/cases/`, `_candidate/blend65-domain-expert/qualification/coverage-matrix.md`
 - [ ] 4.1.5 Derive and record the byte-level router/reference/source/oracle dependency closure, changed/dependent case set, fixed unchanged controls, and strictly eligible inherited-evidence set — `_candidate/blend65-domain-expert/qualification/`, `08-closeout.md`
 - [ ] 4.1.6 Run deterministic candidate validation and the existing filesystem-isolated model procedure for every changed/dependent case plus one fixed unchanged control per casebook; require packet-read success, repository-read failure, a separate oracle-bearing grader, and fail-closed behavior, then record outputs, grades, and hashes — `_candidate/blend65-domain-expert/qualification/`, `08-closeout.md`

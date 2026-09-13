@@ -1,5 +1,7 @@
 # C64 Memory, Startup, and Runtime Ownership
 
+> **Baseline version**: `2.0.0`
+
 Use this reference when a Blend65 decision depends on the C64 address map, `$0000/$0001`
 banking, VIC-visible placement, startup, KERNAL coexistence, interrupt entry, loading, or resource
 ownership. Read `c64-hardware.md` for device semantics and `c64-game-engineering.md` for frame and
@@ -205,6 +207,30 @@ main loop; if `main` may return, the profile must define whether it restores mac
 returns to a loader/KERNAL caller, warm-starts, or stops. Falling into adjacent code is never a
 return policy.
 
+### Qualified D64 and load-unit contract
+
+The active D64 profile produces one headerless, error-table-free 35-track image of exactly 683
+256-byte sectors, or 174,848 bytes. Tracks 1–17 have 21 sectors, 18–24 have 19, 25–30 have 18, and
+31–35 have 17. Track 18 is the system track: BAM is 18/0, directory data begins at 18/1, 664 blocks
+remain for files, and at most 144 directory entries exist. A closed PRG directory entry uses type
+`$82`. Each file sector reserves bytes 0–1 for its next track/sector link and carries at most 254
+payload bytes. A final sector has zero in byte 0 and stores the last used byte index in byte 1, so
+its payload count is `byte1 - 1`. Allocation and interleave remain measured packager choices, not
+filesystem folklore. [CBM-1541-D64-35]
+
+The cooperative revision-03 KERNAL wrapper calls `SETLFS` `$FFBA`, `SETNAM` `$FFBD`, then `LOAD`
+`$FFD5`. `LOAD` receives A=0 and, with secondary address zero, uses X/Y as the relocation
+destination. It writes directly, returns the one-past-end address in X/Y with carry clear on
+success, and returns an error number in A with carry set on failure. The current device `FA` is at
+`$BA`; reusing it for the boot device is explicit profile policy. [CBM-C64-KERNAL-LOAD-03]
+
+This ROM API has no maximum-length input and stores bytes before software can compare the returned
+end address. A readable longer replacement may overwrite past the declared load window before the
+wrapper detects it. The `HLE-010` baseline therefore permits the no-copy wrapper only for trusted
+compiler-produced media with quiescent application state, exact destination/range publication, and
+post-load invalidation. It makes no altered-media containment claim and adds no staging buffer or
+loader framework.
+
 ### Coexistence versus takeover
 
 | Mode | What remains owned by ROM/system | Compiler obligations |
@@ -261,8 +287,8 @@ state. [CBM-C64-KERNAL-03,
 A route report using this baseline must enumerate the existing-ROM columns, not only generated
 output: the `PULS`-to-CINV segment is 16 ROM bytes and zero output bytes; the exclusive `$EA81`
 tail is 6 ROM bytes and zero output bytes. It must also state that only sink-reachable variants are
-emitted and that explicit handler-local `asm_sed()` remains legal under the ordinary decimal-state
-diagnostics. Omitting any of these makes a “complete cost/ABI” conclusion incomplete.
+emitted. Specification 4 exposes no raw decimal-mode control; typed BCD operations own their
+decimal transitions. Omitting any of these makes a “complete cost/ABI” conclusion incomplete.
 
 ### Revision-pinned NMI contracts and costs
 
@@ -325,9 +351,8 @@ Unknown: default CINV chain uses `PHP; CLD; body/ack; PLP` before its page-safe 
 exclusive CINV establishes binary mode and uses only its pinned restore tail; raw IRQ owns register
 saves and `RTI`. The source `interrupt function` remains callback-only. Exclusive/raw `RTI`
 restores the complete interrupted processor status, including the interrupted D value, even though
-generated body entry establishes D clear. A deliberate `asm_sed()` inside the body remains legal
-under its ordinary decimal-state diagnostics and outgoing-state proof. NMINV chain saves status
-before A/X/Y, establishes binary mode, restores A/X/Y before status, and then chains; exclusive and
+generated body entry establishes D clear. NMINV chain saves status before A/X/Y, establishes binary
+mode, restores A/X/Y before status, and then chains; exclusive and
 raw NMI save/restore A/X/Y and end in `RTI`. Assign exactly one owner to each consuming CIA2 ICR
 read, read it exactly once when owned, and handle every returned source bit. State that reusable
 helpers remain ordinary `JSR`/`RTS` functions. For raw takeover, populate the complete underlying
@@ -340,9 +365,8 @@ The default saved-link object is two writable bytes and must be page-safe for an
 jump form: a link beginning at `$xxFE` is valid, while one beginning at `$xxFF` must be relocated
 or rejected unless lowering uses a form without the NMOS wrap. Each installed handler has one
 entry kind; an IRQ callback is not an ordinary callable function. Reusable logic lives in an
-`RTS` helper with a separately checked mainline/IRQ concurrency contract. The generated binary-mode
-entry does not outlaw a deliberate `asm_sed()` in the body; it remains subject to the normal raw
-decimal-state diagnostics and outgoing-state proof.
+`RTS` helper with a separately checked mainline/IRQ concurrency contract. Specification 4 exposes
+no raw decimal-mode intrinsic; typed BCD operations provide their own balanced decimal regions.
 
 Banking, decimal mode, registers, flags, and the hardware-stack shape are all observable state.
 The handler restores the interrupted state unless its declared exclusive contract says otherwise.

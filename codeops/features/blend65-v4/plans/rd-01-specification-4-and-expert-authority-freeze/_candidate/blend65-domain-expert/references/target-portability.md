@@ -1,7 +1,7 @@
 # Target Portability Doctrine
 
-> **Baseline version**: `1.0.0`
-> **Status**: C64 has production depth in this baseline. Every other machine below is
+> **Baseline version**: `2.0.0`
+> **Status**: The nine Specification 4 C64 profiles are the only active targets. Every other machine below is
 > constraint-only until its own extension is independently sourced and qualified.
 
 ## Purpose
@@ -45,7 +45,7 @@ Do not put a machine address in semantic analysis, an ACME directive in instruct
 PRG header in the CPU model, or instruction legality in a catch-all platform hook. When a fact
 crosses owners, pass a typed requirement/result rather than querying hidden global target state.
 
-## Six-Machine Constraint Matrix
+## One Active Target and Future-Machine Constraints
 
 | Field | C64 | C64 Ultimate | C128 | Commander X16 | Atari 8-bit / 800XL | Atari 7800 |
 |---|---|---|---|---|---|---|
@@ -60,13 +60,18 @@ crosses owners, pass a typed requirement/result rather than querying hidden glob
 Each non-C64 cell is intentionally incomplete. Unknown detail stays unknown; do not fill it from
 memory, resemblance, an emulator default, or another target's convention.
 
-## C64 Production Baseline
+## Active C64 Baseline
 
 The active C64 baseline composes the exact knowledge in `mos-6502-family.md`, `c64-hardware.md`,
 `c64-memory-and-runtime.md`, `c64-game-engineering.md`, `sfa-and-abi.md`,
 `6502-lowering-casebook.md`, and `acme-and-artifacts.md`. Its active status is bound by the
 single-version release record. `[CBM-C64-PRG-1982; CSG-6567-318014;
 MOS-6581-SID; MOS-PGM-1976; ACME-097-R266]`
+
+Specification 4 activates exactly nine stock-C64 profiles: PAL and NTSC PRG × cooperative KERNAL
+or raw takeover × 6581 or 8580, plus `c64-pal-d64-kernal-6581`. It activates no C64 Ultimate,
+C128, X16, or Atari profile. The exact profile IDs and their complete rows live in
+`spec/appendix-c64.md`; this reference does not duplicate them.
 
 Adding another target must not weaken C64 parity. A shared abstraction earns its place only if it
 preserves the C64 expert path and the other qualified consumer's different contract without

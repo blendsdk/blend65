@@ -1,5 +1,7 @@
 # MOS 6502/6510 Processor Model
 
+> **Baseline version**: `2.0.0`
+
 Use this reference when a Blend65 decision depends on instruction legality, addressing, flags,
 stack or interrupt behavior, bus-visible accesses, or exact NMOS timing. Read
 `6502-lowering-casebook.md` as well when choosing a sequence rather than checking a machine fact.

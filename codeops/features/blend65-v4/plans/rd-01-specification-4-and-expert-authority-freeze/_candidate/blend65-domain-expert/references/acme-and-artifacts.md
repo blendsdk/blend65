@@ -1,6 +1,6 @@
 # ACME and Artifact Engineering
 
-> **Baseline version**: `1.0.0`
+> **Baseline version**: `2.0.0`
 > **Status**: Source-backed decision knowledge. Commands and expected observations below are exact
 > future proof specifications unless a recorded result explicitly says they were executed.
 

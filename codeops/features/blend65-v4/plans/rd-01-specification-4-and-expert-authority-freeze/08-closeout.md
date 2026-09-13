@@ -828,3 +828,21 @@ resulting GNU `sha256sum` record stream.
 The runtime-payload digest excludes `qualification/` and therefore reproduces the active release
 record. The full-tree digest includes the current release record and is the pre-edit proof used to
 show that the live skill stays unchanged through candidate qualification.
+
+### Candidate knowledge reconciliation
+
+Expert candidate 2.0.0 now uses the frozen Specification 4 identity and one active target family:
+the nine named C64 profiles. Other machines remain visibly non-normative future constraints.
+
+| Reconciled area | Frozen candidate rule |
+|---|---|
+| Product boundary | The compiler/toolchain owns language behavior, optimization, target primitives, and compile-time asset handling. Game loops, entities, collision, renderers, multiplexers, scrolling, buffering, and audio policy remain user-authored qualification workloads. |
+| Optimizer | `none` is direct correctness-only lowering. `balanced`, `speed`, and `size` search the same finite modern-plus-6502 frontier to proved closure and select by the exact B/R/T Pareto or lexicographic rules. No framework, registry, DSL, PGO, hotness, or open-ended search was introduced. |
+| D64 | `CBM-1541-D64-35` freezes 35-track geometry, 174,848 bytes, 683 sectors, track-18 BAM/directory, 664 data blocks, 144-entry limit, `$82` PRG type, and exact sector-link/final-length rules. Allocation and interleave remain packager choices. |
+| KERNAL loader | `CBM-C64-KERNAL-LOAD-03` freezes `$FFBA`/`$FFBD`/`$FFD5`, secondary-address-zero relocation, direct writes, one-past-end success, carry/error behavior, `$BA` device state, and `HLE-010` trusted-media scope without a staging copy. |
+| Koala | `KOALA-NATIVE-003` freezes the exact 10,003-byte layout and source hashes. Every byte is preserved; only low nibbles of Color RAM/background have VIC-II color meaning. |
+| Evidence | Source facts, project policy, compiler behavior, emulator observations, and hardware claims remain separately labelled. The live expert and frozen specification are unchanged. |
+
+Task 4.1.3 verification passed: all candidate references declare baseline 2.0.0; formatting, skill
+validation, Markdown links, plan parsing, exact policy/source assertions, regular-file topology,
+unchanged live expert/specification checks, and whitespace validation are green.

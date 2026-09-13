@@ -1,5 +1,7 @@
 # C64 Game Engineering and Compiler Realization
 
+> **Baseline version**: `2.0.0`
+
 Use this reference to translate a C64 game requirement or expert technique into modern Blend65
 source, deterministic compiler/platform behavior, expert-quality assembly, explicit resource cost,
 and independent proof. Read `c64-memory-and-runtime.md`, `c64-hardware.md`,
@@ -8,6 +10,19 @@ and independent proof. Read `c64-memory-and-runtime.md`, `c64-hardware.md`,
 This is development-time knowledge. The shipped compiler never consults this prose or an AI model.
 Every accepted result must become an algorithm, target fact, cost choice, link/layout rule,
 zero-cost API, narrow local contract, or diagnostic.
+
+## Product boundary
+
+Blend65 is a language, compiler, toolchain, and narrow target-platform library. It is not a game
+engine or game framework. The compiler may recognize and optimize user-authored game structures,
+and may ingest, validate, convert, type, and place external assets at compile time. It may expose
+named zero-cost hardware operations and the exact ABI of an imported player or loader. It does not
+supply game loops, entity pools, collision systems, state dispatchers, renderers, scene graphs,
+sprite multiplexers, scrolling engines, double-buffer managers, or audio mixers/schedulers.
+
+The game systems described below are qualification workloads and expert-output oracles. Developers
+write their policy in ordinary Blend65. The compiler owns correct lowering and proved optimization;
+the platform library owns only hardware semantics and local timing/ownership contracts.
 
 ## Prime engineering rule
 
@@ -213,7 +228,7 @@ sprites. Its deterministic compiler/library realization has these parts:
 
 | Owner | Responsibility |
 |---|---|
-| source/API | declare a fixed-capacity logical sprite pool, visibility/order policy, images, positions, colors, expansion, priority, and late/drop rule |
+| user program | define the logical sprite pool, visibility/order policy, images, positions, colors, expansion, priority, and late/drop rule |
 | mainline/update | cull and produce the next frame's logical records; sort or bucket by Y under a known maximum; publish an immutable schedule |
 | compile-time/profile | choose data layout, hardware-channel allocation algorithm, VIC model tables, and exact IRQ entry kind |
 | SFA/ABI | separate mainline and IRQ private homes; classify shared published data; forbid unsafe reentry of sorter/update helpers |
@@ -677,10 +692,10 @@ object; never infer fit from payload size alone.
 | SpritePad | SpritePad C64 Pro 3.80, public 2025-08-22 | project contract: ASCII `SPD`, version 5; complete flags/counts/records/tails must validate | native 64-byte `sprites`, word `count`, three global colors, explicit derived `sprite_attributes`, tile count/dimensions/word indices/attributes/tags, overlay distances, sprite/tile animation counts/start/end word arrays/timer/flag bytes; default `sprites`; no global multicolor/base-block/implicit offsets | producer release pinned; complete schema/parser and 3.80 fixtures not yet qualified |
 | CharPad | CharPad C64 Pro 3.88, public 2026-06-19 | project contract: ASCII `CTM`, version 9; complete header and ordered conditional blocks through exact EOF | charset; canonical smallest-lossless tiles/map; forced word, packed-12, low/high variants; native colors/method; word map dimensions; byte tile dimensions; tile-mode flag; selector required; no flattening, per-cell color invention, bases, or implicit offsets | producer release pinned; complete schema/parser and 3.88 fixtures not yet qualified |
 | SID | `HVSC-SID-FORMAT-20260906` hash | self-contained directly callable PSID v1–v4 subset with exact header/payload/target validation | data, init address, nonzero play address; default data; reject RSID/MUS/PlaySID-dependent/unsupported topology; PSID alone does not provide SFX | header authority pinned; Blend65 subset and fixtures remain implementation proof |
-| Koala | `KOALA-NATIVE-003` classic layout cross-check | project contract: exactly 10,003 bytes with little-endian `$6000`, 8,000 bitmap, 1,000 screen, 1,000 Color RAM bytes, and one background byte | bitmap, screen, color_ram, background; selector required; no placement/base field; explicit Color RAM transfer; low-nibble hardware meaning is separate from file-byte preservation | layout cross-checked; selector names and high-nibble acceptance are product policy pending fixtures |
+| Koala | `KOALA-NATIVE-003` classic layout cross-check | project contract: exactly 10,003 bytes with little-endian `$6000`, 8,000 bitmap, 1,000 screen, 1,000 Color RAM bytes, and one background byte | bitmap, screen, color_ram, background; selector required; preserve every source byte; only the low nibble of Color RAM/background is semantically consumed by VIC-II | layout and full-byte preservation policy are frozen; fixtures still qualify implementation behavior |
 
 The complete normative Blend65 selector/type rules come from
-[BLEND65-SPEC-P3-4bf8a989, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
+[BLEND65-SPEC-4-5c6bac04, `spec/appendix-c64.md` §7 and F015]. Producer release evidence is
 provenance: SpritePad/CharPad files do not encode the producing application version. The format
 claim is qualified only against representative files produced by the pinned release plus an exact
 schema/parser review.
@@ -838,13 +853,12 @@ unknown. Do not attribute the new compiler design below to the historical tool.
    loader/decompression cost, draw/erase/mask cycles, ZP/SFA scratch, and update frequency.
 6. **Place and package** the chosen bytes in VIC-visible/aligned regions or declared load windows;
    emit exact screen/charset/bitmap/Color RAM separation and a machine-readable build report.
-7. **Render** through a zero-cost typed API whose operations expand to the selected direct loops/
-   templates and already generated metadata. Runtime never re-parses project files or rediscovers
-   scene relationships.
+7. **Expose** typed asset bytes, metadata, symbols, placement constraints, and any exact imported
+   ABI. The user-authored renderer consumes them; runtime never re-parses project files.
 
-This is a compile-time asset/scene pipeline, not an editor framework. A compiler plugin/handler may
-produce ordinary link objects and constants. The runtime surface is only the smallest renderer or
-loader code the selected representation actually requires.
+This is compile-time asset handling, not an editor or scene framework. A compiler plugin/handler
+may produce ordinary link objects and constants. It may include an explicitly selected low-level
+loader or exact imported-player ABI, but never supplies a renderer or gameplay policy.
 
 ### Q-P15 proof shape
 
@@ -893,12 +907,12 @@ parity failure; a compiling path that loses to expert assembly remains a defect.
 |---|---|---|---|
 | CPU/code shaping | proven constant specialization, strength reduction, register reuse, ZP allocation, branch layout, bounded unroll/table choices | writable-code self-modifying specialization; selected undocumented opcode | no proof of ownership, benefit, legality, or physical compatibility |
 | raster | exact branch/layout repair and target schedule costing | stable-region, IRQ-chain/table, mode-split templates | variable/unbounded path or impossible slot |
-| sprites | placement-derived pointers, shared-register coalescing under ownership, sort-choice costing | fixed-capacity multiplexer/schedule API | torn publication, unsafe helper domain, unbounded late path |
-| scrolling/rendering | pointer flip, dirty/pre-shift/copy/unroll choice from budgets | display buffer/layout and cycle-region operations | invisible/misaligned data or unproved frame fit |
+| sprites | placement-derived pointers, shared-register coalescing under ownership, user-authored sort-choice costing | zero-cost VIC operations and local timing/ownership contracts | torn publication, unsafe helper domain, unbounded late path |
+| scrolling/rendering | optimize user-authored pointer flips and dirty/pre-shift/copy/unroll choices | display placement and cycle-region operations | invisible/misaligned data or unproved frame fit |
 | aggressive VIC | none by accidental source shape | explicit FLI/FLD/line-crunch/border/sprite-crunch/VSP contract | missing model/timing/ownership/physical-risk proof |
 | audio | constant cue/voice lowering and dead feature stripping | hash-bound player adapter/custom contract | guessed SFX ABI, incompatible clock/model/topology, unsafe overlap |
 | loading/assets | parse/validate/transform/place selected representations at build time | loader/decompressor contract and explicit derived asset | malformed/unknown version, overlap, hidden copy, unowned load window |
-| engine structures | range/layout/dispatch candidate costing under fixed workload | fixed pool and selected data-layout operations where useful | unbounded pool/list, unsafe function target, width truncation |
+| user-authored game structures | range/layout/dispatch candidate costing under fixed workload | ordinary arrays, structs, function values, and hardware operations | unsafe function target, width truncation, or missing lowering |
 
 ## Future Runtime Evidence Matrix
 

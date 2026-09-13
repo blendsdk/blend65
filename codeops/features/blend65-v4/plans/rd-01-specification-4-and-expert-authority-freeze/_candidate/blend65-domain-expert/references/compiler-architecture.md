@@ -65,7 +65,7 @@ missing capability while leaving the language operation itself target-independen
 - volatile/MMIO identity, access width, count, and order;
 - lvalue/place identity, aliasing, address-taking, escape, and external visibility;
 - function/interrupt source identity, candidate entry variants, call effects, reentrancy class,
-  synchronous BRK contract identity, and source diagnostics;
+  and source diagnostics;
 - symbolic storage class, alignment, placement, bank/visibility constraint, and embedded-data
   identity; and
 - enough source association to explain any later target or resource failure.
