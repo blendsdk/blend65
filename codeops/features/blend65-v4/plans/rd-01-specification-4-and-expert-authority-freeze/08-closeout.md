@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
 > **Status**: In progress
-> **Last Updated**: 2026-09-13 12:31
+> **Last Updated**: 2026-09-13 12:34
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -97,3 +97,37 @@ workflow records are non-normative. This classification is frozen before content
 | `grammar.ebnf.md` | `1f4408b200a097e29fed9a6ab4f6738b277dbc30a3fe63881bd12ebd5722e85c` | Primary grammar | Yes |
 | `preflight-report.md` | `5cea653e346c03f3fcb1acf05a4e8d27828ad348a8bdbbcde582e596862deedb` | Non-normative workflow/history | No |
 | `v2-to-v3-migration.md` | `881eca2b359ff183452b335df6ce2044de517810db28a55ff90f422e692a269c` | Non-normative workflow/history | No |
+
+### Exact integer trigonometry oracle
+
+For `k` in `{8,16}`, let `N = 2^k`, `A = 2^(k-1)-1`, and let unsigned phase `p`
+denote `p/N` turns. The observable results are:
+
+```text
+sin_k(p) = roundNearestAwayFromZero(A × sin(2πp/N))
+cos_k(p) = sin_k((p + N/4) mod N)
+```
+
+This fixes results without prescribing a compiler algorithm.
+
+| Function | Range | Canonical sine-stream encoding | SHA-256 |
+|---|---|---|---|
+| `sin8` | `-127..127` | Phases `0..255`; one two's-complement byte per result | `fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259` |
+| `sin16` | `-32767..32767` | Phases `0..65535`; little-endian two's-complement words | `e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50` |
+
+| Representative input | Result |
+|---|---:|
+| `sin8(0)` | 0 |
+| `cos8(0)` | 127 |
+| `sin8(32)` | 90 |
+| `sin8(64)` | 127 |
+| `sin8(128)` | 0 |
+| `sin8(192)` | -127 |
+| `sin16(8192)` | 23170 |
+| `sin16(16384)` | 32767 |
+| `sin16(32768)` | 0 |
+| `sin16(49152)` | -32767 |
+
+An independent one-shot Node calculation using `node:crypto`, phase-by-phase `Math.sin`, explicit
+half-away-from-zero rounding, and the stated encodings exited 0. It reproduced both ranges, all ten
+representative results, and both canonical fingerprints exactly.
