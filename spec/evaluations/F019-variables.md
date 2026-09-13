@@ -14,10 +14,13 @@ the rationale for declaration syntax, initialization, mutability, and startup. T
 remain in Chapters 03, 10, 11, and the selected platform appendix; this document cannot override
 them.
 
-Blend65 provides two declaration keywords:
+Blend65 provides three declaration forms:
 
 - **`let`** — declares a mutable variable. Can be reassigned after initialization.
-- **`const`** — declares a compile-time constant. Must have a compile-time constant initializer. Scalar constants are inlined by the compiler (zero RAM cost). Array and struct constants are placed in the data/ROM section.
+- **`const`** — declares a compile-time constant. It must have a compile-time constant initializer.
+  Scalars are normally inlined; arrays, structs, and explicitly placed scalars use data/ROM.
+- **`loadable const`** — declares an exact compile-time constant for packaging, without resident
+  storage or an address.
 
 ```blend65
 // Mutable variables — stored in RAM
@@ -29,6 +32,9 @@ let temp: byte;                      // no initializer — indeterminate until a
 const MAX_ENEMIES: byte = 8;
 const SCREEN_WIDTH: byte = 40;
 const SINE_TABLE: byte[256] = [/* precomputed values */];
+
+// Package-only constant — loaded explicitly into mutable storage
+loadable const LEVEL_2: LevelData = buildLevel2();
 ```
 
 **Key design principles:**
@@ -47,22 +53,30 @@ const SINE_TABLE: byte[256] = [/* precomputed values */];
 ### Variable Declaration (`let`)
 
 ```ebnf
-let_decl = [ "export" ] , "let" , identifier , ":" , value_type
+let_decl = [ "export" ] , [ place_clause ] , "let" , identifier , ":" , value_type
            , [ "=" , expression ] , ";" ;
 ```
 
 ### Constant Declaration (`const`)
 
 ```ebnf
-const_decl = [ "export" ] , "const" , identifier , ":" , value_type
+const_decl = [ "export" ] , [ place_clause ] , "const" , identifier , ":" , value_type
              , "=" , const_expression , ";" ;
+```
+
+### Package-Only Constant Declaration (`loadable const`)
+
+```ebnf
+loadable_const_decl = [ "export" ] , "loadable" , "const" , identifier
+                    , ":" , value_type , "=" , const_expression , ";" ;
 ```
 
 `value_type` and `const_expression` are the shared master-grammar productions. A local declaration
 uses the corresponding no-`export` statement form. `const_expression` shares the ordinary
 expression grammar; semantic analysis then requires it to be
-evaluable entirely at compile time. It may reference other `const` values, use operators with
-constant operands, and invoke compile-time intrinsics such as `sizeof()` and `embed()`.
+evaluable entirely at compile time. It may reference other constants and use compile-time
+operations. `embed()` additionally requires a module-level ordinary `const` or a `loadable const`
+owner.
 
 ---
 
@@ -103,8 +117,9 @@ const TILE_SIZE: byte = 8;
 const MAP_BYTES: word = 40 * 25;       // ✅ constant folding: 1000
 ```
 
-**Scalar `const` behavior:** Primitive and enum constants are inlined at every use site. No RAM is
-allocated and no runtime storage exists. This is equivalent to an `EQU` directive in assembly.
+**Scalar `const` behavior:** Unplaced primitive and enum constants are inlined at every use site.
+No RAM is allocated and no runtime storage exists. This is equivalent to an `EQU` directive in
+assembly. `place(...)` is the explicit exception: it materializes addressable read-only storage.
 
 ```blend65
 const MAX: byte = 8;
@@ -113,6 +128,22 @@ if (count < MAX) { ... }      // compiles to: LDA count / CMP #8
 ```
 
 **Array/struct `const` behavior:** The data is placed in the data/ROM section at assemble time. No runtime initialization code is generated. This is equivalent to `.byte` directives in assembly.
+
+### VAR-2a — `loadable const` Declaration
+
+`loadable const` accepts a fixed scalar, array, or struct compile-time initializer wherever an
+ordinary constant is legal. It keeps exact type, size, bytes, hash, provenance, and placement
+requirements for packaging but has no resident address or SFA home. Compile-time queries are legal.
+Reading, indexing, addressing, mutating, casting, comparing, storing, returning, iterating, or
+ordinary parameter passing is E10274.
+
+A compatible selected-profile load writes any exactly typed, lifetime-valid mutable fixed place.
+The destination expression evaluates once. The compiler correlates the returned boolean with the
+captured physical range: success initializes that range, failure leaves it indeterminate, and
+proved unselected ranges retain their incoming state. Later reads require complete initialization
+on every reaching path and must-alias proof when they rely on the loaded logical value. Joins,
+loops, aliases, partial overlaps, and repeated loads use normal range-based flow facts rather than
+runtime state.
 
 ```blend65
 const TABLE: byte[4] = [10, 20, 30, 40];
@@ -253,7 +284,8 @@ for (let i: byte = 0; i < 10; i += 1) {
 
 ### VAR-6 — One Declaration Per Statement
 
-Each `let` or `const` statement declares exactly one variable. Multiple declarations in a single statement are not supported.
+Each `let`, `const`, or `loadable const` statement declares exactly one name. Multiple declarations
+in one statement are not supported.
 
 ```blend65
 // ✅ Correct — one per statement
@@ -323,7 +355,7 @@ const C: byte = A + B;                // ✅ → 30
 
 ### VAR-9 — Export Rules
 
-Module-level `let` and `const` declarations can be exported for use by other modules:
+Module-level `let`, `const`, and `loadable const` declarations can be exported for use by other modules:
 
 ```blend65
 // module: Game
@@ -412,7 +444,7 @@ _main:
 | **No hidden functions** | There is no `__init()` or `__startup()`. The init sequence is visible in the build summary |
 | **Dependency/effect order** | Direct and transitive reads/calls create dependency edges; ready independent initializers use case-sensitive ASCII order of their fully qualified variable names, as defined by Chapter 10 |
 | **Module order** | Actual initializer reads/calls create predecessor edges; import syntax alone does not. Ready independent initializers use case-sensitive ASCII order of the fully qualified variable name (`Module.Path.variable`), independent of file path and compiler-input order |
-| **`const` = no init code** | Primitive and enum constants are inlined (EQU). Array/struct constants are placed in the data section at assemble time (.byte directives). Zero runtime cost |
+| **`const` = no init code** | Unplaced primitive and enum constants are inlined (EQU). Arrays, structs, and placed scalars are emitted as data. All have zero startup cost |
 | **No initializer = no code** | `let temp: byte;` generates zero init code and reserves RAM in the target's non-emitted storage region (`.res 1`) |
 | **Platform stub** | The loader stub (BASIC SYS, RUNAD, RESET vector) is defined by the platform profile, not the language |
 | **CPU/device init** | Owned entirely by the selected platform bootstrap. A reset-vector target may initialize the hardware stack; an OS/BASIC-launched target may need to preserve its return chain. No universal instruction sequence is implied here. |
@@ -627,6 +659,9 @@ shows their ROM, storage, and exact, bounded, or runtime-dependent cycle cost.
 | E10190 | `const` without initializer | [Chapter 14](../14-diagnostics.md) |
 | E10191 | `const` with non-constant initializer | [Chapter 14](../14-diagnostics.md) |
 | E10192 | Assignment to `const` | [Chapter 14](../14-diagnostics.md) |
+| E10274 | Ordinary resident use of `loadable const` | [Chapter 14](../14-diagnostics.md) |
+| E10275 | Incompatible or unproved selected-profile load destination | [Chapter 14](../14-diagnostics.md) |
+| E10276 | Read lacks definite initialization or captured-range must-alias proof | [Chapter 14](../14-diagnostics.md) |
 
 ### New Warning Codes
 
@@ -657,8 +692,10 @@ shows their ROM, storage, and exact, bounded, or runtime-dependent cycle cost.
 
 ### With F003 (Module Contents)
 
-Module-level `let` and `const` follow F003's declaration-only rule. `let` initializers may be runtime
-expressions and run once before `main`; `const` remains compile-time-only. Chapter 10 owns scheduling.
+Module-level `let`, `const`, and `loadable const` follow F003's declaration-only rule. `let`
+initializers may be runtime expressions and run once before `main`; both constant forms remain
+compile-time-only. A local loadable declaration creates no function storage. Chapter 10 owns
+scheduling.
 
 ### With F004 (Entry Point)
 
@@ -668,14 +705,18 @@ main() is the entry point. The startup sequence falls through into main()'s body
 
 - `let` variables are placed in general RAM (default)
 - `const` arrays/structs are placed in the data/ROM section (automatic)
+- `loadable const` bytes are package-only and have no resident address
 - `zeropage { }` block provides zero-page placement (uses `name: type` syntax, not `let`/`const`)
-- No `@ram` or `@data` keywords — placement is determined by `let` vs `const`
+- `place(at, align, noCross, region)` can only strengthen automatic placement of module-level
+  stored data and emitted functions; it is not a general attribute system
 
 ### With F008 (For Loop)
 
 `for (let i: byte = 0; i < 10; i += 1)` declares an ordinary mutable local. It is visible in the
 condition, update, and body, but not after the loop. A `const` initializer declaration follows the
 ordinary constant rules. There is no special read-only loop-variable diagnostic.
+A `loadable const` initializer is also legal; it has the same loop scope as the ordinary constant
+form but creates no runtime storage or per-iteration initialization.
 
 ### With F009 (Switch Statement)
 
@@ -699,15 +740,22 @@ Signed and unsigned `let`/`const` variables follow the same declaration syntax. 
 
 Struct instances can be `let` (mutable fields) or `const` (immutable fields, data section). Struct variables follow the same scoping and initialization rules as scalar variables.
 
+A fixed struct may also be a `loadable const`. It remains one coordinated package unit and can be
+loaded only into an exactly typed mutable struct place.
+
 ### With F013 (Control Flow / Scoping)
 
-Block scoping (CF-3) applies to `let` and `const` declarations inside blocks. Ordinary child-scope
+Block scoping (CF-3) applies to `let`, `const`, and `loadable const` declarations inside blocks.
+The loadable form has a scoped identity but no function storage. Ordinary child-scope
 shadowing is legal; same-scope duplicates remain E10003. Each declaration has a stable identity,
 and definite-assignment analysis uses that identity over the control-flow graph from F013.
 
 ### With F014 (Arrays)
 
 Array `let`/`const` controls element mutability (VAR-10). Const params (CP-1..5) apply to array parameters passed to functions. Array size inference is allowed with initializer.
+
+A loadable array preserves its inferred or declared fixed extent for compile-time queries and
+destination checking but cannot be indexed before transfer.
 
 ### With F016 (Type System)
 
@@ -907,7 +955,7 @@ function main(): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| P1 Cross-platform compilable | ✅ | `let` and `const` compile to standard memory operations on all 6502 platforms |
+| P1 Cross-platform compilable | ✅ | `let` and resident `const` use ordinary storage on all targets; `loadable const` creates no target code unless the selected profile supplies an explicit load operation |
 | P2 Platform-meaningful | ✅ | Variable declarations are essential on every platform |
 | P3 No platform assumptions | ✅ | No addresses, chip names, or platform references. Memory placement is via platform profile (F005) |
 | P4 Resource-scalable | ✅ | Build summary reports exact RAM/ROM cost. Compiler warns on resource limits |
@@ -916,22 +964,22 @@ function main(): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| H1 6502 implementable | ✅ | `let` = LDA/STA init + reserved RAM. `const` scalar = inlined literal. `const` array = .byte data. All standard 6502 |
+| H1 6502 implementable | ✅ | `let` reserves mutable storage; resident constants inline or emit bytes; loadable constants require only an explicit qualified platform transfer into existing storage |
 | H2 Cost transparency | ✅ | Every declaration's cost is documented: init code bytes/cycles, RAM cost, ROM cost. Build summary shows totals |
 | H3 SFA compatible | ✅ | Module-level variables at fixed addresses. Function-local variables in SFA frames. Compile-time allocation |
-| H4 Memory footprint documented | ✅ | Scalar const: 0 RAM/0 ROM. Let with init: N bytes RAM + init code ROM. Let without init: N bytes RAM + 0 ROM. Const array: 0 RAM + N bytes ROM |
+| H4 Memory footprint documented | ✅ | Unplaced scalar constants cost no storage; placed scalars and aggregate constants cost their exact data width; mutable storage and startup code are reported separately |
 | H5 Fully deterministic | ✅ | Indeterminate variables are safe to read (some byte 0-255). Wrapping overflow is defined. No undefined behavior. W10190 warns on likely bugs |
 
 ### Language Design Quality (L)
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| L1 Unambiguous syntax | ✅ | `let name: type [= expr];` and `const name: type = expr;` — clear, parseable, no ambiguity |
+| L1 Unambiguous syntax | ✅ | `let`, `const`, and the two-keyword `loadable const` form have distinct declarations and residency |
 | L2 Consistent with existing | ✅ | Same `name: type` annotation style as F016. Same `const` keyword as F014 params. Same block scoping as F013 |
-| L3 Beginner-friendly | ✅ | `let`/`const` is familiar from JavaScript/TypeScript. Type annotations match TypeScript style |
-| L4 Minimal feature | ✅ | Two keywords (`let`, `const`), simple rules. No `var`, no `static`, no `readonly`, no `final` |
-| L5 No redundancy | ✅ | `let` and `const` serve distinct purposes with no overlap. No other declaration mechanism |
-| L6 Error messages defined | ✅ | 3 new errors (E10190-E10192), 1 new warning (W10190), 1 new error in F004 (E10023), plus 8 existing applicable errors |
+| L3 Beginner-friendly | ✅ | `let`/`const` is familiar from JavaScript/TypeScript; `loadable` states the only unusual residency rule at the declaration |
+| L4 Minimal feature | ✅ | Two ordinary forms plus one explicit package-only modifier. No runtime asset type, handle, descriptor, `var`, `static`, `readonly`, or `final` |
+| L5 No redundancy | ✅ | `let` is mutable storage, `const` is resident compile-time data, and `loadable const` is nonresident compile-time data |
+| L6 Error messages defined | ✅ | Existing declaration diagnostics plus E10274–E10276 distinguish false resident use, invalid load destinations, and unproved publication |
 | L7 Compile-time failure preferred | ✅ | All errors are compile-time. W10190 (use-before-init) catches the most common runtime bug at compile time |
 | L8 Feature interaction documented | ✅ | Interactions with all 12 related features explicitly documented |
 | L9 Documentable with examples | ✅ | 4 examples: game variables, function locals, definite-assignment, const vs let |
@@ -940,10 +988,10 @@ function main(): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| C1 Lexer/parser implementable | ✅ | `KW_LET`, `KW_CONST` tokens. Standard recursive descent parsing. One declaration per statement — simple grammar |
-| C2 Semantic analysis defined | ✅ | Type checking (F016), const-expression evaluation, identity-based definite-assignment analysis, lexical scope tracking, and same-scope duplicate checks (F013) |
+| C1 Lexer/parser implementable | ✅ | `KW_LET`, `KW_CONST`, and `KW_LOADABLE` tokens. Standard recursive descent parsing; one declaration per statement |
+| C2 Semantic analysis defined | ✅ | Type checking, const evaluation, stable declaration identities, and sparse captured-range definite-initialization/must-alias facts |
 | C3 Code generation strategy | ✅ | Module-level: init sequence (LDA/STA) + BSS reservation. Function-level: SFA frame allocation. Const: inline or data section |
-| C4 Unit testable | ✅ | Lexer: keyword tokens. Parser: let_decl/const_decl AST nodes. Semantic: const-eval, definite-assignment. Codegen: init sequence, frame layout |
+| C4 Unit testable | ✅ | Lexer and parser forms, constant evaluation, loadable-use rejection, captured-range flow, startup, and storage layout have separate deterministic cases |
 | C5 Runtime verifiable | ✅ | Compile programs, run in emulator, verify: initialized variables have correct values, const arrays in correct ROM locations, SFA frame allocation |
 
 ### Future-Proofing (F)
@@ -952,7 +1000,7 @@ function main(): void {
 |------|--------|-------|
 | F1 Extensible | ✅ | Can add `readonly` (runtime-immutable) later without breaking `const` (compile-time). Can add `static` for persistent locals. Neither requires changes to existing syntax |
 | F2 Platform-profile ready | ✅ | RAM regions, data section mapping, and zeropage ranges all come from platform profile. No hardcoded addresses |
-| F3 Optimizer-friendly | ✅ | `const` = always inlineable. Dead variable elimination possible for unused `let`. Definite-assignment analysis enables live-range optimizations |
-| F4 Stability classification | ✅ | **Stable** — `let`/`const` with explicit types is a fundamental language construct that will not change |
+| F3 Optimizer-friendly | ✅ | Resident constants remain foldable; load effects invalidate exact ranges; package-only declarations create no target object until a reachable load needs transport bytes |
+| F4 Stability classification | ✅ | **Stable** — the three explicit declaration/residency forms and mandatory type annotations are fixed |
 
 **Verdict: ✅ ACCEPTED — all 23 rules pass**

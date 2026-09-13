@@ -45,6 +45,7 @@ top_level_item  = import_stmt
                 | enum_decl
                 | let_decl
                 | const_decl
+                | loadable_const_decl
                 | zeropage_block ;
 ```
 
@@ -70,21 +71,30 @@ qualified_name  = identifier , { "." , identifier } ;
 ### 3.1 Variables & Constants (→ Ch 03)
 
 ```ebnf
-let_decl        = [ "export" ] , "let" , identifier , ":" , value_type
+let_decl        = [ "export" ] , [ place_clause ] , "let" , identifier , ":" , value_type
                 , [ "=" , expression ] , ";" ;
 
-const_decl      = [ "export" ] , "const" , identifier , ":" , value_type
+const_decl      = [ "export" ] , [ place_clause ] , "const" , identifier , ":" , value_type
                 , "=" , const_expression , ";" ;
 
+loadable_const_decl = [ "export" ] , "loadable" , "const" , identifier
+                    , ":" , value_type , "=" , const_expression , ";" ;
+
+place_clause    = "place" , "(" , place_arg , { "," , place_arg } , ")" ;
+place_arg       = "at" , ":" , const_expression
+                | "align" , ":" , const_expression
+                | "noCross" , ":" , const_expression
+                | "region" , ":" , qualified_name ;
+
 zeropage_block  = "zeropage" , "{" , zeropage_var , { zeropage_var } , "}" ;
-zeropage_var    = [ "export" ] , identifier , ":" , value_type
+zeropage_var    = [ "export" ] , [ place_clause ] , identifier , ":" , value_type
                 , [ "=" , expression ] , ";" ;
 ```
 
 ### 3.2 Functions (→ Ch 06)
 
 ```ebnf
-function_decl   = [ "export" ] , "function" , identifier
+function_decl   = [ "export" ] , [ place_clause ] , "function" , identifier
                 , "(" , [ param_list ] , ")"
                 , ":" , return_type
                 , block ;
@@ -94,7 +104,7 @@ comptime_decl   = [ "export" ] , "comptime" , "function" , identifier
                 , ":" , return_type
                 , block ;
 
-interrupt_decl  = [ "export" ] , "interrupt" , "function" , identifier
+interrupt_decl  = [ "export" ] , [ place_clause ] , "interrupt" , "function" , identifier
                 , "(" , ")"
                 , ":" , "void" , block ;
 
@@ -178,6 +188,7 @@ dimensions and every dynamic or jagged form.
 ```ebnf
 statement       = var_decl_local
                 | const_decl_local
+                | loadable_const_decl_local
                 | expression_stmt
                 | if_stmt
                 | while_stmt
@@ -198,10 +209,14 @@ var_decl_local  = "let" , identifier , ":" , value_type
 
 const_decl_local = "const" , identifier , ":" , value_type
                  , "=" , const_expression , ";" ;
+
+loadable_const_decl_local = "loadable" , "const" , identifier , ":" , value_type
+                          , "=" , const_expression , ";" ;
 ```
 
-`zeropage` is module-level only. A local declaration never carries `zeropage`; the parser rejects
-that spelling before semantic analysis.
+`zeropage` and `place(...)` are module-level placement forms. A local declaration never carries
+either; the parser rejects those spellings before semantic analysis. A local `loadable const`
+creates no runtime storage.
 
 ### 5.3 Expression Statement
 
@@ -250,7 +265,9 @@ for_stmt        = "for" , "(" , [ for_initializer ] , ";"
 
 for_initializer = for_local_decl | expression_list ;
 for_local_decl  = "let" , identifier , ":" , value_type , [ "=" , expression ]
-                | "const" , identifier , ":" , value_type , "=" , const_expression ;
+                | "const" , identifier , ":" , value_type , "=" , const_expression
+                | "loadable" , "const" , identifier , ":" , value_type
+                  , "=" , const_expression ;
 for_update      = expression_list ;
 expression_list = expression , { "," , expression } ;
 ```
@@ -501,7 +518,7 @@ The lexical production admits every identifier-shaped spelling. Semantic analysi
 and reserved intrinsic names in declaration positions; the entry-reserved spelling `main` is legal
 only for the exact Chapter-10 entry-function declaration (→ Ch 01, §5–§7).
 
-### 9.2 Keywords (34 total)
+### 9.2 Keywords (36 total)
 
 ```ebnf
 keyword         = "module" | "import" | "export" | "from"
@@ -509,7 +526,7 @@ keyword         = "module" | "import" | "export" | "from"
                 | "if" | "else" | "while" | "do" | "for"
                 | "switch" | "case" | "default" | "fallthrough"
                 | "break" | "continue"
-                | "let" | "const" | "zeropage" | "struct"
+                | "let" | "const" | "loadable" | "place" | "zeropage" | "struct"
                 | "byte" | "sbyte" | "word" | "sword" | "boolean" | "void"
                 | "true" | "false"
                 | "enum" | "type" ;
@@ -668,6 +685,8 @@ All grammar productions listed alphabetically for quick reference:
 | `let_decl` | §3.1 | Top-level mutable declaration |
 | `letter` | §9.1 | ASCII letter |
 | `line_comment` | §9.7 | `// ...` |
+| `loadable_const_decl` | §3.1 | Top-level package-only constant declaration |
+| `loadable_const_decl_local` | §5.2 | Local package-only constant declaration |
 | `logical_and_expr` | §6.2 | `&&` |
 | `logical_or_expr` | §6.2 | `\|\|` |
 | `memory_intrinsic` | §7.2 | `peek`, `poke`, and related calls |
@@ -676,6 +695,8 @@ All grammar productions listed alphabetically for quick reference:
 | `number_literal` | §9.5 | Decimal, hexadecimal, or binary literal |
 | `param` | §3.2 | `name: [const] type` |
 | `param_list` | §3.2 | Comma-separated parameters |
+| `place_arg` | §3.1 | One closed placement key and value |
+| `place_clause` | §3.1 | Closed module-level declaration placement modifier |
 | `postfix_expr` | §6.4 | Primary plus calls, indices, or members |
 | `postfix_op` | §6.4 | Call, index, or member suffix |
 | `primary_expr` | §6.5 | Literals, names, aggregates, intrinsics, grouping |
@@ -704,7 +725,7 @@ All grammar productions listed alphabetically for quick reference:
 | `zeropage_block` | §3.1 | Module-level zero-page declarations |
 | `zeropage_var` | §3.1 | Mutable zero-page declaration |
 
-**Total productions: 101**
+**Total productions: 106**
 
 ---
 
@@ -716,7 +737,7 @@ The grammar is designed for a **recursive-descent parser** with **Pratt parsing*
 expressions:
 
 - **Top-level and statements**: Standard recursive descent. Each statement type has a
-  unique leading token (`let`, `const`, `if`, `while`, `do`, `for`, `switch`, `return`,
+  unique leading token (`let`, `const`, `loadable`, `if`, `while`, `do`, `for`, `switch`, `return`,
   `break`, `continue`, `{`); other statement starts are parsed as expressions.
 - **Expressions**: Pratt parser using the 14-level precedence table from Ch 04, §2. The
   `expression` production in §6.2 is the EBNF representation of the precedence hierarchy;
@@ -735,6 +756,7 @@ expressions:
 | String vs character literal | Quote kind: double quotes = string (including empty); single quotes = exactly one character |
 | `as` import alias vs identifier | Context: recognized only between imported and local names; there is no `as` cast |
 | `Type(expr)` cast vs function call | Primitive type keywords are syntactic casts; identifier calls are classified as enum casts or function calls by semantic name resolution |
+| `place(...)` keys vs identifiers | `at`, `align`, `noCross`, and `region` are recognized only inside a `place` clause and remain ordinary identifiers elsewhere. |
 
 ### 11.3 Lookahead Requirements
 
@@ -743,8 +765,8 @@ expressions:
 | Statement selection | LL(1) | Leading keyword or `{` |
 | Assignment | Pratt | Lowest binding power, right-associative; semantic pass validates assignable target |
 | Struct literal | LL(1) by context | `{` in expression position |
-| Export + declaration | LL(2) | `export` followed by `function`/`let`/`const`/`struct`/`enum`/`interrupt` |
-| For-loop header | LL(1) | `let`/`const` select a declaration initializer; semicolons delimit condition and update |
+| Export + declaration | Bounded lookahead | `export` may be followed by `place`, which must then be followed by an emitted function or stored-data declaration. |
+| For-loop header | LL(1) | `let`/`const`/`loadable` select a declaration initializer; semicolons delimit condition and update |
 
 ### 11.4 No Context-Sensitive Parsing
 
@@ -763,7 +785,7 @@ are made with fixed rules:
 
 | Criterion | Status |
 |---|---|
-| Every language construct has a production | ✅ 96 productions covering all Ch 01–13 constructs |
+| Every language construct has a production | ✅ 106 productions covering all Ch 01–13 constructs |
 | Provably LL(k) / recursive-descent + Pratt | ✅ Bounded lookahead plus Pratt expressions; no backtracking |
 | Dangling-else resolved | ✅ Mandatory braces (CF-1) — no bare statements after `if`/`while`/`for` |
 | No tokenization ambiguities | ✅ `&` and import `as` are disambiguated by position/context; quote kind distinguishes strings and characters |

@@ -357,9 +357,9 @@ function_call = identifier , "(" , [ argument_list ] , ")" ;
 argument_list = expression , { "," , expression } ;
 ```
 
-This fragment shows the direct-name form. The master grammar's postfix call also permits any
-expression whose type is an ordinary function type, such as `table[index](value)` or
-`choose(flag)(value)`.
+This fragment shows the direct-name form. The master grammar's postfix call also permits an indexed
+function value or another expression with an ordinary function type to be called, including the
+result of `choose(flag)(value)`.
 
 ### 4.2 Rules
 

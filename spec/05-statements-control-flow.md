@@ -225,7 +225,9 @@ for_stmt        = "for" , "(" , [ for_initializer ] , ";"
                 , [ expression ] , ";" , [ for_update ] , ")" , block ;
 for_initializer = for_local_decl | expression_list ;
 for_local_decl  = "let" , identifier , ":" , value_type , [ "=" , expression ]
-                | "const" , identifier , ":" , value_type , "=" , const_expression ;
+                | "const" , identifier , ":" , value_type , "=" , const_expression
+                | "loadable" , "const" , identifier , ":" , value_type
+                  , "=" , const_expression ;
 for_update      = expression_list ;
 expression_list = expression , { "," , expression } ;
 ```
@@ -235,6 +237,9 @@ for (let i: byte = 0; i < 10; i += 1) { ... }
 for (i = start, left = count; left != 0; i += stride, left -= 1) { ... }
 for (;;) { updateFrame(); }
 ```
+
+A `loadable const` initializer has the ordinary for-statement scope but allocates no runtime
+storage; only a reachable selected-profile load in the loop can transfer its packaged bytes.
 
 ### 7.2 Evaluation Order
 

@@ -492,7 +492,10 @@ let padded: byte[40] = ["SCORE:"; ' '];              // Fill rest with spaces
 
 ## Part 5: Const Parameters
 
-Const parameters solve a critical safety problem: arrays and structs are passed by reference, but `const` arrays/structs live in ROM. Writing to ROM is catastrophic on 6502 — either silently ignored or corrupts hardware state.
+Const parameters solve a critical safety problem: resident arrays and structs are passed by
+reference, while ordinary `const` aggregates may live in ROM. Writing to ROM is catastrophic on
+6502 — either silently ignored or corrupts hardware state. A `loadable const` has no resident
+address and cannot be passed as an ordinary const parameter before transfer.
 
 ### Syntax
 

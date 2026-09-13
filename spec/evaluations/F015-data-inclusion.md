@@ -52,8 +52,8 @@ embed_expr       = "embed" , "(" , string_literal , [ "," , string_literal ] , "
 | Rule | ID | Decision |
 |------|----|----------|
 | Compile-time only | EM-1 | `embed()` is evaluated at compile time. The referenced file must exist when the compiler runs |
-| Always `const` | EM-2 | `embed()` can only appear as the initializer of a `const` declaration. Source cannot mutate it; a qualified player contract may separately own declared writable/self-modifying physical ranges |
-| Module-level only | EM-3 | `embed()` can only be used at module level — `const` declarations are module-level (F003) |
+| Constant owner | EM-2 | `embed()` can only appear in an ordinary module-level `const` or any `loadable const` initializer. Source cannot mutate either form; a qualified player contract may separately own declared writable/self-modifying physical ranges |
+| Residency is explicit | EM-3 | Ordinary `const` is resident in the initial image. `loadable const` is package-only and has no address; local scope creates no runtime storage |
 | Dispatch and result type | EM-4 | A registered extension always invokes and validates its handler. An explicit selector chooses its enumerated result; omission uses the handler's default or E10132. Only an unregistered extension without a selector produces raw `byte[]` bytes |
 | Path is string literal | EM-5 | The file path must be a string literal, not a variable or expression |
 | Selector is string literal | EM-5a | When present, the selector must be one string literal, not a variable or expression |
@@ -87,6 +87,26 @@ const TABLE: byte[256] = embed("sine.bin");
 Raw mode therefore requires both an unregistered extension and no selector. A selector on an
 unregistered extension is E10137. A registered extension always dispatches its handler, even when
 the selector is omitted.
+
+### 1.4 Resident and Loadable Owners
+
+The same compile-time import may feed either explicit residency model:
+
+```blend65
+const TITLE: byte[] = embed("title.bin");
+loadable const LEVEL_2: byte[] = embed("level2.bin");
+
+const LEVEL_2_SIZE: word = length(LEVEL_2); // ✅ compile-time metadata
+let first: byte = LEVEL_2[0];               // ❌ E10274: no resident value
+let address: word = &LEVEL_2;               // ❌ E10274: no resident address
+```
+
+The loadable form retains exact type, extent, logical bytes, hash, provenance, and placement
+requirements. Only a compatible selected-profile load operation may consume it as a unit. That
+operation writes an existing exactly typed mutable fixed place, evaluates the destination once, and
+returns a boolean correlated with the captured physical byte range. Success publishes only that
+range; failure leaves only that range indeterminate. Compiler flow facts preserve every proved
+unselected range without emitting a handle, descriptor, validity byte, bitmap, or read check.
 
 ## Part 2: Format-Aware Asset Import
 
@@ -204,7 +224,8 @@ diagnostic can enumerate the handler's registered selectors as contextual help, 
 
 Format handlers declare alignment requirements for their selectors. The compiler respects these requirements when placing data in the output binary.
 
-**This is NOT a language keyword** — alignment is a property of the format handler, invisible to the developer.
+Handler alignment remains automatic. Source may add a stronger `place(align: ...)` constraint, but
+cannot weaken or replace the handler requirement.
 
 | Platform | Asset | Alignment | Why |
 |----------|-------|-----------|-----|
@@ -220,7 +241,9 @@ When a format handler specifies alignment:
 
 1. The compiler places the data at an aligned address in the output binary
 2. The compiler verifies alignment in the build summary
-3. If alignment is impossible (not enough space, conflicting requirements), the compiler emits E10143
+3. If the automatic handler requirement alone is impossible, the compiler emits E10143. If an
+   explicit `place(...)` constraint makes the combined set impossible, it emits E10273 and reports
+   every contributor.
 
 ### 3.3 Build Summary Output
 
@@ -568,7 +591,7 @@ fallback.
 | E10132 | [Chapter 14](../14-diagnostics.md) | Format handler has no default; selector must be specified |
 | E10133 | [Chapter 14](../14-diagnostics.md) | Selector name not in format handler's registry |
 | E10134 | [Chapter 14](../14-diagnostics.md) | Used as `let` initializer |
-| E10135 | [Chapter 14](../14-diagnostics.md) | Used inside a function body |
+| E10135 | [Chapter 14](../14-diagnostics.md) | Used outside a module-level ordinary `const` or a `loadable const` initializer |
 | E10136 | [Chapter 14](../14-diagnostics.md) | Path is a variable, expression, or non-string |
 | E10137 | [Chapter 14](../14-diagnostics.md) | Unknown extension with a selector |
 | E10140 | [Chapter 14](../14-diagnostics.md) | Explicit array length does not match the selected array's element count |
@@ -581,6 +604,9 @@ fallback.
 | E10257 | [Chapter 14](../14-diagnostics.md) | Audio operation, cue, numeric form/range, or voice is absent from the selected contract |
 | E10258 | [Chapter 14](../14-diagnostics.md) | Reachability permits unsafe overlap with a non-reentrant audio operation |
 | E10261 | [Chapter 14](../14-diagnostics.md) | A valid SID asset's specific target requirements are incompatible with the selected profile or player contract |
+| E10274 | [Chapter 14](../14-diagnostics.md) | A loadable declaration is used as resident data or an address |
+| E10275 | [Chapter 14](../14-diagnostics.md) | A selected-profile load or its destination cannot prove the exact required contract |
+| E10276 | [Chapter 14](../14-diagnostics.md) | A read lacks definite initialization or must-alias proof for a successful captured range |
 
 ### Warnings
 
@@ -595,13 +621,13 @@ fallback.
 
 | Feature | Interaction |
 |---------|-------------|
-| F003 Module contents | `embed()` is valid only as a module-level `const` initializer |
-| F005 Memory placement | Ordinary embedded data uses data/ROM placement; a qualified contract may require declared player-owned writable/self-modifying ranges in RAM |
-| F006 Address-of | `&embeddedData` returns the base address — works the same as any const array |
+| F003 Module contents | Resident `embed()` data requires a module-level ordinary `const`; `loadable const` may use ordinary constant scopes because it creates no runtime storage |
+| F005 Memory placement | Ordinary embedded data uses data/ROM placement; loadable data has no resident address. A qualified contract may require declared player-owned writable/self-modifying ranges in RAM |
+| F006 Address-of | `&residentEmbeddedData` returns its base address; address-of a loadable declaration is E10274 |
 | F008 For loop | Iterate over embedded arrays with `for` — standard array indexing |
 | F011 Structs | Embedded arrays may be `byte[]` or `word[]` and can be used with struct-of-arrays patterns |
-| F014 Arrays | Embedded data follows all array rules — indexing, length(), const params |
-| F014 Const params | Embedded data is `const` and can be passed to a matching const-array parameter |
+| F014 Arrays | Resident embedded arrays follow ordinary indexing rules; loadable arrays permit compile-time queries but not resident indexing |
+| F014 Const params | Resident embedded data can be passed to a matching const-array parameter; loadable data can only be the unit argument of a compatible load operation |
 | F014 length() | `length(embeddedData)` returns compile-time-known size |
 | C64 game audio | An exact handler-attached player contract may make an embedded object callable without inferring behavior from its file header |
 | `export` | `export const DATA: byte[] = embed("file.bin");` — exported embedded data is visible to other modules |
@@ -873,7 +899,7 @@ those ranges use writable placement and are included in the exact resource repor
 | **P2** Platform-meaningful | ✅ | Every platform has asset tools. The format handler system makes embed useful everywhere |
 | **P3** No platform assumptions | ✅ | Core spec defines `embed()` generically. Format names, selectors, and alignment requirements live in platform profiles |
 | **P4** Resource-scalable | ✅ | W10150 warns when approaching `max_binary_size`. The platform profile defines the budget. |
-| **H1** 6502 implementable | ✅ | Embedded data is just bytes in the binary — no CPU features required |
+| **H1** 6502 implementable | ✅ | Resident embedded data is bytes in the initial image; loadable data uses only the selected profile's explicit transfer into existing storage |
 | **H2** Cost transparency | ✅ | Inclusion has no hidden runtime cost. The build summary reports data/alignment, and qualified audio reports every selected player code/state/cycle cost |
 | **H3** SFA compatible | ✅ | Ordinary embedded data needs no mutable frame state; qualified player-owned writable ranges are statically placed and never hidden in SFA |
 | **H4** Memory footprint documented | ✅ | Part 10.3 documents resource costs. Build summary shows per-asset totals |
@@ -883,15 +909,15 @@ those ranges use writable placement and are included in the exact resource repor
 | **L3** Beginner-friendly | ✅ | `embed("player.spd", "sprites")` is explicit. Error messages and completion list the file's available keys |
 | **L4** Minimal feature | ✅ | One intrinsic with one optional literal argument. Format complexity remains in platform profiles |
 | **L5** No redundancy | ✅ | No other way to include binary data exists in the language |
-| **L6** Error messages defined | ✅ | Asset and callable-audio diagnostics are defined; Chapter 14 is canonical |
-| **L7** Compile-time failure | ✅ | All errors are compile-time. No runtime failure possible — data is in the binary |
+| **L6** Error messages defined | ✅ | Asset, loadable-use, publication, and callable-audio diagnostics are defined; Chapter 14 is canonical |
+| **L7** Compile-time failure | ✅ | Import and invalid-use errors are compile-time. A selected-profile load reports runtime transfer failure only through its explicit boolean result |
 | **L8** Feature interactions | ✅ | Part 7 documents interactions with F003, F005, F006, F008, F011, F014 |
 | **L9** Documentable with examples | ✅ | Part 9: five examples covering sprites, music, charmaps, raw binary, bitmaps |
 | **C1** Lexer/parser implementable | ✅ | `embed`, one required string literal, and one optional comma plus string literal use standard tokens |
-| **C2** Semantic analysis defined | ✅ | Type checking: selector return type vs declared type. Scope: module-level const only. Validation: file existence, size matching |
-| **C3** Code generation strategy | ✅ | Part 10 documents codegen: bytes placed in data section, alignment via assembler directive, linker-resolved constants |
-| **C4** Unit testable | ✅ | Lexer: `embed` → `KW_EMBED`, `(` → `LPAREN`, etc. Parser: embed-expression AST node. Semantic: type validation. Codegen: data section bytes |
-| **C5** Runtime verifiable | ✅ | Embedded data can be verified by reading memory locations in emulator and comparing against source file bytes |
+| **C2** Semantic analysis defined | ✅ | Selector typing, resident/loadable owner checks, fixed destination compatibility, and captured-range publication rules are explicit |
+| **C3** Code generation strategy | ✅ | Resident bytes use the data section. Loadable bytes stay outside the initial memory image and only a reachable selected-profile operation transfers them |
+| **C4** Unit testable | ✅ | `embed` remains an identifier token; parser, import validation, resident layout, illegal loadable uses, and captured-range flow have deterministic cases |
+| **C5** Runtime verifiable | ✅ | Resident bytes and explicit load success/failure can be checked independently against source asset bytes |
 | **F1** Extensible | ✅ | New format handlers added to platform profiles without language changes. New selectors don't break existing code |
 | **F2** Platform-profile ready | ✅ | All format-specific behavior (handlers, selectors, alignment) is in platform profiles |
 | **F3** Optimizer-friendly | ✅ | Ordinary embedded data is read-only; a qualified player's declared writable ranges carry effects and cannot be propagated as constants, while unused unreferenced assets remain removable |
@@ -903,9 +929,11 @@ those ranges use writable placement and are included in the exact resource repor
 
 ## Deferred Items
 
-### → FUT-014: Manual alignment attribute
+### Resolved: Manual placement constraints
 
-Manual alignment for non-asset data (e.g., page-aligning a hand-written sine table) is deferred. See `future-considerations.md`.
+Specification 4 adds only `place(at, align, noCross, region)`. This closes the former manual
+alignment deferral without adding a general attribute framework. Format-handler and profile
+requirements remain automatic and cannot be weakened by source.
 
 ### → FUT-015: Common image format conversion
 

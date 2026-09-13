@@ -491,7 +491,10 @@ let padded: byte[40] = ["SCORE:"; ' '];              // fill rest with spaces
 
 ## 7. Const Parameters
 
-Const parameters solve a critical safety problem: arrays and structs are passed by reference (→ Ch 06, FN-3), but `const` arrays/structs live in ROM. Writing to ROM is catastrophic on 6502 — either silently ignored or corrupts hardware state.
+Const parameters solve a critical safety problem: resident arrays and structs are passed by
+reference (→ Ch 06, FN-3), while ordinary `const` aggregates may live in ROM. Writing to ROM is
+catastrophic on 6502 — either silently ignored or corrupts hardware state. A `loadable const` has no
+resident address and cannot be passed as an ordinary const parameter before transfer.
 
 ### CP-1 — Const Qualifier on Parameters
 
@@ -849,8 +852,8 @@ message templates, spans, suppression, and history.
 | **Structs** (→ Ch 07) | Arrays as struct fields (inline, contiguous). Struct arrays use index × `sizeof(Type)` addressing. Const parameters apply to both. |
 | **Enums** (→ Ch 09) | Enum arrays are supported (`Direction[8]`). As with every array, all four integer types are valid indices; enum values are not implicitly converted into indices. |
 | **For loops** (→ Ch 05) | `for (let i: word = 0; i < length(arr); i += 1)` visits every valid index once; proven induction narrowing may still use an 8-bit machine counter. |
-| **Modules** (→ Ch 10) | Arrays can be exported. `const` arrays are valid module-level exports. |
-| **Memory model** (→ Ch 11) | `let` arrays → RAM segment. `const` arrays → ROM/data segment. `zeropage` arrays → ZP range. |
+| **Modules** (→ Ch 10) | Arrays can be exported. Ordinary and loadable const arrays are valid module-level exports, but only the ordinary form is resident. |
+| **Memory model** (→ Ch 11) | `let` arrays → RAM segment. Ordinary `const` arrays → ROM/data segment. `loadable const` arrays → package only. `zeropage` arrays → ZP range. |
 | **Address-of** (→ Ch 04) | `&arr` returns base address as `word`. `&arr[i]` (element address) deferred to future version. |
 | **Platform profile** (→ Ch 15) | Encoding tables, immutable character maps, defaults, and available encoding intrinsics — all defined in platform profile. |
 

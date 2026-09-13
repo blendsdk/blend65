@@ -134,7 +134,7 @@ These conventions are recommended but not enforced by the compiler:
 
 Keywords are reserved words that cannot be used as identifiers. The lexer matches identifier-shaped tokens against the keyword table and produces keyword-specific token types.
 
-**34 keywords in 7 categories:**
+**36 keywords in 7 categories:**
 
 **Module system** (→ Ch 10):
 ```
@@ -153,9 +153,9 @@ for     switch    case      default
 fallthrough       break     continue
 ```
 
-**Declarations** (→ Ch 03, Ch 07):
+**Declarations and placement** (→ Ch 03, Ch 07):
 ```
-let     const     zeropage    struct
+let     const     loadable    place     zeropage    struct
 ```
 
 **Type names** (→ Ch 02):
@@ -185,7 +185,7 @@ keyword = "module" | "import" | "export" | "from"
         | "if" | "else" | "while" | "do" | "for"
         | "switch" | "case" | "default" | "fallthrough"
         | "break" | "continue"
-        | "let" | "const" | "zeropage" | "struct"
+        | "let" | "const" | "loadable" | "place" | "zeropage" | "struct"
         | "byte" | "sbyte" | "word" | "sword" | "boolean" | "void"
         | "true" | "false"
         | "enum" | "type" ;
@@ -607,7 +607,7 @@ Every token carries position information for error reporting:
 
 ## 12. Complete Token Type Enumeration
 
-**81 token types** total:
+**83 token types** total:
 
 ### Literals (3)
 
@@ -625,7 +625,7 @@ Boolean literals are keywords (`KW_TRUE`, `KW_FALSE`), not a separate literal ty
 |-----------|-------------|
 | `IDENTIFIER` | User-defined names and reserved built-in identifiers |
 
-### Keywords (34)
+### Keywords (36)
 
 ```
 KW_MODULE    KW_IMPORT    KW_EXPORT    KW_FROM
@@ -633,7 +633,7 @@ KW_FUNCTION  KW_RETURN    KW_INTERRUPT  KW_FN       KW_COMPTIME
 KW_IF        KW_ELSE      KW_WHILE     KW_DO       KW_FOR
 KW_SWITCH    KW_CASE      KW_DEFAULT   KW_FALLTHROUGH
 KW_BREAK     KW_CONTINUE
-KW_LET       KW_CONST     KW_ZEROPAGE  KW_STRUCT
+KW_LET       KW_CONST     KW_LOADABLE  KW_PLACE    KW_ZEROPAGE  KW_STRUCT
 KW_BYTE      KW_SBYTE     KW_WORD      KW_SWORD    KW_BOOLEAN  KW_VOID
 KW_TRUE      KW_FALSE
 KW_ENUM      KW_TYPE

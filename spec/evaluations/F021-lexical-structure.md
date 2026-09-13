@@ -171,7 +171,7 @@ These conventions are recommended but not enforced by the compiler:
 
 Keywords are reserved words that cannot be used as identifiers. The lexer matches identifier-shaped tokens against the keyword table and produces keyword-specific token types.
 
-**34 keywords in 7 categories:**
+**36 keywords in 7 categories:**
 
 #### Module system (F001, F002, F003)
 
@@ -193,10 +193,10 @@ for     switch    case      default
 fallthrough       break     continue
 ```
 
-#### Declarations (F019, F005, F011)
+#### Declarations and placement (F019, F005, F011)
 
 ```
-let     const     zeropage    struct
+let     const     loadable    place     zeropage    struct
 ```
 
 #### Type names (F016, F010)
@@ -231,7 +231,7 @@ keyword = "module" | "import" | "export" | "from"
         | "if" | "else" | "while" | "do" | "for"
         | "switch" | "case" | "default" | "fallthrough"
         | "break" | "continue"
-        | "let" | "const" | "zeropage" | "struct"
+        | "let" | "const" | "loadable" | "place" | "zeropage" | "struct"
         | "byte" | "sbyte" | "word" | "sword" | "boolean" | "void"
         | "true" | "false"
         | "enum" | "type" ;
@@ -653,7 +653,7 @@ CHAR            // Character literals ('.')
 IDENTIFIER      // User-defined names and reserved built-in identifiers
 ```
 
-### Keywords (34 types)
+### Keywords (36 types)
 
 ```
 // Module system
@@ -667,8 +667,8 @@ KW_IF  KW_ELSE  KW_WHILE  KW_DO  KW_FOR
 KW_SWITCH  KW_CASE  KW_DEFAULT  KW_FALLTHROUGH
 KW_BREAK  KW_CONTINUE
 
-// Declarations
-KW_LET  KW_CONST  KW_ZEROPAGE  KW_STRUCT
+// Declarations and placement
+KW_LET  KW_CONST  KW_LOADABLE  KW_PLACE  KW_ZEROPAGE  KW_STRUCT
 
 // Types
 KW_BYTE  KW_SBYTE  KW_WORD  KW_SWORD  KW_BOOLEAN  KW_VOID
@@ -722,7 +722,7 @@ DOT                 // .
 EOF                 // End of input
 ```
 
-**Total: 81 token types** (3 literal + 1 identifier + 34 keyword + 32 operator + 10 punctuation + 1 special)
+**Total: 83 token types** (3 literal + 1 identifier + 36 keyword + 32 operator + 10 punctuation + 1 special)
 
 ---
 
@@ -939,7 +939,9 @@ This is standard C behavior and requires no lexer-level disambiguation.
 - `main` is an entry-reserved identifier (LS-10), not a built-in or keyword. The lexer produces `IDENTIFIER` for it.
 
 ### With F005 (Memory placement)
-- `zeropage` is a keyword. v2's `@zp`/`@ram`/`@data` are completely removed.
+- `zeropage` and `place` are keywords. `place` introduces one closed declaration modifier; its four
+  key spellings are ordinary identifiers recognized only inside that clause. v2's
+  `@zp`/`@ram`/`@data` are completely removed, and there is no general attribute token family.
 
 ### With F006 (Address-of)
 - `&` is the `AMPERSAND` token. Parser disambiguates address-of (unary) from bitwise AND (binary).
@@ -986,7 +988,8 @@ This is standard C behavior and requires no lexer-level disambiguation.
 - `sin8`, `cos8`, `sin16`, and `cos16` are reserved built-in identifiers.
 
 ### With F019 (Variables & constants)
-- `let`, `const` are keywords.
+- `let`, `const`, and `loadable` are keywords. `loadable const` is the only package-only
+  declaration form.
 
 ### With F020 (Memory intrinsics)
 - `peek`, `poke`, `peekw`, `pokew`, `lo`, `hi`, `sizeof`, `offsetof`, `length` are reserved built-in identifiers.
@@ -1150,6 +1153,19 @@ let enemies: Sprite[8];
 | 30 | `RBRACKET` | `]` |
 | 31 | `SEMICOLON` | `;` |
 
+### Example 5: Placement and loadable declaration keywords
+
+**Source:**
+
+```blend65
+place(align: 256) const TABLE: byte[16] = [0; 0];
+loadable const LEVEL: byte[16] = TABLE;
+```
+
+`place` produces `KW_PLACE`; `align` remains `IDENTIFIER` because placement keys are contextual
+inside the clause. `loadable` produces `KW_LOADABLE` and is followed by `KW_CONST`. No target name,
+loader name, or placement-key token type is added.
+
 ---
 
 ## Part 16: Language Guard Evaluation
@@ -1185,7 +1201,7 @@ let enemies: Sprite[8];
 | L6 Error messages defined | ✅ | 15 error codes (E10210–E10224) and 1 warning (W10210) cover all lexer error conditions |
 | L7 Compile-time failure preferred | ✅ | ALL lexer errors are compile-time. The lexer is entirely a compile-time construct |
 | L8 Feature interaction documented | ✅ | Interactions with all 20 existing features documented (Part 14) |
-| L9 Documentable with examples | ✅ | 4 complete tokenization examples with full token-by-token traces (Part 15) |
+| L9 Documentable with examples | ✅ | Four full token traces plus a focused placement/loadable keyword example (Part 15) |
 
 ### Compiler Implementability (C)
 
@@ -1214,4 +1230,4 @@ None. All 23 rules pass.
 
 **✅ ACCEPTED**
 
-F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F025 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 81 token types, 34 keywords, 33 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.
+F021 formalizes the complete lexical structure of Blend65 4, consolidating all token definitions established across F001–F025 into a single rationale document. The design is conventional (C/TypeScript-like with 6502 `$` hex prefix), deterministic (closed escape set, maximal munch, no undefined behavior), and extensible (keywords and operators can be added without breaking changes). The 83 token types, 36 keywords, 33 reserved built-in identifiers, and special entry-reserved `main` name form a clean, minimal foundation for the parser.

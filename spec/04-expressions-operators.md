@@ -350,7 +350,8 @@ address_of_expr = "&" , unary_expr ;
 | Ordinary function name | ✅ | Returns its exact `fn(...)` value |
 | Interrupt function name | ✅ | Returns a distinct non-callable handler value |
 | Compile-time function name | ❌ E10043 | Compile-time functions emit no target entry point |
-| `const` scalar | ❌ E10040 | Scalar constants are inlined; no address |
+| Unplaced `const` scalar | ❌ E10040 | The scalar is inlined and has no address |
+| `place(...) const` scalar | ✅ | Explicit placement materializes addressable read-only storage |
 | `const` array | ✅ | Array constants have ROM addresses |
 | Scalar parameter | ✅ with lifetime restriction | Local-origin borrow bounded by the invocation |
 | Aggregate parameter | ✅ | Inherits the caller object's lifetime and mutability |

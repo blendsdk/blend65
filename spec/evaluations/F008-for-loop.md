@@ -26,15 +26,19 @@ for_stmt        = "for" , "(" , [ for_initializer ] , ";"
 
 for_initializer = for_local_decl | expression_list ;
 for_local_decl  = "let" , identifier , ":" , value_type , [ "=" , expression ]
-                | "const" , identifier , ":" , value_type , "=" , const_expression ;
+                | "const" , identifier , ":" , value_type , "=" , const_expression
+                | "loadable" , "const" , identifier , ":" , value_type
+                  , "=" , const_expression ;
 for_update      = expression_list ;
 expression_list = expression , { "," , expression } ;
 ```
 
-The declaration form follows the normal local `let`/`const` rules but omits the declaration's own
-semicolon because the header delimiter supplies it. An expression list evaluates its expressions
-once each, from left to right. Blend65 still has no general comma operator and no `++` or `--`
-operator; compound assignment such as `i += 1` is the normal update spelling.
+The declaration form follows the normal local `let`, `const`, or `loadable const` rules but omits
+the declaration's own semicolon because the header delimiter supplies it. A loadable declaration
+has the loop scope but creates no runtime storage or per-iteration initialization. An expression
+list evaluates its expressions once each, from left to right. Blend65 still has no general comma
+operator and no `++` or `--` operator; compound assignment such as `i += 1` is the normal update
+spelling.
 
 ```blend65
 for (let i: byte = 0; i < 10; i += 1) {

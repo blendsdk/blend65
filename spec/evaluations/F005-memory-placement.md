@@ -7,7 +7,9 @@
 
 ## Description
 
-Blend65 v3 provides three memory placement strategies for variables and constants. The `@` symbol from v2 is **completely removed** from the language, resolving the critical v2 ambiguity where `@` was overloaded with three conflicting meanings (storage class, address-of, type alias).
+Blend65 4 keeps automatic placement for normal code and adds one closed expert override. The `@`
+symbol from v2 remains completely removed; `place(...)` has four named constraints and is not a
+general annotation system.
 
 ## Placement Model
 
@@ -16,8 +18,38 @@ Blend65 v3 provides three memory placement strategies for variables and constant
 | `zeropage { x: byte; }` | Zero page ($00–$FF) | Always mutable | Compiler allocates from platform profile's ZP range |
 | `let x: byte = 0;` | General RAM | Mutable | Default placement — compiler allocates in RAM |
 | `const TABLE: byte[] = [1,2,3];` | Data/ROM section | Immutable | Compiler places in data section; platform profile maps to ROM or RAM |
+| `place(align: 256) const TABLE: byte[] = ...;` | Automatic data region plus a stronger constraint | Immutable | Linker must satisfy the complete combined constraint set |
+| `loadable const LEVEL: Level = ...;` | Package only | Immutable | No resident address; explicit selected-profile load writes an existing mutable destination |
 
-There is no `@ram` or `@data` keyword. RAM is the default for `let`. The compiler automatically places `const` data in the data/ROM section.
+There is no `@ram` or `@data` keyword. RAM is the default for `let`. The compiler automatically
+places ordinary `const` data in the data/ROM section. `loadable const` is deliberately nonresident.
+
+## Closed `place(...)` Modifier
+
+`place(...)` immediately precedes a module-level stored-data or emitted-function declaration, after
+`export` when present. It accepts only `at`, `align`, `noCross`, and typed `region`. Integer values
+are compile-time constants; alignment and no-cross values are positive powers of two. A placed
+scalar constant is materialized and addressable.
+
+```blend65
+place(at: $9000) function unpack(): void { /* ... */ }
+place(align: 256, noCross: 4096) const TABLE: byte[256] = makeTable();
+export place(region: c64.vic.bank1, align: 2048) const CHARS: byte[2048] =
+    embed("level.ctm", "charset");
+
+place(region: "bank1") let badRegion: byte; // ❌ region requires a typed symbol
+place(at: $D020) let badTarget: byte;         // ❌ selected profile marks MMIO, not RAM
+
+place(at: $3000) let first: byte[32];
+place(at: $3010) let collision: byte[32];     // ❌ E10273: overlaps first
+place(region: c64.vic.bank1) let tooLarge: byte[20000]; // ❌ E10273: region cannot fit it
+```
+
+The clause can only strengthen automatic profile, asset, visibility, banking, ownership,
+alignment, and reserved-range requirements. Canonical aliases combine their requirements. A
+collision, unavailable region, or otherwise empty intersection is E10273; the compiler never fixes
+it by copying, duplicating, or weakening a requirement. Locals, parameters, fields, types,
+compile-time functions, loadable constants, and compiler-owned SFA homes cannot be placed by source.
 
 ## `zeropage` Block Syntax
 
@@ -35,7 +67,8 @@ zeropage {
 **EBNF:**
 ```ebnf
 zeropage_block = "zeropage" , "{" , zeropage_decl , { zeropage_decl } , "}" ;
-zeropage_decl = [ "export" ] , identifier , ":" , value_type , [ "=" , expression ] , ";" ;
+zeropage_decl = [ "export" ] , [ place_clause ] , identifier , ":" , value_type
+                , [ "=" , expression ] , ";" ;
 ```
 
 ## `zeropage` Block Rules
@@ -143,6 +176,8 @@ The platform profile defines where the "data section" physically maps:
 | 4 | ZP-4 | Uninitialized ZP variable default value | **Indeterminate** — no init code generated. Only explicit initializers produce startup code. Developer must write before read. (Saves ROM, aligns with A4: explicit over implicit.) |
 | 5 | ZP-5 | How to export from zeropage block? | Per-variable `export` inside the block |
 | 6 | CONST-1 | Where does `const` data physically go? | Platform profile defines data section mapping |
+| 7 | PLACE-1 | How can expert source constrain placement? | One closed `place(at, align, noCross, region)` modifier; automatic placement remains authoritative |
+| 8 | PLACE-2 | Can an explicit constraint override a platform or asset rule? | No; all constraints are intersected and conflicts are errors |
 
 ## Errors
 
@@ -152,6 +187,8 @@ The platform profile defines where the "data section" physically maps:
 | E10031 | `const` inside `zeropage` block | [Chapter 14](../14-diagnostics.md) |
 | E10032 | ZP budget exceeded | [Chapter 14](../14-diagnostics.md) |
 | E10033 | `let`/`const` keyword inside `zeropage` block | [Chapter 14](../14-diagnostics.md) |
+| E10272 | Invalid `place(...)` owner, key, duplicate, value, or typed region | [Chapter 14](../14-diagnostics.md) |
+| E10273 | Explicit and automatic placement constraints cannot all be satisfied | [Chapter 14](../14-diagnostics.md) |
 
 ## Warnings
 
@@ -163,17 +200,17 @@ The platform profile defines where the "data section" physically maps:
 
 - **P1 Cross-platform** ✅ — Zero page exists on all 6502 variants. Available range defined by platform profile.
 - **P2 Platform-meaningful** ✅ — ZP is the primary optimization tool on 6502 — every platform benefits.
-- **P3 No platform assumptions** ✅ — No hex addresses in core syntax. Platform profile defines ZP range.
+- **P3 No platform assumptions** ✅ — Automatic placement and typed regions come from the selected profile. An explicit `at` value is a user constraint checked against that profile, not a built-in address.
 - **P4 Resource-scalable** ✅ — Compiler warns (W10030) and errors (E10032) based on platform limits.
 - **H1 6502 implementable** ✅ — ZP variables compile to zero-page addressing modes (2-byte instructions instead of 3-byte).
 - **H2 Cost transparency** ✅ — ZP access saves 1 byte and 1 cycle per access vs. absolute addressing. Compiler reports ZP budget usage.
 - **H3 SFA compatible** ✅ — ZP variables are statically allocated, just in a specific memory region.
 - **H4 Memory footprint** ✅ — ZP bytes consumed reported in build summary. `const` size reported in data section summary.
 - **H5 Deterministic** ✅ — Variables with initializers are set by startup code (defined). Variables without initializers have indeterminate but valid values (not undefined behavior — reading any ZP byte is safe on 6502, just returns some byte 0-255). No hidden init code (A4: explicit over implicit).
-- **L1 Unambiguous** ✅ — `zeropage` is a keyword, not an operator. No `@` overloading.
+- **L1 Unambiguous** ✅ — `zeropage` and the closed `place(...)` modifier are distinct declaration syntax. No `@` overloading.
 - **L2 Consistent** ✅ — Block syntax (`{ ... }`) is consistent with function bodies. Declaration syntax matches module-level declarations.
 - **L3 Beginner-friendly** ✅ — `zeropage { ... }` is self-explanatory. A C/TS developer can guess its purpose.
-- **L4 Minimal** ✅ — One keyword, one block, simple declarations. No `@ram`/`@data` needed.
+- **L4 Minimal** ✅ — Automatic placement plus one zero-page block and one closed four-key expert modifier. No general attribute framework or `@ram`/`@data` surface.
 - **L5 No redundancy** ✅ — Replaces three v2 keywords (`@zp`, `@ram`, `@data`) with one keyword + defaults.
-- **C1 Lexer/parser** ✅ — `KW_ZEROPAGE`, `LBRACE`, declarations, `RBRACE`. Standard block parsing.
+- **C1 Lexer/parser** ✅ — `KW_ZEROPAGE` and `KW_PLACE` lead fixed productions; the four placement keys are recognized only inside the clause.
 - **F2 Platform-profile ready** ✅ — ZP range and data section mapping come from platform profile.

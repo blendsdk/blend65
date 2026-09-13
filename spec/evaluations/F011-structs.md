@@ -186,7 +186,9 @@ dynamic frame, mandatory runtime, or source `copy()` operation is added.
 
 > **Updated by F014.** Const parameters are now supported — use `const` qualifier on parameters to accept const structs safely.
 
-Since struct parameters are by-reference, passing a `const` struct to a mutable parameter would risk writing to ROM. Use the `const` parameter qualifier to declare read-only access:
+Since resident struct parameters are by-reference, passing an ordinary `const` struct to a mutable
+parameter would risk writing to ROM. Use the `const` parameter qualifier to declare read-only
+access. A `loadable const` struct has no resident address and is not an ordinary argument:
 
 ```blend65
 const DEFAULT_ENEMY: Enemy = { x: 0, y: 0, hp: 100, enemyType: 0, frame: 0 };

@@ -14,12 +14,16 @@ declaration syntax, initializer value and omission semantics, mutability, and de
 placement. Chapter 10 governs cross-module startup dependency/effect scheduling. The selected
 platform appendix governs bootstrap and return epilogue behavior.
 
-Blend65 provides two declaration keywords:
+Blend65 provides three declaration forms:
 
 - **`let`** — declares a mutable variable. Can be reassigned after initialization.
-- **`const`** — declares a compile-time constant. Must have a compile-time constant initializer. Scalar constants are inlined by the compiler (zero RAM cost); aggregate constants (arrays, structs) are placed in the data/ROM section.
+- **`const`** — declares a compile-time constant. It must have a compile-time constant initializer.
+  Scalars are normally inlined (zero storage cost); aggregates and explicitly placed scalars live
+  in the data/ROM section.
+- **`loadable const`** — declares compile-time-known packaged data that has no resident address and
+  can reach mutable storage only through a selected-profile load operation.
 
-A third construct, the **`zeropage` block**, provides fast-access storage in the 6502's zero-page region.
+The **`zeropage` block** provides fast-access storage in the 6502's zero-page region.
 
 ---
 
@@ -28,7 +32,7 @@ A third construct, the **`zeropage` block**, provides fast-access storage in the
 ### 2.1 `let` — Mutable Variables
 
 ```ebnf
-let_decl = [ "export" ] , "let" , identifier , ":" , value_type
+let_decl = [ "export" ] , [ place_clause ] , "let" , identifier , ":" , value_type
            , [ "=" , expression ] , ";" ;
 ```
 
@@ -42,7 +46,7 @@ let velocity: sbyte = -2;
 ### 2.2 `const` — Compile-Time Constants
 
 ```ebnf
-const_decl = [ "export" ] , "const" , identifier , ":" , value_type
+const_decl = [ "export" ] , [ place_clause ] , "const" , identifier , ":" , value_type
              , "=" , const_expression , ";" ;
 ```
 
@@ -57,11 +61,39 @@ const SINE_TABLE: byte[256] = [0, 3, 6, 9, /* ... */];
 const DEFAULT_ENEMY: Enemy = { x: 0, y: 0, hp: 100, enemyType: 0, frame: 0 };
 ```
 
-### 2.3 `zeropage` Block — Fast-Access Variables
+### 2.3 `loadable const` — Packaged Constants
+
+```ebnf
+loadable_const_decl = [ "export" ] , "loadable" , "const" , identifier
+                    , ":" , value_type , "=" , const_expression , ";" ;
+```
+
+A loadable constant has an exact compile-time scalar, fixed-array, or fixed-struct type and an exact
+initializer value. It denotes a packaged load unit, not resident CPU-readable storage. It may be
+declared wherever an ordinary `const` is legal; local scope changes only its qualified declaration
+identity and does not allocate a function home. `export` remains module-level only.
+
+```blend65
+loadable const LEVEL_2: LevelData = buildLevel(
+    embed("level2.ctm", "map"),
+    embed("level2.ctm", "charset"),
+    embed("level2.ctm", "colors")
+);
+const LEVEL_2_BYTES: word = sizeof(LevelData); // compile-time query is legal
+```
+
+The compiler retains the declaration's type, size, extent, and provenance. Source may apply
+supported compile-time queries and may pass the declaration as the first argument of a compatible
+selected-profile load operation. It may not otherwise read, index, address, mutate, cast, compare,
+store, return, iterate, or pass the value. The load operation writes an exactly typed mutable
+destination; it never turns the loadable declaration itself into resident storage.
+
+### 2.4 `zeropage` Block — Fast-Access Variables
 
 ```ebnf
 zeropage_block = "zeropage" , "{" , zeropage_var , { zeropage_var } , "}" ;
-zeropage_var   = [ "export" ] , identifier , ":" , value_type , [ "=" , expression ] , ";" ;
+zeropage_var   = [ "export" ] , [ place_clause ] , identifier , ":" , value_type
+               , [ "=" , expression ] , ";" ;
 ```
 
 ```blend65
@@ -189,10 +221,14 @@ Identifiers follow the rules in → Ch 01, §3. Keywords cannot be used as ident
 | `zeropage { x: byte; }` | Zero page ($00–$FF) | Always mutable | Fast access; compiler allocates from platform's ZP range |
 | `let x: byte = 0;` | General RAM | Mutable | Default placement; compiler allocates in RAM segment |
 | `const X: byte = 0;` | Inlined / Data section | Immutable | Scalar: inlined at use site (0 RAM). Aggregate: data/ROM section |
+| `loadable const X: T = value;` | Package only | Immutable | No resident address or SFA home; loaded explicitly into compatible mutable storage |
 
 ### 4.2 Scalar Constant Inlining
 
-Scalar `const` values (`byte`, `sbyte`, `word`, `sword`, `boolean`, and enum types) are **inlined** by the compiler — the constant name is replaced by its value at every use site. No RAM or ROM is allocated for the constant itself.
+An unplaced scalar `const` (`byte`, `sbyte`, `word`, `sword`, `boolean`, or enum) is **inlined**: the
+constant name is replaced by its value at every use site and the declaration allocates no storage.
+Applying `place(...)` deliberately materializes read-only storage and makes the declaration
+addressable.
 
 ```blend65
 const MAX: byte = 8;
@@ -208,7 +244,49 @@ const TABLE: byte[4] = [10, 20, 30, 40];    // 4 bytes in data section
 const DEFAULT: Enemy = { x: 0, y: 0, hp: 100, enemyType: 0, frame: 0 }; // 5 bytes in data section
 ```
 
-### 4.4 Zeropage Budget
+### 4.4 Closed `place(...)` Modifier
+
+Automatic placement is the default. Expert code may add one closed modifier immediately before a
+module-level stored-data or emitted-function declaration; `export` comes first when present.
+
+```ebnf
+place_clause = "place" , "(" , place_arg , { "," , place_arg } , ")" ;
+place_arg    = "at" , ":" , const_expression
+             | "align" , ":" , const_expression
+             | "noCross" , ":" , const_expression
+             | "region" , ":" , qualified_name ;
+```
+
+```blend65
+place(at: $2000) let bitmap: byte[8000];
+place(align: 256, noCross: 4096) const TABLE: byte[256] = makeTable();
+export place(region: c64.vic.bank1, align: 2048) const CHARSET: byte[2048] =
+    embed("level.ctm", "charset");
+place(at: $9000) function decodeRow(source: const byte[]): void { /* ... */ }
+```
+
+The key set is exactly `at`, `align`, `noCross`, and `region`; a key may occur at most once. `at`,
+`align`, and `noCross` take compile-time integers. The latter two must be positive powers of two.
+`region` takes a typed region symbol exported by the selected profile, not a string. One clause may
+combine compatible constraints:
+
+- `at` fixes the first byte's address;
+- `align` requires that address to be a multiple of its value;
+- `noCross` requires the complete object to fit within one naturally aligned window of its value;
+- `region` requires the complete object to fit the named profile region.
+
+The modifier may appear on a module-level `let`, an ordinary `const`, an ordinary function, or an
+interrupt function. It may also refine an item inside `zeropage`; in that form it appears after an
+optional `export` and before the item name. A placed scalar `const` is materialized and addressable
+instead of inlined. It is illegal on locals, parameters, fields, types, `comptime function`,
+`loadable const`, or compiler-owned SFA homes because none is a source-placeable emitted object.
+
+Explicit constraints only strengthen automatic profile, asset, visibility, banking, alignment,
+ownership, and reserved-range facts. Requirements attached to canonical aliases are combined. A
+conflict or unavailable region is an error; the compiler does not copy the object, waive a profile
+rule, or create hidden storage.
+
+### 4.5 Zeropage Budget
 
 The platform profile defines how many zero-page bytes are available (→ Ch 15). The compiler tracks total ZP usage across all modules. Exceeding the budget → E10032.
 
@@ -223,6 +301,87 @@ These are the exact current default profiles, not general hardware maxima. A cus
 choose a different proven-safe range and budget.
 
 The compiler also uses ZP bytes internally for expression evaluation temps and struct/array pointer temps (→ Ch 06, §7.6; → Ch 07, §5.8). These are in addition to user-declared ZP variables.
+
+### 4.6 Load Publication and Definite Initialization
+
+A selected-profile load operation such as
+`c64.loader.load(unit, destination): boolean` evaluates both arguments exactly once. The first
+argument must name a compatible `loadable const`. The second may be any lifetime-valid, addressable,
+mutable place of exactly the same fixed logical type: a module variable, local, mutable parameter,
+field, nested field, fixed-array element, or composition of those forms. Constants, temporaries,
+MMIO, expired locals, unsized arrays, and destinations with an unproved complete interval are not
+valid destinations.
+
+The compiler captures the evaluated destination's physical half-open byte range and provenance.
+This capture is a compile-time flow fact, not a runtime descriptor:
+
+- entering the call makes only the captured range indeterminate because a transfer may be partial;
+- the `true` result edge initializes exactly that range with the unit's logical value;
+- the `false` edge leaves exactly that range indeterminate;
+- ranges proved not to alias the capture keep their incoming state; and
+- a later read must be definitely initialized on every reaching path. A read that relies on this
+  load's value must also be proved to refer to the same captured range on every reaching path.
+
+The correlation follows the returned boolean through a stored result, branches, joins, and loops.
+Each call has a fresh identity. A later overlapping call invalidates its captured overlap before it
+can publish a replacement. Ordinary complete assignment may establish a separate initialization
+fact. Analysis is sparse and range-based; it does not create a runtime flag, token, bitmap,
+validity byte, handle, or read check.
+
+```blend65
+let currentLevel: LevelData;
+
+function enterLevel(): boolean {
+    if (!c64.loader.load(LEVEL_2, currentLevel)) {
+        return false;                 // currentLevel is indeterminate here
+    }
+    drawLevel(currentLevel);          // ✅ success dominates this exact range
+    return true;
+}
+```
+
+Dynamic destinations retain the once-evaluated choice:
+
+```blend65
+let slots: LevelData[2];
+let slot: byte = chooseSlot();
+let loaded: boolean = c64.loader.load(LEVEL_2, slots[slot]);
+
+if (loaded) {
+    drawLevel(slots[slot]);            // ✅ if slot is unchanged and therefore must-aliases
+    slot = slot ^ 1;
+    drawLevel(slots[slot]);            // ❌ E10276: may name a different range
+}
+```
+
+Failure invalidates only the selected candidate:
+
+```blend65
+let readySlots: LevelData[2] = [EMPTY_LEVEL, EMPTY_LEVEL];
+let selected: byte = chooseFirst ? 0 : 1;
+
+if (!c64.loader.load(LEVEL_2, readySlots[selected])) {
+    drawLevel(readySlots[selected]);    // ❌ E10276: selected range may be partial
+    if (selected == 0) {
+        drawLevel(readySlots[1]);       // ✅ proved unselected; incoming value preserved
+    } else {
+        drawLevel(readySlots[0]);       // ✅ proved unselected; incoming value preserved
+    }
+}
+```
+
+The following cases define joins, loops, replacement, and partial overlap without introducing a
+separate load-state language:
+
+| Case | Result |
+|------|--------|
+| Both arms successfully load the same proved range | The joined range is initialized; the loaded unit is known only if both arms publish the same unit. |
+| One reaching arm fails or skips the load | The joined captured range is not definitely initialized unless its incoming state was preserved by a must-not-alias choice. |
+| A loop may execute zero times | The loop alone does not initialize its destination. A fixed covering loop proves only the complete byte ranges covered on every path. |
+| A second load targets the same range | The second call gets a fresh identity; success publishes the second unit and failure leaves that range indeterminate. |
+| A later load targets one field | That field may be published. Reading an enclosing object still requires all remaining bytes to be initialized. |
+| A destination may alias a captured range | It receives no whole-value credit unless must-alias is proved; a partial overlap retains only byte facts true for every candidate. |
+| A candidate is proved unselected | Its prior initialization state is unchanged on both result edges. |
 
 ---
 
@@ -366,6 +525,11 @@ templates, spans, suppression, and history.
 | E10190 | A `const` declaration has no initializer. | The declaration is rejected. |
 | E10191 | A `const` initializer is not a compile-time constant expression. | The declaration is rejected. |
 | E10192 | An assignment target is a `const` declaration. | No store is generated. |
+| E10272 | A `place(...)` modifier has an illegal owner, key, duplicate key, value, or selected-profile region. | The declaration is rejected before layout. |
+| E10273 | The combined explicit, profile, asset, visibility, banking, ownership, alignment, or reserved-range constraints cannot be satisfied. | Placement fails without copying or weakening a requirement. |
+| E10274 | Source uses a `loadable const` as an ordinary resident value. | The use is rejected; the declaration retains no resident address. |
+| E10275 | A load operation's unit, selected profile, or destination does not prove the required exact type, complete mutable interval, lifetime, alignment, visibility, and nonoverlap. | The load call is rejected. |
+| E10276 | A read cannot prove complete initialization on every reaching path or cannot must-alias the successful captured range whose value it claims. | The read is rejected; no runtime check is inserted. |
 
 ### Warning Conditions
 
@@ -388,8 +552,10 @@ templates, spans, suppression, and history.
 | **Structs** (→ Ch 07) | Struct instances can be `let` or `const`. Const structs placed in data section. |
 | **Arrays** (→ Ch 08) | Array `let`/`const` controls element mutability. Const arrays must be fully initialized (E10113). |
 | **Enums** (→ Ch 09) | Enum-typed `let`/`const` occupy 1 byte. Const enum values are inlined. |
-| **Modules** (→ Ch 10) | Module-level `let`/`const`/`zeropage` declarations. `export` makes them visible to other modules. |
-| **Memory model** (→ Ch 11) | `let` → RAM segment. `const` scalar → inlined. `const` aggregate → data/ROM. `zeropage` → ZP range. SFA frame allocation for function locals. |
+| **Modules** (→ Ch 10) | Module-level `let`/`const`/`loadable const`/`zeropage` declarations. `export` makes them visible to other modules. |
+| **Memory model** (→ Ch 11) | `let` → RAM segment. Unplaced scalar `const` → inlined. Aggregate and placed scalar `const` → data/ROM. `loadable const` → package only. `zeropage` → ZP range. SFA frame allocation for function locals. |
+| **Data inclusion** (→ Ch 13) | `embed()` may initialize resident `const` data or a `loadable const`; only the resident form receives a target address during the initial image layout. |
+| **Platform profiles** (→ Ch 15) | Profiles export typed placement regions and may expose a load operation. Core syntax supplies no generic loader or transport. |
 
 ---
 

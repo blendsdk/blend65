@@ -35,6 +35,10 @@ The compiler organizes the output binary into segments. The platform profile (�
 | **Zero Page** | `zeropage` variables, compiler temps, struct/array pointers | $00–$FF (platform profile defines available range) |
 | **Hardware Stack** | Return addresses (JSR/RTS), interrupt context | $0100–$01FF (fixed by 6502 architecture) |
 
+`loadable const` bytes are package content, not a memory segment. They have no resident address
+until a selected-profile load writes an ordinary mutable destination; that destination already
+belongs to RAM, zero page, or a lifetime-valid SFA home.
+
 ### 2.2 Example Memory Map (C64)
 
 ```
@@ -60,6 +64,42 @@ byte. The linker reserves their addresses but the serializer emits no bytes for 
 loader does not overwrite uninitialized storage. The complete prefix plus BSS suffix is the shared
 program footprint and must fit the profile range. This ordering is a flat-image rule, not a claim
 that ROM/cartridge targets serialize RAM reservations.
+
+### 2.3 Explicit Placement Constraints
+
+The linker begins with automatic profile and object constraints. A source `place(...)` modifier may
+add only `at`, `align`, `noCross`, or a typed profile `region`. It never removes a constraint.
+Requirements from a platform operation, asset handler, canonical alias, visibility rule, bank,
+owner, or reserved range are intersected with the source clause. The complete object must satisfy
+the result; otherwise E10273 reports the object, every contributing requirement, and all occupied
+ranges relevant to the conflict.
+
+An exact `at` address does not reserve otherwise illegal memory. An aligned address can still fail
+`noCross`, region, visibility, banking, ownership, or overlap. The linker does not repair a conflict
+by moving an `at` object, duplicating canonical bytes, or copying at runtime.
+
+```blend65
+place(at: $D020) let badTarget: byte; // ❌ MMIO is not ordinary storage
+place(region: c64.vic.bank1, align: 2048) const CHARSET: byte[2048] =
+    embed("level.ctm", "charset");   // ✅ only if all profile/asset constraints intersect
+```
+
+### 2.4 Captured Load Ranges
+
+A load destination uses its existing ordinary storage; loading allocates no new home. The compiler
+evaluates the place once and records a symbolic physical half-open range plus provenance and a fresh
+result identity. When a dynamic expression has several proved candidates, the capture denotes the
+one actually selected range; it does not mark every candidate selected. Before the call, only that
+captured range becomes indeterminate. On the `true` edge it is strongly updated to the complete
+logical value; on the `false` edge it stays indeterminate. Must-not-alias and unselected ranges
+preserve their prior facts, while partial or may-alias ranges retain only byte facts valid for every
+candidate.
+
+Joins intersect predecessor initialization facts, loops use the ordinary monotone fixed point, and
+overlapping later writes kill only the overlap. A whole-value read requires its complete byte range
+on every reaching path. Using the new load's logical-value fact also requires that the read
+must-alias the successful capture. These are compiler facts only; no target descriptor, validity
+flag, generation counter, bitmap, handle, or read check exists.
 
 ---
 
@@ -326,18 +366,20 @@ Cross-reference of where each language construct lives in memory:
 | Module-level `const` scalar | Inlined | 0 bytes | Replaced by literal at use site |
 | Module-level `const` array | Data | N × element size | Baked into binary |
 | Module-level `const` struct | Data | `sizeof(Type)` | Baked into binary |
+| Placed scalar `const` | Data | Scalar width | Materialized because `place(...)` gives it an address |
+| `loadable const` | Package only | 0 resident bytes | Exact logical bytes are transported only for a reachable selected-profile load |
 | `zeropage` variable | Zero page | 1–2 bytes | Fast access |
 | Function parameter (scalar) | SFA frame | 1–2 bytes | Caller writes before JSR |
 | Function parameter (struct/exact array) | SFA frame | 2 bytes | Base address pointer |
 | Function parameter (any-size array) | SFA frame | 4 bytes | Base address pointer + word element count |
 | Function local (scalar) | SFA frame | 1–2 bytes | — |
-| Function local (struct) | SFA frame | `sizeof(Type)` | — |
 | Function local (array) | SFA frame | N × element size | — |
 | Scalar or enum return value | CPU registers | 0 bytes RAM | A or A/X |
 | Fixed aggregate return value | Caller-owned storage | `sizeof(Type)` in its owning object or SFA temporary | Constructed directly or copied with source-value semantics |
 | Materialized aggregate-return destination address | SFA frame | 2 bytes when not encoded by a fixed-address variant | Compiler-managed; never a source parameter |
 | Return address | Hardware stack | 2 bytes | Per active call |
 | `embed()` data | Data | File size | Baked into binary |
+| Load destination | Its ordinary mutable segment/home | Exact fixed logical size | Existing storage; a load allocates no second buffer |
 
 ---
 
@@ -353,6 +395,10 @@ This chapter owns resource and allocation predicates; Chapter 14 owns their cano
 | E10245 | A storage-bearing execution path or hardware-stack path can overlap itself without a static bound. | SFA/stack analysis cannot prove a finite peak. |
 | E10248 | An explicit stack-intrinsic path pops above function entry, pulls the wrong saved kind, joins unequal kind sequences, or exits with a nonempty relative sequence. | Safe deterministic `RTS`/`RTI` state cannot be preserved. |
 | E10260 | A local-origin address or derived fragment may remain observable after its local's dynamic source lifetime. | SFA cannot safely reuse the home, so the escaping use is rejected rather than pinned. |
+| E10272 | A `place(...)` clause has an illegal owner, key, duplicate key, value, or region. | The declaration is rejected before layout. |
+| E10273 | The intersection of explicit and automatic placement constraints is empty. | Layout fails; no requirement is weakened and no copy is introduced. |
+| E10275 | A load destination cannot prove one complete compatible mutable range for every possible selection. | The load call is rejected before emission. |
+| E10276 | A read is not definitely initialized on every path or cannot must-alias the successful captured range it relies on. | The read is rejected without adding target state. |
 
 ### Warning Conditions
 

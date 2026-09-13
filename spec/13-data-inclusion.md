@@ -1,6 +1,6 @@
 # Chapter 13 — Data Inclusion & Asset Embedding
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F015
@@ -9,7 +9,9 @@
 
 ## 1. Overview
 
-The `embed()` intrinsic includes external binary data into the compiled program at compile time. It supports two modes:
+The `embed()` intrinsic imports external data at compile time. An ordinary `const` initializer makes
+the result resident in the initial image; a `loadable const` initializer makes it a typed packaged
+load unit with no resident address. `embed()` supports two input modes:
 
 1. **Raw binary inclusion** — embeds file bytes directly, no format interpretation
 2. **Format-aware asset import** — uses platform-profile-registered format handlers to parse asset files and extract a specific data part named by a literal selector key
@@ -23,6 +25,9 @@ const LOOKUP: byte[] = embed("table.bin");
 // Format-aware — SpritePad file, extract sprite data
 const SPRITES: byte[] = embed("player.spd", "sprites");
 const SPRITE_COUNT: word = embed("player.spd", "count");
+
+// Packaged but not resident; explicit loading is required before use
+loadable const LEVEL_2: byte[] = embed("level2.bin");
 ```
 
 ---
@@ -68,13 +73,21 @@ the keys valid for the parsed file and define each key's type and placement requ
 ### EMB-1 — Compile-Time Only
 
 `embed()` is a compile-time intrinsic. The file is read during compilation. A raw fallback produces
-a `const byte[]`. A registered handler produces the scalar or immutable array type declared by its
-explicit or default selector. Every array result is immutable and placed in the data section.
+an immutable `byte[]`. A registered handler produces the scalar or immutable array type declared by
+its explicit or default selector. The owning declaration decides residency: an ordinary
+module-level `const` places array bytes in the data section, while `loadable const` records exact
+logical bytes, type, hash, provenance, and placement requirements for packaging without assigning a
+resident address.
 
 ```blend65
 const DATA: byte[] = embed("table.bin");    // ✅ const declaration
+loadable const LATER: byte[] = embed("later.bin"); // ✅ package-only declaration
 let DATA: byte[] = embed("table.bin");      // ❌ E10134: embed produces const data
 ```
+
+An embed expression is legal only within the initializer of a module-level resident `const` or a
+`loadable const`. A local `loadable const` is legal because lexical scope creates no runtime
+storage; a local ordinary `const` still cannot embed resident bytes.
 
 ### EMB-2 — File Path Relative to Source
 
@@ -132,17 +145,34 @@ empty or otherwise unrecognized string is an unknown selector and uses E10133.
 
 ## 4. Code Generation
 
-Array-valued `embed()` data is placed directly in the data/ROM section of the binary, exactly like a
-`const byte[]` or `const word[]` initializer. Scalar selectors produce compile-time constants. There
-is no runtime import or conversion cost. Array data uses the ordinary `const`-array access rules
-(→ Ch 08, §10.6).
+Array-valued `embed()` data owned by an ordinary `const` is placed directly in the data/ROM section
+of the initial binary, exactly like a `const byte[]` or `const word[]` initializer. Scalar selectors
+produce compile-time constants. A loadable owner instead contributes no resident bytes or address;
+the selected packager includes the logical bytes only when a reachable selected-profile load needs
+that unit. Compile-time import and conversion have no runtime cost in either form.
 
 Array outputs with the same canonical input path, resolved selector (including a handler default),
-and output representation are one immutable embedded object. Every declaration name aliases the
-same address; the linker emits the bytes once, satisfies fixed placement once, and counts them once
-toward W10150 and `max_binary_size`. This identity rule is independent of source spelling or module
-order. Different selectors or representations remain distinct outputs even when their source file
-is the same.
+and output representation are one immutable embedded object. Resident declarations alias one
+address; loadable declarations alias one package unit. A resident and loadable declaration do not
+silently become one storage object because their residency differs. Each canonical object is
+emitted once in its own domain and satisfies its combined placement requirements once. This rule is
+independent of source spelling or module order. Different selectors or representations remain
+distinct outputs even when their source file is the same.
+
+### 4.1 Loadable Values and Explicit Transfer
+
+A loadable declaration keeps its fixed logical type and compile-time metadata but cannot be read,
+indexed, addressed, mutated, cast, compared, returned, iterated, stored, or passed as an ordinary
+argument. It may be queried at compile time and supplied as the unit argument of a compatible
+selected-profile load operation. Core Blend65 defines no generic loader, descriptor, filename,
+device number, handle, validity flag, or automatic spill from resident data.
+
+The load destination is an exactly typed mutable fixed place. The compiler evaluates it once,
+captures its physical byte range and provenance, and correlates that capture with the operation's
+boolean result. Success publishes only the captured range; failure leaves only that range
+indeterminate after a possible partial transfer. Unselected must-not-alias candidates retain their
+incoming state. Chapter 03 defines the source-level definite-initialization rule, and Chapter 11
+defines its range semantics.
 
 ```
 ; embed("table.bin") — 256 bytes placed in data section
@@ -162,8 +192,8 @@ This chapter owns the asset-import predicates below. Chapter 14 owns their publi
 | E10131 | The selected raw asset file is empty. | The empty input is rejected as invalid raw asset input; zero-length arrays and empty optional parsed components remain legal elsewhere. |
 | E10132 | A registered format has no default selector and the source omits one. | The embed expression is rejected. |
 | E10133 | A selector is not registered for the detected format. | The selector is rejected. |
-| E10134 | `embed()` initializes a mutable `let` rather than `const`. | The declaration is rejected. |
-| E10135 | `embed()` appears outside a module-level declaration. | The expression is rejected. |
+| E10134 | `embed()` initializes a mutable `let` rather than an ordinary or loadable constant. | The declaration is rejected. |
+| E10135 | `embed()` appears outside a module-level ordinary `const` or any `loadable const` initializer. | The expression is rejected. |
 | E10136 | The path argument is not one string literal. | The expression is rejected. |
 | E10137 | A selector is used with an extension that has no registered handler. | The selector is rejected. |
 | E10140 | The selected element count differs from an explicit array extent. | The declaration is rejected. |
@@ -173,6 +203,9 @@ This chapter owns the asset-import predicates below. Chapter 14 owns their publi
 | E10204 | The handler cannot parse the file or its signature/version is not registered by the selected profile. | No asset bytes are emitted. |
 | E10250 | The optional selector argument is present but is not a string literal. | The expression is rejected before handler lookup. |
 | E10261 | A valid SID asset's specific video, SID-model, or multi-SID requirement is incompatible with the selected C64/C64U profile or its player contract. | The asset is rejected before emission or callable-audio lowering; no automatic conversion or contradictory override is attempted. |
+| E10274 | Source uses a loadable declaration as resident data rather than as compile-time metadata or a load-unit argument. | The use is rejected; no resident address is invented. |
+| E10275 | The selected profile has no compatible load operation or the destination lacks an exact fixed mutable range with all required proofs. | The load call is rejected before packaging or emission. |
+| E10276 | A later read lacks definite initialization on every reaching path or lacks must-alias proof with the successful captured range. | The read is rejected without a runtime check. |
 
 ### Warning Conditions
 
@@ -188,8 +221,8 @@ This chapter owns the asset-import predicates below. Chapter 14 owns their publi
 | Feature | Interaction |
 |---------|-------------|
 | **Arrays** (→ Ch 08) | Raw `embed()` produces `const byte[]`; a format selector may produce `const byte[]` or `const word[]`. All const-array rules apply. `length()` returns the element count. |
-| **Variables** (→ Ch 03) | Must be `const`. Cannot be `let`. |
-| **Memory model** (→ Ch 11) | Ordinary embedded data goes to the data/ROM section. A qualified contract may declare player-owned writable/self-modifying ranges; every range adds to binary/resource totals and is reported. |
+| **Variables** (→ Ch 03) | Must be an ordinary `const` or `loadable const`; cannot be `let`. Only the ordinary form is resident. |
+| **Memory model** (→ Ch 11) | Ordinary embedded data goes to the data/ROM section. Loadable data has no resident address and transfers into already-owned mutable storage. A qualified player contract may declare writable/self-modifying ranges; every range adds to binary/resource totals and is reported. |
 | **Platform profile** (→ Ch 15) | Format handlers, selector names, supported file types, and callable-player contracts are platform-profile-defined. |
 
 ---

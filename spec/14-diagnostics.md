@@ -151,8 +151,8 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10131 | F015 / Ch 13 | `Embedded file '<path>' is empty` |
 | E10132 | F015 / Ch 13 | `Format '<format>' (<ext>) requires a selector — available selectors: <list>` |
 | E10133 | F015 / Ch 13 | `Unknown selector '<selector>' for format '<format>' (<ext>) — available selectors: <list>` |
-| E10134 | F015 / Ch 13 | `'embed()' can only initialize a const declaration — found 'let'` |
-| E10135 | F015 / Ch 13 | `'embed()' can only be used at module level` |
+| E10134 | F015 / Ch 13 | `'embed()' can only initialize an ordinary or loadable const declaration — found 'let'` |
+| E10135 | F015 / Ch 13 | `'embed()' can only appear in a module-level ordinary const or a loadable const initializer` |
 | E10136 | F015 / Ch 13 | `'embed()' path must be a string literal` |
 | E10137 | F015 / Ch 13 | `No format handler is registered for extension '<ext>' with selector '<selector>'` |
 | E10140 | F015 / Ch 13 | `Embedded data size mismatch — expected <expected> elements, got <actual>` |
@@ -242,6 +242,11 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10269 | F025 / Ch 06 | `Compile-time evaluation step budget exceeded — 'comptime-budget-v1' allows 16777216 steps; attempted step 16777217 while evaluating root '<root>'` |
 | E10270 | F025 / Ch 06 | `Compile-time evaluation memory budget exceeded — 'comptime-budget-v1' allows 16777216 live logical bytes; allocating <requested> bytes would require <attempted> while evaluating root '<root>'` |
 | E10271 | F025 / Ch 06 | `Compile-time call-depth budget exceeded — 'comptime-budget-v1' allows 512 active calls; call to '<callee>' would enter depth 513 while evaluating root '<root>'` |
+| E10272 | F005 / F019 / Ch 03 | `Invalid place constraint on '<declaration>' — <detail>; allowed keys are at, align, noCross, and region on module-level stored data or emitted functions` |
+| E10273 | F005 / F015 / Ch 03 / Ch 11 / Ch 13 | `Cannot place '<object>' — <requirements> conflict with <occupied_or_profile_fact>; change or remove the explicit constraint` |
+| E10274 | F015 / F019 / Ch 03 / Ch 13 | `Loadable constant '<name>' has no resident value or address — use compile-time metadata or pass it to a compatible selected-profile load operation` |
+| E10275 | F015 / F019 / Ch 03 / Ch 11 / Ch 13 | `Cannot load '<unit>' into '<destination>' — <reason>` |
+| E10276 | F019 / Ch 03 / Ch 11 / Ch 13 | `Cannot prove '<read>' is the complete initialized value from load '<load>' — <failure_edge_mutation_join_or_alias_reason>` |
 
 ---
 

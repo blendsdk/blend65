@@ -37,7 +37,8 @@ address_of_expr = "&" , unary_expr ;
 | On ordinary functions | ✅ Valid — returns the exact `fn(...)` value |
 | On `interrupt` functions | ✅ Valid — returns a distinct non-callable handler value (see F007) |
 | On array/struct `const` | ✅ Valid — stored in data section, has an address |
-| On scalar `const` | ❌ **E10040** — scalar constants are inlined, no address exists |
+| On unplaced scalar `const` | ❌ **E10040** — the scalar is inlined, so no address exists |
+| On `place(...)` scalar `const` | ✅ Valid — explicit placement materializes read-only storage |
 | On scalar parameters | ✅ Valid — local-origin borrow bounded by the active invocation |
 | On aggregate parameters | ✅ Valid — inherits the caller object's lifetime and mutability |
 | On struct fields (`&s.x`) | ✅ Valid — includes the field offset |
@@ -155,10 +156,12 @@ proved. Contained local storage and transitively proven non-retaining calls rema
 module Data;
 
 const MAX_SPEED: byte = 5;                     // Scalar → inlined
+place(at: $3000) const FIXED_COLOR: byte = 6;  // Scalar → materialized
 const SINE_TABLE: byte[256] = [/* ... */];      // Array → stored in data section
 
 function main(): void {
     // let a: word = &MAX_SPEED;               // ❌ E10040: inlined constant has no address
+    let fixedColorAddress: word = &FIXED_COLOR; // ✅ placed scalar has an address
     let b: word = &SINE_TABLE;                  // ✅ Valid: array constant has an address
 }
 ```
@@ -167,7 +170,7 @@ function main(): void {
 
 | # | ID | Ambiguity | Resolution |
 |---|-----|-----------|------------|
-| 1 | AO-1 | `&` on scalar constants | **E10040** — inlined, no address |
+| 1 | AO-1 | `&` on scalar constants | Valid when `place(...)` materializes the declaration; otherwise E10040 |
 | 2 | AO-2 | `&` on array/struct constants | Valid — stored in data section |
 | 3 | AO-3 | `&` on function parameters | Valid, with the parameter origin's lifetime and mutability |
 | 4 | AO-4 | `&` on struct fields / array elements | Valid for every real nested storage place; components evaluate once |
