@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13 12:45
-> **Progress**: 4/31 tasks (13%)
+> **Last Updated**: 2026-09-13 12:48
+> **Progress**: 5/31 tasks (16%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -46,7 +46,7 @@ CodeOps spec-test file/RED template.
 - [x] 1.1.2 Record the exact AR-050 trigonometric formula, ranges, representative vectors, byte encodings, and two canonical fingerprints as the implementation-independent oracle — `08-closeout.md` ✅ (completed: 2026-09-13 12:34)
 - [x] 1.1.3 Record the three `comptime-budget-v1` limits and exact charging/lifetime/boundary examples that later normative prose must satisfy — `08-closeout.md` ✅ (completed: 2026-09-13 12:35)
 - [x] 1.1.4 Capture and hash-pin the primary D64/1541 geometry, C64 KERNAL loader, and Koala records needed by the C64 clauses before those facts freeze — `08-closeout.md` ✅ (completed: 2026-09-13 12:45)
-- [ ] 1.1.5 Run Phase 1 direct formatting, link, identity, oracle-reproduction, baseline-membership, source-record, scope, and plan checks; require no `spec/` or live expert-skill change — `08-closeout.md`, `99-execution-plan.md`
+- [x] 1.1.5 Run Phase 1 direct formatting, link, identity, oracle-reproduction, baseline-membership, source-record, scope, and plan checks; require no `spec/` or live expert-skill change — `08-closeout.md`, `99-execution-plan.md` ✅ (completed: 2026-09-13 12:48)
 
 **Phase gate:** Input identities and exact semantic oracles reproduce. No `spec/`, compiler, or live
 expert artifact changed.

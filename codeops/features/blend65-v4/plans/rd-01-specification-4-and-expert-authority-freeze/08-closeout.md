@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
 > **Status**: In progress
-> **Last Updated**: 2026-09-13 12:43
+> **Last Updated**: 2026-09-13 13:09
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -224,8 +224,17 @@ runtime.
 
 #### `CBM-C64-KERNAL-LOAD-03` — KERNAL 901227-03 loader ABI
 
-- **Authority and pin:** recovered original Commodore C64 KERNAL 901227-03 source at
-  `mist64/cbmsrc` commit `01bd60f162ef92212ef0cb67546ae8f42be34168`. Exact file hashes are
+- **Primary ABI authority and pin:** _Commodore 64 Programmer's Reference Guide_, Commodore
+  Business Machines, 1982, ISBN 0-672-22056-3, Chapter 5 scan at
+  <https://www.commodore.ca/wp-content/uploads/2018/11/c64-programmers_reference_guide-05-basic_to_machine_language.pdf>,
+  SHA-256 `58262099fc7ef9e95e0b6d2cd9f50de12ed48f0a30625456269bcda7f8a6436a`.
+  Printed pages 286, 297, and 299 define `LOAD`, `SETLFS`, and `SETNAM`, including addresses,
+  inputs, setup order, relocation behavior, and the returned end address.
+- **ROM-exact implementation cross-check:** `mist64/cbmsrc` commit
+  `01bd60f162ef92212ef0cb67546ae8f42be34168` contains a verified reconstruction of KERNAL
+  901227-03, manually patched from the revision-03 listing and 1987 BSO source rather than an
+  untouched original source. Its `README.md` has SHA-256
+  `db3e44cdcd3a9e99f53e5e352128c5ea67dabccc8732b99288e3bc7b5c677d6c`. Exact source-file hashes are
   `init` `a19581404b6a7bddaac322c06f3bc5c7f5b442b81175c50acdfd6c48a0dcd180`,
   `load` `c4ee7c1abb358a6caa4e91f30937e7d71b099f621a8f7e8388cd4e10c37ad6c7`,
   `vectors` `7e5a1954d592b4ff48ace641f9432795a6a9a37c1f3b97d4b52333f5324ef714`,
@@ -236,15 +245,19 @@ runtime.
   filename address in X/Y. `LOAD` takes 0 in A for load and, when the secondary address is 0, the
   relocating destination in X/Y. Successful serial load writes directly from that address until
   end-of-information, returns the one-past-end address in X/Y, and clears carry. Errors return an
-  error number in A with carry set. The current device is `FA` at `$BA`; reusing it for the boot
-  device is project policy built on that recorded state, not a ROM requirement.
+  error number in A with carry set. The manual's “highest RAM location loaded” wording conflicts
+  with revision 901227-03: the ROM-exact `LD50`–`LD64` path increments `EAL/EAH` after each stored
+  byte, and `LD180`–`LD190` returns that one-past-end value, which therefore governs this selected
+  ROM contract. The current device is `FA` at `$BA`; reusing it for the boot device is project
+  policy built on that recorded state, not a ROM requirement.
 - **Resources and integrity bound:** the path uses KERNAL state including `STATUS`, `VERCK`,
   `MEMUSS`, `EAL/EAH`, `FNLEN`, `FNADR`, `LA`, `SA`, and `FA`, plus serial/KERNAL service calls.
   `LOAD` has no destination-length parameter and stores each received byte before testing the final
   returned address. This is the source fact behind `HLE-010`: a readable longer replacement can
   overwrite beyond the expected range before the wrapper detects the wrong end address.
-- **Precise locations:** `vectors` jump table; `init::SETNAM/SETLFS`; `load::LOADSP/NLOAD`,
-  `LD25`–`LD90`, and `LD180`–`LD190`; `declare` `$90` workspace; `errorhandler::ERROR1`–`EREXIT`.
+- **Precise locations:** manual Appendix B entries B-15, B-28, and B-30; reconstructed-source
+  `vectors` jump table; `init::SETNAM/SETLFS`; `load::LOADSP/NLOAD`, `LD25`–`LD90`, and
+  `LD180`–`LD190`; `declare` `$90` workspace; `errorhandler::ERROR1`–`EREXIT`.
 
 #### `KOALA-NATIVE-003` — classic Koala layout
 
@@ -263,3 +276,62 @@ runtime.
 - **Limit:** neither source is the original Koala Painter manual. They establish the classic byte
   layout, not selector names or unused-high-nibble behavior. Exact full-byte preservation with only
   low-nibble VIC-II color meaning is the separately approved AR-039/AR-041 project policy.
+
+### Phase 1 verification
+
+| Command | Exit | Result |
+|---|---:|---|
+| `npx prettier --check codeops/features/blend65-v4/00-roadmap.md codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze/{08-closeout.md,99-execution-plan.md}` | 0 | All touched Markdown is formatted |
+| `python3 /home/gevik/.codex/plugins/cache/codeops-marketplace/codeops/1.2.0/scripts/validate_markdown_links.py codeops/features/blend65-v4` | 0 | All local links resolve |
+| `python3 /home/gevik/.codex/plugins/cache/codeops-marketplace/codeops/1.2.0/scripts/codeops_plan.py --root . --plan codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze --json` | 0 | 31 tasks; 5 verified; 26 pending; no parse problem |
+| Literal one-shot Node block below | 0 | Both trigonometric tables regenerated; fingerprints and representative values match; every budget boundary phrase is present |
+| Literal `sha256sum` block below | 0 | Every recorded external-source SHA-256 value reproduces, including the manufacturer manual and reconstruction README |
+| `git diff --name-only 80803ebbebc89f82e482b1652e74531c2b25aae4` plus `git diff --quiet 5e07ad7 -- spec .agents/skills/blend65-domain-expert` | 0 | Only the closeout, plan, and feature roadmap differ from baseline; `spec/` and the live expert skill are unchanged |
+| `git diff --check` | 0 | No whitespace error |
+
+The semantic-oracle row used this one-shot command; it creates no validator or repository artifact:
+
+```bash
+node --input-type=module <<'NODE'
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+const roundAway = (x) => x < 0 ? -Math.floor(-x + 0.5) : Math.floor(x + 0.5);
+const generate = (k) => {
+  const n = 2 ** k;
+  const a = 2 ** (k - 1) - 1;
+  const values = Array.from({ length: n }, (_, p) => roundAway(a * Math.sin(2 * Math.PI * p / n)));
+  const bytes = k === 8 ? Buffer.from(values.map((v) => v & 0xff)) : Buffer.from(values.flatMap((v) => [v & 0xff, (v >> 8) & 0xff]));
+  return { values, hash: createHash('sha256').update(bytes).digest('hex') };
+};
+const a = generate(8);
+const b = generate(16);
+if (a.hash !== 'fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259') throw new Error('sin8 hash');
+if (b.hash !== 'e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50') throw new Error('sin16 hash');
+for (const [actual, expected] of [[a.values[0],0],[a.values[32],90],[a.values[64],127],[a.values[128],0],[a.values[192],-127],[b.values[8192],23170],[b.values[16384],32767],[b.values[32768],0],[b.values[49152],-32767]]) if (actual !== expected) throw new Error(`vector ${actual} != ${expected}`);
+const closeout = readFileSync('codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze/08-closeout.md', 'utf8');
+for (const phrase of ['Step 16,777,217','16,777,217 logical bytes','depth 513','short-circuited expressions','An alias adds no memory charge','same counters in deterministic semantic order','Caching may reduce host work','Release storage at its defined']) if (!closeout.includes(phrase)) throw new Error(`missing budget phrase: ${phrase}`);
+NODE
+```
+
+The external-source row used this literal command after retrieving the pinned sources:
+
+```bash
+sha256sum /tmp/commodore-vic-1541-users-manual.pdf \
+  /tmp/cbmsrc-01bd60/DOS_1541_05/{romtblsf.src,tst2.src,tst4.src} \
+  /tmp/blend65-p6-0J7BIF/vice-3.10/vice/src/diskimage.h \
+  /tmp/blend65-p6-0J7BIF/vice-3.10/vice/src/diskimage/{diskimage.c,fsimage-check.c} \
+  /tmp/c64-prg-ch5.pdf /tmp/cbmsrc-01bd60/README.md \
+  /tmp/cbmsrc-01bd60/KERNAL_C64_03/{init,load,vectors,declare,errorhandler} \
+  /tmp/codebase64-koala-v003.txt /tmp/retropixels-cli-readme.md
+```
+
+The independent phase review corrected one provenance label: the KERNAL source is now accurately
+recorded as a ROM-exact reconstruction, while the manufacturer manual owns the public ABI. This
+required no new artifact, validator, or implementation mechanism.
+
+The final independent correctness re-review found no remaining issue. It confirmed the literal
+verification commands, the manual/ROM return-address reconciliation, the unchanged specification
+test tier, and the strict three-document Phase 1 scope.
+
+Phase 1 therefore meets V-01, V-06, V-07, and V-16. It creates evidence only and introduces no
+implementation mechanism.
