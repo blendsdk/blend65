@@ -801,3 +801,30 @@ for (const phrase of ['preserves all eight bits of every Color RAM source byte a
 console.log('V-09 PASS: Koala, D64, KERNAL, quiescence/publication, and HLE-010 agree with pinned records');
 NODE
 ```
+
+## Phase 4: Qualified Isolated Expert 2.0.0 Candidate
+
+Phase 4 started from snapshot tree `f1535538e0a33f9495607654b6bcfe1b811bb2b6`. Its scope is
+only the isolated expert candidate, qualification evidence, and this plan's closeout/progress
+records. It does not change the live expert, compiler, runtime, or Specification 4.
+
+### Candidate seed
+
+The candidate was copied from the complete active expert 1.0.0 tree only after `find` confirmed
+that every entry below both roots was either a directory or a regular file. The comparison hashes
+each regular file, sorts the records by candidate-relative path under `LC_ALL=C`, and hashes the
+resulting GNU `sha256sum` record stream.
+
+| Seed fact | Result |
+|---|---|
+| Live files | 22 regular files; no symlink or non-regular entry |
+| Candidate files | 22 regular files; no symlink or non-regular entry |
+| Live full-tree record digest | `bd9ea8b038705242b1df89de4c116a80ce480c6dca00a5c48b14944acbeffd6b` |
+| Candidate full-tree record digest | `bd9ea8b038705242b1df89de4c116a80ce480c6dca00a5c48b14944acbeffd6b` |
+| Live runtime-payload digest | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
+| Candidate runtime-payload digest | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
+| Byte comparison | Every path and file hash is identical at seed time |
+
+The runtime-payload digest excludes `qualification/` and therefore reproduces the active release
+record. The full-tree digest includes the current release record and is the pre-edit proof used to
+show that the live skill stays unchanged through candidate qualification.
