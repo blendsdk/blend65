@@ -1,15 +1,16 @@
 # Compiler Architecture Doctrine
 
-> **Baseline version**: `1.0.0`. This module defines responsibilities and invariants, not a
+> **Baseline version**: `2.0.0`. This module defines responsibilities and invariants, not a
 > mandatory class diagram.
 
 ## Design Objective
 
-Blend65 is one language compiler for the 6502 family, with C64 as the first platform and later
-targets composed from shared and target-specific responsibilities. Modern source ergonomics and
-expert-quality assembly are simultaneous requirements. A convenient internal boundary is not valid
-if it loses language meaning, forces hardware lore into normal source, or prevents a later backend
-from producing target-appropriate code.
+Blend65 is one language compiler for the 6502 family. Specification 4 qualifies only nine C64
+profiles. Later machines remain possible, but they are non-normative design pressure until their
+own profiles and evidence qualify. Modern source ergonomics and expert-quality assembly are
+simultaneous requirements. A convenient internal boundary is not valid if it loses language
+meaning, forces hardware lore into normal source, or prevents a later backend from producing
+target-appropriate code.
 
 ACME is the currently selected emitter dialect by explicit product/toolchain policy, not a Blend65
 language semantic. The responsibility boundaries below therefore keep emitter dialect selectable:
@@ -80,14 +81,14 @@ Treat four selections independently even when the first implementation ships the
 | Selection | Examples | Owns |
 |---|---|---|
 | CPU variant | NMOS 6502, 6510, 65C02 | legal instructions/addressing, flag behavior, silicon hazards, cycle/byte facts |
-| Machine/platform | C64, C64U, X16, Atari 800XL, Atari 7800 | memory/I/O map, reserved regions, interrupt/device model, encodings, asset visibility, resource budgets |
+| Machine/platform | one of the nine qualified C64 profiles | memory/I/O map, reserved regions, interrupt/device model, encodings, asset visibility, resource budgets |
 | Emitter dialect | ACME | expression/directive/local-label syntax, relocation spelling, segment syntax |
-| Artifact packager | PRG, XEX, A78/ROM | load address/header, startup, memory image, bank/ROM layout, final validation |
+| Artifact packager | PRG or the qualified D64 form | load address/header, startup, memory image, disk layout, final validation |
 
-The shared 6502-family backend consumes the selected CPU definition and platform facts. Adding an
-Atari target must not mean copying a C64 backend and renaming hooks. Conversely, “universal” hooks
-must not smear VIC-II, VERA, ANTIC, or MARIA concepts across every target. Share a responsibility
-only where its semantics are truly common; compose the rest.
+The shared 6502-family backend consumes the selected CPU definition and platform facts. A future
+target must not copy a C64 backend and rename hooks, and it does not become supported merely by
+appearing in a portability comparison. Share a responsibility only where its semantics are truly
+common; compose the rest after the future target qualifies.
 
 Platform data should be structured and validated. Prefer symbolic register/device identities and
 constraints over raw constants. A C64 library may expose `VIC.borderColor` while lowering it to
@@ -105,12 +106,6 @@ variant restores its entry flags before reaching the previous handler, while raw
 paths restore the interrupted status. Proof may remove redundant normalization but never weaken
 either status boundary.
 Do not solve this with a universal dispatcher, wrapper stack, or runtime ABI registry.
-
-BRK uses the same target-bound discipline without becoming an interrupt-handler API. The neutral
-frontend records a synchronous software-interrupt operation. The selected profile must then supply
-its exact vector/handler identity, returning or non-returning edge, stack peak, clobbers, and machine
-effects. The backend emits only `$00 $EA`; missing proof is E10259, never an invitation to add a
-debug runtime.
 
 ## Required Pipeline Invariants
 
@@ -224,7 +219,7 @@ storage or reparses text is not convergence.
 
 ## Decision Examples
 
-### Adding another 6502 machine
+### Qualifying another 6502 machine
 
 Start by comparing the new CPU variant, platform map/device model, emitter needs, and artifact
 format. Reuse the semantic frontend and common 6502 lowering where their contracts match. Add only
@@ -261,10 +256,10 @@ not zero cost and must be redesigned or the measured gap filed.
 ## Sources
 
 - `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE headings; Environment & dependencies; Project-specific: Skill/implementation independence]` — product/process authority for modern input, expert output, and the selected ACME toolchain
-- `[BLEND65-SPEC-P3-4bf8a989, spec/00-introduction.md §Design Axioms]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/15-platform-profile.md §Platform Profile Contract]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/06-functions.md §SFA Calling Convention]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/11-memory-model.md §Static Frame Allocation]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/00-introduction.md §Design Axioms]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/06-functions.md §SFA Calling Convention]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/11-memory-model.md §Static Frame Allocation]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative responsibility model only
 - `[LLVM-MOS-275C7FC, repository architecture and target implementation]` — comparative only
 - `[OSCAR64-1.32.273, compiler/codegen/CodeGenerator6502.cpp and compiler/optimizer/]` — comparative instruction-selection and optimization structure only
