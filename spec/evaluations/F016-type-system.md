@@ -9,17 +9,17 @@
 
 ## Description
 
-This evaluation consolidates the rationale for the Blend65 v3 type-system rules across declarations,
+This evaluation consolidates the rationale for the Blend65 4 type-system rules across declarations,
 expressions, and assignments. The normative rules remain in Chapters 02–04 and their governing
 chapters; this document cannot override them.
 
-Blend65 v3 is **fully explicitly typed** — every declaration requires a type annotation. There is no type inference. This is a deliberate design choice for a 6502 language where the difference between `byte` and `word` directly determines memory usage, register allocation, and cycle counts. The developer states their intent; the compiler enforces it.
+Blend65 4 is **fully explicitly typed** — every declaration requires a type annotation. There is no type inference. This is a deliberate design choice for a 6502 language where the difference between `byte` and `word` directly determines memory usage, register allocation, and cycle counts. The developer states their intent; the compiler enforces it.
 
 ---
 
 ## Part 1: The Type Table
 
-Blend65 v3 has exactly six types:
+Blend65 4 has exactly six primitive types:
 
 | Type | Size | Signed | Range | 6502 Mapping |
 |------|------|--------|-------|-------------|
@@ -46,7 +46,7 @@ Blend65 v3 has exactly six types:
 
 | Derived Type | Example | Defined In |
 |-------------|---------|------------|
-| Array | `byte[256]`, `sword[10]` | F014 |
+| Fixed array | `byte[256]`, `byte[25][40]` | F014 |
 | Struct | `struct Player { x: byte, y: byte }` | F011 |
 | Enum | `enum Direction { UP, DOWN, LEFT, RIGHT }` | F022 (byte-backed nominal) |
 
@@ -298,6 +298,13 @@ for true constant contexts or these cases:
 - Comparisons (result is boolean, not numeric)
 - When the narrow expression is provably within range (constant folding)
 
+Direct array subscripting is the explicit exception to ordinary narrow intermediate arithmetic.
+Inside `array[...]`, every direct unbarriered integer-producing operator promotes `byte`/`sbyte`
+operands into the matching 16-bit signedness domain before evaluation. An explicit 8-bit cast, a
+completed 8-bit assignment or compound assignment, or a completed 8-bit-returning call is a narrow
+barrier: its ordinary wrap occurs before the result widens for indexing. The contextual promotion
+itself emits no overflow warning.
+
 ---
 
 ## Part 5: The Complete Type Mixing Matrix
@@ -474,19 +481,28 @@ let d: word = a + c + b;       // (byte + word) = word(1100), then word + byte =
 
 ### TS-A6: Does Blend65 have type aliases?
 
-**No.** Type aliases (`type Name = ExistingType;`) were evaluated and **rejected** — see `future-considerations.md` → REJ-001. Blend65 has no type aliasing; refer to every type by its real name. Use a well-named declaration (e.g. `spriteIndex: byte`) to convey intent. The `type` keyword remains reserved (F021 LS-9) but is unusable in v3.
+**No.** Type aliases (`type Name = ExistingType;`) were evaluated and **rejected** — see `future-considerations.md` → REJ-001. Blend65 has no type aliasing; refer to every type by its real name. Use a well-named declaration (e.g. `spriteIndex: byte`) to convey intent. The `type` keyword remains reserved (F021 LS-9) but is unusable in Specification 4.
 
 
 ### TS-A7: Can you cast between enum and integer types?
 
 Enums are `byte`-backed. Implicit conversion enum→byte is allowed; byte→enum is not (prevents invalid enum values). This will be fully specified when the enum feature is formalized.
 
-### TS-A8: What types do `sizeof()` and `offsetof()` return?
+### TS-A8: What types do `length()`, `sizeof()`, and `offsetof()` return?
 
-Both always return `word`. This prevents an object-size or field-offset boundary from changing the
-meaning of otherwise identical arithmetic. The values are compile-time-known, so lowering may
-still use one byte when that preserves every observation. Array extents and complete fixed
-array/struct sizes must fit `0..65535`; an unsized array has no standalone `sizeof` value.
+All three always return `word`. This prevents an element-count, object-size, or field-offset
+boundary from changing otherwise identical arithmetic. `sizeof()` and `offsetof()` are
+compile-time-known. `length()` folds for a fixed array and loads the carried word count for an
+any-size parameter. Lowering may still use one byte when that preserves every observation. Array
+extents and complete fixed array/struct sizes must fit `0..65535`; an unsized array has no
+standalone `sizeof` value.
+
+### TS-A9: What makes two fixed-array types compatible?
+
+Their element types and every ordered extent must match exactly. `byte[25][40]` is 25 elements of
+type `byte[40]`, so it differs from `byte[40][25]`. Assignment and return use this exact-shape rule.
+The contextual `T[]` spelling is not a storable or returnable value type: it is only an initialized
+declaration's extent placeholder or an outermost any-size parameter.
 
 ---
 
@@ -498,6 +514,9 @@ array/struct sizes must fit `0..65535`; an unsized array has no standalone `size
 | E10151 | [Chapter 14](../14-diagnostics.md) | Boolean operand in `+`, `-`, `*`, etc. |
 | E10152 | [Chapter 14](../14-diagnostics.md) | `void(expr)` or cast to void |
 | E10153 | [Chapter 14](../14-diagnostics.md) | `byte(myStruct)` or `byte(myArray)` |
+| E10264 | [Chapter 14](../14-diagnostics.md) | Array extent outside the compile-time integer `0..65535` domain |
+| E10265 | [Chapter 14](../14-diagnostics.md) | Complete fixed array or struct type exceeds 65535 bytes |
+| E10266 | [Chapter 14](../14-diagnostics.md) | `sizeof` is applied to an unsized array type |
 
 **Existing error codes that enforce type system rules:**
 
@@ -531,7 +550,7 @@ array/struct sizes must fit `0..65535`; an unsized array has no standalone `size
 | F010 Signed types | TS-3 through TS-5 formalize and generalize F010's ST-1 (no mixing) and ST-2 (implicit widening) |
 | F011 Structs | Struct field access produces the field's declared type. Struct types are not castable (TS-11). Complete struct size must fit `0..65535`; `sizeof` and `offsetof` are stable-word compile-time queries |
 | F013 Control flow | Conditions must be boolean (CF-2 / E10100). TS-6 reinforces this |
-| F014 Arrays | Array element access produces the element type. Every integer type may be an index under the index-ordinal context; non-integers are E10263 and known negative/out-of-extent values are E10240. Array extent and total type size must fit `0..65535`. Array size inference is allowed (not element-type inference) |
+| F014 Arrays | Array element access produces the element type. Every integer type may be an index under the index-ordinal context; non-integers are E10263 and known negative/out-of-extent values are E10240. Every ordered fixed extent participates in type identity; extents and total type size must fit `0..65535`. Array extent inference is allowed only in its defined initializer/parameter contexts |
 | F015 Data inclusion | `embed()` selectors have declared return types. Type validation per E10144 |
 | F017 Operators | All operator result types follow TS-3 through TS-7. Operator-specific rules in F017 |
 

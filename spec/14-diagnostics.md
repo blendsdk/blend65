@@ -1,6 +1,6 @@
 # Chapter 14 — Diagnostics: Canonical Registry
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: Chapters 01–13 and their accepted feature evaluations
@@ -143,10 +143,8 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10112 | F014 / Ch 08 | `Array initializer has <N> elements but the declared size is <M>` |
 | E10113 | F014 / Ch 08 | `Const array must be fully initialized — <N> elements provided for size <M>; use '[values; fill]'` |
 | E10114 | F014 / Ch 08 | `Fill syntax '[...; fill]' requires an explicit array size` |
-| E10115 | F014 / Ch 08 | `Fill value must be one element — found a string or array` |
+| E10115 | F014 / Ch 08 | `Fill value has type '<actual>' but array element type is '<expected>'` |
 | E10116 | F014 / Ch 08 | `Cannot mix string literals with value elements in an array initializer` |
-| E10119 | F014 / Ch 08 | `Cannot assign a whole array — copy elements explicitly` |
-| E10120 | F014 / Ch 08 | `Cannot return an array type — use an array parameter` |
 | E10121 | F014 / Ch 08 | `Cannot compare arrays with '<op>' — compare individual elements` |
 | E10122 | F014 / Ch 08 | `Cannot pass const '<name>' to mutable parameter '<param>' — make the parameter const or copy the value` |
 | E10123 | F014 / Ch 08 | `Cannot modify const parameter '<name>'` |
@@ -228,7 +226,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10250 | F015 / Ch 13 | `'embed()' selector must be a string literal — found '<expr>'` |
 | E10251 | F014 / Ch 08 | `Character-map argument must be a string literal — available maps for '<encoding>' on '<platform>': <list>` |
 | E10252 | Ch 06 / Ch 12 | `Raw interrupt-entry address for '<name>' cannot be written directly to firmware vector '<vector>' — use '<sink>' so the compiler selects the required entry variant` |
-| E10253 | Ch 08 | `Array storage '<name>' has no compile-time-known extent — add '[N]' or an extent-inferencing initializer` |
+| E10253 | Ch 08 | `Array use at '<site>' has no compile-time-known extent — add '[N]', use an extent-inferencing initializer, or keep 'T[]' as an outermost parameter form` |
 | E10254 | Ch 12 | `Packed-BCD operand '<value>' contains a non-decimal digit — every nibble must be 0 through 9` |
 | E10255 | Ch 12 | `Raw decimal mode reaches '<boundary>' before 'asm_cld()' — ordinary Blend65 operations require binary mode` |
 | E10256 | F015 / Ch 13 / C64 | `Audio operation '<operation>' requires a qualified player contract for asset '<name>' — embedded data alone is not a callable player ABI` |
@@ -304,6 +302,8 @@ code with the same number.
 | E10083 wide shift | E10161 for invalid shift type or W10174 for a constant amount at least the width; E10083 remains unsigned negation. |
 | E10100 undeclared identifier | E10239; E10100 remains non-boolean condition. |
 | E10101 nested lexical shadowing | Retired and reserved; nested shadowing is legal, while E10003 rejects declarations in the same scope. |
+| E10119 whole-array assignment | Retired; fixed arrays have ordinary exact-shape value assignment. |
+| E10120 fixed-array return | Retired; fixed arrays may be returned with exact-shape value semantics. Unsized `T[]` remains non-returnable and uses E10253. |
 | E10112 platform array budget | E10238; E10112 remains array initializer count mismatch. |
 | E10114 invalid index type | E10263; E10114 remains fill syntax without explicit size. |
 | E10085 signed array index | Retired; all integer types are valid final indices under the Chapter-08 index-ordinal context. |

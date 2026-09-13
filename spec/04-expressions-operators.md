@@ -1,6 +1,6 @@
 # Chapter 04 — Expressions & Operators
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F017, F024, F006, F020
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-This chapter defines the complete expression system of Blend65 v3: the operator set, operator precedence, the address-of operator, the conditional (ternary) operator, and the nine memory intrinsics. Type rules for all operators are defined canonically in → Ch 02; this chapter defines *what* operators exist, their precedence, their evaluation rules, and their 6502 code generation cost.
+This chapter defines the complete expression system of Blend65 4: the operator set, operator precedence, the address-of operator, the conditional (ternary) operator, and the memory and query intrinsics. Type rules for all operators are defined canonically in → Ch 02; this chapter defines *what* operators exist, their precedence, their evaluation rules, and their 6502 code generation cost.
 
 ---
 
@@ -171,6 +171,19 @@ let copied: byte = target = source;       // assignment result is the stored byt
 a = b = nextValue();                     // nextValue() is called once
 table[nextIndex()] += delta();            // each call and the table place are evaluated once
 ```
+
+### 3.6 Direct Array-Subscript Arithmetic
+
+The expression directly inside `array[...]` supplies an element ordinal. Before each direct,
+unbarriered integer-producing operation evaluates, `byte` operands widen to `word` and `sbyte`
+operands widen to `sword`. The operation set is unary `~` and `-`, arithmetic `+`, `-`, `*`, `/`,
+`%`, shifts `<<` and `>>`, and bitwise `&`, `|`, and `^`. Ordinary signedness rules still apply;
+comparisons and logical operators produce `boolean` and therefore cannot be array indices.
+
+An explicit 8-bit cast, a completed assignment or compound assignment to 8-bit storage, or a
+completed function call returning an 8-bit value is a narrow barrier. Its ordinary fixed-width
+result is widened only after the barrier. Parentheses do not create a barrier. Chapter 08 defines
+the complete indexing, bounds, and layout rules.
 
 ---
 
@@ -543,7 +556,7 @@ arithmetic semantics; proof may still select byte machine work for a particular 
 - An unsized array type such as `byte[]` has no standalone fixed size: **E10266**.
 - `sizeof(void)` is 0.
 - `sizeof(EnumName)` is 1 (enums are byte-backed).
-- Every valid fixed array or struct type has a total byte size in `0..65535` (→ Ch 02, TS-23).
+- Every valid fixed array or struct type has a total byte size in `0..65535` (→ Ch 02, TS-24).
 - Evaluated at compile time — no runtime cost.
 
 #### `offsetof(StructType, fieldName): word`

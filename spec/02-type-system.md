@@ -1,6 +1,6 @@
 # Chapter 02 — Type System
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F016, F010, F022 (enum↔byte rules)
@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-Blend65 v3 is **fully explicitly typed** — every variable, constant, parameter, and return type requires an explicit type annotation. There is no type inference. This is a deliberate design choice: on the 6502, the difference between `byte` and `word` directly determines memory usage, register allocation, and cycle counts. The developer states their intent; the compiler enforces it.
+Blend65 4 is **fully explicitly typed** — every variable, constant, parameter, and return type requires an explicit type annotation. There is no type inference. This is a deliberate design choice: on the 6502, the difference between `byte` and `word` directly determines memory usage, register allocation, and cycle counts. The developer states their intent; the compiler enforces it.
 
 This chapter defines the complete type system: the six primitive types, derived types (arrays, structs, enums), the rules for how types interact in expressions and assignments, explicit cast semantics, and the enum conversion model.
 
@@ -46,7 +46,7 @@ Derived types are composite constructs built from primitive types. They are not 
 
 | Derived Type | Example | Defined In |
 |-------------|---------|------------|
-| Array | `byte[256]`, `sword[10]` | → Ch 08 |
+| Fixed array | `byte[256]`, `byte[25][40]` | → Ch 08 |
 | Struct | `struct Player { x: byte; y: byte; }` | → Ch 07 |
 | Enum | `enum Direction { UP, DOWN, LEFT, RIGHT }` | → Ch 09 |
 
@@ -517,7 +517,13 @@ valid struct, so field-offset arithmetic must not silently narrow merely because
 small. The result is a compile-time constant, and proof may select byte-only machine work when that
 preserves every use.
 
-### TS-23 — Fixed Object Size Domain
+### TS-23 — `length` Returns `word`
+
+`length(arrayExpression)` always returns `word`. It folds for a fixed array and reads the caller's
+word element count for an any-size parameter. Crossing 255 elements never changes surrounding
+source arithmetic. Chapter 08 defines the complete query and parameter rules.
+
+### TS-24 — Fixed Object Size Domain
 
 Every array extent is evaluated as a full-precision constant and must be in `0..65535`. Every
 fixed array or struct type must occupy `0..65535` bytes after its complete nested size is computed
@@ -528,6 +534,18 @@ struct at 255 bytes.
 An unsized array type such as `byte[]` has no standalone fixed size. It is legal only in the
 initializer-inference and any-size-parameter roles defined by Chapters 06 and 08; applying
 `sizeof` to it is rejected.
+
+### TS-25 — Fixed Array Type Identity
+
+A fixed array is a value type whose element type and every extent are part of its identity.
+Dimensions are written outermost to innermost: `byte[25][40]` is 25 elements of type `byte[40]`.
+Two fixed-array types are compatible only when their element types and complete ordered extent lists
+match exactly. Assignment and return use that exact compatibility rule; Chapter 08 defines array
+layout and Chapter 06 defines aggregate parameter and return behavior.
+
+`T[]` is not a standalone value type. It is legal only as an extent-inference placeholder on an
+initialized declaration or as the outermost any-size parameter form defined in Chapter 08. It
+cannot be stored or returned and does not introduce a dynamic array, slice, span, or view.
 
 ---
 
@@ -549,9 +567,12 @@ severities, message templates, spans, suppression, and history.
 | E10152 | A cast has `void` as source or destination. | The cast is rejected. |
 | E10153 | A cast targets or consumes a struct or array type. | The cast is rejected. |
 | E10154 | An ordered comparison has a boolean operand. | The comparison is rejected. |
-| E10241 | A type-name position contains an unresolved identifier. | The declaration or expression is rejected. |
 | E10235 | A byte value reaches an enum destination without an explicit enum cast. | The conversion is rejected. |
 | E10236 | A comparison combines two different nominal enum types. | The comparison is rejected. |
+| E10241 | A type-name position contains an unresolved identifier. | The declaration or expression is rejected. |
+| E10264 | An array extent is not a compile-time integer in `0..65535`. | The array type is rejected. |
+| E10265 | A complete fixed array or struct type occupies more than 65535 bytes. | The type is rejected. |
+| E10266 | `sizeof` names an unsized array type. | The query is rejected because no standalone fixed extent exists. |
 
 ### Warning Conditions
 

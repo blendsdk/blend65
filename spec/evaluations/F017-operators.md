@@ -9,9 +9,9 @@
 
 ## Description
 
-This feature formalizes the complete operator set for Blend65 v3 — arithmetic, bitwise, comparison, logical, unary, and compound assignment operators. It specifies operator precedence, short-circuit evaluation, and the three-tier codegen strategy for multiply/divide/modulo operators on the 6502 (which lacks hardware multiply and divide instructions).
+This feature formalizes the complete operator set for Blend65 4 — arithmetic, bitwise, comparison, logical, unary, and compound assignment operators. It specifies operator precedence, short-circuit evaluation, and the three-tier codegen strategy for multiply/divide/modulo operators on the 6502 (which lacks hardware multiply and divide instructions).
 
-Blend65 v3 includes operators that map naturally to 6502 instructions and excludes operators that are meaningless or prohibitively expensive on the target platforms. Representative patterns and their accounting boundaries are documented below; sequence-dependent operations require the selected lowering to report its actual complete costs.
+Blend65 4 includes operators that map naturally to 6502 instructions and excludes operators that are meaningless or prohibitively expensive on the target platforms. Representative patterns and their accounting boundaries are documented below; sequence-dependent operations require the selected lowering to report its actual complete costs.
 
 ---
 
@@ -88,11 +88,15 @@ Blend65 v3 includes operators that map naturally to 6502 instructions and exclud
 
 Compound assignment follows the same type rules as the expanded form (F016 TS-12).
 
+Outside the direct array-subscript context defined below, runtime integer operations evaluate at
+their operand-derived fixed width and wrap deterministically. A wider assignment, argument, or
+return destination does not retroactively widen an already completed narrow operation.
+
 ---
 
 ## Part 2: Excluded Operators
 
-The following operators are **not** included in Blend65 v3:
+The following operators are **not** included in Blend65 4:
 
 | Operator | Why Excluded |
 |----------|-------------|
@@ -468,6 +472,30 @@ let stride: word = word(index) * 40;
 This warning is **informational only**. It does not trigger for a single power-of-two shift,
 compile-time-constant expressions that fold away, or a constant multiplication whose selected
 lowering does not use both shifting and addition/subtraction.
+
+### Direct Array-Subscript Context
+
+The expression directly inside `array[...]` is an element ordinal. Before each direct unbarriered
+integer-producing operation evaluates, `byte` becomes `word` and `sbyte` becomes `sword`. This
+applies to unary `~` and `-`, arithmetic `+`, `-`, `*`, `/`, `%`, shifts `<<` and `>>`, and bitwise
+`&`, `|`, and `^`. Parentheses preserve the context. Ordinary signedness rules still apply, while
+comparisons and logical operators produce `boolean` and therefore E10263.
+
+```blend65
+let data: byte[500];
+let shifted: byte[600];
+let i: byte = 255;
+
+data[i + 10];          // ordinal 265
+shifted[i << 1];       // ordinal 510
+data[510];              // ❌ E10240: outside data[0..499]
+data[byte(i + 10)];    // explicit narrow barrier: ordinal 9
+```
+
+An explicit 8-bit cast, an assignment or compound assignment completed in 8-bit storage, or a
+completed call returning an 8-bit value is a narrow barrier. Its ordinary fixed-width wrap occurs
+before the final value widens for indexing. This contextual rule changes source semantics only
+inside a direct subscript; proof may still select byte-only machine operations.
 
 ---
 
@@ -950,6 +978,8 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 | E10081 | F010 | Mixed signedness in binary operator |
 | E10083 | F010 | Unary negation on unsigned type |
 | E10151 | F016 | Boolean in arithmetic expression |
+| E10240 | F014 | Compile-time-known array ordinal is outside its extent |
+| E10263 | F014 | Array index expression produces a non-integer type |
 
 ### Warning Codes
 
@@ -972,7 +1002,7 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 | F010 Signed types | Signed comparison codegen (N⊕V). Arithmetic shift for signed `>>`. No negation of unsigned |
 | F011 Structs | No operators on struct types. Access fields first, then use operators on field values |
 | F013 Control flow | Conditions use comparison and logical operators. Result must be `boolean` (F013 CF-2) |
-| F014 Arrays | Array indexing uses `+` internally (base + offset). No operators on whole arrays |
+| F014 Arrays | Direct unbarriered index arithmetic uses the 16-bit-capable ordinal context; explicit narrow barriers retain ordinary wrap. Array assignment is exact-shape value assignment; other operators do not apply to whole arrays |
 | F016 Type system | All operator type rules defined in F016. F017 specifies codegen and precedence |
 | F024 Conditional operator | The ternary `? :` is below `||` and above the lowest-precedence assignment operators (Part 3). Its semantics, type unification, and codegen are defined in F024 |
 

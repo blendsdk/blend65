@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-13 13:18
-> **Progress**: 6/31 tasks (19%)
+> **Last Updated**: 2026-09-13 15:18
+> **Progress**: 7/31 tasks (23%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -59,7 +59,7 @@ expert artifact changed.
 > **Checks**: V-05 semantic/grammar/diagnostic portions, V-06–V-07, V-16
 
 - [x] 2.1.1 Reconcile three-clause loops, effect/exit ordering, fixed-width wrap, lexical shadowing, the shared parameter/outermost-body duplicate domain, stable declaration identity, examples, grammar, and E10101 retirement — `spec/03-variables.md`, `spec/05-statements-control-flow.md`, `spec/06-functions.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F008-for-loop.md`, `spec/evaluations/F013-control-flow.md`, `spec/evaluations/F018-functions.md`, `spec/evaluations/F019-variables.md`, `spec/evaluations/F021-lexical-structure.md` ✅ (completed: 2026-09-13 13:18)
-- [ ] 2.1.2 Reconcile fixed-width arithmetic, direct-subscript promotion, narrow barriers, fixed-array extents/layout/queries/value rules, examples, grammar, and diagnostics — `spec/02-type-system.md`, `spec/04-expressions-operators.md`, `spec/08-arrays-strings.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F014-arrays.md`, `spec/evaluations/F016-type-system.md`, `spec/evaluations/F017-operators.md`
+- [x] 2.1.2 Reconcile fixed-width arithmetic, direct-subscript promotion, narrow barriers, fixed-array extents/layout/queries/value rules, examples, grammar, and diagnostics — `spec/02-type-system.md`, `spec/04-expressions-operators.md`, `spec/08-arrays-strings.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F014-arrays.md`, `spec/evaluations/F016-type-system.md`, `spec/evaluations/F017-operators.md` ✅ (completed: 2026-09-13 15:18)
 - [ ] 2.1.3 Reconcile struct/array assignment and return, caller-owned destinations, alias-safe copies, addressable places, lifetime/provenance/escape, examples, grammar, and diagnostics — `spec/06-functions.md`, `spec/07-structs.md`, `spec/11-memory-model.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F006-address-of.md`, `spec/evaluations/F011-structs.md`, `spec/evaluations/F018-functions.md`
 - [ ] 2.1.4 Reconcile typed finite function values, target-set widening, handler kinds, per-sink LIFO install/restore ownership, raw-vector invalidation, lexical/type owners, examples, grammar, and diagnostics — `spec/01-lexical-structure.md`, `spec/02-type-system.md`, `spec/06-functions.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F007-interrupt-functions.md`, `spec/evaluations/F016-type-system.md`, `spec/evaluations/F018-functions.md`, `spec/evaluations/F021-lexical-structure.md`
 - [ ] 2.1.5 Reconcile typed compile-time functions, exact AR-050 results, `comptime-budget-v1` charging and failure behavior, lexical owners, examples, grammar, diagnostics E10269–E10271, and the owning Guard evaluation — `spec/01-lexical-structure.md`, `spec/04-expressions-operators.md`, `spec/06-functions.md`, `spec/grammar.ebnf.md`, `spec/14-diagnostics.md`, `spec/evaluations/F021-lexical-structure.md`, `spec/evaluations/F025-comptime-functions.md`

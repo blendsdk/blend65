@@ -1,6 +1,6 @@
 # Chapter 08 — Arrays & Strings
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F014
@@ -42,8 +42,9 @@ let cursor: byte = '_';
 ### 2.1 Syntax
 
 ```ebnf
-array_type        = array_element_type , "[" , [ const_expression ] , "]" ;
+array_type        = array_element_type , array_extent , { array_extent } ;
 array_element_type = integer_type | "boolean" | qualified_name ;
+array_extent      = "[" , [ const_expression ] , "]" ;
 
 array_literal     = "[" , [ array_init_content ] , "]" ;
 array_init_content = expression , { "," , expression }
@@ -91,11 +92,11 @@ integer in `0..65535`; E10264 rejects a non-integer, negative, or larger value. 
 size exceeds 65535, even when its element count fits. These are compile-time representation limits,
 not runtime checks.
 
-An omitted extent is permitted only for an unsized function parameter or where the declaration's
-initializer supplies a compile-time-known element count. A module/local storage declaration without
-such an initializer, and every struct field, must write an explicit extent. E10253 rejects storage
-whose extent cannot be inferred; `byte[0]` and an empty extent-inferencing initializer remain the
-explicit zero-length forms.
+At most one extent may be omitted, and it must be outermost. That omission is permitted only for an
+any-size function parameter or where the declaration's initializer supplies a compile-time-known
+outer element count. A module/local storage declaration without such an initializer, and every
+struct field, must write every extent. E10253 rejects a shape that cannot be completed; `byte[0]`
+and an empty extent-inferencing initializer remain the explicit zero-length forms.
 
 ### AR-2 — Zero-Length Arrays
 
@@ -118,8 +119,10 @@ which machine sequence is cheapest; it never makes otherwise ordinary source ill
 
 ```blend65
 let small: byte[100];
+let page: byte[256];
 small[byteIndex] = 42;     // ✅
 small[wordIndex] = 42;     // ✅
+page[255] = 42;            // ✅ extent exactly 256
 
 let large: byte[1000];
 large[byteIndex] = 42;     // ✅ ordinals 0..255 from this value
@@ -165,41 +168,53 @@ overflow retains ordinary deterministic wrap.
 The compiler need not materialize a word temporary. Range proof may keep the operation byte-only,
 and a carry may flow directly into address formation or a surviving inline bounds check.
 
-### AR-5 — No Whole-Array Assignment
+### AR-5 — Exact Fixed-Array Values
 
 ```blend65
-let a: byte[10];
-let b: byte[10];
-a = b;             // ❌ E10119: cannot assign whole array
-```
+let a: byte[2][3] = [[1, 2, 3], [4, 5, 6]];
+let b: byte[2][3];
+let wrong: byte[3][2];
+b = a;             // ✅ exact element type and extents
+wrong = a;         // ❌ incompatible fixed-array shape
 
-**Rationale**: Hidden loop violates Axiom A4 (explicit over implicit) and Language Guard H2 (cost transparency). Use a `for` loop:
-
-```blend65
-for (let i: word = 0; i < length(a); i += 1) {
-    a[i] = b[i];
+function makeTile(): byte[2][3] {
+    return [[1, 2, 3], [4, 5, 6]]; // ✅ exact-shape fixed value
 }
 ```
 
-### AR-6 — No Array Comparison
+Fixed arrays are ordinary values for assignment and return. The element type and every ordered
+extent are part of the type and must match exactly. A required copy preserves the source value even
+when storage may overlap; the build report exposes its selected byte and cycle cost. Chapter 06 and
+Chapter 11 define caller-owned return destinations, direct construction, copy elision, aliasing, and
+lifetime rules. No `copy()` intrinsic, heap, dynamic frame, or runtime library is introduced.
+
+An unsized `T[]` parameter is a borrow and is not assignable, storable, or returnable. E10253 rejects
+an unsized array where a complete fixed value is required.
+
+### AR-6 — Rectangular Nested Arrays
+
+Nested arrays are contiguous and row-major. Dimensions are written and indexed outermost to
+innermost: `byte[25][40]` contains 25 rows of 40 bytes, and `map[row][column]` has byte offset
+`row * 40 + column`. Each subscript applies its own ordinal and bounds rule.
+
+```blend65
+let map: byte[25][40];
+let tile: byte[2][3] = [[1, 2, 3], [4, 5, 6]];
+
+length(map);       // word constant 25
+length(map[0]);    // word constant 40
+```
+
+Nested initializers must match the declared rectangular shape at every dimension. An outer fill
+value is one complete inner array of the exact element type. A parameter may omit only its
+outermost extent, so `const byte[][4]` accepts any fixed row count with exactly four columns. The
+caller supplies the base address and outer word count; fixed inner extents supply every stride.
+`byte[][]`, `byte[25][]`, dynamic extents, jagged arrays, slices, spans, and views are invalid.
+
+### AR-7 — No Array Comparison
 
 ```blend65
 if (a == b) { }  // ❌ E10121: cannot compare arrays
-```
-
-### AR-7 — No Array Returns
-
-Functions cannot return array types (→ Ch 06, FN-4). Use an output parameter:
-
-```blend65
-function getTable(): byte[4] { }  // ❌ E10120
-
-function fillTable(out: byte[4]): void {   // ✅
-    out[0] = 10;
-    out[1] = 20;
-    out[2] = 30;
-    out[3] = 40;
-}
 ```
 
 ### AR-8 — Bounds Checking
@@ -233,7 +248,9 @@ type[SIZE] = [explicit_values; fill_value]
 //            placed first       fills remaining elements up to SIZE
 ```
 
-The fill value is always a **single compile-time constant element** — not a string, not an array. The array must have an **explicit size** when using fill.
+The fill value is always one compile-time constant value of the array's element type. For a nested
+array, that element may be an exact-shape inner array literal. It never concatenates multiple
+elements. The array must have an explicit size when using fill.
 
 ### 4.2 Value Arrays
 
@@ -568,16 +585,29 @@ function sum(data: const byte[]): word {
 }
 ```
 
-`byte[]` in a parameter position accepts a fixed byte array of any extent. It is not a dynamic array,
-slice, span, view, storable value, or return type. The caller supplies the fixed array's base address
-and full 16-bit element count through compiler-managed parameter homes. The callee can index the
-original storage and read its full count with `length(data)`.
+`byte[]` in a parameter position accepts a fixed byte array of any extent. For a nested array, only
+the outermost extent may be omitted: `const byte[][4]` accepts any fixed row count whose rows each
+contain four bytes. `byte[][]` and `byte[25][]` are invalid because their row stride is unknown.
+This is not a dynamic array, slice, span, view, storable value, or return type. The caller supplies
+the fixed array's base address and full 16-bit outer element count through compiler-managed
+parameter homes. The callee can index the original storage and read its outer count with
+`length(data)`; fixed inner extents remain compile-time constants.
 
 ```blend65
 let a: byte[] = [1, 2, 3];
 let b: byte[10] = [; 0];
 let s1: word = sum(a);    // ✅ compiler passes a and its full length
 let s2: word = sum(b);    // ✅ compiler passes b and its full length
+```
+
+```blend65
+function firstColumn(rows: const byte[][4]): word {
+    let total: word = 0;
+    for (let row: word = 0; row < length(rows); row += 1) {
+        total += word(rows[row][0]);
+    }
+    return total;
+}
 ```
 
 An unsized parameter may be forwarded to another compatible unsized parameter without copying
@@ -781,8 +811,6 @@ message templates, spans, suppression, and history.
 | E10114 | Fill syntax is used where no explicit array extent is available. | The initializer is rejected. |
 | E10115 | A fill operand is not one element of the array's element type. | The initializer is rejected. |
 | E10116 | One array initializer mixes string literals with individual values. | The initializer is rejected. |
-| E10119 | Assignment targets a whole array. | The assignment is rejected. |
-| E10120 | A function declares an array return type. | The function is rejected. |
 | E10121 | A comparison operator is applied to arrays. | The comparison is rejected. |
 | E10122 | A const array argument is passed to a mutable array parameter. | The call is rejected; no mutable alias is created. |
 | E10123 | Source mutates an array or struct through a const aggregate parameter. | The write is rejected. |
@@ -791,7 +819,7 @@ message templates, spans, suppression, and history.
 | E10240 | A compile-time-known index is outside its array extent. | The access is rejected before address generation. |
 | E10249 | An ordinary Unicode scalar value or symbolic escape has no valid byte mapping in the selected encoding, or a character literal would map to other than one byte. | The literal is rejected; select a named encoding or use an exact `\xNN` byte. |
 | E10251 | The optional character-map argument is not a string literal. | The encoding operation is rejected; select a registered map with a literal key. |
-| E10253 | An array storage declaration has neither an explicit extent nor an initializer with a compile-time-known element count. | The declaration is rejected because its storage size and layout cannot be allocated statically. |
+| E10253 | An array use requiring a complete fixed value has no compile-time-known extent, or an omitted extent is not in one permitted context. | The declaration, storage, assignment, or return is rejected because its complete shape is unknown. |
 | E10263 | An array index has a non-integer type. | The access is rejected; no implicit truthiness, pointer, enum, or aggregate conversion is inserted. |
 | E10264 | A compile-time array extent does not produce an integer in `0..65535`. | The array type is rejected before allocation or lowering. |
 | E10265 | An array type's complete byte size exceeds 65535. | The array type is rejected before allocation or lowering. |
@@ -812,8 +840,8 @@ message templates, spans, suppression, and history.
 |---------|-------------|
 | **Type system** (→ Ch 02) | Arrays are a derived type. Element types must be valid types. `byte[]` is not a standalone value type outside its extent-inference declaration role and any-size parameter role. |
 | **Variables** (→ Ch 03) | Array instances declared with `let`/`const`. `zeropage` placement supported (small arrays). |
-| **Operators** (→ Ch 04) | No operators apply to arrays directly. `sizeof` is compile-time; `length` folds for fixed extents and loads the count of an any-size parameter. Element access uses `[]` indexing. |
-| **Functions** (→ Ch 06) | Passed by reference (FN-3). Exact parameters carry an address; any-size parameters also carry the full word element count. Arrays cannot be returned (FN-4, E10120). `const` prevents mutation. |
+| **Operators** (→ Ch 04) | Assignment applies to exact-shape fixed arrays; arithmetic, bitwise, logical, and comparison operators do not. `sizeof` is compile-time; `length` folds for fixed extents and loads the count of an any-size parameter. Element access uses `[]` indexing. |
+| **Functions** (→ Ch 06) | Parameters are zero-copy borrows. Exact parameters carry an address; outer-unsized parameters also carry the full word outer count. Exact fixed arrays may be returned through caller-owned storage; unsized parameters may not. `const` prevents mutation. |
 | **Structs** (→ Ch 07) | Arrays as struct fields (inline, contiguous). Struct arrays use index × `sizeof(Type)` addressing. Const parameters apply to both. |
 | **Enums** (→ Ch 09) | Enum arrays are supported (`Direction[8]`). As with every array, all four integer types are valid indices; enum values are not implicitly converted into indices. |
 | **For loops** (→ Ch 05) | `for (let i: word = 0; i < length(arr); i += 1)` visits every valid index once; proven induction narrowing may still use an 8-bit machine counter. |

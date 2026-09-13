@@ -60,8 +60,9 @@ arr[index] = value;                          // write element
 
 **EBNF:**
 ```ebnf
-array_type        = array_element_type , "[" , [ const_expression ] , "]" ;
+array_type        = array_element_type , array_extent , { array_extent } ;
 array_element_type = integer_type | "boolean" | qualified_name ;
+array_extent      = "[" , [ const_expression ] , "]" ;
 array_literal     = "[" , [ array_init_content ] , "]" ;
 array_init_content = expression , { "," , expression }
                    | expression , { "," , expression } , ";" , expression
@@ -83,7 +84,7 @@ fragment does not define a competing expression production.
 | Enum type | 1 byte | 256 | Nominal state, kind, and mode tables |
 
 Arrays accept non-`void` primitive, enum, and struct element types. Arrays of structs are part of
-v3 (F011 and Chapter 07). A struct-of-arrays (SoA) layout is often
+Specification 4 (F011 and Chapter 07). A struct-of-arrays (SoA) layout is often
 faster when a hot loop touches only a few fields, but that is a cost-guided layout choice rather
 than a language restriction. The compiler must preserve either source layout and report the
 addressing cost.
@@ -106,10 +107,11 @@ otherwise E10264 rejects the type. The compiler then computes the complete array
 precision. E10265 rejects a type larger than 65535 bytes, including a `word` or struct array whose
 element count itself fits. These are compile-time representation limits and add no runtime checks.
 
-An omitted extent is legal for an unsized function parameter and for a declaration whose
-initializer supplies a compile-time-known element count. A module/local storage declaration without
-such an initializer, and every struct field, requires an explicit extent; otherwise E10253 rejects
-the declaration. Explicit `[0]` and empty extent-inferencing initializers remain valid.
+At most one extent may be omitted, and it must be outermost. That omission is legal for an any-size
+function parameter or for a declaration whose initializer supplies a compile-time-known outer
+element count. A module/local storage declaration without such an initializer, and every struct
+field, requires every extent; otherwise E10253 rejects the declaration. Explicit `[0]` and empty
+extent-inferencing initializers remain valid.
 
 #### AR-2: Zero-Length Arrays
 
@@ -129,8 +131,10 @@ affects placement, resource accounting, and profitable lowering but never source
 
 ```blend65
 let small: byte[100];
+let page: byte[256];
 small[byteIndex] = 42;     // ✅
 small[wordIndex] = 42;     // ✅
+page[255] = 42;            // ✅ extent exactly 256
 
 let large: byte[1000];
 large[byteIndex] = 42;     // ✅ ordinals representable by this byte value
@@ -166,43 +170,50 @@ negative or out-of-extent ordinal is E10240. Checked runtime access tests signed
 bounds; unchecked signed access sign-extends into the 16-bit address calculation. Proof may keep
 the emitted work byte-only or consume carry directly without creating a source-visible word.
 
-#### AR-5: No Whole-Array Assignment
+#### AR-5: Exact Fixed-Array Values
 
 ```blend65
-let a: byte[10];
-let b: byte[10];
-a = b;             // ❌ E10119: cannot assign whole array — copy elements individually
-```
+let a: byte[2][3] = [[1, 2, 3], [4, 5, 6]];
+let b: byte[2][3];
+let wrong: byte[3][2];
+b = a;             // ✅ exact element type and extents
+wrong = a;         // ❌ incompatible fixed-array shape
 
-**Rationale**: Hidden loop violates A4 (explicit over implicit) and H2 (cost transparency). Use a for loop:
-
-```blend65
-for (let i: word = 0; i < length(a); i += 1) {
-    a[i] = b[i];
+function makeTile(): byte[2][3] {
+    return [[1, 2, 3], [4, 5, 6]]; // ✅ exact-shape fixed value
 }
 ```
 
-#### AR-6: No Array Comparison
+Fixed arrays are ordinary values for assignment and return. Their element type and complete ordered
+extent list must match exactly. Required copies preserve source-value semantics under overlap and
+report their selected byte/cycle cost. Returns use caller-owned storage and may construct directly
+or elide a copy under proof. These rules add no `copy()` intrinsic, heap, dynamic frame, or runtime.
+An unsized `T[]` parameter remains a non-storable, non-returnable borrow.
+
+#### AR-6: Rectangular Nested Arrays
+
+```blend65
+let map: byte[25][40];
+let tile: byte[2][3] = [[1, 2, 3], [4, 5, 6]];
+
+length(map);       // word constant 25
+length(map[0]);    // word constant 40
+```
+
+Nested arrays are contiguous and row-major. Dimensions and indices run outermost to innermost, so
+`map[row][column]` has byte offset `row * 40 + column`; every subscript applies its own ordinal and
+bounds rule. Nested initializers match the rectangular shape at every dimension. An outer fill
+value is one exact-shape inner array element.
+
+A parameter may omit only its outermost extent: `const byte[][4]` accepts any fixed row count with
+four-byte rows and carries the base address plus outer word count. Fixed inner extents provide the
+stride. `byte[][]`, `byte[25][]`, dynamic extents, jagged arrays, slices, spans, and views are
+rejected.
+
+#### AR-7: No Array Comparison
 
 ```blend65
 if (a == b) { ... }  // ❌ E10121: cannot compare arrays — compare elements individually
-```
-
-#### AR-7: No Array Returns
-
-```blend65
-function getTable(): byte[4] { ... }  // ❌ E10120: cannot return array type — use parameter
-```
-
-Use an output parameter:
-
-```blend65
-function fillTable(out: byte[4]): void {
-    out[0] = 10;
-    out[1] = 20;
-    out[2] = 30;
-    out[3] = 40;
-}
 ```
 
 #### AR-8: Bounds Checking
@@ -236,7 +247,9 @@ byte[SIZE] = [explicit_values; fill_value]
 //            placed first       fills remaining elements up to SIZE
 ```
 
-**The fill value is always a single compile-time constant element** — not a string, not an array.
+**The fill value is always one compile-time constant value of the array's element type.** For a
+nested array, that element may be an exact-shape inner array literal; it never concatenates
+multiple elements.
 
 **The array must have an explicit size** when using fill — the compiler needs to know how many elements to fill.
 
@@ -596,15 +609,27 @@ function sum(data: const byte[]): word {
 }
 ```
 
-`byte[]` in parameter position accepts a fixed byte array of any extent. The caller passes the base
-address and full word element count through compiler-managed homes. This is an existing array
-parameter form, not a dynamic array, slice, span, view, storable value, or return type.
+`byte[]` in parameter position accepts a fixed byte array of any extent. For nested arrays only the
+outermost extent may be omitted: `const byte[][4]` accepts any fixed row count with four-byte rows,
+while `byte[][]` and `byte[25][]` are invalid because their stride is unknown. The caller passes the
+base address and outer word count through compiler-managed homes. This is an array borrow, not a
+dynamic array, slice, span, view, storable value, or return type.
 
 ```blend65
 let a: byte[] = [1, 2, 3];
 let b: byte[10] = [; 0];
 let s1: word = sum(a);
 let s2: word = sum(b);
+```
+
+```blend65
+function firstColumn(rows: const byte[][4]): word {
+    let total: word = 0;
+    for (let row: word = 0; row < length(rows); row += 1) {
+        total += word(rows[row][0]);
+    }
+    return total;
+}
 ```
 
 An any-size parameter may be forwarded only to another compatible any-size parameter. It cannot be
@@ -808,7 +833,7 @@ Access: `entry.name[1]` computes `&entry + offset_of_name + 1`.
 
 ### AR-A2: Arrays of structs?
 
-**Yes.** Arrays of structs are valid v3 source. A struct-of-arrays pattern can be faster when a hot
+**Yes.** Arrays of structs are valid Specification 4 source. A struct-of-arrays pattern can be faster when a hot
 loop touches only a subset of fields, but that is a measured layout choice rather than a language
 restriction:
 
@@ -828,13 +853,16 @@ lowering.
 
 ### AR-A3: Multidimensional arrays?
 
-**Deferred.** Use flat arrays with manual index computation:
+**Yes.** Nested fixed arrays are rectangular, contiguous, and row-major. Dimensions are written and
+indexed outermost to innermost:
 
 ```blend65
-let grid: byte[200];  // 8×25 grid
-// Access grid[row][col]:
-grid[row * 8 + col] = value;  // developer computes index manually
+let grid: byte[25][40];
+grid[row][column] = value;
 ```
+
+Only the outermost extent of a parameter may be omitted. Dynamic, jagged, slice, span, and view
+forms are not part of the language.
 
 ### AR-A4: Can strings be mutable?
 
@@ -918,8 +946,6 @@ Using an unavailable intrinsic → E10125.
 | E10114 | [Chapter 14](../14-diagnostics.md) |
 | E10115 | [Chapter 14](../14-diagnostics.md) |
 | E10116 | [Chapter 14](../14-diagnostics.md) |
-| E10119 | [Chapter 14](../14-diagnostics.md) |
-| E10120 | [Chapter 14](../14-diagnostics.md) |
 | E10121 | [Chapter 14](../14-diagnostics.md) |
 | E10122 | [Chapter 14](../14-diagnostics.md) |
 | E10123 | [Chapter 14](../14-diagnostics.md) |
@@ -953,6 +979,9 @@ Using an unavailable intrinsic → E10125.
 | F010 Signed types | Signed types are valid as elements and indices; known negative indices are E10240, checked runtime indices test the lower bound, and unchecked indices sign-extend into the 16-bit address domain |
 | F011 Structs | Arrays as struct fields and arrays of structs are both valid. Const params apply to both; layout choice remains explicit and costed |
 | F013 Control flow | Arrays in conditions via element access: `if (arr[i] == target)` |
+| F016 Type system | Every fixed extent is part of array type identity; assignment and return require an exact shape match |
+| F017 Operators | Direct unbarriered index arithmetic uses the 16-bit-capable ordinal context; narrow barriers retain ordinary wrap |
+| F018 Functions | Exact parameters are zero-copy borrows; fixed arrays may return through caller-owned storage, while outer-unsized parameters may not be returned |
 | Platform profiles | Encoding tables, immutable map identities, defaults, and available encoding intrinsics |
 
 ---
@@ -1102,7 +1131,7 @@ function cycleColors(): void {
 | L1 Unambiguous syntax | ✅ | `type[size]`, `arr[index]`, `[values; fill]` — all unambiguous in EBNF |
 | L2 Consistent with existing | ✅ | Same `name: type` pattern. Const/let distinction. Cast-style encoding intrinsics match F010 |
 | L3 Beginner-friendly | ✅ | Arrays, strings, character literals — familiar from C/TS/Java |
-| L4 Minimal feature | ✅ | Fixed-size one-dimensional arrays include aggregate element types; multidimensional and dynamic sizing remain outside v3. |
+| L4 Minimal feature | ✅ | Stored arrays stay fixed and contiguous; nested arrays add only rectangular row-major composition, with no dynamic, jagged, slice, span, or view model. |
 | L5 No redundancy | ✅ | No overlap with existing features. String literals are sugar, not a separate type |
 | L6 Error messages defined | ✅ | Active array diagnostics are linked to the canonical Chapter-14 registry |
 | L7 Compile-time failure preferred | ✅ | Size checks, type checks, const safety — all at compile time |

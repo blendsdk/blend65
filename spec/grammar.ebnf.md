@@ -1,6 +1,6 @@
-# Blend65 v3 — Master EBNF Grammar
+# Blend65 4 — Master EBNF Grammar
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: provisional  
 > **Gate G4 criteria**: (1) Every language construct has a production. (2) Provably LL(k) /
@@ -132,14 +132,20 @@ value_type      = integer_type
 
 integer_type    = "byte" | "sbyte" | "word" | "sword" ;
 
-array_type      = array_element_type , "[" , [ const_expression ] , "]" ;
+array_type      = array_element_type , array_extent , { array_extent } ;
 array_element_type = integer_type | "boolean" | qualified_name ;
+array_extent    = "[" , [ const_expression ] , "]" ;
 ```
 
 **Parsing note:** `qualified_name` in `type` is a local or module-qualified struct/enum name. The
 semantic pass resolves whether the name refers to a struct, enum, or is undefined. Chapter 14 owns
 the canonical unknown-type diagnostic.
 This avoids context-sensitivity in the parser.
+
+Array dimensions are written outermost to innermost. The grammar admits an omitted extent in any
+dimension so parsing stays context-free; semantic analysis permits at most one, outermost omission,
+either for an initializer-inferred extent or an any-size parameter. It rejects omitted inner
+dimensions and every dynamic or jagged form.
 
 ---
 
@@ -568,6 +574,7 @@ All grammar productions listed alphabetically for quick reference:
 | `additive_expr` | §6.2 | `+`, `-` binary |
 | `arg_list` | §6.4 | Function-call arguments |
 | `array_element_type` | §4 | Non-void array element type |
+| `array_extent` | §4 | One fixed or contextually omitted array dimension |
 | `array_init_content` | §6.7 | Values and optional fill element |
 | `array_literal` | §6.7 | `[]`, `[1, 2]`, or `[1; 0]` |
 | `array_type` | §4 | Sized or unsized array type |
