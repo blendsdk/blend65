@@ -26,6 +26,7 @@ struct Enemy {
 - No methods, no inheritance, no polymorphism — this is data grouping, not OOP
 - Field order in memory matches declaration order — no padding, no reordering
 - Structs are always passed to functions by reference (compiler-managed, no `ref` keyword)
+- Structs are ordinary values for exact-type assignment and return
 - No heap — every struct instance has a fixed address determined at compile time
 - `sizeof(StructType)` provides compile-time size information
 
@@ -131,9 +132,15 @@ let backup: Enemy = boss;   // Copies all 5 bytes
 boss = backup;               // Restores from backup
 ```
 
+Source and destination must have the same declared struct type. The destination place is evaluated
+once, then the complete source value is evaluated once. If their ranges overlap, the selected copy
+direction or an SFA snapshot must preserve the source value. Direct construction and copy elision
+are allowed only when values, aliasing, and left-to-right effects remain unchanged.
+
 An unrolled copy costs 6–8 cycles and 4–6 ROM bytes per byte for zero-page through absolute
 source/destination homes. Address calculation, a selected loop, and any overlap-safe SFA snapshot
-are additional and reported separately.
+are additional and reported separately. The build report includes bytes, cycles, and scratch for
+every copy that remains.
 
 ---
 
@@ -158,28 +165,22 @@ damage(boss, 30);
 - Structs are passed **by reference** — changes inside the function DO affect the caller's data
 - This is the 6502's natural pattern: set up a pointer, access fields via `(ptr),Y`
 
-### SR-2: Structs Cannot Be Returned from Functions
+### SR-2: Structs Can Be Returned from Functions
 
-Functions cannot have a struct as their return type. Use a struct parameter instead:
+Functions may return a struct when the expression has the exact declared struct type:
 
 ```blend65
-// ❌ Not allowed
-function createEnemy(x: byte, y: byte): Enemy { ... }
-
-// ✅ Use a parameter — the caller provides the destination
-function initEnemy(e: Enemy, x: byte, y: byte): void {
-    e.x = x;
-    e.y = y;
-    e.hp = 100;
-    e.enemyType = 0;
-    e.frame = 0;
+function createEnemy(x: byte, y: byte): Enemy {
+    return { x: x, y: y, hp: 100, enemyType: 0, frame: 0 };
 }
 
-let boss: Enemy;
-initEnemy(boss, 100, 50);
+let boss: Enemy = createEnemy(100, 50);
 ```
 
-**Rationale**: Returning a struct would require copying all bytes from the function's frame to the caller. By-reference parameter avoids this copy entirely.
+The caller supplies `boss` as a hidden destination, allowing direct construction without an
+intermediate callee-frame object. A nested consumer may instead require a caller-owned SFA
+temporary. Every live destination and any copy scratch are closed before emission; no heap,
+dynamic frame, mandatory runtime, or source `copy()` operation is added.
 
 ### SR-3: Const Safety for By-Reference Parameters
 
@@ -529,15 +530,19 @@ rules permit them. A bare struct is not a Boolean condition, and unsupported str
 rejected by the ordinary type/operator diagnostics. The `for` statement adds no iterable or range
 protocol.
 
-### SR-A5: What about `&` on struct variables?
+### SR-A5: What about `&` on struct places?
 
-**Allowed.** `&myStruct` returns the base address as `word`:
+**Allowed.** `&` accepts the struct itself, a parameter, or any nested field/element composition and
+returns a `word`:
 
 ```blend65
-let addr: word = &player;   // ✅ Base address of the struct
+let addr: word = &player;             // base address
+let hpAddr: word = &player.hp;        // field address
+let xAddr: word = &enemies[i].pos.x;  // base and index evaluated once
 ```
 
-`&` on individual struct **fields** is deferred to FUT (requires offset calculation at call sites for by-ref parameters).
+The result keeps the base object's lifetime and read-only provenance. Known writes through an
+address derived from a `const` parameter are rejected.
 
 ### SR-A6: Aliasing (same struct passed as two parameters)
 
@@ -594,7 +599,6 @@ struct InternalState { ... }                     // Module-private
 | E10090 | [Chapter 14](../14-diagnostics.md) |
 | E10091 | [Chapter 14](../14-diagnostics.md) |
 | E10092 | [Chapter 14](../14-diagnostics.md) |
-| E10093 | [Chapter 14](../14-diagnostics.md) |
 | E10094 | [Chapter 14](../14-diagnostics.md) |
 | E10095 | [Chapter 14](../14-diagnostics.md) |
 | E10096 | [Chapter 14](../14-diagnostics.md) |
@@ -617,13 +621,14 @@ struct InternalState { ... }                     // Module-private
 |---------|------------|
 | F003 Module contents | Struct types defined at module level. Instances in all contexts (module, function, zeropage) |
 | F005 Memory placement | Struct instances valid in `zeropage {}`, `let`, `const`. Size tracked in ZP budget |
-| F006 Address-of | `&structVar` returns `word` base address. Field addresses deferred to FUT |
+| F006 Address-of | `&` accepts struct variables, parameters, nested fields, indexed elements, and their compositions; place components evaluate once and preserve lifetime/read-only provenance |
 | F007 Interrupt functions | Struct access inside interrupts works. By-ref params use ZP pointers (ensure no conflict with main code's pointers) |
 | F008 For loop | Structs as loop-local variables: reuse same frame slot per iteration |
 | F009 Switch | Structs not valid as switch expression type (E10075) |
 | F010 Signed types | Signed fields (`sbyte`, `sword`) fully supported in structs |
 | Enums | Enum fields valid in structs. Enum values valid in struct literals |
 | F014 Arrays | Fixed-size arrays as struct fields and arrays of structs are supported. Const parameters (F014 CP-1..CP-5) replace the previous SR-3 restriction. SoA remains an optional, measured layout choice rather than a language restriction. |
+| F018 Functions | Struct parameters remain zero-copy borrows; struct returns use caller-owned hidden destinations with direct construction/copy elision |
 | Type aliases | Not available (REJ-001) — refer to struct types by their declared name; use `import { X as Y }` to rename across modules |
 
 ---

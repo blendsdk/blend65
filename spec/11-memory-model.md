@@ -1,6 +1,6 @@
 # Chapter 11 — Memory Model & Static Frame Allocation
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F005, F018, F019 (consolidated)
@@ -132,6 +132,14 @@ iterations may reuse one physical home only because E10260 makes an earlier borr
 unobservable. SFA never pins an automatic local for program lifetime or silently converts it into
 shared static state.
 
+The same rule covers every addressable storage place. A scalar parameter has the current
+invocation's lifetime. An aggregate-parameter place inherits the caller object's lifetime.
+Variables, parameters, nested fields, and indexed elements also retain mutable or read-only origin
+through copies and address arithmetic. A known write through a read-only-derived address is
+rejected. Place and index expressions evaluate once, and normal array bounds behavior applies;
+there is no implicit one-past element. A one-past numeric address can only be formed explicitly by
+ordinary `word` arithmetic.
+
 ```
 Call graph:
   main → init, update, render
@@ -160,6 +168,20 @@ Frame allocation:
   Peak simultaneous usage: main(3) + update(5) + handleInput(2) = 10 bytes
   Sharing saved: 37 bytes via frame coloring
 ```
+
+### 3.6 Aggregate Return Destinations and Copies
+
+A fixed struct or array result is constructed in storage owned by its caller. A declaration or
+assignment can supply its final object directly; another consuming expression may require an SFA
+temporary. Each live nested or cross-domain result has disjoint storage unless a proof permits the
+same final destination. The destination address, temporary, overlap snapshot, and selected helper
+scratch all close through SFA before emission.
+
+Aggregate assignment and return preserve the complete source value when ranges alias or overlap.
+The compiler may construct directly, elide a copy, choose a safe copy direction, inline a copy, or
+select a specialized shared sequence only when observable values and left-to-right effects are
+unchanged. The build summary reports every copy that remains, including bytes, cycles, and scratch.
+This requires no heap, dynamic frame, mandatory runtime, or source-level copy operation.
 
 ---
 
@@ -311,7 +333,9 @@ Cross-reference of where each language construct lives in memory:
 | Function local (scalar) | SFA frame | 1–2 bytes | — |
 | Function local (struct) | SFA frame | `sizeof(Type)` | — |
 | Function local (array) | SFA frame | N × element size | — |
-| Return value | CPU registers | 0 bytes RAM | A or A/X |
+| Scalar or enum return value | CPU registers | 0 bytes RAM | A or A/X |
+| Fixed aggregate return value | Caller-owned storage | `sizeof(Type)` in its owning object or SFA temporary | Constructed directly or copied with source-value semantics |
+| Materialized aggregate-return destination address | SFA frame | 2 bytes when not encoded by a fixed-address variant | Compiler-managed; never a source parameter |
 | Return address | Hardware stack | 2 bytes | Per active call |
 | `embed()` data | Data | File size | Baked into binary |
 

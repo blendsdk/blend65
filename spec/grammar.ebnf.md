@@ -98,6 +98,11 @@ param           = identifier , ":" , [ "const" ] , value_type ;
 return_type     = "void" | value_type ;
 ```
 
+Every complete `value_type`, including a fixed struct or fixed array, is a valid return type.
+Semantic analysis rejects an unsized `T[]` because it is a parameter-only borrowed form, not a
+complete value. Aggregate return does not add source syntax; the caller-owned destination is a
+lowering and SFA concern.
+
 ### 3.3 Structs (→ Ch 07)
 
 ```ebnf
@@ -311,9 +316,11 @@ unary_expr      = ( "!" | "~" | "-" | "&" ) , unary_expr
                 | postfix_expr ;
 ```
 
-**Note:** `&` in unary position is the address-of operator (→ Ch 04, §8). In binary
-position it is bitwise AND (→ §6.2 `bitwise_and_expr`). The parser disambiguates by
-position: prefix = address-of, infix = bitwise AND.
+**Note:** `&` in unary position is the address-of operator (→ Ch 04, §8). Its unary operand remains
+syntactically general so semantic analysis can accept variables, parameters, nested field/index
+places, and functions while diagnosing literals and temporaries precisely. In binary position it
+is bitwise AND (→ §6.2 `bitwise_and_expr`). The parser disambiguates by position: prefix =
+address-of, infix = bitwise AND.
 
 Explicit casts use call-shaped syntax: `byte(expr)`, `sbyte(expr)`, `word(expr)`,
 `sword(expr)`, or `EnumName(expr)`. Primitive cast names have their own primary production;
@@ -651,7 +658,7 @@ All grammar productions listed alphabetically for quick reference:
 | `relational_expr` | §6.2 | `<`, `<=`, `>`, `>=` |
 | `reserved_builtin` | §9.4 | 29 reserved built-in identifiers; `main` is separately entry-reserved |
 | `return_stmt` | §5.10 | `return [expression];` |
-| `return_type` | §3.2 | Any parsed value type; semantic rules reject struct and array returns |
+| `return_type` | §3.2 | `void` or any complete value type; unsized parameter arrays are rejected semantically |
 | `shift_expr` | §6.2 | `<<`, `>>` |
 | `statement` | §5.1 | Any statement |
 | `string_char` | §9.6 | String-literal content |

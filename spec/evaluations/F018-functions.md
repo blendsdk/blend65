@@ -38,7 +38,8 @@ function clamp(value: word, min: word, max: word): word {
 - No stack for data — parameters, locals, and return values never touch the hardware stack
 - Complete stack accounting — `JSR` return addresses, interrupt entries/register saves, and
   explicit stack intrinsics all contribute to the proven peak
-- Register-based return values — `byte`/`sbyte`/`boolean` in A, `word`/`sword` in A(lo)/X(hi)
+- Caller-owned returns — scalars/enums use registers; fixed aggregates use a hidden destination
+  owned by the caller
 - Declaration order independent — functions can call other functions regardless of source order
 
 ---
@@ -153,27 +154,42 @@ a dynamic array or first-class subarray value; it cannot be stored or returned.
 
 ### FN-4 — Return Value Types
 
-Every value type is syntactically valid in a return annotation so invalid aggregate returns reach
-semantic analysis. Functions can return scalar and enum values only. Struct returns produce E10093;
-array returns produce E10120.
+Every complete value type is valid in a return annotation. Scalars and enums use registers. Fixed
+structs and arrays use a compiler-managed destination owned by the caller. An unsized `T[]` is a
+borrowed parameter form rather than a complete value and is rejected as a return type with E10253.
 
-| Return type | Allowed | Register | Notes |
-|-------------|---------|----------|-------|
-| `void` | ✅ | — | No return value |
-| `byte` | ✅ | A | 8-bit unsigned |
-| `sbyte` | ✅ | A | 8-bit signed (same register, different semantics) |
-| `word` | ✅ | A(lo) / X(hi) | 16-bit unsigned |
-| `sword` | ✅ | A(lo) / X(hi) | 16-bit signed (same registers, different semantics) |
-| `boolean` | ✅ | A | 0 = false, 1 = true |
-| enum type | ✅ | A | Byte-backed value with nominal enum type |
-| struct type | ❌ E10093 | — | Use out-parameter instead (F011) |
-| array type | ❌ E10120 | — | Use out-parameter instead (F014) |
+| Return type | Result location | Notes |
+|-------------|-----------------|-------|
+| `void` | — | No return value |
+| `byte`, `sbyte`, `boolean` | A | 8-bit scalar result |
+| `word`, `sword` | A(lo) / X(hi) | 16-bit scalar result |
+| enum type | A | Byte-backed value with nominal enum type |
+| fixed struct or array | Caller-owned destination | Exact declared type and every array extent must match |
+| unsized `T[]` | Rejected, E10253 | Parameter-only borrow, not a storable or returnable value |
+
+```blend65
+function createEnemy(x: byte, y: byte): Enemy {
+    return { x: x, y: y, hp: 100, enemyType: 0, frame: 0 };
+}
+
+function snapshot(source: const Enemy[2]): Enemy[2] {
+    return source;
+}
+
+let boss: Enemy = createEnemy(100, 50);
+let saved: Enemy[2] = snapshot(enemies);
+```
+
+The caller supplies `boss` or `saved` as the hidden destination. A directly constructible return
+may write there without an intermediate object. If a copy remains, overlap must preserve the
+complete source value through a safe direction or SFA-accounted snapshot. The build report exposes
+the selected copy's bytes, cycles, and scratch.
 
 ### FN-5 — Return Statement Rules
 
 | Situation | Rule | Error |
 |-----------|------|-------|
-| Non-void function, `return expr;` | Expression must be assignment-compatible with the declared return type under F016/Chapter 02 | E10080, E10082, E10086, or E10235 according to the rejected conversion |
+| Non-void function, `return expr;` | Scalars/enums follow F016/Chapter 02 conversions; fixed aggregates require the exact type and every array extent | E10080, E10082, E10086, E10235, or E10253 according to the rejected value |
 | Non-void function, `return;` (no value) | Not allowed | E10174 |
 | Non-void function, missing return on some path | Not allowed | E10102 (F013) |
 | Void function, `return;` | Allowed (early exit) | — |
@@ -324,7 +340,8 @@ Blend65 uses a **Static Frame Allocation** calling convention that eliminates al
 ├──────────────┬───────────────────────────────────────────┤
 │ Parameters   │ Static frame (fixed addresses in RAM)     │
 │ Locals       │ Static frame (fixed addresses in RAM)     │
-│ Return value │ Registers (A for 8-bit, A/X for 16-bit)  │
+│ Scalar return│ Registers (A for 8-bit, A/X for 16-bit)  │
+│ Aggregate ret│ Caller-owned destination                 │
 │ Return addr  │ Hardware stack via JSR/RTS (2 bytes)      │
 └──────────────┴───────────────────────────────────────────┘
 ```
@@ -352,6 +369,12 @@ The compiler allocates frames using the static call graph:
 - Globals, assets, and MMIO remain shared and are not silently duplicated
 - The total frame region is a compile-time constant
 
+Aggregate return destinations are part of this proof. A declaration or assignment can provide its
+final object directly; another consuming expression may need a caller-owned SFA temporary. Nested
+calls and overlapping mainline/IRQ/NMI domains receive disjoint live result homes unless a proof
+permits direct construction into the same final destination. Destination address state, staging,
+and helper scratch close through SFA before emission.
+
 ### Struct/Array Parameter Passing
 
 Structs and exact arrays are passed by address. The caller stores the base address (2 bytes) into
@@ -371,13 +394,20 @@ Function: updateEnemy(enemy: Enemy, dx: sbyte)
 ```
 Caller                           Callee
 ──────                           ──────
-1. Evaluate arguments (left→right)
-2. Store values to callee's frame
-3. JSR callee_address  ────────► 4. Execute body
-                                 5. Store result in A (or A/X)
-                                 6. RTS
-7. Use result from A (or A/X) ◄─┘
+1. Use aggregate destination selected once by the enclosing context, if any
+2. Evaluate arguments (left→right)
+3. Store arguments and any materialized destination address
+4. JSR callee_address  ────────► 5. Execute body
+                                 6. Return scalar in A/A-X, or construct aggregate in destination
+                                 7. RTS
+8. Use completed result       ◄─┘
 ```
+
+An enclosing assignment evaluates its target place before the call under Chapter 04's ordinary
+rule. Arguments keep their left-to-right order. Each argument, target place, and return expression
+is evaluated once, and the destination is selected once. Copy elision is legal only when the
+unelided program's values, aliasing, and observable effects are unchanged. No heap, dynamic frame,
+mandatory runtime, or source-level copy helper is introduced.
 
 ---
 
@@ -558,6 +588,7 @@ placement determine whether immediate, zero-page, or absolute forms are selected
 | Struct or exact array parameter | 2 bytes per allocated frame/invocation instance (address) |
 | Any-size array parameter | 4 bytes per allocated frame/invocation instance (address + word element count) |
 | Boolean parameter | 1 byte per allocated frame/invocation instance |
+| Materialized aggregate-return destination address | 2 bytes per live instance; zero when a fixed-address variant encodes it directly |
 | Local byte variable | 1 byte per allocated frame/invocation instance |
 | Local word variable | 2 bytes per allocated frame/invocation instance |
 
@@ -704,6 +735,7 @@ only and adds no ABI field or runtime code.
 | E10247 | Unknown function-address provenance | [Chapter 14](../14-diagnostics.md) |
 | E10248 | Invalid explicit function-entry stack state | [Chapter 14](../14-diagnostics.md) |
 | E10252 | Raw interrupt entry written to incompatible recognized firmware vector | [Chapter 14](../14-diagnostics.md) |
+| E10253 | Unsized array used as a return type or value | [Chapter 14](../14-diagnostics.md) |
 | E10260 | Local-origin address reaches a retaining or unproven call/return path | [Chapter 14](../14-diagnostics.md) |
 
 ## Warning Codes
@@ -757,7 +789,9 @@ Signed parameters (`sbyte`, `sword`) use the same frame storage as unsigned. The
 
 ### With F011 (Structs)
 
-Structs are always passed by reference (FN-3). The `const` modifier prevents modification (F014 CP-1..5). Structs cannot be returned (E10093 from F011).
+Struct parameters remain zero-copy borrows (FN-3). The `const` modifier prevents modification
+(F014 CP-1..5). Fixed structs are ordinary exact-type assignment and return values, using the
+caller-owned destination defined by FN-4.
 
 ### With F013 (Control Flow)
 
@@ -769,11 +803,11 @@ Structs are always passed by reference (FN-3). The `const` modifier prevents mod
 
 ### With F014 (Arrays / Const Parameters)
 
-Arrays are always passed by reference (FN-3). Exact parameters carry an address; any-size
+Array parameters remain zero-copy borrows (FN-3). Exact parameters carry an address; any-size
 parameters also carry the full word element count used by `length()`. The `const` modifier prevents
-modification (F014 CP-1..5). Arrays cannot be stored through an any-size parameter or returned
-(E10120 from F014). Const parameter rules CP-1 through CP-5 apply to both struct and array
-parameters within function signatures.
+modification (F014 CP-1..5). Fixed arrays are ordinary exact-shape assignment and return values.
+An any-size `T[]` cannot be stored or returned (E10253). Const parameter rules CP-1 through CP-5
+apply to both struct and array parameters within function signatures.
 
 ### With F016 (Type System)
 
@@ -1018,7 +1052,7 @@ function applyMovement(dx: sbyte, dy: sbyte): void {
 | L3 Beginner-friendly | ✅ | Syntax is familiar to C/TypeScript/JavaScript developers |
 | L4 Minimal feature | ✅ | No overloading, no nested functions, no closures — minimal set |
 | L5 No redundancy | ✅ | Only way to define reusable code blocks; `interrupt` is a modifier, not a separate feature |
-| L6 Error messages defined | ✅ | 17 error codes + 2 warnings covering all misuse patterns |
+| L6 Error messages defined | ✅ | Canonical diagnostics cover every rejected declaration, call, return, recursion, address-escape, and resource condition |
 | L7 Compile-time failure preferred | ✅ | All errors caught at compile time (recursion, types, arguments) |
 | L8 Feature interaction documented | ✅ | Interactions with all 12 related features explicitly defined |
 | L9 Documentable with examples | ✅ | 4 examples: game loop, utilities, struct params, frame visualization |

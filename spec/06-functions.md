@@ -21,7 +21,8 @@ Key design principles:
 - **No stack for data** — parameters, locals, and return values never touch the hardware stack
 - **Hardware stack is accounted completely** — `JSR` return addresses, interrupt entries/register
   saves, and explicit stack intrinsics all contribute to the proven peak
-- **Register-based return values** — `byte`/`sbyte`/`boolean` in A, `word`/`sword` in A(lo)/X(hi)
+- **Caller-owned returns** — scalars/enums use registers; fixed aggregates are constructed in
+  caller-owned storage selected before the call
 - **Declaration order independent** — functions can call other functions regardless of source order
 
 ---
@@ -42,10 +43,9 @@ parameter      = identifier , ":" , [ "const" ] , value_type ;
 return_type    = "void" | value_type ;
 ```
 
-The shared master `value_type` production includes primitive
-types, struct and enum type names, and array types. Every such return annotation parses uniformly.
-Semantic analysis accepts scalar and enum returns, rejects struct returns with E10093, and rejects
-array returns with E10120.
+The shared master `value_type` production includes primitive types, struct and enum type names, and
+array types. Every complete value type is valid as a return type. An unsized `T[]` parameter form is
+not a complete value and is rejected as a return type with E10253.
 
 ### 2.2 Examples
 
@@ -149,25 +149,30 @@ parameter.
 
 ### FN-4 — Return Value Types
 
-Functions can return scalar and enum values only. Struct and array return values are not allowed.
+Functions can return every complete value type. Scalar and enum values use registers. Fixed structs
+and arrays use a compiler-managed, caller-owned destination; no source-level out parameter is
+required.
 
-| Return Type | Allowed | Register | Notes |
-|-------------|---------|----------|-------|
-| `void` | ✅ | — | No return value |
-| `byte` | ✅ | A | 8-bit unsigned |
-| `sbyte` | ✅ | A | 8-bit signed (same register, different semantics) |
-| `word` | ✅ | A(lo) / X(hi) | 16-bit unsigned |
-| `sword` | ✅ | A(lo) / X(hi) | 16-bit signed (same registers, different semantics) |
-| `boolean` | ✅ | A | 0 = false, 1 = true |
-| enum type | ✅ | A | Byte-backed value with nominal enum type |
-| struct type | ❌ | — | E10093 — use out-parameter instead (→ Ch 07) |
-| array type | ❌ | — | E10120 — use out-parameter instead (→ Ch 08) |
+| Return Type | Result location | Notes |
+|-------------|-----------------|-------|
+| `void` | — | No return value |
+| `byte`, `sbyte`, `boolean` | A | 8-bit scalar result |
+| `word`, `sword` | A(lo) / X(hi) | 16-bit scalar result |
+| enum type | A | Byte-backed value with nominal enum type |
+| fixed struct or array | Caller-owned destination | Exact declared type and every array extent must match |
+| unsized `T[]` | Rejected, E10253 | Borrowed parameter form, not a complete value |
+
+The caller chooses the final aggregate destination before entering the callee. A declaration or
+assignment normally supplies that object directly. Another aggregate-consuming context may require
+an SFA temporary whose lifetime lasts through that use. The callee constructs the value directly
+there whenever possible. Copy elision is permitted only when it preserves the same value, aliasing,
+and observable effect order as the unelided program.
 
 ### FN-5 — Return Statement Rules
 
 | Situation | Rule | Error |
 |-----------|------|-------|
-| Non-void function, `return expr;` | Expression must be assignment-compatible with the declared return type under Ch 02, §5.3 and the enum conversion rules | E10080, E10082, E10086, or E10235 according to the rejected conversion |
+| Non-void function, `return expr;` | Scalars/enums follow Ch 02 conversion rules; fixed aggregates require the exact type and every array extent | E10080, E10082, E10086, E10235, or E10253 according to the rejected value |
 | Non-void function, `return;` (no value) | Not allowed | E10174 |
 | Non-void function, missing return on some path | Not allowed | E10102 (→ Ch 05) |
 | Void function, `return;` | Allowed (early exit) | — |
@@ -192,6 +197,12 @@ function explode(enemy: Enemy): void {
     // ... explosion logic ...
 }
 ```
+
+For an aggregate return, the return expression is evaluated once and its complete source value is
+delivered to the hidden caller-owned destination. A struct literal or other directly constructible
+result may be written straight into that destination. If an actual copy remains and source and
+destination overlap, lowering must preserve the source value by a safe copy direction or
+SFA-accounted snapshot. The build report exposes the selected copy's bytes, cycles, and scratch.
 
 ### FN-6 — No Recursion
 
@@ -346,6 +357,10 @@ E10260 rejects the first retaining or unproven use and reports both the local or
 path. This analysis adds no runtime code or calling-convention field. It extends the addressed
 local's SFA liveness across the complete legal call chain.
 
+Addresses of scalar parameters are local-origin borrows bounded by the current invocation.
+Addresses derived from aggregate parameters inherit the caller object's lifetime and mutable or
+read-only provenance. Copying or arithmetically deriving an address does not erase either property.
+
 ---
 
 ## 5. SFA Calling Convention
@@ -360,7 +375,8 @@ Blend65 uses a **Static Frame Allocation** calling convention that eliminates al
 ├──────────────┬───────────────────────────────────────────┤
 │ Parameters   │ Static frame (fixed addresses in RAM)     │
 │ Locals       │ Static frame (fixed addresses in RAM)     │
-│ Return value │ Registers (A for 8-bit, A/X for 16-bit)  │
+│ Scalar return│ Registers (A for 8-bit, A/X for 16-bit)  │
+│ Aggregate ret│ Caller-owned destination                 │
 │ Return addr  │ Hardware stack via JSR/RTS (2 bytes)      │
 └──────────────┴───────────────────────────────────────────┘
 ```
@@ -368,8 +384,9 @@ Blend65 uses a **Static Frame Allocation** calling convention that eliminates al
 ### 5.2 Frame Layout
 
 Each function has one logical frame layout that assigns fixed offsets to its parameters, locals,
-temporaries, spills, and helper scratch. SFA allocates one or more contiguous static instances of
-that layout at compile time. One instance is sufficient when no two invocations can overlap;
+temporaries, spills, aggregate-return destination state, and helper scratch. SFA allocates one or
+more contiguous static instances of that layout at compile time. One instance is sufficient when
+no two invocations can overlap;
 overlapping mainline, IRQ, NMI, callback, or other proven execution domains receive disjoint
 instances. Every instance uses the same offsets, while code is shared or specialized as required by
 the fixed addresses (§7.5).
@@ -399,6 +416,7 @@ The compiler allocates frame instances using the static call and execution-domai
 | `word` / `sword` parameter | 2 bytes |
 | Struct or exact `T[N]` array parameter (by-reference) | 2 bytes (base address) |
 | Any-size `T[]` array parameter (by-reference) | 4 bytes (base address + word element count) |
+| Materialized aggregate-return destination address | 2 bytes; zero when a fixed-address variant encodes it directly |
 | Local `byte` / `sbyte` / `boolean` variable | 1 byte |
 | Local `word` / `sword` variable | 2 bytes |
 
@@ -412,13 +430,22 @@ frame times every reachable domain. No unproved overlap is removed merely to sav
 ```
 Caller                           Callee
 ──────                           ──────
-1. Evaluate arguments (left→right)
-2. Store values to callee's frame
-3. JSR callee_address  ────────► 4. Execute body
-                                 5. Store result in A (or A/X)
-                                 6. RTS
-7. Use result from A (or A/X) ◄─┘
+1. Use aggregate destination selected once by the enclosing context, if any
+2. Evaluate arguments (left→right)
+3. Store arguments and any materialized destination address
+4. JSR callee_address  ────────► 5. Execute body
+                                 6. Return scalar in A/A-X, or construct aggregate in destination
+                                 7. RTS
+8. Use completed result       ◄─┘
 ```
+
+An enclosing assignment evaluates its target place before the call under Chapter 04's ordinary
+rule. Arguments retain their left-to-right source order. Each target place, argument, and return
+expression is evaluated once, and the destination is selected once. Nested calls receive disjoint
+live result homes unless a proof permits direct construction into the final destination. Mainline,
+IRQ, NMI, and other overlapping execution domains likewise receive disjoint homes or code variants.
+SFA closes all destination state, staging, and helper scratch before emission; no later pass may
+invent storage.
 
 ### 5.5 Stack Usage
 
@@ -831,7 +858,8 @@ public presentation.
 | E10247 | A compiler-recognized function-address sink receives a value whose function/ABI provenance is erased or unknown. | The sink call is rejected; use a provenance-preserving value or an explicit raw hardware boundary. |
 | E10248 | Explicit stack intrinsics underflow function entry, pull the wrong saved kind, join unequal kind sequences, or leave a nonempty relative sequence on exit. | The function is rejected because deterministic `RTS`/`RTI` state cannot be preserved. |
 | E10252 | A compiler-visible raw interrupt-entry address is written directly to a recognized firmware vector that requires another entry ABI. | The write is rejected; use the profile API that selects the correct entry variant. |
-| E10260 | An argument derived from a local address reaches a retaining or unproven parameter position, or such a value is returned. | The escaping use is rejected; use a proven non-retaining call, module-level storage, or caller-owned data. |
+| E10253 | A return type or returned aggregate uses unsized `T[]` rather than a complete fixed shape. | The return is rejected; use a fixed extent or keep `T[]` as a borrowed parameter form. |
+| E10260 | An address derived from local-origin storage reaches a return, persistent/raw/MMIO store, asynchronous publication, retaining or unknown call, or another opaque escape. | The escaping use is rejected; use a proven non-retaining call, module-level storage, or caller-owned data. |
 
 ### Warning Conditions
 
@@ -852,8 +880,8 @@ public presentation.
 | **Address-of** (→ Ch 04, §8) | `&functionName` returns `word`. Compiler marks functions as address-taken for SFA liveness. A local-origin address remains a borrow bounded by that local's dynamic lifetime; E10260 rejects a return, longer-lived store, or retaining/unknown call. |
 | **Type system** (→ Ch 02) | Return type annotation required (TS-1). Argument types must match parameter types. Auto-promotion applies (TS-4). Mixed signedness is E10081 (→ Ch 02). |
 | **Control flow** (→ Ch 05) | `return` is a control flow statement. Ordinary nested shadowing applies inside function bodies. Parameters and outermost-body declarations share one E10003 duplicate domain. E10102 (not all paths return) is enforced for non-void functions. |
-| **Structs** (→ Ch 07) | Always passed by reference (FN-3). Cannot be returned (E10093). `const` modifier prevents modification. |
-| **Arrays** (→ Ch 08) | Always passed by reference (FN-3). Cannot be returned (E10120). `const` modifier prevents modification. |
+| **Structs** (→ Ch 07) | Parameters are zero-copy borrows (FN-3). Fixed structs are ordinary exact-type assignment and return values. `const` prevents mutation through a borrowed parameter or derived address. |
+| **Arrays** (→ Ch 08) | Parameters are zero-copy borrows (FN-3). Fixed arrays are ordinary exact-shape assignment and return values; unsized `T[]` remains parameter-only. `const` prevents mutation through a borrowed parameter or derived address. |
 | **Enums** (→ Ch 09) | Enum values are `byte`-backed. Passed by value like any `byte`. Implicit enum→byte conversion applies in argument position. |
 | **For loops** (→ Ch 05) | For-header locals and clause temporaries inside functions use ordinary function-frame liveness. |
 | **Switch** (→ Ch 05) | Switch statements inside function bodies work normally. |

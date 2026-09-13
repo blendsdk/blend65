@@ -1,6 +1,6 @@
 # Chapter 07 — Structs
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable  
 > **Source**: F011
@@ -26,6 +26,8 @@ Key design principles:
 - **No methods, no inheritance, no polymorphism** — this is data grouping, not OOP
 - **Field order in memory matches declaration order** — no padding, no reordering
 - **Structs are always passed to functions by reference** — compiler-managed, no `ref` keyword (→ Ch 06, FN-3)
+- **Structs are ordinary values for assignment and return** — compatible values have the same
+  declared struct type
 - **No heap** — every struct instance has a fixed address determined at compile time
 - **`sizeof(StructType)` provides compile-time size** (→ Ch 04, §9)
 
@@ -127,28 +129,22 @@ function display(e: const Enemy): void {
 }
 ```
 
-### SR-4 — Cannot Be Returned from Functions
+### SR-4 — Struct Values May Be Returned
 
-Functions cannot have a struct as their return type (→ Ch 06, FN-4). Use a struct parameter instead:
+Functions may return a fixed struct value (→ Ch 06, FN-4). The declared return type and returned
+value must be the same struct type:
 
 ```blend65
-// ❌ E10093
-function createEnemy(x: byte, y: byte): Enemy { }
-
-// ✅ Use a parameter — the caller provides the destination
-function initEnemy(e: Enemy, x: byte, y: byte): void {
-    e.x = x;
-    e.y = y;
-    e.hp = 100;
-    e.enemyType = 0;
-    e.frame = 0;
+function createEnemy(x: byte, y: byte): Enemy {
+    return { x: x, y: y, hp: 100, enemyType: 0, frame: 0 };
 }
 
-let boss: Enemy;
-initEnemy(boss, 100, 50);
+let boss: Enemy = createEnemy(100, 50);
 ```
 
-**Rationale**: Returning a struct would require copying all bytes from the function's frame to the caller. By-reference parameter avoids this copy entirely.
+The caller owns `boss`, supplies it as the hidden return destination, and the callee can construct
+the literal directly there. A temporary or byte copy is not required merely because the source uses
+return syntax. An actual remaining copy follows §4.4.
 
 ### SR-5 — No Struct Equality
 
@@ -254,11 +250,12 @@ let backup: Enemy = boss;   // copies all 5 bytes
 boss = backup;               // restores from backup
 ```
 
-The assignment target is evaluated once, the complete source value is evaluated once, and the
-bytes are stored once. If the source can overlap the destination or later evaluation could
-overwrite source bytes, SFA first snapshots the source into non-overlapping invocation-private
-staging. The value of the assignment expression is that complete stored struct value; chained
-assignment therefore never observes a partially copied struct.
+The source and destination must have the same declared struct type. The assignment target is
+evaluated once, then the complete source value is evaluated once, and then the bytes are stored.
+The stored result behaves as the source value at that point: if source and destination overlap,
+lowering uses a safe copy direction or an SFA-accounted snapshot so no source byte is destroyed
+before it is read. The value of the assignment expression is that complete stored struct value;
+chained assignment therefore never observes a partially copied struct.
 
 **Cost**: an unrolled non-overlapping copy costs 6–8 cycles and 4–6 ROM bytes per byte when
 source and destination homes range from zero page to absolute. A selected loop, address calculation,
@@ -276,15 +273,20 @@ function updatePosition(pos: Position): void {
 updatePosition(player.pos);  // ✅ compiler calculates &player + offset_of(pos)
 ```
 
-### 4.6 Address-of for Structs
+### 4.6 Address-of for Structs and Fields
 
-`&structVar` returns the base address as a `word` (→ Ch 04, §8):
+`&` accepts a struct storage place or any nested field place and returns its address as a `word`
+(→ Ch 04, §8):
 
 ```blend65
-let addr: word = &player;   // ✅ base address of the struct
+let addr: word = &player;              // base address of the struct
+let hpAddr: word = &player.hp;         // field address
+let xAddr: word = &players[next()].pos.x; // next() is evaluated once
 ```
 
-Taking the address of individual struct **fields** (`&player.hp`) is deferred to a future version.
+The base, each field selection, and every array index are evaluated once. The result retains the
+base object's lifetime and read-only provenance. A field reached through a `const` parameter is
+therefore read-only, and an address derived from a caller object cannot outlive that caller object.
 
 ### 4.7 Aliasing
 
@@ -468,7 +470,6 @@ templates, spans, suppression, and history.
 | E10090 | A struct declaration has no fields. | The declaration is rejected. |
 | E10091 | A struct directly contains a field of its own type. | The declaration is rejected. |
 | E10092 | Struct field containment forms an indirect type cycle. | Every declaration in the cycle is rejected. |
-| E10093 | A function declares a struct return type. | The function is rejected. |
 | E10094 | A const struct argument is passed to a mutable struct parameter. | The call is rejected; no mutable alias is created. |
 | E10095 | A comparison operator is applied to struct values. | The comparison is rejected. |
 | E10096 | A struct literal omits a declared field. | The literal is rejected. |
@@ -494,14 +495,14 @@ templates, spans, suppression, and history.
 | **Type system** (→ Ch 02) | Structs are a derived type. Field types follow all type rules. No implicit conversions between struct types. |
 | **Variables** (→ Ch 03) | Struct instances declared with `let`/`const`. `zeropage` placement supported. |
 | **Operators** (→ Ch 04) | No operators apply to structs directly (no `==`, no arithmetic). `sizeof` and `offsetof` are compile-time intrinsics. |
-| **Functions** (→ Ch 06) | Always passed by reference (FN-3). Cannot be returned (FN-4, E10093). `const` modifier prevents mutation. |
+| **Functions** (→ Ch 06) | Parameters are zero-copy borrows (FN-3). Return values use caller-owned destinations (FN-4). `const` prevents mutation. |
 | **Arrays** (→ Ch 08) | Fixed-size arrays as struct fields are supported. Arrays of structs use index × size addressing. |
 | **Enums** (→ Ch 09) | Enum fields are valid in structs. Enum values are valid in struct literals. |
 | **Modules** (→ Ch 10) | `export struct` makes the type importable. Without `export`, module-private. Type aliases are not available (REJ-001); use `import { X as Y }` to rename. |
 | **Memory model** (→ Ch 11) | All struct instances have compile-time-known addresses under SFA. ZP pointer bytes shared via frame coloring. |
 | **Switch** (→ Ch 05) | Structs are not valid as switch expression types (E10075). |
 | **For loops** (→ Ch 05) | Structs as loop-local variables reuse the same frame slot per iteration. |
-| **Address-of** (→ Ch 04) | `&structVar` returns base address as `word`. Address of individual fields deferred to future version. |
+| **Address-of** (→ Ch 04) | `&` accepts struct variables, parameters, nested fields, indexed elements, and their compositions; it evaluates each place component once and preserves lifetime/read-only provenance. |
 | **Interrupts** (→ Ch 06, §7) | Struct access inside interrupt handlers works. By-ref params use ZP pointers — ensure no conflict with main code's pointers (separate ZP temp space, → Ch 06, §7.6). |
 
 ---

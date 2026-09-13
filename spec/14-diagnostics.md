@@ -27,13 +27,13 @@ maximum unless this registry explicitly records a migration.
 ## 2. Presentation Contract
 
 ```text
-error[E10042]: Cannot take address of '<expr>' — address-of is only supported on named variables and functions
+error[E10043]: Address-of requires an addressable storage place or function — '<expr>' is a temporary value
   --> player.blend:42:13
    |
-42 |     let p: word = &players[index];
-   |                   ^^^^^^^^^^^^^^^^ unsupported address target
+42 |     let p: word = &(score + 1);
+   |                   ^^^^^^^^^^^ temporary value has no storage address
    |
-   = help: take the address of a named object, or use an explicit runtime address calculation
+   = help: store the value in a variable before taking its address
 ```
 
 Every diagnostic contains:
@@ -110,9 +110,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10033 | F005 / Ch 03 | `Unexpected '<keyword>' in zeropage block — declare '[export] name: type [= expression];' without 'let' or 'const'` |
 | E10034 | Ch 11 | `Output binary (<size> bytes) exceeds platform '<platform>' maximum binary size (<limit> bytes)` |
 | E10040 | F006 / Ch 04 | `Cannot take address of constant '<name>' — an inlined scalar constant has no storage address` |
-| E10041 | F006 / Ch 04 | `Cannot take address of parameter '<name>' — copy it to a local variable first` |
-| E10042 | F006 / Ch 04 | `Cannot take address of field or array element '<expr>' — this address form is not supported` |
-| E10043 | F006 / Ch 04 | `Address-of requires a named variable or function — found '<expr>'` |
+| E10043 | F006 / Ch 04 | `Address-of requires an addressable storage place or function — '<expr>' is a literal or temporary value` |
 | E10050 | F007 / Ch 06 | `Interrupt function '<name>' must have signature '(): void' — found '<actual>'` |
 | E10051 | F007 / Ch 06 | `Cannot call interrupt function '<name>' directly — use '&<name>' for installation in an interrupt-entry sink` |
 | E10063 | F008 / Ch 05 | `'<keyword>' can only be used inside a loop body` |
@@ -132,7 +130,6 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10090 | F011 / Ch 07 | `Struct '<name>' must have at least one field` |
 | E10091 | F011 / Ch 07 | `Struct '<name>' cannot contain a field of its own type` |
 | E10092 | F011 / Ch 07 | `Circular struct dependency: <struct_a> contains <struct_b> which contains <struct_a>` |
-| E10093 | F011 / Ch 07 | `Cannot return struct type '<name>' — pass a struct parameter instead` |
 | E10094 | F011 / Ch 07 | `Cannot pass const struct '<name>' to a mutable parameter — declare the parameter as 'name: const <type>' or copy the value` |
 | E10095 | F011 / Ch 07 | `Cannot compare structs with '<op>' — compare individual fields` |
 | E10096 | F011 / Ch 07 | `Struct literal must initialize all fields — missing '<field>'` |
@@ -147,7 +144,7 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10116 | F014 / Ch 08 | `Cannot mix string literals with value elements in an array initializer` |
 | E10121 | F014 / Ch 08 | `Cannot compare arrays with '<op>' — compare individual elements` |
 | E10122 | F014 / Ch 08 | `Cannot pass const '<name>' to mutable parameter '<param>' — make the parameter const or copy the value` |
-| E10123 | F014 / Ch 08 | `Cannot modify const parameter '<name>'` |
+| E10123 | F006 / F014 / Ch 04 / Ch 08 | `Cannot modify through read-only origin '<name>'` |
 | E10124 | F014 / Ch 08 | `String literal (<N> bytes) exceeds array size (<M>)` |
 | E10125 | F014 / Ch 08 | `Encoding or character map '<name>' is unavailable for platform '<platform>' — available: <list>` |
 | E10130 | F015 / Ch 13 | `File not found: '<path>' — searched <search_paths>` |
@@ -226,14 +223,14 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10250 | F015 / Ch 13 | `'embed()' selector must be a string literal — found '<expr>'` |
 | E10251 | F014 / Ch 08 | `Character-map argument must be a string literal — available maps for '<encoding>' on '<platform>': <list>` |
 | E10252 | Ch 06 / Ch 12 | `Raw interrupt-entry address for '<name>' cannot be written directly to firmware vector '<vector>' — use '<sink>' so the compiler selects the required entry variant` |
-| E10253 | Ch 08 | `Array use at '<site>' has no compile-time-known extent — add '[N]', use an extent-inferencing initializer, or keep 'T[]' as an outermost parameter form` |
+| E10253 | Ch 06 / Ch 08 | `Array use at '<site>' has no compile-time-known extent — add '[N]', use an extent-inferencing initializer, or keep 'T[]' as an outermost parameter form` |
 | E10254 | Ch 12 | `Packed-BCD operand '<value>' contains a non-decimal digit — every nibble must be 0 through 9` |
 | E10255 | Ch 12 | `Raw decimal mode reaches '<boundary>' before 'asm_cld()' — ordinary Blend65 operations require binary mode` |
 | E10256 | F015 / Ch 13 / C64 | `Audio operation '<operation>' requires a qualified player contract for asset '<name>' — embedded data alone is not a callable player ABI` |
 | E10257 | F015 / Ch 13 / C64 | `Audio player contract '<contract>' does not provide <detail> — available forms: <list>` |
 | E10258 | F015 / C64 | `Audio operation '<operation>' can overlap non-reentrant player contract '<contract>' across '<domain_a>' and '<domain_b>'` |
 | E10259 | Ch 12 / Ch 15 | `Selected platform profile '<platform>' has no proven BRK control-flow and handler contract — 'asm_brk()' cannot be analyzed safely` |
-| E10260 | Ch 04 / Ch 06 / Ch 11 | `Address of local '<name>' escapes its lifetime through <sink> — local addresses may only be borrowed while '<name>' is alive or passed to a proven non-retaining parameter; move the object to module scope or pass caller-owned storage` |
+| E10260 | Ch 04 / Ch 06 / Ch 11 | `Address derived from '<name>' escapes its lifetime through <sink> — the address may only be used while its origin is alive or passed to a proven non-retaining parameter; move persistent data to module scope or keep it caller-owned` |
 | E10261 | F015 / Ch 13 / Ch 15 / C64 | `SID asset '<path>' requires <asset_configuration>, which is incompatible with profile '<profile>' selection <profile_configuration> — choose a compatible asset/profile or provide a matching qualified player contract for unknown metadata` |
 | E10262 | F008 / Ch 05 | `Loop counter '<name>' repeats within <range> before condition bound <bound> can be reached — use '<suggested_type>' or make deliberate wrap/infinite control explicit` |
 | E10263 | F014 / Ch 08 | `Array index must have an integer type — found '<type>'` |
@@ -295,8 +292,9 @@ code with the same number.
 | E10002 module declaration not first | E10237; E10002 remains the one-module-per-file condition. |
 | E10011 constant-only module initializer | Retired; runtime module `let` initialization is legal. |
 | E10033 RAM budget exceeded | E10238; E10033 remains invalid keyword inside `zeropage`. |
-| E10040/E10041 intrinsic arity | E10171; E10040/E10041 remain address-of diagnostics. |
-| E10042 generic intrinsic arity | Retired for that meaning; E10042 remains the accepted address-of target condition. |
+| E10040/E10041 intrinsic arity | E10171; E10040 remains the inlined-constant address diagnostic, while E10041 is retired because parameters are addressable places. |
+| E10042 generic intrinsic arity / field-element address restriction | Retired; fields and indexed elements are addressable places. |
+| E10093 struct return | Retired; fixed structs may be returned through caller-owned destinations. |
 | E10080 invalid operator operand | Use the precise type/operator diagnostic; E10080 remains implicit conversion. |
 | E10082 constant division by zero | E10160; E10082 remains implicit narrowing. |
 | E10083 wide shift | E10161 for invalid shift type or W10174 for a constant amount at least the width; E10083 remains unsigned negation. |

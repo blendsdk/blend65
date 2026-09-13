@@ -331,7 +331,9 @@ zero-page or absolute condition/result homes. Other arms add their own evaluatio
 &expression
 ```
 
-The `&` operator returns the **compile-time memory address** of a variable or function as a `word` value.
+The `&` operator returns the address of an addressable storage place, or the code address of a
+function, as a `word` value. Direct addresses are fixed at link time; parameter, field, and indexed
+element addresses may require runtime calculation.
 
 ```ebnf
 address_of_expr = "&" , unary_expr ;
@@ -347,17 +349,20 @@ address_of_expr = "&" , unary_expr ;
 | Function name | ✅ | Returns function entry point address |
 | `const` scalar | ❌ E10040 | Scalar constants are inlined; no address |
 | `const` array | ✅ | Array constants have ROM addresses |
-| Parameter | ❌ E10041 | Copy to a local variable first |
-| Struct field / array element | ❌ E10042 | Field/element address-taking is deferred |
-| Other expression / literal | ❌ E10043 | Only named variables and functions |
+| Scalar parameter | ✅ with lifetime restriction | Local-origin borrow bounded by the invocation |
+| Aggregate parameter | ✅ | Inherits the caller object's lifetime and mutability |
+| Struct field / array element | ✅ | Every base/field/index component is evaluated once |
+| Other expression / literal | ❌ E10043 | Literals and temporary values are not storage places |
 
-### 8.3 Local-Address Borrow Lifetime
+### 8.3 Address Provenance and Borrow Lifetime
 
-Taking the address of a function local creates a compiler-tracked **borrowed local address**. Its
-source type remains the ordinary integer type `word`, but the compiler retains hidden provenance
-that identifies the local and its dynamic source lifetime.
+Taking the address of a storage place creates a compiler-tracked borrowed address. Its source type
+remains the ordinary integer type `word`, but the compiler retains hidden provenance identifying
+its origin, dynamic lifetime, and mutable or read-only status. A scalar parameter has the active
+invocation's lifetime. A field or element reached through an aggregate parameter inherits the
+caller object's origin. A known write through a read-only-derived address is E10123.
 
-That lifetime is bounded by the local's lexical scope inside one function invocation. A block local
+For local-origin storage, the lifetime is bounded by the local's lexical scope inside one function invocation. A block local
 ends when control leaves its block. A loop-body or for-header local has a new source lifetime on
 each iteration and cannot be observed from a later iteration merely because SFA reuses the same
 physical bytes. Every use through the borrowed address extends the local's SFA liveness through
@@ -409,6 +414,11 @@ Persistent addresses instead name module-level storage or storage owned by the c
 by reference. No heap, runtime check, hidden persistent home, or implicit static-local conversion
 is added.
 
+Address-taking of an array element applies the array's ordinary per-dimension index and bounds
+rules. There is no special implicit one-past element, so a known `&items[length(items)]` is E10240.
+An end address may be formed explicitly by ordinary `word` arithmetic from a valid place address.
+That arithmetic has normal modulo-65536 semantics and does not introduce a pointer type.
+
 ### 8.4 Return Type
 
 `&` always returns `word` — addresses are 16-bit unsigned values on all target platforms.
@@ -434,7 +444,8 @@ The compiler detects `&fn` usage and ensures the function is emitted at a stable
 
 ### 8.6 6502 Cost
 
-Address-of is resolved at **compile time** or **link time**. At runtime, it loads an immediate 16-bit constant:
+For a fixed place, address-of is resolved at compile or link time and materializes an immediate
+16-bit constant:
 
 ```asm
 LDA #<address   ; low byte
@@ -443,6 +454,10 @@ LDA #>address   ; high byte
 STA dest+1
 ; 12 cycles, 10 bytes when dest is absolute (10 cycles, 8 bytes in zero page)
 ```
+
+A parameter, field, or indexed element uses the ordinary selected 16-bit address calculation. Its
+exact instructions, cycles, bytes, and scratch are reported; `&` adds no memory read or runtime
+metadata.
 
 ---
 
@@ -656,9 +671,8 @@ templates, spans, suppression, and history.
 | Code | Trigger | Rejected behavior or consequence |
 |------|---------|----------------------------------|
 | E10040 | Address-of targets an inlined scalar constant. | No storage address exists; the expression is rejected. |
-| E10041 | Address-of targets a parameter. | The expression is rejected under the parameter-address rule. |
-| E10042 | Address-of syntactically targets a struct field or array element. | The deferred field/element form is rejected. |
-| E10043 | Address-of targets any other literal/expression instead of one accepted identifier. | The expression is rejected. |
+| E10043 | Address-of targets a literal, temporary, or other non-place expression. | No storage address exists; the expression is rejected. |
+| E10123 | A compiler-visible write uses an address derived from read-only storage. | The write is rejected without adding a runtime check. |
 | E10260 | A local-origin address or derived fragment may outlive its dynamic source lifetime. | The escaping use is rejected; legal non-retaining borrows remain available. |
 | E10154 | An ordered comparison uses a boolean operand. | The comparison is rejected. |
 | E10160 | A compile-time constant divisor is zero. | Division/remainder is rejected before runtime lowering. |
