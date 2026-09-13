@@ -12,6 +12,23 @@
 - Each entry has a **source** (the feature evaluation that created it), a **description**, and **reconsideration criteria**.
 - Items are NOT promises — they are candidates for future evaluation against the Language Guard.
 
+## Non-Normative Future-Target Constraints
+
+The machines in this section are not Specification 4 targets. Their names are not accepted profile
+IDs, and these notes provide no language, library, artifact, emulator, or hardware conformance
+claim. They exist only to prevent the C64 implementation from erasing target-neutral seams.
+
+| Future target | Constraints that a later qualification must own |
+|---|---|
+| C64 Ultimate | REU/DMA address spaces and visibility, turbo CPU clocks, firmware and storage APIs, physical/UltiSID topology, interrupt continuity, coordinated packaging, and Ultimate-specific evidence. Running a base-C64 artifact on compatible Ultimate hardware is not a `c64u` compiler target. This is the owned next target family. |
+| Commander X16 | 65C02 instruction legality, banked RAM, VERA video/audio, KERNAL/firmware identity, startup/exit, artifact packaging, emulator configuration, and hardware evidence. |
+| Atari 800XL | 6502/OS identity, ANTIC/GTIA/POKEY, banked memory and display-list ownership, IRQ/NMI routes, XEX packaging, emulator configuration, and hardware evidence. |
+| Atari 7800 | 6502C bus timing, 4 KiB base RAM plus cartridge memory, MARIA DMA, TIA/RIOT slow accesses, cartridge layout/A78 packaging, startup/vectors, emulator configuration, and hardware evidence. |
+
+A future target becomes active only with a normative appendix, a real CPU/machine/emitter/packager
+path, complete core-language requalification, emulator evidence, required physical QA, and atomic
+authority activation. Until then its constraints are portability review inputs only.
+
 ---
 
 ## Deferred Items
@@ -281,7 +298,7 @@ native formats directly.
 - Community demand for a streamlined "modern art → retro platform" pipeline
 - Well-defined, deterministic conversion algorithms exist for each platform's graphics modes
 - The conversion quality is acceptable (no surprising artifacts)
-- The feature can be implemented as a format handler plugin without changing the core compiler
+- The feature can be implemented through a separately qualified handler without changing core syntax
 
 ---
 

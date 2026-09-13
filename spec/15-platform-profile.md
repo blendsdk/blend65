@@ -109,7 +109,7 @@ retime, retune, or otherwise translate an incompatible SID payload.
 | `ram_end` | `word` | End address of general RAM |
 | `zp_start` | `byte` | First available zero-page address |
 | `zp_end` | `byte` | Last available zero-page address |
-| `stack_capacity` | `word` | Hardware-stack bytes proven writable and stack-safe in the selected memory map before any platform reserve (commonly 256, but 192 on Atari 7800 because `$0100`–`$013F` aliases registers) |
+| `stack_capacity` | `word` | Hardware-stack bytes proven writable and stack-safe before a profile reserve; 256 in every Specification 4 profile |
 | `stack_reserve` | `byte` | Bytes reserved for OS/KERNAL on hardware stack |
 
 #### Resource Budgets

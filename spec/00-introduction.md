@@ -1,6 +1,6 @@
 # Chapter 00 — Introduction & Design Axioms
 
-> **Version**: 3.0  
+> **Version**: 4.0
 > **Status**: draft  
 > **Stability**: stable
 
@@ -8,9 +8,13 @@
 
 ## 1. What Is Blend65?
 
-Blend65 is a statically typed, compiled programming language for the MOS 6502 CPU family. It targets retro computing platforms where every byte of RAM, every CPU cycle, and every page of ROM matters. The language provides a modern, C-like development experience while generating machine code that meets the hard real-time and memory constraints of 8-bit hardware.
+Blend65 is a statically typed systems language, ahead-of-time compiler, toolchain, and narrow
+target-platform library for the MOS 6502 family. It provides a modern, C-like development
+experience while generating machine code that meets the hard real-time and memory constraints of
+8-bit hardware.
 
-Blend65 is not a general-purpose language. It is purpose-built for a class of machines that have:
+Blend65 supports games, renderers, demos, tools, and any other software its qualified machines can
+run. It is purpose-built for machines that have:
 
 - A single CPU running at 1–8 MHz
 - Between 4 KB and 512 KB of RAM (often banked)
@@ -22,19 +26,24 @@ The language exists so that developers can write games, demos, tools, and system
 
 ---
 
-## 2. Target Platforms
+## 2. Qualified Targets and Product Boundary
 
-Blend65 targets five platforms. The language specification is platform-independent; all platform-specific details live in **platform profiles** (→ Ch 15) and **platform appendixes**.
+Specification 4 qualifies only Commodore 64 profiles. The exact eight resident PRG identities and
+one D64 identity are defined in Chapter 15 and Appendix A. One exact profile ID selects CPU, video,
+ROM/startup, banking, interrupts, SID, memory, artifact, loader, exit, and evidence together.
+Unknown, planned, partial, or mixed identities are rejected before lowering.
 
-| Platform | CPU | Clock | RAM | Notes |
-|----------|-----|-------|-----|-------|
-| Commodore 64 | 6502 | 1 MHz | 64 KB | Primary target, largest community |
-| C64 Ultimate | 6502 + extensions | 1 MHz | 64 KB+ | C64 variant with hardware extensions (REU, etc.) |
-| Commander X16 | 65C02 | 8 MHz | 512 KB+ banked | Modern 6502 design, generous resources |
-| Atari 800XL | 6502 | 1.79 MHz | 64 KB | Different I/O architecture (ANTIC/GTIA/POKEY) |
-| Atari 7800 | 6502C | 1.79 MHz nominal | 4 KB (+cart RAM) | TIA/RIOT accesses run at 1.19 MHz; MARIA DMA stalls the CPU |
+Core language semantics remain target-neutral and must pass on every qualified active target.
+Hardware operations, external asset adapters, placement, and delivery live in the selected target
+library and profile. Future-machine constraints are non-normative design pressure only; they do not
+claim compiler support.
 
-The compiler accepts a `--platform` flag that selects the target. The platform profile defines resource limits, memory maps, character encoding, and binary output format. All five platforms must be supported by every language feature in the core specification.
+Blend65 is not a game engine, game framework, or gameplay library. It does not supply game loops,
+entities or pools, collision, state dispatch, renderers, scene graphs, sprite multiplexers,
+scrolling engines, buffer managers, audio schedulers, or mixers. Developers write those systems in
+ordinary Blend65. The toolchain may ingest, validate, convert, type, place, and package external
+assets and expose exact imported-player ABIs, but it does not own application policy. Examples and
+game workloads are qualification evidence, not public game modules.
 
 ---
 
@@ -98,9 +107,11 @@ Blend65 requires explicit type annotations on every declaration. There is no typ
 
 **Why:** On the 6502, the difference between `byte` and `word` is the difference between 1-byte and 2-byte storage, between 4-cycle and 12-cycle arithmetic, between direct and indirect addressing. This is a design decision, not a detail to be inferred. Making it explicit documents the developer's intent for every reader of the code.
 
-### A5 — Multi-Platform
+### A5 — Target-Neutral Core
 
-Every core language feature must compile to correct machine code on all five target platforms. Features that are inherently platform-specific (VIC-II sprites, MARIA display lists, SID music) are not part of the core language — they belong in platform libraries, accessed via the module system.
+Every core language feature must compile correctly on every qualified active target. Features that
+are inherently platform-specific are not part of the core language; they belong in a qualified
+platform library accessed through the module system.
 
 The core specification never references specific hardware addresses, chip names, character encodings, or platform names. All such details are defined in platform profiles (→ Ch 15).
 
@@ -142,7 +153,7 @@ Every language feature carries a stability classification that sets expectations
 | **provisional** | Designed but may be refined | Minor syntax/semantic adjustments possible in the next version |
 | **experimental** | Exploratory, may be removed | No stability guarantee; may disappear entirely. Compiler warns on use |
 
-All features in the Blend65 v3 specification are classified **stable** unless explicitly noted otherwise.
+All features in Specification 4 are classified **stable** unless explicitly noted otherwise.
 
 ---
 
@@ -181,14 +192,15 @@ This specification is organized into 16 chapters:
 
 ## 7. Conventions in Code Examples
 
-All code examples in this specification are valid Blend65 v3 programs or program fragments unless marked otherwise. Invalid examples are annotated with the specific error code they produce:
+All code examples in this specification are valid Blend65 4 programs or program fragments unless marked otherwise. Invalid examples are annotated with the specific error code they produce:
 
 ```blend65
 let x: byte = 200;          // ✅ Valid
 let y = 200;                 // ❌ E10150: type annotation required
 ```
 
-Platform-specific examples (e.g., specific memory addresses) are illustrative and use Commodore 64 addresses by convention. They are not normative — the language specification is platform-independent.
+Platform-specific examples are normative only when their owning C64 appendix or evaluation says
+so. Core examples do not turn a C64 address or device into universal language meaning.
 
 ---
 
@@ -197,6 +209,7 @@ Platform-specific examples (e.g., specific memory addresses) are illustrative an
 | Date | Change |
 |------|--------|
 | May 2026 | v3 specification created from 23 accepted feature evaluations (F001–F024, F023 retired) |
+| September 2026 | Specification 4 reconciled modern language semantics and one exact C64 profile set |
 
 ---
 
@@ -207,4 +220,3 @@ Platform-specific examples (e.g., specific memory addresses) are illustrative an
 | Feature evaluations (`evaluations/F001–F024`) | The *why* behind each language feature — rationale, alternatives considered, Language Guard evaluation |
 | Future considerations (`future-considerations.md`) | Deferred and resolved `FUT-NNN` entries, plus rejected features (REJ-001, REJ-002) |
 | Language Guard (`.clinerules/language-guard.md`) | The 23-rule quality gate and evaluation template |
-| Build plan (`build-plan.md`) | The sequenced plan for producing this specification |

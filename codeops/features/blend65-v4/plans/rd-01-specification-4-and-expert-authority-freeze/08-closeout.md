@@ -481,3 +481,19 @@ the specification edit. No source was added or substituted.
 The active native asset set is exactly raw fallback, SPD v5, CTM v9, the qualified PSID v1–v4
 subset, and classic Koala. No loader plugin, fastloader, compressor, staging buffer, checksum,
 runtime registry, or extra native format was introduced.
+
+### Removed active-specification files
+
+The Phase 1 baseline already preserves each prior path, authority role, and raw P3 hash. The table
+below records the final pre-removal bytes and disposition before deletion; Git history preserves
+the content.
+
+| Removed path | Final pre-removal SHA-256 | Disposition | Specification 4 destination |
+|---|---|---|---|
+| `appendix-c64u.md` | `d7c7226c5f8ff56deb97cace9837539bcd4eccbd868f8078bc9574532c09231e` | False normative target removed | Non-normative constraints in `future-considerations.md`; owned successor work remains outside this specification |
+| `appendix-cx16.md` | `be07e4e9b1f90831a38a0f9893dd7aa4a28164c211450a357068b71ffd92892a` | False normative target removed | Non-normative constraints in `future-considerations.md` |
+| `appendix-a800xl.md` | `fb0a3dc17a74ceca868df28ae99897445f8f6c85d4a1980698675c279ced019f` | False normative target removed | Non-normative constraints in `future-considerations.md` |
+| `appendix-a7800.md` | `6c940ef8650fe57302bc6e119a3ed5c3a7ceafd343ac2ef5b06d008d6d43a25d` | False normative target removed | Non-normative constraints in `future-considerations.md` |
+| `build-plan.md` | `e1f091ebd224decc287298ef9021599eb42f3d1aaaceb6afe19cfbf64b1d3029` | Obsolete workflow record removed | RD-01 closeout and Git history |
+| `preflight-report.md` | `5cea653e346c03f3fcb1acf05a4e8d27828ad348a8bdbbcde582e596862deedb` | Obsolete workflow record removed | RD-01 closeout and Git history |
+| `v2-to-v3-migration.md` | `881eca2b359ff183452b335df6ce2044de517810db28a55ff90f422e692a269c` | Obsolete migration record removed | Phase 1 P3 baseline and final P3→4 crosswalk |
