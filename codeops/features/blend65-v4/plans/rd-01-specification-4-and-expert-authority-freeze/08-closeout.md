@@ -313,6 +313,10 @@ for (const phrase of ['Step 16,777,217','16,777,217 logical bytes','depth 513','
 NODE
 ```
 
+Phase 3 therefore freezes the normative specification identity as
+`BLEND65-SPEC-4-415831d3a0949d7e183673c56eec8c422e5f44eb74a8d50639ef96c6156b46e2`.
+No compiler, runtime, package, executable test, or expert-skill file changed in this phase.
+
 The external-source row used this literal command after retrieving the pinned sources:
 
 ```bash
@@ -530,12 +534,11 @@ identity:
 BLEND65-SPEC-4-415831d3a0949d7e183673c56eec8c422e5f44eb74a8d50639ef96c6156b46e2
 ```
 
-The following raw hashes capture every retained file after inventory publication. Task 3.1.7
-refreshes this table after the non-normative feature-index and crosswalk work so the closeout ends
-with the final at-rest values.
+The following raw hashes capture every retained file after the non-normative feature-index rewrite.
+They are the final at-rest Specification 4 values for this phase.
 
 ```text
-b8158e6a0bcba57478cb844c106e0344cd5c9c31c37d9a4ef5ba662f6c3e050f  00-feature-index.md
+ab393b09a630b8b8db90c7fb5e273ff0bbef1e5299c2902affbf4a33d43a6b0a  00-feature-index.md
 74f1bb84818f11fddb0d4142af071c14e634f58e326a370f2ad92f2e14a03fa1  00-introduction.md
 6f2364cf4ea6e3a9e1f46aa1ca42936a4f6ca6a3c0dbf0db35385f794727c9b7  00-normative-inventory.md
 4312fb663eeb3f26137aadcc8acbfa6ba586ef19996f54254409f8ead7982d1c  01-lexical-structure.md
@@ -658,3 +661,118 @@ Every material Specification 3 to Specification 4 change falls into one of these
 
 The complete Git diff from the frozen P3 baseline was reviewed against those groups. No material
 change remains unexplained, and no hunk-level ledger or duplicate migration document was created.
+
+### Phase 3 final direct verification
+
+| Command | Exit | Result |
+|---------|-----:|--------|
+| Literal V-02–V-09 Node block below | 0 | All seven printed checks passed, including digest mutation controls |
+| `npx prettier --check .clinerules/language-guard.md spec codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze/{08-closeout.md,99-execution-plan.md}` | 0 | Guard, specification, closeout, and plan are formatted |
+| `python3 /home/gevik/.codex/plugins/cache/codeops-marketplace/codeops/1.2.0/scripts/validate_markdown_links.py spec .clinerules codeops/features/blend65-v4` | 0 | All local Markdown links resolve |
+| `python3 /home/gevik/.codex/plugins/cache/codeops-marketplace/codeops/1.2.0/scripts/codeops_plan.py --root . --plan codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze --json` | 0 | 31 tasks parse with no plan problem |
+| `if git diff --name-only 12b547ec09d6ebe65f6c5d54dddce03b07f0817f -- '*.spec.test.*' \| grep -q .; then exit 1; fi` | 0 | No immutable specification-test file changed |
+| `if find spec -type l -print -quit \| grep -q .; then exit 1; fi` | 0 | The final specification contains no symlink |
+| `git diff --check` | 0 | No whitespace error |
+
+The V-02–V-09 command was:
+
+```bash
+node --input-type=module <<'NODE'
+import { createHash } from 'node:crypto';
+import { appendFileSync, cpSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
+const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const tablePaths = (section) => [...section.matchAll(/^\| `([^`]+)` \|/gm)].map((match) => match[1]);
+const walk = (dir, prefix = '') => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+  const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+  return entry.isDirectory() ? walk(join(dir, entry.name), relative) : [relative];
+});
+const digest = (root, paths) => hash([...paths].sort().map((path) => `${hash(readFileSync(join(root, path)))}  ${path}\n`).join(''));
+const inventory = readFileSync('spec/00-normative-inventory.md', 'utf8');
+const normative = tablePaths(inventory.split('## Normative Files')[1].split('## Non-Normative Files')[0]);
+const nonNormative = tablePaths(inventory.split('## Non-Normative Files')[1].split('## Corpus Digest')[0]);
+const listed = [...normative, ...nonNormative];
+assert(normative.length === 18 && nonNormative.length === 27 && new Set(listed).size === 45, 'inventory counts');
+assert(JSON.stringify([...listed].sort()) === JSON.stringify(walk('spec').sort()), 'inventory membership');
+for (const relative of listed) {
+  const path = join('spec', relative); const bytes = readFileSync(path);
+  assert(!relative.startsWith('/') && !relative.split('/').includes('..'), `unsafe path ${relative}`);
+  assert(lstatSync(path).isFile() && !lstatSync(path).isSymbolicLink(), `non-regular ${relative}`);
+  assert(!bytes.includes(13) && Buffer.from(bytes.toString('utf8')).equals(bytes), `encoding ${relative}`);
+}
+const declared = inventory.match(/BLEND65-SPEC-4-([a-f0-9]{64})/)?.[1];
+const corpus = digest('spec', normative);
+assert(corpus === declared && digest('spec', normative) === corpus, 'digest repeat');
+for (const path of normative) assert(!readFileSync(join('spec', path), 'utf8').includes('BLEND65-SPEC-4-'), `stamp ${path}`);
+const closeoutPath = 'codeops/features/blend65-v4/plans/rd-01-specification-4-and-expert-authority-freeze/08-closeout.md';
+const closeout = readFileSync(closeoutPath, 'utf8');
+const raw = new Map([...closeout.matchAll(/^([a-f0-9]{64})  ((?:evaluations\/)?[^\s]+\.md)$/gm)].map((match) => [match[2], match[1]]));
+assert(raw.size === 45, 'raw count');
+for (const path of listed) assert(raw.get(path) === hash(readFileSync(join('spec', path))), `raw ${path}`);
+const temp = mkdtempSync(join(tmpdir(), 'blend65-rd01-v03-'));
+try {
+  const a = join(temp, 'a'); const b = join(temp, 'b'); cpSync('spec', a, { recursive: true }); cpSync('spec', b, { recursive: true });
+  const norm = join(a, '00-introduction.md'); const non = join(b, '00-feature-index.md');
+  const normRaw = hash(readFileSync(norm)); const nonRaw = hash(readFileSync(non));
+  appendFileSync(norm, 'X'); appendFileSync(non, 'X');
+  assert(digest(a, normative) !== corpus && digest(b, normative) === corpus, 'digest mutation');
+  assert(hash(readFileSync(norm)) !== normRaw && hash(readFileSync(non)) !== nonRaw, 'raw mutation');
+} finally { rmSync(temp, { recursive: true, force: true }); }
+console.log(`V-02/V-03 PASS: 18 normative + 27 non-normative files; digest ${corpus}; mutation/raw controls pass`);
+const baseline = [...closeout.split('### Frozen Specification 3 path baseline')[1].split('### Exact integer trigonometry oracle')[0].matchAll(/^\| `([^`]+)` \| `[a-f0-9]{64}` \|/gm)].map((match) => match[1]);
+const cross = closeout.split('### Specification 3 to Specification 4 crosswalk')[1].split('### Semantic-diff review')[0];
+const rows = cross.split('\n').filter((line) => line.startsWith('| ') && !line.startsWith('| Prior') && !line.startsWith('|---')).map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()));
+const prior = rows.filter((row) => row[0] !== '— (new)').map((row) => row[0].match(/^`([^`]+)`$/)?.[1]);
+const additions = rows.filter((row) => row[0] === '— (new)');
+const destinations = [...new Set(rows.map((row) => row[3].match(/`([^`]+)`/)?.[1]).filter(Boolean))];
+assert(rows.every((row) => row.length === 4) && baseline.length === 50 && prior.length === 50 && additions.length === 2, 'crosswalk shape');
+assert(new Set(prior).size === 50 && JSON.stringify([...baseline].sort()) === JSON.stringify([...prior].sort()), 'source equality');
+assert(destinations.length === 45 && JSON.stringify([...listed].sort()) === JSON.stringify([...destinations].sort()), 'destination equality');
+console.log('V-04 PASS: 50 prior paths + 2 additions map to all 45 final paths');
+const guard = readFileSync('.clinerules/language-guard.md', 'utf8');
+const expectedRules = ['P1','P2','P3','P4','H1','H2','H3','H4','H5','L1','L2','L3','L4','L5','L6','L7','L8','L9','C1','C2','C3','C4','C5','F1','F2','F3','F4'];
+const rules = [...guard.matchAll(/^### ([PHLCF]\d+) —/gm)].map((match) => match[1]);
+assert(JSON.stringify(rules) === JSON.stringify(expectedRules), 'Guard rules');
+const guardRows = [...guard.matchAll(/^\| (G\d) \|.*\| ([^|]+) \| ([^|]+) \|$/gm)];
+const expand = (source) => { const set = new Set(); for (const m of source.matchAll(/([PHLCF])(\d)(?:–([PHLCF])?(\d))?/g)) { if (!m[4]) set.add(`${m[1]}${m[2]}`); else for (let i = Number(m[2]); i <= Number(m[4]); i += 1) set.add(`${m[1]}${i}`); } return set; };
+assert(guardRows.length === 9, 'Guard groups');
+for (const [, group, passed, conditional] of guardRows) { const covered = expand(`${passed} ${conditional}`); assert(expectedRules.every((rule) => covered.has(rule)) && !/❌|Fail/i.test(`${passed} ${conditional}`), `Guard ${group}`); }
+const grammar = readFileSync('spec/grammar.ebnf.md', 'utf8');
+for (const phrase of ['do_while_stmt','function_type','comptime_decl','place_clause','loadable_const_decl','asm_sei','asm_cli','asm_php','asm_plp','asm_nop']) assert(grammar.includes(phrase), `grammar ${phrase}`);
+const diagnostics = readFileSync('spec/14-diagnostics.md', 'utf8').split('## 5. Retirement')[0];
+const codes = [...diagnostics.matchAll(/^\| ([EW]\d{5}) \|/gm)].map((match) => match[1]);
+assert(codes.length === 181 && new Set(codes).size === 181 && !diagnostics.includes('E10101'), 'diagnostics');
+const languageOwners = normative.filter((path) => !['00-introduction.md','14-diagnostics.md','15-platform-profile.md','appendix-c64.md'].includes(path)).map((path) => readFileSync(join('spec', path), 'utf8')).join('\n');
+assert(!/for_range|range_for|E10101|E10041|E10042|E10093|E10119|E10120|brk_contract|asm_(pha|pla|brk|sed|cld|clv|clc|sec)\(/.test(languageOwners), 'stale form');
+assert(!/[EW]\d{5}/.test(readFileSync('spec/00-feature-index.md', 'utf8')), 'copied diagnostics');
+console.log('V-05 PASS: 27 rules x 9 groups; grammar owners; 181 unique diagnostics; stale forms absent');
+const roundAway = (value) => value < 0 ? -Math.floor(-value + 0.5) : Math.floor(value + 0.5);
+const trig = (width, cosine = false) => { const n = 2 ** width; const a = 2 ** (width - 1) - 1; const values = Array.from({ length: n }, (_, p) => roundAway(a * (cosine ? Math.cos(2 * Math.PI * p / n) : Math.sin(2 * Math.PI * p / n)))); const bytes = width === 8 ? Buffer.from(values.map((v) => v & 255)) : Buffer.from(values.flatMap((v) => [v & 255, (v >> 8) & 255])); return { values, hash: hash(bytes) }; };
+for (let run = 0; run < 2; run += 1) { const s8 = trig(8); const c8 = trig(8, true); const s16 = trig(16); assert(s8.hash === 'fec3247a063767c499a18d6efdb1e5f86f96f859e2e98a859d621e93af013259' && s16.hash === 'e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50', 'trig hash'); for (const [a, e] of [[s8.values[0],0],[c8.values[0],127],[s8.values[32],90],[s8.values[64],127],[s8.values[128],0],[s8.values[192],-127],[s16.values[8192],23170],[s16.values[16384],32767],[s16.values[32768],0],[s16.values[49152],-32767]]) assert(a === e, 'trig value'); }
+console.log('V-06 PASS: two exhaustive regenerations, two hashes, and ten representative values agree');
+const budget = ['spec/06-functions.md','spec/evaluations/F025-comptime-functions.md','spec/14-diagnostics.md'].map((path) => readFileSync(path, 'utf8')).join('\n');
+for (const phrase of ['comptime-budget-v1','16,777,216','16,777,217','depth 512','depth 513','Short-circuited','An alias adds no','copied, or materialized','Caching','released at its','before argument evaluation','emits no target artifact','E10269','E10270','E10271']) assert(budget.includes(phrase), `budget ${phrase}`);
+console.log('V-07 PASS: all deterministic budget boundaries and failure effects are present');
+const profileSection = readFileSync('spec/15-platform-profile.md', 'utf8').split('## 2. Qualified Target Profiles')[1].split('## 3. Platform Profile Contract')[0];
+const profiles = [...profileSection.matchAll(/^\| `(c64-[^`]+)` \|/gm)].map((match) => match[1]);
+const expectedProfiles = ['c64-pal-prg-kernal-6581','c64-pal-prg-kernal-8580','c64-pal-prg-takeover-6581','c64-pal-prg-takeover-8580','c64-ntsc-prg-kernal-6581','c64-ntsc-prg-kernal-8580','c64-ntsc-prg-takeover-6581','c64-ntsc-prg-takeover-8580','c64-pal-d64-kernal-6581'];
+assert(JSON.stringify(profiles) === JSON.stringify(expectedProfiles), 'profiles');
+const asmText = readFileSync('spec/12-intrinsics.md', 'utf8').split('cpu_intrinsic_name =')[1].split('```')[0];
+assert(JSON.stringify([...asmText.matchAll(/"(asm_[a-z]+)"/g)].map((m) => m[1])) === JSON.stringify(['asm_sei','asm_cli','asm_php','asm_plp','asm_nop']), 'asm set');
+const assets = readFileSync('spec/13-data-inclusion.md', 'utf8');
+for (const phrase of ['exactly five asset forms','raw unregistered bytes','SPD v5','CTM v9','PSID v1–v4 subset','classic Koala','No plugin registry']) assert(assets.includes(phrase), `asset ${phrase}`);
+const activeSpec = walk('spec').filter((path) => path.endsWith('.md') && path !== 'future-considerations.md').map((path) => readFileSync(join('spec', path), 'utf8')).join('\n');
+for (const stale of ['C64 Ultimate','Commander X16','Atari 800XL','Atari 7800','x16emu','Altirra','Stella/7800']) assert(!activeSpec.includes(stale), `false target ${stale}`);
+const intro = readFileSync('spec/00-introduction.md', 'utf8');
+for (const phrase of ['not a game engine, game framework, or gameplay library','Developers write those systems','does not own application policy']) assert(intro.includes(phrase), `product ${phrase}`);
+console.log('V-08 PASS: 9 profiles, 5 asset forms, 5 asm controls, and no false target/product claim');
+const normalize = (source) => source.replace(/\s+/g, ' ');
+const appendix = normalize(readFileSync('spec/appendix-c64.md', 'utf8')); const data = normalize(assets); const evidence = normalize(closeout);
+for (const phrase of ['CBM-1541-D64-35','CBM-C64-KERNAL-LOAD-03','KOALA-NATIVE-003']) assert(evidence.includes(phrase), `source ${phrase}`);
+for (const phrase of ['10,003-byte layout','accepted and preserved in full','only `value & $0f` carries VIC-II color meaning','174,848-byte D64','683 sectors','BAM is 18/0','664 data blocks','at most 144 closed files','type `$82`','up to 254 data bytes','`SETLFS` at `$FFBA`','`SETNAM` at `$FFBD`','`LOAD` at `$FFD5`','absent or quiescent','successful boolean edge publishes only the captured destination range','failure invalidates only that range','HLE-010','trusted-media only']) assert(appendix.includes(phrase), `C64 ${phrase}`);
+for (const phrase of ['preserves all eight bits of every Color RAM source byte and the background byte','HLE-010']) assert(data.includes(phrase), `data ${phrase}`);
+console.log('V-09 PASS: Koala, D64, KERNAL, quiescence/publication, and HLE-010 agree with pinned records');
+NODE
+```
