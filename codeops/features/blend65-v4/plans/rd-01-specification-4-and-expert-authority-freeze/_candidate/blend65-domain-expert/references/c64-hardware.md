@@ -1,7 +1,5 @@
 # C64 VIC-II, CIA, and SID Hardware
 
-> **Baseline version**: `2.0.0`
-
 Use this reference when compiler or platform-library behavior depends on C64 device registers,
 video bus timing, interrupts, input, or sound. Read `c64-memory-and-runtime.md` for mapping and
 startup ownership and `c64-game-engineering.md` for whole-game scheduling.

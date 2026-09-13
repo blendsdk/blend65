@@ -1571,6 +1571,86 @@ added the exact-current-packet Q-L26 pass, reproducible packet/runtime digests, 
 final results, reconciled matrix states, and current ambiguity metadata. Independent re-review
 reports no findings and confirms specification-test integrity.
 
+## Specification 4 Candidate Dependency Closure
+
+This section is the qualification boundary for expert candidate 2.0.0. Earlier sections are
+historical 1.0.0 evidence and are not relabelled as current.
+
+### Byte identities and comparison method
+
+| Record | SHA-256 / result |
+|---|---|
+| Active 1.0.0 runtime payload | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
+| Candidate 2.0.0 runtime payload | `df428c45234333880566b4305a4c8ca88bb133235e75412538f82cc39678a118` |
+| Changed H2-section comparison | 51 records; `6d2dbfb87b44e31480a56d0b6c8989a559a166d0e31cf07909923f5a83c8becb` |
+| Changed case-section comparison | 14 records; `4743f26f807d0e1bb0a5717c97f56fdceb13e4b3addded87ad8d5c69886c8b06` |
+| Runtime files | 15 total; 13 changed; `references/c64-hardware.md` and `references/mos-6502-family.md` byte-identical controls |
+| Case identities | 107 prior identities preserved plus Q-C25, Q-C26, Q-C27, and Q-P22 = 111 unique |
+
+Runtime-payload digests use the existing relative-path-sorted GNU SHA-256 record-stream method over
+`SKILL.md`, `agents/`, and `references/`. The H2 comparison splits `SKILL.md` and every reference
+into the byte-exact preamble plus each `##` heading through the byte before the next `##`; it emits
+`<active-hash> <candidate-hash> <relative-path>#<heading><LF>` only when bytes differ, sorts those
+records by the complete record under `LC_ALL=C`, and hashes the stream. The case comparison applies
+the same method to every `## Q-NN —` section. A missing new section hashes as the empty byte string.
+This keeps an unrelated version/preamble edit from invalidating an unchanged knowledge heading,
+while any byte change inside a referenced heading or hidden case oracle invalidates inheritance.
+
+`agents/openai.yaml` changed from
+`94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` to
+`e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38`; it affects package
+metadata, not evaluator case semantics. Router behavior uses the changed `SKILL.md` sections and is
+covered by the routing cases below.
+
+### Required fresh case set
+
+The transitive set is conservative: it includes every changed case section and every existing case
+whose routed knowledge, authority/source section, or decision policy intersects one of the 51
+changed sections.
+
+| Casebook | Changed or dependent cases requiring fresh evaluation |
+|---|---|
+| Routing/evidence | Q-R01, Q-R03, Q-R04, Q-R05, Q-R08, Q-R10, Q-R11 |
+| Language/architecture/SFA | Q-L01, Q-L08, Q-L11, Q-L14, Q-L19, Q-L20, Q-L21, Q-L26, Q-L29, Q-L30, Q-L33 |
+| CPU/lowering/optimization | Q-C07, Q-C13, Q-C15, Q-C18, Q-C19, Q-C21, Q-C22, Q-C23, Q-C24, Q-C25, Q-C26, Q-C27 |
+| C64/platform/games | Q-P07, Q-P11, Q-P12, Q-P13, Q-P15, Q-P16, Q-P20, Q-P21, Q-P22 |
+| Parity/recovery/portability | Q-A08, Q-A09, Q-A17 |
+
+This is 42 cases. It covers the frozen Spec 4 crosswalk, removed intrinsics/targets, aggregate
+returns, C64/D64/KERNAL/Koala, product boundary, optimizer modes/frontier, and router/source
+governance. No case is added merely to test formatting or a baseline label.
+
+### Fixed unchanged controls
+
+Each control's case section and all named decisive knowledge sections are byte-identical to active
+expert 1.0.0. They are nevertheless rerun to prove packet isolation and evaluator behavior.
+
+| Casebook control | Case SHA-256 | Decisive unchanged knowledge SHA-256 |
+|---|---|---|
+| Q-R02 | `4141ea9aab697a19c91c580d93dcd674c340e62a72a642f838766de382797d93` | `SKILL.md#Selective Loading` `dfc908423d41db0bab160aea5f73da2a7c86975d2f494770d3f7b7b9713c9594` |
+| Q-L03 | `f368e9c82472d879601092e4598083e80204e82c1f31a1237bb8ad81dddecdef` | `il-and-optimization.md#Memory Effects and Volatility` `073f3c33896417cbde95218ce1d64cfac1968b5dbf2ec89a19402327d0692daf` |
+| Q-C10 | `a65dcc3327dbd25102f2ef453c90e438813f6e3236324d4e9d02136209e886e5` | `c64-hardware.md#Volatile and RMW policy` `60b3fa7a55735335ba44f366d07362beeae78144ebb0990904e1de7945ecf5e5`; `6502-lowering-casebook.md#Volatility and device memory` `7e1f53ed5d2db6470bdec5441fa52ff04290c43f78482146849695a6831359f2` |
+| Q-P08 | `d004d45a6d1727c7b3269c63ba624bbb754437f4e51e4023b016db51e690b95e` | `c64-game-engineering.md#Raster scheduling` `3d2e6af00685ed3bcdc11e024ecd433ea44c6ad9b1c9d9d6d47dcee533a153f7`; same unchanged C64 RMW section as Q-C10 |
+| Q-A06 | `4a356dd9f23d8af29168d7bc22d59899d35266f9359ae7a2cdd3d2740c689920` | `evidence-parity-and-recovery.md#Five Capability States` `41bda940dca651572b9d7fef62c0de9094e46217c1cd51121484921e104b29f3`; `acme-and-artifacts.md#VICE Proof Contract` `1a5ab58a9fdbcaaa7435d3b6734cbf12a3a1dc34e96e4a97f710b0afff6b9b60` |
+
+### Strictly eligible inherited evidence
+
+These 69 existing cases have byte-identical case oracles and byte-identical routed knowledge/source
+sections. The five named controls are eligible but will receive fresh evidence; only the remaining
+64 may actually inherit their recorded green result.
+
+- Routing/evidence: Q-R02, Q-R06, Q-R07, Q-R09, Q-R12.
+- Language/architecture/SFA: Q-L02..Q-L07, Q-L09, Q-L10, Q-L12, Q-L13,
+  Q-L15..Q-L18, Q-L22..Q-L25, Q-L27, Q-L28, Q-L31, Q-L32.
+- CPU/lowering: Q-C01..Q-C06, Q-C08..Q-C12, Q-C14, Q-C16, Q-C17, Q-C20.
+- C64/platform/games: Q-P01..Q-P06, Q-P08..Q-P10, Q-P14, Q-P17..Q-P19.
+- Parity/recovery/portability: Q-A01..Q-A07, Q-A10..Q-A16.
+
+The 42 fresh cases and 69 eligible cases are disjoint and cover all 111 candidate identities. If a
+later byte change touches a listed input, inheritance closes and the affected case moves to the
+fresh set. Coverage/release prose and plan state are never supplied to evaluators and therefore do
+not create semantic dependencies.
+
 ## Freeze Declaration
 
 Blend65 Domain Expert `1.0.0` is the single active qualified baseline. It is bound to immutable

@@ -843,9 +843,9 @@ the nine named C64 profiles. Other machines remain visibly non-normative future 
 | Koala | `KOALA-NATIVE-003` freezes the exact 10,003-byte layout and source hashes. Every byte is preserved; only low nibbles of Color RAM/background have VIC-II color meaning. |
 | Evidence | Source facts, project policy, compiler behavior, emulator observations, and hardware claims remain separately labelled. The live expert and frozen specification are unchanged. |
 
-Task 4.1.3 verification passed: all candidate references declare baseline 2.0.0; formatting, skill
-validation, Markdown links, plan parsing, exact policy/source assertions, regular-file topology,
-unchanged live expert/specification checks, and whitespace validation are green.
+Task 4.1.3 verification passed: every explicit candidate baseline claim is 2.0.0; formatting,
+skill validation, Markdown links, plan parsing, exact policy/source assertions, regular-file
+topology, unchanged live expert/specification checks, and whitespace validation are green.
 
 ### Candidate qualification cases
 
@@ -864,3 +864,17 @@ multiplexer expectations now match Specification 4 and the compiler-versus-game-
 Structural verification found 11 required non-empty fields in every case, exact equality between
 the 111 case headings and coverage rows, and exact equality between the 45 coverage paths and the
 Specification 4 Markdown tree. No prior case identity was removed.
+
+### Qualification dependency closure
+
+The byte-level closure in candidate `qualification/release.md` identifies 51 changed runtime H2
+sections and 14 changed/new case sections. It requires 42 fresh cases. It admits 69 earlier cases
+as byte-identical evidence inputs, of which five fixed controls (Q-R02, Q-L03, Q-C10, Q-P08, and
+Q-A06) will be rerun and 64 may inherit. The two sets are disjoint and cover all 111 cases. This is
+the smallest conservative closure that retains the accepted section-level byte rule; it does not
+repeat unaffected cases merely because another heading in the same Markdown file changed.
+
+Task 4.1.5 verification passed: the recorded runtime and section identities reproduce; the 42/69
+partition covers all 111 cases exactly; five controls leave 64 inheritable results; formatting,
+skill validation, YAML, local links, specification-test integrity, and the unchanged live expert
+and frozen specification checks are green.
