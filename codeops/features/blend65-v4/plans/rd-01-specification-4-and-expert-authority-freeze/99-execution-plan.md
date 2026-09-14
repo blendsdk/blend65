@@ -1,8 +1,8 @@
 # Execution Plan: Specification 4.0 and Expert Authority Freeze
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-14 02:14
-> **Progress**: 28/31 tasks (90%)
+> **Last Updated**: 2026-09-14 02:16
+> **Progress**: 29/31 tasks (94%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -135,7 +135,7 @@ reviewed, immutable, and ready for a user decision. The live expert remains 1.0.
 > **Scope mode**: strict; activate only the already-qualified candidate and close RD-01
 
 - [x] 5.1.1 Present the exact candidate/evidence packet, verify that no activation command has run and the live-tree digest is unchanged, stop for explicit activation approval, and record the approved Spec/candidate identities; do not treat earlier RD or plan acceptance as activation approval — `08-closeout.md` ✅ (completed: 2026-09-14 02:14)
-- [ ] 5.1.2 After approval only, reject symlinks/non-regular entries, copy the candidate into the live skill, compare the complete trees byte-for-byte, and commit the content checkpoint while its release record remains candidate/not active — `_candidate/blend65-domain-expert/`, `.agents/skills/blend65-domain-expert/`
+- [x] 5.1.2 After approval only, reject symlinks/non-regular entries, copy the candidate into the live skill, compare the complete trees byte-for-byte, and commit the content checkpoint while its release record remains candidate/not active — `_candidate/blend65-domain-expert/`, `.agents/skills/blend65-domain-expert/` ✅ (completed: 2026-09-14 02:16)
 - [ ] 5.1.3 Update only the release record to bind the preceding immutable content commit and Spec 4 digest, require every other file to remain byte-identical, mark expert 2.0.0 as the sole active baseline, and commit the bookkeeping record; on failure restore 1.0.0 — `.agents/skills/blend65-domain-expert/qualification/release.md`, `08-closeout.md`
 - [ ] 5.1.4 Remove the plan-local candidate after the release tail passes, then finalize raw hashes, zero-findings and freeze proofs, the mandatory deferral-expiry answer/owners, direct verification log, and feature-roadmap transition to Done — `_candidate/blend65-domain-expert/`, `08-closeout.md`, `../../00-roadmap.md`, `99-execution-plan.md`
 

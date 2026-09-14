@@ -29,7 +29,7 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   compiler/storage/effect consequence, one important interaction or failure boundary, the correct
   skill branch, and any genuinely inapplicable depth facet with a reason. Report contradictions,
   missing paths, shallow summaries, unsupported coverage, and duplicated authority.”
-- **Permitted raw artifacts:** The live `spec/**/*.md` path inventory, all 50 files in that
+- **Permitted raw artifacts:** The live `spec/**/*.md` path inventory, all 45 files in that
   inventory, the concrete A4/TS-4/TS-14 question above, and only the candidate
   `references/blend65-semantics.md` crosswalk/semantic rules plus the three candidate branch
   references it links for architecture, SFA/ABI, and IL/optimization consequences. The packet also
@@ -39,27 +39,27 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   the candidate: ACME is the selected assembler, and a parity result that only meets rather than
   beats the expert floor requires an authorized GitHub debt issue and never authorizes a push.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Exact 50-path set equality; correct normative/evaluation/
+- **Expected decision invariants:** Exact 45-path set equality; correct normative/evaluation/
   historical role; substantive per-path payload and consequence rather than inventory-only
   presence; correct branch routing; explicit justified N/A facets; no duplicated authority. ACME
   selection and automatic parity-debt issue recording are identified as product/process policy,
   never inferred from the language specification, CPU manuals, or current implementation. The
-  Atari 7800 is 1.79 MHz nominal with separately modeled 1.19 MHz TIA/RIOT accesses and MARIA DMA
-  stalls. A4 permits only the implicit conversions enumerated by TS-4 and TS-14. The future
+  A4 permits only the implicit conversions enumerated by TS-4 and TS-14. The future
   register is audited from its live entries rather than a duplicated endpoint. F001 is limited to
   supplied files, one binary, path-name irrelevance, and module-based cross-file references; it
   supplies no discovery, module-to-file, duplicate-module, or diagnostic-stability contract. The
-  audit must also recognize EXP-001 aggregate-return debt, exact W10190/W10141 scopes,
-  per-activation SFA costs, provenance-bounded address workarounds, and the migration/C64 HLE
-  disclosures introduced by SC-152..SC-155.
+  audit must also recognize fixed-aggregate returns as current language semantics while leaving
+  compiler implementation support unclaimed, exact W10190/W10141 scopes, per-activation SFA costs,
+  direct parameter/field/element addressability with provenance-bounded lifetimes, and the
+  migration/C64 HLE disclosures introduced by SC-152..SC-155.
 - **Disqualifying outcomes:** Answers only from skill prose; accepts the two project-policy claims
-  without the supplied hash-pinned policy excerpts; uses a flat 1.19 MHz A7800 CPU clock; rejects
-  TS-4/TS-14 conversions because of A4; trusts a duplicated future-item endpoint; or invents an
+  without the supplied hash-pinned policy excerpts; rejects TS-4/TS-14 conversions because of A4;
+  trusts a duplicated future-item endpoint; or invents an
   F001 discovery, duplicate-module, or diagnostic-stability contract.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Historical pass under the pre-AR-P42 identity only; it does not qualify the
-  corrected prompt, crosswalk, or `BLEND65-SPEC-P3-4bf8a989` candidate.
+- **Focused result:** Pass — the corrected Specification 4 Phase-4 isolated evaluator and
+  independent grade passed the current prompt and crosswalk.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -227,19 +227,19 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
-## Q-L11 — Proposal misuses hardware-stack ownership or BRK accounting
+## Q-L11 — Proposal misuses hardware-stack ownership or removed raw intrinsics
 
 - **Risk / coverage cells:** Critical; `LANG-L11`, `SFA-L11`.
 - **Oracle status:** `frozen-project` — the stated semantic/project invariant is internally consistent.
-- **Evaluator prompt:** “A proposal uses the hardware stack for all locals, tracks explicit `PHA`/`PHP`/`PLA`/`PLP` intrinsics by byte depth only so `PHA; PLP` passes, and treats reachable `asm_brk()` as a seven-cycle opcode with free fallthrough and no profile contract or stack charge. Determine the required language behavior and the responsible compiler boundary. Trace observable effects, entry ownership, stack kinds, BRK control flow, and storage lifetimes far enough to justify the decision, then state the smallest viable remedy if the supplied behavior is wrong.”
-- **Permitted raw artifacts:** The proposed stack-frame design, explicit push/pull paths, target stack budget, call/IRQ/BRK obligations, selected profile, and SFA doctrine.
+- **Evaluator prompt:** “A proposal uses the hardware stack for all locals and reintroduces `asm_pha`, `asm_pla`, or `asm_brk` because the 6502 has those instructions. Determine the required Specification 4 source behavior and responsible compiler boundary. Trace hardware-stack ownership, call/interrupt obligations, and storage lifetimes far enough to justify the decision, then state the smallest viable remedy.”
+- **Permitted raw artifacts:** The proposed stack-frame design, exact five Specification 4 CPU-control intrinsics, target stack budget, call/interrupt obligations, selected profile, and SFA doctrine.
 - **Forbidden material:** This case’s hidden invariants, coverage status, plans, current compiler tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Preserves SFA; distinguishes JSR/RTS/IRQ/generated-save/explicit-stack/BRK duties; tracks accumulator-save versus status-save kinds relative to each function entry; requires matching pulls, identical reachable join/backedge sequences, and empty exits; requires a profile contract for reachable BRK; charges three CPU bytes plus handler peak; models returning versus non-returning control flow; emits only `$00 $EA`; adds no runtime or SFA storage.
-- **Disqualifying outcomes:** Reopens stack frames without new necessity proof; accepts a cross-kind pull because byte depth happens to balance; lets source intrinsics consume caller, return-address, interrupt, or compiler-generated stack bytes; assumes BRK falls through, invokes a debugger, or has no stack/effect cost; injects a handler/runtime.
+- **Expected decision invariants:** Preserves SFA as the sole general function-storage model; distinguishes JSR/RTS, interrupt frames, generated saves, and the typed `asm_php`/`asm_plp` pair; rejects `asm_pha`, `asm_pla`, and `asm_brk` as absent reserved intrinsic names; requires status-stack balance on every join, backedge, and exit; and adds no runtime or stack-frame subsystem.
+- **Disqualifying outcomes:** Reopens stack frames without new necessity proof; invents public raw push/pull or BRK controls; lets source intrinsics consume caller, return-address, interrupt, or compiler-generated stack bytes; or injects a handler/runtime.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — the AR-P29 kind-state and AR-P31 BRK contract pass comprehensive
-  evaluation and independent correction grading; definitive isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed the current kind-state and BRK contract.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -574,16 +574,14 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - For a classic Koala asset, accepts only the exact 10,003-byte `$6000` native layout, exposes only
   `"bitmap"`, `"screen"`, `"color_ram"`, and `"background"`, and has no default. It derives bitmap
   and screen `$D018` fields through zero-cost placement operations after validating their 8-KiB and
-  1-KiB alignments and common VIC-bank visibility. The color-RAM transfer remains explicit and
-  costed; `"bitmap_base"` and hidden copies are invalid.
+  1-KiB alignments and common VIC-bank visibility. Every source byte, including high nibbles of
+  Color RAM and background, is preserved; only `value & $0f` has VIC-II color meaning. The
+  color-RAM transfer remains explicit and costed; `"bitmap_base"` and hidden copies are invalid.
 - **Disqualifying outcomes:** Makes SFA a universal asset manager, copies for convenience, or silently promotes the evaluation selector table above the normative C64 profile.
 - **Evidence required to grade:** Exact governing spec/project locations, an effect/lifetime/ownership trace where applicable, the stated status and assumptions, and a remedy separated from the finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — after the first definitive run exposed missing local CharPad
-  representation detail, the corrected candidate exhaustively covers handler identity, exact
-  selector types/availability, canonical/packed/split forms, diagnostics, requested-only costs,
-  placement, SFA ownership, and Koala. The focused evaluator, independent grade, cross-domain
-  regression, and independent correction review all pass; definitive full isolation remains.
+- **Focused result:** Pass — after correction, the Specification 4 Phase-4 isolated evaluator,
+  independent grade, and native-handler regression passed the current CharPad and Koala contract.
 - **Definitive result:** Pass — the complete `BLEND65-SPEC-P3-4bf8a989` coverage sample exposed
   the defect, and the corrected focused evaluator and independent grade passed Q-L26. Exact hashes
   and the admissibility boundary are recorded in `qualification/release.md`.
@@ -687,7 +685,7 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   `pokew($0314, &onRasterIRQ)`. Determine every emitted/rejected entry path, stack and terminal
   owner, static storage/cost obligation, and compiler boundary. State what changes when the raw
   vector is not proven writable and active.”
-- **Permitted raw artifacts:** Reconciled Chapters 06/12/14/15, C64/C64U appendices, F007, selected
+- **Permitted raw artifacts:** Reconciled Chapters 06/12/14/15, the C64 appendix, F007, selected
   profile metadata, handler/helper source, emitted entry fragments and build-cost report;
   CBM-C64-PRG-1982 printed pages 308/311; CBM-C64-KERNAL-03
   `irqfile::PULS/PULS1` and `editor.2::KPREND`; MOS-PGM-1976 Chapter 9.
@@ -701,8 +699,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   the body and ends in `JMP $EA81`; the program owns every enabled IRQ source it skips.
   `setRawIRQ` exists only with a profile-proven writable/active hardware vector and selects the
   compiler A/X/Y save/`CLD`/restore/direct-`RTI` variant. Raw/exclusive `RTI` restores the interrupted
-  decimal state, while the chain's `PLP` restores entry flags for the previous handler. Explicit
-  `asm_sed()` remains legal under its normal diagnostics. The body acknowledges VIC explicitly; the
+  decimal state, while the chain's `PLP` restores entry flags for the previous handler. Specification
+  4 exposes no raw decimal-mode intrinsic. The body acknowledges VIC explicitly; the
   compiler never guesses a source. The helper remains `JSR`/`RTS`, SFA separates every overlapping
   invocation-private home, and only reachable variants are emitted. Every body copy, installer,
   link word, normalization/status wrapper, ROM/RAM/ZP/stack byte, and full cycle path is reported.
@@ -721,9 +719,8 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   per-variant reachability and complete cost report; E10252 at the exact write; and a remedy
   separated from any finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — all three sink sequences, entry ownership, acknowledgement, page-wrap
-  constraint, SFA domains, exact static costs, and no-runtime boundary pass comprehensive
-  evaluation and independent correction grading; definitive isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed all three sink sequences, ownership, SFA, and exact-cost requirements.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -735,10 +732,10 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
 - **Oracle status:** `frozen-project+hardware` after AR-P28 — ordinary binary meaning, explicit BCD
   ownership, zero-runtime lowering, and the runtime-invalid hardware exception are reconciled.
 - **Evaluator prompt:** “A function performs ordinary byte addition, `bcd_add()` on bytes,
-  `bcd_sub()` on words, a valid constant BCD fold, an invalid constant BCD call, and a raw
-  `asm_sed()` path that reaches an ordinary call before `asm_cld()`. Determine source behavior,
-  diagnostics, IL distinctions, target lowering, interrupt obligations, and every runtime helper
-  or storage cost. Also state what is allowed when a runtime operand contains `$A`–`$F`.”
+  `bcd_sub()` on words, a valid constant BCD fold, an invalid constant BCD call, and an attempted
+  `asm_sed()` call. Determine source behavior, diagnostics, IL distinctions, target lowering,
+  interrupt obligations, and every runtime helper or storage cost. Also state what is allowed when
+  a runtime operand contains `$A`–`$F`.”
 - **Permitted raw artifacts:** Reconciled Chapters 01/02/04/12/14, F012/F021, the master grammar,
   selected CPU/profile decimal-mode facts, candidate `blend65-semantics.md`, and candidate
   `il-and-optimization.md`.
@@ -751,19 +748,20 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   CPU's exact ordered decimal `ADC`/`SBC` result and are never optimized with unproved decimal
   algebra. IL preserves a distinct BCD operation and its effects. Lowering is inline and adds no
   helper, linked runtime, hidden validation, or unreported scratch. Region coalescing requires proof
-  of carry ownership, D-clear boundaries, control-flow safety, and interrupt preservation. The raw
-  path is E10255; W10120 is retired.
-- **Disqualifying outcomes:** Makes ordinary arithmetic depend on an earlier `asm_sed()`; silently
+  of carry ownership, D-clear boundaries, control-flow safety, and interrupt preservation.
+  `asm_sed` is not in the exact five public CPU-control intrinsics and is rejected as an ordinary
+  unresolved name with E10239; no raw-decimal diagnostic or escape is invented.
+- **Disqualifying outcomes:** Adds `asm_sed()` to the public language or makes ordinary arithmetic depend on ambient D; silently
   accepts an invalid constant; injects a runtime checker/helper; assumes runtime digits are valid;
   loses carry between word bytes; leaves D set; coalesces across a call/join/unsafe interrupt path;
-  or reports the retired W10120 instead of E10255.
+  reports retired E10255 or W10120 instead of E10239; or invents a reserved-unknown-intrinsic
+  category for the unresolved name.
 - **Evidence required to grade:** Exact type/result table, constant/runtime examples, diagnostic
   sites, semantic IL nodes/effects, inline byte and word instruction sequences, interrupt-state
   proof, complete bytes/cycles/storage/helper accounting, and a remedy separated from any finding.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — types, evaluation, modulo behavior, invalid-digit boundaries, IL,
-  inline lowering, safe coalescing, diagnostics, and static costs pass comprehensive evaluation
-  and independent correction grading; definitive isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed the packed-BCD semantics, lowering, diagnostics, and exact-cost requirements.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -780,10 +778,11 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   optimization contracts: `for (let i: word = 0; i < length(page); i += 1) { use(page[i]); }` for a
   256-byte array; the same source with `i: byte` and `i < 256`; a loop whose initializer, condition,
   update list, and body contain calls or volatile accesses; and loops whose body uses `continue`,
-  `break`, or `return`. A proposal keeps the old range syntax because a Pratt parser and SFA would
-  otherwise be difficult. Decide the language behavior, exact lowering boundary, and smallest
-  expert optimization. State what is parsed by the statement parser, what SFA allocates, and
-  whether any runtime or second loop form is needed.”
+  `break`, or `return`. Also include a loop-local `loadable const` initializer and a body-local
+  declaration that shadows the header name. A proposal keeps the old range syntax because a Pratt
+  parser and SFA would otherwise be difficult. Decide the language behavior, exact lowering
+  boundary, and smallest expert optimization. State what is parsed by the statement parser, what
+  SFA allocates, and whether any runtime or second loop form is needed.”
 - **Permitted raw artifacts:** Reconciled Chapters 01/02/03/04/05/14, F008, the master grammar,
   candidate `blend65-semantics.md`, `compiler-architecture.md`, `sfa-and-abi.md`, and
   `il-and-optimization.md`; selected CPU `INX`/`DEX` and branch facts; source and emitted evidence
@@ -795,12 +794,15 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   omitted condition meaning true. The statement parser owns the header delimiters; it does not
   distort Pratt expression parsing or introduce a general comma operator. Initializer and update
   expression lists evaluate once per occurrence, left-to-right. A header declaration is an
-  ordinary mutable `let` or immutable `const` scoped through the condition, update, and body;
-  ordinary no-shadowing rules apply. The condition is Boolean. `continue` runs the update before
+  ordinary mutable `let`, immutable resident `const`, or package-only `loadable const` scoped
+  through the condition, update, and body. A `loadable const` emits no per-iteration
+  initialization, resident address, or SFA home; only an explicit selected-profile load transfers
+  its bytes. The body is a child scope and may shadow the header binding, while E10003 rejects a
+  duplicate in the same scope. The condition is Boolean. `continue` runs the update before
   retesting; `break` and `return` skip it. Counter arithmetic uses ordinary fixed-width wrap. The
   general lowering is a normal CFG and needs no runtime, hidden range state, new SFA model, or
-  generalized loop framework. SFA treats header locals and temporaries by ordinary liveness and
-  interference. The semantic-word 256-iteration form is correct; a proof may represent its
+  generalized loop framework. SFA treats resident header locals and temporaries by ordinary
+  liveness and interference. The semantic-word 256-iteration form is correct; a proof may represent its
   nonescaping induction state with one byte and use `INX` plus wrap-to-zero exit when all effects
   and the unobservable word terminal state permit. E10262 rejects the shown byte-typed `i < 256`
   canonical finite-looking form because the counter repeats before its invariant condition can
@@ -810,15 +812,16 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   SFA easier; changes left-to-right effects; sends the whole header through a Pratt parser; treats
   `continue` as a direct condition edge; gives the induction variable hidden mathematical range
   semantics; rejects the valid word form; accepts or silently repairs the byte counterexample;
-  injects a runtime; or builds a generalized optimization framework instead of one proved canonical
-  induction recognizer.
+  gives `loadable const` a runtime initializer or SFA home; forbids legal child-scope shadowing;
+  injects a runtime; or builds a generalized optimization framework instead of one proved
+  canonical induction recognizer.
 - **Evidence required to grade:** Exact grammar and scope; an effect trace for initializer,
   condition, body, update, and every exit; generic CFG edges; SFA liveness/interference treatment;
   full-domain word and byte counterexamples; optimization preconditions, emitted legal sequence,
   clobbers, and complete cost; and a remedy separated from any finding in the existing compiler.
 - **Red-baseline result:** Not run.
-- **Focused result:** Historical pass under the superseded pre-AR-P38 oracle; correction rerun is
-  required before definitive qualification.
+- **Focused result:** Pass — the corrected Specification 4 Phase-4 isolated evaluator and
+  independent grade passed the full-domain loop oracle.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
@@ -871,49 +874,42 @@ The evaluator receives the prompt, the permitted raw artifacts, and—only at ca
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
 
-## Q-L33 — PSID identity meets C64, C64U, and multi-SID configuration
+## Q-L33 — PSID identity meets the active C64 profiles
 
 - **Risk / coverage cells:** Critical; `LANG-L33`, `PROFILE-L33`, `C64-L33`.
 - **Oracle status:** `frozen-project+external` after AR-P34/SC-133 — PSID metadata and selected
   deployment configuration must stay distinct, exact, and statically compatible.
-- **Evaluator prompt:** “Validate one SID-capable C64 profile selecting PAL plus MOS6581 and another
-  selecting NTSC plus MOS8580. Exercise PSID v1 and every PSID v2NG–v4 clock/model flag value,
-  including second- and third-SID address/model fields whose `00` model inherits the resolved
-  primary requirement. Compare embedding with callable audio when metadata is Unknown, check a
-  known mismatch, and assess C64U physical-SID versus UltiSID endpoints while turbo CPU mode is
-  available. State the exact profile, player-contract, diagnostic, conversion, hardware-activation,
-  and cost consequences.”
-- **Permitted raw artifacts:** Reconciled Chapters 13–15, F015, C64/C64U appendices,
-  `blend65-semantics.md`, `source-manifest.md`, the exact HVSC SID-format snapshot, the pinned
-  C64U `config/multi_sid.rst` and `sidplayer.rst` records, and an exact candidate player contract.
+- **Evaluator prompt:** “Validate active C64 profiles selecting PAL/NTSC and MOS6581/MOS8580.
+  Exercise PSID v1 and every PSID v2NG–v4 clock/model flag value, including unsupported
+  second-/third-SID requirements. Compare embedding with callable audio when metadata is Unknown
+  and check a known mismatch. State the exact profile, player-contract, diagnostic, conversion,
+  endpoint, and cost consequences.”
+- **Permitted raw artifacts:** Reconciled Chapters 13–15, F015, the C64 appendix,
+  `blend65-semantics.md`, `source-manifest.md`, the exact HVSC SID-format snapshot, and an exact
+  candidate player contract.
 - **Forbidden material:** This case's hidden invariants, coverage status, plans, current compiler
   behavior/tests as semantic authority, legacy-skill conclusions, prior outputs, and author history.
-- **Expected decision invariants:** Requires explicit `video_standard: pal | ntsc` and an ordered
-  `sid_chips` list of exact address/model endpoints for every SID-capable C64/C64U profile; the
-  current baseline has one `$D400` endpoint. Treats `clock_mhz` as the derived/validated PAL
+- **Expected decision invariants:** Requires explicit `video_standard: pal | ntsc` and exactly one
+  `$D400` SID endpoint/model for every active C64 profile. Treats `clock_mhz` as the derived/validated PAL
   985,248-Hz or NTSC 1,022,730-Hz CPU fact, never the video/SID identity. Preserves PSID v2NG–v4
   clock bits `00/01/10/11` as Unknown/PAL/NTSC/Both and primary model bits as
   Unknown/MOS6581/MOS8580/Both; PSID v1 is unspecified. Second/third `00` model fields inherit the
   resolved primary requirement. A specific incompatibility or unsupported multi-SID topology is
   E10261. Unknown is not Both: embed-only use remains legal, while callable audio requires an exact
   hash-bound contract to close every unknown field without contradicting specific metadata. No
-  cadence, pitch, filter, or model conversion occurs. C64U endpoint choice is a deployment
-  precondition, not runtime discovery/configuration; turbo CPU speed is never substituted for
-  PAL/NTSC SID timing and needs a separate qualified timing contract before use. All selected
-  player/topology state and costs remain explicit.
+  cadence, pitch, filter, model, endpoint, or target conversion occurs. C64 Ultimate and multi-SID
+  configurations remain future constraints, not active profiles. All selected player state and
+  costs remain explicit.
 - **Disqualifying outcomes:** Uses numeric clock alone as identity; conflates Unknown with Both;
   treats a secondary `00` model as independently either; silently retimes, retunes, or converts SID
-  output; accepts a known mismatch; calls unknown audio without a closing contract; describes all
-  C64U endpoints as emulated; lets the header activate hardware; changes SID cadence because turbo
-  CPU mode exists; or claims multi-SID support without exact address/model/contract agreement.
+  output; accepts a known mismatch; calls unknown audio without a closing contract; lets the header
+  activate hardware; or claims C64 Ultimate or multi-SID support in the active baseline.
 - **Evidence required to grade:** Exact profile fields and timing records; complete PSID flag matrix;
   inheritance and mismatch traces; E10261 ownership; embed-only versus callable-audio decisions;
-  player-contract refinements; C64U endpoint/turbo reasoning; and complete ROM/RAM/ZP/cycle costs.
+  player-contract refinements; future-target rejection; and complete ROM/RAM/ZP/cycle costs.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — exact timing/profile fields, PSID flag matrix and inheritance,
-  Unknown closure, topology, C64U deployment/turbo split, zero-conversion boundary, and complete
-  cost ownership pass comprehensive evaluation and independent correction grading; definitive
-  isolation remains Phase 7.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade
+  passed the current PSID identity, topology, C64U, and complete-cost contract.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in

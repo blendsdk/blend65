@@ -146,15 +146,16 @@ The evaluator receives only the prompt, named raw artifacts, and the selected ca
 
 - **Risk / coverage cells:** Critical; `AUDIT-A08`, `PORT-A08`.
 - **Oracle status:** `frozen-project` — governed by RD-01 and accepted recovery/version/parity decisions.
-- **Evaluator prompt:** “An expert routine cannot be written in ordinary Blend65 source; one concrete example is a function that naturally returns a fixed struct or fixed array but current v3 rejects it with E10093/E10120. Classify current behavior without mistaking it for a hardware necessity. Separate facts from inference and recommendation, keep unexpressible work outside finite assembly ratios, and give the smallest ABI direction that preserves modern source ergonomics without a heap or generic runtime.”
-- **Permitted raw artifacts:** The ordinary source task, current specification and compiler rejection/restriction, EXP-001, SFA/ABI boundaries, expert assembly formulation, and equivalent-obligation statement.
+- **Evaluator prompt:** “Specification 4 accepts a function that returns a fixed struct or fixed array, but the current compiler may still reject it with E10093, E10119, or E10120. Classify the implementation without mistaking its behavior for language authority or hardware necessity. Keep any still-unexpressible work outside finite assembly ratios and state the required ABI/lowering behavior without adding a heap or generic runtime.”
+- **Permitted raw artifacts:** The ordinary source task, frozen Specification 4, current compiler behavior, SFA/ABI boundaries, expert assembly formulation, and equivalent-obligation statement.
 - **Forbidden material:** This hidden oracle, plans, prior conclusions/results, author history, scoreboards/readiness claims as authority, feasibility-matrix claims, and unallowlisted repository or network content.
-- **Expected decision invariants:** Records the expressiveness failure outside any finite ratio; reports current E10093/E10120 accurately but classifies aggregate returns as language-design debt, not HLE. Recommends caller-owned hidden destination passing integrated with SFA, direct construction/copy elision where proved, and complete alias/lifetime/nested-call/IRQ/effect/cost proof without heap or generic runtime.
-- **Disqualifying outcomes:** Omits the program from the scoreboard and calls parity good; defends aggregate-return rejection as 6502/SFA-forced; claims current support; or mandates an intermediate copy/runtime without evaluating direct destination construction.
+- **Expected decision invariants:** Treats fixed aggregate returns as current language behavior and any remaining implementation rejection as `Incorrect` expressiveness debt outside finite parity. Requires caller-owned hidden destination passing integrated with SFA, direct construction/copy elision where proved, and complete alias/lifetime/nested-call/IRQ/effect/cost proof without heap or generic runtime.
+- **Disqualifying outcomes:** Omits the program from the scoreboard and calls parity good; defends aggregate-return rejection as Specification 4, 6502, or SFA law; claims unverified compiler support; or mandates an intermediate copy/runtime without evaluating direct destination construction.
 - **Evidence required to grade:** Exact artifact/live-code/tool evidence, status and claim-kind separation, complete resource accounting where relevant, named uncertainty/probe, and version/content/impact lineage for baseline changes.
 - **Red-baseline result:** Not run.
-- **Focused result:** Pass — the evaluator classified the expressiveness boundary `Incorrect`, kept
-  it outside any finite parity ratio, and required an owned language/compiler gap plus proof.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator classified the
+  expressiveness boundary `Incorrect`, kept it outside any finite parity ratio, and required an
+  owned language/compiler gap plus proof; the independent grade passed.
 - **Definitive result:** Pass — the final `BLEND65-SPEC-P3-4bf8a989` complete blind coverage
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in

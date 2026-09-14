@@ -1,6 +1,6 @@
 # Intermediate Representation and Optimization Doctrine
 
-> **Baseline version**: `1.0.0`. This module specifies semantic payload and proof duties, not a
+> **Baseline version**: `2.0.0`. This module specifies semantic payload and proof duties, not a
 > mandatory IR count or pass framework.
 
 ## Optimization Contract
@@ -18,6 +18,71 @@ An assembly golden alone can bless a miscompile. Optimized-versus-unoptimized di
 execution alone can let two paths share the same lowering defect. A test that checks only the final
 value can miss reordered or duplicated MMIO. Use the smallest decisive combination, but never omit
 one oracle because the other is convenient.
+
+## Optimization Modes and Finite Frontier
+
+The compiler exposes exactly `none`, `balanced`, `speed`, and `size`. `none` is deterministic
+correctness-only direct lowering: it retains mandatory semantic, legalization, instruction
+selection, SFA, layout, branch-repair, emission, and packaging stages, but performs no optional
+candidate enumeration, rewrite search, fixed-point optimization, B/R/T comparison, or expert-parity
+gate. The three optimized modes search the same finite, evidence-qualified candidate frontier to
+the same proved closure. They differ only in selection:
+
+| Mode | Selection rule |
+|---|---|
+| `balanced` | Accept only a candidate weakly no worse than the baseline and every feasible competitor in every `B`, `R`, and `T` component, and strictly better in at least one; otherwise retain the baseline for that conflict. |
+| `speed` | Lexicographically minimize `T`, then `R`, then `B`. |
+| `size` | Lexicographically minimize `B`, then `R`, then `T`. |
+
+`B` is target-loadable compiler program/data bytes, including code, data, payloads, helpers,
+tables, loader code, padding, and branch repair. It excludes D64 filesystem/container overhead and
+host evidence. `R` is the selected profile's stable resource vector: zero-page peak, combined
+resident RAM/SFA peak, hardware-stack peak, compiler/helper scratch, then named profile capacities.
+`T` is the frequency-free worst-to-best vector of comparable semantic-path cycle bounds. Hard
+correctness, timing, ABI, target, placement, loading, and capacity constraints are filtered before
+these preferences. Exact complete-cost ties use stable candidate identity. No mode uses weights,
+hotness annotations, guessed frequency, PGO, autotuning, a policy DSL, or a `max` mode.
+
+The frontier combines modern semantic/whole-program techniques with exact NMOS 6510 work. Each
+concrete rule is admitted only with a current Blend65 consumer, exact applicability, preserved
+semantics, complete downstream cost, a smallest counterexample, and independent behavior plus
+assembly/cost oracles. The following inventory is knowledge to implement directly where needed,
+not a pass catalog, optimizer framework, e-graph, registry, or tuning language:
+
+| Technique family | Applicability and semantics | 6502/C64 interaction and complete cost | Smallest counterexample | Required qualification |
+|---|---|---|---|---|
+| constant/range/known bits | Exact widths, signedness, wrap, constant context, effects, and all proved bits/ranges survive | Opcode/addressing choices, helper/table reachability, bytes, cycles, scratch, flags | Host-width fold changes byte wrap | Semantic value/effect oracle plus selected-sequence/cost oracle |
+| CFG simplification | Only proved edges, short-circuit arms, evaluation order, and observable timing remain | Branch reach, fall-through, page layout, and interrupt roots are recomputed | Removed arm contained a volatile read | Control/effect trace plus final branch/layout cost |
+| unreachable/dead work | Closed-world roots, exports, callbacks, address-taken functions, handlers, helpers, and assets are complete | Removed code/data may alter helper inclusion, SFA, padding, and bank layout | Address-taken callback appears dead | Reachability oracle plus exact artifact/map delta |
+| alias/effect reuse | Reuse or forwarding requires compatible aliases, lifetimes, volatile identity, calls, and interrupt visibility | Register/ZP reuse and store removal include clobbers and MMIO bus accesses | Two reads of one device register | Memory/MMIO trace plus instruction and resource delta |
+| interprocedural effects/reachability | Direct and finite indirect targets have closed effects, escapes, domains, and initialization roots | Enables dead stripping, call shaping, SFA interference, and helper closure | External or IRQ root omitted | Whole-program trace plus reachability/map oracle |
+| finite-target devirtualization | Function-value target set is finite and preserves call order, ABI, and diagnostics | Direct-call, dispatch, bank, variant, and code-size choices are compared | Escaped function value adds an unknown target | Target-set behavior plus dispatch/cost oracle |
+| specialization | Proven values/profile facts preserve source legality and all observable cases | Clone bytes, removed branches, call cycles, layout, SFA, and retained generic path are counted | Specializing a mutable global | Differential cases plus clone/reachability cost |
+| inline/outline | Call domain, recursion, effects, clobbers, lifetime, and debug/source identity remain valid | Call bytes/cycles versus duplication, branch distance, SFA interference, and helper sharing | Inlining causes a spill or long branch | Behavior trace plus closed-program B/R/T comparison |
+| tail calls | Tail position, ABI, return destination, cleanup, domain, and interrupt rules match | Removes return traffic only when SFA homes, flags, bank, and stack remain correct | Caller must restore state after call | Return/stack oracle plus exact tail sequence |
+| aggregate scalarization | Field observability, aliasing, address identity, volatile access, padding, and ABI are proved | Register/ZP/SFA homes and code growth are closed before selection | Aggregate address escapes | Field/alias oracle plus storage and instruction cost |
+| copy elision/direct construction | Destination, lifetime, overlap, evaluation order, failure paths, and caller-owned return ABI are exact | Avoided data moves are balanced against addressing, scratch, and placement | Source and destination overlap | Byte-state/effect oracle plus copy-count/B/R/T oracle |
+| induction recovery | Canonical initializer, invariant bound, stride, wrap, exits, effects, and visible values are proved | Byte counter, carry/address formation, page crossing, and SFA materialization are costed | Byte loop wraps before condition becomes false | Iteration/state oracle plus loop sequence/path cycles |
+| loop-invariant motion | Expression is invariant, safe on zero iterations, non-trapping, non-volatile, and alias-safe | Hoist setup, register pressure, spills, ZP/SFA, and interrupt visibility are counted | Loop executes zero times but expression has effect | Path/effect oracle plus complete loop cost |
+| strength reduction | Exact signed/unsigned arithmetic, overflow, division/remainder, shifts, and side effects are preserved | Carry chains, tables/helpers, page placement, flags, bytes, and cycles are compared | Signed negative division replaced by shift | Boundary-value oracle plus sequence/helper/table cost |
+| measured unrolling | Finite bound and exits are proved; effect order and visible induction values stay identical | Body growth, branch savings, page crossings, layout, I-cache absence, and SFA pressure are closed | Unroll crosses a branch-range or timing limit | Per-iteration trace plus final layout/path cost |
+| liveness/interference | Values, flags, aliases, calls, handlers, and domain overlap determine exact live ranges | A/X/Y, carry/flags, ZP, SFA, spills, stack, and save/restore costs are jointly selected | IRQ-visible value treated as dead | State/interrupt oracle plus allocation/spill cost |
+| 6502 machine shaping | Structured rules cover registers, flags/carry, addressing, ZP, SFA, helpers/tables, instruction selection, peepholes, layout, banking, and branch repair without changing semantics | Exact selected CPU legality, bus effects, page timing, bytes, cycles, storage, visibility, and packaging interactions are closed | Text peephole deletes a flag-producing instruction still consumed | Machine-state/MMIO oracle plus assembled bytes and complete B/R/T |
+
+At the smallest complete owning scope, retain all viable interactions that can change the closed
+result. Repeat affected analysis, transformation, reachability, helper/table choice, resource
+binding, SFA closure, layout, branch repair, and packaging feedback to a deterministic fixed point
+proved by a finite state space, finite lattice, or well-founded monotonic measure. An iteration cap
+may diagnose non-convergence but cannot certify success.
+
+Contextual peepholes operate on structured machine instructions after required semantic, flag,
+register, liveness, effect, alias, and layout facts exist. They include the unchanged candidate and
+all applicable qualified substitutions, then select by complete cost instead of first match. Exact
+enumeration is allowed only for an explicitly small finite region with fixed CPU legality,
+live-in/live-out state, effects, memory/interrupt assumptions, a sequence bound, complete costs,
+and an independent decidable equivalence oracle. The honest claim is frontier-optimality, never
+universal mathematical optimality; a newly discovered winning expert candidate reopens the
+frontier as parity debt.
 
 ## Representation Policy
 
@@ -52,7 +117,6 @@ Until its accountable consumer deliberately discharges it, preserve:
 | storage class/lifetime | SFA versus global/platform ownership | assigning helper scratch outside final SFA closure |
 | placement/alignment/bank visibility | device-visible data and legal addressing | treating asset constraints as a late text directive |
 | CFG, source-handler, and entry-variant identity | reachability, raw/firmware interrupt ABI, loops, layout | flattening IRQ and mainline into one ordinary call tree or using one IRQ tail for every sink |
-| synchronous BRK contract identity | returning/non-returning successor, vector/handler effects, three CPU stack bytes plus handler peak | assuming fallthrough, a debugger, or a zero-cost opaque opcode |
 | calls/helpers/clobbers | registers, flags, memory, scratch, reentrancy | treating a multiply helper as a pure arithmetic token |
 | source association | stable diagnostics and explainable cost failures | losing the expression/function that caused a spill or range error |
 
@@ -93,12 +157,6 @@ Do not call an operation “pure” merely because it returns a value. A memory-
 device state. A helper call can clobber scratch. An explicit CPU-control intrinsic changes flags or
 interruptibility. Address computation may be pure while the load/store using it is observable; keep
 those identities distinct.
-
-A BRK node remains a control-and-machine-effect operation until the selected platform contract is
-bound. Legalization may emit only `$00 $EA`; it must not synthesize a vector, handler, trap block,
-or runtime. The CFG uses the contract's exact successor kind, and stack/resource analysis charges
-three CPU-pushed bytes plus the handler peak. If no contract exists, semantic target validation owns
-E10259 before emission.
 
 ## Memory Effects and Volatility
 
@@ -181,8 +239,9 @@ Legalization normally emits an inline `SED`, owned `CLC`/`SEC`, the ordered low-
 `ADC`/`SBC` chain, and `CLD`; it does not introduce a helper or linked runtime. It may coalesce
 adjacent decimal regions only when every operation still owns its carry input, no ordinary
 arithmetic, address formation, call, or mismatched control-flow edge enters the region, every
-interrupt path preserves decimal state, and the region exits with D clear. Raw `asm_sed()` remains
-an opaque ordered effect. It cannot change ordinary operator meaning or justify folding an
+interrupt path preserves decimal state, and the region exits with D clear. The public raw-assembly
+surface does not expose decimal-mode control. Decimal state belongs to the typed BCD operations and
+the selected interrupt ABI; it cannot change ordinary operator meaning or justify folding an
 ordinary `+`/`-` as BCD.
 
 ## Control Flow and Layout
@@ -430,10 +489,10 @@ hardware proof, or one instruction-count decrease into a whole-program win.
 ## Sources
 
 - `[BLEND65-PROJECT-POLICY-P3-28627e0c, PRIME DIRECTIVE — expert assembly game developer]` — product/process authority for expert parity and tracked meet-level debt
-- `[BLEND65-SPEC-P3-4bf8a989, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/07-structs.md §Aliasing]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
+- `[BLEND65-SPEC-4-5c6bac04, spec/02-type-system.md §Intermediate Overflow, §Constant Expression Evaluation, §Right Shift Semantics, §Overflow Behavior]`
+- `[BLEND65-SPEC-4-5c6bac04, spec/04-expressions-operators.md §Arithmetic Operators, §Logical Operators, §Conditional Operator, §Memory Intrinsics]`
+- `[BLEND65-SPEC-4-5c6bac04, spec/06-functions.md §Parameter Evaluation Order, §SFA Calling Convention]`
+- `[BLEND65-SPEC-4-5c6bac04, spec/07-structs.md §Aliasing]`
+- `[BLEND65-SPEC-4-5c6bac04, spec/12-intrinsics.md §CPU Control Intrinsics, §Memory Intrinsics]`
 - `[LLVM-CODEGEN-22, Code Generator chapter]` — comparative pass-responsibility evidence only
 - `[LLVM-MOS-275C7FC, target implementation]` — comparative 6502 evidence only

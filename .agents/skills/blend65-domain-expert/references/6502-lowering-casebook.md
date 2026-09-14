@@ -1,5 +1,7 @@
 # 6502 Lowering Casebook
 
+> **Baseline version**: `2.0.0`
+
 Use this reference to turn reconciled Blend65 semantics and typed IL into expert NMOS 6502/6510
 code. Read `blend65-semantics.md`, `sfa-and-abi.md`, `il-and-optimization.md`, and
 `mos-6502-family.md` first when their contracts are relevant. This casebook defines selection
@@ -52,7 +54,7 @@ them exact. A whole-program win may justify a locally equal instruction sequence
 new data, padding, banking, stack, or ZP cost.
 
 Source keys: instruction facts come from `MOS-PGM-1976` and the selected-core deltas in
-`WDC-65C02S-2022`; Blend65 semantics come from `BLEND65-SPEC-P3-4bf8a989`; proof and accounting
+`WDC-65C02S-2022`; Blend65 semantics come from `BLEND65-SPEC-4-5c6bac04`; proof and accounting
 rules come from `evidence-parity-and-recovery.md` and `il-and-optimization.md`.
 
 ## Loads, stores, and moves
@@ -296,7 +298,7 @@ For signed `>>`, counts at least the width produce all ones for a negative input
 non-negative input. For unsigned `>>` and every `<<`, counts at least width produce zero. The
 compiler may fold when sign/range is known; otherwise it must select or generate the correct
 terminal fill. It must not apply the host language's shift-count masking. Source:
-`BLEND65-SPEC-P3-4bf8a989`, `MOS-PGM-1976` Chapter 10, and Q-C13.
+`BLEND65-SPEC-4-5c6bac04`, `MOS-PGM-1976` Chapter 10, and Q-C13.
 
 ### Complete arithmetic-right-shift baselines
 

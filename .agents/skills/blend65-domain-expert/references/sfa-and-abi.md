@@ -1,6 +1,6 @@
 # Static Frame Allocation and ABI Doctrine
 
-> **Baseline version**: `1.0.0`
+> **Baseline version**: `2.0.0`
 >
 > **Binding specification rule**: Static Frame Allocation (SFA) is the sole general function-frame
 > model. The 6502 hardware stack is not a general local-variable stack.
@@ -299,19 +299,19 @@ interrupt lowering, assembly review, and platform libraries. At minimum it state
 | Entry/exit | startup state, normal function entry, source handler kind, raw/firmware IRQ/NMI variants, save owner, `RTS`/`RTI`/firmware tail, decimal/interrupt policy |
 | Platform boundary | KERNAL/raw vectors or other platform entry conventions, bank state, callbacks, preserved device state |
 
-The active recovery baseline is the ABI fixed by frozen [Chapter 06](../../../../spec/06-functions.md),
-not an open architecture choice. Callers evaluate arguments left to right and store every argument
+The active recovery baseline is the ABI fixed by frozen `spec/06-functions.md`, not an open
+architecture choice. Callers evaluate arguments left to right and store every argument
 in the callee's static frame before `JSR`. Scalar and enum arguments are copied by value. Struct
 and exact `T[N]` array arguments store a two-byte base address and are accessed by reference. An
 any-size `T[]` parameter adds the caller array's full two-byte element count, for four SFA bytes per
 concurrent parameter instance; the validated `0..65535` extent domain makes that count total. It is
 only a parameter ABI form and cannot be stored or returned. A byte, sbyte, boolean, or enum result
-returns in A; a word or sword returns in A (low byte) and X (high byte). Current v3 rejects fixed
-struct and array returns with E10093/E10120, but this is expressiveness debt rather than an SFA or
-hardware necessity. The redesign direction is caller-owned hidden destination passing: include the
-destination address in final SFA closure, construct directly into caller storage, and elide copies
-only with complete alias, lifetime, nested-call, and interrupt-domain proof. This adds no heap or
-general runtime and must preserve source effect order. Ordinary functions and ordinary address-taken callbacks use
+returns in A; a word or sword returns in A (low byte) and X (high byte). Fixed structs and fixed
+arrays return through a compiler-managed caller-owned destination selected before the call. Its
+address, any required snapshot, and all helper scratch enter final SFA closure. The callee constructs
+directly into final storage where alias, lifetime, nested-call, interrupt-domain, and effect-order
+proof permits; otherwise the compiler uses an alias-safe copy or SFA-owned snapshot and reports its
+complete cost. This adds no heap or general runtime. Ordinary functions and ordinary address-taken callbacks use
 `JSR`/`RTS`. An `interrupt function` is callback-only: its raw-vector variant uses the specified
 save/restore sequence and `RTI`, while a compiler-recognized firmware sink selects the matching
 firmware-frame and terminal variant. The C64 KERNAL CINV variants must not save A/X/Y twice.
@@ -321,9 +321,8 @@ eventual `RTI` restore the interrupted status, while the default chain holds one
 the body and executes `PLP` before the prior-handler jump. Its two-byte saved-vector link must begin
 at a low byte no greater than `$FE`: `$xxFE` is valid, while `$xxFF` must be relocated or rejected
 for the NMOS indirect-jump form. All normalization, link placement, and stack costs participate in
-the same static ABI/resource proof. Establishing binary mode at generated handler entry does not
-ban an explicit `asm_sed()` inside the handler; that expert escape remains legal when it satisfies
-the ordinary decimal-state diagnostics and restores a valid outgoing state.
+the same static ABI/resource proof. Specification 4 exposes no raw decimal-state control; the
+compiler owns and proves every internal decimal-mode region.
 
 ### Interrupt-route completion gate
 
@@ -337,9 +336,6 @@ State all of these linked invariants explicitly:
   the previous-handler jump;
 - exclusive and raw variants establish D clear for generated ordinary code, then their eventual
   `RTI` restores the complete interrupted processor status, including the interrupted D value;
-- a deliberate `asm_sed()` inside the body remains legal under the ordinary decimal-state
-  diagnostics and must reach a valid outgoing-state boundary; say this explicitly even when the
-  supplied handler does not happen to contain `asm_sed()`;
 - `$xxFE` is a valid start for the two-byte saved indirect link, while `$xxFF` is relocated or
   rejected for the NMOS form; and
 - source acknowledgement, helper `JSR`/`RTS`, SFA interference, stack peak, static link storage,
@@ -353,10 +349,10 @@ bytes or cycles.
 If any item is absent, the route conclusion is incomplete even when the individual instruction
 sequence is otherwise correct.
 
-Recovery must audit current lowering and output against that complete contract. A potentially
-better ABI is design evidence for a future versioned specification decision, not permission to
-reinterpret v3 during recovery. Any future ABI still has to be complete, measurable, shared by all
-consumers in the table above, and represented before optimization.
+Recovery must audit current lowering and output against that complete contract. A compiler that
+still rejects fixed aggregate returns has not implemented Specification 4; the obsolete rejection
+must not be taught as an ABI rule. Any future ABI change still has to be complete, measurable,
+shared by all consumers in the table above, and represented before optimization.
 
 ### Hardware stack duties
 
@@ -382,27 +378,13 @@ reserve from that peak, add the reserve to it, or count the reserve as usage. Th
 only the capacity available to the program. E10238 is decided by comparing the unchanged measured
 peak with that reduced capacity; reports show all three values so the decision can be reproduced.
 
-`asm_brk()` is a distinct synchronous edge. The CPU contributes three live bytes for PC+2 and
-status; the selected `brk_contract` contributes its complete maximum handler stack peak. A
-returning contract resumes after the mandatory padding byte with its declared preservation and
-effects. A non-returning contract ends the path. Missing proof is E10259. Never model BRK as an
-ordinary `JSR`, assume an emulator monitor, charge only the opcode, or create a handler/runtime to
-make the analysis convenient.
-
-The emitted `asm_brk()` sequence is exactly `$00 $EA`: two artifact/ROM bytes total. `$EA` is the
-mandatory padding byte already included in that total, not a third byte. There is no helper or
-runtime ROM beyond those two bytes. The CPU takes seven cycles to handler entry and pushes three
-hardware-stack bytes; the selected handler's cycles, peak stack, return behavior, and effects are
-additional contract-owned costs. Never report “zero ROM” after acknowledging the two emitted bytes.
-
-Explicit push/pull operations are ordered machine-state effects. Analysis tracks a LIFO sequence
-relative to each function entry: `asm_pha()` adds an accumulator-save, `asm_php()` adds a
-status-save, and the corresponding pull must consume the matching top kind. Every reachable join
-and loop backedge requires the identical sequence, and every exit restores the empty relative
-sequence. A callee or interrupt handler starts its own empty sequence and cannot consume
-caller-held entries, return addresses, CPU interrupt bytes, or compiler-generated ABI saves. The
-optimizer preserves these operations and their order. This kind-aware proof changes no emitted
-instruction, allocates no SFA storage, and links no runtime code.
+The public explicit stack controls are `asm_php()` and `asm_plp()` only. Analysis tracks a LIFO
+sequence of status saves relative to each function entry. Every reachable join and loop backedge
+requires the identical depth, and every exit restores the empty relative sequence. A callee or
+interrupt handler starts its own empty sequence and cannot consume caller-held entries, return
+addresses, CPU interrupt bytes, or compiler-generated ABI saves. The optimizer preserves these
+operations and their order. This proof changes no emitted instruction, allocates no SFA storage,
+and links no runtime code.
 
 ## Final Storage Closure
 
@@ -488,9 +470,9 @@ convenience or familiarity with modern ABIs is not evidence of necessity.
 
 ## Sources
 
-- `[BLEND65-SPEC-P3-4bf8a989, spec/00-introduction.md §A2, §A3]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/06-functions.md §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/11-memory-model.md §Static Frame Allocation, §Zero-Page Allocation, §Hardware Stack Usage]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/03-variables.md §Memory Placement]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/13-data-inclusion.md §Code Generation]`
-- `[BLEND65-SPEC-P3-4bf8a989, spec/15-platform-profile.md §Platform Profile Contract]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/00-introduction.md §A2, §A3]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/06-functions.md §FN-4, §FN-6, §FN-10, §SFA Calling Convention, §Interrupt Functions]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/11-memory-model.md §Static Frame Allocation, §Aggregate Return Destinations and Copies, §Zero-Page Allocation, §Hardware Stack Usage]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/03-variables.md §Memory Placement]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/13-data-inclusion.md §Code Generation]`
+- `[BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa, spec/15-platform-profile.md §Platform Profile Contract]`

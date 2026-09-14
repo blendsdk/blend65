@@ -1,6 +1,6 @@
 # Evidence, Parity, and Recovery
 
-> **Baseline version**: `1.0.0`
+> **Baseline version**: `2.0.0`
 > **Role**: Decide what is actually known, compare generated work fairly with expert 6502 work,
 > and recover useful compiler parts without preserving accidental complexity.
 

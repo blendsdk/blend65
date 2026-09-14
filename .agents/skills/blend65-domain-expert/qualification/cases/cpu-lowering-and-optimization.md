@@ -421,9 +421,12 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
 - **Risk / coverage cells:** Major; `CPU-C22`, `LOWER-C22`.
 - **Oracle status:** `frozen-external` — independently source-reviewed in Phase 2; later content qualification remains required.
 - **Evaluator prompt:** “Fixed-trip hot loop is considered for unrolling. For the declared CPU, determine the correct behavior and expert lowering decision. State preconditions and clobbers, show the decisive state/path reasoning, and compare complete bytes, cycles, flags, memory traffic, ZP/frame/stack/data/padding costs where applicable.”
-- **Permitted raw artifacts:** Trip count, path frequency, body, layout/branch range, code-size budget, and partial/full/no-unroll candidates.
+- **Permitted raw artifacts:** Proved trip count, semantic path classes, body, layout/branch range,
+  hard timing/code-size budgets, and partial/full/no-unroll candidates.
 - **Forbidden material:** This hidden oracle, coverage conclusions, plans, prior outputs, legacy-skill conclusions, author history, and any CPU fact not in the allowlisted packet.
-- **Expected decision invariants:** Chooses from measured trip count, path frequency, code/layout cost, and cycle benefit; partial/full/no unroll are all legitimate results.
+- **Expected decision invariants:** Chooses from proved trip count, complete code/layout/resource
+  cost, semantic-path cycle vectors, and hard budgets under the selected mode. It uses no guessed
+  frequency or hotness; partial/full/no unroll are all legitimate results.
 - **Disqualifying outcomes:** Unrolls every constant loop or rejects unrolling universally.
 - **Evidence required to grade:** Primary-source pinpoints after freeze, a state/effect trace, exact legal instruction forms and clobbers, path-specific bytes/cycles, full attributable resource costs, and an independent behavior proof when code shape changes.
 - **Red-baseline result:** Not run; draft observations only.
@@ -433,6 +436,98 @@ The evaluator receives the prompt, the named raw machine artifacts, and the cand
   sample evaluator output and independent grade passed this case without a material finding. The
   packet, runtime-payload, output, isolation, and grading evidence is recorded in
   `qualification/release.md`.
+
+## Q-C25 — Optimizer modes select a complete-cost tradeoff and reject an infeasible win
+
+- **Risk / coverage cells:** Critical; `CPU-C25`, `OPT-C25`, `COST-C25`.
+- **Oracle status:** `frozen-project` — the accepted four-mode and B/R/T policy is the oracle.
+- **Evaluator prompt:** “Given the same finite feasible candidates, one is larger/faster, one is
+  smaller/slower, one is Pareto-dominant, and one exceeds a hard ZP or timing capacity. Select the
+  result for `none`, `balanced`, `speed`, and `size`. Include a D64 build whose container overhead
+  differs but whose logical target payload does not. Explain exact ties and every rejection.”
+- **Permitted raw artifacts:** Direct-lowering baseline; stable candidate IDs; values/effects;
+  complete `B`, ordered `R`, and comparable-path `T` vectors; helper/table/layout/package closure;
+  hard target capacities and timing contracts; D64 logical payload and container accounting.
+- **Forbidden material:** This hidden oracle, plans, prior outputs, guessed execution frequencies,
+  weights, hotness, PGO data, a tuning DSL, or unallowlisted repository/network material.
+- **Expected decision invariants:** `none` performs mandatory direct lowering only, with no optional
+  enumeration, rewrite, B/R/T choice, or parity gate. All optimized modes reject hard-infeasible
+  candidates and search the same frontier. `balanced` takes only a complete no-regression Pareto
+  dominance result; `speed` orders T/R/B; `size` orders B/R/T; stable ID breaks only exact complete
+  ties. `B` counts compiler-generated target-loadable bytes once and excludes D64
+  BAM/directory/link/tail/fill/container/evidence bytes. No weight or frequency is invented.
+- **Disqualifying outcomes:** Optimizes in `none`; selects an infeasible candidate; uses a hidden
+  scalar score; lets `balanced` choose a tradeoff; counts D64 container overhead in `B`; or uses
+  stable ID to settle a real cost difference.
+- **Evidence required to grade:** Candidate feasibility table, complete B/R/T vectors, exact
+  per-mode selection trace, hard-budget rejection, D64 accounting split, and two independent
+  behavior and assembly/cost oracles.
+- **Red-baseline result:** Not run; new AR-045/AR-046 case.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-C25; exact evidence is recorded in `../release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
+
+## Q-C26 — A local optimizer win reverses after whole-program closure
+
+- **Risk / coverage cells:** Critical; `CPU-C26`, `OPT-C26`, `CLOSURE-C26`.
+- **Oracle status:** `frozen-project` — complete owning-scope and finite-frontier closure rules are
+  the oracle.
+- **Evaluator prompt:** “A local rewrite saves instructions but makes a helper/table reachable,
+  increases SFA/ZP interference, changes branch range and padding, or adds a bank/load dependency.
+  Determine when the choice may be committed, which alternatives remain live, and the selected
+  result after whole-program closure in each optimized mode.”
+- **Permitted raw artifacts:** Local and combined candidates; semantic/effect facts; reachability;
+  helper/table inclusion; SFA/ZP allocation; final layout/branch repair/banking/loading/packaging;
+  complete B/R/T vectors and stable IDs.
+- **Forbidden material:** This hidden oracle, plans, prior outputs, first-improvement selection,
+  local-only cost presented as final, arbitrary pass limits, or a new optimizer framework.
+- **Expected decision invariants:** Retains every viable interaction that can reverse the result
+  until the smallest complete owning scope closes. Recomputes reachability, resource binding, SFA,
+  layout, branch repair, and package feedback; then applies the selected mode to complete costs.
+  The locally winning candidate may correctly lose. Semantic behavior and both independent oracles
+  remain unchanged.
+- **Disqualifying outcomes:** Commits the local win early; hides helper/table/SFA/layout costs;
+  drops an incomparable open candidate; or adds a generalized pass manager/registry to solve the
+  example.
+- **Evidence required to grade:** Before/after dependency graph, closure point, exact downstream
+  cost reversal, final feasibility and B/R/T table, selection trace, behavior oracle, and assembled
+  shape/cost oracle.
+- **Red-baseline result:** Not run; new AR-046 case.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-C26; exact evidence is recorded in `../release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
+
+## Q-C27 — Prove frontier exhaustion, contextual peepholes, and bounded exact search
+
+- **Risk / coverage cells:** Critical; `CPU-C27`, `OPT-C27`, `PROOF-C27`.
+- **Oracle status:** `frozen-project` — the finite qualified frontier and proof-completion policy is
+  the oracle.
+- **Evaluator prompt:** “A fixed iteration budget finds one good rewrite, a structured peephole
+  exposes another candidate, and a tiny straight-line region could be enumerated exactly. Decide
+  what proves completion for `balanced`, `speed`, and `size`, what `none` does, when exact search is
+  legal, and what optimality may honestly be claimed.”
+- **Permitted raw artifacts:** The finite qualified rule inventory; applicability/proof packets;
+  structured machine operations; flags/register/liveness/effect/alias/layout facts; fixed-point
+  state/measure; candidate/cost sets; exact-region bounds and independent equivalence oracle.
+- **Forbidden material:** This hidden oracle, plans, prior outputs, ACME text rewriting, greedy
+  first-match results, iteration caps as success proof, open-ended/global superoptimization,
+  imported compiler architecture, e-graph, rule DSL, catalog framework, or universal-optimal claim.
+- **Expected decision invariants:** The three optimized modes enumerate the same applicable finite
+  frontier and repeat affected groups to a deterministic fixed point proved by a finite state
+  space, finite lattice, or well-founded monotonic measure. Contextual peepholes operate on
+  structured instructions after their facts exist, retain the unchanged candidate, and select by
+  complete cost. An iteration cap only diagnoses failure. Exact enumeration is permitted only for
+  an explicitly small bounded region with fixed CPU legality, live-in/out, effects,
+  memory/interrupt assumptions, sequence bound, complete costs, and an independent decidable
+  equivalence oracle. `none` does none of this optional search. The result is
+  `frontier-optimal`, not universally optimal; a new winning expert candidate reopens parity debt.
+- **Disqualifying outcomes:** Certifies a pass count, stops at first improvement, rewrites emitted
+  text, searches an unbounded program space, shares no independent equivalence oracle, claims
+  mathematical optimality, or imports a general optimizer framework.
+- **Evidence required to grade:** Complete applicable-rule/candidate inventory; deterministic
+  fixed-point proof; peephole fact packet and choice; exact-search bound/equivalence proof when
+  used; per-mode selection evidence; and separate behavior and assembly/cost oracles.
+- **Red-baseline result:** Not run; new AR-046 case.
+- **Focused result:** Pass — the Specification 4 Phase-4 isolated evaluator and independent grade passed Q-C27; exact evidence is recorded in `../release.md`.
+- **Definitive result:** Pass — the Specification 4 Phase-4 qualification passed without a material finding.
 
 ## Q-C23 — Specialize an indirect access by modifying an absolute operand
 
