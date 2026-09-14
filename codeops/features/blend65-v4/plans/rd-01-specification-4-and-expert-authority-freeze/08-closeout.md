@@ -1038,7 +1038,8 @@ qualification result.
 The correction changes no `##` knowledge section and no `## Q-*` case oracle. Therefore it reopens
 only deterministic identity, packaging, matrix-status, and activation checks. No model case rerun,
 new validator, version bump, or wider content change is justified. The corrected candidate remains
-isolated until its new exact identities pass re-review and receive explicit activation approval.
+isolated until its new exact identities receive explicit activation approval and the direct
+activation checks pass.
 
 Targeted requalification passed. Comparison with the approved Phase 4 candidate found only the two
 authorized content-line changes plus this derived release-evidence record. All knowledge H2 sections
@@ -1048,9 +1049,17 @@ and all case files remain byte-identical; 111 unique case headings still equal t
 |---|---|
 | Runtime payload | `65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42` |
 | Qualification payload excluding release | `453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e` |
-| Release record | `30e9c5192da71a0abd28af06a751e8618d9ec23564108e86611317eeeced1789` |
-| Complete candidate tree | `d96f8887043d028b2ec307f6c0849ca730a9146a6b4fc9a7d6f9e7f19a7e59f8` |
+| Release record | `ab7cea9925b2824f27a0948e12c6d49f9f02134ab6135508c660377e8ba5db6d` |
+| Complete candidate tree | `7bcdcce6a4a939325d4a733a77b4e1e20ad3496aafe2bb90cbfac87a88ea97b8` |
 
 The changed H2 and case closure digests remain
 `c5042ecc87910558e727779be7db9d6870c9219f3fc2e39efb92ad9ede8a8136` and
 `d6869018aa8fc980767dc3e8810b355fa60e7e2fbbcc284346eb36a1d8b70baf`.
+
+The permitted re-review confirmed RV-001 was resolved and reported RV-002: the remaining plan step
+could remove the corrected candidate without first approving and activating its new identity, and
+its staging release record still named 1.0.0 instead of the currently active original 2.0.0 as the
+rollback baseline. The user authorized the minimal sequence correction on 2026-09-14. Task 5.1.4
+now owns the complete corrected activation order. The candidate release record is derived from the
+current live 2.0.0 record and remains unbound to the corrected content until exact-identity approval.
+No third review is opened; direct checks must prove the authorized sequence and content boundaries.
