@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
-> **Status**: In progress
-> **Last Updated**: 2026-09-13 13:09
+> **Status**: Complete
+> **Last Updated**: 2026-09-14 02:18
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -971,3 +971,58 @@ and content-checkpoint full-tree digest
 file remains byte-identical to the approved candidate. Expert 2.0.0 is now the sole active
 qualified baseline; expert 1.0.0 is preserved only in Git history and the recoverable activation
 backup until the release-tail checks pass.
+
+### Final authority identities and freeze proof
+
+The release-tail checks passed before the plan-local candidate was removed. Git commit
+`94908add116c7538eb1408084db1cfe5c0cf05c5` preserves the exact approved candidate, so no parallel
+live tree is retained.
+
+| Final record | Exact identity |
+|---|---|
+| Specification 4 | `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa` |
+| Normative corpus | 18 regular Markdown files; digest `5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa` |
+| Complete Specification tree | 45 regular Markdown files: 18 normative and 27 non-normative; raw hashes recorded above |
+| Active expert | `blend65-domain-expert` 2.0.0; sole active qualified baseline |
+| Qualified content commit | `5eaf2ae86b3b0176c84b35eba6385b80115b1c34` |
+| Release bookkeeping commit | `38215b132cfd898f7143bec9a3254c240f974449` |
+| Approved candidate full-tree digest | `f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341` |
+| Active runtime-payload digest | `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9` |
+| Active release-record SHA-256 | `e74057fef1d0720355b21c893b6244ee423f4104b3dda94b8cfe4b564bd86e4e` |
+| Active post-binding full-tree digest | `3768dbc195f99ff30628d572ae820ecd84d0d0783e6fd934f446452897bd4490` |
+| Qualification payload digest | `6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e` |
+| Unresolved material findings | Zero |
+
+`spec/` is frozen at the identities above. Compiler recovery must implement that authority or
+record a conformance discrepancy; it cannot edit the specification or teach current implementation
+behavior as expert doctrine.
+
+### Deferral-expiry gate
+
+**Did this RD's deliverables expire any deferral's stated rationale? No.**
+
+The final walk covered the resolved plan ambiguity register, RD-01's Won't Have section, all open
+future items, and every reconsideration criterion in `spec/future-considerations.md`.
+
+| Open item set | Closeout result |
+|---|---|
+| FUT-006 and FUT-007 | Their syntax-frequency and clean-design evidence does not exist; the existing modern-language forms remain sufficient. |
+| FUT-011 and FUT-012 | Specification 4 supplies ordinary calls and aggregate value semantics, but no external object/link contract or demonstrated need for a duplicate copy intrinsic. Their remaining reasons still hold. |
+| FUT-015 and FUT-016 | No deterministic modern-image conversion contract or measured stack-pressure need was produced. Their remaining reasons still hold. |
+| FUT-017 and FUT-018 | The optimizer is specified but not implemented; no real ordering failure or volatility bottleneck exists yet. Their reconsideration triggers have not fired. |
+| Future targets | C64U remains owned by `blend65-c64u/RD-01`; X16 and Atari notes remain non-normative portability constraints, not support claims. |
+
+No open deferral names RD-02 through RD-10 as its future landing slice, and no rationale expired.
+Therefore no new backlog owner or expressiveness-ledger row is required at this closeout.
+
+### Final direct verification
+
+The final documentation-only verification reproduced the normative corpus and all active expert
+hashes, proved that only the release record changed after the immutable content checkpoint,
+confirmed 22 regular live skill files with no symlink or special entry, validated skill packaging,
+links, formatting, plan topology, and whitespace, and found no `spec/` or `*.spec.test.*` worktree
+change. Compiler, ACME, VICE, readiness, and repository-wide suites remained excluded because this
+RD changes no compiler or runtime behavior.
+
+RD-01 is complete. Specification 4 and expert baseline 2.0.0 are frozen, and RD-02's dependency is
+satisfied.
