@@ -954,3 +954,20 @@ The user explicitly approved activation of these exact identities on 2026-09-14 
 the complete 22-file content list, change and removal summary, Guard result, dependency impact,
 fresh/control/inherited case results, independent-review result, and remaining future constraints.
 Earlier requirements and plan approvals were not used as activation authority.
+
+### Atomic content checkpoint and release binding
+
+The approved 22-file candidate tree replaced the live skill only after both roots passed the
+regular-file-only check. A complete byte comparison passed before commit. Commit
+`5eaf2ae86b3b0176c84b35eba6385b80115b1c34` records those exact candidate bytes while the copied
+release record still names 1.0.0 as the active baseline.
+
+After that immutable content checkpoint, only live `qualification/release.md` changed. It binds
+expert 2.0.0 to content commit `5eaf2ae86b3b0176c84b35eba6385b80115b1c34`, Specification 4 identity
+`BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`,
+runtime-payload digest `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9`,
+and content-checkpoint full-tree digest
+`f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341`. Every non-release live
+file remains byte-identical to the approved candidate. Expert 2.0.0 is now the sole active
+qualified baseline; expert 1.0.0 is preserved only in Git history and the recoverable activation
+backup until the release-tail checks pass.

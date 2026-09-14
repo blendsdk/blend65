@@ -1,8 +1,8 @@
 # Blend65 Domain Expert Release Record
 
-> **Active qualified version**: `1.0.0`
+> **Active qualified version**: `2.0.0`
 > **Status**: Active — the only qualified Blend65 domain-expert baseline
-> **Recorded**: 2026-09-09
+> **Recorded**: 2026-09-14
 
 ## Identity
 
@@ -13,24 +13,26 @@
 | Legacy isolation | Fresh directory under `/tmp`; extracted tree made read-only before assessment; removed after evidence capture |
 | Sorted legacy file-record digest | `a373271c41c9c2f50f38956c60d42a387d1da09e25e8d06c5cc61f16c7784fab` |
 | Original router SHA-256 | `3865874b9f8fab03e5554e01098ed1ca4834c9470698bcc1729e06f2cca5d998` |
-| Metadata SHA-256 | `94dc79f61ffc4f834f45d9e03353837089ab46f9a0fa52703aa5619e742c9370` |
+| Metadata SHA-256 | `e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
-| Active router | `1.0.0`; qualified and atomically active |
-| Candidate router SHA-256 | `80fbc581e4a1a60e372fa2bff745748755da322d2f5db5a3c402b4bc2aa4621f` |
-| Qualified content commit | `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa` |
-| Qualified runtime-payload digest | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
-| Qualified content-checkpoint full skill-tree digest | `4379f1d0a7d6e8c3523c647591994a86fb5bfc99d66f75edf5b9a16b3c925e00` |
-| Superseded qualified version | None; the legacy prototype was never qualified |
+| Active router | `2.0.0`; qualified and atomically active |
+| Active router SHA-256 | `b16a24898405dfcfc04e7cde33eeda3573a0289df5879f22a82e8ee4d5d4d80a` |
+| Qualified content commit | `5eaf2ae86b3b0176c84b35eba6385b80115b1c34` |
+| Qualified Specification | `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa` |
+| Qualified runtime-payload digest | `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9` |
+| Qualified content-checkpoint full skill-tree digest | `f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341` |
+| Qualification payload digest | `6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e` |
+| Superseded qualified version | `1.0.0`; content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa` |
 
 ## Gate State
 
 | Gate | State | Evidence / blocker |
 |---|---|---|
-| Structural | Passed | The isolated candidate has exactly thirteen linked references, seven qualification artifacts, valid metadata and links, and no legacy runtime reference. The Candidate Pre-delete Gate passed before atomic migration. |
-| Coverage and traceability | Passed | Every case row and legacy heading has an exact knowledge destination, source basis, protecting case, and completed applicable facets. Native asset parser claims remain fail-closed until their stated producer-schema/fixture implementation proofs exist. |
-| Behavioral | Passed | The complete isolated coverage sample under `BLEND65-SPEC-P3-4bf8a989` passed 105 cases and exposed Q-L26/Q-L27 defects. Those defects were corrected; current-packet focused Q-L26/Q-L27 evidence and independent re-review pass. All 107 case fields now contain applicable green final evidence. |
-| Specification consistency prerequisite | Passed | SC-148..SC-155 are bound to `BLEND65-SPEC-P3-4bf8a989` (`4bf8a98934df6282febe013c31a16d89dd73f8e8bbbce9e87b6678e1b75013fe`). Mechanical checks reproduce 50 specification paths. No earlier result is relabelled as evidence for this identity. |
-| Hardware-limitation exceptions | Passed | The final scan reconciled HLE-002/HLE-005, migration and C64 disclosures, per-activation costs, address-workaround bounds, and aggregate-return expressiveness debt. HLE-001..HLE-009 and EXP-001 are present with zero omitted, pending, or unreconciled exception. |
+| Structural | Passed | The active tree has 22 regular files, thirteen linked references, seven qualification artifacts, valid metadata and links, and no symlink or non-regular entry. |
+| Coverage and traceability | Passed | All 107 prior case identities remain, four focused cases were added, and all 111 case headings match the coverage matrix. The 51 changed knowledge sections and 16 changed/new case sections have reproducible closure digests. |
+| Behavioral | Passed | All 43 changed/dependent cases and five fixed controls passed isolated evaluation and independent grading. The remaining 63 results inherit only from byte-identical case and routed-knowledge sections. |
+| Specification consistency prerequisite | Passed | The active knowledge binds exactly to `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`: 18 normative and 27 non-normative Specification 4 files. No Specification 3 result is relabelled as evidence for this identity. |
+| Hardware-limitation exceptions | Passed | C64 source facts, emulator limits, targeted hardware-QA bounds, product ownership, and trusted-media limits remain explicit. Other machines remain non-normative future constraints. |
 
 ## Red-Baseline Method
 
@@ -1712,10 +1714,12 @@ single active expert 1.0.0 tree, and every `*.spec.test.*` file remain unchanged
 
 ## Freeze Declaration
 
-Blend65 Domain Expert `1.0.0` is the single active qualified baseline. It is bound to immutable
-content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa`, router SHA-256
-`80fbc581e4a1a60e372fa2bff745748755da322d2f5db5a3c402b4bc2aa4621f`, and the runtime/full-tree
-digests recorded above. Activation occurred on 2026-09-09 after all release gates passed. Any
+Blend65 Domain Expert `2.0.0` is the single active qualified baseline. It is bound to immutable
+content commit `5eaf2ae86b3b0176c84b35eba6385b80115b1c34`, Specification identity
+`BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`,
+router SHA-256 `b16a24898405dfcfc04e7cde33eeda3573a0289df5879f22a82e8ee4d5d4d80a`, and the
+runtime/content-checkpoint digests recorded above. Activation occurred on 2026-09-14 after all
+release gates passed and explicit approval bound the exact candidate identity. Any
 substantive router, knowledge, source-governance, or qualification-oracle change requires at least
 a patch-version bump, affected/dependent requalification, independent review, and a new atomic
 activation. Git history preserves older content; no parallel active version exists.
