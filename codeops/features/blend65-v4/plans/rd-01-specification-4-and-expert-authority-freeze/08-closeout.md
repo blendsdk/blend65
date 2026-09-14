@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
-> **Status**: Complete
-> **Last Updated**: 2026-09-14 02:18
+> **Status**: In progress — Phase 5 review correction
+> **Last Updated**: 2026-09-14 08:31
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -972,7 +972,7 @@ file remains byte-identical to the approved candidate. Expert 2.0.0 is now the s
 qualified baseline; expert 1.0.0 is preserved only in Git history and the recoverable activation
 backup until the release-tail checks pass.
 
-### Final authority identities and freeze proof
+### Provisional authority identities and freeze proof
 
 The release-tail checks passed before the plan-local candidate was removed. Git commit
 `94908add116c7538eb1408084db1cfe5c0cf05c5` preserves the exact approved candidate, so no parallel
@@ -991,7 +991,7 @@ live tree is retained.
 | Active release-record SHA-256 | `e74057fef1d0720355b21c893b6244ee423f4104b3dda94b8cfe4b564bd86e4e` |
 | Active post-binding full-tree digest | `3768dbc195f99ff30628d572ae820ecd84d0d0783e6fd934f446452897bd4490` |
 | Qualification payload digest | `6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e` |
-| Unresolved material findings | Zero |
+| Unresolved material findings | RV-001 accepted; corrected candidate pending re-review and exact-identity approval |
 
 `spec/` is frozen at the identities above. Compiler recovery must implement that authority or
 record a conformance discrepancy; it cannot edit the specification or teach current implementation
@@ -1024,5 +1024,33 @@ links, formatting, plan topology, and whitespace, and found no `spec/` or `*.spe
 change. Compiler, ACME, VICE, readiness, and repository-wide suites remained excluded because this
 RD changes no compiler or runtime behavior.
 
-RD-01 is complete. Specification 4 and expert baseline 2.0.0 are frozen, and RD-02's dependency is
-satisfied.
+This provisional closeout was reopened by the Phase 5 finding below. RD-02 remains gated until the
+corrected 2.0.0 identity is approved and activated.
+
+### Phase 5 independent-review correction
+
+The independent Phase 5 review reported one major consistency finding, RV-001. The activated
+`SKILL.md` still labelled 2.0.0 as a candidate, and the coverage matrix retained a stale statement
+that a nonexistent Phase 7 still had to qualify the identity. The user authorized the smallest
+correction on 2026-09-14: use a status-neutral version label and record the completed Phase 4
+qualification result.
+
+The correction changes no `##` knowledge section and no `## Q-*` case oracle. Therefore it reopens
+only deterministic identity, packaging, matrix-status, and activation checks. No model case rerun,
+new validator, version bump, or wider content change is justified. The corrected candidate remains
+isolated until its new exact identities pass re-review and receive explicit activation approval.
+
+Targeted requalification passed. Comparison with the approved Phase 4 candidate found only the two
+authorized content-line changes plus this derived release-evidence record. All knowledge H2 sections
+and all case files remain byte-identical; 111 unique case headings still equal the 111 matrix rows.
+
+| Corrected candidate record | SHA-256 |
+|---|---|
+| Runtime payload | `65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42` |
+| Qualification payload excluding release | `453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e` |
+| Release record | `30e9c5192da71a0abd28af06a751e8618d9ec23564108e86611317eeeced1789` |
+| Complete candidate tree | `d96f8887043d028b2ec307f6c0849ca730a9146a6b4fc9a7d6f9e7f19a7e59f8` |
+
+The changed H2 and case closure digests remain
+`c5042ecc87910558e727779be7db9d6870c9219f3fc2e39efb92ad9ede8a8136` and
+`d6869018aa8fc980767dc3e8810b355fa60e7e2fbbcc284346eb36a1d8b70baf`.
