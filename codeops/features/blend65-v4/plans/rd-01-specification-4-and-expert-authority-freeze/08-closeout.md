@@ -1,7 +1,7 @@
 # RD-01 Execution Closeout
 
-> **Status**: In progress — Phase 5 review correction
-> **Last Updated**: 2026-09-14 08:31
+> **Status**: Complete
+> **Last Updated**: 2026-09-14 08:50
 > **Scope**: Specification and expert-authority evidence only; compiler and runtime artifacts are
 > excluded.
 
@@ -972,11 +972,11 @@ file remains byte-identical to the approved candidate. Expert 2.0.0 is now the s
 qualified baseline; expert 1.0.0 is preserved only in Git history and the recoverable activation
 backup until the release-tail checks pass.
 
-### Provisional authority identities and freeze proof
+### Final authority identities and freeze proof
 
-The release-tail checks passed before the plan-local candidate was removed. Git commit
-`94908add116c7538eb1408084db1cfe5c0cf05c5` preserves the exact approved candidate, so no parallel
-live tree is retained.
+The corrected release-tail checks passed before the plan-local candidate was removed. Git commit
+`10a586e6385850b1738cb9bbd7c7cecd00f24ee4` preserves the exact approved correction candidate, so
+no parallel live tree is retained.
 
 | Final record | Exact identity |
 |---|---|
@@ -984,14 +984,15 @@ live tree is retained.
 | Normative corpus | 18 regular Markdown files; digest `5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa` |
 | Complete Specification tree | 45 regular Markdown files: 18 normative and 27 non-normative; raw hashes recorded above |
 | Active expert | `blend65-domain-expert` 2.0.0; sole active qualified baseline |
-| Qualified content commit | `5eaf2ae86b3b0176c84b35eba6385b80115b1c34` |
-| Release bookkeeping commit | `38215b132cfd898f7143bec9a3254c240f974449` |
-| Approved candidate full-tree digest | `f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341` |
-| Active runtime-payload digest | `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9` |
-| Active release-record SHA-256 | `e74057fef1d0720355b21c893b6244ee423f4104b3dda94b8cfe4b564bd86e4e` |
-| Active post-binding full-tree digest | `3768dbc195f99ff30628d572ae820ecd84d0d0783e6fd934f446452897bd4490` |
-| Qualification payload digest | `6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e` |
-| Unresolved material findings | RV-001 accepted; corrected candidate pending re-review and exact-identity approval |
+| Qualified content commit | `c9e70fab6039e9ced3108e88f0ea9730d4fd3007` |
+| Release bookkeeping commit | `48c05ecf6329f8e31d2eb77949c3288d2bf6bcf3` |
+| Approved candidate full-tree digest | `7bcdcce6a4a939325d4a733a77b4e1e20ad3496aafe2bb90cbfac87a88ea97b8` |
+| Active router SHA-256 | `e3d3f8f570a7fa8b3c197208ede2f7b41878f29494fc1824fcfabd2c11f53304` |
+| Active runtime-payload digest | `65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42` |
+| Active release-record SHA-256 | `4ae79fd224a328226ef149104ca44f7d1ab1f62cadc9fc6fc33ceadd7a67c80a` |
+| Active post-binding full-tree digest | `b4d6bd36f0eaf1565a82ada5623b7f7377ba1ba54615b7f9f1121c040124b57f` |
+| Qualification payload digest | `453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e` |
+| Unresolved material findings | None; RV-001 and RV-002 are resolved |
 
 `spec/` is frozen at the identities above. Compiler recovery must implement that authority or
 record a conformance discrepancy; it cannot edit the specification or teach current implementation
@@ -1024,8 +1025,7 @@ links, formatting, plan topology, and whitespace, and found no `spec/` or `*.spe
 change. Compiler, ACME, VICE, readiness, and repository-wide suites remained excluded because this
 RD changes no compiler or runtime behavior.
 
-This provisional closeout was reopened by the Phase 5 finding below. RD-02 remains gated until the
-corrected 2.0.0 identity is approved and activated.
+The corrected 2.0.0 identity is approved and active. RD-02 is unblocked.
 
 ### Phase 5 independent-review correction
 
@@ -1061,5 +1061,20 @@ could remove the corrected candidate without first approving and activating its 
 its staging release record still named 1.0.0 instead of the currently active original 2.0.0 as the
 rollback baseline. The user authorized the minimal sequence correction on 2026-09-14. Task 5.1.4
 now owns the complete corrected activation order. The candidate release record is derived from the
-current live 2.0.0 record and remains unbound to the corrected content until exact-identity approval.
-No third review is opened; direct checks must prove the authorized sequence and content boundaries.
+then-current live 2.0.0 record and remained unbound to the corrected content until exact-identity
+approval. No third review was opened; direct checks proved the authorized sequence and content
+boundaries.
+
+### Corrected activation and review resolution
+
+The user explicitly approved corrected candidate digest
+`7bcdcce6a4a939325d4a733a77b4e1e20ad3496aafe2bb90cbfac87a88ea97b8` at candidate commit
+`10a586e6385850b1738cb9bbd7c7cecd00f24ee4`. The 22-file regular-only tree was copied and compared
+byte-for-byte before content commit `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`. Only the live release
+record then changed; commit `48c05ecf6329f8e31d2eb77949c3288d2bf6bcf3` binds the corrected content,
+Specification 4, router, runtime, qualification, and content-checkpoint identities.
+
+The release tail reproduced every bound identity, confirmed the active tree contains 22 regular
+files and no special entry, and proved all non-release bytes still match the approved candidate.
+The candidate was then removed; its exact tree remains recoverable from Git. RV-001 and RV-002 are
+resolved. The permitted re-review limit is honored, and no third review was requested.
