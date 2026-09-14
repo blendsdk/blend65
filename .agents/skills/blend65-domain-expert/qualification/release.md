@@ -16,12 +16,13 @@
 | Metadata SHA-256 | `e4a9f2e3a50b59f4824ba39443ce8ff846f52134f5effdc0424b763805b5df38` |
 | Legacy reference hashes | Pinned individually in `qualification/coverage-matrix.md` |
 | Active router | `2.0.0`; qualified and atomically active |
-| Active router SHA-256 | `b16a24898405dfcfc04e7cde33eeda3573a0289df5879f22a82e8ee4d5d4d80a` |
-| Qualified content commit | `5eaf2ae86b3b0176c84b35eba6385b80115b1c34` |
+| Active router SHA-256 | `e3d3f8f570a7fa8b3c197208ede2f7b41878f29494fc1824fcfabd2c11f53304` |
+| Qualified content commit | `c9e70fab6039e9ced3108e88f0ea9730d4fd3007` |
 | Qualified Specification | `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa` |
-| Qualified runtime-payload digest | `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9` |
-| Qualified content-checkpoint full skill-tree digest | `f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341` |
-| Qualification payload digest | `6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e` |
+| Qualified runtime-payload digest | `65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42` |
+| Qualified content-checkpoint full skill-tree digest | `7bcdcce6a4a939325d4a733a77b4e1e20ad3496aafe2bb90cbfac87a88ea97b8` |
+| Qualification payload digest | `453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e` |
+| Previous 2.0.0 content commit | `5eaf2ae86b3b0176c84b35eba6385b80115b1c34`; superseded by the activation-state correction |
 | Superseded qualified version | `1.0.0`; content commit `a96cfd3c41a456d4d4f983021cf43535a1d5bdaa` |
 
 ## Gate State
@@ -1730,18 +1731,18 @@ the frozen Specification 4 identity.
 The corrected runtime-payload digest is
 `65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42`; the corrected qualification
 payload digest excluding this release record is
-`453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e`. This corrected candidate is
-not active until its exact full-tree identity receives explicit approval and the direct activation
-checks pass.
+`453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e`. The user approved the exact
+corrected identity on 2026-09-14, and the direct activation checks passed before this release-only
+binding made it active.
 
 ## Freeze Declaration
 
 Blend65 Domain Expert `2.0.0` is the single active qualified baseline. It is bound to immutable
-content commit `5eaf2ae86b3b0176c84b35eba6385b80115b1c34`, Specification identity
+content commit `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, Specification identity
 `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`,
-router SHA-256 `b16a24898405dfcfc04e7cde33eeda3573a0289df5879f22a82e8ee4d5d4d80a`, and the
-runtime/content-checkpoint digests recorded above. Activation occurred on 2026-09-14 after all
-release gates passed and explicit approval bound the exact candidate identity. Any
+router SHA-256 `e3d3f8f570a7fa8b3c197208ede2f7b41878f29494fc1824fcfabd2c11f53304`, and the
+runtime/content-checkpoint digests recorded above. The corrected identity replaced the original
+2.0.0 content on 2026-09-14 after direct checks and explicit exact-identity approval. Any
 substantive router, knowledge, source-governance, or qualification-oracle change requires at least
 a patch-version bump, affected/dependent requalification, independent review, and a new atomic
 activation. Git history preserves older content; no parallel active version exists.
