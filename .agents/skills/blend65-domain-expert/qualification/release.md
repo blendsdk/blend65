@@ -1712,6 +1712,28 @@ The same independent reviewer then reproduced all four Q-P15 hashes, the runtime
 qualification-payload digests, and returned **No findings**. It also confirmed that `spec/`, the
 single active expert 1.0.0 tree, and every `*.spec.test.*` file remain unchanged.
 
+### Phase 5 activation-state correction qualification
+
+The Phase 5 independent review found two stale activation-state statements after the otherwise
+successful activation. The corrected candidate changes exactly two lines from the approved Phase 4
+candidate: `SKILL.md` uses a status-neutral 2.0.0 version label, and the coverage matrix records the
+completed Phase 4 qualification instead of requiring a nonexistent Phase 7.
+
+Neither change touches a `##` knowledge section or a `## Q-*` case oracle. The changed H2 and case
+closure digests therefore remain
+`c5042ecc87910558e727779be7db9d6870c9219f3fc2e39efb92ad9ede8a8136` and
+`d6869018aa8fc980767dc3e8810b355fa60e7e2fbbcc284346eb36a1d8b70baf`. No model case is reopened.
+Targeted deterministic requalification covers exact two-line scope, version and activation-state
+consistency, case/matrix set equality, regular-file topology, packaging, links, formatting, and
+the frozen Specification 4 identity.
+
+The corrected runtime-payload digest is
+`65e83868000931913f321df50a648e9f2b4468d133025a7a4e9b21134ecbfe42`; the corrected qualification
+payload digest excluding this release record is
+`453e46102daac4fadf55f933d57dbee0a258452a14ea89e54f151b0e4797760e`. This corrected candidate is
+not active until its exact full-tree identity receives explicit approval and the direct activation
+checks pass.
+
 ## Freeze Declaration
 
 Blend65 Domain Expert `2.0.0` is the single active qualified baseline. It is bound to immutable

@@ -450,7 +450,7 @@ cleanup, source/proof cleanup, warning repair, and cost/supersession audits. SC-
 derived-impact repair; SC-147 owns the Q-L19 example-completeness repair; SC-148..SC-151 own
 AR-P42's final summary and evidence-boundary reconciliation; and SC-152..SC-155 own the final
 HLE/expressiveness corrections. All bind `BLEND65-SPEC-4-5c6bac04`. Earlier grades are historical
-only. Phase 7 must independently qualify this exact finished identity before activation.
+only. Phase 4 independently qualified this exact finished identity before activation.
 
 ## Set-Equality Rules
 

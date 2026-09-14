@@ -5,7 +5,7 @@ description: Review, design, diagnose, or implement Blend65 behavior where decis
 
 # Blend65 Domain Expert
 
-> **Candidate version**: `2.0.0` (activation is governed by `qualification/release.md`)
+> **Version**: `2.0.0` (activation status is governed by `qualification/release.md`)
 > **Knowledge identity**: `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa`
 
 This skill supplies domain judgment on top of CodeOps. It does not replace the frozen Blend65
