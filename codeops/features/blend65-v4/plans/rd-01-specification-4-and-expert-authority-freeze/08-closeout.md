@@ -928,3 +928,29 @@ specification tests. The final candidate full-tree record digest is
 
 Phase 4 is complete. Candidate 2.0.0 is qualified and frozen for a user activation decision. It is
 not active; expert 1.0.0 remains the single live baseline until Phase 5 is explicitly authorized.
+
+## Phase 5: Approval, Atomic Activation, and Closeout
+
+### Exact activation approval
+
+Before approval, direct checks reproduced the Specification 4 corpus identity, candidate runtime
+and full-tree digests, and the unchanged live 1.0.0 runtime and full-tree digests. `HEAD` was the
+frozen candidate commit, no later commit existed, and `spec/`, the candidate, and the live skill had
+no worktree changes. The live release record still named 1.0.0 as the only active qualified
+baseline. No activation command or copy had run.
+
+| Approved record | Exact approved identity |
+|---|---|
+| Specification 4 | `BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa` |
+| Expert candidate | `blend65-domain-expert` 2.0.0 |
+| Frozen candidate commit | `94908add116c7538eb1408084db1cfe5c0cf05c5` |
+| Candidate full-tree record digest | `f47b5e1e9f44dc4f79d5f32aa7f24ed0cf0c0abd7d8615ffd9f7da32a2e4d341` |
+| Candidate runtime-payload digest | `af8579e3453a02c81024a5f800079586b961a8e0c8c8ff38bff242f7f9addfb9` |
+| Qualification payload digest | `6f6e0ca8bc1659414e5262d96658ffcfefd04a81f1b94141fc4a9347f0c9769e` |
+| Pre-approval live full-tree record digest | `bd9ea8b038705242b1df89de4c116a80ce480c6dca00a5c48b14944acbeffd6b` |
+| Pre-approval live runtime-payload digest | `bb05def96d180926bbc2cb57131550f633d2c87369a2b34c97b55d148d2cdf82` |
+
+The user explicitly approved activation of these exact identities on 2026-09-14 after receiving
+the complete 22-file content list, change and removal summary, Guard result, dependency impact,
+fresh/control/inherited case results, independent-review result, and remaining future constraints.
+Earlier requirements and plan approvals were not used as activation authority.
