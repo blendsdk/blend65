@@ -1,15 +1,15 @@
 # Execution Plan: RD-02 Foundation
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-18 00:01
-> **Progress**: 25/35 tasks (71%)
+> **Last Updated**: 2026-09-18 00:42
+> **Progress**: 34/35 tasks (97%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
 
 Implement the owning RD through real behavior checkpoints, not a horizontal
 compiler skeleton. Preflight must PASS before execution. Scope/authority is
-[AR-P1–AR-P9](00-ambiguity-register.md); contracts and signatures are in the
+[AR-P1–AR-P10](00-ambiguity-register.md); contracts and signatures are in the
 three component documents. This checklist alone owns task progress.
 
 ## Implementation Phases
@@ -189,16 +189,25 @@ Do not claim Windows qualification based on Linux results.
 
 ## Phase 3: CLI and Qualified Foundation Closeout
 
-> **Phase baseline tree**: recorded at phase start by exec-plan
+> **Phase baseline tree**: `3dcf9871225670a3f09a027673a28c72bed9ae6a`
 > **Lenses**: CLI truthfulness, native-host evidence, deferral expiry
+
+**Scope mode:** strict. Minimum design: a thin CLI consumer of the existing public
+library, using Node's argument parser and small rendering functions. Expected
+modification set: CLI package/source/tests/configuration, root TS references and
+workspace lock metadata if required, existing CI workflow, the foundation example,
+root foundation-test additions, truthful README/AGENTS guidance and active-owner
+notes, and this plan's execution/index/closeout/evidence documents. Feature-roadmap
+status changes only on actual lifecycle transitions. No spec/expert, parked-v3,
+portfolio, new dependency, external service, custom runner or publication changes.
 
 ### Step 3.1: Specification Tests
 
 **Reference**: `03-03`; ST-32–ST-40.
 
-- [ ] 3.1.1 [spec-author] Author CLI public/bin behavior oracles — `cli/src/cli.spec.test.ts`, `bin.spec.test.ts`; ST-32–ST-35.
-- [ ] 3.1.2 [spec-author] Author host/configuration/frozen-ownership tests and declare the direct native/measurement/deferral inspection checklist — additions to `test/foundation.spec.test.ts` for ST-37–ST-38 and ST-40 facts; checklist in task evidence for ST-36/ST-39/ST-40 walk; unchanged Phase 1 expectations; approved PF-002.
-- [ ] 3.1.3 Demonstrate directed red Phase 3 runnable oracles; record baseline-only passes and the declared later-evidence obligations — Phase 3 task evidence; ST-32–ST-35, ST-37–ST-38, ST-40 facts; inspection evidence not yet claimed.
+- [x] 3.1.1 [spec-author] Author CLI public/bin behavior oracles — `cli/src/cli.spec.test.ts`, `bin.spec.test.ts`; ST-32–ST-35. ✅ (completed: 2026-09-18 00:28; 47 independently authored cases, parent confirmed missing-API/bin RED and formatting/docs PASS)
+- [x] 3.1.2 [spec-author] Author host/configuration/frozen-ownership tests and declare the direct native/measurement/deferral inspection checklist — additions to `test/foundation.spec.test.ts` for ST-37–ST-38 and ST-40 facts; checklist in task evidence for ST-36/ST-39/ST-40 walk; unchanged Phase 1 expectations; approved PF-002. ✅ (completed: 2026-09-18 00:29; 12 baseline host cases and three root additions; checklist declared in `08-closeout.md`; existing assertions unchanged; docs/formatting PASS)
+- [x] 3.1.3 Demonstrate directed red Phase 3 runnable oracles; record baseline-only passes and the declared later-evidence obligations — Phase 3 task evidence; ST-32–ST-35, ST-37–ST-38, ST-40 facts; inspection evidence not yet claimed. ✅ (completed: 2026-09-18 00:29; actual RED/baseline and frozen hashes in `08-closeout.md`; parent integrity/frozen-surface checks PASS; no implementation before tests)
 
 **Verify**: Directed Phase 3 paths; red expected. Existing service stays green.
 
@@ -211,19 +220,24 @@ the Phase 1 old-test absence assertion. Implementation remains `main.ts`.
 
 **Reference**: `03-03` CLI Shell/Example/Verification; AR-P5–AR-P7.
 
-- [ ] 3.2.1 Add the behavior-owning CLI package/bin and reference/dependency declarations — CLI package/TS configs and real bin entry; root references; `03-01` Packages; ST-04, ST-07–ST-08, ST-32.
-- [ ] 3.2.2 Implement the strict argument shell using public loadProject and shared diagnostic rendering — CLI `main.ts`, `args.ts`, `render.ts`; `03-03` CLI Shell; ST-32–ST-35.
-- [ ] 3.2.3 Adapt the existing native-host CI job and add the minimal contained example — `.github/workflows/ci.yml`, example manifest/source; `03-03` Example/Verification; ST-33, ST-36–ST-38.
-- [ ] 3.2.4 Update truthful current root/package guidance and active/reference-only ownership labels — `README.md`, project guidance/notes and inventory-approved labels; `03-01` Rejected Surface Removal; `03-03` Closeout; ST-03, ST-40.
-- [ ] 3.2.5 Run all CLI/service/root runnable specification suites green, including built-bin E2E — new owned suite paths; ST-01–ST-35, ST-37–ST-38, ST-40 frozen/ownership facts; ST-36/ST-39/ST-40 walk remain mandatory later direct evidence, not premature runtime gates.
+- [x] 3.2.1 Add the behavior-owning CLI package/bin and reference/dependency declarations — CLI package/TS configs and real bin entry; root references; `03-01` Packages; ST-04, ST-07–ST-08, ST-32. ✅ (completed: 2026-09-18 00:32; install/build/typecheck, public package/bin metadata and 47 real CLI cases plus 24 boundary cases PASS; docs/formatting PASS; no stub or empty checkpoint)
+- [x] 3.2.2 Implement the strict argument shell using public loadProject and shared diagnostic rendering — CLI `main.ts`, `args.ts`, `render.ts`; `03-03` CLI Shell; ST-32–ST-35. ✅ (completed: 2026-09-18 00:32; strict Node parser, public loader forwarding, safe structured byte-span rendering and all 47 immutable CLI/API/bin cases PASS; docs/formatting PASS)
+- [x] 3.2.3 Adapt the existing native-host CI job and add the minimal contained example — `.github/workflows/ci.yml`, example manifest/source; `03-03` Example/Verification; ST-33, ST-36–ST-38. ✅ (completed: 2026-09-18 00:32; build/typecheck, all 10 foundation configuration cases, real example/bin load and no-output checks PASS; YAML/JSONC parser-format validation PASS; Windows matrix configured, not execution evidence)
+- [x] 3.2.4 Update truthful current root/package guidance and active/reference-only ownership labels — `README.md`, project guidance/notes and inventory-approved labels; `03-01` Rejected Surface Removal; `03-03` Closeout; ST-03, ST-40. ✅ (completed: 2026-09-18 00:33; implemented API/bin guidance and native limitation; all 10 foundation facts, targeted Markdown formatting/links, frozen authority and diff checks PASS; existing historical labels remain sufficient)
+- [x] 3.2.5 Run all CLI/service/root runnable specification suites green, including built-bin E2E — new owned suite paths; ST-01–ST-35, ST-37–ST-38, ST-40 frozen/ownership facts; ST-36/ST-39/ST-40 walk remain mandatory later direct evidence, not premature runtime gates. ✅ (completed: 2026-09-18 00:34; full Linux install/build/typecheck/test and formatting/frozen/diff PASS; 660 tests = 570 compiler + 47 CLI + 43 root; native Windows/observations/deferral walk not yet claimed)
 
 **Verify**: Directed CLI tests/bin E2E, library/CLI build/typecheck and boundary
 tests. No shell construction or assembler/emulator execution.
 
 ### Step 3.3: Internal Tests, Native Qualification and Closeout
 
-- [ ] 3.3.1 Add focused CLI adapter/internal-host tests and record real example phase-separated observations — CLI/project `*.impl.test.ts`, `08-closeout.md`; `03-03` Observations; ST-39.
-- [ ] 3.3.2 Complete full native Linux/Windows foundation qualification, independent phase review and deferral-expiry closeout; commit green checkpoints and update the feature roadmap on actual completion — `08-closeout.md`, feature roadmap; `03-03` Verification/Closeout; ST-01–ST-40.
+- [x] 3.3.1 Add focused CLI adapter/internal-host tests and record real example phase-separated observations — CLI/project `*.impl.test.ts`, `08-closeout.md`; `03-03` Observations; ST-39. ✅ (completed: 2026-09-18 00:37; 14 focused new cases, all 61 CLI cases/build/typecheck/docs/formatting/links PASS; real 301-byte example identity, distinct discovery/JSONC/inventory/full-snapshot/actual-TS-build/test/peak-memory observations recorded without gates or harness)
+- [!] 3.3.2 Complete full native Linux/Windows foundation qualification, independent phase review and deferral-expiry closeout; commit green checkpoints and update the feature roadmap on actual completion — `08-closeout.md`, feature roadmap; `03-03` Verification/Closeout; ST-01–ST-40. Blocked: actual Node 22 Windows x64 qualification unavailable for the unpushed local revision; final closeout/review remains pending, tracked by DEF-1. Linux full verification PASS: 674 tests, forced rerun; checkpoint deferral walk complete.
+
+Overriding project workflow directive 1 permits independently reviewed coherent
+green local implementation checkpoints while this final task is blocked. Such a
+checkpoint is not RD acceptance. The final green closeout commit, final evidence
+review and Done status still require every native host obligation below.
 
 **Verify**: `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 on both declared production hosts, then record those actual results and directly

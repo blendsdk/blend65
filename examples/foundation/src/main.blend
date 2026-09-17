@@ -1,0 +1,4 @@
+module Foundation;
+
+function main(): void {
+}

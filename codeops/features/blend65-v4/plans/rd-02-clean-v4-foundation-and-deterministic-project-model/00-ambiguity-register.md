@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-02 Foundation Planning
 
-> **Status**: ✅ GATE PASSED — all 9 items resolved; systematic review completed
-> **Last Updated**: 2026-09-17
+> **Status**: ✅ GATE PASSED — all 10 items resolved; systematic review completed
+> **Last Updated**: 2026-09-18
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Boundaries
@@ -25,6 +25,7 @@
 | AR-P7 | Technical / execution decomposition | How is the foundation delivered without another large framework-first plan? | **Recommended:** three phases: green toolchain plus complete pure manifest/diagnostic behavior and rejected-surface removal; contained discovery/inventory/snapshot service; truthful CLI, native-host integration, focused qualification, and deferral closeout. Each phase uses spec tests/red, implementation/green, then internal tests/verification. Coherent outcome tasks, not a task per field or failure vector. | Plan-owned sequencing under project directive 4, within the user-confirmed RD-02 scope. | ✅ Resolved |
 | AR-P8 | Technical (runtime) / private test signature and name result representation | Independent test author needs the boundary helper signature and exact `offending` value/escaping order. | **Recommended:** one private `inspectImportBoundary(root)` returning violation strings; raw offending input in the pure name result, fixed predicate priority and diagnostic Unicode/JSON escaping, as clarified in `03-01`/`03-02`. No new name predicate, public API, test framework, dependency or support layer. | Plan-owned technical clarification on 2026-09-17 under the user's overriding directive 4; not a claimed user vote or auto-design delegation. | ✅ Resolved |
 | AR-P9 | Technical (runtime) / limit labels and observed disappearance | Independent Phase 2 author needs exact diagnostic limit names and classification of a previously resolved input disappearing before open. | **Recommended:** diagnostic limit names are the existing `ProjectLimits` property names. Disappearance after successful resolution/inventory is observed instability and discards the whole attempt; initial missing/unreadable required paths are direct typed host failures. | Plan-owned representation clarification on 2026-09-17 under the user's overriding directive 4. Existing bounded-read/retry contracts, not new behavior or machinery. | ✅ Resolved |
+| AR-P10 | Technical (runtime) / host-classification oracle signature | Phase 3 author cannot exercise ST-37's synthetic runtime identities without a declared private signature. | **Recommended:** declare the already-existing private `hostObservations(nodeMajor, os, arch)` signature and its typed failure in `03-02`; add a focused compiler-local host-identity spec file. Keep the public API unchanged. | Plan-owned test-interface clarification on 2026-09-18 under overriding project directive 4. No implementation change, injected host framework, new support surface or simulated Windows qualification. | ✅ Resolved |
 
 ## Evidence and Resolution Notes
 

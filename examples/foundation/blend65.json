@@ -1,0 +1,10 @@
+{
+  // Input example only: the foundation loads it but does not compile it.
+  "schemaVersion": 1,
+  "name": "foundation",
+  "sourceRoot": "src",
+  "entry": "Foundation",
+  "target": "c64-pal-prg-kernal-6581",
+  "outDir": "out",
+  "optimization": "none"
+}

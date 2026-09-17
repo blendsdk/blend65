@@ -369,3 +369,57 @@ describe("minimal truthful foundation toolchain", () => {
     });
   });
 });
+
+describe("native foundation qualification configuration", () => {
+  // Both production hosts run the same owned commands through existing CI roles only.
+  it("should run Node 22 foundation commands on native Linux and Windows CI jobs", async () => {
+    const workflow = await readFile(join(repository, ".github/workflows/ci.yml"), "utf8");
+    expect(workflow).toContain("ubuntu-latest");
+    expect(workflow).toContain("windows-latest");
+    expect(workflow).toMatch(/runs-on:\s*\$\{\{\s*matrix\./);
+    const versions = [...workflow.matchAll(/node-version:\s*["']?(\d+)["']?/g)].map(
+      (match) => match[1],
+    );
+    expect(versions.length).toBeGreaterThan(0);
+    expect(versions.every((version) => version === "22")).toBe(true);
+    const actions = [...workflow.matchAll(/^\s*-\s*uses:\s*(\S+)/gm)].map((match) => match[1]);
+    expect(actions.sort()).toEqual(["actions/checkout@v4", "actions/setup-node@v4"]);
+    const commands = [...workflow.matchAll(/^\s*run:\s*(.+)$/gm)].map((match) => match[1]!.trim());
+    expect(commands).toEqual([
+      "corepack enable",
+      "yarn install --frozen-lockfile",
+      "yarn build",
+      "yarn typecheck",
+      "yarn test",
+    ]);
+    expect(workflow).not.toMatch(
+      /\b(?:lint|acme|vice|readiness|scoreboard|benchmark|services)\b|TURBO_TOKEN|TURBO_TEAM|remote[-_ ]cache/i,
+    );
+  });
+
+  // The completed foundation graph has two actual behavior owners, not future-stage placeholders.
+  it("should own exactly the compiler and its thin CLI workspace", async () => {
+    const directories = (await readdir(join(repository, "packages"), { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    expect(directories).toEqual(["cli", "compiler"]);
+    const cli = JSON.parse(await readFile(join(repository, "packages/cli/package.json"), "utf8"));
+    const library = JSON.parse(
+      await readFile(join(repository, "packages/compiler/package.json"), "utf8"),
+    );
+    expect(Object.keys(cli.dependencies)).toEqual(["@blend65/compiler"]);
+    expect(Object.keys(library.dependencies)).toEqual(["jsonc-parser"]);
+    expect(cli.bin.blendc).toBe("dist/bin.js");
+  });
+
+  // Current guidance distinguishes active v4 ownership from retained historical reference evidence.
+  it("should keep current ownership and historical status labels truthful without claiming compilation", async () => {
+    const guidance = await readFile(join(repository, "AGENTS.md"), "utf8");
+    const readme = await readFile(join(repository, "README.md"), "utf8");
+    expect(guidance).toMatch(/current implementation ownership is[\s\S]*?blend65-v4/i);
+    expect(guidance).toMatch(/inherited v3 roadmaps are historical\s+reference only/i);
+    expect(readme).toMatch(/does not compile Blend65 source/i);
+    expect(readme).toMatch(/reference evidence,\s*not current implementation status/i);
+  });
+});

@@ -3,7 +3,7 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-09-17
+> **Last Updated**: 2026-09-18
 > **Progress**: 1 / 10 (10%)
 > **Execution Prerequisite**: Phase 0 complete; see
 > [bootstrap and session handoff](00-phase-0-handoff.md)
@@ -18,7 +18,8 @@
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |---|---|---|---|---|---|---|---|
 | RD-01 | Specification 4.0 and Expert Authority Freeze | [RD-01](requirements/RD-01-specification-4-and-expert-authority-freeze.md) | [Plan](plans/rd-01-specification-4-and-expert-authority-freeze/00-index.md) | Done | ✅ | 2026-09-14 | — |
-| RD-02 | Clean V4 Foundation and Deterministic Project Model | [RD-02](requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | [Plan](plans/rd-02-clean-v4-foundation-and-deterministic-project-model/00-index.md) | Executing | 🔄 | 2026-09-17 | depends on RD-01 |
+| RD-02 | Clean V4 Foundation and Deterministic Project Model | [RD-02](requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | [Plan](plans/rd-02-clean-v4-foundation-and-deterministic-project-model/00-index.md) | ⛔ Blocked (was: Executing) | ⛔ | 2026-09-18 | waiting on DEF-1; implementation complete, native Windows proof pending |
+| ↳ DEF-1 | Actual Node 22 Windows x64 foundation qualification | — | [Evidence](plans/rd-02-clean-v4-foundation-and-deterministic-project-model/08-closeout.md) | Deferred | ⏸️ | 2026-09-18 | Owner: user provides existing host access; agent runs qualification without pushing or new infrastructure |
 | RD-03 | Playable M1 Complete Pipeline | [RD-03](requirements/RD-03-playable-m1-complete-pipeline.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-02 |
 | RD-04 | Complete Language and Correct Unoptimized Compiler | [RD-04](requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-03 |
 | RD-05 | C64 Platform Profiles and Game-Workload Compiler Support | [RD-05](requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-04 |

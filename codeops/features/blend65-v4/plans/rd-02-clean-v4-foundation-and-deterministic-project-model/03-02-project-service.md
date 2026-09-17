@@ -106,6 +106,22 @@ The byte boundary remains valid; invalid/mid-scalar offsets still throw.
 
 ## Private Test Controls
 
+For Phase 3 ST-37, the existing private classifier in `snapshot.ts` is:
+
+```typescript
+function hostObservations(
+  nodeMajor: number, os: string, arch: string,
+): readonly ProjectDiagnostic[];
+```
+
+Node 22 `linux/x64` and `win32/x64` return no observations. Other Node 22 hosts
+with `x64`, `arm64`, `ppc64`, `s390x`, `riscv64`, or `loong64` return one warning
+`PROJECT_HOST_BEST_EFFORT`. Other Node majors or architectures throw the existing
+private `ProjectFailure`, with `diagnostics` containing
+`PROJECT_HOST_UNSUPPORTED`. The public loader converts that private failure to
+its existing failure result. Compiler-local `host-identity.spec.test.ts` exercises
+primitive identities only; this is not native Windows evidence or a public host API.
+
 Per approved PF-005, the spec author receives these declarations, not production
 code. `loadProjectWithControls` lives in `compiler/src/project/snapshot.ts`;
 control types live in the existing `types.ts`. Tests import that private module

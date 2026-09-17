@@ -1,0 +1,25 @@
+{
+  "name": "@blend65/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "blendc": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@blend65/compiler": "0.1.0"
+  }
+}

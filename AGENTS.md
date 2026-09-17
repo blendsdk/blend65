@@ -36,6 +36,8 @@ emulator, game corpus, historical acceptance tier or `lint` task.
 ## Project structure
 
 - `packages/compiler/` — real `@blend65/compiler` project library.
+- `packages/cli/` — real `@blend65/cli` load-only shell and `blendc` executable.
+- `examples/foundation/` — legal input evidence only; not compiled or run here.
 - `test/` — structural and direct import-boundary tests.
 - `spec/` — frozen Specification 4.0, never modified during implementation.
 - `.agents/skills/blend65-domain-expert/` — frozen expert authority.
@@ -43,14 +45,17 @@ emulator, game corpus, historical acceptance tier or `lint` task.
 - `codeops/features/blend65-expert-skillset/` and `blend65-c64u/` — separate owners.
 - Other retained CodeOps features and `research/` — historical reference evidence.
 
-No empty compiler stages or legacy copy are kept. The CLI package appears only
-when its real behavior lands. Spec tests are `*.spec.test.ts`; implementation
-tests are `*.impl.test.ts`.
+No empty compiler stages or legacy copy are kept. Spec tests are
+`*.spec.test.ts`; implementation tests are `*.impl.test.ts`.
 
 ### Package and frontend boundaries
 
-The Phase 1 graph is `compiler -> jsonc-parser`. The later CLI uses only the
-compiler public export. Node built-ins provide host operations.
+The graph is `cli -> compiler -> jsonc-parser`. The CLI uses only the compiler
+public export. Node built-ins provide host operations and strict argument parsing.
+The CLI loads projects; it does not compile, check, build, run or invoke tools.
+Native Node 22 Linux x64 and Windows x64 qualification is required for RD-02
+closeout. Configured CI or primitive host-classification fixtures are not native
+Windows proof. Missing host access blocks closeout, not implementation work.
 
 Frontend/editor owners must never reach backend lowering, code generation,
 serialization, packaging or emulator ownership, directly or transitively.
