@@ -63,6 +63,24 @@ mode. Scope and upstream modification remain user-owned and were explicitly
 approved in AR-P1/AR-P2. No material support surface beyond the accepted foundation
 is introduced, so no complexity escalation is approved or pending.
 
+## Approved Preflight Corrections
+
+On 2026-09-17 the user answered **"i do approve"** to the explicit request to
+approve the separate host-error boundary and authorize all five plan-only
+corrections. [PF-001–PF-005](00-preflight-report.md) own this decision history;
+they are not new unresolved planning rows or approval of extra machinery.
+
+- PF-001: `PROJECT_*` and `CLI_INVALID_ARGUMENT` are project/CLI host-result
+  identifiers, outside Chapter 14's language/compiler diagnostic registry.
+  This explicit product decision governs the host service; frozen spec content
+  stays unchanged. Normative E10279 remains exactly Chapter 14-owned.
+- PF-002: runnable tests precede internal hardening; actual host/measurement/
+  deferral evidence is inspected directly at closeout, after its production.
+- PF-003: malformed raw-byte encoding vectors belong to Phase 2.
+- PF-004: parser stack exhaustion is a typed failure; use the existing parser.
+- PF-005: declare existing private limit/checkpoint parameters only, in project
+  modules, not a public host interface or test framework.
+
 ## Systematic Review
 
 | Category | Closure evidence |

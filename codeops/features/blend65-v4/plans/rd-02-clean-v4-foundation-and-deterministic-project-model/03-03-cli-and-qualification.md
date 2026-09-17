@@ -33,6 +33,9 @@ Support standard `--key=value` as well as separate string values. Reject `check`
 successful commands. No raw-source-file mode, tool settings, color framework,
 JSON-output flag, subprocess invocation, or asset command is added here.
 
+`CLI_INVALID_ARGUMENT` uses the explicit user-approved PF-001 host-result boundary
+in `03-02`; it does not allocate or reinterpret a Chapter 14 language code.
+
 Render a stable header `error[<code>]: <message>`, the smallest available relative
 source/span or option/key location, related locations, and concrete help when
 known. UTF-8 byte spans remain the service contract; consumer conversion is
@@ -96,6 +99,14 @@ Do not build a benchmark harness or public metrics API. No duration/memory value
 controls PASS, CI, closeout, or release. Do not generate a large synthetic project.
 
 ## Closeout
+
+Per approved PF-002, native-run results, observations, and the deferral walk are
+direct evidence inspections. The foundation command runs first and supplies
+results to record; it does not require an already-completed record of itself.
+Task 3.2.5 gates runnable behavior/configuration suites, not these later records.
+Tasks 3.3.1/3.3.2 produce and inspect ST-36/ST-39/ST-40 evidence before final review,
+green commit, or Done. No skipped proof, self-verifying metadata test, or new
+evidence framework is permitted.
 
 `08-closeout.md` records accepted authority identities, green foundation content
 checkpoints, inventory proof links, complete directed qualification results on

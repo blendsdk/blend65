@@ -98,11 +98,74 @@ line break; bare CR and LF are also breaks. Host/config failures remain typed
 diagnostics. `target` may use a literal union for the exact nine IDs rather than
 the broad string shown above; no arbitrary profile object is accepted.
 
+## Private Test Controls
+
+Per approved PF-005, the spec author receives these declarations, not production
+code. `loadProjectWithControls` lives in `compiler/src/project/snapshot.ts`;
+control types live in the existing `types.ts`. Tests import that private module
+using `./snapshot.js`. No control is re-exported by the package barrel.
+Public `loadProject(options)` uses the same function with defaults and no hook.
+
+```typescript
+interface ProjectLimits {
+  readonly manifestBytes: number;
+  readonly sourceBytes: number;
+  readonly totalBytes: number;
+  readonly sourceFiles: number;
+  readonly visitedEntries: number;
+  readonly depth: number;
+  readonly attempts: number;
+}
+interface LoadCheckpoint {
+  readonly phase:
+    | "after-manifest" | "after-paths" | "after-inventory"
+    | "before-open" | "after-open" | "after-read"
+    | "before-revalidation" | "after-revalidation-inventory"
+    | "after-revalidation-read";
+  readonly attempt: number;
+  readonly sourceId: SourceId | null;
+}
+interface ProjectLoadControls {
+  readonly limits?: Partial<ProjectLimits>;
+  readonly onCheckpoint?: (point: LoadCheckpoint) => void | Promise<void>;
+}
+function loadProjectWithControls(
+  options?: ProjectLoadOptions, controls?: ProjectLoadControls,
+): Promise<ProjectLoadResult>;
+```
+
+Omitted limits retain the production defaults below. Trusted test arguments use
+integer values no greater than those defaults: depth/count/byte limits may be
+zero; attempts is at least one. They add no user-configurable limit surface.
+`attempt` is one-based. Each hook is awaited once at its named boundary:
+after initial manifest decoding/validation, after path validation, after initial
+inventory, immediately before each regular input open, after open but before
+handle identity checks, after bounded read but before metadata/path checks,
+before whole-attempt revalidation, after its repeated inventory, and after each
+revalidation read but before its comparison/checks. Open/read checkpoints include
+the manifest as well as sources and carry that input's exact relative source ID;
+aggregate checkpoints carry null. Revalidation reads also use the open/read
+checkpoints. Tests can mutate known real fixture paths at those boundaries;
+they do not receive or replace a host, handle, reader, hash, or result.
+
+Test-hook exceptions are test/programmer failures, not project diagnostics;
+handles still close. Production has no hook. These parameters belong to the
+existing loader operations, not a separate adapter, fixture engine, or runner.
+Reduced attempt limits report their actual count on exhaustion rather than a
+hard-coded three. Phase 1 pure parser tests use public production limits; they
+do not require this Phase 2 function.
+
 ## Manifest and Names
 
 Use the existing JSONC tree to detect duplicate keys before value extraction,
 including repeated unknown keys. Require an object root and reject errors rather
-than returning recovery values. Validate every RD-owned key/default/type; report
+than returning recovery values. Convert parser stack-exhaustion `RangeError` into
+`PROJECT_MANIFEST_SYNTAX` with message `Invalid JSONC at 0: nesting exceeds parser capacity`,
+root byte span, and no recovered value. Walk the plan-owned duplicate/schema tree
+without recursive calls that can exhaust the JavaScript stack. A 20,013-byte
+unknown-field value with 10,000 nested arrays is a required negative vector
+below the byte cap, not a reason to add a parser or public nesting setting.
+Validate every RD-owned key/default/type; report
 independent manifest violations without dependent cascades. Malformed syntax or
 unusable root suppresses schema/path work. Unknown keys never become extensions.
 
@@ -231,9 +294,13 @@ It contains no fabricated compiler capability or new authority selector.
 
 ## Project Diagnostics
 
-Host-project failures use descriptive stable identifiers, not retired/reassigned
-language E codes. They are project-service diagnostics, not new Blend65 grammar
-or semantic rules. The frozen profile failure remains normative E10279.
+Per the user's explicit PF-001 product clarification on 2026-09-17,
+`PROJECT_*` and `CLI_INVALID_ARGUMENT` are host-service result identifiers outside
+Chapter 14's language/compiler diagnostic registry. This accepted host boundary
+governs RD-02 and later consumers; it neither edits the frozen specification nor
+permits a second language registry. Host identifiers never replace, retire, or
+reassign language E/W codes. The profile failure remains normative E10279 with
+its exact Chapter 14 template. See the register's Approved Preflight Corrections.
 
 | Identifier | Predicate / message form |
 |---|---|
@@ -249,7 +316,7 @@ or semantic rules. The frozen profile failure remains normative E10279.
 | `PROJECT_PATH_CYCLE` | `Project path cycle: <ordered-relative-paths>` |
 | `PROJECT_EMPTY_SOURCES` | `No .blend source files under '<source-root>'` |
 | `PROJECT_HOST_LIMIT` | `Project host limit '<name>' exceeded: maximum <limit>, observed <value>` |
-| `PROJECT_CHANGED` | `Project inputs changed during loading; all 3 attempts failed` |
+| `PROJECT_CHANGED` | `Project inputs changed during loading; all <attempts> attempts failed` (production: 3) |
 | `PROJECT_HOST_UNSUPPORTED` | `Unsupported project host: <node-major>/<os>/<arch>` |
 | `PROJECT_HOST_BEST_EFFORT` | Warning: `Project host is best-effort: <node-major>/<os>/<arch>` |
 

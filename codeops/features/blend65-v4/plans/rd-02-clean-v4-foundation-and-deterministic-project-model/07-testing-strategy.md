@@ -18,6 +18,14 @@ critical native-host interleaving, not an added percentage gate. Auth/rate-limit
 network/encryption, game execution, ACME and VICE tests are N/A: this local host
 foundation owns none of those behaviors.
 
+Per approved PF-002, ST-36, ST-39, and ST-40's deferral walk are direct native-host
+or document inspections, not Vitest tests that require their own completed run
+records. Their acceptance obligations remain mandatory at task 3.3.2. ST-40's
+frozen-hash/active-ownership facts can be checked in root tests independently of
+closeout. Declare the inspection checklist before implementation; record its
+actual evidence only after the relevant commands/observations/walk complete.
+Do not build an evidence parser, self-verifying closeout fixture, or new harness.
+
 ## 🚨 Specification Test Cases
 
 ### Transition and Pure Contracts — Phase 1
@@ -33,9 +41,9 @@ foundation owns none of those behaviors.
 | ST-07 | CLI imports compiler through package export versus another package's `src`/`dist` relative/private subpath; cyclic manifest fixture | Public export passes; private/undeclared cross-package edge and cycle each fail | R2.12; `03-01` Direct Boundary Test |
 | ST-08 | Two baseline task runs, including fresh typecheck with deliberately stale dependency declarations | Task ownership builds fresh referenced dependencies; stale declarations cannot produce a false typecheck success; no manually ordered package runner or lint task | R2.8, R2.9; `03-01` Root Toolchain |
 | ST-09 | Valid object with all ten keys, comments, trailing comma; another omits assetPaths/optimization/safety keys | Exact values load; defaults are `[]`, `balanced`, `false`, `false`; name spelling remains literal | R2.14, R2.15 |
-| ST-10 | Each required key omitted; duplicate/unknown key; scalar/array root; wrong type; schemaVersion 0/2; invalid optimization; scripts/hooks/tools/globs/extensions | Failure diagnostics, no usable manifest; duplicate points to second key and relates first; malformed root/syntax suppresses dependent checks | R2.14, R2.21; `03-02` Manifest |
+| ST-10 | Each required key omitted; duplicate/unknown key; scalar/array root; wrong type; schemaVersion 0/2; invalid optimization; scripts/hooks/tools/globs/extensions; 20,013-byte unknown-field value with 10,000 nested arrays | Failure diagnostics, no usable manifest; duplicate points to second key and relates first; malformed root/syntax suppresses dependent checks; parser stack exhaustion returns the specified PROJECT_MANIFEST_SYNTAX failure, never escapes as RangeError | R2.14, R2.21, R2.24; `03-02` Manifest; PF-004 |
 | ST-11 | Name vectors: empty, unpaired surrogate, forbidden separators/control/punctuation, dot names, trailing space/period, `NuL`, `NUL.txt`, `COM¹.map`; near misses `CONSOLE`, `COM0`, `COM10`, `LPT0`, `.temp`, `Game Ω 1.2` | Invalid vectors give their exact reason and escaped point at `/name`; all legal near misses and spelling pass unchanged, with no guessed length cap | R2.15, AC-13 |
-| ST-12 | JSONC with BOM, ASCII/é/astral text preceding a bad field; duplicate fields; invalid UTF-8 input; valid byte positions over LF/CRLF/CR | Raw byte spans preserve BOM offset; astral text never shifts next span; coordinate conversion gives correct zero-based UTF-16 position; malformed encoding fails; invalid/mid-scalar conversion offset throws RangeError | R2.23, AC-22; `03-02` Public Signatures/Manifest |
+| ST-12 | JSONC text with BOM, ASCII/é/astral text preceding a bad field; duplicate fields; literal unpaired JavaScript surrogates; valid byte positions over LF/CRLF/CR | Raw byte spans preserve BOM offset; astral text never shifts next span; coordinate conversion gives correct zero-based UTF-16 position; ill-formed JavaScript text fails; invalid/mid-scalar conversion offset throws RangeError; raw file encoding is tested in Phase 2 ST-31 | R2.23, AC-22; `03-02` Public Signatures/Manifest; PF-003 |
 | ST-13 | All nine normative target IDs, `c64u`, `cx16`, `a800xl`, `a7800`, `c64-pal`, unqualified combinations; entry `Foundation`, `Game.Render`, `src/main.blend`, empty/invalid identifier | Exact profiles and legal module identities pass; invalid profile is normative E10279; invalid entry is a field error, never interpreted as a filepath | R2.19, R2.20; `03-02` Manifest |
 
 ### Contained Project Service — Phase 2
@@ -56,10 +64,10 @@ foundation owns none of those behaviors.
 | ST-25 | Replace/change/remove a source or manifest between inventory/read/revalidation; add source during collection | Entire attempt is discarded; complete stable retry succeeds or bounded failure occurs; no old manifest/new source or missing added-file mixed snapshot | R2.22, AC-20; `03-02` Snapshot and Identity |
 | ST-26 | Swap source/path/symlink identity between resolution/open/read/revalidation | Containment/handle identity guard rejects unsafe observation, discards entire attempt and closes handles; no accepted outside-root data or absolute-path diagnostic leak | R2.17, R2.22; `03-02` Discovery and Containment |
 | ST-27 | Internally lowered limits at exact maximum and maximum+1 for manifest/source/total bytes, source count, visited entries, depth; growth during bounded read | Boundary passes; each excess returns named maximum/observed diagnostic before unbounded allocation/traversal; no partial snapshot | AC-25; `03-02` Inventory and Bounds |
-| ST-28 | Controlled input changes invalidate each of three complete attempts | `PROJECT_CHANGED` once, failure/no snapshot; attempt four never begins; invalid schema/type/escape does not retry | R2.22; `03-02` Snapshot and Identity |
+| ST-28 | Controlled input changes invalidate each of three complete attempts; repeat with internally lowered attempts = 1 | `PROJECT_CHANGED` once with actual attempt count, failure/no snapshot; attempt four never begins with defaults and attempt two never begins with lowered limit; invalid schema/type/escape does not retry | R2.22; `03-02` Snapshot and Identity/Private Test Controls |
 | ST-29 | Invocation target/entry override with valid and invalid manifest/override values | Manifest remains unchanged; successful snapshot records overrides and effective values; input identity binds overrides; invalid manifest is not repaired by override | R2.20; `03-02` Manifest/Snapshot |
 | ST-30 | Several independent manifest errors and a root syntax/path failure across repeated runs | Independent errors retain deterministic ordering; root failures suppress only causal downstream errors, no nondeterministic stack or partial result | R2.24; `03-02` Project Diagnostics |
-| ST-31 | Invalid source encoding, read error, unexpected output contents; observe all attempted writes | Expected failures are typed values; outDir remains untouched for every success/failure; no asm/binary/report or host temporary data appears there | R2.25, AC-23 |
+| ST-31 | Malformed raw UTF-8 manifest and source bytes, read error, unexpected output contents; observe all attempted writes | Malformed byte encoding and expected read failures are typed values; outDir remains untouched for every success/failure; no asm/binary/report or host temporary data appears there | R2.24, R2.25, AC-23; PF-003 |
 
 ### CLI and Qualification — Phase 3
 
@@ -72,8 +80,8 @@ foundation owns none of those behaviors.
 | ST-36 | Run complete foundation commands on actual Node 22 Linux x64 and Windows x64 | Both native results recorded, required paths/aliases/permissions/races covered; Linux simulation and skipped fixture cannot stand in for Windows proof | AR-048, AC-15, AC-26; `03-03` Verification |
 | ST-37 | Runtime/platform fixtures Node 22 production hosts, other supported 64-bit host, 32-bit/unknown arch, Node 20/24 | Declared production combinations succeed without warning; best-effort has observation; unsupported combinations fail with PROJECT_HOST_UNSUPPORTED | AR-048; `03-03` Verification |
 | ST-38 | Final existing CI configuration and new root suites | Only foundation install/build/typecheck/test on both native hosts; no lint, ACME, VICE, readiness, scoreboard, remote-cache product or new service | R2.27; `03-03` Verification |
-| ST-39 | Record real example discovery/JSONC/inventory/snapshot/build/test/memory observations, including an intentionally large duration observation | Separate host/input/tool identities and phase values recorded; no value changes qualification PASS/FAIL; no synthetic scale suite/benchmark framework | R2.28; `03-03` Observations |
-| ST-40 | Compare final spec/expert hashes with RD-01; walk deferral rationales and active ownership; provide an expired-rationale closeout fixture | Frozen identities unchanged; exactly active owned work is clear; expired rationale is reopened with owner before closeout, never silently implemented; no orphan RD-02 landing deferral | R2.6, AC-28, AC-29; `03-03` Closeout |
+| ST-39 | Directly inspect real example discovery/JSONC/inventory/snapshot/build/test/memory observations after recording them | Separate host/input/tool identities and phase values recorded; no value changes qualification PASS/FAIL; no synthetic scale suite/benchmark framework | R2.28; `03-03` Observations; PF-002 |
+| ST-40 | Compare final spec/expert hashes with RD-01 and active ownership; directly inspect the completed real deferral-rationale walk | Frozen identities unchanged; exactly active owned work is clear; any expired rationale is reopened with owner before closeout, never silently implemented; no orphan RD-02 landing deferral; no fabricated closeout fixture substitutes for the real walk | R2.6, AC-28, AC-29; `03-03` Closeout; PF-002 |
 
 ## Test Ownership
 
@@ -83,7 +91,8 @@ foundation owns none of those behaviors.
 | `compiler/src/project/manifest.spec.test.ts`, `basename.spec.test.ts`, `positions.spec.test.ts` / 1 | ST-09–ST-13 |
 | `compiler/src/project/discovery.spec.test.ts`, `paths.spec.test.ts`, `inventory.spec.test.ts` / 2 | ST-14–ST-22, ST-26–ST-27 |
 | `compiler/src/project/snapshot.spec.test.ts`, `diagnostics.spec.test.ts` / 2 | ST-23–ST-31 |
-| `cli/src/main.spec.test.ts`, `bin.spec.test.ts`; extend root foundation spec before Phase 3 implementation / 3 | ST-32–ST-40 |
+| `cli/src/main.spec.test.ts`, `bin.spec.test.ts`; extend root foundation spec before Phase 3 implementation / 3 | ST-32–ST-35, ST-37–ST-38, ST-40 frozen/ownership facts |
+| Direct qualification/document inspections, checklist declared before Phase 3 implementation / 3 | ST-36, ST-39, ST-40 deferral walk; actual evidence completed in 3.3.1/3.3.2 |
 
 Package paths above are relative to `packages/`. Root structural cases that
 already pass before implementation record why; others must fail on an actual
@@ -98,6 +107,10 @@ retry seams, import-reader syntax, and CLI adapter errors in focused `*.impl.tes
 files. Native temporary trees are real. Inject only filesystem race/read failures
 that real deterministic interleavings cannot express, through a small internal
 function parameter; do not mock the whole project service or add a public host.
+Phase 2 spec packets include the private `loadProjectWithControls` declarations
+and exact checkpoints in `03-02`, so reduced-limit and controlled-change tests
+need not invent or inspect an implementation interface. Use real fixture mutations
+through that awaited callback, not timing sleeps or a substitute service.
 
 CLI E2E uses Node `execFile` against the built bin and a real minimal project.
 Use no shell command strings, emulator, custom E2E runner, or benchmark harness.

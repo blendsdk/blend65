@@ -1,7 +1,7 @@
 # RD-02 Foundation Implementation Plan
 
 > **Feature**: Clean v4 foundation and deterministic project loading
-> **Status**: Planning Complete — plan preflight required before execution
+> **Status**: Plan Preflighted — implementation not started
 > **Created**: 2026-09-17
 > **Implements**: blend65-v4/RD-02
 > **CodeOps Artifact Schema**: 1
@@ -47,4 +47,6 @@ No new complexity escalation is introduced by this plan.
 The execution plan has three phases. Each delivers real behavior before the next
 begins. Planning does not delete inherited code or install the new toolchain.
 
-Next lifecycle action: preflight this whole plan. No PASS is claimed here.
+The whole-plan [preflight](00-preflight-report.md) passed iteration 2 after the
+approved bounded corrections. Next lifecycle action: execute task 1.1.1 on an
+execution instruction. No implementation task has started.

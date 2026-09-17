@@ -1,7 +1,7 @@
 # Execution Plan: RD-02 Foundation
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-17 20:42
+> **Last Updated**: 2026-09-17 21:18
 > **Progress**: 0/35 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -31,7 +31,8 @@ three component documents. This checklist alone owns task progress.
 > consolidated checklist.
 
 Specification-first order is mandatory in every phase. Spec-author packets
-contain only the owning RD, ST excerpts, public signatures, authority inventory,
+contain only the owning RD, ST excerpts, public signatures, the Phase 2 private
+limit/checkpoint declarations in `03-02`, authority inventory,
 and allowed fixture inputs. Production `packages/*/src` files, old test logic,
 and the import-boundary implementation helper are forbidden to the spec author.
 New spec expectations are immutable; inventory-approved removal of unselected
@@ -144,8 +145,8 @@ Do not claim Windows qualification based on Linux results.
 **Reference**: `03-03`; ST-32–ST-40.
 
 - [ ] 3.1.1 [spec-author] Author CLI public/bin behavior oracles — `cli/src/main.spec.test.ts`, `bin.spec.test.ts`; ST-32–ST-35.
-- [ ] 3.1.2 [spec-author] Author host/configuration/measurement/closeout obligations before their implementation — additions to `test/foundation.spec.test.ts`; ST-36–ST-40; unchanged Phase 1 expectations.
-- [ ] 3.1.3 Demonstrate directed red Phase 3 oracles; record baseline-only passes — Phase 3 task evidence; ST-32–ST-40.
+- [ ] 3.1.2 [spec-author] Author host/configuration/frozen-ownership tests and declare the direct native/measurement/deferral inspection checklist — additions to `test/foundation.spec.test.ts` for ST-37–ST-38 and ST-40 facts; checklist in task evidence for ST-36/ST-39/ST-40 walk; unchanged Phase 1 expectations; approved PF-002.
+- [ ] 3.1.3 Demonstrate directed red Phase 3 runnable oracles; record baseline-only passes and the declared later-evidence obligations — Phase 3 task evidence; ST-32–ST-35, ST-37–ST-38, ST-40 facts; inspection evidence not yet claimed.
 
 **Verify**: Directed Phase 3 paths; red expected. Existing service stays green.
 
@@ -157,7 +158,7 @@ Do not claim Windows qualification based on Linux results.
 - [ ] 3.2.2 Implement the strict argument shell using public loadProject and shared diagnostic rendering — CLI `main.ts`, `args.ts`, `render.ts`; `03-03` CLI Shell; ST-32–ST-35.
 - [ ] 3.2.3 Adapt the existing native-host CI job and add the minimal contained example — `.github/workflows/ci.yml`, example manifest/source; `03-03` Example/Verification; ST-33, ST-36–ST-38.
 - [ ] 3.2.4 Update truthful current root/package guidance and active/reference-only ownership labels — `README.md`, project guidance/notes and inventory-approved labels; `03-01` Rejected Surface Removal; `03-03` Closeout; ST-03, ST-40.
-- [ ] 3.2.5 Run all CLI/service/root specification suites green, including built-bin E2E — new owned suite paths; ST-01–ST-40.
+- [ ] 3.2.5 Run all CLI/service/root runnable specification suites green, including built-bin E2E — new owned suite paths; ST-01–ST-35, ST-37–ST-38, ST-40 frozen/ownership facts; ST-36/ST-39/ST-40 walk remain mandatory later direct evidence, not premature runtime gates.
 
 **Verify**: Directed CLI tests/bin E2E, library/CLI build/typecheck and boundary
 tests. No shell construction or assembler/emulator execution.
@@ -168,8 +169,11 @@ tests. No shell construction or assembler/emulator execution.
 - [ ] 3.3.2 Complete full native Linux/Windows foundation qualification, independent phase review and deferral-expiry closeout; commit green checkpoints and update the feature roadmap on actual completion — `08-closeout.md`, feature roadmap; `03-03` Verification/Closeout; ST-01–ST-40.
 
 **Verify**: `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
-on both declared production hosts, plus targeted formatting/links, identity/topology,
-no-output and deferral-expiry checks. Missing native evidence blocks this last
+on both declared production hosts, then record those actual results and directly
+inspect ST-36, ST-39, and ST-40's completed deferral walk. Also verify targeted
+formatting/links, identity/topology and no-output checks. Every ST-01–ST-40
+obligation must have its real test or inspection evidence before final review,
+green commit, or Done. Missing native evidence blocks this last
 task; no push or new external infrastructure is authorized to bypass that condition.
 
 ## Dependencies and Completion
