@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-02 Foundation Planning
 
-> **Status**: ❌ GATE BLOCKED — scope confirmation and one upstream correction await a decision; discovery is incomplete
+> **Status**: ✅ GATE PASSED — all 7 items resolved; systematic review completed
 > **Last Updated**: 2026-09-17
 > **CodeOps Artifact Schema**: 1
 
@@ -10,14 +10,19 @@
 |---|---|
 | Planning target | `blend65-v4/RD-02` only: clean foundation and deterministic project loading, not a compiler pipeline. |
 | Context artifacts | Phase 0 handoff; RD-01 closeout and frozen identities; v4 requirements and preflight report; inherited manifests, source, tests, scripts, workflows, documentation, and historical roadmaps as salvage evidence only. |
-| Modification set | This RD-02 plan directory and required feature-roadmap lifecycle rows. No implementation, specification, active expert, or parked-worktree changes. The narrow RD-02 correction below needs separate confirmation before changing the requirement. |
+| Modification set | This RD-02 plan directory, required feature-roadmap lifecycle rows, and the approved correction to RD-02 AC-15 and its Paths verification-table row. No implementation, specification, active expert, parked-worktree, or sibling-RD changes. |
 
 ## Decisions
 
 | ID | Category | Question | Recommendation | Authority | Status |
 |---|---|---|---|---|---|
-| AR-P1 | Scope | Confirm the planning target and modification boundary. | Plan only RD-02 from its accepted requirements. Preserve the frozen spec and expert. Keep compiler, packaging, emulator, and future infrastructure work out. | Awaiting user confirmation. | ❌ Open |
-| AR-P2 | Scope / upstream correction | AC-15 requires output creation and artifact-publication tests despite the explicit exclusion of publication from RD-02. | Correct RD-02 only: validate missing contained `outDir` without creating it; test the pure basename validator and input containment here; leave native artifact creation, collision/alias, and publication proof with RD-03 and subsequent artifact-producing owners. Align the Paths verification-table row. Preserve R2.25 as a later-producer contract, not an RD-02 implementation task. | Awaiting explicit authorization to edit this requirement. | ❌ Open |
+| AR-P1 | Scope | Confirm the planning target and modification boundary. | Plan only RD-02 from its accepted requirements. Preserve the frozen spec and expert. Keep compiler, packaging, emulator, and future infrastructure work out. | User approved on 2026-09-17: "i do", in response to the foundation-only scope and narrow correction. | ✅ Resolved |
+| AR-P2 | Scope / upstream correction | AC-15 requires output creation and artifact-publication tests despite the explicit exclusion of publication from RD-02. | Correct RD-02 only: validate missing contained `outDir` without creating it; test the pure basename validator and input containment here; leave native artifact creation, collision/alias, and publication proof with RD-03 and subsequent artifact-producing owners. Align the Paths verification-table row. Preserve R2.25 as a later-producer contract, not an RD-02 implementation task. | User explicitly approved on 2026-09-17: "i do". AC-15 and the Paths verification row corrected. | ✅ Resolved |
+| AR-P3 | Technical / package ownership | What is the smallest useful foundation graph and salvage approach? | **Recommended:** `@blend65/compiler` owns project loading as internal modules; `@blend65/cli` consumes its public exports. Retain the existing `jsonc-parser` dependency. Inventory first; adapt only independently proven small discovery/UTF-8 conversion units; rewrite the changed manifest, identity, containment, snapshot, diagnostic registry, and CLI integration. No additional package or dependency. | Planning choice made under the user's AGENTS.md workflow directive 4: compiler/plan-owned decisions are made on the tagged recommendation without a prompt. Not a claimed per-item user acceptance or `--auto-design` invocation. | ✅ Resolved |
+| AR-P4 | Technical / host safety and snapshot representation | How should the service remain bounded and immutable without persistent machinery? | **Recommended:** immutable UTF-8 text records, exact relative string source IDs, SHA-256 content hashes, separate host-only identities, and a bounded full-load/revalidation attempt. Fixed host-safety defaults: 1 MiB manifest, 4 MiB per source, 256 MiB total manifest/source bytes, 10,000 source files, 100,000 visited entries, depth 64, and at most three complete attempts. Test smaller limits through internal arguments, not new manifest keys. Any detected change discards the entire attempt. | Plan-owned choice under the same explicit project directive; R2.22 and the host-safety requirement supply the behavior boundary. No filesystem lock, watcher, cache, or public host abstraction. | ✅ Resolved |
+| AR-P5 | Technical / public API and CLI integration | What truthful API and CLI shell should RD-02 expose? | **Recommended:** `loadProject(options)` returns success/snapshot/observations or failure/diagnostics; export the pure basename validator and byte-position conversion. `blendc` supports help/version and project loading only, with `--project`, `--target`, and `--entry`; no command means project load, not compile. Exit 0 for success/help/version, 1 for invalid project, 2 for invalid invocation. Stable project-host diagnostic identifiers remain separate from language codes; invalid profile uses normative E10279. | Plan-owned implementation of R2.12, R2.16, R2.20, R2.23, and R2.24 under project directive 4. No added compile/check/build/run capability. | ✅ Resolved |
+| AR-P6 | Technical / verification and production hosts | Which commands and evidence determine green foundation checkpoints? | **Recommended:** retain the detected install/build/typecheck/test command roles, remove their lint/readiness/compiler ownership as required, and verify with `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`, plus targeted Prettier checks. Adapt the existing CI job to native Node 22 Linux x64 and Windows x64 runs, without ACME, VICE, scoreboard, remote cache, or new CI service. Windows simulation never substitutes for native evidence. | Detected root scripts and the user's impact-based verification directive, R2.27, and accepted requirements AR-048; project directives 1 and 4 authorize green checkpoints and plan-owned command selection without a further prompt. | ✅ Resolved |
+| AR-P7 | Technical / execution decomposition | How is the foundation delivered without another large framework-first plan? | **Recommended:** three phases: green toolchain plus complete pure manifest/diagnostic behavior and rejected-surface removal; contained discovery/inventory/snapshot service; truthful CLI, native-host integration, focused qualification, and deferral closeout. Each phase uses spec tests/red, implementation/green, then internal tests/verification. Coherent outcome tasks, not a task per field or failure vector. | Plan-owned sequencing under project directive 4, within the user-confirmed RD-02 scope. | ✅ Resolved |
 
 ## Evidence and Resolution Notes
 
@@ -45,5 +50,42 @@ test framework, or sibling-RD redesign is needed. Planning those operations in R
 would either violate its scope or create premature publication support code. The narrow
 correction removes that conflict without weakening the later publication contract.
 
-Discovery and the complete ambiguity scan resume after the scope decision. No other
-plan document is authorized while this gate is blocked.
+The user approved the narrow correction and scope on 2026-09-17. No sibling RD or
+specification change is needed.
+
+## Project Authority
+
+The user's AGENTS.md prime workflow directive explicitly overrides default CodeOps
+guardrails and instructs that compiler/plan-owned choices are made on the single
+tagged recommendation without prompting. AR-P3 through AR-P7 use that authority,
+not inferred acceptance, historical delegation, or an unrequested `--auto-design`
+mode. Scope and upstream modification remain user-owned and were explicitly
+approved in AR-P1/AR-P2. No material support surface beyond the accepted foundation
+is introduced, so no complexity escalation is approved or pending.
+
+## Systematic Review
+
+| Category | Closure evidence |
+|---|---|
+| Feature gaps | All R2.1–R2.30 and AC-01–AC-29 remain owned by RD-02; pure manifest/service/CLI responsibilities cover them. AR-P2 resolves the publication conflict. |
+| Behavioral gaps | RD-02 owns success/failure, nearest/explicit discovery, defaults, exact-name preservation, retries, and no usable partial snapshot. AR-P4/AR-P5 select the direct implementation. |
+| Scope ambiguities | AR-P1/AR-P2; no pipeline or publication work here. |
+| Technical unknowns | AR-P3–AR-P7; only accepted toolchain roles and existing JSONC dependency. |
+| Edge cases | Manifest duplicates/types, basename variants, native path aliases/escape/cycles/races, output exclusion, disappearance, empty roots, UTF-8/BOM, and bounded work are direct test obligations. |
+| Integration points | AR-P3/AR-P5; one service for CLI now, later frontend/editor consumers without backend imports. |
+| Data and state | AR-P4; exact immutable text and hashes, separate host identity, no persistent project state. |
+| Security | Contained regular-file reads, bounded traversal, typed errors, escaped messages, no shell/config evaluation, no source uploads or stack traces. No server/auth boundary. |
+| Non-functional | Deterministic identities and diagnostics; observations only, not timing or memory acceptance thresholds. |
+| UX and presentation | AR-P5; truthful project-load messages and exit classes, no compilation claims. |
+| Stakeholder conflicts | Modern source ergonomics and expert output remain frozen; this host-only RD produces no machine code. |
+| Naming and terminology | AR-P3/AR-P5; existing public package/CLI names retained, exact project-relative source names are not module names. |
+
+Selected domain lenses: data/migration for schema 1 and the inventory-led branch
+transition; concurrency for files changing during reads; compiler/language for
+UTF-8 coordinates, profile identity, and the future frontend/backend boundary.
+No language parser, distributed service, database migration, or new infrastructure
+framework is inferred from those lenses.
+
+All rows are resolved. There are no plan-local deferrals or user-owned forks left
+open. Future artifact creation remains with its existing RD-03/later owners, not a
+new deferred RD-02 task.

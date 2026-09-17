@@ -401,7 +401,7 @@ RD-02 uses only direct proof:
 | Workspaces | Public exports resolve; dependency cycles and forbidden frontend/backend imports fail |
 | Manifest | Valid JSONC plus each missing, duplicate, unknown, wrong-type, unsupported-version, and output-basename case |
 | Discovery | Nearest/explicit manifest behavior from several working directories |
-| Paths | Relative resolution, absolute rejection for content, `..`/symlink escape, source identity preservation, final artifact-component collision/alias, and unreadable/wrong-type paths |
+| Paths | Relative resolution, absolute rejection for content, `..`/symlink escape, source identity preservation, validation of a missing contained `outDir` without creation, and unreadable/wrong-type paths; native artifact-component creation/collision proof belongs to RD-03 and later artifact-producing RDs |
 | Inventory | Stable `.blend` ordering, empty source root, deep tree limit, file replacement/disappearance |
 | Snapshot | Identical hashes for identical input and no mixed result under a controlled mid-read change |
 | Salvage | One focused proof per port/adaptation and a structural check that rejected packages/workflows are absent |
@@ -569,11 +569,10 @@ profile, manifest target, or implementation. (AR-024, AR-035)
 15. [ ] **AC-15 — Path containment:** Native Node 22 tests on `linux/x64` and `win32/x64` reject
     absolute manifest content paths, lexical `..` escape, symlink escape/race, symlink cycle, wrong
     input file type, unreadable input, resolved identity outside the project root, a file where an
-    output directory is required, and an explicit source/asset inside `outDir`. First-build creation
-    of a missing contained `outDir` succeeds. An injected filesystem boundary proves that the
-    complete derived artifact set rejects duplicate/native-alias components, actual host component
-    limits, existing symlink/device/directory paths, and exclusive-create collisions without
-    changing the prior current generation; no universal numeric filename limit is asserted. Linux
+    output directory is required, and an explicit source/asset inside `outDir`. A missing contained
+    `outDir` validates without creating any directory or file. Native artifact-component limits,
+    duplicate/alias rejection, exclusive creation, and preservation of the prior current generation
+    are proved by RD-03 and later artifact-producing RDs under R2.25, not implemented here. Linux
     simulation of Windows paths is supporting evidence only, not Windows qualification.
 16. [ ] **AC-16 — Source inventory:** A fixture tree returns only regular `.blend` files under
     `sourceRoot` in deterministic exact-spelling order, independent of creation/enumeration order;
