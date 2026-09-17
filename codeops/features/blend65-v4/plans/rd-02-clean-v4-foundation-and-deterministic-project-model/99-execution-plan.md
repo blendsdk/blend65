@@ -1,7 +1,7 @@
 # Execution Plan: RD-02 Foundation
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-17 23:20
+> **Last Updated**: 2026-09-17 23:22
 > **Progress**: 13/35 tasks (37%)
 > **CodeOps Artifact Schema**: 1
 
@@ -132,7 +132,7 @@ The complete checkpoint command below must pass before the transition is committ
 ### Step 1.3: Internal Tests and First Green Checkpoint
 
 - [x] 1.3.1 Add focused implementation tests for JSONC/offset/name/diagnostic/import-reader internals — corresponding `*.impl.test.ts` files; `07` Test Ownership; do not alter spec tests. ✅ (completed: 2026-09-17 22:01)
-- [x] 1.3.2 Run full foundation verification and independent phase review, resolve findings under the project policy, commit the first green foundation and bind inventory proof — `04-salvage-inventory.md`; `03-01` First Green Checkpoint; ST-01–ST-13. ✅ (verified: 2026-09-17 23:20; 461 tests actual/clean clone; approved correction and single fix review complete; actual green commit bound immediately after creation)
+- [x] 1.3.2 Run full foundation verification and independent phase review, resolve findings under the project policy, commit the first green foundation and bind inventory proof — `04-salvage-inventory.md`; `03-01` First Green Checkpoint; ST-01–ST-13. ✅ (completed: 2026-09-17 23:22; 461 tests actual/clean clone; approved correction and single fix review complete; green commit `6d89227b4ad1999b2770cfc34ae1ce418fb1ce2a` bound in the inventory)
 
 **Verify**: `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 plus targeted Prettier/Markdown checks and unchanged frozen spec/expert identities.

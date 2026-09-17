@@ -139,5 +139,11 @@ the corrected hash is bound above, and full actual/portable verification passes.
 No reviewer-role policy or other spec expectation was changed. The single
 permitted fix review is complete; no third review is requested.
 
-The production checkpoint and its actual inventory commit binding remain the
-last Phase 1 actions.
+## Actual Green Checkpoint
+
+Phase 1 is complete at production commit
+`6d89227b4ad1999b2770cfc34ae1ce418fb1ce2a`.
+The salvage inventory binds this actual commit after its creation, avoiding a
+self-referential prospective hash. All frozen bytes and the parked worktree
+remain unchanged. No push occurred. Project loading and the CLI are not yet
+implemented; the next unchecked task is independent Phase 2 spec authoring.

@@ -192,7 +192,7 @@ Existing `jsonc-parser` 3.3.1 is a retained dependency, not salvaged v3 code.
 | Checkpoint | Identity / evidence |
 |---|---|
 | Inventory entry | Baseline commit and tree above; bootstrap and frozen identities reproduced |
-| First green foundation | Pending Phase 1 complete install/build/typecheck/test and independent review; no production transition committed yet |
+| First green foundation | `6d89227b4ad1999b2770cfc34ae1ce418fb1ce2a`; complete frozen install/build/typecheck/test, 461 green tests, independent review plus the approved portability correction and single fix review; actual/clean-clone evidence in `05-phase-1-verification.md` |
 | Service | Pending Phase 2 |
 | CLI/native closeout | Pending Phase 3 actual Linux/Windows evidence |
 
