@@ -1,8 +1,8 @@
 # Execution Plan: RD-02 Foundation
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-17 21:18
-> **Progress**: 0/35 tasks (0%)
+> **Last Updated**: 2026-09-17 21:36
+> **Progress**: 1/35 tasks (3%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -47,21 +47,37 @@ push. Do not create fake pass/stub code to get an intermediate commit.
 
 ## Phase 1: First Green Manifest Foundation
 
-> **Phase baseline tree**: recorded at phase start by exec-plan
+> **Phase baseline tree**: `b90711e391423f8d4a329a3289fa6eed24644afb`
 > **Lenses**: migration safety, local input validation, public boundaries
+
+**Scope mode:** strict. Original goal and minimum design remain the index's
+foundation-only baseline. Expected modification set: this plan's inventory,
+execution evidence and index; the v4 feature roadmap; inventory-rejected
+inherited surfaces; root guidance/configuration/task/lock files; the real compiler
+package's configuration, public barrel and focused project manifest/diagnostic
+modules/tests; root foundation/import-boundary tests/helper. No frozen spec,
+active expert, parked worktree or portfolio mutation. No new support machinery.
 
 ### Step 1.1: Inventory and Specification Tests
 
 **Reference**: `03-01` Inventory/First Green Checkpoint; `03-02` Manifest;
 ST-01–ST-13. No implementation before the tests below.
 
-- [ ] 1.1.1 Verify bootstrap/frozen identities and complete the component salvage inventory — `04-salvage-inventory.md`; `03-01` Inventory; ST-01–ST-02.
+- [x] 1.1.1 Verify bootstrap/frozen identities and complete the component salvage inventory — `04-salvage-inventory.md`; `03-01` Inventory; ST-01–ST-02. ✅ (completed: 2026-09-17 21:36)
 - [ ] 1.1.2 [spec-author] Author independent structural/import-boundary tests — `test/foundation.spec.test.ts`, `test/import-boundary.spec.test.ts`; ST-01–ST-08.
 - [ ] 1.1.3 [spec-author] Author pure manifest/name/position tests — `packages/compiler/src/project/{manifest,basename,positions}.spec.test.ts`; ST-09–ST-13; `03-02` public signatures.
 - [ ] 1.1.4 Demonstrate focused red tests before replacement; record already-passing baseline checks and proof each new oracle detects a contract violation — task evidence in this plan; ST-01–ST-13.
 
 **Verify**: Run only the new explicit test paths with the available Vitest
 executable. Red is expected here, not a commit checkpoint. No inherited suite.
+
+**Task 1.1.1 evidence:** 2,136 baseline tracked paths partitioned into 126
+schema-complete rows; reusable discovery/offset/line-map/host/asset/tool/hash
+candidates assessed separately. No production port/adaptation admitted.
+Bootstrap ancestry, parked v3 identity/cleanliness and all frozen spec/expert
+hashes reproduced. Targeted Markdown formatting and diff checks passed.
+Log: `/tmp/blend65-rd02-inventory-verify.log`. No compiler test or native-host
+qualification result is claimed by this documentation checkpoint.
 
 ### Step 1.2: Implement the Green Transition
 

@@ -1,7 +1,7 @@
 # RD-02 Foundation Implementation Plan
 
 > **Feature**: Clean v4 foundation and deterministic project loading
-> **Status**: Plan Preflighted — implementation not started
+> **Status**: Executing — Phase 1 inventory and specification tests
 > **Created**: 2026-09-17
 > **Implements**: blend65-v4/RD-02
 > **CodeOps Artifact Schema**: 1
@@ -48,5 +48,5 @@ The execution plan has three phases. Each delivers real behavior before the next
 begins. Planning does not delete inherited code or install the new toolchain.
 
 The whole-plan [preflight](00-preflight-report.md) passed iteration 2 after the
-approved bounded corrections. Next lifecycle action: execute task 1.1.1 on an
-execution instruction. No implementation task has started.
+approved bounded corrections. Execution started on the user's instruction
+"proceed further". The execution checklist owns current task progress.

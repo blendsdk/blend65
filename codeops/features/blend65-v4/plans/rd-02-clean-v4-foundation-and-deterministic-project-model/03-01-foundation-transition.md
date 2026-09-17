@@ -105,6 +105,13 @@ imports/re-exports, including type-only and literal dynamic imports; resolve
 relative `.js` imports to their TypeScript sources and exported workspace entries.
 Reject undeclared/private cross-package edges and workspace cycles.
 
+The test-only helper's planned signature is
+`inspectImportBoundary(root: string): Promise<readonly string[]>`.
+It reads a real repository or synthetic directory tree and returns no violations
+for a valid graph, otherwise concise violations. This private test utility is
+not a package export or configurable policy API. The signature is a plan-owned
+execution clarification under project directive 4, with no change to predicates.
+
 For every actual frontend/editor package and shared frontend source area as it
 appears, follow transitive source/dependency edges to backend lowering, codegen,
 serialization, packaging, or emulator ownership. Synthetic allowed/forbidden
