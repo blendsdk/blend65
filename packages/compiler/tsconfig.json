@@ -1,12 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "rootDir": "src", "outDir": "dist" },
-  "include": ["src"],
-  "references": [
-    { "path": "../core" },
-    { "path": "../frontend" },
-    { "path": "../codegen" },
-    { "path": "../platforms" },
-    { "path": "../config" }
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

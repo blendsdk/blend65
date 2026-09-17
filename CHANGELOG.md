@@ -1,5 +1,9 @@
 # Changelog
 
+> **Historical v3 record, reference only.** Entries below are not current v4
+> implementation claims. Specification 4.0 is frozen under RD-01; current work
+> is tracked by the [v4 roadmap](codeops/features/blend65-v4/00-roadmap.md).
+
 All notable changes to the Blend65 language specification are recorded here.
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/),
 and the project follows a major-version contract: breaking changes to a

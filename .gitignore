@@ -3,7 +3,4 @@ dist/
 *.tsbuildinfo
 coverage/
 .turbo/
-examples/*/out/
-examples/*/build/
-examples/*/*.prg
 test/.tmp-*/

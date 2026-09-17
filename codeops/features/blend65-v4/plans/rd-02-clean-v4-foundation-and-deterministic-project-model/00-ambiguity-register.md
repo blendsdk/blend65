@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-02 Foundation Planning
 
-> **Status**: ✅ GATE PASSED — all 7 items resolved; systematic review completed
+> **Status**: ✅ GATE PASSED — all 8 items resolved; systematic review completed
 > **Last Updated**: 2026-09-17
 > **CodeOps Artifact Schema**: 1
 
@@ -23,6 +23,7 @@
 | AR-P5 | Technical / public API and CLI integration | What truthful API and CLI shell should RD-02 expose? | **Recommended:** `loadProject(options)` returns success/snapshot/observations or failure/diagnostics; export the pure basename validator and byte-position conversion. `blendc` supports help/version and project loading only, with `--project`, `--target`, and `--entry`; no command means project load, not compile. Exit 0 for success/help/version, 1 for invalid project, 2 for invalid invocation. Stable project-host diagnostic identifiers remain separate from language codes; invalid profile uses normative E10279. | Plan-owned implementation of R2.12, R2.16, R2.20, R2.23, and R2.24 under project directive 4. No added compile/check/build/run capability. | ✅ Resolved |
 | AR-P6 | Technical / verification and production hosts | Which commands and evidence determine green foundation checkpoints? | **Recommended:** retain the detected install/build/typecheck/test command roles, remove their lint/readiness/compiler ownership as required, and verify with `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`, plus targeted Prettier checks. Adapt the existing CI job to native Node 22 Linux x64 and Windows x64 runs, without ACME, VICE, scoreboard, remote cache, or new CI service. Windows simulation never substitutes for native evidence. | Detected root scripts and the user's impact-based verification directive, R2.27, and accepted requirements AR-048; project directives 1 and 4 authorize green checkpoints and plan-owned command selection without a further prompt. | ✅ Resolved |
 | AR-P7 | Technical / execution decomposition | How is the foundation delivered without another large framework-first plan? | **Recommended:** three phases: green toolchain plus complete pure manifest/diagnostic behavior and rejected-surface removal; contained discovery/inventory/snapshot service; truthful CLI, native-host integration, focused qualification, and deferral closeout. Each phase uses spec tests/red, implementation/green, then internal tests/verification. Coherent outcome tasks, not a task per field or failure vector. | Plan-owned sequencing under project directive 4, within the user-confirmed RD-02 scope. | ✅ Resolved |
+| AR-P8 | Technical (runtime) / private test signature and name result representation | Independent test author needs the boundary helper signature and exact `offending` value/escaping order. | **Recommended:** one private `inspectImportBoundary(root)` returning violation strings; raw offending input in the pure name result, fixed predicate priority and diagnostic Unicode/JSON escaping, as clarified in `03-01`/`03-02`. No new name predicate, public API, test framework, dependency or support layer. | Plan-owned technical clarification on 2026-09-17 under the user's overriding directive 4; not a claimed user vote or auto-design delegation. | ✅ Resolved |
 
 ## Evidence and Resolution Notes
 
@@ -107,3 +108,27 @@ framework is inferred from those lenses.
 All rows are resolved. There are no plan-local deferrals or user-owned forks left
 open. Future artifact creation remains with its existing RD-03/later owners, not a
 new deferred RD-02 task.
+
+## Runtime Clarification — AR-P8
+
+The independent test author surfaced the name result representation gap before
+production work. A raw offending input preserves evidence without changing the
+basename; escaping belongs to diagnostic rendering. The smallest private boundary
+signature lets real temporary fixtures prove the existing graph predicates.
+The same representation clarification binds JSONC spans to full tokens/root
+objects and the between-CR/LF position to the preceding line's content end,
+following the primary LSP text-document convention. These are existing coordinate
+obligations, not new input restrictions or machinery.
+`03-01` and `03-02` contain the exact declarations. The product/scope baseline is
+unchanged. No complexity escalation or new user-owned choice is involved.
+
+## Approved Review Correction — RV-001
+
+On 2026-09-17 the user answered **"you may"** to the explicit request to correct
+the locked test separation. Preserve R2.1 as actual local execution evidence,
+not a dependency of ordinary CI tests on this machine's exact branch or parked
+sibling checkout. Keep portable frozen-authority and repository-lineage checks.
+The independent test author owns the narrow correction; no manifest/name/position
+or import-boundary expectation changes. Existing CI checkout must fetch the
+history needed by the portable lineage/inventory checks. No fake worktree,
+additional CI service, dependency or custom runner is authorized.

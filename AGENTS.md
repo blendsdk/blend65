@@ -2,91 +2,67 @@
 
 ## Overview
 
-- **Name:** blend65
-- **Description:** Statically-typed systems language + AOT compiler targeting 6502 retro platforms
-  (C64, C64 Ultimate, Commander X16, Atari 800XL, Atari 7800). Hosts the language spec, the
-  requirements (RD-01..RD-18), and the TypeScript monorepo implementing compiler/CLI/VS Code tooling.
-- **Type:** compiler (consumed as a library — `@blend65/*` packages + the `blendc` CLI)
+Blend65 is a statically typed 6502-family language and AOT compiler. This checkout
+is the clean v4 rebuild. Specification 4.0 and the qualified expert baseline are
+frozen. Current implementation ownership is
+`codeops/features/blend65-v4/00-roadmap.md`; inherited v3 roadmaps are historical
+reference only. RD-02 supplies project tooling, not a working compiler pipeline.
 
 ## Toolchain
 
-- **Language(s):** TypeScript (ESM, NodeNext, ES2023, `strict`)
-- **Framework(s):** Turborepo (monorepo orchestration)
-- **Package Manager:** Yarn classic (v1) workspaces — **no** `workspace:*` protocol
-- **Bundler:** Vite (per-package builds where applicable); `tsc --build` for type output
-- **Test Framework:** Vitest
-- **Current linter/formatter:** ESLint v9 (flat config) is still present; Prettier is configured but
-  unrun (see Commands). The approved future toolchain direction is TypeScript 7 with ESLint removed
-  and no replacement linter. Until that migration is implemented, describe the checkout as it is;
-  do not claim TypeScript 7 or no-ESLint status prematurely.
-- **Runtime:** Node 22 (pinned via `.nvmrc` + `engines`)
-
-**Manifest files:** package.json, tsconfig.json, turbo.json
+- TypeScript 7.0.2: normal stable `typescript` package, ESM/NodeNext/ES2023, strict.
+- Node 22; Yarn classic 1.22.22 workspaces; no `workspace:*` protocol.
+- `tsc --build` and Turbo; Vitest for tests; Prettier for targeted formatting.
+- No bundler, semantic linter, replacement linter, or preview compiler package.
+- The working replacement must verify before its first implementation commit.
 
 ## Commands
 
-All commands run from the repo root.
+Run from the repository root:
 
-- **Build:** `yarn build` (turbo run build — package build scripts across all 12 workspaces)
-- **Typecheck:** `yarn typecheck`  •  **Lint:** `yarn lint` (ESLint ONLY — `eslint .` per package)
-- **Format:** ⚠️ Prettier is installed and configured (`.prettierrc.json`), and ESLint hands all
-  formatting rules to it via `eslint-config-prettier` — but **nothing ever runs it**: no root or
-  package script, no git hook, not in CI. Formatting is therefore unenforced end to end, and parts
-  of the tree carry drift. Verify passing does NOT mean the diff is Prettier-clean. Run
-  `npx prettier --check <files>` on files you touch and hand-fix what you added; do not
-  `--write` whole files you did not otherwise change (it buries the real diff in reformatting).
-- **Test:** `yarn test` (normal package tests, bounded readiness smoke tests, THEN the root R15
-  boundary tier — AR-P10); single package: `yarn workspace @blend65/<pkg> test`
-- **Full readiness acceptance:** `yarn test:readiness:full` — intentionally opt-in and potentially
-  multi-hour. Run only when readiness/execution semantics change or at an explicit readiness/release
-  acceptance checkpoint; it is not part of normal development or quick-release verification.
-- **Verification is impact-based:** choose checks from the touched surface and the claim being made.
-  During implementation, run directed package or behavior tests. At a major integration boundary,
-  run the complete relevant module or feature qualification. Use the repository-wide command
-  `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
-  only when compiler/runtime changes cross package boundaries, at an explicit repository/release
-  acceptance checkpoint, or when the affected dependency surface makes the full run relevant.
-  Skill/Markdown-only changes do not run the compiler suite; validate touched formatting, links,
-  topology, source keys, and the relevant skill qualification cases instead.
-- **Clean:** TODO — no `clean` script defined (root, packages, or `turbo.json`); clean manually
-  (`git clean -xdf packages/*/dist packages/*/*.tsbuildinfo`) or add a `clean` task to `turbo.json`.
+- `yarn install --frozen-lockfile`
+- `yarn build` — Turbo invokes real package reference builds.
+- `yarn typecheck` — checks use fresh dependency declarations.
+- `yarn test` — owned workspace tests and direct root foundation/boundary tests.
+- `yarn prettier --check <files>` — targeted touched-file formatting; do not
+  reformat unrelated files.
+
+Verification is impact-based. During implementation use directed tests. Before
+a phase checkpoint run install, build, typecheck and the complete owned tests.
+Markdown/skill-only changes validate formatting, links, source keys and the
+relevant qualification cases, not the compiler suite. RD-02 has no assembler,
+emulator, game corpus, historical acceptance tier or `lint` task.
 
 ## Project structure
 
-Monorepo — Yarn workspaces + Turbo. Source in `packages/*/src/`; tests co-located as
-`*.spec.test.ts` (spec tier) / `*.impl.test.ts` (logic tier, RD-02+), plus the repo-root `test/` cross-package boundary tier (`boundary.spec.test.ts`).
+- `packages/compiler/` — real `@blend65/compiler` project library.
+- `test/` — structural and direct import-boundary tests.
+- `spec/` — frozen Specification 4.0, never modified during implementation.
+- `.agents/skills/blend65-domain-expert/` — frozen expert authority.
+- `codeops/features/blend65-v4/` — active requirements and implementation plan.
+- `codeops/features/blend65-expert-skillset/` and `blend65-c64u/` — separate owners.
+- Other retained CodeOps features and `research/` — historical reference evidence.
 
-- `packages/` — the 12 `@blend65/*` packages (edges below)
-- `spec/` — frozen spec-v3.0; DO NOT MODIFY during compiler implementation (D3)
-- `examples/` — per-slice acceptance fixtures (gate + slice3a…slice8b), VICE-verified
-- `codeops/` — nested CodeOps layout (marker `.codeops.yml`): `00-roadmap.md` (portfolio) + `features/blend65-ri/` (`00-roadmap.md`, `requirements/`, `plans/<rd-slug>/`) + `_archive/` (completed plans)
-- `.github/workflows/` — CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
-- `docs/` — includes an optional, naive, time-stamped C64 game-feasibility snapshot:
-  `game-feasibility-matrix.json` renders to `game-feasibility-matrix.html` via
-  `scripts/gen-capability-matrix.mjs` (`yarn gen:matrix`). It is not compiler or skill authority,
-  must not drive architecture, requirements, qualification, or audit scope, and may be removed
-  without replacement. Git history is sufficient preservation.
-- `research/`, `scripts/` — research notes, repo tooling
+No empty compiler stages or legacy copy are kept. The CLI package appears only
+when its real behavior lands. Spec tests are `*.spec.test.ts`; implementation
+tests are `*.impl.test.ts`.
 
-### Package dependency edges (R15 boundary is load-bearing)
+### Package and frontend boundaries
 
-Private — `core` ← — · `frontend` ← core · `codegen` ← core, frontend · `platforms`, `config` ← core ·
-`readiness` has no internal runtime dependency · `readiness-execution` ← cli, compiler, core,
-frontend, readiness, test-harness.
-Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` ← compiler, config, core · `language-server` ← core, frontend (**NEVER codegen** — R15) · `vscode` ← language-server · `test-harness` ← core, compiler (+ codegen **dev-only**).
+The Phase 1 graph is `compiler -> jsonc-parser`. The later CLI uses only the
+compiler public export. Node built-ins provide host operations.
 
-> **R15 / AR-20 (load-bearing):** `frontend` and `language-server` MUST NOT import `@blend65/codegen`
-> — currently enforced by ESLint `no-restricted-imports` (AR-P7) and
-> `test/boundary.spec.test.ts` (ST-R15a/b/c). When ESLint is removed for the TypeScript 7 migration,
-> the small direct boundary test remains the durable enforcement; do not replace ESLint with
-> another general linter.
+Frontend/editor owners must never reach backend lowering, code generation,
+serialization, packaging or emulator ownership, directly or transitively.
+`test/import-boundary.spec.test.ts` enforces this on actual imports/re-exports
+and non-vacuous synthetic graphs. No general linter replaces this direct test.
 
 ## Conventions
 
 ### Import & module resolution
 
 - **ES Modules** — `import { x } from 'module'` (ESM throughout: `"type": "module"`, NodeNext).
-- **Cross-package:** import from package names — `import { x } from '@blend65/core'`.
+- **Cross-package:** import from package names — `import { x } from '@blend65/compiler'`.
   Never import from another package's `dist/` or `src/` relative path.
 - **Intra-package:** relative imports MUST carry the `.js` extension (NodeNext) —
   `import { x } from './foo.js'`.
@@ -142,7 +118,7 @@ Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` �
 
 ### Branch strategy
 
-- **Main branch:** `master` (active development on `v3`).
+- **Integration branch:** `v3`; current rebuild work stays on `feature/v4-rebuild`.
 - **Feature branches:** `feature/[name]`
 - **Convention:** keep `spec/` untouched in any commit during compiler implementation (D3).
 
@@ -159,14 +135,14 @@ would judge it:
   file it (GitHub issue) or fix it, never shrug it off. Goldens should read like a competent
   asm dev wrote them.
 - **Meet or beat the expert for every implemented capability (NON-NEGOTIABLE).** Parity is the
-  *floor*, not the goal. The generated code must **never be worse** than what an expert would
+  _floor_, not the goal. The generated code must **never be worse** than what an expert would
   hand-write for a routine (that floor is the scoreboard's 1.0 ratio), and must **beat** the
-  expert's *realistic whole-program* result — the win a compiler alone can take: global allocation,
+  expert's _realistic whole-program_ result — the win a compiler alone can take: global allocation,
   exhaustive strength reduction, cross-routine layout, perfect consistency, no fatigue, no
   hand-tuned routine left un-tuned. A capability whose generated code an expert would still beat is
   a defect, regardless of any feasibility snapshot or historical status claim.
 - **Beat first; meet only as a last resort, and file the gap (NON-NEGOTIABLE).** The posture is to
-  **beat** the expert. Settle for *meeting* only when there is genuinely no way to beat it right
+  **beat** the expert. Settle for _meeting_ only when there is genuinely no way to beat it right
   now — and when you do, **file a GitHub issue** (the "file it" of the parity clause) that spells
   out exactly what it would take to beat after all: the missing optimization pass, IL form,
   allocation change, or platform-library primitive, with the measured cost delta. A "meet" is never
@@ -174,7 +150,7 @@ would judge it:
   creation for this purpose is durably authorised — do not stop to ask; never push). This bar is
   raised deliberately: planning and implementation must be **forward-looking** — design each seam so
   the beat stays reachable, and never settle into a shape that can only ever meet. (Per-routine an
-  expert can still hand-tune to the metal, so meeting is the honest *local* floor; the strict beat
+  expert can still hand-tune to the metal, so meeting is the honest _local_ floor; the strict beat
   is realised at program scale and by working those filed issues down.)
 - **Data lives where the hardware reads it:** prefer placement, banking, alignment, pointer flips,
   and compile-time transformation over copying. Never copy or duplicate bytes merely for compiler
@@ -228,7 +204,7 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
    generated code is still judged as an expert asm dev would. Modern ergonomics in, expert asm out.
 4. **Lead with the single best option, clearly tagged.** When a decision genuinely needs the user,
    present the **one best option and tag it as such** — do not bury it in a list of weaker
-   alternatives. Offer an alternative only when it is genuinely viable *and* materially different,
+   alternatives. Offer an alternative only when it is genuinely viable _and_ materially different,
    kept minimal and clearly subordinate; never strawmen, never a confusing menu. A decision that is
    the compiler's or the plan's to make is simply made on the tagged recommendation, no prompt. A
    genuinely user-owned fork (scope, product intent, an irreversible or outward-facing action) is
@@ -241,9 +217,8 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
 - Yarn classic (v1) — workspaces, no `workspace:*` protocol.
 - Turbo (installed via yarn workspace dev dependency).
 - **Selected assembler:** ACME 0.97 is the current terminal assembler for Blend65 output.
-- Emulators (VICE, x16emu, Altirra, Stella/7800) — VICE 3.10 + ACME are needed locally
-  for the RD-12/RD-18 acceptance tiers; CI has NO emulator tier (AR-27) but does
-  install ACME.
+- VICE 3.10 and ACME govern later C64 execution qualification. They are not
+  dependencies of the RD-02 foundation or its CI checks.
 - **Environment variables:** none required for build/test. No `.env` file is used by
   the compiler/CLI.
 
@@ -284,12 +259,12 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
   behavior, undocumented or silicon-sensitive opcodes, cartridge/expansion behavior, unusual
   banking, and documentation-versus-emulator conflicts. Until then report the bounded status
   `VICE-verified / hardware-unverified`; never present VICE alone as universal silicon proof.
-- `spec/` is the FROZEN spec-v3.0 baseline. Do NOT modify any file under `spec/` during
+- `spec/` is the FROZEN Specification 4.0 baseline. Do NOT modify any file under `spec/` during
   compiler implementation (decision D3). `git status --porcelain spec/` must stay empty.
 - Honor the Blend65 Language Guard (`.clinerules/language-guard.md`) for any language-
   feature work: no feature enters the spec without passing all 23 rules.
 - **Deferral-expiry gate (mandatory at every RD closeout).** Before an RD may close, answer in
-  its closeout document: *"did this RD's deliverables expire any deferral's stated rationale?"*
+  its closeout document: _"did this RD's deliverables expire any deferral's stated rationale?"_
   A deferral is justified by a **reason**, not by a date — when the reason stops holding, the
   deferral is due, and nothing else will notice. Walk the ambiguity registers, the RD
   "Won't Have" sections and `spec/future-considerations.md` reconsideration criteria for
@@ -302,14 +277,15 @@ behaviour or CodeOps guardrail** that would otherwise gate them:
   it in the active plan's Ambiguity Register as the next AR-PN (runtime), resolve with
   the user, then resume and back-propagate the resolution into the affected plan docs.
 - **Implementation status:** never restated here — the authoritative, living status is
-  `codeops/features/blend65-ri/00-roadmap.md` (portfolio roll-up `codeops/00-roadmap.md`). Read it
+  `codeops/features/blend65-v4/00-roadmap.md` (portfolio roll-up `codeops/00-roadmap.md`,
+  numerically synchronized at integration). Read it
   at the start of every task; update it at each lifecycle transition (the `roadmap` skill drives this).
-- CI has NO emulator tier (AR-27): the RD-12/RD-17 emulator suites are
-  `describe.skipIf(!hasVice()||!hasAcme())` — they skip in CI and are proven green locally on
-  VICE 3.10; the codec/assertion/registry/golden/PNG tiers DO run in CI. Local emulator suites
-  run sequentially (`fileParallelism:false`) so concurrent `x64sc` instances don't contend.
+- Current CI verifies the owned foundation only; it has no emulator tier.
+  Historical emulator results are not v4 qualification. Later local emulator suites
+  must run sequentially so concurrent `x64sc` instances do not contend.
 
-<!-- analyze_project: refreshed 2026-09-04 during expert-skillset preflight corrections — 12 workspaces verified from packages/*; matrix authority, impact-based verification, SFA boundary, VICE/hardware evidence, and single-active skill version updated. Current checkout remains TypeScript 5.9/ESLint 9 until the separately accepted TypeScript 7/no-ESLint migration. -->
+<!-- Foundation facts updated during RD-02 execution, 2026-09-17. Frozen product,
+workflow and expert directives preserved. No compiler capability claim is made. -->
 
 ## CodeOps routing
 

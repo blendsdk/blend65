@@ -32,7 +32,7 @@ Do not build an evidence parser, self-verifying closeout fixture, or new harness
 
 | ID | Input / scenario | Expected output | Source |
 |---|---|---|---|
-| ST-01 | Compare recorded v4 branch/base/parked v3 identity and frozen RD-01 inventory/release against current state; introduce a mismatching fixture | Valid identities pass; each mismatch fails without resetting/modifying worktrees or selecting a different authority | R2.1, R2.28; `03-01` Inventory |
+| ST-01 | Verify exact development branch/base/parked identity directly as local execution evidence; portable normal tests check repository lineage and frozen RD-01 bytes with real mismatching fixtures | Local bootstrap mismatches stop execution; normal tests need no particular branch name or parked sibling and still reject frozen-authority mismatches | R2.1, R2.28; `03-01` Inventory; user-approved RV-001 correction |
 | ST-02 | Enumerate inherited package/unit/test/example/script/workflow/fixture/codec/doc/CodeOps families and inventory decisions | All families have the RD-owned fields and one disposition; every retained dependency and port/adaptation has an owner and focused proof, no discarded dependency | R2.3, R2.4, R2.29 |
 | ST-03 | Final tracked/configured tree contains readiness, unselected old tests, future-target/optimizer placeholder, ESLint/Vite/lint task, generated output or a legacy copy in a synthetic fixture | Structural proof rejects each operational surface; real final tree has none; historical prose/evidence labels are not mistaken for runtime dependencies | R2.5–R2.11; `03-01` Rejected Surface Removal |
 | ST-04 | Load real workspace manifests/build outputs and execute the directed suites from a clean lockfile install | Actual owned packages have public behavior/exports, TypeScript major 7 stable `tsc`, Node 22/Yarn classic, strict declaration/map build, no empty-pass package; first foundation checkpoint is green | R2.2, R2.7–R2.12; `03-01` Root Toolchain |
@@ -91,7 +91,7 @@ Do not build an evidence parser, self-verifying closeout fixture, or new harness
 | `compiler/src/project/manifest.spec.test.ts`, `basename.spec.test.ts`, `positions.spec.test.ts` / 1 | ST-09–ST-13 |
 | `compiler/src/project/discovery.spec.test.ts`, `paths.spec.test.ts`, `inventory.spec.test.ts` / 2 | ST-14–ST-22, ST-26–ST-27 |
 | `compiler/src/project/snapshot.spec.test.ts`, `diagnostics.spec.test.ts` / 2 | ST-23–ST-31 |
-| `cli/src/main.spec.test.ts`, `bin.spec.test.ts`; extend root foundation spec before Phase 3 implementation / 3 | ST-32–ST-35, ST-37–ST-38, ST-40 frozen/ownership facts |
+| `cli/src/cli.spec.test.ts`, `bin.spec.test.ts`; extend root foundation spec before Phase 3 implementation / 3 | ST-32–ST-35, ST-37–ST-38, ST-40 frozen/ownership facts |
 | Direct qualification/document inspections, checklist declared before Phase 3 implementation / 3 | ST-36, ST-39, ST-40 deferral walk; actual evidence completed in 3.3.1/3.3.2 |
 
 Package paths above are relative to `packages/`. Root structural cases that

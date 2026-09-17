@@ -10,53 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "yarn"
-
-      - name: Enable Corepack (Yarn classic)
+      - name: Enable Corepack
         run: corepack enable
-
-      - name: Install (frozen lockfile)
+      - name: Install
         run: yarn install --frozen-lockfile
-
-      - name: Typecheck
-        run: yarn turbo run typecheck
-
-      - name: Lint
-        run: yarn turbo run lint
-
       - name: Build
-        run: yarn turbo run build
-
-      # Install the ACME cross-assembler (AR-V4) so RD-15's real-ACME build E2E
-      # (ST-40) runs live in CI and the RD-17 runtime-embedding suites that skipIf
-      # ACME is undiscoverable execute for real. ACME is an assembler, not an
-      # emulator, so this is NOT an AR-27 emulator-tier violation. `apt-get update`
-      # first (PF-011) so the package index is fresh before install.
-      - name: Install ACME assembler
-        run: sudo apt-get update && sudo apt-get install -y acme
-
-      # Runs normal package tests, the bounded readiness smoke tier, and the
-      # root boundary tier. The multi-hour generated-campaign acceptance suite
-      # remains available explicitly through `yarn test:readiness:full`; it is
-      # not part of the quick development/release gate.
+        run: yarn build
+      - name: Typecheck
+        run: yarn typecheck
       - name: Test
         run: yarn test
-
-      # Informational parity scoreboard: generated vs hand-written twins.
-      # Never fails the build — the ratcheting budget tier is the gate; this
-      # step surfaces the current parity ratios in the CI log.
-      - name: twin-diff (informational)
-        run: yarn twin:diff
-        continue-on-error: true
-
-      # The committed SCOREBOARD.md must match a fresh regeneration from
-      # repo state. A stale scoreboard — or an unrouted/stale divergence
-      # group, which the generator refuses to render — fails the build;
-      # `yarn gen:scoreboard` clears it. Needs ACME + built packages only,
-      # both already present; no emulator.
-      - name: Scoreboard freshness
-        run: yarn gen:scoreboard && git diff --exit-code -- packages/test-harness/test/golden/SCOREBOARD.md

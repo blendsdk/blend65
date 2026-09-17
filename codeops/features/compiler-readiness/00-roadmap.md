@@ -1,5 +1,10 @@
 # Roadmap: Compiler Readiness
 
+> **Authority: historical reference only.** This records the inherited v3
+> work, not current v4 behavior or status. Current ownership is the
+> [v4 roadmap](../blend65-v4/00-roadmap.md); rejected operational files are
+> preserved in Git and the parked v3 checkout.
+
 > **Feature-Set**: Compiler Readiness
 > **Status**: Paused
 > **Created**: 2026-07-23

@@ -6,11 +6,12 @@
       "outputs": ["dist/**", "*.tsbuildinfo"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
-    "lint": {},
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

@@ -98,6 +98,12 @@ line break; bare CR and LF are also breaks. Host/config failures remain typed
 diagnostics. `target` may use a literal union for the exact nine IDs rather than
 the broad string shown above; no arbitrary profile object is accepted.
 
+At the scalar boundary between CR and LF, return the preceding line's content
+end (do not count CR as a character). Only after the complete CRLF does the next
+line start. This matches the ordinary LSP text-document end-of-line convention
+in [Microsoft's text-document implementation](https://github.com/microsoft/vscode-languageserver-node/blob/main/textDocument/src/main.ts).
+The byte boundary remains valid; invalid/mid-scalar offsets still throw.
+
 ## Private Test Controls
 
 Per approved PF-005, the spec author receives these declarations, not production
@@ -169,6 +175,11 @@ Validate every RD-owned key/default/type; report
 independent manifest violations without dependent cascades. Malformed syntax or
 unusable root suppresses schema/path work. Unknown keys never become extensions.
 
+The pure parser checks path field types only: `sourceRoot`/`outDir` strings
+and an ordered string array for `assetPaths`. Lexical and native/canonical path
+validation belong to Phase 2 `loadProject` below; no filesystem work or additional
+empty-string path restriction enters the pure manifest parser.
+
 Preserve exact input bytes. For a leading BOM, the parser may skip the character
 but span offsets add its three raw bytes back. Do not strip the manifest/source
 record or alter hashes. Fatal UTF-8 decoding rejects malformed input. Duplicate
@@ -177,11 +188,27 @@ object/root and carry their JSON pointer. `name` failures point to `/name` and
 escape offending code points; do not suggest a rewritten filename. R2.15 owns
 the exact predicate and accepted spelling.
 
+JSONC key/value spans cover the complete token, including surrounding quotes
+for a string. Missing-key spans cover the complete root object. Spans use
+exclusive ends and raw UTF-8 byte coordinates, including a leading BOM shift.
+
+For the pure name result, `offending` is raw input spelling, not a proposed
+replacement: null for empty; the first unpaired surrogate or forbidden scalar;
+the final character for a trailing failure; the complete dot-name; or the
+original device stem before its first period. Check in this order: empty,
+ill-formed Unicode, forbidden character, dot-name, trailing character, reserved
+device stem. The diagnostic appends a single offending scalar as uppercase
+`U+` with at least four hex digits (including lone surrogate code units).
+For a multi-character dot-name or device stem, append its JSON-escaped quoted
+spelling instead. This plan-owned signature clarification adds no name rule.
+
 Validate `entry` as a nonempty qualified ASCII module identifier using the frozen
 lexical/module identifier rules, not filenames or module-header scans. An override
 is validated the same way and recorded separately; it never repairs an invalid
 manifest. Profile IDs are the exact ordered table in `spec/15-platform-profile.md`.
 Invalid profiles instantiate E10279 exactly. No codegen/profile capability claim.
+Render its `qualified_profiles` placeholder as the ordered nine IDs joined by
+comma and space, without quotes around each ID.
 
 Standalone `parseManifest` uses source ID `blend65.json` unless explicitly supplied;
 the loader supplies the exact host-exposed relative manifest filename. Enforce
