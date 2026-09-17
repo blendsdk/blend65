@@ -1,15 +1,15 @@
 # Execution Plan: RD-02 Foundation
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-17 23:22
-> **Progress**: 13/35 tasks (37%)
+> **Last Updated**: 2026-09-18 00:01
+> **Progress**: 25/35 tasks (71%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
 
 Implement the owning RD through real behavior checkpoints, not a horizontal
 compiler skeleton. Preflight must PASS before execution. Scope/authority is
-[AR-P1–AR-P8](00-ambiguity-register.md); contracts and signatures are in the
+[AR-P1–AR-P9](00-ambiguity-register.md); contracts and signatures are in the
 three component documents. This checklist alone owns task progress.
 
 ## Implementation Phases
@@ -140,16 +140,25 @@ No CLI placeholder exists at this checkpoint.
 
 ## Phase 2: Contained Immutable Snapshot Service
 
-> **Phase baseline tree**: recorded at phase start by exec-plan
+> **Phase baseline tree**: `e3b9426a0ffaf51899f680c319ab01db11258e8e`
 > **Lenses**: path security, deterministic identity, concurrent input changes
+
+**Scope mode:** strict. Minimum design: focused internal project modules in the
+existing compiler package, no new dependency or general host framework. Expected
+modification set: compiler project types/discovery/paths/inventory/reads/snapshot
+modules, existing project diagnostic/validation helpers and their new tests;
+the small compiler test-only fixture helper;
+compiler public barrel, build metadata and truthful README API status; this
+plan's execution, index and Phase 2 evidence documents. No frozen spec, active
+expert, parked worktree, portfolio, CLI or external infrastructure changes.
 
 ### Step 2.1: Specification Tests
 
 **Reference**: `03-02`; ST-14–ST-31.
 
-- [ ] 2.1.1 [spec-author] Author native discovery/path/inventory oracles — `compiler/src/project/{discovery,paths,inventory}.spec.test.ts`; ST-14–ST-22, ST-26–ST-27.
-- [ ] 2.1.2 [spec-author] Author immutable identity/revalidation/diagnostic/no-output oracles — `compiler/src/project/{snapshot,diagnostics}.spec.test.ts`; ST-23–ST-31.
-- [ ] 2.1.3 Demonstrate directed red tests before host/snapshot implementation — Phase 2 task evidence; ST-14–ST-31.
+- [x] 2.1.1 [spec-author] Author native discovery/path/inventory oracles — `compiler/src/project/{discovery,paths,inventory,host-bounds,guarded-input}.spec.test.ts`; ST-14–ST-22, ST-26–ST-27. ✅ (completed: 2026-09-17 23:37; 65 cases authored; 45 public-API red, 20 private-seam cases awaiting collection; formatting/docs/helper typecheck pass)
+- [x] 2.1.2 [spec-author] Author immutable identity/revalidation/diagnostic/no-output oracles — `compiler/src/project/{snapshot,diagnostics,snapshot-races,retry-policy}.spec.test.ts`; ST-23–ST-31. ✅ (completed: 2026-09-17 23:41; 57 additional cases, parent formatting/docs/red checks pass; all 122 cases authored before production)
+- [x] 2.1.3 Demonstrate directed red tests before host/snapshot implementation — Phase 2 task evidence; ST-14–ST-31. ✅ (completed: 2026-09-17 23:42; 77 behavioral red failures; 45 private cases uncollected; evidence/formatting/links pass; no production preceded tests)
 
 **Verify**: Directed Phase 2 spec paths; red expected, Phase 1 remains green.
 
@@ -158,21 +167,21 @@ No CLI placeholder exists at this checkpoint.
 **Reference**: `03-02` Public Signatures/Discovery and Containment/Inventory and
 Bounds/Snapshot and Identity; AR-P4–AR-P5.
 
-- [ ] 2.2.1 Implement final source/snapshot/options/result records without mutable public buffers — `compiler/src/project/types.ts`; ST-24, ST-29–ST-31.
-- [ ] 2.2.2 Implement nearest/explicit discovery and manifest-relative containment/output-state validation — `compiler/src/project/discovery.ts`, `paths.ts`; ST-14–ST-17.
-- [ ] 2.2.3 Implement bounded exact-name inventory, aliases/cycles, and output exclusion — `compiler/src/project/inventory.ts`; ST-17–ST-22, ST-27.
-- [ ] 2.2.4 Implement bounded regular-file reads, fatal UTF-8 and handle/path identity guards — `compiler/src/project/reads.ts`; ST-20, ST-24–ST-27, ST-31.
-- [ ] 2.2.5 Implement full-attempt revalidation/retry and canonical snapshot input hashing — `compiler/src/project/snapshot.ts`; ST-23–ST-30.
-- [ ] 2.2.6 Integrate public loadProject and frozen authority/build metadata exports — compiler barrel and `build-info.ts`; `03-02` Public Signatures; ST-01, ST-29–ST-31.
-- [ ] 2.2.7 Run Phase 2 spec tests green and all Phase 1 regressions — directed new library/root suites; ST-01–ST-31.
+- [x] 2.2.1 Implement final source/snapshot/options/result records without mutable public buffers — `compiler/src/project/types.ts`; ST-24, ST-29–ST-31. ✅ (completed: 2026-09-17 23:43; documented readonly contracts; build/typecheck and 421 Phase 1 library regressions pass)
+- [x] 2.2.2 Implement nearest/explicit discovery and manifest-relative containment/output-state validation — `compiler/src/project/discovery.ts`, `paths.ts`, shared host diagnostics; ST-14–ST-17. ✅ (completed: 2026-09-17 23:45; build/typecheck/native discovery/containment/missing-output/wrong-output checks pass; full public suite pending integration)
+- [x] 2.2.3 Implement bounded exact-name inventory, aliases/cycles, and output exclusion — `compiler/src/project/inventory.ts`; ST-17–ST-22, ST-27. ✅ (completed: 2026-09-17 23:46; build/typecheck/native inventory/output exclusion/count bound/alias checks pass; full public suite pending integration)
+- [x] 2.2.4 Implement bounded regular-file reads, fatal UTF-8 and handle/path identity guards — `compiler/src/project/reads.ts`; ST-20, ST-24–ST-27, ST-31. ✅ (completed: 2026-09-17 23:48; build/typecheck/native BOM/UTF8/size/callback checks pass; full public suite pending integration)
+- [x] 2.2.5 Implement full-attempt revalidation/retry and canonical snapshot input hashing — `compiler/src/project/snapshot.ts`; ST-23–ST-30. ✅ (completed: 2026-09-17 23:51; all 45 private-control limit/race/retry/handle cases execute green; build/typecheck pass)
+- [x] 2.2.6 Integrate public loadProject and frozen authority/build metadata exports — compiler barrel, `build-info.ts` and truthful README API status; `03-02` Public Signatures; ST-01, ST-29–ST-31. ✅ (completed: 2026-09-17 23:52; all 122 Phase 2 cases pass; built public API/frozen metadata/private-control exclusion pass)
+- [x] 2.2.7 Run Phase 2 spec tests green and all Phase 1 regressions — directed new library/root suites; ST-01–ST-31. ✅ (completed: 2026-09-17 23:53; 583 total tests pass; library/root regressions, build/typecheck green)
 
 **Verify**: Directed service spec paths, library build/typecheck, and root boundary
 test. Expected user/host failures are values; no output is created.
 
 ### Step 2.3: Internal Tests and Service Checkpoint
 
-- [ ] 2.3.1 Add internal tests for directory iteration, handle cleanup, unstable reads and retry seams — focused project `*.impl.test.ts`; `07` Test Ownership.
-- [ ] 2.3.2 Run full foundation verification and independent phase review, resolve findings under policy and commit the green service — `03-02`; ST-01–ST-31.
+- [x] 2.3.1 Add internal tests for directory iteration, handle cleanup, unstable reads and retry seams — focused project `*.impl.test.ts`; `07` Test Ownership. ✅ (completed: 2026-09-17 23:55; 15 new implementation cases pass; build/typecheck/docs/diff green)
+- [x] 2.3.2 Run full foundation verification and independent phase review, resolve findings under policy and commit the green service — `03-02`; ST-01–ST-31. ✅ (completed: 2026-09-18 00:01; full install/build/typecheck/test PASS, 598 tests; native read-only trace and frozen-oracle integrity PASS; independent review no findings, simplicity PASS; local green checkpoint)
 
 **Verify**: `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 plus targeted formatting/link checks and unchanged spec/expert/output checks.

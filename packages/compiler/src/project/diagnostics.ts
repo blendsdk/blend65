@@ -16,7 +16,82 @@ export const PROJECT_CODES = Object.freeze({
   limit: "PROJECT_HOST_LIMIT",
   /** Normative compiler identity for an unqualified platform profile. */
   profile: "E10279",
+  /** Discovery found no authoritative manifest. */
+  notFound: "PROJECT_NOT_FOUND",
+  /** A required native read or directory operation failed. */
+  read: "PROJECT_READ_FAILED",
+  /** A path violates containment, type or output ownership. */
+  path: "PROJECT_PATH_INVALID",
+  /** Distinct logical input names identify one regular file. */
+  alias: "PROJECT_SOURCE_ALIAS",
+  /** A followed directory resolves to an active ancestor. */
+  cycle: "PROJECT_PATH_CYCLE",
+  /** No exact .blend input was admitted. */
+  empty: "PROJECT_EMPTY_SOURCES",
+  /** Every bounded attempt observed changing inputs. */
+  changed: "PROJECT_CHANGED",
+  /** Runtime or architecture is unsupported. */
+  unsupported: "PROJECT_HOST_UNSUPPORTED",
+  /** A supported 64-bit host lacks production qualification. */
+  bestEffort: "PROJECT_HOST_BEST_EFFORT",
 });
+
+/** Internal control flow carrying safe project diagnostics, never native error objects. */
+export class ProjectFailure extends Error {
+  /** Immutable proving failures returned by the public loader. */
+  readonly diagnostics: readonly ProjectDiagnostic[];
+  /** Preserve only sanitized structured failures. */
+  constructor(diagnostics: readonly ProjectDiagnostic[]) {
+    super("Project validation failed");
+    this.diagnostics = sortDiagnostics(diagnostics);
+  }
+}
+
+/** An observed identity/content change discards the entire current attempt. */
+export class ProjectChanged extends Error {
+  /** Carry no private source content or absolute host path. */
+  constructor() {
+    super("Project inputs changed");
+  }
+}
+
+/** Extract only a stable native error identifier, without its path or stack. */
+export function hostErrorCode(error: unknown): string | null {
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    typeof error.code === "string" &&
+    /^E[A-Z0-9_]+$/.test(error.code)
+  )
+    return error.code;
+  return null;
+}
+
+/** Convert an expected native failure; disappearance of an observed input is retryable. */
+export function throwReadFailure(error: unknown, input: string, observed = false): never {
+  const code = hostErrorCode(error);
+  if (code === null) throw error;
+  if (observed && (code === "ENOENT" || code === "ENOTDIR")) throw new ProjectChanged();
+  throw new ProjectFailure([
+    projectDiagnostic(
+      PROJECT_CODES.read,
+      "Cannot read '" + escapeDiagnosticText(input) + "': " + code,
+      null,
+      input.startsWith("/") || input.startsWith("--") ? input : null,
+    ),
+  ]);
+}
+
+/** Fail a bounded operation with its actual configured and observed counts. */
+export function checkLimit(name: string, maximum: number, observed: number): void {
+  if (observed > maximum)
+    throw new ProjectFailure([
+      projectDiagnostic(
+        PROJECT_CODES.limit,
+        "Project host limit '" + name + "' exceeded: maximum " + maximum + ", observed " + observed,
+      ),
+    ]);
+}
 
 /** Escape control/terminal characters while preserving ordinary human-readable spelling. */
 export function escapeDiagnosticText(text: string): string {

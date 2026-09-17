@@ -276,6 +276,9 @@ must catch growth beyond the checked size. Diagnostics identify limit name,
 configured maximum, and observed/attempted count. Internal test parameters may
 lower limits for small fixtures. Revalidation is separately bounded to the same
 input set and per-file caps; three attempts bound total reread work.
+The exact diagnostic limit names are the declared `ProjectLimits` keys:
+`manifestBytes`, `sourceBytes`, `totalBytes`, `sourceFiles`, `visitedEntries`,
+and `depth`. Attempt exhaustion uses `PROJECT_CHANGED`, not a limit diagnostic.
 These are host safeguards, not target memory or
 comptime limits, and add no public manifest/CLI configuration surface.
 
@@ -288,6 +291,9 @@ metadata and repeat the whole attempt from the manifest on a detected change;
 never patch one entry into a partially accepted snapshot. Revalidation must detect
 new/removed files as well as replacement/content changes. Retry only observed
 instability; invalid manifest/escape/type/limit violations fail directly.
+An input disappearing after successful resolution/inventory is observed
+instability, including immediately before open. Initial missing required paths
+and permission failures are direct typed failures. See AR-P9.
 
 Nothing becomes public until the whole attempt passes. Freeze nested records and
 arrays; source content is immutable text, never a mutable public Buffer/view.

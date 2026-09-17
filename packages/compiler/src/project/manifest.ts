@@ -18,7 +18,7 @@ import type {
 } from "./types.js";
 
 /** Qualified configuration identities; accepting one does not imply a working code generator. */
-const PROFILES = Object.freeze([
+export const PROFILES = Object.freeze([
   "c64-pal-prg-kernal-6581",
   "c64-pal-prg-kernal-8580",
   "c64-pal-prg-takeover-6581",
@@ -62,7 +62,7 @@ const REQUIRED_KEYS = ["schemaVersion", "name", "sourceRoot", "entry", "target",
 const MANIFEST_BYTES = 1_048_576;
 
 /** Check ASCII module components without opening sources or interpreting a filename. */
-function validEntry(entry: string): boolean {
+export function validEntry(entry: string): boolean {
   return entry
     .split(".")
     .every(

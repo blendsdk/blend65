@@ -69,6 +69,125 @@ export interface ProjectDiagnostic {
   readonly pointer: string | null;
 }
 
+/** Immutable decoded input with a raw-byte content hash and separate host path. */
+export interface SourceRecord {
+  /** Exact project-relative input spelling. */
+  readonly sourceId: SourceId;
+  /** Exact UTF-8 text, including any leading BOM and original line endings. */
+  readonly text: string;
+  /** Lowercase SHA-256 of the original bytes. */
+  readonly sha256: string;
+  /** Raw byte count, not UTF-16 character count. */
+  readonly byteLength: number;
+  /** Canonical host path; never an input to the combined content identity. */
+  readonly resolvedPath: string;
+}
+
+/** Complete observed and revalidated input set; not a filesystem transaction. */
+export interface ProjectSnapshot {
+  /** Exact declarative values with defaults applied. */
+  readonly manifest: ProjectManifest;
+  /** Original manifest input, without normalization. */
+  readonly manifestSource: SourceRecord;
+  /** Exact-name, bytewise-sorted accepted source inputs. */
+  readonly sources: readonly SourceRecord[];
+  /** Versioned hash of relative names, raw hashes and invocation overrides. */
+  readonly inputSha256: string;
+  /** Canonical manifest directory. */
+  readonly projectRoot: string;
+  /** Canonical source directory. */
+  readonly sourceRoot: string;
+  /** Canonical asset directories in manifest order; asset contents are not read. */
+  readonly assetPaths: readonly string[];
+  /** Validated output location, not created by loading. */
+  readonly outDir: string;
+  /** Invocation selections, kept separate from the unchanged manifest. */
+  readonly overrides: {
+    /** Explicit qualified target profile, or null if omitted. */
+    readonly target: string | null;
+    /** Explicit qualified entry module, or null if omitted. */
+    readonly entry: string | null;
+  };
+  /** Manifest target after applying a valid invocation override. */
+  readonly effectiveTarget: string;
+  /** Manifest entry after applying a valid invocation override. */
+  readonly effectiveEntry: string;
+}
+
+/** Host invocation options; paths are interpreted on the actual native host. */
+export interface ProjectLoadOptions {
+  /** Starting directory; omitted means process.cwd(). */
+  readonly cwd?: string;
+  /** Authoritative manifest selector, relative to cwd or absolute. */
+  readonly project?: string;
+  /** Invocation-only qualified target profile. */
+  readonly target?: string;
+  /** Invocation-only qualified module identity, not a filename. */
+  readonly entry?: string;
+}
+
+/** A complete immutable snapshot, or diagnostics with no usable partial input. */
+export type ProjectLoadResult =
+  | {
+      /** The complete input set passed validation and revalidation. */
+      readonly kind: "success";
+      /** Accepted immutable source and manifest records. */
+      readonly snapshot: ProjectSnapshot;
+      /** Non-error host observations excluded from input identity. */
+      readonly observations: readonly ProjectDiagnostic[];
+    }
+  | {
+      /** No snapshot is available. */
+      readonly kind: "failure";
+      /** Deterministically ordered root failures. */
+      readonly diagnostics: readonly ProjectDiagnostic[];
+    };
+
+/** Private host-safety bounds, not target resource or manifest settings. */
+export interface ProjectLimits {
+  /** Maximum raw manifest bytes. */
+  readonly manifestBytes: number;
+  /** Maximum raw bytes in each source. */
+  readonly sourceBytes: number;
+  /** Maximum unique manifest/source bytes admitted per attempt. */
+  readonly totalBytes: number;
+  /** Maximum source inputs per attempt. */
+  readonly sourceFiles: number;
+  /** Maximum visited source directory entries per attempt. */
+  readonly visitedEntries: number;
+  /** Maximum source-tree depth, with its root at zero. */
+  readonly depth: number;
+  /** Maximum complete attempts, including the first. */
+  readonly attempts: number;
+}
+
+/** Private awaited boundaries for deterministic mutation of real test fixtures. */
+export interface LoadCheckpoint {
+  /** Exact loader boundary; input boundaries also occur during revalidation. */
+  readonly phase:
+    | "after-manifest"
+    | "after-paths"
+    | "after-inventory"
+    | "before-open"
+    | "after-open"
+    | "after-read"
+    | "before-revalidation"
+    | "after-revalidation-inventory"
+    | "after-revalidation-read";
+  /** One-based complete attempt number. */
+  readonly attempt: number;
+  /** Exact input spelling, or null at an aggregate boundary. */
+  readonly sourceId: SourceId | null;
+}
+
+/** Trusted private controls; no host, reader, handle or hash is replaceable. */
+export interface ProjectLoadControls {
+  /** Integer reductions of the fixed production limits only. */
+  readonly limits?: Partial<ProjectLimits>;
+  /** Awaited fixture mutation; exceptions propagate as programmer failures. */
+  readonly onCheckpoint?: (point: LoadCheckpoint) => void | Promise<void>;
+}
+
 /** Complete manifest acceptance or diagnostics; failures never expose a partial manifest. */
 export type ManifestParseResult =
   | {

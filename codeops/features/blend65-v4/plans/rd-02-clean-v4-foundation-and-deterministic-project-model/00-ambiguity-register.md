@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-02 Foundation Planning
 
-> **Status**: ✅ GATE PASSED — all 8 items resolved; systematic review completed
+> **Status**: ✅ GATE PASSED — all 9 items resolved; systematic review completed
 > **Last Updated**: 2026-09-17
 > **CodeOps Artifact Schema**: 1
 
@@ -24,6 +24,7 @@
 | AR-P6 | Technical / verification and production hosts | Which commands and evidence determine green foundation checkpoints? | **Recommended:** retain the detected install/build/typecheck/test command roles, remove their lint/readiness/compiler ownership as required, and verify with `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`, plus targeted Prettier checks. Adapt the existing CI job to native Node 22 Linux x64 and Windows x64 runs, without ACME, VICE, scoreboard, remote cache, or new CI service. Windows simulation never substitutes for native evidence. | Detected root scripts and the user's impact-based verification directive, R2.27, and accepted requirements AR-048; project directives 1 and 4 authorize green checkpoints and plan-owned command selection without a further prompt. | ✅ Resolved |
 | AR-P7 | Technical / execution decomposition | How is the foundation delivered without another large framework-first plan? | **Recommended:** three phases: green toolchain plus complete pure manifest/diagnostic behavior and rejected-surface removal; contained discovery/inventory/snapshot service; truthful CLI, native-host integration, focused qualification, and deferral closeout. Each phase uses spec tests/red, implementation/green, then internal tests/verification. Coherent outcome tasks, not a task per field or failure vector. | Plan-owned sequencing under project directive 4, within the user-confirmed RD-02 scope. | ✅ Resolved |
 | AR-P8 | Technical (runtime) / private test signature and name result representation | Independent test author needs the boundary helper signature and exact `offending` value/escaping order. | **Recommended:** one private `inspectImportBoundary(root)` returning violation strings; raw offending input in the pure name result, fixed predicate priority and diagnostic Unicode/JSON escaping, as clarified in `03-01`/`03-02`. No new name predicate, public API, test framework, dependency or support layer. | Plan-owned technical clarification on 2026-09-17 under the user's overriding directive 4; not a claimed user vote or auto-design delegation. | ✅ Resolved |
+| AR-P9 | Technical (runtime) / limit labels and observed disappearance | Independent Phase 2 author needs exact diagnostic limit names and classification of a previously resolved input disappearing before open. | **Recommended:** diagnostic limit names are the existing `ProjectLimits` property names. Disappearance after successful resolution/inventory is observed instability and discards the whole attempt; initial missing/unreadable required paths are direct typed host failures. | Plan-owned representation clarification on 2026-09-17 under the user's overriding directive 4. Existing bounded-read/retry contracts, not new behavior or machinery. | ✅ Resolved |
 
 ## Evidence and Resolution Notes
 
@@ -132,3 +133,18 @@ The independent test author owns the narrow correction; no manifest/name/positio
 or import-boundary expectation changes. Existing CI checkout must fetch the
 history needed by the portable lineage/inventory checks. No fake worktree,
 additional CI service, dependency or custom runner is authorized.
+
+## Runtime Clarification — AR-P9
+
+The limit diagnostic uses `manifestBytes`, `sourceBytes`, `totalBytes`,
+`sourceFiles`, `visitedEntries`, or `depth`, matching the declared limit rather
+than inventing a second vocabulary. The existing pure parser already reports
+`manifestBytes`. Attempt exhaustion retains the separate `PROJECT_CHANGED`
+message with the actual complete-attempt count.
+
+A source or manifest that disappears after this attempt successfully resolved
+or inventoried it has changed during loading. Discard that attempt and retry
+from the manifest; one-attempt exhaustion reports `PROJECT_CHANGED`. A missing
+explicit manifest or required directory at its initial resolution is a direct
+typed host/path failure, not evidence of a changing attempt. Permission failures
+and invalid schema/type/containment/limit violations remain direct failures.

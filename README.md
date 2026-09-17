@@ -8,8 +8,9 @@ goals. This checkout is the clean v4 rebuild, not the operational v3 compiler.
 
 The language specification is frozen at **4.0**. The Phase 1 library provides
 pure JSONC manifest validation, exact project-name validation, structured
-diagnostics and UTF-8 byte-position conversion. RD-02 project loading and the CLI
-are still later work; do not treat this foundation as a usable compiler.
+diagnostics and UTF-8 byte-position conversion. The library also loads contained,
+immutable project snapshots through `loadProject`, with exact input hashes and
+bounded retries. The CLI is still later work; this is not yet a usable compiler.
 
 This foundation does not compile Blend65 source, emit assembly, assemble binaries,
 or run emulators. Recognizing a target profile in a manifest is not a claim that

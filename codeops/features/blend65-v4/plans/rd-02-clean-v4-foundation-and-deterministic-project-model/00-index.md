@@ -1,7 +1,7 @@
 # RD-02 Foundation Implementation Plan
 
 > **Feature**: Clean v4 foundation and deterministic project loading
-> **Status**: Executing — Phase 1 complete; next is the contained project-loading service
+> **Status**: Executing — Phases 1–2 complete; next is the CLI and native host qualification
 > **Created**: 2026-09-17
 > **Implements**: blend65-v4/RD-02
 > **CodeOps Artifact Schema**: 1
@@ -40,6 +40,7 @@ No new complexity escalation is introduced by this plan.
 | [Current state](02-current-state.md) | Observed inherited implementation and risks |
 | [Salvage inventory](04-salvage-inventory.md) | Complete inherited-path decisions and actual checkpoint bindings |
 | [Phase 1 evidence](05-phase-1-verification.md) | Red/green verification, immutable test hashes and independent review |
+| [Phase 2 evidence](06-phase-2-verification.md) | Entry checks and contained-service execution evidence |
 | [Foundation transition](03-01-foundation-transition.md) | Inventory, removals, packages, toolchain, and boundary proof |
 | [Project service](03-02-project-service.md) | Manifest, paths, snapshots, hashes, diagnostics, and public signatures |
 | [CLI and qualification](03-03-cli-and-qualification.md) | Truthful command shell, host evidence, and closeout |
