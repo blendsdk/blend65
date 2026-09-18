@@ -24,7 +24,7 @@ are later R3.11–R3.15 work, not speculative files here (AR-P2).
 ```typescript
 indexModules(snapshot: ProjectSnapshot): ModuleIndexResult;
 resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): ModuleGraphResult;
-analyzeModules(snapshot: ProjectSnapshot, graph: ModuleGraph): AnalysisResult;
+analyzeModules(snapshot: ProjectSnapshot, graph: ModuleGraph): ModuleAnalysisResult;
 analyzeProject(snapshot: ProjectSnapshot): AnalysisResult;
 ```
 
@@ -32,6 +32,110 @@ Intermediate results retain stage diagnostics/poison/unchecked obligations but
 are not a `TypedProgram`. Use readonly discriminated unions and constants for
 result/node discriminators. Test authors receive these contracts and syntax/type
 definitions, not implementation files (AR-P4).
+
+## Frozen Semantic Observations
+
+PF-001 correction: these readonly fields are fixed in the plan before the owning
+phase's blind author starts. Tests use the direct stage results and typed syntax,
+not a new query/accessor API. Source syntax contracts remain in the source/syntax
+component. Extra implementation bookkeeping is not part of the immutable oracle.
+
+### Phase 3: Modules
+
+`ModuleIndexResult = { index: ModuleIndex, diagnostics: readonly ProjectDiagnostic[],
+complete: boolean, obligations: readonly AnalysisObligation[] }`.
+`ModuleIndex = { modules: readonly { name: string, contributions: readonly
+{ sourceId: string, header: ModuleHeader }[] }[] }`.
+`ModuleGraphResult = { graph: ModuleGraph | null, diagnostics: readonly ProjectDiagnostic[],
+complete: boolean, obligations: readonly AnalysisObligation[] }`.
+An available graph is an intermediate observation, not semantic acceptance.
+`ModuleGraph` has `modules: readonly { name: string, units: readonly SyntaxUnit[] }[]`,
+`bindings: readonly Binding[]`, `imports: readonly { sourceSpan: SourceSpan,
+alias: string, binding: BindingId }[]`, and `entry: BindingId | null`.
+`BindingId = { sourceId: string, span: SourceSpan }`; compare IDs by their fields,
+not object identity. `Binding` has `id`, `name`, `qualifiedName: string | null`,
+`declaration: SourceSpan`, `exported: boolean` and `storage: "module" | "local" |
+"parameter" | "constant" | "function" | "type"`.
+In body analysis, bindings additionally have `type: SemanticType | null`; null
+is used for declarations that cannot supply an accepted type, never an inferred
+substitute. Module indexing does not claim resolved body types.
+Module lists sort by ASCII name; contribution/unit lists sort by sourceId's UTF-8
+bytes. Binding/import lists sort by their declaration/import source span. These
+orders expose deterministic source facts, not initializer scheduling (PF-002).
+
+### Phases 4–5: Typed Bodies, Constants and Aggregates
+
+`analyzeModules` is the phase 4/5 test entry; only `analyzeProject` orchestration
+waits until phase 6. `ModuleAnalysisResult` has `modules`, `bindings`, `types`,
+`declarations`, `calls`, `diagnostics`, `obligations` and `complete`. Collections
+are readonly; `complete` means body/type/flow checking finished, not whole-program
+acceptance. Diagnostics and obligations use the existing types. Rejected or
+unchecked declarations have `{ kind: "poison" | "unchecked", binding: BindingId,
+span: SourceSpan }`, not usable typed bodies. Checked declarations have
+`kind: "typed"` plus the fields below. Independent checked siblings remain
+observable in this internal intermediate result; it never carries a `program`.
+The final `TypedProgram` reuses only checked module-analysis facts and additionally
+has `effects` and `initializerOrder`. No poisoned declaration can enter it.
+Module/binding identities reuse the graph records above; local/parameter bindings
+are added by body analysis. Declarations remain in module/source order and have
+`binding: BindingId`, `type: SemanticType`, `initializer: TypedExpr | null` and
+`body: TypedBlock | null`. Function declaration type is its scalar return type;
+its signature is retained on call nodes and parameter bindings.
+
+| Semantic type `kind` | Fields |
+|---|---|
+| `scalar` | `name: "byte" | "sbyte" | "word" | "sword" | "boolean" | "void"` |
+| `struct` | `binding: BindingId`, `size: number`, `fields: readonly { name: string, type: SemanticType, offset: number }[]` |
+| `array` | `element: SemanticType`, `length: number`, `size: number` |
+
+Typed expressions/blocks retain the exact syntax `kind`, ordered children and
+spans, replacing expression children with typed children. Each `TypedExpr` adds
+`type: SemanticType`, `constant: bigint | boolean | null`, `binding: BindingId | null`,
+`place: Place | null` and `conversion: "identity" | "zero-extend" | "sign-extend" |
+"truncate" | "reinterpret" | null`. `constant` means the expression's exact
+value is proved in its own context; null never stands for a fabricated value.
+An integer expression also has `integer: { width: 8 | 16, signed: boolean,
+wrap: boolean } | null`; true constant-context arithmetic uses full precision
+before final type validation, so `wrap` is false there.
+`Place = { binding: BindingId, path: readonly (string | TypedExpr)[], readonly: boolean }`;
+field names and index expressions retain one symbolic place, not a concrete address.
+The typed cast retains its source target as `targetType: TypeSyntax` while `type`
+is its resolved semantic type. Syntax names are not overloaded as resolved IDs.
+
+For an assignment, `evaluation` is the fixed sequence `place, rhs, store, result`
+or, for compound assignment, `place, old-read, rhs, operation, store, result`.
+The existing target/value children occur once; `result` means reuse the written
+value, not reload storage. A conditional has `evaluation: "selected-arm"`;
+logical binary expressions have `evaluation: "short-circuit"`; other binary
+expressions and calls have `evaluation: "left-to-right"`. A typed `for` adds `continueTarget: "update"` and
+`breakTarget: "exit"`; return bypasses update. Raw memory call nodes add
+`memory: { volatile: true, access: "read" | "write", width: 1 | 2,
+byteOrder: "low-first" }`; other calls have `memory: null`.
+Resolved calls have `signature: { parameters: readonly { type: SemanticType,
+readonly: boolean }[], returnType: SemanticType }`, preserving source argument order.
+Queries expose their folded result through `constant` and word `type`.
+Typed `sizeof`/`offsetof` retain their source `TypeSyntax` operand and add
+`operandType: SemanticType`; typed `length` replaces its expression operand with
+a `TypedExpr`. These are the existing query nodes, not a separate query service.
+Arrays' typed literal nodes add `initialized: readonly { start: number, end: number }[]`
+for half-open element ranges, and `fill.constant` when a fill is present. No fill
+expansion or zero storage is needed to inspect these facts.
+
+`calls` contains `{ caller: BindingId, callee: BindingId, span: SourceSpan }` edges
+in source order. Each effect summary has `function: BindingId`, `reads: readonly Place[]`,
+`writes: readonly Place[]`, `opaque: boolean`. `initializerOrder` contains
+module variable BindingIds in the proved startup order. Effects/order are completed
+in phase 6, not fabricated as empty arrays to satisfy earlier tests. Phase 4/5
+tests inspect `ModuleAnalysisResult` directly; they neither expect a `TypedProgram`
+nor imply that initialization/effect scheduling has already finished.
+
+### Phase 6: Results and Outstanding Work
+
+The complete/error/incomplete union in Service boundary is unchanged.
+`AnalysisObligation = { kind: "syntax" | "implementation" | "dependency" |
+"profile" | "asset" | "analysis-limit", span: SourceSpan | null, message: string }`.
+`TypedProgram.effects` and `initializerOrder` are now qualified by ST-41/ST-42.
+Tests inspect this payload directly; they do not execute it or claim machine costs.
 
 ## Admitted Slice
 
@@ -199,6 +303,9 @@ source associations, symbolic storage class, place identity, conversions, wrap,
 volatility, access order and control structure. It contains no poison, unchecked
 node, host absolute path, MMIO constant, opcode, segment, address or SFA home.
 Only the complete branch exposes it; intermediate partial facts stay internal.
+The phase-local `ModuleAnalysisResult` is such an internal intermediate result,
+not another branch that exposes a typed program. `analyzeProject` combines its
+checked facts with completed effects/scheduling before constructing `TypedProgram`.
 
 ## Testing and Evidence Limits
 

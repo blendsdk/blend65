@@ -1,10 +1,11 @@
 # Preflight Report: RD-03 Frontend First
 
-> **Status**: ❌ BLOCKED — 3 major findings require plan corrections and verification
-> **Iteration**: 1 — first scan
+> **Status**: ✅ PREFLIGHT PASSED — all 3 findings resolved
+> **Iteration**: 2 — bounded corrective rescan; no new findings
 > **Artifact**: Full partial-RD implementation plan; eight documents in `codeops/features/blend65-v4/plans/rd-03-frontend-first/`
-> **Audited revision**: `26b258250eb6968b723e6ed56fe62ab04d17c8cc`
-> **Audited directory tree**: `e1e9bf547a75ac85ddfdac216c6ff8deeaee97ef` — before this report; all eight document blobs unchanged
+> **Iteration 1 revision**: `26b258250eb6968b723e6ed56fe62ab04d17c8cc`
+> **Iteration 1 directory tree**: `e1e9bf547a75ac85ddfdac216c6ff8deeaee97ef`
+> **Iteration 2 content SHA256**: `37e7e8ec207db549b0f151bafa33283c032a6de3341fb3fc6c344013a5066163`
 > **Codebase Grounded**: 6 source/support files, 2 test files and 7 manifest/configuration files examined; 28 local link targets verified
 > **Last Updated**: 2026-09-18
 > **CodeOps Artifact Schema**: 1
@@ -30,9 +31,10 @@ dependency, generic IR, pass registry, harness or infrastructure. CLI/editor,
 assets/profiles, backend/SFA and full M1 acceptance remain outside this partial plan.
 AR-P1–AR-P7 and Windows DEF-1 were respected, not reopened.
 
-This invocation authorizes review evidence and derived roadmap updates, not fixes
-to the plan. No implementation, tests, frozen authority or context requirement
-has been modified. Findings remain open until the corrections are applied and checked.
+Iteration 1 authorized review evidence and derived roadmap updates, not fixes.
+For iteration 2, the user answered "you may" to the explicit request to apply
+PF-001–PF-003 and re-check. Only the plan and derived feature roadmap changed.
+No implementation, tests, frozen authority or context requirement was modified.
 
 ## Codebase Context Summary
 
@@ -50,9 +52,10 @@ script or emulator is required for this review.
 Direct artifact checks passed: eight documents, 76 headings, 28 existing local
 link targets, 64 unique task identifiers and 48 ST rows. Six phases contain
 specification-first ordering. All seven ambiguity entries are resolved.
-These structural passes do not override the semantic findings below.
+These iteration 1 structural passes did not override the findings below.
+Iteration 2 repeats the structural checks on the corrected documents.
 
-## Summary by Dimension
+## Iteration 1 Summary by Dimension
 
 Counts identify each root cause by its primary dimension; related dimensions do
 not duplicate findings.
@@ -81,7 +84,7 @@ truthful incomplete results against the raw governing chapters.
 | Severity | Count | State |
 |---|---|---|
 | 🔴 CRITICAL | 0 | — |
-| 🟠 MAJOR | 3 | Open; corrections not applied |
+| 🟠 MAJOR | 3 | Resolved and verified in iteration 2 |
 | 🟡 MINOR | 0 | — |
 | 🔵 OBSERVATION | 0 | — |
 
@@ -116,11 +119,19 @@ ownership but does not remove the needed step. A new observation framework is
 unnecessary and was rejected.
 
 **Resolution authority:** Plan-owned technical correction under overriding project
-workflow directive 4; recommended A selected. **User Decision:** No request to
-apply corrections yet. No public contract or scope change is proposed.
+workflow directive 4; recommended A selected. **User Decision:** "you may"
+authorized application and verification on 2026-09-18. No public contract or scope change.
 **Fix verification:** A blind author can write the required typed assertions from
 the supplied plan contract without opening production frontend files or guessing
-tested field names. **State:** Open — unapplied.
+tested field names. **State:** Resolved — verified in iteration 2.
+
+**Iteration 2 evidence:** Exact token, syntax, module and typed-body fields are
+frozen in the existing two component documents and required in every author packet.
+`analyzeModules` exposes internal intermediate facts without a typed program.
+The soundness rescan found a residual of this same root: `sizeof(byte[2])` could
+not use an expression-only call argument. The syntax table now supplies the
+three query nodes required by grammar §7.3, with matching typed observations.
+Independent soundness and fit rechecks verified that residual closed. No new API.
 
 Confidence: High. Hardening: narrowed to fields the tests actually observe.
 Challenger: converged; strongest counterargument is author-proposed contracts,
@@ -164,10 +175,16 @@ but discards the plan's useful per-phase GREEN checkpoints. Moving semantics int
 the lexer/parser was rejected because it breaks responsibility ownership.
 
 **Resolution authority:** Plan-owned technical correction under project directive 4;
-recommended A selected. **User Decision:** No request to apply corrections yet.
+recommended A selected. **User Decision:** "you may" authorized application and verification.
 **Fix verification:** Every required assertion maps to an implementation available
 at its GREEN checkpoint; no overall case expectation is lost.
-**State:** Open — unapplied.
+**State:** Resolved — verified in iteration 2.
+
+**Iteration 2 evidence:** ST-3 preserves lexical assertions in phase 1, reserved
+`type` syntax in phase 2 and declaration errors in phase 4. ST-17 schedules
+initializers only in phase 6. ST-45 checks parser recovery in phase 2 and retained
+independent semantic errors in phase 6. Both testing and task mappings agree.
+Phase 4/5 body tests use the direct internal result, not the phase 6 service.
 
 Confidence: High. Hardening: three symptoms merged into one sequencing root cause.
 Challenger: converged; deferring all early qualification is the strongest but
@@ -207,10 +224,15 @@ need and was rejected. A machine runner, interpreter or backend assertion is not
 needed to prove these frontend obligations.
 
 **Resolution authority:** Plan-owned technical correction under project directive 4;
-recommended A selected. **User Decision:** No request to apply corrections yet.
+recommended A selected. **User Decision:** "you may" authorized application and verification.
 **Fix verification:** Existing scalar tests distinguish the wrong rounding/sign,
 constant-zero exception/value and fabricated runtime-fold behaviors above.
-**State:** Open — unapplied.
+**State:** Resolved — verified in iteration 2.
+
+**Iteration 2 evidence:** ST-23 now fixes four signed quotient/remainder vectors,
+both constant-zero diagnostic cases and unknown-parameter runtime operations.
+Phase 4 author/implementation tasks explicitly own these rows. No machine
+runner, runtime-zero bit expectation or reaching-local-zero ruling was added.
 
 Confidence: High. Hardening: runtime assertions narrowed to frontend-provable
 parameter-divisor operations. Challenger: converged; relying on authors to discover
@@ -253,12 +275,53 @@ No assembly, SFA, artifact, runtime, timing or parity claim is made.
 
 Markdown-only verification checks formatting, local links, identifiers, audit
 identity and unchanged frozen trees. The compiler suite is not rerun for this
-report. The roadmap stays at Plan Created; this report is not a passing gate.
+Markdown-only checkpoint. Iteration 1 stayed at Plan Created; iteration 2 advances
+only the partial frontend plan to Plan Preflighted. RD-03 is not complete.
+
+## Iteration 2 Corrective Review
+
+The unchanged eight-document target was rescanned across all 13 dimensions and
+the compiler/language lens. All three original findings are resolved; there are
+zero new or carried-forward findings. The lead also checked the corrective diff
+for lost assertions, invented acceptance, operand-shape conflicts and extra scope.
+
+| Cluster | Dimensions | Reviewer | Result |
+|---|---|---|---|
+| Soundness | 1, 3, 12 | `frontend_pf_soundness` | PF-001 residual closed; no remaining findings |
+| Grounding | 2, 13 | `preflight_findings_challenge` | No findings |
+| Delivery | 4, 5, 11 | `preflight_delivery` | No findings |
+| Risk | 6, 8, 9 | `preflight_findings_challenge` | No findings |
+| Fit / simplicity | 7, 10 | `preflight_delivery` | No findings |
+| Compiler/language | Selected domain lens | `frontend_pf_soundness` | No findings |
+
+The remedies are direct fields in existing contracts, corrected phase ownership
+and ordinary scalar parameter rows. Task count remains 64 and case IDs remain
+ST-1–ST-48. No framework, dependency, workspace, runtime or product scope was added.
+All execution tasks remain unchecked. Passing this plan proves no implemented
+frontend behavior, native Windows qualification, expert parity or full M1 delivery.
+
+Audit identity is SHA256 of the UTF-8 concatenation of sorted records
+`<filename> <file-SHA256>\n` for the eight target documents: `00-index.md`,
+`00-ambiguity-register.md`, `01-requirements.md`, `02-current-state.md`,
+`03-01-source-and-syntax.md`, `03-02-semantic-analysis.md`, `07-testing-strategy.md`
+and `99-execution-plan.md`. The report and temporary notes are excluded to avoid
+a self-referential hash. The frozen authority lineage above is unchanged.
+
+Final structural checks passed for the eight target documents, report and feature
+roadmap: 46 local links/anchors, 64 unique unchecked tasks, 48 ordered ST rows,
+seven resolved ARs and six specification-first phases. The read-only plan helper
+reports Ready with no problems. Targeted Prettier and Git whitespace checks pass;
+the specification and expert trees remain identical to the freeze checkpoint.
+
+The feature roadmap was updated immediately. Portfolio cascade is deferred on
+`feature/v4-rebuild`, a non-integration branch; no portfolio file was changed.
+The counter engine confirms no feature-counter drift. Its only drift is the
+known portfolio roll-up (`0/10` versus `1/10` and the RD-02 blocked status), which
+must be reconciled on integration rather than written from this branch.
 
 ## Next Steps
 
 | Action | Owner |
 |---|---|
-| Request application of the three bounded plan corrections | User |
-| Apply only those plan changes and run a bounded corrective rescan | Agent, after that request |
-| Start lexer specification tests after the plan passes | Agent |
+| Start phase 1 lexer specification tests when execution is requested | Agent |
+| Supply native Windows access later for RD-02 DEF-1 | User; agent then qualifies |

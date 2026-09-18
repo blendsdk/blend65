@@ -82,6 +82,14 @@ overlay, not a code published by frozen Specification 4.
 
 ## Discovery Findings to Carry Into the Plan
 
+Corrective preflight authority, 2026-09-18: the user answered "you may" to the
+explicit request to apply PF-001–PF-003 and re-check. The existing component docs
+now freeze the fields independent authors inspect, distinguish internal module
+analysis from final program acceptance, place semantic assertions in their owning
+phases and prescribe signed division/remainder and zero-divisor rows. These are
+corrections within AR-P4–AR-P7, not new scope or public API decisions. The preflight
+report owns their resolution evidence; no extra register or tooling is added.
+
 The independently checked minimum result boundary separates completed analysis,
 proven errors and incomplete obligations. Incomplete analysis retains independently
 proven diagnostics but exposes no usable typed program. Missing asset/profile

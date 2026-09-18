@@ -1,7 +1,7 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-18 13:06
+> **Last Updated**: 2026-09-18 14:51
 > **Progress**: 0/64 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
@@ -39,6 +39,13 @@ approved component contracts and the referenced ST rows; all production
 `frontend/` implementation files are forbidden to that author. Record behavioral
 red, then implement, prove green, add separate implementation tests and qualify.
 Existing unchanged specification tests remain immutable.
+The source/syntax and semantic components now freeze exact test-visible fields
+before authoring (PF-001). Include the owning phase's contract tables in every
+author packet; never ask authors to derive field names from implementation.
+Early phase tests assert only their stage's behavior. ST-3, ST-17 and ST-45
+semantic assertions run in their later owning phases (PF-002); no assertions
+are silently dropped. Phase 4/5 use the internal module-analysis entry, not the
+phase 6 whole-analysis service or an invented successful typed program.
 
 Strict scope, independent review and minimum one reviewer are active in
 `codeops/codeops.json`. Phase quality packets include these component/ST/AR
@@ -57,7 +64,7 @@ financial/tenant/MCP security profile. Do not import irrelevant auditor checklis
 
 Reference: [Source/syntax §Tokens](03-01-source-and-syntax.md#tokens-and-source-coordinates), AR-P4–AR-P6.
 
-- [ ] 1.1.1 [spec-author] Write ST-1–ST-6 — `frontend/lexer.spec.test.ts`.
+- [ ] 1.1.1 [spec-author] Write ST-1–ST-6 lexical assertions only; use frozen phase 1 fields — `frontend/lexer.spec.test.ts`.
 - [ ] 1.1.2 Verify newly specified lexical behavior is red; record pre-existing passes — `frontend/lexer.spec.test.ts`.
 
 ### Step 1.2: Implementation
@@ -85,7 +92,7 @@ Verify: phase qualification and touched formatting from [Testing](07-testing-str
 Reference: [Source/syntax §Parsing](03-01-source-and-syntax.md#parsing-and-syntax), AR-P3–AR-P6.
 
 - [ ] 2.1.1 [spec-author] Write ST-7–ST-9 — `frontend/expressions.spec.test.ts`.
-- [ ] 2.1.2 [spec-author] Write ST-10–ST-14 and ST-45 — `frontend/parser.spec.test.ts`.
+- [ ] 2.1.2 [spec-author] Write ST-10–ST-14, ST-45 syntax/recovery and ST-3 reserved `type` use; use frozen phase 2 fields — `frontend/parser.spec.test.ts`.
 - [ ] 2.1.3 Verify both new syntax tiers are behaviorally red — `frontend/expressions.spec.test.ts`, `frontend/parser.spec.test.ts`.
 
 ### Step 2.2: Implementation
@@ -115,7 +122,7 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 Reference: [Semantics §Module graph](03-02-semantic-analysis.md#module-graph-and-binding), AR-P4–AR-P5.
 
-- [ ] 3.1.1 [spec-author] Write ST-15–ST-18 — `frontend/modules.spec.test.ts`.
+- [ ] 3.1.1 [spec-author] Write ST-15–ST-18 module/entry assertions only, excluding ST-17 initializer scheduling; use frozen phase 3 fields — `frontend/modules.spec.test.ts`.
 - [ ] 3.1.2 Verify module/entry cases are red — `frontend/modules.spec.test.ts`.
 
 ### Step 3.2: Implementation
@@ -142,14 +149,14 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 Reference: [Semantics §Types](03-02-semantic-analysis.md#types-constants-and-ordered-expressions) and §Structured flow, AR-P4–AR-P6.
 
-- [ ] 4.1.1 [spec-author] Write ST-19–ST-25 — `frontend/scalars.spec.test.ts`.
+- [ ] 4.1.1 [spec-author] Write ST-19–ST-25 including ST-23 division/remainder rows and ST-3 reserved declaration; use frozen phase 4 fields — `frontend/scalars.spec.test.ts`.
 - [ ] 4.1.2 [spec-author] Write ST-26–ST-29 — `frontend/flow.spec.test.ts`.
 - [ ] 4.1.3 Verify scalar/flow behavior is red — `frontend/scalars.spec.test.ts`, `frontend/flow.spec.test.ts`.
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Implement body binding/scopes and exact scalar type facts — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-19–ST-21.
-- [ ] 4.2.2 Implement exact constant integer operations and context/range validation — `frontend/constants.ts`; ST-22–ST-23.
+- [ ] 4.2.1 Implement internal analyzeModules/result contracts, body binding/scopes and exact scalar type facts — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-19–ST-21, ST-3 reserved declaration.
+- [ ] 4.2.2 Implement exact constant integer operations and context/range validation, signed division/remainder and structured constant-zero errors — `frontend/constants.ts`; ST-22–ST-23.
 - [ ] 4.2.3 Implement runtime widths, conversions, casts and wrap warning predicates — `frontend/analyzer.ts`, `frontend/constants.ts`; ST-21–ST-23.
 - [ ] 4.2.4 Preserve scalar assignment/place order, short circuit and conditional structure — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-24.
 - [ ] 4.2.5 Implement direct/nested call signatures and independent argument recovery — `frontend/analyzer.ts`; ST-25.
@@ -206,8 +213,8 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 Reference: [Semantics §Effects](03-02-semantic-analysis.md#effects-and-initializer-schedule) and §Service boundary, AR-P4–AR-P7.
 
-- [ ] 6.1.1 [spec-author] Write ST-41–ST-42 — `frontend/effects.spec.test.ts`.
-- [ ] 6.1.2 [spec-author] Write ST-43–ST-44, ST-46 and ST-48 — `frontend/service.spec.test.ts`; reuse existing ST-47 root cases.
+- [ ] 6.1.1 [spec-author] Write ST-41–ST-42 and ST-17 initializer-order assertions; use frozen phase 6 fields — `frontend/effects.spec.test.ts`.
+- [ ] 6.1.2 [spec-author] Write ST-43–ST-44, ST-46, ST-48 and ST-45 independent-error retention; use frozen phase 6 fields — `frontend/service.spec.test.ts`; reuse existing ST-47 root cases.
 - [ ] 6.1.3 Verify service/effect behavior is red — `frontend/effects.spec.test.ts`, `frontend/service.spec.test.ts`.
 
 ### Step 6.2: Implementation

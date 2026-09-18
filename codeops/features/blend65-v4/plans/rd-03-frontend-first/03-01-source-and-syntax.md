@@ -32,6 +32,91 @@ readModuleHeader(source: SourceRecord): HeaderResult;
 project types, with type-only imports. No filesystem, target/backend module,
 compiler-root barrel or external tool is imported into `frontend/`.
 
+## Frozen Test-Visible Contracts
+
+PF-001 correction, authorized by the user on 2026-09-18. The following fields
+are fixed before specification authors start; implementation tasks realize them
+later. All records/arrays are readonly. This specifies only direct service data,
+not another representation, accessor layer or public package API.
+
+### Phase 1: Tokens
+
+`LexResult = { tokens: readonly Token[], diagnostics: readonly ProjectDiagnostic[],
+complete: boolean, poisoned: readonly SourceSpan[] }`. A `Token` has `kind`, `span`,
+`line`, `column` and `payload`. Kinds use the exact Chapter 01 §12 names.
+Payload is `null` except for the following closed variants:
+
+| Payload `kind` | Fields |
+|---|---|
+| `number` | `value: bigint` — normalized nonnegative integer |
+| `identifier` | `text: string` — exact ASCII identifier |
+| `literal` | `items: readonly LiteralItem[]` — string/character content in source order |
+
+`LiteralItem` has `span` and `kind`: `scalar` has `value: string` containing one
+Unicode scalar; `escape` has `value: string` containing its exact two-character
+source spelling; `byte` has `value: number` in 0..255 for `\xNN`. Invalid regions
+are recorded in `poisoned`; no valid token payload substitutes for invalid input.
+Lexical completion and errors remain independent, as described below.
+
+### Phase 2: Syntax
+
+`ParseResult = { unit: SyntaxUnit | null, diagnostics: readonly ProjectDiagnostic[],
+complete: boolean, unchecked: readonly SourceSpan[] }`.
+`HeaderResult = { header: ModuleHeader | null, diagnostics: readonly ProjectDiagnostic[],
+complete: boolean }`; this is header-only discovery, not body validation.
+`SyntaxUnit` has `span`, `header: ModuleHeader | null`, `imports` and `declarations`.
+Every syntax node/parameter/field/import item has its raw `span`; every named
+declaration/parameter/field has `name: string` and `nameSpan: SourceSpan`.
+
+| Node `kind` | Additional test-visible fields |
+|---|---|
+| `module` | `name: string`, `nameSpan` — full qualified module name |
+| `import` | `module: string`, `moduleSpan`, `items: readonly { name, nameSpan, alias: string | null, aliasSpan: SourceSpan | null, span }[]` |
+| `named-type` | `name: string` — primitive or qualified nominal name |
+| `array-type` | `element: TypeSyntax`, `extent: Expr | null` — null is contextual `T[]`, not a runtime extent |
+| `number` / `boolean` / `literal` | `value: bigint` / `value: boolean` / `items: readonly LiteralItem[]`, respectively |
+| `name` | `name: string` |
+| `unary` | `operator: string`, `operand: Expr` |
+| `binary` | `operator: string`, `left: Expr`, `right: Expr` |
+| `conditional` | `condition: Expr`, `whenTrue: Expr`, `whenFalse: Expr` |
+| `cast` | `type: TypeSyntax`, `operand: Expr` |
+| `assignment` | `operator: string`, `target: Expr`, `value: Expr` |
+| `call` | `callee: Expr`, `arguments: readonly Expr[]` |
+| `sizeof` | `operand: TypeSyntax` |
+| `offsetof` | `operand: TypeSyntax` — a `named-type` for the qualified struct name; `field: string`, `fieldSpan: SourceSpan` |
+| `length` | `operand: Expr` |
+| `index` | `object: Expr`, `index: Expr` |
+| `member` | `object: Expr`, `member: string`, `memberSpan` |
+| `array-literal` | `elements: readonly Expr[]`, `fill: Expr | null` |
+| `struct-literal` | `fields: readonly { name, nameSpan, value: Expr, span }[]` |
+| `variable` | `declarationKind: "let" | "const"`, `exported: boolean`, `type: TypeSyntax | null`, `initializer: Expr | null` |
+| `function` | `exported: boolean`, `parameters: readonly { name, nameSpan, type: TypeSyntax | null, readonly: boolean, span }[]`, `returnType: TypeSyntax | null`, `body: Block` |
+| `struct` | `exported: boolean`, `fields: readonly { name, nameSpan, type: TypeSyntax, span }[]` |
+| `block` | `statements: readonly Statement[]` |
+| `expression-statement` | `expression: Expr` |
+| `if` | `condition: Expr`, `then: Block`, `otherwise: Block | IfStatement | null` |
+| `while` | `condition: Expr`, `body: Block` |
+| `for` | `initializer: VariableDeclaration | readonly Expr[] | null`, `condition: Expr | null`, `update: readonly Expr[] | null`, `body: Block` |
+| `break` / `continue` / `return` | No extra fields / no extra fields / `value: Expr | null`, respectively |
+| `poison` / `unchecked` | `span` only; never an accepted semantic operand |
+
+`TypeSyntax`, `Expr`, `Statement`, `Block` and the named declaration types denote
+the corresponding closed unions/records above. A local variable node is also a
+statement. `poison`/`unchecked` may occupy recovered syntax positions; their use
+always prevents an accepted typed program. Operator strings are exact Chapter 04
+spellings, not an extensible operator registry. Parentheses preserve grouping in
+the child structure; they introduce neither a node kind nor a narrowing barrier.
+Ordered children remain in source order. An omitted annotation is null only in
+diagnostic recovery; it is never inferred into valid syntax.
+The three query nodes follow the distinct operand productions in the frozen
+grammar §7.3. They are expressions, but a `sizeof` type operand is not an
+ordinary call argument; parsing these forms requires no symbol-table lookup.
+
+ST-7 inspects `assignment.value` and `binary.left/right`; ST-9 inspects
+`call.arguments`, `member.object` and `index.object`. ST-10 inspects the nullable
+for clauses and ordered lists. Parser-only recovery asserts preserved sibling
+nodes and syntax diagnostics; semantic errors are qualified later (PF-002).
+
 ## Tokens and Source Coordinates
 
 Chapter 01 §12 owns the 83 token kinds and spellings; use its names as a closed

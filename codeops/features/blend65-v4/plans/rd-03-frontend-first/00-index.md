@@ -1,7 +1,7 @@
 # RD-03 Frontend-First Implementation Plan
 
 > **Feature**: Asset-independent source, syntax and semantic services for the M1 slice
-> **Status**: Planning Complete — partial RD-03; not preflighted
+> **Status**: Plan Preflighted — partial RD-03; ready for frontend execution
 > **Created**: 2026-09-18
 > **Implements**: blend65-v4/RD-03
 > **Coverage**: Partial; this plan cannot close RD-03
@@ -37,6 +37,9 @@ profile/asset framework and infrastructure.
 | [Execution plan](99-execution-plan.md) | Only mutable task-progress authority |
 
 ## Quick Reference
+
+The [corrective preflight](00-preflight-report.md) passed on 2026-09-18.
+All three findings are resolved; no implementation task is completed yet.
 
 Use the existing loader, then internal `analyzeProject(snapshot)` from
 `packages/compiler/src/frontend/service.ts`. The result contract is owned by

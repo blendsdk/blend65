@@ -9,6 +9,11 @@ Use existing Vitest, colocated `.spec.test.ts` and later `.impl.test.ts` files.
 Specification authors use the raw chapters, approved component contracts and
 these cases, without opening frontend implementation. Expectations are immutable.
 All listed parameter rows are required; no new percentage gate or runner.
+The frozen test-visible fields are in source/syntax §Frozen test-visible contracts
+and semantic analysis §Frozen semantic observations. Each author receives the
+owning phase's excerpt before writing tests. Phases 4/5 use `analyzeModules` and
+its internal `ModuleAnalysisResult`; final acceptance uses `analyzeProject`.
+An intermediate result's completion never proves a usable typed program.
 
 Unless a row gives a whole source, wrap declarations in `module Game;` and local
 expressions in `function main(): void { ... }`. Valid helper declarations are
@@ -25,7 +30,7 @@ placeholders, not codes alone. Literal mapping/profile checks are not mocked.
 |---|---|---|---|
 | ST-1 | `\uFEFFmodule Game;\r\n/*é🎮*/let x: byte = 1;` | Module token raw span `[3,9)`, line 1 column 4; `let` starts at raw byte 27, line 2 byte column 11; EOF equals raw byteLength. BOM skipped and no comment token. | Ch 01 §§2–3, §11.4; AR-P4 |
 | ST-2 | `255 256 $FF 0Xff 0b1111 1_000 007` | NUMBER values `255,256,255,255,15,1000,7`; only `007` produces W10210; spellings/spans remain recoverable. | Ch 01 §6, §12 |
-| ST-3 | `for For as until to downto step peek type` | KW_FOR, then seven identifiers, then KW_TYPE; `peek` declaration produces E10212; actual `type` use E10224; no legacy range tokens. | Ch 01 §§5–7; grammar §9 |
+| ST-3 | `for For as until to downto step peek type`; separately `let peek: byte = 1;` and actual `type` syntax use | Phase 1: KW_FOR, seven identifiers, KW_TYPE; no legacy range tokens or semantic declaration errors from lexing. Phase 2: actual `type` syntax use E10224. Phase 4: `peek` declaration E10212. | Ch 01 §§5–7; grammar §9; PF-002 |
 | ST-4 | `a<<=1; a&&b; a!=b; a/=2; //é\n/* one /* two */x` | Longest operator tokens SHIFT_LEFT_EQUAL, LOGICAL_AND, BANG_EQUAL, SLASH_EQUAL; comment ends at first `*/`, leaving identifier `x`. | Ch 01 §11 |
 | ST-5 | Separate `é`, `/*`, `1__0`, `0x`, `0bytes`, `65536` | Respectively E10210, E10211, E10213, E10214, E10215, E10216 with proving raw spans and canonical messages. No valid replacement literal. | Ch 01 §§2,6,14; Ch 14 |
 | ST-6 | `""`, `'A'`, `"£\n\x41"`; separate `"\q"`, `"\x1"`, `''`, `'AB'`, unterminated `'A` | Empty string valid; Unicode scalar, symbolic newline and exact byte 65 retained without target conversion. Errors E10219, E10220, E10221, E10222, E10223 respectively. | Ch 01 §§7–8; Ch 14 |
@@ -44,13 +49,13 @@ placeholders, not codes alone. Literal mapping/profile checks are not mocked.
 |---|---|---|---|
 | ST-15 | Two differently named files declare `module Game;`, contributing `main` and helper `f`; then add a second `f` | Legal contributions merge independent of filenames; duplicate is E10003 with both declaration spans. | Ch 10 §§2,6; R3.7 |
 | ST-16 | Game imports `f as g` from Math; Math exports f and imports an exported Game constant without initializer dependency; then remove f's export | Declaration cycle accepted; alias resolves same function identity; removing export produces E10012. | Ch 10 §4 |
-| ST-17 | Game refers to `Math.f()` without an import; Other has valid module header but invalid body for another target; vary file paths/input ordering | Math becomes reachable, Other body is not analyzed; identical semantic names/graph, same name-based initializer schedule. No path-to-module inference. | Ch 10 §4.4; upstream AR-028/AR-030 |
+| ST-17 | Game refers to `Math.f()` without an import; Other has valid module header but invalid body for another target; vary file paths/input ordering | Phase 3: Math becomes reachable, Other body is not analyzed; identical semantic names/graph and no path-to-module inference. Phase 6: same name-based initializer schedule, qualified alongside ST-41/ST-42. | Ch 10 §4.4; upstream AR-028/AR-030; PF-002 |
 | ST-18 | Separate selected graph with no main, wrong `main(x:byte):void`, two reachable module mains, or helper calling main | E10020, E10022, E10021, E10023 respectively; no typed program. Unreachable alternate-entry main alone is not a collision. | Ch 10 §5; upstream AR-030 |
 | ST-19 | Module `let x:word=2;`; `function f(x:word):void { let x:word=1; }`; separate nested block `let x:word=x+1;` | Parameter/local duplicate E10003; child initializer resolves outer binding then child binding takes over; identity differs by declaration span, not spelling. | Ch 03 VAR-5–8; Ch 06 FN-13 |
 | ST-20 | Local access after `for (let i:word=0;i<2;i+=1){}`; use `Missing` as a type; use undeclared `x` | Loop binding absent after loop, E10239; unknown type E10241; undeclared x E10239, canonical messages and proving identifier spans. | Chs 03,05; Ch 14 |
 | ST-21 | Parameterize typed pairs: byte+byte, byte+word, sbyte+sword, byte+sbyte, Boolean+byte, Boolean<Boolean, `-byteVariable`, `-42` assigned sbyte | Result types byte, word, sword; errors E10081, E10151, E10154, E10083; negative literal remains legal sbyte. | Ch 02 TS-2–8 |
 | ST-22 | `const x:byte=200+100; const y:word=200+100;` versus locals `let a:byte=200; let b:byte=100; let r:word=a+b;` | Constant x E10084 for 300; y constant 300; runtime r has byte-wrapped intermediate 44 then widens; W10161, not W10160. | Ch 02 TS-9/18/20 |
-| ST-23 | Constant/type facts `byte($1234)`, `sbyte($80)`, `sword(sbyte($80))`, typed signed `-128 >> 1`, `-128 >> 8`, unsigned `128 >> 8`; separate `byte(true)` | Values 52, -128, -128, -64, -1, 0; narrowing warning when predicate holds, wide-shift W10174; Boolean cast E10086. | Ch 02 TS-12/19/20; Ch 04 §4 |
+| ST-23 | Constant/type facts `byte($1234)`, `sbyte($80)`, `sword(sbyte($80))`, typed signed `-128 >> 1`, `-128 >> 8`, unsigned `128 >> 8`; separate `byte(true)`; plus division/remainder parameter rows below | Values 52, -128, -128, -64, -1, 0; narrowing warning when predicate holds, wide-shift W10174; Boolean cast E10086. Required division/remainder results and diagnostic/runtime distinctions below also pass. | Ch 02 TS-12/19/20; Ch 04 §§3.3,4; PF-003 |
 | ST-24 | `a=b=next(); a += delta(); false && flag(); true ? left() : right();` | Typed syntax preserves right association, once-only place/old-read/RHS/store order, computed assignment result and explicit skipped branches. Calls are not duplicated or reordered. No runtime execution claim. | Ch 04 OP-E1/OP-A1; R3.9 |
 | ST-25 | `function f(a:byte,b:byte):byte{return a+b;}` and `f(1,f(2,3))`; separate `f(missing)` | Nested call valid, not recursive; wrong-arity E10171 retained alongside independent E10239 for missing; dependent result-type cascade absent. | Ch 06 FN-10; Ch 14 §2.1 |
 | ST-26 | `f` directly calls f; separate f→g→f | E10180 or E10181 respectively; complete ordered call-edge path and related locations; no typed program. | Ch 06 FN-6; Ch 14 |
@@ -77,21 +82,46 @@ placeholders, not codes alone. Literal mapping/profile checks are not mocked.
 | ST-42 | `let a:word=f(); let b:word=1; function f():word{return b;}`; separate `let a:word=b; let b:word=a;` | Transitive call-read schedules b before a; actual cycle E10194 with initializer/read/call path when applicable; import cycles alone do not error. | Ch 10 §5.4 |
 | ST-43 | Valid ordinary main alone; then valid aggregate-return function, embed declaration, character literal or demanded profile module; combine unsupported form with admitted function reading undeclared name | Ordinary admitted program complete with typed program; each outstanding form incomplete with proving obligation/no program; mixed case retains E10239 error alongside incomplete status. Never retired aggregate code or fabricated asset/profile type. | AR-P4–AR-P5; semantic §Service boundary |
 | ST-44 | Two sources with independent errors; repeat analysis with same content; one source with 21 independent undeclared-name reads | Stable source/span/code order and identical diagnostics; at most 20 errors, incomplete if checks remain; no program. Error-free completed analysis cannot arise from truncation. | AR-P6; Ch 14 §2 |
-| ST-45 | Missing `;` before a following valid declaration plus independently undeclared name; nested balanced expressions and unclosed region | Recovery advances or returns to delimiter owner; retains later independent proving error where safely recoverable; no crash or fabricated valid node; unsafe remainder explicitly unchecked. | AR-P4/AR-P6; source/syntax §Recovery |
+| ST-45 | Missing `;` before a following valid declaration plus independently undeclared name; nested balanced expressions and unclosed region | Phase 2: recovery advances or returns to delimiter owner; preserves following declaration/name-expression siblings, syntax diagnostic and explicit poison/unchecked state, without diagnosing unresolved names. Phase 6: analysis retains the independently proved E10239 alongside the syntax error where safely recoverable, never a typed program. No crash or fabricated valid node; unsafe remainder explicitly unchecked. | AR-P4/AR-P6; source/syntax §Recovery; PF-002 |
 | ST-46 | Real temporary blend65.json project, two merged source files and Math import; load then analyze; compare snapshot before/after and filesystem inventory | Complete internal analysis for admitted source; exact snapshot/hash/text preserved; no assets read, output directory/file created, source reread or CLI behavior change. | RD-02 contracts; AR-P4; R3.34 |
 | ST-47 | Run existing actual-tree and transitive import-boundary cases after frontend addition | Internal frontend reaches no target/lowering/codegen/serialization/packaging/emulator module, including through compiler-root/type-only/reexport edges. Existing durable checker reused. | AR-P2; test/import-boundary.spec.test.ts |
 | ST-48 | Inspect completed TypedProgram for admitted direct calls, arrays and dynamic memory intrinsics | Required semantic/source/effect payload present; no opcode/MMIO constant/actual address/SFA home/artifact. Result remains frontend-stage proof only, not expert-parity or full-check success. | R3.11/R3.17; AR-P4 |
 
 ## File and Phase Mapping
 
+### ST-23 Required Division and Remainder Rows
+
+These are ordinary phase 4 scalar tests, not backend execution. For nonzero
+vectors, use separately declared `const q: sword = <left> / <right>;` and
+`const r: sword = <left> % <right>;`, with explicitly cast sword operands.
+Assert exact bigint constants and no arithmetic error. True constant contexts
+keep full precision before the declared result's range check.
+
+| Left | Right | Quotient | Remainder |
+|---|---|---|---|
+| `sword(-5)` | `sword(2)` | -2 | -1 |
+| `sword(5)` | `sword(-2)` | -2 | 1 |
+| `sword(-5)` | `sword(-2)` | 2 | -1 |
+| `sword(5)` | `sword(2)` | 2 | 1 |
+
+Separate `const q: byte = 1 / 0;` and `const r: byte = 1 % 0;` each report E10160,
+its canonical message and smallest proving span, never a host exception or a
+fabricated constant. For `function div(n: byte, d: byte): byte { return n / d; }`
+and the analogous `%` function, typed nodes retain the runtime operator, ordered
+operands, byte width and `constant: null`; the parameter may be zero. No E10160
+is inferred for an unknown parameter and no implicit check/fallback is invented.
+Do not assert runtime-zero result bits or a reaching-local-zero classification.
+
+### Owning Phase Files
+
 | Phase | Specification files under `frontend/` | Cases |
 |---|---|---|
 | 1 | `lexer.spec.test.ts` | ST-1–ST-6 |
-| 2 | `expressions.spec.test.ts`, `parser.spec.test.ts` | ST-7–ST-14, ST-45 |
+| 2 | `expressions.spec.test.ts`, `parser.spec.test.ts` | ST-7–ST-14, ST-45 syntax/recovery, ST-3 reserved `type` use |
 | 3 | `modules.spec.test.ts` | ST-15–ST-18 |
-| 4 | `scalars.spec.test.ts`, `flow.spec.test.ts` | ST-19–ST-29 |
+| 4 | `scalars.spec.test.ts`, `flow.spec.test.ts` | ST-19–ST-29 (including ST-23 division/remainder rows), ST-3 reserved declaration |
 | 5 | `aggregates.spec.test.ts`, `intrinsics.spec.test.ts` | ST-30–ST-40 |
-| 6 | `effects.spec.test.ts`, `service.spec.test.ts` | ST-41–ST-44, ST-46, ST-48 |
+| 6 | `effects.spec.test.ts`, `service.spec.test.ts` | ST-41–ST-44, ST-46, ST-48, ST-17 initializer order, ST-45 independent semantic error |
 
 ST-47 uses existing root tests; no immutable existing `.spec.test.ts` file is
 edited. Implementation files are `lexer.impl.test.ts`, `parser.impl.test.ts`,
