@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-03 Frontend First
 
-> **Status**: ✅ GATE PASSED — all 7 items resolved; partial RD-03 planning scope only
+> **Status**: ✅ GATE PASSED — all 9 items resolved; partial RD-03 frontend scope only
 > **Last Updated**: 2026-09-18
 > **CodeOps Artifact Schema**: 1
 
@@ -23,8 +23,35 @@
 | AR-P5 | Scope / feature and edge coverage | Implement the asset-independent portions of R3.5–R3.10 and semantic payload of R3.11: admitted scalar expressions/control/direct calls, one-dimensional fixed arrays, scalar-field structs, arrays of those structs, exact aggregate parameters and size queries. No full RD completion, CLI command, profile module, encoding table, asset reader, SFA or backend. Forms outside this partial semantic slice are unchecked implementation obligations, never new language restrictions. | Approved frontend-first scope AR-P1; matrix in RD-03; plan-owned bounded decomposition under directive 4 | ✅ Resolved |
 | AR-P6 | Technical / diagnostics and recovery | Published diagnostic fields come from Chapter 14. The approved syntax diagnostic has one fixed expected/found template, a proving token or EOF span, and bounded deterministic recovery. Stable source/span/code ordering and the existing default 20-error ceiling apply; truncation or unsafe recovery prevents completion. | AR-P3 authorizes the class; plan-owned template/recovery mechanics under directive 4 | ✅ Resolved |
 | AR-P7 | Technical / verification and delivery | Reuse compiler Vitest cases and root import-boundary tests. Directed stage tests during implementation; compiler build/typecheck/test and boundary qualification per phase; root build/typecheck/test at final integration. No lint command, new runner, coverage gate, infrastructure or emulator required for this partial frontend. | Actual manifests and R3.34; overriding impact-based verification and directive 4 | ✅ Resolved |
+| AR-P8 | Technical / template instantiation (runtime) | E10222's `<literal>` is the exact interior spelling, without opening/closing source quotes; the canonical template already supplies its surrounding quotes. Escape control characters using the existing diagnostic helper. Thus `'AB'` reports `Multi-character literal 'AB' — use a double-quoted string for multiple characters`. | Plan-owned mechanical clarification under overriding project directive 4; Chapter 14 supplies the canonical quoted placeholder; independent specification author identified the question before implementation | ✅ Resolved |
+| AR-P9 | Technical / verification path correction (runtime) | Rename the current v4 CLI implementation tests `args.impl.test.ts` and `render.impl.test.ts` to `project-args.impl.test.ts` and `project-render.impl.test.ts`, with identical contents. The frozen foundation oracle prohibits the inherited v3 test paths; current files accidentally reused those names. No production CLI or specification test changes. | Mechanical filename correction under project directive 4 and execution-protocol's mechanical-correction rule; root qualification demonstrated the exact collision at `test/foundation.spec.test.ts:325` | ✅ Resolved |
 
 ## Resolution Notes
+
+### AR-P9 — Preserve the Existing Foundation Oracle
+
+The broader phase checkpoint found a pre-existing failure after the CLI's v4
+implementation tests had been committed under two historical v3 names. These
+three files are unchanged from phase-start commit `c42d6ab`; the lexer did not
+cause the failure. The foundation oracle rejects reuse of inherited test paths.
+Renaming only the two new implementation-test files preserves their exact content,
+test discovery, the immutable oracle and CLI behavior. There is no new product
+decision or support surface. The phase qualification modification set explicitly
+includes these two mechanical renames; no other RD-02 artifact is changed.
+
+### AR-P8 — Quoted Literal Placeholder
+
+Resolved during phase 1 independent test authoring. This instantiates the existing
+E10222 template; it does not introduce a new code, predicate, source restriction,
+or support mechanism. The template owns its punctuation; the placeholder retains
+the literal's interior source spelling. Frozen authority remains unchanged.
+
+The E10219/E10220 representation backslashes are instantiated as displayed source
+escape spellings from Chapter 01 §7.2: one backslash for `\q`, `\x`, `\n`, etc.,
+and two for the backslash escape `\\`. Words and punctuation remain canonical.
+This keeps messages describing the actual source escape rather than a host-string
+representation of it. The independent author raised this before the red run;
+the same plan-owned mechanical ruling under directive 4 applies.
 
 ### AR-P1 — Approved Exception, Not Scope Reduction
 

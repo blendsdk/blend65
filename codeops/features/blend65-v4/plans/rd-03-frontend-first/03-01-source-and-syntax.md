@@ -140,6 +140,12 @@ Apply published lexical diagnostics, including E10210 for §11.2's fallback,
 E10211 and E10213–E10223. `type` is recognized, then receives E10224 at its use.
 Reserved built-in declarations receive E10212, not lexer renaming.
 
+For E10222, the canonical template supplies the surrounding quotes; `<literal>`
+is the exact interior source spelling with control characters escaped by the
+existing diagnostic helper (AR-P8). Do not duplicate the source delimiters.
+E10219/E10220 display the Chapter 01 §7.2 source escape spellings, not the
+documentation's doubled host-string representation backslashes (AR-P8).
+
 ## Parsing and Syntax
 
 Use recursive descent for declarations/types/statements and exactly one Pratt

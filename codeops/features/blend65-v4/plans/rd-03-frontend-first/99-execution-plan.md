@@ -1,8 +1,8 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-18 14:51
-> **Progress**: 0/64 tasks (0%)
+> **Last Updated**: 2026-09-18 15:31
+> **Progress**: 8/64 tasks (12.5%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -57,27 +57,50 @@ financial/tenant/MCP security profile. Do not import irrelevant auditor checklis
 
 ## Phase 1: Source Tokens and Lexical Recovery
 
-> **Phase baseline tree**: recorded by exec-plan at phase start
+> **Phase baseline tree**: 552c5c3d67ee2d3cfdfa1379f9e7690696af9197
+> **Scope mode**: strict
+> **Expected modification set**: `packages/compiler/src/frontend/{tokens.ts,lexer.ts,diagnostics.ts,lexer.spec.test.ts,lexer.impl.test.ts}`; this plan's index, execution, ambiguity register, source/syntax clarification and phase review evidence; feature roadmap. No compiler-root export, CLI, dependency, frozen authority or portfolio changes.
+> **Mechanical verification correction**: rename only CLI `args.impl.test.ts` / `render.impl.test.ts` to `project-args.impl.test.ts` / `project-render.impl.test.ts` with byte-identical contents (AR-P9). No production CLI behavior changes.
 > **Lenses**: api-surface, security
 
 ### Step 1.1: Specification Tests
 
 Reference: [Source/syntax §Tokens](03-01-source-and-syntax.md#tokens-and-source-coordinates), AR-P4–AR-P6.
 
-- [ ] 1.1.1 [spec-author] Write ST-1–ST-6 lexical assertions only; use frozen phase 1 fields — `frontend/lexer.spec.test.ts`.
-- [ ] 1.1.2 Verify newly specified lexical behavior is red; record pre-existing passes — `frontend/lexer.spec.test.ts`.
+- [x] 1.1.1 [spec-author] Write ST-1–ST-6 lexical assertions only; use frozen phase 1 fields — `frontend/lexer.spec.test.ts`. ✅ (completed: 2026-09-18 15:13)
+- [x] 1.1.2 Verify newly specified lexical behavior is red; record pre-existing passes — `frontend/lexer.spec.test.ts`. ✅ (completed: 2026-09-18 15:14)
+
+Authoring verification: 16 independent lexical cases written and formatted.
+Initial red: missing `./lexer.js`, exit 1, log `/tmp/blend65-lexer-spec-red.Lisqs0`.
+At that initial run, no behavior discriminator executed; later red and green
+runs below directly exercise all 16 cases.
+Pre-existing compiler baseline: 570 tests pass, log `/tmp/blend65-lexer-baseline.log`.
+No failing phase is committed. Source escape display was verified by actual
+backslash counts, not JSON-rendered tool text; the author confirmed AR-P8 matches.
 
 ### Step 1.2: Implementation
 
-- [ ] 1.2.1 Define token/payload contracts and raw-byte cursor — `frontend/tokens.ts`, `frontend/lexer.ts`; source/syntax §Tokens.
-- [ ] 1.2.2 Implement keywords, numeric literals and maximal-munch operators — `frontend/lexer.ts`; ST-2–ST-5.
-- [ ] 1.2.3 Implement comments/literals and lexical poison recovery — `frontend/lexer.ts`, `frontend/diagnostics.ts`; ST-1, ST-4–ST-6.
-- [ ] 1.2.4 Verify the lexical specification tier is green — `frontend/lexer.spec.test.ts`.
+- [x] 1.2.1 Define token/payload contracts and raw-byte cursor — `frontend/tokens.ts`, `frontend/lexer.ts`; source/syntax §Tokens. ✅ (completed: 2026-09-18 15:15)
+- [x] 1.2.2 Implement keywords, numeric literals and maximal-munch operators — `frontend/lexer.ts`; ST-2–ST-5. ✅ (completed: 2026-09-18 15:17)
+
+- [x] 1.2.3 Implement comments/literals and lexical poison recovery — `frontend/lexer.ts`; reuse existing `project/diagnostics.ts` helpers instead of creating an unused frontend diagnostic layer; ST-1, ST-4–ST-6. ✅ (completed: 2026-09-18 15:18)
+- [x] 1.2.4 Verify the lexical specification tier is green — `frontend/lexer.spec.test.ts`. ✅ (completed: 2026-09-18 15:18)
+
+Cursor-entry behavioral red: all 16 lexical assertions executed and failed;
+log `/tmp/blend65-lexer-behavior-red.log`. This supersedes unavailable-entry red
+as direct proof that each newly specified behavior was missing.
+Green: all 16 pass without an oracle change, log `/tmp/blend65-lexer-spec-qualified.log`.
+The final 47 edge cases pass with the specification tier, log
+`/tmp/blend65-lexer-rv2-test.log`.
 
 ### Step 1.3: Implementation Tests and Qualification
 
-- [ ] 1.3.1 Add cursor/span/deep-input edge tests — `frontend/lexer.impl.test.ts`; AR-P4/AR-P6.
-- [ ] 1.3.2 Run phase qualification and touched formatting; record independent phase review — `99-execution-plan.md`; testing §Verification commands.
+- [x] 1.3.1 Add cursor/span/deep-input edge tests — `frontend/lexer.impl.test.ts`; AR-P4/AR-P6. ✅ (completed: 2026-09-18 15:22)
+- [x] 1.3.2 Run phase qualification and touched formatting; record independent phase review — `99-execution-plan.md`; testing §Verification commands. ✅ (completed: 2026-09-18 15:31)
+
+Qualification: build, typecheck and 737 repository tests pass. Two minor recovery/
+ordering findings were corrected. See [phase review](08-phase-1-review.md) for
+independent review, immutable oracle hashes, scope and bounded evidence.
 
 Deliverable: real target-neutral tokens with accountable recovery, not semantic acceptance.
 Verify: phase qualification and touched formatting from [Testing](07-testing-strategy.md#verification-commands).
