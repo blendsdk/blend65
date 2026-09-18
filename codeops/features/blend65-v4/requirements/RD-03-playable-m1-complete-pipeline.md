@@ -168,8 +168,8 @@ product. (AR-038)
   `optimization: none` still includes correct constant evaluation, dead unreachable exclusion,
   legal instruction selection, SFA/resource binding, layout, and branch repair. (AR-002, AR-023,
   AR-027)
-- [ ] **R3.21 — Qualify the current SpritePad input before use.** Before RD-03 implementation
-  planning or asset-decoder work, the project owner supplies and approves retention of the
+- [ ] **R3.21 — Qualify the current SpritePad input before use.** Before SpritePad-dependent RD-03
+  implementation planning or asset-decoder work, the project owner supplies and approves retention of the
   user-owned native project and relevant exports produced by the official SpritePad C64 Pro 3.80
   application; the compiler implementation owner records and independently checks the fixture.
   Record producer/version, execution environment, settings, provenance, redistribution disposition,
@@ -181,6 +181,8 @@ product. (AR-038)
   Missing evidence blocks the format-dependent boundary rather than requirements authoring or a
   guessed implementation. This bounded eight-sprite evidence does not satisfy RD-06's complete
   SpritePad/CharPad fixture gates. (AR-014, AR-027, AR-037)
+  On 2026-09-18 the user approved asset-independent frontend planning first;
+  this ordering exception does not waive producer evidence or reduce M1 scope.
 - [ ] **R3.22 — Emit only the selected asset representation.** `embed(path, "sprites")` produces
   the exact typed native 64-byte record array required by Specification 4. The final M1 game project
   contains exactly eight records: player, two two-frame invader designs, projectile, and two-frame
@@ -1108,7 +1110,8 @@ no C64U target identity or support claim; the owned successor activates only aft
 | M1 product | Single-sprite interaction / bounded Invaders-style microgame / faithful full recreation | Bounded original-art microgame | Exercises a coherent compiler slice while fitting eight sprites and excluding later platform/workload capabilities. | AR-037, AR-038 |
 | Optimization | Default balanced / optional subset / `none` | `none` | Separates correctness and expert selection from optional transforms. | AR-023, AR-027 |
 | Editor | None / diagnostics-only real slice / production tooling | Diagnostics-only real slice | Creates the shared frontend consumer without pulling RD-09 forward. | AR-021, AR-027 |
-| Asset | Raw bytes / current qualified SpritePad / broad asset set | Current qualified SpritePad supplied before RD-03 planning | Forces authentic asset identity and placement into the first real architecture without making a Windows application a build dependency. | AR-007, AR-027, AR-037 |
+| Frontend planning order | Wait for the native asset handoff / plan the asset-independent frontend first | Frontend first, approved 2026-09-18 | Does not need asset decoding; native-format planning still waits for producer evidence. | AR-037; frontend plan AR-P1 |
+| Asset | Raw bytes / current qualified SpritePad / broad asset set | Current qualified SpritePad supplied before SpritePad-dependent RD-03 planning | Forces authentic asset identity and placement into the first real architecture without making a Windows application a build dependency. | AR-007, AR-027, AR-037 |
 | Device access | Game uses raw addresses / named zero-cost APIs / hidden engine | Named zero-cost APIs | Modern source with expert direct output. | AR-002, AR-007 |
 | VICE input | Patch program variables / real emulated joyport / manual-only | Real emulated joyport | Tests the actual platform API and CIA path. | AR-027 |
 | Runtime | General runtime / targeted helpers / no hidden runtime | No hidden runtime | Matches SFA and the constrained C64 contract. | AR-002 |
