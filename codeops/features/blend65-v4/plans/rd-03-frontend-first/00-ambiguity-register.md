@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-03 Frontend First
 
-> **Status**: ❌ GATE BLOCKED — AR-P3 needs a public diagnostic authority decision; remaining discovery is not yet complete
+> **Status**: ✅ GATE PASSED — all 7 items resolved; partial RD-03 planning scope only
 > **Last Updated**: 2026-09-18
 > **CodeOps Artifact Schema**: 1
 
@@ -10,7 +10,7 @@
 |---|---|
 | Planning target | The source-reading, parsing and semantic-analysis portion of Blend65 v4 RD-03, planned before SpritePad integration |
 | Context artifacts | Frozen Specification 4, qualified expert 2.0.0, RD-03 and its existing decisions, the RD-02 project API and tests, current manifests and guidance |
-| Modification set | This plan folder, the active feature roadmap, and only the RD-03/AR-037 planning-order wording needed to record the approved exception. No frozen specification, expert content, sibling requirements, production code or tests. |
+| Modification set | This plan folder, the active feature roadmap, the approved RD-03/AR-037 planning-order wording, and the approved narrow R3.10 diagnostic exception. No frozen specification, expert content, sibling requirements, production code or tests. |
 
 ## Decisions
 
@@ -18,7 +18,11 @@
 |---|---|---|---|---|
 | AR-P1 | Scope / planning order | Plan the compiler frontend first. SpritePad integration remains for later. This does not close RD-02, claim Windows qualification, or satisfy the complete RD-03 game milestone. | User: "i approve", responding to the explicit frontend-first planning-order proposal on 2026-09-18 | ✅ Resolved |
 | AR-P2 | Technical / responsibility ownership (complex) | Use focused `packages/compiler/src/frontend/` modules and direct stage services. Do not add a workspace, dependency, pass registry or harness. Before an actual editor consumer appears, establish a backend-free public entry or extract the real frontend. | Plan-owned decision under overriding project workflow directive 4; independent challenger converged on the smaller design | ✅ Resolved |
-| AR-P3 | Behavioral / public diagnostic authority (sensitive) | Specification 4 has no general syntax diagnostic for a missing semicolon, unmatched delimiter or malformed expression. Recommended: one explicitly project-owned `PARSE_SYNTAX_ERROR` service diagnostic, without inventing or reusing a normative `E` code. This requires an explicit exception to RD-03 R3.10's all-normative-code requirement for this missing class. | Awaiting the user's direct decision; no code, template or tests authorized yet | ❌ Open |
+| AR-P3 | Behavioral / public diagnostic authority (sensitive) | Use one project-owned `PARSE_SYNTAX_ERROR` for grammar violations without a published diagnostic; preserve every existing normative code and frozen file. Apply only the corresponding R3.10 exception. | User: "i approve", answering the single explicit parser-diagnostic proposal on 2026-09-18 | ✅ Resolved |
+| AR-P4 | Technical / integration and data | Internal synchronous lexer, parser, module and analysis services reuse RD-02 source records, raw byte spans and diagnostic shape. Partial syntax and poison never become a usable typed program. Analysis distinguishes complete, error and incomplete; incomplete retains independent errors and takes precedence when obligations remain unchecked. | Plan-owned under overriding project directive 4; prior independent fallback recommended these boundaries | ✅ Resolved |
+| AR-P5 | Scope / feature and edge coverage | Implement the asset-independent portions of R3.5–R3.10 and semantic payload of R3.11: admitted scalar expressions/control/direct calls, one-dimensional fixed arrays, scalar-field structs, arrays of those structs, exact aggregate parameters and size queries. No full RD completion, CLI command, profile module, encoding table, asset reader, SFA or backend. Forms outside this partial semantic slice are unchecked implementation obligations, never new language restrictions. | Approved frontend-first scope AR-P1; matrix in RD-03; plan-owned bounded decomposition under directive 4 | ✅ Resolved |
+| AR-P6 | Technical / diagnostics and recovery | Published diagnostic fields come from Chapter 14. The approved syntax diagnostic has one fixed expected/found template, a proving token or EOF span, and bounded deterministic recovery. Stable source/span/code ordering and the existing default 20-error ceiling apply; truncation or unsafe recovery prevents completion. | AR-P3 authorizes the class; plan-owned template/recovery mechanics under directive 4 | ✅ Resolved |
+| AR-P7 | Technical / verification and delivery | Reuse compiler Vitest cases and root import-boundary tests. Directed stage tests during implementation; compiler build/typecheck/test and boundary qualification per phase; root build/typecheck/test at final integration. No lint command, new runner, coverage gate, infrastructure or emulator required for this partial frontend. | Actual manifests and R3.34; overriding impact-based verification and directive 4 | ✅ Resolved |
 
 ## Resolution Notes
 
@@ -59,14 +63,15 @@ has no general syntax-error code or template for that condition. E10210 is the
 non-ASCII lexical error; E10204 is an embedded-format parsing error. Neither may
 be repurposed. RD-03 R3.10 requires authoritative codes and messages.
 
-Recommended narrow ruling: permit the frontend to report one project-owned
+Approved narrow ruling: permit the frontend to report one project-owned
 `PARSE_SYNTAX_ERROR` diagnostic for grammar violations with no normative entry.
 Use published Specification 4 codes for every condition that does have an entry.
 Do not claim full normative diagnostic conformance for the project-owned class.
-This changes the public diagnostic policy, so directive 4 does not authorize the
-agent to decide it silently. Frozen specification and expert files stay untouched.
-After approval, settle the exact template, byte-span and recovery rules in this
-register before defining the parser's specification tests.
+This changes the public diagnostic policy, so it was not decided silently.
+The user explicitly approved it on 2026-09-18. Frozen specification and expert
+files stay untouched. R3.10 now records only this approved exception. AR-P6
+assigns the exact template, byte-span and recovery mechanics to the component
+specification before parser specification tests are defined.
 
 The real alternative is to reopen frozen authority, add a normative syntax code,
 rebind the specification identity and qualify the affected expert baseline. That
@@ -84,9 +89,33 @@ checks and valid unimplemented forms are not language errors. Lexing/parsing
 completion alone does not prove semantic completion.
 
 This is a frontend-only partial plan. No public `blendc check`, backend, SpritePad
-decoder, LSP, game runtime or RD completion claim is authorized by this discovery
-checkpoint. Do not create the remaining plan documents until the semantic gate
-passes. Review all twelve ambiguity categories before claiming that gate passed.
+decoder, LSP, game runtime or RD completion claim is authorized. The gate now
+passes for this scope; it is not full RD-03 or compiler-conformance approval.
+
+## Systematic Discovery Closure
+
+| Category | Closure evidence |
+|---|---|
+| Feature gaps | R3.5–R3.10 and the RD-03 coverage matrix; excluded obligations stay explicit (AR-P5). |
+| Behavioral gaps | No typed program after poison, pending checks or truncated analysis (AR-P4, AR-P6). |
+| Scope ambiguities | Exact user-approved frontend-first boundary and syntax exception (AR-P1, AR-P3). |
+| Technical unknowns | Internal modules and direct stage services; no new support mechanism (AR-P2, AR-P4). |
+| Edge cases | UTF-8/BOM/CRLF, recovery, narrow barriers, scopes, recursion, initialization and zero-size objects use governing chapters (AR-P5, AR-P6). |
+| Integration points | RD-02 `ProjectSnapshot`, `SourceRecord`, `SourceSpan` and diagnostics inspected; no public CLI/editor integration in this plan (AR-P4). |
+| Data & state | Immutable inputs; source-based binding identity; typed facts only after complete admitted analysis (AR-P4). |
+| Security & compliance | Pure source analysis; no filesystem access, shell, execution, output, network, credentials or infrastructure (AR-P4, AR-P7). |
+| Non-functional gaps | Observational measurements only per upstream AR-026; no numeric performance gate (AR-P7). |
+| UX & presentation | Existing Chapter 14 fields preserved; the one approved missing syntax class is settled (AR-P3, AR-P6). |
+| Stakeholder conflicts | Modern source remains legal; incomplete implementation is not a user-facing language restriction (AR-P5). |
+| Naming & terminology | Focused `frontend/` files and internal stage/result names are plan-owned; public syntax code has direct user approval (AR-P2–AR-P6). |
+
+Normal make-plan mode remains active: no `--auto-design` authority is inferred.
+Project directive 4 overrides repeated user prompts for plan-owned technical
+decisions. User-owned scope and public diagnostic rulings remain explicit.
+No extra material support surface is approved or planned. The existing independent
+fallback covers the chosen package and result boundaries; its stronger alternative
+was considered and rejected because there is no current editor consumer. Remaining
+mechanical choices are standard and use in-context hardening, not another agent.
 
 ## Expert Lineage and Evidence Limits
 

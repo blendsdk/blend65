@@ -105,6 +105,11 @@ product. (AR-038)
   every admitted invalid class. Poison may support independent frontend recovery but cannot enter
   SFA, lowering, layout, ACME, or artifact publication. Any error suppresses all runnable-looking
   output. (AR-003, AR-014, AR-025)
+  Approved project exception, 2026-09-18: grammar violations without a published
+  Specification 4 diagnostic use the single project-owned `PARSE_SYNTAX_ERROR`.
+  Existing normative codes remain unchanged. This exception does not amend the
+  frozen specification or claim normative diagnostic coverage for that class.
+  [Frontend AR-P3](../plans/rd-03-frontend-first/00-ambiguity-register.md) owns the ruling.
 
 #### Small accountable representations and SFA — complexity XL
 
