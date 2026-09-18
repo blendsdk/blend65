@@ -114,6 +114,12 @@ cannot qualify this local, unpushed implementation. The adapted Windows hosted
 matrix has not executed this revision. No push, credential or new infrastructure
 was used to bypass that gap.
 
+On 2026-09-18 the user confirmed there is no Windows machine available and that
+Windows testing will come later. DEF-1 is deliberately deferred until access is
+available; do not keep requesting a host or provision replacement infrastructure.
+This schedules the missing proof later; it does not waive Windows acceptance,
+change the RD-03 prerequisite, or mark RD-02 complete.
+
 DEF-1 owner: the user supplies an existing Windows host or an authorized route
 to execute the current revision; the agent runs the declared qualification there.
 Then verify native aliases/junctions/symlinks/ACLs/races and command portability,
