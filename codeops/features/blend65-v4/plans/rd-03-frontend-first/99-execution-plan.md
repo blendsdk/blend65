@@ -1,8 +1,8 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-19 10:18
-> **Progress**: 20/64 tasks (31.3%)
+> **Last Updated**: 2026-09-19 11:12
+> **Progress**: 28/64 tasks (43.8%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -155,27 +155,47 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 ## Phase 3: Module Graph and Declaration Bindings
 
-> **Phase baseline tree**: recorded by exec-plan at phase start
+> **Phase baseline tree**: a17413080305edbd7fc02ff956d0f1c27148defb
+> **Implementation-review baseline tree**: df10a000b6fea2f9573396c6304d73c0494fe483
+> **Scope mode**: strict
+> **Expected modification set**: `packages/compiler/src/frontend/{modules.ts,module-references.ts,semantic-types.ts,modules.spec.test.ts,modules.impl.test.ts}`; this plan's index/execution/review evidence and the feature-roadmap status note. The internal reference walker is split only to keep the resolver below the source-file size ceiling; it adds no public package surface. No further parser-oracle edit, compiler-root export, CLI, dependency, frozen authority, roadmap stage or portfolio change.
 > **Lenses**: api-surface
 
 ### Step 3.1: Specification Tests
 
 Reference: [Semantics §Module graph](03-02-semantic-analysis.md#module-graph-and-binding), AR-P4–AR-P5.
 
-- [ ] 3.1.1 [spec-author] Write ST-15–ST-18 module/entry assertions only, excluding ST-17 initializer scheduling; use frozen phase 3 fields — `frontend/modules.spec.test.ts`.
-- [ ] 3.1.2 Verify module/entry cases are red — `frontend/modules.spec.test.ts`.
+- [x] 3.1.1 [spec-author] Write ST-15–ST-18 module/entry assertions only, excluding ST-17 initializer scheduling; use frozen phase 3 fields — `frontend/modules.spec.test.ts`. ✅ (completed: 2026-09-19 10:34)
+- [x] 3.1.2 Verify module/entry cases are red — `frontend/modules.spec.test.ts`. ✅ (completed: 2026-09-19 10:35)
+
+The independent module oracle contains nine cases and has SHA-256
+`c4af1131482c703c1b5ce36fd59464ea8a0a5a4ad176c2aaec0c9034d67486d2`.
+The absent module entry first failed collection. After adding only two throwing
+entry stubs, all nine cases executed and failed on missing behavior; log
+`/tmp/blend65-modules-behavior-red.log`. AR-P10 fixes E10003 related-location
+text as one-based raw-byte `sourceId:line:column` before implementation.
+The user authorized a test-only correction after the oracle's helper accidentally
+matched the `f` in `function` instead of the declared name; no expectation changed.
 
 ### Step 3.2: Implementation
 
-- [ ] 3.2.1 Implement shared-scanner header index and merged contributions — `frontend/modules.ts`; ST-15.
-- [ ] 3.2.2 Implement imports/qualified dependency traversal and exported lookup — `frontend/modules.ts`; ST-16–ST-17.
-- [ ] 3.2.3 Implement selected-entry/collision checks and intermediate graph contracts — `frontend/modules.ts`, `frontend/semantic-types.ts`; ST-18.
-- [ ] 3.2.4 Verify module specification cases are green — `frontend/modules.spec.test.ts`.
+- [x] 3.2.1 Implement shared-scanner header index and merged contributions — `frontend/modules.ts`; ST-15. ✅ (completed: 2026-09-19 10:41)
+- [x] 3.2.2 Implement imports/qualified dependency traversal and exported lookup — `frontend/modules.ts`; ST-16–ST-17. ✅ (completed: 2026-09-19 10:45)
+- [x] 3.2.3 Implement selected-entry/collision checks and intermediate graph contracts — `frontend/modules.ts`, `frontend/semantic-types.ts`; ST-18. ✅ (completed: 2026-09-19 10:48)
+- [x] 3.2.4 Verify module specification cases are green — `frontend/modules.spec.test.ts`. ✅ (completed: 2026-09-19 10:48)
 
 ### Step 3.3: Implementation Tests and Qualification
 
-- [ ] 3.3.1 Add input-order/cycle/dependency poison tests — `frontend/modules.impl.test.ts`; semantics §Module graph.
-- [ ] 3.3.2 Run phase qualification/formatting and independent phase review — `99-execution-plan.md`.
+- [x] 3.3.1 Add input-order/cycle/dependency poison tests — `frontend/modules.impl.test.ts`; semantics §Module graph. ✅ (completed: 2026-09-19 10:50)
+- [x] 3.3.2 Run phase qualification/formatting and independent phase review — `99-execution-plan.md`. ✅ (completed: 2026-09-19 11:12)
+
+Qualification: compiler build/typecheck, 701 compiler tests, 43 root integration
+tests and 24 import-boundary cases pass; touched formatting, whitespace and
+frozen-authority checks pass. The independent review raised one procedural
+critical and four correctness majors. Three were confirmed resolved by the sole
+focused re-review; its two remaining ordering findings were corrected with direct
+regressions and inline verification. No critical or major finding remains. See
+[phase review](08-phase-3-review.md).
 
 Deliverable: selected source graph and source-based declaration identities; no fabricated profile declarations.
 Verify: phase qualification and touched formatting from Testing §Verification commands.

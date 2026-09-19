@@ -1,7 +1,7 @@
 # RD-03 Frontend-First Implementation Plan
 
 > **Feature**: Asset-independent source, syntax and semantic services for the M1 slice
-> **Status**: Executing — partial RD-03; phase 1 lexer qualified, phase 2 parsing next
+> **Status**: Executing — partial RD-03; phases 1–3 qualified, phase 4 semantics next
 > **Created**: 2026-09-18
 > **Implements**: blend65-v4/RD-03
 > **Coverage**: Partial; this plan cannot close RD-03
@@ -39,8 +39,9 @@ profile/asset framework and infrastructure.
 ## Quick Reference
 
 The [corrective preflight](00-preflight-report.md) passed on 2026-09-18.
-All three findings are resolved. The [phase 1 lexer](08-phase-1-review.md) is
-qualified. Phase 2 starts with independent syntax tests.
+All three preflight findings are resolved. The [phase 1 lexer](08-phase-1-review.md),
+[phase 2 parser](08-phase-2-review.md) and [phase 3 module graph](08-phase-3-review.md)
+are qualified. Phase 4 starts with independent scalar and structured-flow tests.
 
 Use the existing loader, then internal `analyzeProject(snapshot)` from
 `packages/compiler/src/frontend/service.ts`. The result contract is owned by
