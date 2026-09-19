@@ -1,8 +1,8 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-19 11:12
-> **Progress**: 28/64 tasks (43.8%)
+> **Last Updated**: 2026-09-19 13:31
+> **Progress**: 42/64 tasks (65.6%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -202,33 +202,51 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 ## Phase 4: Scalar Expressions, Direct Calls and Structured Flow
 
-> **Phase baseline tree**: recorded by exec-plan at phase start
+> **Phase baseline tree**: 03bbad73ce2362dee92750691fae70625ff7e6de
+> **Implementation-review baseline tree**: ad4176c326e9115efa167ceea90d28238b3f50b1
+> **Accepted-fix baseline tree**: dfea4cb67f7ebdae114419f7ed7008a1216bd3e7
+> **Scope mode**: strict
+> **Expected modification set**: `packages/compiler/src/frontend/{scalars.spec.test.ts,flow.spec.test.ts,analyzer.ts,scalar-expressions.ts,scalar-assignments.ts,semantic-types.ts,constants.ts,effects.ts,flow.ts,scalars.impl.test.ts}`; this plan's testing-strategy packet correction, execution plan, phase review evidence and the feature-roadmap status note. `scalar-expressions.ts` and its direct assignment helper are mechanical logic splits that keep the implementation below the source-file ceiling; they add no layer or public surface. No parser/lexer/module oracle edit, compiler-root export, CLI, dependency, generalized CFG/IR layer, frozen authority, roadmap stage or portfolio change.
 > **Lenses**: api-surface
 
 ### Step 4.1: Specification Tests
 
 Reference: [Semantics §Types](03-02-semantic-analysis.md#types-constants-and-ordered-expressions) and §Structured flow, AR-P4–AR-P6.
 
-- [ ] 4.1.1 [spec-author] Write ST-19–ST-25 including ST-23 division/remainder rows and ST-3 reserved declaration; use frozen phase 4 fields — `frontend/scalars.spec.test.ts`.
-- [ ] 4.1.2 [spec-author] Write ST-26–ST-29 — `frontend/flow.spec.test.ts`.
-- [ ] 4.1.3 Verify scalar/flow behavior is red — `frontend/scalars.spec.test.ts`, `frontend/flow.spec.test.ts`.
+- [x] 4.1.1 [spec-author] Write ST-19–ST-25 including ST-23 division/remainder rows and ST-3 reserved declaration; use frozen phase 4 fields — `frontend/scalars.spec.test.ts`. ✅ (completed: 2026-09-19 11:39)
+- [x] 4.1.2 [spec-author] Write ST-26–ST-29 — `frontend/flow.spec.test.ts`. ✅ (completed: 2026-09-19 11:32)
+- [x] 4.1.3 Verify scalar/flow behavior is red — `frontend/scalars.spec.test.ts`, `frontend/flow.spec.test.ts`. ✅ (completed: 2026-09-19 11:33)
+
+The independent scalar and flow oracles contain 30 expanded cases. Their
+SHA-256 values are `248ebdac03d109471e364bcbbac1c6f79618ecef435ea379ab3c02073d65ed89`
+and `44efb6453db86726ec6be146c8650efc080a8d2364e6956b04eb13066fc15945`.
+Both suites fail collection because the planned `frontend/analyzer.ts` entry does
+not yet exist; no behavior case can pass accidentally. Red log:
+`/tmp/blend65-phase4-red-corrected.log`. Before implementation, the user approved
+correcting the E10081 oracle to name `sbyte` as signed and `byte` as unsigned.
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Implement internal analyzeModules/result contracts, body binding/scopes and exact scalar type facts — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-19–ST-21, ST-3 reserved declaration.
-- [ ] 4.2.2 Implement exact constant integer operations and context/range validation, signed division/remainder and structured constant-zero errors — `frontend/constants.ts`; ST-22–ST-23.
-- [ ] 4.2.3 Implement runtime widths, conversions, casts and wrap warning predicates — `frontend/analyzer.ts`, `frontend/constants.ts`; ST-21–ST-23.
-- [ ] 4.2.4 Preserve scalar assignment/place order, short circuit and conditional structure — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-24.
-- [ ] 4.2.5 Implement direct/nested call signatures and independent argument recovery — `frontend/analyzer.ts`; ST-25.
-- [ ] 4.2.6 Implement direct-call cycle detection and complete source paths — `frontend/effects.ts`; ST-26.
-- [ ] 4.2.7 Implement structured assignment/return/exits and Boolean conditions — `frontend/flow.ts`; ST-27–ST-28.
-- [ ] 4.2.8 Implement bounded canonical-loop proof and header flow — `frontend/flow.ts`; ST-29.
-- [ ] 4.2.9 Verify scalar/flow specification tiers are green — `frontend/scalars.spec.test.ts`, `frontend/flow.spec.test.ts`.
+- [x] 4.2.1 Implement internal analyzeModules/result contracts, body binding/scopes and exact scalar type facts — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-19–ST-21, ST-3 reserved declaration. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.2 Implement exact constant integer operations and context/range validation, signed division/remainder and structured constant-zero errors — `frontend/constants.ts`; ST-22–ST-23. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.3 Implement runtime widths, conversions, casts and wrap warning predicates — `frontend/analyzer.ts`, `frontend/constants.ts`; ST-21–ST-23. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.4 Preserve scalar assignment/place order, short circuit and conditional structure — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-24. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.5 Implement direct/nested call signatures and independent argument recovery — `frontend/analyzer.ts`; ST-25. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.6 Implement direct-call cycle detection and complete source paths — `frontend/effects.ts`; ST-26. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.7 Implement structured assignment/return/exits and Boolean conditions — `frontend/flow.ts`; ST-27–ST-28. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.8 Implement bounded canonical-loop proof and header flow — `frontend/flow.ts`; ST-29. ✅ (completed: 2026-09-19 12:09)
+- [x] 4.2.9 Verify scalar/flow specification tiers are green — `frontend/scalars.spec.test.ts`, `frontend/flow.spec.test.ts`. ✅ (completed: 2026-09-19 12:09)
 
 ### Step 4.3: Implementation Tests and Qualification
 
-- [ ] 4.3.1 Add exact-integer boundaries, conservative reaching facts and poison tests — `frontend/scalars.impl.test.ts`; semantics §§Types/Structured flow.
-- [ ] 4.3.2 Run phase qualification/formatting and independent phase/semantics review — `99-execution-plan.md`.
+- [x] 4.3.1 Add exact-integer boundaries, conservative reaching facts and poison tests — `frontend/scalars.impl.test.ts`; semantics §§Types/Structured flow. ✅ (completed: 2026-09-19 12:10)
+- [x] 4.3.2 Run phase qualification/formatting and independent phase/semantics review — `99-execution-plan.md`. ✅ (completed: 2026-09-19 13:31)
+
+Qualification: compiler build/typecheck, 751 compiler tests, 24 import-boundary
+tests and the root build/typecheck/test checkpoint pass. The initial critical/
+major findings and the sole focused re-review's five remaining direct defects
+were corrected with user authority. No third review is claimed. See
+[phase review](08-phase-4-review.md).
 
 Deliverable: correct admitted scalar semantic facts and structured flow; no SFA staging/storage claim.
 Verify: phase qualification and touched formatting from Testing §Verification commands.

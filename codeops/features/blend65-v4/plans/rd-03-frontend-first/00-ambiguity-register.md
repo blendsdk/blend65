@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-03 Frontend First
 
-> **Status**: ✅ GATE PASSED — all 10 items resolved; partial RD-03 frontend scope only
-> **Last Updated**: 2026-09-19 10:32
+> **Status**: ✅ GATE PASSED — all 11 items resolved; partial RD-03 frontend scope only
+> **Last Updated**: 2026-09-19 12:33
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -26,8 +26,35 @@
 | AR-P8 | Technical / template instantiation (runtime) | E10222's `<literal>` is the exact interior spelling, without opening/closing source quotes; the canonical template already supplies its surrounding quotes. Escape control characters using the existing diagnostic helper. Thus `'AB'` reports `Multi-character literal 'AB' — use a double-quoted string for multiple characters`. | Plan-owned mechanical clarification under overriding project directive 4; Chapter 14 supplies the canonical quoted placeholder; independent specification author identified the question before implementation | ✅ Resolved |
 | AR-P9 | Technical / verification path correction (runtime) | Rename the current v4 CLI implementation tests `args.impl.test.ts` and `render.impl.test.ts` to `project-args.impl.test.ts` and `project-render.impl.test.ts`, with identical contents. The frozen foundation oracle prohibits the inherited v3 test paths; current files accidentally reused those names. No production CLI or specification test changes. | Mechanical filename correction under project directive 4 and execution-protocol's mechanical-correction rule; root qualification demonstrated the exact collision at `test/foundation.spec.test.ts:325` | ✅ Resolved |
 | AR-P10 | UX / diagnostic rendering (runtime) | Render E10003's `<related_location>` as `<sourceId>:<line>:<column>`, using one-based raw-byte line and column at the first declaration's name span. Keep the same location in the structured related span. | User accepted the explicitly recommended format with “i do” on 2026-09-19 | ✅ Resolved |
+| AR-P11 | Behavioral / missing semantic diagnostics (runtime) | Accept the Phase 4 blocking review corrections and use one bounded project-owned `SEMANTIC_ERROR` only for admitted invalid semantic forms that have no Specification 4 code: void expressions used as values, bare ordinary-function names used without call/address-of, and non-place assignment targets. Keep predicate-specific fixed messages and every existing normative diagnostic unchanged. | User: “I approve”, responding to the explicit combined Phase 4 finding and diagnostic-exception ruling on 2026-09-19 | ✅ Resolved |
 
 ## Resolution Notes
+
+### AR-P11 — Bounded Semantic-Diagnostic Gap
+
+The Phase 4 independent review proved one crash path and several cases where the
+analyzer can expose a typed declaration after an invalid or unchecked operation.
+Those implementation defects require direct corrections in the current frontend
+modules; they do not require a new pass, framework, dependency or abstraction.
+
+Three admitted invalid forms have no matching code in the frozen Chapter 14
+registry: using a void call as a value, using an ordinary function name as a
+value without `&`, and assigning to an expression that is not writable storage.
+Marking these forms incomplete would violate R3.10 because they are admitted
+invalid classes. Reusing an unrelated normative code would make the published
+diagnostic contract false. Editing the frozen specification is prohibited by D3.
+
+The smallest viable correction is one project-owned `SEMANTIC_ERROR`, parallel
+to the already approved `PARSE_SYNTAX_ERROR`, limited to these three predicates
+and these fixed predicate-specific messages:
+
+- `Void expression cannot be used as a value`
+- `Function '<name>' must be called or addressed with '&<name>'`
+- `Assignment target is not writable storage`
+
+This is less support surface than adding three new pseudo-normative codes. It
+preserves every Specification 4 code and does not claim normative diagnostic
+coverage for the omitted classes.
 
 ### AR-P10 — Duplicate-Declaration Location Text
 
