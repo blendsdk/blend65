@@ -1,8 +1,8 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-19 09:35
-> **Progress**: 8/64 tasks (12.5%)
+> **Last Updated**: 2026-09-19 10:18
+> **Progress**: 20/64 tasks (31.3%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -107,31 +107,48 @@ Verify: phase qualification and touched formatting from [Testing](07-testing-str
 
 ## Phase 2: Admitted Syntax and Parser Recovery
 
-> **Phase baseline tree**: recorded by exec-plan at phase start
+> **Phase baseline tree**: 6887414fd1ec5317d9ebc85f7b097ae28b0fc383
+> **Scope mode**: strict
+> **Expected modification set**: `packages/compiler/src/frontend/{syntax.ts,expressions.ts,parser.ts,statements.ts,diagnostics.ts,expressions.spec.test.ts,parser.spec.test.ts,parser.impl.test.ts}`; this execution plan, phase review evidence and the feature-roadmap status note. No compiler-root export, CLI, dependency, frozen authority, roadmap stage or portfolio change.
 > **Lenses**: api-surface, security
 
 ### Step 2.1: Specification Tests
 
 Reference: [Source/syntax §Parsing](03-01-source-and-syntax.md#parsing-and-syntax), AR-P3–AR-P6.
 
-- [ ] 2.1.1 [spec-author] Write ST-7–ST-9 — `frontend/expressions.spec.test.ts`.
-- [ ] 2.1.2 [spec-author] Write ST-10–ST-14, ST-45 syntax/recovery and ST-3 reserved `type` use; use frozen phase 2 fields — `frontend/parser.spec.test.ts`.
-- [ ] 2.1.3 Verify both new syntax tiers are behaviorally red — `frontend/expressions.spec.test.ts`, `frontend/parser.spec.test.ts`.
+- [x] 2.1.1 [spec-author] Write ST-7–ST-9 — `frontend/expressions.spec.test.ts`. ✅ (completed: 2026-09-19 09:45)
+- [x] 2.1.2 [spec-author] Write ST-10–ST-14, ST-45 syntax/recovery and ST-3 reserved `type` use; use frozen phase 2 fields — `frontend/parser.spec.test.ts`. ✅ (completed: 2026-09-19 09:47)
+- [x] 2.1.3 Verify both new syntax tiers are behaviorally red — `frontend/expressions.spec.test.ts`, `frontend/parser.spec.test.ts`. ✅ (completed: 2026-09-19 09:48)
+
+Both suites first failed collection because `frontend/parser.ts` did not exist.
+After adding only the planned entry stubs, all 29 cases executed and failed on
+missing behavior; log `/tmp/blend65-parser-behavior-red.log`. Immutable oracle
+SHA-256 values are `9bdd248c56e1ea071d96019a0a5dce5a527ecefca5c2168ba69c790546eb9985`
+and `f4399cae257d1b3a96f5be889bf39ff1c45b24b950b383f9c3c767a5d72e4c3e`.
+The parser author made one independently confirmed oracle correction before
+GREEN: the unexpected `let` span now covers that token only, as the frozen
+diagnostic contract requires; no behavior expectation changed.
 
 ### Step 2.2: Implementation
 
-- [ ] 2.2.1 Define admitted syntax/result unions and source associations — `frontend/syntax.ts`; source/syntax §Parsing.
-- [ ] 2.2.2 Implement primary/postfix/cast/literal expression parsing — `frontend/expressions.ts`; ST-8–ST-9.
-- [ ] 2.2.3 Implement Pratt unary/binary/conditional/assignment binding — `frontend/expressions.ts`; ST-7.
-- [ ] 2.2.4 Implement headers/imports/declarations/types and normative-root recovery — `frontend/parser.ts`; ST-8, ST-9, ST-13.
-- [ ] 2.2.5 Implement admitted blocks/control/jumps and ordinary for clauses — `frontend/statements.ts`; ST-10.
-- [ ] 2.2.6 Implement syntax template, poison/unchecked-region recovery — `frontend/parser.ts`, `frontend/diagnostics.ts`; ST-11–ST-14, ST-45.
-- [ ] 2.2.7 Verify syntax specification tiers are green — `frontend/expressions.spec.test.ts`, `frontend/parser.spec.test.ts`.
+- [x] 2.2.1 Define admitted syntax/result unions and source associations — `frontend/syntax.ts`; source/syntax §Parsing. ✅ (completed: 2026-09-19 09:50)
+- [x] 2.2.2 Implement primary/postfix/cast/literal expression parsing — `frontend/expressions.ts`; ST-8–ST-9. ✅ (completed: 2026-09-19 09:52)
+- [x] 2.2.3 Implement Pratt unary/binary/conditional/assignment binding — `frontend/expressions.ts`; ST-7. ✅ (completed: 2026-09-19 09:53)
+- [x] 2.2.4 Implement headers/imports/declarations/types and normative-root recovery — `frontend/parser.ts`; ST-8, ST-9, ST-13. ✅ (completed: 2026-09-19 09:58)
+- [x] 2.2.5 Implement admitted blocks/control/jumps and ordinary for clauses — `frontend/statements.ts`; ST-10. ✅ (completed: 2026-09-19 09:59)
+- [x] 2.2.6 Implement syntax template, poison/unchecked-region recovery — `frontend/parser.ts`, `frontend/diagnostics.ts`; ST-11–ST-14, ST-45. ✅ (completed: 2026-09-19 10:00)
+- [x] 2.2.7 Verify syntax specification tiers are green — `frontend/expressions.spec.test.ts`, `frontend/parser.spec.test.ts`. ✅ (completed: 2026-09-19 10:00)
 
 ### Step 2.3: Implementation Tests and Qualification
 
-- [ ] 2.3.1 Add recovery-progress, malformed/deep-input and poison-isolation tests — `frontend/parser.impl.test.ts`; AR-P4/AR-P6.
-- [ ] 2.3.2 Run phase qualification/formatting and independent phase review — `99-execution-plan.md`.
+- [x] 2.3.1 Add recovery-progress, malformed/deep-input and poison-isolation tests — `frontend/parser.impl.test.ts`; AR-P4/AR-P6. ✅ (completed: 2026-09-19 10:03)
+- [x] 2.3.2 Run phase qualification/formatting and independent phase review — `99-execution-plan.md`. ✅ (completed: 2026-09-19 10:18)
+
+Qualification: compiler build/typecheck, 682 compiler tests and 24 import-boundary
+tests pass; touched formatting, whitespace and frozen-authority checks pass. Six
+initial major findings were corrected; the sole re-review confirmed five and
+identified two remaining boundary cases, both corrected with direct regressions.
+No critical or major finding remains. See [phase review](08-phase-2-review.md).
 
 Deliverable: real admitted syntax with proving diagnostics and explicitly unchecked regions.
 Verify: phase qualification and touched formatting from Testing §Verification commands.
