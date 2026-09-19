@@ -213,6 +213,11 @@ planning; complete SpritePad and CharPad matrices are due only before their RD-0
 **Resolution:** Applied and verified in `54bf32b`; the M1 and full-handler evidence gates now have
 explicit owners, timing, provenance, retention, and format-local fail-closed behavior.
 
+**Sequencing amendment, 2026-09-20:** The user later confirmed that SpritePad 3.80 is unavailable
+and approved moving native `.spd` import and producer qualification wholly to RD-06. RD-03 now uses
+Specification 4's existing raw `embed(path)` result for one exact 512-byte sprite fixture. This
+supersedes PF-005's RD-03 timing only; RD-06's authentic-evidence gate remains unchanged.
+
 ### PF-006: Sibling files cannot be published as one atomic set 🟠 MAJOR
 
 **Dimension:** 6 — Feasibility Concerns

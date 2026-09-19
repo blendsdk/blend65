@@ -28,8 +28,8 @@ constraint reported. Blend65 ships no game engine, gameplay framework, or reusab
 modules, whether mandatory or opt-in. (AR-002, AR-012, AR-038)
 
 RD-05 owns C64 platform behavior and game-workload qualification, not native authoring-file
-conversion or gameplay algorithms. It may consume the already-qualified M1 SpritePad fixture and
-exact internal audio/reference fixtures, while RD-06 owns complete SpritePad, CharPad, PSID, Koala,
+conversion or gameplay algorithms. It may consume the already-qualified M1 raw sprite fixture and
+exact internal audio/reference fixtures, while RD-06 owns SpritePad, CharPad, PSID, Koala,
 raw-asset, and compile-time asset-composition handlers. RD-07 owns disk loading, load units, and
 overlays. RD-08 adds optional cost-guided and optimizing choices; the correct general and explicitly
 selected RD-05 paths must already work under `optimization: none`.

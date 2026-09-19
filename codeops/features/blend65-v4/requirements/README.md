@@ -115,7 +115,7 @@ evidence handoff.
 | **0: Worktree bootstrap** | AR-005, AR-025 | Final v3 commit recorded; v4 branch/worktree created non-destructively; parked v3 checkout preserved |
 | **A: Authority freeze** | RD-01 | One internally consistent Specification 4 and one qualified expert `2.0.0` baseline |
 | **B: Foundation** | RD-02 | Prepared v4 worktree verified; deterministic monorepo, project model, diagnostics, and public compiler service established |
-| **C: First vertical proof** | RD-03 | Small playable M1 through compiler, SpritePad asset, ACME, PRG, and VICE |
+| **C: First vertical proof** | RD-03 | Small playable M1 through compiler, raw sprite asset, ACME, PRG, and VICE |
 | **D: Complete unoptimized capability** | RD-04 → RD-05 → RD-06 → RD-07 | Complete language, C64 platform, native resident assets, and explicit disk delivery before optional optimization |
 | **E: Optimization and tooling** | RD-08 and RD-09 | Expert-quality optimized output plus the production CLI/editor workflow; RD-09 may start after RD-04 but closes only after RD-05 through RD-08 |
 | **F: Production qualification** | RD-10 | Bounded C64 production claim, targeted physical QA, deferral closure, and C64U handoff |

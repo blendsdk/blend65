@@ -276,8 +276,8 @@ language semantics.
 - [ ] **R4.36 — Complete core `embed()` dispatch.** Implement contained literal-path resolution,
   raw unregistered-extension bytes, registered extension/signature/version dispatch, literal opaque
   selectors, exact result types/sizes, canonical identity/deduplication, provenance, deterministic
-  diagnostics, and immutable symbolic placement. RD-04 retains the qualified M1 SpritePad surface;
-  CharPad, PSID, Koala, broad SpritePad selectors, scene refinement, and derived assets remain RD-06
+  diagnostics, and immutable symbolic placement. RD-04 retains the qualified M1 raw-asset surface;
+  SpritePad, CharPad, PSID, Koala, native selectors, scene refinement, and derived assets remain RD-06
   work. No parser guesses a format from extension or legacy tests. (AR-007, AR-014, AR-037)
 
 #### Complete representations, whole-program reasoning, ABI, and SFA — complexity XL
@@ -459,7 +459,7 @@ RD-04 is complete only when this table has no unowned or falsely successful row:
 | Diagnostics | Complete active registry, stable spans/order/cascades, and LSP/CLI identity | Production editor UX in RD-09 |
 | Execution storage | Complete ABI, whole-program graph, effects, domain-aware SFA, and final closure | None |
 | Unoptimized target path | Correct legal NMOS 6510 output, first-profile layout, ACME, PRG, and evidence | Optional optimization in RD-08 |
-| Platform surface | M1 APIs, first-profile facts, character maps, minimal interrupt qualification, raw embed, and qualified M1 SpritePad input | General C64 systems/assets/loading in RD-05 through RD-07 |
+| Platform surface | M1 APIs, first-profile facts, character maps, minimal interrupt qualification, raw embed, and the qualified M1 raw sprite input | Native C64 formats and general assets/loading in RD-05 through RD-07 |
 | Deferred platform request | Exact selected-profile capability diagnostic before lowering; no output or placeholder | Owning later RD |
 
 “Complete language” means that ordinary language semantics are not deferred merely because a
@@ -539,7 +539,7 @@ resolved privately in compiler code.
 ### With RD-02 and RD-03 (Foundation and M1)
 
 RD-04 extends the minimal v4 package graph and the one fully connected M1 compiler path. Salvaged v3
-mechanics still require requirement ownership and independent proof. RD-03's game, SpritePad fixture,
+mechanics still require requirement ownership and independent proof. RD-03's game, raw sprite fixture,
 expert twin, and VICE driver remain regression boundaries; they do not become universal semantic
 oracles.
 
@@ -731,9 +731,9 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     memory access, query widths, encoding maps, compile-time selected-profile branches with zero
     unselected runtime code, BCD, each of the five approved CPU controls, exact effects/costs, and
     rejection of every removed opcode-shaped form and preprocessor substitute.
-29. [ ] **AC-29 — Embed core:** Raw and qualified M1 SpritePad cases prove containment, identity,
-    signature/version/selector/type/size validation, deduplication, provenance, failure suppression,
-    symbolic placement, and no runtime parsing/copy.
+29. [ ] **AC-29 — Embed core:** Raw M1 cases prove containment, identity, type/size validation,
+    deduplication, provenance, failure suppression, symbolic placement, and no runtime parsing/copy.
+    Registered native extensions cannot silently fall back to raw bytes; their parsers remain RD-06.
 30. [ ] **AC-30 — Representation payload:** Transition probes show every R4.37 fact present until
     its named consumer discharges it, including captured-range/result correlations; no backend or
     emitter guesses source semantics.

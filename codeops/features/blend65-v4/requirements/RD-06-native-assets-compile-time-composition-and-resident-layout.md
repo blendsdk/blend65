@@ -58,8 +58,8 @@ transformations. (AR-023, AR-029, AR-031, AR-033)
   settings, version evidence, and available authoritative format material. The compiler
   implementation owner creates the data-only fixture manifest, independent expected selector
   bytes/types/hashes, malformed and adjacent-version derivations, and the public/interchange PSID,
-  Koala, and raw fixtures. RD-03's eight-sprite M1 handoff satisfies only its own bounded SPD
-  surface; it does not satisfy RD-06's complete SpritePad matrix or any CharPad checkpoint. Each
+  Koala, and raw fixtures. RD-03's eight-sprite raw M1 fixture supplies no SpritePad or CharPad
+  producer evidence and satisfies none of RD-06's native-format checkpoints. Each
   handoff records its owner and completion before the corresponding format-dependent plan can pass
   its gate. (AR-012, AR-037, AR-040)
 - [ ] **R6.2 — Keep handlers outside language semantics and SFA.** The core language owns the
@@ -529,12 +529,13 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
   immutable-generation publication routine, and explicit internal platform boundary without adding
   a plugin framework or separate asset build system. Only v3's raw asset-reader/embed mechanics may
   enter the salvage inventory; every native SpritePad, CharPad, PSID, and Koala codec and its
-  qualification fixtures are new RD-03/RD-06 work behind the authentic-evidence gates.
+  qualification fixtures are new RD-06 work behind the authentic-evidence gates.
 
 ### With RD-03 (Playable M1 Complete Pipeline)
 
-- Requalifies the first SpritePad path against the complete 3.80 fixture set while retaining M1 as
-  a regression. The user-provided original-art project is evidence, not a template game system.
+- Adds the first SpritePad path against the complete 3.80 fixture set, then reuses M1's typed-array,
+  placement and runtime boundaries as regression evidence. The user-provided project is evidence,
+  not a template game system.
 
 ### With RD-04 (Complete Language and Correct Unoptimized Compiler)
 

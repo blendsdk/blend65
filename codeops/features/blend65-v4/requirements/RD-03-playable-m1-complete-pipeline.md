@@ -39,7 +39,7 @@ product. (AR-038)
 #### One useful public journey — complexity XL
 
 - [ ] **R3.1 — Ship one real M1 project.** Provide a contained `blend65.json` project whose entry
-  graph builds one playable SpritePad-backed Invaders-style microgame for
+  graph builds one playable raw-asset-backed Invaders-style microgame for
   `c64-pal-prg-kernal-6581` with `optimization: none`, `boundsCheck: false`, and
   `divisionZeroCheck: false`. The project is the same source used for CLI, editor, assembly,
   artifact, and VICE qualification. Its name and art are original; it imports no game ROM, copied
@@ -173,29 +173,19 @@ product. (AR-038)
   `optimization: none` still includes correct constant evaluation, dead unreachable exclusion,
   legal instruction selection, SFA/resource binding, layout, and branch repair. (AR-002, AR-023,
   AR-027)
-- [ ] **R3.21 — Qualify the current SpritePad input before use.** Before SpritePad-dependent RD-03
-  implementation planning or asset-decoder work, the project owner supplies and approves retention of the
-  user-owned native project and relevant exports produced by the official SpritePad C64 Pro 3.80
-  application; the compiler implementation owner records and independently checks the fixture.
-  Record producer/version, execution environment, settings, provenance, redistribution disposition,
-  and SHA-256; retain a distinguishable nonblank template and the final producer-saved art project.
-  The consumed SPD v5 schema review validates signature, version,
-  counts, complete 64-byte records, used attributes, tails, exact EOF, record order, and requested
-  selector. A handmade file, v3 parser, extension, passing legacy test, or comparative parser alone
-  cannot establish qualification. SpritePad is never invoked by the compiler, Linux build, or CI.
-  Missing evidence blocks the format-dependent boundary rather than requirements authoring or a
-  guessed implementation. This bounded eight-sprite evidence does not satisfy RD-06's complete
-  SpritePad/CharPad fixture gates. (AR-014, AR-027, AR-037)
-  On 2026-09-18 the user approved asset-independent frontend planning first;
-  this ordering exception does not waive producer evidence or reduce M1 scope.
-- [ ] **R3.22 — Emit only the selected asset representation.** `embed(path, "sprites")` produces
-  the exact typed native 64-byte record array required by Specification 4. The final M1 game project
-  contains exactly eight records: player, two two-frame invader designs, projectile, and two-frame
-  explosion. The `"sprites"` selector emits all eight in source order; it is not a record-subset
-  query. Unrequested attributes, tiles, animation metadata, overlays, derived selector outputs, or
-  duplicate raw payloads are not emitted. A broader format-probe fixture may remain test-only but
-  is never linked into M1. The compile-time handler allocates no SFA storage and adds no runtime
-  parsing or conversion code. (AR-007, AR-020, AR-027, AR-037)
+- [ ] **R3.21 — Qualify the exact raw M1 asset.** Check in one independently generated 512-byte
+  unregistered-extension file containing eight distinguishable, nonblank 64-byte native sprite
+  records in this order: player, two two-frame invader designs, projectile, and two-frame explosion.
+  Record its generation recipe, expected bytes, source order, original-art provenance, retention
+  status and SHA-256. Reject a missing, empty, short, long, changed or path-escaping input before
+  producing a typed value or runnable-looking output. This fixture proves the frozen raw
+  `embed(path)` contract; it is not a private asset format or evidence for SpritePad. Authentic
+  `.spd` import and producer qualification remain wholly owned by RD-06. (AR-014, AR-027, AR-037)
+- [ ] **R3.22 — Emit only the raw sprite representation.** `embed("sprites.bin")` produces the
+  exact immutable `const byte[512]` required by the M1 source. All eight native records are emitted
+  once in file order. No attributes, animation metadata, offsets, derived outputs, decoder, duplicate
+  payload or runtime parsing/conversion code is added. The raw import allocates no SFA storage.
+  (AR-007, AR-020, AR-027, AR-037)
 - [ ] **R3.23 — Place sprite art once where the VIC reads it.** Platform layout assigns the selected
   records one non-overlapping, 64-byte-aligned interval wholly inside the active 16-KiB VIC bank,
   outside character-ROM visibility conflicts and the active 1-KiB screen matrix. Derive every
@@ -334,9 +324,9 @@ product. (AR-038)
 - A faithful Space Invaders recreation, copied art, scores, lives, barriers, enemy projectiles,
   attract mode, multiple levels, or a reusable game engine. These would obscure the compiler proof
   and turn a compiler qualification fixture into a second product. (AR-038)
-- CharPad, PSID, Koala, general SpritePad selector coverage, compile-time asset composition, derived
-  assets, or runtime-loadable assets. M1 qualifies only the exact resident SpritePad surface it
-  consumes.
+- SpritePad, CharPad, PSID, Koala, native-format selectors, compile-time asset composition, derived
+  assets, or runtime-loadable assets. M1 qualifies only the exact resident raw sprite bytes it
+  consumes; RD-06 owns authentic SpritePad import.
 - Production LSP/VS Code navigation, completion, hover, signature help, rename, formatting,
   build/run UI, generated-artifact browsing, source debugger, or owned debug adapter. RD-09 owns the
   production tooling surface.
@@ -440,7 +430,7 @@ CIA, and timing evidence; absence of an M1 handler does not mean interrupts are 
 
 ### Asset and layout record — complexity L
 
-The layout proof records the SpritePad source identity, each selected record and sharing relation,
+The layout proof records the raw source identity, each native record and sharing relation,
 the emitted interval, alignment and padding, VIC bank and bank-relative blocks, active screen-matrix
 interval and pointer slots, CPU/VIC visibility, PRG segment ownership, and every simultaneously
 resident code/data/global/SFA range. Useful payload bytes and reserved address-space bytes remain
@@ -469,7 +459,7 @@ so neither is derived from project data. The current record
 contains the `generationId` and the SHA-256 of the generation's `.build.json`. Readers resolve the
 record once and retain the selected generation for their whole operation, so concurrent builds
 cannot expose mixed siblings. `.build.json` records the canonical Specification 4, compiler,
-project snapshot, target, options, overrides, SpritePad input, and portable ACME semantic
+project snapshot, target, options, overrides, raw sprite input, and portable ACME semantic
 identities. It hashes every other published artifact, excludes its own bytes, and records the
 `generationId` and host executable provenance separately from reproducibility comparison.
 
@@ -860,8 +850,8 @@ IDs are sorted and unique. A stable-ID tie break is present only when every tied
 identical complete vector. `decisions` is empty for `mode: "none"`; other modes record every
 consequential selection or retained baseline without becoming a pass log or tuning database.
 
-For M1, the build sidecar publishes the PRG artifact set, the SpritePad source is represented by one
-selected resident asset record, the memory sidecar contains the complete reconciled ledger, and the
+For M1, the build sidecar publishes the PRG artifact set, the raw sprite source is represented by one
+resident asset record, the memory sidecar contains the complete reconciled ledger, and the
 cost sidecar uses `mode: "none"` with an empty `decisions` array. Later asset, packaging, and
 optimization RDs populate the already-defined variants; they do not silently extend these schemas
 or fabricate unavailable observations.
@@ -972,7 +962,7 @@ mistyped, out-of-range, or internally inconsistent field and every unsupported s
 Because version 1 rejects unknown fields and union tags, every future field, record, or admitted
 union value changes the integer schema version; no producer silently extends version 1.
 
-M1 populates the exact applicable header, tool, source, SpritePad asset, CPU address-space,
+M1 populates the exact applicable header, tool, source, raw sprite asset, CPU address-space,
 function, context, symbol, SFA location, final range, generated startup/helper, and primary-artifact
 records for `c64-pal-prg-kernal-6581` under `optimization: none`. It emits empty arrays for admitted
 but inapplicable optimization and load-unit families; it never fabricates loader, interrupt-variant,
@@ -1018,7 +1008,7 @@ set runs once at the accepted milestone boundary.
 ### With RD-01 (Specification 4 and Expert Authority)
 
 RD-03 consumes the exact frozen Specification 4 file inventory/hashes, expert `2.0.0` release,
-diagnostic registry, C64 profile, SpritePad contract, and knowledge-source identities. A mismatch
+diagnostic registry, C64 profile, raw `embed()` contract, and knowledge-source identities. A mismatch
 stops implementation or reopens the authority gate; compiler convenience cannot reinterpret them.
 
 ### With RD-02 (Foundation and Project Model)
@@ -1091,7 +1081,7 @@ no C64U target identity or support claim; the owned successor activates only aft
 
 ## Security Considerations
 
-- Treat source, JSONC, SpritePad bytes, paths, ACME/VICE output, monitor frames, and subprocess
+- Treat source, JSONC, raw asset bytes, paths, ACME/VICE output, monitor frames, and subprocess
   failures as untrusted input. Validate lengths, enums, identities, containment, protocol frames,
   timeouts, and process output bounds.
 - Invoke ACME and VICE with argument arrays and canonical executable paths. Project data cannot
@@ -1115,8 +1105,8 @@ no C64U target identity or support claim; the owned successor activates only aft
 | M1 product | Single-sprite interaction / bounded Invaders-style microgame / faithful full recreation | Bounded original-art microgame | Exercises a coherent compiler slice while fitting eight sprites and excluding later platform/workload capabilities. | AR-037, AR-038 |
 | Optimization | Default balanced / optional subset / `none` | `none` | Separates correctness and expert selection from optional transforms. | AR-023, AR-027 |
 | Editor | None / diagnostics-only real slice / production tooling | Diagnostics-only real slice | Creates the shared frontend consumer without pulling RD-09 forward. | AR-021, AR-027 |
-| Frontend planning order | Wait for the native asset handoff / plan the asset-independent frontend first | Frontend first, approved 2026-09-18 | Does not need asset decoding; native-format planning still waits for producer evidence. | AR-037; frontend plan AR-P1 |
-| Asset | Raw bytes / current qualified SpritePad / broad asset set | Current qualified SpritePad supplied before SpritePad-dependent RD-03 planning | Forces authentic asset identity and placement into the first real architecture without making a Windows application a build dependency. | AR-007, AR-027, AR-037 |
+| Frontend planning order | Wait for the native asset handoff / plan the asset-independent frontend first | Frontend first, approved 2026-09-18 | Completed without asset decoding; the 2026-09-20 amendment now keeps native formats outside RD-03. | AR-037; frontend plan AR-P1 |
+| Asset | Raw bytes / current qualified SpritePad / broad asset set | One exact 512-byte raw M1 fixture; SpritePad moves to RD-06 | Preserves raw import, identity, placement, packaging and runtime proof without guessing a proprietary format or blocking the compiler. | AR-007, AR-027, AR-037 |
 | Device access | Game uses raw addresses / named zero-cost APIs / hidden engine | Named zero-cost APIs | Modern source with expert direct output. | AR-002, AR-007 |
 | VICE input | Patch program variables / real emulated joyport / manual-only | Real emulated joyport | Tests the actual platform API and CIA path. | AR-027 |
 | Runtime | General runtime / targeted helpers / no hidden runtime | No hidden runtime | Matches SFA and the constrained C64 contract. | AR-002 |
@@ -1126,8 +1116,8 @@ no C64U target identity or support claim; the owned successor activates only aft
 
 ## Acceptance Criteria
 
-1. [ ] **AC-01 — One authoritative M1 project:** One checked-in manifest/source/SpritePad project
-   with original art, the exact eight-sprite product scope, exact profile, and `none` options
+1. [ ] **AC-01 — One authoritative M1 project:** One checked-in manifest/source/raw-asset project
+   with original art, one exact 512-byte eight-sprite fixture, exact profile, and `none` options
    supplies CLI, editor, build, twin, and runtime proof.
 2. [ ] **AC-02 — Public check:** `blendc check` reports stable authoritative frontend/profile
    diagnostics, emits no compiler artifact, and reaches no target/backend process for frontend-only
@@ -1180,13 +1170,12 @@ no C64U target identity or support claim; the owned successor activates only aft
     resource behavior.
 21. [ ] **AC-21 — Legal machine program:** Every emitted opcode/addressing mode is legal documented
     NMOS 6502/6510 behavior; flags/carry/decimal state and branch ranges are accounted explicitly.
-22. [ ] **AC-22 — SpritePad qualification:** The native 3.80 template/final project, exports,
-    settings, hashes, schema evidence, and malformed/version/EOF cases prove the consumed SPD v5
-    surface. The official producer is absent from build/CI; missing evidence blocks rather than
-    skips qualification.
+22. [ ] **AC-22 — Raw asset qualification:** The checked-in 512-byte file, independent recipe,
+    expected bytes, record order, provenance and SHA-256 prove the exact M1 input. Missing, empty,
+    short, long, changed and path-escaping cases fail before typed or runnable-looking output.
 23. [ ] **AC-23 — Requested-only asset:** Actual PRG bytes/map contain exactly one copy of each of
     the final project's eight native sprite records, permit deliberate pointer sharing, and
-    contain no duplicate raw representation or unrequested derived/optional selector output.
+    contain no duplicate representation, derived output or hidden runtime copy.
 24. [ ] **AC-24 — VIC-correct placement:** Final addresses prove 64-byte alignment, one-bank
     containment, screen/pointer compatibility, visibility, no overlap, derived pointer correctness,
     and no runtime copy/division.

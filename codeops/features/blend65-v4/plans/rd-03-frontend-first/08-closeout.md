@@ -25,7 +25,7 @@ consideration were checked against the delivered frontend facts.
 | Reviewed boundary | Result and continuing owner |
 |---|---|
 | Aggregate returns / resolved FUT-010 | The frontend retains this valid form as an implementation obligation. This plan did not implement its hidden destination, SFA closure, alias/lifetime proof or lowering. Parent RD-03/RD-04 remains the owner. |
-| Profile and asset obligations | No profile declaration or asset value is fabricated. Authentic SpritePad producer evidence and the selected C64 profile remain with the next RD-03 plan. |
+| Profile and asset obligations | No profile declaration or asset value is fabricated. The next RD-03 plan owns the selected C64 profile and exact raw sprite fixture; authentic SpritePad producer evidence moved to RD-06 by the 2026-09-20 user decision. |
 | Backend, SFA and output parity | No CFG, storage plan, target lowering or assembly exists in this result. The remaining RD-03 pipeline owns these proofs. |
 | Later language and platform surfaces | RD-04 through RD-09 ownership remains unchanged; no future-consideration trigger gained its required implementation or workload evidence. |
 | Windows foundation qualification | RD-02 DEF-1 remains scheduled for RD-10 and does not block Linux compiler work. |
@@ -38,11 +38,14 @@ expired rationale, orphaned deferral or new backlog row was found.
 
 The next implementation plan owns the complete remainder in dependency order:
 
-1. obtain and qualify authentic SpritePad producer evidence;
-2. implement selected profiles and the exact resident asset surface;
+1. create and qualify the exact checked-in 512-byte raw sprite fixture;
+2. implement the selected profile and raw resident-asset path;
 3. build explicit CFG, whole-program facts, SFA, lowering and platform layout;
 4. assemble/package deterministic ACME output and expose real CLI/editor consumers;
 5. qualify the M1 fixture through ACME and VICE, then run the parent deferral gate.
+
+Authentic SpritePad 3.80 import is no longer an RD-03 prerequisite. RD-06 owns that native-format
+handler and its complete producer-evidence gate after the correct unoptimized compiler.
 
 The feature roadmap therefore remains **Executing**. Portfolio progress remains
 1/10 because this partial plan does not complete RD-03.
