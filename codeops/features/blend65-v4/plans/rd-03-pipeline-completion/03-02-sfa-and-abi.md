@@ -16,7 +16,7 @@ model. Globals and VIC-visible assets use platform layout instead (AR-C4).
 ```ts
 type StorageClass =
   | "parameter"
-  | "return"
+  | "return-stage"
   | "local"
   | "argument-stage"
   | "temporary"
@@ -43,6 +43,11 @@ interface StorageHome {
   readonly region: "zeropage" | "ram";
 }
 
+type ResultLocation =
+  | { readonly kind: "a" }
+  | { readonly kind: "ax" }
+  | { readonly kind: "storage"; readonly requestId: StorageId };
+
 interface StorageClosureCertificate {
   readonly inventoryHash: string;
   readonly graphHash: string;
@@ -66,6 +71,9 @@ source/binding/operation identity, never traversal accident (AR-C4).
 - Scalar/enum parameters copy into callee static homes before `JSR`.
 - Fixed array/struct parameters use their specified two-byte base address.
 - `byte`, `sbyte`, `boolean` and enum returns use A; `word`/`sword` use A low and X high.
+- Every function result has an explicit `ResultLocation`. Register results do not also consume RAM.
+  A `return-stage` request exists only when a result must survive another call, is spilled, or is
+  otherwise required in addressable storage.
 - RD-03 emits no aggregate-return source case, interrupt function or indirect call; the
   representation does not contradict their Specification 4 direction and adds no fake support.
 - `JSR`/`RTS` owns only return-address bytes. No ordinary local is placed on page one.
@@ -102,8 +110,11 @@ provisional semantic storage
 The loop is bounded by the finite operation set and finite candidate forms. Each operation may
 introduce only its declared finite storage candidates; a repeated existing request does not count as
 progress. Exhausting the finite set without a stable placement is a diagnostic, not another retry.
-Final layout, branch repair, serializer and packager accept a certificate and have no API that can
-create function-lifetime storage (AR-C4).
+Phase 3 implements the inventory, placement and bounded closure engine but does not claim that the
+M1 certificate is final. Phase 4 supplies the real legalizer/binder candidate requests, iterates the
+engine to stability and freezes the certificate before platform layout. Final layout, branch repair,
+serializer and packager accept that certificate and have no API that can create function-lifetime
+storage (AR-C4).
 
 ## Hardware Stack
 
@@ -134,8 +145,9 @@ accounting honest (AR-C4, AR-C5).
 
 ## Testing Requirements
 
-- Inventory covers parameters, scalar returns, locals, temporaries, argument staging, dynamic
-  pointer pairs, spills and helper scratch.
+- Inventory covers parameters, explicit result locations, required return staging, locals,
+  temporaries, argument staging, dynamic pointer pairs, spills and helper scratch. Register-only
+  scalar results have no duplicate memory home.
 - Exact nested-call cases include `f(1, g())` and `f(1, f(2, 3))`.
 - Overlay cases prove siblings may share and caller/callee live values may not.
 - Pointer `$fe` succeeds and `$ff` relocates or fails without wrap.

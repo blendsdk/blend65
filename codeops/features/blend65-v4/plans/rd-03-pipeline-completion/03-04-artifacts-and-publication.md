@@ -109,6 +109,13 @@ age or process state. Timeout/uncertain ownership reports a structured recovery 
 release removes only the exact owned empty lock directory. A crash-left lock is manual recovery,
 not an automatic break (AR-C14, AR-C18).
 
+The output root is not trusted merely because RD-02 resolved it earlier. Before every mutation
+critical section, publication re-resolves project/output containment and compares the recorded
+identity of every existing ancestor. Missing compiler-owned components are created one at a time,
+then checked with non-following metadata. Any symlink, alias, type or identity change stops the
+operation. The same checks run immediately before generation/current rename and cleanup; cleanup
+performs no recursive removal after an identity change (AR-C14, AR-C18).
+
 ### Commit and Current Record
 
 Compilation, evidence creation and ACME run outside the lock. Under the lock, publication:
@@ -141,12 +148,22 @@ and reports manual recovery (AR-C8).
 profile through an argument array and owns cancellation/process-tree cleanup. Interactive mode
 uses normal-speed visible VICE and leaves control with the developer (AR-C9, AR-C12, AR-C14).
 
-Automated qualification additionally uses a fresh loopback binary-monitor endpoint,
-`-controlport2device 37`, console/headless operation and the fixed profile settings. Its small
-protocol client supports only required commands: checkpoint set/delete, memory get, display get,
-VICE info, joyport set and monitor exit. It validates frame lengths, request IDs, response types,
-error bytes and bounded payload sizes. This is a test helper, not a reusable emulator abstraction
-(AR-C11, AR-C12).
+Automated qualification uses this ordered argument contract, with values represented as separate
+array elements and `<port>`/`<prg>` supplied only from validated compiler-owned values:
+
+```text
+-default -model c64 -pal -sidmodel 0 -console +sound +warp
+-binarymonitor -binarymonitoraddress 127.0.0.1:<port>
+-controlport2device 37 -limitcycles 100000000 -autostart <prg>
+```
+
+Before sending a monitor command on Linux, the driver proves that the listening socket belongs to
+the spawned `x64sc` process or its still-owned process tree and that the connected peer is that
+socket. Failure to attest ownership is a tool failure. Native Windows socket/process attestation is
+part of AR-C16 at RD-10. The small protocol client supports only required commands: checkpoint
+set/delete, memory get, display get, VICE info, joyport set and monitor exit. It validates frame
+lengths, request IDs, response types, error bytes and bounded payload sizes. This is a test helper,
+not a reusable emulator abstraction (AR-C11, AR-C12, AR-C14).
 
 Display signatures use binary-monitor `Display Get (0x84)` indexed VIC-II pixels with the returned
 dimensions/offsets included in the hash. Joystick values are set only at the emitted
@@ -167,12 +184,15 @@ restoration and the pinned BASIC-return checkpoint are observed (AR-C11, AR-C12)
 ## Testing Requirements
 
 - ACME source goldens are separate from actual report/symbol/byte/PRG assertions.
-- Tool tests use real ACME for exact version/invocation/output behavior; missing ACME is `Unknown`,
-  not pass, outside required local qualification.
+- Tool tests use real ACME for exact version/invocation/output behavior. Linux CI provisions the
+  checksum-pinned 0.97 binary and treats absence/version mismatch as failure. An optional local
+  environment without ACME reports `Unknown`, never pass; the required local M1 qualification must
+  have it.
 - Publication cases cover competing builds, failed staging, current replacement, pin acquisition,
-  active/crash-left pins, uncertain pin namespace, predecessor retention and deterministic cleanup.
+  active/crash-left pins, uncertain pin namespace, predecessor retention, ancestor replacement and
+  deterministic cleanup.
 - Pure filesystem/process seams use real temporary directories/children, not mocked implementation
   objects; only platform-unavailable native Windows execution remains AR-C16.
 - Cancellation cases cover every row above.
 - VICE monitor codec/protocol cases run in CI without VICE; the one real runtime path runs locally,
-  sequentially, on VICE 3.10.
+  sequentially, on VICE 3.10. It asserts the exact argument array and Linux child/socket ownership.

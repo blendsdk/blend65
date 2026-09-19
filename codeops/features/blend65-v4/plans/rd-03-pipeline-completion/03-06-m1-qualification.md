@@ -21,6 +21,7 @@ qualification/sprite-recipe.ts
 qualification/win-trace.json
 qualification/oracle.ts
 qualification/expert-m1.asm
+qualification/expert-ledger.json
 qualification/README.md
 ```
 

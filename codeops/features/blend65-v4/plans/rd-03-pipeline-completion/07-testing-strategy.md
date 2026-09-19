@@ -30,7 +30,7 @@ produced safely with real ACME/VICE (AR-C13–AR-C15).
 
 | ID | Concrete input/scenario | Expected output/behavior | Source |
 |---|---|---|---|
-| ST-57 | Parameters, scalar return, locals and temporaries | Every execution value has one request, lifetime and deterministic home | R3.14; [direct storage records](03-02-sfa-and-abi.md#direct-records) |
+| ST-57 | Parameters, scalar return, locals and temporaries | Every result has one ABI location; every value that requires storage has one request, lifetime and deterministic home; A/A-X returns have no duplicate RAM home | R3.14; [direct storage records](03-02-sfa-and-abi.md#direct-records) |
 | ST-58 | `f(1, g())` and `f(1, f(2, 3))` | Outer staging survives nested call; no false recursion | R3.14 |
 | ST-59 | Disjoint sibling lifetimes and caller/callee-live values | Legal overlay occurs; interfering values never overlap | R3.14–R3.15 |
 | ST-60 | Dynamic pointer pair at candidate `$fe` and `$ff` | `$fe/$ff` pair succeeds; `$ff` start relocates/fails without wrap | R3.14–R3.15 |
@@ -60,7 +60,7 @@ produced safely with real ACME/VICE (AR-C13–AR-C15).
 
 | ID | Concrete input/scenario | Expected output/behavior | Source |
 |---|---|---|---|
-| ST-77 | Same final machine/layout input twice | Byte-identical `.asm`, labels and JSON; legal NMOS forms only | R3.25 |
+| ST-77 | Same final machine/layout input twice | Byte-identical `.asm`, labels, PRG and portable sidecars; `.build.json` differs only in `generationId` and declared host provenance, while its canonical portable projection is byte-identical; legal NMOS forms only | R3.25 |
 | ST-78 | Real ACME 0.97 invocation | Exact arguments, report/symbol/PRG agreement and removed staging report | R3.26; AR-C8 |
 | ST-79 | Wrong/missing ACME or nonzero/error output | Correct failure category; no current generation | R3.3, R3.26 |
 | ST-80 | Symlink, device, alias, stale or unexpected tool output | Fail closed before publication | R3.26; AR-C14 |
@@ -82,7 +82,7 @@ produced safely with real ACME/VICE (AR-C13–AR-C15).
 | ST-91 | Frontend-subpath actual and transitive imports | No target/SFA/lowering/layout/emitter/publication/VICE reachability | R3.4, R3.17; AR-C2 |
 | ST-92 | LSP open/change/save/close with sibling overlays | Diagnostics use current overlays, then disk content after close | R3.4; [language server](03-05-public-consumers.md#language-server) |
 | ST-93 | Non-ASCII and EOF diagnostic spans | Exact raw-byte to zero-based UTF-16 ranges and related locations | R3.4, R3.10 |
-| ST-94 | Rapid changes and malformed/non-file/out-of-project URI | Only newest result publishes; invalid input cannot escape/crash | R3.4; AR-C14 |
+| ST-94 | Rapid changes, overlay limits/invalid Unicode and malformed/non-file/out-of-project URI | Only newest result publishes; invalid or excessive input cannot escape/crash/exhaust the server | R3.4; AR-C14 |
 | ST-95 | Built server/extension bundles | Real stdio initialize/open/diagnostics and exact minimal manifest | R3.4; AR-C10 |
 
 ### M1 Qualification
@@ -102,8 +102,8 @@ produced safely with real ACME/VICE (AR-C13–AR-C15).
 | Area | Specification files | Cases |
 |---|---|---|
 | Semantic/whole program | `compiler/src/semantic/{operations,cfg,whole-program}.spec.test.ts` | ST-49–ST-56 |
-| SFA/ABI | `compiler/src/storage/{sfa,closure}.spec.test.ts` | ST-57–ST-64 |
-| Target/assets/machine/layout | `compiler/src/{target,assets,machine,layout}/*.spec.test.ts` | ST-65–ST-76 |
+| SFA/ABI | `compiler/src/storage/{sfa,closure}.spec.test.ts` | ST-57–ST-60, ST-62 and the SFA-only half of ST-63 |
+| Target/assets/machine/layout | `compiler/src/{target,assets,machine,layout}/*.spec.test.ts` | ST-61, layout half of ST-63, ST-64–ST-76 |
 | Artifacts/publication | `compiler/src/{artifacts,publication}/*.spec.test.ts` | ST-77–ST-87 |
 | Public services/CLI | `compiler/src/services/*.spec.test.ts`, `cli/src/*.spec.test.ts` | ST-88–ST-90 |
 | Editor | Root boundary plus new package specification files | ST-91–ST-95 |
@@ -111,7 +111,10 @@ produced safely with real ACME/VICE (AR-C13–AR-C15).
 
 Implementation tests use matching `*.impl.test.ts` files after GREEN. Integration is the real
 compiler-service/CLI/LSP journey. End-to-end is ST-99/ST-101; no second harness is added. Existing
-immutable specification tests are not edited to accommodate implementation.
+immutable specification tests are not edited to accommodate implementation. The sole pre-authorized
+oracle transition replaces RD-02's now-superseded two-workspace/no-Vite foundation assertion with
+RD-03's exact four-workspace/editor-only Vite rule before editor implementation; it may not weaken
+any other foundation expectation.
 
 ## Verification Commands
 
@@ -122,8 +125,8 @@ immutable specification tests are not edited to accommodate implementation.
 | Boundary | `yarn vitest run test/import-boundary.spec.test.ts` plus the new RD-03 boundary file |
 | Real ACME | M1 artifact test with discovered, version-probed ACME 0.97 |
 | Real VICE | Sequential local M1 VICE 3.10 qualification only |
-| Phase integration | Affected workspace build, typecheck and tests plus boundary cases |
-| Final Linux acceptance | `yarn build && yarn typecheck && yarn test` plus real ACME and VICE |
+| Every phase checkpoint | `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test` plus the phase's directed/boundary/tool cases |
+| Final Linux acceptance | `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test` plus real ACME and VICE |
 | Artifact hygiene | `yarn prettier --check <touched files>` plus the repository whitespace check |
 | Frozen authority | Read-only status proof that `spec/` is unchanged |
 

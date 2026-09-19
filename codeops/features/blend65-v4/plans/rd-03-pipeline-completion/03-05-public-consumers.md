@@ -27,7 +27,7 @@ process exception (AR-C9, AR-C14).
 
 | Service | Work performed | Success payload | Must not do |
 |---|---|---|---|
-| `checkProject` | Fresh load, reachable frontend, profile binding, asset validation, semantic CFG, whole-program and SFA closure checks that are provable before layout | Snapshot/profile identities, diagnostics and check measurements | Create output, run ACME/VICE or claim layout/artifact proof |
+| `checkProject` | Fresh load, reachable frontend, profile binding, asset validation, semantic CFG, whole-program closure, target legalization/resource binding and final SFA closure; stops before platform layout | Snapshot/profile identities, diagnostics and check measurements | Create output, run ACME/VICE or claim layout/artifact proof |
 | `buildProject` | Fresh complete check through layout, ACME verification and publication | Exact `PublishedGeneration`, diagnostics, evidence identities and measurements | Reuse a prior artifact as success |
 | `runProject` | Its own fresh successful build, same-critical-section pin, exact VICE launch and cleanup | Built generation, run status and bounded verification label | Re-resolve current, launch stale output or patch program state |
 
@@ -41,15 +41,20 @@ generation (AR-C9, AR-C14).
 `@blend65/compiler/frontend` exports only:
 
 - the stable diagnostic/source/result types already needed by consumers;
+- the existing `loadProject` entry plus `ProjectLoadOptions`/`ProjectLoadResult`, routed directly to
+  the RD-02 project owner without importing the compiler root;
 - `analyzeProject` for an immutable RD-02 snapshot; and
 - `analyzeProjectOverlay` for the same snapshot with a bounded map of canonical source IDs to
   in-memory UTF-8 text.
 
 An overlay changes no disk file or snapshot identity. It replaces only known source contents for
 one analysis, recomputes their content hashes in memory and cannot add assets, modules, profile
-facts or outputs. Unknown IDs, invalid UTF-8 and over-limit content return diagnostics. The subpath
-cannot import or re-export semantic CFG, SFA, target, lowering, layout, ACME, publication or VICE
-modules. The existing transitive import-boundary test enforces that property (AR-C2, AR-C9).
+facts or outputs. Unknown IDs, unpaired Unicode and over-limit content return diagnostics. Overlays
+reuse the RD-02 limits: at most 4 MiB of UTF-8 per source, 10,000 effective sources and 256 MiB of
+UTF-8 across the effective project snapshot. Limits are checked before copying overlay text into
+analysis. The subpath cannot import or re-export semantic CFG, SFA, target, lowering, layout, ACME,
+publication or VICE modules. The existing transitive import-boundary test enforces that property
+(AR-C2, AR-C9).
 
 ## CLI
 
@@ -64,10 +69,25 @@ help/version behavior. It maps these options directly to the compiler service ty
 - `--division-zero-check <true|false>`.
 
 Options use exact allowlists, reject duplicates/unknowns/missing values and never become shell
-fragments. Human output renders diagnostics and one concise success summary. Exit statuses are
-fixed by the failure categories above; `check` never prints a build/run success, and `run` does not
-report success before the emulator starts. A SIGINT/SIGTERM-owned abort reaches the selected
-service and awaits cleanup (AR-C9, AR-C14).
+fragments. Human output renders diagnostics and one concise success summary. Exit statuses use the
+stable mapping below; `check` never prints a build/run success, and `run` does not report success
+before the emulator starts. A SIGINT/SIGTERM-owned abort reaches the selected service and awaits
+cleanup (AR-C9, AR-C14).
+
+| Result | Exit status |
+|---|---:|
+| success | 0 |
+| unexpected internal failure | 1 |
+| CLI usage | 2 |
+| source | 3 |
+| compiler | 4 |
+| assembler | 5 |
+| packaging | 6 |
+| tool-discovery | 7 |
+| emulator-start | 8 |
+| emulator-runtime | 9 |
+| recovery-required | 10 |
+| cancelled / signal-owned abort | 130 |
 
 ## Language Server
 
@@ -82,9 +102,13 @@ service and awaits cleanup (AR-C9, AR-C14).
 4. runs only project/frontend analysis on open/change/save/close; and
 5. publishes lexical, syntax, module and semantic diagnostics for open documents.
 
-One monotonically increasing request number per project makes older analysis results ineligible for
-publication. A newer request aborts the previous one; no generic scheduler or incremental compiler
-cache is added. Closing a document removes its overlay and triggers one disk-backed analysis.
+One small trailing-edge queue per project coalesces pending document changes. A monotonically
+increasing request number makes older results ineligible for publication. Pending snapshot I/O is
+aborted when superseded; synchronous frontend analysis may finish, then yields once to the event
+loop before the request number is checked and diagnostics can publish. This suppresses stale
+results without pretending synchronous work can be preempted. No generic scheduler or incremental
+compiler cache is added. Closing a document removes its overlay and triggers one disk-backed
+analysis.
 
 Diagnostic conversion preserves severity, code, message and related locations. Raw UTF-8 byte
 offsets are converted against the exact analyzed text to zero-based UTF-16 LSP positions, including
@@ -97,7 +121,8 @@ completion, hover, definition, rename, formatting, workspace command or file-wri
 
 ## VS Code Extension
 
-`@blend65/vscode` is a thin Node extension workspace using `vscode-languageclient`. Its manifest:
+`@blend65/vscode` is a thin Node extension workspace using `vscode-languageclient`; the VS Code
+host type package is compile-time-only and adds no shipped runtime. Its manifest:
 
 - contributes language ID `blend65` for `*.blend`;
 - activates only for that language;
@@ -116,7 +141,8 @@ publishing, command palette item, settings schema, icon/theme, web extension or 
 - CLI cases prove every option and exit category without invoking a shell.
 - Frontend-subpath and transitive package-boundary cases prove no backend reachability.
 - Language-server cases use real JSON-RPC messages for open/change/save/close, overlay siblings,
-  UTF-8-to-UTF-16 spans, stale-result suppression and malformed URI containment.
+  exact overlay size/count/aggregate limits, invalid Unicode rejection, UTF-8-to-UTF-16 spans,
+  stale-result suppression and malformed URI containment.
 - Bundle cases build both Node entries, start the real server over stdio, exchange initialize/open
   messages and inspect the extension manifest. They do not pretend to be native VS Code UI proof.
 - Native Windows Node 22 editor/process smoke remains only the named AR-C16 deferral.

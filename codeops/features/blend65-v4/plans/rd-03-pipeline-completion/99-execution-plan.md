@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-20 00:43
-> **Progress**: 0/71 tasks (0%)
+> **Progress**: 0/79 tasks (0%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -20,6 +20,10 @@ document order. Mark a genuine blocker `[!]` with its reason on the task line. C
 green checkpoint without asking and never push. Keep `spec/` unchanged and update the feature
 roadmap at lifecycle transitions.
 
+Every phase checkpoint runs
+`yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test` plus that phase's
+directed, boundary and tool cases. This is verification, not authority to broaden a phase.
+
 Specification-test authors receive only the cited requirement/design excerpts and public
 signatures. They must not open the phase's production implementation files. Record the oracle hash
 and behavioral RED before implementation. A failing immutable specification test means production
@@ -33,13 +37,13 @@ registry, asset framework, readiness product or package-per-stage split. Only
 
 | Phase | Deliverable | Tasks |
 |---|---|---:|
-| 1 | Frozen M1 inputs, selected profile and raw asset | 11 |
+| 1 | Frozen M1 inputs, selected profile and raw asset | 12 |
 | 2 | Semantic operations, explicit CFG and whole-program closure | 8 |
-| 3 | SFA and ABI closure | 8 |
-| 4 | Legal 6510 machine program and platform layout | 11 |
+| 3 | SFA and ABI closure engine | 8 |
+| 4 | Legal 6510 machine program and platform layout | 12 |
 | 5 | ACME artifacts and atomic publication | 10 |
-| 6 | Compiler services and CLI | 7 |
-| 7 | Diagnostics-only editor bundle | 7 |
+| 6 | Compiler services and CLI | 9 |
+| 7 | Diagnostics-only editor bundle | 11 |
 | 8 | Full M1 ACME/VICE qualification and handoff | 9 |
 
 ## Phase 1: Frozen Inputs, Profile and Raw Asset
@@ -52,7 +56,7 @@ registry, asset framework, readiness product or package-per-stage split. Only
 
 ### Step 1.1: Specification Tests
 
-- [ ] 1.1.1 [spec-author] Write ST-55/ST-65 profile specification cases —
+- [ ] 1.1.1 [spec-author] Write ST-55 frontend-profile specification cases —
   `packages/compiler/src/frontend/profile.spec.test.ts`; forbidden: production compiler files.
 - [ ] 1.1.2 [spec-author] Write ST-66–ST-68/ST-96 raw-asset cases —
   `packages/compiler/src/assets/raw-asset.spec.test.ts`; forbidden: production compiler files.
@@ -62,15 +66,18 @@ registry, asset framework, readiness product or package-per-stage split. Only
 
 ### Step 1.2: Implementation
 
-- [ ] 1.2.1 Add the readable M1 manifest/source skeleton and deterministic raw-sprite recipe/output —
-  `examples/m1/blend65.json`, `examples/m1/src/game.blend`, `examples/m1/assets/sprites.bin`.
-- [ ] 1.2.2 Add the independent fixed trace, pure behavior model and provenance notes —
+- [ ] 1.2.1 Add the readable M1 manifest/source skeleton —
+  `examples/m1/blend65.json`, `examples/m1/src/game.blend`.
+- [ ] 1.2.2 Add the deterministic raw-sprite recipe and its exact output —
+  `examples/m1/qualification/sprite-recipe.ts`, `examples/m1/assets/sprites.bin`; this is raw-fixture
+  evidence only and does not pull SpritePad work forward from RD-06.
+- [ ] 1.2.3 Add the independent fixed trace, pure behavior model and provenance notes —
   `examples/m1/qualification/{win-trace.json,oracle.ts,README.md}`.
-- [ ] 1.2.3 Implement the one selected frontend profile declaration environment and exact M1 API
+- [ ] 1.2.4 Implement the one selected frontend profile declaration environment and exact M1 API
   identities — `packages/compiler/src/frontend/{profile.ts,semantic-types.ts}`; AR-C5/AR-C17.
-- [ ] 1.2.4 Implement the literal raw-asset resolver and immutable asset identity/value —
+- [ ] 1.2.5 Implement the literal raw-asset resolver and immutable asset identity/value —
   `packages/compiler/src/assets/{raw-asset.ts,asset-types.ts}`; AR-C6/AR-C14.
-- [ ] 1.2.5 Complete frontend embed/profile obligations without leaking target facts into typed source
+- [ ] 1.2.6 Complete frontend embed/profile obligations without leaking target facts into typed source
   semantics — `packages/compiler/src/frontend/{analyzer.ts,service.ts,analysis-result.ts}`.
 
 ### Step 1.3: Implementation Tests and Hardening
@@ -117,7 +124,7 @@ Deliverable: requirements-frozen M1 inputs and one proved raw asset/profile fron
 
 Deliverable: one target-neutral whole semantic program with explicit CFG and complete direct edges.
 
-## Phase 3: SFA and ABI Closure
+## Phase 3: SFA and ABI Closure Engine
 
 > **Scope mode**: strict
 > **Expected modification set**: focused `packages/compiler/src/storage/` and ABI files/tests;
@@ -126,7 +133,7 @@ Deliverable: one target-neutral whole semantic program with explicit CFG and com
 
 ### Step 3.1: Specification Tests
 
-- [ ] 3.1.1 [spec-author] Write ST-57–ST-64 —
+- [ ] 3.1.1 [spec-author] Write ST-57–ST-60, ST-62 and the SFA-only half of ST-63 —
   `packages/compiler/src/storage/{sfa,closure}.spec.test.ts`; forbidden: production storage/ABI
   modules.
 - [ ] 3.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
@@ -135,11 +142,11 @@ Deliverable: one target-neutral whole semantic program with explicit CFG and com
 
 - [ ] 3.2.1 Define request, lifetime/interference, home and certificate records —
   `packages/compiler/src/storage/{storage-types.ts,interference.ts}`.
-- [ ] 3.2.2 Inventory parameters, returns, locals, temporaries, argument staging and pointer/helper
-  demand — `packages/compiler/src/storage/inventory.ts`.
+- [ ] 3.2.2 Inventory parameters, result locations/required return staging, locals, temporaries,
+  argument staging and pointer/helper demand — `packages/compiler/src/storage/inventory.ts`.
 - [ ] 3.2.3 Implement deterministic overlay/placement and conflicts —
   `packages/compiler/src/storage/{interference.ts,allocate.ts}`.
-- [ ] 3.2.4 Implement bounded monotonic re-close and certificate freeze —
+- [ ] 3.2.4 Implement bounded monotonic re-close and provisional certificate construction —
   `packages/compiler/src/storage/closure.ts`.
 
 ### Step 3.3: Implementation Tests and Hardening
@@ -149,12 +156,13 @@ Deliverable: one target-neutral whole semantic program with explicit CFG and com
 - [ ] 3.3.2 Record independent correctness/semantics review and corrections —
   `08-phase-3-review.md`; commit green checkpoint.
 
-Deliverable: every function-lifetime byte has a proved final home before layout.
+Deliverable: complete provisional storage inventory/placement plus the bounded closure engine;
+Phase 4 supplies real machine demand and freezes the final certificate before layout.
 
 ## Phase 4: Machine Lowering and Platform Layout
 
 > **Scope mode**: strict
-> **Expected modification set**: focused `compiler/src/{target,machine,layout}/` files and tests;
+> **Expected modification set**: focused `compiler/src/{target,machine,layout,storage}/` files and tests;
 > plan evidence/roadmap. No optional optimizer, textual pseudo-assembly, generic target registry or
 > publication code.
 > **Lenses**: correctness, 6502 semantics, expert output, simplicity
@@ -163,7 +171,9 @@ Deliverable: every function-lifetime byte has a proved final home before layout.
 
 - [ ] 4.1.1 [spec-author] Write ST-69–ST-74 machine-lowering cases —
   `packages/compiler/src/machine/lowering.spec.test.ts`; forbidden: production backend modules.
-- [ ] 4.1.2 [spec-author] Write ST-75–ST-76 startup/layout cases —
+- [ ] 4.1.2 [spec-author] Write ST-61, the layout half of ST-63, ST-64–ST-65 and ST-75–ST-76
+  integration/startup/layout cases — `packages/compiler/src/storage/closure-integration.spec.test.ts`,
+  `packages/compiler/src/target/profile.spec.test.ts`,
   `packages/compiler/src/layout/c64-layout.spec.test.ts`; forbidden: production backend modules.
 - [ ] 4.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
 
@@ -177,10 +187,14 @@ Deliverable: every function-lifetime byte has a proved final home before layout.
   order — `packages/compiler/src/machine/{lower.ts,lower-control.ts}`.
 - [ ] 4.2.4 Lower raw PEEK/POKE and named C64 operations —
   `packages/compiler/src/machine/{lower-memory.ts,lower-c64.ts}`.
-- [ ] 4.2.5 Bind resources, choose legal forms and repair branches —
-  `packages/compiler/src/machine/{bind.ts,block-layout.ts}`.
-- [ ] 4.2.6 Implement startup/return plus deterministic non-overlapping C64/VIC-aware layout and
-  sprite blocks — `packages/compiler/src/layout/{startup.ts,c64-layout.ts}`.
+- [ ] 4.2.5 Bind resources and choose legal candidate forms —
+  `packages/compiler/src/machine/bind.ts`.
+- [ ] 4.2.6 Feed every real binder/legalizer request through the closure engine and freeze the final
+  storage certificate — `packages/compiler/src/machine/bind.ts`,
+  `packages/compiler/src/storage/closure.ts`.
+- [ ] 4.2.7 Repair branches and implement startup/return plus deterministic non-overlapping
+  C64/VIC-aware layout and sprite blocks — `packages/compiler/src/machine/block-layout.ts`,
+  `packages/compiler/src/layout/{startup.ts,c64-layout.ts}`.
 
 ### Step 4.3: Implementation Tests and Hardening
 
@@ -217,13 +231,14 @@ Deliverable: a closed legal documented-NMOS machine program and exact final C64 
 - [ ] 5.2.4 Implement direct canonical sidecars and cross-hashes —
   `packages/compiler/src/artifacts/{evidence.ts,evidence-types.ts}`.
 - [ ] 5.2.5 Implement staging/generation/current commit —
-  `packages/compiler/src/publication/{publication.ts,current-record.ts}`.
+  `packages/compiler/src/publication/{publication.ts,current-record.ts}`; revalidate output-root
+  containment and ancestor identity at every mutation boundary.
 - [ ] 5.2.6 Implement the exact directory lock, independent pins, predecessor retention and fail-closed
   cleanup — `packages/compiler/src/publication/{lock.ts,pins.ts,cleanup.ts}`.
 
 ### Step 5.3: Implementation Tests and Hardening
 
-- [ ] 5.3.1 Reach GREEN with real ACME/filesystem/process/concurrency tests —
+- [ ] 5.3.1 Reach GREEN with real ACME/filesystem/process/concurrency and ancestor-swap tests —
   `packages/compiler/src/{artifacts/acme,publication/publication}.impl.test.ts`; qualify phase.
 - [ ] 5.3.2 Record independent correctness/security/concurrency review and corrections —
   `08-phase-5-review.md`; commit green checkpoint.
@@ -248,10 +263,15 @@ Deliverable: one verified eight-file immutable generation published atomically.
 
 - [ ] 6.2.1 Implement typed check/build/run results and cancellation —
   `packages/compiler/src/services/{types.ts,services.ts}`.
-- [ ] 6.2.2 Export the backend-free `@blend65/compiler/frontend` subpath and extend transitive boundary
-  proof — `packages/compiler/{package.json,src/frontend/index.ts}`, `test/import-boundary.ts`.
-- [ ] 6.2.3 Map CLI commands/options/signals/output/exit statuses —
+- [ ] 6.2.2 Export the backend-free `@blend65/compiler/frontend` subpath, including the existing safe
+  `loadProject` entry/types, and extend transitive boundary proof —
+  `packages/compiler/{package.json,src/frontend/index.ts}`, `test/import-boundary.ts`.
+- [ ] 6.2.3 Wire the typed services into the compiler package root —
+  `packages/compiler/src/index.ts`.
+- [ ] 6.2.4 Map CLI commands/options/signals/output and the exact numeric exit table —
   `packages/cli/src/{args.ts,run.ts,render.ts}`.
+- [ ] 6.2.5 Wire CLI public/main/bin entry points to the command runner —
+  `packages/cli/src/{index.ts,main.ts,bin.ts}`.
 
 ### Step 6.3: Implementation Tests and Hardening
 
@@ -268,24 +288,39 @@ Deliverable: truthful library and CLI check/build/run journeys.
 > **Scope mode**: strict
 > **Expected modification set**: new `packages/language-server/`, `packages/vscode/`, compiler
 > frontend-overlay files/tests, root workspace lock/config and boundary tests; plan evidence/roadmap.
-> Only the dependencies in AR-C10 are allowed.
+> Only the runtime/build dependencies in AR-C10 plus the VS Code host type package needed to
+> compile the extension are allowed. No additional runtime or framework is introduced.
 > **Lenses**: correctness, api-surface, security, package boundaries, simplicity
 
 ### Step 7.1: Specification Tests
 
-- [ ] 7.1.1 [spec-author] Write ST-91–ST-95 — `test/rd03-import-boundary.spec.test.ts`,
+- [ ] 7.1.1 [spec-author] Apply the pre-authorized requirement-supersession correction to only the
+  stale two-workspace/no-Vite/no-ACME foundation assertions, replacing them with the exact four
+  workspaces, editor-only Vite and Linux-CI-only ACME rule; write ST-91 —
+  `test/foundation.spec.test.ts`, `test/rd03-import-boundary.spec.test.ts`; forbidden: production
+  editor/overlay implementations and every unrelated foundation expectation.
+- [ ] 7.1.2 [spec-author] Write ST-92–ST-95 —
   `packages/language-server/src/server.spec.test.ts`, `packages/vscode/src/extension.spec.test.ts`;
   forbidden: production editor/overlay implementations.
-- [ ] 7.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+- [ ] 7.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
 
 ### Step 7.2: Implementation
 
-- [ ] 7.2.1 Implement bounded overlays and UTF-8-to-UTF-16 mapping —
+- [ ] 7.2.1 Implement bounded overlays, unpaired-Unicode rejection and UTF-8-to-UTF-16 mapping using
+  RD-02's 4 MiB/source, 10,000-source and 256 MiB/project limits —
   `packages/compiler/src/frontend/{overlay.ts,positions.ts,service.ts}`.
-- [ ] 7.2.2 Add stdio diagnostics server and latest-only publication —
-  `packages/language-server/{package.json,src/server.ts,vite.config.ts}`.
-- [ ] 7.2.3 Add thin VS Code manifest/client bundle —
-  `packages/vscode/{package.json,src/extension.ts,vite.config.ts}`.
+- [ ] 7.2.2 Add the stdio diagnostics server with one trailing-edge queue per project, snapshot-I/O
+  cancellation, post-yield stale-result suppression and an explicit Node Vite bundle —
+  `packages/language-server/src/server.ts`, `packages/language-server/vite.config.ts`.
+- [ ] 7.2.3 Add the thin VS Code client entry and explicit Node Vite bundle —
+  `packages/vscode/src/extension.ts`, `packages/vscode/vite.config.ts`.
+- [ ] 7.2.4 Activate the language-server workspace with its exact manifest/dependencies, TypeScript
+  project and lockfile update — `packages/language-server/{package.json,tsconfig.json}`, `yarn.lock`.
+- [ ] 7.2.5 Activate the VS Code workspace with its exact manifest/dependencies, host type package,
+  TypeScript project and lockfile update — `packages/vscode/{package.json,tsconfig.json}`, `yarn.lock`.
+- [ ] 7.2.6 Add both projects to the root TypeScript graph and provision
+  checksum-pinned ACME 0.97 only on the Linux CI leg so the real ACME tier is required there —
+  `tsconfig.json`, `.github/workflows/ci.yml`.
 
 ### Step 7.3: Implementation Tests and Hardening
 
@@ -319,9 +354,12 @@ Deliverable: a real minimal VS Code diagnostic bundle with no backend dependency
 - [ ] 8.2.1 Complete M1 against only admitted modern APIs —
   `examples/m1/src/game.blend`; remove no oracle obligation.
 - [ ] 8.2.2 Implement the small AR-C11 VICE qualification helper —
-  `test/m1/{vice-monitor.ts,vice-driver.ts}`.
-- [ ] 8.2.3 Reach GREEN for pure M1, real ACME 0.97 and the sequential VICE 3.10 fixed-trace journey;
-  record `VICE-verified / hardware-unverified` — `test/m1/{pipeline,vice}.spec.test.ts`.
+  `test/m1/{vice-monitor.ts,vice-driver.ts}`; use the exact `-default`-first argument array and prove
+  Linux child/socket ownership before sending monitor commands.
+- [ ] 8.2.3 Run the immutable specification tests to GREEN for pure M1, real ACME 0.97 and the
+  sequential VICE 3.10 fixed-trace journey; edit implementation/evidence only and record
+  `VICE-verified / hardware-unverified` — run-only inputs:
+  `test/m1/{pipeline,vice}.spec.test.ts`.
 
 ### Step 8.3: Implementation Tests and Hardening
 
@@ -351,13 +389,14 @@ remains deferred to RD-10.
 
 ## Final Acceptance
 
-Run `yarn build && yarn typecheck && yarn test`, real ACME 0.97 qualification, the single sequential
-VICE 3.10 M1 journey, touched-file Prettier and whitespace checks, and a read-only proof that
+Run `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`, real ACME 0.97
+qualification, the single sequential VICE 3.10 M1 journey, touched-file Prettier and whitespace
+checks, and a read-only proof that
 `spec/` is unchanged. Record observational timings/memory without thresholds. The closeout must
 answer whether RD-03 expired any deferral rationale and must re-home every affected deferral before
 changing the RD lifecycle state.
 
-RD-03 Linux implementation is complete only when all 71 tasks are `[x]`, every phase review has no
+RD-03 Linux implementation is complete only when all 79 tasks are `[x]`, every phase review has no
 open critical/major finding, all final checks pass, no dead code or unused package surface remains,
 the roadmap/closeout evidence is current, and the sole missing native-host evidence is explicitly
 bounded by AR-C16 rather than reported as a pass.
