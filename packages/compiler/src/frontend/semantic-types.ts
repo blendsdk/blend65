@@ -145,8 +145,49 @@ export interface ScalarType {
   readonly name: ScalarTypeName;
 }
 
-/** Semantic types known by the scalar analysis slice. */
-export type SemanticType = ScalarType;
+/** One field in a resolved nominal struct, including its packed byte offset. */
+export interface StructFieldType {
+  /** Exact declared field name. */
+  readonly name: string;
+  /** Resolved field value type. */
+  readonly type: SemanticType;
+  /** Zero-based byte offset with no inserted padding. */
+  readonly offset: number;
+}
+
+/** A resolved nominal struct type. */
+export interface StructType {
+  /** Type discriminator. */
+  readonly kind: "struct";
+  /** Declaration identity which makes this type nominal. */
+  readonly binding: BindingId;
+  /** Complete packed byte size. */
+  readonly size: number;
+  /** Fields in declaration and memory order. */
+  readonly fields: readonly StructFieldType[];
+}
+
+/** A resolved fixed-size array type. */
+export interface ArrayType {
+  /** Type discriminator. */
+  readonly kind: "array";
+  /** Exact element type. */
+  readonly element: SemanticType;
+  /** Compile-time element count. */
+  readonly length: number;
+  /** Complete byte size. */
+  readonly size: number;
+}
+
+/** Semantic types admitted by the current frontend slice. */
+export type SemanticType = ScalarType | StructType | ArrayType;
+
+/** Render a stable structural key for aggregate-type interning. */
+export function semanticTypeKey(type: SemanticType): string {
+  if (type.kind === "scalar") return type.name;
+  if (type.kind === "struct") return `struct:${bindingIdentityKey(type.binding)}`;
+  return `${semanticTypeKey(type.element)}[${type.length}]`;
+}
 
 /** A graph binding enriched with the type accepted by body analysis. */
 export interface SemanticBinding extends Binding {
@@ -191,6 +232,8 @@ export interface Place {
   readonly path: readonly (string | TypedExpr)[];
   /** Whether writes through this place are forbidden. */
   readonly readonly: boolean;
+  /** Source of read-only permission, when writes are forbidden. */
+  readonly readonlyOrigin: "constant" | "parameter" | null;
 }
 
 /** One parameter in a resolved direct-call signature. */
@@ -262,8 +305,8 @@ export interface TypedExpr {
   readonly name?: string;
   /** Exact operator retained by unary, binary, and assignment nodes. */
   readonly operator?: string;
-  /** Unary or cast operand. */
-  readonly operand?: TypedExpr;
+  /** Unary/cast value operand, or the retained source type used by a type query. */
+  readonly operand?: TypedExpr | TypeSyntax;
   /** Left operand of a binary expression. */
   readonly left?: TypedExpr;
   /** Right operand of a binary expression. */
@@ -282,6 +325,26 @@ export interface TypedExpr {
   readonly arguments?: readonly TypedExpr[];
   /** Resolved direct-call signature. */
   readonly signature?: FunctionSignature;
+  /** Indexed or selected aggregate object. */
+  readonly object?: TypedExpr;
+  /** Typed array ordinal. */
+  readonly index?: TypedExpr;
+  /** Selected struct field spelling. */
+  readonly member?: string;
+  /** Struct literal fields in source order. */
+  readonly fields?: readonly { readonly name: string; readonly value: TypedExpr }[];
+  /** Explicit array literal elements in source order. */
+  readonly elements?: readonly TypedExpr[];
+  /** Remaining-element fill value, when written. */
+  readonly fill?: TypedExpr | null;
+  /** Half-open element ranges proved initialized by an array literal. */
+  readonly initialized?: readonly InitializedRange[];
+  /** Resolved type inspected by sizeof or offsetof. */
+  readonly operandType?: SemanticType;
+  /** Source field spelling retained by offsetof. */
+  readonly field?: string;
+  /** Volatile raw-memory access facts retained for lowering. */
+  readonly memory?: MemoryAccess | null;
   /** Original type spelling retained by cast nodes. */
   readonly targetType?: TypeSyntax;
   /** Observable evaluation structure for ordered expressions. */
@@ -290,6 +353,26 @@ export interface TypedExpr {
     | "short-circuit"
     | "selected-arm"
     | readonly ("place" | "old-read" | "rhs" | "operation" | "store" | "result")[];
+}
+
+/** One half-open range of array elements with defined initializer values. */
+export interface InitializedRange {
+  /** First initialized element. */
+  readonly start: number;
+  /** One past the final initialized element. */
+  readonly end: number;
+}
+
+/** Symbolic effect facts for one raw-memory intrinsic call. */
+export interface MemoryAccess {
+  /** Raw memory operations may not be removed, duplicated, or reordered. */
+  readonly volatile: true;
+  /** Whether the operation reads or writes memory. */
+  readonly access: "read" | "write";
+  /** Number of bytes accessed. */
+  readonly width: 1 | 2;
+  /** Required order for two-byte accesses. */
+  readonly byteOrder: "low-first";
 }
 
 /** A typed local declaration statement. */
@@ -470,6 +553,12 @@ export interface ScalarValueState {
   readonly readonly: boolean;
   /** Conservatively proved reaching value. */
   known: bigint | boolean | null;
+  /** Whether a scalar or complete aggregate value is definitely initialized. */
+  initialized: boolean;
+  /** Definitely initialized array-element ranges, when the binding is an array. */
+  initializedRanges: readonly InitializedRange[];
+  /** Exact scalar field paths definitely initialized by focused writes. */
+  initializedPaths: readonly string[];
 }
 
 /** One lexical value scope used by direct expression lookup. */
@@ -480,47 +569,20 @@ export interface ScalarScope {
   readonly values: Map<string, ScalarValueState>;
 }
 
+/** Reaching facts captured at one control-flow split. */
+export interface ScalarValueFact {
+  /** Conservatively proved scalar value. */
+  readonly known: bigint | boolean | null;
+  /** Whether the complete value is definitely initialized. */
+  readonly initialized: boolean;
+  /** Definitely initialized array ranges. */
+  readonly initializedRanges: readonly InitializedRange[];
+  /** Exact scalar field paths initialized on every incoming path. */
+  readonly initializedPaths: readonly string[];
+}
+
 /** Reaching values captured at one control-flow split. */
-export type ScalarFactSnapshot = ReadonlyMap<ScalarValueState, bigint | boolean | null>;
-
-/** Capture mutable reaching values without cloning declarations or scopes. */
-export function snapshotScalarFacts(scope: ScalarScope): ScalarFactSnapshot {
-  const facts = new Map<ScalarValueState, bigint | boolean | null>();
-  for (let current: ScalarScope | null = scope; current !== null; current = current.parent) {
-    for (const state of current.values.values()) {
-      if (!state.readonly && !facts.has(state)) facts.set(state, state.known);
-    }
-  }
-  return facts;
-}
-
-/** Restore mutable reaching values before checking an alternative path. */
-export function restoreScalarFacts(snapshot: ScalarFactSnapshot): void {
-  for (const [state, known] of snapshot) state.known = known;
-}
-
-/** Capture only facts already present at a split, excluding branch-local declarations. */
-export function captureBranchFacts(snapshot: ScalarFactSnapshot): ScalarFactSnapshot {
-  return new Map([...snapshot.keys()].map((state) => [state, state.known]));
-}
-
-/** Keep a reaching value only when every alternative proves the same value. */
-export function mergeScalarFacts(
-  baseline: ScalarFactSnapshot,
-  alternatives: readonly ScalarFactSnapshot[],
-): void {
-  for (const [state, fallback] of baseline) {
-    const first = alternatives[0]?.get(state) ?? fallback;
-    state.known = alternatives.every((facts) => facts.get(state) === first) ? first : null;
-  }
-}
-
-/** Forget mutable facts after an operation with unknown writes or repeated execution. */
-export function clearMutableScalarFacts(scope: ScalarScope): void {
-  for (let current: ScalarScope | null = scope; current !== null; current = current.parent) {
-    for (const state of current.values.values()) if (!state.readonly) state.known = null;
-  }
-}
+export type ScalarFactSnapshot = ReadonlyMap<ScalarValueState, ScalarValueFact>;
 
 /** Constant-versus-runtime context for one expression check. */
 export interface ScalarExpressionContext {
@@ -534,6 +596,10 @@ export interface ScalarExpressionContext {
   readonly caller: BindingId | null;
   /** Whether arithmetic remains exact until final range validation. */
   readonly constantContext: boolean;
+  /** Whether the expression is being resolved as a place rather than read as a value. */
+  readonly placeContext?: boolean;
+  /** Whether direct integer operators compute in the array-ordinal promotion domain. */
+  readonly ordinalContext?: boolean;
 }
 
 /** Typed expression plus its pre-wrap mathematical value when known. */
@@ -549,9 +615,11 @@ export interface ScalarExpressionHost {
   /** Resolve a source name under the current scopes. */
   resolveName(name: string, context: ScalarExpressionContext): ScalarValueState | null;
   /** Resolve a source type and report an unknown type when needed. */
-  resolveType(type: TypeSyntax | null): SemanticType | null;
+  resolveType(type: TypeSyntax | null, context: ScalarExpressionContext): SemanticType | null;
   /** Return a direct function signature for a resolved binding. */
   signature(binding: BindingId): FunctionSignature | null;
+  /** Return whether a binding denotes a function whose signature may still be pending. */
+  isFunction(binding: BindingId): boolean;
   /** Append a proving diagnostic. */
   diagnose(diagnostic: ProjectDiagnostic): void;
   /** Retain a valid expression belonging to a later slice. */
@@ -559,5 +627,17 @@ export interface ScalarExpressionHost {
   /** Retain one actual direct call edge. */
   call(edge: CallEdge): void;
   /** Read exact source bytes for a diagnostic expression. */
+  sourceText(span: SourceSpan): string;
+  /** Report a function-local read which is not definitely initialized. */
+  read(place: Place, span: SourceSpan): void;
+}
+
+/** Direct callbacks required while aggregate types are resolved. */
+export interface AggregateRegistryHost {
+  /** Append a proving diagnostic. */
+  diagnose(diagnostic: ProjectDiagnostic): void;
+  /** Retain a valid source form outside the admitted aggregate slice. */
+  defer(span: SourceSpan, message: string): void;
+  /** Read exact source bytes for a diagnostic. */
   sourceText(span: SourceSpan): string;
 }

@@ -1,6 +1,6 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceRecord, SourceSpan } from "../project/types.js";
-import { SCALAR_TYPES, wrapInteger } from "./constants.js";
+import { isScalarType, SCALAR_TYPES, wrapInteger } from "./constants.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import {
   captureBranchFacts,
@@ -8,7 +8,7 @@ import {
   mergeScalarFacts,
   restoreScalarFacts,
   snapshotScalarFacts,
-} from "./semantic-types.js";
+} from "./flow-facts.js";
 import type {
   BindingId,
   ScalarExpressionContext,
@@ -202,7 +202,9 @@ export function proveWrappingForLoop(
   }
   const start = statement.initializer.initializer.value;
   const bound = statement.condition.right.value;
-  if (counterType.name !== "byte" && counterType.name !== "sbyte") return null;
+  if (!isScalarType(counterType) || (counterType.name !== "byte" && counterType.name !== "sbyte")) {
+    return null;
+  }
 
   const seen = new Set<bigint>();
   let current = wrapInteger(start, counterType);
@@ -335,11 +337,11 @@ export function conditionDiagnostic(
   expression: TypedExpr,
   span: SourceSpan,
 ): ProjectDiagnostic | null {
-  return expression.type.name === "boolean"
+  return isScalarType(expression.type) && expression.type.name === "boolean"
     ? null
     : projectDiagnostic(
         "E10100",
-        `Condition must have type 'boolean' — found '${expression.type.name}'; use an explicit comparison`,
+        `Condition must have type 'boolean' — found '${expression.type.kind === "scalar" ? expression.type.name : expression.type.kind}'; use an explicit comparison`,
         span,
       );
 }
@@ -530,6 +532,7 @@ export function analyzeStructuredFor(
     const diagnostic = conditionDiagnostic(condition, statement.condition!.span);
     if (diagnostic !== null) host.diagnose(diagnostic);
   }
+  const loopEntry = snapshotScalarFacts(scope);
   const body = host.analyzeBlock(statement.body, scope, module, caller, returnType, loopDepth + 1);
   const update =
     statement.update === null
@@ -539,6 +542,7 @@ export function analyzeStructuredFor(
             .map((expression) => expressions.analyze(expression, null, context).node)
             .filter((expression): expression is TypedExpr => expression !== null),
         );
+  const bodyFacts = captureBranchFacts(loopEntry);
   if (initializer !== null && !isTypedExpressionList(initializer)) {
     const state = scope.values.get(initializer.name);
     if (state !== undefined) {
@@ -554,7 +558,7 @@ export function analyzeStructuredFor(
       }
     }
   }
-  clearMutableFacts(outer);
+  mergeScalarFacts(loopEntry, [loopEntry, bodyFacts]);
   return Object.freeze({
     kind: "for",
     span: Object.freeze({ ...statement.span }),

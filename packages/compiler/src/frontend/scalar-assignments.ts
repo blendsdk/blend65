@@ -10,6 +10,8 @@ import {
   wrapInteger,
 } from "./constants.js";
 import { COMPOUND_ASSIGNMENT_EVALUATION, SIMPLE_ASSIGNMENT_EVALUATION } from "./semantic-types.js";
+import { semanticTypeName } from "./aggregates.js";
+import { initializedPlaceKey } from "./aggregate-initialization.js";
 import type {
   Place,
   ScalarExpressionContext,
@@ -65,7 +67,11 @@ export function analyzeScalarAssignment(
     return { node: null, exact: null };
   }
 
-  const target = analyze(expression.target, null, context);
+  const target = analyze(expression.target, null, {
+    ...context,
+    placeContext: true,
+    ordinalContext: false,
+  });
   if (target.node === null) return { node: null, exact: null };
   if (target.node.place === null) {
     host.diagnose(
@@ -78,10 +84,16 @@ export function analyzeScalarAssignment(
     return { node: null, exact: null };
   }
   if (target.node.place.readonly) {
+    const parameterRoot =
+      target.node.place.path.length === 0 && target.node.place.readonlyOrigin === "parameter";
     host.diagnose(
       projectDiagnostic(
-        "E10192",
-        `Cannot assign to const '${target.node.name ?? "value"}'`,
+        parameterRoot || target.node.place.path.length > 0 ? "E10123" : "E10192",
+        parameterRoot || target.node.place.path.length > 0
+          ? "Cannot mutate through a const aggregate parameter or binding"
+          : target.node.place.path.length === 0
+            ? `Cannot assign to const '${target.node.name ?? "value"}'`
+            : "Cannot mutate through a const aggregate parameter or binding",
         expression.target.span,
       ),
     );
@@ -91,15 +103,25 @@ export function analyzeScalarAssignment(
   let value: ScalarExpressionResult;
   let resultConstant: bigint | boolean | null;
   if (expression.operator === "=") {
-    value = analyze(expression.value, target.node.type, context);
+    value = analyze(expression.value, target.node.type, {
+      ...context,
+      ordinalContext: false,
+    });
+    if (target.node.type.kind !== "scalar") {
+      if (value.node !== null) {
+        host.defer(expression.span, "Whole aggregate assignment and copy lowering remain pending");
+      }
+      return { node: null, exact: null };
+    }
     resultConstant = value.node?.constant ?? null;
   } else {
+    host.read(target.node.place, expression.target.span);
     const operator = expression.operator.slice(0, -1);
     const shift = operator === "<<" || operator === ">>";
     value = analyze(
       expression.value,
       shift ? null : adaptableLiteralType(expression.value, target.node.type),
-      context,
+      { ...context, ordinalContext: false },
     );
     if (value.node === null) return { node: null, exact: null };
     const operationType = compoundOperationType(
@@ -145,7 +167,7 @@ export function analyzeScalarAssignment(
       host.diagnose(
         scalarWarning(
           "W10100",
-          `Signed runtime expression '${host.sourceText(expression.span)}' is known to overflow at '${target.node.type.name}' width and wraps to ${resultConstant}`,
+          `Signed runtime expression '${host.sourceText(expression.span)}' is known to overflow at '${semanticTypeName(target.node.type)}' width and wraps to ${resultConstant}`,
           expression.span,
         ),
       );
@@ -154,7 +176,10 @@ export function analyzeScalarAssignment(
 
   if (value.node === null) return { node: null, exact: null };
   const state = stateForPlace(target.node.place, context.scope);
-  if (state !== null) state.known = resultConstant;
+  if (state !== null) {
+    state.known = target.node.place.path.length === 0 ? resultConstant : null;
+    markPlaceInitialized(state, target.node.place);
+  }
   const compound = expression.operator !== "=";
   return {
     node: createScalarTypedExpression(expression, target.node.type, resultConstant, {
@@ -167,4 +192,67 @@ export function analyzeScalarAssignment(
     }),
     exact: resultConstant,
   };
+}
+
+/** Extend definite-initialization facts for the exact place written by an assignment. */
+function markPlaceInitialized(state: ScalarValueState, place: Place): void {
+  if (place.path.length === 0) {
+    state.initialized = true;
+    state.initializedRanges =
+      state.binding.type?.kind === "array"
+        ? Object.freeze([{ start: 0, end: state.binding.type.length }])
+        : Object.freeze([]);
+    state.initializedPaths = Object.freeze([]);
+    return;
+  }
+  const key = initializedPlaceKey(place);
+  if (key !== null && !state.initializedPaths.includes(key)) {
+    state.initializedPaths = Object.freeze([...state.initializedPaths, key]);
+  }
+  const rootType = state.binding.type;
+  if (rootType?.kind === "struct") {
+    const complete = rootType.fields.every(({ name }) =>
+      state.initializedPaths.includes(`.${name}`),
+    );
+    if (complete) state.initialized = true;
+    return;
+  }
+  if (rootType?.kind !== "array") return;
+  const first = place.path[0];
+  const constant = typeof first === "string" ? null : first.constant;
+  if (place.path.length === 1) {
+    markArrayIndexInitialized(state, rootType, constant);
+    return;
+  }
+  if (rootType.element.kind !== "struct" || typeof constant !== "bigint") return;
+  const prefix = `[${constant}]`;
+  const complete = rootType.element.fields.every(({ name }) =>
+    state.initializedPaths.includes(`${prefix}.${name}`),
+  );
+  if (complete) markArrayIndexInitialized(state, rootType, constant);
+}
+
+/** Add one known array element to the normalized definite-initialization ranges. */
+function markArrayIndexInitialized(
+  state: ScalarValueState,
+  arrayType: Extract<SemanticType, { readonly kind: "array" }>,
+  constant: bigint | boolean | null,
+): void {
+  if (typeof constant !== "bigint" || constant < 0n || constant > BigInt(Number.MAX_SAFE_INTEGER)) {
+    return;
+  }
+  const index = Number(constant);
+  const covered = [...state.initializedRanges, { start: index, end: index + 1 }].sort(
+    (left, right) => left.start - right.start,
+  );
+  const merged: { start: number; end: number }[] = [];
+  for (const range of covered) {
+    const last = merged.at(-1);
+    if (last !== undefined && range.start <= last.end) last.end = Math.max(last.end, range.end);
+    else merged.push({ ...range });
+  }
+  state.initializedRanges = Object.freeze(merged.map((range) => Object.freeze(range)));
+  state.initialized = state.initializedRanges.some(
+    ({ start, end }) => start === 0 && end >= arrayType.length,
+  );
 }

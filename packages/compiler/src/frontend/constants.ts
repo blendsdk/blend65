@@ -122,10 +122,16 @@ export interface IntegerConversion {
   readonly losesValue: boolean;
 }
 
+/** Narrow a semantic type to a primitive scalar. */
+export function isScalarType(type: SemanticType): type is ScalarType {
+  return type.kind === "scalar";
+}
+
 /** Return whether a semantic type is one of the four integers. */
-export function isIntegerType(type: SemanticType): boolean {
+export function isIntegerType(type: SemanticType): type is ScalarType {
   return (
-    type.name === "byte" || type.name === "sbyte" || type.name === "word" || type.name === "sword"
+    type.kind === "scalar" &&
+    (type.name === "byte" || type.name === "sbyte" || type.name === "word" || type.name === "sword")
   );
 }
 
@@ -141,6 +147,7 @@ export function integerFacts(type: SemanticType, wrap: boolean): IntegerFacts | 
 
 /** Return the exact inclusive range for a scalar integer type. */
 export function integerRange(type: SemanticType): IntegerRange | null {
+  if (!isScalarType(type)) return null;
   switch (type.name) {
     case "byte":
       return Object.freeze({ minimum: 0n, maximum: 255n });
@@ -158,7 +165,7 @@ export function integerRange(type: SemanticType): IntegerRange | null {
 /** Render the canonical out-of-range message for an integer declaration context. */
 export function integerRangeMessage(type: SemanticType, value: bigint): string {
   const range = integerRange(type);
-  return range === null
+  return range === null || !isScalarType(type)
     ? `Value ${value} is outside every scalar integer range`
     : `Value ${value} is out of range for type '${type.name}' (${range.minimum}–${range.maximum})`;
 }
@@ -225,6 +232,7 @@ export function commonIntegerType(left: SemanticType, right: SemanticType): Scal
 
 /** Resolve compatible scalar conditional arms. */
 export function commonScalarType(left: SemanticType, right: SemanticType): ScalarType | null {
+  if (!isScalarType(left) || !isScalarType(right)) return null;
   if (left.name === right.name) return left;
   return isIntegerType(left) && isIntegerType(right) ? commonIntegerType(left, right) : null;
 }
@@ -322,6 +330,8 @@ export function applyExpectedScalar(
   host: ScalarExpressionHost,
 ): ScalarExpressionResult {
   const node = result.node!;
+  if (!isScalarType(node.type) || !isScalarType(expected))
+    return { node: null, exact: result.exact };
   if (node.type.name === expected.name) {
     if (
       context.constantContext &&
@@ -415,6 +425,7 @@ function warnNarrowArithmetic(
   host: ScalarExpressionHost,
 ): void {
   const node = result.node!;
+  if (!isScalarType(node.type) || !isScalarType(expected)) return;
   if (
     fromWidth !== 8 ||
     toWidth !== 16 ||

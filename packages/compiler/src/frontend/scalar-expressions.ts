@@ -3,7 +3,6 @@ import {
   adaptableLiteralType,
   applyExpectedScalar,
   commonIntegerType,
-  commonScalarType,
   convertInteger,
   createScalarTypedExpression,
   defaultIntegerType,
@@ -14,18 +13,27 @@ import {
   integerRangeMessage,
   isIntegerLiteralExpression,
   isIntegerType,
+  isScalarType,
   scalarWarning,
   SCALAR_TYPES,
   wrapInteger,
 } from "./constants.js";
+import {
+  AggregateRegistry,
+  analyzeAggregateExpression,
+  applyExpectedAggregate,
+  diagnoseAggregateBinary,
+  semanticTypeName,
+} from "./aggregates.js";
+import { analyzeScalarConditional } from "./conditional-expressions.js";
+import { analyzeDirectCall } from "./direct-calls.js";
 import { analyzeScalarAssignment } from "./scalar-assignments.js";
 import {
   captureBranchFacts,
-  clearMutableScalarFacts,
   mergeScalarFacts,
   restoreScalarFacts,
   snapshotScalarFacts,
-} from "./semantic-types.js";
+} from "./flow-facts.js";
 import type {
   Place,
   ScalarExpressionContext,
@@ -38,7 +46,10 @@ import type { Expr } from "./syntax.js";
 /** Direct recursive scalar expression checker. */
 export class ScalarExpressionAnalyzer {
   /** Preserve the small module-analysis callbacks used during recursion. */
-  constructor(readonly host: ScalarExpressionHost) {}
+  constructor(
+    readonly host: ScalarExpressionHost,
+    readonly aggregates: AggregateRegistry,
+  ) {}
   /** Analyze one expression and apply its surrounding scalar value context. */
   analyze(
     expression: Expr,
@@ -47,13 +58,15 @@ export class ScalarExpressionAnalyzer {
   ): ScalarExpressionResult {
     const natural = this.analyzeNatural(expression, expected, context);
     if (natural.node === null || expected === null) return natural;
-    if (natural.node.type.name === "void") {
+    if (isScalarType(natural.node.type) && natural.node.type.name === "void") {
       this.host.diagnose(
         error("SEMANTIC_ERROR", "Void expression cannot be used as a value", expression.span),
       );
       return { node: null, exact: null };
     }
-    return applyExpectedScalar(natural, expected, expression, context, this.host);
+    return expected.kind === "scalar"
+      ? applyExpectedScalar(natural, expected, expression, context, this.host)
+      : applyExpectedAggregate(natural, expected, expression, this.host);
   }
   /** Analyze the expression's own operator-defined type before outer conversion. */
   private analyzeNatural(
@@ -61,6 +74,15 @@ export class ScalarExpressionAnalyzer {
     expected: SemanticType | null,
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
+    const aggregate = analyzeAggregateExpression(
+      expression,
+      expected,
+      context,
+      this.host,
+      this.aggregates,
+      (child, childType, childContext) => this.analyze(child, childType, childContext),
+    );
+    if (aggregate !== null) return aggregate;
     switch (expression.kind) {
       case "number":
         return this.number(expression, expected);
@@ -80,7 +102,12 @@ export class ScalarExpressionAnalyzer {
       case "cast":
         return this.cast(expression, context);
       case "conditional":
-        return this.conditional(expression, context);
+        return analyzeScalarConditional(
+          expression,
+          context,
+          this.host,
+          (child, childExpected, childContext) => this.analyze(child, childExpected, childContext),
+        );
       case "assignment":
         return analyzeScalarAssignment(
           expression,
@@ -89,7 +116,13 @@ export class ScalarExpressionAnalyzer {
           (child, childType, childContext) => this.analyze(child, childType, childContext),
         );
       case "call":
-        return this.call(expression, context);
+        return analyzeDirectCall(
+          expression,
+          context,
+          this.host,
+          (child, childType, childContext) => this.analyze(child, childType, childContext),
+          (name, nameContext) => this.name(name, nameContext, true),
+        );
       default:
         this.host.defer(
           expression.span,
@@ -175,7 +208,15 @@ export class ScalarExpressionAnalyzer {
             binding: state.binding.id,
             path: Object.freeze([]),
             readonly: state.readonly,
+            readonlyOrigin: state.readonly
+              ? state.binding.storage === "parameter"
+                ? "parameter"
+                : "constant"
+              : null,
           });
+    if (!callTarget && !context.placeContext && place !== null) {
+      this.host.read(place, expression.span);
+    }
     return {
       node: createScalarTypedExpression(expression, state.binding.type, state.known, {
         name: expression.name,
@@ -199,7 +240,7 @@ export class ScalarExpressionAnalyzer {
     if (expression.operator === "!") {
       const operand = this.analyze(expression.operand, null, context);
       if (operand.node === null) return { node: null, exact: null };
-      if (operand.node.type.name !== "boolean") {
+      if (!isScalarType(operand.node.type) || operand.node.type.name !== "boolean") {
         this.host.diagnose(
           error("E10151", "Cannot use an integer as a logical operand", expression.span),
         );
@@ -223,7 +264,9 @@ export class ScalarExpressionAnalyzer {
       const target =
         expected !== null && isIntegerType(expected) && fitsInteger(expected, exact)
           ? expected
-          : defaultIntegerType(exact);
+          : context.ordinalContext
+            ? SCALAR_TYPES.sword
+            : defaultIntegerType(exact);
       if (target !== null && integerFacts(target, false)?.signed) {
         const operand = this.number(expression.operand, null).node;
         return {
@@ -236,9 +279,9 @@ export class ScalarExpressionAnalyzer {
         };
       }
     }
-    const operand = this.analyze(expression.operand, null, context);
+    let operand = this.analyze(expression.operand, null, context);
     if (operand.node === null) return { node: null, exact: null };
-    if (operand.node.type.name === "void") {
+    if (isScalarType(operand.node.type) && operand.node.type.name === "void") {
       this.host.diagnose(
         error("SEMANTIC_ERROR", "Void expression cannot be used as a value", expression.span),
       );
@@ -254,12 +297,18 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
+    const operandFacts = integerFacts(operand.node.type, false)!;
+    if (context.ordinalContext && operandFacts.width === 8) {
+      const promoted = operandFacts.signed ? SCALAR_TYPES.sword : SCALAR_TYPES.word;
+      operand = applyExpectedScalar(operand, promoted, expression.operand, context, this.host);
+      if (operand.node === null) return { node: null, exact: null };
+    }
     const facts = integerFacts(operand.node.type, !context.constantContext)!;
     if (expression.operator === "-" && !facts.signed) {
       this.host.diagnose(
         error(
           "E10083",
-          `Cannot negate unsigned type '${operand.node.type.name}' — use 'sbyte' or 'sword' for signed arithmetic`,
+          `Cannot negate unsigned type '${semanticTypeName(operand.node.type)}' — use 'sbyte' or 'sword' for signed arithmetic`,
           expression.span,
         ),
       );
@@ -305,7 +354,10 @@ export class ScalarExpressionAnalyzer {
       if (logicalBaseline !== null) restoreScalarFacts(logicalBaseline);
       return { node: null, exact: null };
     }
-    if (left.node.type.name === "void" || right.node.type.name === "void") {
+    if (
+      (isScalarType(left.node.type) && left.node.type.name === "void") ||
+      (isScalarType(right.node.type) && right.node.type.name === "void")
+    ) {
       if (logicalBaseline !== null) restoreScalarFacts(logicalBaseline);
       this.host.diagnose(
         error("SEMANTIC_ERROR", "Void expression cannot be used as a value", expression.span),
@@ -314,6 +366,13 @@ export class ScalarExpressionAnalyzer {
     }
     const equality = expression.operator === "==" || expression.operator === "!=";
     const ordered = ["<", "<=", ">", ">="].includes(expression.operator);
+    if (diagnoseAggregateBinary(expression, left.node, right.node, this.host)) {
+      if (logicalBaseline !== null) restoreScalarFacts(logicalBaseline);
+      return { node: null, exact: null };
+    }
+    if (!isScalarType(left.node.type) || !isScalarType(right.node.type)) {
+      return { node: null, exact: null };
+    }
     if (logical) {
       const result = this.logicalBinary(expression, left, right);
       if (logicalBaseline !== null && logicalRightFacts !== null) {
@@ -385,9 +444,21 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
-    const resultType = commonIntegerType(left.node.type, right.node.type)!;
-    const operationType = shift ? left.node.type : resultType;
-    if (!shift) {
+    const naturalResultType = commonIntegerType(left.node.type, right.node.type)!;
+    const ordinalType = context.ordinalContext
+      ? integerFacts(naturalResultType, false)?.signed
+        ? SCALAR_TYPES.sword
+        : SCALAR_TYPES.word
+      : null;
+    const operationType = ordinalType ?? (shift ? left.node.type : naturalResultType);
+    if (ordinalType !== null) {
+      left = applyExpectedScalar(left, ordinalType, expression.left, context, this.host);
+      if (!shift) {
+        right = applyExpectedScalar(right, ordinalType, expression.right, context, this.host);
+      }
+      if (left.node === null || right.node === null) return { node: null, exact: null };
+    } else if (!shift) {
+      const resultType = naturalResultType;
       left = applyExpectedScalar(left, resultType, expression.left, context, this.host);
       right = applyExpectedScalar(right, resultType, expression.right, context, this.host);
       if (left.node === null || right.node === null) return { node: null, exact: null };
@@ -410,6 +481,7 @@ export class ScalarExpressionAnalyzer {
         : null;
     const resultIsBoolean = equality || ordered;
     const type = resultIsBoolean ? SCALAR_TYPES.boolean : operationType;
+    const operationFacts = integerFacts(operationType, false)!;
     const constant =
       typeof exact !== "bigint" || context.constantContext || resultIsBoolean
         ? exact
@@ -417,12 +489,12 @@ export class ScalarExpressionAnalyzer {
     if (
       shift &&
       typeof right.node.constant === "bigint" &&
-      right.node.constant >= BigInt(leftFacts.width)
+      right.node.constant >= BigInt(operationFacts.width)
     ) {
       this.host.diagnose(
         scalarWarning(
           "W10174",
-          `Shift amount ${right.node.constant} is at least the ${leftFacts.width}-bit width — '<<' yields 0; signed negative '>>' yields -1, otherwise '>>' yields 0`,
+          `Shift amount ${right.node.constant} is at least the ${operationFacts.width}-bit width — '<<' yields 0; signed negative '>>' yields -1, otherwise '>>' yields 0`,
           expression.span,
         ),
       );
@@ -440,7 +512,7 @@ export class ScalarExpressionAnalyzer {
       this.host.diagnose(
         scalarWarning(
           "W10100",
-          `Signed runtime expression '${this.host.sourceText(expression.span)}' is known to overflow at '${type.name}' width and wraps to ${constant}`,
+          `Signed runtime expression '${this.host.sourceText(expression.span)}' is known to overflow at '${semanticTypeName(type)}' width and wraps to ${constant}`,
           expression.span,
         ),
       );
@@ -482,7 +554,14 @@ export class ScalarExpressionAnalyzer {
     left: ScalarExpressionResult,
     right: ScalarExpressionResult,
   ): ScalarExpressionResult {
-    if (left.node?.type.name !== "boolean" || right.node?.type.name !== "boolean") {
+    if (
+      left.node === null ||
+      right.node === null ||
+      !isScalarType(left.node.type) ||
+      !isScalarType(right.node.type) ||
+      left.node.type.name !== "boolean" ||
+      right.node.type.name !== "boolean"
+    ) {
       this.host.diagnose(
         error("E10151", "Cannot use an integer as a logical operand", expression.span),
       );
@@ -509,9 +588,19 @@ export class ScalarExpressionAnalyzer {
     expression: Extract<Expr, { readonly kind: "cast" }>,
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
-    const destination = this.host.resolveType(expression.type);
-    const operand = this.analyze(expression.operand, null, context);
+    const destination = this.host.resolveType(expression.type, context);
+    const operand = this.analyze(expression.operand, null, { ...context, ordinalContext: false });
     if (destination === null || operand.node === null) return { node: null, exact: null };
+    if (!isScalarType(destination) || !isScalarType(operand.node.type)) {
+      this.host.diagnose(
+        error(
+          "E10086",
+          `Cannot cast '${semanticTypeName(operand.node.type)}' to '${semanticTypeName(destination)}'`,
+          expression.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
     if (destination.name === "void" || operand.node.type.name === "void") {
       this.host.diagnose(error("E10152", "Cannot cast to or from 'void'", expression.span));
       return { node: null, exact: null };
@@ -552,148 +641,6 @@ export class ScalarExpressionAnalyzer {
         integer: integerFacts(destination, false),
       }),
       exact: constant,
-    };
-  }
-  /** Check a selected-arm conditional without evaluating either arm twice. */
-  private conditional(
-    expression: Extract<Expr, { readonly kind: "conditional" }>,
-    context: ScalarExpressionContext,
-  ): ScalarExpressionResult {
-    const condition = this.analyze(expression.condition, null, context);
-    const baseline = snapshotScalarFacts(context.scope);
-    let whenTrue = this.analyze(expression.whenTrue, null, context);
-    const trueFacts = captureBranchFacts(baseline);
-    restoreScalarFacts(baseline);
-    let whenFalse = this.analyze(expression.whenFalse, null, context);
-    const falseFacts = captureBranchFacts(baseline);
-    mergeScalarFacts(baseline, [trueFacts, falseFacts]);
-    if (condition.node === null || whenTrue.node === null || whenFalse.node === null) {
-      return { node: null, exact: null };
-    }
-    if (whenTrue.node.type.name === "void" || whenFalse.node.type.name === "void") {
-      this.host.diagnose(
-        error("SEMANTIC_ERROR", "Void expression cannot be used as a value", expression.span),
-      );
-      return { node: null, exact: null };
-    }
-    if (condition.node.type.name !== "boolean") {
-      this.host.diagnose(
-        error(
-          "E10100",
-          `Condition must have type 'boolean' — found '${condition.node.type.name}'; use an explicit comparison`,
-          expression.condition.span,
-        ),
-      );
-    }
-    const resultType = commonScalarType(whenTrue.node.type, whenFalse.node.type);
-    if (resultType === null) {
-      this.host.diagnose(
-        error(
-          "E10162",
-          `Conditional arms have incompatible types '${whenTrue.node.type.name}' and '${whenFalse.node.type.name}'`,
-          expression.span,
-        ),
-      );
-      return { node: null, exact: null };
-    }
-    whenTrue = applyExpectedScalar(whenTrue, resultType, expression.whenTrue, context, this.host);
-    whenFalse = applyExpectedScalar(
-      whenFalse,
-      resultType,
-      expression.whenFalse,
-      context,
-      this.host,
-    );
-    if (whenTrue.node === null || whenFalse.node === null) return { node: null, exact: null };
-    const constant =
-      typeof condition.node.constant === "boolean"
-        ? condition.node.constant
-          ? whenTrue.node.constant
-          : whenFalse.node.constant
-        : null;
-    return {
-      node: createScalarTypedExpression(expression, resultType, constant, {
-        condition: condition.node,
-        whenTrue: whenTrue.node,
-        whenFalse: whenFalse.node,
-        evaluation: "selected-arm",
-        integer: integerFacts(resultType, true),
-      }),
-      exact: constant,
-    };
-  }
-  /** Resolve one ordinary direct call and independently check every supplied argument. */
-  private call(
-    expression: Extract<Expr, { readonly kind: "call" }>,
-    context: ScalarExpressionContext,
-  ): ScalarExpressionResult {
-    const callee =
-      expression.callee.kind === "name"
-        ? this.name(expression.callee, context, true)
-        : this.analyze(expression.callee, null, context);
-    if (callee.node === null || callee.node.binding === null) {
-      for (const argument of expression.arguments) this.analyze(argument, null, context);
-      return { node: null, exact: null };
-    }
-    const signature = this.host.signature(callee.node.binding);
-    if (signature === null) {
-      this.host.diagnose(
-        error(
-          "E10175",
-          `'${callee.node.name ?? "value"}' is not a function — cannot call a '${callee.node.type.name}' value`,
-          expression.callee.span,
-        ),
-      );
-      for (const argument of expression.arguments) this.analyze(argument, null, context);
-      return { node: null, exact: null };
-    }
-    const name = callee.node.name ?? "<function>";
-    let valid = expression.arguments.length === signature.parameters.length;
-    if (!valid) {
-      this.host.diagnose(
-        error(
-          "E10171",
-          `Wrong argument count — '${name}()' expects ${signature.parameters.length} parameters, got ${expression.arguments.length}`,
-          expression.span,
-        ),
-      );
-    }
-    const arguments_: TypedExpr[] = [];
-    expression.arguments.forEach((argument, index) => {
-      const result = this.analyze(argument, signature.parameters[index]?.type ?? null, context);
-      if (result.node === null) valid = false;
-      else arguments_.push(result.node);
-    });
-    if (context.constantContext) {
-      this.host.diagnose(
-        error(
-          "E10191",
-          "Expression must be compile-time evaluable — ordinary function call is not constant",
-          expression.span,
-        ),
-      );
-      valid = false;
-    }
-    if (!valid) return { node: null, exact: null };
-    if (context.caller !== null) {
-      this.host.call(
-        Object.freeze({
-          caller: context.caller,
-          callee: callee.node.binding!,
-          span: expression.span,
-        }),
-      );
-    }
-    clearMutableScalarFacts(context.scope);
-    return {
-      node: createScalarTypedExpression(expression, signature.returnType, null, {
-        callee: callee.node,
-        arguments: Object.freeze(arguments_),
-        signature,
-        evaluation: "left-to-right",
-        integer: integerFacts(signature.returnType, true),
-      }),
-      exact: null,
     };
   }
 }

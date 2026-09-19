@@ -197,7 +197,7 @@ describe("scalar analysis implementation", () => {
     expect(runtimeZero.diagnostics.some(({ code }) => code === "E10160")).toBe(false);
   });
 
-  it("keeps branch, short-circuit, function, and call facts isolated", () => {
+  it("keeps branch, short-circuit, function, and call-visible facts isolated", () => {
     const result = analyze(
       [
         "module Game; let global: byte = 1; function touch(): void { global = 2; }",
@@ -217,7 +217,7 @@ describe("scalar analysis implementation", () => {
     });
     expect(body?.statements[4]).toMatchObject({ initializer: { constant: 1n } });
     expect(body?.statements[7]).toMatchObject({ initializer: { constant: null } });
-    expect(body?.statements[10]).toMatchObject({ initializer: { constant: null } });
+    expect(body?.statements[10]).toMatchObject({ initializer: { constant: 1n } });
     expect(typedDeclaration(result, "Game.inspect").body).toMatchObject({
       statements: [{ initializer: { constant: null } }],
     });

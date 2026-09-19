@@ -1,8 +1,8 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-19 13:31
-> **Progress**: 42/64 tasks (65.6%)
+> **Last Updated**: 2026-09-19 14:18
+> **Progress**: 54/64 tasks (84.4%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -253,31 +253,44 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 ## Phase 5: Fixed Aggregates, Places and Memory Intrinsics
 
-> **Phase baseline tree**: recorded by exec-plan at phase start
+> **Phase baseline tree**: 283265299b5cf27e490aa1b2b2c543a88ebc9332
+> **Scope mode**: strict
+> **Expected modification set**: `packages/compiler/src/frontend/{aggregates.spec.test.ts,intrinsics.spec.test.ts,aggregates.ts,aggregate-types.ts,aggregate-initialization.ts,direct-calls.ts,analysis-result.ts,module-bindings.ts,flow-facts.ts,conditional-expressions.ts,analyzer.ts,semantic-types.ts,constants.ts,flow.ts,scalar-expressions.ts,scalar-assignments.ts,aggregates.impl.test.ts,scalars.impl.test.ts}`; this plan's ambiguity register, execution plan, phase review evidence and the feature-roadmap status note. The scalar modules are the existing recursion and assignment hooks needed to admit aggregate expressions and places. Focused helpers keep aggregate type resolution, initialization facts, direct-call checks, flow facts, conditional expressions, module binding preparation and final result assembly out of already-large files; they add no semantic layer or public package surface. The scalar implementation expectation now distinguishes inaccessible caller locals from call-visible module state. No parser/lexer/module/scalar/flow specification-oracle edit, compiler-root export, CLI, dependency, generalized alias/borrow/CFG layer, backend/SFA/allocation work, frozen authority, roadmap stage or portfolio change.
 > **Lenses**: api-surface
 
 ### Step 5.1: Specification Tests
 
 Reference: [Semantics §Aggregates](03-02-semantic-analysis.md#aggregates-places-and-intrinsics), AR-P4–AR-P6.
 
-- [ ] 5.1.1 [spec-author] Write ST-30–ST-38 — `frontend/aggregates.spec.test.ts`.
-- [ ] 5.1.2 [spec-author] Write ST-39–ST-40 — `frontend/intrinsics.spec.test.ts`.
-- [ ] 5.1.3 Verify aggregate/intrinsic behavior is red — `frontend/aggregates.spec.test.ts`, `frontend/intrinsics.spec.test.ts`.
+- [x] 5.1.1 [spec-author] Write ST-30–ST-38 — `frontend/aggregates.spec.test.ts`. ✅ (completed: 2026-09-19 13:56)
+- [x] 5.1.2 [spec-author] Write ST-39–ST-40 — `frontend/intrinsics.spec.test.ts`. ✅ (completed: 2026-09-19 13:56)
+- [x] 5.1.3 Verify aggregate/intrinsic behavior is red — `frontend/aggregates.spec.test.ts`, `frontend/intrinsics.spec.test.ts`. ✅ (completed: 2026-09-19 13:56)
+
+Independent authoring produced 11 specification cases. All 11 executed and
+failed on missing aggregate/intrinsic behavior; log
+`/tmp/blend65-phase5-spec-red-parent.log`. Prettier and whitespace checks pass.
 
 ### Step 5.2: Implementation
 
-- [ ] 5.2.1 Implement admitted nominal struct fields/layout/literals — `frontend/aggregates.ts`; ST-30–ST-31.
-- [ ] 5.2.2 Implement extent inference/full-size validation and array initializers — `frontend/aggregates.ts`, `frontend/constants.ts`; ST-32–ST-34.
-- [ ] 5.2.3 Implement ordinal promotion/barriers and indexed assignment places — `frontend/aggregates.ts`, `frontend/analyzer.ts`; ST-35–ST-36.
-- [ ] 5.2.4 Implement exact aggregate parameters and read-only propagation — `frontend/aggregates.ts`, `frontend/analyzer.ts`; ST-37.
-- [ ] 5.2.5 Implement partial initialized ranges and independent local-read warnings — `frontend/flow.ts`, `frontend/aggregates.ts`; ST-38.
-- [ ] 5.2.6 Implement volatile memory/query signatures and typed effect payload — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-39–ST-40.
-- [ ] 5.2.7 Verify aggregate/intrinsic specification tiers are green — `frontend/aggregates.spec.test.ts`, `frontend/intrinsics.spec.test.ts`.
+- [x] 5.2.1 Implement admitted nominal struct fields/layout/literals — `frontend/aggregates.ts`; ST-30–ST-31. ✅ (completed: 2026-09-19 14:16)
+- [x] 5.2.2 Implement extent inference/full-size validation and array initializers — `frontend/aggregates.ts`, `frontend/constants.ts`; ST-32–ST-34. ✅ (completed: 2026-09-19 14:16)
+- [x] 5.2.3 Implement ordinal promotion/barriers and indexed assignment places — `frontend/aggregates.ts`, `frontend/analyzer.ts`; ST-35–ST-36. ✅ (completed: 2026-09-19 14:16)
+- [x] 5.2.4 Implement exact aggregate parameters and read-only propagation — `frontend/aggregates.ts`, `frontend/analyzer.ts`; ST-37. ✅ (completed: 2026-09-19 14:16)
+- [x] 5.2.5 Implement partial initialized ranges and independent local-read warnings — `frontend/flow.ts`, `frontend/aggregates.ts`; ST-38. ✅ (completed: 2026-09-19 14:16)
+- [x] 5.2.6 Implement volatile memory/query signatures and typed effect payload — `frontend/analyzer.ts`, `frontend/semantic-types.ts`; ST-39–ST-40. ✅ (completed: 2026-09-19 14:16)
+- [x] 5.2.7 Verify aggregate/intrinsic specification tiers are green — `frontend/aggregates.spec.test.ts`, `frontend/intrinsics.spec.test.ts`. ✅ (completed: 2026-09-19 14:16)
 
 ### Step 5.3: Implementation Tests and Qualification
 
-- [ ] 5.3.1 Add shape/barrier/const-alias and range-join tests — `frontend/aggregates.impl.test.ts`; semantics §Aggregates.
-- [ ] 5.3.2 Run phase qualification/formatting and independent phase/semantics review — `99-execution-plan.md`.
+- [x] 5.3.1 Add shape/barrier/const-alias and range-join tests — `frontend/aggregates.impl.test.ts`; semantics §Aggregates. ✅ (completed: 2026-09-19 14:18)
+- [x] 5.3.2 Run phase qualification/formatting and independent phase/semantics review — `99-execution-plan.md`. ✅ (completed: 2026-09-19 16:12)
+
+Qualification: compiler build/typecheck, 780 compiler tests and 24
+import-boundary tests pass; touched formatting, whitespace, source-file size and
+frozen-authority checks pass. Eight initial major finding clusters and the sole
+focused re-review's three major and two minor edge cases were corrected with
+explicit user authority. No third review is claimed. See
+[phase review](08-phase-5-review.md).
 
 Deliverable: admitted aggregate/place semantics and volatile symbolic operations; no copy/return ABI or pointer allocation.
 Verify: phase qualification and touched formatting from Testing §Verification commands.

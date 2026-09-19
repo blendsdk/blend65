@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-03 Frontend First
 
-> **Status**: ✅ GATE PASSED — all 11 items resolved; partial RD-03 frontend scope only
-> **Last Updated**: 2026-09-19 12:33
+> **Status**: ✅ GATE PASSED — all 13 items resolved; partial RD-03 frontend scope only
+> **Last Updated**: 2026-09-19 15:30
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -27,8 +27,38 @@
 | AR-P9 | Technical / verification path correction (runtime) | Rename the current v4 CLI implementation tests `args.impl.test.ts` and `render.impl.test.ts` to `project-args.impl.test.ts` and `project-render.impl.test.ts`, with identical contents. The frozen foundation oracle prohibits the inherited v3 test paths; current files accidentally reused those names. No production CLI or specification test changes. | Mechanical filename correction under project directive 4 and execution-protocol's mechanical-correction rule; root qualification demonstrated the exact collision at `test/foundation.spec.test.ts:325` | ✅ Resolved |
 | AR-P10 | UX / diagnostic rendering (runtime) | Render E10003's `<related_location>` as `<sourceId>:<line>:<column>`, using one-based raw-byte line and column at the first declaration's name span. Keep the same location in the structured related span. | User accepted the explicitly recommended format with “i do” on 2026-09-19 | ✅ Resolved |
 | AR-P11 | Behavioral / missing semantic diagnostics (runtime) | Accept the Phase 4 blocking review corrections and use one bounded project-owned `SEMANTIC_ERROR` only for admitted invalid semantic forms that have no Specification 4 code: void expressions used as values, bare ordinary-function names used without call/address-of, and non-place assignment targets. Keep predicate-specific fixed messages and every existing normative diagnostic unchanged. | User: “I approve”, responding to the explicit combined Phase 4 finding and diagnostic-exception ruling on 2026-09-19 | ✅ Resolved |
+| AR-P12 | Behavioral / void storage diagnostics (runtime) | Extend the bounded project-owned `SEMANTIC_ERROR` to the two admitted invalid storage forms omitted from Specification 4's diagnostic registry: `void` array elements and `void` struct fields. Use exact predicate-specific messages; do not repurpose an unrelated published E-code or edit the frozen specification. | User accepted the explicitly recommended narrow extension with “i do” on 2026-09-19 | ✅ Resolved |
+| AR-P13 | Behavioral / bare void parameter diagnostic (runtime) | Extend the bounded project-owned `SEMANTIC_ERROR` to reject a bare `void` parameter with `Type 'void' cannot be used as a parameter`. `void` is return-only, no published E-code covers parameter storage, and accepting or calling it an array element is incorrect. | User approved all five focused re-review corrections and AR-P13 with “i do” on 2026-09-19 | ✅ Resolved |
 
 ## Resolution Notes
+
+### AR-P13 — Bare Void Parameters Are Storage, Not Array Elements
+
+The focused re-review proved that AR-P12's recursive array check also matched a
+bare `void` parameter and therefore used the approved array-element message for
+a non-array predicate. Narrowing that check would restore the earlier silent
+acceptance of a `void` parameter even though Specification 4 defines `void` as
+return-only and gives it no storage. Chapter 14 again provides no matching code.
+
+The recommended smallest correction is one further exact `SEMANTIC_ERROR`
+predicate: `Type 'void' cannot be used as a parameter`. Array parameters retain
+AR-P12's array-element message, and struct fields retain the field message only
+when the field itself is bare `void`. No diagnostic framework or public E-code
+is added.
+
+### AR-P12 — Void Storage Has No Published Diagnostic Code
+
+The frozen type rules reject `void` array elements and `void` struct fields, but
+Chapter 14 assigns neither predicate a diagnostic code. Reusing E10241, E10152,
+E10253 or E10265 would make an existing published code mean something it does
+not mean. Adding a new stable E-code would require changing the frozen
+specification, which D3 prohibits during compiler implementation.
+
+The recommended smallest correction is to extend AR-P11's project-owned
+`SEMANTIC_ERROR` exception to these two predicates, with exact messages
+`Type 'void' cannot be used as an array element` and
+`Type 'void' cannot be used as a struct field`. This rejects invalid programs,
+does not invent a language restriction, and adds no new diagnostic framework.
 
 ### AR-P11 — Bounded Semantic-Diagnostic Gap
 

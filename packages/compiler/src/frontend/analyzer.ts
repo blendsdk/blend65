@@ -1,17 +1,19 @@
-import { projectDiagnostic, sortDiagnostics } from "../project/diagnostics.js";
+import { projectDiagnostic as errorDiagnostic } from "../project/diagnostics.js";
 import type {
   ProjectDiagnostic,
   ProjectSnapshot,
   SourceRecord,
   SourceSpan,
 } from "../project/types.js";
+import { isScalarType, RESERVED_BUILTIN_NAMES, SCALAR_TYPES } from "./constants.js";
+import { AggregateRegistry, semanticTypeName } from "./aggregates.js";
+import { assembleModuleAnalysis } from "./analysis-result.js";
 import {
-  scalarDeclarationType,
-  scalarFunctionSignature,
-  scalarSyntaxType,
-  RESERVED_BUILTIN_NAMES,
-  SCALAR_TYPES,
-} from "./constants.js";
+  diagnoseArrayInitialization,
+  isDirectAggregateLiteral,
+  uninitializedReadDiagnostic,
+  updateInitializedState,
+} from "./aggregate-initialization.js";
 import { orderScalarDeclarations, recursionDiagnostics } from "./effects.js";
 import {
   analyzeStructuredFor,
@@ -25,6 +27,9 @@ import {
   summarizeTypedBlock,
 } from "./flow.js";
 import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
+import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
+import type { FunctionInfo } from "./module-bindings.js";
+import { captureBranchFacts, mergeScalarFacts, snapshotScalarFacts } from "./flow-facts.js";
 import {
   ANALYSIS_OBLIGATION_KIND,
   bindingIdentityKey,
@@ -36,7 +41,6 @@ import type {
   AnalyzedDeclaration,
   BindingId,
   CallEdge,
-  FunctionSignature,
   ModuleAnalysisResult,
   ModuleGraph,
   ScalarExpressionContext as ExpressionContext,
@@ -58,43 +62,22 @@ import type {
   VariableDeclaration,
 } from "./syntax.js";
 
-/** Function declaration facts collected before any body is checked. */
-interface FunctionInfo {
-  readonly declaration: FunctionDeclaration;
-  readonly binding: SemanticBinding;
-  readonly signature: FunctionSignature | null;
-  readonly module: string;
-}
-
-/** Compare exact source facts without locale-sensitive ordering. */
-function compareSpans(left: SourceSpan, right: SourceSpan): number {
-  return (
-    Buffer.compare(Buffer.from(left.sourceId), Buffer.from(right.sourceId)) ||
-    left.start - right.start ||
-    left.end - right.end
-  );
-}
-
-/** Build an error diagnostic with the shared immutable project shape. */
-function errorDiagnostic(code: string, message: string, span: SourceSpan): ProjectDiagnostic {
-  return projectDiagnostic(code, message, span);
-}
-
 /** Direct scalar and structured-flow analyzer over an already resolved module graph. */
 class ModuleAnalyzer {
   readonly diagnostics: ProjectDiagnostic[] = [];
   readonly obligations: AnalysisObligation[] = [];
-  readonly bindings: SemanticBinding[] = [];
+  readonly bindings: SemanticBinding[];
   readonly declarations: AnalyzedDeclaration[] = [];
   readonly calls: CallEdge[] = [];
   readonly sources: ReadonlyMap<string, SourceRecord>;
-  readonly bindingByKey = new Map<string, SemanticBinding>();
-  readonly stateByKey = new Map<string, ValueState>();
-  readonly functionByKey = new Map<string, FunctionInfo>();
-  readonly declarationByKey = new Map<string, Declaration>();
-  readonly moduleScopes = new Map<string, Map<string, ValueState>>();
-  readonly qualified = new Map<string, ValueState>();
-  readonly importsBySource = new Map<string, Map<string, ValueState>>();
+  readonly bindingByKey: Map<string, SemanticBinding>;
+  readonly stateByKey: Map<string, ValueState>;
+  readonly functionByKey: Map<string, FunctionInfo>;
+  readonly declarationByKey: Map<string, Declaration>;
+  readonly moduleScopes: Map<string, Map<string, ValueState>>;
+  readonly qualified: Map<string, ValueState>;
+  readonly importsBySource: Map<string, Map<string, ValueState>>;
+  readonly aggregates: AggregateRegistry;
   readonly expressions: ScalarExpressionAnalyzer;
 
   constructor(
@@ -102,18 +85,38 @@ class ModuleAnalyzer {
     readonly graph: ModuleGraph,
   ) {
     this.sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
-    this.expressions = new ScalarExpressionAnalyzer({
-      resolveName: (name, context) => resolveScalarName(name, context, this.qualified),
-      resolveType: (type) => this.resolveType(type),
-      signature: (binding) =>
-        this.functionByKey.get(bindingIdentityKey(binding))?.signature ?? null,
+    this.declarationByKey = collectDeclarationIndex(graph);
+    this.aggregates = new AggregateRegistry(graph, this.declarationByKey, {
       diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
       defer: (span, message) => this.addObligation(span, message),
-      call: (edge) => this.calls.push(edge),
       sourceText: (span) => sourceText(this.sources, span),
     });
-    this.collectDeclarations();
-    this.prepareModuleBindings();
+    const prepared = prepareModuleBindings(graph, this.declarationByKey, this.aggregates);
+    this.bindings = prepared.bindings;
+    this.bindingByKey = prepared.bindingByKey;
+    this.stateByKey = prepared.stateByKey;
+    this.functionByKey = prepared.functionByKey;
+    this.moduleScopes = prepared.moduleScopes;
+    this.qualified = prepared.qualified;
+    this.importsBySource = prepared.importsBySource;
+    this.expressions = new ScalarExpressionAnalyzer(
+      {
+        resolveName: (name, context) => resolveScalarName(name, context, this.qualified),
+        resolveType: (type, context) => this.resolveType(type, context.module, null, context.scope),
+        signature: (binding) =>
+          this.functionByKey.get(bindingIdentityKey(binding))?.signature ?? null,
+        isFunction: (binding) => this.functionByKey.has(bindingIdentityKey(binding)),
+        diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
+        defer: (span, message) => this.addObligation(span, message),
+        call: (edge) => this.calls.push(edge),
+        sourceText: (span) => sourceText(this.sources, span),
+        read: (place, span) => {
+          const diagnostic = uninitializedReadDiagnostic(place, span, this.stateByKey);
+          if (diagnostic !== null) this.diagnostics.push(diagnostic);
+        },
+      },
+      this.aggregates,
+    );
   }
 
   /** Analyze every reachable declaration and assemble a frozen phase result. */
@@ -122,101 +125,15 @@ class ModuleAnalyzer {
       this.analyzeDeclaration(module, declaration);
     }
     this.diagnostics.push(...recursionDiagnostics(this.calls, this.bindings));
-    const diagnostics = sortDiagnostics(this.diagnostics);
-    const bindings = Object.freeze(
-      [...this.bindings].sort((a, b) => compareSpans(a.declaration, b.declaration)),
+    return assembleModuleAnalysis(
+      this.graph,
+      this.aggregates,
+      this.bindings,
+      this.declarations,
+      this.calls,
+      this.diagnostics,
+      this.obligations,
     );
-    const declarations = Object.freeze(
-      [...this.declarations].sort((a, b) => {
-        const left = a.kind === "typed" ? a.binding.span : a.span;
-        const right = b.kind === "typed" ? b.binding.span : b.span;
-        return compareSpans(left, right);
-      }),
-    );
-    const calls = Object.freeze([...this.calls].sort((a, b) => compareSpans(a.span, b.span)));
-    const obligations = Object.freeze(
-      [...this.obligations].sort((a, b) => {
-        if (a.span === null) return b.span === null ? 0 : 1;
-        if (b.span === null) return -1;
-        return compareSpans(a.span, b.span);
-      }),
-    );
-    return Object.freeze({
-      modules: this.graph.modules,
-      bindings,
-      types: Object.freeze(Object.values(SCALAR_TYPES)),
-      declarations,
-      calls,
-      diagnostics,
-      obligations,
-      complete:
-        obligations.length === 0 && diagnostics.every(({ severity }) => severity !== "error"),
-    });
-  }
-
-  /** Associate parsed declarations with the source-span identities created by module resolution. */
-  private collectDeclarations(): void {
-    for (const module of this.graph.modules) {
-      for (const unit of module.units) {
-        for (const declaration of unit.declarations) {
-          const binding = this.graph.bindings.find(
-            (candidate) =>
-              candidate.qualifiedName ===
-                ("name" in declaration ? `${module.name}.${declaration.name}` : null) &&
-              candidate.id.sourceId === declaration.span.sourceId &&
-              candidate.id.span.start === declaration.span.start &&
-              candidate.id.span.end === declaration.span.end,
-          );
-          if (binding !== undefined)
-            this.declarationByKey.set(bindingIdentityKey(binding.id), declaration);
-        }
-      }
-    }
-  }
-
-  /** Resolve declaration headers first so body lookup is independent of source order. */
-  private prepareModuleBindings(): void {
-    for (const binding of this.graph.bindings) {
-      const declaration = this.declarationByKey.get(bindingIdentityKey(binding.id));
-      const type = declaration === undefined ? null : scalarDeclarationType(declaration);
-      const semantic = Object.freeze({ ...binding, type });
-      const state: ValueState = {
-        binding: semantic,
-        nameSpan:
-          declaration !== undefined && "nameSpan" in declaration
-            ? declaration.nameSpan
-            : binding.declaration,
-        readonly: binding.storage === "constant",
-        known: null,
-      };
-      this.bindings.push(semantic);
-      this.bindingByKey.set(bindingIdentityKey(semantic.id), semantic);
-      this.stateByKey.set(bindingIdentityKey(semantic.id), state);
-      if (semantic.qualifiedName !== null) {
-        this.qualified.set(semantic.qualifiedName, state);
-        const moduleName = semantic.qualifiedName.slice(0, -(semantic.name.length + 1));
-        const scope = this.moduleScopes.get(moduleName) ?? new Map<string, ValueState>();
-        scope.set(semantic.name, state);
-        this.moduleScopes.set(moduleName, scope);
-      }
-      if (declaration?.kind === "function") {
-        this.functionByKey.set(bindingIdentityKey(semantic.id), {
-          declaration,
-          binding: semantic,
-          signature: scalarFunctionSignature(declaration),
-          module: semantic.qualifiedName?.slice(0, -(semantic.name.length + 1)) ?? "",
-        });
-      }
-    }
-    for (const resolvedImport of this.graph.imports) {
-      const target = this.stateByKey.get(bindingIdentityKey(resolvedImport.binding));
-      if (target === undefined) continue;
-      const aliases =
-        this.importsBySource.get(resolvedImport.sourceSpan.sourceId) ??
-        new Map<string, ValueState>();
-      aliases.set(resolvedImport.alias, target);
-      this.importsBySource.set(resolvedImport.sourceSpan.sourceId, aliases);
-    }
   }
 
   /** Analyze one module declaration without allowing a failed sibling to hide later facts. */
@@ -228,7 +145,16 @@ class ModuleAnalyzer {
       );
       return;
     }
-    const state = this.qualified.get(`${module}.${declaration.name}`);
+    const sourceBinding = this.graph.bindings.find(
+      (binding) =>
+        binding.id.sourceId === declaration.span.sourceId &&
+        binding.id.span.start === declaration.span.start &&
+        binding.id.span.end === declaration.span.end,
+    );
+    const state =
+      sourceBinding === undefined
+        ? undefined
+        : this.stateByKey.get(bindingIdentityKey(sourceBinding.id));
     if (state === undefined) return;
     if (RESERVED_BUILTIN_NAMES.has(declaration.name)) {
       this.diagnostics.push(
@@ -242,11 +168,23 @@ class ModuleAnalyzer {
       return;
     }
     if (declaration.kind === "struct") {
-      this.addObligation(
-        declaration.span,
-        "Struct semantics are not implemented by the scalar frontend slice",
-      );
-      this.retainUnusable("unchecked", state.binding.id, declaration.span);
+      if (state.binding.type === null) {
+        this.retainUnusable(
+          this.aggregates.isDeferredStruct(state.binding.id) ? "unchecked" : "poison",
+          state.binding.id,
+          declaration.span,
+        );
+      } else {
+        this.declarations.push(
+          Object.freeze({
+            kind: "typed",
+            binding: state.binding.id,
+            type: state.binding.type,
+            initializer: null,
+            body: null,
+          }),
+        );
+      }
       return;
     }
     if (declaration.kind === "variable") this.analyzeModuleVariable(module, declaration, state);
@@ -261,13 +199,15 @@ class ModuleAnalyzer {
   ): void {
     const before = this.errorCount();
     const obligationsBefore = this.obligations.length;
-    const type = this.resolveType(declaration.type);
+    const type = this.resolveType(declaration.type, module, declaration.initializer);
     const scope = moduleValueScope(
       this.moduleScopes.get(module),
       this.importsBySource.get(declaration.span.sourceId),
     );
     let initializer: TypedExpr | null = null;
     if (declaration.initializer !== null && type !== null) {
+      const aggregateCopy =
+        type.kind !== "scalar" && !isDirectAggregateLiteral(type, declaration.initializer);
       const result = this.expressions.analyze(declaration.initializer, type, {
         scope,
         module,
@@ -275,12 +215,23 @@ class ModuleAnalyzer {
         caller: null,
         constantContext: declaration.declarationKind === "const",
       });
-      initializer = result.node;
-      state.known = result.node?.constant ?? null;
+      if (aggregateCopy) {
+        if (result.node !== null) {
+          this.addObligation(
+            declaration.initializer.span,
+            "Whole aggregate initialization and copy lowering remain pending",
+          );
+        }
+      } else {
+        initializer = result.node;
+        state.known = result.node?.constant ?? null;
+        updateInitializedState(state, result.node);
+      }
       if (
         declaration.declarationKind === "const" &&
-        result.node !== null &&
-        result.node.constant === null
+        type.kind === "scalar" &&
+        initializer !== null &&
+        initializer.constant === null
       ) {
         this.diagnostics.push(
           errorDiagnostic(
@@ -297,6 +248,11 @@ class ModuleAnalyzer {
           `Const declaration '${declaration.name}' requires an initializer`,
           declaration.nameSpan,
         ),
+      );
+    }
+    if (type !== null) {
+      diagnoseArrayInitialization(declaration, type, initializer, (diagnostic) =>
+        this.diagnostics.push(diagnostic),
       );
     }
     if (this.obligations.length !== obligationsBefore) {
@@ -324,7 +280,16 @@ class ModuleAnalyzer {
   ): void {
     const before = this.errorCount();
     const obligationsBefore = this.obligations.length;
-    const returnType = this.resolveType(declaration.returnType);
+    const signature = this.aggregates.functionSignature(declaration, module, true);
+    if (signature === null) {
+      this.retainUnusable(
+        this.obligations.length !== obligationsBefore ? "unchecked" : "poison",
+        state.binding.id,
+        declaration.span,
+      );
+      return;
+    }
+    const returnType = signature.returnType;
     const scope: Scope = {
       parent: moduleValueScope(
         this.moduleScopes.get(module),
@@ -333,7 +298,7 @@ class ModuleAnalyzer {
       values: new Map(),
     };
     for (const parameter of declaration.parameters) {
-      const type = this.resolveType(parameter.type);
+      const type = this.resolveType(parameter.type, module, null);
       if (type === null) continue;
       const duplicate = scope.values.get(parameter.name);
       if (duplicate !== undefined) {
@@ -353,6 +318,12 @@ class ModuleAnalyzer {
         nameSpan: freezeSourceSpan(parameter.nameSpan),
         readonly: parameter.readonly,
         known: null,
+        initialized: true,
+        initializedRanges:
+          type.kind === "array"
+            ? Object.freeze([{ start: 0, end: type.length }])
+            : Object.freeze([]),
+        initializedPaths: Object.freeze([]),
       };
       scope.values.set(parameter.name, valueState);
       this.stateByKey.set(bindingIdentityKey(binding.id), valueState);
@@ -465,6 +436,7 @@ class ModuleAnalyzer {
       clearMutableFacts(scope);
       const condition = this.expressions.analyze(statement.condition, null, context).node;
       if (condition !== null) this.addConditionDiagnostic(condition, statement.condition.span);
+      const loopEntry = snapshotScalarFacts(scope);
       const body = this.analyzeBlock(
         statement.body,
         scope,
@@ -473,7 +445,8 @@ class ModuleAnalyzer {
         returnType,
         loopDepth + 1,
       );
-      clearMutableFacts(scope);
+      const bodyFacts = captureBranchFacts(loopEntry);
+      mergeScalarFacts(loopEntry, [loopEntry, bodyFacts]);
       return condition === null
         ? null
         : Object.freeze({ kind: "while", span: freezeSourceSpan(statement.span), condition, body });
@@ -494,10 +467,10 @@ class ModuleAnalyzer {
       if (statement.value !== null)
         value = this.expressions.analyze(
           statement.value,
-          returnType.name === "void" ? null : returnType,
+          isScalarType(returnType) && returnType.name === "void" ? null : returnType,
           context,
         ).node;
-      if (returnType.name === "void" && statement.value !== null) {
+      if (isScalarType(returnType) && returnType.name === "void" && statement.value !== null) {
         const name = this.bindingByKey.get(bindingIdentityKey(caller))?.name ?? "<function>";
         this.diagnostics.push(
           errorDiagnostic(
@@ -506,12 +479,15 @@ class ModuleAnalyzer {
             statement.span,
           ),
         );
-      } else if (returnType.name !== "void" && statement.value === null) {
+      } else if (
+        (!isScalarType(returnType) || returnType.name !== "void") &&
+        statement.value === null
+      ) {
         const name = this.bindingByKey.get(bindingIdentityKey(caller))?.name ?? "<function>";
         this.diagnostics.push(
           errorDiagnostic(
             "E10174",
-            `Missing return value — function '${name}' returns '${returnType.name}' but this 'return' has no expression`,
+            `Missing return value — function '${name}' returns '${semanticTypeName(returnType)}' but this 'return' has no expression`,
             statement.span,
           ),
         );
@@ -541,14 +517,26 @@ class ModuleAnalyzer {
     context: ExpressionContext,
   ): TypedVariableStatement | null {
     const before = this.errorCount();
-    const type = this.resolveType(declaration.type);
-    const initializer =
-      declaration.initializer === null || type === null
-        ? null
-        : this.expressions.analyze(declaration.initializer, type, {
-            ...context,
-            constantContext: declaration.declarationKind === "const",
-          }).node;
+    const type = this.resolveType(declaration.type, context.module, declaration.initializer, scope);
+    let initializer: TypedExpr | null = null;
+    if (declaration.initializer !== null && type !== null) {
+      const aggregateCopy =
+        type.kind !== "scalar" && !isDirectAggregateLiteral(type, declaration.initializer);
+      const result = this.expressions.analyze(declaration.initializer, type, {
+        ...context,
+        constantContext: declaration.declarationKind === "const",
+      });
+      if (aggregateCopy) {
+        if (result.node !== null) {
+          this.addObligation(
+            declaration.initializer.span,
+            "Whole aggregate initialization and copy lowering remain pending",
+          );
+        }
+      } else {
+        initializer = result.node;
+      }
+    }
     if (scope.values.has(declaration.name)) {
       const first = scope.values.get(declaration.name)!;
       this.diagnostics.push(
@@ -582,6 +570,7 @@ class ModuleAnalyzer {
     }
     if (
       declaration.declarationKind === "const" &&
+      type?.kind === "scalar" &&
       declaration.initializer !== null &&
       initializer !== null &&
       initializer.constant === null
@@ -594,7 +583,17 @@ class ModuleAnalyzer {
         ),
       );
     }
-    if (type === null || this.errorCount() !== before) return null;
+    if (type !== null) {
+      diagnoseArrayInitialization(declaration, type, initializer, (diagnostic) =>
+        this.diagnostics.push(diagnostic),
+      );
+    }
+    if (
+      type === null ||
+      this.errorCount() !== before ||
+      (declaration.initializer !== null && initializer === null)
+    )
+      return null;
     const binding = this.createBodyBinding(
       declaration.name,
       declaration.span,
@@ -606,7 +605,11 @@ class ModuleAnalyzer {
       nameSpan: freezeSourceSpan(declaration.nameSpan),
       readonly: declaration.declarationKind === "const",
       known: initializer?.constant ?? null,
+      initialized: false,
+      initializedRanges: Object.freeze([]),
+      initializedPaths: Object.freeze([]),
     };
+    updateInitializedState(state, initializer);
     scope.values.set(declaration.name, state);
     this.stateByKey.set(bindingIdentityKey(binding.id), state);
     return Object.freeze({
@@ -648,18 +651,15 @@ class ModuleAnalyzer {
     this.bindingByKey.set(bindingIdentityKey(binding.id), binding);
     return binding;
   }
-  /** Resolve an admitted named scalar type and diagnose an unknown spelling. */
-  private resolveType(type: TypeSyntax | null): SemanticType | null {
-    if (type?.kind === "named-type") {
-      const resolved = scalarSyntaxType(type);
-      if (resolved !== null) return resolved;
-    }
-    if (type?.kind === "named-type") {
-      this.diagnostics.push(errorDiagnostic("E10241", `Unknown type '${type.name}'`, type.span));
-    } else if (type !== null) {
-      this.addObligation(type.span, "Type form is not implemented by the scalar frontend slice");
-    }
-    return null;
+
+  /** Resolve an admitted scalar, nominal struct, or fixed array type. */
+  private resolveType(
+    type: TypeSyntax | null,
+    module: string,
+    initializer: VariableDeclaration["initializer"],
+    scope?: Scope,
+  ): SemanticType | null {
+    return this.aggregates.resolveType(type, module, initializer, true, scope);
   }
   /** Append a condition diagnostic only when the expression is not Boolean. */
   private addConditionDiagnostic(expression: TypedExpr, span: SourceSpan): void {
