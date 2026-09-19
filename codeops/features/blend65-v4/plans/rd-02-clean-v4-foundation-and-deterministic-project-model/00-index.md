@@ -1,7 +1,7 @@
 # RD-02 Foundation Implementation Plan
 
 > **Feature**: Clean v4 foundation and deterministic project loading
-> **Status**: Blocked (was: Executing) — implementation complete; actual Windows qualification and final closeout pending
+> **Status**: Blocked (was: Executing) — implementation complete; Windows closeout deliberately deferred to the RD-10 qualification window
 > **Created**: 2026-09-17
 > **Implements**: blend65-v4/RD-02
 > **CodeOps Artifact Schema**: 1

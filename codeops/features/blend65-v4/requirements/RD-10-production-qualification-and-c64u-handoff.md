@@ -19,7 +19,9 @@ applicable requirement has current evidence through its required endpoint and ev
 limitation is bounded, documented, and owned. (AR-002, AR-008, AR-011, AR-024, AR-033)
 
 The initial production target set is eight resident C64 PRG profiles plus one PAL/KERNAL/6581 D64
-profile. The host set is Node 22 on Linux x64 and Windows x64. VICE 3.10 `x64sc` remains the normal
+profile. The host set is Node 22 on Linux x64 and Windows x64. This existing native Windows
+qualification window also closes RD-02 DEF-1 before RD-10 closes; it is not an earlier compiler
+development gate. VICE 3.10 `x64sc` remains the normal
 automated execution oracle, while exact physical C64 configurations close the profile, timing,
 CIA, SID, banking, and real-drive claims that emulation cannot prove. RD-10 also proves that the
 real shared architecture can accept C64 Ultimate differences without claiming that a `c64u` target,

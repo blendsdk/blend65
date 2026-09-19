@@ -1,7 +1,7 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-18 15:31
+> **Last Updated**: 2026-09-19 09:35
 > **Progress**: 8/64 tasks (12.5%)
 > **CodeOps Artifact Schema**: 1
 
@@ -260,8 +260,9 @@ Verify: `yarn build && yarn typecheck && yarn test`, touched formatting, unchang
 
 Phases 1 → 2 → 3 → 4 → 5 → 6. Each phase consumes only completed previous
 stage contracts; unchecked material never enters a successful next-stage result.
-RD-02's project API is required, but unavailable Windows acceptance does not
-block the specifically approved asset-independent planning/testing work.
+RD-02's implemented project API is required. By RD-02 AR-P11, its deferred native
+Windows foundation proof does not block this plan or later Linux compiler work;
+that proof runs in RD-10's existing Windows qualification window.
 
 Completion means all tasks and [plan-local acceptance](01-requirements.md#plan-local-acceptance)
 are verified, required reviews are clear, documentation reflects partial evidence,

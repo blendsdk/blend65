@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-03 Frontend First
 
 > **Status**: ✅ GATE PASSED — all 9 items resolved; partial RD-03 frontend scope only
-> **Last Updated**: 2026-09-18
+> **Last Updated**: 2026-09-19
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -58,9 +58,11 @@ the same plan-owned mechanical ruling under directive 4 applies.
 The approved exception allows asset-independent frontend planning before the
 authentic SpritePad handoff. Producer evidence is still mandatory before any
 SpritePad-dependent planning or decoder implementation. Windows testing remains
-tracked by RD-02 DEF-1. Backend, game integration and final RD-03 acceptance are
-not part of this partial plan. Technical choices use the overriding project
-workflow directive 4; product-scope changes still require the user.
+tracked by RD-02 DEF-1 and, by RD-02 AR-P11, is scheduled for RD-10 rather than
+blocking this plan or later Linux compiler work. Backend, game integration and
+final RD-03 acceptance are not part of this partial plan. Technical choices use
+the overriding project workflow directive 4; product-scope changes still require
+the user.
 
 ### AR-P2 — Grounding and Independent Challenge
 

@@ -1,7 +1,7 @@
 # Execution Plan: RD-02 Foundation
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-18 00:42
+> **Last Updated**: 2026-09-19 09:35
 > **Progress**: 34/35 tasks (97%)
 > **CodeOps Artifact Schema**: 1
 
@@ -9,7 +9,7 @@
 
 Implement the owning RD through real behavior checkpoints, not a horizontal
 compiler skeleton. Preflight must PASS before execution. Scope/authority is
-[AR-P1–AR-P10](00-ambiguity-register.md); contracts and signatures are in the
+[AR-P1–AR-P11](00-ambiguity-register.md); contracts and signatures are in the
 three component documents. This checklist alone owns task progress.
 
 ## Implementation Phases
@@ -232,7 +232,7 @@ tests. No shell construction or assembler/emulator execution.
 ### Step 3.3: Internal Tests, Native Qualification and Closeout
 
 - [x] 3.3.1 Add focused CLI adapter/internal-host tests and record real example phase-separated observations — CLI/project `*.impl.test.ts`, `08-closeout.md`; `03-03` Observations; ST-39. ✅ (completed: 2026-09-18 00:37; 14 focused new cases, all 61 CLI cases/build/typecheck/docs/formatting/links PASS; real 301-byte example identity, distinct discovery/JSONC/inventory/full-snapshot/actual-TS-build/test/peak-memory observations recorded without gates or harness)
-- [!] 3.3.2 Complete full native Linux/Windows foundation qualification, independent phase review and deferral-expiry closeout; commit green checkpoints and update the feature roadmap on actual completion — `08-closeout.md`, feature roadmap; `03-03` Verification/Closeout; ST-01–ST-40. Blocked: actual Node 22 Windows x64 qualification unavailable for the unpushed local revision; final closeout/review remains pending, tracked by DEF-1. User confirmed on 2026-09-18 that no Windows machine is available; qualification is deferred until one becomes available, without new infrastructure or a waiver. Linux full verification PASS: 674 tests, forced rerun; checkpoint deferral walk complete.
+- [!] 3.3.2 Complete full native Linux/Windows foundation qualification, independent phase review and deferral-expiry closeout; commit green checkpoints and update the feature roadmap on actual completion — `08-closeout.md`, feature roadmap; `03-03` Verification/Closeout; ST-01–ST-40. Deferred to RD-10's native Windows production-qualification window by AR-P11; it does not block RD-03–RD-09 Linux compiler work or their intermediate closeouts. Do not request earlier Windows access or add infrastructure. Linux full verification PASS: 674 tests, forced rerun; checkpoint deferral walk complete.
 
 Overriding project workflow directive 1 permits independently reviewed coherent
 green local implementation checkpoints while this final task is blocked. Such a
@@ -244,13 +244,15 @@ on both declared production hosts, then record those actual results and directly
 inspect ST-36, ST-39, and ST-40's completed deferral walk. Also verify targeted
 formatting/links, identity/topology and no-output checks. Every ST-01–ST-40
 obligation must have its real test or inspection evidence before final review,
-green commit, or Done. Missing native evidence blocks this last
-task; no push or new external infrastructure is authorized to bypass that condition.
+green commit, or Done. Missing native evidence keeps this last task open until
+the RD-10 qualification window; no push or new external infrastructure is
+authorized to bypass that condition.
 
 ## Dependencies and Completion
 
-RD-01 closed -> Phase 1 green foundation -> Phase 2 green service -> Phase 3 real
-CLI and complete host evidence -> RD-02 Done -> RD-03 planning.
+RD-01 closed -> Linux foundation/service/CLI checkpoint -> RD-03 through RD-09
+compiler work on Linux -> RD-10 native host qualification -> DEF-1 and RD-02 close
+before RD-10 closes.
 
 Completion means all tasks verified, RD-02 AC-01–AC-29 satisfied, independent
 findings resolved/ruled under policy, frozen authorities unchanged, no dead or

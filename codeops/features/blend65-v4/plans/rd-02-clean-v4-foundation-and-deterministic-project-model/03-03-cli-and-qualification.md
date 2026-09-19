@@ -84,10 +84,11 @@ is a qualification limitation, not a silently skipped PASS. Linux permission
 tests must run under an effective account for which the fixture is unreadable,
 not rely on root respecting mode bits.
 
-If a native Windows runner is unavailable, implementation can proceed, but RD-02
-cannot be declared Done. Report the missing evidence and request the existing
-authorized host/CI execution; never push, create credentials, or broaden
-infrastructure authority merely to get a run. See ST-36–ST-38.
+If a native Windows runner is unavailable, implementation and the Linux compiler
+sequence proceed. RD-02 cannot be declared Done, but DEF-1 is deliberately held
+for RD-10's existing native Windows production-qualification window. Do not request
+a host before that window, push, create credentials, or broaden infrastructure
+authority merely to get an earlier run. See ST-36–ST-38 and AR-P11.
 
 ## Observations, Not Gates
 

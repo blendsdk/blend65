@@ -1,6 +1,6 @@
 # RD-02 Foundation Qualification
 
-> **Status**: Blocked (was: Executing) — local implementation checkpoint, not final RD closeout
+> **Status**: Blocked (was: Executing) — implementation complete; Windows closeout deferred to the RD-10 qualification window
 > **CodeOps Artifact Schema**: 1
 
 ## Required Direct Inspections
@@ -105,7 +105,7 @@ No expired rationale or unowned deferral was found; no backlog expansion or
 discarded v3 expressiveness ledger is needed. DEF-1 is the explicit qualification
 blocker, not silently deferred implementation or waived Windows acceptance.
 
-## Native Host Access Blocker
+## Deferred Native Windows Qualification
 
 The current host is Linux x64, not Windows. Read-only checks found no configured
 libvirt VM, no accessible Windows connector and no registered self-hosted GitHub
@@ -114,17 +114,20 @@ cannot qualify this local, unpushed implementation. The adapted Windows hosted
 matrix has not executed this revision. No push, credential or new infrastructure
 was used to bypass that gap.
 
-On 2026-09-18 the user confirmed there is no Windows machine available and that
-Windows testing will come later. DEF-1 is deliberately deferred until access is
-available; do not keep requesting a host or provision replacement infrastructure.
-This schedules the missing proof later; it does not waive Windows acceptance,
-change the RD-03 prerequisite, or mark RD-02 complete.
+On 2026-09-18 the user confirmed there is no Windows machine available. On
+2026-09-19 the user made Windows a final-stage concern because DEF-1 covers host
+foundation behavior rather than compiler semantics. DEF-1 is therefore scheduled
+inside RD-10's existing native Windows production-qualification window. Do not
+request a host earlier or provision replacement infrastructure. This does not
+waive Windows acceptance or mark RD-02 complete, but it explicitly permits RD-03
+through RD-09 compiler work and intermediate closeouts to proceed on Linux.
 
-DEF-1 owner: the user supplies an existing Windows host or an authorized route
-to execute the current revision; the agent runs the declared qualification there.
-Then verify native aliases/junctions/symlinks/ACLs/races and command portability,
-record results, complete final evidence review/commit, and mark RD-02 Done only
-on actual acceptance. Final task 3.3.2 remains blocked.
+DEF-1 owner at the RD-10 qualification window: the user supplies an existing
+Windows host or an authorized route to execute the release candidate; the agent
+runs the declared foundation checks as part of that native run. Then verify native
+aliases/junctions/symlinks/ACLs/races and command portability, record results,
+complete final evidence review/commit, and mark RD-02 Done before RD-10 closes.
+Final task 3.3.2 remains deferred until that window.
 
 ## Verified Local Implementation Checkpoint
 
