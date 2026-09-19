@@ -57,80 +57,82 @@ function visitExpression(
   valueRoots: ReadonlySet<string>,
   visit: (reference: ModuleReference) => void,
 ): void {
-  switch (expression.kind) {
-    case "number":
-    case "boolean":
-    case "literal":
-    case "name":
-      return;
-    case "unary":
-    case "length":
-      visitExpression(expression.operand, valueRoots, visit);
-      return;
-    case "binary":
-      visitExpression(expression.left, valueRoots, visit);
-      visitExpression(expression.right, valueRoots, visit);
-      return;
-    case "conditional":
-      visitExpression(expression.condition, valueRoots, visit);
-      visitExpression(expression.whenTrue, valueRoots, visit);
-      visitExpression(expression.whenFalse, valueRoots, visit);
-      return;
-    case "cast":
-      visitType(expression.type, valueRoots, visit);
-      visitExpression(expression.operand, valueRoots, visit);
-      return;
-    case "assignment":
-      visitExpression(expression.target, valueRoots, visit);
-      visitExpression(expression.value, valueRoots, visit);
-      return;
-    case "call": {
-      const called = memberName(expression.callee);
-      if (called !== null) {
-        visit({
-          name: called,
-          span: expression.callee.span,
-          directCall: true,
-          localRoot: valueRoots.has(called.split(".")[0] ?? ""),
-          typeReference: false,
-        });
-      } else {
-        visitExpression(expression.callee, valueRoots, visit);
+  const pending: Expr[] = [expression];
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    switch (current.kind) {
+      case "number":
+      case "boolean":
+      case "literal":
+      case "name":
+        break;
+      case "unary":
+      case "length":
+        pending.push(current.operand);
+        break;
+      case "binary":
+        pending.push(current.right, current.left);
+        break;
+      case "conditional":
+        pending.push(current.whenFalse, current.whenTrue, current.condition);
+        break;
+      case "cast":
+        visitType(current.type, valueRoots, visit);
+        pending.push(current.operand);
+        break;
+      case "assignment":
+        pending.push(current.value, current.target);
+        break;
+      case "call": {
+        const called = memberName(current.callee);
+        for (let index = current.arguments.length - 1; index >= 0; index -= 1) {
+          pending.push(current.arguments[index]!);
+        }
+        if (called === null) pending.push(current.callee);
+        else {
+          visit({
+            name: called,
+            span: current.callee.span,
+            directCall: true,
+            localRoot: valueRoots.has(called.split(".")[0] ?? ""),
+            typeReference: false,
+          });
+        }
+        break;
       }
-      for (const argument of expression.arguments) visitExpression(argument, valueRoots, visit);
-      return;
-    }
-    case "sizeof":
-      visitType(expression.operand, valueRoots, visit);
-      return;
-    case "offsetof":
-      visitType(expression.operand, valueRoots, visit);
-      return;
-    case "index":
-      visitExpression(expression.object, valueRoots, visit);
-      visitExpression(expression.index, valueRoots, visit);
-      return;
-    case "member": {
-      const name = memberName(expression);
-      if (name !== null) {
-        visit({
-          name,
-          span: expression.span,
-          directCall: false,
-          localRoot: valueRoots.has(name.split(".")[0] ?? ""),
-          typeReference: false,
-        });
-      } else {
-        visitExpression(expression.object, valueRoots, visit);
+      case "sizeof":
+      case "offsetof":
+        visitType(current.operand, valueRoots, visit);
+        break;
+      case "index":
+        pending.push(current.index, current.object);
+        break;
+      case "member": {
+        const name = memberName(current);
+        if (name === null) pending.push(current.object);
+        else {
+          visit({
+            name,
+            span: current.span,
+            directCall: false,
+            localRoot: valueRoots.has(name.split(".")[0] ?? ""),
+            typeReference: false,
+          });
+        }
+        break;
       }
-      return;
+      case "array-literal":
+        if (current.fill !== null) pending.push(current.fill);
+        for (let index = current.elements.length - 1; index >= 0; index -= 1) {
+          pending.push(current.elements[index]!);
+        }
+        break;
+      case "struct-literal":
+        for (let index = current.fields.length - 1; index >= 0; index -= 1) {
+          pending.push(current.fields[index]!.value);
+        }
+        break;
     }
-    case "array-literal":
-      for (const element of expression.elements) visitExpression(element, valueRoots, visit);
-      if (expression.fill !== null) visitExpression(expression.fill, valueRoots, visit);
-      return;
-    case "struct-literal":
-      for (const field of expression.fields) visitExpression(field.value, valueRoots, visit);
   }
 }
 

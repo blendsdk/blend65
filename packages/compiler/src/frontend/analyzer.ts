@@ -14,7 +14,8 @@ import {
   uninitializedReadDiagnostic,
   updateInitializedState,
 } from "./aggregate-initialization.js";
-import { orderScalarDeclarations, recursionDiagnostics } from "./effects.js";
+import { recursionDiagnostics } from "./call-cycles.js";
+import { orderScalarDeclarations } from "./effects.js";
 import {
   analyzeStructuredFor,
   analyzeStructuredIf,
@@ -138,7 +139,8 @@ class ModuleAnalyzer {
 
   /** Analyze one module declaration without allowing a failed sibling to hide later facts. */
   private analyzeDeclaration(module: string, declaration: Declaration): void {
-    if (declaration.kind === "poison" || declaration.kind === "unchecked") {
+    if (declaration.kind === "poison") return;
+    if (declaration.kind === "unchecked") {
       this.addObligation(
         declaration.span,
         "Source declaration is not implemented by the scalar frontend slice",
@@ -506,7 +508,9 @@ class ModuleAnalyzer {
       }
       return Object.freeze({ kind: statement.kind, span: freezeSourceSpan(statement.span) });
     }
-    this.addObligation(statement.span, "Statement is not implemented by the scalar frontend slice");
+    if (statement.kind === "unchecked") {
+      this.addObligation(statement.span, "Statement is not implemented by this frontend slice");
+    }
     return null;
   }
 

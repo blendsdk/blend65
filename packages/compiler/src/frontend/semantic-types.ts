@@ -303,6 +303,13 @@ export interface TypedExpr {
   readonly value?: bigint | boolean | TypedExpr;
   /** Name spelling retained by name nodes. */
   readonly name?: string;
+  /** Source module qualifier retained by a resolved qualified reference. */
+  readonly qualifiedModule?: {
+    /** Exact dotted module name. */
+    readonly name: string;
+    /** Source bytes containing the module qualifier. */
+    readonly span: SourceSpan;
+  };
   /** Exact operator retained by unary, binary, and assignment nodes. */
   readonly operator?: string;
   /** Unary/cast value operand, or the retained source type used by a type query. */
@@ -538,6 +545,38 @@ export interface ModuleAnalysisResult {
   readonly obligations: readonly AnalysisObligation[];
   /** Whether body/type/flow checking completed without an error or obligation. */
   readonly complete: boolean;
+}
+
+/** A symbolic place published by effect analysis without checker-only permission provenance. */
+export interface EffectPlace {
+  /** Root declaration identity. */
+  readonly binding: BindingId;
+  /** Ordered field and index path from the root. */
+  readonly path: readonly (string | TypedExpr)[];
+  /** Whether writes through this place are forbidden. */
+  readonly readonly: boolean;
+}
+
+/** Finite externally visible effects of one ordinary function. */
+export interface EffectSummary {
+  /** Function whose transitive behavior is summarized. */
+  readonly function: BindingId;
+  /** Module or aggregate-parameter places which may be read. */
+  readonly reads: readonly EffectPlace[];
+  /** Module or aggregate-parameter places which may be written. */
+  readonly writes: readonly EffectPlace[];
+  /** Whether volatile raw memory may be accessed. */
+  readonly opaque: boolean;
+}
+
+/** Completed effect and startup-schedule facts for one module analysis. */
+export interface EffectAnalysisResult {
+  /** One transitive summary per checked ordinary function. */
+  readonly effects: readonly EffectSummary[];
+  /** Runtime module initializers in proved execution order. */
+  readonly initializerOrder: readonly BindingId[];
+  /** Proving failures discovered while ordering initializers. */
+  readonly diagnostics: readonly ProjectDiagnostic[];
 }
 
 /** Source syntax accepted by the scalar flow checker. */

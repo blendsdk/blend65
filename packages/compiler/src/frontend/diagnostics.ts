@@ -140,3 +140,40 @@ export function sortFrontendDiagnostics(
       .map(({ diagnostic }) => diagnostic),
   );
 }
+
+/** Compare exact UTF-8 text without host locale or normalization. */
+function compareText(left: string, right: string): number {
+  return Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8"));
+}
+
+/**
+ * Sort whole-analysis diagnostics by located proof before spanless reports.
+ * Equal locations use code and then preserve stable producer order.
+ */
+export function sortAnalysisDiagnostics(
+  diagnostics: readonly ProjectDiagnostic[],
+): readonly ProjectDiagnostic[] {
+  return Object.freeze(
+    diagnostics
+      .map((diagnostic, productionOrder) => ({ diagnostic, productionOrder }))
+      .sort((left, right) => {
+        const leftSpan = left.diagnostic.primarySpan;
+        const rightSpan = right.diagnostic.primarySpan;
+        if (leftSpan === null || rightSpan === null) {
+          if (leftSpan === null && rightSpan !== null) return 1;
+          if (leftSpan !== null && rightSpan === null) return -1;
+        } else {
+          const locationOrder =
+            compareText(leftSpan.sourceId, rightSpan.sourceId) ||
+            leftSpan.start - rightSpan.start ||
+            leftSpan.end - rightSpan.end;
+          if (locationOrder !== 0) return locationOrder;
+        }
+        return (
+          compareText(left.diagnostic.code, right.diagnostic.code) ||
+          left.productionOrder - right.productionOrder
+        );
+      })
+      .map(({ diagnostic }) => diagnostic),
+  );
+}

@@ -1,7 +1,7 @@
 # RD-03 Frontend-First Implementation Plan
 
 > **Feature**: Asset-independent source, syntax and semantic services for the M1 slice
-> **Status**: Executing — partial RD-03; phases 1–3 qualified, phase 4 semantics next
+> **Status**: Complete — partial RD-03 frontend plan; parent RD-03 remains executing
 > **Created**: 2026-09-18
 > **Implements**: blend65-v4/RD-03
 > **Coverage**: Partial; this plan cannot close RD-03
@@ -35,13 +35,17 @@ profile/asset framework and infrastructure.
 | [Semantic analysis](03-02-semantic-analysis.md) | Modules, types, effects and completion contracts |
 | [Testing strategy](07-testing-strategy.md) | Independent expected results |
 | [Execution plan](99-execution-plan.md) | Only mutable task-progress authority |
+| [Phase 6 review](08-phase-6-review.md) | Final frontend qualification evidence |
+| [Partial closeout](08-closeout.md) | Acceptance, deferral check and follow-on ownership |
 
 ## Quick Reference
 
 The [corrective preflight](00-preflight-report.md) passed on 2026-09-18.
-All three preflight findings are resolved. The [phase 1 lexer](08-phase-1-review.md),
-[phase 2 parser](08-phase-2-review.md) and [phase 3 module graph](08-phase-3-review.md)
-are qualified. Phase 4 starts with independent scalar and structured-flow tests.
+All three preflight findings are resolved. Phases 1–6 are qualified; the final
+[service/effects review](08-phase-6-review.md) records the independent oracle,
+corrections and repository-wide verification. This closes only the asset-independent
+frontend plan. The parent RD-03 still requires its profile, asset, backend, storage,
+lowering, packaging, tool-consumer and runtime qualification plan.
 
 Use the existing loader, then internal `analyzeProject(snapshot)` from
 `packages/compiler/src/frontend/service.ts`. The result contract is owned by

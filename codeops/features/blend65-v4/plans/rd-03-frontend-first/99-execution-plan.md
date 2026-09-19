@@ -1,8 +1,8 @@
 # Execution Plan: RD-03 Frontend First
 
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-19 14:18
-> **Progress**: 54/64 tasks (84.4%)
+> **Last Updated**: 2026-09-19 21:46
+> **Progress**: 64/64 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -297,29 +297,36 @@ Verify: phase qualification and touched formatting from Testing §Verification c
 
 ## Phase 6: Effects, Initializer Schedule and Service Acceptance
 
-> **Phase baseline tree**: recorded by exec-plan at phase start
+> **Phase baseline tree**: 4778012d2db3710d7a1f8e1c93a26e9aaabf6e3c
+> **Scope mode**: strict
+> **Expected modification set**: `packages/compiler/src/frontend/{effects.spec.test.ts,service.spec.test.ts,effects.ts,service.ts,semantic-types.ts,diagnostics.ts,service.impl.test.ts,analyzer.ts,direct-calls.ts,scalar-expressions.ts,module-references.ts,call-cycles.ts}`; this plan's index, execution, closeout/review evidence and feature-roadmap status note. Existing effect analysis is extended directly; the service only orchestrates current stages and assembles their existing result contracts. The existing direct-call, reference-walk and poison-recovery hooks receive the minimum corrections needed for already-required qualified calls, bounded hostile input and truthful safe recovery. `call-cycles.ts` is a mechanical move of existing recursion checking which keeps `effects.ts` below the source-file limit; no new semantic layer is added. No compiler-root export, CLI/editor API, dependency, workspace, generalized effect/alias framework, backend/SFA/allocation work, frozen authority, roadmap stage or portfolio change.
 > **Lenses**: api-surface, security
 
 ### Step 6.1: Specification Tests
 
 Reference: [Semantics §Effects](03-02-semantic-analysis.md#effects-and-initializer-schedule) and §Service boundary, AR-P4–AR-P7.
 
-- [ ] 6.1.1 [spec-author] Write ST-41–ST-42 and ST-17 initializer-order assertions; use frozen phase 6 fields — `frontend/effects.spec.test.ts`.
-- [ ] 6.1.2 [spec-author] Write ST-43–ST-44, ST-46, ST-48 and ST-45 independent-error retention; use frozen phase 6 fields — `frontend/service.spec.test.ts`; reuse existing ST-47 root cases.
-- [ ] 6.1.3 Verify service/effect behavior is red — `frontend/effects.spec.test.ts`, `frontend/service.spec.test.ts`.
+- [x] 6.1.1 [spec-author] Write ST-41–ST-42 and ST-17 initializer-order assertions; use frozen phase 6 fields — `frontend/effects.spec.test.ts`. ✅ (completed: 2026-09-19 16:59)
+- [x] 6.1.2 [spec-author] Write ST-43–ST-44, ST-46, ST-48 and ST-45 independent-error retention; use frozen phase 6 fields — `frontend/service.spec.test.ts`; reuse existing ST-47 root cases. ✅ (completed: 2026-09-19 16:59)
+- [x] 6.1.3 Verify service/effect behavior is red — `frontend/effects.spec.test.ts`, `frontend/service.spec.test.ts`. ✅ (completed: 2026-09-19 16:59; independently adopted baseline RED: missing `frontend/service.js`; 2 suites failed, 0/17 tests executed; log SHA-256 `e3c27f31356ddc0f92d992ad3aa6ef7dc96ca06b2f246f619948655dc5322bfb`)
 
 ### Step 6.2: Implementation
 
-- [ ] 6.2.1 Implement transitive may-read/write/opaque summaries and initializer schedule — `frontend/effects.ts`; ST-41–ST-42.
-- [ ] 6.2.2 Implement internal stage orchestration and result/obligation union — `frontend/service.ts`, `frontend/semantic-types.ts`; ST-43, ST-46, ST-48.
-- [ ] 6.2.3 Implement deterministic diagnostic ordering/ceiling across stages — `frontend/diagnostics.ts`, `frontend/service.ts`; ST-44.
-- [ ] 6.2.4 Verify service/effect specification tiers are green — `frontend/effects.spec.test.ts`, `frontend/service.spec.test.ts`.
+- [x] 6.2.1 Implement transitive may-read/write/opaque summaries and initializer schedule — `frontend/effects.ts`; ST-41–ST-42. ✅ (completed: 2026-09-19 17:15)
+- [x] 6.2.2 Implement internal stage orchestration and result/obligation union — `frontend/service.ts`, `frontend/semantic-types.ts`; ST-43, ST-46, ST-48. ✅ (completed: 2026-09-19 17:15)
+- [x] 6.2.3 Implement deterministic diagnostic ordering/ceiling across stages — `frontend/diagnostics.ts`, `frontend/service.ts`; ST-44. ✅ (completed: 2026-09-19 17:15)
+- [x] 6.2.4 Verify service/effect specification tiers are green — `frontend/effects.spec.test.ts`, `frontend/service.spec.test.ts`. ✅ (completed: 2026-09-19 17:15; 17 tests passed)
 
 ### Step 6.3: Implementation Tests and Qualification
 
-- [ ] 6.3.1 Add dependency/effect poisoning, deep input and immutable-input tests — `frontend/service.impl.test.ts`; semantics §Service boundary.
-- [ ] 6.3.2 Run final integration/formatting and independent phase/semantics review — `99-execution-plan.md`; Testing §Verification commands.
-- [ ] 6.3.3 Record partial acceptance, deferral-expiry answer and parent follow-on ownership; update feature roadmap — `08-closeout.md`, `codeops/features/blend65-v4/00-roadmap.md`; requirements §Plan-local acceptance.
+- [x] 6.3.1 Add dependency/effect poisoning, deep input and immutable-input tests — `frontend/service.impl.test.ts`; semantics §Service boundary. ✅ (completed: 2026-09-19 21:45; 14 implementation cases passed)
+- [x] 6.3.2 Run final integration/formatting and independent phase/semantics review — `99-execution-plan.md`; Testing §Verification commands. ✅ (completed: 2026-09-19 21:46; both focused re-reviews found no critical or major blocker; final minor ordering correction verified inline)
+- [x] 6.3.3 Record partial acceptance, deferral-expiry answer and parent follow-on ownership; update feature roadmap — `08-closeout.md`, `codeops/features/blend65-v4/00-roadmap.md`; requirements §Plan-local acceptance. ✅ (completed: 2026-09-19 21:46)
+
+Phase 6 qualification: the independently adopted Phase 6 oracle passes 17/17
+cases. Root build and typecheck pass; 811 compiler, 61 CLI and 43 root tests
+pass. Touched formatting, documentation-ban, whitespace and frozen-spec checks
+pass. See [phase review](08-phase-6-review.md) and [partial closeout](08-closeout.md).
 
 Deliverable: real internal source-to-typed-analysis journey with honest incomplete/error states.
 Verify: `yarn build && yarn typecheck && yarn test`, touched formatting, unchanged frozen boundaries.

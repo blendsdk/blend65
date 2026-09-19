@@ -21,9 +21,9 @@ export type AnalyzeCallExpression = (
 
 /** Name resolver which distinguishes a call target from an ordinary value read. */
 export type ResolveCallName = (
-  expression: Extract<Expr, { readonly kind: "name" }>,
+  expression: Expr,
   context: ScalarExpressionContext,
-) => ScalarExpressionResult;
+) => ScalarExpressionResult | null;
 
 /** Resolve one ordinary direct call and independently check every supplied argument. */
 export function analyzeDirectCall(
@@ -34,9 +34,7 @@ export function analyzeDirectCall(
   resolveName: ResolveCallName,
 ): ScalarExpressionResult {
   const callee =
-    expression.callee.kind === "name"
-      ? resolveName(expression.callee, context)
-      : analyze(expression.callee, null, context);
+    resolveName(expression.callee, context) ?? analyze(expression.callee, null, context);
   if (callee.node === null || callee.node.binding === null) {
     for (const argument of expression.arguments) analyze(argument, null, context);
     return { node: null, exact: null };
@@ -52,14 +50,14 @@ export function analyzeDirectCall(
     host.diagnose(
       projectDiagnostic(
         "E10175",
-        `'${callee.node.name ?? "value"}' is not a function — cannot call a '${semanticTypeName(callee.node.type)}' value`,
+        `'${callee.node.name ?? callee.node.member ?? "value"}' is not a function — cannot call a '${semanticTypeName(callee.node.type)}' value`,
         expression.callee.span,
       ),
     );
     for (const argument of expression.arguments) analyze(argument, null, context);
     return { node: null, exact: null };
   }
-  const name = callee.node.name ?? "<function>";
+  const name = callee.node.name ?? callee.node.member ?? "<function>";
   let valid = expression.arguments.length === signature.parameters.length;
   if (!valid) {
     host.diagnose(

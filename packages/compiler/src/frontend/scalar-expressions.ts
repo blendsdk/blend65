@@ -43,6 +43,15 @@ import type {
   TypedExpr,
 } from "./semantic-types.js";
 import type { Expr } from "./syntax.js";
+
+/** Flatten a member-only callee into its exact module-qualified spelling. */
+function qualifiedCallName(expression: Expr): string | null {
+  if (expression.kind === "name") return expression.name;
+  if (expression.kind !== "member") return null;
+  const object = qualifiedCallName(expression.object);
+  return object === null ? null : `${object}.${expression.member}`;
+}
+
 /** Direct recursive scalar expression checker. */
 export class ScalarExpressionAnalyzer {
   /** Preserve the small module-analysis callbacks used during recursion. */
@@ -121,7 +130,7 @@ export class ScalarExpressionAnalyzer {
           context,
           this.host,
           (child, childType, childContext) => this.analyze(child, childType, childContext),
-          (name, nameContext) => this.name(name, nameContext, true),
+          (callee, callContext) => this.callTarget(callee, callContext),
         );
       default:
         this.host.defer(
@@ -130,6 +139,33 @@ export class ScalarExpressionAnalyzer {
         );
         return { node: null, exact: null };
     }
+  }
+  /** Resolve an unqualified or module-qualified direct-call target. */
+  private callTarget(
+    expression: Expr,
+    context: ScalarExpressionContext,
+  ): ScalarExpressionResult | null {
+    if (expression.kind === "name") return this.name(expression, context, true);
+    if (expression.kind !== "member") return null;
+    const name = qualifiedCallName(expression);
+    if (name === null) return null;
+    const root = name.split(".", 1)[0];
+    if (root !== undefined && this.host.resolveName(root, context) !== null) return null;
+    const state = this.host.resolveName(name, context);
+    if (state === null || state.binding.type === null) return null;
+    const moduleName = name.slice(0, -(state.binding.name.length + 1));
+    return {
+      node: createScalarTypedExpression(expression, state.binding.type, state.known, {
+        member: state.binding.name,
+        qualifiedModule: Object.freeze({
+          name: moduleName,
+          span: Object.freeze({ ...expression.object.span }),
+        }),
+        binding: state.binding.id,
+        integer: integerFacts(state.binding.type, true),
+      }),
+      exact: state.known,
+    };
   }
   /** Type a nonnegative parser literal, adapting it only when the value fits. */
   private number(
