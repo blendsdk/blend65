@@ -1,0 +1,178 @@
+# Artifacts and Publication: RD-03 Pipeline Completion
+
+> **Document**: 03-04-artifacts-and-publication.md
+> **Parent**: [Index](00-index.md)
+
+## Overview
+
+Serialize the closed machine/layout result to deterministic ACME, assemble and verify a PRG, write
+the exact evidence sidecars, and publish one immutable generation through one current record. The
+implementation is one direct pipeline and one small lock/pin lifecycle, not a build system,
+transaction service, cache or readiness product (AR-C8, AR-C14, AR-C18).
+
+## Terminal ACME Serialization
+
+The serializer accepts only a final machine program, final addresses and a storage-closure
+certificate. It emits:
+
+- `!cpu 6502`, exact `* = $0801`, stable global/block/data labels and explicit segment origins;
+- documented mnemonics/addressing modes already selected by the compiler;
+- parenthesized link-time expressions and explicit low/high extraction;
+- exact `!byte`/`!word` data and explicit fill values for padding; and
+- no `!to`, macro that hides storage/branch repair, project-controlled symbol, raw basename or
+  semantic choice (AR-C5, AR-C8).
+
+Stable labels derive from compiler IDs through a fixed ASCII serializer. Source names never become
+assembler identifiers. A final validation walks every emitted instruction against the selected
+documented NMOS grid before writing source (AR-C5, AR-C14).
+
+## Tool Discovery and ACME Driver
+
+Machine-local `tools.jsonc` is optional and outside project roots: the accepted Linux and Windows
+locations/tokens follow requirements AR-048. A valid explicit absolute tool path wins; otherwise
+one ordered process-`PATH` scan is used. The first discovered candidate must pass the exact version
+probe or discovery fails—there is no fallback search, registry, `PATHEXT`, shell or auto-install
+(AR-C14).
+
+ACME is invoked with an argument array equivalent to:
+
+```text
+acme --cpu 6502 --strict-segments --format cbm
+  --outfile <staging>/<name>.prg
+  --report <staging>/.acme.report
+  --symbollist <staging>/.labels
+  <staging>/.asm
+```
+
+The driver requires version 0.97, distinct absent output paths and an empty unique staging
+directory owned by this build. It bounds stderr/stdout bytes, observes cancellation, waits for
+complete child exit and treats any nonzero status or ACME error diagnostic as failure. It never
+invokes a shell (AR-C8, AR-C14).
+
+After success it rejects symlinks, devices, directories, aliases, missing/unexpected/overwritten
+files and identity changes. It parses report/symbols, validates segments/non-overlap, checks actual
+opcode/addressing bytes, PRG header/body/load origin, sprite bytes and startup entry, then deletes
+the staging-only `.acme.report` before evidence publication. A stale file from any prior attempt is
+never accepted (AR-C8, AR-C14).
+
+## Evidence Writers
+
+The selected profile creates exactly:
+
+```text
+<name>.prg
+.asm
+.labels
+.memory.json
+.assets.json
+.costs.json
+.debug.json
+.build.json
+```
+
+Each sidecar has one direct version-1 encoder/validator matching RD-03's owning schema. Repeated
+record shapes may share TypeScript value types but do not share a generic schema runtime, registry,
+code generator or database. Encoders reject unknown/missing/mistyped/duplicate/out-of-range data,
+sort required arrays/keys, emit canonical UTF-8 JSON with one LF and immediately re-parse/validate
+their own bytes before publication (AR-C8).
+
+`.build.json` is written last. It binds the Specification 4 identity, compiler/expert identity,
+project snapshot, profile/options/overrides, raw asset and every other published artifact hash. It
+does not hash itself. Host provenance is separate from portable reproducibility fields (AR-C8).
+
+## Direct Publication Lifecycle
+
+```ts
+interface PublishedGeneration {
+  readonly generationId: string;
+  readonly directory: string;
+  readonly buildJsonSha256: string;
+  readonly primaryArtifact: string;
+}
+
+interface GenerationPin extends PublishedGeneration {
+  readonly pinId: string;
+  readonly release: () => Promise<void>;
+}
+```
+
+### Paths and Lock
+
+- Staging: `<outDir>/.staging-<generationId>`; exclusive ordinary directory.
+- Immutable generation: `<outDir>/<generationId>`; must not exist before commit.
+- Current record: `<outDir>/current.json`; the only deliberately replaced component.
+- Pins: `<outDir>/.pins/<generationId>/<pinId>.pin`; zero-byte exclusive regular files.
+- Lock: `<outDir>/.publish.lock`; exclusive ordinary directory (AR-C18).
+
+Lock acquisition uses bounded cancellable retry. It never decides that a lock is stale from PID,
+age or process state. Timeout/uncertain ownership reports a structured recovery diagnostic. Normal
+release removes only the exact owned empty lock directory. A crash-left lock is manual recovery,
+not an automatic break (AR-C14, AR-C18).
+
+### Commit and Current Record
+
+Compilation, evidence creation and ACME run outside the lock. Under the lock, publication:
+
+1. revalidates every staged ordinary file and digest;
+2. renames the unique staging directory once to the absent immutable generation name;
+3. reads/validates the prior current generation, if any;
+4. writes a canonical unique sibling current-record candidate, closes/revalidates it and atomically
+   renames it over `current.json`;
+5. for `run`, creates its unique pin before releasing this same critical section; and
+6. retains current, the immediately prior current and every generation with any pin entry; removes
+   only other provably unpinned generations while still holding the lock (AR-C8, AR-C18).
+
+An unknown `.pins` entry, unreadable state, symlink or type ambiguity stops cleanup. Generation and
+pin spelling is canonical lowercase UUID v4. No timestamp/PID/lease is deletion authority. Failed
+pre-commit work removes only its own staging directory. Post-current-record failure preserves the
+complete generation and reports the recovery state (AR-C8, AR-C14).
+
+### Pin Lifecycle
+
+A reader resolves one current record under the lock, validates its `.build.json` digest and creates
+its own exclusive pin before retaining the generation path. `run` pins the exact generation its own
+build just committed, not a later current record. Release happens under the lock only after all
+owned readers, VICE and monitor sockets have stopped. Failed release deliberately leaves the pin
+and reports manual recovery (AR-C8).
+
+## VICE Process and Monitor
+
+`runProject` discovers/probes VICE 3.10 exactly, spawns its pinned PRG with the selected PAL C64
+profile through an argument array and owns cancellation/process-tree cleanup. Interactive mode
+uses normal-speed visible VICE and leaves control with the developer (AR-C9, AR-C12, AR-C14).
+
+Automated qualification additionally uses a fresh loopback binary-monitor endpoint,
+`-controlport2device 37`, console/headless operation and the fixed profile settings. Its small
+protocol client supports only required commands: checkpoint set/delete, memory get, display get,
+VICE info, joyport set and monitor exit. It validates frame lengths, request IDs, response types,
+error bytes and bounded payload sizes. This is a test helper, not a reusable emulator abstraction
+(AR-C11, AR-C12).
+
+Display signatures use binary-monitor `Display Get (0x84)` indexed VIC-II pixels with the returned
+dimensions/offsets included in the hash. Joystick values are set only at the emitted
+post-frame-wait/pre-sample label. Memory reads observe result/state/assets/pointers; no monitor write
+changes game state. The driver resumes after each input and externally terminates only after
+restoration and the pinned BASIC-return checkpoint are observed (AR-C11, AR-C12).
+
+## Cancellation and Failure Boundary
+
+| Point | Required outcome | AR Ref |
+|---|---|---|
+| Before generation rename/current commit | Stop children, close files, remove only owned staging; prior current unchanged | AR-C14 |
+| During lock wait | Abort wait and report cancellation; do not alter lock/output | AR-C18 |
+| After current commit but before/during VICE | Keep complete generation/current; stop only owned run resources; release pin last | AR-C8, AR-C14 |
+| ACME/VICE output exceeds bound or process cannot stop | Tool/process failure; retain uncertain pin if readers may remain | AR-C14 |
+| Current/generation/pin validation fails | Fail closed with exact path/invariant; no guessed repair | AR-C8, AR-C14 |
+
+## Testing Requirements
+
+- ACME source goldens are separate from actual report/symbol/byte/PRG assertions.
+- Tool tests use real ACME for exact version/invocation/output behavior; missing ACME is `Unknown`,
+  not pass, outside required local qualification.
+- Publication cases cover competing builds, failed staging, current replacement, pin acquisition,
+  active/crash-left pins, uncertain pin namespace, predecessor retention and deterministic cleanup.
+- Pure filesystem/process seams use real temporary directories/children, not mocked implementation
+  objects; only platform-unavailable native Windows execution remains AR-C16.
+- Cancellation cases cover every row above.
+- VICE monitor codec/protocol cases run in CI without VICE; the one real runtime path runs locally,
+  sequentially, on VICE 3.10.

@@ -1,0 +1,117 @@
+# Ambiguity Register: RD-03 Pipeline Completion
+
+> **Status**: ✅ GATE PASSED — 17 items resolved and one named deferral approved; remaining RD-03 scope only
+> **Last Updated**: 2026-09-20
+> **CodeOps Artifact Schema**: 1
+
+## Planning Scope Contract
+
+| Boundary | Authorized scope |
+|---|---|
+| Planning target | The remaining Blend65 v4 RD-03 pipeline after the completed frontend-first plan: selected profile, raw asset, semantic operations/CFG, whole-program analysis, SFA, lowering, layout, ACME/PRG publication, CLI/editor consumers, M1 workload and VICE qualification |
+| Context artifacts | Frozen Specification 4; qualified `blend65-domain-expert` 2.0.0; RD-01 through RD-10; RD-03 preflight and frontend plan; RD-02 project model; current compiler/CLI manifests, sources and boundary tests; installed ACME 0.97 and VICE 3.10 documentation/binaries |
+| Modification set | This plan folder and the active feature roadmap. No frozen specification, requirement semantics, expert-skill content, production code, tests, portfolio roadmap or sibling plan is changed during plan creation. |
+
+## Decisions
+
+| ID | Category | Decision | Authority | Status |
+|---|---|---|---|---|
+| AR-C1 | Scope / sequencing | Complete all remaining RD-03 obligations now, using one checked-in raw 512-byte sprite fixture. Authentic SpritePad 3.80 producer evidence and `.spd` import remain wholly in RD-06 after RD-04/RD-05. | User approved the explicit deferral recommendation on 2026-09-20; requirements amendment committed as `b487176`. | ✅ Resolved |
+| AR-C2 | Technical / package topology (complex) | Keep semantic operations, CFG, whole-program analysis, SFA, target lowering, layout, emission, packaging and publication as focused internal modules in `@blend65/compiler`. Add only the required `@blend65/language-server` and `@blend65/vscode` workspaces. Export a backend-free `@blend65/compiler/frontend` subpath. | Plan-owned under project workflow directive 4; independent challenger recommended this smallest viable topology with high confidence. | ✅ Resolved |
+| AR-C3 | Technical / representations | Add one small typed semantic-operation/CFG model and one small structured machine-operation/CFG model. Preserve only downstream-required facts. Use direct functions and discriminated unions; no generic IR framework, pass registry, textual pseudo-assembly or one-class-per-stage design. | RD-03 R3.11/R3.12 and plan-owned minimum-sufficient design under directive 4. | ✅ Resolved |
+| AR-C4 | Technical / whole-program and SFA | Close roots, calls, effects, lifetimes and recursion before allocation. Use deterministic static homes and interference, then a bounded monotonic legalization/binding feedback loop. Freeze one closure certificate before layout; no software stack, heap or post-closure scratch. | Specification 4 SFA contract, RD-03 R3.13–R3.16 and qualified expert doctrine. | ✅ Resolved |
+| AR-C5 | Technical / target composition | Implement exactly one selected profile through four direct immutable fact records: documented NMOS 6510 CPU, C64 PAL KERNAL/6581 machine, ACME 0.97 serializer and PRG packager. Do not add a registry, plugin API, discovery mechanism or speculative target implementation. | RD-03 R3.17/R3.20 and plan-owned minimum-sufficient design. | ✅ Resolved |
+| AR-C6 | Data / raw asset | Resolve only literal `embed(path)` after frontend completion. Canonically search RD-02 asset roots in order, reject escape/alias/non-regular/missing/wrong-size/change, read exactly 512 bytes, hash and revalidate it, and expose one immutable `byte[512]`. No format handlers, decoder, selector or asset framework. | User-approved AR-C1; RD-03 R3.21–R3.23. | ✅ Resolved |
+| AR-C7 | Technical / platform lowering | M1 named C64 operations lower directly to structured volatile machine effects. Ordinary collision/state logic remains target-neutral. Raw `PEEK`/`POKE` stays a separate general lowering with exactly-once evaluation and SFA-owned pointer storage. No runtime dispatcher or game-policy library. | RD-03 R3.18/R3.19 and project product boundary. | ✅ Resolved |
+| AR-C8 | Technical / emission and publication | Use one terminal ACME serializer, one exact argument-array driver and one direct immutable-generation publication routine. Publish only RD-03's eight files and current record; implement the exact lock/pin/retention contract without a transaction, cache, liveness, schema or readiness framework. | RD-03 R3.25–R3.28 and plan-owned minimum-sufficient design. | ✅ Resolved |
+| AR-C9 | Integration / CLI and public API | `@blend65/compiler` exports direct `checkProject`, `buildProject` and `runProject` services plus typed results. `@blend65/compiler/frontend` exports only project/frontend diagnostics and an analysis-only source-overlay entry for open editor text. CLI maps `check`, `build` and `run` directly to these services and fixed exit categories. | RD-03 R3.3/R3.4 and plan-owned consumer-driven API design. | ✅ Resolved |
+| AR-C10 | Integration / editor dependencies | Use the standard `vscode-languageserver`, `vscode-languageserver-textdocument` and `vscode-languageclient` packages, with Vite only to bundle the two required Node entry points. The server owns diagnostics only; the extension owns registration/startup only. No VSIX publisher, command UI, navigation or editor framework is added. | RD-03 expressly authorizes the real editor bundle and Vite; plan-owned smallest implementation under directive 4. | ✅ Resolved |
+| AR-C11 | Runtime / deterministic VICE input | Launch VICE 3.10 with a fresh loopback binary-monitor endpoint and `-controlport2device 37`. At the compiler-emitted post-frame-wait/pre-sample label, a monitor execute checkpoint advances the fixed PAL-frame trace. Binary command `0xa2` uses zero-based port `1` and active-low low-five-bit values (`0x1f` neutral; bits 0–4 up/down/left/right/fire). The driver sends only input-line values, resumes with `0xaa`, and never patches game state or expected VIC registers. | RD-03 R3.29; locally verified against installed VICE 3.10 documentation, pinned 3.10 source and live `x64sc` responses on 2026-09-20. | ✅ Resolved |
+| AR-C12 | Runtime / execution evidence | Automated M1 qualification uses one fixed trace, stable compiler-emitted labels, monitor reads/checkpoints and externally stops VICE after observing restoration and entry into the pinned BASIC return path. It checks state, resident asset bytes, active sprite-pointer bytes and deterministic rendered-frame signatures. Interactive `blendc run` has no test instrumentation and leaves control with the developer. | RD-03 R3.28/R3.29/R3.32 and plan-owned separation of product and qualification behavior. | ✅ Resolved |
+| AR-C13 | Verification / expert baseline | Freeze the independent behavior model, raw sprite bytes and an equivalent hand-authored ACME M1 twin before codegen acceptance. Under `optimization: none`, correctness and the expert floor are RD-03 gates. A worse result fails; a meet-only result is accepted only when no current win is possible and the exact path to beat it is filed as an issue under the project prime directive. Record the comparison as the RD-08 baseline without adding an optional optimizer now. | RD-03 R3.30–R3.34 plus the governing project prime directive, which strengthens R3.33's baseline-only wording. | ✅ Resolved |
+| AR-C14 | Failure, cancellation and security | Expected source/tool/host failures return typed diagnostics; no shell is used; paths are canonical and contained; child output and runtime are bounded; stale outputs are never accepted. Publication is the cancellation no-return point exactly as RD-03 defines. Unexpected programmer failures remain non-public errors. | RD-03 R3.3/R3.21/R3.25–R3.28 and project security rules. | ✅ Resolved |
+| AR-C15 | Verification command | Use directed package/spec/ACME/VICE checks during phases. At M1 closeout run `yarn build && yarn typecheck && yarn test`, targeted ACME 0.97 and VICE 3.10 qualification, `npx prettier --check` on touched files, whitespace validation, and a read-only proof that `spec/` is unchanged. The actual v4 manifests have no lint command. | Current root/package manifests and project impact-based verification policy; plan-owned confirmation under directive 4. | ✅ Resolved |
+| AR-C16 | Verification / native Windows | Implement the portable publication, process and editor paths now and prove them on Linux plus pure cross-platform cases. Defer only native Node 22 Windows x64 execution—competing publication, pin/cleanup, tool discovery/process cleanup and editor bundle smoke—to RD-10 when the user supplies Windows access. This does not block Linux compiler work or RD-04 through RD-09, but RD-03 formal closeout remains bounded by the named deferral until RD-10 records the native evidence. | User explicitly directed on 2026-09-19 that Windows is not a current priority and must be planned at the end; same rationale and trigger as RD-02 DEF-1. | ⏸ Deferred — owner: RD-10 native host qualification; trigger: user supplies Windows x64 access at RD-10 |
+| AR-C17 | API naming / M1 C64 operations | Admit exactly these source operations: `c64.video.waitNextFrame(): void`; `c64.input.readJoystick2(): byte`; `c64.input.joystickLeft/joystickRight/joystickFire(sample: byte): boolean`; `c64.vic.setSpriteEnabled(index: byte, enabled: boolean): void`; `setSpritePosition(index: byte, x: word, y: byte): void`; `setSpritePointer(index: byte, block: byte): void`; `setSpriteColor(index: byte, color: byte): void`; `setBorderColor(color: byte): void`; and placement-derived `vicSpriteBlock(address: word): byte`. They are compiler-recognized typed operations with direct inline lowering, not ordinary runtime calls. One sampled byte is reused, so CIA is read once per update; named predicates hide active-low bit lore. `main` return uses the profile contract, not another source API. | Plan-owned exact naming/signature decision under workflow directive 4; R3.18 requires this behavior but frozen Specification 4 does not assign all convenience names. | ✅ Resolved |
+| AR-C18 | Concurrency / project lock | Implement RD-03's short project lock as exclusive creation of the fixed ordinary directory `<outDir>/.publish.lock`. A contender waits with bounded cancellable retry, then reports ownership uncertainty; it never uses PID, age or process probes to break the lock. Normal release removes only the exact owned empty lock directory after its critical section. A crash-left lock requires the same deliberate manual recovery posture as an uncertain pin. No lock package or lock service is added. | Plan-owned smallest portable primitive satisfying RD-03's serialized commit/pin/cleanup contract; native Windows execution remains AR-C16. | ✅ Resolved |
+
+## Complexity and Simplicity Check
+
+The baseline introduces only machinery with a current RD-03 consumer:
+
+- two representations because source semantics and final machine effects require different facts;
+- one bounded SFA closure loop because legalization can discover storage;
+- one direct publication routine because atomic generations, pins and retention are explicit RD-03 behavior;
+- two editor workspaces because they are separately packaged required products; and
+- three standard Language Server Protocol dependencies plus Vite because a real VS Code client/server bundle is required.
+
+Rejected as overengineering: responsibility-per-workspace packages, a pass manager, target/plugin
+registry, asset handler framework, schema framework/generator, readiness service, persistent daemon,
+generic transaction/cache/liveness layer, emulator abstraction, game engine and SpritePad substitute.
+No rejected surface appears in executable plan content.
+
+## Grounding and Independent Challenge
+
+The live repository has two workspaces. `packages/compiler/src/frontend/` already follows focused
+internal-module ownership; the compiler root exports only project loading; the CLI consumes that
+root; and `test/import-boundary.ts` already resolves public subpaths and follows transitive edges.
+The independent challenger compared three viable package shapes and recommended AR-C2. Its strongest
+counterargument was that separate backend packages give stronger physical isolation, but the current
+contract requires import/re-export isolation and the existing checker directly enforces it. Creating
+separately versioned stage APIs now would add manifests, references and coupling without another
+consumer.
+
+**Confidence:** High. **Hardening:** independent read-only challenge against current manifests,
+boundary implementation/tests, accepted frontend decisions, RD-03/RD-04 and qualified architecture
+doctrine. No challenger edits were made.
+
+## VICE 3.10 Mechanism Proof
+
+The installed manual defines binary-monitor framing, checkpoint command `0x12`, joyport command
+`0xa2` and monitor exit `0xaa`. Pinned VICE 3.10 source shows that `0xa2` writes the I/O-simulation
+device's five digital lines and that native ports are zero-based (`JOYPORT_2 == 1`). The live proof:
+
+1. launched `x64sc` with a fresh loopback monitor and `-controlport2device 37`;
+2. received successful `0xa2` responses for port `1`;
+3. read exact values `00, 01, 02, 04, 08, 10, 1f` back through CIA1 port A with its direction set
+   to input; and
+4. installed a temporary execute checkpoint at the revision-pinned KERNAL IRQ entry `$EA31`,
+   resumed, and received the checkpoint-hit event within one PAL-frame interval.
+
+This proves the transport, port/device selection, electrical value semantics and repeatable
+frame-boundary stop/resume path. It does not claim M1 behavior, rendered output or hardware proof;
+those remain execution tasks. Status: **Verified partial / hardware-unverified**.
+
+## Systematic Discovery Closure
+
+| Category | Closure evidence |
+|---|---|
+| Feature gaps | The plan covers remaining R3.1–R3.37 and cites the completed frontend plan instead of repeating it. |
+| Behavioral gaps | RD-03 owns exact game state/update/exit, schemas, publication and VICE observables; AR-C6–AR-C14 assign implementation boundaries. |
+| Scope ambiguities | User-approved raw-fixture/SpritePad sequencing is AR-C1; later formats and all broader product work remain with their existing RDs. |
+| Technical unknowns | Package shape, representations, SFA closure, target composition, public APIs, dependencies and monitor control are resolved in AR-C2–AR-C12. |
+| Edge cases | Nested calls, pointer wrap, branch range, asset races, stale tool output, path aliases, cancellation, concurrent publication/pins and terminal game transitions retain RD ownership. |
+| Integration points | RD-02 snapshot, completed frontend, compiler root/subpath, CLI, ACME, VICE, LSP and VS Code edges are assigned. |
+| Data and state | Semantic/machine records, asset identity, closure certificate, layout, eight sidecars/current record and pin ownership have one owner each. |
+| Security | Canonical containment, ordinary-file identity, exclusive creation, argument arrays, bounded child processes and safe errors are AR-C6/AR-C8/AR-C14. |
+| Non-functional | Determinism and evidence are gates; host performance remains observational as RD-03 requires. |
+| UX | CLI results and diagnostics are direct; editor scope is diagnostics-only; M1 source keeps modern game intent. |
+| Stakeholder conflicts | Modern source, expert output, frozen spec, no game-engine boundary and no Windows prerequisite are preserved. |
+| Naming | Plan folder, package names, public subpath, direct service names and fixed tool identities are settled. |
+
+## Gate Result
+
+Every material item is resolved or explicitly deferred. AR-C1 is the user-owned product sequencing ruling. The remaining
+technical decisions are plan/compiler-owned under the project's overriding workflow directive 4
+and choose the smallest implementation that satisfies current RD-03 consumers. AR-C16's native
+Windows execution is absent from executable plan tasks except for recording the handoff; portable
+implementation and Linux/pure proof remain in scope. The semantic Zero-Ambiguity Gate passes.
+
+## Expert Lineage and Evidence Limits
+
+`skillVersion=2.0.0`; content commit
+`c9e70fab6039e9ced3108e88f0ea9730d4fd3007`; governing modules:
+`compiler-architecture.md`, `sfa-and-abi.md`, `il-and-optimization.md`,
+`6502-lowering-casebook.md`, `mos-6502-family.md`, `c64-memory-and-runtime.md` and
+`acme-and-artifacts.md`. Current status is planning plus the bounded VICE-control proof above; no
+new compiler, assembly, artifact or M1 runtime result is claimed.
