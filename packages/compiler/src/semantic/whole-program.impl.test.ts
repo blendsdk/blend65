@@ -215,6 +215,82 @@ describe("whole-program implementation", () => {
     expect(result.diagnostics).toMatchObject([{ code: "E10277", primarySpan: callSpan }]);
   });
 
+  it("retains initializer call edges and values which cross a nested call", () => {
+    const main = id(0);
+    const global = id(30);
+    const outerCall = span(32);
+    const finalCall = span(33);
+    const first = id(60);
+    const second = id(70);
+    const byteType: SemanticType = Object.freeze({ kind: "scalar", name: "byte" });
+    const semantic: SemanticProgram = {
+      main,
+      globals: [
+        {
+          id: global,
+          type: byteType,
+          entry: "initializer",
+          blocks: [
+            {
+              id: "initializer",
+              operations: [
+                {
+                  kind: "constant",
+                  result: "outer",
+                  type: byteType,
+                  integer: null,
+                  value: 1n,
+                  span: span(31),
+                },
+                {
+                  kind: "call",
+                  result: "inner",
+                  callee: second,
+                  arguments: [],
+                  type: byteType,
+                  span: outerCall,
+                },
+                {
+                  kind: "call",
+                  result: "final",
+                  callee: first,
+                  arguments: ["outer", "inner"],
+                  type: byteType,
+                  span: finalCall,
+                },
+                {
+                  kind: "store",
+                  place: { root: global, path: [] },
+                  value: "final",
+                  type: byteType,
+                  span: span(34),
+                },
+              ],
+              terminator: { kind: "return", value: null },
+            },
+          ],
+          source: global.span,
+        },
+      ],
+      functions: [
+        fn(main, []),
+        { ...fn(first, []), result: byteType },
+        { ...fn(second, []), result: byteType },
+      ],
+      assets: [],
+      initializerOrder: [global],
+    };
+
+    const result = closeWholeProgram(semantic);
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected initializer closure to complete");
+    expect(result.program.initializers).toHaveLength(1);
+    expect(result.program.initializers?.[0]?.callees).toEqual([first, second]);
+    expect(
+      result.program.initializers?.[0]?.lifetimes.find(({ value }) => value === "outer"),
+    ).toMatchObject({ callsCrossed: [outerCall] });
+  });
+
   it("ignores unknown edges and recursion in unreachable functions", () => {
     const main = id(0);
     const deadFirst = id(10);

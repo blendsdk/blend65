@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-20 03:12
-> **Progress**: 20/79 tasks (25%)
+> **Last Updated**: 2026-09-20 09:29
+> **Progress**: 28/79 tasks (35%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -175,6 +175,7 @@ Deliverable: one target-neutral whole semantic program with explicit CFG and com
 
 ## Phase 3: SFA and ABI Closure Engine
 
+> **Phase baseline tree**: `03757f7c2e99514d3fa8162720ab2167a257601a`
 > **Scope mode**: strict
 > **Expected modification set**: focused `packages/compiler/src/storage/` and ABI files/tests;
 > plan evidence/roadmap. No layout addresses, ACME, publication or runtime library.
@@ -182,28 +183,49 @@ Deliverable: one target-neutral whole semantic program with explicit CFG and com
 
 ### Step 3.1: Specification Tests
 
-- [ ] 3.1.1 [spec-author] Write ST-57–ST-60, ST-62 and the SFA-only half of ST-63 —
+- [x] 3.1.1 [spec-author] Write ST-57–ST-60, ST-62 and the SFA-only half of ST-63 —
   `packages/compiler/src/storage/{sfa,closure}.spec.test.ts`; forbidden: production storage/ABI
-  modules.
-- [ ] 3.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+  modules. ✅ (completed: 2026-09-20 03:29 CEST)
+- [x] 3.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-20 03:29 CEST)
+
+#### Phase 3 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `packages/compiler/src/storage/sfa.spec.test.ts` | `9c325b9fa5a042fadc604a3b92e6da23ea997b8bac13c2b1aa9f72ad05e316cc` | Missing planned `storage/allocate.ts` |
+| `packages/compiler/src/storage/closure.spec.test.ts` | `2f1c36987150876e0cf04e3b968c304ac0c382b651a4eb3213aa42f092bb6609` | Missing planned `storage/allocate.ts` |
+
+The compiler Vitest command failed at collection only on the absent Phase 3 production modules;
+zero tests executed. The author read no forbidden storage production file. Before freezing, the
+oracle was narrowed so ordinary immediate/register values do not acquire needless RAM homes and
+only an explicit required pointer requests zero page. These two files are immutable implementation
+inputs from this point onward. The current frontend has no enum semantic type, so the ABI oracle
+covers the representable byte/sbyte/boolean and word/sword result classes without inventing a type.
 
 ### Step 3.2: Implementation
 
-- [ ] 3.2.1 Define request, lifetime/interference, home and certificate records —
+- [x] 3.2.1 Define request, lifetime/interference, home and certificate records —
   `packages/compiler/src/storage/{storage-types.ts,interference.ts}`.
-- [ ] 3.2.2 Inventory parameters, result locations/required return staging, locals, temporaries,
+  (completed: 2026-09-20 03:45 CEST)
+- [x] 3.2.2 Inventory parameters, result locations/required return staging, locals, temporaries,
   argument staging and pointer/helper demand — `packages/compiler/src/storage/inventory.ts`.
-- [ ] 3.2.3 Implement deterministic overlay/placement and conflicts —
+  (completed: 2026-09-20 03:45 CEST)
+- [x] 3.2.3 Implement deterministic overlay/placement and conflicts —
   `packages/compiler/src/storage/{interference.ts,allocate.ts}`.
-- [ ] 3.2.4 Implement bounded monotonic re-close and provisional certificate construction —
+  (completed: 2026-09-20 03:45 CEST)
+- [x] 3.2.4 Implement bounded monotonic re-close and provisional certificate construction —
   `packages/compiler/src/storage/closure.ts`.
+  (completed: 2026-09-20 03:45 CEST)
 
 ### Step 3.3: Implementation Tests and Hardening
 
-- [ ] 3.3.1 Reach GREEN; add determinism/nonconvergence/stack tests —
+- [x] 3.3.1 Reach GREEN; add determinism/nonconvergence/stack tests —
   `packages/compiler/src/storage/{sfa,closure}.impl.test.ts`; run phase qualification.
-- [ ] 3.3.2 Record independent correctness/semantics review and corrections —
-  `08-phase-3-review.md`; commit green checkpoint.
+  (completed: 2026-09-20 03:45 CEST)
+- [x] 3.3.2 Record independent correctness/semantics review and corrections —
+  `08-phase-3-review.md`; commit green checkpoint. ✅
+  (completed: 2026-09-20 09:29 CEST)
 
 Deliverable: complete provisional storage inventory/placement plus the bounded closure engine;
 Phase 4 supplies real machine demand and freezes the final certificate before layout.

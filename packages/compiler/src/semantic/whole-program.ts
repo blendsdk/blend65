@@ -26,6 +26,16 @@ export interface CallGraphNode {
   readonly callees: readonly BindingId[];
 }
 
+/** Executable global-initializer facts retained for storage and stack proof. */
+export interface InitializerExecution {
+  /** Global binding whose initializer owns this execution context. */
+  readonly binding: BindingId;
+  /** Distinct direct callees in semantic identity order. */
+  readonly callees: readonly BindingId[];
+  /** Exact initializer-local value lifetimes. */
+  readonly lifetimes: readonly ValueLifetime[];
+}
+
 /** Frontend-proved transitive behavior retained for one reachable function. */
 export type WholeProgramEffect = EffectSummary;
 
@@ -59,6 +69,8 @@ export interface WholeProgram {
   readonly roots: readonly ProgramRoot[];
   /** Direct call graph for reachable functions. */
   readonly callGraph: readonly CallGraphNode[];
+  /** Ordered executable initializer contexts, when retained by whole-program closure. */
+  readonly initializers?: readonly InitializerExecution[];
   /** Transitive effects for reachable functions. */
   readonly effects: readonly WholeProgramEffect[];
   /** Function-local value lifetimes. */
@@ -370,7 +382,9 @@ function sameValues(left: ReadonlySet<ValueId>, right: ReadonlySet<ValueId>): bo
 }
 
 /** Compute exact CFG liveness without imposing a false linear block order. */
-function valueLifetimes(fn: SemanticFunction): readonly ValueLifetime[] {
+function valueLifetimes(
+  fn: Pick<SemanticFunction, "id" | "entry" | "blocks">,
+): readonly ValueLifetime[] {
   const blocks = reachableBlocks(fn.entry, fn.blocks);
   const definitions = new Map<ValueId, SemanticPosition>();
   const definitionsByBlock = new Map<BlockId, ReadonlySet<ValueId>>();
@@ -555,6 +569,27 @@ export function closeWholeProgram(semantic: SemanticProgram): WholeProgramResult
   }
 
   const reachableFunctions = Object.freeze(reachableFunctionRecords.map(({ id }) => id));
+  const globals = new Map(
+    semantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
+  );
+  const initializers = Object.freeze(
+    semantic.initializerOrder.map((binding) => {
+      const global = globals.get(bindingIdentityKey(binding));
+      if (global === undefined || global.entry === null) {
+        throw new Error("Initializer root does not resolve to executable semantic control flow");
+      }
+      const blocks = reachableBlocks(global.entry, global.blocks);
+      const callees = new Map<string, BindingId>();
+      for (const call of callsIn(blocks)) {
+        callees.set(bindingIdentityKey(call.callee), call.callee);
+      }
+      return Object.freeze({
+        binding,
+        callees: Object.freeze([...callees.values()].sort(compareBindings)),
+        lifetimes: valueLifetimes({ id: binding, entry: global.entry, blocks }),
+      });
+    }),
+  );
   const roots: ProgramRoot[] = [Object.freeze({ kind: "startup" })];
   roots.push(
     ...semantic.initializerOrder.map((binding) =>
@@ -570,6 +605,7 @@ export function closeWholeProgram(semantic: SemanticProgram): WholeProgramResult
       semantic,
       roots: Object.freeze(roots),
       callGraph: closeCallGraph(functions, calls, reachable),
+      initializers,
       effects: closeEffects(functions, semantic.effects ?? [], reachable),
       lifetimes: Object.freeze(
         functions

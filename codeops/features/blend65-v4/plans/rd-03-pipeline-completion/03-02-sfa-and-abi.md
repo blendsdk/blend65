@@ -54,6 +54,7 @@ interface StorageClosureCertificate {
   readonly profileId: string;
   readonly homes: readonly StorageHome[];
   readonly interference: readonly InterferenceEdge[];
+  readonly helperCalls: readonly HelperCallDemand[];
   readonly staticBytes: ResourceTotals;
   readonly peakBytes: ResourceTotals;
   readonly hardwareStackPeak: number;
@@ -63,6 +64,32 @@ interface StorageClosureCertificate {
 
 These are ordinary data records, not an allocator framework or ABI registry. Stable IDs derive from
 source/binding/operation identity, never traversal accident (AR-C4).
+
+The phase exposes four direct functions matching its four responsibilities:
+
+```ts
+export function inventoryStorage(program: WholeProgram): StorageInventory;
+export function buildInterference(
+  inventory: StorageInventory,
+  helperCalls?: readonly HelperCallDemand[],
+): readonly InterferenceEdge[];
+export function allocateStorage(
+  inventory: StorageInventory,
+  interference: readonly InterferenceEdge[],
+  profile: StorageProfile,
+): StorageAllocationResult;
+export function closeStorage(
+  initial: StorageInventory,
+  profile: StorageProfile,
+  binder: StorageBinder,
+): StorageClosureResult;
+```
+
+`StorageBinder` declares every request identity it may introduce, the selected direct helper calls
+and their storage/stack overlap facts, plus one deterministic discovery callback. Closure permits
+at most the remaining declared requests plus one final stability round and rejects undeclared
+identities. This is the narrow Phase 4 binder seam, not a pass registry or extension system. A
+no-addition callback remains valid for direct stable checks.
 
 ### ABI Used by RD-03
 
@@ -79,6 +106,8 @@ source/binding/operation identity, never traversal accident (AR-C4).
 - `JSR`/`RTS` owns only return-address bytes. No ordinary local is placed on page one.
 - Required helper code is dead-stripped and uses an explicit ABI, clobber set, SFA scratch and stack
   cost. RD-03 adds no resident runtime (AR-C4, AR-C13).
+- Executable global initializers retain their own lifetimes and direct call roots. Their computed
+  staging belongs to SFA; the destination global remains platform-layout data (AR-C19).
 
 ### Interference and Placement
 
@@ -91,7 +120,9 @@ Allocate deterministically by region requirement, width/alignment, owner and sta
 Zero-page pointer pairs are indivisible and cannot start at `$ff`. `zeropage-preferred` may fall
 back to profile RAM only when its selected machine form exists; `zeropage-required` fails with an
 actionable resource diagnostic. Compatible non-interfering homes may overlay. The report shows
-static total and peak/interference demand separately (AR-C4).
+static total and exact maximum simultaneous/interference demand separately. Deterministic
+first-fit is the common path; only a failed first-fit invokes a complete deterministic fallback so
+an unlucky early choice cannot become a false resource error (AR-C4, AR-C19).
 
 ## Final Storage Closure
 
@@ -100,16 +131,17 @@ The only feedback loop is:
 ```text
 provisional semantic storage
   -> deterministic SFA plan
-  -> target legalization/helper selection
+  -> finite target legalization/helper selection facts
   -> resource binding/spill discovery
   -> merge only new storage request IDs
   -> repeat until the inventory hash is unchanged
   -> freeze closure certificate
 ```
 
-The loop is bounded by the finite operation set and finite candidate forms. Each operation may
-introduce only its declared finite storage candidates; a repeated existing request does not count as
-progress. Exhausting the finite set without a stable placement is a diagnostic, not another retry.
+The loop is bounded by the binder's declared finite candidate identities. Each operation may
+introduce only those candidates; a repeated existing request does not count as progress. Selected
+direct helper calls contribute explicit request conflicts and complete added stack bytes. Exhausting
+the finite set without one final stable pass is a diagnostic, not another retry.
 Phase 3 implements the inventory, placement and bounded closure engine but does not claim that the
 M1 certificate is final. Phase 4 supplies the real legalizer/binder candidate requests, iterates the
 engine to stability and freezes the certificate before platform layout. Final layout, branch repair,
