@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-20 02:18
-> **Progress**: 12/79 tasks (15%)
+> **Last Updated**: 2026-09-20 03:12
+> **Progress**: 20/79 tasks (25%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -120,35 +120,56 @@ Deliverable: requirements-frozen M1 inputs and one proved raw asset/profile fron
 
 ## Phase 2: Semantic CFG and Whole Program
 
+> **Phase baseline tree**: `72de8f80050130febcd1df14f2bd8ae45b3e6ee5`
 > **Scope mode**: strict
-> **Expected modification set**: focused `packages/compiler/src/semantic/` files and tests; plan
-> evidence/roadmap. No storage homes, opcodes, target addresses, packages or artifacts.
+> **Expected modification set**: focused `packages/compiler/src/semantic/` files and tests; the
+> necessary review correction in `packages/compiler/src/frontend/{effects.ts,profile.impl.test.ts}`;
+> plan evidence/roadmap. No storage homes, opcodes, target addresses, packages or artifacts.
 > **Lenses**: correctness, semantics, api-surface, simplicity
 
 ### Step 2.1: Specification Tests
 
-- [ ] 2.1.1 [spec-author] Write ST-49–ST-54/ST-56 —
+- [x] 2.1.1 [spec-author] Write ST-49–ST-54/ST-56 —
   `packages/compiler/src/semantic/{operations,cfg,whole-program}.spec.test.ts`; forbidden:
-  production semantic modules.
-- [ ] 2.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+  production semantic modules. ✅ (completed: 2026-09-20 02:30 CEST)
+- [x] 2.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-20 02:30 CEST)
+
+#### Phase 2 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `packages/compiler/src/semantic/operations.spec.test.ts` | `46c2adec9e4295503f7b4ba7b55fe6f612804a6bb97091e57b767b8df895b25d` | Missing planned `semantic/lower.ts` |
+| `packages/compiler/src/semantic/cfg.spec.test.ts` | `49dc4598ac56613cbe627d52f3b5e3017e82cd6c4d3feac4af732a18eb6d11b1` | Missing planned `semantic/lower.ts` |
+| `packages/compiler/src/semantic/whole-program.spec.test.ts` | `b4352c0deefb970f1f2ae49bf21428b87bc4d46f8f643d13d576f286c51c2220` | Missing planned semantic modules |
+
+The compiler Vitest command failed at collection only on the absent Phase 2 production modules;
+zero tests executed. The author read no forbidden semantic production file. These three files are
+immutable implementation inputs from this point onward.
 
 ### Step 2.2: Implementation
 
-- [ ] 2.2.1 Define the minimum semantic operation, place/effect and CFG unions —
-  `packages/compiler/src/semantic/{operations.ts,cfg.ts}`.
-- [ ] 2.2.2 Lower completed typed functions to operations/edges —
-  `packages/compiler/src/semantic/{lower.ts,cfg.ts}`.
-- [ ] 2.2.3 Preserve exact evaluation, value/place identity, spans and volatile effects —
-  `packages/compiler/src/semantic/lower.ts`.
-- [ ] 2.2.4 Close all whole-program roots/edges and reject cycles/unknowns —
-  `packages/compiler/src/semantic/whole-program.ts`.
+- [x] 2.2.1 Define the minimum semantic operation, place/effect and CFG unions —
+  `packages/compiler/src/semantic/{operations.ts,cfg.ts}`. ✅
+  (completed: 2026-09-20 03:07 CEST)
+- [x] 2.2.2 Lower completed typed functions to operations/edges —
+  `packages/compiler/src/semantic/{lower.ts,cfg.ts}`. ✅
+  (completed: 2026-09-20 03:07 CEST)
+- [x] 2.2.3 Preserve exact evaluation, value/place identity, spans and volatile effects —
+  `packages/compiler/src/semantic/lower.ts`. ✅
+  (completed: 2026-09-20 03:07 CEST)
+- [x] 2.2.4 Close all whole-program roots/edges and reject cycles/unknowns —
+  `packages/compiler/src/semantic/whole-program.ts`. ✅
+  (completed: 2026-09-20 03:07 CEST)
 
 ### Step 2.3: Implementation Tests and Hardening
 
-- [ ] 2.3.1 Reach GREEN; add graph/order/poison tests —
-  `packages/compiler/src/semantic/{cfg,whole-program}.impl.test.ts`; run phase qualification.
-- [ ] 2.3.2 Record independent correctness/semantics review and corrections —
-  `08-phase-2-review.md`; commit green checkpoint.
+- [x] 2.3.1 Reach GREEN; add graph/order/poison tests —
+  `packages/compiler/src/semantic/{cfg,whole-program}.impl.test.ts`; run phase qualification. ✅
+  (completed: 2026-09-20 03:07 CEST)
+- [x] 2.3.2 Record independent correctness/semantics review and corrections —
+  `08-phase-2-review.md`; commit green checkpoint. ✅
+  (completed: 2026-09-20 03:12 CEST)
 
 Deliverable: one target-neutral whole semantic program with explicit CFG and complete direct edges.
 

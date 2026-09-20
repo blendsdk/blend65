@@ -52,6 +52,7 @@ Use immutable discriminated records and direct builders (AR-C3):
 
 ```ts
 interface SemanticProgram {
+  readonly main: BindingId;
   readonly modules: readonly SemanticModule[];
   readonly globals: readonly SemanticGlobal[];
   readonly functions: readonly SemanticFunction[];
@@ -74,6 +75,18 @@ interface SemanticBlock {
   readonly terminator: SemanticTerminator;
 }
 ```
+
+The construction gate accepts the complete frontend result rather than an unchecked program
+payload. This lets error and incomplete results pass through unchanged and makes it impossible to
+construct runnable-looking semantic output from poison:
+
+```ts
+export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildResult;
+```
+
+`SemanticBuildResult` mirrors the frontend `complete`, `error` and `incomplete` discriminants. Only
+the complete case owns a `SemanticProgram`; its `main` field names the already-selected source
+entry directly.
 
 `SemanticOperation` has only current consumers: constants/conversions; place address and ordered
 load/store; unary/binary value operations; direct call plus ordered argument staging; aggregate
@@ -117,9 +130,16 @@ an encountered unsupported edge receives a source diagnostic rather than disappe
 finite resolved edges are closed; a recursive SCC is rejected before SFA (AR-C4).
 
 Lifetimes use operation/block positions, CFG reachability, calls crossed and alias/effect facts.
-Conservative whole-function lifetime is permitted only where a smaller lifetime cannot be proved;
-the report names that cost. Globals/assets are program-lifetime layout objects and never SFA inputs
-(AR-C4, AR-C6).
+Each value records its definition and the exact operation boundaries where it is live. Merge inputs
+are uses on their own predecessor edges, so mutually exclusive arms do not become a false linear
+overlap. A direct backwards CFG worklist computes these facts; there is no general data-flow
+framework. Conservative whole-function lifetime is permitted only where a smaller lifetime cannot
+be proved; the report names that cost. Globals/assets are program-lifetime layout objects and never
+SFA inputs (AR-C4, AR-C6).
+
+The frontend's already-proved transitive read/write, profile-operation and opaque-effect summaries
+are retained on the semantic program and filtered to reachable functions. Whole-program closure
+does not rebuild a second partial effect model.
 
 ## Transition Contracts
 

@@ -282,6 +282,38 @@ function scanExpression(
     return;
   }
 
+  if (
+    expression.kind === "binary" &&
+    expression.evaluation === "short-circuit" &&
+    expression.left !== undefined &&
+    expression.right !== undefined
+  ) {
+    scanExpression(expression.left, facts, bindings);
+    const left = expression.left.constant;
+    const evaluatesRight =
+      typeof left !== "boolean" ||
+      (expression.operator === "&&" ? left : expression.operator === "||" ? !left : true);
+    if (evaluatesRight) scanExpression(expression.right, facts, bindings);
+    return;
+  }
+
+  if (
+    expression.kind === "conditional" &&
+    expression.condition !== undefined &&
+    expression.whenTrue !== undefined &&
+    expression.whenFalse !== undefined
+  ) {
+    scanExpression(expression.condition, facts, bindings);
+    const condition = expression.condition.constant;
+    if (condition === true) scanExpression(expression.whenTrue, facts, bindings);
+    else if (condition === false) scanExpression(expression.whenFalse, facts, bindings);
+    else {
+      scanExpression(expression.whenTrue, facts, bindings);
+      scanExpression(expression.whenFalse, facts, bindings);
+    }
+    return;
+  }
+
   if (expression.place !== null) {
     scanPlacePath(expression.place, facts, bindings);
     const place = effectPlace(expression.place);
@@ -320,11 +352,16 @@ function scanStatement(
     scanBlock(statement, facts, bindings);
   } else if (statement.kind === "if") {
     scanExpression(statement.condition, facts, bindings);
-    scanBlock(statement.then, facts, bindings);
-    if (statement.otherwise !== null) scanStatement(statement.otherwise, facts, bindings);
+    if (statement.condition.constant === true) scanBlock(statement.then, facts, bindings);
+    else if (statement.condition.constant === false) {
+      if (statement.otherwise !== null) scanStatement(statement.otherwise, facts, bindings);
+    } else {
+      scanBlock(statement.then, facts, bindings);
+      if (statement.otherwise !== null) scanStatement(statement.otherwise, facts, bindings);
+    }
   } else if (statement.kind === "while") {
     scanExpression(statement.condition, facts, bindings);
-    scanBlock(statement.body, facts, bindings);
+    if (statement.condition.constant !== false) scanBlock(statement.body, facts, bindings);
   } else if (statement.kind === "for") {
     if (statement.initializer !== null) {
       if (isTypedExpressionList(statement.initializer)) {
@@ -334,8 +371,10 @@ function scanStatement(
       }
     }
     if (statement.condition !== null) scanExpression(statement.condition, facts, bindings);
-    for (const expression of statement.update ?? []) scanExpression(expression, facts, bindings);
-    scanBlock(statement.body, facts, bindings);
+    if (statement.condition?.constant !== false) {
+      scanBlock(statement.body, facts, bindings);
+      for (const expression of statement.update ?? []) scanExpression(expression, facts, bindings);
+    }
   } else if (
     statement.kind === "return" &&
     statement.value !== undefined &&

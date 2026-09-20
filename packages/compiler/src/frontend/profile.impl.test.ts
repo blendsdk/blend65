@@ -87,6 +87,28 @@ describe("frontend profile integration", () => {
     }
   });
 
+  it("excludes profile effects from branches and loops proved unreachable", () => {
+    const text = [
+      "module Game;",
+      "function main(): void {",
+      "  if (1 == 2) { c64.video.waitNextFrame(); }",
+      "  while (1 == 2) { c64.video.waitNextFrame(); }",
+      "  for (; 1 == 2; c64.video.waitNextFrame()) { c64.video.waitNextFrame(); }",
+      "  let skippedAnd: boolean = false && (c64.input.readJoystick2() == 0);",
+      "  let skippedChoice: byte = false ? c64.input.readJoystick2() : 0;",
+      "}",
+    ].join("\n");
+    const result = analyzeProject(snapshot(text));
+
+    if (result.kind !== "complete") throw new Error(JSON.stringify(result));
+    const main = result.program.bindings.find(({ qualifiedName }) => qualifiedName === "Game.main");
+    const summary = result.program.effects.find(
+      ({ function: functionId }) =>
+        main !== undefined && bindingIdentityKey(functionId) === bindingIdentityKey(main.id),
+    );
+    expect(summary).toMatchObject({ operationEffects: [], opaque: false });
+  });
+
   it("rejects a schema-valid profile without a declaration environment", () => {
     const result = analyzeProject(
       snapshot("module Game; function main(): void {}", "c64-pal-prg-kernal-8580"),
