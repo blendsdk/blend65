@@ -30,6 +30,7 @@ import {
 import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
 import type { FunctionInfo } from "./module-bindings.js";
+import type { FrontendProfile } from "./profile.js";
 import { captureBranchFacts, mergeScalarFacts, snapshotScalarFacts } from "./flow-facts.js";
 import {
   ANALYSIS_OBLIGATION_KIND,
@@ -53,6 +54,7 @@ import type {
   TypedExpr,
   TypedStatement,
   TypedVariableStatement,
+  FunctionSignature,
 } from "./semantic-types.js";
 import type {
   Block,
@@ -62,6 +64,7 @@ import type {
   TypeSyntax,
   VariableDeclaration,
 } from "./syntax.js";
+import type { EmbeddedValue } from "../assets/asset-types.js";
 
 /** Direct scalar and structured-flow analyzer over an already resolved module graph. */
 class ModuleAnalyzer {
@@ -80,10 +83,13 @@ class ModuleAnalyzer {
   readonly importsBySource: Map<string, Map<string, ValueState>>;
   readonly aggregates: AggregateRegistry;
   readonly expressions: ScalarExpressionAnalyzer;
+  readonly profileSignatures = new Map<string, FunctionSignature>();
 
   constructor(
     readonly snapshot: ProjectSnapshot,
     readonly graph: ModuleGraph,
+    readonly profile: FrontendProfile | null,
+    readonly embeddedValues: ReadonlyMap<string, EmbeddedValue>,
   ) {
     this.sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
     this.declarationByKey = collectDeclarationIndex(graph);
@@ -100,13 +106,18 @@ class ModuleAnalyzer {
     this.moduleScopes = prepared.moduleScopes;
     this.qualified = prepared.qualified;
     this.importsBySource = prepared.importsBySource;
+    this.addProfileBindings();
     this.expressions = new ScalarExpressionAnalyzer(
       {
         resolveName: (name, context) => resolveScalarName(name, context, this.qualified),
         resolveType: (type, context) => this.resolveType(type, context.module, null, context.scope),
         signature: (binding) =>
-          this.functionByKey.get(bindingIdentityKey(binding))?.signature ?? null,
-        isFunction: (binding) => this.functionByKey.has(bindingIdentityKey(binding)),
+          this.functionByKey.get(bindingIdentityKey(binding))?.signature ??
+          this.profileSignatures.get(bindingIdentityKey(binding)) ??
+          null,
+        isFunction: (binding) =>
+          this.functionByKey.has(bindingIdentityKey(binding)) ||
+          this.profileSignatures.has(bindingIdentityKey(binding)),
         diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
         defer: (span, message) => this.addObligation(span, message),
         call: (edge) => this.calls.push(edge),
@@ -115,9 +126,59 @@ class ModuleAnalyzer {
           const diagnostic = uninitializedReadDiagnostic(place, span, this.stateByKey);
           if (diagnostic !== null) this.diagnostics.push(diagnostic);
         },
+        embeddedValue: (expression) =>
+          this.embeddedValues.get(
+            `${expression.span.sourceId}:${expression.span.start}:${expression.span.end}`,
+          ) ?? null,
       },
       this.aggregates,
     );
+  }
+
+  /** Add the selected profile as typed source declarations, without target-machine facts. */
+  private addProfileBindings(): void {
+    if (this.profile === null) return;
+    this.profile.capabilities.forEach((capability, index) => {
+      const name = capability.name.slice(capability.name.lastIndexOf(".") + 1);
+      const span = Object.freeze({
+        sourceId: `profile:${this.profile!.id}`,
+        start: index,
+        end: index + 1,
+      });
+      const binding: SemanticBinding = Object.freeze({
+        id: Object.freeze({ sourceId: span.sourceId, span }),
+        name,
+        qualifiedName: capability.name,
+        declaration: span,
+        exported: true,
+        storage: "function",
+        type: capability.returnType,
+        operationEffect: capability.effect,
+      });
+      const state = {
+        binding,
+        nameSpan: span,
+        readonly: false,
+        known: null,
+        initialized: true,
+        initializedRanges: Object.freeze([]),
+        initializedPaths: Object.freeze([]),
+      };
+      const key = bindingIdentityKey(binding.id);
+      this.bindings.push(binding);
+      this.bindingByKey.set(key, binding);
+      this.stateByKey.set(key, state);
+      this.qualified.set(capability.name, state);
+      this.profileSignatures.set(
+        key,
+        Object.freeze({
+          parameters: Object.freeze(
+            capability.parameters.map((type) => Object.freeze({ type, readonly: false })),
+          ),
+          returnType: capability.returnType,
+        }),
+      );
+    });
   }
 
   /** Analyze every reachable declaration and assemble a frozen phase result. */
@@ -217,7 +278,7 @@ class ModuleAnalyzer {
         caller: null,
         constantContext: declaration.declarationKind === "const",
       });
-      if (aggregateCopy) {
+      if (aggregateCopy && result.node?.embedded === undefined) {
         if (result.node !== null) {
           this.addObligation(
             declaration.initializer.span,
@@ -698,6 +759,8 @@ class ModuleAnalyzer {
 export function analyzeModules(
   snapshot: ProjectSnapshot,
   graph: ModuleGraph,
+  profile: FrontendProfile | null = null,
+  embeddedValues: ReadonlyMap<string, EmbeddedValue> = new Map(),
 ): ModuleAnalysisResult {
-  return new ModuleAnalyzer(snapshot, graph).analyze();
+  return new ModuleAnalyzer(snapshot, graph, profile, embeddedValues).analyze();
 }

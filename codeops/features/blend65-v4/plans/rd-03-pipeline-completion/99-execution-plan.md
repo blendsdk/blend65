@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-20 00:43
-> **Progress**: 0/79 tasks (0%)
+> **Last Updated**: 2026-09-20 02:18
+> **Progress**: 12/79 tasks (15%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -48,6 +48,7 @@ registry, asset framework, readiness product or package-per-stage split. Only
 
 ## Phase 1: Frozen Inputs, Profile and Raw Asset
 
+> **Phase baseline tree**: `6a78205f495e68394f9647a165cbaf69ebd49600`
 > **Scope mode**: strict
 > **Expected modification set**: `examples/m1/`; focused compiler profile/asset/frontend files;
 > this plan's progress/review evidence and feature roadmap. No backend lowering, publication,
@@ -56,37 +57,64 @@ registry, asset framework, readiness product or package-per-stage split. Only
 
 ### Step 1.1: Specification Tests
 
-- [ ] 1.1.1 [spec-author] Write ST-55 frontend-profile specification cases —
-  `packages/compiler/src/frontend/profile.spec.test.ts`; forbidden: production compiler files.
-- [ ] 1.1.2 [spec-author] Write ST-66–ST-68/ST-96 raw-asset cases —
-  `packages/compiler/src/assets/raw-asset.spec.test.ts`; forbidden: production compiler files.
-- [ ] 1.1.3 [spec-author] Write ST-97–ST-98 independent behavior cases —
-  `test/m1/behavior.spec.test.ts`; forbidden: production compiler code and generated output.
-- [ ] 1.1.4 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+- [x] 1.1.1 [spec-author] Write ST-55 frontend-profile specification cases —
+  `packages/compiler/src/frontend/profile.spec.test.ts`; forbidden: production compiler files. ✅
+  (completed: 2026-09-20 01:47 CEST)
+- [x] 1.1.2 [spec-author] Write ST-66–ST-68/ST-96 raw-asset cases —
+  `packages/compiler/src/assets/raw-asset.spec.test.ts`; forbidden: production compiler files. ✅
+  (completed: 2026-09-20 01:47 CEST)
+- [x] 1.1.3 [spec-author] Write ST-97–ST-98 independent behavior cases —
+  `test/m1/behavior.spec.test.ts`; forbidden: production compiler code and generated output. ✅
+  (completed: 2026-09-20 01:47 CEST)
+- [x] 1.1.4 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-20 01:47 CEST)
+
+#### Phase 1 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `packages/compiler/src/frontend/profile.spec.test.ts` | `84b5e70c37f725b62877f024bbc37d62ab595002e93f40532d57b963366a4b8e` | Missing planned `frontend/profile.ts` |
+| `packages/compiler/src/assets/raw-asset.spec.test.ts` | `c8e2ea5240706b464bd4f53f2b8445ed103f91c177702bc494c6286b7e33d053` | Missing planned `assets/raw-asset.ts` |
+| `test/m1/behavior.spec.test.ts` | `942a83d5bf0bf278549e36f1a2defe9d0ea275f985bcb47fa279b8a9efd43062` | Missing planned M1 recipe/oracle modules |
+
+The compiler-package and root Vitest commands failed at collection only on those absent production
+modules. No production file existed or was read by the specification-test author before this
+checkpoint. These three test files are immutable implementation inputs from this point onward.
+The behavior test hash was re-frozen once after its author corrected two requirement-preserving
+harness mistakes: Node `Buffer` versus `Uint8Array` comparison and the trace's actual fresh-fire
+frame (440, not 432). The behavior and expected bytes did not change.
 
 ### Step 1.2: Implementation
 
-- [ ] 1.2.1 Add the readable M1 manifest/source skeleton —
+- [x] 1.2.1 Add the readable M1 manifest/source skeleton —
   `examples/m1/blend65.json`, `examples/m1/src/game.blend`.
-- [ ] 1.2.2 Add the deterministic raw-sprite recipe and its exact output —
+  ✅ (completed: 2026-09-20 02:18 CEST)
+- [x] 1.2.2 Add the deterministic raw-sprite recipe and its exact output —
   `examples/m1/qualification/sprite-recipe.ts`, `examples/m1/assets/sprites.bin`; this is raw-fixture
   evidence only and does not pull SpritePad work forward from RD-06.
-- [ ] 1.2.3 Add the independent fixed trace, pure behavior model and provenance notes —
+  ✅ (completed: 2026-09-20 02:18 CEST)
+- [x] 1.2.3 Add the independent fixed trace, pure behavior model and provenance notes —
   `examples/m1/qualification/{win-trace.json,oracle.ts,README.md}`.
-- [ ] 1.2.4 Implement the one selected frontend profile declaration environment and exact M1 API
+  ✅ (completed: 2026-09-20 02:18 CEST)
+- [x] 1.2.4 Implement the one selected frontend profile declaration environment and exact M1 API
   identities — `packages/compiler/src/frontend/{profile.ts,semantic-types.ts}`; AR-C5/AR-C17.
-- [ ] 1.2.5 Implement the literal raw-asset resolver and immutable asset identity/value —
+  ✅ (completed: 2026-09-20 02:18 CEST)
+- [x] 1.2.5 Implement the literal raw-asset resolver and immutable asset identity/value —
   `packages/compiler/src/assets/{raw-asset.ts,asset-types.ts}`; AR-C6/AR-C14.
-- [ ] 1.2.6 Complete frontend embed/profile obligations without leaking target facts into typed source
+  ✅ (completed: 2026-09-20 02:18 CEST)
+- [x] 1.2.6 Complete frontend embed/profile obligations without leaking target facts into typed source
   semantics — `packages/compiler/src/frontend/{analyzer.ts,service.ts,analysis-result.ts}`.
+  ✅ (completed: 2026-09-20 02:18 CEST)
 
 ### Step 1.3: Implementation Tests and Hardening
 
-- [ ] 1.3.1 Reach GREEN; add focused implementation tests for identity races, containment and recipe
+- [x] 1.3.1 Reach GREEN; add focused implementation tests for identity races, containment and recipe
   determinism — `packages/compiler/src/assets/raw-asset.impl.test.ts`,
   `test/m1/behavior.impl.test.ts`; run phase qualification.
-- [ ] 1.3.2 Record independent phase review, simplicity check and corrections —
+  ✅ (completed: 2026-09-20 02:18 CEST)
+- [x] 1.3.2 Record independent phase review, simplicity check and corrections —
   `08-phase-1-review.md`; commit green checkpoint.
+  ✅ (completed: 2026-09-20 02:18 CEST)
 
 Deliverable: requirements-frozen M1 inputs and one proved raw asset/profile frontend boundary.
 

@@ -35,6 +35,7 @@ export const RESERVED_BUILTIN_NAMES: ReadonlySet<string> = new Set([
   "sizeof",
   "offsetof",
   "length",
+  "embed",
 ]);
 
 /** Freeze the semantic fields shared by every scalar typed-expression node. */

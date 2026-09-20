@@ -1,8 +1,14 @@
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
+import { PROFILES } from "../project/manifest.js";
+import { resolveRawAsset } from "../assets/raw-asset.js";
+import type { EmbeddedValue, SemanticAsset } from "../assets/asset-types.js";
 import { analyzeModules } from "./analyzer.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { analyzeEffects } from "./effects.js";
 import { indexModules, resolveModules } from "./modules.js";
+import { selectFrontendProfile } from "./profile.js";
+import type { FrontendProfile } from "./profile.js";
+import { discoverEmbeddedRequests, discoverPendingObligations } from "./source-discovery.js";
 import { ANALYSIS_OBLIGATION_KIND, freezeSourceSpan } from "./semantic-types.js";
 import type {
   AnalysisObligation,
@@ -14,7 +20,7 @@ import type {
   SemanticType,
   TypedDeclaration,
 } from "./semantic-types.js";
-import type { Declaration, Expr, Statement, TypeSyntax, VariableDeclaration } from "./syntax.js";
+import type { Expr, Statement, TypeSyntax, VariableDeclaration } from "./syntax.js";
 
 /** Maximum number of proving errors returned by one whole-project analysis. */
 const MAX_ANALYSIS_ERRORS = 20;
@@ -34,6 +40,10 @@ export const ANALYSIS_RESULT_KIND = Object.freeze({
 
 /** Checked symbolic frontend payload admitted for later compiler stages. */
 export interface TypedProgram {
+  /** Selected target-neutral source declaration environment, when bound. */
+  readonly profile: FrontendProfile | null;
+  /** Validated immutable assets referenced by the checked source graph. */
+  readonly assets: readonly SemanticAsset[];
   /** Reachable merged source modules. */
   readonly modules: ModuleAnalysisResult["modules"];
   /** Resolved module, function, parameter, and local bindings. */
@@ -209,153 +219,11 @@ function excessiveGraphExpressionDepth(graph: ModuleGraph): SourceSpan | null {
   return null;
 }
 
-/** Append a pending platform or asset expression and visit its children. */
-function collectPendingExpression(
-  expression: Expr,
-  snapshot: ProjectSnapshot,
-  obligations: AnalysisObligation[],
-): void {
-  if (
-    expression.kind === "call" &&
-    expression.callee.kind === "name" &&
-    expression.callee.name === "embed"
-  ) {
-    obligations.push(
-      Object.freeze({
-        kind: ANALYSIS_OBLIGATION_KIND.asset,
-        span: freezeSourceSpan(expression.span),
-        message: "Embedded asset loading requires the selected asset pipeline",
-      }),
-    );
-    return;
-  }
-  if (expression.kind === "literal") {
-    if (sourceText(snapshot, expression.span).trimStart().startsWith("'")) {
-      obligations.push(
-        Object.freeze({
-          kind: ANALYSIS_OBLIGATION_KIND.profile,
-          span: freezeSourceSpan(expression.span),
-          message: "Character encoding requires the selected target profile",
-        }),
-      );
-    }
-    return;
-  }
-  if (expression.kind === "unary" || expression.kind === "cast" || expression.kind === "length") {
-    collectPendingExpression(expression.operand, snapshot, obligations);
-  } else if (expression.kind === "binary") {
-    collectPendingExpression(expression.left, snapshot, obligations);
-    collectPendingExpression(expression.right, snapshot, obligations);
-  } else if (expression.kind === "conditional") {
-    collectPendingExpression(expression.condition, snapshot, obligations);
-    collectPendingExpression(expression.whenTrue, snapshot, obligations);
-    collectPendingExpression(expression.whenFalse, snapshot, obligations);
-  } else if (expression.kind === "assignment") {
-    collectPendingExpression(expression.target, snapshot, obligations);
-    collectPendingExpression(expression.value, snapshot, obligations);
-  } else if (expression.kind === "call") {
-    collectPendingExpression(expression.callee, snapshot, obligations);
-    for (const argument of expression.arguments) {
-      collectPendingExpression(argument, snapshot, obligations);
-    }
-  } else if (expression.kind === "index") {
-    collectPendingExpression(expression.object, snapshot, obligations);
-    collectPendingExpression(expression.index, snapshot, obligations);
-  } else if (expression.kind === "member") {
-    collectPendingExpression(expression.object, snapshot, obligations);
-  } else if (expression.kind === "array-literal") {
-    for (const element of expression.elements) {
-      collectPendingExpression(element, snapshot, obligations);
-    }
-    if (expression.fill !== null) collectPendingExpression(expression.fill, snapshot, obligations);
-  } else if (expression.kind === "struct-literal") {
-    for (const field of expression.fields) {
-      collectPendingExpression(field.value, snapshot, obligations);
-    }
-  }
-}
-
-/** Visit source expressions that can carry target-profile or asset obligations. */
-function collectPendingStatement(
-  statement: Statement,
-  snapshot: ProjectSnapshot,
-  obligations: AnalysisObligation[],
-): void {
-  if (statement.kind === "variable") {
-    if (statement.initializer !== null) {
-      collectPendingExpression(statement.initializer, snapshot, obligations);
-    }
-  } else if (statement.kind === "expression-statement") {
-    collectPendingExpression(statement.expression, snapshot, obligations);
-  } else if (statement.kind === "block") {
-    for (const child of statement.statements) collectPendingStatement(child, snapshot, obligations);
-  } else if (statement.kind === "if") {
-    collectPendingExpression(statement.condition, snapshot, obligations);
-    collectPendingStatement(statement.then, snapshot, obligations);
-    if (statement.otherwise !== null) {
-      collectPendingStatement(statement.otherwise, snapshot, obligations);
-    }
-  } else if (statement.kind === "while") {
-    collectPendingExpression(statement.condition, snapshot, obligations);
-    collectPendingStatement(statement.body, snapshot, obligations);
-  } else if (statement.kind === "for") {
-    if (statement.initializer !== null) {
-      if (isExpressionList(statement.initializer)) {
-        for (const expression of statement.initializer) {
-          collectPendingExpression(expression, snapshot, obligations);
-        }
-      } else {
-        collectPendingStatement(statement.initializer, snapshot, obligations);
-      }
-    }
-    if (statement.condition !== null) {
-      collectPendingExpression(statement.condition, snapshot, obligations);
-    }
-    for (const expression of statement.update ?? []) {
-      collectPendingExpression(expression, snapshot, obligations);
-    }
-    collectPendingStatement(statement.body, snapshot, obligations);
-  } else if (statement.kind === "return" && statement.value !== null) {
-    collectPendingExpression(statement.value, snapshot, obligations);
-  }
-}
-
 /** Narrow a source for initializer without relying on mutable-array inference. */
 function isExpressionList(
   initializer: VariableDeclaration | readonly Expr[],
 ): initializer is readonly Expr[] {
   return Array.isArray(initializer);
-}
-
-/** Visit one module declaration for target-profile and asset obligations. */
-function collectPendingDeclaration(
-  declaration: Declaration,
-  snapshot: ProjectSnapshot,
-  obligations: AnalysisObligation[],
-): void {
-  if (declaration.kind === "variable") {
-    if (declaration.initializer !== null) {
-      collectPendingExpression(declaration.initializer, snapshot, obligations);
-    }
-  } else if (declaration.kind === "function") {
-    collectPendingStatement(declaration.body, snapshot, obligations);
-  }
-}
-
-/** Discover source forms whose meaning depends on a later profile or asset stage. */
-function discoverPendingObligations(
-  snapshot: ProjectSnapshot,
-  analysis: ModuleAnalysisResult,
-): readonly AnalysisObligation[] {
-  const discovered: AnalysisObligation[] = [];
-  for (const module of analysis.modules) {
-    for (const unit of module.units) {
-      for (const declaration of unit.declarations) {
-        collectPendingDeclaration(declaration, snapshot, discovered);
-      }
-    }
-  }
-  return Object.freeze(discovered);
 }
 
 /** Find the complete declaration containing a narrower obligation span. */
@@ -445,6 +313,20 @@ function normalizeObligations(
   return Object.freeze([...unique.values()]);
 }
 
+/** Return whether the selected declaration environment owns a missing profile module. */
+function profileSatisfiesObligation(
+  profile: FrontendProfile | null,
+  obligation: AnalysisObligation,
+): boolean {
+  if (profile === null || obligation.kind !== ANALYSIS_OBLIGATION_KIND.dependency) return false;
+  const match = /^Required module '([^']+)' is unavailable$/u.exec(obligation.message);
+  const moduleName = match?.[1];
+  return (
+    moduleName !== undefined &&
+    profile.capabilities.some(({ name }) => name.startsWith(moduleName + "."))
+  );
+}
+
 /** Return whether an inner proving span is contained by an outer source region. */
 function spanContains(outer: SourceSpan, inner: SourceSpan): boolean {
   return outer.sourceId === inner.sourceId && outer.start <= inner.start && outer.end >= inner.end;
@@ -521,7 +403,18 @@ function normalizeDiagnostic(
  * Run the existing frontend stages over one immutable project snapshot.
  * @example analyzeProject(snapshot).kind
  */
-export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
+function analyzeResolvedProject(
+  snapshot: ProjectSnapshot,
+  embeddedValues: ReadonlyMap<string, EmbeddedValue>,
+  assets: readonly SemanticAsset[],
+): AnalysisResult {
+  const selected = PROFILES.some((profile) => profile === snapshot.effectiveTarget)
+    ? selectFrontendProfile(snapshot.effectiveTarget)
+    : null;
+  if (selected?.kind === "error") {
+    return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: selected.diagnostics });
+  }
+  const profile = selected?.kind === "complete" ? selected.profile : null;
   const indexed = indexModules(snapshot);
   const resolved = resolveModules(snapshot, indexed.index);
   const earlyDiagnostics = sortAnalysisDiagnostics([
@@ -557,10 +450,14 @@ export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
     });
   }
 
-  const analysis = analyzeModules(snapshot, resolved.graph);
+  const analysis = analyzeModules(snapshot, resolved.graph, profile, embeddedValues);
   const effects = analyzeEffects(analysis);
   const unresolvedImports = unresolvedImportNames(resolved.graph);
-  const discoveredObligations = discoverPendingObligations(snapshot, analysis);
+  const discoveredObligations = discoverPendingObligations(
+    snapshot,
+    analysis,
+    new Set(embeddedValues.keys()),
+  );
   const dependencyObligations = Object.freeze([...indexed.obligations, ...resolved.obligations]);
   let diagnostics: readonly ProjectDiagnostic[] = sortAnalysisDiagnostics(
     [...earlyDiagnostics, ...analysis.diagnostics, ...effects.diagnostics]
@@ -580,7 +477,11 @@ export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
       )
       .map((diagnostic) => normalizeDiagnostic(diagnostic, snapshot)),
   );
-  const rawObligations = [...indexed.obligations, ...resolved.obligations, ...analysis.obligations];
+  const rawObligations = [
+    ...indexed.obligations,
+    ...resolved.obligations,
+    ...analysis.obligations,
+  ].filter((obligation) => !profileSatisfiesObligation(profile, obligation));
   for (const diagnostic of diagnostics) {
     if (
       diagnostic.code === "PARSE_SYNTAX_ERROR" &&
@@ -635,6 +536,8 @@ export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
     ),
   );
   const program: TypedProgram = Object.freeze({
+    profile,
+    assets: Object.freeze([...assets]),
     modules: analysis.modules,
     bindings: analysis.bindings,
     types: analysis.types,
@@ -648,4 +551,37 @@ export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
     diagnostics: Object.freeze(diagnostics),
     program,
   });
+}
+
+/**
+ * Analyze source and profile declarations without performing host asset I/O.
+ * Asset expressions remain explicit obligations for an owning async compiler service.
+ */
+export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
+  return analyzeResolvedProject(snapshot, new Map(), Object.freeze([]));
+}
+
+/**
+ * Resolve literal raw assets and complete the same frontend analysis in one bounded async call.
+ * This is the compiler-owned bridge; the target-neutral analyzer receives only typed immutable values.
+ */
+export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promise<AnalysisResult> {
+  const indexed = indexModules(snapshot);
+  const resolved = resolveModules(snapshot, indexed.index);
+  if (resolved.graph === null) return analyzeProject(snapshot);
+  const discovered = discoverEmbeddedRequests(resolved.graph);
+  if (discovered.kind === "error") {
+    return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: discovered.diagnostics });
+  }
+  const values = new Map<string, EmbeddedValue>();
+  const assets = new Map<string, SemanticAsset>();
+  for (const request of discovered.requests) {
+    const result = await resolveRawAsset(snapshot, request.literalPath);
+    if (result.kind === "error") {
+      return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: result.diagnostics });
+    }
+    values.set(request.key, result.value);
+    assets.set(result.asset.id, result.asset);
+  }
+  return analyzeResolvedProject(snapshot, values, Object.freeze([...assets.values()]));
 }

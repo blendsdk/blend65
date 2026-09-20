@@ -1,0 +1,46 @@
+module Game;
+
+const SPRITES: byte[512] = embed("sprites.bin");
+
+struct Enemy {
+  x: word;
+  y: byte;
+  alive: boolean;
+  design: byte;
+}
+
+let enemies: Enemy[6] = [
+  { x: 72, y: 72, alive: true, design: 0 },
+  { x: 112, y: 72, alive: true, design: 1 },
+  { x: 152, y: 72, alive: true, design: 0 },
+  { x: 192, y: 72, alive: true, design: 1 },
+  { x: 232, y: 72, alive: true, design: 0 },
+  { x: 272, y: 72, alive: true, design: 1 }
+];
+
+let playerX: word = 160;
+let formationCounter: byte = 0;
+let formationRight: boolean = true;
+let projectileActive: boolean = false;
+let projectileX: word = 0;
+let projectileY: byte = 0;
+
+function publishPlayer(): void {
+  c64.vic.setSpriteEnabled(0, true);
+  c64.vic.setSpritePosition(0, playerX, 220);
+  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+  c64.vic.setSpriteColor(0, 3);
+}
+
+function main(): void {
+  c64.video.waitNextFrame();
+  let sample: byte = c64.input.readJoystick2();
+  if (c64.input.joystickLeft(sample)) {
+    playerX = playerX - 1;
+  }
+  if (c64.input.joystickRight(sample)) {
+    playerX = playerX + 1;
+  }
+  publishPlayer();
+  c64.vic.setBorderColor(0);
+}

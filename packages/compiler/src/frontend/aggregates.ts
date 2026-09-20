@@ -434,6 +434,18 @@ function analyzeBuiltinCall(
   analyze: AnalyzeExpression,
 ): ScalarExpressionResult | null {
   const name = expression.callee.kind === "name" ? expression.callee.name : "";
+  if (name === "embed") {
+    const embedded = host.embeddedValue(expression);
+    if (embedded === null) return null;
+    return {
+      node: createScalarTypedExpression(expression, embedded.type, null, {
+        embedded,
+        initialized: Object.freeze([{ start: 0, end: embedded.type.length }]),
+        evaluation: "left-to-right",
+      }),
+      exact: null,
+    };
+  }
   if (name === "lo" || name === "hi") {
     return analyzeByteExtraction(expression, name, context, host, analyze);
   }

@@ -8,6 +8,7 @@ import type {
   EffectSummary,
   ModuleAnalysisResult,
   ModuleGraph,
+  ProfileEffect,
   SemanticBinding,
   TypedBlock,
   TypedDeclaration,
@@ -146,6 +147,7 @@ interface EffectFacts {
   readonly readOrigins: Map<string, SourceSpan[]>;
   readonly writes: Map<string, EffectPlace>;
   readonly calls: EffectCall[];
+  readonly operationEffects: Set<Exclude<ProfileEffect, "pure">>;
   opaque: boolean;
 }
 
@@ -262,6 +264,13 @@ function scanExpression(
     });
     if (expression.memory !== undefined && expression.memory !== null) facts.opaque = true;
     if (expression.callee?.binding !== null && expression.callee?.binding !== undefined) {
+      const operationEffect = bindings.get(
+        bindingIdentityKey(expression.callee.binding),
+      )?.operationEffect;
+      if (operationEffect !== undefined && operationEffect !== "pure") {
+        facts.operationEffects.add(operationEffect);
+        facts.opaque = true;
+      }
       facts.calls.push(
         Object.freeze({
           callee: expression.callee.binding,
@@ -353,7 +362,14 @@ function scanBlock(
 }
 
 function emptyFacts(): EffectFacts {
-  return { reads: new Map(), readOrigins: new Map(), writes: new Map(), calls: [], opaque: false };
+  return {
+    reads: new Map(),
+    readOrigins: new Map(),
+    writes: new Map(),
+    calls: [],
+    operationEffects: new Set(),
+    opaque: false,
+  };
 }
 
 /** Return whether an index expression depends on a callee-local parameter. */
@@ -457,6 +473,7 @@ function transitiveSummary(
   const reads = new Map(facts.reads);
   const readOrigins = new Map<string, SourceSpan[]>(facts.readOrigins);
   const writes = new Map(facts.writes);
+  const operationEffects = new Set(facts.operationEffects);
   let opaque = facts.opaque;
   const nextActive = new Set(active);
   nextActive.add(key);
@@ -477,12 +494,16 @@ function transitiveSummary(
     for (const place of callee.summary.writes) {
       addPlace(writes, substitutePlace(place, call, calleeParameters));
     }
+    for (const effect of callee.summary.operationEffects) operationEffects.add(effect);
     opaque ||= callee.summary.opaque;
   }
   const summary = Object.freeze({
     function: functionBinding.id,
     reads: orderedPlaces(reads),
     writes: orderedPlaces(writes),
+    operationEffects: Object.freeze(
+      [...operationEffects].sort((left, right) => compareText(left, right)),
+    ),
     opaque,
   });
   const expanded = Object.freeze({ summary, readOrigins });
@@ -511,6 +532,7 @@ function expandInitializerCalls(
     for (const place of summary.summary.writes) {
       addPlace(facts.writes, substitutePlace(place, call, calleeParameters));
     }
+    for (const effect of summary.summary.operationEffects) facts.operationEffects.add(effect);
     facts.opaque ||= summary.summary.opaque;
   }
 }

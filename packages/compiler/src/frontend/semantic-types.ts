@@ -1,4 +1,5 @@
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import type { EmbeddedValue } from "../assets/asset-types.js";
 import type { Block, Expr, ModuleHeader, Statement, SyntaxUnit, TypeSyntax } from "./syntax.js";
 
 /** Stable reasons why a later analysis stage cannot yet finish. */
@@ -182,6 +183,9 @@ export interface ArrayType {
 /** Semantic types admitted by the current frontend slice. */
 export type SemanticType = ScalarType | StructType | ArrayType;
 
+/** Source-level ordering behavior attached to a profile operation. */
+export type ProfileEffect = "pure" | "ordered-wait" | "volatile-read" | "volatile-write";
+
 /** Render a stable structural key for aggregate-type interning. */
 export function semanticTypeKey(type: SemanticType): string {
   if (type.kind === "scalar") return type.name;
@@ -193,6 +197,8 @@ export function semanticTypeKey(type: SemanticType): string {
 export interface SemanticBinding extends Binding {
   /** Resolved type, or null when the declaration cannot supply one. */
   readonly type: SemanticType | null;
+  /** Target-neutral operation behavior for a profile-supplied function. */
+  readonly operationEffect?: ProfileEffect;
 }
 
 /** Create an immutable local or parameter binding from source identity alone. */
@@ -352,6 +358,8 @@ export interface TypedExpr {
   readonly field?: string;
   /** Volatile raw-memory access facts retained for lowering. */
   readonly memory?: MemoryAccess | null;
+  /** Validated compile-time asset value retained without copying its bytes. */
+  readonly embedded?: EmbeddedValue;
   /** Original type spelling retained by cast nodes. */
   readonly targetType?: TypeSyntax;
   /** Observable evaluation structure for ordered expressions. */
@@ -565,7 +573,9 @@ export interface EffectSummary {
   readonly reads: readonly EffectPlace[];
   /** Module or aggregate-parameter places which may be written. */
   readonly writes: readonly EffectPlace[];
-  /** Whether volatile raw memory may be accessed. */
+  /** Ordered profile-operation behaviors reached directly or through callees. */
+  readonly operationEffects: readonly Exclude<ProfileEffect, "pure">[];
+  /** Whether volatile raw memory or an ordered profile operation may occur. */
   readonly opaque: boolean;
 }
 
@@ -669,6 +679,8 @@ export interface ScalarExpressionHost {
   sourceText(span: SourceSpan): string;
   /** Report a function-local read which is not definitely initialized. */
   read(place: Place, span: SourceSpan): void;
+  /** Return a prevalidated embedded value for this exact call expression. */
+  embeddedValue(expression: Expr): EmbeddedValue | null;
 }
 
 /** Direct callbacks required while aggregate types are resolved. */
