@@ -90,6 +90,8 @@ export interface StorageProfile {
   readonly hardwareStackReserve?: number;
   /** Simultaneous interrupt entry/save bytes owned by the platform contract. */
   readonly interruptStackBytes?: number;
+  /** Bytes retained on the hardware stack while startup-owned code executes. */
+  readonly startupStackBytes?: number;
 }
 
 /** One selected direct helper call and its complete storage/stack overlap facts. */

@@ -45,6 +45,8 @@ export type SemanticPlacePath = SemanticFieldPath | SemanticIndexPath;
 export interface SemanticPlace {
   /** Source declaration at the root of the place. */
   readonly root: BindingId;
+  /** Declared packed root type, retained for field offsets and element scaling. */
+  readonly rootType?: SemanticType;
   /** Ordered field/index selections from the root. */
   readonly path: readonly SemanticPlacePath[];
 }

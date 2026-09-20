@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-20 09:29
-> **Progress**: 28/79 tasks (35%)
+> **Last Updated**: 2026-09-20 18:29
+> **Progress**: 40/79 tasks (51%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -232,6 +232,7 @@ Phase 4 supplies real machine demand and freezes the final certificate before la
 
 ## Phase 4: Machine Lowering and Platform Layout
 
+> **Phase baseline tree**: `c5c117a4bb72c4ab1be4aaff4d55ea11c0ad8342`
 > **Scope mode**: strict
 > **Expected modification set**: focused `compiler/src/{target,machine,layout,storage}/` files and tests;
 > plan evidence/roadmap. No optional optimizer, textual pseudo-assembly, generic target registry or
@@ -240,40 +241,67 @@ Phase 4 supplies real machine demand and freezes the final certificate before la
 
 ### Step 4.1: Specification Tests
 
-- [ ] 4.1.1 [spec-author] Write ST-69–ST-74 machine-lowering cases —
-  `packages/compiler/src/machine/lowering.spec.test.ts`; forbidden: production backend modules.
-- [ ] 4.1.2 [spec-author] Write ST-61, the layout half of ST-63, ST-64–ST-65 and ST-75–ST-76
+- [x] 4.1.1 [spec-author] Write ST-69–ST-74 machine-lowering cases —
+  `packages/compiler/src/machine/lowering.spec.test.ts`; forbidden: production backend modules. ✅
+  (completed: 2026-09-20 09:50 CEST)
+- [x] 4.1.2 [spec-author] Write ST-61, the layout half of ST-63, ST-64–ST-65 and ST-75–ST-76
   integration/startup/layout cases — `packages/compiler/src/storage/closure-integration.spec.test.ts`,
   `packages/compiler/src/target/profile.spec.test.ts`,
-  `packages/compiler/src/layout/c64-layout.spec.test.ts`; forbidden: production backend modules.
-- [ ] 4.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+  `packages/compiler/src/layout/c64-layout.spec.test.ts`; forbidden: production backend modules. ✅
+  (completed: 2026-09-20 09:50 CEST)
+- [x] 4.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-20 09:50 CEST)
+
+#### Phase 4 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `packages/compiler/src/machine/lowering.spec.test.ts` | `f10ec0db94825c7b5252b20d42f4661f0e55cb63aaa3cd89728fab121706d018` | Missing planned `target/profile.ts` |
+| `packages/compiler/src/storage/closure-integration.spec.test.ts` | `d369a176c80a7f8aa9f227f324075f91f3a51ad2697472a7df38a90e2ed03197` | Missing planned `machine/bind.ts` |
+| `packages/compiler/src/target/profile.spec.test.ts` | `5439c26dff38d584752bb7cf70b8488055b68c19110f9cc6b7854052cbff271c` | Missing planned `target/profile.ts` |
+| `packages/compiler/src/layout/c64-layout.spec.test.ts` | `ad15651d2b50278644cd8057e770a6d6fd817987d446e5d5a8a576af015f6caa` | Missing planned `target/profile.ts` |
+
+The directed compiler command failed at collection only on the absent Phase 4 production modules;
+zero tests executed. The specification-test author read no forbidden backend production file. A
+pre-freeze correction removed an invalid requirement that every signed comparison consume overflow:
+sign normalization and sign splitting remain legal, while any actual overflow use must follow its
+own definition. These four test files are immutable implementation inputs from this point onward.
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Add direct selected CPU/machine/serializer/packager facts —
-  `packages/compiler/src/target/{nmos6510.ts,c64-pal-kernal.ts,profile.ts}`.
-- [ ] 4.2.2 Define structured machine records and legality validation —
-  `packages/compiler/src/machine/{machine-types.ts,validate.ts}`.
-- [ ] 4.2.3 Lower scalar/aggregate/call/control operations with explicit flags, widths and byte/word
-  order — `packages/compiler/src/machine/{lower.ts,lower-control.ts}`.
-- [ ] 4.2.4 Lower raw PEEK/POKE and named C64 operations —
-  `packages/compiler/src/machine/{lower-memory.ts,lower-c64.ts}`.
-- [ ] 4.2.5 Bind resources and choose legal candidate forms —
-  `packages/compiler/src/machine/bind.ts`.
-- [ ] 4.2.6 Feed every real binder/legalizer request through the closure engine and freeze the final
+- [x] 4.2.1 Add direct selected CPU/machine/serializer/packager facts —
+  `packages/compiler/src/target/{nmos6510.ts,c64-pal-kernal.ts,profile.ts}`. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.2.2 Define structured machine records and legality validation —
+  `packages/compiler/src/machine/{machine-types.ts,validate.ts}`. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.2.3 Lower scalar/aggregate/call/control operations with explicit flags, widths and byte/word
+  order — `packages/compiler/src/machine/{lower.ts,lower-control.ts}`. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.2.4 Lower raw PEEK/POKE and named C64 operations —
+  `packages/compiler/src/machine/{lower-memory.ts,lower-c64.ts}`. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.2.5 Bind resources and choose legal candidate forms —
+  `packages/compiler/src/machine/bind.ts`. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.2.6 Feed every real binder/legalizer request through the closure engine and freeze the final
   storage certificate — `packages/compiler/src/machine/bind.ts`,
-  `packages/compiler/src/storage/closure.ts`.
-- [ ] 4.2.7 Repair branches and implement startup/return plus deterministic non-overlapping
+  `packages/compiler/src/storage/closure.ts`. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.2.7 Repair branches and implement startup/return plus deterministic non-overlapping
   C64/VIC-aware layout and sprite blocks — `packages/compiler/src/machine/block-layout.ts`,
-  `packages/compiler/src/layout/{startup.ts,c64-layout.ts}`.
+  `packages/compiler/src/layout/{startup.ts,c64-layout.ts}`. ✅
+  (completed: 2026-09-20 18:29 CEST)
 
 ### Step 4.3: Implementation Tests and Hardening
 
-- [ ] 4.3.1 Reach GREEN; add instruction/cycle/edge tests —
+- [x] 4.3.1 Reach GREEN; add instruction/cycle/edge tests —
   `packages/compiler/src/machine/lowering.impl.test.ts`,
-  `packages/compiler/src/layout/c64-layout.impl.test.ts`; run phase qualification.
-- [ ] 4.3.2 Record independent 6502-semantics/expert review and corrections —
-  `08-phase-4-review.md`; commit green checkpoint.
+  `packages/compiler/src/layout/c64-layout.impl.test.ts`; run phase qualification. ✅
+  (completed: 2026-09-20 18:29 CEST)
+- [x] 4.3.2 Record independent 6502-semantics/expert review and corrections —
+  `08-phase-4-review.md`; commit green checkpoint. ✅
+  (completed: 2026-09-20 18:29 CEST)
 
 Deliverable: a closed legal documented-NMOS machine program and exact final C64 layout.
 

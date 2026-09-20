@@ -77,6 +77,19 @@ function hashRecords(records: readonly string[]): string {
   return hash.digest("hex");
 }
 
+/**
+ * Compute the certificate identity of one complete ordered storage inventory.
+ * @param inventory Semantic and machine-created requests with ABI result facts.
+ * @returns Stable SHA-256 inventory identity.
+ * @example storageInventoryHash(inventory).length === 64
+ */
+export function storageInventoryHash(inventory: StorageInventory): string {
+  return hashRecords([
+    ...inventory.requests.map(requestFingerprint),
+    ...inventory.results.map(resultFingerprint),
+  ]);
+}
+
 /** Count distinct physical bytes occupied by final homes. */
 function staticTotals(homes: readonly StorageHome[]): ResourceTotals {
   const bytes = {
@@ -184,7 +197,7 @@ function hardwareCallBytes(
     }
     if (root.kind === "initializer") {
       const key = bindingIdentityKey(root.binding);
-      let initializerDepth = helperStackByCaller.get(key) ?? 0;
+      let initializerDepth = 2 + (helperStackByCaller.get(key) ?? 0);
       const initializer = (inventory.program.initializers ?? []).find(
         ({ binding }) => bindingIdentityKey(binding) === key,
       );
@@ -192,7 +205,7 @@ function hardwareCallBytes(
         const calleeDepth = depth(bindingIdentityKey(callee));
         initializerDepth = Math.max(
           initializerDepth,
-          calleeDepth === Number.POSITIVE_INFINITY ? calleeDepth : calleeDepth + 2,
+          calleeDepth === Number.POSITIVE_INFINITY ? calleeDepth : calleeDepth + 4,
         );
       }
       deepest = Math.max(deepest, initializerDepth);
@@ -215,11 +228,13 @@ function hardwareStackPeak(
     (profile.hardwareStackReserve !== undefined &&
       (!Number.isInteger(profile.hardwareStackReserve) || profile.hardwareStackReserve < 0)) ||
     (profile.interruptStackBytes !== undefined &&
-      (!Number.isInteger(profile.interruptStackBytes) || profile.interruptStackBytes < 0))
+      (!Number.isInteger(profile.interruptStackBytes) || profile.interruptStackBytes < 0)) ||
+    (profile.startupStackBytes !== undefined &&
+      (!Number.isInteger(profile.startupStackBytes) || profile.startupStackBytes < 0))
   ) {
     return null;
   }
-  const peak = callBytes + (profile.interruptStackBytes ?? 0);
+  const peak = callBytes + (profile.startupStackBytes ?? 0) + (profile.interruptStackBytes ?? 0);
   if (profile.hardwareStackCapacity === undefined) return peak;
   const available = profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0);
   return peak <= available ? peak : null;
@@ -235,10 +250,7 @@ function certificate(
   helperCalls: readonly HelperCallDemand[],
 ): StorageClosureCertificate {
   return Object.freeze({
-    inventoryHash: hashRecords([
-      ...inventory.requests.map(requestFingerprint),
-      ...inventory.results.map(resultFingerprint),
-    ]),
+    inventoryHash: storageInventoryHash(inventory),
     graphHash: hashRecords([
       ...interference.map(({ left, right, reason }) => JSON.stringify([left, right, reason])),
       ...helperCalls.map(helperFingerprint),

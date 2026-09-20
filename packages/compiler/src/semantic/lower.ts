@@ -168,6 +168,10 @@ class ExpressionLowerer {
   private lowerPlace(expression: TypedExpr): SemanticPlace {
     const source = expression.place;
     if (source === null) throw new Error("Completed place expression has no place metadata");
+    const root = this.bindingsByKey.get(bindingIdentityKey(source.binding));
+    if (root?.type === null || root?.type === undefined) {
+      throw new Error("Completed place root has no declared type");
+    }
     const path: SemanticPlacePath[] = [];
     for (const component of source.path) {
       if (typeof component === "string") {
@@ -178,7 +182,11 @@ class ExpressionLowerer {
         path.push(Object.freeze({ kind: "index", value }));
       }
     }
-    return Object.freeze({ root: source.binding, path: Object.freeze(path) });
+    return Object.freeze({
+      root: source.binding,
+      rootType: root.type,
+      path: Object.freeze(path),
+    });
   }
 
   /** Read a scalar place or retain an aggregate place address. */
@@ -569,7 +577,33 @@ function lowerFunction(
   const builder = new ControlFlowBuilder(`function:${bindingIdentityKey(declaration.binding)}`);
   const expressions = new ExpressionLowerer(builder, bindingsByKey);
   builder.lowerBody(declaration.body, expressions.lower);
-  const blocks = builder.finish(declaration.type);
+  const blocks = Object.freeze(
+    builder.finish(declaration.type).map((block) =>
+      Object.freeze({
+        ...block,
+        operations: Object.freeze(
+          block.operations.map((operation) => {
+            if (
+              operation.kind !== "load" &&
+              operation.kind !== "store" &&
+              operation.kind !== "place-address"
+            ) {
+              return operation;
+            }
+            if (operation.place.rootType !== undefined) return operation;
+            const placeRoot = bindingsByKey.get(bindingIdentityKey(operation.place.root));
+            if (placeRoot?.type === null || placeRoot?.type === undefined) {
+              throw new Error("Completed place root has no declared type");
+            }
+            return Object.freeze({
+              ...operation,
+              place: Object.freeze({ ...operation.place, rootType: placeRoot.type }),
+            });
+          }),
+        ),
+      }),
+    ),
+  );
   const binding = bindingsByKey.get(bindingIdentityKey(declaration.binding));
   if (binding === undefined) throw new Error("Completed function has no retained binding");
   return Object.freeze({
@@ -605,7 +639,11 @@ function lowerGlobal(
   builder.emit(
     Object.freeze({
       kind: "store",
-      place: Object.freeze({ root: binding.id, path: Object.freeze([]) }),
+      place: Object.freeze({
+        root: binding.id,
+        rootType: declaration.type,
+        path: Object.freeze([]),
+      }),
       value,
       type: declaration.type,
       span: declaration.initializer.span,

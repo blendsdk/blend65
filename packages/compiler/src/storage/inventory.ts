@@ -18,7 +18,7 @@ function typeBytes(type: SemanticType, parameter = false): number {
 }
 
 /** Return every represented operation boundary in stable block order. */
-function functionPositions(fn: SemanticFunction): readonly SemanticPosition[] {
+function functionPositions(fn: Pick<SemanticFunction, "blocks">): readonly SemanticPosition[] {
   return Object.freeze(
     fn.blocks.flatMap((block) =>
       Array.from({ length: block.operations.length + 1 }, (_, operation) =>
@@ -29,7 +29,7 @@ function functionPositions(fn: SemanticFunction): readonly SemanticPosition[] {
 }
 
 /** Return every direct call span in one function. */
-function functionCalls(fn: SemanticFunction) {
+function functionCalls(fn: Pick<SemanticFunction, "blocks">) {
   return Object.freeze(
     fn.blocks.flatMap((block) =>
       block.operations.flatMap((operation) => (operation.kind === "call" ? [operation.span] : [])),
@@ -38,7 +38,10 @@ function functionCalls(fn: SemanticFunction) {
 }
 
 /** Build a conservative declared-storage lifetime when no smaller source lifetime is retained. */
-function declaredLifetime(fn: SemanticFunction, value: string): ValueLifetime {
+function declaredLifetime(
+  fn: Pick<SemanticFunction, "id" | "entry" | "blocks">,
+  value: string,
+): ValueLifetime {
   const positions = functionPositions(fn);
   return Object.freeze({
     function: fn.id,
@@ -87,12 +90,53 @@ function valueRequestId(owner: BindingId, storageClass: StorageClass, value: str
   return `${bindingIdentityKey(owner)}:${storageClass}:${value}`;
 }
 
+/** Return a stable structural identity for one concrete semantic place. */
+function placeKey(
+  operation: Extract<SemanticOperation, { readonly kind: "load" | "store" }>,
+): string {
+  return JSON.stringify([
+    bindingIdentityKey(operation.place.root),
+    operation.place.path.map((part) =>
+      part.kind === "field" ? [part.kind, part.name] : [part.kind, part.value],
+    ),
+  ]);
+}
+
+/** Determine whether a loaded scalar can be overwritten while its value remains live. */
+function loadCrossesInvalidatingWrite(
+  body: Pick<SemanticFunction, "blocks">,
+  lifetime: ValueLifetime,
+  load: Extract<SemanticOperation, { readonly kind: "load" }>,
+): boolean {
+  const loadedPlace = placeKey(load);
+  for (const block of body.blocks) {
+    for (let operationIndex = 0; operationIndex < block.operations.length; operationIndex += 1) {
+      const operation = block.operations[operationIndex]!;
+      if (operation.kind !== "store" || placeKey(operation) !== loadedPlace) continue;
+      if (
+        block.id === lifetime.definition.block &&
+        operationIndex <= lifetime.definition.operation
+      ) {
+        continue;
+      }
+      if (
+        lifetime.liveAt.some(
+          (position) => position.block === block.id && position.operation >= operationIndex,
+        )
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /** Compare requests without locale-dependent collation. */
 function compareRequests(left: StorageRequest, right: StorageRequest): number {
   return Buffer.compare(Buffer.from(left.id), Buffer.from(right.id));
 }
 
-/** Add only computed values which must survive a call in one execution context. */
+/** Add only computed values which must survive an invalidating operation. */
 function appendCallStaging(
   owner: BindingId,
   body: Pick<SemanticFunction, "blocks">,
@@ -100,16 +144,17 @@ function appendCallStaging(
   requests: StorageRequest[],
 ): void {
   for (const lifetime of lifetimes) {
-    if (
-      bindingIdentityKey(lifetime.function) !== bindingIdentityKey(owner) ||
-      lifetime.callsCrossed.length === 0
-    ) {
-      continue;
-    }
+    if (bindingIdentityKey(lifetime.function) !== bindingIdentityKey(owner)) continue;
     const operation = definingOperation(body, lifetime.value);
     if (operation === null) continue;
     const type = resultType(operation);
     if (type === null || typeBytes(type) === 0) continue;
+    const crossesCall = lifetime.callsCrossed.length > 0;
+    const crossesWrite =
+      operation.kind === "load" &&
+      type.kind === "scalar" &&
+      loadCrossesInvalidatingWrite(body, lifetime, operation);
+    if (!crossesCall && !crossesWrite) continue;
     const storageClass: StorageClass =
       operation.kind === "call" ? "return-stage" : "argument-stage";
     requests.push(
@@ -128,9 +173,51 @@ function appendCallStaging(
         reason:
           storageClass === "return-stage"
             ? "Call result survives a later call"
-            : "Evaluated value survives a nested call",
+            : crossesCall
+              ? "Evaluated value survives a nested call"
+              : "Loaded value survives a write to its source place",
       }),
     );
+  }
+}
+
+/** Add one finite low-byte home for each volatile word read. */
+function appendWordReadLowBytes(
+  owner: BindingId,
+  body: Pick<SemanticFunction, "entry" | "blocks">,
+  lifetimes: readonly ValueLifetime[],
+  requests: StorageRequest[],
+): void {
+  for (const block of body.blocks) {
+    for (const operation of block.operations) {
+      if (operation.kind !== "memory-read" || operation.width !== 2) continue;
+      const lifetime =
+        lifetimes.find(
+          (candidate) =>
+            bindingIdentityKey(candidate.function) === bindingIdentityKey(owner) &&
+            candidate.value === operation.result,
+        ) ??
+        declaredLifetime(
+          Object.freeze({ id: owner, entry: body.entry, blocks: body.blocks }),
+          operation.result,
+        );
+      requests.push(
+        Object.freeze({
+          id: valueRequestId(owner, "temporary", `word-read-low:${operation.result}`),
+          storageClass: "temporary",
+          owner,
+          binding: null,
+          value: operation.result,
+          type: null,
+          bytes: 1,
+          alignment: 1,
+          region: "ram",
+          lifetime,
+          source: operation.span,
+          reason: "Low byte retained while the high byte is read",
+        }),
+      );
+    }
   }
 }
 
@@ -185,7 +272,7 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
         const root = operation.place.root;
         const key = bindingIdentityKey(root);
         if (globalKeys.has(key) || parameterKeys.has(key)) continue;
-        locals.set(key, { id: root, type: operation.type });
+        locals.set(key, { id: root, type: operation.place.rootType ?? operation.type });
       }
     }
     for (const [key, local] of locals) {
@@ -208,6 +295,7 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
     }
 
     appendCallStaging(fn.id, fn, program.lifetimes, requests);
+    appendWordReadLowBytes(fn.id, fn, program.lifetimes, requests);
   }
 
   const globals = new Map(
@@ -219,6 +307,12 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
       throw new Error("Initializer execution is absent from semantic storage input");
     }
     appendCallStaging(initializer.binding, global, initializer.lifetimes, requests);
+    appendWordReadLowBytes(
+      initializer.binding,
+      { entry: global.entry, blocks: global.blocks },
+      initializer.lifetimes,
+      requests,
+    );
   }
 
   requests.sort(compareRequests);

@@ -181,7 +181,18 @@ describe("static storage closure implementation", () => {
     });
 
     const result = closeStorage(initial, profile(), () => Object.freeze([]));
-    expect(result).toMatchObject({ kind: "complete", certificate: { hardwareStackPeak: 7 } });
+    expect(result).toMatchObject({ kind: "complete", certificate: { hardwareStackPeak: 9 } });
+  });
+
+  it("charges startup-owned pushes while main and initializer calls execute", () => {
+    const initial = inventory([fn(binding(34)), fn(binding(35))]);
+    const startupProfile: StorageProfile = Object.freeze({
+      ...profile(32),
+      startupStackBytes: 10,
+    });
+
+    const result = closeStorage(initial, startupProfile, () => Object.freeze([]));
+    expect(result).toMatchObject({ kind: "complete", certificate: { hardwareStackPeak: 15 } });
   });
 
   it("stops a callback which invents a new identity every round", () => {

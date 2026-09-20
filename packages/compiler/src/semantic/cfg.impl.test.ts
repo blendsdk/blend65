@@ -123,6 +123,40 @@ describe("semantic CFG implementation", () => {
     expect(extraction).toMatchObject({ kind: "unary", operator: "hi" });
   });
 
+  it("retains each lowered place root's declared packed type", () => {
+    const program = lower(
+      [
+        "module Game;",
+        "let values: word[4] = [0; 0];",
+        "function main(): void {",
+        "  let index: byte = 1;",
+        "  values[index] = $1234;",
+        "}",
+      ].join("\n"),
+    );
+    const places = [
+      ...program.globals.flatMap(({ blocks }) => blocks),
+      ...program.functions.flatMap(({ blocks }) => blocks),
+    ]
+      .flatMap(({ operations }) => operations)
+      .flatMap((operation) =>
+        operation.kind === "load" ||
+        operation.kind === "store" ||
+        operation.kind === "place-address"
+          ? [operation.place]
+          : [],
+      );
+
+    expect(places.length).toBeGreaterThan(0);
+    expect(places.every(({ rootType }) => rootType !== undefined)).toBe(true);
+    expect(places.find(({ path }) => path.length > 0)?.rootType).toEqual({
+      kind: "array",
+      element: { kind: "scalar", name: "word" },
+      length: 4,
+      size: 8,
+    });
+  });
+
   it("does not lower bodies or updates behind constant-false loop conditions", () => {
     const program = lower(
       [

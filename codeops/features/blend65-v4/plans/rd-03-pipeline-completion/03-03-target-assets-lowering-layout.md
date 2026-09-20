@@ -100,6 +100,63 @@ Machine operands are registers, immediates, symbolic addresses, storage IDs or l
 assembly text field. Flags, ordinary/volatile memory access, clobbers, bytes and path cycles are
 explicit. Every constructor checks the documented selected-CPU opcode/mode grid (AR-C3, AR-C5).
 
+### Direct Phase 4 Interfaces
+
+AR-C21 fixes one small callable surface for the immutable tests and implementation. These are
+internal compiler functions, not a public extension API:
+
+```ts
+export function selectTargetProfile(profileId: string): TargetProfileResult;
+export function validateMachineInstruction(
+  instruction: MachineInstruction,
+  cpu: CpuFacts,
+  validFlags: readonly MachineFlag[],
+): MachineValidationResult;
+export function lowerMachineProgram(input: MachineLoweringInput): MachineLoweringResult;
+export function bindMachineProgram(
+  program: MachineProgram,
+  certificate: StorageClosureCertificate,
+): MachineBindingResult;
+export function repairMachineBranches(
+  fn: MachineFunction,
+  origin: number,
+): BranchRepairResult;
+export function createC64Startup(input: C64StartupInput): C64StartupResult;
+export function layoutC64Program(input: C64LayoutInput): C64LayoutResult;
+```
+
+The records are deliberately direct:
+
+- `TargetProfile` contains `id`, one `cpu`, one `machine`, one `serializer`, one `packager` and one
+  `storage` profile. Their exact identities are `nmos6510`, `c64-pal-kernal-901227-03-6581`,
+  `acme-0.97` and `cbm-prg`. An unknown profile returns a terminal diagnostic.
+- `MachineStateUse` is only ordered `registers` (`a`, `x`, `y`, `s`) and flags (`n`, `v`, `d`,
+  `i`, `z`, `c`). `MachineMemoryEffect` records read/write, symbolic or absolute address, byte
+  width, volatility and order. `MachineCost` records bytes plus minimum/maximum cycles.
+- `MachineOperand` is a discriminated union of register, immediate, absolute, label, storage and
+  indirect-Y operands. `MachineInstruction` retains the existing opcode, addressing mode, operand,
+  uses, defines, memory, cost and source fields. `MachineFunction` is an ordered list of labelled
+  blocks containing structured instructions and one structured branch/jump/return terminator.
+- `MachineLoweringInput` contains the closed `WholeProgram`, provisional `StoragePlacement` and
+  selected `TargetProfile`. Success returns one `MachineProgram` and its finite `StorageBinder`.
+  The machine program contains reachable functions, startup, data objects and required storage.
+- `bindMachineProgram` replaces every storage operand with a certified home. It returns a bound
+  program or a terminal post-closure-storage error; it cannot create a request.
+- `repairMachineBranches` uses the function's real instruction sizes from `origin`. Success returns
+  the repaired function and byte length. It keeps an in-range conditional branch and monotonically
+  replaces an out-of-range one with the inverse branch over `JMP`.
+- `C64StartupInput` contains initializer labels in proved module order, the main label and selected
+  profile. Success returns the exact 12-byte BASIC stub and one structured startup function with
+  fallthrough into `main`, saved/restored owned state and final `RTS`.
+- `C64LayoutInput` contains the bound machine program, final certificate and selected profile.
+  Success returns ordered placed intervals for startup/code, immutable data/assets, globals/BSS,
+  SFA homes and explicit fill, plus derived sprite blocks and the inclusive load range. Conflicts
+  return one terminal layout error without partial output.
+
+Every result is a `kind: "complete" | "error"` discriminated union. The concrete records may add
+only fields consumed by these seven functions or their specified tests; they may not grow a
+registry, class hierarchy, pass protocol, generic target layer or duplicate machine representation.
+
 ## Canonical `optimization: none` Lowering
 
 RD-03 implements only correct mandatory lowering and the direct forms needed by M1/focused cases:
