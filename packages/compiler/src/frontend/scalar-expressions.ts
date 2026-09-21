@@ -270,8 +270,49 @@ export class ScalarExpressionAnalyzer {
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
     if (expression.operator === "&") {
-      this.host.defer(expression.span, "Address-of remains for later semantic analysis");
-      return { node: null, exact: null };
+      if (expression.operand.kind === "name") {
+        const target = this.host.resolveName(expression.operand.name, context);
+        if (target?.binding.storage === "function") {
+          this.host.defer(expression.span, "Function address remains for later semantic analysis");
+          return { node: null, exact: null };
+        }
+      }
+      const operand = this.analyze(expression.operand, null, {
+        ...context,
+        placeContext: true,
+      });
+      if (operand.node === null) return { node: null, exact: null };
+      if (
+        operand.node.place?.readonlyOrigin === "constant" &&
+        operand.node.type.kind === "scalar"
+      ) {
+        this.host.diagnose(
+          error(
+            "E10040",
+            `Cannot take address of constant '${this.host.sourceText(expression.operand.span)}' — an inlined scalar constant has no storage address`,
+            expression.operand.span,
+          ),
+        );
+        return { node: null, exact: null };
+      }
+      if (operand.node.place === null) {
+        this.host.diagnose(
+          error(
+            "E10043",
+            `Address-of requires an addressable storage place or target function — '${this.host.sourceText(expression.operand.span)}' has no target address`,
+            expression.operand.span,
+          ),
+        );
+        return { node: null, exact: null };
+      }
+      return {
+        node: createScalarTypedExpression(expression, SCALAR_TYPES.word, null, {
+          operator: expression.operator,
+          operand: operand.node,
+          integer: integerFacts(SCALAR_TYPES.word, true),
+        }),
+        exact: null,
+      };
     }
     if (expression.operator === "!") {
       const operand = this.analyze(expression.operand, null, context);

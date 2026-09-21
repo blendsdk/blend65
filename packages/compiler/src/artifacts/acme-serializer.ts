@@ -48,7 +48,7 @@ export type AcmeSerializationResult =
     };
 
 /** Convert one compiler identity to a collision-free ASCII-only ACME label. */
-function labelName(id: string): string {
+export function acmeLabelName(id: string): string {
   return `b65_${Buffer.from(id, "utf8").toString("hex")}`;
 }
 
@@ -59,11 +59,11 @@ function hex(value: number, digits: number): string {
 
 /** Format a symbolic expression with explicit parentheses and offset arithmetic. */
 function labelExpression(operand: Extract<MachineOperand, { readonly kind: "label" }>): string {
-  const label = labelName(operand.label);
+  const label = acmeLabelName(operand.label);
   const offset = operand.offset ?? 0;
-  if (offset === 0) return `(${label})`;
+  if (offset === 0) return label;
   const magnitude = hex(Math.abs(offset), 4);
-  return `(${label} ${offset < 0 ? "-" : "+"} ${magnitude})`;
+  return `${label} ${offset < 0 ? "-" : "+"} ${magnitude}`;
 }
 
 /** Format one already-bound operand according to its selected physical addressing mode. */
@@ -86,8 +86,8 @@ function operandText(instruction: MachineInstruction): string | null {
     );
   } else if (operand.kind === "label") {
     const expression = labelExpression(operand);
-    if (operand.addressByte === "low") value = `<${expression}`;
-    else if (operand.addressByte === "high") value = `>${expression}`;
+    if (operand.addressByte === "low") value = `<(${expression})`;
+    else if (operand.addressByte === "high") value = `>(${expression})`;
     else value = expression;
   } else {
     return null;
@@ -142,13 +142,13 @@ function terminatorLines(block: MachineBlock): readonly string[] {
   const terminator = block.terminator;
   if (terminator.kind === "fallthrough" || terminator.kind === "unreachable") return [];
   if (terminator.kind === "return") return ["  rts"];
-  if (terminator.kind === "jump") return [`  jmp+2 (${labelName(terminator.target)})`];
+  if (terminator.kind === "jump") return [`  jmp+2 ${acmeLabelName(terminator.target)}`];
   if (terminator.kind === "branch") {
-    return [`  ${terminator.opcode} (${labelName(terminator.target)})`];
+    return [`  ${terminator.opcode} ${acmeLabelName(terminator.target)}`];
   }
   return [
-    `  ${terminator.opcode} (${labelName(terminator.fallthrough)})`,
-    `  jmp+2 (${labelName(terminator.jump.target)})`,
+    `  ${terminator.opcode} ${acmeLabelName(terminator.fallthrough)}`,
+    `  jmp+2 ${acmeLabelName(terminator.jump.target)}`,
   ];
 }
 
@@ -184,8 +184,8 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
   const lines: string[] = ["!cpu 6502"];
   const expectedLabels: AcmeExpectedLabel[] = [];
   const addLabel = (id: string, address: number) => {
-    expectedLabels.push(Object.freeze({ id, name: labelName(id), address }));
-    lines.push(`${labelName(id)}:`);
+    expectedLabels.push(Object.freeze({ id, name: acmeLabelName(id), address }));
+    lines.push(`${acmeLabelName(id)}:`);
   };
 
   const basic = input.layout.intervals.find(({ id }) => id === "basic.stub");

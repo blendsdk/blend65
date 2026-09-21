@@ -1,6 +1,6 @@
-import type { ProjectDiagnostic, SourceSpan } from "@blend65/compiler";
+import type { ProjectDiagnostic } from "@blend65/compiler";
 
-/** Escape native names and diagnostic insertions without sending terminal controls. */
+/** Escape untrusted text without sending terminal control characters. */
 export function escapeTerminalText(text: string): string {
   return text.replace(
     /[\u0000-\u001f\u007f-\u009f]/gu,
@@ -8,35 +8,54 @@ export function escapeTerminalText(text: string): string {
   );
 }
 
-/** Quoted display names are escaped, never rewritten in project input or identity. */
-export function displayProjectName(name: string): string {
-  return escapeTerminalText(name).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+/**
+ * Render the exact supported command and option surface.
+ * @returns Human-readable usage text ending with one newline.
+ */
+export function renderUsage(): string {
+  return (
+    "Usage: blendc <check|build|run> [options]\n" +
+    "       blendc --help (-h) | --version (-v)\n\n" +
+    "Project options:\n" +
+    "  --project PATH\n" +
+    "  --target PROFILE\n" +
+    "  --entry MODULE\n\n" +
+    "Build/run options:\n" +
+    "  --optimization none\n" +
+    "  --bounds-check <true|false>\n" +
+    "  --division-zero-check <true|false>\n"
+  );
 }
 
-/** A failed load has no trusted source text, so report exact byte spans instead of guessed lines. */
-function location(span: SourceSpan): string {
-  return `${escapeTerminalText(span.sourceId)}:bytes ${span.start}..${span.end}`;
+/** A failed load has no trusted source text, so locations use exact byte spans. */
+function location(diagnostic: ProjectDiagnostic): string | null {
+  const span = diagnostic.primarySpan;
+  return span === null
+    ? null
+    : `${escapeTerminalText(span.sourceId)}:bytes ${span.start}..${span.end}`;
 }
 
 /**
- * Render shared service records in their existing deterministic order.
- * No additional file read, validator or source excerpt is needed. Byte locations
- * are labelled explicitly; converting to line/UTF-16 coordinates would require
- * the trusted input text, which a failed load deliberately does not expose.
- * @param diagnostics Shared errors or successful-load observations.
- * @returns Safe terminal text with relative proving locations and known help.
+ * Render shared diagnostics in their deterministic service order.
+ * Every untrusted insertion is escaped, including related messages and JSON
+ * pointers. The function does not reread source files or guess line numbers.
+ * @param diagnostics Diagnostics returned by a compiler service.
+ * @returns Safe terminal text, empty when there are no diagnostics.
  */
 export function renderDiagnostics(diagnostics: readonly ProjectDiagnostic[]): string {
   const lines: string[] = [];
   for (const diagnostic of diagnostics) {
     lines.push(
-      `${diagnostic.severity}[${diagnostic.code}]: ${escapeTerminalText(diagnostic.message)}`,
+      `${diagnostic.severity}[${escapeTerminalText(diagnostic.code)}]: ${escapeTerminalText(diagnostic.message)}`,
     );
-    if (diagnostic.primarySpan !== null) lines.push(`  --> ${location(diagnostic.primarySpan)}`);
+    const primaryLocation = location(diagnostic);
+    if (primaryLocation !== null) lines.push(`  --> ${primaryLocation}`);
     if (diagnostic.pointer !== null)
       lines.push(`  field: ${escapeTerminalText(diagnostic.pointer)}`);
     for (const related of diagnostic.related) {
-      lines.push(`  related: ${location(related.span)}: ${escapeTerminalText(related.message)}`);
+      lines.push(
+        `  related: ${escapeTerminalText(related.span.sourceId)}:bytes ${related.span.start}..${related.span.end}: ${escapeTerminalText(related.message)}`,
+      );
     }
     if (diagnostic.help !== null) lines.push(`  help: ${escapeTerminalText(diagnostic.help)}`);
   }

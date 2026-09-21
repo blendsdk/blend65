@@ -339,12 +339,12 @@ describe("scalar analysis implementation", () => {
     });
   });
 
-  it("retains address-of for its later semantic phase", () => {
+  it("retains function address-of while completing scalar-place address-of", () => {
     const result = analyze(
       "module Game; function target(): void {} function functionAddress(): void { &target; } function scalarAddress(): void { let value: byte = 1; &value; } function main(): void {}",
     );
     expect(result.diagnostics).toEqual([]);
-    expect(result.obligations).toHaveLength(2);
-    expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toHaveLength(2);
+    expect(result.obligations).toHaveLength(1);
+    expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toHaveLength(1);
   });
 });

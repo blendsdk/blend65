@@ -1,4 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { EmbeddedValue } from "../assets/asset-types.js";
 import type {
   ConversionKind,
   SemanticBinding,
@@ -63,11 +64,17 @@ function typeBeforeConversion(expression: TypedExpr): SemanticType {
 class ExpressionLowerer {
   private readonly builder: ControlFlowBuilder;
   private readonly bindingsByKey: ReadonlyMap<string, SemanticBinding>;
+  private readonly embeddedByBinding: ReadonlyMap<string, EmbeddedValue>;
 
   /** Bind expression lowering to one function or initializer graph. */
-  constructor(builder: ControlFlowBuilder, bindingsByKey: ReadonlyMap<string, SemanticBinding>) {
+  constructor(
+    builder: ControlFlowBuilder,
+    bindingsByKey: ReadonlyMap<string, SemanticBinding>,
+    embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
+  ) {
     this.builder = builder;
     this.bindingsByKey = bindingsByKey;
+    this.embeddedByBinding = embeddedByBinding;
   }
 
   /** Lower one expression and then its retained conversion, if any. */
@@ -210,6 +217,38 @@ class ExpressionLowerer {
   private lowerUnary(expression: TypedExpr, type: SemanticType): ValueId {
     const operandNode = required(expression.operand, "unary operand");
     if (!("type" in operandNode)) throw new Error("Unary operand is not a typed expression");
+    const operator = required(expression.operator, "unary operator");
+    if (operator === "&") {
+      if (operandNode.place === null) {
+        throw new Error("Completed address-of operand has no place metadata");
+      }
+      const embedded = this.embeddedByBinding.get(bindingIdentityKey(operandNode.place.binding));
+      const result = this.builder.nextValue();
+      if (embedded !== undefined && operandNode.place.path.length === 0) {
+        this.builder.emit(
+          Object.freeze({
+            kind: "embedded-address",
+            result,
+            asset: embedded.assetId,
+            type,
+            integer: expression.integer,
+            span: expression.span,
+          }),
+        );
+      } else {
+        this.builder.emit(
+          Object.freeze({
+            kind: "place-address",
+            result,
+            place: this.lowerPlace(operandNode),
+            type,
+            integer: expression.integer,
+            span: expression.span,
+          }),
+        );
+      }
+      return result;
+    }
     const operand = this.lower(operandNode);
     if (operand === null) throw new Error("Completed unary operand has no value");
     const result = this.builder.nextValue();
@@ -217,7 +256,7 @@ class ExpressionLowerer {
       Object.freeze({
         kind: "unary",
         result,
-        operator: required(expression.operator, "unary operator"),
+        operator,
         operand,
         type,
         integer: expression.integer,
@@ -572,10 +611,11 @@ function lowerFunction(
   declaration: TypedDeclaration,
   bindings: readonly SemanticBinding[],
   bindingsByKey: ReadonlyMap<string, SemanticBinding>,
+  embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
 ): SemanticFunction {
   if (declaration.body === null) throw new Error("Cannot lower a non-function as a function");
   const builder = new ControlFlowBuilder(`function:${bindingIdentityKey(declaration.binding)}`);
-  const expressions = new ExpressionLowerer(builder, bindingsByKey);
+  const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
   builder.lowerBody(declaration.body, expressions.lower);
   const blocks = Object.freeze(
     builder.finish(declaration.type).map((block) =>
@@ -622,6 +662,7 @@ function lowerGlobal(
   declaration: TypedDeclaration,
   binding: SemanticBinding,
   bindingsByKey: ReadonlyMap<string, SemanticBinding>,
+  embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
 ): SemanticGlobal {
   if (declaration.initializer === null) {
     return Object.freeze({
@@ -633,7 +674,7 @@ function lowerGlobal(
     });
   }
   const builder = new ControlFlowBuilder(`initializer:${bindingIdentityKey(declaration.binding)}`);
-  const expressions = new ExpressionLowerer(builder, bindingsByKey);
+  const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
   const value = expressions.lower(declaration.initializer);
   if (value === null) throw new Error("Completed module initializer did not produce a value");
   builder.emit(
@@ -666,6 +707,14 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
   const bindingsByKey = new Map(
     frontend.bindings.map((binding) => [bindingIdentityKey(binding.id), binding] as const),
   );
+  const embeddedByBinding = new Map(
+    frontend.declarations.flatMap((declaration) =>
+      declaration.initializer?.embedded === undefined
+        ? []
+        : [[bindingIdentityKey(declaration.binding), declaration.initializer.embedded] as const],
+    ),
+  );
+  const embeddedBindings = new Set(embeddedByBinding.keys());
   const mainCandidates = frontend.bindings.filter(
     (binding) => binding.storage === "function" && binding.name === "main",
   );
@@ -679,9 +728,14 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
     const binding = bindingsByKey.get(bindingIdentityKey(declaration.binding));
     if (binding === undefined) throw new Error("Completed declaration has no retained binding");
     if (declaration.body !== null) {
-      functions.push(lowerFunction(declaration, frontend.bindings, bindingsByKey));
-    } else if (binding.storage === "module" || binding.storage === "constant") {
-      globals.push(lowerGlobal(declaration, binding, bindingsByKey));
+      functions.push(
+        lowerFunction(declaration, frontend.bindings, bindingsByKey, embeddedByBinding),
+      );
+    } else if (
+      (binding.storage === "module" || binding.storage === "constant") &&
+      !embeddedBindings.has(bindingIdentityKey(declaration.binding))
+    ) {
+      globals.push(lowerGlobal(declaration, binding, bindingsByKey, embeddedByBinding));
     }
   }
   return Object.freeze({
@@ -692,7 +746,11 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       functions: Object.freeze(functions),
       effects: frontend.effects,
       assets: frontend.assets,
-      initializerOrder: frontend.initializerOrder,
+      initializerOrder: Object.freeze(
+        frontend.initializerOrder.filter(
+          (binding) => !embeddedBindings.has(bindingIdentityKey(binding)),
+        ),
+      ),
     }),
   });
 }

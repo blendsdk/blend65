@@ -1,15 +1,10 @@
 import type { ProjectDiagnostic } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
-import { displayProjectName, escapeTerminalText, renderDiagnostics } from "./render.js";
+import { escapeTerminalText, renderDiagnostics } from "./render.js";
 
 describe("terminal rendering boundary", () => {
   it("should escape controls while preserving ordinary Unicode text", () => {
     expect(escapeTerminalText("Game Ω\n\t\u001b\u009b")).toBe("Game ΩU+000AU+0009U+001BU+009B");
-  });
-
-  it("should escape only display delimiters without renaming the project", () => {
-    expect(displayProjectName("Game's Ω")).toBe("Game\\'s Ω");
-    expect(displayProjectName("A\\B")).toBe("A\\\\B");
   });
 
   it("should render byte locations warnings related proof and help without reading input", () => {

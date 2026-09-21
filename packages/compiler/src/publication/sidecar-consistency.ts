@@ -12,6 +12,21 @@ function sameValue(left: unknown, right: unknown): boolean {
   return canonicalEvidenceJson(left) === canonicalEvidenceJson(right);
 }
 
+/** Decode one physical owner which may represent several overlaid logical owners. */
+function physicalOwnerNames(
+  owner: Record<string, unknown>,
+  expectedKind: "function" | "helper",
+): readonly string[] {
+  if (owner.kind !== expectedKind || typeof owner.id !== "string") return [];
+  if (!owner.id.startsWith("overlay:")) return [owner.id];
+  try {
+    const value: unknown = JSON.parse(owner.id.slice("overlay:".length));
+    return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : [];
+  } catch {
+    return [];
+  }
+}
+
 /** Return whether every source site resolves inside the exact build source inventory. */
 function sourceSitesMatchBuild(
   sites: readonly Record<string, unknown>[],
@@ -226,10 +241,9 @@ function debugRangesMatchMemory(
         const context = contexts[location.contextIndex as number]!;
         const functionName = functions[context.functionIndex as number]!.qualifiedName;
         return (
-          (owner.kind === "function" && owner.id === functionName) ||
+          physicalOwnerNames(owner, "function").includes(String(functionName)) ||
           (symbol.kind === "helperScratch" &&
-            owner.kind === "helper" &&
-            owner.id === symbol.qualifiedName)
+            physicalOwnerNames(owner, "helper").includes(String(symbol.qualifiedName)))
         );
       }
       if (symbol.kind === "asset") {
@@ -291,7 +305,10 @@ export function sidecarReferencesAgree(
     ),
   );
   const ownerResolves = (owner: Record<string, unknown>): boolean => {
-    if (owner.kind === "function") return functions.has(String(owner.id));
+    if (owner.kind === "function") {
+      const names = physicalOwnerNames(owner, "function");
+      return names.length > 0 && names.every((name) => functions.has(name));
+    }
     if (owner.kind === "symbol") return symbols.has(String(owner.id));
     if (owner.kind === "asset") return assetIds.has(String(owner.id));
     if (owner.kind === "loadUnit") return loadUnitIds.has(String(owner.id));

@@ -25,7 +25,7 @@ interface Token {
 const FRONTEND = /(?:^|[/@-])(?:frontend|language-server|vscode)(?:$|[/.-])/;
 /** Backend responsibilities, recognized as complete path/name components. */
 const BACKEND =
-  /(?:^|[/@-])(?:target|lowering|codegen|serializer|serialization|packager|packaging|emulator)(?:$|[/.-])/;
+  /(?:^|\/)(?:target|semantic|storage|machine|layout|artifacts|publication|tools|services)(?:\/|$)|(?:^|[/@-])(?:lowering|codegen|serializer|serialization|packager|packaging|emulator)(?:$|[/.-])/;
 
 /** Narrow JSON objects before inspecting manifests; parsed input is not trusted typed data. */
 function record(value: unknown): value is Record<string, unknown> {

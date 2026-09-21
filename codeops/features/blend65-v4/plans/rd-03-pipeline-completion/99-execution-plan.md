@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-21 11:21
-> **Progress**: 50/79 tasks (63%)
+> **Last Updated**: 2026-09-21 20:43
+> **Progress**: 59/79 tasks (75%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -383,39 +383,74 @@ Deliverable: one verified eight-file immutable generation published atomically.
 
 ## Phase 6: Compiler Services and CLI
 
+> **Phase baseline tree**: `9e41226584cfe2b685b685666b1b2a934d5ba6e0`
 > **Scope mode**: strict
 > **Expected modification set**: compiler public/service files, CLI files/tests, manifests only when
-> required; plan evidence/roadmap. No editor work, daemon or command framework.
+> required; the AR-C31 frontend/semantic address-of prerequisite and focused oracle; plan
+> evidence/roadmap. No editor work, daemon or command framework.
 > **Lenses**: correctness, api-surface, security, simplicity
 
 ### Step 6.1: Specification Tests
 
-- [ ] 6.1.1 [spec-author] Write ST-88–ST-90 —
+- [x] 6.1.1 [spec-author] Write ST-88–ST-90 — ✅
   `packages/compiler/src/services/services.spec.test.ts`, `packages/cli/src/commands.spec.test.ts`;
-  forbidden: production compiler-service and CLI files.
-- [ ] 6.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+  forbidden: production compiler-service and CLI files. (completed: 2026-09-21 11:55 CEST)
+- [x] 6.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-21 11:56 CEST)
+
+#### Phase 6 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `packages/compiler/src/services/services.spec.test.ts` | `f2048ff99115daa4fc9546d7de5ec5c919ba241ac25bc83e676a561844962b26` | 6/6 cases fail only because the planned public compiler service exports are absent |
+| `packages/cli/src/commands.spec.test.ts` | `3055c847430ec3b2195bf0741d54c20adf7dd466717a96bb773a6d566746ab46` | 26/26 cases fail only because the planned package-internal `run.ts` command seam is absent; AR-C32 later corrected only the cancellation test's start synchronization without changing its assertions |
+| `packages/compiler/src/frontend/address-of.spec.test.ts` | `a1ff43c5fb3661d4b1dffeb9d4d03a3fdc9e83ec02d4f43755645324dcf1a55d` | 3/3 cases fail because address-of is deferred instead of completing the resident embedded place or reporting E10040/E10043 |
+
+Both directed package commands reached behavioral RED. Prettier, whitespace and the documentation-
+ban check passed. The implementation-blind author read no forbidden compiler-service or CLI
+production file. These two files are immutable implementation inputs from this point onward.
+The authorized AR-C31 prerequisite oracle was added independently under the same immutable rule.
 
 ### Step 6.2: Implementation
 
-- [ ] 6.2.1 Implement typed check/build/run results and cancellation —
-  `packages/compiler/src/services/{types.ts,services.ts}`.
-- [ ] 6.2.2 Export the backend-free `@blend65/compiler/frontend` subpath, including the existing safe
+- [x] 6.2.1 Implement typed check/build/run results and cancellation — ✅
+  `packages/compiler/src/services/{types.ts,services.ts}`; first apply the authorized AR-C31 direct
+  address-of prerequisite correction and focused regression. The first real M1 ACME journey also
+  corrected the existing serializer's accidental indirect parentheses and removed the redundant
+  embedded-asset global; the resident bytes now have one identity and one placement.
+  (completed: 2026-09-21 12:56 CEST)
+- [x] 6.2.2 Export the backend-free `@blend65/compiler/frontend` subpath, including the existing safe
   `loadProject` entry/types, and extend transitive boundary proof —
-  `packages/compiler/{package.json,src/frontend/index.ts}`, `test/import-boundary.ts`.
-- [ ] 6.2.3 Wire the typed services into the compiler package root —
-  `packages/compiler/src/index.ts`.
-- [ ] 6.2.4 Map CLI commands/options/signals/output and the exact numeric exit table —
-  `packages/cli/src/{args.ts,run.ts,render.ts}`.
-- [ ] 6.2.5 Wire CLI public/main/bin entry points to the command runner —
-  `packages/cli/src/{index.ts,main.ts,bin.ts}`.
+  `packages/compiler/{package.json,src/frontend/index.ts}`, `test/import-boundary.ts`. ✅
+  (completed: 2026-09-21 12:56 CEST)
+- [x] 6.2.3 Wire the typed services into the compiler package root —
+  `packages/compiler/src/index.ts`. ✅
+  (completed: 2026-09-21 12:56 CEST)
+- [x] 6.2.4 Map CLI commands/options/signals/output and the exact numeric exit table —
+  `packages/cli/src/{args.ts,run.ts,render.ts}`. ✅ (completed: 2026-09-21 13:09 CEST;
+  verification resumed after AR-C32 authorization)
+- [x] 6.2.5 Wire CLI public/main/bin entry points to the command runner —
+  `packages/cli/src/{index.ts,main.ts,bin.ts}`. ✅ (completed: 2026-09-21 13:11 CEST)
 
 ### Step 6.3: Implementation Tests and Hardening
 
-- [ ] 6.3.1 Reach GREEN; add fresh-build/stale-output/cancellation implementation tests and qualify
+- [x] 6.3.1 Reach GREEN; add fresh-build/stale-output/cancellation implementation tests and qualify
   compiler/CLI — `packages/compiler/src/services/services.impl.test.ts`,
-  `packages/cli/src/commands.impl.test.ts`; run boundaries.
-- [ ] 6.3.2 Record independent API/security review and corrections — `08-phase-6-review.md`; commit
-  green checkpoint.
+  `packages/cli/src/commands.impl.test.ts`; run boundaries. ✅ (completed: 2026-09-21 13:21 CEST)
+
+Phase qualification before independent review: frozen install, build and typecheck passed; all 67
+compiler suites and 977 tests, all 7 CLI suites and 60 tests, and all 5 root suites and 52 tests
+passed. Directed service tests passed 8/8 and frontend address tests passed 23/23. Prettier and
+`git diff --check` passed; `spec/` remained untouched. The first full run caught and corrected one
+function-address deferral regression before this green checkpoint.
+- [x] 6.3.2 Record independent API/security review and corrections — `08-phase-6-review.md`; commit
+  green checkpoint. ✅ (completed: 2026-09-21 20:43 CEST; all eight accepted findings corrected,
+  complete Phase 6 gate green, no third review cycle)
+
+Final Phase 6 qualification: frozen install, build and typecheck passed; all 67 compiler suites and
+983 tests, all 7 CLI suites and 60 tests, and all 5 root suites and 52 tests passed. Touched-file
+Prettier, `git diff --check`, immutable-oracle hashes and the frozen `spec/` check passed. The
+checkout has no lint script or Turbo lint task, so no lint result is claimed.
 
 Deliverable: truthful library and CLI check/build/run journeys.
 
