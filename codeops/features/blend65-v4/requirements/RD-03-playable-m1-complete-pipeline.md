@@ -909,7 +909,7 @@ The indexed record arrays use these exact shapes:
 | `FunctionRecord` | `{ qualifiedName: string, kind: FunctionKind, declaration: SpanRecord, entryVariants: EntryVariantRecord[], rangeIndexes: integer[] }`; `FunctionKind` is `"ordinary"` or `"interrupt"`. |
 | `EntryVariantRecord` | `{ id: string, kind: string, label: string, rangeIndexes: integer[] }`; `kind` is a selected-profile variant identity. |
 | `ContextRecord` | `{ kind: ContextKind, functionIndex: integer }` plus tag-dependent fields. `ContextKind` is `"entry"`, `"call"`, or `"inlined"`. An entry requires integer `entryVariantIndex` into that function's `entryVariants` and forbids `parentContextIndex`/`callSite`; call and inlined contexts require integer `parentContextIndex` plus `callSite: SpanRecord` and forbid `entryVariantIndex`. |
-| `SymbolRecord` | `{ name: string, qualifiedName: string, kind: SymbolKind, type: string, shape: ShapeExtent[], scope: string, origin: SourceOrigin | GeneratedOrigin, linkage: LinkageKind, labels: string[], locationIndexes: integer[] }`. `type` is the canonical Specification 4 type spelling; scalar symbols use an empty `shape`. |
+| `SymbolRecord` | `{ name: string, qualifiedName: string, kind: SymbolKind, type: string, byteWidth: integer, shape: ShapeExtent[], scope: string, origin: SourceOrigin | GeneratedOrigin, linkage: LinkageKind, labels: string[], locationIndexes: integer[] }`. `type` is the canonical Specification 4 type spelling, `byteWidth` is the exact represented target width supplied by the semantic type model, and scalar symbols use an empty `shape`. |
 | `LocationRecord` | `{ symbolIndex: integer, liveRangeIndexes: integer[], availability: AvailabilityRecord }` plus optional integer `contextIndex`. `contextIndex` is required for parameters, returns, locals, and temporaries; forbidden for functions, globals, constants, and assets; and present for helper scratch exactly when the scratch belongs to a recorded function context. Every referenced live range belongs to that context when present. `liveRangeIndexes` names the final machine ranges over which the availability applies; it is empty only for a context-free object whose location applies for its complete resident lifetime. |
 | `RangeRecord` | `{ machine: MachineRangeRecord, origin: SourceOrigin | GeneratedOrigin, owner: RangeOwner, optimizationIndexes: integer[] }` plus optional `contextIndex`, present exactly for bytes attached to a recorded `FunctionRecord`; generated startup, loader, and platform-helper bytes use a platform owner and omit it. |
 | `OptimizationRecord` | `{ stage: string, rule: string, result: OptimizationResult, sourceSpans: SpanRecord[], outputRangeIndexes: integer[] }`; eliminated results have no output ranges. |
@@ -944,8 +944,9 @@ The remaining closed types are:
 `{ kind: "memory", machine: MachineRangeRecord, valueOffset: integer, byteLength: integer }` or
 `{ kind: "register", register: string, valueOffset: integer, byteLength: integer }`. Piece value
 intervals are non-overlapping, cover the represented bytes exactly, and use only registers admitted
-by `cpuId`. Constant bytes and the combined piece widths must equal the represented symbol's exact
-type width.
+by `cpuId`. Constant bytes and the combined piece widths must equal the referenced symbol's
+`byteWidth`; the producer derives that field from the resolved semantic type, including named
+structs, enums, function values, fixed aggregates, and borrowed parameter representations.
 
 Every integer is a nonnegative JSON safe integer unless a tighter bound is stated. Every index must
 resolve inside its named array; every reverse index must agree; duplicate records and dangling or

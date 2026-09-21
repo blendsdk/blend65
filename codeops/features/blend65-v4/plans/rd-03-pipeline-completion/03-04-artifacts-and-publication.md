@@ -26,6 +26,234 @@ Stable labels derive from compiler IDs through a fixed ASCII serializer. Source 
 assembler identifiers. A final validation walks every emitted instruction against the selected
 documented NMOS grid before writing source (AR-C5, AR-C14).
 
+## Direct Phase Interfaces
+
+The implementation exposes only the following direct functions and immutable records. Result
+unions carry one safe `diagnostic` string and the closed `reason` shown below. These are internal
+compiler interfaces, not a plugin surface.
+
+```ts
+type CompleteC64Layout = Extract<C64LayoutResult, { readonly kind: "complete" }>;
+
+interface AcmeSerializationInput {
+  readonly layout: CompleteC64Layout;
+  readonly certificate: StorageClosureCertificate;
+  readonly profile: TargetProfile;
+}
+
+type AcmeSerializationResult =
+  | {
+      readonly kind: "complete";
+      readonly source: string;
+      readonly expectedLabels: readonly AcmeExpectedLabel[];
+      readonly expectedSegments: readonly AcmeExpectedSegment[];
+    }
+  | {
+      readonly kind: "error";
+      readonly reason: "invalid-program" | "invalid-layout" | "unsupported-form";
+      readonly diagnostic: string;
+    };
+
+function serializeAcme(input: AcmeSerializationInput): AcmeSerializationResult;
+
+interface AcmeDiscoveryInput {
+  readonly explicitPath?: string;
+  readonly path?: string;
+  readonly signal?: AbortSignal;
+}
+
+type AcmeDiscoveryResult =
+  | { readonly kind: "complete"; readonly tool: AcmeToolIdentity }
+  | {
+      readonly kind: "error";
+      readonly reason:
+        | "invalid-path"
+        | "not-found"
+        | "version-mismatch"
+        | "process"
+        | "output-limit"
+        | "cancelled";
+      readonly diagnostic: string;
+    };
+
+function discoverAcme(input?: AcmeDiscoveryInput): Promise<AcmeDiscoveryResult>;
+
+interface AcmeRunInput {
+  readonly tool: AcmeToolIdentity;
+  readonly stagingDirectory: string;
+  readonly artifactName: string;
+  readonly serialization: Extract<AcmeSerializationResult, { readonly kind: "complete" }>;
+  readonly layout: CompleteC64Layout;
+  readonly signal?: AbortSignal;
+}
+
+type AcmeRunResult =
+  | { readonly kind: "complete"; readonly artifacts: AcmeArtifactSet }
+  | {
+      readonly kind: "error";
+      readonly reason:
+        | "invalid-staging"
+        | "output-conflict"
+        | "process"
+        | "diagnostic"
+        | "output-limit"
+        | "cancelled"
+        | "invalid-output";
+      readonly diagnostic: string;
+    };
+
+function runAcme(input: AcmeRunInput): Promise<AcmeRunResult>;
+```
+
+`AcmeExpectedLabel`, `AcmeExpectedSegment`, `AcmeToolIdentity`, and `AcmeArtifactSet` are small
+closed records containing only the symbol/range, canonical executable/version/hash, and exact
+ordinary-file identities/digests needed by the next boundary. Production process-output and wait
+bounds are fixed internal constants, not caller settings.
+
+Each evidence family exports a named pair with no shared runtime dispatcher:
+
+```ts
+function encodeBuildEvidence(value: unknown): EvidenceEncodingResult;
+function validateBuildEvidence(bytes: Uint8Array): EvidenceValidationResult<BuildEvidence>;
+function encodeAssetsEvidence(value: unknown): EvidenceEncodingResult;
+function validateAssetsEvidence(bytes: Uint8Array): EvidenceValidationResult<AssetsEvidence>;
+function encodeMemoryEvidence(value: unknown): EvidenceEncodingResult;
+function validateMemoryEvidence(bytes: Uint8Array): EvidenceValidationResult<MemoryEvidence>;
+function encodeCostsEvidence(value: unknown): EvidenceEncodingResult;
+function validateCostsEvidence(bytes: Uint8Array): EvidenceValidationResult<CostsEvidence>;
+function encodeDebugEvidence(value: unknown): EvidenceEncodingResult;
+function validateDebugEvidence(bytes: Uint8Array): EvidenceValidationResult<DebugEvidence>;
+
+type EvidenceEncodingResult =
+  | { readonly kind: "complete"; readonly bytes: Uint8Array; readonly sha256: string }
+  | {
+      readonly kind: "error";
+      readonly reason: "malformed" | "unsupported-version" | "inconsistent";
+      readonly diagnostic: string;
+    };
+
+type EvidenceValidationResult<T> =
+  | { readonly kind: "complete"; readonly value: T }
+  | {
+      readonly kind: "error";
+      readonly reason: "malformed" | "unsupported-version" | "inconsistent";
+      readonly diagnostic: string;
+    };
+```
+
+The five evidence value types reproduce only their frozen version-1 records. The generic result
+type is compile-time reuse; validation remains five direct functions rather than a schema engine.
+
+Publication consumes an already complete owned staging directory and the existing project snapshot;
+it does not compile, assemble, or manufacture evidence inside its critical section:
+
+```ts
+interface PreparedGeneration {
+  readonly snapshot: ProjectSnapshot;
+  readonly generationId: string;
+  readonly stagingDirectory: string;
+  readonly files: readonly PublishedFileExpectation[];
+  readonly primaryArtifact: string;
+  readonly buildJsonSha256: string;
+  readonly pinForRun?: boolean;
+  readonly signal?: AbortSignal;
+}
+
+interface PublishedFileExpectation {
+  readonly path: string;
+  readonly bytes: number;
+  readonly sha256: string;
+}
+
+type PublicationCheckpointPhase =
+  | "before-lock"
+  | "after-lock"
+  | "before-generation-rename"
+  | "after-generation-rename"
+  | "before-current-replace"
+  | "after-current-replace"
+  | "after-pin-create"
+  | "before-cleanup-scan"
+  | "before-generation-remove"
+  | "before-pin-remove"
+  | "before-lock-release";
+
+interface PublicationCheckpoint {
+  readonly phase: PublicationCheckpointPhase;
+  readonly generationId: string;
+  readonly path: string | null;
+}
+
+interface PublicationControls {
+  readonly onCheckpoint?: (checkpoint: PublicationCheckpoint) => void | Promise<void>;
+}
+
+type PublicationErrorReason =
+  | "invalid-path"
+  | "ownership"
+  | "lock-timeout"
+  | "cancelled"
+  | "invalid-staging"
+  | "current"
+  | "pin"
+  | "cleanup"
+  | "committed-recovery";
+
+interface GenerationPinInput {
+  readonly snapshot: ProjectSnapshot;
+  readonly signal?: AbortSignal;
+}
+
+type PublicationLookupResult =
+  | { readonly kind: "complete"; readonly generation: PublishedGeneration }
+  | { readonly kind: "error"; readonly reason: PublicationErrorReason; readonly diagnostic: string };
+
+type GenerationPinResult =
+  | { readonly kind: "complete"; readonly pin: GenerationPin }
+  | { readonly kind: "error"; readonly reason: PublicationErrorReason; readonly diagnostic: string };
+
+type PublicationOperationResult =
+  | { readonly kind: "complete" }
+  | { readonly kind: "error"; readonly reason: PublicationErrorReason; readonly diagnostic: string };
+
+type PublicationResult =
+  | {
+      readonly kind: "complete";
+      readonly generation: PublishedGeneration;
+      readonly pin: GenerationPin | null;
+    }
+  | {
+      readonly kind: "error";
+      readonly reason: PublicationErrorReason;
+      readonly diagnostic: string;
+    };
+
+function publishGeneration(
+  input: PreparedGeneration,
+  controls?: PublicationControls,
+): Promise<PublicationResult>;
+function readCurrentGeneration(
+  snapshot: ProjectSnapshot,
+  controls?: PublicationControls,
+): Promise<PublicationLookupResult>;
+function pinGeneration(
+  input: GenerationPinInput,
+  controls?: PublicationControls,
+): Promise<GenerationPinResult>;
+function releaseGenerationPin(
+  pin: GenerationPin,
+  controls?: PublicationControls,
+): Promise<PublicationOperationResult>;
+function cleanupGenerations(
+  snapshot: ProjectSnapshot,
+  controls?: PublicationControls,
+): Promise<PublicationOperationResult>;
+```
+
+The lookup, pin and operation results use the same publication error reasons. A private optional
+checkpoint callback may pause tests immediately before the documented mutation boundaries; it
+cannot replace filesystem, process, UUID, clock, hashing, retry or validation behavior.
+
 ## Tool Discovery and ACME Driver
 
 Machine-local `tools.jsonc` is optional and outside project roots: the accepted Linux and Windows

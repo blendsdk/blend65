@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-20 18:29
-> **Progress**: 40/79 tasks (51%)
+> **Last Updated**: 2026-09-21 11:21
+> **Progress**: 50/79 tasks (63%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -307,6 +307,7 @@ Deliverable: a closed legal documented-NMOS machine program and exact final C64 
 
 ## Phase 5: ACME Artifacts and Publication
 
+> **Phase baseline tree**: `5693703d9dd2c7eaff74e821d384a8173c860d7b`
 > **Scope mode**: strict
 > **Expected modification set**: focused `compiler/src/{artifacts,publication,tools}/` files/tests;
 > plan evidence/roadmap. No build system, cache, database, generic schema or readiness service.
@@ -314,33 +315,69 @@ Deliverable: a closed legal documented-NMOS machine program and exact final C64 
 
 ### Step 5.1: Specification Tests
 
-- [ ] 5.1.1 [spec-author] Write ST-77–ST-87 —
+- [x] 5.1.1 [spec-author] Write ST-77–ST-87 — ✅ (completed: 2026-09-21 01:49 CEST)
   `packages/compiler/src/{artifacts/acme,artifacts/evidence,publication/publication}.spec.test.ts`;
   forbidden: production artifact/publication/tool modules.
-- [ ] 5.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+- [x] 5.1.2 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-21 01:50 CEST)
+
+#### Phase 5 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `packages/compiler/src/artifacts/acme.spec.test.ts` | `70b2660a5c5533fda9eb1d053e9961b4bdd2d3eb61a98e9f47dcf486c9d62835` | Missing planned `tools/acme.ts` |
+| `packages/compiler/src/artifacts/evidence.spec.test.ts` | `5ca2aa8b99406d529c7bd7a4a34d1e5a7b5a452d98ab7160b03860bf790c43fb` | Missing planned `artifacts/evidence.ts` |
+| `packages/compiler/src/publication/publication.spec.test.ts` | `f0ee374cd3f0735109216dd369976c9db148c6cf8ea7a3f6fba58b731abcaf2a` | Missing planned `artifacts/evidence.ts`; authorized `access()` → `lstat()` helper correction plus cancellation-after-rename, cleanup pin-rescan and pin-replacement regressions preserve and strengthen the accepted publication contract |
+
+The compiler-package command failed at collection only on the three absent Phase 5 production
+modules while all 58 pre-existing suites and 931 tests passed. The 13 new cases did not execute.
+The specification-test author read no forbidden artifact, publication or tool production file.
+These three files are immutable implementation inputs from this point onward.
 
 ### Step 5.2: Implementation
 
-- [ ] 5.2.1 Implement terminal ACME serialization/form validation —
+- [x] 5.2.1 Implement terminal ACME serialization/form validation — ✅
+  (completed: 2026-09-21 01:53 CEST)
   `packages/compiler/src/artifacts/{acme-serializer.ts,acme-validate.ts}`.
-- [ ] 5.2.2 Implement ACME 0.97 discovery/invocation/cleanup —
+- [x] 5.2.2 Implement ACME 0.97 discovery/invocation/cleanup — ✅
+  (completed: 2026-09-21 01:58 CEST)
   `packages/compiler/src/tools/{discovery.ts,acme.ts}`.
-- [ ] 5.2.3 Verify reports/symbols/bytes/segments/PRG/assets —
+- [x] 5.2.3 Verify reports/symbols/bytes/segments/PRG/assets — ✅
+  (completed: 2026-09-21 02:02 CEST)
   `packages/compiler/src/artifacts/{acme-output.ts,prg.ts}`.
-- [ ] 5.2.4 Implement direct canonical sidecars and cross-hashes —
+- [x] 5.2.4 Implement direct canonical sidecars and cross-hashes — ✅
+  (completed: 2026-09-21 02:08 CEST)
   `packages/compiler/src/artifacts/{evidence.ts,evidence-types.ts}`.
-- [ ] 5.2.5 Implement staging/generation/current commit —
+- [x] 5.2.5 Implement staging/generation/current commit — ✅
+  (completed: 2026-09-21 02:13 CEST)
   `packages/compiler/src/publication/{publication.ts,current-record.ts}`; revalidate output-root
   containment and ancestor identity at every mutation boundary.
-- [ ] 5.2.6 Implement the exact directory lock, independent pins, predecessor retention and fail-closed
-  cleanup — `packages/compiler/src/publication/{lock.ts,pins.ts,cleanup.ts}`.
+- [x] 5.2.6 Implement the exact directory lock, independent pins, predecessor retention and fail-closed
+  cleanup — ✅ (completed: 2026-09-21 09:51 CEST)
+  `packages/compiler/src/publication/{lock.ts,pins.ts,cleanup.ts}`.
+
+#### Phase 5 immutable-oracle blocker
+
+Publication specification cases passed through atomic commit, competing publication, independent
+pins, retention and cancellation. The malformed-pin case left its dangling symlink untouched, but
+its `exists()` helper used `fs.access()`, which follows the dangling target and therefore reported
+`false`. The user authorized the smallest mechanical correction on 2026-09-21: check directory
+entry existence with `lstat()` without changing the security expectation.
 
 ### Step 5.3: Implementation Tests and Hardening
 
-- [ ] 5.3.1 Reach GREEN with real ACME/filesystem/process/concurrency and ancestor-swap tests —
+- [x] 5.3.1 Reach GREEN with real ACME/filesystem/process/concurrency and ancestor-swap tests — ✅
+  (completed: 2026-09-21 09:57 CEST)
   `packages/compiler/src/{artifacts/acme,publication/publication}.impl.test.ts`; qualify phase.
-- [ ] 5.3.2 Record independent correctness/security/concurrency review and corrections —
+
+Phase qualification after accepted review corrections: install, build and typecheck passed; all 64
+compiler suites and 966 tests, all 5 CLI suites and 61 tests, and all 5 root suites and 52 tests
+passed, including real ACME 0.97 and filesystem/concurrency cases. Prettier and `git diff --check`
+passed; `spec/` remained untouched. The checkout has no root, Turbo or compiler `lint` task, so no
+lint command exists despite the stale project-guidance entry.
+- [x] 5.3.2 Record independent correctness/security/concurrency review and corrections — ✅
   `08-phase-5-review.md`; commit green checkpoint.
+  (completed: 2026-09-21 11:21 CEST)
 
 Deliverable: one verified eight-file immutable generation published atomically.
 
