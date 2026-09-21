@@ -1,0 +1,27 @@
+{
+  "name": "@blend65/language-server",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build && vite build",
+    "typecheck": "tsc --build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@blend65/compiler": "0.1.0",
+    "vscode-languageserver": "10.1.1",
+    "vscode-languageserver-textdocument": "1.0.12"
+  },
+  "devDependencies": {
+    "vite": "5.4.21"
+  }
+}

@@ -46,6 +46,8 @@ export interface LoadContext {
   readonly limits: ProjectLimits;
   /** Optional awaited fixture mutation, absent in production. */
   readonly onCheckpoint: ProjectLoadControls["onCheckpoint"];
+  /** Optional caller cancellation checked around every awaited load boundary. */
+  readonly signal: AbortSignal | undefined;
 }
 
 /** Await an exact boundary; callback errors remain programmer failures. */
@@ -54,11 +56,14 @@ export async function checkpoint(
   phase: LoadCheckpoint["phase"],
   sourceId: string | null = null,
 ): Promise<void> {
+  context.signal?.throwIfAborted();
   await context.onCheckpoint?.(Object.freeze({ phase, attempt: context.attempt, sourceId }));
+  context.signal?.throwIfAborted();
 }
 
 /** Resolve again before/after native use, refusing observed path or metadata replacement. */
 export async function guardPath(input: ResolvedInput, context: LoadContext): Promise<void> {
+  context.signal?.throwIfAborted();
   const current = await resolveInput(
     input.logicalPath,
     context.logicalRoot,
@@ -66,6 +71,7 @@ export async function guardPath(input: ResolvedInput, context: LoadContext): Pro
     input.sourceId,
     true,
   );
+  context.signal?.throwIfAborted();
   if (
     current.resolvedPath !== input.resolvedPath ||
     !sameMetadata(current.metadata, input.metadata)
@@ -119,6 +125,7 @@ export async function readInput(
     const chunks: Buffer[] = [];
     let length = 0;
     for (;;) {
+      context.signal?.throwIfAborted();
       // At most maximum+1 bytes can be admitted: the extra byte detects growth at the cap.
       const buffer = Buffer.alloc(Math.min(65_536, maximum - length + 1));
       let bytesRead: number;
@@ -127,6 +134,7 @@ export async function readInput(
       } catch (error) {
         throwReadFailure(error, input.sourceId, true);
       }
+      context.signal?.throwIfAborted();
       if (bytesRead === 0) break;
       length += bytesRead;
       checkLimit(name, maximum, length);
@@ -134,7 +142,9 @@ export async function readInput(
     }
     await checkpoint(context, "after-read", input.sourceId);
     if (revalidation) await checkpoint(context, "after-revalidation-read", input.sourceId);
+    context.signal?.throwIfAborted();
     const after = await handleMetadata(handle, input);
+    context.signal?.throwIfAborted();
     if (!sameMetadata(input.metadata, after) || !sameMetadata(opened, after))
       throw new ProjectChanged();
     await guardPath(input, context);

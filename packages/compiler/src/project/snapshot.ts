@@ -133,12 +133,15 @@ async function loadAttempt(
   limits: ProjectLimits,
   attempt: number,
 ): Promise<ProjectSnapshot> {
+  options.signal?.throwIfAborted();
   const selection = await discoverProject(options);
+  options.signal?.throwIfAborted();
   const context: LoadContext = {
     ...selection,
     attempt,
     limits,
     onCheckpoint: controls.onCheckpoint,
+    signal: options.signal,
   };
   checkLimit("manifestBytes", limits.manifestBytes, Number(selection.manifest.metadata.size));
   checkLimit("totalBytes", limits.totalBytes, Number(selection.manifest.metadata.size));
@@ -154,9 +157,17 @@ async function loadAttempt(
     selection.root,
     manifest,
     manifestSource,
+    false,
+    options.signal,
   );
   await checkpoint(context, "after-paths");
-  const inventory = await inventorySources(paths, selection.manifest, limits);
+  const inventory = await inventorySources(
+    paths,
+    selection.manifest,
+    limits,
+    false,
+    options.signal,
+  );
   await checkpoint(context, "after-inventory");
   const sources: SourceRecord[] = [];
   let total = manifestSource.byteLength;
@@ -184,6 +195,7 @@ async function loadAttempt(
     manifest,
     manifestSource,
     true,
+    options.signal,
   );
   if (!samePaths(paths, repeatedPaths)) throw new ProjectChanged();
   total = repeatedManifest.byteLength;
@@ -198,7 +210,13 @@ async function loadAttempt(
   // Inventory last so files added while rereading cannot disappear from the accepted set.
   let repeatedInventory: readonly ResolvedInput[];
   try {
-    repeatedInventory = await inventorySources(repeatedPaths, selection.manifest, limits, true);
+    repeatedInventory = await inventorySources(
+      repeatedPaths,
+      selection.manifest,
+      limits,
+      true,
+      options.signal,
+    );
   } catch (error) {
     if (
       error instanceof ProjectFailure &&

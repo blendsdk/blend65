@@ -276,6 +276,9 @@ export async function inspectImportBoundary(root: string): Promise<readonly stri
           violations.push(display + ": unresolved workspace import " + specifier);
         continue; // Node built-ins and external packages are not workspace edges.
       }
+      if (FRONTEND.test(display) && specifier === "@blend65/compiler") {
+        violations.push(display + ": editor/frontend import of compiler root");
+      }
       const subpath =
         specifier === dependency.name ? "." : "." + specifier.slice(dependency.name.length);
       const target = dependency.exports.get(subpath);

@@ -1,4 +1,9 @@
 {
   "files": [],
-  "references": [{ "path": "./packages/compiler" }, { "path": "./packages/cli" }]
+  "references": [
+    { "path": "./packages/compiler" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/language-server" },
+    { "path": "./packages/vscode" }
+  ]
 }

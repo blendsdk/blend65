@@ -192,14 +192,13 @@ describe("frozen execution authority and salvage ownership", () => {
 });
 
 describe("minimal truthful foundation toolchain", () => {
-  // Only the library and its actual CLI consumer may own packages in this foundation.
-  it("should contain only behavior-owning compiler and optional CLI workspaces", async () => {
+  // The compiler, CLI and two diagnostics-only editor consumers are the complete workspace set.
+  it("should contain exactly the compiler CLI language-server and VS Code workspaces", async () => {
     const directories = (await readdir(join(repository, "packages"), { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    expect(directories).toContain("compiler");
-    expect(directories.every((name) => ["compiler", "cli"].includes(name))).toBe(true);
+    expect(directories).toEqual(["cli", "compiler", "language-server", "vscode"]);
     for (const name of directories) {
       const manifest = JSON.parse(
         await readFile(join(repository, "packages", name, "package.json"), "utf8"),
@@ -257,10 +256,10 @@ describe("minimal truthful foundation toolchain", () => {
     expect(version.stdout.trim()).toMatch(/^Version 7\.\d+\.\d+$/);
   });
 
-  // Operational configuration must not retain a linter, bundler, readiness task or empty-pass escape.
-  it("should reject forbidden operational configuration while ignoring historical prose", async () => {
+  // Vite belongs only to the two editor bundles; no general linter or other bundler is introduced.
+  it("should confine Vite to editor workspaces and reject other forbidden configuration", async () => {
     const forbidden =
-      /eslint|typescript-eslint|biome|oxlint|vite(?:\b|\/)|webpack|rollup|parcel|native-preview|tsgo|readiness|scoreboard|\bacme\b|\bvice\b|passWithNoTests|\blint\b/i;
+      /eslint|typescript-eslint|biome|oxlint|webpack|rollup|parcel|native-preview|tsgo|readiness|scoreboard|\bvice\b|passWithNoTests|\blint\b/i;
     const check = (text: string) => forbidden.test(text);
     const configuration = [
       "package.json",
@@ -271,12 +270,40 @@ describe("minimal truthful foundation toolchain", () => {
     const packages = (await readdir(join(repository, "packages"), { withFileTypes: true })).filter(
       (entry) => entry.isDirectory(),
     );
-    for (const entry of packages) configuration.push(`packages/${entry.name}/package.json`);
+    const viteOwners: string[] = [];
+    for (const entry of packages) {
+      const path = `packages/${entry.name}/package.json`;
+      configuration.push(path);
+      const text = await readFile(join(repository, path), "utf8");
+      const manifest = JSON.parse(text);
+      const dependencies = { ...manifest.dependencies, ...manifest.devDependencies };
+      if (/\bvite\b/i.test(text)) {
+        expect(Object.hasOwn(dependencies, "vite"), path).toBe(true);
+        viteOwners.push(entry.name);
+      }
+    }
     for (const path of configuration)
       expect(check(await readFile(join(repository, path), "utf8")), path).toBe(false);
+    for (const path of configuration.filter((path) => path !== ".github/workflows/ci.yml")) {
+      expect(await readFile(join(repository, path), "utf8"), path).not.toMatch(/\bacme\b/i);
+    }
+    for (const path of [
+      "package.json",
+      "turbo.json",
+      "tsconfig.json",
+      ".github/workflows/ci.yml",
+    ]) {
+      expect(await readFile(join(repository, path), "utf8"), path).not.toMatch(/\bvite\b/i);
+    }
+    expect(viteOwners.sort()).toEqual(["language-server", "vscode"]);
+    for (const owner of viteOwners) {
+      await expect(
+        access(join(repository, `packages/${owner}/vite.config.ts`)),
+      ).resolves.toBeUndefined();
+    }
     for (const surface of [
       "eslint",
-      "vite",
+      "webpack",
       "readiness",
       "lint",
       "passWithNoTests",
@@ -309,9 +336,15 @@ describe("minimal truthful foundation toolchain", () => {
     const rejected = (paths: readonly string[]) =>
       paths.filter(
         (path) =>
-          /(?:^|\/)(?:legacy|readiness|readiness-execution|dist|\.turbo|node_modules)(?:\/|$)|(?:^|\/)(?:eslint|vite)\.config\.|\.tsbuildinfo$/.test(
+          (/(?:^|\/)(?:legacy|readiness|readiness-execution|dist|\.turbo|node_modules)(?:\/|$)|(?:^|\/)eslint\.config\.|\.tsbuildinfo$/.test(
             path,
-          ) && !path.startsWith("codeops/"),
+          ) ||
+            (/(?:^|\/)vite\.config\./.test(path) &&
+              ![
+                "packages/language-server/vite.config.ts",
+                "packages/vscode/vite.config.ts",
+              ].includes(path))) &&
+          !path.startsWith("codeops/"),
       );
     expect(rejected(present)).toEqual([]);
     const old = (
@@ -371,8 +404,8 @@ describe("minimal truthful foundation toolchain", () => {
 });
 
 describe("native foundation qualification configuration", () => {
-  // Both production hosts run the same owned commands through existing CI roles only.
-  it("should run Node 22 foundation commands on native Linux and Windows CI jobs", async () => {
+  // Both hosts run the foundation commands; only Linux provisions the pinned terminal assembler.
+  it("should run Node 22 commands on both hosts and provision ACME only on Linux", async () => {
     const workflow = await readFile(join(repository, ".github/workflows/ci.yml"), "utf8");
     expect(workflow).toContain("ubuntu-latest");
     expect(workflow).toContain("windows-latest");
@@ -384,8 +417,18 @@ describe("native foundation qualification configuration", () => {
     expect(versions.every((version) => version === "22")).toBe(true);
     const actions = [...workflow.matchAll(/^\s*-\s*uses:\s*(\S+)/gm)].map((match) => match[1]);
     expect(actions.sort()).toEqual(["actions/checkout@v4", "actions/setup-node@v4"]);
-    const commands = [...workflow.matchAll(/^\s*run:\s*(.+)$/gm)].map((match) => match[1]!.trim());
-    expect(commands).toEqual([
+    const steps = workflow.split(/\n(?=\s{6}-\s)/);
+    const acmeSteps = steps.filter((step) => /\bacme\b/i.test(step));
+    expect(acmeSteps).toHaveLength(1);
+    expect(acmeSteps[0]).toMatch(/if:\s*\$\{\{\s*matrix\.os\s*==\s*['"]ubuntu-latest['"]\s*\}\}/);
+    expect(acmeSteps[0]).toMatch(/\b0\.97\b/);
+    expect(acmeSteps[0]).toMatch(/\b[0-9a-f]{64}\b/i);
+    expect(acmeSteps[0]).toMatch(/sha256sum|shasum/i);
+    expect(acmeSteps[0]).not.toMatch(/windows-latest/i);
+    const ordinaryCommands = steps
+      .filter((step) => !/\bacme\b/i.test(step))
+      .flatMap((step) => [...step.matchAll(/^\s*run:\s*(.+)$/gm)].map((match) => match[1]!.trim()));
+    expect(ordinaryCommands).toEqual([
       "corepack enable",
       "yarn install --frozen-lockfile",
       "yarn build",
@@ -393,17 +436,17 @@ describe("native foundation qualification configuration", () => {
       "yarn test",
     ]);
     expect(workflow).not.toMatch(
-      /\b(?:lint|acme|vice|readiness|scoreboard|benchmark|services)\b|TURBO_TOKEN|TURBO_TEAM|remote[-_ ]cache/i,
+      /\b(?:lint|vice|readiness|scoreboard|benchmark|services)\b|TURBO_TOKEN|TURBO_TEAM|remote[-_ ]cache/i,
     );
   });
 
-  // The completed foundation graph has two actual behavior owners, not future-stage placeholders.
-  it("should own exactly the compiler and its thin CLI workspace", async () => {
+  // The completed graph has four actual owners and no future-stage placeholders.
+  it("should own exactly the compiler CLI language-server and VS Code workspaces", async () => {
     const directories = (await readdir(join(repository, "packages"), { withFileTypes: true }))
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
       .sort();
-    expect(directories).toEqual(["cli", "compiler"]);
+    expect(directories).toEqual(["cli", "compiler", "language-server", "vscode"]);
     const cli = JSON.parse(await readFile(join(repository, "packages/cli/package.json"), "utf8"));
     const library = JSON.parse(
       await readFile(join(repository, "packages/compiler/package.json"), "utf8"),

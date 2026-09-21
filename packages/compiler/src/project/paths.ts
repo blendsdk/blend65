@@ -128,18 +128,26 @@ function lexicalPath(logicalRoot: string, spelling: string, pointer: string): st
 }
 
 /** Missing output components are permitted only beyond a contained existing directory. */
-async function resolveOutput(logicalPath: string, root: string): Promise<string> {
+async function resolveOutput(
+  logicalPath: string,
+  root: string,
+  signal?: AbortSignal,
+): Promise<string> {
   let parent = logicalPath;
   const missing: string[] = [];
   for (;;) {
+    signal?.throwIfAborted();
     try {
       const canonical = await realpath(parent);
+      signal?.throwIfAborted();
       if (!isContained(root, canonical))
         throwPathFailure("/outDir", "escapes project root", null, "/outDir");
       if (!(await stat(canonical)).isDirectory())
         throwPathFailure("/outDir", "expected a directory", null, "/outDir");
+      signal?.throwIfAborted();
       return join(canonical, ...missing.toReversed());
     } catch (error) {
+      signal?.throwIfAborted();
       if (error instanceof ProjectFailure) throw error;
       const code = hostErrorCode(error);
       if (code === "ENOTDIR") throwPathFailure("/outDir", "expected a directory", null, "/outDir");
@@ -147,6 +155,7 @@ async function resolveOutput(logicalPath: string, root: string): Promise<string>
       // A dangling symlink is an existing unresolved identity, not a missing directory.
       try {
         await lstat(parent);
+        signal?.throwIfAborted();
         throwPathFailure("/outDir", "existing path cannot be resolved", null, "/outDir");
       } catch (missingError) {
         if (missingError instanceof ProjectFailure) throw missingError;
@@ -161,13 +170,24 @@ async function resolveOutput(logicalPath: string, root: string): Promise<string>
 }
 
 /** Prove directory readability without enumerating asset contents. */
-async function readableDirectory(input: ResolvedInput, pointer: string): Promise<void> {
+async function readableDirectory(
+  input: ResolvedInput,
+  pointer: string,
+  signal?: AbortSignal,
+): Promise<void> {
   if (!input.metadata.isDirectory())
     throwPathFailure(pointer, "expected a directory", null, pointer);
   try {
+    signal?.throwIfAborted();
     const directory = await opendir(input.resolvedPath);
-    await directory.close();
+    try {
+      signal?.throwIfAborted();
+    } finally {
+      await directory.close();
+    }
+    signal?.throwIfAborted();
   } catch (error) {
+    signal?.throwIfAborted();
     throwReadFailure(error, pointer);
   }
 }
@@ -198,25 +218,31 @@ export async function validatePaths(
   manifest: ProjectManifest,
   manifestSource: SourceRecord,
   observed = false,
+  signal?: AbortSignal,
 ): Promise<ProjectPaths> {
   try {
+    signal?.throwIfAborted();
     const logicalOutput = lexicalPath(logicalRoot, manifest.outDir, "/outDir");
-    const output = await resolveOutput(logicalOutput, root);
+    const output = await resolveOutput(logicalOutput, root, signal);
     /** Explicit inputs cannot hide inside output through either spelling or canonical aliases. */
     async function directory(spelling: string, pointer: string): Promise<ResolvedInput> {
+      signal?.throwIfAborted();
       const logical = lexicalPath(logicalRoot, spelling, pointer);
       if (isContained(logicalOutput, logical))
         throwPathFailure(pointer, "input is inside output", null, pointer);
       const input = await resolveInput(logical, logicalRoot, root, pointer, observed);
+      signal?.throwIfAborted();
       if (isContained(output, input.resolvedPath))
         throwPathFailure(pointer, "input is inside output", null, pointer);
-      await readableDirectory(input, pointer);
+      await readableDirectory(input, pointer, signal);
       return input;
     }
     const source = await directory(manifest.sourceRoot, "/sourceRoot");
     const assets: ResolvedInput[] = [];
-    for (let index = 0; index < manifest.assetPaths.length; index++)
+    for (let index = 0; index < manifest.assetPaths.length; index++) {
+      signal?.throwIfAborted();
       assets.push(await directory(manifest.assetPaths[index]!, "/assetPaths/" + index));
+    }
     return { logicalRoot, root, source, assets, logicalOutput, output };
   } catch (error) {
     if (!(error instanceof ProjectFailure)) throw error;

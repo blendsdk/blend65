@@ -22,6 +22,15 @@ jobs:
           cache: "yarn"
       - name: Enable Corepack
         run: corepack enable
+      - name: Install checksum-pinned ACME 0.97
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          curl --fail --location --silent --show-error \
+            https://archive.ubuntu.com/ubuntu/pool/universe/a/acme/acme_0.97~svn20211115+ds-1_amd64.deb \
+            --output acme_0.97_amd64.deb
+          echo "397afb28b56f1503722d7d09f0d24e83ae3643885bb512262146bdb5f41ac760  acme_0.97_amd64.deb" | sha256sum --check
+          sudo dpkg --install acme_0.97_amd64.deb
+          acme --version | grep 'release 0.97'
       - name: Install
         run: yarn install --frozen-lockfile
       - name: Build

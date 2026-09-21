@@ -69,4 +69,43 @@ describe("private project controls and path records", () => {
       "src/main.blend",
     ]);
   });
+  it("should observe cancellation during path validation", async () => {
+    await project(root);
+    const controller = new AbortController();
+    let reachedPaths = false;
+    await expect(
+      loadProjectWithControls(
+        { cwd: root, signal: controller.signal },
+        {
+          onCheckpoint: ({ phase }) => {
+            if (phase === "after-manifest") setImmediate(() => controller.abort());
+            if (phase === "after-paths") reachedPaths = true;
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(reachedPaths).toBe(false);
+  });
+  it("should observe cancellation while inventorying a populated source tree", async () => {
+    await project(root);
+    await Promise.all(
+      Array.from({ length: 64 }, (_, index) =>
+        put(root, `src/nested-${index}/source.blend`, "module Extra;"),
+      ),
+    );
+    const controller = new AbortController();
+    let reachedInventory = false;
+    await expect(
+      loadProjectWithControls(
+        { cwd: root, signal: controller.signal },
+        {
+          onCheckpoint: ({ phase }) => {
+            if (phase === "after-paths") setImmediate(() => controller.abort());
+            if (phase === "after-inventory") reachedInventory = true;
+          },
+        },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(reachedInventory).toBe(false);
+  });
 });

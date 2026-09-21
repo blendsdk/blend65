@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "emitDeclarationOnly": true,
+    "types": ["node", "vscode"]
+  },
+  "references": [{ "path": "../language-server" }],
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

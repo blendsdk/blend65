@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-21 20:43
-> **Progress**: 59/79 tasks (75%)
+> **Last Updated**: 2026-09-22 00:07 CEST
+> **Progress**: 70/79 tasks (89%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -456,6 +456,7 @@ Deliverable: truthful library and CLI check/build/run journeys.
 
 ## Phase 7: Diagnostics-Only Editor Bundle
 
+> **Phase baseline tree**: `a510cbc74055e642cd40cd02b01f213114d04dcf`
 > **Scope mode**: strict
 > **Expected modification set**: new `packages/language-server/`, `packages/vscode/`, compiler
 > frontend-overlay files/tests, root workspace lock/config and boundary tests; plan evidence/roadmap.
@@ -465,41 +466,78 @@ Deliverable: truthful library and CLI check/build/run journeys.
 
 ### Step 7.1: Specification Tests
 
-- [ ] 7.1.1 [spec-author] Apply the pre-authorized requirement-supersession correction to only the
+- [x] 7.1.1 [spec-author] Apply the pre-authorized requirement-supersession correction to only the
   stale two-workspace/no-Vite/no-ACME foundation assertions, replacing them with the exact four
   workspaces, editor-only Vite and Linux-CI-only ACME rule; write ST-91 —
   `test/foundation.spec.test.ts`, `test/rd03-import-boundary.spec.test.ts`; forbidden: production
-  editor/overlay implementations and every unrelated foundation expectation.
-- [ ] 7.1.2 [spec-author] Write ST-92–ST-95 —
+  editor/overlay implementations and every unrelated foundation expectation. ✅ (completed: 2026-09-21 21:06)
+- [x] 7.1.2 [spec-author] Write ST-92–ST-95 —
   `packages/language-server/src/server.spec.test.ts`, `packages/vscode/src/extension.spec.test.ts`;
-  forbidden: production editor/overlay implementations.
-- [ ] 7.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+  forbidden: production editor/overlay implementations. ✅ (completed: 2026-09-21 21:30 CEST;
+  completed inline under the configured fallback after the isolated author twice produced no patch)
+- [x] 7.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-21 21:30 CEST)
+
+#### Phase 7 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `test/foundation.spec.test.ts` | `f6a9b8b12b2aba91e713c14b94eb8f549acb7ab551256a5cc93211b89b430e82` | Exact four-workspace, editor-only Vite and Linux-only pinned ACME assertions fail because both editor workspaces and the CI step are absent |
+| `test/rd03-import-boundary.spec.test.ts` | `3c4b5752234815a3263932386d918dfbe6ef1b2eca87462e19ba34cffb19a30b` | Actual editor manifests are absent and the boundary checker still admits a compiler-root editor edge |
+| `packages/language-server/src/server.spec.test.ts` | `2bb49d4dcea4bf103409e6306020185559707b09c1726f76b337f0a891704b8a` | Five overlay cases fail on the absent `analyzeProjectOverlay`; two real stdio cases fail because the server bundle is absent |
+| `packages/vscode/src/extension.spec.test.ts` | `9fda3579173c5216a5bc4b2008e3ef1d440823be91f3c51aafb47b15073fcfcb` | All three manifest/bundle/Vite cases fail because the VS Code workspace is absent |
+
+The focused Phase 7 run had one passing pre-existing UTF-8 position case and ten expected failures
+only on the missing Phase 7 behavior. Touched Prettier, `git diff --check` and the frozen `spec/`
+check passed. These four files are immutable implementation inputs from this point onward.
+The two editor hashes include a pre-GREEN harness-only correction: the stdio peer advances a
+message cursor instead of rereading old notifications, and the extension oracle accepts the
+package export that resolves the bundled server rather than requiring a literal filename.
 
 ### Step 7.2: Implementation
 
-- [ ] 7.2.1 Implement bounded overlays, unpaired-Unicode rejection and UTF-8-to-UTF-16 mapping using
+- [x] 7.2.1 Implement bounded overlays, unpaired-Unicode rejection and UTF-8-to-UTF-16 mapping using
   RD-02's 4 MiB/source, 10,000-source and 256 MiB/project limits —
-  `packages/compiler/src/frontend/{overlay.ts,positions.ts,service.ts}`.
-- [ ] 7.2.2 Add the stdio diagnostics server with one trailing-edge queue per project, snapshot-I/O
+  `packages/compiler/src/frontend/{overlay.ts,positions.ts,service.ts}`. ✅
+  (completed: 2026-09-21 21:33 CEST)
+- [x] 7.2.2 Add the stdio diagnostics server with one trailing-edge queue per project, snapshot-I/O
   cancellation, post-yield stale-result suppression and an explicit Node Vite bundle —
-  `packages/language-server/src/server.ts`, `packages/language-server/vite.config.ts`.
-- [ ] 7.2.3 Add the thin VS Code client entry and explicit Node Vite bundle —
-  `packages/vscode/src/extension.ts`, `packages/vscode/vite.config.ts`.
-- [ ] 7.2.4 Activate the language-server workspace with its exact manifest/dependencies, TypeScript
-  project and lockfile update — `packages/language-server/{package.json,tsconfig.json}`, `yarn.lock`.
-- [ ] 7.2.5 Activate the VS Code workspace with its exact manifest/dependencies, host type package,
-  TypeScript project and lockfile update — `packages/vscode/{package.json,tsconfig.json}`, `yarn.lock`.
-- [ ] 7.2.6 Add both projects to the root TypeScript graph and provision
+  `packages/language-server/src/server.ts`, `packages/language-server/vite.config.ts`. ✅
+  (completed: 2026-09-21 21:44 CEST)
+- [x] 7.2.3 Add the thin VS Code client entry and explicit Node Vite bundle —
+  `packages/vscode/src/extension.ts`, `packages/vscode/vite.config.ts`. ✅
+  (completed: 2026-09-21 21:44 CEST)
+- [x] 7.2.4 Activate the language-server workspace with its exact manifest/dependencies, TypeScript
+  project and lockfile update — `packages/language-server/{package.json,tsconfig.json}`, `yarn.lock`. ✅
+  (completed: 2026-09-21 21:44 CEST)
+- [x] 7.2.5 Activate the VS Code workspace with its exact manifest/dependencies, host type package,
+  TypeScript project and lockfile update — `packages/vscode/{package.json,tsconfig.json}`, `yarn.lock`. ✅
+  (completed: 2026-09-21 21:44 CEST)
+- [x] 7.2.6 Add both projects to the root TypeScript graph and provision
   checksum-pinned ACME 0.97 only on the Linux CI leg so the real ACME tier is required there —
-  `tsconfig.json`, `.github/workflows/ci.yml`.
+  `tsconfig.json`, `.github/workflows/ci.yml`. ✅ (completed: 2026-09-21 21:44 CEST)
 
 ### Step 7.3: Implementation Tests and Hardening
 
-- [ ] 7.3.1 Reach GREEN; add editor implementation cases —
+- [x] 7.3.1 Reach GREEN; add editor implementation cases —
   `packages/language-server/src/server.impl.test.ts`,
-  `packages/vscode/src/extension.impl.test.ts`; run stdio/bundle/boundary qualification.
-- [ ] 7.3.2 Record independent boundary/security review and corrections — `08-phase-7-review.md`;
-  commit green checkpoint.
+  `packages/vscode/src/extension.impl.test.ts`; run stdio/bundle/boundary qualification. ✅
+  (completed: 2026-09-21 21:49 CEST)
+
+Phase qualification before independent review: frozen install, repository build and typecheck
+passed. All 67 compiler suites and 983 tests, all 7 CLI suites and 60 tests, both language-server
+suites and 11 tests, both VS Code suites and 6 tests, and all 6 root suites and 64 tests passed.
+The real bundled stdio lifecycle, editor manifests, import boundary, fixed overlay limits,
+cancellation, clean shutdown and Linux-only ACME CI structure are GREEN. Touched Prettier,
+`git diff --check` and the frozen `spec/` check passed.
+- [x] 7.3.2 Record independent boundary/security review and corrections — `08-phase-7-review.md`;
+  commit green checkpoint. ✅ (completed: 2026-09-22 00:07 CEST)
+
+Phase 7 qualification: frozen install, repository build and typecheck passed. All 67 compiler suites
+and 985 tests, all 7 CLI suites and 60 tests, both language-server suites and 12 tests, both VS Code
+suites and 6 tests, and all 6 root suites and 64 tests passed. The independent fix-only re-review
+reported no surviving critical or major finding. Touched Prettier, immutable-oracle hashes,
+`git diff --check` and the frozen `spec/` check passed.
 
 Deliverable: a real minimal VS Code diagnostic bundle with no backend dependency.
 

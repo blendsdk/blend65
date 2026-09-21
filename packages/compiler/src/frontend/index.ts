@@ -2,11 +2,12 @@ import { loadProjectWithControls } from "../project/snapshot.js";
 import type { ProjectLoadOptions, ProjectLoadResult } from "../project/types.js";
 
 /** Stable frontend result and analysis entry points. */
-export { ANALYSIS_RESULT_KIND, analyzeProject } from "./service.js";
+export { ANALYSIS_RESULT_KIND, analyzeProject, analyzeProjectOverlay } from "./service.js";
 export type { AnalysisResult, TypedProgram } from "./service.js";
+export type { SourceOverlay } from "./overlay.js";
 
 /** Project-input helpers which do not import compiler backend stages. */
-export { byteOffsetToPosition } from "../project/positions.js";
+export { byteOffsetToPosition } from "./positions.js";
 export { parseManifest } from "../project/manifest.js";
 export { validateProjectName } from "../project/basename.js";
 export type {

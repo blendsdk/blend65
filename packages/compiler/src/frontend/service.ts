@@ -21,6 +21,8 @@ import type {
   TypedDeclaration,
 } from "./semantic-types.js";
 import type { Expr, Statement, TypeSyntax, VariableDeclaration } from "./syntax.js";
+import { applySourceOverlays } from "./overlay.js";
+import type { SourceOverlay } from "./overlay.js";
 
 /** Maximum number of proving errors returned by one whole-project analysis. */
 const MAX_ANALYSIS_ERRORS = 20;
@@ -559,6 +561,24 @@ function analyzeResolvedProject(
  */
 export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
   return analyzeResolvedProject(snapshot, new Map(), Object.freeze([]));
+}
+
+/**
+ * Analyze one immutable snapshot with bounded in-memory replacements for known sources.
+ * Host files and the snapshot's content identity are never changed.
+ */
+export function analyzeProjectOverlay(
+  snapshot: ProjectSnapshot,
+  overlays: readonly SourceOverlay[],
+): AnalysisResult {
+  const effective = applySourceOverlays(snapshot, overlays);
+  if (effective.kind === "failure") {
+    return Object.freeze({
+      kind: ANALYSIS_RESULT_KIND.error,
+      diagnostics: effective.diagnostics,
+    });
+  }
+  return analyzeProject(effective.snapshot);
 }
 
 /**

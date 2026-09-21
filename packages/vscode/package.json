@@ -1,0 +1,45 @@
+{
+  "name": "@blend65/vscode",
+  "displayName": "Blend65",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/extension.js",
+  "exports": {
+    ".": {
+      "types": "./dist/extension.d.ts",
+      "default": "./dist/extension.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "vscode": "^1.138.0"
+  },
+  "activationEvents": [
+    "onLanguage:blend65"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "blend65",
+        "extensions": [
+          ".blend"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc --build && vite build",
+    "typecheck": "tsc --build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@blend65/language-server": "0.1.0",
+    "vscode-languageclient": "10.1.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.138.0",
+    "vite": "5.4.21"
+  }
+}

@@ -124,6 +124,8 @@ export interface ProjectLoadOptions {
   readonly target?: string;
   /** Invocation-only qualified module identity, not a filename. */
   readonly entry?: string;
+  /** Optional cancellation for bounded host discovery and source reads. */
+  readonly signal?: AbortSignal;
 }
 
 /** A complete immutable snapshot, or diagnostics with no usable partial input. */

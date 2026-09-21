@@ -24,6 +24,7 @@ export interface ProjectSelection {
 
 /** Select the nearest manifest, never falling back from a present but invalid/unreadable one. */
 export async function discoverProject(options: ProjectLoadOptions): Promise<ProjectSelection> {
+  options.signal?.throwIfAborted();
   const cwd = resolve(options.cwd ?? process.cwd());
   let path: string;
   if (options.project !== undefined) {
@@ -33,11 +34,14 @@ export async function discoverProject(options: ProjectLoadOptions): Promise<Proj
   } else {
     let directory = cwd;
     for (;;) {
+      options.signal?.throwIfAborted();
       path = resolve(directory, "blend65.json");
       try {
         await lstat(path);
+        options.signal?.throwIfAborted();
         break;
       } catch (error) {
+        options.signal?.throwIfAborted();
         if (hostErrorCode(error) !== "ENOENT") throwReadFailure(error, "--cwd");
       }
       const parent = dirname(directory);
@@ -51,13 +55,19 @@ export async function discoverProject(options: ProjectLoadOptions): Promise<Proj
   const logicalRoot = dirname(path);
   let root: string;
   try {
+    options.signal?.throwIfAborted();
     root = await realpath(logicalRoot);
+    options.signal?.throwIfAborted();
     if (!(await stat(root)).isDirectory()) throwPathFailure("--project", "expected a directory");
+    options.signal?.throwIfAborted();
   } catch (error) {
+    options.signal?.throwIfAborted();
     if (error instanceof ProjectFailure) throw error;
     throwReadFailure(error, options.project === undefined ? "--cwd" : "--project");
   }
+  options.signal?.throwIfAborted();
   const manifest = await resolveInput(path, logicalRoot, root, basename(path));
+  options.signal?.throwIfAborted();
   if (!manifest.metadata.isFile()) throwPathFailure(manifest.sourceId, "expected a regular file");
   return { logicalRoot, root, manifest };
 }

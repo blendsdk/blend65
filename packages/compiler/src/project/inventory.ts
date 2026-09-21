@@ -19,6 +19,7 @@ export async function inventorySources(
   manifest: ResolvedInput,
   limits: ProjectLimits,
   observed = false,
+  signal?: AbortSignal,
 ): Promise<readonly ResolvedInput[]> {
   const sources: ResolvedInput[] = [];
   let visited = 0;
@@ -28,6 +29,7 @@ export async function inventorySources(
     depth: number,
     ancestors: readonly ResolvedInput[],
   ): Promise<void> {
+    signal?.throwIfAborted();
     checkLimit("depth", limits.depth, depth);
     const current = await resolveInput(
       directory.logicalPath,
@@ -36,6 +38,7 @@ export async function inventorySources(
       directory.sourceId || "/sourceRoot",
       true,
     );
+    signal?.throwIfAborted();
     if (isContained(paths.output, current.resolvedPath)) return;
     if (!sameIdentity(current.metadata, directory.metadata)) throw new ProjectChanged();
     if (!current.metadata.isDirectory()) throwPathFailure(current.sourceId, "expected a directory");
@@ -65,7 +68,9 @@ export async function inventorySources(
       const handle = await opendir(current.resolvedPath);
       try {
         for (;;) {
+          signal?.throwIfAborted();
           const entry = await handle.read();
+          signal?.throwIfAborted();
           if (entry === null) break;
           checkLimit("visitedEntries", limits.visitedEntries, ++visited);
           names.push(entry.name);
@@ -74,24 +79,29 @@ export async function inventorySources(
         await handle.close();
       }
     } catch (error) {
+      signal?.throwIfAborted();
       if (error instanceof ProjectFailure) throw error;
       throwReadFailure(error, current.sourceId || "/sourceRoot", observed);
     }
     names.sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
     for (const name of names) {
+      signal?.throwIfAborted();
       const logical = join(current.logicalPath, name);
       if (isContained(paths.logicalOutput, logical)) continue;
       const id = sourceId(paths.logicalRoot, logical);
       let canonical: string;
       try {
         canonical = await realpath(logical);
+        signal?.throwIfAborted();
       } catch (error) {
+        signal?.throwIfAborted();
         // resolveInput supplies the typed cycle diagnostic for native ELOOP too.
         await resolveInput(logical, paths.logicalRoot, paths.root, id, observed);
         throwReadFailure(error, id, observed);
       }
       if (isContained(paths.output, canonical)) continue;
       const input = await resolveInput(logical, paths.logicalRoot, paths.root, id, observed);
+      signal?.throwIfAborted();
       // Resolution can race the earlier canonical check; recheck the identity actually retained.
       if (isContained(paths.output, input.resolvedPath)) continue;
       if (input.metadata.isDirectory()) await visit(input, depth + 1, [...ancestors, current]);
@@ -108,6 +118,7 @@ export async function inventorySources(
       current.sourceId || "/sourceRoot",
       true,
     );
+    signal?.throwIfAborted();
     if (!sameIdentity(current.metadata, after.metadata)) throw new ProjectChanged();
   }
   await visit(paths.source, 0, []);
@@ -117,6 +128,7 @@ export async function inventorySources(
   const identities = new Map<string, ResolvedInput>();
   identities.set(manifest.metadata.dev + ":" + manifest.metadata.ino, manifest);
   for (const input of sources) {
+    signal?.throwIfAborted();
     const identity = input.metadata.dev + ":" + input.metadata.ino;
     const prior = identities.get(identity);
     if (prior !== undefined)
