@@ -657,6 +657,49 @@ function lowerFunction(
   });
 }
 
+/** Encode one complete compile-time initializer in packed little-endian layout order. */
+function initializerBytes(expression: TypedExpr, type: SemanticType): readonly number[] | null {
+  if (type.kind === "scalar") {
+    if (expression.constant === null || type.name === "void") return null;
+    const bytes = type.name === "word" || type.name === "sword" ? 2 : 1;
+    const value =
+      typeof expression.constant === "boolean"
+        ? expression.constant
+          ? 1n
+          : 0n
+        : BigInt.asUintN(bytes * 8, expression.constant);
+    return Object.freeze(
+      Array.from({ length: bytes }, (_, offset) => Number((value >> BigInt(offset * 8)) & 0xffn)),
+    );
+  }
+  if (type.kind === "struct") {
+    if (expression.kind !== "struct-literal" || expression.fields === undefined) return null;
+    const bytes: number[] = [];
+    for (const field of type.fields) {
+      const value = expression.fields.find((candidate) => candidate.name === field.name)?.value;
+      if (value === undefined) return null;
+      const encoded = initializerBytes(value, field.type);
+      if (encoded === null) return null;
+      bytes.push(...encoded);
+    }
+    return Object.freeze(bytes);
+  }
+  if (expression.kind !== "array-literal" || expression.elements === undefined) return null;
+  const values = [...expression.elements];
+  while (values.length < type.length) {
+    if (expression.fill === undefined || expression.fill === null) return null;
+    values.push(expression.fill);
+  }
+  if (values.length !== type.length) return null;
+  const bytes: number[] = [];
+  for (const value of values) {
+    const encoded = initializerBytes(value, type.element);
+    if (encoded === null) return null;
+    bytes.push(...encoded);
+  }
+  return Object.freeze(bytes);
+}
+
 /** Lower one completed module or constant declaration. */
 function lowerGlobal(
   declaration: TypedDeclaration,
@@ -664,10 +707,15 @@ function lowerGlobal(
   bindingsByKey: ReadonlyMap<string, SemanticBinding>,
   embeddedByBinding: ReadonlyMap<string, EmbeddedValue>,
 ): SemanticGlobal {
+  if (binding.storage !== "module" && binding.storage !== "constant") {
+    throw new Error("Completed global has a non-global storage class");
+  }
   if (declaration.initializer === null) {
     return Object.freeze({
       id: declaration.binding,
+      storage: binding.storage,
       type: declaration.type,
+      initialBytes: null,
       entry: null,
       blocks: Object.freeze([]),
       source: declaration.binding.span,
@@ -693,7 +741,9 @@ function lowerGlobal(
   const blocks = builder.finish(Object.freeze({ kind: "scalar", name: "void" }));
   return Object.freeze({
     id: declaration.binding,
+    storage: binding.storage,
     type: declaration.type,
+    initialBytes: initializerBytes(declaration.initializer, declaration.type),
     entry: builder.entry,
     blocks,
     source: declaration.binding.span,

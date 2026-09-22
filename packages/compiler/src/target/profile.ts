@@ -41,7 +41,7 @@ const PROFILE: TargetProfile = Object.freeze({
     hardwareStackCapacity: 0x100,
     hardwareStackReserve: 20,
     interruptStackBytes: 6,
-    startupStackBytes: 10,
+    startupStackBytes: 0,
   }),
 });
 

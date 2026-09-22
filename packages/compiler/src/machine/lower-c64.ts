@@ -519,7 +519,7 @@ export function lowerC64Operation(
     const x = constant(xValue);
     const y = constant(yValue);
     if (index !== null && x !== null && y !== null) {
-      const xAddress = 0xd000 + index * 2;
+      const xAddress = machine.spritePositionBase + index * 2;
       const yAddress = xAddress + 1;
       const mask = 1 << index;
       return Object.freeze({
@@ -566,9 +566,13 @@ export function lowerC64Operation(
       machineInstruction(cpu, "tax", "implied", null, [], source),
     );
     loadA(instructions, profile, xValue, 0, source);
-    instructions.push(storeIndexed(profile, 0xd000, "vic.sprite-x[index]", source));
+    instructions.push(
+      storeIndexed(profile, machine.spritePositionBase, "vic.sprite-x[index]", source),
+    );
     loadA(instructions, profile, yValue, 0, source);
-    instructions.push(storeIndexed(profile, 0xd001, "vic.sprite-y[index]", source));
+    instructions.push(
+      storeIndexed(profile, machine.spritePositionBase + 1, "vic.sprite-y[index]", source),
+    );
     if (xValue.kind === "condition" || (xValue.bytes < 2 && x === null)) {
       throw new Error("Dynamic sprite X position does not retain its high byte");
     }

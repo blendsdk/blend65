@@ -232,16 +232,19 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         body: fn,
       }),
     ),
-    ...(input.program.initializers ?? []).map((initializer) => {
+    ...(input.program.initializers ?? []).flatMap((initializer) => {
       const global = globalsByKey.get(bindingIdentityKey(initializer.binding));
       if (global === undefined) throw new Error("Initializer has no semantic global");
-      return Object.freeze({
-        binding: initializer.binding,
-        qualifiedName: `initializer::${bindingIdentityKey(initializer.binding)}`,
-        source: global.source,
-        machineId: `init.${bindingIdentityKey(initializer.binding)}`,
-        body: global,
-      });
+      if (global.initialBytes !== null) return [];
+      return [
+        Object.freeze({
+          binding: initializer.binding,
+          qualifiedName: `initializer::${bindingIdentityKey(initializer.binding)}`,
+          source: global.source,
+          machineId: `init.${bindingIdentityKey(initializer.binding)}`,
+          body: global,
+        }),
+      ];
     }),
   ].sort((left, right) => compareText(left.qualifiedName, right.qualifiedName));
   const functionIndexes = new Map(

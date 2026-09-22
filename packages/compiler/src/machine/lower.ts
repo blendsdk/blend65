@@ -6,7 +6,7 @@ import type { WholeProgram } from "../semantic/whole-program.js";
 import type { StorageRequest } from "../storage/storage-types.js";
 import { storageInventoryHash } from "../storage/closure.js";
 import { inventoryStorage } from "../storage/inventory.js";
-import { createC64Startup } from "../layout/startup.js";
+import { createC64Startup, createC64StartupStateData } from "../layout/startup.js";
 import {
   lowerTerminator,
   machineCost,
@@ -435,6 +435,15 @@ function lowerFunction(
         appendLoadA(currentInstructions, returned, 0, state, state.owner.span);
       }
     }
+    if (block.terminator.kind === "branch") {
+      const condition = state.values.get(block.terminator.condition);
+      if (condition === undefined) {
+        throw loweringFailure("Branch condition was not retained", state.owner.span);
+      }
+      if (condition.kind !== "condition") {
+        appendLoadA(currentInstructions, condition, 0, state, state.owner.span);
+      }
+    }
     loweredBlocks.push(
       Object.freeze({
         label: currentLabel,
@@ -478,14 +487,24 @@ function lowerData(
   program: WholeProgram,
   generatedData: ReadonlyMap<string, MachineDataObject>,
 ): readonly MachineDataObject[] {
-  const globals = program.semantic.globals.map((global) =>
-    Object.freeze({
+  const globals = program.semantic.globals.map((global) => {
+    const bytes = typeBytes(global.type);
+    const encoded = global.initialBytes;
+    if (encoded !== null && encoded.length !== bytes) {
+      throw loweringFailure("Global initial bytes do not match the declared type", global.source);
+    }
+    return Object.freeze({
       id: bindingLabel("global", global.id),
-      kind: "bss" as const,
+      kind:
+        encoded === null
+          ? ("bss" as const)
+          : global.storage === "constant"
+            ? ("immutable" as const)
+            : ("global" as const),
       alignment: 1,
-      bytes: Object.freeze(new Array<number>(typeBytes(global.type)).fill(0)),
-    }),
-  );
+      bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
+    });
+  });
   const reachable = new Set(program.reachableAssets);
   const assets = program.semantic.assets
     .filter(({ id }) => reachable.has(id))
@@ -501,7 +520,7 @@ function lowerData(
   const generated = [...generatedData.values()].sort((left, right) =>
     Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
   );
-  return Object.freeze([...globals, ...assets, ...generated]);
+  return Object.freeze([...globals, ...assets, ...generated, createC64StartupStateData()]);
 }
 
 /**
@@ -547,6 +566,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       if (global === undefined || global.entry === null) {
         throw loweringFailure("Initializer root is absent", initializer.span);
       }
+      if (global.initialBytes !== null) continue;
       const label = bindingLabel("init", initializer);
       initializerLabels.push(label);
       machineFunctions.push(

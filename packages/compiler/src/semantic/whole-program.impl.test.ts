@@ -183,7 +183,9 @@ describe("whole-program implementation", () => {
       globals: [
         {
           id: global,
+          storage: "module",
           type: Object.freeze({ kind: "scalar", name: "byte" }),
+          initialBytes: null,
           entry: "initializer",
           blocks: [
             {
@@ -228,7 +230,9 @@ describe("whole-program implementation", () => {
       globals: [
         {
           id: global,
+          storage: "module",
           type: byteType,
+          initialBytes: null,
           entry: "initializer",
           blocks: [
             {
@@ -337,12 +341,14 @@ describe("whole-program implementation", () => {
       globals: [
         {
           id: spriteData,
+          storage: "constant",
           type: Object.freeze({
             kind: "array",
             element: Object.freeze({ kind: "scalar", name: "byte" }),
             length: 1,
             size: 1,
           }),
+          initialBytes: null,
           entry: "asset-initializer",
           blocks: [
             {

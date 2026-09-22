@@ -19,6 +19,37 @@ import {
 } from "./lowering-test-support.js";
 
 describe("direct value lowering", () => {
+  it("should reload a retained boolean after later instructions clobber its flags", () => {
+    const condition = sourceParameter(150, BOOLEAN);
+    const clobber = sourceParameter(160, BYTE);
+    const main = semanticFunction(140, "retained-branch", [condition, clobber], VOID, [
+      semanticBlock(
+        "branch.entry",
+        [loadOperation("condition", condition, 170), loadOperation("clobber", clobber, 171)],
+        Object.freeze({
+          kind: "branch" as const,
+          condition: "condition",
+          whenTrue: "branch.true",
+          whenFalse: "branch.false",
+        }),
+      ),
+      semanticBlock("branch.true", [], Object.freeze({ kind: "return" as const, value: null })),
+      semanticBlock("branch.false", [], Object.freeze({ kind: "return" as const, value: null })),
+    ]);
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected retained branch lowering");
+    const entry = result.program.functions[0]!.blocks[0]!;
+    expect(entry.terminator).toEqual(expect.objectContaining({ kind: "branch", opcode: "bne" }));
+    expect(entry.instructions.at(-1)).toEqual(
+      expect.objectContaining({
+        opcode: "lda",
+        operand: entry.instructions[0]!.operand,
+      }),
+    );
+  });
+
   it("should lower unary, bitwise, and constant scaling paths without a helper", () => {
     const left = sourceParameter(200, WORD);
     const right = sourceParameter(210, WORD);

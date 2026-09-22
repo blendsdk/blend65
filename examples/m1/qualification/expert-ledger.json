@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "baselineStatus": "assembled-runtime-unverified",
+  "independence": {
+    "authorship": "hand-authored",
+    "compilerGeneratedAssemblyInspected": false,
+    "compilerGeneratedArtifactsInspected": false,
+    "compilerGeneratedCostsInspected": false,
+    "expectationSources": [
+      "frozen behavior requirements",
+      "independent behavior oracle",
+      "fixed joystick trace",
+      "raw sprite fixture",
+      "checked-in source intent",
+      "selected C64 PAL profile contract",
+      "primary CPU, C64, and ACME facts"
+    ]
+  },
+  "context": {
+    "profileId": "c64-pal-prg-kernal-6581",
+    "cpuId": "nmos6510",
+    "instructionPolicy": "documented-nmos-6502-only",
+    "video": {
+      "standard": "PAL",
+      "machine": "C64",
+      "vicBank": 0,
+      "screenMatrix": "$0400",
+      "spriteMode": "high-resolution-unexpanded"
+    },
+    "assembler": {
+      "name": "ACME",
+      "version": "0.97",
+      "cpuArgument": "6502",
+      "format": "cbm",
+      "strictSegments": true
+    },
+    "runtime": {
+      "mode": "cooperative-kernal",
+      "kernalRevision": "901227-03",
+      "irqPolicy": "stock cooperative KERNAL IRQ remains enabled during the game loop",
+      "nmiPolicy": "stock KERNAL RESTORE/NMI path remains mapped and owned by the profile",
+      "loader": "KERNAL-loaded contiguous PRG",
+      "runtimeAssetCopies": 0,
+      "hiddenRuntime": false
+    }
+  },
+  "inputs": {
+    "manifest": {
+      "path": "examples/m1/blend65.json",
+      "sha256": "78bbd404faa8beee5210c4c4edac86ef75d175781a9a30662cdd57a2a5728c07"
+    },
+    "sourceIntent": {
+      "path": "examples/m1/src/game.blend",
+      "sha256": "e87b5deacf1ddcc7ab7e64a6fa166168fa13d9da50b68cae5dcf215849feb9ca"
+    },
+    "behaviorOracle": {
+      "path": "examples/m1/qualification/oracle.ts",
+      "sha256": "7ea949a34ecde626f80ddb373858f09b8be8ebedd9cd544936eacf431789a5e3"
+    },
+    "winTrace": {
+      "path": "examples/m1/qualification/win-trace.json",
+      "sha256": "01dba080800f2984d7a424748ecfcb02bf03da9ccce2b515c88d72cb6a02792b"
+    },
+    "spriteFixture": {
+      "path": "examples/m1/assets/sprites.bin",
+      "byteLength": 512,
+      "sha256": "c590c49d0e0aae8a20b39e2f6246c530bb7f52fe8b4c21131ec09a442509f68a",
+      "records": 8,
+      "recordBytes": 64,
+      "emittedCopies": 1
+    }
+  },
+  "expertArtifact": {
+    "source": {
+      "path": "examples/m1/qualification/expert-m1.asm",
+      "sha256": "4580188de595b1968c4e034244b1141a86ca68b1f9817e883338c17de5806317"
+    },
+    "validationCommand": [
+      "acme",
+      "--cpu",
+      "6502",
+      "--strict-segments",
+      "--format",
+      "cbm",
+      "--outfile",
+      "<temporary>/expert.prg",
+      "--report",
+      "<temporary>/expert.report",
+      "--symbollist",
+      "<temporary>/expert.labels",
+      "examples/m1/qualification/expert-m1.asm"
+    ],
+    "processExitStatus": 0,
+    "prg": {
+      "sha256": "d7928b9be749c50b1b4b8dc2c84a67d4dbbdd685eac9dc6da6e4f5777dd20636",
+      "containerBytes": 6657,
+      "loadAddress": "$0801",
+      "bodyBytes": 6655,
+      "bodyInterval": {
+        "start": "$0801",
+        "endExclusive": "$2200"
+      }
+    },
+    "symbols": {
+      "entry": "$080d",
+      "frameCheckpoint": "$08cb",
+      "codeEnd": "$0cf5",
+      "tables": {
+        "start": "$0cf5",
+        "endExclusive": "$0d07"
+      },
+      "gameState": {
+        "start": "$0d07",
+        "endExclusive": "$0d3f"
+      },
+      "savedMachineState": {
+        "start": "$0d3f",
+        "endExclusive": "$0d71"
+      },
+      "spriteData": {
+        "start": "$2000",
+        "endExclusive": "$2200"
+      }
+    }
+  },
+  "behaviorObligations": [
+    {
+      "name": "sprite-ownership",
+      "status": "implemented",
+      "fact": "sprite 0 is the player, sprites 1 through 6 map to enemy indexes 0 through 5, and sprite 7 is the projectile or explosion"
+    },
+    {
+      "name": "player-input",
+      "status": "implemented",
+      "fact": "joystick port 2 is read once per update; opposing directions do not move; horizontal movement is clamped to 48 through 296"
+    },
+    {
+      "name": "fire-edge",
+      "status": "implemented",
+      "fact": "a new projectile at player x and y 199 requires an idle slot and a rising fire edge"
+    },
+    {
+      "name": "formation",
+      "status": "implemented",
+      "fact": "live enemies move one pixel each eighth playing update or reverse and descend eight pixels at the next live outer-edge violation; animation toggles on either action"
+    },
+    {
+      "name": "collision",
+      "status": "implemented",
+      "fact": "the inclusive two-by-eight projectile rectangle is tested against live 24-by-21 enemy rectangles in ascending array order and resolves at most one hit"
+    },
+    {
+      "name": "explosion",
+      "status": "implemented",
+      "fact": "a hit immediately publishes explosion frame 1, the next update publishes frame 2, and the following update makes slot 7 idle"
+    },
+    {
+      "name": "win-loss",
+      "status": "implemented",
+      "fact": "zero live enemies wins before loss is considered; any live enemy y of 200 or more loses; terminal state freezes player and formation"
+    },
+    {
+      "name": "terminal-exit",
+      "status": "implemented",
+      "fact": "after a visible terminal frame and an idle slot, fire must be observed released and then newly pressed before restoration and RTS to BASIC"
+    },
+    {
+      "name": "publication-order",
+      "status": "implemented",
+      "fact": "all eight slots publish enable, position including shared x-msb ownership, pointer, and color in slot order, followed by one border write"
+    },
+    {
+      "name": "startup-return",
+      "status": "implemented",
+      "fact": "the 12-byte BASIC auto-start enters at $080d; CPU registers, status and stack plus every changed VIC, CIA2, screen-pointer, and 6510-port field are restored before RTS"
+    }
+  ],
+  "expertCosts": {
+    "bytes": {
+      "basicAutoStart": 12,
+      "machineCode": 1256,
+      "codeTotal": 1268,
+      "immutableTables": 18,
+      "gameAndScratchState": 56,
+      "savedMachineState": 50,
+      "spriteAsset": 512,
+      "dataTotal": 636,
+      "alignmentAndContiguousLoadPadding": 4751,
+      "prgBody": 6655,
+      "prgContainer": 6657
+    },
+    "storage": {
+      "zeroPagePermanentBytes": 0,
+      "zeroPageTemporaryBytes": 0,
+      "staticMutableBytes": 106,
+      "staticExecutionFrameBytes": 0,
+      "hardwareStackProgramOwnedPeakBytes": 2,
+      "hardwareStackCooperativeSystemPeakBytes": null,
+      "hardwareStackCooperativeSystemPeakReason": "the selected KERNAL IRQ and RESTORE/NMI paths are profile-owned and require separate revision-pinned whole-route measurement",
+      "runtimeHeapBytes": 0,
+      "runtimeAssetCopyBytes": 0
+    },
+    "memoryTraffic": {
+      "joystickPortReadsPerUpdate": 1,
+      "spriteSlotsPublishedPerUpdate": 8,
+      "vicReadsPerPublishedFrame": 16,
+      "vicWritesPerPublishedFrame": 49,
+      "borderWritesPerPublishedFrame": 1,
+      "rasterReadsPerUpdate": "variable, minimum 2",
+      "assetCpuReadsPerUpdate": 0,
+      "assetCpuWritesPerUpdate": 0,
+      "publicationOrder": "slots 0 through 7, then border"
+    },
+    "cycles": {
+      "framePeriodPalCycles": 19656,
+      "fixedTraceUpdateCycles": null,
+      "fixedTraceTotalCycles": null,
+      "status": "pending independent fixed-trace execution measurement",
+      "reason": "the complete value must include final branch placement, path choices, page effects, VIC bus denial, and cooperative KERNAL interrupt work; source-level instruction counting is not substituted"
+    }
+  },
+  "comparison": {
+    "generated": null,
+    "result": "not-compared",
+    "requiredDimensions": [
+      "behavior and return",
+      "code, data, asset, and padding bytes",
+      "zero-page, static RAM, and hardware-stack use",
+      "RAM and MMIO traffic count and order",
+      "named path and complete fixed-trace cycles"
+    ]
+  },
+  "lineage": {
+    "skillVersion": "2.0.0",
+    "contentCommit": "c9e70fab6039e9ced3108e88f0ea9730d4fd3007",
+    "references": [
+      "blend65-domain-expert/references/mos-6502-family.md#official-nmos-instruction-and-addressing-grid",
+      "blend65-domain-expert/references/c64-memory-and-runtime.md#startup-contracts",
+      "blend65-domain-expert/references/c64-memory-and-runtime.md#zero-page-and-page-one",
+      "blend65-domain-expert/references/c64-hardware.md#vic-ii-sprites",
+      "blend65-domain-expert/references/c64-game-engineering.md#input",
+      "blend65-domain-expert/references/c64-game-engineering.md#entities-collision-and-state",
+      "blend65-domain-expert/references/c64-game-engineering.md#machine-bound-workload-completion-gate",
+      "blend65-domain-expert/references/acme-and-artifacts.md#deterministic-acme-invocation",
+      "blend65-domain-expert/references/acme-and-artifacts.md#c64-prg-contract",
+      "blend65-domain-expert/references/evidence-parity-and-recovery.md#cost-ledger"
+    ],
+    "sourceKeys": [
+      "MOS-PGM-1976",
+      "MOS-6510-1982",
+      "CBM-C64-PRG-1982",
+      "CBM-C64-KERNAL-03",
+      "MOS-6526-1981",
+      "CSG-6567-318014",
+      "ACME-097-R266"
+    ]
+  }
+}

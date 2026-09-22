@@ -157,6 +157,31 @@ describe("semantic CFG implementation", () => {
     });
   });
 
+  it("encodes complete scalar and aggregate global initializers as packed bytes", () => {
+    const program = lower(
+      [
+        "module Game;",
+        "struct Pair { tag: byte; value: word; active: boolean; }",
+        "const MAGIC: word = $1234;",
+        "let pairs: Pair[2] = [",
+        "  { tag: 1, value: MAGIC, active: true },",
+        "  { tag: 2, value: $5678, active: false }",
+        "];",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+
+    expect(program.globals.map(({ storage, initialBytes }) => ({ storage, initialBytes }))).toEqual(
+      [
+        { storage: "constant", initialBytes: [0x34, 0x12] },
+        {
+          storage: "module",
+          initialBytes: [0x01, 0x34, 0x12, 0x01, 0x02, 0x78, 0x56, 0x00],
+        },
+      ],
+    );
+  });
+
   it("does not lower bodies or updates behind constant-false loop conditions", () => {
     const program = lower(
       [

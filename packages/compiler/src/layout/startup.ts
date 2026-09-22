@@ -1,6 +1,39 @@
 import type { TargetProfile } from "../target/profile.js";
 import { machineCost, machineInstruction } from "../machine/lower-control.js";
-import type { MachineFunction, MachineMemoryEffect } from "../machine/machine-types.js";
+import type {
+  MachineDataObject,
+  MachineFunction,
+  MachineInstruction,
+  MachineMemoryEffect,
+} from "../machine/machine-types.js";
+
+/** Stable identity of the platform-owned cooperative-startup save area. */
+export const C64_STARTUP_STATE_ID = "platform.startup-state";
+
+const STARTUP_STATE = Object.freeze({
+  a: 0,
+  x: 1,
+  y: 2,
+  status: 3,
+  stack: 4,
+  cpuDirection: 5,
+  cpuPort: 6,
+  cia2Port: 7,
+  cia2Direction: 8,
+  vicMemory: 9,
+  spriteEnable: 10,
+  spriteXHigh: 11,
+  spriteYExpand: 12,
+  spritePriority: 13,
+  spriteMulticolor: 14,
+  spriteXExpand: 15,
+  border: 16,
+  background: 17,
+  spritePositions: 18,
+  spriteColors: 34,
+  spritePointers: 42,
+  bytes: 50,
+});
 
 /** Inputs needed to construct the selected cooperative C64 startup. */
 export interface C64StartupInput {
@@ -41,6 +74,78 @@ function deviceMode(address: number): "zero-page" | "absolute" {
   return address <= 0xff ? "zero-page" : "absolute";
 }
 
+/** Return the resident data object used to restore the caller and C64 after main returns. */
+export function createC64StartupStateData(): MachineDataObject {
+  return Object.freeze({
+    id: C64_STARTUP_STATE_ID,
+    kind: "global",
+    alignment: 1,
+    bytes: Object.freeze(new Array<number>(STARTUP_STATE.bytes).fill(0)),
+  });
+}
+
+/** One non-volatile access to the startup save area. */
+function stateEffect(kind: "read" | "write", offset: number): MachineMemoryEffect {
+  return Object.freeze({
+    kind,
+    address: Object.freeze({ kind: "symbolic", label: C64_STARTUP_STATE_ID, offset }),
+    width: 1,
+    volatile: false,
+    order: 0,
+  });
+}
+
+/** Load or store one byte in the startup save area. */
+function stateInstruction(
+  cpu: TargetProfile["cpu"],
+  opcode: "lda" | "ldx" | "ldy" | "sta" | "stx" | "sty",
+  offset: number,
+): MachineInstruction {
+  return machineInstruction(
+    cpu,
+    opcode,
+    "absolute",
+    Object.freeze({ kind: "label", label: C64_STARTUP_STATE_ID, offset }),
+    [stateEffect(opcode.startsWith("st") ? "write" : "read", offset)],
+  );
+}
+
+/** Save one byte from a named device register. */
+function saveDevice(
+  cpu: TargetProfile["cpu"],
+  address: number,
+  offset: number,
+): readonly MachineInstruction[] {
+  return Object.freeze([
+    machineInstruction(
+      cpu,
+      "lda",
+      deviceMode(address),
+      Object.freeze({ kind: "absolute", value: address }),
+      [deviceEffect("read", address)],
+    ),
+    stateInstruction(cpu, "sta", offset),
+  ]);
+}
+
+/** Restore one byte to a named device register. */
+function restoreDevice(
+  cpu: TargetProfile["cpu"],
+  address: number,
+  offset: number,
+): readonly MachineInstruction[] {
+  return Object.freeze([
+    stateInstruction(cpu, "lda", offset),
+    machineInstruction(
+      cpu,
+      "sta",
+      deviceMode(address),
+      Object.freeze({ kind: "absolute", value: address }),
+      [deviceEffect("write", address)],
+    ),
+  ]);
+}
+
 /**
  * Build the fixed C64 BASIC entry, ordered initializer calls and returning restore path.
  * @param input Initializer/main identities and exact selected profile.
@@ -52,34 +157,52 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
   }
   const cpu = input.profile.cpu;
   const machine = input.profile.machine;
-  const preservedAddresses = Object.freeze([
-    cpu.portDirectionAddress,
-    cpu.portDataAddress,
-    machine.cia2DataDirection,
-    machine.cia2PortA,
-    machine.vicMemoryPointer,
-    machine.spriteEnable,
+  const preservedDevices = Object.freeze([
+    Object.freeze({ address: cpu.portDirectionAddress, offset: STARTUP_STATE.cpuDirection }),
+    Object.freeze({ address: cpu.portDataAddress, offset: STARTUP_STATE.cpuPort }),
+    Object.freeze({ address: machine.cia2PortA, offset: STARTUP_STATE.cia2Port }),
+    Object.freeze({ address: machine.cia2DataDirection, offset: STARTUP_STATE.cia2Direction }),
+    Object.freeze({ address: machine.vicMemoryPointer, offset: STARTUP_STATE.vicMemory }),
+    Object.freeze({ address: machine.spriteEnable, offset: STARTUP_STATE.spriteEnable }),
+    Object.freeze({ address: machine.spriteXHigh, offset: STARTUP_STATE.spriteXHigh }),
+    Object.freeze({ address: machine.spriteYExpand, offset: STARTUP_STATE.spriteYExpand }),
+    Object.freeze({ address: machine.spritePriority, offset: STARTUP_STATE.spritePriority }),
+    Object.freeze({ address: machine.spriteMulticolor, offset: STARTUP_STATE.spriteMulticolor }),
+    Object.freeze({ address: machine.spriteXExpand, offset: STARTUP_STATE.spriteXExpand }),
+    Object.freeze({ address: machine.borderColor, offset: STARTUP_STATE.border }),
+    Object.freeze({ address: machine.backgroundColor, offset: STARTUP_STATE.background }),
+    ...Array.from({ length: 16 }, (_, index) =>
+      Object.freeze({
+        address: machine.spritePositionBase + index,
+        offset: STARTUP_STATE.spritePositions + index,
+      }),
+    ),
+    ...Array.from({ length: 8 }, (_, index) =>
+      Object.freeze({
+        address: machine.spriteColorBase + index,
+        offset: STARTUP_STATE.spriteColors + index,
+      }),
+    ),
+    ...Array.from({ length: 8 }, (_, index) =>
+      Object.freeze({
+        address: machine.spritePointerBase + index,
+        offset: STARTUP_STATE.spritePointers + index,
+      }),
+    ),
   ]);
-  const entry = [
+  const entry: MachineInstruction[] = [
+    stateInstruction(cpu, "sta", STARTUP_STATE.a),
+    stateInstruction(cpu, "stx", STARTUP_STATE.x),
+    stateInstruction(cpu, "sty", STARTUP_STATE.y),
     machineInstruction(cpu, "php", "implied", null),
+    machineInstruction(cpu, "pla", "implied", null),
+    stateInstruction(cpu, "sta", STARTUP_STATE.status),
+    machineInstruction(cpu, "tsx", "implied", null),
+    stateInstruction(cpu, "stx", STARTUP_STATE.stack),
     machineInstruction(cpu, "cld", "implied", null),
-    machineInstruction(cpu, "pha", "implied", null),
-    machineInstruction(cpu, "txa", "implied", null),
-    machineInstruction(cpu, "pha", "implied", null),
-    machineInstruction(cpu, "tya", "implied", null),
-    machineInstruction(cpu, "pha", "implied", null),
   ];
-  for (const address of preservedAddresses) {
-    entry.push(
-      machineInstruction(
-        cpu,
-        "lda",
-        deviceMode(address),
-        Object.freeze({ kind: "absolute", value: address }),
-        [deviceEffect("read", address)],
-      ),
-      machineInstruction(cpu, "pha", "implied", null),
-    );
+  for (const { address, offset } of preservedDevices) {
+    entry.push(...saveDevice(cpu, address, offset));
   }
   entry.push(
     machineInstruction(
@@ -159,30 +282,69 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       Object.freeze({ kind: "absolute", value: machine.spriteEnable }),
       [deviceEffect("write", machine.spriteEnable)],
     ),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.spriteYExpand }),
+      [deviceEffect("write", machine.spriteYExpand)],
+    ),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.spritePriority }),
+      [deviceEffect("write", machine.spritePriority)],
+    ),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.spriteMulticolor }),
+      [deviceEffect("write", machine.spriteMulticolor)],
+    ),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.spriteXExpand }),
+      [deviceEffect("write", machine.spriteXExpand)],
+    ),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.borderColor }),
+      [deviceEffect("write", machine.borderColor)],
+    ),
+    machineInstruction(
+      cpu,
+      "sta",
+      "absolute",
+      Object.freeze({ kind: "absolute", value: machine.backgroundColor }),
+      [deviceEffect("write", machine.backgroundColor)],
+    ),
   );
   for (const label of input.initializerLabels) {
     entry.push(machineInstruction(cpu, "jsr", "absolute", Object.freeze({ kind: "label", label })));
   }
 
-  const restore = [];
-  for (const address of [...preservedAddresses].reverse()) {
-    restore.push(
-      machineInstruction(cpu, "pla", "implied", null),
-      machineInstruction(
-        cpu,
-        "sta",
-        deviceMode(address),
-        Object.freeze({ kind: "absolute", value: address }),
-        [deviceEffect("write", address)],
-      ),
-    );
+  const restore: MachineInstruction[] = [];
+  for (const { address, offset } of preservedDevices.slice(4)) {
+    restore.push(...restoreDevice(cpu, address, offset));
   }
   restore.push(
-    machineInstruction(cpu, "pla", "implied", null),
-    machineInstruction(cpu, "tay", "implied", null),
-    machineInstruction(cpu, "pla", "implied", null),
-    machineInstruction(cpu, "tax", "implied", null),
-    machineInstruction(cpu, "pla", "implied", null),
+    ...restoreDevice(cpu, machine.cia2PortA, STARTUP_STATE.cia2Port),
+    ...restoreDevice(cpu, machine.cia2DataDirection, STARTUP_STATE.cia2Direction),
+    ...restoreDevice(cpu, cpu.portDataAddress, STARTUP_STATE.cpuPort),
+    ...restoreDevice(cpu, cpu.portDirectionAddress, STARTUP_STATE.cpuDirection),
+    stateInstruction(cpu, "ldx", STARTUP_STATE.stack),
+    machineInstruction(cpu, "txs", "implied", null),
+    stateInstruction(cpu, "lda", STARTUP_STATE.status),
+    machineInstruction(cpu, "pha", "implied", null),
+    stateInstruction(cpu, "lda", STARTUP_STATE.a),
+    stateInstruction(cpu, "ldx", STARTUP_STATE.x),
+    stateInstruction(cpu, "ldy", STARTUP_STATE.y),
     machineInstruction(cpu, "plp", "implied", null),
   );
 

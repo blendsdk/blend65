@@ -257,6 +257,26 @@ export async function prepareEvidence(
       const rightKey = `${right.accounting}\0${right.component}\0${right.owner.kind}\0${right.owner.id}\0${right.id}`;
       return Buffer.compare(Buffer.from(leftKey), Buffer.from(rightKey));
     });
+  const completePathId = "program.entry-to-return";
+  const unknownMeasurement = Object.freeze({ kind: "unknown" as const });
+  const cycleEntry = Object.freeze({
+    kind: "cycles",
+    id: `cycles:${completePathId}`,
+    owner: Object.freeze({ kind: "compiler", id: "pipeline" }),
+    pathId: completePathId,
+    cycles: unknownMeasurement,
+    traffic: Object.freeze([
+      Object.freeze({
+        kind: "read",
+        target: "c64.joystick2",
+        count: unknownMeasurement,
+      }),
+      Object.freeze({ kind: "read", target: "c64.vic", count: unknownMeasurement }),
+      Object.freeze({ kind: "write", target: "c64.vic", count: unknownMeasurement }),
+    ]),
+    sourceSites: Object.freeze([]),
+    dependencyIds: Object.freeze([]),
+  });
   const residentRam = intervals.reduce((total, interval) => total + (interval.size as number), 0);
   const zeroPage = intervals
     .filter(({ resourceClass }) => resourceClass === "zeroPage")
@@ -267,7 +287,9 @@ export async function prepareEvidence(
     mode: input.snapshot.manifest.optimization,
     totals: Object.freeze({
       programBytes: Math.max(0, primaryBytes.byteLength - 2),
-      pathCycles: Object.freeze([]),
+      pathCycles: Object.freeze([
+        Object.freeze({ pathId: completePathId, cycles: unknownMeasurement }),
+      ]),
       resources: Object.freeze([
         Object.freeze({ kind: "standard", id: "zeroPage", value: zeroPage }),
         Object.freeze({ kind: "standard", id: "residentRam", value: residentRam }),
@@ -279,7 +301,7 @@ export async function prepareEvidence(
         Object.freeze({ kind: "standard", id: "scratch", value: 0 }),
       ]),
     }),
-    entries: Object.freeze(costEntries),
+    entries: Object.freeze([...costEntries, cycleEntry]),
     decisions: Object.freeze([]),
   });
   const portableTools = Object.freeze([

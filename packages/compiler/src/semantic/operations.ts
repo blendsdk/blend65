@@ -325,8 +325,12 @@ export interface SemanticFunction {
 export interface SemanticGlobal {
   /** Stable source declaration identity. */
   readonly id: BindingId;
+  /** Whether the source binding is mutable module storage or an immutable constant. */
+  readonly storage: "module" | "constant";
   /** Declared global type. */
   readonly type: SemanticType;
+  /** Complete compile-time initial bytes, or null when startup must execute the initializer. */
+  readonly initialBytes: readonly number[] | null;
   /** Initializer entry block, or null when no runtime initializer exists. */
   readonly entry: BlockId | null;
   /** Initializer blocks in deterministic construction order. */

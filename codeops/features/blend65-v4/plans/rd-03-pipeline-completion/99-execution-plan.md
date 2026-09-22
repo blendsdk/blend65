@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-22 00:07 CEST
-> **Progress**: 70/79 tasks (89%)
+> **Last Updated**: 2026-09-22 09:59 CEST
+> **Progress**: 76/79 tasks (96%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -551,29 +551,64 @@ Deliverable: a real minimal VS Code diagnostic bundle with no backend dependency
 
 ### Step 8.1: Specification Oracles and Tests
 
-- [ ] 8.1.1 Finalize the independent expert ACME twin before inspecting generated M1 assembly; freeze
-  its hash and comparison ledger — `examples/m1/qualification/{expert-m1.asm,expert-ledger.json}`.
-- [ ] 8.1.2 [spec-author] Complete ST-99–ST-102 around the frozen oracle/twin; forbidden: compiler
+- [x] 8.1.1 Finalize the independent expert ACME twin before inspecting generated M1 assembly; freeze
+  its hash and comparison ledger — `examples/m1/qualification/{expert-m1.asm,expert-ledger.json}`. ✅
+  (completed: 2026-09-22 00:35 CEST)
+
+The independent expert twin was authored without inspecting compiler-generated M1 assembly,
+artifacts or costs. ACME 0.97 assembled it successfully as a 6,657-byte PRG with the 512-byte sprite
+fixture resident exactly once at `$2000..$21ff`. Its runtime status remains intentionally bounded to
+`assembled-runtime-unverified` until the fixed-trace VICE task.
+
+| Frozen expert input | SHA-256 |
+|---|---|
+| `examples/m1/qualification/expert-m1.asm` | `4580188de595b1968c4e034244b1141a86ca68b1f9817e883338c17de5806317` |
+| `examples/m1/qualification/expert-ledger.json` | `95352a5c4e5cc1db209a330f514eec71931f16737f427cff35f17e753f9747ff` |
+- [x] 8.1.2 [spec-author] Complete ST-99–ST-102 around the frozen oracle/twin; forbidden: compiler
   production code and generated output as an expectation source —
-  `test/m1/{pipeline,vice}.spec.test.ts`.
-- [ ] 8.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`.
+  `test/m1/{pipeline,vice}.spec.test.ts`. ✅ (completed: 2026-09-22 08:54 CEST)
+- [x] 8.1.3 Record behavioral RED and immutable oracle hashes — `99-execution-plan.md`. ✅
+  (completed: 2026-09-22 08:54 CEST)
+
+#### Phase 8 immutable RED checkpoint
+
+| Specification oracle | SHA-256 | RED evidence |
+|---|---|---|
+| `test/m1/pipeline.spec.test.ts` | `9bdb81370f21037c28437e77d142b0bab848434b2162da39be55640f612de0d7` | Generated `.costs.json` has no named path-cycle evidence |
+| `test/m1/vice.spec.test.ts` | `62b0839357d2bb80d935f4bf711ae0a50964dfde67002b8a2b590940eb1b8c3d` | Planned `test/m1/vice-driver.ts` does not exist |
+
+The focused run produced two passing cases and the two intended failures above. The public M1 build,
+exact eight-file publication, PRG stub, single resident sprite payload, sidecar cross-hashes,
+non-gating host observations and absence of speculative C64U product code are already GREEN. Before
+freezing, one self-contradictory expectation was corrected: the exact-hash expert ledger remains an
+immutable baseline with `generated: null` and `result: "not-compared"`; Phase 8 review/closeout owns
+the generated comparison result rather than rewriting the baseline. The specification author read
+no forbidden compiler production file or generated M1 output as an expectation source. These two
+test files are immutable implementation inputs from this point onward.
 
 ### Step 8.2: Implementation
 
-- [ ] 8.2.1 Complete M1 against only admitted modern APIs —
-  `examples/m1/src/game.blend`; remove no oracle obligation.
-- [ ] 8.2.2 Implement the small AR-C11 VICE qualification helper —
+- [x] 8.2.1 Complete M1 against only admitted modern APIs —
+  `examples/m1/src/game.blend`; remove no oracle obligation. ✅
+  (completed: 2026-09-22 09:13 CEST)
+- [x] 8.2.2 Implement the small AR-C11 VICE qualification helper —
   `test/m1/{vice-monitor.ts,vice-driver.ts}`; use the exact `-default`-first argument array and prove
-  Linux child/socket ownership before sending monitor commands.
-- [ ] 8.2.3 Run the immutable specification tests to GREEN for pure M1, real ACME 0.97 and the
+  Linux child/socket ownership before sending monitor commands. ✅
+  (completed: 2026-09-22 09:59 CEST)
+- [x] 8.2.3 Run the immutable specification tests to GREEN for pure M1, real ACME 0.97 and the
   sequential VICE 3.10 fixed-trace journey; edit implementation/evidence only and record
   `VICE-verified / hardware-unverified` — run-only inputs:
-  `test/m1/{pipeline,vice}.spec.test.ts`.
+  `test/m1/{pipeline,vice}.spec.test.ts`. ✅
+  (completed: 2026-09-22 09:59 CEST)
 
 ### Step 8.3: Implementation Tests and Hardening
 
-- [ ] 8.3.1 Compare generated output with the expert twin. Fail worse output; for any genuine meet-only
-  result create the authorized issue — `examples/m1/qualification/expert-ledger.json`.
+- [~] 8.3.1 Compare generated output with the immutable expert twin. Fail worse output; for any
+  genuine meet-only result create the authorized issue. Keep
+  `examples/m1/qualification/expert-ledger.json` read-only and record the generated comparison in
+  `08-phase-8-review.md` so the frozen independent baseline is not rewritten after implementation.
+  Runtime decision AR-P2 is pending: behavior and final PRG size meet, but unoptimized local code,
+  ZP, mutable storage and stack are worse; closing that gap here would import RD-08 optimizer work.
 - [ ] 8.3.2 Run final Linux acceptance, touched formatting, frozen-spec check, C64U seam review and
   independent review — `08-phase-8-review.md`; correct all critical/major findings.
 - [ ] 8.3.3 Write closeout evidence and deferral-expiry audit; keep AR-C16 assigned to RD-10, update the

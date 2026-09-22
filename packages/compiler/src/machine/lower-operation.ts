@@ -91,6 +91,73 @@ function marshalAggregateAddress(
   }
 }
 
+/**
+ * Convert one retained zero-flag condition into the language's canonical boolean byte.
+ * Direct branches keep using the flag. A value that is stored or passed must instead become
+ * `0` or `1` without adding a helper call or control-flow block.
+ */
+function materializeCondition(
+  result: LoweredValue,
+  instructionsInput: readonly MachineInstruction[],
+  operation: Extract<SemanticOperation, { readonly kind: "platform" }>,
+  state: FunctionLoweringState,
+): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
+  if (
+    result.kind !== "condition" ||
+    operation.result === null ||
+    !state.materializedValues.has(operation.result)
+  ) {
+    return Object.freeze({ instructions: instructionsInput, result });
+  }
+  if (result.usesFlag !== "z" || (result.whenTrue !== "beq" && result.whenTrue !== "bne")) {
+    throw loweringFailure("Platform condition cannot be materialized as a boolean", operation.span);
+  }
+
+  const instructions = [
+    ...instructionsInput,
+    machineInstruction(
+      state.input.profile.cpu,
+      "cmp",
+      "immediate",
+      Object.freeze({ kind: "immediate", value: 1 }),
+      [],
+      operation.span,
+    ),
+    machineInstruction(
+      state.input.profile.cpu,
+      "lda",
+      "immediate",
+      Object.freeze({ kind: "immediate", value: 0 }),
+      [],
+      operation.span,
+    ),
+    machineInstruction(
+      state.input.profile.cpu,
+      "adc",
+      "immediate",
+      Object.freeze({ kind: "immediate", value: 0 }),
+      [],
+      operation.span,
+    ),
+  ];
+  if (result.whenTrue === "beq") {
+    instructions.push(
+      machineInstruction(
+        state.input.profile.cpu,
+        "eor",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: 1 }),
+        [],
+        operation.span,
+      ),
+    );
+  }
+  return Object.freeze({
+    instructions: Object.freeze(instructions),
+    result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+  });
+}
+
 export function lowerOperation(
   operation: SemanticOperation,
   state: FunctionLoweringState,
@@ -345,10 +412,16 @@ export function lowerOperation(
         state.generatedData.set(data.id, data);
       }
       if (operation.result !== null && lowered.result !== null) {
-        const retained = retainMachineValue(
-          operation.result,
+        const materialized = materializeCondition(
           lowered.result,
           lowered.instructions,
+          operation,
+          state,
+        );
+        const retained = retainMachineValue(
+          operation.result,
+          materialized.result,
+          materialized.instructions,
           operation.type,
           operation.span,
           state,

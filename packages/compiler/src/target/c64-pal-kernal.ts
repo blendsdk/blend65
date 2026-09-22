@@ -20,14 +20,26 @@ export interface C64MachineFacts {
   readonly spriteStart: 0x2000;
   /** VIC control register used for frame observation. */
   readonly vicControl1: 0xd011;
+  /** First sprite X/Y position register. */
+  readonly spritePositionBase: 0xd000;
   /** Sprite X-coordinate most-significant-bit register. */
   readonly spriteXHigh: 0xd010;
   /** Sprite enable register. */
   readonly spriteEnable: 0xd015;
+  /** Sprite vertical-expansion register. */
+  readonly spriteYExpand: 0xd017;
   /** VIC memory-pointer register. */
   readonly vicMemoryPointer: 0xd018;
+  /** Sprite foreground/background-priority register. */
+  readonly spritePriority: 0xd01b;
+  /** Sprite multicolor-mode register. */
+  readonly spriteMulticolor: 0xd01c;
+  /** Sprite horizontal-expansion register. */
+  readonly spriteXExpand: 0xd01d;
   /** Border color register. */
   readonly borderColor: 0xd020;
+  /** Background color register. */
+  readonly backgroundColor: 0xd021;
   /** First sprite color register. */
   readonly spriteColorBase: 0xd027;
   /** Joystick port 2 sample register. */
@@ -72,10 +84,16 @@ export const C64_PAL_KERNAL_6581: C64MachineFacts = Object.freeze({
   characterRomEnd: 0x1fff,
   spriteStart: 0x2000,
   vicControl1: 0xd011,
+  spritePositionBase: 0xd000,
   spriteXHigh: 0xd010,
   spriteEnable: 0xd015,
+  spriteYExpand: 0xd017,
   vicMemoryPointer: 0xd018,
+  spritePriority: 0xd01b,
+  spriteMulticolor: 0xd01c,
+  spriteXExpand: 0xd01d,
   borderColor: 0xd020,
+  backgroundColor: 0xd021,
   spriteColorBase: 0xd027,
   joystick2: 0xdc00,
   cia2PortA: 0xdd00,

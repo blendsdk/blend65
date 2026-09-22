@@ -11,6 +11,7 @@ import {
   semanticBlock,
   semanticFunction,
   selectedProfile,
+  sourceBinding,
   sourceParameter,
   sourceSpan,
 } from "./lowering-test-support.js";
@@ -181,5 +182,54 @@ describe("dynamic C64 sprite lowering", () => {
       signed: false,
       transform: "vic-sprite-block",
     });
+  });
+});
+
+describe("C64 input predicate lowering", () => {
+  it("materializes an active-low joystick predicate as a canonical boolean byte", () => {
+    const sample = sourceParameter(800, BYTE);
+    const left = sourceBinding(810);
+    const main = semanticFunction(790, "stored-joystick-predicate", [sample], VOID, [
+      semanticBlock(
+        "predicate.entry",
+        [
+          loadOperation("sample", sample, 820),
+          Object.freeze({
+            kind: "platform" as const,
+            result: "left",
+            capability: "c64.input.joystickLeft",
+            arguments: Object.freeze(["sample"]),
+            type: BOOLEAN,
+            effect: "pure" as const,
+            span: sourceSpan(821),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: Object.freeze({ root: left, path: Object.freeze([]), rootType: BOOLEAN }),
+            value: "left",
+            type: BOOLEAN,
+            span: sourceSpan(822),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected stored predicate lowering");
+    const instructions = result.program.functions[0]!.blocks[0]!.instructions;
+    expect(instructions.map(({ opcode }) => opcode)).toEqual([
+      "lda",
+      "and",
+      "cmp",
+      "lda",
+      "adc",
+      "eor",
+      "sta",
+    ]);
+    expect(instructions[1]?.operand).toEqual({ kind: "immediate", value: 0x04 });
+    expect(instructions.at(-1)).toMatchObject({ opcode: "sta", mode: "storage" });
   });
 });

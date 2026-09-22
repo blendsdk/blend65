@@ -7,6 +7,7 @@ import type {
   MachineFunction,
   MachineProgram,
 } from "../machine/machine-types.js";
+import { C64_STARTUP_STATE_ID, createC64StartupStateData } from "./startup.js";
 
 /** One inclusive placed interval in the selected C64 memory map. */
 export interface C64LayoutInterval {
@@ -285,10 +286,29 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     ]),
   });
   codeCursor += restoreBytes;
+  const expectedStartupState = createC64StartupStateData();
+  const suppliedStartupState = input.program.data.find(({ id }) => id === C64_STARTUP_STATE_ID);
+  if (
+    suppliedStartupState !== undefined &&
+    (suppliedStartupState.kind !== expectedStartupState.kind ||
+      suppliedStartupState.alignment !== expectedStartupState.alignment ||
+      suppliedStartupState.bytes.length !== expectedStartupState.bytes.length ||
+      suppliedStartupState.bytes.some((byte) => byte !== 0))
+  ) {
+    return Object.freeze({
+      kind: "error",
+      reason: "invalid-data",
+      objectId: C64_STARTUP_STATE_ID,
+    });
+  }
   const laidOutProgram: MachineProgram = Object.freeze({
     ...input.program,
     startup: placedStartup,
     functions: Object.freeze(repairedFunctions),
+    data:
+      suppliedStartupState === undefined
+        ? Object.freeze([...input.program.data, expectedStartupState])
+        : input.program.data,
   });
   const codeBytes = codeCursor - input.profile.packager.startupAddress;
   if (codeBytes > 0) {

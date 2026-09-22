@@ -2,6 +2,13 @@ module Game;
 
 const SPRITES: byte[512] = embed("sprites.bin");
 
+const SLOT_IDLE: byte = 0;
+const SLOT_PROJECTILE: byte = 1;
+const SLOT_EXPLOSION: byte = 2;
+const OUTCOME_PLAYING: byte = 0;
+const OUTCOME_WON: byte = 1;
+const OUTCOME_LOST: byte = 2;
+
 struct Enemy {
   x: word;
   y: byte;
@@ -21,26 +28,267 @@ let enemies: Enemy[6] = [
 let playerX: word = 160;
 let formationCounter: byte = 0;
 let formationRight: boolean = true;
-let projectileActive: boolean = false;
-let projectileX: word = 0;
-let projectileY: byte = 0;
+let animationPhase: byte = 0;
+let aliveCount: byte = 6;
+
+let slotState: byte = SLOT_IDLE;
+let slotX: word = 0;
+let slotY: byte = 0;
+let slotFrame: byte = 0;
+
+let previousFire: boolean = false;
+let terminalSawRelease: boolean = false;
+let outcome: byte = OUTCOME_PLAYING;
+let exitRequested: boolean = false;
+
+function updatePlayer(sample: byte): void {
+  let left: boolean = c64.input.joystickLeft(sample);
+  let right: boolean = c64.input.joystickRight(sample);
+  if (left && !right) {
+    if (playerX > 48) {
+      playerX = playerX - 1;
+    }
+  }
+  if (right && !left) {
+    if (playerX < 296) {
+      playerX = playerX + 1;
+    }
+  }
+}
+
+function advanceSlot(): void {
+  if (slotState == SLOT_PROJECTILE) {
+    slotY = slotY - 4;
+    if (slotY < 50) {
+      slotState = SLOT_IDLE;
+    }
+  } else {
+    if (slotState == SLOT_EXPLOSION) {
+      if (slotFrame == 1) {
+        slotFrame = 2;
+      } else {
+        slotState = SLOT_IDLE;
+      }
+    }
+  }
+}
+
+function descendFormation(): void {
+  let index: byte = 0;
+  while (index < 6) {
+    if (enemies[index].alive) {
+      enemies[index].y = enemies[index].y + 8;
+    }
+    index = index + 1;
+  }
+}
+
+function moveFormationLeft(): void {
+  let index: byte = 0;
+  while (index < 6) {
+    if (enemies[index].alive) {
+      enemies[index].x = enemies[index].x - 1;
+    }
+    index = index + 1;
+  }
+}
+
+function moveFormationRight(): void {
+  let index: byte = 0;
+  while (index < 6) {
+    if (enemies[index].alive) {
+      enemies[index].x = enemies[index].x + 1;
+    }
+    index = index + 1;
+  }
+}
+
+function advanceFormation(): void {
+  formationCounter = formationCounter + 1;
+  if (formationCounter < 8) {
+    return;
+  }
+  formationCounter = 0;
+
+  let index: byte = 0;
+  let foundLive: boolean = false;
+  let leftX: word = 0;
+  let rightX: word = 0;
+  while (index < 6) {
+    if (enemies[index].alive) {
+      if (!foundLive) {
+        leftX = enemies[index].x;
+        foundLive = true;
+      }
+      rightX = enemies[index].x;
+    }
+    index = index + 1;
+  }
+  if (!foundLive) {
+    return;
+  }
+
+  if (formationRight) {
+    if (rightX >= 297) {
+      formationRight = false;
+      descendFormation();
+    } else {
+      moveFormationRight();
+    }
+  } else {
+    if (leftX <= 48) {
+      formationRight = true;
+      descendFormation();
+    } else {
+      moveFormationLeft();
+    }
+  }
+  animationPhase = animationPhase + 1;
+  if (animationPhase == 2) {
+    animationPhase = 0;
+  }
+}
+
+function resolveProjectileHit(): void {
+  if (slotState != SLOT_PROJECTILE) {
+    return;
+  }
+
+  let projectileLeft: word = slotX + 11;
+  let projectileRight: word = slotX + 12;
+  let projectileBottom: byte = slotY + 7;
+  let index: byte = 0;
+  let hit: boolean = false;
+  while (index < 6 && !hit) {
+    if (enemies[index].alive) {
+      if (projectileBottom >= enemies[index].y && slotY <= enemies[index].y + 20) {
+        if (projectileRight >= enemies[index].x && projectileLeft <= enemies[index].x + 23) {
+          enemies[index].alive = false;
+          aliveCount = aliveCount - 1;
+          slotState = SLOT_EXPLOSION;
+          slotX = enemies[index].x;
+          slotY = enemies[index].y;
+          slotFrame = 1;
+          hit = true;
+        }
+      }
+    }
+    index = index + 1;
+  }
+}
+
+function spawnProjectile(): void {
+  slotState = SLOT_PROJECTILE;
+  slotX = playerX;
+  slotY = 199;
+  slotFrame = 0;
+}
+
+function determineOutcome(): void {
+  if (aliveCount == 0) {
+    outcome = OUTCOME_WON;
+    return;
+  }
+
+  let index: byte = 0;
+  while (index < 6) {
+    if (enemies[index].alive && enemies[index].y >= 200) {
+      outcome = OUTCOME_LOST;
+      return;
+    }
+    index = index + 1;
+  }
+}
+
+function spriteBlock(record: byte): byte {
+  return c64.vic.vicSpriteBlock(&SPRITES) + record;
+}
 
 function publishPlayer(): void {
   c64.vic.setSpriteEnabled(0, true);
   c64.vic.setSpritePosition(0, playerX, 220);
-  c64.vic.setSpritePointer(0, c64.vic.vicSpriteBlock(&SPRITES));
+  c64.vic.setSpritePointer(0, spriteBlock(0));
   c64.vic.setSpriteColor(0, 3);
 }
 
-function main(): void {
-  c64.video.waitNextFrame();
-  let sample: byte = c64.input.readJoystick2();
-  if (c64.input.joystickLeft(sample)) {
-    playerX = playerX - 1;
+function publishEnemies(): void {
+  let index: byte = 0;
+  while (index < 6) {
+    let sprite: byte = index + 1;
+    let record: byte = 1 + enemies[index].design + enemies[index].design + animationPhase;
+    c64.vic.setSpriteEnabled(sprite, enemies[index].alive);
+    c64.vic.setSpritePosition(sprite, enemies[index].x, enemies[index].y);
+    c64.vic.setSpritePointer(sprite, spriteBlock(record));
+    c64.vic.setSpriteColor(sprite, 5);
+    index = index + 1;
   }
-  if (c64.input.joystickRight(sample)) {
-    playerX = playerX + 1;
+}
+
+function publishSlotSeven(): void {
+  let enabled: boolean = slotState != SLOT_IDLE;
+  let x: word = slotX;
+  let y: byte = slotY;
+  let record: byte = 5;
+  let color: byte = 1;
+  if (!enabled) {
+    x = 0;
+    y = 0;
   }
+  if (slotState == SLOT_EXPLOSION) {
+    record = 5 + slotFrame;
+    color = 8;
+  }
+  c64.vic.setSpriteEnabled(7, enabled);
+  c64.vic.setSpritePosition(7, x, y);
+  c64.vic.setSpritePointer(7, spriteBlock(record));
+  c64.vic.setSpriteColor(7, color);
+}
+
+function publishFrame(): void {
   publishPlayer();
-  c64.vic.setBorderColor(0);
+  publishEnemies();
+  publishSlotSeven();
+  if (outcome == OUTCOME_WON) {
+    c64.vic.setBorderColor(5);
+  } else {
+    if (outcome == OUTCOME_LOST) {
+      c64.vic.setBorderColor(2);
+    } else {
+      c64.vic.setBorderColor(0);
+    }
+  }
+}
+
+function main(): void {
+  while (!exitRequested) {
+    c64.video.waitNextFrame();
+    let sample: byte = c64.input.readJoystick2();
+    let fire: boolean = c64.input.joystickFire(sample);
+    let fireEdge: boolean = fire && !previousFire;
+
+    if (outcome == OUTCOME_PLAYING) {
+      updatePlayer(sample);
+      advanceSlot();
+      advanceFormation();
+      resolveProjectileHit();
+      if (slotState == SLOT_IDLE && fireEdge) {
+        spawnProjectile();
+      }
+      determineOutcome();
+      if (outcome != OUTCOME_PLAYING && !fire) {
+        terminalSawRelease = true;
+      }
+    } else {
+      advanceSlot();
+      if (!fire) {
+        terminalSawRelease = true;
+      }
+      if (slotState == SLOT_IDLE && terminalSawRelease && fireEdge) {
+        exitRequested = true;
+      }
+    }
+
+    publishFrame();
+    previousFire = fire;
+  }
 }
