@@ -1,6 +1,6 @@
 # Preflight Report: RD-04 Language Completion Plan
 
-> **Status**: ❌ BLOCKED — 4 major findings and 3 minor findings await user decisions
+> **Status**: ❌ BLOCKED — 4 major recommendations approved, but plan edits and re-scan remain pending; 3 minor decisions pending
 > **Iteration**: 1 (first scan)
 > **Artifact**: Entire 11-document implementation plan at `codeops/features/blend65-v4/plans/rd-04-language-completion/`, excluding this report and transient notes
 > **Audited plan tree**: `686309ac9968a3cc3760edb7c1f413f29657b870` (Git tree at scan start)
@@ -43,7 +43,7 @@
 | Severity | Count | Decision state |
 |---|---:|---|
 | 🔴 Critical | 0 | — |
-| 🟠 Major | 4 | Pending |
+| 🟠 Major | 4 | Recommendations approved; fixes not yet applied or verified |
 | 🟡 Minor | 3 | Pending |
 | 🔵 Observation | 0 | — |
 
@@ -60,7 +60,7 @@
 
 **Confidence:** High — the phase/test references are explicit. **Hardening:** Independent challenger converged. **Challenger:** converged; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
 
 ### PF-002: Phase 1 asks every diagnostic to pass before its language feature exists 🟠 MAJOR
 
@@ -73,7 +73,7 @@
 
 **Confidence:** High — diagnostic producers have later phase owners. **Hardening:** Independent challenger converged. **Challenger:** converged; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
 
 ### PF-003: CLI and editor diagnostics do not share the asset-aware path 🟠 MAJOR
 
@@ -86,7 +86,7 @@
 
 **Confidence:** Medium — the divergent path is verified, but the final overlay API shape depends on implementation details. **Hardening:** Independent challenger converged on the direct existing-path extension; the ST-09 wording correction was added after source inspection. **Challenger:** converged on the central remedy; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
 
 ### PF-004: No decisive case proves stored-result conditional memory effects 🟠 MAJOR
 
@@ -99,7 +99,7 @@
 
 **Confidence:** Medium — the required seam is explicit, but the smallest test hook must be chosen during implementation. **Hardening:** Independent challenger converged; no new framework or product API is needed. **Challenger:** converged; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
 
 ### PF-005: One Phase 8 CLI source path is stale 🟡 MINOR
 
@@ -142,4 +142,4 @@
 
 ## Verdict and Next Gate
 
-This plan is **blocked for execution** until PF-001–PF-004 are resolved and their corrections are verified in a bounded re-scan. PF-005–PF-007 require a user ruling or explicit acceptance as notes. Preflight has not changed the plan documents or advanced the roadmap.
+This plan is **blocked for execution** until the approved PF-001–PF-004 corrections are applied and verified in a bounded re-scan. PF-005–PF-007 require a user ruling or explicit acceptance as notes. Preflight has not changed the plan documents or advanced the roadmap.
