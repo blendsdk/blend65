@@ -26,7 +26,10 @@ currently represents several valid forms whose implementation is pending.
    keeping one parser state and one Pratt expression owner (AR-P8).
 4. Replace each pending syntax region with an exact syntax node or authoritative poison.
 5. Complete deterministic module, scope, initialization and diagnostic ordering.
-6. Keep CLI and LSP on the same frontend service and retain the existing backend-import boundary.
+6. Extend the existing overlay analysis to use the same bounded asset resolution as project
+   analysis, after applying source overlays so edited asset paths are resolved from the effective
+   snapshot. The LSP awaits that frontend result. Keep CLI and LSP on one frontend semantic path
+   and retain the frontend/editor backend-import boundary.
 
 ## Implementation Details
 
@@ -92,6 +95,8 @@ This is a responsibility split inside the existing frontend, not a parser framew
   only if required to keep the touched implementation below the file-size limit (AR-P8).
 - Public fields are copied exactly from Specification 4 Chapter 14. Implementation-only service
   failures remain internal and cannot masquerade as language diagnostics.
+- Phase 1 proves registry completeness and diagnostics owned by its frontend forms. Later phases
+  prove their own diagnostic producers; the full Chapter-14 sweep runs in Phase 8.
 
 ## Integration Points
 
@@ -100,7 +105,7 @@ This is a responsibility split inside the existing frontend, not a parser framew
 | Lexer | Parser | Exact token kind, payload and UTF-8 byte span | AR-P1 |
 | Parser | Module/semantic analysis | Complete node or explicit poison; no pending valid form | AR-P1 |
 | Module graph | Semantic analysis | Stable binding and deterministic reachable graph | AR-P8 |
-| Frontend service | CLI/LSP | Identical diagnostics and no backend import | AR-P7 |
+| Frontend service | CLI/LSP | Identical canonical diagnostic records for the same snapshot, including embedded sources, before adapter rendering; no backend import from frontend/LSP | AR-P7 |
 | Crosswalk | Tests only | Static completeness proof; no product dependency | AR-P6 |
 
 ## Error Handling
@@ -119,4 +124,5 @@ This is a responsibility split inside the existing frontend, not a parser framew
 - Complete grammar, precedence, associativity, recovery and removed-syntax matrices.
 - Multi-file module, scope, initializer-order and diagnostic-order tests.
 - Crosswalk exact-set, duplicate, unknown, missing-proof and frozen-identity tests.
-- CLI/LSP byte-identical diagnostic and forbidden-import boundary tests.
+- CLI/LSP canonical diagnostic-record identity, including embedded sources, and frontend/LSP
+  forbidden-import boundary tests. Text and LSP renderings may differ.

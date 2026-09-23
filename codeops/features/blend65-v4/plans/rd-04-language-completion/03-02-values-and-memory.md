@@ -72,6 +72,10 @@ declaration/storage facts rather than pretending to be new scalar types.
 fallthrough and stop edge explicitly. `flow.ts` retains declaration identity, initialized physical
 ranges and predecessor facts. A strong update requires a proved captured range and must-alias;
 may-alias updates receive no credit. Loops converge by the existing monotone data-flow pattern.
+Conditional effects retain the result identity and captured destination range even when the
+Boolean result is stored before a later branch. Agreeing joins preserve the proved range;
+disagreeing joins do not invent an initialized range. A focused semantic-flow case uses a
+synthetic effect to prove this seam; actual transfer integration remains RD-07's work.
 
 ### Aggregates and Places
 
@@ -123,4 +127,6 @@ The resident RD-04 profile reports honest unavailability and emits no loader.
 - CFG/effect traces for short circuit, conditional, loops, switch, assignment and initialization.
 - Array shape/ordinal/bounds/address-wrap and string/map exhaustive fixtures.
 - Struct layout, aggregate value, overlap, const-borrow and address-provenance cases.
+- Stored-result conditional-effect cases for captured-range identity and agreeing/disagreeing
+  joins, without a transfer implementation or new test framework.
 - Transition probes proving each semantic fact remains present until its named consumer.

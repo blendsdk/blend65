@@ -51,10 +51,10 @@ implemented by Phases 1–8.
 
 ### Step 1.1: Specification Tests
 
-**Reference**: [03-01](03-01-authority-and-frontend.md) · ST-01–ST-10 · AR-P6–AR-P8
+**Reference**: [03-01](03-01-authority-and-frontend.md) · ST-01–ST-07, ST-09; frontend-owned ST-08 diagnostics and full registry · AR-P6–AR-P8
 
 - [ ] 1.1.1 [spec-author] Write coverage, lexer and parser specification cases — `test/rd04/normative-coverage.spec.test.ts`, `packages/compiler/src/frontend/lexer.spec.test.ts`, `packages/compiler/src/frontend/parser.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Write module, scope, diagnostic and CLI/LSP identity specification cases — `packages/compiler/src/frontend/modules.spec.test.ts`, `packages/compiler/src/frontend/service.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
+- [ ] 1.1.2 [spec-author] Write module, scope, frontend-owned diagnostic and asset-aware CLI/LSP canonical-record identity specification cases; reserve the full ST-08 sweep for Phase 8 — `packages/compiler/src/frontend/modules.spec.test.ts`, `packages/compiler/src/frontend/service.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
 - [ ] 1.1.3 Run only the new Phase 1 specification cases and record the expected red failures — Phase 1 test files
 
 ### Step 1.2: Implementation
@@ -66,17 +66,19 @@ implemented by Phases 1–8.
 - [ ] 1.2.3 Complete token inventory, literals, UTF-8, maximal munch and lexical diagnostics — `packages/compiler/src/frontend/tokens.ts`, `packages/compiler/src/frontend/lexer.ts`, `packages/compiler/src/frontend/diagnostics.ts`
 - [ ] 1.2.4 Complete syntax nodes, grammar, Pratt integration and bounded recovery; remove Phase 1 pending syntax — `packages/compiler/src/frontend/syntax.ts`, `packages/compiler/src/frontend/parser-declarations.ts`, `packages/compiler/src/frontend/statements.ts`
 - [ ] 1.2.5 Complete module graph, symbol identity, scopes and deterministic initializer ordering — `packages/compiler/src/frontend/modules.ts`, `packages/compiler/src/frontend/module-bindings.ts`, `packages/compiler/src/frontend/effects.ts`
-- [ ] 1.2.6 Complete the RD-04-applicable frontend diagnostic registry and terminal poison handling — `packages/compiler/src/frontend/diagnostics.ts`, `packages/compiler/src/frontend/service.ts`, `packages/compiler/src/services/services.ts`
+- [ ] 1.2.6 Complete the RD-04-applicable diagnostic registry, frontend-owned producers and terminal poison handling; extend existing overlay analysis with the same bounded asset resolution as project analysis and await it in the LSP so CLI/LSP canonical records match — `packages/compiler/src/frontend/diagnostics.ts`, `packages/compiler/src/frontend/service.ts`, `packages/compiler/src/services/services.ts`, `packages/language-server/src/server.ts`
 - [ ] 1.2.7 Run Phase 1 specification cases and make all immutable expectations green — Phase 1 test files
 
 ### Step 1.3: Implementation Tests and Qualification
 
-**Reference**: [03-05](03-05-qualification.md) · ST-01–ST-10
+**Reference**: [03-05](03-05-qualification.md) · ST-01–ST-07, ST-09; frontend-owned ST-08 diagnostics and full registry
 
 - [ ] 1.3.1 Add recovery-budget, graph-order and malformed-crosswalk implementation tests — `packages/compiler/src/frontend/parser.impl.test.ts`, `packages/compiler/src/frontend/modules.impl.test.ts`, `test/rd04/normative-coverage.impl.test.ts`
 - [ ] 1.3.2 Run complete frontend/compiler/CLI/LSP family tests, touched-file Prettier, whitespace and frozen-spec checks — affected packages and `test/rd04/`
 
-**Deliverables:** complete frontend; checked authority ledger; identical CLI/LSP diagnostics.
+**Deliverables:** complete frontend; checked authority ledger; identical CLI/LSP canonical
+diagnostic records. Later diagnostic producers remain owned by their phases; full ST-08 and
+pipeline-wide failure case ST-10 first qualify in Phase 8.
 
 **Verify:** `yarn workspace @blend65/compiler test && yarn workspace @blend65/cli test && yarn workspace @blend65/language-server test && yarn test`
 
@@ -90,7 +92,7 @@ implemented by Phases 1–8.
 **Reference**: [03-02](03-02-values-and-memory.md) · ST-11–ST-20
 
 - [ ] 2.1.1 [spec-author] Write scalar, enum, conversion and arithmetic-context specification matrices — `packages/compiler/src/frontend/scalars.spec.test.ts`, `packages/compiler/src/frontend/expressions.spec.test.ts`
-- [ ] 2.1.2 [spec-author] Write control-flow, switch, effect-order and initialization specification cases — `packages/compiler/src/frontend/flow.spec.test.ts`, `packages/compiler/src/semantic/cfg.spec.test.ts`, `test/rd04/scalars-runtime.spec.test.ts`
+- [ ] 2.1.2 [spec-author] Write control-flow, switch, effect-order and initialization specification cases, including one synthetic stored-result conditional effect with captured-range and join checks — `packages/compiler/src/frontend/flow.spec.test.ts`, `packages/compiler/src/semantic/cfg.spec.test.ts`, `test/rd04/scalars-runtime.spec.test.ts`
 - [ ] 2.1.3 Run only the new Phase 2 specification cases and record the expected red failures — Phase 2 test files
 
 ### Step 2.2: Implementation
@@ -99,7 +101,7 @@ implemented by Phases 1–8.
 
 - [ ] 2.2.1 Complete nominal enum, scalar declaration and conversion rules; extract that responsibility from the oversized analyzer — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/frontend/analyzer-scalars.ts`
 - [ ] 2.2.2 Complete exact constant/runtime arithmetic and every scalar operator — `packages/compiler/src/frontend/constants.ts`, `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/frontend/expressions.ts`
-- [ ] 2.2.3 Complete exactly-once assignment, short circuit and selected conditional effects — `packages/compiler/src/frontend/conditional-expressions.ts`, `packages/compiler/src/frontend/flow-facts.ts`, `packages/compiler/src/frontend/effects.ts`
+- [ ] 2.2.3 Complete exactly-once assignment, short circuit and conditional effects that retain stored-result/captured-range correlation through joins — `packages/compiler/src/frontend/conditional-expressions.ts`, `packages/compiler/src/frontend/flow-facts.ts`, `packages/compiler/src/frontend/effects.ts`
 - [ ] 2.2.4 Complete `if`/loops/three-clause `for`/switch/jumps and reachability analysis — `packages/compiler/src/frontend/statements.ts`, `packages/compiler/src/frontend/flow.ts`, `packages/compiler/src/semantic/cfg.ts`
 - [ ] 2.2.5 Extend semantic operations and split the oversized semantic lowerer by scalar/control responsibility — `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/semantic/lower-control.ts`
 - [ ] 2.2.6 Complete direct `none` scalar/control lowering including division checks and generic CFG paths — `packages/compiler/src/machine/lower-scalar.ts`, `packages/compiler/src/machine/lower-arithmetic.ts`, `packages/compiler/src/machine/lower-control.ts`
@@ -121,9 +123,9 @@ implemented by Phases 1–8.
 
 ### Step 3.1: Specification Tests
 
-**Reference**: [03-02](03-02-values-and-memory.md) · ST-21–ST-29
+**Reference**: [03-02](03-02-values-and-memory.md) · ST-21–ST-25, ST-28–ST-29; ST-26/27 belong to Phase 4
 
-- [ ] 3.1.1 [spec-author] Write array, ordinal, bounds, string/map and struct specification cases — `packages/compiler/src/frontend/aggregates.spec.test.ts`, `packages/compiler/src/frontend/address-of.spec.test.ts`, `test/rd04/aggregate-runtime.spec.test.ts`
+- [ ] 3.1.1 [spec-author] Write array, ordinal, bounds, string/map and struct layout specification cases, excluding aggregate value assignment and parameter ABI — `packages/compiler/src/frontend/aggregates.spec.test.ts`, `packages/compiler/src/frontend/address-of.spec.test.ts`, `test/rd04/aggregate-runtime.spec.test.ts`
 - [ ] 3.1.2 [spec-author] Write placement, loadable-value and address-provenance specification cases — `packages/compiler/src/frontend/profile.spec.test.ts`, `packages/compiler/src/layout/c64-layout.spec.test.ts`, `test/rd04/provenance.spec.test.ts`
 - [ ] 3.1.3 Run only the new Phase 3 specification cases and record the expected red failures — Phase 3 test files
 
@@ -144,7 +146,8 @@ implemented by Phases 1–8.
 - [ ] 3.3.1 Add layout-cycle, ordinal-barrier, provenance and malformed-placement implementation tests — `packages/compiler/src/frontend/aggregates.impl.test.ts`, `packages/compiler/src/layout/c64-layout.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts`
 - [ ] 3.3.2 Run complete aggregate/memory ACME and VICE family qualification plus expert comparisons — `test/rd04/aggregate-runtime.spec.test.ts`, `test/rd04/expert/aggregates.json`, `test/rd04/vice.spec.test.ts`
 
-**Deliverables:** complete core aggregate/address semantics through executable machine output.
+**Deliverables:** complete core aggregate/address semantics through executable machine output;
+ST-26/27 aggregate value and ABI expectations remain Phase 4 work.
 
 **Verify:** `yarn workspace @blend65/compiler test && yarn test`
 
@@ -167,7 +170,7 @@ implemented by Phases 1–8.
 - [ ] 4.2.3 Inventory aggregate destinations, snapshots, caller staging and pointer pairs — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/interference.ts`, `packages/compiler/src/storage/closure.ts`
 - [ ] 4.2.4 Lower direct construction and overlap-safe copies with explicit scratch/costs — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/machine-types.ts`
 - [ ] 4.2.5 Reconcile aggregate homes/copies in SFA, memory, cost and debug evidence — `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`, `packages/compiler/src/artifacts/debug-evidence-validator.ts`
-- [ ] 4.2.6 Run Phase 4 specification cases and make all immutable expectations green — Phase 4 test files
+- [ ] 4.2.6 Run Phase 4 specification cases, including the first full ST-26/27 qualification, and make all immutable expectations green — Phase 4 test files
 
 ### Step 4.3: Implementation Tests and Qualification
 
@@ -278,10 +281,10 @@ implemented by Phases 1–8.
 
 ### Step 8.1: Specification Tests
 
-**Reference**: [03-04](03-04-machine-and-artifacts.md) · ST-46–ST-52
+**Reference**: [03-04](03-04-machine-and-artifacts.md) · full ST-08 and ST-10 sweeps, ST-46–ST-52
 
-- [ ] 8.1.1 [spec-author] Write complete machine-legality, direct-`none`, layout and artifact specification cases — `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/artifacts/evidence.spec.test.ts`, `test/rd04/backend.spec.test.ts`
-- [ ] 8.1.2 [spec-author] Write complete CLI/LSP identity and unavailable-capability specification cases — `packages/cli/src/commands.spec.test.ts`, `packages/language-server/src/server.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
+- [ ] 8.1.1 [spec-author] Write complete machine-legality, direct-`none`, layout, artifact and pipeline-wide terminal-publication specification cases — `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/artifacts/evidence.spec.test.ts`, `test/rd04/backend.spec.test.ts`
+- [ ] 8.1.2 [spec-author] Write the full ST-08 diagnostic sweep, complete CLI/LSP identity, modern diagnostic wording, readable-assembly evidence and unavailable-capability specification cases — `packages/compiler/src/frontend/diagnostics.spec.test.ts`, `packages/cli/src/commands.spec.test.ts`, `packages/language-server/src/server.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`, `test/rd04/backend.spec.test.ts`
 - [ ] 8.1.3 Run only the new Phase 8 specification cases and record the expected red failures — Phase 8 test files
 
 ### Step 8.2: Implementation
@@ -289,15 +292,15 @@ implemented by Phases 1–8.
 - [ ] 8.2.1 Split the oversized machine coordinator and complete remaining scalar/helper selections — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-operation.ts`, `packages/compiler/src/machine/lower-helpers.ts`
 - [ ] 8.2.2 Complete aggregate/control/call lowering and generic fallback paths — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/lower-operation.ts`
 - [ ] 8.2.3 Complete NMOS legality, state/clobber validation and deterministic branch repair — `packages/compiler/src/machine/validate.ts`, `packages/compiler/src/machine/block-layout.ts`, `packages/compiler/src/target/nmos6510.ts`
-- [ ] 8.2.4 Complete layout, ACME serialization/report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts`
+- [ ] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts`
 - [ ] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`
-- [ ] 8.2.6 Keep compiler/CLI/LSP failure and diagnostic identity through public services — `packages/compiler/src/services/services.ts`, `packages/cli/src/commands.ts`, `packages/language-server/src/server.ts`
+- [ ] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts`
 - [ ] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files
 
 ### Step 8.3: Implementation Tests and Qualification
 
 - [ ] 8.3.1 Add malformed-machine, branch-range, ACME mismatch and evidence/publication implementation tests — `packages/compiler/src/machine/lowering.impl.test.ts`, `packages/compiler/src/artifacts/evidence.impl.test.ts`, `packages/compiler/src/publication/publication.impl.test.ts`
-- [ ] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
+- [ ] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons using one normal-form complete-language example; assert its source-related routine/data labels and comments directly in the generated assembly — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
 
 **Deliverables:** complete legal `none` backend, coherent artifacts and identical public services.
 

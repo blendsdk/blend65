@@ -66,7 +66,10 @@ reserved profile ranges remain separate resource classes.
 Layout places code, globals, constants, user ZP, SFA, admitted resident assets and required helper
 data without overlap. It honors symbolic placement, alignment, no-cross, region, banking and
 visibility constraints. ACME remains `--cpu 6502`; serialization never becomes a textual semantic
-IR and source content cannot inject directives or arguments.
+IR and source content cannot inject directives or arguments. Stable assembler-safe labels remain
+collision-free while exposing their source relationship; comments mark meaningful routine/data
+boundaries. A focused assertion checks both in the generated assembly, with no second evidence
+format.
 
 After ACME, evidence reconciles actual labels, report ranges and bytes before publication. Any
 failure removes owned staging or reports recovery-required; stale artifacts never appear current.
@@ -111,4 +114,5 @@ No dashboard or new evidence product is added (AR-P6).
 - Flag, register, stack, scratch, helper, branch-range, address-wrap and MMIO-order cases.
 - Layout conflicts, boundary fits, placement, banking and resource reconciliation cases.
 - Artifact schema, ACME report/symbol/byte and atomic-publication failure cases.
+- Source-related routine/data labels and boundary comments in one complete-language example.
 - Structural assertions that `none` emits no optional decision/search evidence.

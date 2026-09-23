@@ -1,9 +1,10 @@
 # Preflight Report: RD-04 Language Completion Plan
 
-> **Status**: ❌ BLOCKED — 4 major recommendations approved, but plan edits and re-scan remain pending; 3 minor decisions pending
-> **Iteration**: 1 (first scan)
+> **Status**: ✅ PREFLIGHT PASSED — all 7 findings resolved
+> **Iteration**: 2 (bounded re-scan after user-authorized fixes)
 > **Artifact**: Entire 11-document implementation plan at `codeops/features/blend65-v4/plans/rd-04-language-completion/`, excluding this report and transient notes
-> **Audited plan tree**: `686309ac9968a3cc3760edb7c1f413f29657b870` (Git tree at scan start)
+> **Original plan tree**: `686309ac9968a3cc3760edb7c1f413f29657b870` (Git tree at iteration 1 start)
+> **Audited plan content SHA-256**: `c50bf7cbdebb89937a431d20e0d4037c9c86c33a10e2e703932b2a526257b590` (sorted plan-file SHA-256 manifest; excludes this report and transient notes)
 > **Scope**: Strict; the plan is the audit target. RD-04, frozen Specification 4, active expert guidance, and current source/tests are context only.
 > **Codebase Grounded**: 15 source/test-support files examined; key compiler, CLI, LSP, ACME and VICE references verified against the checkout
 > **Last Updated**: 2026-09-23
@@ -16,11 +17,11 @@
 
 **Key files examined:** `packages/compiler/src/services/services.ts`, `frontend/service.ts`, `frontend/semantic-types.ts`, `frontend/direct-calls.ts`, `frontend/flow-facts.ts`, `semantic/operations.ts`, `semantic/lower.ts`, `storage/closure.ts`, `artifacts/acme-serializer.ts`, `artifacts/evidence-types.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts`, and `test/m1/` VICE support.
 
-**Reference checks:** The existing pipeline, package graph, co-located tests and M1 VICE protocol are real. `test/rd04/` and many named source files are proposed deliverables, not false claims of existing files. One CLI task path is stale (PF-005). No new package, pass framework, readiness system or disproportionate test harness was found. The existing plan's approved AR-P1–AR-P9 decisions were not reopened.
+**Reference checks:** The existing pipeline, package graph, co-located tests and M1 VICE protocol are real. `test/rd04/` and many named source files are proposed deliverables, not false claims of existing files. The original stale CLI task path (PF-005) is corrected. No new package, pass framework, readiness system or disproportionate test harness was found. The existing plan's approved AR-P1–AR-P9 decisions were not reopened.
 
 **Domain lenses:** Compiler/language semantics; interrupt concurrency and state ownership; generated-artifact compatibility. The latter found no schema migration in the plan: existing sidecar schema versions remain fixed. Generic distributed-system infrastructure is not applicable to a single-machine interrupt model.
 
-## Summary by Dimension
+## First-Scan Findings by Dimension
 
 | # | Dimension | Findings | Highest severity |
 |---|---|---:|---|
@@ -38,13 +39,13 @@
 | 12 | Consistency | 1 | 🟡 Minor |
 | 13 | Codebase alignment | 2 | 🟠 Major |
 
-## Summary by Severity
+## First-Scan Findings by Severity
 
 | Severity | Count | Decision state |
 |---|---:|---|
 | 🔴 Critical | 0 | — |
-| 🟠 Major | 4 | Recommendations approved; fixes not yet applied or verified |
-| 🟡 Minor | 3 | Pending |
+| 🟠 Major | 4 | All resolved and verified in iteration 2 |
+| 🟡 Minor | 3 | All resolved and verified in iteration 2 |
 | 🔵 Observation | 0 | — |
 
 ## Findings
@@ -60,7 +61,7 @@
 
 **Confidence:** High — the phase/test references are explicit. **Hardening:** Independent challenger converged. **Challenger:** converged; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
+**User Decision:** Approved recommended resolution on 2026-09-23; user subsequently authorized plan edits and re-scan.
 
 ### PF-002: Phase 1 asks every diagnostic to pass before its language feature exists 🟠 MAJOR
 
@@ -73,7 +74,7 @@
 
 **Confidence:** High — diagnostic producers have later phase owners. **Hardening:** Independent challenger converged. **Challenger:** converged; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
+**User Decision:** Approved recommended resolution on 2026-09-23; user subsequently authorized plan edits and re-scan.
 
 ### PF-003: CLI and editor diagnostics do not share the asset-aware path 🟠 MAJOR
 
@@ -86,7 +87,7 @@
 
 **Confidence:** Medium — the divergent path is verified, but the final overlay API shape depends on implementation details. **Hardening:** Independent challenger converged on the direct existing-path extension; the ST-09 wording correction was added after source inspection. **Challenger:** converged on the central remedy; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
+**User Decision:** Approved recommended resolution on 2026-09-23; user subsequently authorized plan edits and re-scan.
 
 ### PF-004: No decisive case proves stored-result conditional memory effects 🟠 MAJOR
 
@@ -99,7 +100,7 @@
 
 **Confidence:** Medium — the required seam is explicit, but the smallest test hook must be chosen during implementation. **Hardening:** Independent challenger converged; no new framework or product API is needed. **Challenger:** converged; its file evidence came from the dispatch packet and was rechecked by the lead.
 
-**User Decision:** Approved recommended resolution on 2026-09-23. Plan modification was not authorized by this ruling; fix and re-scan pending.
+**User Decision:** Approved recommended resolution on 2026-09-23; user subsequently authorized plan edits and re-scan.
 
 ### PF-005: One Phase 8 CLI source path is stale 🟡 MINOR
 
@@ -110,7 +111,7 @@
 
 **Recommended resolution — the only viable direct correction:** Replace `commands.ts` with `run.ts` in the task path. Do not create a duplicate CLI module.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended correction and plan edit on 2026-09-23.
 
 ### PF-006: The test-strategy authority line omits approved AR-P9 🟡 MINOR
 
@@ -120,7 +121,7 @@
 
 **Recommended resolution — the only viable direct correction:** Change the introduction to AR-P1–AR-P9. No test or scope change is needed.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended correction and plan edit on 2026-09-23.
 
 ### PF-007: Two claimed Should-Have results lack a delivery check 🟡 MINOR
 
@@ -131,7 +132,25 @@
 
 **Recommended resolution — the only small viable path:** Add a bounded Phase 8/9 check using an existing complete-language fixture as the modern example and a focused assembly assertion for source-related routine/data labels and comments. If that check is red, update the existing serializer and diagnostic wording directly. Do not add a new example framework.
 
-**User Decision:** Pending
+**User Decision:** Approved recommended correction and plan edit on 2026-09-23.
+
+## Iteration 2: Fix Verification and Bounded Re-scan
+
+| Finding | Verified correction |
+|---|---|
+| PF-001 | Phase 3 gates ST-21–25 and ST-28–29; Phase 4 first qualifies ST-26/27. |
+| PF-002 | Phase 1 checks its diagnostic producers and the complete registry; Phase 8 owns the full ST-08 sweep. The same phase-gate check placed pipeline-wide ST-10 in Phase 8. |
+| PF-003 | Existing overlay analysis gains asset resolution on the effective snapshot; LSP awaits it. ST-09 compares canonical compiler records before different adapter renderings and limits the backend-import rule to frontend/LSP. |
+| PF-004 | One focused synthetic semantic-flow case checks stored-result correlation, captured ranges and agreeing/disagreeing joins; RD-07 retains real transfer integration. |
+| PF-005 | Phase 8 points at the existing CLI owner, `packages/cli/src/run.ts`. |
+| PF-006 | The test-strategy authority line includes AR-P9. |
+| PF-007 | Phase 8 directly checks a normal-form complete-language example, diagnostic wording and source-related routine/data labels and comments in generated assembly. |
+
+The unchanged plan target was re-scanned across all 13 dimensions, including compiler semantics,
+interrupt/flow risk, generated-artifact compatibility and the complexity gate. No new finding or
+unapproved support system survived refutation. The existing acceptance-criterion references in
+ST cases and crosswalk proof paths need no second ledger. No source or Specification 4 file was
+changed by these plan corrections.
 
 ## Adversarial and Simplicity Check
 
@@ -142,4 +161,6 @@
 
 ## Verdict and Next Gate
 
-This plan is **blocked for execution** until the approved PF-001–PF-004 corrections are applied and verified in a bounded re-scan. PF-005–PF-007 require a user ruling or explicit acceptance as notes. Preflight has not changed the plan documents or advanced the roadmap.
+The full RD-04 plan **passes preflight**. All seven approved corrections are applied and verified;
+there are no remaining findings. The feature roadmap now records Plan Preflighted. Phase 1 of the
+execution plan is the next implementation step.
