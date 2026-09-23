@@ -149,7 +149,7 @@ describe("C64 layout hardening", () => {
         )
         .every(({ mode }) => mode === "zero-page"),
     ).toBe(true);
-    expect(selectedProfile().storage.startupStackBytes).toBe(0);
+    expect(selectedProfile().storage.startupStackBytes).toBe(1);
   });
 
   it("should assign exact function/block origins and repair branches during final layout", () => {

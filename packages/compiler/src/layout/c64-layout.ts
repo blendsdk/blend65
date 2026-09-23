@@ -335,7 +335,9 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     }
   }
 
-  const nonAssets = laidOutProgram.data.filter(({ kind }) => kind !== "asset").sort(compareIds);
+  const nonAssets = laidOutProgram.data
+    .filter(({ kind }) => kind !== "asset" && kind !== "bss")
+    .sort(compareIds);
   let cursor = Math.max(
     input.profile.packager.startupAddress,
     ...intervals.filter(({ bytes }) => bytes !== null).map(({ end }) => end + 1),
@@ -438,6 +440,34 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     cursor = end + 1;
   }
 
+  const uninitialized = laidOutProgram.data.filter(({ kind }) => kind === "bss").sort(compareIds);
+  for (const data of uninitialized) {
+    const bytes = dataBytes(data);
+    if (
+      bytes === null ||
+      bytes.length === 0 ||
+      bytes.some((byte) => byte !== 0) ||
+      !Number.isInteger(data.alignment) ||
+      data.alignment <= 0 ||
+      (data.alignment & (data.alignment - 1)) !== 0
+    ) {
+      return Object.freeze({ kind: "error", reason: "invalid-data", objectId: data.id });
+    }
+    const start = align(cursor, data.alignment);
+    if (
+      !addInterval(intervals, {
+        id: data.id,
+        kind: "bss",
+        start,
+        end: start + bytes.length - 1,
+        bytes: null,
+      })
+    ) {
+      return Object.freeze({ kind: "error", reason: "data-conflict", objectId: data.id });
+    }
+    cursor = start + bytes.length;
+  }
+
   const ordered = Object.freeze(
     [...intervals].sort((left, right) => left.start - right.start || compareIds(left, right)),
   );
@@ -449,6 +479,11 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
     loaded.some(
       ({ start, end }) =>
         start < input.profile.packager.residentStart || end > input.profile.packager.residentEnd,
+    ) ||
+    ordered.some(
+      ({ kind, start, end }) =>
+        kind === "bss" &&
+        (start < input.profile.packager.residentStart || end > input.profile.packager.residentEnd),
     )
   ) {
     return Object.freeze({ kind: "error", reason: "resident-range", objectId: null });

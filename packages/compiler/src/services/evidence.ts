@@ -215,6 +215,9 @@ export async function prepareEvidence(
     assetIds,
   );
   const view = memoryView(intervals);
+  const stackCapacity = input.profile.storage.hardwareStackCapacity ?? 0x100;
+  const platformStackReserve = input.profile.storage.hardwareStackReserve ?? 0;
+  const qualifiedStackBytes = input.certificate.hardwareStackPeak + platformStackReserve;
   const memoryEvidence = Object.freeze({
     kind: "blend65.memory",
     schemaVersion: 1,
@@ -226,17 +229,42 @@ export async function prepareEvidence(
     unboundedEffects: Object.freeze([]),
     intervals,
     views: Object.freeze([view]),
-    stackDomains: Object.freeze([
-      Object.freeze({
-        id: "main",
-        route: Object.freeze(["startup", "main"]),
-        capacityBytes: input.profile.storage.hardwareStackCapacity ?? 0x100,
-        peakBytes: input.certificate.hardwareStackPeak,
-        headroomBytes:
-          (input.profile.storage.hardwareStackCapacity ?? 0x100) -
-          input.certificate.hardwareStackPeak,
-      }),
-    ]),
+    stackDomains: Object.freeze(
+      [
+        Object.freeze({
+          id: "interrupt-entry-save",
+          route: Object.freeze(["c64.interrupt-entry", "c64.kernal-register-save"]),
+          capacityBytes: stackCapacity,
+          peakBytes: input.certificate.hardwareStackSystemPeak,
+          headroomBytes: stackCapacity - input.certificate.hardwareStackSystemPeak,
+        }),
+        Object.freeze({
+          id: "platform-reserve",
+          route: Object.freeze(["c64.platform-reserve"]),
+          capacityBytes: stackCapacity,
+          peakBytes: platformStackReserve,
+          headroomBytes: stackCapacity - platformStackReserve,
+        }),
+        Object.freeze({
+          id: "program",
+          route: input.certificate.hardwareStackRoute,
+          capacityBytes: stackCapacity,
+          peakBytes: input.certificate.hardwareStackProgramPeak,
+          headroomBytes: stackCapacity - input.certificate.hardwareStackProgramPeak,
+        }),
+        Object.freeze({
+          id: "qualified-capacity",
+          route: Object.freeze([
+            ...input.certificate.hardwareStackRoute,
+            "interrupt:c64.entry-save",
+            "reserve:c64.platform",
+          ]),
+          capacityBytes: stackCapacity,
+          peakBytes: qualifiedStackBytes,
+          headroomBytes: stackCapacity - qualifiedStackBytes,
+        }),
+      ].sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id))),
+    ),
   });
   const loaded = input.layout.intervals.filter(({ bytes }) => bytes !== null);
   const costEntries = loaded
@@ -296,7 +324,7 @@ export async function prepareEvidence(
         Object.freeze({
           kind: "standard",
           id: "hardwareStack",
-          value: input.certificate.hardwareStackPeak,
+          value: qualifiedStackBytes,
         }),
         Object.freeze({ kind: "standard", id: "scratch", value: 0 }),
       ]),

@@ -186,6 +186,7 @@ describe("whole-program implementation", () => {
           storage: "module",
           type: Object.freeze({ kind: "scalar", name: "byte" }),
           initialBytes: null,
+          runtimeInitialBytes: null,
           entry: "initializer",
           blocks: [
             {
@@ -233,6 +234,7 @@ describe("whole-program implementation", () => {
           storage: "module",
           type: byteType,
           initialBytes: null,
+          runtimeInitialBytes: null,
           entry: "initializer",
           blocks: [
             {
@@ -349,6 +351,7 @@ describe("whole-program implementation", () => {
             size: 1,
           }),
           initialBytes: null,
+          runtimeInitialBytes: null,
           entry: "asset-initializer",
           blocks: [
             {

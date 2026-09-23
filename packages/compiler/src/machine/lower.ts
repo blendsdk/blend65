@@ -1,12 +1,16 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
-import type { SemanticBlock, SemanticPlace } from "../semantic/operations.js";
+import type { SemanticBlock, SemanticPlace, SemanticTerminator } from "../semantic/operations.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type { StorageRequest } from "../storage/storage-types.js";
 import { storageInventoryHash } from "../storage/closure.js";
 import { inventoryStorage } from "../storage/inventory.js";
-import { createC64Startup, createC64StartupStateData } from "../layout/startup.js";
+import {
+  createC64Startup,
+  createC64StartupStateData,
+  type C64StartupInitializer,
+} from "../layout/startup.js";
 import {
   lowerTerminator,
   machineCost,
@@ -16,6 +20,7 @@ import {
   modeForValue,
   operandForValue,
 } from "./lower-control.js";
+import { prepareAggregateInduction, type AggregateInductionRuntime } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
 import type {
   MachineBlock,
@@ -24,6 +29,7 @@ import type {
   MachineInstruction,
   MachineLoweringInput,
   MachineLoweringResult,
+  MachineMemoryEffect,
 } from "./machine-types.js";
 
 /** Internal proving failure converted to the direct lowering error union. */
@@ -59,6 +65,42 @@ export function bindingLabel(prefix: string, binding: BindingId): string {
   return `${prefix}.${bindingIdentityKey(binding)}`;
 }
 
+/** Return each distinct semantic successor without adding a general CFG analysis layer. */
+function semanticSuccessors(terminator: SemanticTerminator): readonly string[] {
+  if (terminator.kind === "jump") return Object.freeze([terminator.target]);
+  if (terminator.kind !== "branch") return Object.freeze([]);
+  return terminator.whenTrue === terminator.whenFalse
+    ? Object.freeze([terminator.whenTrue])
+    : Object.freeze([terminator.whenTrue, terminator.whenFalse]);
+}
+
+/** Compile-time identity of the indexed aggregate base held in the shared address pair. */
+export interface AggregateAddressCache {
+  /** Stable identity of the aggregate root and scaled index sources. */
+  readonly key: string;
+  /** Source binding whose packed bytes the pointer addresses. */
+  readonly rootBindingKey: string;
+  /** Storage homes whose current values contributed dynamic index terms. */
+  readonly indexRequestIds: readonly string[];
+}
+
+/** Build one canonical aggregate-address fact shared by local and loop-carried reuse. */
+export function createAggregateAddressCache(
+  rootBindingKey: string,
+  indices: readonly {
+    readonly requestId: string;
+    readonly bytes: number;
+    readonly signed: boolean;
+    readonly stride: number;
+  }[],
+): AggregateAddressCache {
+  return Object.freeze({
+    key: JSON.stringify({ root: rootBindingKey, indices }),
+    rootBindingKey,
+    indexRequestIds: Object.freeze(indices.map(({ requestId }) => requestId)),
+  });
+}
+
 /** State used only while one semantic execution context is lowered. */
 export interface FunctionLoweringState {
   readonly owner: BindingId;
@@ -78,6 +120,14 @@ export interface FunctionLoweringState {
     readonly source: SourceSpan;
   }[];
   readonly generatedData: Map<string, MachineDataObject>;
+  /**
+   * Identity of the indexed aggregate base currently held in the shared address pair.
+   * This is compile-time knowledge only. Index writes and calls clear it. Forward control-flow
+   * edges retain it only when every incoming path proves the same identity.
+   */
+  aggregateAddressCache: AggregateAddressCache | null;
+  /** One proved canonical loop recurrence, or null for ordinary lowering. */
+  aggregateInduction: AggregateInductionRuntime | null;
 }
 
 /** Build a conservative finite lifetime for machine-discovered function storage. */
@@ -282,6 +332,14 @@ function lowerFunction(
   generatedData: Map<string, MachineDataObject>,
   returnsToStartup: boolean,
 ): MachineFunction {
+  const blockIndexes = new Map(blocks.map((block, index) => [block.id, index] as const));
+  const predecessors = new Map(blocks.map((block) => [block.id, [] as string[]] as const));
+  for (const block of blocks) {
+    for (const successor of semanticSuccessors(block.terminator)) {
+      const incoming = predecessors.get(successor);
+      if (incoming !== undefined) incoming.push(block.id);
+    }
+  }
   const positions = Object.freeze(
     blocks.flatMap((block) =>
       Array.from({ length: block.operations.length + 1 }, (_, operation) =>
@@ -350,10 +408,37 @@ function lowerFunction(
     ),
     mergeCopies: [],
     generatedData,
+    aggregateAddressCache: null,
+    aggregateInduction: null,
   };
+  state.aggregateInduction = prepareAggregateInduction(blocks, state);
   const loweredBlocks: MachineBlock[] = [];
   const semanticExitLabels = new Map<string, string>();
+  const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
   for (const block of blocks) {
+    const incoming = predecessors.get(block.id) ?? [];
+    const blockIndex = blockIndexes.get(block.id)!;
+    const incomingCaches =
+      incoming.length > 0 &&
+      incoming.every((predecessor) => {
+        const predecessorIndex = blockIndexes.get(predecessor);
+        return (
+          predecessorIndex !== undefined &&
+          predecessorIndex < blockIndex &&
+          aggregateAddressCacheAtExit.has(predecessor)
+        );
+      })
+        ? incoming.map((predecessor) => aggregateAddressCacheAtExit.get(predecessor) ?? null)
+        : [];
+    const firstIncomingCache = incomingCaches[0] ?? null;
+    state.aggregateAddressCache =
+      firstIncomingCache !== null &&
+      incomingCaches.every((cache) => cache !== null && cache.key === firstIncomingCache.key)
+        ? firstIncomingCache
+        : null;
+    if (state.aggregateInduction?.header === block.id) {
+      state.aggregateAddressCache = state.aggregateInduction.cache;
+    }
     let currentLabel = block.id;
     let currentInstructions: MachineInstruction[] = [];
     let waitIndex = 0;
@@ -364,9 +449,9 @@ function lowerFunction(
       }
 
       const waitInstructions = lowerOperation(operation, state);
-      if (waitInstructions.length !== 2) {
+      if (waitInstructions.length !== 4) {
         throw loweringFailure(
-          "Frame wait did not produce its two VIC observations",
+          "Frame wait did not produce its two raster-line comparisons",
           operation.span,
         );
       }
@@ -386,32 +471,36 @@ function lowerFunction(
       loweredBlocks.push(
         Object.freeze({
           label: highLabel,
-          instructions: Object.freeze([waitInstructions[0]!]),
+          instructions: Object.freeze([waitInstructions[0]!, waitInstructions[1]!]),
           terminator: Object.freeze({
             kind: "branch",
-            opcode: "bpl",
+            opcode: "beq",
             target: highLabel,
             fallthrough: lowLabel,
-            uses: machineState([], ["n"]),
-            cost: machineCost(input.profile.cpu, "bpl", "relative"),
+            uses: machineState([], ["z"]),
+            cost: machineCost(input.profile.cpu, "beq", "relative"),
           }),
         }),
         Object.freeze({
           label: lowLabel,
-          instructions: Object.freeze([waitInstructions[1]!]),
+          instructions: Object.freeze([waitInstructions[2]!, waitInstructions[3]!]),
           terminator: Object.freeze({
             kind: "branch",
-            opcode: "bmi",
+            opcode: "bne",
             target: lowLabel,
             fallthrough: continuationLabel,
-            uses: machineState([], ["n"]),
-            cost: machineCost(input.profile.cpu, "bmi", "relative"),
+            uses: machineState([], ["z"]),
+            cost: machineCost(input.profile.cpu, "bne", "relative"),
           }),
         }),
       );
       currentLabel = continuationLabel;
       currentInstructions = [];
       waitIndex += 1;
+    }
+    if (state.aggregateInduction?.preheader === block.id) {
+      currentInstructions.push(...state.aggregateInduction.initialization);
+      state.aggregateAddressCache = state.aggregateInduction.cache;
     }
     if (block.terminator.kind === "return" && block.terminator.value !== null) {
       const returned = state.values.get(block.terminator.value);
@@ -457,6 +546,7 @@ function lowerFunction(
       }),
     );
     semanticExitLabels.set(block.id, currentLabel);
+    aggregateAddressCacheAtExit.set(block.id, state.aggregateAddressCache);
   }
   for (const copy of state.mergeCopies) {
     const incoming = state.values.get(copy.incoming);
@@ -487,24 +577,26 @@ function lowerData(
   program: WholeProgram,
   generatedData: ReadonlyMap<string, MachineDataObject>,
 ): readonly MachineDataObject[] {
-  const globals = program.semantic.globals.map((global) => {
-    const bytes = typeBytes(global.type);
-    const encoded = global.initialBytes;
-    if (encoded !== null && encoded.length !== bytes) {
-      throw loweringFailure("Global initial bytes do not match the declared type", global.source);
-    }
-    return Object.freeze({
-      id: bindingLabel("global", global.id),
-      kind:
-        encoded === null
-          ? ("bss" as const)
-          : global.storage === "constant"
-            ? ("immutable" as const)
-            : ("global" as const),
-      alignment: 1,
-      bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
+  const globals = program.semantic.globals
+    .filter((global) => !(global.storage === "constant" && global.type.kind === "scalar"))
+    .map((global) => {
+      const bytes = typeBytes(global.type);
+      const encoded = global.initialBytes;
+      if (encoded !== null && encoded.length !== bytes) {
+        throw loweringFailure("Global initial bytes do not match the declared type", global.source);
+      }
+      return Object.freeze({
+        id: bindingLabel("global", global.id),
+        kind:
+          encoded === null
+            ? ("bss" as const)
+            : global.storage === "constant"
+              ? ("immutable" as const)
+              : ("global" as const),
+        alignment: 1,
+        bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
+      });
     });
-  });
   const reachable = new Set(program.reachableAssets);
   const assets = program.semantic.assets
     .filter(({ id }) => reachable.has(id))
@@ -521,6 +613,62 @@ function lowerData(
     Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
   );
   return Object.freeze([...globals, ...assets, ...generated, createC64StartupStateData()]);
+}
+
+/** Lower a side-effect-free constant module initializer to inline runtime stores. */
+function lowerConstantInitializer(
+  global: WholeProgram["semantic"]["globals"][number],
+  input: MachineLoweringInput,
+  accumulator: number | null,
+): { readonly instructions: readonly MachineInstruction[]; readonly accumulator: number | null } {
+  const bytes = global.runtimeInitialBytes;
+  if (bytes === null || global.entry === null || bytes.length !== typeBytes(global.type)) {
+    throw loweringFailure(
+      "Constant runtime initializer bytes do not match the global",
+      global.source,
+    );
+  }
+  const target = bindingLabel("global", global.id);
+  const instructions: MachineInstruction[] = [];
+  let currentAccumulator = accumulator;
+  for (const [offset, value] of bytes.entries()) {
+    if (value !== currentAccumulator) {
+      instructions.push(
+        machineInstruction(
+          input.profile.cpu,
+          "lda",
+          "immediate",
+          Object.freeze({ kind: "immediate", value }),
+          [],
+          global.source,
+        ),
+      );
+      currentAccumulator = value;
+    }
+    const memory = Object.freeze([
+      Object.freeze({
+        kind: "write" as const,
+        address: Object.freeze({ kind: "symbolic" as const, label: target, offset }),
+        width: 1 as const,
+        volatile: false,
+        order: 0,
+      }),
+    ]) satisfies readonly MachineMemoryEffect[];
+    instructions.push(
+      machineInstruction(
+        input.profile.cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "label", label: target, offset }),
+        memory,
+        global.source,
+      ),
+    );
+  }
+  return Object.freeze({
+    instructions: Object.freeze(instructions),
+    accumulator: currentAccumulator,
+  });
 }
 
 /**
@@ -560,18 +708,27 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         (global) => [bindingIdentityKey(global.id), global] as const,
       ),
     );
-    const initializerLabels: string[] = [];
+    const startupInitializers: C64StartupInitializer[] = [];
+    let initializerAccumulator: number | null = 0;
     for (const initializer of input.program.semantic.initializerOrder) {
       const global = globalsByKey.get(bindingIdentityKey(initializer));
       if (global === undefined || global.entry === null) {
         throw loweringFailure("Initializer root is absent", initializer.span);
       }
-      if (global.initialBytes !== null) continue;
       const label = bindingLabel("init", initializer);
-      initializerLabels.push(label);
-      machineFunctions.push(
-        lowerFunction(label, initializer, global.blocks, input, requests, generatedData, false),
-      );
+      if (global.runtimeInitialBytes === null) {
+        startupInitializers.push(Object.freeze({ kind: "call", label }));
+        machineFunctions.push(
+          lowerFunction(label, initializer, global.blocks, input, requests, generatedData, false),
+        );
+        initializerAccumulator = null;
+      } else {
+        const lowered = lowerConstantInitializer(global, input, initializerAccumulator);
+        startupInitializers.push(
+          Object.freeze({ kind: "inline", instructions: lowered.instructions }),
+        );
+        initializerAccumulator = lowered.accumulator;
+      }
     }
 
     const mainFunction = functionsByKey.get(bindingIdentityKey(input.program.semantic.main));
@@ -579,7 +736,12 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       throw loweringFailure("Main function is absent", input.program.semantic.main.span);
     }
     const mainLabel = bindingLabel("fn", mainFunction.id);
-    const startup = createC64Startup({ initializerLabels, mainLabel, profile: input.profile });
+    const startup = createC64Startup({
+      initializerLabels: Object.freeze([]),
+      initializers: Object.freeze(startupInitializers),
+      mainLabel,
+      profile: input.profile,
+    });
     if (startup.kind === "error") {
       throw loweringFailure(startup.reason, null);
     }

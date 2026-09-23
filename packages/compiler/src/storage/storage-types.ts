@@ -185,6 +185,12 @@ export interface StorageClosureCertificate {
   readonly peakBytes: ResourceTotals;
   /** Proved call/interrupt hardware-stack peak. */
   readonly hardwareStackPeak: number;
+  /** Largest program-owned startup or call route before interrupt entry. */
+  readonly hardwareStackProgramPeak: number;
+  /** Simultaneous platform-owned interrupt entry and save bytes. */
+  readonly hardwareStackSystemPeak: number;
+  /** Exact program-owned route which determines the program peak. */
+  readonly hardwareStackRoute: readonly string[];
   /** Marker preventing a partial record from masquerading as a certificate. */
   readonly closed: true;
 }

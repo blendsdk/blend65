@@ -1,0 +1,4893 @@
+{
+  "schemaVersion": 1,
+  "status": "VICE-verified / hardware-unverified",
+  "sourceSnapshot": {
+    "gameSourceSha256": "ee47ffe85e7b67ee11fcfae0ecb879aa9157d6a462c8c4b53538b6511f04f2b2",
+    "expertSourceSha256": "4580188de595b1968c4e034244b1141a86ca68b1f9817e883338c17de5806317",
+    "expertPrgSha256": "d7928b9be749c50b1b4b8dc2c84a67d4dbbdd685eac9dc6da6e4f5777dd20636",
+    "oracleSha256": "7ea949a34ecde626f80ddb373858f09b8be8ebedd9cd544936eacf431789a5e3",
+    "traceSha256": "01dba080800f2984d7a424748ecfcb02bf03da9ccce2b515c88d72cb6a02792b"
+  },
+  "runtime": {
+    "viceSha256": "f148b33869c634964a75bcf3055f7415a6e87ef5984b66ecd486541a51c3fd74",
+    "roms": [
+      {
+        "name": "kernal-901227-03.bin",
+        "bytes": 8192,
+        "sha256": "83c60d47047d7beab8e5b7bf6f67f80daa088b7a6a27de0d7e016f6484042721"
+      },
+      {
+        "name": "basic-901226-01.bin",
+        "bytes": 8192,
+        "sha256": "89878cea0a268734696de11c4bae593eaaa506465d2029d619c0e0cbccdfa62d"
+      },
+      {
+        "name": "chargen-901225-01.bin",
+        "bytes": 4096,
+        "sha256": "fd0d53b8480e86163ac98998976c72cc58d5dd8eb824ed7b829774e74213b420"
+      }
+    ]
+  },
+  "restoration": {
+    "cpu": true,
+    "machine": true,
+    "returnedToBasic": true
+  },
+  "deviceTraffic": {
+    "count": 28665,
+    "observedSha256": "9fcdaa88475c4051f32f7d8e4d9f45139d25a314d627b56ed4f0a41737fe84bd"
+  },
+  "frames": [
+    {
+      "index": 0,
+      "displaySha256": "e50f43ed236d82b1d6f6c362fc3cc02dc4ad200b37a4e003401ad272109aba09",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 1,
+      "displaySha256": "02064ff0ceed117b921e6c59774edbec2671d3962b9089efecf6b0433bdfd85d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 2,
+      "displaySha256": "b634310053733fc5ca008227e391bfc24022cd8f99bd85a16e3d067ea5f0b4b8",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 3,
+      "displaySha256": "6e0e4d3915c4c97a3a0a0301b9d460c6f20d73754576232eac513102f9a4b2a6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 4,
+      "displaySha256": "d472536365e2f73384ccf8f83886048efb4120847c6b43ad42e8a44adb753b85",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 5,
+      "displaySha256": "2bd5b8033d624ff7fd821d16b74af42d72b5eb404a02320ad1f09c93565577ce",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 6,
+      "displaySha256": "9e3f4444acae61b7ece7ecd6509160950c469cc55a165723dfad241063918b1e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 7,
+      "displaySha256": "9f191715f3eab22f5fec1347c63f4502eb9cd041041bca81e37fe8e2d2627718",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 8,
+      "displaySha256": "18f079f35a0fea0682f78bf881735757c08db50d8eb62d204bc59ff2e9f600ad",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 9,
+      "displaySha256": "43a836d80bd542a875e538f7f94306bbb8684fa95999abddcc16a24c699e2ff4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 10,
+      "displaySha256": "8c593b8043daa298539c06e3698bae462a94dc800e2d9030804dbe5ef77d9b9e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 11,
+      "displaySha256": "6251b450d308ed36907e1672c26b0d8b68d49c768cd9497a64c4d0c1baa35aca",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 12,
+      "displaySha256": "da440c29bb312899af6eb7733e7f7c669d6c66ae3f2f1d746a96e5c4cad8bda0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 13,
+      "displaySha256": "0af5da0e02609cd2da545f5dc9b1364fe23454a935cff959d4a944b65f4df890",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 14,
+      "displaySha256": "826837bf1111e2ecc5066aca6ac373ccbeb9490afa309439fcf8c7286ad5ba0b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 15,
+      "displaySha256": "25e146ca0dbfbd80533702f2e3cc624885077399653cba4126179ae09772f852",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 16,
+      "displaySha256": "c2469b462615a46a9e0c36efdc656ecc7d9a719662fcb3a556c8122cf81a1b51",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 17,
+      "displaySha256": "983d3ee52089f62d3fd120c4c326668ca84d5714a1c56789320afe3d3f595ba3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 18,
+      "displaySha256": "ace89a206acc1feb134e1cf231f68e5a6e00a8fef7310b9ac60faa1ce9a9c5b1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 19,
+      "displaySha256": "766131f54c2e74715fae97d3d7363afe95ad8a46d59d697edebbd768e2bb4b72",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 20,
+      "displaySha256": "81d45fee796f479cb80478123134e22cd25fc10862ab2f946a6985dcda015d6b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 21,
+      "displaySha256": "f746facc17e03a8e3dcbc7490dc14abd059ab6ef1d1c0552b181d372826d7e75",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 22,
+      "displaySha256": "28be8009ca5e1f678096a488bcd8023b048770fd47d91e649971fa02a5b4d0cd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 23,
+      "displaySha256": "d6ed12f01e7cd9b7f7a3062e88920371e155ceca88ebd415cdec8f6a3aeaaf3c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 24,
+      "displaySha256": "a74af5a64d0c4465ddd28af488c8c6f1cbab670e28da6e07076c1fa7bfe0e0e7",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 25,
+      "displaySha256": "221043fc31703e5711df21168f85523a50809b25846db19c5ba755dc56037f39",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 26,
+      "displaySha256": "1533dfba9acc18ac333768074737308677db81be6434c243007011418421ceda",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 27,
+      "displaySha256": "48163398b48d7c8c455fdc5164a4f4d08a67f9020351c385c5b7e8d7ff684d0b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 28,
+      "displaySha256": "b6fb242aaaf9216725a2fa24c19525cb9bde375d5d14053bff579be6d106de19",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 29,
+      "displaySha256": "5673b57bbca77bc674d8885cbe4946adea7cf1d1b173b5e64be6a8f724d4f533",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 30,
+      "displaySha256": "7a85dc7f12f6d9dbd285285aea2aa54879dea2ccf7225390e42c5e8e64a8ad4b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 31,
+      "displaySha256": "527a87ee60b495741444598f77f8d7f5be5effc5f8af51ff90b7fb64904f8395",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 32,
+      "displaySha256": "1af5bf54c96586331000a8caa70669e40245f40def2548fea4e06d010962f114",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 33,
+      "displaySha256": "24bb480c2487198d1d47986d94ad84a482ab46380e415b7b5ccdd723138d1cf8",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 34,
+      "displaySha256": "499564e5d9afd448db5bbece87e54e2c54715386baebd0c0eaebbb0c8ee32c12",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 35,
+      "displaySha256": "af5c40388a8e6cdffe72012408b46ae358482726cbfc02344d9aa423f10e5e32",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 36,
+      "displaySha256": "33a3294c80df458b591a091a5857aafdbaa4558686e1fa7b9705310ba2256882",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 37,
+      "displaySha256": "295dc039662538bffe51881197212b913a87ad2329ae4724babafeb4304bf8c3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 38,
+      "displaySha256": "99cd70014c1b972ba8e4af257d06f45969f08dc6cd691723ac963a3d7b6c0ac3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 39,
+      "displaySha256": "ab9faa397bfe2f6c79953a97ea16b5e4d0558c5c2c88371920f8b0910c76df83",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 40,
+      "displaySha256": "675c5f9da71563a228c8732b63cb3c2eec2eae0e1e170103329dd055972c6e69",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 41,
+      "displaySha256": "0019e66ed2cce71483adc24c53765ec5da2c36f8f410b0d8a23e0b80c058b4c0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 42,
+      "displaySha256": "e728752bff2030c674ac2dc084410afbac05cb19a128ed73ab6089816a224588",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 43,
+      "displaySha256": "9528fd4ef6ef336df329608bf40458c7a93982aba2d95e7ab2c2cbd1cd2283ac",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 44,
+      "displaySha256": "0797d0f8943532b911ea909673c579375ed100825b9179ca8dfd47dbfed41460",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 45,
+      "displaySha256": "e7c4458b3bfa62d23701b0a82fe904166cdfb424cfc848613394f542c32ec409",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 46,
+      "displaySha256": "0bc866cba1e75d33e170d13949cf4ea717359d06015287f0a807fcef941d32e7",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 47,
+      "displaySha256": "fce3bf8bea410781ec5abc22a3f451cf378e7956a595ad1ba6faaca48c8bcea5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 48,
+      "displaySha256": "b30b443eeda68b48c8c95fbb7f22deca7cc566efc12bb8b007825fc231d8346a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 49,
+      "displaySha256": "eb2a6278d9cbf2956ae156c72b59113c98786550223ab1bb23da98d62c3f7a79",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 50,
+      "displaySha256": "2500f3f28353eca49701c5534de98d3371114c0ac3758d88deb486059ec7c67b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 51,
+      "displaySha256": "0275597af2ee4a52e4437a3a27b659e0bec843601cd6809cc4e403be8cea295c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 52,
+      "displaySha256": "a71d3e2bee0cdef545bbfee2b541190a487e5f96fe7ac62521955d170349e2d5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 53,
+      "displaySha256": "49075b20e0e928a35933bac2b48f6ccb7fff2b99b5928dd66e52191ca61100a5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 54,
+      "displaySha256": "3914403f8cd8531b62e2b34c8e241ea1171d37fbb3ad6a21a4d22b6bed6a8785",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 55,
+      "displaySha256": "74d1f449b7b3f099b5f732c82c5986b560f627607ef94df0cf3392bad01d1323",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 56,
+      "displaySha256": "789b950bbfed1954c815671d52c99a2a13d4dc03804578d3cf036a1f3150b6dd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 57,
+      "displaySha256": "7f4db7d610d254958e15edb89158370d0e9027d29304db2d7d151d874f60841b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 58,
+      "displaySha256": "f0c408065c9c83c4fe2a461fe3e71c4c2b74fe5bceb5591150ace16823dab990",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 59,
+      "displaySha256": "b5b0f24939d685246401c6c248f93b114b1cdb8720283acb3984907a0bb71477",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 60,
+      "displaySha256": "ef6bce5cc699b8b5ec97358b1a2ab7aa5875192f3cc93e183072594e966e53ad",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 61,
+      "displaySha256": "ddf159efd95eb522b6b165673b138fbbe615818d86c785f2a426a2d076e4657f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 62,
+      "displaySha256": "53af408362a764b91e6a618531566b55b5dd2070d4ca6ee144e335c7f5ea79ff",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 63,
+      "displaySha256": "a2b379febc7bd4c1c77cfdf21805ac293989c071fb16a99015cf1af9aa6a994e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 64,
+      "displaySha256": "6a5602eaea6d72cc086b1bc2b6b76885ad0b44a3b9d258e6ade18d6c985a7b71",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 65,
+      "displaySha256": "4770aee1acda39b3a585706cf54cfa9478ceb3a1fc7e48a2b6ab058fccba44f9",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 66,
+      "displaySha256": "d54e4a14aede277bdb06aab957caa64fa417c8e561bfcc6806cd68853abbb6da",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 67,
+      "displaySha256": "7ba231c14ac40665a8264c261a2713c5b4aaf22433a986ff51af89bc83d916df",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 68,
+      "displaySha256": "8b84eb9041109fe191b8935833f77fdb6b779433d1a258a28a0762634303668c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 69,
+      "displaySha256": "7a4f2e8e8ef7f9fa3c58943757a45d4645e565a835d1ca8581c1c4bb490b0f9d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 70,
+      "displaySha256": "2cedbc09dc2309798cd1f4f39b437b51e5f5c3730c4d47ce987bb0581d386919",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 71,
+      "displaySha256": "4d1ae4eb3c853708b4006609b208412c05c67c03f58197ad3470da73a4db62b8",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 72,
+      "displaySha256": "848223dcb3a1a76575682194eb29449758a984dec747ffcfbc0002dbd386b0a5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 73,
+      "displaySha256": "3baf1763a4e24cbcaa84fa5b384a1768b66cf99c1b4d9bf7baf281e6e9acc64a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 74,
+      "displaySha256": "cab806121a5aba1dca54fafe0b66088a187aaa07c0bde672eee4246e06a02a13",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 75,
+      "displaySha256": "07b1620d67c1c6f0027e290449d78adc398b427b0fe9ca6ff3d75ce14d50dc7f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 76,
+      "displaySha256": "327596f5e4a806df0aff4e9928e0eca70620bc6446d2f3d71cc127fff7eaa56f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 77,
+      "displaySha256": "32e0a569b3e71a55c45e52e6bc2afb113b55510fc06404e84f768d2b0369e8e0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 78,
+      "displaySha256": "96a34148de4762ee75e88c1e643d6a73610f70299cd0fdd4de759e94fa20f09b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 79,
+      "displaySha256": "07b25cc355cbb0968b07c466f0a0f02d6261788e55bba9ea7f9b1cfba7f86dd0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 80,
+      "displaySha256": "534c4cb6f21d02078f1b8c10e19c3fd822840487b6a7b6712302cb8a4b41db77",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 81,
+      "displaySha256": "a3140e9c82c59f79da4c8854836a50c9b327b30ec3b63abf7bf45f4dd5054ae5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 82,
+      "displaySha256": "a1066a6edb1065fc52200b24ad515b1fd42e2c6f712538fe47a3e594838d90bd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 83,
+      "displaySha256": "b535dd5e736000a1435e3b9719740056c1735057879092391ce749cbcfd9be83",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 84,
+      "displaySha256": "b967616993a9544008bf2c04033fa6bac6de1861d05f5c67eb38cb2c6f486ef1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 85,
+      "displaySha256": "353bc54dbc06bde5f276a979ee870983388e39c0a9a5a4e27c7f7748d41e26a0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 86,
+      "displaySha256": "9c99592b970ffe397fed1329a20cd539a20a5fd5e267ae8de08664397ebb21a4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 87,
+      "displaySha256": "f95cc8c329bc44157d1aafd486bf6b4b532f9aca4eda85949d5ccfd2de7ba622",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 88,
+      "displaySha256": "725c7adba267202780aa232998a22c326100f0929a896cd202460e6285965488",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 89,
+      "displaySha256": "54816f09a2a26dec9f34edf9f8e87035884667c4913794599d2b971397709869",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 90,
+      "displaySha256": "8dac0c55be89d2e061542e699fe67d85335d4c6189a6fc15e21227110764bc9b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 91,
+      "displaySha256": "fd3d2d1037fd1dd844bb30f0a4ac44bb62a658bb64d99971d44b5addd02f3787",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 92,
+      "displaySha256": "4af41480cd04fd6d53953e3436c2a01871989beeadb8df03bb1e4a006d85574f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 93,
+      "displaySha256": "0c868e6f69c06ecc5b20c9b27841633fb75e8806ef2fc8332159db27b0d5ae71",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 94,
+      "displaySha256": "0e45252f4360e26c372a6982aa180432a79c0b7cb62af787e5c0705ba5215a05",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 95,
+      "displaySha256": "976b8a1a0e8ddb7aaa89e539796a0069f24239a24aa009d115691f578d55b746",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 96,
+      "displaySha256": "2b8a69580f0b004fc493ada73602193c7b4ba6bf0291170e8ae92ab3b56c3502",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 97,
+      "displaySha256": "be260541fde1bf92e6c2b3987f282dd4f16ce910489426d2a8eb017b8ba6f2f0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 98,
+      "displaySha256": "c8f9f3ebcb0c2b2e15c3d1bb1745d2d2f0b2f45726a45738005bb4519debb64b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 99,
+      "displaySha256": "d1d7d747edcbf2486ae2cfe62878ae5c127763b053df1645c28fc28fb5f995ab",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 100,
+      "displaySha256": "6e7744b49837d8001b900f7a5eda29ce296442d0a8f1a49543a4b4a54c7e2dad",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 101,
+      "displaySha256": "719bf5460972ed3a27441cea07becbd1382299cd9e9d7ff6d13f22f0df5dafa0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 102,
+      "displaySha256": "b77b5327c097920cbc1c05de596e75559a65b15f0f413a37667974dc403123ca",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 103,
+      "displaySha256": "539689e529c58f4938eaa5dcc6044c860e4c7dfd590c423dc67b7e77c6fe46e3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 104,
+      "displaySha256": "a948258afcb2ec478a745c0d66dc8d52764291d7f679e987c24d367c12259682",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 105,
+      "displaySha256": "ef1c26ff807444231cc69febdfc83a65a6d4e87b1f9fe3fcfa11eef1efd16eee",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 106,
+      "displaySha256": "cf36e21322736d35b8dc9488e60bf82b9aa5ac23f7cd953e390e57927e046931",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 107,
+      "displaySha256": "f38eba7cb594b5437c1a76c03665ab423cd5e0c27f4216a057737f4f160f4ad4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 108,
+      "displaySha256": "7383832a656ec17366527309e909fd53b58bcb2b8ffcf88959b34d012e2489bb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 109,
+      "displaySha256": "a746037ee5a14f90f0fe1015dc92398e81d5461e0ddeb62db77cd85012e87d0b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 110,
+      "displaySha256": "60d149d3a115faa067f685178cb87026408b08b7c7694e7b66b80a5a7e47963a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 111,
+      "displaySha256": "02a01a5e75ca6f4acd36050d95c262beee872081b7436cfbac3e96372ce37b58",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 112,
+      "displaySha256": "a2dd4ac4975e3f8b83ec46924491ac100cea825441efd26dac03cdb892151d15",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 113,
+      "displaySha256": "20229193154bcdb508c15c92489d7b32d63cf4fe8fc94f16b687183b7ea7e330",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 114,
+      "displaySha256": "dcf8e71a2ef9a67bd7d903dffd316e172f19aa5887971278869d12131bbad2c5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 115,
+      "displaySha256": "d9c8541403a7ec8c19dd1576daec082ad2dab6f6d0d3ccbbfefbd52ce57cc652",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 116,
+      "displaySha256": "ba958a5c1dd17e2296dbd09ee4999cc890eae52e3e060bb6b07672b09402d112",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 117,
+      "displaySha256": "30d3d0c1bb57f74d5ca5858da85a69ba8278b72509d56cfad6257bb5adadef03",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 118,
+      "displaySha256": "02157898f1dbaa9a696fb8bb6f2f0a7d5d941e52af31f681ab43e6851f2da303",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 119,
+      "displaySha256": "cfbecef65951cdf9afaf947232b3f3f71ca32706ee2808b04d6a6f1a785b0af5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 120,
+      "displaySha256": "9487acec6bad3414033050c63907c7b2d409d8819414e22415974c73278cbf93",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 121,
+      "displaySha256": "6a8dae14b1064c125f007240b944e4d2455bc7da4f4a57d9e601ee3b0d82771b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 122,
+      "displaySha256": "12fcb23a57a146981dc8b6ff3d66feb94cdd4d229d0ff7d2a39803bc5b8ba75e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 123,
+      "displaySha256": "cb03ebdb6d70859d0872e67b830c89b883a07f129427bbb143def88f987ef3d5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 124,
+      "displaySha256": "ff88abf8a2783c60b30eaa1afaaedc1cc07d08e75ab0b9e546c6239737616f51",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 125,
+      "displaySha256": "2290ae1921dfea8fdec97c5e1f3f279f52eba2cf41d34bc62a833974063f124d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 126,
+      "displaySha256": "a8ae3d5c4c9bd824ca5a59ddbc5f896a197c7a3eb52b99e9714dee5e23434f27",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 127,
+      "displaySha256": "526c00a84e964ce85413524b91d2b410df806d917050645582acf76d0bc3d4b7",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 128,
+      "displaySha256": "637d8b188ec6fb35a5399a53c95a92ff13a0fd1651b5c33e93861610fc09fb75",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 129,
+      "displaySha256": "9fed324a5d707f9503819cbb0749ffa91736957bda791f75ee260c2e403e9595",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 130,
+      "displaySha256": "07bb74a71f26f4c3a82ee1237b053cfda138347d7ea3e56698a3f080300fd0c6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 131,
+      "displaySha256": "d910200c01e3f31af960dd590163c7fe149954383837ae3ab1485bbbb5508b16",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 132,
+      "displaySha256": "104eef60fc3fe18cad32ac248857c7d94027fdf60ce8d0cdc184588f21f36339",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 133,
+      "displaySha256": "600a83577749f9d4a889dbb24864f48ec4f6ee7fdb5f4ca9f6a9e462c897da64",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 134,
+      "displaySha256": "16e843d91f9217906f77de4648afaa0589a7830ee282614e6ea96b5aab855ce6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 135,
+      "displaySha256": "4263bfb09f148b79558b576e9d67555fbe3ec20ceda026a06b8b18adc77b0c32",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 136,
+      "displaySha256": "0652db8683fb66cbcd92ff70e17f29a68700fbae24667ef14a285719c922de11",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 137,
+      "displaySha256": "b390384316664cf151aae2682ac8c5e9d5084c7cea981855183209fd12f53228",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 138,
+      "displaySha256": "37ec5e9cdeb836e7158fd3be25d55bab5a7656158a226d483d517451864e3969",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 139,
+      "displaySha256": "2edf6ff1e95b31e86943330bfe3ddf9913ee7ded4a93fc93d3f5dcf1d3bda55c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 140,
+      "displaySha256": "6b88d5c29af3343d880065f0ce977f42e1290bde8e5989a36471b71b74002d6a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 141,
+      "displaySha256": "18248ce277d67b4a2ca6bb1b2cff9098bcb7cca52b8798ee385615f2b9246b0c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 142,
+      "displaySha256": "c9a974371ea1930a1daad1987c21818fe9f6880f14dc4ecdce4cc8bdc4b0b361",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 143,
+      "displaySha256": "75c2dce36de96969301a88dc1a5a576db30b48bd3975614d2e0bd4c9ce1778d6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 144,
+      "displaySha256": "1992cbbf4ecd4216a09e683bd41bb58d624863231aef9759bd84d0448c8a943b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 145,
+      "displaySha256": "1ead31cc75319b07778f10f52cb66793fec11335847752bf7d6480d3bb936e1c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 146,
+      "displaySha256": "e422d274488e3243c232212076de97316933b8ef13f65a6f511f611ea7111072",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 147,
+      "displaySha256": "bf542bdd28de96210ccc584673182912b1ccdc5197d0275e12dabb6d80ac80ac",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 148,
+      "displaySha256": "903c04b7d8d2d5c300791dc85f528e2897afe580c036eb2cf696529b53a4894c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 149,
+      "displaySha256": "4f47dde851e2408102ceab5577abce4c29f2a93d7a44208db55cacbdc1df257e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 150,
+      "displaySha256": "25c6156f38f4f86c5c2d31c7606ddd897c7cee3a2d5ce26e876fd88dcb503b72",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 151,
+      "displaySha256": "6ffe49905b970c52d4f0ab9cdb63918123c40bd08f8e547b2e773bcc4aa402a5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 152,
+      "displaySha256": "2a94d3a458eeaec85e83d0313d0243f65d959eed594053e1d91f31a0fbf7fffb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 153,
+      "displaySha256": "2a7cc5a9dc1c44eb3f8933e1e1da191c62783d994582a7b0b0dcdfaced4f111a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 154,
+      "displaySha256": "24f8fe7bc6faf1bd68163cbcf61d1e427fc5cdc5a6fbd785dd0289febe3e590e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 155,
+      "displaySha256": "83ba27cc433466013adc20c405edfb37b80554279d71497317e78622a81cecf5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 156,
+      "displaySha256": "683b64317f28caead779b8ff3f8f2838a0e3955a65206fd73199b957db98c0da",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 157,
+      "displaySha256": "da61e532b5a8bec2c832d5d8cfe4eefd5d8fd9a508c00e7584536115b11c183d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 158,
+      "displaySha256": "e993a17f4ae68eb64160160bb1128d368daa1ec5c052845d157a1a6b5b3bf167",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 159,
+      "displaySha256": "7ab4e49d8fdc1eca98f8c517a5601f29ee4afa00e5e4902e6ed9eb12aec1a761",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 160,
+      "displaySha256": "99c9cbf14ddf1c6d7962385817e9f8af47888f7b51e8527ff288511623cbcc60",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 161,
+      "displaySha256": "2903f7fc50d8c221109ee5ccce9b2a4c14a8908e0cb0a20387daf7c12bde9531",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 162,
+      "displaySha256": "edf3267156078007f9b27171641d63153c7e6327f8f36b629706fe0454636dab",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 163,
+      "displaySha256": "30b7c909433d9a84b89076748c59cf9418d8a7529c26f967062f7a2f48b3018b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 164,
+      "displaySha256": "cf97ade72ca060655a7a4da228e01d7d2a533ffb9c22d18ed7be38f448c80c7b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 165,
+      "displaySha256": "4ae4bd53f6a0d8a3947649f218256015f5d607d1e29a3d4a85084d1ba151892f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 166,
+      "displaySha256": "a4cca4cc5a586e338579a582934739a31296a038f465be6c798be5cbfaf3df61",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 167,
+      "displaySha256": "8cdb90f5287feed09bb77c0a9384e754476dc58143fe044bbb0357c51a801fb4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 168,
+      "displaySha256": "578b68645960471de5b99c6ad494a1a804a3e2a32164e86eac9d13467a79e515",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 169,
+      "displaySha256": "95864b009d4cf1642b53c353e4aee3254d81299b5aa72e016aaf631c041b4eac",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 170,
+      "displaySha256": "0915333d31aa8a535499eb4c1889975ebc023025f4f5264ba3d5934fee616afa",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 171,
+      "displaySha256": "3312dbe87e69252d37039aaf305ef9914b9c4048da170b955ac6e1d8d1837b7d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 172,
+      "displaySha256": "bc5e7c539965e09f792e78a7c5402aa3837b8e31e602ce7c7634ca58ffc3b4af",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 173,
+      "displaySha256": "07adc38e293de7227b6bdf553b5fde5d257b6ef9c120b54ac2c98377daf1ac5a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 174,
+      "displaySha256": "1461b899722506dc26e3889433f7289ce91b3afa52a8205c334a4271e7846b68",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 175,
+      "displaySha256": "5f44bf425cff61a831237b412858465b2c4de200c8e655e39ae737ce5d565c3c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 176,
+      "displaySha256": "2be19b2163d96baedec0290ec0b47f3fa361eba7748cff72d2785f950e35b32d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 177,
+      "displaySha256": "bc540cf5b6efa5da4bbfe5cfc71f1bb55bbee9631fccffc4f63b12932034abb5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 178,
+      "displaySha256": "325818b9952972e0b945f42ab68e4696521bf6399ee88b299c7e97dc866ead33",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 179,
+      "displaySha256": "e5ead827710913a4fb904fde5e743651dd83fec5b5979bee9fff313ba06da017",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 180,
+      "displaySha256": "b0b278541105c75e9b88c6b7c46554688f05b0418d82369adc6e9f47f9f4f811",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 181,
+      "displaySha256": "23644b3b75b684baf1ef4db73c2258093b8a95e15ab7f9f7aa5bb787ed971099",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 182,
+      "displaySha256": "2c5c2dc9e026844ed28d3710effcca29c9738e2f794f06d90637c156784456c3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 183,
+      "displaySha256": "8a401e7fcdec99c6df2c04a6f047a8bf896462e1840ea791277e2785a52012ae",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 184,
+      "displaySha256": "c5fc131b0a4846d8f46bb8ad1b24fa6d4344eceb3a9162d508ab77dcf4957da0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 185,
+      "displaySha256": "e2b43d01f979c657793b79da8955365c22007cc2593f55b42b835f8ad4235df9",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 186,
+      "displaySha256": "95fb58f865640b92cd3b1f8f5d523d2865381b77380ce00e6d8e89916ecf061d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 187,
+      "displaySha256": "a778b782e8ccce2bcd8a83c59d7c2230a2338fc509949e60cf9e127a8d2ad657",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 188,
+      "displaySha256": "6482d6f1c739b4b1d66971920adb16d293b491032930523de00b214ee3b46c92",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 189,
+      "displaySha256": "5e67db24f6740033c66b7a192a33a2ed76425b62a1ee59c7bf3d802146769155",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 190,
+      "displaySha256": "6dee4b6dffaf758609594e75d753a4294ac0ac09a2d5159ae4e8beaaf12f7de8",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 191,
+      "displaySha256": "492bfb5dd11ccb74ca78d1e70426a68da5e75129b7c90d414bdecd5822405b1c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 192,
+      "displaySha256": "e6403f5079038bdc051619c6f1bd8e200721b4840a0141ed49d89cee273a3ea7",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 193,
+      "displaySha256": "9e45ace5ac1d690a374d1abb1e1fb2479622b5390c6daeb4f32d6940641d9602",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 194,
+      "displaySha256": "2bcad62442d16f76a5d27d7bb0b9462859b3f97933fb125a3cd6ca2731a1d60f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 195,
+      "displaySha256": "ef7b49442bca747afa3b34531d4e8dd559e1197828bb3ff93c98d17fca32a2d5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 196,
+      "displaySha256": "ff29a6495741b16fa338f943f5d8887c5750d7d1dae85c3fccdd4f58d03039ee",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 197,
+      "displaySha256": "10b09fba207a3b26bd768781f249a87e92b8fabdeb81ca5cafb28c518d2171a2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 198,
+      "displaySha256": "64bff248b6079a8e16c69802aa594d66160add10c4869994012c0342a3e0445c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 199,
+      "displaySha256": "9443de442085c4b406c0270cf3c2febc80c1dfc54e6eba4c362dc74c47cf89aa",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 200,
+      "displaySha256": "fd44b8ccfae1e780ba4d21b8408e01a14d51d61eb57381e4905f543b98149593",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 201,
+      "displaySha256": "6e591f669c632702da6a5ece9b90c11a837a3656e93c9bd5ab3b46998505b0e0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 202,
+      "displaySha256": "c4d786dfb10b96774820ef9a0fe13648084de0c79812410d3ab755b0808dd701",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 203,
+      "displaySha256": "af0faa320e74b329d4c4b4deb47efe4e02831fdae2e0110a99f2bf412270bafb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 204,
+      "displaySha256": "8b319d1d714a7e3167d6bd9b150455bcf65821474b31aba0b8f779f4acd51adc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 205,
+      "displaySha256": "685c967ae2cc6b5757c7b2d80ccdd615ef82b0d1ab79a7f012c5153d5e476757",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 206,
+      "displaySha256": "283c4b20bebcc94fc5bb3b2cc959968f90aa8d3d191d5522affe158c80031405",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 207,
+      "displaySha256": "af202a5b04dc4d0fcd9c270785d4e6fd499cb2c1813646926ef7879286882966",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 208,
+      "displaySha256": "21278e36ed8372d36d1235480c978d953372bf4bd0abc0c40922398d06cee916",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 209,
+      "displaySha256": "f216551ddab0c69647c6dc6761ea7f5f3e200868d3c46e1f284db5a4a01334f3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 210,
+      "displaySha256": "c1e5768c37762406314486a40fcb313a69166452fbcc7debd4b0dc8bc250660f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 211,
+      "displaySha256": "62e7b26af2fdc1a614744122be95722ae15aa2b21e3c4bf56059ac6f28f39c18",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 212,
+      "displaySha256": "53b64f640f4158d0cdbac7ca9fd3e98a4004b55cd4affc7b86c025742d0d8c8f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 213,
+      "displaySha256": "bee2aed596f10369378de6e6ea90daa443ff3c8b9e005b610a8ca9f139b7095f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 214,
+      "displaySha256": "03132fd8c0edbcd10a417ed1f1bb4846795a1718c87acb0cae73bf22e90fede1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 215,
+      "displaySha256": "b09429f9b6f4a51e07cde96881e7f697d280123c2942364eb70949494bbdf551",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 216,
+      "displaySha256": "c80adcee9ed9633a4d5843638c1277a3867bea2c47712d49aec3d4d2de1fb73f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 217,
+      "displaySha256": "713d50c12a8c00f1c80364640d54a2d9594d08b52f9a6e97f95730a10b3b1e6c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 218,
+      "displaySha256": "c800081c9f27247cb3624cb54a607d13ab6b0adc369315c59231c701c34ef3b4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 219,
+      "displaySha256": "b929356f012b3e10d3041dd1ef0830b7d66ff279ad61e691e23bf00372045841",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 220,
+      "displaySha256": "76d7a89eb5b6de4c4026f1ced09d7ed4591aeda9d251fda48fa2ac6a365ae6bf",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 221,
+      "displaySha256": "f2c75006a0669a9f383235f880ebea2aea9f150a4fc15bf35c1894ef7bb0af09",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 222,
+      "displaySha256": "f33ff6d0fd37c7775a124277ba1ceb906c1ceee33252f58cce5788ad226b8a1e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 223,
+      "displaySha256": "b6abbf63836fda6cadedb265a431b65ae1767fcbb18b2abefd39ba93ad28b26e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 224,
+      "displaySha256": "6ce8532c1410c42891e0c145c956720a24dc52cae6d12ce50e8b4577d080a5c2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 225,
+      "displaySha256": "bf84bed712ee6c607c88a447073ebcb2ba7fe91f26398f71c67bdf09b66d4aa4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 226,
+      "displaySha256": "cf1113f4185b60ed9a180a17dfbd5b1435fcf9fe8180b573ec98ad03c1b3a49a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 227,
+      "displaySha256": "1ffac66244e129c62f4cf671582c789ac137f4524d2678ee567a8111f368e96e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 228,
+      "displaySha256": "7b3de8edf5bbfdf3bfe1d37825259039d4b54ab031aa91c062ee609771280553",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 229,
+      "displaySha256": "21152302b841040faf4955bfe348408286fb4d6a12fd7749f0aecdfd1eff5c31",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 230,
+      "displaySha256": "79fc4b39e2f2942033791a33ed4e119e67262eda50a9f22f41aef22d511bf814",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 231,
+      "displaySha256": "5e02d2d6b8a8ae0aabbcf8a46956a3a0996749a09557f7f797161ce0aadb7a9d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 232,
+      "displaySha256": "d8c63012290b1fae4df675b076e53efef23da73126e3632484c7934ddc1bcbd3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 233,
+      "displaySha256": "9ec42226f44d991f3f3358c955239cd0e06ec8e03a3180be97640900a760e87a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 234,
+      "displaySha256": "f950142f25d80e604d8b828abf9dd4ebd7330aa8d8c43e9a5c9e2ad71b36f6f4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 235,
+      "displaySha256": "9b590828d1ce7367e535445cb872286c9630b38a8e9d10994f26308c82244ac0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 236,
+      "displaySha256": "ace004b966d6ed16ea7b1e87940242e01afd682769460f2b07f98dd88c272bb7",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 237,
+      "displaySha256": "e9bda3465d87cdaa585c78d777a64ce6c27b95857e77513a0658d65d3f15d544",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 238,
+      "displaySha256": "2182c6b5fe5f35bf9f9e53c527266365963996fa5a78f524d0056c741d8daa8c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 239,
+      "displaySha256": "c5a4aa786ab0fa05676f88d8756862ee57b6555209ab683b7c1f8c5f2a56036e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 240,
+      "displaySha256": "d844d246628b846bca318b3dd30a4b812d8a5637d1ba1a15a7cfd6b4d08e70c1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 241,
+      "displaySha256": "dc2717f8188cb3572eefd877bfe3ed179e4960dfdf7dc3f9b7662cefe8988e52",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 242,
+      "displaySha256": "5c73cda32a7556093c40d3831b94326d9737e51c9d15f99d4e71c89d187096b1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 243,
+      "displaySha256": "839719ba168bd67368acf33fc1d985f18a67bdb2b00c7904c8cfd602642a9363",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 244,
+      "displaySha256": "78f9e8ce30ca6c9a0adbb4b97351f14500356643f8ca65d1bf025e4ad58955ac",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 245,
+      "displaySha256": "2c2c8b4d98fa332b5a32a61f109575cd9205b7286d1436cd864ecea68020e9bb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 246,
+      "displaySha256": "54fe1084afe4070b46fdfc8fa7182ebc199b04604ee77ee33a36878bd2c669ba",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 247,
+      "displaySha256": "aba9d90ccc561ad2192aff52d438542ab7d415a829e884fd3bc1918d1f4da9f3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 248,
+      "displaySha256": "a17d6c56d931c76a6d127161e3dc6a5c79dc5f6cbab3ec6f1ef12362a7ef5fdc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 249,
+      "displaySha256": "a2e83aa2e36d0b26bda180e045ba488cd52c02b9f4fb6ce067957cd420df4407",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 250,
+      "displaySha256": "9ed59856319e9146070e20b1babc0ebc53c0278a98878ab01dc9393b5bb1bbbc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 251,
+      "displaySha256": "f16bbbc925c24cd36a51b69aed90272995e50cd7a02089aeb04ab7e90a34b305",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 252,
+      "displaySha256": "f57ba35d49829948037b803e073358467c7b39c2837ff905eee780be585af8bf",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 253,
+      "displaySha256": "e07b2e012e396c2aea4ced1d3f454e186ad82c3e2bf63ccbe94f0dd841b8cb9b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 254,
+      "displaySha256": "5cf3a841ea2aaf5e92a7d90cf5c1175ad7856eea899a03112a942ae109ea719b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 255,
+      "displaySha256": "43f86e42ae7f90548d655924f673c54035be31b80b9a837c47b25b49282430e2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 256,
+      "displaySha256": "81e9d586c085a273a852d469a7045a30d0321a4ec237869de5cec414de0c0809",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 257,
+      "displaySha256": "79bafdcb0b52d2a11a03993015e6f7a13f6a290ba5514f1bf3f6717e0dc4b7bb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 258,
+      "displaySha256": "cb640073baf4b15d0bc1c81ae20d2071d2d9ce68219639d9e10e40b85851ea3e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 259,
+      "displaySha256": "7eb6d03b9fc3586bc10fca30f7e23db636924febcdb134961863bb74d00496e6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 260,
+      "displaySha256": "605d4595f715dced7892a23f207019e5c5fa5c72836d202b8e05837bd390c83c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 261,
+      "displaySha256": "d8f5c11c4b796a1a06fca3de1fb5d065ba785e38ea12421c9779b1cf937a0623",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 262,
+      "displaySha256": "47a298149b0365244d62ab5fbcb8ecd875796d5e10a77b610fcd7408deebb750",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 263,
+      "displaySha256": "8e9ce1b1a79c71d4faaa8ba21fe149e4ecb0ab2f52f4077a0548c9a018d0b2bc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 264,
+      "displaySha256": "97fc4a01856200d1b30b524489cee5f2944ee3d39ee867d156e151aa2e787f68",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 265,
+      "displaySha256": "3e1c12b0cdb8bd042378af5f8ded79f73b2330a681c030ac64a8094de33e31c9",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 266,
+      "displaySha256": "ec75c9dfb6782150ebe4501dc3259e310a53ec114943532d2a848e7452bcc641",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 267,
+      "displaySha256": "7b72a4680c09a58e8ab7a4d14acbc3c4e7e80b223387b8aa16106e3ca461d1bc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 268,
+      "displaySha256": "acc816cecf37bacbcc6b6e9717d4b84d2333f475e0eb35c2f80bf695df05c8c1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 269,
+      "displaySha256": "5053d2e035d285028757221b8a3af8ddce648c877bf2adaa506affd37780e46a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 270,
+      "displaySha256": "cc0aed8291bbdfcf544aaaee971f04bf537bbe9d264fdfa4eb71cf091ead86e3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 271,
+      "displaySha256": "c7da03c54cf7955d724ef63cc7726a7a8fb65907ff68678c0dd231027bcaeef3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 272,
+      "displaySha256": "9fa4dfec509c9484dd3e1783d6d97747b45c73351c06885a1697884e1bee29eb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 273,
+      "displaySha256": "d14eefabc1b4b1318e096916709a6f948db42aae42ad460d79ea9eaf569f1981",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 274,
+      "displaySha256": "7b6a134fb099925ffdd80257c9a83ef9fcdb29e871e17c896a3d0620323516ab",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 275,
+      "displaySha256": "d5a237fb7ff950639a85883aa4b0f2fad7f431f42e8591a782a5afb0bfff1240",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 276,
+      "displaySha256": "33116309bc1667870d26647d98a275e5ba55df26d2749f649f74826e2e912c0f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 277,
+      "displaySha256": "c96c6dc9ac4c36f609486101a9a7eb4331f3be756041316e7e718c80b77e5ae7",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 278,
+      "displaySha256": "e5ad9c82bf83dbcb8eac8030be5018f55a714bc420e6ec185de90935a253adc0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 279,
+      "displaySha256": "0f52a51023689974bacb7dbda3e1a187d092818c170db403c553a6e7f87ad0fb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 280,
+      "displaySha256": "d912702dc3d8beb6eb4e14dcba4de4b9639712ae0d15d37025e6ab0c2f643bc6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 281,
+      "displaySha256": "dcee3bbe86f68caaefcfc2266badd4ebb022873e3d23a7d1a80d9072aba98c1a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 282,
+      "displaySha256": "7cbc4bd93553c785da2afb6c6d852cf9b4b69f23fd3e6587233e4268c54d402a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 283,
+      "displaySha256": "40bbbdd211e878b87f49509ab48470479c4d1d2d73c105756fe2d5b5afcaf239",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 284,
+      "displaySha256": "a6f7dfdc5cb6ff3288b482402d8f89a6e6e1120ebc23545f687ba3c8d5b1483b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 285,
+      "displaySha256": "18d038d107d2f0314b8a7eb908004d113ac7be68f57c6dee5d2f49fa549cdc0d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 286,
+      "displaySha256": "4e6752ba8c23532272586345ee020652f216ec83d36f1550e8dd2aed50023573",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 287,
+      "displaySha256": "03a35e444aa12925704068b86d9d350d71183bfea3d13c1440da4bee20e0dc72",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 288,
+      "displaySha256": "4756e39b640fc33c86fa665e67c485a495de4b16fd0d4bd70de4c6ab927d7627",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 289,
+      "displaySha256": "a6b26e4ba41950b3e6bc02ce60146f392bb74ba17924c4e7ef5e0ec01bf1c6eb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 290,
+      "displaySha256": "c73ada7800b0274b18ecaa0758ab126f99d4e54d20daf7495c4925ddbf53450f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 291,
+      "displaySha256": "e2278361af189c207cb448bb7d52f7e972bfda5137e0d29f8d917bc1b377bda4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 292,
+      "displaySha256": "3b5fed334ee64a5b39cb38df5a965b4aefb12b5edf5524ac8d3b760f86548f6f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 293,
+      "displaySha256": "ee892790cccf1e268acf6ac906f91db488fbe8174e62b25021cd118890fc76ac",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 294,
+      "displaySha256": "d16480cb3a16ea3dbe0fbde3b9d4314d8f739736e9d79c48a5a7d4097134fa9c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 295,
+      "displaySha256": "25b989651e087c788f8afa8c0f9d98fbfdbaf282d9acceb707cd0bdbb543edc6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 296,
+      "displaySha256": "1ebd1eb5fdeb34d6af19d6e1825b772366c693d973f56e59a5879be2e0795c98",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 297,
+      "displaySha256": "6c98d4a4953297197cd672f7c40a7aed180e6d8b468595a55f6ac7474144449c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 298,
+      "displaySha256": "50b36178c5d97b483d5aa6a3c7d68da3c7c200760f0c943c5bc496837d35f947",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 299,
+      "displaySha256": "44ee1db93933d4e4efcd639b70700e3810818698693889ae5176a47e5848a79e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 300,
+      "displaySha256": "e9a7b030e190093029a395fc5e650633246ab73f6622eb6487c93693b28f6e77",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 301,
+      "displaySha256": "2169300a53dbd8c0a7ed24ac7d0fae0f9de911b80660281b2f4f4bf1197d3dde",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 302,
+      "displaySha256": "c324a15a960d3e69d9d9db79f228290dc33b790d32e743f1de61a32c9e903036",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 303,
+      "displaySha256": "3afdd6f953e43e155532bf84aab9ff7749d32c2d8647d959b6946191112ee91d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 304,
+      "displaySha256": "65b3143ab3728d678b56c33254c45f466f4b0320ae9af312a924781997c1ba26",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 305,
+      "displaySha256": "9d458648a4fb5afa0a8231c427701770b09229208b83c4bc021ba0712abd0832",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 306,
+      "displaySha256": "1cbfeebd479a594c5d87cb9d31c9c53ce5540c99ff79881305a3b64d21a5f416",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 307,
+      "displaySha256": "7ee7ddf709b57c9fd1562e5e7686539a50e04d3c8f42382ac490407752b6a4ab",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 308,
+      "displaySha256": "640a549e5a65fc056bb8ed82670705891685e7da5557f7a719c1ee747dbfa2b2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 309,
+      "displaySha256": "e0d3cdb2577b6110c878d937ddc9e60186393bac335a55bad9983da2184300de",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 310,
+      "displaySha256": "58ac0144a3ac653062d29fa4c2ec4e37e98b4cd13d8aa917b12c7b71e77af112",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 311,
+      "displaySha256": "403351c83612ca4f52887431252b76f985fcfe356dff595022d66e863e76dcdb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 312,
+      "displaySha256": "25b451262cb078242740108ec5991eb163e93826427442dc3825316e78260e2b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 313,
+      "displaySha256": "d3eef54a81c99be91b7de2e90d1d8fec66d79fa053607e05f8bb3c546e264195",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 314,
+      "displaySha256": "cdca6629ba1dc43f67358c838df1d23be1731d3db3eb57983401e92eeafde202",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 315,
+      "displaySha256": "bf82f12e176a254b55c636ae18533547646011f41e969d99412137502e23bfe8",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 316,
+      "displaySha256": "211c4ce2f823bfff6b03db9f02d46b9a3176ada15823069880c6934c1080d6df",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 317,
+      "displaySha256": "5cfb5ede2b6a91d2a1c67f7b3a44ac5fd512e4358ce8de6691bb6e62bbe3833e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 318,
+      "displaySha256": "b5a862417d7edd81d8f30829bdd2f573fbdb32294a706e3a7ea44dbe76ae42ad",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 319,
+      "displaySha256": "e6a8497c96d3da5501f6fdb1d4b35ea13deaa1c6f367d9b07f1ea9a775dae13a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 320,
+      "displaySha256": "af032b501ee4cab5885c63bbf6179e0dddeb366524d0b4b4eabdb2975c3088dd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 321,
+      "displaySha256": "9d5f52b9dc8189e12a95b51705ee695bf08954c7f08af24dbca1ee0a2ebe4aff",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 322,
+      "displaySha256": "3c8dca9f3996064533f11d28f2f02725c6f7b4803155540df49027149cf3a94b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 323,
+      "displaySha256": "ab3c9bf219d41766b8216919cd6bc4a1392596f0b38f42e8cd748c391241a790",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 324,
+      "displaySha256": "de0272dfca9d16b81242cb3e76cb4fb8e01f04a12d2af1da872c8f80d4f5ae0e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 325,
+      "displaySha256": "354192bf5cffcfda223829d0ff56edafb43a50c51780466694d003dda32e6ef3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 326,
+      "displaySha256": "87d35dee2c0cfbe6f390934579219c20228a95b0b197641b4bf0bdc412806758",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 327,
+      "displaySha256": "9cf380e5816e178af936c936a8151dc6464fa48c62324a0ab6447a6ee44f4200",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 328,
+      "displaySha256": "6e69ba84f0b094ed0fa23430e9047a386900a5ccf49c7cc666b2add2bffb0a8a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 329,
+      "displaySha256": "0bf722b9385190ca6f933b89abb3b4895b12578d5822118afed12398ddcdc61c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 330,
+      "displaySha256": "7d6dba1e0497fb87a39425f38a18c4e649eb387d96477ad69855d9fa525fcd64",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 331,
+      "displaySha256": "00541d76ffeb3a7f9e759aaad95f88d65c00a196dbd2f620a0fe26a3f56755cd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 332,
+      "displaySha256": "47b8389d9c22b4f83f688e4d436f53149443c757436a820535c2b8a887935eeb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 333,
+      "displaySha256": "bc00cb6cb99a84c5cdffa1ace74ce90100eba1f68bcdc1fc043d855fe3ced75d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 334,
+      "displaySha256": "6e848615d1c57a882d25f7fc882fdb91a2eda727ebb2de8686bde2e8c5483f6a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 335,
+      "displaySha256": "771b2690c3d6ae31031290d8fbd987b747c79e3b63511bdef27802be52ce7f4d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 336,
+      "displaySha256": "dde483ddd829799375b1f84f75b519630ce5aba0a80fe954073f6c10c63d1acb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 337,
+      "displaySha256": "7f6f93736a76b98b5197ad80d0e2b91ee79b982eca45920f478f68e00bb40c72",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 338,
+      "displaySha256": "26a108f0e2a6bd44a5afe4843966b31f6c4636cb7bb749b0b698ffb00b7e066d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 339,
+      "displaySha256": "4c03ffbf6a7fb256798f1110e486d687c248587f0abe9a8ebed4be241e3aa0d2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 340,
+      "displaySha256": "e64463196d94bc327452ce616a086bd40afcb42ad2aaf24087b572ae9a81c928",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 341,
+      "displaySha256": "ce4123c4b4ae9bb56ea13518a98f3fabec6f3d400e4d6990bcec011231400984",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 342,
+      "displaySha256": "3f3dca36dd61a13d6f9a1111521cb0402dedd7eca444d1b8858366eadf0844f3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 343,
+      "displaySha256": "e094926f621f470b1676f67e8d54b53b4fd48ea9ea2ae164f68bc547f2b41bbb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 344,
+      "displaySha256": "e1e28421aa4273c79d07c007e249157fd319bd72a8a61c3f67945dfef3c6b8cd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 345,
+      "displaySha256": "f6f2526f0823faf4b8f3670f5a57bacb7632d7a904001652e085a49ff1742332",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 346,
+      "displaySha256": "22770ab43138b6f3f1ccf9563387595fb951fe32899a81b1f7baad0cc2437f87",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 347,
+      "displaySha256": "9606e682d4ed203dfebb2e8279561cb2fe0c44b24e7a4be37ed70e6283d5dfb0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 348,
+      "displaySha256": "f5fd2e64560e8a4f096732942841ce8e3390113b504cb7574db158f246251de1",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 349,
+      "displaySha256": "0c9971b4b8c6cb2aa756e82cce0f50352d386b7796043852b55a21511accb67b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 350,
+      "displaySha256": "4d5f720ca0c31241f1f915cb05533943ce5ecc753f8ec8b529e7b8e01b0d245d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 351,
+      "displaySha256": "e85700f813544c7bcfa2e2b7f2d4504ea88ebfe1a69f9d155dd693d076bd42c9",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 352,
+      "displaySha256": "f3d1838a7ecde476a9a66a0b335b80bd04959fab2247c5fc04ed9fbb499b0d1e",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 353,
+      "displaySha256": "0291d6490b6a0d6df09ae40a7ab89ec442d7614e8d5489da4c1631ab8ed88035",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 354,
+      "displaySha256": "4f8b43c62fd4759f11f71932ea37dcdcb07c987ae14187da9dc37ed74aa8d5c2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 355,
+      "displaySha256": "94464dbbbc58bff021fd4d5b993e1aacae935237a2d8e368cef7f70b05aa7f41",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 356,
+      "displaySha256": "d540359d1f0377882f5c76e0e81c49089c1c8e12053d8a8221c56c1a8bfe867c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 357,
+      "displaySha256": "1b418b1aec81dbecbfa0ca4aa268b9b28198d2334a7b86285b4e8a43b7e7dc14",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 358,
+      "displaySha256": "f738e8ac5994aaf3e2ddf94e1314d168dfd4a8958f691873712790af7477df9b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 359,
+      "displaySha256": "451b0204ac5f7c10566005741e9d673ba9cea53462ea23f1eee53829824119b2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 360,
+      "displaySha256": "4d0e450ceed60ff246ec96ef83bc5afd30337eff6f74043eaec496ce92459424",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 361,
+      "displaySha256": "7d90590589ffd9a1137c63544e0855c16cb4dca7c722404979eb42742ada55b0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 362,
+      "displaySha256": "7e7399e99b75cedab7567476705454c0fb74a599c3677d3d0d1760afec424710",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 363,
+      "displaySha256": "068f571d29f34e0fe8b17519a9459ddea0f8392fc94cd426128ea18c97601be5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 364,
+      "displaySha256": "e515cd4c91c236b5f758387fa670fc212284754cb22658d2ce2475d38326a3e9",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 365,
+      "displaySha256": "6c1ec7a69f125d39a408fdb8c66bb36394194f4ea99631fd035dcee987bfb697",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 366,
+      "displaySha256": "234f0b1e3fd74ffe29a8f76c31c25cc4e8cdec5fe1fd8fa17526b38ba4d58852",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 367,
+      "displaySha256": "1c8de9f86b42390da0f27779a302f92811005b082e724803cf5cc7e0c38d6378",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 368,
+      "displaySha256": "9aa5f71b75394f5d1df9d206a6a4f21e145c000d7d8e99a1ad6bccc1d293349c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 369,
+      "displaySha256": "ca77dc8db3cf8df2bfab414adc25a70d4d4f5ed50a2ad89aaec8d814256e70fb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 370,
+      "displaySha256": "d4212e4453e96a0e35b4f7877465cb1c6191e14b9eea0d7384ba16b80d4396dc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 371,
+      "displaySha256": "44f415c8d71479d71bf8789830a5459d616524203bda5f8a177331c1b6ab689c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 372,
+      "displaySha256": "416674685d692c701b6780677cc1cd6c0e98e1c8c343d7fd43509a554f941d45",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 373,
+      "displaySha256": "f9b33cd9596f96184e5202d79432e250321bfc31bdb9c538ba0c91f4097ddb1d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 374,
+      "displaySha256": "7c242d5d5622d18f6875d3357d7e5df40d3dcb66eca9baaf77b2b92de65fa04f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 375,
+      "displaySha256": "5a02793ad10dcad7b0c5529e319a4683670209c1cf0bfe1320bae204ffff98cc",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 376,
+      "displaySha256": "a7d1c105d01a93fc0f1eee8f3592352e2dc773e14c9d1fbd94bc1c0a7aeafc63",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 377,
+      "displaySha256": "afa6d83c0af6085219c541429ca7c15bc436a399dbabb9d8f632993703ed1082",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 378,
+      "displaySha256": "6aa8d4362113c209fb44722504d6eb044fc1c2d7d34dccdd01302f9aabe78d06",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 379,
+      "displaySha256": "fccec2863ebd4360e73ccdbebf5fd8759036e58d19983101ac0c6db539f39a9c",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 380,
+      "displaySha256": "873af14232004a0e5e2fac4a9cd0f9a2602bf741fce8bdbcf4863930438bb824",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 381,
+      "displaySha256": "26c947767e84fd7a27b3d9a3cff1b289d0724bf45676dff4b7c3c9805bacd813",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 382,
+      "displaySha256": "506cac95215cfc090be99734ea17837839e8ea4ca31d6afafd5ec602c43e9f97",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 383,
+      "displaySha256": "82f85e7f76883214ff4d8e765e1b93af1d2341ae634dcc39d278b24535022e89",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 384,
+      "displaySha256": "3c72a0d989f96ffe611c19cf8034a5cb44f86e46b5f8ee6d1974fdd89f84d756",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 385,
+      "displaySha256": "b7df07f2ad5a7409465ff34a53f0ca039b8de3b62b1a8727cd8df5604bf3d64d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 386,
+      "displaySha256": "35e4166fa6756d5ad298cf4cbdce97abdb9f96e364c8d49807cc4f04bccca157",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 387,
+      "displaySha256": "c2fa3838f95f8bdb9af928eb9c68e855f2e0e1bb39ff7eb5f1aa6c6074723689",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 388,
+      "displaySha256": "7c621d2e8f5962472cc29f1649a760f87962438eeef2c3ff6f01ef5a3a2c6720",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 389,
+      "displaySha256": "f3a8f85939cbfaa8567df817c6d02ae5ee4cc5ed98e08dd74856499a0aa621c5",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 390,
+      "displaySha256": "3fcdfe895f6cba554b8a795b9371432f7f7a23a34f9bb17115bfb22862669a6a",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 391,
+      "displaySha256": "8edac6a64b9018bbefa46a76824ad8053cd23d6a0a18b9ffb8abbdab84f31177",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 392,
+      "displaySha256": "8522353a615449d5d2a1e171f2be1d1db63057c0f701712a7957566271304504",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 393,
+      "displaySha256": "00ab27ac2d1bdbe86bfc8c49c915a468c5e6d37a396e9417d3fad2d9a65f5adb",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 394,
+      "displaySha256": "ef1c45bbb91f1a5d9bf61d3d550ced9bdd8b5586128b40ed9312c650d7863681",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 395,
+      "displaySha256": "46ff14ce5a1039d84951ce14e05d071f2f93b66f0476446d6ca07f64ee8af599",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 396,
+      "displaySha256": "98ae4b2cc9713d2fb1bc05d982dc3ce5178e8d536ba7352667eaafc2510267d8",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 397,
+      "displaySha256": "e7cf461150f34ad2954fdc36e52a4db873c28c1dc86b7e764bf6cdfa0e8212e0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 398,
+      "displaySha256": "43739572d0218c22016ff2f356bcbc6b1df3cd00fa3aaf9690447f6718c8622f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 399,
+      "displaySha256": "d0cc4e2303e1ad2e355639cca5c879844a695a1d0b0e4514df2d632f82cfde57",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 400,
+      "displaySha256": "242c0f25098dabdfa6bc2f681cd0dfdc378d7b9b00330c5befc94ecbd5ef0dd4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 401,
+      "displaySha256": "19bba01022bc63606d20a5a7724c83f4b29cce292fc4e9132fd3ae717d490dc0",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 402,
+      "displaySha256": "48b73ceb98c60a35003b6691407677346ceee9d4d013f535c25da80b9872f11b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 403,
+      "displaySha256": "3e630acdcd00fd877873286f9f14bed0749cd1448d973c0788fb32f1092e009b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 404,
+      "displaySha256": "7581f44d23d429bf60867384df1ca393bc127c6cfbf63171b910fef91ef43b1d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 405,
+      "displaySha256": "ed862cb55e84eb523605ed04a36e4eb1aeefccb1881551bb03ce28a7cf273251",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 406,
+      "displaySha256": "045e1b2353ad250f056b284ee5cbc8549ba41673b0cd551bf09d222065641c11",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 407,
+      "displaySha256": "9fddb7a582893d1fb79dbf41695a2d76d412e78c41ecde248d56fbd08d90d176",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 408,
+      "displaySha256": "b318423539af3399296eb7f2756f937289359ce224ab384581bc5a59f89f63dd",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 409,
+      "displaySha256": "9b4de9f1a2bc0b5efdd68f3b2485063de21c79f9910db7f3cd4ac8b1ad9ca137",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 410,
+      "displaySha256": "a18ed083783d680d46ab3f0d1df467dc8d2bc0e24f6f3bc2e77eb55f1412f5c2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 411,
+      "displaySha256": "780d795f6950f4a676afb724ea34009abbc1922ddf652857e1fa35a04a3007b6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 412,
+      "displaySha256": "3a5fc152735b2327ef7512766dc709edb66cff62d112baea98456e460ed72b69",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 413,
+      "displaySha256": "95984a7c1baab232bb91337b7a194a4cb4d728ea3b32fca4d6ea5e78efb7fe3d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 414,
+      "displaySha256": "2a1ebbe384d0ce33fd02d271004006b39d8dfeef83afa210fa04ec93086b29f4",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 415,
+      "displaySha256": "c3c31ec28e6bfd7b724ce2837eda1651a3c7e894c2fd351235725d689129ff45",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 416,
+      "displaySha256": "de4776ffa06eb94f5fe6b2a42f16fca16499bb830629ba3ebabf2e80027bb7e3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 417,
+      "displaySha256": "e50942d205d8fbc4797d7961eb2cff5857b10903be5d94cc48da123ddd088029",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 418,
+      "displaySha256": "df13a9f5405345526de13196fb9e52308d0c698e5cef777c7c3c98196b0a4e92",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 419,
+      "displaySha256": "cc68dd75401cf668a2f471e048827bbc606e2495c6a470d8499a04be794847b2",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 420,
+      "displaySha256": "dbd8c2666cefebe9c5d95809a343b4041a1e634ff70d2cedacb2104250df933b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 421,
+      "displaySha256": "718547b89cd30820f736ab0ac4126b93bdf2d59619f5e6b7b3868992b1c0f03b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 422,
+      "displaySha256": "5681ebded95c2d14712b369e3af6405578e4a89bf9db1945f571a914a90978ce",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 423,
+      "displaySha256": "15306fc720fba026465662481020e097525b2be834719743e502aea8bfc9a4e3",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 424,
+      "displaySha256": "0d5479f7241a14ce0018de17c8ade56f21844d8547509a2fd10699c55edd3450",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 425,
+      "displaySha256": "4aca441be810a1bc0da13aea9892614d4f64a86969d529791a9383cdf2f779c6",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 426,
+      "displaySha256": "9540e7f1971ce9a698c89d8cfbb0ce53bbd4ca8f8f4122e8625db5371401581d",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 427,
+      "displaySha256": "a62459ab2dcda0bdd55295c250598dff305fe6a53786c65d5acf4030cb76d779",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 428,
+      "displaySha256": "c6fca7bf0a40d39a1b47a3898c9236783869516ba0a9c0fd7d11ac75310cad08",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 429,
+      "displaySha256": "dd0424284ff6c199a4ecfd93d2b665d6d331df68a34bcb2784d29a5fce39e91b",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 430,
+      "displaySha256": null,
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 431,
+      "displaySha256": "02d417ba1b59179dc859998872db41b467f00a1f23caff3721c4836139d2a320",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 432,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 433,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 434,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 435,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 436,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 437,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 438,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 439,
+      "displaySha256": "5bbfff9fd47966699d67de807ee3662ed179e88720897fb0c20a95c184c9f44f",
+      "display": {
+        "vicControl1": 27,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    },
+    {
+      "index": 440,
+      "displaySha256": null,
+      "display": {
+        "vicControl1": 155,
+        "vicControl2": 200,
+        "vicMemory": 21,
+        "cia2Port": 199,
+        "cia2Direction": 63
+      }
+    }
+  ]
+}

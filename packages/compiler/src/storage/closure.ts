@@ -150,11 +150,24 @@ function peakTotals(
   });
 }
 
-/** Compute the deepest reachable direct-call chain in return-address bytes. */
-function hardwareCallBytes(
+interface HardwareStackRoute {
+  /** Return-address and helper bytes retained on this program route. */
+  readonly bytes: number;
+  /** Stable execution identities from the selected root to its deepest point. */
+  readonly route: readonly string[];
+}
+
+/** Select the larger stack route, using its stable identity to break equal-cost ties. */
+function deeperStackRoute(left: HardwareStackRoute, right: HardwareStackRoute): HardwareStackRoute {
+  if (left.bytes !== right.bytes) return left.bytes > right.bytes ? left : right;
+  return compareText(JSON.stringify(left.route), JSON.stringify(right.route)) <= 0 ? left : right;
+}
+
+/** Compute the deepest reachable direct-call chain and retain the exact winning route. */
+function hardwareCallRoute(
   inventory: StorageInventory,
   helperCalls: readonly HelperCallDemand[],
-): number {
+): HardwareStackRoute {
   const graph = new Map(
     inventory.program.callGraph.map(
       (entry) =>
@@ -169,59 +182,105 @@ function hardwareCallBytes(
       Math.max(helperStackByCaller.get(caller) ?? 0, helper.stackBytes),
     );
   }
-  const memo = new Map<string, number>();
+  const helperByCaller = new Map<string, HelperCallDemand>();
+  for (const helper of helperCalls) {
+    const caller = bindingIdentityKey(helper.caller);
+    const previous = helperByCaller.get(caller);
+    if (
+      previous === undefined ||
+      helper.stackBytes > previous.stackBytes ||
+      (helper.stackBytes === previous.stackBytes && compareText(helper.id, previous.id) < 0)
+    ) {
+      helperByCaller.set(caller, helper);
+    }
+  }
+  const memo = new Map<string, HardwareStackRoute>();
   const active = new Set<string>();
-  const depth = (functionKey: string): number => {
+  const depth = (functionKey: string): HardwareStackRoute => {
     const known = memo.get(functionKey);
     if (known !== undefined) return known;
-    if (active.has(functionKey)) return Number.POSITIVE_INFINITY;
+    if (active.has(functionKey)) {
+      return Object.freeze({
+        bytes: Number.POSITIVE_INFINITY,
+        route: Object.freeze([functionKey]),
+      });
+    }
     active.add(functionKey);
-    let functionDepth = helperStackByCaller.get(functionKey) ?? 0;
+    const helper = helperByCaller.get(functionKey);
+    let functionDepth: HardwareStackRoute = Object.freeze({
+      bytes: helperStackByCaller.get(functionKey) ?? 0,
+      route: Object.freeze(
+        helper === undefined ? [functionKey] : [functionKey, `helper:${helper.id}`],
+      ),
+    });
     for (const callee of graph.get(functionKey) ?? []) {
       const calleeDepth = depth(callee);
-      functionDepth = Math.max(
-        functionDepth,
-        calleeDepth === Number.POSITIVE_INFINITY ? calleeDepth : calleeDepth + 2,
-      );
+      const candidate = Object.freeze({
+        bytes:
+          calleeDepth.bytes === Number.POSITIVE_INFINITY
+            ? calleeDepth.bytes
+            : calleeDepth.bytes + 2,
+        route: Object.freeze([functionKey, ...calleeDepth.route]),
+      });
+      functionDepth = deeperStackRoute(functionDepth, candidate);
     }
     active.delete(functionKey);
     memo.set(functionKey, functionDepth);
     return functionDepth;
   };
 
-  let deepest = 0;
+  let deepest: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze(["main"]) });
   for (const root of inventory.program.roots) {
     if (root.kind === "main") {
-      deepest = Math.max(deepest, depth(bindingIdentityKey(root.function)));
+      deepest = deeperStackRoute(deepest, depth(bindingIdentityKey(root.function)));
       continue;
     }
     if (root.kind === "initializer") {
       const key = bindingIdentityKey(root.binding);
-      let initializerDepth = 2 + (helperStackByCaller.get(key) ?? 0);
+      const helper = helperByCaller.get(key);
+      let initializerDepth: HardwareStackRoute = Object.freeze({
+        bytes: 2 + (helperStackByCaller.get(key) ?? 0),
+        route: Object.freeze(
+          helper === undefined
+            ? ["startup", `initializer:${key}`]
+            : ["startup", `initializer:${key}`, `helper:${helper.id}`],
+        ),
+      });
       const initializer = (inventory.program.initializers ?? []).find(
         ({ binding }) => bindingIdentityKey(binding) === key,
       );
       for (const callee of initializer?.callees ?? []) {
         const calleeDepth = depth(bindingIdentityKey(callee));
-        initializerDepth = Math.max(
+        initializerDepth = deeperStackRoute(
           initializerDepth,
-          calleeDepth === Number.POSITIVE_INFINITY ? calleeDepth : calleeDepth + 4,
+          Object.freeze({
+            bytes:
+              calleeDepth.bytes === Number.POSITIVE_INFINITY
+                ? calleeDepth.bytes
+                : calleeDepth.bytes + 4,
+            route: Object.freeze(["startup", `initializer:${key}`, ...calleeDepth.route]),
+          }),
         );
       }
-      deepest = Math.max(deepest, initializerDepth);
+      deepest = deeperStackRoute(deepest, initializerDepth);
     }
   }
   return deepest;
 }
 
-/** Return the proved hardware-stack peak, or null when it exceeds the selected capacity. */
+/** Return the proved hardware-stack split, or null when it exceeds the selected capacity. */
 function hardwareStackPeak(
   inventory: StorageInventory,
   profile: StorageProfile,
   helperCalls: readonly HelperCallDemand[],
-): number | null {
-  const callBytes = hardwareCallBytes(inventory, helperCalls);
-  if (!Number.isFinite(callBytes)) return null;
+): {
+  readonly total: number;
+  readonly program: number;
+  readonly system: number;
+  readonly route: readonly string[];
+} | null {
+  const call = hardwareCallRoute(inventory, helperCalls);
+  if (!Number.isFinite(call.bytes)) return null;
   if (
     (profile.hardwareStackCapacity !== undefined &&
       (!Number.isInteger(profile.hardwareStackCapacity) || profile.hardwareStackCapacity < 0)) ||
@@ -234,10 +293,17 @@ function hardwareStackPeak(
   ) {
     return null;
   }
-  const peak = callBytes + (profile.startupStackBytes ?? 0) + (profile.interruptStackBytes ?? 0);
-  if (profile.hardwareStackCapacity === undefined) return peak;
+  const startup = profile.startupStackBytes ?? 0;
+  const program = deeperStackRoute(
+    call,
+    Object.freeze({ bytes: startup, route: Object.freeze(["startup"]) }),
+  );
+  const system = profile.interruptStackBytes ?? 0;
+  const total = program.bytes + system;
+  const result = Object.freeze({ total, program: program.bytes, system, route: program.route });
+  if (profile.hardwareStackCapacity === undefined) return result;
   const available = profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0);
-  return peak <= available ? peak : null;
+  return total <= available ? result : null;
 }
 
 /** Build the provisional closure proof for one stable inventory and placement. */
@@ -246,7 +312,7 @@ function certificate(
   placement: StoragePlacement,
   interference: readonly InterferenceEdge[],
   profile: StorageProfile,
-  stackPeak: number,
+  stackPeak: NonNullable<ReturnType<typeof hardwareStackPeak>>,
   helperCalls: readonly HelperCallDemand[],
 ): StorageClosureCertificate {
   return Object.freeze({
@@ -261,7 +327,10 @@ function certificate(
     helperCalls,
     staticBytes: staticTotals(placement.homes),
     peakBytes: peakTotals(inventory.requests, placement.homes, interference),
-    hardwareStackPeak: stackPeak,
+    hardwareStackPeak: stackPeak.total,
+    hardwareStackProgramPeak: stackPeak.program,
+    hardwareStackSystemPeak: stackPeak.system,
+    hardwareStackRoute: stackPeak.route,
     closed: true,
   });
 }

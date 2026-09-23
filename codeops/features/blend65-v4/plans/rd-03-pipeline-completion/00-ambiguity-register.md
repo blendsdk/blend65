@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-03 Pipeline Completion
 
-> **Status**: ⚠️ RUNTIME DECISION — 37 decisions resolved, one named deferral approved and AR-P2 pending
-> **Last Updated**: 2026-09-22
+> **Status**: ✅ GATE PASSED — 46 decisions resolved and one named deferral approved
+> **Last Updated**: 2026-09-23
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -53,7 +53,87 @@
 | AR-C35 | Runtime / Phase 7 overlay interface | Export immutable `SourceOverlay { sourceId, text }` records and direct `analyzeProjectOverlay(snapshot, overlays): AnalysisResult`; reject duplicate/unknown IDs with `PROJECT_PATH_INVALID`, unpaired Unicode with `PROJECT_INVALID_UTF8`, and the existing source/count/aggregate bounds with `PROJECT_HOST_LIMIT`. Exercise the fixed production limits with compact shared test values, not a private limit override or test-only server hook. Add no options object, policy layer or configurable limit system. | The Phase 7 specification author found that the plan alternated between a map and a list, named no exact signature or diagnostic identities, and could not create an immutable black-box oracle by guessing. User explicitly accepted the recommended minimum contract on 2026-09-21. | ✅ Resolved |
 | AR-C36 | Runtime / Phase 7 independent review corrections | Correct all three accepted findings directly: observe the existing cancellation signal throughout directory/path and open-document traversal; clear omitted, failed and stale document diagnostics/mappings only under the current generation guard; and pin both editor workspaces to the existing Node-22-compatible Vite 5 line. Add no scheduler, diagnostic cache, cancellation framework, bundler or engine restriction. | User accepted RV-001 through RV-003 on 2026-09-21 after independent correctness/security review. | ✅ Resolved |
 | AR-P1 | Runtime / Phase 8 VICE qualification interface | Expose one test-only direct function, `qualifyM1WithVice({ generation, trace, oracle })`, from `test/m1/vice-driver.ts`. It returns either exact observed frame evidence plus `VICE-verified / hardware-unverified`, resident-sprite hash, restoration and BASIC-return facts, or `Unknown` only when the required VICE tool evidence is unavailable; protocol, ownership, timeout and behavior mismatches reject the qualification. The frame evidence directly mirrors the frozen oracle state and eight published sprite slots and adds one display SHA-256. Add no options object, injected transport, emulator class or reusable harness. | User accepted the recommended minimum interface on 2026-09-22 after the implementation-blind Phase 8 specification author found that the plan named the helper file but no callable signature or result/observation shape. | ✅ Resolved |
-| AR-P2 | Scope / Phase 8 expert gate | The qualified M1 is behavior-correct and its final PRG body meets the expert's 6,655-byte contiguous-load size, but direct `optimization: none` lowering emits 5,890 code bytes versus the expert's 1,268 and also uses more ZP, mutable storage and hardware stack. **Recommendation:** follow R3.33/AC-31's original boundary: record these exact deltas as the RD-08 baseline and complete RD-03 without importing optional register allocation, loop/address strength reduction or inlining. This reverses AR-C13's stronger Phase 8 gate because satisfying it would pull a material part of RD-08 into RD-03 and violate the user's repeated instruction not to overengineer this phase. The alternative is to retain AR-C13 and keep RD-03 open until those optimizer capabilities exist. | Requires the user's explicit ruling because AR-C13 was previously accepted and the project prime directive otherwise keeps worse generated code as a gate. | ⏳ Pending |
+| AR-P2 | Scope / Phase 8 expert gate | The qualified M1 is behavior-correct and its final PRG body meets the expert's 6,655-byte contiguous-load size, but direct `optimization: none` lowering emits 5,890 code bytes versus the expert's 1,268 and also uses more ZP, mutable storage and hardware stack. Follow R3.33/AC-31's original boundary: record these exact deltas as the RD-08 baseline and complete RD-03 without importing optional register allocation, loop/address strength reduction or inlining. This supersedes AR-C13's stronger Phase 8 gate because satisfying it would pull a material part of RD-08 into RD-03 and violate the user's repeated instruction not to overengineer this phase. | User approved the recommendation on 2026-09-22 after reviewing the exact generated/expert deltas and the RD-08 scope consequence. | ✅ Resolved |
+| AR-P3 | Runtime / Phase 8 independent-review corrections | Correct RV-001 through RV-006 directly: preserve runtime module initialization while eliminating constant storage waste; freeze and compare active/rendered/CPU restoration evidence; attest the exact VICE executable and ROM set; split program and cooperative-system stack evidence with the winning route; execute the independent expert twin through the same oracle and exact game-loop traffic trace; and close the failed-attestation socket. Add no emulator abstraction, runtime framework, optimizer or source workaround. | User accepted all six findings on 2026-09-22. | ✅ Resolved |
+| AR-P4 | Scope / rendered M1 timing | The corrected evidence now proves exact expert/game-loop device traffic and logical state, but the generated VICE display differs from the expert at the first comparable frame. GitHub issue #80 records the missed visible-frame publication. Keep RD-03 open and correct this generated timing defect before calling M1 playable; do not weaken the rendered oracle or silently move visible correctness into RD-08. | User accepted the recommended scope on 2026-09-23: fix visible timing in RD-03 and preserve the rendered oracle. | ✅ Resolved |
+| AR-P5 | Runtime / Phase 8 fix-only re-review | Correct RV-FIX-001 through RV-FIX-005 with the smallest direct changes: clean up VICE on every setup failure; report the measured six interrupt-save bytes separately from the 20-byte platform reserve without claiming an unmeasured total; run the expert twin through canonical bounded ACME 0.97 execution; cap and drain retained checkpoint events; and update issue #80 with current measurements. Add no process framework, emulator abstraction, evidence layer or configurable limit system. | User accepted the complete correction set on 2026-09-22 after the single permitted fix-only re-review. | ✅ Resolved |
+| AR-P6 | Runtime / contradictory frame-wait oracle | Correct only the stale focused lowering expectation from the line-zero `$D011` mechanism to the accepted `$D012`/`$FB` contract, then implement that same direct two-loop wait. Preserve the rendered oracle and add no timing abstraction, optimizer, pass or runtime. | User accepted the recommended narrow oracle correction on 2026-09-23 after the focused immutable test was shown to contradict the accepted expert twin and rendered M1 behavior. | ✅ Resolved |
+| AR-P7 | Technical (complexity escalation) / mandatory raster-deadline lowering | Add one focused mandatory affine aggregate-address reuse transformation on the existing structured lowering path, with local proof/invalidation and behavior-plus-cycle tests. It must be general to fixed-array record access and must not recognize M1, enemies or sprites. Add no public API, dependency, package, runtime, optimizer registry or full RD-08 machinery. | User explicitly approved implementing the general compiler fix on 2026-09-23 after confirming it is common lowering for all qualifying programs, not an M1-specific workaround. Independent challenger verdict: **Justified**. | ✅ Resolved |
+| AR-P8 | Technical (complexity escalation) / forward-CFG raster-deadline lowering | Propagate AR-P7's existing one-entry aggregate-address fact across exactly one earlier, single-predecessor forward CFG edge; clear it at joins, backedges, calls, pointer clobbers and cached-index writes. Add no induction, fixed point, dominance tree, range analysis, table, cost-model selection, pass manager, IL/API/storage/package or dependency. The result must pass an explicit optimization-readiness check: it may remove redundant machine work but must not obstruct later peephole optimization, maximum optimization or production game-grade output. | User explicitly approved AR-P8 with the optimization-readiness condition on 2026-09-23. Independent challenger verdict: **Simplify** — this forward-edge fact is smaller than loop-carried induction and directly removes the observed recomputation. | ✅ Resolved |
+| AR-P9 | Technical (complexity escalation) / acyclic forward-join address meet | Inherit the existing compile-time address fact at an acyclic forward join only when every predecessor is earlier/already lowered and supplies the identical fact; retain every existing invalidation and clear on any missing/different fact or backedge. Add no fixed point, dominance tree, induction, optimizer pass, new representation or runtime state. The same optimization-readiness condition applies. | User explicitly approved AR-P9 on 2026-09-23. Independent challenger verdict: **Justified** — this is the smallest remaining correction and preserves the future optimization seam. | ✅ Resolved |
+| AR-P10 | Technical (complexity escalation) / one-shot loop-carried affine pointer induction | Recognize only a proved single-latch fixed-stride aggregate loop, initialize the existing pointer once, advance it by the constant `step × stride` after the ordinary source index update, and fall back unchanged for calls, aliases, alternate mutations, `continue` or multiple backedges. Add no new IR, pass manager, dominance/fixed-point framework, public API, storage or runtime. Run the exact VICE gate once; if the same nine frames remain, stop and reframe RD-03/RD-08 ownership instead of adding more local optimizations. | User approved on 2026-09-23. Independent challenger verdict: **Justified as a one-shot boundary**. Implementation removed 215 more code bytes and the exact 441-input VICE rendered journey passed. | ✅ Resolved |
+
+### AR-P7 Complexity Escalation Evidence
+
+**Original goal:** Complete RD-03 with an M1 whose generated VICE display matches the expert twin at the accepted `$D012 == $FB` PAL boundary.
+
+**Extra system or support code:** One focused mandatory affine aggregate-address reuse transformation within the existing structured semantic/machine lowering path. It retains one proved packed-record base across safe adjacent field uses and invalidates it at a root/index mutation, aliasing call, volatile barrier or control-flow boundary.
+
+**Why it may be needed:** Correct logical state and MMIO values are published too late for VIC sprite fetches. The accepted rendered oracle makes that a correctness failure, not optional parity work.
+
+**Evidence:** VICE reports 190 mismatches across 432 comparable frames. The first generated frame is blank where the expert has all six invaders. Logical state, sprite-register state, ordered device traffic, asset bytes and restoration all match. Correcting the raster boundary, folding fixed field offsets and shortening the correct 16-bit unsigned-byte `index × 5` sequence did not change the mismatch set.
+
+**Smallest solution that still works:** Reuse the already-required packed aggregate address only inside a locally proved safe region, with a measured cycle target and the existing independent behavior/rendered oracles. Stop when the M1 gate passes. Do not add general register allocation, inlining, a pass manager or the complete RD-08 optimizer.
+
+**Extra cost:** A focused transform and proof/invalidation logic in existing compiler lowering modules, directed implementation tests, one assembly/cycle expectation and the existing VICE gate. No new package, dependency, public API, runtime storage model or generalized optimizer framework.
+
+**Independent verdict:** **Justified** — the direct correction was insufficient; the narrowed transformation is the only viable path that preserves source semantics, the expert boundary and the rendered oracle. The strongest risk is that the slice grows into a partial RD-08 optimizer, so any need beyond this one transform reopens the gate.
+
+**Direct user decision:** Approved the named focused general compiler transformation on 2026-09-23. The user specifically required a common fix rather than game-specific behavior.
+
+### AR-P8 Complexity Escalation Evidence
+
+**Original goal:** Complete RD-03 with an M1 whose generated VICE display matches the expert twin at the accepted `$D012 == $FB` PAL boundary.
+
+**Extra system or support code:** Extend AR-P7's existing one-entry compile-time address fact across exactly one earlier, single-predecessor forward CFG edge. Joins, backedges, calls, pointer clobbers and cached-index writes still clear it. Add focused positive and negative assembly/cost tests plus the existing VICE gate.
+
+**Why it may be needed:** AR-P7's local transform is behavior-correct and materially faster, but 24 rendered frames still miss the expert. The misses concentrate on every-eight-frame formation updates.
+
+**Evidence:** The real VICE mismatch count fell from 190 to 40 after the first local reuse, to 26 after safe unrelated stores retained it, and to 24 after aggregate read/store reuse. Live generated assembly still forms the identical `enemies[index]` address before `alive`, branches, then forms it again in the sole forward successor before reading/writing `x`. `SemanticTerminator` already exposes exact successors, while `lowerFunction` currently clears the fact unconditionally at every block boundary.
+
+**Smallest solution that still works:** Carry the already-proved fact over one forward edge only when the destination has exactly one predecessor and that predecessor was lowered earlier. Do not carry it into joins or across backedges. Stop immediately after the focused tests and exact rendered VICE gate; any remaining mismatch reopens the gate again.
+
+**Extra cost:** One exit fact per semantic block, a direct predecessor check in existing lowering, focused implementation tests and the existing VICE run. No new runtime data, emitted table, pass, fixed-point analysis, public API, dependency or package.
+
+**Independent verdict:** **Simplify** — forward single-predecessor propagation directly removes the observed redundant recomputation and is materially smaller than loop-carried pointer induction. Induction remains blocked as an RD-08-style fallback.
+
+**Direct user decision:** Approved on 2026-09-23, with the additional requirement that this and the preceding fixes must preserve the route to peephole optimization, maximum optimization and production game-grade output rather than becoming specification-only architecture.
+
+### AR-P9 Complexity Escalation Evidence
+
+**Original goal:** Complete RD-03 with an M1 whose generated VICE display matches the expert twin, without compromising the compiler's path to maximum production optimization.
+
+**Extra system or support code:** At an acyclic forward join, reuse the existing address fact only when the predecessor set is non-empty, every predecessor is earlier and already lowered, every exit fact is non-null, and every key is identical. Otherwise clear it. Add positive and negative implementation tests and rerun VICE.
+
+**Why it may be needed:** AR-P8's single-predecessor propagation is correct and cuts mismatches from 24 to 9, but normal nested conditionals still discard an identical address fact where multiple unchanged paths rejoin.
+
+**Evidence:** The predecessor inventory, stable block order, per-block exit facts and invalidation rules already exist. The remaining M1 path reaches `rightX = enemies[index].x` through multiple forward paths without changing `index`. The shared two-byte pointer already has a conservative whole-function SFA lifetime, so meeting the fact adds no ZP, RAM, table, runtime state or storage demand.
+
+**Smallest solution that still works:** Add only an all-predecessor equality check over the existing exit facts. Do not add a fixed point, dominance analysis, induction, rematerialization rule, pass manager or machine optimizer. Stop again if VICE remains red.
+
+**Extra cost:** One small entry-selection condition plus focused positive and negative tests. No new representation, machine form, emitted instruction, storage request, public API, package or dependency.
+
+**Independent verdict:** **Justified** — this is smaller and safer than introducing a premature cross-block peephole optimizer. It preserves structured machine instructions and CFG for RD-08, removes duplicate pure work before semantic identity is lost, and must remain a baseline lowering choice rather than a permanent prohibition on later rematerialization.
+
+**Direct user decision:** Approved on 2026-09-23. The user then verified the playable build visually in VICE. Implementation removed the intended repeated calculation, reduced generated code by 195 bytes overall, and passed the focused behavior/cost tests. The exact VICE display gate remained unchanged at nine mismatches: frames 15, 23, 31, 79, 87, 95, 143, 151 and 159.
+
+### AR-P10 Complexity Escalation Evidence
+
+**Original goal:** Complete RD-03 with an M1 whose generated VICE display matches the expert twin without importing the general RD-08 optimizer.
+
+**Why another local fact is not enough:** AR-P9 removed the remaining acyclic join recomputation in `advanceFormation`, but the mismatch set did not change. Every remaining mismatch is an every-eight-frame formation update where animation records change. The generated loop still recomputes `base + index × 5` after each backedge.
+
+**Recommended one-shot boundary:** Recognize only a proved single-latch loop with one constant-step storage-backed induction variable, one invariant fixed-array root and one constant stride. Initialize the existing shared pointer once and advance it with a direct 16-bit constant add after the source index update. Reject every uncertain shape and retain the existing lowering.
+
+**Explicit exclusions:** No general loop optimizer, new IR, pass manager, dominance tree, fixed point, range framework, register allocation, inlining, source/game recognition, public API, new storage or runtime support.
+
+**Independent verdict:** **Justified as a one-shot boundary.** The current compiler already knows the root, index storage and stride, and smaller acyclic reuse is exhausted. This preserves later maximum optimization because RD-08 can generalize or subsume the recurrence fact. If this one slice does not clear the exact VICE gate, further local fixes would be optimizer scope creep and the RD-03/RD-08 ownership conflict must be resolved instead.
+
+**Direct user decision:** Approved on 2026-09-23. The slice removed a further 215 code bytes, kept
+zero-page use at 4 bytes and cleared the exact VICE gate: generated and expert output match across
+all 441 inputs and rendered frames. No further local timing optimization was added. Had the gate
+remained red, work would have stopped for publication-raster measurement rather than presuming a
+VICE defect.
 
 ## Complexity and Simplicity Check
 
@@ -121,11 +201,13 @@ those remain execution tasks. Status: **Verified partial / hardware-unverified**
 
 ## Gate Result
 
-Every material item is resolved or explicitly deferred. AR-C1 is the user-owned product sequencing ruling. The remaining
-technical decisions are plan/compiler-owned under the project's overriding workflow directive 4
-and choose the smallest implementation that satisfies current RD-03 consumers. AR-C16's native
+All material items are resolved. AR-C1, AR-P4, AR-P6, AR-P7 and AR-P10 are the user-owned
+product/scope rulings. The remaining technical decisions are plan/compiler-owned under the
+project's overriding workflow directive 4 and choose the smallest implementation that satisfies
+current RD-03 consumers.
+AR-C16's native
 Windows execution is absent from executable plan tasks except for recording the handoff; portable
-implementation and Linux/pure proof remain in scope. The semantic Zero-Ambiguity Gate passes.
+implementation and Linux/pure proof remain in scope.
 
 ## Expert Lineage and Evidence Limits
 

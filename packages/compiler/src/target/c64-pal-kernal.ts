@@ -18,8 +18,10 @@ export interface C64MachineFacts {
   readonly characterRomEnd: 0x1fff;
   /** First preferred resident-sprite address. */
   readonly spriteStart: 0x2000;
-  /** VIC control register used for frame observation. */
-  readonly vicControl1: 0xd011;
+  /** VIC raster-line register used for frame observation. */
+  readonly vicRaster: 0xd012;
+  /** Raster line used as the qualified end-of-frame update boundary. */
+  readonly frameWaitRasterLine: 0xfb;
   /** First sprite X/Y position register. */
   readonly spritePositionBase: 0xd000;
   /** Sprite X-coordinate most-significant-bit register. */
@@ -83,7 +85,8 @@ export const C64_PAL_KERNAL_6581: C64MachineFacts = Object.freeze({
   characterRomStart: 0x1000,
   characterRomEnd: 0x1fff,
   spriteStart: 0x2000,
-  vicControl1: 0xd011,
+  vicRaster: 0xd012,
+  frameWaitRasterLine: 0xfb,
   spritePositionBase: 0xd000,
   spriteXHigh: 0xd010,
   spriteEnable: 0xd015,

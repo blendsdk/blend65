@@ -1,13 +1,21 @@
-import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, readFile } from "node:fs/promises";
-import net from "node:net";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { fileURLToPath } from "node:url";
 import type { PublishedGeneration } from "@blend65/compiler";
 import type { OracleFrame, OracleRun } from "../../examples/m1/qualification/oracle.js";
-import { openViceMonitor, type ViceMonitor } from "./vice-monitor.js";
+import { qualifyExpertM1WithVice } from "./expert-vice.js";
+import type { ViceMonitor } from "./vice-monitor.js";
+import {
+  normalizeDisplayBaseline,
+  restoreDisplayBaseline,
+  installM1DeviceTracepoints,
+  startVice,
+  stopVice,
+  takeM1DeviceTrace,
+  type ViceRuntimeIdentity,
+} from "./vice-runtime.js";
 
 const repository = fileURLToPath(new URL("../../", import.meta.url));
 const BASIC_READY = 0xa474;
@@ -41,6 +49,14 @@ export interface M1ViceFrameObservation {
   readonly sprites: readonly M1ViceSpriteObservation[];
   /** Observed border color. */
   readonly border: number;
+  /** Active VIC-II and CIA2 fields which select the displayed memory and mode. */
+  readonly display: {
+    readonly vicControl1: number;
+    readonly vicControl2: number;
+    readonly vicMemory: number;
+    readonly cia2Port: number;
+    readonly cia2Direction: number;
+  };
   /** SHA-256 over dimensions, offsets, and indexed VIC-II pixels. */
   readonly displaySha256: string;
 }
@@ -52,6 +68,24 @@ export type M1ViceQualificationResult =
       readonly status: "VICE-verified / hardware-unverified";
       readonly frames: readonly M1ViceFrameObservation[];
       readonly residentSpriteSha256: string;
+      readonly runtime: ViceRuntimeIdentity;
+      readonly expertSourceSha256: string;
+      readonly deviceTraffic: {
+        readonly generatedCount: number;
+        readonly generatedSha256: string;
+        readonly expertCount: number;
+        readonly expertSha256: string;
+        readonly exactMatch: boolean;
+      };
+      readonly renderedDisplay: {
+        readonly matchingFrames: number;
+        readonly frameCount: number;
+        readonly excludedTransitionFrames: readonly number[];
+        readonly generatedSha256: string;
+        readonly expertSha256: string;
+        readonly exactMatch: boolean;
+      };
+      readonly restoredCpu: true;
       readonly restoredState: true;
       readonly returnedToBasic: true;
     }
@@ -128,77 +162,6 @@ async function requireRegularFile(path: string): Promise<void> {
   if (!metadata.isFile() || metadata.isSymbolicLink()) {
     throw new Error(`Published qualification input is not an ordinary file: ${path}`);
   }
-}
-
-/** Find a fresh loopback port, releasing it immediately for VICE. */
-async function freshLoopbackPort(): Promise<number> {
-  const server = net.createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen({ host: "127.0.0.1", port: 0, exclusive: true }, resolve);
-  });
-  const address = server.address();
-  const port = typeof address === "object" && address !== null ? address.port : null;
-  await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve())),
-  );
-  if (port === null) throw new Error("Could not reserve a loopback port for VICE");
-  return port;
-}
-
-/** Wait for one child exit without leaving a timer or listener behind. */
-async function childExited(child: ChildProcess, timeoutMs: number): Promise<boolean> {
-  if (child.exitCode !== null || child.signalCode !== null) return true;
-  return new Promise<boolean>((resolve) => {
-    const onExit = (): void => {
-      clearTimeout(timer);
-      resolve(true);
-    };
-    const timer = setTimeout(() => {
-      child.off("exit", onExit);
-      resolve(false);
-    }, timeoutMs);
-    child.once("exit", onExit);
-  });
-}
-
-/** Stop only the detached VICE process group owned by this qualification run. */
-async function terminateVice(child: ChildProcess): Promise<void> {
-  if (await childExited(child, 100)) return;
-  const processId = child.pid;
-  if (processId === undefined) throw new Error("VICE process has no process identity");
-  try {
-    process.kill(-processId, "SIGTERM");
-  } catch {
-    // A concurrently exited process needs no signal.
-  }
-  if (await childExited(child, 2_000)) return;
-  try {
-    process.kill(-processId, "SIGKILL");
-  } catch {
-    // A concurrently exited process needs no signal.
-  }
-  if (!(await childExited(child, 2_000))) throw new Error("VICE process group did not terminate");
-}
-
-/** Spawn VICE or return the sole allowed unavailable-tool result. */
-async function spawnVice(
-  arguments_: readonly string[],
-): Promise<
-  { readonly child: ChildProcess; readonly unavailable: false } | { readonly unavailable: true }
-> {
-  const child = spawn("x64sc", arguments_, {
-    detached: true,
-    stdio: "ignore",
-    shell: false,
-  });
-  return new Promise((resolve, reject) => {
-    child.once("spawn", () => resolve({ child, unavailable: false }));
-    child.once("error", (error) => {
-      if ("code" in error && error.code === "ENOENT") resolve({ unavailable: true });
-      else reject(error);
-    });
-  });
 }
 
 /** Parse compiler labels while retaining their decoded stable identities. */
@@ -491,6 +454,9 @@ async function observeFrame(
   const border = (await monitor.readIo(0xd020, 0xd020))[0]! & 0x0f;
   const state = observedState(stateBytes, addresses, border);
   const sprites = await observedSprites(monitor);
+  const vicDisplay = await monitor.readIo(0xd011, 0xd018);
+  const cia2Port = (await monitor.readIo(0xdd00, 0xdd00))[0]!;
+  const cia2Direction = (await monitor.readIo(0xdd02, 0xdd02))[0]!;
   const display = await monitor.readDisplay();
   if (!isDeepStrictEqual(state, expected.state)) {
     throw new Error(
@@ -506,6 +472,13 @@ async function observeFrame(
     state,
     sprites,
     border,
+    display: Object.freeze({
+      vicControl1: vicDisplay[0]!,
+      vicControl2: vicDisplay[5]!,
+      vicMemory: vicDisplay[7]!,
+      cia2Port,
+      cia2Direction,
+    }),
     displaySha256: sha256(display.evidence),
   });
 }
@@ -600,48 +573,50 @@ export async function qualifyM1WithVice(
   const spriteAddress = range.start;
   const baseBlock = (spriteAddress & 0x3fff) / 64;
 
-  const port = await freshLoopbackPort();
-  const arguments_ = [
-    "-default",
-    "-model",
-    "c64",
-    "-pal",
-    "-sidmodel",
-    "0",
-    "-console",
-    "+sound",
-    "+warp",
-    "-binarymonitor",
-    "-binarymonitoraddress",
-    `127.0.0.1:${port}`,
-    "-controlport2device",
-    "37",
-    "-limitcycles",
-    "100000000",
-    "-autostart",
-    prgPath,
-  ] as const;
-  const spawned = await spawnVice(arguments_);
-  if (spawned.unavailable)
-    return Object.freeze({ kind: "unknown", reason: "x64sc is unavailable" });
-  const child = spawned.child;
-  const processId = child.pid;
-  if (processId === undefined) {
-    await terminateVice(child);
-    throw new Error("Spawned VICE process has no process identity");
+  const expert = await qualifyExpertM1WithVice(input.trace, input.oracle);
+  if ("kind" in expert) return expert;
+  const frozenExpert = await jsonFile(
+    join(repository, "examples/m1/qualification/expert-runtime.json"),
+    "expert runtime evidence",
+  );
+  const frozenSource = record(frozenExpert.sourceSnapshot, "expert runtime source snapshot");
+  const frozenRuntime = record(frozenExpert.runtime, "expert runtime identity");
+  const frozenTraffic = record(frozenExpert.deviceTraffic, "expert runtime device traffic");
+  const expectedRuntime = {
+    viceSha256: expert.runtime.executableSha256,
+    roms: expert.runtime.roms.map(({ name, bytes, sha256: digest }) => ({
+      name,
+      bytes,
+      sha256: digest,
+    })),
+  };
+  if (
+    frozenExpert.schemaVersion !== 1 ||
+    frozenExpert.status !== "VICE-verified / hardware-unverified" ||
+    frozenSource.gameSourceSha256 !==
+      sha256(await readFile(join(repository, "examples/m1/src/game.blend"))) ||
+    frozenSource.expertSourceSha256 !== expert.sourceSha256 ||
+    frozenSource.expertPrgSha256 !== expert.prgSha256 ||
+    frozenSource.oracleSha256 !==
+      sha256(await readFile(join(repository, "examples/m1/qualification/oracle.ts"))) ||
+    frozenSource.traceSha256 !==
+      sha256(await readFile(join(repository, "examples/m1/qualification/win-trace.json"))) ||
+    !isDeepStrictEqual(frozenRuntime, expectedRuntime) ||
+    frozenTraffic.count !== expert.deviceTrace.length ||
+    frozenTraffic.observedSha256 !== sha256(Buffer.from(JSON.stringify(expert.deviceTrace)))
+  ) {
+    throw new Error(
+      `Expert runtime evidence is stale or does not match the executed twin: frozenTraffic=${String(frozenTraffic.count)} actualTraffic=${expert.deviceTrace.length} actualTrafficSha256=${sha256(Buffer.from(JSON.stringify(expert.deviceTrace)))}`,
+    );
   }
 
+  const started = await startVice(prgPath);
+  if ("kind" in started) return started;
+  const { child, identity } = started;
   let monitor: ViceMonitor | undefined;
   const checkpoints: number[] = [];
   try {
-    monitor = await openViceMonitor(port, processId);
-    const version = await monitor.viceInfo();
-    if (version[0] !== 3 || version[1] !== 10 || version.slice(2).some((part) => part !== 0)) {
-      return Object.freeze({
-        kind: "unknown",
-        reason: `VICE ${version.join(".")} is not VICE 3.10`,
-      });
-    }
+    monitor = started.monitor;
     checkpoints.push(
       await monitor.setExecuteCheckpoint(entry),
       await monitor.setExecuteCheckpoint(frameCheckpoint),
@@ -649,7 +624,15 @@ export async function qualifyM1WithVice(
     );
 
     await resumeTo(monitor, entry);
+    const displayBaseline = await normalizeDisplayBaseline(monitor);
     const before = await ownedMachineState(monitor);
+    const beforeCpu = await monitor.readCpuRegisters();
+    const returnBytes = await monitor.readMemory(
+      0x0100 + ((beforeCpu.sp + 1) & 0xff),
+      0x0100 + ((beforeCpu.sp + 2) & 0xff),
+    );
+    const callerReturn = ((returnBytes[0]! | (returnBytes[1]! << 8)) + 1) & 0xffff;
+    checkpoints.push(await monitor.setExecuteCheckpoint(callerReturn));
     const residentSprite = await monitor.readMemory(
       spriteAddress,
       spriteAddress + SPRITE_BYTES - 1,
@@ -662,7 +645,10 @@ export async function qualifyM1WithVice(
     }
 
     await resumeTo(monitor, frameCheckpoint);
+    const deviceTracepoints = await installM1DeviceTracepoints(monitor);
+    checkpoints.push(...deviceTracepoints.checkpoints);
     const frames: M1ViceFrameObservation[] = [];
+    const deviceTrace: string[] = [];
     for (let index = 0; index < input.trace.length; index += 1) {
       const sample = input.trace[index]!;
       const expected = input.oracle.frames[index];
@@ -672,15 +658,87 @@ export async function qualifyM1WithVice(
       await monitor.setJoystick2(sample);
       await resumeTo(monitor, index === input.trace.length - 1 ? restore : frameCheckpoint);
       frames.push(await observeFrame(monitor, index, sample, expected, addresses, baseBlock));
+      deviceTrace.push(...takeM1DeviceTrace(monitor, deviceTracepoints));
     }
 
-    checkpoints.push(await monitor.setExecuteCheckpoint(BASIC_READY));
-    await resumeTo(monitor, BASIC_READY);
+    await monitor.viceInfo();
+    deviceTrace.push(...takeM1DeviceTrace(monitor, deviceTracepoints));
+    await resumeTo(monitor, callerReturn);
     const after = await ownedMachineState(monitor);
     if (!isDeepStrictEqual(after, before)) {
       throw new Error("M1 did not restore every profile-owned machine field before BASIC return");
     }
+    const afterCpu = await monitor.readCpuRegisters();
+    // PHP materializes the non-state B and always-set bits; compare only the six real CPU flags.
+    if (
+      afterCpu.a !== beforeCpu.a ||
+      afterCpu.x !== beforeCpu.x ||
+      afterCpu.y !== beforeCpu.y ||
+      (afterCpu.p & 0xcf) !== (beforeCpu.p & 0xcf) ||
+      afterCpu.sp !== ((beforeCpu.sp + 2) & 0xff)
+    ) {
+      throw new Error(
+        `M1 did not restore caller CPU state: before=${JSON.stringify(beforeCpu)} after=${JSON.stringify(afterCpu)}`,
+      );
+    }
+    await restoreDisplayBaseline(monitor, displayBaseline);
+    checkpoints.push(await monitor.setExecuteCheckpoint(BASIC_READY));
+    await resumeTo(monitor, BASIC_READY);
     for (const checkpoint of checkpoints) await monitor.deleteCheckpoint(checkpoint);
+    if (!isDeepStrictEqual(identity, expert.runtime)) {
+      throw new Error("Generated and expert runs did not use the same VICE executable and ROMs");
+    }
+    const generatedDisplays = frames.map(({ displaySha256, display }) => ({
+      displaySha256,
+      display,
+    }));
+    const expertDisplays = expert.frames.map(({ displaySha256, display }) => ({
+      displaySha256,
+      display,
+    }));
+    // VICE's host display buffer has no stable ownership at the exact frame where the game changes
+    // phase. State, sprite registers and active display fields remain exact at that checkpoint.
+    const excludedTransitionFrames = expert.frames.flatMap((frame, index) =>
+      index > 0 && frame.state.phase !== expert.frames[index - 1]!.state.phase ? [index] : [],
+    );
+    const excluded = new Set(excludedTransitionFrames);
+    const comparableGeneratedDisplays = generatedDisplays.filter(
+      (_, index) => !excluded.has(index),
+    );
+    const comparableExpertDisplays = expertDisplays.filter((_, index) => !excluded.has(index));
+    const matchingFrames = comparableGeneratedDisplays.filter((frame, index) =>
+      isDeepStrictEqual(frame, comparableExpertDisplays[index]),
+    ).length;
+    const exactDeviceTraffic = isDeepStrictEqual(deviceTrace, expert.deviceTrace);
+    const currentExpertFrames = expertDisplays.map((frame, index) => ({
+      index,
+      displaySha256: excluded.has(index) ? null : frame.displaySha256,
+      display: frame.display,
+    }));
+    if (!isDeepStrictEqual(frozenExpert.frames, currentExpertFrames)) {
+      const frozenFrames = Array.isArray(frozenExpert.frames) ? frozenExpert.frames : [];
+      const mismatch = currentExpertFrames.findIndex(
+        (frame, index) => !isDeepStrictEqual(frame, frozenFrames[index]),
+      );
+      throw new Error(
+        `Expert rendered-frame signature ${mismatch} differs from the frozen runtime evidence: current=${JSON.stringify(currentExpertFrames[mismatch])} frozen=${JSON.stringify(frozenFrames[mismatch])}`,
+      );
+    }
+    if (!exactDeviceTraffic) {
+      const mismatch = deviceTrace.findIndex((event, index) => event !== expert.deviceTrace[index]);
+      throw new Error(
+        `Generated device traffic differs from the expert twin: generated=${deviceTrace.length} expert=${expert.deviceTrace.length} firstMismatch=${mismatch} generatedPrefix=${JSON.stringify(deviceTrace.slice(0, 24))} expertPrefix=${JSON.stringify(expert.deviceTrace.slice(0, 24))}`,
+      );
+    }
+    if (matchingFrames !== comparableGeneratedDisplays.length) {
+      const mismatches = comparableGeneratedDisplays.flatMap((frame, index) =>
+        isDeepStrictEqual(frame, comparableExpertDisplays[index]) ? [] : [index],
+      );
+      const mismatch = mismatches[0]!;
+      throw new Error(
+        `Generated rendered frames differ from the expert twin: count=${mismatches.length} first=${JSON.stringify(mismatches.slice(0, 16))} firstGenerated=${JSON.stringify(comparableGeneratedDisplays[mismatch])} firstExpert=${JSON.stringify(comparableExpertDisplays[mismatch])}`,
+      );
+    }
     await monitor.quit();
     monitor = undefined;
     return Object.freeze({
@@ -688,11 +746,28 @@ export async function qualifyM1WithVice(
       status: "VICE-verified / hardware-unverified",
       frames: Object.freeze(frames),
       residentSpriteSha256,
+      runtime: identity,
+      expertSourceSha256: expert.sourceSha256,
+      deviceTraffic: Object.freeze({
+        generatedCount: deviceTrace.length,
+        generatedSha256: sha256(Buffer.from(JSON.stringify(deviceTrace))),
+        expertCount: expert.deviceTrace.length,
+        expertSha256: sha256(Buffer.from(JSON.stringify(expert.deviceTrace))),
+        exactMatch: exactDeviceTraffic,
+      }),
+      renderedDisplay: Object.freeze({
+        matchingFrames,
+        frameCount: comparableGeneratedDisplays.length,
+        excludedTransitionFrames: Object.freeze(excludedTransitionFrames),
+        generatedSha256: sha256(Buffer.from(JSON.stringify(comparableGeneratedDisplays))),
+        expertSha256: sha256(Buffer.from(JSON.stringify(comparableExpertDisplays))),
+        exactMatch: matchingFrames === comparableGeneratedDisplays.length,
+      }),
+      restoredCpu: true,
       restoredState: true,
       returnedToBasic: true,
     });
   } finally {
-    monitor?.close();
-    await terminateVice(child);
+    await stopVice({ child, monitor });
   }
 }

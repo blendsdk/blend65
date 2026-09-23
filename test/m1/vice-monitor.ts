@@ -5,6 +5,9 @@ const COMMAND_HEADER_BYTES = 11;
 const RESPONSE_HEADER_BYTES = 12;
 const MAX_RESPONSE_BODY_BYTES = 1_048_576;
 const REQUEST_TIMEOUT_MS = 15_000;
+// The admitted expert journey has 28,665 device events plus 445 execution stops. The rounded
+// ceiling rejects runaway code while leaving a small allowance for setup and teardown stops.
+const MAX_CHECKPOINT_HITS = 30_000;
 
 interface MonitorResponse {
   readonly type: number;
@@ -37,20 +40,44 @@ export interface ViceDisplay {
   readonly innerHeight: number;
 }
 
+/** CPU state needed to prove the cooperative program restores its caller. */
+export interface ViceCpuRegisters {
+  /** Accumulator. */
+  readonly a: number;
+  /** X index register. */
+  readonly x: number;
+  /** Y index register. */
+  readonly y: number;
+  /** Processor status register. */
+  readonly p: number;
+  /** Hardware stack pointer. */
+  readonly sp: number;
+}
+
 /** The small binary-monitor surface used by the M1 qualification driver. */
 export interface ViceMonitor {
   /** Return the exact VICE version components reported by the monitor. */
   readonly viceInfo: () => Promise<readonly number[]>;
   /** Add one enabled execute checkpoint and return its monitor identity. */
   readonly setExecuteCheckpoint: (address: number) => Promise<number>;
+  /** Add one non-stopping byte access tracepoint and return its monitor identity. */
+  readonly setAccessTracepoint: (address: number, operation: "load" | "store") => Promise<number>;
+  /** Take and clear checkpoint identities hit since the previous call. */
+  readonly takeCheckpointHits: () => readonly number[];
   /** Delete one checkpoint created by this client. */
   readonly deleteCheckpoint: (checkpoint: number) => Promise<void>;
   /** Read one inclusive main-memory range without side effects. */
   readonly readMemory: (start: number, end: number) => Promise<Uint8Array>;
   /** Read one inclusive C64 I/O-bank range without side effects. */
   readonly readIo: (start: number, end: number) => Promise<Uint8Array>;
+  /** Write one exact main-memory range without CPU side effects. */
+  readonly writeMemory: (start: number, bytes: Uint8Array) => Promise<void>;
+  /** Write one exact C64 I/O-bank range without CPU side effects. */
+  readonly writeIo: (start: number, bytes: Uint8Array) => Promise<void>;
   /** Capture one validated indexed VIC-II display. */
   readonly readDisplay: () => Promise<ViceDisplay>;
+  /** Read the exact main-CPU registers used by the restoration proof. */
+  readonly readCpuRegisters: () => Promise<ViceCpuRegisters>;
   /** Set the active-low value supplied to emulated joystick port 2. */
   readonly setJoystick2: (value: number) => Promise<void>;
   /** Arm one wait for the next stopped event before resuming. */
@@ -224,7 +251,12 @@ export async function openViceMonitor(port: number, processId: number): Promise<
     socket.destroy();
     throw new Error("VICE monitor connection has no local port identity");
   }
-  await attestSocketOwnership(processId, port, clientPort);
+  try {
+    await attestSocketOwnership(processId, port, clientPort);
+  } catch (error) {
+    socket.destroy();
+    throw error;
+  }
 
   let nextRequestId = 1;
   let accumulator = new Uint8Array(0);
@@ -237,6 +269,8 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       }
     | undefined;
   const pending = new Map<number, PendingRequest>();
+  let checkpointHits: number[] = [];
+  let checkpointHitCount = 0;
 
   const fail = (error: Error): void => {
     if (terminalError !== null) return;
@@ -289,6 +323,15 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         return;
       }
       if (response.requestId === 0xffffffff) {
+        if (response.type === 0x11 && response.body.length >= 23 && response.body[4]! !== 0) {
+          checkpointHitCount += 1;
+          if (checkpointHitCount > MAX_CHECKPOINT_HITS) {
+            fail(new Error("VICE exceeded the bounded M1 checkpoint-event count"));
+            socket.destroy();
+            return;
+          }
+          checkpointHits.push(uint32(response.body, 0));
+        }
         if (response.type === 0x62 && response.body.length === 2 && stopWaiter !== undefined) {
           const waiter = stopWaiter;
           stopWaiter = undefined;
@@ -371,6 +414,30 @@ export async function openViceMonitor(port: number, processId: number): Promise<
     return response.body.slice(2);
   };
 
+  /** Write one validated range through a pinned VICE C64 monitor bank. */
+  const writeRange = async (start: number, bytes: Uint8Array, bankId: 0 | 3): Promise<void> => {
+    const end = start + bytes.length - 1;
+    if (
+      !Number.isInteger(start) ||
+      bytes.length === 0 ||
+      start < 0 ||
+      end > 0xffff ||
+      bytes.length > 0xffff
+    ) {
+      throw new RangeError("VICE memory write range is invalid");
+    }
+    const body = new Uint8Array(8 + bytes.length);
+    const view = new DataView(body.buffer);
+    body[0] = 0;
+    view.setUint16(1, start, true);
+    view.setUint16(3, end, true);
+    body[5] = 0;
+    view.setUint16(6, bankId, true);
+    body.set(bytes, 8);
+    const response = await request(0x02, body);
+    if (response.body.length !== 0) throw new Error("VICE memory write returned data");
+  };
+
   return Object.freeze({
     viceInfo: async () => {
       const { body } = await request(0x85, new Uint8Array(0));
@@ -397,6 +464,28 @@ export async function openViceMonitor(port: number, processId: number): Promise<
       if (response.body.length < 23) throw new Error("VICE checkpoint response is truncated");
       return uint32(response.body, 0);
     },
+    setAccessTracepoint: async (address, operation) => {
+      if (!Number.isInteger(address) || address < 0 || address > 0xffff) {
+        throw new RangeError("VICE tracepoint address must be a 16-bit integer");
+      }
+      const body = new Uint8Array(9);
+      const view = new DataView(body.buffer);
+      view.setUint16(0, address, true);
+      view.setUint16(2, address, true);
+      body[4] = 0;
+      body[5] = 1;
+      body[6] = operation === "load" ? 1 : 2;
+      body[7] = 0;
+      body[8] = 0;
+      const response = await request(0x12, body, 0x11);
+      if (response.body.length < 23) throw new Error("VICE tracepoint response is truncated");
+      return uint32(response.body, 0);
+    },
+    takeCheckpointHits: () => {
+      const hits = Object.freeze(checkpointHits);
+      checkpointHits = [];
+      return hits;
+    },
     deleteCheckpoint: async (checkpoint) => {
       if (!Number.isInteger(checkpoint) || checkpoint < 0 || checkpoint > 0xffffffff) {
         throw new RangeError("VICE checkpoint identity is invalid");
@@ -408,6 +497,8 @@ export async function openViceMonitor(port: number, processId: number): Promise<
     },
     readMemory: async (start, end) => readRange(start, end, 0),
     readIo: async (start, end) => readRange(start, end, 3),
+    writeMemory: async (start, bytes) => writeRange(start, bytes, 0),
+    writeIo: async (start, bytes) => writeRange(start, bytes, 3),
     readDisplay: async () => {
       const response = await request(0x84, new Uint8Array([1, 0]));
       const body = response.body;
@@ -448,6 +539,73 @@ export async function openViceMonitor(port: number, processId: number): Promise<
         yOffset,
         innerWidth,
         innerHeight,
+      });
+    },
+    readCpuRegisters: async () => {
+      const available = await request(0x83, new Uint8Array([0]));
+      const availableCount = uint16(available.body, 0);
+      let availableOffset = 2;
+      const idsByName = new Map<string, number>();
+      for (let index = 0; index < availableCount; index += 1) {
+        const size = available.body[availableOffset];
+        if (size === undefined || size < 3 || availableOffset + 1 + size > available.body.length) {
+          throw new Error("VICE available-register response contains an invalid item");
+        }
+        const nameLength = available.body[availableOffset + 3]!;
+        if (size !== 3 + nameLength) {
+          throw new Error("VICE available-register response has an invalid name length");
+        }
+        const name = Buffer.from(
+          available.body.slice(availableOffset + 4, availableOffset + 4 + nameLength),
+        ).toString("ascii");
+        if (idsByName.has(name))
+          throw new Error("VICE available-register response duplicates a name");
+        idsByName.set(name, available.body[availableOffset + 1]!);
+        availableOffset += 1 + size;
+      }
+      if (availableOffset !== available.body.length) {
+        throw new Error("VICE available-register response has trailing data");
+      }
+      const response = await request(0x31, new Uint8Array([0]));
+      const count = uint16(response.body, 0);
+      let offset = 2;
+      const registers = new Map<number, number>();
+      for (let index = 0; index < count; index += 1) {
+        const size = response.body[offset];
+        if (size !== 3 || offset + 1 + size > response.body.length) {
+          throw new Error("VICE register response contains an invalid item");
+        }
+        const id = response.body[offset + 1]!;
+        if (registers.has(id)) throw new Error("VICE register response duplicates an identity");
+        registers.set(id, uint16(response.body, offset + 2));
+        offset += 1 + size;
+      }
+      const registerId = (names: readonly string[]): number => {
+        const id = names.flatMap((name) => {
+          const value = idsByName.get(name);
+          return value === undefined ? [] : [value];
+        })[0];
+        if (id === undefined) {
+          throw new Error(
+            `VICE register identity is unavailable: ${names.join("/")} from ${[...idsByName.keys()].join(",")}`,
+          );
+        }
+        return id;
+      };
+      const byte = (id: number): number => {
+        if (!registers.has(id)) throw new Error("VICE register response is incomplete");
+        const value = registers.get(id)!;
+        if (value > 0xff) throw new Error("VICE returned a non-byte CPU register value");
+        return value;
+      };
+      if (offset !== response.body.length)
+        throw new Error("VICE register response has trailing data");
+      return Object.freeze({
+        a: byte(registerId(["A"])),
+        x: byte(registerId(["X"])),
+        y: byte(registerId(["Y"])),
+        sp: byte(registerId(["SP"])),
+        p: byte(registerId(["FL", "P"])),
       });
     },
     setJoystick2: async (value) => {

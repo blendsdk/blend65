@@ -232,9 +232,9 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
     ({ kind }) => kind !== "stub" && kind !== "code" && kind !== "sfa",
   );
   for (const interval of dataIntervals) {
-    if (interval.bytes === null) continue;
     lines.push(`* = ${hex(interval.start, 4)}`);
     addLabel(interval.id, interval.start);
+    if (interval.bytes === null) continue;
     if (interval.kind === "fill") {
       const fill = interval.bytes[0] ?? 0;
       if (interval.bytes.some((byte) => byte !== fill)) {

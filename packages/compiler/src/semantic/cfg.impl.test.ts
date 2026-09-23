@@ -157,7 +157,7 @@ describe("semantic CFG implementation", () => {
     });
   });
 
-  it("encodes complete scalar and aggregate global initializers as packed bytes", () => {
+  it("keeps runtime module initialization distinct from aggregate constant data", () => {
     const program = lower(
       [
         "module Game;",
@@ -173,13 +173,29 @@ describe("semantic CFG implementation", () => {
 
     expect(program.globals.map(({ storage, initialBytes }) => ({ storage, initialBytes }))).toEqual(
       [
-        { storage: "constant", initialBytes: [0x34, 0x12] },
-        {
-          storage: "module",
-          initialBytes: [0x01, 0x34, 0x12, 0x01, 0x02, 0x78, 0x56, 0x00],
-        },
+        { storage: "constant", initialBytes: null },
+        { storage: "module", initialBytes: null },
       ],
     );
+    const moduleGlobal = program.globals[1];
+    expect(moduleGlobal?.runtimeInitialBytes).toEqual([
+      0x01, 0x34, 0x12, 0x01, 0x02, 0x78, 0x56, 0x00,
+    ]);
+    expect(moduleGlobal?.entry).not.toBeNull();
+    expect(moduleGlobal?.blocks.flatMap(({ operations }) => operations).at(-1)).toMatchObject({
+      kind: "store",
+      type: { kind: "array" },
+    });
+
+    const aggregateConstant = lower(
+      [
+        "module Game;",
+        "struct Pair { tag: byte; value: word; }",
+        "const PAIR: Pair = { tag: 1, value: $1234 };",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(aggregateConstant.globals[0]?.initialBytes).toEqual([0x01, 0x34, 0x12]);
   });
 
   it("does not lower bodies or updates behind constant-false loop conditions", () => {

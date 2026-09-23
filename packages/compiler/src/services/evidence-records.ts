@@ -235,7 +235,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     ...(input.program.initializers ?? []).flatMap((initializer) => {
       const global = globalsByKey.get(bindingIdentityKey(initializer.binding));
       if (global === undefined) throw new Error("Initializer has no semantic global");
-      if (global.initialBytes !== null) return [];
+      if (global.initialBytes !== null || global.runtimeInitialBytes !== null) return [];
       return [
         Object.freeze({
           binding: initializer.binding,

@@ -1,3 +1,4 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticOperation, SemanticPlace } from "../semantic/operations.js";
 import type { SourceSpan } from "../project/types.js";
 import {
@@ -10,11 +11,13 @@ import type { MachineInstruction } from "./machine-types.js";
 import {
   loweringFailure,
   appendLoadA,
+  createAggregateAddressCache,
   isSignedType,
   loadA,
   loweredPlace,
   requestStorage,
   storeA,
+  type AggregateAddressCache,
   type FunctionLoweringState,
   typeBytes,
 } from "./lower.js";
@@ -29,6 +32,42 @@ interface AggregateIndexTerm {
 interface AggregateAddressPlan {
   readonly staticOffset: number;
   readonly indices: readonly AggregateIndexTerm[];
+}
+
+/**
+ * Identify an indexed aggregate base that can remain in the shared address pair.
+ * Register values are excluded because their contents may change without changing their identity.
+ */
+function reusableAggregateAddressCache(
+  place: SemanticPlace,
+  plan: AggregateAddressPlan,
+  accessBytes: number,
+  state: FunctionLoweringState,
+): AggregateAddressCache | null {
+  if (
+    accessBytes <= 0 ||
+    plan.indices.length === 0 ||
+    plan.staticOffset < 0 ||
+    plan.staticOffset + accessBytes > 0x100
+  ) {
+    return null;
+  }
+  const indices = plan.indices.map((term) => {
+    const value = state.values.get(term.value);
+    if (value?.kind !== "storage") return null;
+    return Object.freeze({
+      requestId: value.requestId,
+      bytes: value.bytes,
+      signed: value.signed === true,
+      stride: term.stride,
+    });
+  });
+  if (indices.some((index) => index === null)) return null;
+  const rootBindingKey = bindingIdentityKey(place.root);
+  return createAggregateAddressCache(
+    rootBindingKey,
+    indices.flatMap((index) => (index === null ? [] : [index])),
+  );
 }
 
 /** Walk one packed field/index path and retain each exact element stride. */
@@ -195,6 +234,58 @@ function lowerAggregateIndex(
     return Object.freeze({ instructions: Object.freeze(instructions), value: candidate });
   }
 
+  if (
+    term.stride === 5 &&
+    index.bytes === 1 &&
+    index.signed !== true &&
+    index.kind !== "register"
+  ) {
+    for (let shift = 0; shift < 2; shift += 1) {
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "asl",
+          "storage",
+          operandForValue(candidate, 0),
+          [],
+          source,
+        ),
+        machineInstruction(
+          state.input.profile.cpu,
+          "rol",
+          "storage",
+          operandForValue(candidate, 1),
+          [],
+          source,
+        ),
+      );
+    }
+    instructions.push(
+      loadA(candidate, 0, state, source),
+      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
+      machineInstruction(
+        state.input.profile.cpu,
+        "adc",
+        modeForValue(index),
+        operandForValue(index, 0),
+        [],
+        source,
+      ),
+      storeA(candidate, 0, state, source),
+      loadA(candidate, 1, state, source),
+      machineInstruction(
+        state.input.profile.cpu,
+        "adc",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: 0 }),
+        [],
+        source,
+      ),
+      storeA(candidate, 1, state, source),
+    );
+    return Object.freeze({ instructions: Object.freeze(instructions), value: candidate });
+  }
+
   const resultRequest = requestStorage(
     state,
     "aggregate-index-result",
@@ -270,11 +361,16 @@ export function lowerAggregateAddress(
   state: FunctionLoweringState,
   source: SourceSpan,
   retainedId: string | null = null,
+  accessBytes = 0,
 ): {
   readonly instructions: readonly MachineInstruction[];
   readonly pointer: Extract<LoweredValue, { readonly kind: "storage" }>;
+  readonly displacement: number;
 } {
   const plan = aggregateAddressPlan(place, state, source);
+  const cache =
+    retainedId === null ? reusableAggregateAddressCache(place, plan, accessBytes, state) : null;
+  const displacement = cache === null ? 0 : plan.staticOffset;
   const pointerRequest = requestStorage(
     state,
     retainedId === null ? "aggregate-address" : `aggregate-address:${retainedId}`,
@@ -290,8 +386,13 @@ export function lowerAggregateAddress(
     bytes: 2,
     signed: false,
   });
+  if (cache !== null && state.aggregateAddressCache?.key === cache.key) {
+    return Object.freeze({ instructions: Object.freeze([]), pointer, displacement });
+  }
+  if (retainedId === null) state.aggregateAddressCache = null;
   const root = loweredPlace(place, typeBytes(place.rootType!), false, state);
   const parameterRoot = root.kind === "storage" && root.requestId.includes(":parameter:");
+  const addressStaticOffset = cache === null ? plan.staticOffset : 0;
   const instructions: MachineInstruction[] = [];
   if (parameterRoot) {
     instructions.push(
@@ -307,11 +408,16 @@ export function lowerAggregateAddress(
           ? Object.freeze({
               kind: "storage" as const,
               requestId: root.requestId,
-              offset: 0,
+              offset: addressStaticOffset,
               addressByte,
             })
           : root.kind === "label"
-            ? Object.freeze({ kind: "label" as const, label: root.label, offset: 0, addressByte })
+            ? Object.freeze({
+                kind: "label" as const,
+                label: root.label,
+                offset: addressStaticOffset,
+                addressByte,
+              })
             : null;
       if (operand === null) throw loweringFailure("Aggregate root has no stable address", source);
       instructions.push(
@@ -321,7 +427,7 @@ export function lowerAggregateAddress(
     }
   }
 
-  if (plan.staticOffset !== 0) {
+  if (parameterRoot && addressStaticOffset !== 0) {
     instructions.push(
       loadA(pointer, 0, state, source),
       machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
@@ -329,7 +435,7 @@ export function lowerAggregateAddress(
         state.input.profile.cpu,
         "adc",
         "immediate",
-        Object.freeze({ kind: "immediate", value: plan.staticOffset & 0xff }),
+        Object.freeze({ kind: "immediate", value: addressStaticOffset & 0xff }),
         [],
         source,
       ),
@@ -339,7 +445,7 @@ export function lowerAggregateAddress(
         state.input.profile.cpu,
         "adc",
         "immediate",
-        Object.freeze({ kind: "immediate", value: (plan.staticOffset >> 8) & 0xff }),
+        Object.freeze({ kind: "immediate", value: (addressStaticOffset >> 8) & 0xff }),
         [],
         source,
       ),
@@ -373,7 +479,8 @@ export function lowerAggregateAddress(
       storeA(pointer, 1, state, source),
     );
   }
-  return Object.freeze({ instructions: Object.freeze(instructions), pointer });
+  if (cache !== null) state.aggregateAddressCache = cache;
+  return Object.freeze({ instructions: Object.freeze(instructions), pointer, displacement });
 }
 
 /** Load one packed indexed place now, preserving source read order in an SFA value. */
@@ -381,8 +488,8 @@ export function lowerAggregateLoad(
   operation: Extract<SemanticOperation, { readonly kind: "load" }>,
   state: FunctionLoweringState,
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
-  const address = lowerAggregateAddress(operation.place, state, operation.span);
   const bytes = typeBytes(operation.type);
+  const address = lowerAggregateAddress(operation.place, state, operation.span, null, bytes);
   const resultRequest = requestStorage(
     state,
     `aggregate-load:${operation.result}`,
@@ -406,7 +513,7 @@ export function lowerAggregateLoad(
         state.input.profile.cpu,
         "ldy",
         "immediate",
-        Object.freeze({ kind: "immediate", value: offset }),
+        Object.freeze({ kind: "immediate", value: address.displacement + offset }),
         [],
         operation.span,
       ),
@@ -449,15 +556,16 @@ export function lowerAggregateStore(
   if (value.kind === "condition") {
     throw loweringFailure("Packed aggregate store value was not materialized", operation.span);
   }
-  const address = lowerAggregateAddress(operation.place, state, operation.span);
+  const bytes = typeBytes(operation.type);
+  const address = lowerAggregateAddress(operation.place, state, operation.span, null, bytes);
   instructions.push(...address.instructions);
-  for (let offset = 0; offset < typeBytes(operation.type); offset += 1) {
+  for (let offset = 0; offset < bytes; offset += 1) {
     instructions.push(
       machineInstruction(
         state.input.profile.cpu,
         "ldy",
         "immediate",
-        Object.freeze({ kind: "immediate", value: offset }),
+        Object.freeze({ kind: "immediate", value: address.displacement + offset }),
         [],
         operation.span,
       ),

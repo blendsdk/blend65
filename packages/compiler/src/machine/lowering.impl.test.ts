@@ -358,10 +358,11 @@ describe("packed aggregate addressing", () => {
     expect(
       instructions.some(
         ({ opcode, mode, operand }) =>
-          opcode === "adc" &&
+          opcode === "lda" &&
           mode === "immediate" &&
-          operand?.kind === "immediate" &&
-          operand.value === 4,
+          operand?.kind === "storage" &&
+          operand.addressByte === "low" &&
+          operand.offset === 4,
       ),
     ).toBe(true);
     expect(
@@ -479,6 +480,394 @@ describe("packed aggregate addressing", () => {
     ).toHaveLength(6);
   });
 
+  it("should directly scale an unsigned byte index for a five-byte packed record", () => {
+    const record: SemanticType = Object.freeze({
+      kind: "struct",
+      binding: sourceBinding(750),
+      size: 5,
+      fields: Object.freeze([
+        Object.freeze({ name: "x", type: WORD, offset: 0 }),
+        Object.freeze({ name: "y", type: BYTE, offset: 2 }),
+        Object.freeze({ name: "alive", type: BOOLEAN, offset: 3 }),
+        Object.freeze({ name: "design", type: BYTE, offset: 4 }),
+      ]),
+    });
+    const records: SemanticType = Object.freeze({
+      kind: "array",
+      element: record,
+      length: 6,
+      size: 30,
+    });
+    const index = sourceParameter(751, BYTE);
+    const root = sourceBinding(752);
+    const main = semanticFunction(749, "record-stride", [index], VOID, [
+      semanticBlock(
+        "record-stride.entry",
+        [
+          loadOperation("index", index, 753),
+          Object.freeze({
+            kind: "load" as const,
+            result: "alive",
+            place: Object.freeze({
+              root,
+              rootType: records,
+              path: Object.freeze([
+                Object.freeze({ kind: "index" as const, value: "index" }),
+                Object.freeze({ kind: "field" as const, name: "alive" }),
+              ]),
+            }),
+            type: BOOLEAN,
+            span: sourceSpan(754),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected packed record lowering");
+    const instructions = result.program.functions[0]!.blocks[0]!.instructions;
+    expect(instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(2);
+    expect(instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(2);
+    expect(
+      instructions.some(
+        ({ opcode, mode, operand }) =>
+          opcode === "lda" &&
+          mode === "immediate" &&
+          operand?.kind === "storage" &&
+          operand.addressByte === "low" &&
+          operand.offset === 0,
+      ),
+    ).toBe(true);
+    expect(
+      instructions.some(
+        ({ opcode, mode, operand }) =>
+          opcode === "ldy" &&
+          mode === "immediate" &&
+          operand?.kind === "immediate" &&
+          operand.value === 3,
+      ),
+    ).toBe(true);
+    expect(
+      result.program.requiredStorage.some(({ id }) => id.includes("aggregate-index-result")),
+    ).toBe(false);
+  });
+
+  it("should reuse an unchanged packed-record base and recompute it after the index changes", () => {
+    const record: SemanticType = Object.freeze({
+      kind: "struct",
+      binding: sourceBinding(760),
+      size: 5,
+      fields: Object.freeze([
+        Object.freeze({ name: "x", type: WORD, offset: 0 }),
+        Object.freeze({ name: "y", type: BYTE, offset: 2 }),
+        Object.freeze({ name: "alive", type: BOOLEAN, offset: 3 }),
+        Object.freeze({ name: "design", type: BYTE, offset: 4 }),
+      ]),
+    });
+    const records: SemanticType = Object.freeze({
+      kind: "array",
+      element: record,
+      length: 6,
+      size: 30,
+    });
+    const index = sourceParameter(761, BYTE);
+    const root = sourceBinding(762);
+    const unrelated = sourceBinding(771);
+    const fieldPlace = (indexValue: string, field: string) =>
+      Object.freeze({
+        root,
+        rootType: records,
+        path: Object.freeze([
+          Object.freeze({ kind: "index" as const, value: indexValue }),
+          Object.freeze({ kind: "field" as const, name: field }),
+        ]),
+      });
+    const fieldLoad = (result: string, indexValue: string, field: string, start: number) =>
+      Object.freeze({
+        kind: "load" as const,
+        result,
+        place: fieldPlace(indexValue, field),
+        type: BYTE,
+        integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+        span: sourceSpan(start),
+      });
+    const main = semanticFunction(759, "record-address-reuse", [index], VOID, [
+      semanticBlock(
+        "record-address-reuse.entry",
+        [
+          loadOperation("first-index", index, 763),
+          fieldLoad("alive", "first-index", "alive", 764),
+          Object.freeze({
+            kind: "constant" as const,
+            result: "unrelated-value",
+            type: BYTE,
+            integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+            value: 9n,
+            span: sourceSpan(765),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: Object.freeze({ root: unrelated, path: Object.freeze([]) }),
+            value: "unrelated-value",
+            type: BYTE,
+            span: sourceSpan(766),
+          }),
+          loadOperation("same-index", index, 767),
+          fieldLoad("design", "same-index", "design", 768),
+          Object.freeze({
+            kind: "constant" as const,
+            result: "new-y",
+            type: BYTE,
+            integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+            value: 80n,
+            span: sourceSpan(769),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: fieldPlace("same-index", "y"),
+            value: "new-y",
+            type: BYTE,
+            span: sourceSpan(770),
+          }),
+          Object.freeze({
+            kind: "constant" as const,
+            result: "next-index",
+            type: BYTE,
+            integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+            value: 1n,
+            span: sourceSpan(772),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: Object.freeze({ root: index.id, path: Object.freeze([]) }),
+            value: "next-index",
+            type: BYTE,
+            span: sourceSpan(773),
+          }),
+          loadOperation("changed-index", index, 774),
+          fieldLoad("y", "changed-index", "y", 775),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected reusable packed record address");
+    const instructions = result.program.functions[0]!.blocks[0]!.instructions;
+    expect(instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(4);
+    expect(instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(4);
+    expect(
+      instructions.filter(
+        ({ opcode, mode, operand }) =>
+          opcode === "lda" &&
+          mode === "immediate" &&
+          operand?.kind === "storage" &&
+          operand.requestId.includes(`:${root.span.start}:`) &&
+          operand.addressByte === "low",
+      ),
+    ).toHaveLength(2);
+    expect(
+      instructions.flatMap(({ opcode, mode, operand }) =>
+        opcode === "ldy" && mode === "immediate" && operand?.kind === "immediate"
+          ? [operand.value]
+          : [],
+      ),
+    ).toEqual([3, 4, 2, 2]);
+  });
+
+  it("should carry one packed-record base over forward edges and an identical-fact join", () => {
+    const record: SemanticType = Object.freeze({
+      kind: "struct",
+      binding: sourceBinding(780),
+      size: 5,
+      fields: Object.freeze([
+        Object.freeze({ name: "x", type: WORD, offset: 0 }),
+        Object.freeze({ name: "alive", type: BOOLEAN, offset: 3 }),
+      ]),
+    });
+    const records: SemanticType = Object.freeze({
+      kind: "array",
+      element: record,
+      length: 6,
+      size: 30,
+    });
+    const index = sourceParameter(781, BYTE);
+    const root = sourceBinding(782);
+    const fieldLoad = (
+      result: string,
+      indexValue: string,
+      field: string,
+      type: SemanticType,
+      start: number,
+    ) =>
+      Object.freeze({
+        kind: "load" as const,
+        result,
+        place: Object.freeze({
+          root,
+          rootType: records,
+          path: Object.freeze([
+            Object.freeze({ kind: "index" as const, value: indexValue }),
+            Object.freeze({ kind: "field" as const, name: field }),
+          ]),
+        }),
+        type,
+        integer: null,
+        span: sourceSpan(start),
+      });
+    const main = semanticFunction(779, "forward-address-fact", [index], VOID, [
+      semanticBlock(
+        "forward.entry",
+        [
+          loadOperation("entry-index", index, 783),
+          fieldLoad("alive", "entry-index", "alive", BOOLEAN, 784),
+        ],
+        Object.freeze({
+          kind: "branch" as const,
+          condition: "alive",
+          whenTrue: "forward.true",
+          whenFalse: "forward.false",
+        }),
+      ),
+      semanticBlock(
+        "forward.true",
+        [loadOperation("true-index", index, 785), fieldLoad("x", "true-index", "x", WORD, 786)],
+        Object.freeze({ kind: "jump" as const, target: "forward.join" }),
+      ),
+      semanticBlock(
+        "forward.false",
+        [],
+        Object.freeze({ kind: "jump" as const, target: "forward.join" }),
+      ),
+      semanticBlock(
+        "forward.join",
+        [
+          loadOperation("join-index", index, 787),
+          fieldLoad("joined-x", "join-index", "x", WORD, 788),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected forward aggregate address fact");
+    const blocks = result.program.functions[0]!.blocks;
+    const entryAndTrue = blocks
+      .filter(({ label }) => label === "forward.entry" || label === "forward.true")
+      .flatMap(({ instructions }) => instructions);
+    const join = blocks.find(({ label }) => label === "forward.join");
+    expect(entryAndTrue.filter(({ opcode }) => opcode === "asl")).toHaveLength(2);
+    expect(entryAndTrue.filter(({ opcode }) => opcode === "rol")).toHaveLength(2);
+    expect(join?.instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(0);
+    expect(join?.instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(0);
+
+    const invalidated = semanticFunction(789, "invalidated-join-address-fact", [index], VOID, [
+      semanticBlock(
+        "invalidated.entry",
+        [
+          loadOperation("invalidated-entry-index", index, 790),
+          fieldLoad("invalidated-alive", "invalidated-entry-index", "alive", BOOLEAN, 791),
+        ],
+        Object.freeze({
+          kind: "branch" as const,
+          condition: "invalidated-alive",
+          whenTrue: "invalidated.true",
+          whenFalse: "invalidated.false",
+        }),
+      ),
+      semanticBlock(
+        "invalidated.true",
+        [],
+        Object.freeze({ kind: "jump" as const, target: "invalidated.join" }),
+      ),
+      semanticBlock(
+        "invalidated.false",
+        [
+          Object.freeze({
+            kind: "constant" as const,
+            result: "next-index",
+            type: BYTE,
+            integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+            value: 1n,
+            span: sourceSpan(792),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: Object.freeze({ root: index.id, path: Object.freeze([]) }),
+            value: "next-index",
+            type: BYTE,
+            span: sourceSpan(793),
+          }),
+        ],
+        Object.freeze({ kind: "jump" as const, target: "invalidated.join" }),
+      ),
+      semanticBlock(
+        "invalidated.join",
+        [
+          loadOperation("invalidated-join-index", index, 794),
+          fieldLoad("invalidated-x", "invalidated-join-index", "x", WORD, 795),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const invalidatedResult = lowerFunctions([invalidated]);
+
+    expect(invalidatedResult.kind).toBe("complete");
+    if (invalidatedResult.kind !== "complete") {
+      throw new Error("Expected invalidated aggregate address fact");
+    }
+    const invalidatedJoin = invalidatedResult.program.functions[0]!.blocks.find(
+      ({ label }) => label === "invalidated.join",
+    );
+    expect(invalidatedJoin?.instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(2);
+    expect(invalidatedJoin?.instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(2);
+
+    const backedge = semanticFunction(796, "backedge-address-fact", [index], VOID, [
+      semanticBlock(
+        "backedge.entry",
+        [
+          loadOperation("backedge-entry-index", index, 797),
+          fieldLoad("backedge-alive", "backedge-entry-index", "alive", BOOLEAN, 798),
+        ],
+        Object.freeze({ kind: "jump" as const, target: "backedge.header" }),
+      ),
+      semanticBlock(
+        "backedge.header",
+        [
+          loadOperation("backedge-header-index", index, 799),
+          fieldLoad("backedge-x", "backedge-header-index", "x", WORD, 800),
+        ],
+        Object.freeze({
+          kind: "branch" as const,
+          condition: "backedge-alive",
+          whenTrue: "backedge.body",
+          whenFalse: "backedge.exit",
+        }),
+      ),
+      semanticBlock("backedge.exit", [], Object.freeze({ kind: "return" as const, value: null })),
+      semanticBlock(
+        "backedge.body",
+        [],
+        Object.freeze({ kind: "jump" as const, target: "backedge.header" }),
+      ),
+    ]);
+    const backedgeResult = lowerFunctions([backedge]);
+
+    expect(backedgeResult.kind).toBe("complete");
+    if (backedgeResult.kind !== "complete") {
+      throw new Error("Expected conservative backedge aggregate address fact");
+    }
+    const backedgeHeader = backedgeResult.program.functions[0]!.blocks.find(
+      ({ label }) => label === "backedge.header",
+    );
+    expect(backedgeHeader?.instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(2);
+    expect(backedgeHeader?.instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(2);
+  });
+
   it("should combine nested array strides with a packed struct field offset", () => {
     const rows: SemanticType = Object.freeze({
       kind: "array",
@@ -552,12 +941,20 @@ describe("packed aggregate addressing", () => {
     expect(
       instructions.some(
         ({ opcode, mode, operand }) =>
-          opcode === "adc" &&
+          opcode === "lda" &&
           mode === "immediate" &&
-          operand?.kind === "immediate" &&
-          operand.value === 1,
+          operand?.kind === "storage" &&
+          operand.addressByte === "low" &&
+          operand.offset === 0,
       ),
     ).toBe(true);
+    expect(
+      instructions.flatMap(({ opcode, mode, operand }) =>
+        opcode === "ldy" && mode === "immediate" && operand?.kind === "immediate"
+          ? [operand.value]
+          : [],
+      ),
+    ).toEqual([1, 2]);
     expect(
       instructions.filter(({ opcode, mode }) => opcode === "sta" && mode === "indirect-indexed-y"),
     ).toHaveLength(2);

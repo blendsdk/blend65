@@ -111,7 +111,25 @@ class ExpressionLowerer {
       }
       case "literal":
         throw new Error("Unencoded literals cannot enter completed semantic lowering");
-      case "name":
+      case "name": {
+        const binding =
+          expression.binding === null
+            ? undefined
+            : this.bindingsByKey.get(bindingIdentityKey(expression.binding));
+        if (
+          operationType.kind === "scalar" &&
+          binding?.storage === "constant" &&
+          expression.constant !== null
+        ) {
+          return this.emitConstant(
+            expression.constant,
+            operationType,
+            expression.span,
+            expression.integer,
+          );
+        }
+        return this.lowerPlaceValue(expression, operationType);
+      }
       case "index":
       case "member":
         return this.lowerPlaceValue(expression, operationType);
@@ -716,6 +734,22 @@ function lowerGlobal(
       storage: binding.storage,
       type: declaration.type,
       initialBytes: null,
+      runtimeInitialBytes: null,
+      entry: null,
+      blocks: Object.freeze([]),
+      source: declaration.binding.span,
+    });
+  }
+  if (binding.storage === "constant") {
+    return Object.freeze({
+      id: declaration.binding,
+      storage: binding.storage,
+      type: declaration.type,
+      initialBytes:
+        declaration.type.kind === "scalar"
+          ? null
+          : initializerBytes(declaration.initializer, declaration.type),
+      runtimeInitialBytes: null,
       entry: null,
       blocks: Object.freeze([]),
       source: declaration.binding.span,
@@ -743,7 +777,8 @@ function lowerGlobal(
     id: declaration.binding,
     storage: binding.storage,
     type: declaration.type,
-    initialBytes: initializerBytes(declaration.initializer, declaration.type),
+    initialBytes: null,
+    runtimeInitialBytes: initializerBytes(declaration.initializer, declaration.type),
     entry: builder.entry,
     blocks,
     source: declaration.binding.span,

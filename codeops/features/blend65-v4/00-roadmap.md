@@ -3,7 +3,7 @@
 > **Feature-Set**: Blend65 v4
 > **Status**: In Progress
 > **Created**: 2026-09-10
-> **Last Updated**: 2026-09-22
+> **Last Updated**: 2026-09-23
 > **Progress**: 1 / 10 (10%)
 > **Execution Prerequisite**: Phase 0 complete; see
 > [bootstrap and session handoff](00-phase-0-handoff.md)
@@ -20,9 +20,9 @@
 | RD-01 | Specification 4.0 and Expert Authority Freeze | [RD-01](requirements/RD-01-specification-4-and-expert-authority-freeze.md) | [Plan](plans/rd-01-specification-4-and-expert-authority-freeze/00-index.md) | Done | ✅ | 2026-09-14 | — |
 | RD-02 | Clean V4 Foundation and Deterministic Project Model | [RD-02](requirements/RD-02-clean-v4-foundation-and-deterministic-project-model.md) | [Plan](plans/rd-02-clean-v4-foundation-and-deterministic-project-model/00-index.md) | ⛔ Blocked (was: Executing) | ⛔ | 2026-09-19 | Linux implementation complete, with formal closeout waiting on DEF-1 at RD-10 and not blocking RD-03–RD-09 |
 | ↳ DEF-1 | Actual Node 22 Windows x64 foundation qualification | — | [Evidence](plans/rd-02-clean-v4-foundation-and-deterministic-project-model/08-closeout.md) | Deferred | ⏸️ | 2026-09-19 | Run during RD-10 native Windows qualification when the user supplies access, with no earlier host request or new infrastructure |
-| RD-03 | Playable M1 Complete Pipeline | [RD-03](requirements/RD-03-playable-m1-complete-pipeline.md) | [Frontend](plans/rd-03-frontend-first/00-index.md) · [Pipeline completion](plans/rd-03-pipeline-completion/00-index.md) | Executing | 🔄 | 2026-09-22 | Frontend complete (64/64). Pipeline completion Phases 1–7 are complete and total progress is 70/79. The diagnostics-only editor bundle, Linux-only checksum-pinned ACME CI and full repository qualification are GREEN with no open major review finding. Phase 8 M1 end-to-end qualification is next. SpritePad stays in RD-06; Windows evidence stays in RD-10. |
+| RD-03 | Playable M1 Complete Pipeline | [RD-03](requirements/RD-03-playable-m1-complete-pipeline.md) | [Frontend](plans/rd-03-frontend-first/00-index.md) · [Pipeline completion](plans/rd-03-pipeline-completion/00-index.md) | ⛔ Blocked (Linux execution complete) | ⛔ | 2026-09-23 | Frontend (64/64) and pipeline completion (79/79) are complete. ACME 0.97 and VICE 3.10 pass the exact 441-input generated-versus-expert rendered journey. Formal Done waits only on DEF-3 native Windows qualification during RD-10 and does not block RD-04–RD-09. SpritePad stays in RD-06. |
 | ↳ DEF-2 | Parser syntax diagnostic authority decision | — | [Decision](plans/rd-03-frontend-first/00-ambiguity-register.md) | Done | ✅ | 2026-09-18 | User approved `PARSE_SYNTAX_ERROR`; narrow R3.10 exception recorded. |
-| ↳ DEF-3 | Native Node 22 Windows x64 RD-03 qualification | — | [Decision](plans/rd-03-pipeline-completion/00-ambiguity-register.md) | Deferred | ⏸️ | 2026-09-20 | Run publication, pin/cleanup, tool/process and editor smoke during RD-10 when the user supplies Windows access; does not block Linux compiler work or RD-04–RD-09. |
+| ↳ DEF-3 | Native Node 22 Windows x64 RD-03 qualification | — | [Decision](plans/rd-03-pipeline-completion/00-ambiguity-register.md) | Deferred | ⏸️ | 2026-09-23 | Run publication, pin/cleanup, tool/process and editor smoke during RD-10 when the user supplies Windows access; Linux implementation is complete and RD-04–RD-09 remain unblocked. |
 | RD-04 | Complete Language and Correct Unoptimized Compiler | [RD-04](requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-03 |
 | RD-05 | C64 Platform Profiles and Game-Workload Compiler Support | [RD-05](requirements/RD-05-c64-platform-profiles-and-game-workload-compiler-support.md) | — | RD Preflighted | 🔎 | 2026-09-11 | depends on RD-04 |
 | RD-06 | Native Assets, Compile-Time Composition, and Resident Layout | [RD-06](requirements/RD-06-native-assets-compile-time-composition-and-resident-layout.md) | — | RD Preflighted | 🔎 | 2026-09-20 | depends on RD-04, RD-05; owns deferred SpritePad 3.80 producer evidence and native import |

@@ -486,17 +486,23 @@ describe("mandatory NMOS machine lowering", () => {
     );
 
     const instructions = machineInstructions(result);
+    expect(instructions.slice(0, 4)).toMatchObject([
+      { opcode: "lda", mode: "absolute", operand: { kind: "absolute", value: 0xd012 } },
+      { opcode: "cmp", mode: "immediate", operand: { kind: "immediate", value: 0xfb } },
+      { opcode: "lda", mode: "absolute", operand: { kind: "absolute", value: 0xd012 } },
+      { opcode: "cmp", mode: "immediate", operand: { kind: "immediate", value: 0xfb } },
+    ]);
     const effects = instructions.flatMap(({ memory }) => memory);
     expect(effects).toEqual([
       expect.objectContaining({
         kind: "read",
-        address: expect.objectContaining({ value: 0xd011 }),
+        address: expect.objectContaining({ value: 0xd012 }),
         volatile: true,
         order: 0,
       }),
       expect.objectContaining({
         kind: "read",
-        address: expect.objectContaining({ value: 0xd011 }),
+        address: expect.objectContaining({ value: 0xd012 }),
         volatile: true,
         order: 1,
       }),
@@ -545,6 +551,12 @@ describe("mandatory NMOS machine lowering", () => {
     expect(instructions.some(({ opcode }) => opcode === "jsr")).toBe(false);
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected platform lowering");
+    expect(
+      result.program.functions[0]?.blocks.slice(0, 2).map(({ terminator }) => terminator),
+    ).toEqual([
+      expect.objectContaining({ kind: "branch", opcode: "beq" }),
+      expect.objectContaining({ kind: "branch", opcode: "bne" }),
+    ]);
     expect(
       result.program.requiredStorage.some(({ storageClass }) => storageClass === "helper-scratch"),
     ).toBe(false);

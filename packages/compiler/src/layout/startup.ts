@@ -37,13 +37,20 @@ const STARTUP_STATE = Object.freeze({
 
 /** Inputs needed to construct the selected cooperative C64 startup. */
 export interface C64StartupInput {
-  /** Module-initializer labels in proved execution order. */
+  /** Callable module-initializer labels in proved execution order. */
   readonly initializerLabels: readonly string[];
+  /** Exact ordered initializer actions when some operations can be safely inlined. */
+  readonly initializers?: readonly C64StartupInitializer[];
   /** Selected source entry-function label. */
   readonly mainLabel: string;
   /** Exact selected C64 profile. */
   readonly profile: TargetProfile;
 }
+
+/** One ordered module-initializer action performed before the source entry function. */
+export type C64StartupInitializer =
+  | { readonly kind: "call"; readonly label: string }
+  | { readonly kind: "inline"; readonly instructions: readonly MachineInstruction[] };
 
 /** Exact BASIC stub and structured startup, or a terminal profile mismatch. */
 export type C64StartupResult =
@@ -78,7 +85,7 @@ function deviceMode(address: number): "zero-page" | "absolute" {
 export function createC64StartupStateData(): MachineDataObject {
   return Object.freeze({
     id: C64_STARTUP_STATE_ID,
-    kind: "global",
+    kind: "bss",
     alignment: 1,
     bytes: Object.freeze(new Array<number>(STARTUP_STATE.bytes).fill(0)),
   });
@@ -325,8 +332,22 @@ export function createC64Startup(input: C64StartupInput): C64StartupResult {
       [deviceEffect("write", machine.backgroundColor)],
     ),
   );
-  for (const label of input.initializerLabels) {
-    entry.push(machineInstruction(cpu, "jsr", "absolute", Object.freeze({ kind: "label", label })));
+  const initializers =
+    input.initializers ??
+    input.initializerLabels.map((label) => Object.freeze({ kind: "call" as const, label }));
+  for (const initializer of initializers) {
+    if (initializer.kind === "inline") {
+      entry.push(...initializer.instructions);
+    } else {
+      entry.push(
+        machineInstruction(
+          cpu,
+          "jsr",
+          "absolute",
+          Object.freeze({ kind: "label", label: initializer.label }),
+        ),
+      );
+    }
   }
 
   const restore: MachineInstruction[] = [];

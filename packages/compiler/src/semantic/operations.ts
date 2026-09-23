@@ -331,6 +331,8 @@ export interface SemanticGlobal {
   readonly type: SemanticType;
   /** Complete compile-time initial bytes, or null when startup must execute the initializer. */
   readonly initialBytes: readonly number[] | null;
+  /** Constant bytes a side-effect-free runtime initializer may store directly, when known. */
+  readonly runtimeInitialBytes: readonly number[] | null;
   /** Initializer entry block, or null when no runtime initializer exists. */
   readonly entry: BlockId | null;
   /** Initializer blocks in deterministic construction order. */

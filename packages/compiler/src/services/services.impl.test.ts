@@ -106,6 +106,12 @@ describe("compiler service hardening", () => {
     const sfaIntervals = memory.intervals.filter((interval: Record<string, unknown>) =>
       ["sfa", "zeroPage", "scratch"].includes(String(interval.kind)),
     );
+    expect(memory.stackDomains).toEqual([
+      expect.objectContaining({ id: "interrupt-entry-save", peakBytes: 6, headroomBytes: 250 }),
+      expect.objectContaining({ id: "platform-reserve", peakBytes: 20, headroomBytes: 236 }),
+      expect.objectContaining({ id: "program", peakBytes: 6, headroomBytes: 250 }),
+      expect.objectContaining({ id: "qualified-capacity", peakBytes: 32, headroomBytes: 224 }),
+    ]);
     expect(sfaIntervals.length).toBeGreaterThan(0);
     expect(memory.sfaClosureSha256).not.toBe(createHash("sha256").update("[]").digest("hex"));
     expect(debug.addressSpaces.length).toBeGreaterThan(0);

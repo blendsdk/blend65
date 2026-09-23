@@ -184,7 +184,7 @@ describe("static storage closure implementation", () => {
     expect(result).toMatchObject({ kind: "complete", certificate: { hardwareStackPeak: 9 } });
   });
 
-  it("charges startup-owned pushes while main and initializer calls execute", () => {
+  it("takes the larger program route before adding simultaneous interrupt use", () => {
     const initial = inventory([fn(binding(34)), fn(binding(35))]);
     const startupProfile: StorageProfile = Object.freeze({
       ...profile(32),
@@ -192,7 +192,15 @@ describe("static storage closure implementation", () => {
     });
 
     const result = closeStorage(initial, startupProfile, () => Object.freeze([]));
-    expect(result).toMatchObject({ kind: "complete", certificate: { hardwareStackPeak: 15 } });
+    expect(result).toMatchObject({
+      kind: "complete",
+      certificate: {
+        hardwareStackProgramPeak: 10,
+        hardwareStackSystemPeak: 3,
+        hardwareStackPeak: 13,
+        hardwareStackRoute: ["startup"],
+      },
+    });
   });
 
   it("stops a callback which invents a new identity every round", () => {

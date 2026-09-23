@@ -61,7 +61,7 @@ function voidCall(
 }
 
 describe("call ABI and scalar retention", () => {
-  it("emits scalar constants as their immutable little-endian bytes", () => {
+  it("omits inlined scalar constants from resident data", () => {
     const main = semanticFunction(900, "main", [], VOID, [
       semanticBlock("main.entry", [], Object.freeze({ kind: "return" as const, value: null })),
     ]);
@@ -74,7 +74,8 @@ describe("call ABI and scalar retention", () => {
           id: constant,
           storage: "constant" as const,
           type: BYTE,
-          initialBytes: Object.freeze([5]),
+          initialBytes: null,
+          runtimeInitialBytes: null,
           entry: null,
           blocks: Object.freeze([]),
           source: constant.span,
@@ -83,14 +84,7 @@ describe("call ABI and scalar retention", () => {
     });
     const result = lowerCloseBind(Object.freeze({ ...base, semantic }));
 
-    expect(result.bound.program.data).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          kind: "immutable",
-          bytes: [5],
-        }),
-      ]),
-    );
+    expect(result.bound.program.data.filter(({ kind }) => kind === "immutable")).toEqual([]);
   });
 
   it("passes a fixed-array base address and forwards its two-byte parameter pointer", () => {
@@ -193,6 +187,7 @@ describe("call ABI and scalar retention", () => {
           storage: "module" as const,
           type: record,
           initialBytes: null,
+          runtimeInitialBytes: null,
           entry: null,
           blocks: Object.freeze([]),
           source: sourceSpan(1110),
@@ -222,7 +217,7 @@ describe("call ABI and scalar retention", () => {
       expect.objectContaining({ kind: "bss", bytes: [0, 0, 0] }),
       expect.objectContaining({
         id: "platform.startup-state",
-        kind: "global",
+        kind: "bss",
         bytes: new Array<number>(50).fill(0),
       }),
     ]);

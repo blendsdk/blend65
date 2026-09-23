@@ -322,18 +322,26 @@ export function lowerC64Operation(
   const source = operation.span;
 
   if (operation.capability === "c64.video.waitNextFrame") {
-    const reads = [0, 1].map((order) =>
+    const instructions = [0, 1].flatMap((order) => [
       machineInstruction(
         cpu,
-        "bit",
+        "lda",
         "absolute",
-        Object.freeze({ kind: "absolute", value: machine.vicControl1 }),
-        [fixedEffect("read", machine.vicControl1, order)],
+        Object.freeze({ kind: "absolute", value: machine.vicRaster }),
+        [fixedEffect("read", machine.vicRaster, order)],
         source,
       ),
-    );
+      machineInstruction(
+        cpu,
+        "cmp",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: machine.frameWaitRasterLine }),
+        [],
+        source,
+      ),
+    ]);
     return Object.freeze({
-      instructions: Object.freeze(reads),
+      instructions: Object.freeze(instructions),
       result: null,
       data: Object.freeze([]),
     });

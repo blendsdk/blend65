@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-22 09:59 CEST
-> **Progress**: 76/79 tasks (96%)
+> **Last Updated**: 2026-09-23 10:48 CEST
+> **Progress**: 79/79 tasks (100%)
 > **CodeOps Artifact Schema**: 1
 
 ## Execution Rules
@@ -603,17 +603,35 @@ test files are immutable implementation inputs from this point onward.
 
 ### Step 8.3: Implementation Tests and Hardening
 
-- [~] 8.3.1 Compare generated output with the immutable expert twin. Fail worse output; for any
+- [x] 8.3.1 Compare generated output with the immutable expert twin. Fail worse output; for any
   genuine meet-only result create the authorized issue. Keep
   `examples/m1/qualification/expert-ledger.json` read-only and record the generated comparison in
   `08-phase-8-review.md` so the frozen independent baseline is not rewritten after implementation.
-  Runtime decision AR-P2 is pending: behavior and final PRG size meet, but unoptimized local code,
-  ZP, mutable storage and stack are worse; closing that gap here would import RD-08 optimizer work.
-- [ ] 8.3.2 Run final Linux acceptance, touched formatting, frozen-spec check, C64U seam review and
-  independent review — `08-phase-8-review.md`; correct all critical/major findings.
-- [ ] 8.3.3 Write closeout evidence and deferral-expiry audit; keep AR-C16 assigned to RD-10, update the
+  AR-P2 restores R3.33/AC-31's original `optimization: none` boundary: the exact worse local code,
+  ZP, mutable-storage and stack deltas are recorded as RD-08 input and do not import optimizer work
+  into RD-03. ✅ (completed: 2026-09-22 17:13 CEST)
+- [x] 8.3.2 Run final Linux acceptance, touched formatting, frozen-spec check, C64U seam review and
+  independent review — `08-phase-8-review.md`; correct all critical/major findings. Accepted
+  RV-001–RV-006 and RV-FIX-001–RV-FIX-005 corrections are implemented; the strengthened
+  rendered-frame gate exposes #80 at generated frame 0. AR-P4 now requires the smallest direct
+  timing correction before final GREEN and phase completion. AR-P6 corrects the contradictory
+  focused oracle and direct frame wait to the accepted `$D012`/`$FB` boundary. AR-P7 authorizes
+  one focused general affine aggregate-address reuse transformation after smaller direct
+  instruction selection left 190 rendered frames mismatched. AR-P7 is implemented and directed
+  tests pass, but the real VICE gate still has 24 rendered mismatches concentrated on the
+  every-eight-frame formation update. AR-P8 authorizes the smallest forward, single-predecessor CFG
+  propagation plus an explicit check that all timing fixes preserve the path to peephole and
+  production game-grade optimization. AR-P8's focused tests pass and VICE improves from 24 to 9
+  rendered mismatches. AR-P9's acyclic identical-fact meet is implemented with positive,
+  invalidated-path and backedge coverage; it removes the intended recomputation and reduces total
+  generated code by 195 bytes. AR-P10's bounded loop-carried affine-pointer induction slice removes
+  a further 215 bytes and the exact VICE journey passes all 441 rendered frames. Full repository
+  build, typecheck and tests, touched Prettier, whitespace and frozen-spec checks pass. The checkout
+  has no configured lint script, Turbo lint task or ESLint executable, so no lint result is claimed.
+  ✅ (completed: 2026-09-23 10:48 CEST)
+- [x] 8.3.3 Write closeout evidence and deferral-expiry audit; keep AR-C16 assigned to RD-10, update the
   feature roadmap — `08-closeout.md`, `codeops/features/blend65-v4/00-roadmap.md`; commit the final
-  green RD-03 Linux checkpoint without pushing.
+  green RD-03 Linux checkpoint without pushing. ✅ (completed: 2026-09-23 10:48 CEST)
 
 Deliverable: the real playable M1 pipeline is Linux-qualified; only named native-Windows evidence
 remains deferred to RD-10.

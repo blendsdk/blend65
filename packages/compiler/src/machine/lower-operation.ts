@@ -3,6 +3,7 @@ import type { SemanticOperation } from "../semantic/operations.js";
 import { lowerC64Operation } from "./lower-c64.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
+import { advanceAggregateInductionAddress } from "./lower-induction.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
   lowerAggregate,
@@ -162,6 +163,30 @@ export function lowerOperation(
   operation: SemanticOperation,
   state: FunctionLoweringState,
 ): readonly MachineInstruction[] {
+  let advancesAggregateInduction = false;
+  if (operation.kind === "call" || operation.kind === "memory-write") {
+    state.aggregateAddressCache = null;
+  } else if (operation.kind === "store" && state.aggregateAddressCache !== null) {
+    const storedRoot = loweredPlace(
+      operation.place,
+      typeBytes(operation.place.rootType ?? operation.type),
+      isSignedType(operation.type),
+      state,
+    );
+    const changesCachedIndex =
+      storedRoot.kind === "storage" &&
+      state.aggregateAddressCache.indexRequestIds.includes(storedRoot.requestId);
+    if (changesCachedIndex) {
+      const induction = state.aggregateInduction;
+      advancesAggregateInduction =
+        induction !== null &&
+        operation.span.start === induction.updateSourceStart &&
+        storedRoot.kind === "storage" &&
+        storedRoot.requestId === induction.indexRequestId &&
+        state.aggregateAddressCache.key === induction.cache.key;
+      if (!advancesAggregateInduction) state.aggregateAddressCache = null;
+    }
+  }
   if (operation.kind === "constant") {
     const width = typeBytes(operation.type) === 1 ? 1 : 2;
     const value =
@@ -217,6 +242,11 @@ export function lowerOperation(
     for (let offset = 0; offset < typeBytes(operation.type); offset += 1) {
       appendLoadA(instructions, value, offset, state, operation.span);
       instructions.push(storeA(place, offset, state, operation.span));
+    }
+    if (advancesAggregateInduction && state.aggregateInduction !== null) {
+      instructions.push(
+        ...advanceAggregateInductionAddress(state.aggregateInduction, state, operation.span),
+      );
     }
     return Object.freeze(instructions);
   }
