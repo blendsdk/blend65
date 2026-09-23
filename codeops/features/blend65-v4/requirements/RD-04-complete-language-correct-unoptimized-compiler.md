@@ -748,7 +748,8 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     behavior without an optional optimizer.
 34. [ ] **AC-34 — `none` boundary:** Seeded optional transforms remain absent while every mandatory
     correctness/selection/SFA/layout/emission step still runs and reports its decisions. No optional
-    alternative enumeration, rewrite search, B/R/T ranking, or expert-parity gate runs.
+    alternative enumeration, rewrite search, B/R/T ranking, or expert-parity selection logic runs
+    inside the compiler. Independent qualification still enforces R4.51's expert-output floor.
 35. [ ] **AC-35 — Layout and artifacts:** Placement conflicts fail completely; successful builds
     atomically publish one coherent PRG and complete deterministic assembly/map/SFA/resource/cost/
     debug/hash evidence verified against ACME output.
@@ -756,9 +757,10 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     aggregate contents, flags, checks, MMIO, interrupts, or return state fail their independent
     oracle even if generated assembly shape or another compiler path agrees.
 37. [ ] **AC-37 — Optimization baseline evidence:** Each operation family records exact assembled
-    bytes, path costs, resources, and an equal-contract hand-written reference for RD-08. RD-04 uses
-    that evidence to expose optimization opportunities but does not gate correctness-only `none` on
-    expert parity or create meet-only parity debt.
+    bytes, path costs, resources, and an equal-contract hand-written reference. RD-04 qualification
+    requires the direct `none` result to meet or beat the expert locally; a meet-only result creates
+    actionable parity debt and a worse result blocks completion. The same evidence becomes RD-08's
+    optimization baseline without adding search or optional transforms to `none`.
 38. [ ] **AC-38 — Honest platform boundary:** Later C64 APIs/formats/loading and every future target
     fail as explicit unavailable/unknown capability rather than compiling, linking a stub, or
     appearing in a support score.
