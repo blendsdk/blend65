@@ -1,0 +1,3165 @@
+{
+  "specificationIdentity": "BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa",
+  "entries": [
+    {
+      "key": "conformance:15-platform-profile.md#5.1",
+      "kind": "conformance",
+      "source": "15-platform-profile.md",
+      "owner": "Phase 9",
+      "proof": ["test/rd04/backend.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "conformance:15-platform-profile.md#5.2",
+      "kind": "conformance",
+      "source": "15-platform-profile.md",
+      "owner": "Phase 9",
+      "proof": ["test/rd04/backend.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "conformance:15-platform-profile.md#5.3",
+      "kind": "conformance",
+      "source": "15-platform-profile.md",
+      "owner": "Phase 9",
+      "proof": ["test/rd04/backend.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "conformance:15-platform-profile.md#5.4",
+      "kind": "conformance",
+      "source": "15-platform-profile.md",
+      "owner": "Phase 9",
+      "proof": ["test/rd04/backend.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "conformance:15-platform-profile.md#5.5",
+      "kind": "conformance",
+      "source": "15-platform-profile.md",
+      "owner": "Phase 9",
+      "proof": ["test/rd04/backend.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10001",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10002",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10003",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10010",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10012",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10020",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10021",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10022",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10023",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10030",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10031",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10032",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10033",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10034",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10040",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10043",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10050",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10051",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10063",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10070",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10071",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10072",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10073",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10074",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10075",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10076",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10080",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10081",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10082",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10083",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10084",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10086",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10090",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10091",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10092",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10094",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10095",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10096",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10097",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10100",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10102",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10110",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10112",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10113",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10114",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10115",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10116",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10121",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10122",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10123",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10124",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10125",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10130",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10131",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10132",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10133",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10134",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10135",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10136",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10137",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10140",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10142",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10143",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10144",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10150",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10151",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10152",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10153",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10154",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10160",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10161",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10162",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10170",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10171",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10172",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10173",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10174",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10175",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10176",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10180",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10181",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10190",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10191",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10192",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10194",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10200",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10201",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10202",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10203",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10204",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10210",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10211",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10212",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10213",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10214",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10215",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10216",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10217",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10218",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10219",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10220",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10221",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10222",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10223",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10224",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10230",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10231",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10232",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10233",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10234",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10235",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10236",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10237",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10238",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10239",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10240",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10241",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10242",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10243",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10244",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10245",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10246",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10247",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10248",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10249",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10250",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10251",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10252",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10253",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10254",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10256",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10257",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10258",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10260",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10261",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10262",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10263",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10264",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10265",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10266",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10267",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10268",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10269",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10270",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10271",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10272",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10273",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10274",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10275",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10276",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10277",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10278",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10279",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10030",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10033",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10070",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10100",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10101",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10110",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10111",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10112",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10130",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10131",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10140",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10141",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10143",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10150",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10151",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10160",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10161",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10170",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10171",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10172",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10173",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10174",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10180",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10181",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10190",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10191",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10210",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10211",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:W10212",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["packages/compiler/src/frontend/diagnostics.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:additive_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:arg_list",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:array_element_type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:array_extent",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:array_init_content",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:array_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:array_type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:assign_op",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:assignment_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:bin_digit",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:bin_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:bitwise_and_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:bitwise_or_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:bitwise_xor_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:block",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:block_comment",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:break_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:case_body",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:case_clause",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:case_value_list",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:char_char",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:char_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:comptime_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:conditional_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:const_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:const_decl_local",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:const_expression",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:contextual_keyword",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:continue_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:cpu_intrinsic",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:cpu_intrinsic_name",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:decimal_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:default_clause",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:digit",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:do_while_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:embed_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:enum_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:enum_member",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:equality_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:escape_seq",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:expression",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:expression_list",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:expression_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:field_init",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:for_initializer",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:for_local_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:for_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:for_update",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:function_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:function_type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:function_type_param",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:function_type_params",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:hex_digit",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:hex_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:identifier",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:if_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:import_item",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:import_list",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:import_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:integer_type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:interrupt_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:intrinsic_call",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:keyword",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:let_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:letter",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:line_comment",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:loadable_const_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:loadable_const_decl_local",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:logical_and_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:logical_or_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:memory_intrinsic",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:module_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:multiplicative_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:number_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:param",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:param_list",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:place_arg",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:place_clause",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:postfix_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:postfix_op",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:primary_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:primitive_cast",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:program",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:qualified_name",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:query_intrinsic",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:relational_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:reserved_builtin",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:return_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:return_type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:shift_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:statement",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:string_char",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:string_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:struct_decl",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:struct_field",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:struct_literal",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:switch_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:top_level_item",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:trig_intrinsic",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:unary_expr",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:value_type",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:var_decl_local",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:while_stmt",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:zeropage_block",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "grammar:zeropage_var",
+      "kind": "grammar",
+      "source": "grammar.ebnf.md",
+      "owner": "Phase 1",
+      "proof": ["packages/compiler/src/frontend/parser-grammar.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-1",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-10",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-11",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-12",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-13",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-14",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-15",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-16",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-17",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-18",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-19",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-2",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-20",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-21",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-22",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-23",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-24",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-25",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-3",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-4",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-5",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-6",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-7",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-8",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:02-type-system.md#TS-9",
+      "kind": "semantic-rule",
+      "source": "02-type-system.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-1",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-2",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-3",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-4",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-5",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-6",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-7",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-8",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:03-variables.md#VAR-9",
+      "kind": "semantic-rule",
+      "source": "03-variables.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:05-statements-control-flow.md#CF-1",
+      "kind": "semantic-rule",
+      "source": "05-statements-control-flow.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:05-statements-control-flow.md#CF-2",
+      "kind": "semantic-rule",
+      "source": "05-statements-control-flow.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:05-statements-control-flow.md#CF-4",
+      "kind": "semantic-rule",
+      "source": "05-statements-control-flow.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:05-statements-control-flow.md#SW-1",
+      "kind": "semantic-rule",
+      "source": "05-statements-control-flow.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:05-statements-control-flow.md#SW-2",
+      "kind": "semantic-rule",
+      "source": "05-statements-control-flow.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-1",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-10",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-11",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-12",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-13",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-2",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-3",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-4",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-5",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-6",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-7",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-8",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#FN-9",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 5",
+      "proof": ["packages/compiler/src/frontend/expressions.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:06-functions.md#INT-4",
+      "kind": "semantic-rule",
+      "source": "06-functions.md",
+      "owner": "Phase 6",
+      "proof": ["test/rd04/interrupts.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-1",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-2",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-3",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-4",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-5",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-6",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-7",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:07-structs.md#SR-8",
+      "kind": "semantic-rule",
+      "source": "07-structs.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-1",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-2",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-3",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-4",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-5",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-6",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-7",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#AR-8",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CL-1",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CL-2",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CL-3",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CP-1",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CP-2",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CP-3",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CP-4",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#CP-5",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#STR-1",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#STR-2",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#STR-3",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#STR-4",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#STR-5",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:08-arrays-strings.md#STR-6",
+      "kind": "semantic-rule",
+      "source": "08-arrays-strings.md",
+      "owner": "Phase 3",
+      "proof": ["packages/compiler/src/frontend/aggregate-types.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-1",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-10",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-11",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-12",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-13",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-2",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-3",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-4",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-5",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-6",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-7",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-8",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:09-enums.md#EN-9",
+      "kind": "semantic-rule",
+      "source": "09-enums.md",
+      "owner": "Phase 2",
+      "proof": ["packages/compiler/src/frontend/scalars.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:13-data-inclusion.md#EMB-1",
+      "kind": "semantic-rule",
+      "source": "13-data-inclusion.md",
+      "owner": "Phase 7",
+      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:13-data-inclusion.md#EMB-2",
+      "kind": "semantic-rule",
+      "source": "13-data-inclusion.md",
+      "owner": "Phase 7",
+      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:13-data-inclusion.md#EMB-3",
+      "kind": "semantic-rule",
+      "source": "13-data-inclusion.md",
+      "owner": "Phase 7",
+      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:13-data-inclusion.md#EMB-4",
+      "kind": "semantic-rule",
+      "source": "13-data-inclusion.md",
+      "owner": "Phase 7",
+      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:13-data-inclusion.md#EMB-5",
+      "kind": "semantic-rule",
+      "source": "13-data-inclusion.md",
+      "owner": "Phase 7",
+      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "rule:13-data-inclusion.md#EMB-6",
+      "kind": "semantic-rule",
+      "source": "13-data-inclusion.md",
+      "owner": "Phase 7",
+      "proof": ["test/rd04/intrinsics-runtime.spec.test.ts"],
+      "disposition": "planned"
+    }
+  ]
+}

@@ -203,7 +203,7 @@ afterEach(async () => {
 });
 
 describe("bounded frontend overlays", () => {
-  it("analyzes known sibling overlays without changing the snapshot and returns to disk content", () => {
+  it("analyzes known sibling overlays without changing the snapshot and returns to disk content", async () => {
     const game = source(
       "src/game.blend",
       "module Game; import { helper } from Helper; function main(): void { helper(); }",
@@ -218,7 +218,7 @@ describe("bounded frontend overlays", () => {
       }),
     ]);
 
-    const changed = analyzeProjectOverlay(projectSnapshot, overlays);
+    const changed = await analyzeProjectOverlay(projectSnapshot, overlays);
     expect(changed.diagnostics.map(({ code }) => code)).toContain("E10239");
     expect(changed.diagnostics[0]?.primarySpan?.sourceId).toBe(helper.sourceId);
     expect(JSON.stringify(projectSnapshot)).toBe(before);
@@ -247,8 +247,8 @@ describe("bounded frontend overlays", () => {
       overlays: [{ sourceId: "src/game.blend", text: "module Game; //\ud800" }],
       code: "PROJECT_INVALID_UTF8",
     },
-  ])("rejects $name with its stable host diagnostic", ({ overlays, code }) => {
-    const result = analyzeProjectOverlay(
+  ])("rejects $name with its stable host diagnostic", async ({ overlays, code }) => {
+    const result = await analyzeProjectOverlay(
       snapshot([source("src/game.blend", "module Game; function main(): void {}")]),
       overlays,
     );
@@ -256,10 +256,10 @@ describe("bounded frontend overlays", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([code]);
   });
 
-  it("enforces the fixed per-source count and effective-project bounds before analysis", () => {
+  it("enforces the fixed per-source count and effective-project bounds before analysis", async () => {
     const fourMiB = " ".repeat(4 * 1024 * 1024);
     const ordinary = source("src/game.blend", "module Game; function main(): void {}");
-    const tooLarge = analyzeProjectOverlay(snapshot([ordinary]), [
+    const tooLarge = await analyzeProjectOverlay(snapshot([ordinary]), [
       { sourceId: ordinary.sourceId, text: `${fourMiB}x` },
     ]);
     expect(tooLarge.diagnostics.map(({ code }) => code)).toEqual(["PROJECT_HOST_LIMIT"]);
@@ -272,13 +272,13 @@ describe("bounded frontend overlays", () => {
         resolvedPath: `/project/src/s${index}.blend`,
       }),
     );
-    const aggregate = analyzeProjectOverlay(snapshot(aggregateSources), []);
+    const aggregate = await analyzeProjectOverlay(snapshot(aggregateSources), []);
     expect(aggregate.diagnostics.map(({ code }) => code)).toEqual(["PROJECT_HOST_LIMIT"]);
 
     const countedSources = Array.from({ length: 10_001 }, (_, index) =>
       source(`src/c${index}.blend`, "module Counted;"),
     );
-    const counted = analyzeProjectOverlay(snapshot(countedSources), []);
+    const counted = await analyzeProjectOverlay(snapshot(countedSources), []);
     expect(counted.diagnostics.map(({ code }) => code)).toEqual(["PROJECT_HOST_LIMIT"]);
   });
 

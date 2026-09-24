@@ -57,11 +57,18 @@ function freezeSpan(span: SourceSpan): SourceSpan {
 /** Map a parsed module declaration to its pre-body storage role. */
 function declarationStorage(declaration: Declaration): BindingStorage | null {
   if (declaration.kind === "function") return "function";
-  if (declaration.kind === "struct") return "type";
+  if (declaration.kind === "struct" || declaration.kind === "enum") return "type";
   if (declaration.kind === "variable") {
     return declaration.declarationKind === "const" ? "constant" : "module";
   }
   return null;
+}
+
+/** Expose zero-page members as ordinary module declarations with their own identities. */
+function moduleDeclarations(unit: SyntaxUnit): readonly Declaration[] {
+  return unit.declarations.flatMap((declaration): readonly Declaration[] =>
+    declaration.kind === "zeropage" ? declaration.variables : [declaration],
+  );
 }
 
 /** Return the declaration name facts shared by every bindable module form. */
@@ -73,6 +80,7 @@ function declarationName(declaration: Declaration): {
   if (
     declaration.kind !== "function" &&
     declaration.kind !== "struct" &&
+    declaration.kind !== "enum" &&
     declaration.kind !== "variable"
   ) {
     return null;
@@ -376,6 +384,7 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
     const units: SyntaxUnit[] = [];
     const bindings = new Map<string, Binding>();
     const references: ModuleReference[] = [];
+    let firstZeropage: SourceSpan | null = null;
 
     for (const contribution of indexedModule.contributions) {
       const source = sources.get(contribution.sourceId);
@@ -407,10 +416,38 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
         );
       }
       if (parsed.unit === null) continue;
-      units.push(parsed.unit);
-      references.push(...collectModuleReferences(parsed.unit));
-
+      const acceptedDeclarations: Declaration[] = [];
       for (const declaration of parsed.unit.declarations) {
+        if (declaration.kind === "zeropage") {
+          const keywordSpan = freezeSpan({
+            ...declaration.span,
+            end: declaration.span.start + "zeropage".length,
+          });
+          if (firstZeropage !== null) {
+            diagnostics.push(
+              projectDiagnostic(
+                "E10030",
+                "Only one 'zeropage' block is allowed per module — combine the declarations",
+                keywordSpan,
+                null,
+                [{ span: firstZeropage, message: "First zeropage block is here" }],
+              ),
+            );
+            complete = false;
+            continue;
+          }
+          firstZeropage = keywordSpan;
+        }
+        acceptedDeclarations.push(declaration);
+      }
+      const acceptedUnit: SyntaxUnit = Object.freeze({
+        ...parsed.unit,
+        declarations: Object.freeze(acceptedDeclarations),
+      });
+      units.push(acceptedUnit);
+      references.push(...collectModuleReferences(acceptedUnit));
+
+      for (const declaration of moduleDeclarations(acceptedUnit)) {
         const name = declarationName(declaration);
         if (name === null) continue;
         if (bindings.has(name.name)) continue;
@@ -476,7 +513,7 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
     for (const unit of module.units) {
       const source = sources.get(unit.span.sourceId);
       if (source === undefined) continue;
-      for (const declaration of unit.declarations) {
+      for (const declaration of moduleDeclarations(unit)) {
         const name = declarationName(declaration);
         const binding = createBinding(module.name, declaration);
         if (name === null || binding === null) continue;

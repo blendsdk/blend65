@@ -420,35 +420,38 @@ describe("source parsing", () => {
     });
   });
 
-  // A valid but unavailable declaration is bounded and retained only as unchecked syntax.
-  it("should preserve an enum declaration as one unchecked region", () => {
+  // An enum is a complete declaration, including its member list.
+  it("should parse an enum declaration", () => {
     const text = "module Game; enum E { A }";
     const result = parseSource(source(text));
 
-    expect(result.complete).toBe(false);
+    expect(result.complete).toBe(true);
     expect(result.diagnostics).toEqual([]);
-    expect(result.unchecked).toEqual([spanOf(text, "enum E { A }")]);
-    expect(result.unit?.declarations).toEqual([
-      { kind: "unchecked", span: spanOf(text, "enum E { A }") },
+    expect(result.unchecked).toEqual([]);
+    expect(result.unit?.declarations).toMatchObject([
+      { kind: "enum", name: "E", members: [{ name: "A" }] },
     ]);
   });
 
-  // A valid but unavailable statement remains bounded inside its supported function owner.
-  it("should preserve a switch statement as one unchecked region", () => {
+  // A switch retains its clauses and control-flow statements for later checking.
+  it("should parse a switch statement inside its function", () => {
     const text = "module Game; function main(): void { switch (x) { case 1: break; } }";
     const result = parseSource(source(text));
 
-    expect(result.complete).toBe(false);
+    expect(result.complete).toBe(true);
     expect(result.diagnostics).toEqual([]);
-    expect(result.unchecked).toEqual([spanOf(text, "switch (x) { case 1: break; }")]);
+    expect(result.unchecked).toEqual([]);
     expect(result.unit?.declarations).toMatchObject([
       {
         kind: "function",
         body: {
           statements: [
             {
-              kind: "unchecked",
-              span: spanOf(text, "switch (x) { case 1: break; }"),
+              kind: "switch",
+              value: { kind: "name", name: "x" },
+              clauses: [
+                { values: [{ kind: "number", value: 1n }], statements: [{ kind: "break" }] },
+              ],
             },
           ],
         },
@@ -456,35 +459,41 @@ describe("source parsing", () => {
     ]);
   });
 
-  // A compile-time declaration is not rewritten into an ordinary runtime function.
-  it("should preserve a comptime function as one unchecked region", () => {
+  // Compile-time mode must survive parsing for the later semantic pass.
+  it("should parse a comptime function without losing its mode", () => {
     const text = "module Game; comptime function f(): byte { return 1; }";
     const result = parseSource(source(text));
 
-    expect(result.complete).toBe(false);
+    expect(result.complete).toBe(true);
     expect(result.diagnostics).toEqual([]);
-    expect(result.unchecked).toEqual([spanOf(text, "comptime function f(): byte { return 1; }")]);
-    expect(result.unit?.declarations).toEqual([
+    expect(result.unchecked).toEqual([]);
+    expect(result.unit?.declarations).toMatchObject([
       {
-        kind: "unchecked",
-        span: spanOf(text, "comptime function f(): byte { return 1; }"),
+        kind: "function",
+        mode: "comptime",
+        name: "f",
+        returnType: { kind: "named-type", name: "byte" },
       },
     ]);
   });
 
-  // An unavailable function type is retained at its exact type boundary.
-  it("should preserve a function type as unchecked without inventing a named type", () => {
+  // A function type is its own syntax kind, not an invented named type.
+  it("should parse a function type without inventing a named type", () => {
     const text = "module Game; let f: fn(byte): void;";
     const result = parseSource(source(text));
 
-    expect(result.complete).toBe(false);
+    expect(result.complete).toBe(true);
     expect(result.diagnostics).toEqual([]);
-    expect(result.unchecked).toEqual([spanOf(text, "fn(byte): void")]);
+    expect(result.unchecked).toEqual([]);
     expect(result.unit?.declarations).toMatchObject([
       {
         kind: "variable",
         name: "f",
-        type: { kind: "unchecked", span: spanOf(text, "fn(byte): void") },
+        type: {
+          kind: "function-type",
+          parameters: [{ type: { kind: "named-type", name: "byte" } }],
+          returnType: { kind: "named-type", name: "void" },
+        },
       },
     ]);
   });

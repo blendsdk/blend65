@@ -410,4 +410,87 @@ describe("entry-point validation", () => {
     });
     expect(resolved.graph?.entry).toEqual(main?.id);
   });
+
+  it("binds an exported enum by source identity and resolves its named import", () => {
+    const game = source(
+      "src/game.blend",
+      "module Game; import { Direction } from Types; function main(): void {}",
+    );
+    const types = source("src/types.blend", "module Types; export enum Direction { Up, Down }");
+    const project = snapshot("Game", [game, types]);
+
+    const resolved = resolveModules(project, indexModules(project).index);
+
+    expect(resolved.complete).toBe(true);
+    expect(resolved.diagnostics).toEqual([]);
+    const enumBinding = resolved.graph?.bindings.find(
+      ({ qualifiedName }) => qualifiedName === "Types.Direction",
+    );
+    expect(enumBinding).toMatchObject({ exported: true, storage: "type" });
+    expect(resolved.graph?.imports.find(({ alias }) => alias === "Direction")?.binding).toEqual(
+      enumBinding?.id,
+    );
+  });
+
+  it("binds each zeropage variable independently and reports duplicate module names", () => {
+    const text =
+      "module Game; zeropage { export counter: byte = 1; } let counter: byte; function main(): void {}";
+    const project = snapshot("Game", [source("src/game.blend", text)]);
+
+    const resolved = resolveModules(project, indexModules(project).index);
+
+    expect(resolved.diagnostics.map(({ code }) => code)).toEqual(["E10003"]);
+    expect(
+      resolved.graph?.bindings.filter(({ qualifiedName }) => qualifiedName === "Game.counter"),
+    ).toHaveLength(1);
+    expect(
+      resolved.graph?.bindings.find(({ qualifiedName }) => qualifiedName === "Game.counter"),
+    ).toMatchObject({ exported: true, storage: "module" });
+  });
+
+  it("reaches modules named inside new control-flow and enum-value forms", () => {
+    const game = source(
+      "src/game.blend",
+      "module Game; enum State { Ready = Data.seed } function main(): void { do { switch (Data.seed) { case 1: break; } } while (Data.ready); }",
+    );
+    const data = source(
+      "src/data.blend",
+      "module Data; export const seed: byte = 1; export const ready: boolean = true;",
+    );
+    const project = snapshot("Game", [game, data]);
+
+    const resolved = resolveModules(project, indexModules(project).index);
+
+    expect(resolved.complete).toBe(true);
+    expect(resolved.diagnostics).toEqual([]);
+    expect(resolved.graph?.modules.map(({ name }) => name)).toEqual(["Data", "Game"]);
+  });
+
+  // A module has one zero-page block even when source files merge by declared module name.
+  it("rejects a second zeropage block in a merged module", () => {
+    const first = source(
+      "src/a.blend",
+      "module Game; zeropage { first: byte; } function main(): void {}",
+    );
+    const second = source("src/b.blend", "module Game; zeropage { second: byte; }");
+    const project = snapshot("Game", [second, first]);
+
+    const resolved = resolveModules(project, indexModules(project).index);
+
+    expect(resolved.complete).toBe(false);
+    expect(resolved.diagnostics).toMatchObject([
+      {
+        code: "E10030",
+        message: "Only one 'zeropage' block is allowed per module — combine the declarations",
+        primarySpan: spanOf(second.sourceId, second.text, "zeropage"),
+        related: [{ span: spanOf(first.sourceId, first.text, "zeropage") }],
+      },
+    ]);
+    expect(resolved.graph?.bindings.map(({ qualifiedName }) => qualifiedName)).toContain(
+      "Game.first",
+    );
+    expect(resolved.graph?.bindings.map(({ qualifiedName }) => qualifiedName)).not.toContain(
+      "Game.second",
+    );
+  });
 });

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-23 15:04
-> **Progress**: 0/99 tasks (0%)
+> **Last Updated**: 2026-09-24
+> **Progress**: 12/99 tasks (12%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -46,41 +46,60 @@ implemented by Phases 1–8.
 
 ## Phase 1: Authority, Lexer, Parser, Modules and Diagnostics
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `c7faaf844176e76681a1c9402286c39a75df9850`
+> **Expected modification set**: Phase 1 task paths in `packages/compiler/src/frontend/`, `packages/compiler/src/services/`, `packages/language-server/src/`, and `test/rd04/`; this plan and the feature roadmap. Scope mode: strict; complete the existing compiler pipeline without new packages, frameworks or runtime.
 > **Lenses**: correctness, maintainability, standards, language semantics, diagnostic integrity
 
 ### Step 1.1: Specification Tests
 
 **Reference**: [03-01](03-01-authority-and-frontend.md) · ST-01–ST-07, ST-09; frontend-owned ST-08 diagnostics and full registry · AR-P6–AR-P8
 
-- [ ] 1.1.1 [spec-author] Write coverage, lexer and parser specification cases — `test/rd04/normative-coverage.spec.test.ts`, `packages/compiler/src/frontend/lexer.spec.test.ts`, `packages/compiler/src/frontend/parser.spec.test.ts`
-- [ ] 1.1.2 [spec-author] Write module, scope, frontend-owned diagnostic and asset-aware CLI/LSP canonical-record identity specification cases; reserve the full ST-08 sweep for Phase 8 — `packages/compiler/src/frontend/modules.spec.test.ts`, `packages/compiler/src/frontend/service.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
-- [ ] 1.1.3 Run only the new Phase 1 specification cases and record the expected red failures — Phase 1 test files
+- [x] 1.1.1 [spec-author] Write coverage, lexer and parser specification cases — `test/rd04/normative-coverage.spec.test.ts`, `packages/compiler/src/frontend/lexer.spec.test.ts`, `packages/compiler/src/frontend/parser.spec.test.ts`, `packages/compiler/src/frontend/parser-grammar.spec.test.ts` — Resume after AR-P10: the named-item oracle is authored; new grammar cases are split from the existing parser test to keep that file below the size ceiling. RED verified 2026-09-23 19:29: five pending grammar cases and five absent coverage-validator cases; lexer and existing parser cases pass.
+- [x] 1.1.2 [spec-author] Write module, scope, frontend-owned diagnostic and asset-aware CLI/LSP canonical-record identity specification cases; reserve the full ST-08 sweep for Phase 8 — `packages/compiler/src/frontend/modules.spec.test.ts`, `packages/compiler/src/frontend/service.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts` — Resume after AR-P10: existing module/scope cases pass and two new canonical diagnostic comparisons are RED. Add registry completeness proof through the named-item crosswalk. RED verified 2026-09-23 19:30: two CLI/LSP overlay identity cases fail; nine module and twelve service cases pass.
+- [x] 1.1.3 Run only the new Phase 1 specification cases and record the expected red failures — Phase 1 test files — RED recorded 2026-09-23 19:30: grammar 5/7 fail for pending syntax, coverage 5/5 fail for absent validator, boundary 2/3 fail for overlay/check divergence; all other directed lexer/parser/module/service cases pass.
 
 ### Step 1.2: Implementation
 
 **Reference**: [03-01 §Implementation Details](03-01-authority-and-frontend.md#implementation-details) · AR-P6, AR-P8
 
-- [ ] 1.2.1 Add the static coverage artifact and exact source-key validator — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage.spec.test.ts`
-- [ ] 1.2.2 Extract type/declaration parsing from the oversized parser without changing accepted behavior — `packages/compiler/src/frontend/parser.ts`, `packages/compiler/src/frontend/parser-declarations.ts`, `packages/compiler/src/frontend/parser.impl.test.ts`
-- [ ] 1.2.3 Complete token inventory, literals, UTF-8, maximal munch and lexical diagnostics — `packages/compiler/src/frontend/tokens.ts`, `packages/compiler/src/frontend/lexer.ts`, `packages/compiler/src/frontend/diagnostics.ts`
-- [ ] 1.2.4 Complete syntax nodes, grammar, Pratt integration and bounded recovery; remove Phase 1 pending syntax — `packages/compiler/src/frontend/syntax.ts`, `packages/compiler/src/frontend/parser-declarations.ts`, `packages/compiler/src/frontend/statements.ts`
-- [ ] 1.2.5 Complete module graph, symbol identity, scopes and deterministic initializer ordering — `packages/compiler/src/frontend/modules.ts`, `packages/compiler/src/frontend/module-bindings.ts`, `packages/compiler/src/frontend/effects.ts`
-- [ ] 1.2.6 Complete the RD-04-applicable diagnostic registry, frontend-owned producers and terminal poison handling; extend existing overlay analysis with the same bounded asset resolution as project analysis and await it in the LSP so CLI/LSP canonical records match — `packages/compiler/src/frontend/diagnostics.ts`, `packages/compiler/src/frontend/service.ts`, `packages/compiler/src/services/services.ts`, `packages/language-server/src/server.ts`
-- [ ] 1.2.7 Run Phase 1 specification cases and make all immutable expectations green — Phase 1 test files
+- [x] 1.2.1 Add the static coverage artifact and exact source-key validator — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage-validator.ts`, `test/rd04/normative-coverage.spec.test.ts` — Verified 2026-09-23 19:32: exact 395-key set, duplicate/missing/unknown/identity tests green; targeted Prettier, typecheck, whitespace and frozen-spec checks pass.
+- [x] 1.2.2 Extract type/declaration parsing from the oversized parser without changing accepted behavior — `packages/compiler/src/frontend/parser.ts`, `packages/compiler/src/frontend/parser-declarations.ts`, `packages/compiler/src/frontend/parser.impl.test.ts` — Verified 2026-09-23 19:36: parser 505 lines, declaration owner 420 lines, existing and shared-cursor implementation tests green; typecheck, Prettier, whitespace and frozen-spec checks pass.
+- [x] 1.2.3 Complete token inventory, literals, UTF-8, maximal munch and lexical diagnostics — `packages/compiler/src/frontend/tokens.ts`, `packages/compiler/src/frontend/lexer.ts`, `packages/compiler/src/frontend/diagnostics.ts` — Verified existing implementation 2026-09-23 19:38: 83 token kinds (36 keywords, 42 fixed spellings), raw-byte literal and maximal-munch cases, lexical registry and project-loader invalid UTF-8 cases; 48 directed tests pass. No code change needed.
+- [x] 1.2.4 Complete syntax nodes, grammar, Pratt integration and bounded recovery; remove Phase 1 pending syntax — `packages/compiler/src/frontend/syntax.ts`, `packages/compiler/src/frontend/parser-declarations.ts`, `packages/compiler/src/frontend/statements.ts` — Verified 2026-09-23: AR-P11 supersession, 77 directed parser/module tests, compiler typecheck, whitespace and frozen-spec checks pass; invalid placement/export recovery is bounded. One obsolete module implementation expectation was retired.
+- [x] 1.2.5 Complete module graph, symbol identity, scopes and deterministic initializer ordering — `packages/compiler/src/frontend/modules.ts`, `packages/compiler/src/frontend/module-bindings.ts`, `packages/compiler/src/frontend/effects.ts` — Verified 2026-09-23: enum and zeropage member bindings, import identity, new-form dependency traversal, existing parameter/for scopes and qualified-name initializer order; 50 directed tests, typecheck, whitespace and frozen-spec checks pass. Zero-page initializer semantics remain with its later semantic phase.
+- [x] 1.2.6 Complete the RD-04-applicable diagnostic registry, frontend-owned producers and terminal poison handling; extend existing overlay analysis with the same bounded asset resolution as project analysis and await it in the LSP so CLI/LSP canonical records match — `packages/compiler/src/frontend/diagnostics.ts`, `packages/compiler/src/frontend/service.ts`, `packages/compiler/src/services/services.ts`, `packages/language-server/src/server.ts` — Verified 2026-09-24: one awaited asset-aware overlay path, canonical CLI/editor identity, zero-page root diagnostics, duplicate-block rejection and existing poison/cap tests; 51 directed compiler/root/LSP cases, typecheck, formatting, whitespace and frozen-spec checks pass. The checked crosswalk owns the complete active-code inventory; no duplicate production registry was added.
+- [x] 1.2.7 Run Phase 1 specification cases and make all immutable expectations green — Phase 1 test files — Verified 2026-09-24: all 93 directed Phase 1 specification cases pass across compiler and root test suites.
 
 ### Step 1.3: Implementation Tests and Qualification
 
 **Reference**: [03-05](03-05-qualification.md) · ST-01–ST-07, ST-09; frontend-owned ST-08 diagnostics and full registry
 
-- [ ] 1.3.1 Add recovery-budget, graph-order and malformed-crosswalk implementation tests — `packages/compiler/src/frontend/parser.impl.test.ts`, `packages/compiler/src/frontend/modules.impl.test.ts`, `test/rd04/normative-coverage.impl.test.ts`
-- [ ] 1.3.2 Run complete frontend/compiler/CLI/LSP family tests, touched-file Prettier, whitespace and frozen-spec checks — affected packages and `test/rd04/`
+- [x] 1.3.1 Add recovery-budget, graph-order and malformed-crosswalk implementation tests — `packages/compiler/src/frontend/parser.impl.test.ts`, `packages/compiler/src/frontend/modules.impl.test.ts`, `test/rd04/normative-coverage.impl.test.ts` — Verified 2026-09-24: 42 directed implementation cases pass, including new bounded zero-page recovery, shuffled merged-module order, and seven malformed crosswalk cases; typecheck, formatting, whitespace and frozen-spec checks pass.
+- [x] 1.3.2 Run complete frontend/compiler/CLI/LSP family tests, touched-file Prettier, whitespace and frozen-spec checks — affected packages and `test/rd04/` — Verified 2026-09-24: frozen install, build, typecheck and complete test suite pass (1,194 tests after review fixes); touched-file Prettier, whitespace and frozen-spec checks pass.
 
 **Deliverables:** complete frontend; checked authority ledger; identical CLI/LSP canonical
 diagnostic records. Later diagnostic producers remain owned by their phases; full ST-08 and
 pipeline-wide failure case ST-10 first qualify in Phase 8.
 
 **Verify:** `yarn workspace @blend65/compiler test && yarn workspace @blend65/cli test && yarn workspace @blend65/language-server test && yarn test`
+
+### Phase 1 Quality Review — Closed
+
+The independent correctness and language-semantics reviews completed on 2026-09-24. On 2026-09-24
+the user approved keeping the strengthened specification tests, fixing the four frontend defects,
+and splitting the oversized parser class locally. All approved fixes are implemented. The focused
+red cases failed before implementation and now pass; frozen install, build, typecheck, all 1,194
+tests, formatting, whitespace, and frozen-spec checks pass. The one permitted fix-scoped
+correctness and semantics re-review found no remaining issues. No Phase 2 task has started.
+
+| Finding | Severity | Evidence | Approved ruling |
+|---|---|---|---|
+| RV-001 | Critical policy conflict | Planned spec-author work changed existing `*.spec.test.ts` assertions; AR-P11 and AR-P12 explicitly approved the affected supersessions. Review found no weakened expectation. | Resolved by user ruling: keep the stronger tests. |
+| RV-002 / semantics 2 | Major | Unknown `place(...)` key reports syntax error at `:` and leaves its declaration detached, instead of E10272 at the key. | Fixed: E10272 on the key; reject the full owner or zero-page member. |
+| Semantics 1 | Major | Empty enum reports generic syntax error and loses the declaration before E10234 can be produced. | Fixed: E10234 and bounded declaration retention. |
+| Semantics 3 | Major | Recovery after a missing semicolon loses later `switch`/`do` statements and emits spurious module errors. | Fixed: safe sibling starts include `switch`, `do`, and `loadable`. |
+| Semantics 4 | Major | `switch` accepts a `case` after `default`, contrary to the frozen grammar. | Fixed: one syntax diagnostic at the late `case`. |
+| RV-003 | Minor | `DeclarationParser` exceeds the written 500-line class limit. | Fixed: recursive type parsing moved to a companion file; declaration class is 495 lines. |
 
 ## Phase 2: Scalars, Enums, Expressions and Control Flow
 

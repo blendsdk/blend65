@@ -208,6 +208,21 @@ class ModuleAnalyzer {
       );
       return;
     }
+    if (declaration.kind === "enum" || declaration.kind === "zeropage") {
+      this.addObligation(declaration.span, "Declaration semantics remain pending");
+      return;
+    }
+    if (declaration.kind === "function" && declaration.mode !== "ordinary") {
+      this.addObligation(declaration.span, "Function entry semantics remain pending");
+      return;
+    }
+    if (
+      declaration.kind === "variable" &&
+      (declaration.loadable || declaration.zeropage || declaration.placement !== null)
+    ) {
+      this.addObligation(declaration.span, "Declaration storage semantics remain pending");
+      return;
+    }
     const sourceBinding = this.graph.bindings.find(
       (binding) =>
         binding.id.sourceId === declaration.span.sourceId &&
@@ -251,7 +266,7 @@ class ModuleAnalyzer {
       return;
     }
     if (declaration.kind === "variable") this.analyzeModuleVariable(module, declaration, state);
-    else this.analyzeFunction(module, declaration, state);
+    else if (declaration.kind === "function") this.analyzeFunction(module, declaration, state);
   }
 
   /** Check a module variable or constant initializer. */
@@ -569,7 +584,12 @@ class ModuleAnalyzer {
       }
       return Object.freeze({ kind: statement.kind, span: freezeSourceSpan(statement.span) });
     }
-    if (statement.kind === "unchecked") {
+    if (
+      statement.kind === "unchecked" ||
+      statement.kind === "do-while" ||
+      statement.kind === "switch" ||
+      statement.kind === "fallthrough"
+    ) {
       this.addObligation(statement.span, "Statement is not implemented by this frontend slice");
     }
     return null;
@@ -581,6 +601,10 @@ class ModuleAnalyzer {
     scope: Scope,
     context: ExpressionContext,
   ): TypedVariableStatement | null {
+    if (declaration.loadable) {
+      this.addObligation(declaration.span, "Loadable local semantics remain pending");
+      return null;
+    }
     const before = this.errorCount();
     const type = this.resolveType(declaration.type, context.module, declaration.initializer, scope);
     let initializer: TypedExpr | null = null;

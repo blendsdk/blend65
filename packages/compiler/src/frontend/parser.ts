@@ -1,43 +1,42 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceRecord, SourceSpan } from "../project/types.js";
 import { sortFrontendDiagnostics, syntaxDiagnostic } from "./diagnostics.js";
+import { DeclarationParser } from "./parser-declarations.js";
 import { parseExpression as parseOwnedExpression } from "./expressions.js";
 import type { ExpressionContext } from "./expressions.js";
 import { lexSource } from "./lexer.js";
-import { parseBlock } from "./statements.js";
 import type { StatementContext } from "./statements.js";
-import { PAYLOAD_KIND, TokenKind } from "./tokens.js";
+import { TokenKind } from "./tokens.js";
 import type { Token } from "./tokens.js";
 import type {
   Declaration,
+  EnumDeclaration,
   Expr,
   FunctionDeclaration,
-  FunctionParameter,
   HeaderResult,
   ImportDeclaration,
-  ImportItem,
   ModuleHeader,
   ParseResult,
+  PlacementClause,
   PoisonStatement,
   StructDeclaration,
-  StructField,
   SyntaxUnit,
   TypeSyntax,
   UncheckedSyntax,
   VariableDeclaration,
+  ZeropageBlock,
 } from "./syntax.js";
 
 /** Language errors are bounded independently from warning observations. */
 const MAX_ERRORS = 20;
 
-/** Primitive and no-value type spellings keyed by their fixed tokens. */
-const TYPE_NAMES: Readonly<Partial<Record<TokenKind, string>>> = Object.freeze({
-  [TokenKind.KW_BYTE]: "byte",
-  [TokenKind.KW_SBYTE]: "sbyte",
-  [TokenKind.KW_WORD]: "word",
-  [TokenKind.KW_SWORD]: "sword",
-  [TokenKind.KW_BOOLEAN]: "boolean",
-  [TokenKind.KW_VOID]: "void",
+/** Spellings used when a placement modifier precedes an ineligible owner. */
+const INVALID_PLACE_OWNER: Readonly<Partial<Record<TokenKind, string>>> = Object.freeze({
+  [TokenKind.KW_LOADABLE]: "loadable const",
+  [TokenKind.KW_COMPTIME]: "comptime function",
+  [TokenKind.KW_STRUCT]: "struct",
+  [TokenKind.KW_ENUM]: "enum",
+  [TokenKind.KW_ZEROPAGE]: "zeropage",
 });
 
 /** Parse one source with a single shared token cursor and recovery state. */
@@ -48,6 +47,8 @@ class Parser implements ExpressionContext, StatementContext {
   readonly diagnostics: ProjectDiagnostic[];
   /** Deferred valid-language regions in source order. */
   readonly unchecked: SourceSpan[] = [];
+  /** Type and declaration grammar shares this parser's cursor and recovery state. */
+  readonly declarations: DeclarationParser;
   /** Current token index; it never advances beyond EOF. */
   index = 0;
   /** Completion becomes false after poison, truncation, or an unchecked region. */
@@ -61,6 +62,7 @@ class Parser implements ExpressionContext, StatementContext {
 
   /** Preserve the immutable source while sharing lexer output. */
   constructor(readonly source: SourceRecord) {
+    this.declarations = new DeclarationParser(this);
     const lexical = lexSource(source);
     this.tokens = lexical.tokens;
     this.diagnostics = [...lexical.diagnostics];
@@ -140,11 +142,6 @@ class Parser implements ExpressionContext, StatementContext {
     });
   }
 
-  /** Return the exact identifier payload carried by a validated identifier token. */
-  identifier(token: Token): string | null {
-    return token.payload?.kind === PAYLOAD_KIND.identifier ? token.payload.text : null;
-  }
-
   /** Record a diagnostic while enforcing the shared twenty-error ceiling. */
   addDiagnostic(diagnostic: ProjectDiagnostic): void {
     if (diagnostic.severity === "error") {
@@ -155,370 +152,58 @@ class Parser implements ExpressionContext, StatementContext {
     this.diagnostics.push(diagnostic);
   }
 
-  /** Parse a primitive, qualified, array, or explicitly unchecked type form. */
+  /** Parse a type through the declaration owner. */
   parseType(): TypeSyntax | null {
-    if (this.check(TokenKind.KW_FN)) return this.parseUncheckedFunctionType();
-    const start = this.current;
-    let name = TYPE_NAMES[start.kind] ?? null;
-    let end = start;
-    if (name !== null) {
-      this.advance();
-    } else if (start.kind === TokenKind.IDENTIFIER) {
-      this.advance();
-      name = this.identifier(start);
-      if (name === null) return null;
-      while (this.match(TokenKind.DOT) !== null) {
-        const part = this.expect(TokenKind.IDENTIFIER, "an identifier");
-        if (part === null) return null;
-        const text = this.identifier(part);
-        if (text === null) return null;
-        name += "." + text;
-        end = part;
-      }
-    } else {
-      this.reportExpected("a type");
-      return null;
-    }
-
-    let type: TypeSyntax = Object.freeze({
-      kind: "named-type",
-      span: this.spanFrom(start, end),
-      name,
-    });
-    while (this.match(TokenKind.LBRACKET) !== null) {
-      const opener = this.tokens[this.index - 1]!;
-      const extent = this.check(TokenKind.RBRACKET) ? null : this.parseExpression();
-      if (!this.check(TokenKind.RBRACKET) && extent === null) return null;
-      const closer = this.expect(TokenKind.RBRACKET, "']'", opener);
-      if (closer === null) return null;
-      type = Object.freeze({
-        kind: "array-type",
-        span: Object.freeze({
-          sourceId: this.source.sourceId,
-          start: type.span.start,
-          end: closer.span.end,
-        }),
-        element: type,
-        extent,
-      });
-    }
-    return type;
+    return this.declarations.parseType();
   }
-
-  /** Retain a function type as one bounded pending-language region. */
-  parseUncheckedFunctionType(): UncheckedSyntax {
-    const start = this.advance();
-    let depth = 0;
-    let end = start.span.end;
-    while (!this.check(TokenKind.EOF)) {
-      if (
-        depth === 0 &&
-        (this.check(TokenKind.SEMICOLON) ||
-          this.check(TokenKind.COMMA) ||
-          this.check(TokenKind.EQUAL) ||
-          this.check(TokenKind.RPAREN))
-      ) {
-        break;
-      }
-      const token = this.advance();
-      if (token.kind === TokenKind.LPAREN) depth += 1;
-      if (token.kind === TokenKind.RPAREN) depth -= 1;
-      end = token.span.end;
-    }
-    const span = this.spanFrom(start, end);
-    this.unchecked.push(span);
-    this.complete = false;
-    return Object.freeze({ kind: "unchecked", span });
-  }
-
-  /** Parse a dotted identifier sequence. */
-  parseQualifiedName(): { readonly name: string; readonly span: SourceSpan } | null {
-    const first = this.expect(TokenKind.IDENTIFIER, "an identifier");
-    if (first === null) return null;
-    let name = this.identifier(first);
-    if (name === null) return null;
-    let end = first;
-    while (this.match(TokenKind.DOT) !== null) {
-      const part = this.expect(TokenKind.IDENTIFIER, "an identifier");
-      if (part === null) return null;
-      const text = this.identifier(part);
-      if (text === null) return null;
-      name += "." + text;
-      end = part;
-    }
-    return Object.freeze({ name, span: this.spanFrom(first, end) });
-  }
-
-  /** Parse one complete leading module declaration. */
+  /** Parse the required leading module header. */
   parseModuleHeader(): ModuleHeader | null {
-    const start = this.expect(TokenKind.KW_MODULE, "'module'");
-    if (start === null) return null;
-    const qualified = this.parseQualifiedName();
-    if (qualified === null) return null;
-    const closer = this.expect(TokenKind.SEMICOLON, "';'");
-    if (closer === null) return null;
-    return Object.freeze({
-      kind: "module",
-      span: this.spanFrom(start, closer),
-      name: qualified.name,
-      nameSpan: qualified.span,
-    });
+    return this.declarations.parseModuleHeader();
   }
-
-  /** Parse one import declaration with contextual aliases. */
+  /** Parse one import declaration. */
   parseImport(): ImportDeclaration | null {
-    const start = this.advance();
-    const opener = this.expect(TokenKind.LBRACE, "'{'");
-    if (opener === null) return null;
-    const items: ImportItem[] = [];
-    do {
-      const nameToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-      if (nameToken === null) return null;
-      const name = this.identifier(nameToken);
-      if (name === null) return null;
-      let alias: string | null = null;
-      let aliasSpan: SourceSpan | null = null;
-      let end = nameToken;
-      if (
-        this.current.payload?.kind === PAYLOAD_KIND.identifier &&
-        this.current.payload.text === "as"
-      ) {
-        this.advance();
-        const aliasToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-        if (aliasToken === null) return null;
-        alias = this.identifier(aliasToken);
-        aliasSpan = aliasToken.span;
-        end = aliasToken;
-      }
-      items.push(
-        Object.freeze({
-          name,
-          nameSpan: nameToken.span,
-          alias,
-          aliasSpan,
-          span: this.spanFrom(nameToken, end),
-        }),
-      );
-    } while (this.match(TokenKind.COMMA) !== null);
-    if (this.expect(TokenKind.RBRACE, "'}'", opener) === null) return null;
-    if (this.expect(TokenKind.KW_FROM, "'from'") === null) return null;
-    const module = this.parseQualifiedName();
-    if (module === null) return null;
-    const closer = this.expect(TokenKind.SEMICOLON, "';'");
-    if (closer === null) return null;
-    return Object.freeze({
-      kind: "import",
-      span: this.spanFrom(start, closer),
-      module: module.name,
-      moduleSpan: module.span,
-      items: Object.freeze(items),
-    });
+    return this.declarations.parseImport();
   }
-
-  /** Parse a variable declaration in module, block, or for-header position. */
+  /** Parse a declaration in module, block, or for-header position. */
   parseVariable(
     exported: boolean,
     requireSemicolon: boolean,
     declarationStart = this.current,
+    loadable = false,
+    placement: PlacementClause | null = null,
   ): VariableDeclaration | PoisonStatement | null {
-    const start = declarationStart;
-    const declarationToken = this.advance();
-    const declarationKind = declarationToken.kind === TokenKind.KW_CONST ? "const" : "let";
-    const nameToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-    if (nameToken === null) return this.recoverPoison(start);
-    const name = this.identifier(nameToken);
-    if (name === null) return this.recoverPoison(start);
-
-    let type: TypeSyntax | null = null;
-    let missingType = false;
-    if (this.match(TokenKind.COLON) !== null) type = this.parseType();
-    else missingType = true;
-
-    let initializer: Expr | null = null;
-    if (this.match(TokenKind.EQUAL) !== null) {
-      initializer = this.parseExpression();
-      if (initializer === null) return this.recoverPoison(start);
-    }
-    const missingInitializer = declarationKind === "const" && initializer === null;
-
-    let end = initializer?.span.end ?? type?.span.end ?? nameToken.span.end;
-    if (requireSemicolon) {
-      const closer = this.match(TokenKind.SEMICOLON);
-      if (closer === null) {
-        this.reportExpected("';'");
-        return this.recoverPoison(start, end);
-      }
-      end = closer.span.end;
-    }
-    const span = this.spanFrom(start, end);
-    if (missingType) {
-      this.addDiagnostic(
-        projectDiagnostic(
-          "E10150",
-          `Type annotation required for variable '${name}' — add ': <type>'`,
-          span,
-        ),
-      );
-    }
-    if (missingInitializer) {
-      this.addDiagnostic(
-        projectDiagnostic("E10190", `Const declaration '${name}' requires an initializer`, span),
-      );
-    }
-    return Object.freeze({
-      kind: "variable",
-      span,
-      name,
-      nameSpan: nameToken.span,
-      declarationKind,
+    return this.declarations.parseVariable(
       exported,
-      type,
-      initializer,
-    });
+      requireSemicolon,
+      declarationStart,
+      loadable,
+      placement,
+    );
   }
-
-  /** Parse one ordinary function declaration and its structured body. */
-  parseFunction(exported: boolean, start: Token): FunctionDeclaration | null {
-    this.advance();
-    const nameToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-    if (nameToken === null) return null;
-    const name = this.identifier(nameToken);
-    if (name === null) return null;
-    const opener = this.expect(TokenKind.LPAREN, "'('");
-    if (opener === null) return null;
-    const parameters: FunctionParameter[] = [];
-    if (!this.check(TokenKind.RPAREN)) {
-      do {
-        const parameterStart = this.current;
-        const parameterNameToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-        if (parameterNameToken === null) return null;
-        const parameterName = this.identifier(parameterNameToken);
-        if (parameterName === null) return null;
-        let readonly = false;
-        let type: TypeSyntax | null = null;
-        if (this.match(TokenKind.COLON) !== null) {
-          readonly = this.match(TokenKind.KW_CONST) !== null;
-          type = this.parseType();
-          if (type === null) return null;
-        } else {
-          this.addDiagnostic(
-            projectDiagnostic(
-              "E10150",
-              `Type annotation required for parameter '${parameterName}' — add ': <type>'`,
-              parameterNameToken.span,
-            ),
-          );
-          while (
-            !this.check(TokenKind.COMMA) &&
-            !this.check(TokenKind.RPAREN) &&
-            !this.check(TokenKind.EOF)
-          ) {
-            this.advance();
-          }
-        }
-        parameters.push(
-          Object.freeze({
-            name: parameterName,
-            nameSpan: parameterNameToken.span,
-            type,
-            readonly,
-            span: this.spanFrom(parameterStart, type ?? parameterNameToken),
-          }),
-        );
-      } while (this.match(TokenKind.COMMA) !== null);
-    }
-    if (this.expect(TokenKind.RPAREN, "')'", opener) === null) return null;
-    let returnType: TypeSyntax | null = null;
-    const missingReturnType = this.match(TokenKind.COLON) === null;
-    if (!missingReturnType) returnType = this.parseType();
-    const body = parseBlock(this);
-    const span = this.spanFrom(start, body);
-    if (missingReturnType) {
-      this.addDiagnostic(
-        projectDiagnostic(
-          "E10170",
-          `Return type required — write 'function ${name}(): void' for a function that returns nothing`,
-          span,
-        ),
-      );
-    }
-    return Object.freeze({
-      kind: "function",
-      span,
-      name,
-      nameSpan: nameToken.span,
-      exported,
-      parameters: Object.freeze(parameters),
-      returnType,
-      body,
-    });
+  /** Parse an ordinary, compile-time, or interrupt function and its body. */
+  parseFunction(
+    exported: boolean,
+    start: Token,
+    mode: FunctionDeclaration["mode"] = "ordinary",
+    placement: PlacementClause | null = null,
+  ): FunctionDeclaration | null {
+    return this.declarations.parseFunction(exported, start, mode, placement);
   }
-
-  /** Parse one non-empty struct declaration. */
+  /** Parse explicit module-level placement constraints. */
+  parsePlaceClause(): PlacementClause | null {
+    return this.declarations.parsePlaceClause();
+  }
+  /** Parse keyword-free variables in one zero-page block. */
+  parseZeropageBlock(): ZeropageBlock | null {
+    return this.declarations.parseZeropageBlock();
+  }
+  /** Parse an enum declaration. */
+  parseEnum(exported: boolean, start: Token): EnumDeclaration | null {
+    return this.declarations.parseEnum(exported, start);
+  }
+  /** Parse a struct declaration. */
   parseStruct(exported: boolean, start: Token): StructDeclaration | null {
-    this.advance();
-    const nameToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-    if (nameToken === null) return null;
-    const name = this.identifier(nameToken);
-    if (name === null) return null;
-    const opener = this.expect(TokenKind.LBRACE, "'{'");
-    if (opener === null) return null;
-    const fields: StructField[] = [];
-    while (!this.check(TokenKind.RBRACE) && !this.check(TokenKind.EOF)) {
-      const fieldStart = this.current;
-      const fieldNameToken = this.expect(TokenKind.IDENTIFIER, "an identifier");
-      if (fieldNameToken === null) return null;
-      const fieldName = this.identifier(fieldNameToken);
-      if (fieldName === null) return null;
-      let type: TypeSyntax | null = null;
-      let closer: Token | null = null;
-      if (this.match(TokenKind.COLON) !== null) {
-        type = this.parseType();
-        if (type === null) return null;
-        closer = this.expect(TokenKind.SEMICOLON, "';'");
-        if (closer === null) return null;
-      } else {
-        this.addDiagnostic(
-          projectDiagnostic(
-            "E10150",
-            `Type annotation required for field '${fieldName}' — add ': <type>'`,
-            fieldNameToken.span,
-          ),
-        );
-        while (
-          !this.check(TokenKind.SEMICOLON) &&
-          !this.check(TokenKind.RBRACE) &&
-          !this.check(TokenKind.EOF)
-        ) {
-          this.advance();
-        }
-        closer = this.match(TokenKind.SEMICOLON);
-      }
-      fields.push(
-        Object.freeze({
-          name: fieldName,
-          nameSpan: fieldNameToken.span,
-          type,
-          span: this.spanFrom(fieldStart, closer ?? fieldNameToken),
-        }),
-      );
-    }
-    const closer = this.expect(TokenKind.RBRACE, "'}'", opener);
-    if (closer === null) return null;
-    const span = this.spanFrom(start, closer);
-    if (fields.length === 0) {
-      this.addDiagnostic(
-        projectDiagnostic("E10090", `Struct '${name}' must have at least one field`, span),
-      );
-    }
-    return Object.freeze({
-      kind: "struct",
-      span,
-      name,
-      nameSpan: nameToken.span,
-      exported,
-      fields: Object.freeze(fields),
-    });
+    return this.declarations.parseStruct(exported, start);
   }
 
   /** Consume one balanced valid-language form not implemented by this partial parser. */
@@ -552,34 +237,36 @@ class Parser implements ExpressionContext, StatementContext {
     return Object.freeze({ kind: "unchecked", span });
   }
 
-  /** Retain an unsupported for loop without splitting its initializer from its body. */
-  consumeUncheckedFor(start: Token): UncheckedSyntax {
-    let parenDepth = 1;
-    let braceDepth = 0;
-    let sawBody = false;
-    let end = this.current.span.start;
+  /** Reject a whole ineligible declaration so its interior cannot become a sibling. */
+  consumePoisonedDeclaration(start: Token): PoisonStatement {
+    let depth = 0;
+    let sawBrace = false;
+    let end = start.span.end;
     while (!this.check(TokenKind.EOF)) {
       const token = this.advance();
-      if (token.kind === TokenKind.LPAREN) parenDepth += 1;
-      else if (token.kind === TokenKind.RPAREN) parenDepth = Math.max(0, parenDepth - 1);
-      else if (parenDepth === 0 && token.kind === TokenKind.LBRACE) {
-        braceDepth += 1;
-        sawBody = true;
-      } else if (parenDepth === 0 && token.kind === TokenKind.RBRACE) {
-        braceDepth = Math.max(0, braceDepth - 1);
+      if (
+        token.kind === TokenKind.LBRACE ||
+        token.kind === TokenKind.LPAREN ||
+        token.kind === TokenKind.LBRACKET
+      ) {
+        depth += 1;
+        if (token.kind === TokenKind.LBRACE) sawBrace = true;
+      } else if (
+        token.kind === TokenKind.RBRACE ||
+        token.kind === TokenKind.RPAREN ||
+        token.kind === TokenKind.RBRACKET
+      ) {
+        depth = Math.max(0, depth - 1);
       }
       end = token.span.end;
       if (
-        parenDepth === 0 &&
-        ((sawBody && braceDepth === 0) || (!sawBody && token.kind === TokenKind.SEMICOLON))
-      ) {
+        depth === 0 &&
+        (token.kind === TokenKind.SEMICOLON || (sawBrace && token.kind === TokenKind.RBRACE))
+      )
         break;
-      }
     }
-    const span = this.spanFrom(start, end);
-    this.unchecked.push(span);
     this.complete = false;
-    return Object.freeze({ kind: "unchecked", span });
+    return Object.freeze({ kind: "poison", span: this.spanFrom(start, end) });
   }
 
   /** Recover one rejected statement or declaration without crossing a safe sibling start. */
@@ -614,9 +301,12 @@ class Parser implements ExpressionContext, StatementContext {
     return (
       kind === TokenKind.KW_LET ||
       kind === TokenKind.KW_CONST ||
+      kind === TokenKind.KW_LOADABLE ||
       kind === TokenKind.KW_IF ||
       kind === TokenKind.KW_WHILE ||
+      kind === TokenKind.KW_DO ||
       kind === TokenKind.KW_FOR ||
+      kind === TokenKind.KW_SWITCH ||
       kind === TokenKind.KW_RETURN ||
       kind === TokenKind.KW_BREAK ||
       kind === TokenKind.KW_CONTINUE ||
@@ -741,13 +431,55 @@ class Parser implements ExpressionContext, StatementContext {
       }
       const start = this.current;
       const exported = this.match(TokenKind.KW_EXPORT) !== null;
+      const hasPlacement = this.check(TokenKind.KW_PLACE);
+      const placement = hasPlacement ? this.parsePlaceClause() : null;
+      if (hasPlacement && placement === null) {
+        declarations.push(this.consumePoisonedDeclaration(start));
+        continue;
+      }
+      if (
+        placement !== null &&
+        !this.check(TokenKind.KW_LET) &&
+        !this.check(TokenKind.KW_CONST) &&
+        !this.check(TokenKind.KW_FUNCTION) &&
+        !this.check(TokenKind.KW_INTERRUPT)
+      ) {
+        const owner = INVALID_PLACE_OWNER[this.current.kind] ?? "declaration";
+        this.addDiagnostic(
+          projectDiagnostic(
+            "E10272",
+            `Invalid place constraint on '${owner}' — this declaration form is not placeable; allowed keys are at, align, noCross, and region on module-level stored data or emitted functions`,
+            placement.span,
+          ),
+        );
+        declarations.push(this.consumePoisonedDeclaration(start));
+        continue;
+      }
       if (this.check(TokenKind.KW_LET) || this.check(TokenKind.KW_CONST)) {
-        const declaration = this.parseVariable(exported, true, start);
+        const declaration = this.parseVariable(exported, true, start, false, placement);
+        if (declaration !== null) declarations.push(declaration);
+        continue;
+      }
+      if (this.check(TokenKind.KW_LOADABLE)) {
+        const declaration = this.parseVariable(exported, true, start, true);
         if (declaration !== null) declarations.push(declaration);
         continue;
       }
       if (this.check(TokenKind.KW_FUNCTION)) {
-        const declaration = this.parseFunction(exported, start);
+        const declaration = this.parseFunction(exported, start, "ordinary", placement);
+        if (declaration !== null) declarations.push(declaration);
+        else declarations.push(this.recoverPoison(start));
+        continue;
+      }
+      if (this.check(TokenKind.KW_COMPTIME) || this.check(TokenKind.KW_INTERRUPT)) {
+        const mode = this.check(TokenKind.KW_COMPTIME) ? "comptime" : "interrupt";
+        this.advance();
+        if (!this.check(TokenKind.KW_FUNCTION)) {
+          this.reportExpected("'function'");
+          declarations.push(this.recoverPoison(start));
+          continue;
+        }
+        const declaration = this.parseFunction(exported, start, mode, placement);
         if (declaration !== null) declarations.push(declaration);
         else declarations.push(this.recoverPoison(start));
         continue;
@@ -758,15 +490,21 @@ class Parser implements ExpressionContext, StatementContext {
         else declarations.push(this.recoverPoison(start));
         continue;
       }
-      if (
-        this.check(TokenKind.KW_ENUM) ||
-        this.check(TokenKind.KW_COMPTIME) ||
-        this.check(TokenKind.KW_INTERRUPT) ||
-        this.check(TokenKind.KW_LOADABLE) ||
-        this.check(TokenKind.KW_ZEROPAGE) ||
-        this.check(TokenKind.KW_PLACE)
-      ) {
-        declarations.push(this.consumeUncheckedDeclaration());
+      if (this.check(TokenKind.KW_ENUM)) {
+        const declaration = this.parseEnum(exported, start);
+        if (declaration !== null) declarations.push(declaration);
+        else declarations.push(this.recoverPoison(start));
+        continue;
+      }
+      if (this.check(TokenKind.KW_ZEROPAGE)) {
+        if (exported) {
+          this.reportExpected("a declaration after 'export'");
+          declarations.push(this.consumePoisonedDeclaration(start));
+          continue;
+        }
+        const declaration = this.parseZeropageBlock();
+        if (declaration !== null) declarations.push(declaration);
+        else declarations.push(this.recoverPoison(start));
         continue;
       }
       if (this.check(TokenKind.KW_TYPE)) {

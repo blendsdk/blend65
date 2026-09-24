@@ -47,6 +47,21 @@ describe("parser implementation recovery", () => {
     expect(result.diagnostics.every(({ code }) => code === "PARSE_SYNTAX_ERROR")).toBe(true);
   });
 
+  it("should cap repeated invalid zeropage members and retain a later function", () => {
+    const invalid = Array.from({ length: 30 }, (_, index) => `let bad${index}: byte;`).join(" ");
+    const result = parseSource(
+      source(`module Game; zeropage { ${invalid} good: byte; } function main(): void {}`),
+    );
+
+    expect(result.complete).toBe(false);
+    expect(result.diagnostics).toHaveLength(20);
+    expect(result.diagnostics.every(({ code }) => code === "E10033")).toBe(true);
+    expect(result.unit?.declarations).toMatchObject([
+      { kind: "zeropage", variables: [{ name: "good" }] },
+      { kind: "function", name: "main" },
+    ]);
+  });
+
   it("should stop deep expression recursion without throwing or inventing a diagnostic", () => {
     const nesting = "(".repeat(2_000) + "1" + ")".repeat(2_000);
     const text = `module Game; function main(): void { ${nesting}; let kept: byte = 1; }`;
@@ -77,13 +92,13 @@ describe("parser implementation recovery", () => {
     expect(result.diagnostics).toEqual([]);
   });
 
-  it("should retain an unfinished unsupported declaration as unchecked", () => {
+  it("should reject an unfinished enum without marking it as unsupported syntax", () => {
     const result = parseSource(source("module Game; enum E { A"));
 
     expect(result.complete).toBe(false);
-    expect(result.diagnostics).toEqual([]);
-    expect(result.unchecked).toHaveLength(1);
-    expect(result.unit?.declarations).toMatchObject([{ kind: "unchecked" }]);
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["PARSE_SYNTAX_ERROR"]);
+    expect(result.unchecked).toEqual([]);
+    expect(result.unit?.declarations).not.toMatchObject([{ kind: "enum" }]);
   });
 
   it("should keep lexical poison separate from parser syntax", () => {
@@ -133,18 +148,46 @@ describe("parser implementation recovery", () => {
     expect(result.unit?.declarations).toMatchObject([{ kind: "function", name: "kept" }]);
   });
 
-  it("should retain unsupported statement forms as exact unchecked regions", () => {
+  it("should parse complete loop and loadable statement forms", () => {
     const text =
       "module Game; function main(): void { do { work(); } while (ready); loadable const data: byte[1] = [1]; for (loadable const item: byte[1] = [1]; ready; tick()) { work(); } }";
     const { result, statements } = functionStatements(text);
 
     expect(result.diagnostics).toEqual([]);
+    expect(result.complete).toBe(true);
+    expect(result.unchecked).toEqual([]);
+    expect(statements).toMatchObject([
+      { kind: "do-while" },
+      { kind: "variable", name: "data", loadable: true },
+      { kind: "for", initializer: { kind: "variable", name: "item", loadable: true } },
+    ]);
+  });
+
+  it("should reject an ineligible placement owner without losing the next declaration", () => {
+    const result = parseSource(
+      source("module Game; place(at: $2000) loadable const BAD: byte = 1; const KEPT: byte = 2;"),
+    );
+
     expect(result.complete).toBe(false);
-    expect(statements.map(({ kind }) => kind)).toEqual(["unchecked", "unchecked", "unchecked"]);
-    expect(result.unchecked.map((span) => text.slice(span.start, span.end))).toEqual([
-      "do { work(); } while (ready);",
-      "loadable const data: byte[1] = [1];",
-      "for (loadable const item: byte[1] = [1]; ready; tick()) { work(); }",
+    expect(result.unchecked).toEqual([]);
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10272"]);
+    expect(result.unit?.declarations).toMatchObject([
+      { kind: "poison" },
+      { kind: "variable", name: "KEPT" },
+    ]);
+  });
+
+  it("should not silently accept export on a whole zeropage block", () => {
+    const result = parseSource(
+      source("module Game; export zeropage { counter: byte; } const KEPT: byte = 2;"),
+    );
+
+    expect(result.complete).toBe(false);
+    expect(result.unchecked).toEqual([]);
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["PARSE_SYNTAX_ERROR"]);
+    expect(result.unit?.declarations).toMatchObject([
+      { kind: "poison" },
+      { kind: "variable", name: "KEPT" },
     ]);
   });
 
@@ -165,6 +208,29 @@ describe("parser implementation recovery", () => {
 });
 
 describe("parser implementation shapes", () => {
+  it("should share one cursor across header, declarations, types, and statements", () => {
+    const result = parseSource(
+      source(
+        "module Game; import { value } from Data; const count: byte = 2; function main(arg: byte[2]): void { let local: byte = count; local = arg[0]; } struct Pair { left: byte; }",
+      ),
+    );
+
+    expect(result.complete).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.unit?.header?.name).toBe("Game");
+    expect(result.unit?.imports).toMatchObject([{ module: "Data", items: [{ name: "value" }] }]);
+    expect(result.unit?.declarations).toMatchObject([
+      { kind: "variable", name: "count" },
+      {
+        kind: "function",
+        name: "main",
+        parameters: [{ name: "arg", type: { kind: "array-type" } }],
+        body: { statements: [{ kind: "variable" }, { kind: "expression-statement" }] },
+      },
+      { kind: "struct", name: "Pair", fields: [{ name: "left" }] },
+    ]);
+  });
+
   it("should preserve distinct query operand forms", () => {
     const { result, statements } = functionStatements(
       "module Game; function main(): void { sizeof(byte[2]); offsetof(Game.Pair, left); length(values); }",

@@ -3,11 +3,14 @@ import { TokenKind } from "./tokens.js";
 import type { Token } from "./tokens.js";
 import type {
   Block,
+  DoWhileStatement,
   Expr,
   ForStatement,
   IfStatement,
   PoisonStatement,
   Statement,
+  SwitchClause,
+  SwitchStatement,
   UncheckedSyntax,
   VariableDeclaration,
 } from "./syntax.js";
@@ -35,13 +38,12 @@ export interface StatementContext {
     exported: boolean,
     requireSemicolon: boolean,
     declarationStart?: Token,
+    loadable?: boolean,
   ): VariableDeclaration | PoisonStatement | null;
   /** Recover a rejected statement without crossing a safe sibling boundary. */
   recoverPoison(start: Token, knownEnd?: number): PoisonStatement;
   /** Retain one balanced valid-language form whose implementation is pending. */
   consumeUncheckedDeclaration(): UncheckedSyntax;
-  /** Retain an unsupported for loop after its opening parenthesis was consumed. */
-  consumeUncheckedFor(start: Token): UncheckedSyntax;
   /** Enter a nested block when the parser can do so without exhausting the host stack. */
   enterBlock(): boolean;
   /** Leave a previously entered nested block. */
@@ -147,17 +149,128 @@ function parseWhile(context: StatementContext): Statement {
   return Object.freeze({ kind: "while", span: context.spanFrom(start, body), condition, body });
 }
 
+/** Parse a post-test loop and its required closing semicolon. */
+function parseDoWhile(context: StatementContext): DoWhileStatement | PoisonStatement {
+  const start = context.advance();
+  const body = parseBlock(context);
+  if (context.expect(TokenKind.KW_WHILE, "'while'") === null) return context.recoverPoison(start);
+  const opener = context.expect(TokenKind.LPAREN, "'('");
+  if (opener === null) return context.recoverPoison(start);
+  const condition = context.parseExpression();
+  if (condition === null || context.expect(TokenKind.RPAREN, "')'", opener) === null) {
+    return context.recoverPoison(start);
+  }
+  const closer = context.expect(TokenKind.SEMICOLON, "';'");
+  if (closer === null) return context.recoverPoison(start);
+  return Object.freeze({
+    kind: "do-while",
+    span: context.spanFrom(start, closer),
+    body,
+    condition,
+  });
+}
+
+/** Parse an explicit fallthrough marker; placement is checked semantically. */
+function parseFallthrough(context: StatementContext): Statement {
+  const start = context.advance();
+  const closer = context.expect(TokenKind.SEMICOLON, "';'");
+  return closer === null
+    ? context.recoverPoison(start)
+    : Object.freeze({ kind: "fallthrough", span: context.spanFrom(start, closer) });
+}
+
+/** Parse a switch arm until its next label or the closing brace. */
+function parseSwitchClause(context: StatementContext): SwitchClause | null {
+  const start = context.advance();
+  const values: Expr[] | null = start.kind === TokenKind.KW_DEFAULT ? null : [];
+  if (values !== null) {
+    do {
+      const value = context.parseExpression();
+      if (value === null) return null;
+      values.push(value);
+    } while (context.match(TokenKind.COMMA) !== null);
+  }
+  if (context.expect(TokenKind.COLON, "':'") === null) return null;
+  const statements: Statement[] = [];
+  while (
+    !context.check(TokenKind.KW_CASE) &&
+    !context.check(TokenKind.KW_DEFAULT) &&
+    !context.check(TokenKind.RBRACE) &&
+    !context.check(TokenKind.EOF)
+  ) {
+    const before = context.current;
+    statements.push(parseStatement(context));
+    if (context.current === before) context.advance();
+  }
+  const end = statements.at(-1)?.span.end ?? context.current.span.start;
+  return Object.freeze({
+    values: values === null ? null : Object.freeze(values),
+    statements: Object.freeze(statements),
+    span: context.spanFrom(start, end),
+  });
+}
+
+/** Parse all switch arms while retaining source order for later semantic checks. */
+function parseSwitch(context: StatementContext): SwitchStatement | PoisonStatement {
+  const start = context.advance();
+  const paren = context.expect(TokenKind.LPAREN, "'('");
+  if (paren === null) return context.recoverPoison(start);
+  const value = context.parseExpression();
+  if (value === null || context.expect(TokenKind.RPAREN, "')'", paren) === null) {
+    return context.recoverPoison(start);
+  }
+  const opener = context.expect(TokenKind.LBRACE, "'{'");
+  if (opener === null) return context.recoverPoison(start);
+  if (!context.enterBlock()) return context.recoverPoison(start);
+  try {
+    const clauses: SwitchClause[] = [];
+    let sawDefault = false;
+    let reportedLateCase = false;
+    while (!context.check(TokenKind.RBRACE) && !context.check(TokenKind.EOF)) {
+      if (!context.check(TokenKind.KW_CASE) && !context.check(TokenKind.KW_DEFAULT)) {
+        context.reportExpected("'case' or 'default'");
+        return context.recoverPoison(start);
+      }
+      if (sawDefault && context.check(TokenKind.KW_CASE) && !reportedLateCase) {
+        context.reportExpected("all 'case' clauses before 'default'");
+        reportedLateCase = true;
+      }
+      if (context.check(TokenKind.KW_DEFAULT)) sawDefault = true;
+      const clause = parseSwitchClause(context);
+      if (clause === null) return context.recoverPoison(start);
+      clauses.push(clause);
+    }
+    const closer = context.expect(TokenKind.RBRACE, "'}'", opener);
+    if (closer === null) return context.recoverPoison(start);
+    return Object.freeze({
+      kind: "switch",
+      span: context.spanFrom(start, closer),
+      value,
+      clauses: Object.freeze(clauses),
+    });
+  } finally {
+    context.leaveBlock();
+  }
+}
+
 /** Parse the three independently optional clauses of an ordinary for loop. */
 function parseFor(context: StatementContext): ForStatement | PoisonStatement | UncheckedSyntax {
   const start = context.advance();
   const opener = context.expect(TokenKind.LPAREN, "'('");
   if (opener === null) return context.recoverPoison(start);
-  if (context.check(TokenKind.KW_LOADABLE)) return context.consumeUncheckedFor(start);
-
   let initializer: VariableDeclaration | readonly Expr[] | null = null;
   if (!context.check(TokenKind.SEMICOLON)) {
-    if (context.check(TokenKind.KW_LET) || context.check(TokenKind.KW_CONST)) {
-      const declaration = context.parseVariable(false, false);
+    if (
+      context.check(TokenKind.KW_LET) ||
+      context.check(TokenKind.KW_CONST) ||
+      context.check(TokenKind.KW_LOADABLE)
+    ) {
+      const declaration = context.parseVariable(
+        false,
+        false,
+        undefined,
+        context.check(TokenKind.KW_LOADABLE),
+      );
       if (declaration === null || declaration.kind === "poison") {
         return context.recoverPoison(start);
       }
@@ -191,24 +304,31 @@ function parseFor(context: StatementContext): ForStatement | PoisonStatement | U
 
 /** Parse one statement selected entirely by its leading token. */
 function parseStatement(context: StatementContext): Statement {
-  if (context.check(TokenKind.KW_LET) || context.check(TokenKind.KW_CONST)) {
-    return context.parseVariable(false, true) ?? context.recoverPoison(context.current);
+  if (
+    context.check(TokenKind.KW_LET) ||
+    context.check(TokenKind.KW_CONST) ||
+    context.check(TokenKind.KW_LOADABLE)
+  ) {
+    return (
+      context.parseVariable(false, true, undefined, context.check(TokenKind.KW_LOADABLE)) ??
+      context.recoverPoison(context.current)
+    );
   }
   if (context.check(TokenKind.KW_IF)) return parseIf(context);
   if (context.check(TokenKind.KW_WHILE)) return parseWhile(context);
+  if (context.check(TokenKind.KW_DO)) return parseDoWhile(context);
   if (context.check(TokenKind.KW_FOR)) return parseFor(context);
+  if (context.check(TokenKind.KW_SWITCH)) return parseSwitch(context);
+  if (context.check(TokenKind.KW_FALLTHROUGH)) return parseFallthrough(context);
   if (context.check(TokenKind.KW_BREAK) || context.check(TokenKind.KW_CONTINUE)) {
     return parseLoopJump(context);
   }
   if (context.check(TokenKind.KW_RETURN)) return parseReturn(context);
   if (context.check(TokenKind.LBRACE)) return parseBlock(context);
-  if (
-    context.check(TokenKind.KW_SWITCH) ||
-    context.check(TokenKind.KW_DO) ||
-    context.check(TokenKind.KW_COMPTIME) ||
-    context.check(TokenKind.KW_LOADABLE)
-  ) {
-    return context.consumeUncheckedDeclaration();
+  if (context.check(TokenKind.KW_COMPTIME)) {
+    const start = context.current;
+    context.reportExpected("a statement");
+    return context.recoverPoison(start);
   }
   return parseExpressionStatement(context);
 }

@@ -19,6 +19,37 @@ function span(start: number, end: number): SourceSpan {
 }
 
 describe("source lexing", () => {
+  // A skipped prefix and a discarded multi-byte comment still count toward every later byte span.
+  it("should preserve exact token values and byte spans after a BOM, CRLF, and Unicode comment", () => {
+    const input = source("\uFEFFmodule Game;\r\n/*é🎮*/let n: word = $FF_FF;");
+    const result = lexSource(input);
+
+    expect(result.complete).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.poisoned).toEqual([]);
+    expect(
+      result.tokens.map(({ kind, span: tokenSpan, payload }) => ({
+        kind,
+        span: tokenSpan,
+        payload,
+      })),
+    ).toEqual([
+      { kind: "KW_MODULE", span: span(3, 9), payload: null },
+      { kind: "IDENTIFIER", span: span(10, 14), payload: { kind: "identifier", text: "Game" } },
+      { kind: "SEMICOLON", span: span(14, 15), payload: null },
+      { kind: "KW_LET", span: span(27, 30), payload: null },
+      { kind: "IDENTIFIER", span: span(31, 32), payload: { kind: "identifier", text: "n" } },
+      { kind: "COLON", span: span(32, 33), payload: null },
+      { kind: "KW_WORD", span: span(34, 38), payload: null },
+      { kind: "EQUAL", span: span(39, 40), payload: null },
+      { kind: "NUMBER", span: span(41, 47), payload: { kind: "number", value: 65535n } },
+      { kind: "SEMICOLON", span: span(47, 48), payload: null },
+      { kind: "EOF", span: span(48, 48), payload: null },
+    ]);
+    expect(result.tokens[3]).toMatchObject({ line: 2, column: 11 });
+    expect(result.tokens[8]).toMatchObject({ line: 2, column: 25 });
+  });
+
   // Skipped syntax still occupies its original bytes and columns.
   it("should preserve raw byte coordinates through a BOM and Unicode comment", () => {
     const input = source("\uFEFFmodule Game;\r\n/*é🎮*/let x: byte = 1;");
@@ -158,6 +189,74 @@ describe("source lexing", () => {
     ]);
     expect(result.tokens.at(-2)?.payload).toEqual({ kind: "identifier", text: "x" });
   });
+
+  // A three-character assignment operator must win over its two-character prefix.
+  it("should choose the longest shift assignments at adjacent operator boundaries", () => {
+    const result = lexSource(source("a<<=b>>=c<<d>=e"));
+    expect(result.diagnostics).toEqual([]);
+    expect(result.poisoned).toEqual([]);
+    expect(result.tokens.map((token) => token.kind)).toEqual([
+      "IDENTIFIER",
+      "SHIFT_LEFT_EQUAL",
+      "IDENTIFIER",
+      "SHIFT_RIGHT_EQUAL",
+      "IDENTIFIER",
+      "SHIFT_LEFT",
+      "IDENTIFIER",
+      "GREATER_EQUAL",
+      "IDENTIFIER",
+      "EOF",
+    ]);
+  });
+
+  // The source ends before a quoted value can close, so no string value may survive recovery.
+  it("should reject an unterminated string at end of source without a usable literal", () => {
+    const input = source('"HELLO');
+    const result = lexSource(input);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "E10218",
+        severity: "error",
+        message: "Unterminated string literal — expected closing '\"' before end of line",
+        primarySpan: span(0, 6),
+      },
+    ]);
+    expect(result.poisoned).toEqual([span(0, 6)]);
+    expect(result.tokens.filter((token) => token.kind === "STRING")).toEqual([]);
+  });
+
+  // A raw line break is not a string character, even if another quote appears on the next line.
+  it("should reject a raw newline inside a string with its dedicated diagnostic", () => {
+    const result = lexSource(source('"A\nx'));
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "E10217",
+        severity: "error",
+        message: "Newline in string literal — use an escape sequence",
+        primarySpan: span(2, 3),
+      },
+    ]);
+    expect(result.poisoned).toContainEqual(span(0, 2));
+    expect(result.tokens.filter((token) => token.kind === "STRING")).toEqual([]);
+  });
+
+  // A separator touching a prefix or the end is not between digits and cannot become a number.
+  it.each(["$_FF", "$FF_", "$F__F"])(
+    "should reject malformed hexadecimal separators in %s",
+    (text) => {
+      const input = source(text);
+      const result = lexSource(input);
+      expect(result.diagnostics).toMatchObject([
+        {
+          code: "E10213",
+          severity: "error",
+          primarySpan: span(0, input.byteLength),
+        },
+      ]);
+      expect(result.poisoned).toEqual([span(0, input.byteLength)]);
+      expect(result.tokens.filter((token) => token.kind === "NUMBER")).toEqual([]);
+    },
+  );
 
   // Literal recognition preserves source meaning and leaves target encoding undecided.
   it("should preserve an empty string a character Unicode a symbolic escape and an exact byte", () => {

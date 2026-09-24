@@ -43,7 +43,9 @@ export function collectDeclarationIndex(graph: ModuleGraph): Map<string, Declara
   const declarations = new Map<string, Declaration>();
   for (const module of graph.modules) {
     for (const unit of module.units) {
-      for (const declaration of unit.declarations) {
+      for (const declaration of unit.declarations.flatMap((item): readonly Declaration[] =>
+        item.kind === "zeropage" ? item.variables : [item],
+      )) {
         const binding = graph.bindings.find(
           (candidate) =>
             candidate.qualifiedName ===

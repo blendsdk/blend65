@@ -119,6 +119,28 @@ describe("module graph implementation boundaries", () => {
     expectArraysFrozen(firstResult);
   });
 
+  it("should select the same first zeropage block for either input order", () => {
+    const first = source(
+      "src/a.blend",
+      "module Game; zeropage { a: byte; } function main(): void {}",
+    );
+    const second = source("src/z.blend", "module Game; zeropage { z: byte; }");
+    const ordered = snapshot("Game", [first, second]);
+    const reversed = snapshot("Game", [second, first]);
+
+    const firstResult = resolveModules(ordered, indexModules(ordered).index);
+    const secondResult = resolveModules(reversed, indexModules(reversed).index);
+
+    expect(firstResult).toEqual(secondResult);
+    expect(firstResult.diagnostics.map(({ code }) => code)).toEqual(["E10030"]);
+    expect(firstResult.graph?.bindings.map(({ qualifiedName }) => qualifiedName)).toContain(
+      "Game.a",
+    );
+    expect(firstResult.graph?.bindings.map(({ qualifiedName }) => qualifiedName)).not.toContain(
+      "Game.z",
+    );
+  });
+
   it("should inspect a deep qualified member chain without exhausting the host stack", () => {
     const suffix = Array.from({ length: 5_000 }, () => "field").join(".");
     const project = snapshot("Game", [
@@ -132,10 +154,7 @@ describe("module graph implementation boundaries", () => {
     expect(resolved.graph?.modules.map(({ name }) => name)).toEqual(["Game", "Math"]);
   });
 
-  it("should explain unsupported syntax and defensive parser exhaustion with obligations", () => {
-    const unsupported = snapshot("Game", [
-      source("src/game.blend", "module Game; enum State { Ready } function main(): void {}"),
-    ]);
+  it("should explain defensive parser exhaustion with an obligation", () => {
     const deep = snapshot("Game", [
       source(
         "src/game.blend",
@@ -143,12 +162,9 @@ describe("module graph implementation boundaries", () => {
       ),
     ]);
 
-    const unsupportedResult = resolveModules(unsupported, indexModules(unsupported).index);
     const deepResult = resolveModules(deep, indexModules(deep).index);
 
-    expect(unsupportedResult.obligations.map(({ kind }) => kind)).toContain("implementation");
     expect(deepResult.obligations.map(({ kind }) => kind)).toContain("analysis-limit");
-    expect(unsupportedResult.complete).toBe(false);
     expect(deepResult.complete).toBe(false);
   });
 

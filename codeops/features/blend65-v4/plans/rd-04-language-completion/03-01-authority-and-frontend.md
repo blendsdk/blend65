@@ -65,6 +65,34 @@ row and requires existing decisive proof for each terminal disposition. Duplicat
 unknown or malformed keys, paths outside the repository, and a wrong Specification 4 identity
 always fail. No production code reads this artifact.
 
+The source-key set uses only printed names: `grammar:<production>` for the grammar's 106-entry
+production index, `rule:<source-file>#<rule-id>` for named semantic-rule headings in normative
+chapters, `diagnostic:<code>` for active Chapter 14 error/warning rows, and
+`conformance:15-platform-profile.md#5.1` through `#5.5` for the five named conformance
+subsections. Nested bullets, table rows and prose gain no invented identifiers. One small
+test-only validator module may expose source-key extraction and row validation to the direct
+Vitest and its malformed-row cases; it is not a generator, framework or product dependency.
+The JSON envelope has `specificationIdentity` and `entries` fields. The test-only module at
+`test/rd04/normative-coverage-validator.ts` exposes two direct functions:
+
+```ts
+interface CoverageSourceKey {
+  readonly key: string;
+  readonly kind: CoverageKind;
+  readonly source: string;
+}
+
+function readNormativeSourceKeys(specRoot: string): Promise<readonly CoverageSourceKey[]>;
+function coverageViolations(
+  document: unknown,
+  expectedKeys: readonly CoverageSourceKey[],
+  expectedIdentity: string,
+): readonly string[];
+```
+
+The first reads only the frozen files and their printed names. The second reports exact missing,
+unknown, duplicate, malformed and identity errors; it does not generate or modify the JSON.
+
 ### Lexer Boundary
 
 - `tokens.ts` owns the closed token enumeration.

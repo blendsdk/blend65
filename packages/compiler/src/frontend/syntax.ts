@@ -63,6 +63,28 @@ export interface ArrayTypeSyntax {
   readonly extent: Expr | null;
 }
 
+/** One unnamed type and qualifier in an exact function signature. */
+export interface FunctionTypeParameter {
+  /** Whether the parameter is read-only. */
+  readonly readonly: boolean;
+  /** Complete parameter type. */
+  readonly type: TypeSyntax;
+  /** Complete parameter bytes. */
+  readonly span: SourceSpan;
+}
+
+/** A typed ordinary-function value, distinct from a raw address. */
+export interface FunctionTypeSyntax {
+  /** Node discriminator. */
+  readonly kind: "function-type";
+  /** Complete signature bytes. */
+  readonly span: SourceSpan;
+  /** Parameters in source order. */
+  readonly parameters: readonly FunctionTypeParameter[];
+  /** Written return type. */
+  readonly returnType: TypeSyntax;
+}
+
 /** A bounded language form whose later implementation is still pending. */
 export interface UncheckedSyntax {
   /** Node discriminator. */
@@ -72,7 +94,7 @@ export interface UncheckedSyntax {
 }
 
 /** Type forms currently represented by the parser. */
-export type TypeSyntax = NamedTypeSyntax | ArrayTypeSyntax | UncheckedSyntax;
+export type TypeSyntax = NamedTypeSyntax | ArrayTypeSyntax | FunctionTypeSyntax | UncheckedSyntax;
 
 /** An integer literal expression. */
 export interface NumberExpr {
@@ -318,12 +340,46 @@ export interface VariableDeclaration {
   readonly nameSpan: SourceSpan;
   /** Mutable or constant declaration form. */
   readonly declarationKind: "let" | "const";
+  /** Package-only constant form. */
+  readonly loadable: boolean;
+  /** Zero-page block member. */
+  readonly zeropage: boolean;
+  /** Optional module-level placement constraints. */
+  readonly placement: PlacementClause | null;
   /** Whether an export modifier was written. */
   readonly exported: boolean;
   /** Written type, or null only for diagnostic recovery. */
   readonly type: TypeSyntax | null;
   /** Initial value, or null when omitted. */
   readonly initializer: Expr | null;
+}
+
+/** One closed placement key and its written value. */
+export interface PlacementArgument {
+  /** Accepted key spelling. */
+  readonly key: "at" | "align" | "noCross" | "region";
+  /** Expression for numeric keys, qualified name for region. */
+  readonly value: Expr | string;
+  /** Complete argument bytes. */
+  readonly span: SourceSpan;
+}
+
+/** A module-level placement modifier. */
+export interface PlacementClause {
+  /** Complete clause bytes. */
+  readonly span: SourceSpan;
+  /** Constraints in source order. */
+  readonly arguments: readonly PlacementArgument[];
+}
+
+/** Mutable declarations grouped in zero-page storage. */
+export interface ZeropageBlock {
+  /** Node discriminator. */
+  readonly kind: "zeropage";
+  /** Complete block bytes. */
+  readonly span: SourceSpan;
+  /** Variables in source order. */
+  readonly variables: readonly VariableDeclaration[];
 }
 
 /** One function parameter. */
@@ -344,6 +400,10 @@ export interface FunctionParameter {
 export interface FunctionDeclaration {
   /** Node discriminator. */
   readonly kind: "function";
+  /** Ordinary, compile-time, or interrupt entry source form. */
+  readonly mode: "ordinary" | "comptime" | "interrupt";
+  /** Optional module-level placement constraints. */
+  readonly placement: PlacementClause | null;
   /** Complete declaration bytes. */
   readonly span: SourceSpan;
   /** Declared function name. */
@@ -358,6 +418,34 @@ export interface FunctionDeclaration {
   readonly returnType: TypeSyntax | null;
   /** Structured function body. */
   readonly body: Block;
+}
+
+/** One named member of a byte-backed enum. */
+export interface EnumMember {
+  /** Member spelling. */
+  readonly name: string;
+  /** Bytes occupied by the member name. */
+  readonly nameSpan: SourceSpan;
+  /** Optional written constant value. */
+  readonly value: Expr | null;
+  /** Complete member bytes. */
+  readonly span: SourceSpan;
+}
+
+/** A nominal enum declaration. */
+export interface EnumDeclaration {
+  /** Node discriminator. */
+  readonly kind: "enum";
+  /** Complete declaration bytes. */
+  readonly span: SourceSpan;
+  /** Declared enum name. */
+  readonly name: string;
+  /** Bytes occupied by the enum name. */
+  readonly nameSpan: SourceSpan;
+  /** Whether an export modifier was written. */
+  readonly exported: boolean;
+  /** Members in source order. */
+  readonly members: readonly EnumMember[];
 }
 
 /** One field in a struct declaration. */
@@ -434,6 +522,48 @@ export interface WhileStatement {
   readonly body: Block;
 }
 
+/** A post-test loop. */
+export interface DoWhileStatement {
+  /** Node discriminator. */
+  readonly kind: "do-while";
+  /** Complete loop bytes, including the semicolon. */
+  readonly span: SourceSpan;
+  /** Repeated block. */
+  readonly body: Block;
+  /** Condition checked after the block. */
+  readonly condition: Expr;
+}
+
+/** One case or default arm of a switch. */
+export interface SwitchClause {
+  /** Case values, or null for the default arm. */
+  readonly values: readonly Expr[] | null;
+  /** Arm statements in source order. */
+  readonly statements: readonly Statement[];
+  /** Complete arm bytes. */
+  readonly span: SourceSpan;
+}
+
+/** A multi-way branch with explicit fallthrough. */
+export interface SwitchStatement {
+  /** Node discriminator. */
+  readonly kind: "switch";
+  /** Complete switch bytes. */
+  readonly span: SourceSpan;
+  /** Value selected once. */
+  readonly value: Expr;
+  /** Cases and optional default in source order. */
+  readonly clauses: readonly SwitchClause[];
+}
+
+/** An explicit request to continue into the next switch arm. */
+export interface FallthroughStatement {
+  /** Node discriminator. */
+  readonly kind: "fallthrough";
+  /** Complete statement bytes, including its semicolon. */
+  readonly span: SourceSpan;
+}
+
 /** An ordinary three-clause loop. */
 export interface ForStatement {
   /** Node discriminator. */
@@ -491,7 +621,10 @@ export type Statement =
   | Block
   | IfStatement
   | WhileStatement
+  | DoWhileStatement
   | ForStatement
+  | SwitchStatement
+  | FallthroughStatement
   | BreakStatement
   | ContinueStatement
   | ReturnStatement
@@ -503,6 +636,8 @@ export type Declaration =
   | VariableDeclaration
   | FunctionDeclaration
   | StructDeclaration
+  | EnumDeclaration
+  | ZeropageBlock
   | PoisonStatement
   | UncheckedSyntax;
 

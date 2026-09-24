@@ -1,5 +1,5 @@
 import type { SourceSpan } from "../project/types.js";
-import type { Block, Expr, Statement, SyntaxUnit, TypeSyntax } from "./syntax.js";
+import type { Block, Expr, PlacementClause, Statement, SyntaxUnit, TypeSyntax } from "./syntax.js";
 
 /** One dotted syntax reference that can select a module or call the entry point. */
 export interface ModuleReference {
@@ -45,6 +45,11 @@ function visitType(
         typeReference: true,
       });
     }
+    return;
+  }
+  if (type.kind === "function-type") {
+    for (const parameter of type.parameters) visitType(parameter.type, valueRoots, visit);
+    visitType(type.returnType, valueRoots, visit);
     return;
   }
   visitType(type.element, valueRoots, visit);
@@ -147,6 +152,7 @@ function visitStatement(
     case "unchecked":
     case "break":
     case "continue":
+    case "fallthrough":
       return;
     case "variable":
       visitType(statement.type, valueRoots, visit);
@@ -169,6 +175,20 @@ function visitStatement(
     case "while":
       visitExpression(statement.condition, valueRoots, visit);
       visitBlock(statement.body, new Set(valueRoots), visit);
+      return;
+    case "do-while":
+      visitBlock(statement.body, new Set(valueRoots), visit);
+      visitExpression(statement.condition, valueRoots, visit);
+      return;
+    case "switch":
+      visitExpression(statement.value, valueRoots, visit);
+      for (const clause of statement.clauses) {
+        if (clause.values !== null) {
+          for (const value of clause.values) visitExpression(value, valueRoots, visit);
+        }
+        const clauseRoots = new Set(valueRoots);
+        for (const child of clause.statements) visitStatement(child, clauseRoots, visit);
+      }
       return;
     case "for": {
       const forRoots = new Set(valueRoots);
@@ -200,6 +220,18 @@ function visitBlock(
   for (const statement of block.statements) visitStatement(statement, valueRoots, visit);
 }
 
+/** Visit numeric placement expressions; region symbols belong to the selected profile. */
+function visitPlacement(
+  placement: PlacementClause | null,
+  valueRoots: ReadonlySet<string>,
+  visit: (reference: ModuleReference) => void,
+): void {
+  if (placement === null) return;
+  for (const argument of placement.arguments) {
+    if (typeof argument.value !== "string") visitExpression(argument.value, valueRoots, visit);
+  }
+}
+
 /**
  * Collect qualified module references and direct entry calls from one parsed unit.
  * @example collectModuleReferences(unit).filter(({ directCall }) => directCall)
@@ -225,18 +257,23 @@ export function collectModuleReferences(unit: SyntaxUnit): readonly ModuleRefere
     if (
       declaration.kind === "variable" ||
       declaration.kind === "function" ||
-      declaration.kind === "struct"
+      declaration.kind === "struct" ||
+      declaration.kind === "enum"
     ) {
       moduleValueRoots.add(declaration.name);
+    } else if (declaration.kind === "zeropage") {
+      for (const variable of declaration.variables) moduleValueRoots.add(variable.name);
     }
   }
   for (const declaration of unit.declarations) {
     if (declaration.kind === "variable") {
+      visitPlacement(declaration.placement, moduleValueRoots, visit);
       visitType(declaration.type, moduleValueRoots, visit);
       if (declaration.initializer !== null) {
         visitExpression(declaration.initializer, moduleValueRoots, visit);
       }
     } else if (declaration.kind === "function") {
+      visitPlacement(declaration.placement, moduleValueRoots, visit);
       const functionValueRoots = new Set(moduleValueRoots);
       for (const parameter of declaration.parameters) {
         functionValueRoots.add(parameter.name);
@@ -246,6 +283,18 @@ export function collectModuleReferences(unit: SyntaxUnit): readonly ModuleRefere
       visitBlock(declaration.body, functionValueRoots, visit);
     } else if (declaration.kind === "struct") {
       for (const field of declaration.fields) visitType(field.type, moduleValueRoots, visit);
+    } else if (declaration.kind === "enum") {
+      for (const member of declaration.members) {
+        if (member.value !== null) visitExpression(member.value, moduleValueRoots, visit);
+      }
+    } else if (declaration.kind === "zeropage") {
+      for (const variable of declaration.variables) {
+        visitPlacement(variable.placement, moduleValueRoots, visit);
+        visitType(variable.type, moduleValueRoots, visit);
+        if (variable.initializer !== null) {
+          visitExpression(variable.initializer, moduleValueRoots, visit);
+        }
+      }
     }
   }
   return Object.freeze(references);

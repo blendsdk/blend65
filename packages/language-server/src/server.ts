@@ -183,7 +183,7 @@ async function publishProject(snapshot: ProjectSnapshot, anchorUri: string, gene
     texts.set(source.sourceId, document.getText());
     overlays.push(Object.freeze({ sourceId: source.sourceId, text: document.getText() }));
   }
-  const result = analyzeProjectOverlay(snapshot, overlays);
+  const result = await analyzeProjectOverlay(snapshot, overlays);
   await new Promise<void>((resolve) => setImmediate(resolve));
   if (queue.generation !== generation || queue.controller?.signal.aborted) return;
   for (const uri of omittedUris) {

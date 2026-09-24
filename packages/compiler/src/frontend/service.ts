@@ -565,12 +565,14 @@ export function analyzeProject(snapshot: ProjectSnapshot): AnalysisResult {
 
 /**
  * Analyze one immutable snapshot with bounded in-memory replacements for known sources.
- * Host files and the snapshot's content identity are never changed.
+ * Assets follow the same checked path as project analysis. Host source files and the
+ * snapshot's content identity are never changed.
+ * @example await analyzeProjectOverlay(snapshot, [{ sourceId, text }])
  */
-export function analyzeProjectOverlay(
+export async function analyzeProjectOverlay(
   snapshot: ProjectSnapshot,
   overlays: readonly SourceOverlay[],
-): AnalysisResult {
+): Promise<AnalysisResult> {
   const effective = applySourceOverlays(snapshot, overlays);
   if (effective.kind === "failure") {
     return Object.freeze({
@@ -578,7 +580,7 @@ export function analyzeProjectOverlay(
       diagnostics: effective.diagnostics,
     });
   }
-  return analyzeProject(effective.snapshot);
+  return analyzeProjectWithAssets(effective.snapshot);
 }
 
 /**

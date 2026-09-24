@@ -205,6 +205,10 @@ export class AggregateRegistry {
         this.host.defer(syntax.span, "Type form is not implemented by this frontend slice");
       return null;
     }
+    if (syntax.kind === "function-type") {
+      if (report) this.host.defer(syntax.span, "Function value typing remains pending");
+      return null;
+    }
     const element = this.resolveType(syntax.element, module, null, report, scope);
     if (element === null) return null;
     if (element.kind === "scalar" && element.name === "void") {
