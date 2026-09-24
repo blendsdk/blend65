@@ -166,6 +166,7 @@ function machineFunctionSegments(
         block.label.startsWith(`${id}.multiply.`) ||
         block.label.startsWith(`${id}.divide.`) ||
         block.label.startsWith(`${id}.copy.`) ||
+        block.label.startsWith(`${id}.move.`) ||
         block.label.startsWith(`${id}.fill.`) ||
         block.label.startsWith(`${id}.bounds.`),
     );
@@ -532,21 +533,24 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       labels: Object.freeze([]),
       contextIndex: functionIndex,
       liveRangeIndexes: Object.freeze(liveRangeIndexes),
-      availability: Object.freeze({
-        kind: "available",
-        pieces: Object.freeze([
-          Object.freeze({
-            kind: "memory",
-            machine: Object.freeze({
-              addressSpaceIndex: 0,
-              start: home.address,
-              end: home.address + home.bytes,
+      availability:
+        home.bytes === 0
+          ? Object.freeze({ kind: "optimizedAway", rule: "zero-byte position marker" })
+          : Object.freeze({
+              kind: "available",
+              pieces: Object.freeze([
+                Object.freeze({
+                  kind: "memory",
+                  machine: Object.freeze({
+                    addressSpaceIndex: 0,
+                    start: home.address,
+                    end: home.address + home.bytes,
+                  }),
+                  valueOffset: 0,
+                  byteLength: home.bytes,
+                }),
+              ]),
             }),
-            valueOffset: 0,
-            byteLength: home.bytes,
-          }),
-        ]),
-      }),
     });
   }
   symbolDrafts.sort((left, right) =>

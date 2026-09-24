@@ -122,6 +122,8 @@ export interface FunctionLoweringState {
   readonly allPositions: readonly { readonly block: string; readonly operation: number }[];
   readonly branchConditions: ReadonlySet<string>;
   readonly materializedValues: ReadonlySet<string>;
+  /** Aggregate results whose pointer is consumed beyond a redundant same-place store. */
+  readonly retainedAggregateResults: ReadonlySet<string>;
   readonly addressValues: ReadonlySet<string>;
   readonly callSpans: readonly SourceSpan[];
   readonly mergeCopies: {
@@ -381,6 +383,41 @@ function lowerFunction(
     ),
   );
   const materializedValues = new Set<string>();
+  const aggregateDestinations = new Map(
+    blocks.flatMap((block) =>
+      block.operations.flatMap((operation) =>
+        operation.kind === "aggregate"
+          ? [
+              [
+                operation.result,
+                operation.destination?.kind === "place" ? operation.destination.place : null,
+              ] as const,
+            ]
+          : [],
+      ),
+    ),
+  );
+  const retainedAggregateResults = new Set<string>();
+  const recordUse = (
+    value: string,
+    consumer: (typeof blocks)[number]["operations"][number] | null,
+  ): void => {
+    materializedValues.add(value);
+    if (!aggregateDestinations.has(value)) return;
+    const destination = aggregateDestinations.get(value);
+    if (
+      consumer?.kind === "store" &&
+      destination !== null &&
+      destination !== undefined &&
+      (consumer.place === destination ||
+        (consumer.place.path.length === 0 &&
+          destination.path.length === 0 &&
+          bindingIdentityKey(consumer.place.root) === bindingIdentityKey(destination.root)))
+    ) {
+      return;
+    }
+    retainedAggregateResults.add(value);
+  };
   const addressValues = new Set<string>();
   for (const block of blocks) {
     for (const operation of block.operations) {
@@ -392,31 +429,31 @@ function lowerFunction(
         for (const component of operation.place.path) {
           if (component.kind === "index") {
             addressValues.add(component.value);
-            materializedValues.add(component.value);
+            recordUse(component.value, operation);
           }
         }
       }
-      if (operation.kind === "store") materializedValues.add(operation.value);
-      else if (operation.kind === "convert") materializedValues.add(operation.operand);
-      else if (operation.kind === "unary") materializedValues.add(operation.operand);
+      if (operation.kind === "store") recordUse(operation.value, operation);
+      else if (operation.kind === "convert") recordUse(operation.operand, operation);
+      else if (operation.kind === "unary") recordUse(operation.operand, operation);
       else if (operation.kind === "binary") {
-        materializedValues.add(operation.left);
-        materializedValues.add(operation.right);
+        recordUse(operation.left, operation);
+        recordUse(operation.right, operation);
       } else if (operation.kind === "call" || operation.kind === "platform") {
-        for (const argument of operation.arguments) materializedValues.add(argument);
-      } else if (operation.kind === "memory-read") materializedValues.add(operation.address);
+        for (const argument of operation.arguments) recordUse(argument, operation);
+      } else if (operation.kind === "memory-read") recordUse(operation.address, operation);
       else if (operation.kind === "memory-write") {
-        materializedValues.add(operation.address);
-        materializedValues.add(operation.value);
+        recordUse(operation.address, operation);
+        recordUse(operation.value, operation);
       } else if (operation.kind === "aggregate") {
-        for (const element of operation.elements) materializedValues.add(element.value);
-        if (operation.fill !== null) materializedValues.add(operation.fill);
+        for (const element of operation.elements) recordUse(element.value, operation);
+        if (operation.fill !== null) recordUse(operation.fill, operation);
       } else if (operation.kind === "merge") {
-        for (const incoming of operation.incoming) materializedValues.add(incoming.value);
+        for (const incoming of operation.incoming) recordUse(incoming.value, operation);
       }
     }
     if (block.terminator.kind === "return" && block.terminator.value !== null) {
-      materializedValues.add(block.terminator.value);
+      recordUse(block.terminator.value, null);
     }
   }
   const state: FunctionLoweringState = {
@@ -433,6 +470,7 @@ function lowerFunction(
       ),
     ),
     materializedValues,
+    retainedAggregateResults,
     addressValues,
     callSpans: Object.freeze(
       blocks.flatMap((block) =>
@@ -579,7 +617,7 @@ function lowerFunction(
         );
         loweredBlocks.push(...filled.blocks);
         currentLabel = filled.continuation;
-        currentInstructions = [];
+        currentInstructions = [...filled.continuationInstructions];
         aggregateFillIndex += 1;
         continue;
       }

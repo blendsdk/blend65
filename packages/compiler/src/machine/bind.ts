@@ -35,6 +35,20 @@ function bindOperand(
   if (operand === null || (operand.kind !== "storage" && operand.kind !== "indirect-y")) {
     return Object.freeze({ operand, mode: null });
   }
+  // An empty object occupies no bytes, but its address is still a valid value
+  // when passed through the aggregate ABI. Never permit a byte read from it.
+  if (operand.kind === "storage" && operand.addressByte !== undefined) {
+    const home = homes.get(operand.requestId);
+    if (home?.bytes === 0 && (operand.offset ?? 0) === 0) {
+      return Object.freeze({
+        operand: Object.freeze({
+          kind: "immediate",
+          value: operand.addressByte === "low" ? home.address & 0xff : (home.address >> 8) & 0xff,
+        }),
+        mode: "immediate",
+      });
+    }
+  }
   const resolved = resolveHome(homes, operand.requestId, operand.offset ?? 0);
   if (resolved === null) return null;
   if (operand.kind === "storage" && operand.addressByte !== undefined) {

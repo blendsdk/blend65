@@ -191,9 +191,7 @@ describe("fixed aggregate copy lowering", () => {
     expect(lowered.kind).toBe("complete");
     if (lowered.kind !== "complete") throw new Error("Expected complete aggregate lowering");
     expect(
-      lowered.program.functions[0]!.blocks.flatMap(({ instructions }) => instructions).some(
-        ({ opcode }) => opcode === "dec",
-      ),
+      lowered.program.requiredStorage.some(({ id }) => id.includes("aggregate-source-page")),
     ).toBe(false);
     expect(
       lowered.program.requiredStorage.some(({ id }) =>

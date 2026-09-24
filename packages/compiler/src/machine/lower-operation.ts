@@ -7,10 +7,10 @@ import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
 import { advanceAggregateInductionAddress } from "./lower-induction.js";
 import { lowerAggregatePlaceCopy } from "./lower-aggregate-copy.js";
+import { lowerAggregate } from "./lower-aggregate-build.js";
 import { prepareAggregateCallResult } from "./lower-aggregate-return.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
-  lowerAggregate,
   lowerAggregateAddress,
   lowerAggregateLoad,
   lowerAggregateStore,

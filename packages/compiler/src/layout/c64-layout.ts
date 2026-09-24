@@ -117,15 +117,17 @@ function storageIntervals(
     if (
       !Number.isInteger(first.address) ||
       !Number.isInteger(first.bytes) ||
-      first.bytes <= 0 ||
+      first.bytes < 0 ||
       first.address < 0 ||
       first.address + first.bytes - 1 > 0xffff
     ) {
       return null;
     }
+    if (first.bytes === 0) continue;
     for (let right = left + 1; right < homes.length; right += 1) {
       const second = homes[right]!;
       if (second.address > first.address + first.bytes - 1) break;
+      if (second.bytes === 0) continue;
       const key =
         first.requestId < second.requestId
           ? `${first.requestId}\u0000${second.requestId}`
@@ -136,6 +138,8 @@ function storageIntervals(
 
   const groups: { start: number; end: number; ids: string[] }[] = [];
   for (const home of homes) {
+    // A zero-byte object owns an address marker, not a resident byte interval.
+    if (home.bytes === 0) continue;
     const end = home.address + home.bytes - 1;
     const last = groups.at(-1);
     if (last !== undefined && home.address <= last.end) {

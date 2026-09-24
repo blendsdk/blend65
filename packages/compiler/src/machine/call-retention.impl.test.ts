@@ -61,7 +61,7 @@ function voidCall(
 }
 
 describe("call ABI and scalar retention", () => {
-  it("returns an overlap snapshot and its pointers through SFA closure before binding", () => {
+  it("closes the one-byte retained-pointer scratch before directional copy binding", () => {
     const array: SemanticType = Object.freeze({
       kind: "array",
       element: BYTE,
@@ -111,15 +111,18 @@ describe("call ABI and scalar retention", () => {
       ),
     ]);
     const result = lowerCloseBind(wholeProgramFor([copy]));
-    const snapshot = result.closure.inventory.requests.find(({ id }) =>
-      id.includes("aggregate-snapshot:borrowed"),
+    const savedPage = result.closure.inventory.requests.find(({ id }) =>
+      id.includes("aggregate-source-page:borrowed"),
     );
-    expect(snapshot).toMatchObject({ storageClass: "temporary", bytes: 300, region: "ram" });
-    expect(result.inventory.requests.some(({ id }) => id === snapshot?.id)).toBe(false);
-    expect(result.lowered.binder.candidateRequestIds).toContain(snapshot?.id);
+    expect(savedPage).toMatchObject({ storageClass: "temporary", bytes: 1, region: "ram" });
+    expect(result.inventory.requests.some(({ id }) => id === savedPage?.id)).toBe(false);
+    expect(result.lowered.binder.candidateRequestIds).toContain(savedPage?.id);
     expect(
-      result.closure.certificate.homes.some(({ requestId }) => requestId === snapshot?.id),
+      result.closure.certificate.homes.some(({ requestId }) => requestId === savedPage?.id),
     ).toBe(true);
+    expect(
+      result.closure.inventory.requests.some(({ id }) => id.includes("aggregate-snapshot")),
+    ).toBe(false);
     const sourcePointer = result.closure.inventory.requests.find(({ id }) =>
       id.includes("aggregate-address:borrowed"),
     );
@@ -127,15 +130,10 @@ describe("call ABI and scalar retention", () => {
     expect(
       result.closure.certificate.interference.some(
         ({ left, right }) =>
-          (left === snapshot?.id && right === sourcePointer?.id) ||
-          (right === snapshot?.id && left === sourcePointer?.id),
+          (left === savedPage?.id && right === sourcePointer?.id) ||
+          (right === savedPage?.id && left === sourcePointer?.id),
       ),
     ).toBe(true);
-    expect(
-      result.lowered.program.functions[0]!.blocks.flatMap(
-        ({ instructions }) => instructions,
-      ).filter(({ opcode }) => opcode === "dec"),
-    ).toHaveLength(2);
     expect(result.bound.kind).toBe("complete");
   });
 

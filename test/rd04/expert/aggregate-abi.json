@@ -10,38 +10,45 @@
     "cpu": "NMOS 6502/6510, decimal flag clear",
     "array": "fixed byte[300], packed, page-safe copy/fill",
     "abi": "borrowed parameter base addresses in static homes; caller-owned return destination in a zero-page pointer pair",
-    "alias": "copy and clone preserve all 300 original source bytes through one reusable SFA snapshot before writing a possibly overlapping destination",
+    "alias": "copy and clone compare source and destination addresses, copy forward or backward to preserve overlapping source values, and perform no write for an identical object",
     "measurement": "function body only, including pointer setup and RTS; caller marshalling and global object bytes excluded"
   },
   "routines": {
     "copy": {
-      "bytesIncludingRts": 71,
-      "snapshotRamBytes": 300,
+      "bytesIncludingRts": 104,
+      "snapshotRamBytes": 0,
+      "scratchRamBytes": 1,
       "zeroPagePointerBytes": 4,
-      "byteParts": [20, 24, 24, 2, 1],
+      "byteParts": [20, 16, 24, 30, 10, 3, 1],
       "instructionAccounting": [
         "two borrowed-pointer setups: 20 bytes",
-        "source-to-snapshot full and partial pages: 24 bytes",
-        "snapshot-to-destination full and partial pages: 24 bytes",
-        "restore retained source page: 2 bytes",
+        "unsigned address-order and equality probe: 16 bytes",
+        "forward full and partial page loops: 24 bytes",
+        "backward partial and full page loops: 30 bytes",
+        "save and restore retained source high byte: 10 bytes",
+        "one branch-join jump: 3 bytes",
         "RTS: 1 byte"
       ]
     },
     "clone": {
-      "bytesIncludingRts": 59,
-      "snapshotRamBytes": 300,
+      "bytesIncludingRts": 84,
+      "snapshotRamBytes": 0,
+      "scratchRamBytes": 0,
       "zeroPagePointerBytes": 4,
-      "byteParts": [10, 24, 24, 1],
+      "byteParts": [10, 16, 24, 30, 3, 1],
       "instructionAccounting": [
         "borrowed source-pointer setup: 10 bytes; caller already supplied destination pointer",
-        "source-to-snapshot full and partial pages: 24 bytes",
-        "snapshot-to-destination full and partial pages: 24 bytes",
+        "unsigned address-order and equality probe: 16 bytes",
+        "forward full and partial page loops: 24 bytes",
+        "backward partial and full page loops: 30 bytes",
+        "one branch-join jump: 3 bytes",
         "RTS: 1 byte"
       ]
     },
     "fill": {
       "bytesIncludingRts": 31,
       "snapshotRamBytes": 0,
+      "scratchRamBytes": 0,
       "zeroPagePointerBytes": 2,
       "byteParts": [10, 2, 7, 11, 1],
       "instructionAccounting": [
@@ -53,5 +60,5 @@
       ]
     }
   },
-  "wholeProgramWinPath": "Prove call-site alias classes and specialize a call whose arguments are the same object to a no-op, or whose objects are disjoint to a direct no-snapshot copy; retain the general snapshot ABI for unknown overlap."
+  "wholeProgramWinPath": "Prove call-site alias classes and specialize an identical-object call to a no-op or disjoint objects to a direct copy; retain direction selection only for unknown overlap."
 }

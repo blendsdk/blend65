@@ -7,6 +7,7 @@ import type { SourceSpan } from "../project/types.js";
 import type { AggregateDestination, SemanticPlace } from "../semantic/operations.js";
 import { lowerAggregateAddress } from "./lower-aggregate.js";
 import { lowerPackedCopyLoops, type PackedHome } from "./lower-aggregate-copy.js";
+import { lowerDirectionalCopyLoops } from "./lower-aggregate-direction.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
 import {
@@ -307,6 +308,27 @@ export function lowerAggregateReturnLoop(
   // Callee-local storage cannot overlap the caller's object. A borrowed place or
   // global can, so preserve it before writing through the hidden destination.
   const mayOverlap = read.indirect || read.value.kind === "label";
+  if (mayOverlap && place !== undefined) {
+    let directionalRead: PackedHome = read;
+    if (!read.indirect) {
+      const address = lowerAggregateAddress(place, state, source, `return-source:${valueId}`);
+      directionalRead = Object.freeze({
+        instructions: address.instructions,
+        value: address.pointer,
+        indirect: true,
+      });
+    }
+    return lowerDirectionalCopyLoops(
+      directionalRead,
+      write,
+      type.size,
+      state,
+      entryLabel,
+      [...prefix, ...directionalRead.instructions],
+      ordinal,
+      source,
+    );
+  }
   const snapshot = mayOverlap
     ? requestStorage(
         state,

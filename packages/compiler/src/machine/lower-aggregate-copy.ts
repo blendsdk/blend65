@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticOperation, SemanticPlace } from "../semantic/operations.js";
 import { lowerAggregateAddress } from "./lower-aggregate.js";
+import { lowerDirectionalCopyLoops } from "./lower-aggregate-direction.js";
 import {
   machineCost,
   machineInstruction,
@@ -36,6 +37,7 @@ interface PreparedCopy {
   readonly middle: PackedHome | null;
   readonly setup: readonly MachineInstruction[];
   readonly restoreSource: boolean;
+  readonly directional: boolean;
 }
 
 /** Keep fixed roots direct; computed elements and parameters need a zero-page address pair. */
@@ -153,6 +155,7 @@ function prepareCopy(
   source: SemanticPlace,
   state: FunctionLoweringState,
   reuseRetainedPointer = false,
+  allowDirectional = false,
 ): PreparedCopy | null {
   const target = operation.place;
   if (
@@ -182,27 +185,59 @@ function prepareCopy(
     requiresPointer &&
     retained?.kind === "storage" &&
     retained.requestId.endsWith(`:aggregate-address:${operation.value}`);
-  const from: PackedHome = restoreSource
+  let from: PackedHome = restoreSource
     ? Object.freeze({ instructions: Object.freeze([]), value: retained, indirect: true })
     : packedHome(source, bytes, `copy-source:${operation.value}`, state, operation.span);
-  const to = packedHome(target, bytes, `copy-target:${operation.value}`, state, operation.span);
+  let to = packedHome(target, bytes, `copy-target:${operation.value}`, state, operation.span);
   const sourceKey = bindingIdentityKey(source.root);
   const targetKey = bindingIdentityKey(target.root);
   const sourceMayAlias = from.indirect;
   const targetMayAlias = to.indirect;
   const needsSnapshot = sourceKey === targetKey || sourceMayAlias || targetMayAlias;
-  const snapshot = needsSnapshot
-    ? requestStorage(
+  // A direct global may overlap a borrowed destination. Give both homes an
+  // address so the same memmove loop handles every large overlapping copy.
+  if (allowDirectional && needsSnapshot) {
+    if (!from.indirect) {
+      const address = lowerAggregateAddress(
+        source,
         state,
-        `aggregate-snapshot:${operation.value}`,
-        "temporary",
-        bytes,
-        "ram",
         operation.span,
-        "Preserve an overlapping aggregate source",
-        type,
-      )
-    : null;
+        `copy-source:${operation.value}`,
+      );
+      from = Object.freeze({
+        instructions: address.instructions,
+        value: address.pointer,
+        indirect: true,
+      });
+    }
+    if (!to.indirect) {
+      const address = lowerAggregateAddress(
+        target,
+        state,
+        operation.span,
+        `copy-target:${operation.value}`,
+      );
+      to = Object.freeze({
+        instructions: address.instructions,
+        value: address.pointer,
+        indirect: true,
+      });
+    }
+  }
+  const directional = allowDirectional && needsSnapshot;
+  const snapshot =
+    needsSnapshot && !directional
+      ? requestStorage(
+          state,
+          `aggregate-snapshot:${operation.value}`,
+          "temporary",
+          bytes,
+          "ram",
+          operation.span,
+          "Preserve an overlapping aggregate source",
+          type,
+        )
+      : null;
   const middle: PackedHome | null =
     snapshot === null
       ? null
@@ -218,6 +253,7 @@ function prepareCopy(
     middle,
     setup: Object.freeze([...from.instructions, ...to.instructions]),
     restoreSource,
+    directional,
   });
 }
 
@@ -372,8 +408,67 @@ export function lowerAggregatePlaceCopyLoop(
   readonly continuation: string;
   readonly continuationInstructions: readonly MachineInstruction[];
 } | null {
-  const prepared = prepareCopy(operation, source, state, true);
+  const prepared = prepareCopy(operation, source, state, true, true);
   if (prepared === null) return null;
+  if (prepared.directional) {
+    const save: MachineInstruction[] = [];
+    const continuationInstructions: MachineInstruction[] = [];
+    if (prepared.restoreSource) {
+      if (prepared.from.value.kind !== "storage") {
+        throw loweringFailure("Retained aggregate pointer has no home", operation.span);
+      }
+      const savedHigh = requestStorage(
+        state,
+        `aggregate-source-page:${operation.value}`,
+        "temporary",
+        1,
+        "ram",
+        operation.span,
+        "Restore a retained aggregate address after copying",
+      );
+      save.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "lda",
+          "storage",
+          Object.freeze({ kind: "storage", requestId: prepared.from.value.requestId, offset: 1 }),
+          [],
+          operation.span,
+        ),
+        storeA(
+          Object.freeze({ kind: "storage", requestId: savedHigh.id, bytes: 1 }),
+          0,
+          state,
+          operation.span,
+        ),
+      );
+      continuationInstructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "lda",
+          "storage",
+          Object.freeze({ kind: "storage", requestId: savedHigh.id, offset: 0 }),
+          [],
+          operation.span,
+        ),
+        storeA(prepared.from.value, 1, state, operation.span),
+      );
+    }
+    const lowered = lowerDirectionalCopyLoops(
+      prepared.from,
+      prepared.to,
+      prepared.bytes,
+      state,
+      entryLabel,
+      [...prefix, ...prepared.setup, ...save],
+      ordinal,
+      operation.span,
+    );
+    return Object.freeze({
+      ...lowered,
+      continuationInstructions: Object.freeze(continuationInstructions),
+    });
+  }
   const phases =
     prepared.middle === null
       ? [[prepared.from, prepared.to] as const]

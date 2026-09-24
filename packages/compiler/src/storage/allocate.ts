@@ -102,7 +102,7 @@ function findAddress(
 ): number | null {
   for (const range of ranges) {
     let address = alignAddress(range.start, request.alignment);
-    while (address + request.bytes - 1 <= range.end) {
+    while (address <= range.end && address + request.bytes - 1 <= range.end) {
       const blocked = placementBlocked(request, address, region, homes, edges);
       if (!blocked) return address;
       address = alignAddress(address + 1, request.alignment);
@@ -146,7 +146,7 @@ function placeExactly(
   for (const candidate of candidateRegions(request, profile)) {
     for (const range of candidate.ranges) {
       let address = alignAddress(range.start, request.alignment);
-      while (address + request.bytes - 1 <= range.end) {
+      while (address <= range.end && address + request.bytes - 1 <= range.end) {
         const key = `${candidate.name}:${address}`;
         if (
           !visited.has(key) &&
@@ -188,7 +188,7 @@ export function allocateStorage(
   const invalid = requests.find(
     (request) =>
       !Number.isInteger(request.bytes) ||
-      request.bytes <= 0 ||
+      request.bytes < 0 ||
       !Number.isInteger(request.alignment) ||
       request.alignment <= 0 ||
       (request.alignment & (request.alignment - 1)) !== 0,

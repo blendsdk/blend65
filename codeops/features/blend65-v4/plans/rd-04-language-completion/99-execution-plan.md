@@ -235,7 +235,7 @@ framework or language scope was added.
 | PE-001 | Major | An unknown-overlap 300-byte copy always reserves a 300-byte snapshot and performs two copy passes. Compare an overlap-safe directional copy against the snapshot on bytes, cycles and RAM; retain the snapshot where required. |
 | PE-002 | Major | Large copy/fill emits a loop body for every 256-byte page, growing code linearly with page count. Use a bounded-size outer page loop for larger objects while retaining the small-loop form where it is better. |
 
-No finding authorizes a new runtime, heap, general optimization framework or spec edit. Findings await a user ruling; no correction or waiver has been applied.
+The user approved all four narrow corrections on 2026-09-24. Nested member reads now copy object bytes, including alias-prone field swaps. Zero-length homes are nonresident markers, including across calls and returns. Unknown-overlap large copies use a directional one-pass loop without a full-size snapshot, including mixed global/borrowed homes; large borrowed copy and fill bodies use bounded page loops. Public VICE cases cover nested values, aliasing, 300-byte copies, and retained pointers. Full frozen install, build, typecheck and tests pass after the fixes: compiler 1,140; root 129; CLI 60; LSP 12; VS Code 6. Touched-file formatting, whitespace and frozen-`spec/` checks pass. No runtime, heap, general optimization framework or spec edit was added. One fix-scoped re-review remains before Phase 5.
 
 **Verify:** `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 

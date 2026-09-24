@@ -226,7 +226,7 @@ describe("static storage allocator implementation", () => {
     const owner = binding(50);
     const valid = request(owner, "a-valid", 1, 1, "ram", [1]);
     const blocking = request(owner, "b-blocking", 1, 1, "ram", [1]);
-    const malformed = request(owner, "z-malformed", 0, 1, "ram", [2]);
+    const malformed = request(owner, "z-malformed", -1, 1, "ram", [2]);
     const storage = inventory(owner, [valid, blocking, malformed]);
     const result = allocateStorage(
       storage,

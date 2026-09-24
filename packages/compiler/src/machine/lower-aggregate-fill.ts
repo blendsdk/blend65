@@ -4,6 +4,40 @@ import { machineCost, machineInstruction, machineState } from "./lower-control.j
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
 import { appendLoadA, loweringFailure, typeBytes, type FunctionLoweringState } from "./lower.js";
 
+/** Return a borrowed destination pointer to its original object after page writes. */
+function restoreDestinationPage(
+  result: ReturnType<typeof aggregateDestination>["result"],
+  indirect: boolean,
+  advancedPages: number,
+  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
+  state: FunctionLoweringState,
+): readonly MachineInstruction[] {
+  if (!indirect || !state.retainedAggregateResults.has(operation.result) || advancedPages === 0) {
+    return Object.freeze([]);
+  }
+  if (result.kind !== "storage") {
+    throw loweringFailure("Aggregate fill pointer has no home", operation.span);
+  }
+  const high = Object.freeze({ kind: "storage" as const, requestId: result.requestId, offset: 1 });
+  const cpu = state.input.profile.cpu;
+  if (advancedPages === 1) {
+    return Object.freeze([machineInstruction(cpu, "dec", "storage", high, [], operation.span)]);
+  }
+  return Object.freeze([
+    machineInstruction(cpu, "lda", "storage", high, [], operation.span),
+    machineInstruction(cpu, "sec", "implied", null, [], operation.span),
+    machineInstruction(
+      cpu,
+      "sbc",
+      "immediate",
+      Object.freeze({ kind: "immediate", value: advancedPages }),
+      [],
+      operation.span,
+    ),
+    machineInstruction(cpu, "sta", "storage", high, [], operation.span),
+  ]);
+}
+
 /** Fill a large byte array with one scalar load and page-safe counted stores. */
 export function lowerAggregateByteFillLoop(
   operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
@@ -11,7 +45,11 @@ export function lowerAggregateByteFillLoop(
   entryLabel: string,
   prefix: readonly MachineInstruction[],
   ordinal: number,
-): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } {
+): {
+  readonly blocks: readonly MachineBlock[];
+  readonly continuation: string;
+  readonly continuationInstructions: readonly MachineInstruction[];
+} {
   if (
     operation.type.kind !== "array" ||
     typeBytes(operation.type.element) !== 1 ||
@@ -31,6 +69,171 @@ export function lowerAggregateByteFillLoop(
   let currentLabel = entryLabel;
   let pending = [...prefix, ...instructions];
   const pages = Math.ceil(operation.type.length / 256);
+  if (indirect && pages >= 4) {
+    if (result.kind !== "storage") {
+      throw loweringFailure("Aggregate fill pointer has no home", operation.span);
+    }
+    const fullPages = Math.floor(operation.type.length / 256);
+    const partialBytes = operation.type.length % 256;
+    const pageLabel = `${entryLabel}.fill.${ordinal}.page`;
+    const byteLabel = `${entryLabel}.fill.${ordinal}.byte`;
+    const nextPage = `${entryLabel}.fill.${ordinal}.next`;
+    pending.push(
+      machineInstruction(
+        cpu,
+        "ldx",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: fullPages }),
+        [],
+        operation.span,
+      ),
+    );
+    blocks.push(
+      Object.freeze({
+        label: currentLabel,
+        instructions: Object.freeze(pending),
+        terminator: Object.freeze({ kind: "fallthrough" as const, target: pageLabel }),
+      }),
+    );
+    blocks.push(
+      Object.freeze({
+        label: pageLabel,
+        instructions: Object.freeze([
+          machineInstruction(
+            cpu,
+            "ldy",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: 0 }),
+            [],
+            operation.span,
+          ),
+        ]),
+        terminator: Object.freeze({ kind: "fallthrough" as const, target: byteLabel }),
+      }),
+    );
+    blocks.push(
+      Object.freeze({
+        label: byteLabel,
+        instructions: Object.freeze([
+          machineInstruction(
+            cpu,
+            "sta",
+            "indirect-indexed-y",
+            Object.freeze({ kind: "indirect-y", requestId: result.requestId, offset: 0 }),
+            [],
+            operation.span,
+          ),
+          machineInstruction(cpu, "iny", "implied", null, [], operation.span),
+        ]),
+        terminator: Object.freeze({
+          kind: "branch" as const,
+          opcode: "bne",
+          target: byteLabel,
+          fallthrough: nextPage,
+          uses: machineState([], ["z"]),
+          cost: machineCost(cpu, "bne", "relative"),
+        }),
+      }),
+    );
+    const partialLabel = `${entryLabel}.fill.${ordinal}.partial`;
+    blocks.push(
+      Object.freeze({
+        label: nextPage,
+        instructions: Object.freeze([
+          machineInstruction(
+            cpu,
+            "inc",
+            "storage",
+            Object.freeze({ kind: "storage", requestId: result.requestId, offset: 1 }),
+            [],
+            operation.span,
+          ),
+          machineInstruction(cpu, "dex", "implied", null, [], operation.span),
+        ]),
+        terminator: Object.freeze({
+          kind: "branch" as const,
+          opcode: "bne",
+          target: pageLabel,
+          fallthrough: partialLabel,
+          uses: machineState([], ["z"]),
+          cost: machineCost(cpu, "bne", "relative"),
+        }),
+      }),
+    );
+    if (partialBytes === 0)
+      return Object.freeze({
+        blocks: Object.freeze(blocks),
+        continuation: partialLabel,
+        continuationInstructions: restoreDestinationPage(
+          result,
+          indirect,
+          fullPages,
+          operation,
+          state,
+        ),
+      });
+    const partialBody = `${partialLabel}.byte`;
+    const complete = `${partialLabel}.done`;
+    blocks.push(
+      Object.freeze({
+        label: partialLabel,
+        instructions: Object.freeze([
+          machineInstruction(
+            cpu,
+            "ldy",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: 0 }),
+            [],
+            operation.span,
+          ),
+        ]),
+        terminator: Object.freeze({ kind: "fallthrough" as const, target: partialBody }),
+      }),
+    );
+    blocks.push(
+      Object.freeze({
+        label: partialBody,
+        instructions: Object.freeze([
+          machineInstruction(
+            cpu,
+            "sta",
+            "indirect-indexed-y",
+            Object.freeze({ kind: "indirect-y", requestId: result.requestId, offset: 0 }),
+            [],
+            operation.span,
+          ),
+          machineInstruction(cpu, "iny", "implied", null, [], operation.span),
+          machineInstruction(
+            cpu,
+            "cpy",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: partialBytes }),
+            [],
+            operation.span,
+          ),
+        ]),
+        terminator: Object.freeze({
+          kind: "branch" as const,
+          opcode: "bne",
+          target: partialBody,
+          fallthrough: complete,
+          uses: machineState([], ["z"]),
+          cost: machineCost(cpu, "bne", "relative"),
+        }),
+      }),
+    );
+    return Object.freeze({
+      blocks: Object.freeze(blocks),
+      continuation: complete,
+      continuationInstructions: restoreDestinationPage(
+        result,
+        indirect,
+        fullPages,
+        operation,
+        state,
+      ),
+    });
+  }
   for (let page = 0; page < pages; page += 1) {
     if (page > 0 && indirect) {
       if (result.kind !== "storage")
@@ -120,5 +323,9 @@ export function lowerAggregateByteFillLoop(
     currentLabel = nextLabel;
     pending = [];
   }
-  return Object.freeze({ blocks: Object.freeze(blocks), continuation: currentLabel });
+  return Object.freeze({
+    blocks: Object.freeze(blocks),
+    continuation: currentLabel,
+    continuationInstructions: restoreDestinationPage(result, indirect, pages - 1, operation, state),
+  });
 }
