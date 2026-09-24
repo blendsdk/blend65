@@ -127,6 +127,8 @@ export interface FunctionLoweringState {
   readonly allPositions: readonly { readonly block: string; readonly operation: number }[];
   readonly branchConditions: ReadonlySet<string>;
   readonly materializedValues: ReadonlySet<string>;
+  /** Values consumed once may donate their address pair to a terminal aggregate copy. */
+  readonly singleUseValues: ReadonlySet<string>;
   /** Aggregate results whose pointer is consumed beyond a redundant same-place store. */
   readonly retainedAggregateResults: ReadonlySet<string>;
   readonly addressValues: ReadonlySet<string>;
@@ -388,6 +390,7 @@ function lowerFunction(
     ),
   );
   const materializedValues = new Set<string>();
+  const valueUseCounts = new Map<string, number>();
   const aggregateDestinations = new Map(
     blocks.flatMap((block) =>
       block.operations.flatMap((operation) =>
@@ -408,6 +411,7 @@ function lowerFunction(
     consumer: (typeof blocks)[number]["operations"][number] | null,
   ): void => {
     materializedValues.add(value);
+    valueUseCounts.set(value, (valueUseCounts.get(value) ?? 0) + 1);
     if (!aggregateDestinations.has(value)) return;
     const destination = aggregateDestinations.get(value);
     if (
@@ -475,6 +479,9 @@ function lowerFunction(
       ),
     ),
     materializedValues,
+    singleUseValues: new Set(
+      [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
+    ),
     retainedAggregateResults,
     addressValues,
     callSpans: Object.freeze(

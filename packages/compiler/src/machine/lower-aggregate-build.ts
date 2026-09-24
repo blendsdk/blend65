@@ -385,6 +385,10 @@ export function lowerLargeAggregateBuild(
 } {
   const destination = aggregateDestination(operation, state);
   const writes = memberWrites(operation);
+  const memberUseCounts = new Map<string, number>();
+  for (const { valueId } of writes) {
+    memberUseCounts.set(valueId, (memberUseCounts.get(valueId) ?? 0) + 1);
+  }
   const targetPlace = operation.destination?.kind === "place" ? operation.destination.place : null;
   const blocks: MachineBlock[] = [];
   let currentLabel = entryLabel;
@@ -488,9 +492,21 @@ export function lowerLargeAggregateBuild(
   for (const { valueId, start, bytes } of writes) {
     if (bytes === 0) continue;
     const place = staged.has(valueId) ? undefined : state.aggregatePlaces.get(valueId);
-    const resolved =
-      place === undefined ? null : placeSource(place, bytes, valueId, state, operation);
     const retained = state.values.get(valueId);
+    // A sole consumer may advance the evaluated address itself. A second consumer
+    // must keep that address intact, so it receives a separate working pointer.
+    const useEvaluatedPointer =
+      place !== undefined &&
+      state.singleUseValues.has(valueId) &&
+      memberUseCounts.get(valueId) === 1 &&
+      retained?.kind === "storage" &&
+      retained.requestId.endsWith(`:aggregate-address:${valueId}`);
+    const resolved =
+      place === undefined
+        ? null
+        : useEvaluatedPointer
+          ? { setup: Object.freeze([]), source: { value: retained, indirect: true } }
+          : placeSource(place, bytes, valueId, state, operation);
     const source =
       staged.get(valueId) ??
       resolved?.source ??

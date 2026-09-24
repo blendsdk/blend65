@@ -137,9 +137,10 @@ export function lowerDirectionalCopyLoops(
     add(forward, [], fallthrough(label("forward-partial")));
   }
   if (partialBytes > 0) {
+    // The full-page loop exits when INY wraps Y to zero, so its tail needs no reset.
     add(
       label("forward-partial"),
-      [instruction("ldy", "immediate", immediate(0))],
+      fullPages > 0 ? [] : [instruction("ldy", "immediate", immediate(0))],
       fallthrough(label("forward-partial-byte")),
     );
     add(

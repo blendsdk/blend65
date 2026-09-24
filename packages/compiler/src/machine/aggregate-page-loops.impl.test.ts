@@ -19,9 +19,9 @@ const BUFFER: SemanticType = Object.freeze({
 });
 
 /** Count the selected machine bytes, including branch terminators. */
-function functionBytes(functions: ReturnType<typeof lowerFunctions>): number {
+function functionBytes(functions: ReturnType<typeof lowerFunctions>, index = 0): number {
   if (functions.kind !== "complete") throw new Error("Expected complete large-buffer lowering");
-  return functions.program.functions[0]!.blocks.reduce(
+  return functions.program.functions[index]!.blocks.reduce(
     (bytes, block) =>
       bytes +
       block.instructions.reduce((sum, instruction) => sum + instruction.cost.bytes, 0) +
@@ -105,8 +105,13 @@ describe("large borrowed aggregate loops", () => {
           Object.freeze({ kind: "return" as const, value: null }),
         ),
       ]);
-      const lowered = lowerFunctions([build]);
-      expect(functionBytes(lowered), `${size}-byte member`).toBeLessThan(180);
+      const main = semanticFunction(1798, "main", [], VOID, [
+        semanticBlock("main.entry", [], Object.freeze({ kind: "return" as const, value: null })),
+      ]);
+      const lowered = lowerFunctions([main, build]);
+      expect(functionBytes(lowered, 1), `${size}-byte member`).toBeLessThanOrEqual(
+        size === 300 ? 104 : 180,
+      );
       if (lowered.kind !== "complete") throw new Error("Expected complete nested lowering");
       expect(
         lowered.program.requiredStorage.some(
@@ -114,6 +119,12 @@ describe("large borrowed aggregate loops", () => {
         ),
         `${size}-byte member snapshot`,
       ).toBe(false);
+      expect(
+        lowered.program.requiredStorage
+          .filter(({ region }) => region === "zero-page-required")
+          .reduce((total, { bytes }) => total + bytes, 0),
+        `${size}-byte member pointer pairs`,
+      ).toBeLessThanOrEqual(4);
     }
   });
 
@@ -190,6 +201,68 @@ describe("large borrowed aggregate loops", () => {
         ({ id, bytes }) => id.includes("construct-snapshot:second") && bytes === 16,
       ),
     ).toBe(true);
+  });
+
+  it("should preserve an evaluated pointer when a fill consumes it more than once", () => {
+    const member: SemanticType = Object.freeze({
+      kind: "array",
+      element: BYTE,
+      length: 300,
+      size: 300,
+    });
+    const holder: SemanticType = Object.freeze({
+      kind: "array",
+      element: member,
+      length: 2,
+      size: 600,
+    });
+    const source = Object.freeze({
+      root: sourceBinding(1961),
+      rootType: member,
+      path: Object.freeze([]),
+    });
+    const target = Object.freeze({
+      root: sourceBinding(1962),
+      rootType: holder,
+      path: Object.freeze([]),
+    });
+    const build = semanticFunction(1960, "build-repeated-member", [], VOID, [
+      semanticBlock(
+        "repeat.entry",
+        [
+          Object.freeze({
+            kind: "place-address" as const,
+            result: "member",
+            place: source,
+            type: member,
+            integer: null,
+            span: sourceSpan(1963),
+          }),
+          Object.freeze({
+            kind: "aggregate" as const,
+            result: "built",
+            type: holder,
+            elements: Object.freeze([]),
+            fill: "member",
+            destination: Object.freeze({ kind: "place" as const, place: target }),
+            integer: null,
+            span: sourceSpan(1964),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const lowered = lowerFunctions([build]);
+    if (lowered.kind !== "complete") throw new Error("Expected complete repeated fill lowering");
+    const mutatesEvaluatedPointer = lowered.program.functions[0]!.blocks.some((block) =>
+      block.instructions.some(
+        (instruction) =>
+          (instruction.opcode === "inc" || instruction.opcode === "dec") &&
+          instruction.operand?.kind === "storage" &&
+          instruction.operand.requestId.endsWith(":aggregate-address:member"),
+      ),
+    );
+    expect(mutatesEvaluatedPointer).toBe(false);
   });
 
   it("should keep an 8 KiB borrowed copy bounded in code and scratch", () => {
