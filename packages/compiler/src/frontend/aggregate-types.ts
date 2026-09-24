@@ -1,5 +1,4 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
-import type { SourceSpan } from "../project/types.js";
 import {
   commonIntegerType,
   convertInteger,
@@ -10,7 +9,15 @@ import {
   scalarSyntaxType,
   SCALAR_TYPES,
 } from "./constants.js";
-import { bindingIdentityKey, freezeSourceSpan, semanticTypeKey } from "./semantic-types.js";
+import { bindingIdentityKey, semanticTypeKey } from "./semantic-types.js";
+import { semanticTypeName, semanticTypeSize } from "./semantic-type-relations.js";
+import { EnumTable } from "./enum-types.js";
+import { buildScalarStruct, voidTypeSpan } from "./struct-types.js";
+export {
+  semanticTypeName,
+  semanticTypeSize,
+  semanticTypesEqual,
+} from "./semantic-type-relations.js";
 import type {
   AggregateRegistryHost,
   ArrayType,
@@ -22,44 +29,12 @@ import type {
   StructType,
   ScalarType,
 } from "./semantic-types.js";
-import type {
-  Declaration,
-  Expr,
-  FunctionDeclaration,
-  StructDeclaration,
-  TypeSyntax,
-} from "./syntax.js";
-
-/** Return the packed byte size of a complete admitted type. */
-export function semanticTypeSize(type: SemanticType): number {
-  if (type.kind === "struct" || type.kind === "array") return type.size;
-  if (type.name === "word" || type.name === "sword") return 2;
-  if (type.name === "void") return 0;
-  return 1;
-}
-
-/** Compare semantic types without relying on object identity. */
-export function semanticTypesEqual(left: SemanticType, right: SemanticType): boolean {
-  if (left.kind !== right.kind) return false;
-  if (left.kind === "scalar" && right.kind === "scalar") return left.name === right.name;
-  if (left.kind === "struct" && right.kind === "struct") {
-    return bindingIdentityKey(left.binding) === bindingIdentityKey(right.binding);
-  }
-  if (left.kind === "array" && right.kind === "array") {
-    return left.length === right.length && semanticTypesEqual(left.element, right.element);
-  }
-  return false;
-}
-
-/** Render a stable source-facing type name for diagnostics. */
-export function semanticTypeName(type: SemanticType): string {
-  if (type.kind === "scalar") return type.name;
-  if (type.kind === "struct") return "struct";
-  return `${semanticTypeName(type.element)}[${type.length}]`;
-}
+import type { Declaration, Expr, FunctionDeclaration, TypeSyntax } from "./syntax.js";
 
 /** Resolve nominal structs and fixed arrays for one module-analysis run. */
 export class AggregateRegistry {
+  /** Byte-backed nominal enums prepared before other declared types. */
+  readonly enums: EnumTable;
   /** Nominal struct types keyed by exact module-qualified name. */
   readonly structsByQualifiedName = new Map<string, StructType>();
   /** Nominal struct types keyed by their source declaration identity. */
@@ -77,12 +52,22 @@ export class AggregateRegistry {
     readonly declarations: ReadonlyMap<string, Declaration>,
     readonly host: AggregateRegistryHost,
   ) {
+    this.enums = new EnumTable(graph, host, (expression, module) => {
+      const failure = { handled: false };
+      const value = this.evaluateConstant(expression, module, undefined, false, failure)?.value;
+      return typeof value === "bigint" ? value : null;
+    });
+    this.enums.prepare();
     this.prepareStructs();
   }
 
   /** Return every aggregate type created during this analysis. */
   types(): readonly SemanticType[] {
-    return Object.freeze([...this.structsByQualifiedName.values(), ...this.arraysByKey.values()]);
+    return Object.freeze([
+      ...this.enums.byName.values(),
+      ...this.structsByQualifiedName.values(),
+      ...this.arraysByKey.values(),
+    ]);
   }
 
   /** Return whether a struct declaration was deferred instead of rejected. */
@@ -92,6 +77,9 @@ export class AggregateRegistry {
 
   /** Resolve the type published by a module declaration without reporting twice. */
   declarationType(declaration: Declaration, module: string): SemanticType | null {
+    if (declaration.kind === "enum") {
+      return this.enums.byName.get(`${module}.${declaration.name}`) ?? null;
+    }
     if (declaration.kind === "struct") {
       return this.structsByQualifiedName.get(`${module}.${declaration.name}`) ?? null;
     }
@@ -112,7 +100,7 @@ export class AggregateRegistry {
   ): FunctionSignature | null {
     const returnType = this.resolveType(declaration.returnType, module, null, report);
     if (returnType === null) return null;
-    if (returnType.kind !== "scalar" && report) {
+    if (returnType.kind !== "scalar" && returnType.kind !== "enum" && report) {
       this.host.defer(
         declaration.returnType?.span ?? declaration.nameSpan,
         "Aggregate return ABI remains pending",
@@ -183,6 +171,8 @@ export class AggregateRegistry {
     if (syntax.kind === "named-type") {
       const scalar = scalarSyntaxType(syntax);
       if (scalar !== null) return scalar;
+      const enumType = this.enums.type(syntax.name, module, syntax.span.sourceId);
+      if (enumType !== null) return enumType;
       const qualified = syntax.name.includes(".") ? syntax.name : `${module}.${syntax.name}`;
       const imported = this.graph.imports.find(
         (candidate) =>
@@ -318,6 +308,15 @@ export class AggregateRegistry {
     }
     if (expression.kind === "name") {
       return this.evaluateNamedConstant(expression, module, scope, report, failure);
+    }
+    if (expression.kind === "member" && expression.object.kind === "name") {
+      const member = this.enums.member(
+        expression.object.name,
+        expression.member,
+        module,
+        expression.span.sourceId,
+      );
+      return member === null ? null : { value: member.value, type: SCALAR_TYPES.byte };
     }
     if (expression.kind === "unary") {
       const operand = this.evaluateConstant(expression.operand, module, scope, report, failure);
@@ -626,74 +625,13 @@ export class AggregateRegistry {
     for (const binding of this.graph.bindings) {
       const declaration = this.declarations.get(bindingIdentityKey(binding.id));
       if (declaration?.kind !== "struct" || binding.qualifiedName === null) continue;
-      const type = this.buildStruct(declaration, binding.id);
+      const type = buildScalarStruct(declaration, binding.id, this.host, this.deferredStructs);
       if (type !== null) {
         this.structsByQualifiedName.set(binding.qualifiedName, type);
         this.structsByBinding.set(bindingIdentityKey(binding.id), type);
       }
     }
   }
-
-  /** Build the admitted no-padding scalar-field struct form. */
-  private buildStruct(declaration: StructDeclaration, binding: BindingId): StructType | null {
-    if (declaration.fields.length === 0) return null;
-    let offset = 0;
-    const fields: StructType["fields"][number][] = [];
-    for (const field of declaration.fields) {
-      if (field.type?.kind === "named-type" && field.type.name === "void") {
-        this.host.diagnose(
-          projectDiagnostic(
-            "SEMANTIC_ERROR",
-            "Type 'void' cannot be used as a struct field",
-            field.type.span,
-          ),
-        );
-        return null;
-      }
-      const voidElement =
-        field.type?.kind === "array-type" ? voidTypeSpan(field.type.element) : null;
-      if (voidElement !== null) {
-        this.host.diagnose(
-          projectDiagnostic(
-            "SEMANTIC_ERROR",
-            "Type 'void' cannot be used as an array element",
-            voidElement,
-          ),
-        );
-        return null;
-      }
-      const type = scalarSyntaxType(field.type);
-      if (type === null) {
-        this.deferredStructs.add(bindingIdentityKey(binding));
-        this.host.defer(field.span, "Non-scalar struct field layout remains pending");
-        return null;
-      }
-      fields.push(Object.freeze({ name: field.name, type, offset }));
-      offset += semanticTypeSize(type);
-    }
-    if (offset > 65535) {
-      this.host.diagnose(
-        projectDiagnostic(
-          "E10265",
-          `Type '${declaration.name}' requires ${offset} bytes — fixed array and struct types are limited to 65535 bytes`,
-          declaration.span,
-        ),
-      );
-      return null;
-    }
-    return Object.freeze({
-      kind: "struct",
-      binding: Object.freeze({ sourceId: binding.sourceId, span: freezeSourceSpan(binding.span) }),
-      size: offset,
-      fields: Object.freeze(fields),
-    });
-  }
-}
-
-/** Return the exact nested `void` spelling inside a stored array type. */
-function voidTypeSpan(type: TypeSyntax): SourceSpan | null {
-  if (type.kind === "named-type") return type.name === "void" ? type.span : null;
-  return type.kind === "array-type" ? voidTypeSpan(type.element) : null;
 }
 
 /** Describe a non-integer extent result without inventing a value. */

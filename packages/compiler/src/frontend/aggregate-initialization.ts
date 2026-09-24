@@ -26,7 +26,7 @@ export function diagnoseArrayInitialization(
       diagnose(
         scalarWarning(
           "W10141",
-          `Mutable array '${declaration.name}' has no initializer`,
+          `Array '${declaration.name}' is uninitialized — all ${type.length} elements are indeterminate`,
           declaration.nameSpan,
         ),
       );
@@ -112,7 +112,7 @@ export function uninitializedReadDiagnostic(
   }
   return scalarWarning(
     "W10190",
-    `Local '${state.binding.name}' may be read before it is initialized`,
+    `Variable '${state.binding.name}' may be read before initialization — its value is indeterminate`,
     span,
   );
 }

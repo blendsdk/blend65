@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 12/99 tasks (12%)
+> **Progress**: 20/99 tasks (20%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -103,27 +103,28 @@ correctness and semantics re-review found no remaining issues. No Phase 2 task h
 
 ## Phase 2: Scalars, Enums, Expressions and Control Flow
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `cd0d2b609f5e41026e50ed3fd6ddc2aa5a9102d8`
+> **Expected modification set**: Phase 2 task paths in `packages/compiler/src/frontend/`, `packages/compiler/src/semantic/`, `packages/compiler/src/machine/`, and `test/rd04/`; this plan and the feature roadmap. Scope mode: strict; extend the existing compiler path without new packages, frameworks, runtime or alternate IR.
 > **Lenses**: language semantics, arithmetic correctness, effect ordering, expert 6502 output
 
 ### Step 2.1: Specification Tests
 
 **Reference**: [03-02](03-02-values-and-memory.md) · ST-11–ST-20
 
-- [ ] 2.1.1 [spec-author] Write scalar, enum, conversion and arithmetic-context specification matrices — `packages/compiler/src/frontend/scalars.spec.test.ts`, `packages/compiler/src/frontend/expressions.spec.test.ts`
-- [ ] 2.1.2 [spec-author] Write control-flow, switch, effect-order and initialization specification cases, including one synthetic stored-result conditional effect with captured-range and join checks — `packages/compiler/src/frontend/flow.spec.test.ts`, `packages/compiler/src/semantic/cfg.spec.test.ts`, `test/rd04/scalars-runtime.spec.test.ts`
-- [ ] 2.1.3 Run only the new Phase 2 specification cases and record the expected red failures — Phase 2 test files
+- [x] 2.1.1 [spec-author] Write scalar, enum, conversion and arithmetic-context specification matrices — `packages/compiler/src/frontend/scalars.spec.test.ts`, `packages/compiler/src/frontend/expressions.spec.test.ts` — Verified RED 2026-09-24: 14 new scalar/enum cases, one failing nominal-enum case and 45 passing directed cases; formatting and whitespace checks pass. Existing scalar and expression expectations were not weakened.
+- [x] 2.1.2 [spec-author] Write control-flow, switch, effect-order and initialization specification cases, including one synthetic stored-result conditional effect with captured-range and join checks — `packages/compiler/src/frontend/flow.spec.test.ts`, `packages/compiler/src/semantic/cfg.spec.test.ts`, `test/rd04/scalars-runtime.spec.test.ts` — Verified RED 2026-09-24 09:21: 10 directed frontend/CFG cases fail as expected and 14 pass; the direct VICE case fails at build on missing enum semantics before VICE starts. Typecheck, formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-24 09:21)
+- [x] 2.1.3 Run only the new Phase 2 specification cases and record the expected red failures — Phase 2 test files — Verified RED 2026-09-24 09:22: 11 compiler cases fail and 59 pass; the direct runtime case fails at build before VICE starts. Logs `/tmp/rd04-phase2-compiler-red.2qEn1W` and `/tmp/rd04-phase2-runtime-red.QeGo8W`; typecheck, formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-24 09:22)
 
 ### Step 2.2: Implementation
 
 **Reference**: [03-02 §Expression and Arithmetic Rules](03-02-values-and-memory.md#expression-and-arithmetic-rules) · AR-P4, AR-P8
 
-- [ ] 2.2.1 Complete nominal enum, scalar declaration and conversion rules; extract that responsibility from the oversized analyzer — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/frontend/analyzer-scalars.ts`
-- [ ] 2.2.2 Complete exact constant/runtime arithmetic and every scalar operator — `packages/compiler/src/frontend/constants.ts`, `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/frontend/expressions.ts`
-- [ ] 2.2.3 Complete exactly-once assignment, short circuit and conditional effects that retain stored-result/captured-range correlation through joins — `packages/compiler/src/frontend/conditional-expressions.ts`, `packages/compiler/src/frontend/flow-facts.ts`, `packages/compiler/src/frontend/effects.ts`
-- [ ] 2.2.4 Complete `if`/loops/three-clause `for`/switch/jumps and reachability analysis — `packages/compiler/src/frontend/statements.ts`, `packages/compiler/src/frontend/flow.ts`, `packages/compiler/src/semantic/cfg.ts`
-- [ ] 2.2.5 Extend semantic operations and split the oversized semantic lowerer by scalar/control responsibility — `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/semantic/lower-control.ts`
-- [ ] 2.2.6 Complete direct `none` scalar/control lowering including division checks and generic CFG paths — `packages/compiler/src/machine/lower-scalar.ts`, `packages/compiler/src/machine/lower-arithmetic.ts`, `packages/compiler/src/machine/lower-control.ts`
+- [x] 2.2.1 Complete nominal enum, scalar declaration and conversion rules; extract that responsibility from the oversized analyzer — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/frontend/analyzer-scalars.ts` — Nominal byte-backed enum typing, declaration/member resolution and zero-cost conversions implemented; scalar declaration checking extracted. Verified directed scalar/expression/parser specification cases (63/63), compiler typecheck, targeted formatting and whitespace checks 2026-09-24. Remaining Phase 2 control-flow cases are expected RED until later tasks. ✅ (completed: 2026-09-24 09:43)
+- [x] 2.2.2 Complete exact constant/runtime arithmetic and every scalar operator — `packages/compiler/src/frontend/constants.ts`, `packages/compiler/src/frontend/scalar-expressions.ts`, `packages/compiler/src/frontend/expressions.ts` — Existing exact-versus-wrapped arithmetic, signed division/remainder, wide shifts and operator parsing verified against the Phase 2 scalar matrix; enum operands now use byte representation for unary as well as binary operators. Directed scalar/expression cases (46/46), compiler typecheck, formatting and whitespace checks pass 2026-09-24. ✅ (completed: 2026-09-24 09:44)
+- [x] 2.2.3 Complete exactly-once assignment, short circuit and conditional effects that retain stored-result/captured-range correlation through joins — `packages/compiler/src/frontend/conditional-expressions.ts`, `packages/compiler/src/frontend/flow-facts.ts`, `packages/compiler/src/frontend/effects.ts` — Existing left-to-right assignment and short-circuit typed effects retained; constant-selected conditional facts now follow the selected arm, same-enum arms retain nominal type, and the approved minimal stored-result/captured-range fact snapshots, joins and credits only matching true results. Synthetic effect specification case (1/1), scalar/expression cases (46/46), compiler typecheck, formatting and whitespace checks pass 2026-09-24. Remaining switch/flow cases are expected RED until 2.2.4. ✅ (completed: 2026-09-24 09:46)
+- [x] 2.2.4 Complete `if`/loops/three-clause `for`/switch/jumps and reachability analysis — `packages/compiler/src/frontend/statements.ts`, `packages/compiler/src/frontend/flow.ts`, `packages/compiler/src/semantic/cfg.ts` — Switch labels, auto-break/fallthrough, do-while, branch joins and direct unreachable/constant-false warnings now use the existing typed-statement and CFG path. Superseded the old implementation test that expected switch to remain unchecked. Directed flow/scalar/CFG cases (44/44), compiler typecheck, formatting and whitespace checks pass 2026-09-24. Full compiler suite was 1060/1061 before the superseded implementation assertion was updated; rerun at Phase 2 checkpoint. ✅ (completed: 2026-09-24 09:55)
+- [x] 2.2.5 Extend semantic operations and split the oversized semantic lowerer by scalar/control responsibility — `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/semantic/lower-control.ts` — Existing operation union now carries enum constants/loads and switch comparisons through the standard CFG; selected-arm expression lowering was extracted to `lower-control.ts` and constant data encoding to `lower-data.ts`, leaving `lower.ts` below 700 lines. Directed CFG cases (5/5), compiler typecheck, targeted formatting, whitespace and frozen-spec checks pass 2026-09-24. The direct VICE case builds and reaches the restore checkpoint but remains RED on observed RAM bytes; machine lowering is next. ✅ (completed: 2026-09-24 10:00)
+- [ ] 2.2.6 Complete direct `none` scalar/control lowering including division checks and generic CFG paths — `packages/compiler/src/machine/lower-scalar.ts`, `packages/compiler/src/machine/lower-arithmetic.ts`, `packages/compiler/src/machine/lower-control.ts` — In progress: byte/word conversion lowering and call/write-crossing staging now pass the direct VICE oracle, including signed widening and left-to-right nested-call effects. Runtime multiply, variable shifts, division/remainder, and the optional division-zero stop remain; do not mark this task complete yet.
 - [ ] 2.2.7 Run Phase 2 specification cases and make all immutable expectations green — Phase 2 test files
 
 ### Step 2.3: Implementation Tests and Qualification

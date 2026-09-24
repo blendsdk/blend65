@@ -39,6 +39,12 @@ export type LoweredValue =
       readonly signed?: boolean;
     }
   | {
+      readonly kind: "zero-extended";
+      readonly low: LoweredValue;
+      readonly bytes: 2;
+      readonly signed: boolean;
+    }
+  | {
       readonly kind: "condition";
       readonly whenTrue: string;
       readonly usesFlag: "n" | "v" | "z" | "c";
@@ -100,6 +106,11 @@ export function machineInstruction(
 
 /** Convert a retained value into an instruction operand at one byte offset. */
 export function operandForValue(value: LoweredValue, offset = 0): MachineOperand {
+  if (value.kind === "zero-extended") {
+    return offset === 0
+      ? operandForValue(value.low, 0)
+      : Object.freeze({ kind: "immediate", value: 0 });
+  }
   if (value.kind === "constant") {
     return Object.freeze({ kind: "immediate", value: (value.value >> (offset * 8)) & 0xff });
   }
@@ -118,7 +129,13 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
 }
 
 /** Select the addressing mode implied by a retained value. */
-export function modeForValue(value: LoweredValue): "immediate" | "storage" | "absolute" {
+export function modeForValue(
+  value: LoweredValue,
+  offset = 0,
+): "immediate" | "storage" | "absolute" {
+  if (value.kind === "zero-extended") {
+    return offset === 0 ? modeForValue(value.low, 0) : "immediate";
+  }
   if (value.kind === "constant") return "immediate";
   if (value.kind === "storage") return "storage";
   if (value.kind === "label")

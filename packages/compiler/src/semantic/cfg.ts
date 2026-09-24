@@ -1,9 +1,11 @@
+import { SCALAR_TYPES } from "../frontend/constants.js";
 import type {
   SemanticType,
   TypedBlock,
   TypedExpr,
   TypedForStatement,
   TypedIfStatement,
+  TypedSwitchStatement,
   TypedStatement,
 } from "../frontend/semantic-types.js";
 import type {
@@ -185,6 +187,12 @@ export class ControlFlowBuilder {
       case "for":
         this.lowerFor(statement, lowerExpression);
         return;
+      case "do-while":
+        this.lowerDoWhile(statement.condition, statement.body, lowerExpression);
+        return;
+      case "switch":
+        this.lowerSwitch(statement, lowerExpression, loop);
+        return;
       case "continue":
         if (loop === null) throw new Error("Completed continue statement has no loop target");
         this.terminate(Object.freeze({ kind: "jump", target: loop.continueTarget }));
@@ -296,6 +304,87 @@ export class ControlFlowBuilder {
         breakTarget: end.id,
       });
       this.jumpFrom(this.current, conditionBlock.id);
+    }
+    this.select(end);
+  }
+
+  /** Lower a post-test loop with its continue edge at the condition. */
+  private lowerDoWhile(
+    conditionExpression: TypedExpr,
+    bodySource: TypedBlock,
+    lowerExpression: LowerSemanticExpression,
+  ): void {
+    const entry = this.current;
+    if (entry === null) return;
+    const body = this.createBlock("do-body");
+    const conditionBlock = this.createBlock("do-condition");
+    const end = this.createBlock("do-end");
+    entry.terminator = Object.freeze({ kind: "jump", target: body.id });
+    this.select(body);
+    this.lowerBody(bodySource, lowerExpression, {
+      continueTarget: conditionBlock.id,
+      breakTarget: end.id,
+    });
+    this.jumpFrom(this.current, conditionBlock.id);
+    this.select(conditionBlock);
+    const condition = lowerExpression(conditionExpression);
+    if (condition === null) throw new Error("Completed do-while condition has no value");
+    this.terminate(
+      Object.freeze({ kind: "branch", condition, whenTrue: body.id, whenFalse: end.id }),
+    );
+    this.select(end);
+  }
+
+  /** Compare one selector once against constant labels, then run only the chosen arm. */
+  private lowerSwitch(
+    statement: TypedSwitchStatement,
+    lowerExpression: LowerSemanticExpression,
+    loop: LoopTargets | null,
+  ): void {
+    const selector = lowerExpression(statement.value);
+    if (selector === null) throw new Error("Completed switch selector has no value");
+    const entry = this.current;
+    if (entry === null) return;
+    const arms = statement.clauses.map((_, index) => this.createBlock(`switch-arm-${index}`));
+    const end = this.createBlock("switch-end");
+    const defaultIndex = statement.clauses.findIndex((clause) => clause.values === null);
+    const fallback = defaultIndex < 0 ? end.id : arms[defaultIndex]!.id;
+    this.select(entry);
+    for (const [index, clause] of statement.clauses.entries()) {
+      if (clause.values === null) continue;
+      for (const value of clause.values) {
+        const label = lowerExpression(value);
+        if (label === null) throw new Error("Completed switch label has no value");
+        const match = this.nextValue();
+        this.emit(
+          Object.freeze({
+            kind: "binary",
+            result: match,
+            operator: "==",
+            left: selector,
+            right: label,
+            type: SCALAR_TYPES.boolean,
+            integer: null,
+            span: value.span,
+          }),
+        );
+        const next = this.createBlock("switch-next");
+        this.terminate(
+          Object.freeze({
+            kind: "branch",
+            condition: match,
+            whenTrue: arms[index]!.id,
+            whenFalse: next.id,
+          }),
+        );
+        this.select(next);
+      }
+    }
+    this.terminate(Object.freeze({ kind: "jump", target: fallback }));
+    for (const [index, clause] of statement.clauses.entries()) {
+      this.select(arms[index]!);
+      this.lowerBody(clause.body, lowerExpression, loop);
+      this.jumpFrom(this.current, clause.fallthrough ? (arms[index + 1]?.id ?? end.id) : end.id);
     }
     this.select(end);
   }

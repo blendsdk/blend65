@@ -49,7 +49,7 @@ export function lowerUnary(
         machineInstruction(
           state.input.profile.cpu,
           "ora",
-          modeForValue(operand),
+          modeForValue(operand, offset),
           operandForValue(operand, offset),
           [],
           operation.span,

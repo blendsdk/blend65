@@ -35,7 +35,7 @@ future-target implementations.
 
 | # | Document | Description |
 |---|---|---|
-| AR | [Ambiguity Register](00-ambiguity-register.md) | Nine resolved planning decisions |
+| AR | [Ambiguity Register](00-ambiguity-register.md) | Planning and approved runtime decisions |
 | 00 | [Index](00-index.md) | Scope and navigation |
 | 01 | [Requirements](01-requirements.md) | RD-04 delta view |
 | 02 | [Current State](02-current-state.md) | Existing pipeline and gaps |

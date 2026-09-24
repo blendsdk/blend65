@@ -3,7 +3,6 @@ import {
   adaptableLiteralType,
   applyExpectedScalar,
   commonIntegerType,
-  convertInteger,
   createScalarTypedExpression,
   defaultIntegerType,
   evaluateBinaryInteger,
@@ -24,10 +23,13 @@ import {
   applyExpectedAggregate,
   diagnoseAggregateBinary,
   semanticTypeName,
+  semanticTypesEqual,
 } from "./aggregates.js";
 import { analyzeScalarConditional } from "./conditional-expressions.js";
-import { analyzeDirectCall } from "./direct-calls.js";
+import { analyzeDirectCall, resolveDirectCallTarget } from "./direct-calls.js";
+import { applyExpectedEnum } from "./enum-types.js";
 import { analyzeScalarAssignment } from "./scalar-assignments.js";
+import { analyzeEnumCastCall, analyzeEnumMember, analyzeScalarCast } from "./scalar-conversions.js";
 import {
   captureBranchFacts,
   mergeScalarFacts,
@@ -43,14 +45,6 @@ import type {
   TypedExpr,
 } from "./semantic-types.js";
 import type { Expr } from "./syntax.js";
-
-/** Flatten a member-only callee into its exact module-qualified spelling. */
-function qualifiedCallName(expression: Expr): string | null {
-  if (expression.kind === "name") return expression.name;
-  if (expression.kind !== "member") return null;
-  const object = qualifiedCallName(expression.object);
-  return object === null ? null : `${object}.${expression.member}`;
-}
 
 /** Direct recursive scalar expression checker. */
 export class ScalarExpressionAnalyzer {
@@ -73,9 +67,13 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
-    return expected.kind === "scalar"
-      ? applyExpectedScalar(natural, expected, expression, context, this.host)
-      : applyExpectedAggregate(natural, expected, expression, this.host);
+    if (expected.kind === "scalar") {
+      return applyExpectedScalar(natural, expected, expression, context, this.host);
+    }
+    if (expected.kind === "enum") {
+      return applyExpectedEnum(natural, expected, expression, this.host);
+    }
+    return applyExpectedAggregate(natural, expected, expression, this.host);
   }
   /** Analyze the expression's own operator-defined type before outer conversion. */
   private analyzeNatural(
@@ -83,6 +81,8 @@ export class ScalarExpressionAnalyzer {
     expected: SemanticType | null,
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
+    const enumMember = analyzeEnumMember(expression, context, this.host, this.aggregates.enums);
+    if (enumMember !== null) return enumMember;
     const aggregate = analyzeAggregateExpression(
       expression,
       expected,
@@ -109,7 +109,9 @@ export class ScalarExpressionAnalyzer {
       case "binary":
         return this.binary(expression, expected, context);
       case "cast":
-        return this.cast(expression, context);
+        return analyzeScalarCast(expression, context, this.host, (child, childType, childContext) =>
+          this.analyze(child, childType, childContext),
+        );
       case "conditional":
         return analyzeScalarConditional(
           expression,
@@ -125,12 +127,25 @@ export class ScalarExpressionAnalyzer {
           (child, childType, childContext) => this.analyze(child, childType, childContext),
         );
       case "call":
+        {
+          const enumCast = analyzeEnumCastCall(
+            expression,
+            context,
+            this.aggregates.enums,
+            this.host,
+            (child, childType, childContext) => this.analyze(child, childType, childContext),
+          );
+          if (enumCast !== null) return enumCast;
+        }
         return analyzeDirectCall(
           expression,
           context,
           this.host,
           (child, childType, childContext) => this.analyze(child, childType, childContext),
-          (callee, callContext) => this.callTarget(callee, callContext),
+          (callee, callContext) =>
+            resolveDirectCallTarget(callee, callContext, this.host, (name, nameContext) =>
+              this.name(name, nameContext, true),
+            ),
         );
       default:
         this.host.defer(
@@ -139,33 +154,6 @@ export class ScalarExpressionAnalyzer {
         );
         return { node: null, exact: null };
     }
-  }
-  /** Resolve an unqualified or module-qualified direct-call target. */
-  private callTarget(
-    expression: Expr,
-    context: ScalarExpressionContext,
-  ): ScalarExpressionResult | null {
-    if (expression.kind === "name") return this.name(expression, context, true);
-    if (expression.kind !== "member") return null;
-    const name = qualifiedCallName(expression);
-    if (name === null) return null;
-    const root = name.split(".", 1)[0];
-    if (root !== undefined && this.host.resolveName(root, context) !== null) return null;
-    const state = this.host.resolveName(name, context);
-    if (state === null || state.binding.type === null) return null;
-    const moduleName = name.slice(0, -(state.binding.name.length + 1));
-    return {
-      node: createScalarTypedExpression(expression, state.binding.type, state.known, {
-        member: state.binding.name,
-        qualifiedModule: Object.freeze({
-          name: moduleName,
-          span: Object.freeze({ ...expression.object.span }),
-        }),
-        binding: state.binding.id,
-        integer: integerFacts(state.binding.type, true),
-      }),
-      exact: state.known,
-    };
   }
   /** Type a nonnegative parser literal, adapting it only when the value fits. */
   private number(
@@ -229,11 +217,17 @@ export class ScalarExpressionAnalyzer {
     }
     if (context.constantContext && !callTarget && state.binding.storage !== "constant") {
       this.host.diagnose(
-        error(
-          "E10191",
-          "Expression must be compile-time evaluable — runtime value is not constant",
-          expression.span,
-        ),
+        context.caseContext
+          ? error(
+              "E10071",
+              `Case value must be a compile-time constant — '${this.host.sourceText(expression.span)}' cannot be evaluated at compile time`,
+              expression.span,
+            )
+          : error(
+              "E10191",
+              "Expression must be compile-time evaluable — runtime value is not constant",
+              expression.span,
+            ),
       );
       return { node: null, exact: null };
     }
@@ -364,6 +358,16 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
+    if (operand.node.type.kind === "enum") {
+      operand = applyExpectedScalar(
+        operand,
+        SCALAR_TYPES.byte,
+        expression.operand,
+        context,
+        this.host,
+      );
+      if (operand.node === null) return { node: null, exact: null };
+    }
     if (!isIntegerType(operand.node.type)) {
       this.host.diagnose(
         error(
@@ -443,6 +447,25 @@ export class ScalarExpressionAnalyzer {
     }
     const equality = expression.operator === "==" || expression.operator === "!=";
     const ordered = ["<", "<=", ">", ">="].includes(expression.operator);
+    if (left.node.type.kind === "enum" && right.node.type.kind === "enum") {
+      if ((equality || ordered) && !semanticTypesEqual(left.node.type, right.node.type)) {
+        this.host.diagnose(
+          error(
+            "E10236",
+            `Cannot compare enum '${left.node.type.name}' with enum '${right.node.type.name}' — cast one to 'byte'`,
+            expression.span,
+          ),
+        );
+        return { node: null, exact: null };
+      }
+    }
+    if (left.node.type.kind === "enum") {
+      left = applyExpectedScalar(left, SCALAR_TYPES.byte, expression.left, context, this.host);
+    }
+    if (right.node.type.kind === "enum") {
+      right = applyExpectedScalar(right, SCALAR_TYPES.byte, expression.right, context, this.host);
+    }
+    if (left.node === null || right.node === null) return { node: null, exact: null };
     if (diagnoseAggregateBinary(expression, left.node, right.node, this.host)) {
       if (logicalBaseline !== null) restoreScalarFacts(logicalBaseline);
       return { node: null, exact: null };
@@ -656,66 +679,6 @@ export class ScalarExpressionAnalyzer {
         left: left.node,
         right: right.node,
         evaluation: "short-circuit",
-      }),
-      exact: constant,
-    };
-  }
-  /** Check an explicit integer cast and retain its exact conversion. */
-  private cast(
-    expression: Extract<Expr, { readonly kind: "cast" }>,
-    context: ScalarExpressionContext,
-  ): ScalarExpressionResult {
-    const destination = this.host.resolveType(expression.type, context);
-    const operand = this.analyze(expression.operand, null, { ...context, ordinalContext: false });
-    if (destination === null || operand.node === null) return { node: null, exact: null };
-    if (!isScalarType(destination) || !isScalarType(operand.node.type)) {
-      this.host.diagnose(
-        error(
-          "E10086",
-          `Cannot cast '${semanticTypeName(operand.node.type)}' to '${semanticTypeName(destination)}'`,
-          expression.span,
-        ),
-      );
-      return { node: null, exact: null };
-    }
-    if (destination.name === "void" || operand.node.type.name === "void") {
-      this.host.diagnose(error("E10152", "Cannot cast to or from 'void'", expression.span));
-      return { node: null, exact: null };
-    }
-    if (destination.name === "boolean" || operand.node.type.name === "boolean") {
-      this.host.diagnose(
-        error(
-          "E10086",
-          `Cannot cast '${operand.node.type.name}' to '${destination.name}' — boolean is not convertible to or from an integer`,
-          expression.span,
-        ),
-      );
-      return { node: null, exact: null };
-    }
-    const conversion =
-      typeof operand.node.constant === "bigint"
-        ? convertInteger(operand.node.constant, operand.node.type, destination)
-        : convertInteger(0n, operand.node.type, destination);
-    if (
-      conversion.conversion === "truncate" &&
-      conversion.losesValue &&
-      typeof operand.node.constant === "bigint"
-    ) {
-      this.host.diagnose(
-        scalarWarning(
-          "W10101",
-          `Narrowing cast from '${operand.node.type.name}' to '${destination.name}' truncates ${operand.node.constant} to ${conversion.value}`,
-          expression.span,
-        ),
-      );
-    }
-    const constant = typeof operand.node.constant === "bigint" ? conversion.value : null;
-    return {
-      node: createScalarTypedExpression(expression, destination, constant, {
-        operand: operand.node,
-        targetType: expression.type,
-        conversion: conversion.conversion,
-        integer: integerFacts(destination, false),
       }),
       exact: constant,
     };

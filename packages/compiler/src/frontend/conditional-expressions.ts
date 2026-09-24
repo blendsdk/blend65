@@ -42,7 +42,9 @@ export function analyzeScalarConditional(
   restoreScalarFacts(baseline);
   let whenFalse = analyze(expression.whenFalse, null, context);
   const falseFacts = captureBranchFacts(baseline);
-  mergeScalarFacts(baseline, [trueFacts, falseFacts]);
+  if (condition.node?.constant === true) restoreScalarFacts(trueFacts);
+  else if (condition.node?.constant === false) restoreScalarFacts(falseFacts);
+  else mergeScalarFacts(baseline, [trueFacts, falseFacts]);
   if (condition.node === null || whenTrue.node === null || whenFalse.node === null) {
     return { node: null, exact: null };
   }
@@ -68,7 +70,11 @@ export function analyzeScalarConditional(
       ),
     );
   }
-  if (!isScalarType(whenTrue.node.type) || !isScalarType(whenFalse.node.type)) {
+  const sameEnum =
+    whenTrue.node.type.kind === "enum" &&
+    whenFalse.node.type.kind === "enum" &&
+    semanticTypesEqual(whenTrue.node.type, whenFalse.node.type);
+  if (!sameEnum && (!isScalarType(whenTrue.node.type) || !isScalarType(whenFalse.node.type))) {
     if (semanticTypesEqual(whenTrue.node.type, whenFalse.node.type)) {
       host.defer(expression.span, "Aggregate conditional copy lowering remains pending");
       return { node: null, exact: null };
@@ -82,7 +88,9 @@ export function analyzeScalarConditional(
     );
     return { node: null, exact: null };
   }
-  const resultType = commonScalarType(whenTrue.node.type, whenFalse.node.type);
+  const resultType = sameEnum
+    ? whenTrue.node.type
+    : commonScalarType(whenTrue.node.type, whenFalse.node.type);
   if (resultType === null) {
     host.diagnose(
       projectDiagnostic(
@@ -93,8 +101,10 @@ export function analyzeScalarConditional(
     );
     return { node: null, exact: null };
   }
-  whenTrue = applyExpectedScalar(whenTrue, resultType, expression.whenTrue, context, host);
-  whenFalse = applyExpectedScalar(whenFalse, resultType, expression.whenFalse, context, host);
+  if (!sameEnum) {
+    whenTrue = applyExpectedScalar(whenTrue, resultType, expression.whenTrue, context, host);
+    whenFalse = applyExpectedScalar(whenFalse, resultType, expression.whenFalse, context, host);
+  }
   if (whenTrue.node === null || whenFalse.node === null) return { node: null, exact: null };
   const constant =
     typeof condition.node.constant === "boolean"

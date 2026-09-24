@@ -146,6 +146,16 @@ export interface ScalarType {
   readonly name: ScalarTypeName;
 }
 
+/** One byte-backed type whose declaration identity remains distinct from other enums. */
+export interface EnumType {
+  /** Type discriminator. */
+  readonly kind: "enum";
+  /** Declared type name for diagnostics. */
+  readonly name: string;
+  /** Declaration identity which makes this type nominal. */
+  readonly binding: BindingId;
+}
+
 /** One field in a resolved nominal struct, including its packed byte offset. */
 export interface StructFieldType {
   /** Exact declared field name. */
@@ -181,7 +191,7 @@ export interface ArrayType {
 }
 
 /** Semantic types admitted by the current frontend slice. */
-export type SemanticType = ScalarType | StructType | ArrayType;
+export type SemanticType = ScalarType | EnumType | StructType | ArrayType;
 
 /** Source-level ordering behavior attached to a profile operation. */
 export type ProfileEffect = "pure" | "ordered-wait" | "volatile-read" | "volatile-write";
@@ -189,6 +199,7 @@ export type ProfileEffect = "pure" | "ordered-wait" | "volatile-read" | "volatil
 /** Render a stable structural key for aggregate-type interning. */
 export function semanticTypeKey(type: SemanticType): string {
   if (type.kind === "scalar") return type.name;
+  if (type.kind === "enum") return `enum:${bindingIdentityKey(type.binding)}`;
   if (type.kind === "struct") return `struct:${bindingIdentityKey(type.binding)}`;
   return `${semanticTypeKey(type.element)}[${type.length}]`;
 }
@@ -448,6 +459,42 @@ export interface TypedWhileStatement {
   readonly body: TypedBlock;
 }
 
+/** A typed post-test loop whose body executes before its condition. */
+export interface TypedDoWhileStatement {
+  /** Statement discriminator. */
+  readonly kind: "do-while";
+  /** Complete source bytes. */
+  readonly span: SourceSpan;
+  /** Repeated body. */
+  readonly body: TypedBlock;
+  /** Boolean continuation condition. */
+  readonly condition: TypedExpr;
+}
+
+/** One typed switch arm with source-ordered constant labels. */
+export interface TypedSwitchClause {
+  /** Case values, or null for the default arm. */
+  readonly values: readonly TypedExpr[] | null;
+  /** Statements executed when this arm is entered. */
+  readonly body: TypedBlock;
+  /** Whether execution continues directly into the next arm. */
+  readonly fallthrough: boolean;
+  /** Complete arm bytes. */
+  readonly span: SourceSpan;
+}
+
+/** A typed single-evaluation multi-way branch. */
+export interface TypedSwitchStatement {
+  /** Statement discriminator. */
+  readonly kind: "switch";
+  /** Complete source bytes. */
+  readonly span: SourceSpan;
+  /** Selector evaluated exactly once. */
+  readonly value: TypedExpr;
+  /** Source-ordered case and optional default arms. */
+  readonly clauses: readonly TypedSwitchClause[];
+}
+
 /** A typed ordinary three-clause loop. */
 export interface TypedForStatement {
   /** Statement discriminator. */
@@ -485,7 +532,9 @@ export type TypedStatement =
   | TypedBlockStatement
   | TypedIfStatement
   | TypedWhileStatement
+  | TypedDoWhileStatement
   | TypedForStatement
+  | TypedSwitchStatement
   | TypedExitStatement;
 
 /** A typed brace-delimited source block. */
@@ -608,6 +657,18 @@ export interface ScalarValueState {
   initializedRanges: readonly InitializedRange[];
   /** Exact scalar field paths definitely initialized by focused writes. */
   initializedPaths: readonly string[];
+  /** A stored Boolean's guarded destination, if a producer proved one. */
+  conditionalEffect?: ScalarConditionalEffect | null;
+}
+
+/** Correlation between a stored Boolean result and a captured destination range. */
+export interface ScalarConditionalEffect {
+  /** Stable identity of the result produced by the guarded operation. */
+  readonly resultId: string;
+  /** Destination whose captured range becomes initialized on true. */
+  readonly destination: ScalarValueState;
+  /** Exact half-open range captured when the guarded operation ran. */
+  readonly capturedRange: InitializedRange;
 }
 
 /** One lexical value scope used by direct expression lookup. */
@@ -628,6 +689,8 @@ export interface ScalarValueFact {
   readonly initializedRanges: readonly InitializedRange[];
   /** Exact scalar field paths initialized on every incoming path. */
   readonly initializedPaths: readonly string[];
+  /** Guarded write retained only when all paths agree on its result and range. */
+  readonly conditionalEffect?: ScalarConditionalEffect | null;
 }
 
 /** Reaching values captured at one control-flow split. */
@@ -645,6 +708,8 @@ export interface ScalarExpressionContext {
   readonly caller: BindingId | null;
   /** Whether arithmetic remains exact until final range validation. */
   readonly constantContext: boolean;
+  /** Case-label context uses its own canonical non-constant diagnostic. */
+  readonly caseContext?: boolean;
   /** Whether the expression is being resolved as a place rather than read as a value. */
   readonly placeContext?: boolean;
   /** Whether direct integer operators compute in the array-ordinal promotion domain. */

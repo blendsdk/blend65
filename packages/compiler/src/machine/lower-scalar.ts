@@ -66,7 +66,7 @@ export function lowerBitwise(
       machineInstruction(
         state.input.profile.cpu,
         opcode,
-        modeForValue(right),
+        modeForValue(right, offset),
         operandForValue(right, offset),
         [],
         operation.span,
@@ -422,7 +422,7 @@ export function lowerComparison(
         machineInstruction(
           state.input.profile.cpu,
           "eor",
-          modeForValue(right),
+          modeForValue(right, 1),
           operandForValue(right, 1),
           [],
           operation.span,
@@ -568,7 +568,7 @@ export function lowerComparison(
       machineInstruction(
         state.input.profile.cpu,
         "sbc",
-        modeForValue(comparisonRight),
+        modeForValue(comparisonRight, signed ? 0 : 1),
         operandForValue(comparisonRight, signed ? 0 : 1),
         [],
         operation.span,

@@ -76,7 +76,7 @@ export function lowerArithmetic(
     machineInstruction(
       state.input.profile.cpu,
       opcode,
-      modeForValue(right),
+      modeForValue(right, 1),
       operandForValue(right, 1),
       [],
       operation.span,

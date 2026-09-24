@@ -250,4 +250,88 @@ describe("explicit control-flow graph", () => {
     assertLoop("breakLoop", "break");
     assertLoop("returnLoop", "return");
   });
+
+  // Constant selectors omit their unchosen calls while retaining one call from each chosen arm.
+  it("should execute only selected short-circuit and conditional effects", () => {
+    const text = [
+      "module Game;",
+      "function skipped(): boolean { return true; }",
+      "function yes(): byte { return 1; }",
+      "function no(): byte { return 2; }",
+      "function main(): void {",
+      "  let both: boolean = false && skipped();",
+      "  let either: boolean = true || skipped();",
+      "  let first: byte = true ? yes() : no();",
+      "  let second: byte = false ? yes() : no();",
+      "}",
+    ].join("\n");
+    const { frontend, semantic } = lower(text);
+    const main = semantic.functions.find((candidate) =>
+      sameBinding(candidate.id, binding(frontend, "Game.main")),
+    );
+    expect(main).toBeDefined();
+    if (main === undefined) throw new Error("Missing lowered main");
+    const calls = main.blocks
+      .flatMap((block) => block.operations)
+      .filter((operation) => operation.kind === "call");
+    expect(calls.map(({ callee }) => callee)).toEqual([
+      binding(frontend, "Game.yes"),
+      binding(frontend, "Game.no"),
+    ]);
+  });
+
+  // The compound target place is fixed before the right operand, and its stored result is reused.
+  it("should reuse a compound assignment result without reading its target twice", () => {
+    const text = [
+      "module Game;",
+      "let values: byte[4] = [0; 0];",
+      "function index(): word { return 1; }",
+      "function delta(): byte { return 2; }",
+      "function main(): void { let copy: byte = 0; copy = values[index()] += delta(); }",
+    ].join("\n");
+    const { frontend, semantic } = lower(text);
+    const main = semantic.functions.find((candidate) =>
+      sameBinding(candidate.id, binding(frontend, "Game.main")),
+    );
+    expect(main).toBeDefined();
+    if (main === undefined) throw new Error("Missing lowered main");
+    const operations = main.blocks.flatMap((block) => block.operations);
+    const calls = operations.filter((operation) => operation.kind === "call");
+    expect(calls.map(({ callee }) => callee)).toEqual([
+      binding(frontend, "Game.index"),
+      binding(frontend, "Game.delta"),
+    ]);
+    const valuesId = binding(frontend, "Game.values");
+    const targetAccesses = operations.filter(
+      (operation) =>
+        (operation.kind === "load" || operation.kind === "store") &&
+        sameBinding(operation.place.root, valuesId),
+    );
+    expect(targetAccesses.map(({ kind }) => kind)).toEqual(["load", "store"]);
+    expect(targetAccesses[0]?.place.path).toEqual([{ kind: "index", value: calls[0]?.result }]);
+    expect(targetAccesses[1]?.place.path).toEqual([{ kind: "index", value: calls[0]?.result }]);
+    const copyStore = operations
+      .filter(
+        (operation) =>
+          operation.kind === "store" &&
+          operation.place.path.length === 0 &&
+          !sameBinding(operation.place.root, valuesId),
+      )
+      .at(-1);
+    expect(copyStore).toBeDefined();
+    expect(copyStore?.kind === "store" ? copyStore.value : undefined).toBeDefined();
+    expect(targetAccesses[1]?.kind === "store" ? targetAccesses[1].value : undefined).toBeDefined();
+    expect(copyStore?.kind === "store" ? copyStore.value : undefined).toBe(
+      targetAccesses[1]?.kind === "store" ? targetAccesses[1].value : undefined,
+    );
+    const order = [
+      operations.indexOf(calls[0]!),
+      operations.indexOf(targetAccesses[0]!),
+      operations.indexOf(calls[1]!),
+      operations.indexOf(targetAccesses[1]!),
+      operations.indexOf(copyStore!),
+    ];
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(new Set(order).size).toBe(order.length);
+  });
 });

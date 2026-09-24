@@ -5,20 +5,16 @@ import type {
   SourceRecord,
   SourceSpan,
 } from "../project/types.js";
-import { isScalarType, RESERVED_BUILTIN_NAMES, SCALAR_TYPES } from "./constants.js";
+import { isScalarType, RESERVED_BUILTIN_NAMES, scalarWarning, SCALAR_TYPES } from "./constants.js";
 import { AggregateRegistry, semanticTypeName } from "./aggregates.js";
 import { assembleModuleAnalysis } from "./analysis-result.js";
-import {
-  diagnoseArrayInitialization,
-  isDirectAggregateLiteral,
-  uninitializedReadDiagnostic,
-  updateInitializedState,
-} from "./aggregate-initialization.js";
+import { uninitializedReadDiagnostic } from "./aggregate-initialization.js";
 import { recursionDiagnostics } from "./call-cycles.js";
 import { orderScalarDeclarations } from "./effects.js";
 import {
   analyzeStructuredFor,
   analyzeStructuredIf,
+  analyzeStructuredDoWhile,
   clearMutableFacts,
   conditionDiagnostic,
   duplicateDeclarationDiagnostic,
@@ -28,6 +24,8 @@ import {
   summarizeTypedBlock,
 } from "./flow.js";
 import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
+import { analyzeStructuredSwitch } from "./switch-flow.js";
+import { analyzeScalarLocal, analyzeScalarModuleVariable } from "./analyzer-scalars.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
 import type { FunctionInfo } from "./module-bindings.js";
 import type { FrontendProfile } from "./profile.js";
@@ -208,7 +206,7 @@ class ModuleAnalyzer {
       );
       return;
     }
-    if (declaration.kind === "enum" || declaration.kind === "zeropage") {
+    if (declaration.kind === "zeropage") {
       this.addObligation(declaration.span, "Declaration semantics remain pending");
       return;
     }
@@ -245,10 +243,12 @@ class ModuleAnalyzer {
       this.retainUnusable("poison", state.binding.id, declaration.span);
       return;
     }
-    if (declaration.kind === "struct") {
+    if (declaration.kind === "enum" || declaration.kind === "struct") {
       if (state.binding.type === null) {
         this.retainUnusable(
-          this.aggregates.isDeferredStruct(state.binding.id) ? "unchecked" : "poison",
+          declaration.kind === "struct" && this.aggregates.isDeferredStruct(state.binding.id)
+            ? "unchecked"
+            : "poison",
           state.binding.id,
           declaration.span,
         );
@@ -275,78 +275,19 @@ class ModuleAnalyzer {
     declaration: VariableDeclaration,
     state: ValueState,
   ): void {
-    const before = this.errorCount();
-    const obligationsBefore = this.obligations.length;
-    const type = this.resolveType(declaration.type, module, declaration.initializer);
     const scope = moduleValueScope(
       this.moduleScopes.get(module),
       this.importsBySource.get(declaration.span.sourceId),
     );
-    let initializer: TypedExpr | null = null;
-    if (declaration.initializer !== null && type !== null) {
-      const aggregateCopy =
-        type.kind !== "scalar" && !isDirectAggregateLiteral(type, declaration.initializer);
-      const result = this.expressions.analyze(declaration.initializer, type, {
-        scope,
-        module,
-        sourceId: declaration.span.sourceId,
-        caller: null,
-        constantContext: declaration.declarationKind === "const",
-      });
-      if (aggregateCopy && result.node?.embedded === undefined) {
-        if (result.node !== null) {
-          this.addObligation(
-            declaration.initializer.span,
-            "Whole aggregate initialization and copy lowering remain pending",
-          );
-        }
-      } else {
-        initializer = result.node;
-        state.known = result.node?.constant ?? null;
-        updateInitializedState(state, result.node);
-      }
-      if (
-        declaration.declarationKind === "const" &&
-        type.kind === "scalar" &&
-        initializer !== null &&
-        initializer.constant === null
-      ) {
-        this.diagnostics.push(
-          errorDiagnostic(
-            "E10191",
-            "Expression must be compile-time evaluable — const initializer is not constant",
-            declaration.initializer.span,
-          ),
-        );
-      }
-    } else if (declaration.declarationKind === "const") {
-      this.diagnostics.push(
-        errorDiagnostic(
-          "E10190",
-          `Const declaration '${declaration.name}' requires an initializer`,
-          declaration.nameSpan,
-        ),
-      );
-    }
-    if (type !== null) {
-      diagnoseArrayInitialization(declaration, type, initializer, (diagnostic) =>
-        this.diagnostics.push(diagnostic),
-      );
-    }
-    if (this.obligations.length !== obligationsBefore) {
-      this.retainUnusable("unchecked", state.binding.id, declaration.span);
-      return;
-    }
-    if (
-      type === null ||
-      this.errorCount() !== before ||
-      (declaration.initializer !== null && initializer === null)
-    ) {
-      this.retainUnusable("poison", state.binding.id, declaration.span);
-      return;
-    }
     this.declarations.push(
-      Object.freeze({ kind: "typed", binding: state.binding.id, type, initializer, body: null }),
+      analyzeScalarModuleVariable(declaration, module, state, scope, {
+        expressions: this.expressions,
+        diagnostics: this.diagnostics,
+        resolveType: (item, owner) => this.resolveType(item.type, owner, item.initializer),
+        errorCount: () => this.errorCount(),
+        obligationCount: () => this.obligations.length,
+        defer: (span, message) => this.addObligation(span, message),
+      }),
     );
   }
 
@@ -459,9 +400,29 @@ class ModuleAnalyzer {
   ): TypedBlock {
     const scope: Scope = nested ? { parent, values: new Map() } : parent;
     const statements: TypedStatement[] = [];
+    let terminal: "break" | "continue" | "return" | null = null;
+    let warned = false;
     for (const statement of block.statements) {
+      if (terminal !== null) {
+        if (!warned) {
+          this.diagnostics.push(
+            scalarWarning(
+              "W10131",
+              `Unreachable code — statements after '${terminal}' cannot execute`,
+              statement.span,
+            ),
+          );
+          warned = true;
+        }
+        continue;
+      }
       const typed = this.analyzeStatement(statement, scope, module, caller, returnType, loopDepth);
-      if (typed !== null) statements.push(typed);
+      if (typed !== null) {
+        statements.push(typed);
+        if (typed.kind === "break" || typed.kind === "continue" || typed.kind === "return") {
+          terminal = typed.kind;
+        }
+      }
     }
     return Object.freeze({
       kind: "block",
@@ -514,6 +475,15 @@ class ModuleAnalyzer {
       clearMutableFacts(scope);
       const condition = this.expressions.analyze(statement.condition, null, context).node;
       if (condition !== null) this.addConditionDiagnostic(condition, statement.condition.span);
+      if (condition?.constant === false) {
+        this.diagnostics.push(
+          scalarWarning(
+            "W10130",
+            "Condition is always false — this block cannot execute",
+            statement.condition.span,
+          ),
+        );
+      }
       const loopEntry = snapshotScalarFacts(scope);
       const body = this.analyzeBlock(
         statement.body,
@@ -540,6 +510,34 @@ class ModuleAnalyzer {
         this.expressions,
         this.structuredFlowHost(),
       );
+    if (statement.kind === "do-while")
+      return analyzeStructuredDoWhile(
+        statement,
+        scope,
+        module,
+        caller,
+        returnType,
+        loopDepth,
+        this.expressions,
+        this.structuredFlowHost(),
+      );
+    if (statement.kind === "switch") {
+      return analyzeStructuredSwitch(
+        statement,
+        scope,
+        module,
+        caller,
+        returnType,
+        loopDepth,
+        this.expressions,
+        {
+          analyzeBlock: (body, parent, owner, functionId, resultType, depth) =>
+            this.analyzeBlock(body, parent, owner, functionId, resultType, depth),
+          diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
+          source: this.sources.get(statement.span.sourceId),
+        },
+      );
+    }
     if (statement.kind === "return") {
       let value: TypedExpr | null = null;
       if (statement.value !== null)
@@ -584,12 +582,7 @@ class ModuleAnalyzer {
       }
       return Object.freeze({ kind: statement.kind, span: freezeSourceSpan(statement.span) });
     }
-    if (
-      statement.kind === "unchecked" ||
-      statement.kind === "do-while" ||
-      statement.kind === "switch" ||
-      statement.kind === "fallthrough"
-    ) {
+    if (statement.kind === "unchecked" || statement.kind === "fallthrough") {
       this.addObligation(statement.span, "Statement is not implemented by this frontend slice");
     }
     return null;
@@ -601,113 +594,17 @@ class ModuleAnalyzer {
     scope: Scope,
     context: ExpressionContext,
   ): TypedVariableStatement | null {
-    if (declaration.loadable) {
-      this.addObligation(declaration.span, "Loadable local semantics remain pending");
-      return null;
-    }
-    const before = this.errorCount();
-    const type = this.resolveType(declaration.type, context.module, declaration.initializer, scope);
-    let initializer: TypedExpr | null = null;
-    if (declaration.initializer !== null && type !== null) {
-      const aggregateCopy =
-        type.kind !== "scalar" && !isDirectAggregateLiteral(type, declaration.initializer);
-      const result = this.expressions.analyze(declaration.initializer, type, {
-        ...context,
-        constantContext: declaration.declarationKind === "const",
-      });
-      if (aggregateCopy) {
-        if (result.node !== null) {
-          this.addObligation(
-            declaration.initializer.span,
-            "Whole aggregate initialization and copy lowering remain pending",
-          );
-        }
-      } else {
-        initializer = result.node;
-      }
-    }
-    if (scope.values.has(declaration.name)) {
-      const first = scope.values.get(declaration.name)!;
-      this.diagnostics.push(
-        duplicateDeclarationDiagnostic(
-          declaration.name,
-          declaration.nameSpan,
-          first,
-          this.sources.get(first.nameSpan.sourceId),
-        ),
-      );
-      return null;
-    }
-    if (RESERVED_BUILTIN_NAMES.has(declaration.name)) {
-      this.diagnostics.push(
-        errorDiagnostic(
-          "E10212",
-          `Cannot redeclare reserved built-in '${declaration.name}'`,
-          declaration.nameSpan,
-        ),
-      );
-      return null;
-    }
-    if (declaration.declarationKind === "const" && declaration.initializer === null) {
-      this.diagnostics.push(
-        errorDiagnostic(
-          "E10190",
-          `Const declaration '${declaration.name}' requires an initializer`,
-          declaration.nameSpan,
-        ),
-      );
-    }
-    if (
-      declaration.declarationKind === "const" &&
-      type?.kind === "scalar" &&
-      declaration.initializer !== null &&
-      initializer !== null &&
-      initializer.constant === null
-    ) {
-      this.diagnostics.push(
-        errorDiagnostic(
-          "E10191",
-          "Expression must be compile-time evaluable — const initializer is not constant",
-          declaration.initializer.span,
-        ),
-      );
-    }
-    if (type !== null) {
-      diagnoseArrayInitialization(declaration, type, initializer, (diagnostic) =>
-        this.diagnostics.push(diagnostic),
-      );
-    }
-    if (
-      type === null ||
-      this.errorCount() !== before ||
-      (declaration.initializer !== null && initializer === null)
-    )
-      return null;
-    const binding = this.createBodyBinding(
-      declaration.name,
-      declaration.span,
-      declaration.declarationKind === "const" ? "constant" : "local",
-      type,
-    );
-    const state: ValueState = {
-      binding,
-      nameSpan: freezeSourceSpan(declaration.nameSpan),
-      readonly: declaration.declarationKind === "const",
-      known: initializer?.constant ?? null,
-      initialized: false,
-      initializedRanges: Object.freeze([]),
-      initializedPaths: Object.freeze([]),
-    };
-    updateInitializedState(state, initializer);
-    scope.values.set(declaration.name, state);
-    this.stateByKey.set(bindingIdentityKey(binding.id), state);
-    return Object.freeze({
-      kind: "variable",
-      span: freezeSourceSpan(declaration.span),
-      name: declaration.name,
-      binding: binding.id,
-      type,
-      initializer,
+    return analyzeScalarLocal(declaration, scope, context, {
+      expressions: this.expressions,
+      diagnostics: this.diagnostics,
+      sources: this.sources,
+      stateByKey: this.stateByKey,
+      resolveType: (item, active) =>
+        this.resolveType(item.type, active.module, item.initializer, active.scope),
+      defer: (span, message) => this.addObligation(span, message),
+      errorCount: () => this.errorCount(),
+      createBinding: (name, span, storage, type) =>
+        this.createBodyBinding(name, span, storage, type),
     });
   }
 

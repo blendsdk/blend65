@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SemanticOperation } from "../semantic/operations.js";
 import { lowerC64Operation } from "./lower-c64.js";
+import { lowerConversion } from "./lower-conversion.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
 import { advanceAggregateInductionAddress } from "./lower-induction.js";
@@ -213,7 +214,10 @@ export function lowerOperation(
     } else {
       source = loweredPlace(operation.place, width, isSignedType(operation.type), state);
     }
-    const stage = operation.type.kind === "scalar" ? loadedValueStage(operation, state) : null;
+    const stage =
+      operation.type.kind === "scalar" || operation.type.kind === "enum"
+        ? loadedValueStage(operation, state)
+        : null;
     if (stage === null) {
       state.values.set(operation.result, source);
       return instructions;
@@ -250,13 +254,7 @@ export function lowerOperation(
     }
     return Object.freeze(instructions);
   }
-  if (operation.kind === "convert") {
-    const operand = state.values.get(operation.operand);
-    if (operand === undefined)
-      throw loweringFailure("Converted value was not lowered", operation.span);
-    state.values.set(operation.result, operand);
-    return Object.freeze([]);
-  }
+  if (operation.kind === "convert") return lowerConversion(operation, state);
   if (operation.kind === "unary") {
     const lowered = lowerUnary(operation, state);
     const retained = retainMachineValue(
@@ -483,14 +481,16 @@ export function lowerOperation(
       }
       const destination = loweredPlace(
         Object.freeze({ root: parameter.id, path: Object.freeze([]), rootType: parameter.type }),
-        parameter.type.kind === "scalar" ? typeBytes(parameter.type) : 2,
+        parameter.type.kind === "scalar" || parameter.type.kind === "enum"
+          ? typeBytes(parameter.type)
+          : 2,
         isSignedType(parameter.type),
         state,
       );
       if (destination.kind !== "storage") {
         throw loweringFailure("Callee parameter has no certified static home", operation.span);
       }
-      if (parameter.type.kind !== "scalar") {
+      if (parameter.type.kind !== "scalar" && parameter.type.kind !== "enum") {
         marshalAggregateAddress(instructions, argument, destination, state, operation);
       } else {
         for (let offset = 0; offset < typeBytes(parameter.type); offset += 1) {

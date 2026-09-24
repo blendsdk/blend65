@@ -245,12 +245,13 @@ describe("scalar analysis implementation", () => {
     expect(result.declarations).toContainEqual(expect.objectContaining({ kind: "poison" }));
   });
 
-  it("keeps declarations with unsupported body forms unchecked", () => {
+  it("diagnoses a loop break inside a switch that has no enclosing loop", () => {
     const result = analyze(
       "module Game; function pending(): void { switch (1) { default: break; } } function main(): void {}",
     );
-    expect(result.obligations).not.toEqual([]);
-    expect(result.declarations).toContainEqual(expect.objectContaining({ kind: "unchecked" }));
+    expect(result.obligations).toEqual([]);
+    expect(result.diagnostics).toMatchObject([{ code: "E10063" }]);
+    expect(result.declarations).toContainEqual(expect.objectContaining({ kind: "poison" }));
   });
 
   it("proves infinite returns and exact byte-loop repetition", () => {

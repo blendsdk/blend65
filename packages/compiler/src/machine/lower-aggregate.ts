@@ -471,7 +471,7 @@ export function lowerAggregateAddress(
       machineInstruction(
         state.input.profile.cpu,
         "adc",
-        modeForValue(scaled.value),
+        modeForValue(scaled.value, 1),
         operandForValue(scaled.value, 1),
         [],
         source,
@@ -590,7 +590,7 @@ export function lowerAggregate(
   operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
   state: FunctionLoweringState,
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
-  if (operation.type.kind === "scalar") {
+  if (operation.type.kind === "scalar" || operation.type.kind === "enum") {
     throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
   }
   const request = requestStorage(

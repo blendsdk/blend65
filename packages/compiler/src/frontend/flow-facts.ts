@@ -19,6 +19,7 @@ export function snapshotScalarFacts(scope: ScalarScope): ScalarFactSnapshot {
             initialized: state.initialized,
             initializedRanges: state.initializedRanges,
             initializedPaths: state.initializedPaths,
+            conditionalEffect: state.conditionalEffect ?? null,
           }),
         );
       }
@@ -34,6 +35,7 @@ export function restoreScalarFacts(snapshot: ScalarFactSnapshot): void {
     state.initialized = fact.initialized;
     state.initializedRanges = fact.initializedRanges;
     state.initializedPaths = fact.initializedPaths;
+    state.conditionalEffect = fact.conditionalEffect ?? null;
   }
 }
 
@@ -47,6 +49,7 @@ export function captureBranchFacts(snapshot: ScalarFactSnapshot): ScalarFactSnap
         initialized: state.initialized,
         initializedRanges: state.initializedRanges,
         initializedPaths: state.initializedPaths,
+        conditionalEffect: state.conditionalEffect ?? null,
       }),
     ]),
   );
@@ -69,6 +72,37 @@ export function mergeScalarFacts(
       first.initializedPaths.filter((path) =>
         candidates.every((fact) => fact.initializedPaths.includes(path)),
       ),
+    );
+    const effect = first.conditionalEffect ?? null;
+    state.conditionalEffect =
+      effect !== null &&
+      candidates.every((fact) => {
+        const candidate = fact.conditionalEffect;
+        return (
+          candidate?.resultId === effect.resultId &&
+          candidate.destination === effect.destination &&
+          candidate.capturedRange.start === effect.capturedRange.start &&
+          candidate.capturedRange.end === effect.capturedRange.end
+        );
+      })
+        ? effect
+        : null;
+  }
+}
+
+/** Credit a proved captured write only on the matching stored result's true path. */
+export function creditConditionalSuccess(result: ScalarValueState, resultId: string): void {
+  const effect = result.conditionalEffect;
+  if (result.known !== true || effect === undefined || effect === null) return;
+  if (effect.resultId !== resultId) return;
+  const destination = effect.destination;
+  destination.initializedRanges = Object.freeze(
+    normalizeRanges([...destination.initializedRanges, effect.capturedRange]),
+  );
+  const type = destination.binding.type;
+  if (type?.kind === "array") {
+    destination.initialized = destination.initializedRanges.some(
+      (range) => range.start === 0 && range.end >= type.length,
     );
   }
 }

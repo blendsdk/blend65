@@ -2,7 +2,14 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot, SourceRecord, SourceSpan } from "../project/types.js";
 import { analyzeModules } from "./analyzer.js";
+import * as flowFacts from "./flow-facts.js";
 import { indexModules, resolveModules } from "./modules.js";
+import type {
+  InitializedRange,
+  ScalarScope,
+  ScalarValueState,
+  SemanticType,
+} from "./semantic-types.js";
 
 function hash(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
@@ -239,5 +246,234 @@ describe("recursion and structured flow", () => {
     expect(typedDeclaration(endless, "Game.f").body).toMatchObject({
       statements: [{ kind: "for", condition: null, continueTarget: "update", breakTarget: "exit" }],
     });
+  });
+
+  // A ring cursor has an explicit exit and is allowed to pass through byte wrap.
+  it("should accept an intentional byte ring cursor", () => {
+    const result = analyze(
+      "module Game; function f(): void { for (let cursor: byte = 254; ; cursor += 1) { if (cursor == 1) { break; } } } function main(): void {}",
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(result.complete).toBe(true);
+  });
+
+  // The header, body, and surrounding block each have their own declaration identity.
+  it("should allow a for header and its body to shadow an outer name", () => {
+    const result = analyze(
+      "module Game; function f(): word { let i: word = 2; for (let i: word = i; i < 4; i += 1) { let i: word = i + 100; i; } return i; } function main(): void {}",
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(result.complete).toBe(true);
+  });
+
+  // A dynamic write may select either element; it cannot establish element zero on every path.
+  it("should report declaration and read warnings independently for a may-alias array write", () => {
+    const result = analyze(
+      "module Game; function f(index: byte): byte { let values: byte[2]; values[index] = 7; return values[0]; } function main(): void {}",
+    );
+    expect(
+      result.diagnostics.map(({ code, severity, message }) => ({ code, severity, message })),
+    ).toEqual([
+      {
+        code: "W10141",
+        severity: "warning",
+        message: "Array 'values' is uninitialized — all 2 elements are indeterminate",
+      },
+      {
+        code: "W10190",
+        severity: "warning",
+        message: "Variable 'values' may be read before initialization — its value is indeterminate",
+      },
+    ]);
+  });
+
+  // Enum members share one case body, and a default handles every unmatched value.
+  it("should accept an enum switch with an ordered multi-value case and one default", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "enum Direction { Up, Down, Left }",
+        "function f(direction: Direction): byte {",
+        "  let result: byte = 0;",
+        "  switch (direction) {",
+        "    case Direction.Up, Direction.Down: result = 1;",
+        "    case Direction.Left: result = 2;",
+        "    default: result = 3;",
+        "  }",
+        "  return result;",
+        "}",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(result.complete).toBe(true);
+  });
+
+  // An enum case from a different declaration cannot match the switch's nominal type.
+  it("should reject a case value from another enum", () => {
+    const result = analyze(
+      "module Game; enum Direction { Up } enum State { Up } function f(direction: Direction): void { switch (direction) { case State.Up: return; } } function main(): void {}",
+    );
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "E10072",
+        severity: "error",
+        message: "Case value type 'State' does not match switch expression type 'Direction'",
+      },
+    ]);
+    expect(result.complete).toBe(false);
+  });
+
+  // Each invalid switch form has its own stable root diagnostic.
+  it.each([
+    ["duplicate value", "switch (value) { case 1: value = 2; case 1: value = 3; }", "E10070", null],
+    [
+      "nonconstant value",
+      "switch (value) { case value: value = 2; }",
+      "E10071",
+      "Case value must be a compile-time constant — 'value' cannot be evaluated at compile time",
+    ],
+    [
+      "boolean selector",
+      "switch (true) { case 1: value = 2; }",
+      "E10075",
+      "Cannot switch on type 'boolean' — use an integer or enum expression",
+    ],
+    [
+      "second default",
+      "switch (value) { default: value = 1; default: value = 2; }",
+      "E10076",
+      "Only one 'default' clause is allowed per switch statement",
+    ],
+    [
+      "terminal fallthrough",
+      "switch (value) { case 1: fallthrough; }",
+      "E10073",
+      "'fallthrough' has no effect in the last case of a switch",
+    ],
+    [
+      "nonterminal fallthrough",
+      "switch (value) { case 1: fallthrough; value = 2; case 2: value = 3; }",
+      "E10074",
+      "'fallthrough' must be the last statement in a case body and cannot be nested in another control-flow block",
+    ],
+  ])("should diagnose a switch with %s", (_name, statement, code, message) => {
+    const result = analyze(
+      `module Game; function f(value: byte): void { ${statement} } function main(): void {}`,
+    );
+    expect(result.diagnostics).toHaveLength(1);
+    expect(result.diagnostics[0]).toMatchObject({ code, severity: "error" });
+    if (message === null) {
+      expect(result.diagnostics[0]?.message).toMatch(
+        /^Duplicate case value 1 — already used at .+$/,
+      );
+      expect(result.diagnostics[0]?.related).toHaveLength(1);
+    } else {
+      expect(result.diagnostics[0]?.message).toBe(message);
+    }
+    expect(result.complete).toBe(false);
+  });
+});
+
+describe("stored conditional effect facts", () => {
+  // A stored Boolean keeps its selected destination through agreeing paths and credits only proved success.
+  it("should retain one captured range across agreeing joins and discard a conflicting capture", () => {
+    type Effect = {
+      readonly resultId: string;
+      readonly destination: ScalarValueState;
+      readonly capturedRange: InitializedRange;
+    };
+    type EffectState = ScalarValueState & { conditionalEffect?: Effect | null };
+    const planned = flowFacts as typeof flowFacts & {
+      creditConditionalSuccess(result: ScalarValueState, resultId: string): void;
+    };
+    const arrayType: SemanticType = {
+      kind: "array",
+      element: { kind: "scalar", name: "byte" },
+      length: 3,
+      size: 3,
+    };
+    /** Create an independent reaching value for the synthetic branch facts. */
+    function value(name: string, start: number, type: SemanticType): EffectState {
+      const span = { sourceId: "synthetic.blend", start, end: start + name.length };
+      return {
+        binding: {
+          id: { sourceId: span.sourceId, span },
+          name,
+          qualifiedName: null,
+          declaration: span,
+          exported: false,
+          storage: "local",
+          type,
+        },
+        nameSpan: span,
+        readonly: false,
+        known: null,
+        initialized: false,
+        initializedRanges: [],
+        initializedPaths: [],
+        conditionalEffect: null,
+      };
+    }
+    const destination = value("destination", 0, arrayType);
+    const unrelated = value("unrelated", 20, arrayType);
+    unrelated.initializedRanges = [{ start: 0, end: 1 }];
+    const result = value("loaded", 40, { kind: "scalar", name: "boolean" });
+    result.initialized = true;
+    const capturedRange = { start: 1, end: 2 };
+    const effect = { resultId: "stored-load", destination, capturedRange };
+    result.conditionalEffect = effect;
+    const scope: ScalarScope = {
+      parent: null,
+      values: new Map([
+        ["destination", destination],
+        ["unrelated", unrelated],
+        ["loaded", result],
+      ]),
+    };
+
+    const baseline = flowFacts.snapshotScalarFacts(scope);
+    expect(baseline.get(result)).toMatchObject({ conditionalEffect: effect });
+    const agreeingLeft = flowFacts.captureBranchFacts(baseline);
+    flowFacts.restoreScalarFacts(baseline);
+    result.conditionalEffect = {
+      resultId: "stored-load",
+      destination,
+      capturedRange: { start: 1, end: 2 },
+    };
+    const agreeingRight = flowFacts.captureBranchFacts(baseline);
+    flowFacts.mergeScalarFacts(baseline, [agreeingLeft, agreeingRight]);
+    expect(result.conditionalEffect).toEqual(effect);
+    result.known = true;
+    planned.creditConditionalSuccess(result, "stored-load");
+    expect(destination.initializedRanges).toEqual([capturedRange]);
+    expect(destination.initialized).toBe(false);
+    expect(unrelated.initializedRanges).toEqual([{ start: 0, end: 1 }]);
+
+    flowFacts.restoreScalarFacts(baseline);
+    result.known = false;
+    planned.creditConditionalSuccess(result, "stored-load");
+    expect(destination.initializedRanges).toEqual([]);
+
+    flowFacts.restoreScalarFacts(baseline);
+    result.known = true;
+    planned.creditConditionalSuccess(result, "another-result");
+    expect(destination.initializedRanges).toEqual([]);
+
+    flowFacts.restoreScalarFacts(baseline);
+    const disagreeingLeft = flowFacts.captureBranchFacts(baseline);
+    flowFacts.restoreScalarFacts(baseline);
+    result.conditionalEffect = {
+      resultId: "stored-load",
+      destination,
+      capturedRange: { start: 2, end: 3 },
+    };
+    const disagreeingRight = flowFacts.captureBranchFacts(baseline);
+    flowFacts.mergeScalarFacts(baseline, [disagreeingLeft, disagreeingRight]);
+    expect(result.conditionalEffect).toBeNull();
+    result.known = true;
+    planned.creditConditionalSuccess(result, "stored-load");
+    expect(destination.initializedRanges).toEqual([]);
+    expect(unrelated.initializedRanges).toEqual([{ start: 0, end: 1 }]);
   });
 });

@@ -268,7 +268,7 @@ export function loadA(
     return machineInstruction(
       state.input.profile.cpu,
       "lda",
-      modeForValue(value),
+      modeForValue(value, offset),
       operandForValue(value, offset),
       [],
       source,

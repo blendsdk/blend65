@@ -1,6 +1,6 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceRecord, SourceSpan } from "../project/types.js";
-import { isScalarType, SCALAR_TYPES, wrapInteger } from "./constants.js";
+import { isScalarType, scalarWarning, SCALAR_TYPES, wrapInteger } from "./constants.js";
 import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import {
   captureBranchFacts,
@@ -16,6 +16,7 @@ import type {
   ScalarValueState,
   SemanticType,
   TypedBlock,
+  TypedDoWhileStatement,
   TypedExpr,
   TypedForStatement,
   TypedIfStatement,
@@ -25,6 +26,7 @@ import type {
   Block,
   Expr,
   ForStatement,
+  DoWhileStatement,
   IfStatement,
   Statement,
   VariableDeclaration,
@@ -108,6 +110,12 @@ export function summarizeTypedBlock(block: TypedBlock): FlowSummary {
         statement.condition.value === true &&
         !bodyFlow.breaks;
       normal = !alwaysRepeats;
+    } else if (statement.kind === "do-while") {
+      const bodyFlow = summarizeTypedBlock(statement.body);
+      returns ||= bodyFlow.returns;
+      normal =
+        bodyFlow.breaks ||
+        ((bodyFlow.normal || bodyFlow.continues) && statement.condition.constant !== true);
     } else if (statement.kind === "for") {
       const bodyFlow = summarizeTypedBlock(statement.body);
       returns ||= bodyFlow.returns;
@@ -115,6 +123,22 @@ export function summarizeTypedBlock(block: TypedBlock): FlowSummary {
         statement.condition === null ||
         (statement.condition.kind === "boolean" && statement.condition.value === true);
       normal = !conditionAlwaysTrue || bodyFlow.breaks;
+    } else if (statement.kind === "switch") {
+      let armContinues = false;
+      let armReturns = false;
+      let nextArmContinues = false;
+      for (const clause of [...statement.clauses].reverse()) {
+        const arm = summarizeTypedBlock(clause.body);
+        const armCanContinue: boolean =
+          arm.normal && (clause.fallthrough ? nextArmContinues : true);
+        armContinues ||= armCanContinue;
+        armReturns ||= arm.returns;
+        breaks ||= arm.breaks;
+        continues ||= arm.continues;
+        nextArmContinues = armCanContinue;
+      }
+      returns ||= armReturns;
+      normal = armContinues || !statement.clauses.some((clause) => clause.values === null);
     }
   }
   return Object.freeze({ normal, returns, breaks, continues });
@@ -482,13 +506,56 @@ export function analyzeStructuredIf(
     );
   }
   const elseFacts = captureBranchFacts(baseline);
-  mergeScalarFacts(baseline, [thenFacts, elseFacts]);
+  const thenNormal = summarizeTypedBlock(then).normal;
+  const elseNormal =
+    otherwise === null
+      ? true
+      : otherwise.kind === "block"
+        ? summarizeTypedBlock(otherwise).normal
+        : summarizeTypedAlternative(otherwise).normal;
+  const alternatives = [];
+  if (condition?.constant !== false && thenNormal) alternatives.push(thenFacts);
+  if (condition?.constant !== true && elseNormal) alternatives.push(elseFacts);
+  if (alternatives.length > 0) mergeScalarFacts(baseline, alternatives);
   return Object.freeze({
     kind: "if",
     span: Object.freeze({ ...statement.span }),
     condition: condition ?? poisonBoolean(statement.condition.span),
     then,
     otherwise,
+  });
+}
+
+/** Analyze a post-test loop, retaining body initialization before the first test. */
+export function analyzeStructuredDoWhile(
+  statement: DoWhileStatement,
+  scope: ScalarScope,
+  module: string,
+  caller: BindingId,
+  returnType: SemanticType,
+  loopDepth: number,
+  expressions: ScalarExpressionAnalyzer,
+  host: StructuredFlowHost,
+): TypedDoWhileStatement {
+  clearMutableScalarFacts(scope);
+  const body = host.analyzeBlock(statement.body, scope, module, caller, returnType, loopDepth + 1);
+  const condition = expressions.analyze(statement.condition, null, {
+    scope,
+    module,
+    sourceId: statement.span.sourceId,
+    caller,
+    constantContext: false,
+  }).node;
+  if (condition !== null) {
+    const diagnostic = conditionDiagnostic(condition, statement.condition.span);
+    if (diagnostic !== null) host.diagnose(diagnostic);
+  }
+  if (condition?.constant !== false) clearMutableScalarFacts(scope);
+  return Object.freeze({
+    kind: "do-while",
+    span: Object.freeze({ ...statement.span }),
+    body,
+    condition: condition ?? poisonBoolean(statement.condition.span),
   });
 }
 
@@ -531,6 +598,15 @@ export function analyzeStructuredFor(
   if (condition !== null) {
     const diagnostic = conditionDiagnostic(condition, statement.condition!.span);
     if (diagnostic !== null) host.diagnose(diagnostic);
+    if (condition.constant === false) {
+      host.diagnose(
+        scalarWarning(
+          "W10130",
+          "Condition is always false — this block cannot execute",
+          statement.condition!.span,
+        ),
+      );
+    }
   }
   const loopEntry = snapshotScalarFacts(scope);
   const body = host.analyzeBlock(statement.body, scope, module, caller, returnType, loopDepth + 1);

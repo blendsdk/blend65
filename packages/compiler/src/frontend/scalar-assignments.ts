@@ -107,7 +107,7 @@ export function analyzeScalarAssignment(
       ...context,
       ordinalContext: false,
     });
-    if (target.node.type.kind !== "scalar") {
+    if (target.node.type.kind !== "scalar" && target.node.type.kind !== "enum") {
       if (value.node !== null) {
         host.defer(expression.span, "Whole aggregate assignment and copy lowering remain pending");
       }
@@ -178,6 +178,7 @@ export function analyzeScalarAssignment(
   const state = stateForPlace(target.node.place, context.scope);
   if (state !== null) {
     state.known = target.node.place.path.length === 0 ? resultConstant : null;
+    if (target.node.place.path.length === 0) state.conditionalEffect = null;
     markPlaceInitialized(state, target.node.place);
   }
   const compound = expression.operator !== "=";

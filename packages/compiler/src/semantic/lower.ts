@@ -9,8 +9,9 @@ import type {
 } from "../frontend/semantic-types.js";
 import type { AnalysisResult } from "../frontend/service.js";
 import { ControlFlowBuilder } from "./cfg.js";
+import { lowerConditional, lowerShortCircuit, typeBeforeConversion } from "./lower-control.js";
+import { initializerBytes } from "./lower-data.js";
 import type {
-  BlockId,
   SemanticFunction,
   SemanticGlobal,
   SemanticPlace,
@@ -43,21 +44,6 @@ function expressionValue(expression: TypedExpr): TypedExpr {
 /** Return whether a scalar type is the language's void type. */
 function isVoid(type: SemanticType): boolean {
   return type.kind === "scalar" && type.name === "void";
-}
-
-/** Infer the value type before a retained widening or narrowing conversion. */
-function typeBeforeConversion(expression: TypedExpr): SemanticType {
-  if (expression.conversion === null || expression.conversion === "identity")
-    return expression.type;
-  if (expression.kind === "cast") {
-    const operand = expression.operand;
-    if (operand !== undefined && "type" in operand) return operand.type;
-  }
-  const integer = expression.integer;
-  if (integer === null) return expression.type;
-  const name =
-    integer.width === 8 ? (integer.signed ? "sbyte" : "byte") : integer.signed ? "sword" : "word";
-  return Object.freeze({ kind: "scalar", name });
 }
 
 /** Direct expression-to-operation lowering for one owning CFG builder. */
@@ -117,7 +103,7 @@ class ExpressionLowerer {
             ? undefined
             : this.bindingsByKey.get(bindingIdentityKey(expression.binding));
         if (
-          operationType.kind === "scalar" &&
+          (operationType.kind === "scalar" || operationType.kind === "enum") &&
           binding?.storage === "constant" &&
           expression.constant !== null
         ) {
@@ -131,16 +117,26 @@ class ExpressionLowerer {
         return this.lowerPlaceValue(expression, operationType);
       }
       case "index":
-      case "member":
         return this.lowerPlaceValue(expression, operationType);
+      case "member":
+        return expression.place === null && typeof expression.constant === "bigint"
+          ? this.emitConstant(
+              expression.constant,
+              operationType,
+              expression.span,
+              expression.integer,
+            )
+          : this.lowerPlaceValue(expression, operationType);
       case "unary":
         return this.lowerUnary(expression, operationType);
       case "binary":
         return expression.evaluation === "short-circuit"
-          ? this.lowerShortCircuit(expression)
+          ? lowerShortCircuit(expression, this.builder, this.lower, (value, source) =>
+              this.emitConstant(value, source.type, source.span),
+            )
           : this.lowerBinary(expression, operationType);
       case "conditional":
-        return this.lowerConditional(expression);
+        return lowerConditional(expression, this.builder, this.lower);
       case "cast": {
         const operandNode = required(expression.operand, "cast operand");
         if (!("type" in operandNode)) throw new Error("Cast operand is not a typed expression");
@@ -220,7 +216,7 @@ class ExpressionLowerer {
     const result = this.builder.nextValue();
     this.builder.emit(
       Object.freeze({
-        kind: type.kind === "scalar" ? "load" : "place-address",
+        kind: type.kind === "scalar" || type.kind === "enum" ? "load" : "place-address",
         result,
         place,
         type,
@@ -298,112 +294,6 @@ class ExpressionLowerer {
         left,
         right,
         type,
-        integer: expression.integer,
-        span: expression.span,
-      }),
-    );
-    return result;
-  }
-
-  /** Lower Boolean short circuit with no operations in the bypassed right arm. */
-  private lowerShortCircuit(expression: TypedExpr): ValueId {
-    const leftNode = required(expression.left, "logical left operand");
-    const rightNode = required(expression.right, "logical right operand");
-    const left = this.lower(leftNode);
-    if (left === null) throw new Error("Completed logical left operand has no value");
-    const operator = required(expression.operator, "logical operator");
-    if (typeof leftNode.constant === "boolean") {
-      const evaluateRight = operator === "&&" ? leftNode.constant : !leftNode.constant;
-      if (evaluateRight) {
-        const right = this.lower(rightNode);
-        if (right === null) throw new Error("Completed logical right operand has no value");
-        return right;
-      }
-      return this.emitConstant(leftNode.constant, expression.type, expression.span);
-    }
-
-    const conditionBlock = this.builder.currentBlock!;
-    const selected = this.builder.createBlock("logical-selected");
-    const bypassed = this.builder.createBlock("logical-bypassed");
-    conditionBlock.terminator = Object.freeze({
-      kind: "branch",
-      condition: left,
-      whenTrue: operator === "&&" ? selected.id : bypassed.id,
-      whenFalse: operator === "&&" ? bypassed.id : selected.id,
-    });
-
-    this.builder.select(selected);
-    const selectedValue = this.lower(rightNode);
-    if (selectedValue === null) throw new Error("Completed logical right operand has no value");
-    const selectedExit = this.builder.currentBlock!;
-    this.builder.select(bypassed);
-    const bypassValue = this.emitConstant(operator === "||", expression.type, expression.span);
-    const bypassExit = this.builder.currentBlock!;
-
-    const merge = this.builder.createBlock("logical-end");
-    this.builder.jumpFrom(selectedExit, merge.id);
-    this.builder.jumpFrom(bypassExit, merge.id);
-    this.builder.select(merge);
-    return this.emitMerge(expression, [
-      { block: selectedExit.id, value: selectedValue },
-      { block: bypassExit.id, value: bypassValue },
-    ]);
-  }
-
-  /** Lower a selected-arm expression to two exclusive blocks and one merge. */
-  private lowerConditional(expression: TypedExpr): ValueId {
-    const conditionNode = required(expression.condition, "conditional condition");
-    const condition = this.lower(conditionNode);
-    if (condition === null) throw new Error("Completed conditional test has no value");
-    const whenTrueNode = required(expression.whenTrue, "conditional true arm");
-    const whenFalseNode = required(expression.whenFalse, "conditional false arm");
-    if (typeof conditionNode.constant === "boolean") {
-      const value = this.lower(conditionNode.constant ? whenTrueNode : whenFalseNode);
-      if (value === null) throw new Error("Completed conditional arm has no value");
-      return value;
-    }
-
-    const conditionBlock = this.builder.currentBlock!;
-    const whenTrue = this.builder.createBlock("conditional-true");
-    const whenFalse = this.builder.createBlock("conditional-false");
-    conditionBlock.terminator = Object.freeze({
-      kind: "branch",
-      condition,
-      whenTrue: whenTrue.id,
-      whenFalse: whenFalse.id,
-    });
-
-    this.builder.select(whenTrue);
-    const trueValue = this.lower(whenTrueNode);
-    if (trueValue === null) throw new Error("Completed true arm has no value");
-    const trueExit = this.builder.currentBlock!;
-    this.builder.select(whenFalse);
-    const falseValue = this.lower(whenFalseNode);
-    if (falseValue === null) throw new Error("Completed false arm has no value");
-    const falseExit = this.builder.currentBlock!;
-
-    const merge = this.builder.createBlock("conditional-end");
-    this.builder.jumpFrom(trueExit, merge.id);
-    this.builder.jumpFrom(falseExit, merge.id);
-    this.builder.select(merge);
-    return this.emitMerge(expression, [
-      { block: trueExit.id, value: trueValue },
-      { block: falseExit.id, value: falseValue },
-    ]);
-  }
-
-  /** Emit one merge for values defined by mutually exclusive predecessor blocks. */
-  private emitMerge(
-    expression: TypedExpr,
-    incoming: readonly { readonly block: BlockId; readonly value: ValueId }[],
-  ): ValueId {
-    const result = this.builder.nextValue();
-    this.builder.emit(
-      Object.freeze({
-        kind: "merge",
-        result,
-        incoming: Object.freeze(incoming.map((item) => Object.freeze({ ...item }))),
-        type: typeBeforeConversion(expression),
         integer: expression.integer,
         span: expression.span,
       }),
@@ -675,49 +565,6 @@ function lowerFunction(
   });
 }
 
-/** Encode one complete compile-time initializer in packed little-endian layout order. */
-function initializerBytes(expression: TypedExpr, type: SemanticType): readonly number[] | null {
-  if (type.kind === "scalar") {
-    if (expression.constant === null || type.name === "void") return null;
-    const bytes = type.name === "word" || type.name === "sword" ? 2 : 1;
-    const value =
-      typeof expression.constant === "boolean"
-        ? expression.constant
-          ? 1n
-          : 0n
-        : BigInt.asUintN(bytes * 8, expression.constant);
-    return Object.freeze(
-      Array.from({ length: bytes }, (_, offset) => Number((value >> BigInt(offset * 8)) & 0xffn)),
-    );
-  }
-  if (type.kind === "struct") {
-    if (expression.kind !== "struct-literal" || expression.fields === undefined) return null;
-    const bytes: number[] = [];
-    for (const field of type.fields) {
-      const value = expression.fields.find((candidate) => candidate.name === field.name)?.value;
-      if (value === undefined) return null;
-      const encoded = initializerBytes(value, field.type);
-      if (encoded === null) return null;
-      bytes.push(...encoded);
-    }
-    return Object.freeze(bytes);
-  }
-  if (expression.kind !== "array-literal" || expression.elements === undefined) return null;
-  const values = [...expression.elements];
-  while (values.length < type.length) {
-    if (expression.fill === undefined || expression.fill === null) return null;
-    values.push(expression.fill);
-  }
-  if (values.length !== type.length) return null;
-  const bytes: number[] = [];
-  for (const value of values) {
-    const encoded = initializerBytes(value, type.element);
-    if (encoded === null) return null;
-    bytes.push(...encoded);
-  }
-  return Object.freeze(bytes);
-}
-
 /** Lower one completed module or constant declaration. */
 function lowerGlobal(
   declaration: TypedDeclaration,
@@ -746,7 +593,7 @@ function lowerGlobal(
       storage: binding.storage,
       type: declaration.type,
       initialBytes:
-        declaration.type.kind === "scalar"
+        declaration.type.kind === "scalar" || declaration.type.kind === "enum"
           ? null
           : initializerBytes(declaration.initializer, declaration.type),
       runtimeInitialBytes: null,

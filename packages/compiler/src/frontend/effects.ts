@@ -362,6 +362,9 @@ function scanStatement(
   } else if (statement.kind === "while") {
     scanExpression(statement.condition, facts, bindings);
     if (statement.condition.constant !== false) scanBlock(statement.body, facts, bindings);
+  } else if (statement.kind === "do-while") {
+    scanBlock(statement.body, facts, bindings);
+    scanExpression(statement.condition, facts, bindings);
   } else if (statement.kind === "for") {
     if (statement.initializer !== null) {
       if (isTypedExpressionList(statement.initializer)) {
@@ -375,6 +378,9 @@ function scanStatement(
       scanBlock(statement.body, facts, bindings);
       for (const expression of statement.update ?? []) scanExpression(expression, facts, bindings);
     }
+  } else if (statement.kind === "switch") {
+    scanExpression(statement.value, facts, bindings);
+    for (const clause of statement.clauses) scanBlock(clause.body, facts, bindings);
   } else if (
     statement.kind === "return" &&
     statement.value !== undefined &&

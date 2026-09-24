@@ -25,6 +25,47 @@ export type ResolveCallName = (
   context: ScalarExpressionContext,
 ) => ScalarExpressionResult | null;
 
+/** Flatten a member-only callee into its module-qualified spelling. */
+function qualifiedCallName(expression: Expr): string | null {
+  if (expression.kind === "name") return expression.name;
+  if (expression.kind !== "member") return null;
+  const object = qualifiedCallName(expression.object);
+  return object === null ? null : `${object}.${expression.member}`;
+}
+
+/** Resolve a simple or module-qualified name without treating it as a value read. */
+export function resolveDirectCallTarget(
+  expression: Expr,
+  context: ScalarExpressionContext,
+  host: ScalarExpressionHost,
+  resolveSimpleName: (
+    expression: Extract<Expr, { readonly kind: "name" }>,
+    context: ScalarExpressionContext,
+  ) => ScalarExpressionResult,
+): ScalarExpressionResult | null {
+  if (expression.kind === "name") return resolveSimpleName(expression, context);
+  if (expression.kind !== "member") return null;
+  const name = qualifiedCallName(expression);
+  if (name === null) return null;
+  const root = name.split(".", 1)[0];
+  if (root !== undefined && host.resolveName(root, context) !== null) return null;
+  const state = host.resolveName(name, context);
+  if (state === null || state.binding.type === null) return null;
+  const moduleName = name.slice(0, -(state.binding.name.length + 1));
+  return {
+    node: createScalarTypedExpression(expression, state.binding.type, state.known, {
+      member: state.binding.name,
+      qualifiedModule: Object.freeze({
+        name: moduleName,
+        span: Object.freeze({ ...expression.object.span }),
+      }),
+      binding: state.binding.id,
+      integer: integerFacts(state.binding.type, true),
+    }),
+    exact: state.known,
+  };
+}
+
 /** Resolve one ordinary direct call and independently check every supplied argument. */
 export function analyzeDirectCall(
   expression: Extract<Expr, { readonly kind: "call" }>,
@@ -82,6 +123,7 @@ export function analyzeDirectCall(
     if (
       parameter !== undefined &&
       parameter.type.kind !== "scalar" &&
+      parameter.type.kind !== "enum" &&
       !parameter.readonly &&
       result.node.place?.readonly
     ) {
@@ -94,7 +136,12 @@ export function analyzeDirectCall(
       );
       valid = false;
     }
-    if (parameter !== undefined && parameter.type.kind !== "scalar" && result.node.place === null) {
+    if (
+      parameter !== undefined &&
+      parameter.type.kind !== "scalar" &&
+      parameter.type.kind !== "enum" &&
+      result.node.place === null
+    ) {
       host.defer(argument.span, "Aggregate temporary argument and copy ABI remain pending");
       valid = false;
     }
@@ -106,15 +153,17 @@ export function analyzeDirectCall(
   if (context.constantContext) {
     host.diagnose(
       projectDiagnostic(
-        "E10191",
-        "Expression must be compile-time evaluable — ordinary function call is not constant",
+        context.caseContext ? "E10071" : "E10191",
+        context.caseContext
+          ? `Case value must be a compile-time constant — '${host.sourceText(expression.span)}' cannot be evaluated at compile time`
+          : "Expression must be compile-time evaluable — ordinary function call is not constant",
         expression.span,
       ),
     );
     valid = false;
   }
   if (!valid) return { node: null, exact: null };
-  if (signature.returnType.kind !== "scalar") {
+  if (signature.returnType.kind !== "scalar" && signature.returnType.kind !== "enum") {
     host.defer(expression.span, "Aggregate return call ABI remains pending");
     return { node: null, exact: null };
   }

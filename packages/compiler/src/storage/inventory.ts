@@ -131,6 +131,23 @@ function loadCrossesInvalidatingWrite(
   return false;
 }
 
+/** Find the source place of a cast chain so a later write cannot change its value. */
+function convertedLoad(
+  body: Pick<SemanticFunction, "blocks">,
+  operation: Extract<SemanticOperation, { readonly kind: "convert" }>,
+): Extract<SemanticOperation, { readonly kind: "load" }> | null {
+  const seen = new Set<string>();
+  let operand = operation.operand;
+  while (!seen.has(operand)) {
+    seen.add(operand);
+    const source = definingOperation(body, operand);
+    if (source?.kind === "load") return source;
+    if (source?.kind !== "convert") return null;
+    operand = source.operand;
+  }
+  return null;
+}
+
 /** Compare requests without locale-dependent collation. */
 function compareRequests(left: StorageRequest, right: StorageRequest): number {
   return Buffer.compare(Buffer.from(left.id), Buffer.from(right.id));
@@ -150,10 +167,12 @@ function appendCallStaging(
     const type = resultType(operation);
     if (type === null || typeBytes(type) === 0) continue;
     const crossesCall = lifetime.callsCrossed.length > 0;
+    const sourceLoad = operation.kind === "convert" ? convertedLoad(body, operation) : null;
     const crossesWrite =
-      operation.kind === "load" &&
-      type.kind === "scalar" &&
-      loadCrossesInvalidatingWrite(body, lifetime, operation);
+      (operation.kind === "load" &&
+        (type.kind === "scalar" || type.kind === "enum") &&
+        loadCrossesInvalidatingWrite(body, lifetime, operation)) ||
+      (sourceLoad !== null && loadCrossesInvalidatingWrite(body, lifetime, sourceLoad));
     if (!crossesCall && !crossesWrite) continue;
     const storageClass: StorageClass =
       operation.kind === "call" ? "return-stage" : "argument-stage";

@@ -115,7 +115,7 @@ function loadA(
     machineInstruction(
       profile.cpu,
       "lda",
-      modeForValue(value),
+      modeForValue(value, offset),
       operandForValue(value, offset),
       [],
       source,

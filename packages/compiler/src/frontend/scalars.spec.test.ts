@@ -536,4 +536,164 @@ describe("scalar semantics", () => {
       { code: "E10239", message: "'missing' is not declared in this scope" },
     ]);
   });
+
+  // Enum values convert to bytes, while a byte or a different enum needs an explicit cast.
+  it("should retain nominal enum identity through byte conversion", () => {
+    const legal = [
+      "module Game;",
+      "enum Direction { Up }",
+      "const direction: Direction = Direction(99);",
+      "const raw: byte = direction;",
+      "const sum: byte = direction + byte(1);",
+      "function main(): void {}",
+    ].join("\n");
+    const validResult = analyze(legal);
+    expect(validResult.diagnostics).toEqual([]);
+    expect(typedDeclaration(validResult, "Game.direction").initializer).toMatchObject({
+      type: { kind: "enum", binding: binding(validResult, "Direction").id },
+      constant: 99n,
+    });
+    expect(typedDeclaration(validResult, "Game.raw").initializer).toMatchObject({
+      type: { kind: "scalar", name: "byte" },
+      constant: 99n,
+    });
+    expect(typedDeclaration(validResult, "Game.sum").initializer).toMatchObject({
+      type: { kind: "scalar", name: "byte" },
+      constant: 100n,
+    });
+
+    const illegal =
+      "module Game; enum Direction { Up } enum State { Up } function f(raw: byte, direction: Direction): void { let a: Direction = raw; let b: Direction = State.Up; let same: boolean = direction == State.Up; } function main(): void {}";
+    const invalidResult = analyze(illegal);
+    expect(invalidResult.diagnostics).toMatchObject([
+      {
+        code: "E10235",
+        severity: "error",
+        message: "Cannot assign 'byte' to enum 'Direction' — use 'Direction(<expr>)'",
+      },
+      {
+        code: "E10235",
+        severity: "error",
+        message: "Cannot assign 'State' to enum 'Direction' — use 'Direction(<expr>)'",
+      },
+      {
+        code: "E10236",
+        severity: "error",
+        message: "Cannot compare enum 'Direction' with enum 'State' — cast one to 'byte'",
+      },
+    ]);
+  });
+
+  // A compound assignment uses the target's old type before converting the stored result.
+  it.each([
+    ["word", "byte", null],
+    ["sword", "sbyte", null],
+    ["byte", "word", "E10082"],
+    ["byte", "sbyte", "E10081"],
+  ])("should apply compound assignment from %s and %s", (target, rhs, errorCode) => {
+    const text = `module Game; function f(a: ${target}, b: ${rhs}): void { a += b; } function main(): void {}`;
+    const result = analyze(text);
+    if (errorCode === null) {
+      expect(result.diagnostics).toEqual([]);
+      expect(typedDeclaration(result, "Game.f").body).toMatchObject({
+        statements: [
+          {
+            expression: {
+              kind: "assignment",
+              operator: "+=",
+              type: { kind: "scalar", name: target },
+            },
+          },
+        ],
+      });
+    } else {
+      expect(result.diagnostics.map(({ code, severity }) => ({ code, severity }))).toEqual([
+        { code: errorCode, severity: "error" },
+      ]);
+    }
+  });
+
+  // Constant arithmetic keeps mathematical precision; a runtime byte sum wraps before widening.
+  it("should distinguish exact constant 260 from runtime byte wrap to 4", () => {
+    const text = `module Game;
+const exact: word = byte(250) + byte(10);
+function f(): void { let widened: word = byte(250) + byte(10); }
+function main(): void {}`;
+    const result = analyze(text);
+    expect(typedDeclaration(result, "Game.exact").initializer).toMatchObject({ constant: 260n });
+    expect(typedDeclaration(result, "Game.f").body).toMatchObject({
+      statements: [
+        {
+          kind: "variable",
+          initializer: {
+            type: { kind: "scalar", name: "word" },
+            constant: 4n,
+            conversion: "zero-extend",
+            integer: { width: 8, signed: false, wrap: true },
+          },
+        },
+      ],
+    });
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10161",
+        severity: "warning",
+        message:
+          "Runtime expression 'byte(250) + byte(10)' is known to wrap to 4 at 'byte' width before widening to 'word'",
+      },
+    ]);
+  });
+
+  it.each([
+    ["sbyte", -128, 128],
+    ["sword", -32768, 32768],
+  ])("should preserve %s extrema in division remainder and comparison", (type, minimum, exact) => {
+    const maximum = type === "sbyte" ? 127 : 32767;
+    const runtime = `module Game; function f(): void { let a: ${type} = ${minimum}; let b: ${type} = -1; let q: ${type} = a / b; let r: ${type} = a % b; let low: boolean = a < ${type}(${maximum}); let high: boolean = ${type}(${maximum}) < a; } function main(): void {}`;
+    const result = analyze(runtime);
+    expect(result.diagnostics.some(({ severity }) => severity === "error")).toBe(false);
+    expect(typedDeclaration(result, "Game.f").body).toMatchObject({
+      statements: [
+        {},
+        {},
+        {
+          kind: "variable",
+          initializer: { kind: "binary", operator: "/", constant: BigInt(minimum) },
+        },
+        { kind: "variable", initializer: { kind: "binary", operator: "%", constant: 0n } },
+        { kind: "variable", initializer: { kind: "binary", operator: "<", constant: true } },
+        { kind: "variable", initializer: { kind: "binary", operator: "<", constant: false } },
+      ],
+    });
+
+    const constant = `module Game; const q: ${type} = ${type}(${minimum}) / ${type}(-1); function main(): void {}`;
+    const constantResult = analyze(constant);
+    expect(constantResult.diagnostics).toMatchObject([
+      {
+        code: "E10084",
+        severity: "error",
+        message: `Value ${exact} is out of range for type '${type}' (${type === "sbyte" ? "-128–127" : "-32768–32767"})`,
+      },
+    ]);
+  });
+
+  it.each([
+    ["word", "word(32768)", 15, 1],
+    ["word", "word(32768)", 16, 0],
+    ["word", "word(32768)", 17, 0],
+    ["sword", "sword(-32768)", 15, -1],
+    ["sword", "sword(-32768)", 16, -1],
+    ["sword", "sword(-32768)", 17, -1],
+  ])("should right-shift %s %s by %i with word-width saturation", (type, operand, count, value) => {
+    const text = `module Game; const shifted: ${type} = ${operand} >> ${count}; function main(): void {}`;
+    const result = analyze(text);
+    expect(typedDeclaration(result, "Game.shifted").initializer).toMatchObject({
+      constant: BigInt(value),
+    });
+    if (count >= 16) {
+      expect(result.diagnostics).toMatchObject([{ code: "W10174", severity: "warning" }]);
+    } else {
+      expect(result.diagnostics).toEqual([]);
+    }
+  });
 });

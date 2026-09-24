@@ -331,6 +331,27 @@ export function applyExpectedScalar(
   host: ScalarExpressionHost,
 ): ScalarExpressionResult {
   const node = result.node!;
+  if (node.type.kind === "enum") {
+    if (expected.kind !== "scalar" || expected.name !== "byte") {
+      host.diagnose(
+        conversionError(
+          "E10080",
+          `Cannot implicitly convert '${node.type.name}' to '${expected.kind === "scalar" ? expected.name : "aggregate"}' — cast to 'byte' first`,
+          expression,
+        ),
+      );
+      return { node: null, exact: result.exact };
+    }
+    return {
+      node: Object.freeze({
+        ...node,
+        type: SCALAR_TYPES.byte,
+        conversion: "identity",
+        integer: integerFacts(SCALAR_TYPES.byte, false),
+      }),
+      exact: result.exact,
+    };
+  }
   if (!isScalarType(node.type) || !isScalarType(expected))
     return { node: null, exact: result.exact };
   if (node.type.name === expected.name) {

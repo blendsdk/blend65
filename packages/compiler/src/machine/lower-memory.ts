@@ -49,7 +49,7 @@ function loadA(
   return machineInstruction(
     cpu,
     "lda",
-    modeForValue(value),
+    modeForValue(value, offset),
     operandForValue(value, offset),
     [],
     source,
