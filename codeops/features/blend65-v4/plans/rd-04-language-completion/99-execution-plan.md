@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 43/99 tasks (43%)
+> **Progress**: 44/99 tasks (44%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -217,7 +217,7 @@ framework or language scope was added.
 - [x] 4.2.3 Inventory aggregate destinations, snapshots, caller staging and pointer pairs — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/interference.ts`, `packages/compiler/src/storage/closure.ts` — Closed machine-discovered homes cover aggregate results, snapshots and pointer pairs; removed an unused full-byte stage for borrowed arguments. Full install, build, typecheck and test pass: compiler 1,131; root 126; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 21:06)
 - [x] 4.2.4 Lower direct construction and overlap-safe copies with explicit scratch/costs — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/machine-types.ts` — Direct destinations and SFA snapshots retain alias safety; counted page-safe loops keep large copies, returns and byte fills compact. Machine-cost and VICE tests pass; full install, build, typecheck and test pass: compiler 1,134; root 127; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 21:26)
 - [x] 4.2.5 Reconcile aggregate homes/copies in SFA, memory, cost and debug evidence — `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`, `packages/compiler/src/artifacts/debug-evidence-validator.ts` — Existing version-1 validators and final-certificate producers need no schema change. A public build checks the 300-byte SFA snapshot, physical memory/cost totals and source-owned debug function ranges. Full install, build, typecheck and test pass: compiler 1,134; root 127; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 21:32)
-- [ ] 4.2.6 Run Phase 4 specification cases, including the first full ST-26/27 qualification, and make all immutable expectations green — Phase 4 test files
+- [x] 4.2.6 Run Phase 4 specification cases, including the first full ST-26/27 qualification, and make all immutable expectations green — Phase 4 test files — Focused frontend/SFA specification cases pass 30/30; public ACME/VICE aggregate ABI cases pass 2/2. The unchanged full-suite checkpoint is green: compiler 1,134; root 127; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 21:32)
 
 ### Step 4.3: Implementation Tests and Qualification
 
