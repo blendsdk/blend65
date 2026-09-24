@@ -235,7 +235,17 @@ framework or language scope was added.
 | PE-001 | Major | An unknown-overlap 300-byte copy always reserves a 300-byte snapshot and performs two copy passes. Compare an overlap-safe directional copy against the snapshot on bytes, cycles and RAM; retain the snapshot where required. |
 | PE-002 | Major | Large copy/fill emits a loop body for every 256-byte page, growing code linearly with page count. Use a bounded-size outer page loop for larger objects while retaining the small-loop form where it is better. |
 
-The user approved all four narrow corrections on 2026-09-24. Nested member reads now copy object bytes, including alias-prone field swaps. Zero-length homes are nonresident markers, including across calls and returns. Unknown-overlap large copies use a directional one-pass loop without a full-size snapshot, including mixed global/borrowed homes; large borrowed copy and fill bodies use bounded page loops. Public VICE cases cover nested values, aliasing, 300-byte copies, and retained pointers. Full frozen install, build, typecheck and tests pass after the fixes: compiler 1,140; root 129; CLI 60; LSP 12; VS Code 6. Touched-file formatting, whitespace and frozen-`spec/` checks pass. No runtime, heap, general optimization framework or spec edit was added. One fix-scoped re-review remains before Phase 5.
+The user approved all four narrow corrections on 2026-09-24. Nested member reads now copy object bytes, including alias-prone field swaps. Zero-length homes are nonresident markers, including across calls and returns. Unknown-overlap large copies use a directional one-pass loop without a full-size snapshot, including mixed global/borrowed homes; large borrowed copy and fill bodies use bounded page loops. Public VICE cases cover nested values, aliasing, 300-byte copies, and retained pointers. Full frozen install, build, typecheck and tests pass after the fixes: compiler 1,140; root 129; CLI 60; LSP 12; VS Code 6. Touched-file formatting, whitespace and frozen-`spec/` checks pass. No runtime, heap, general optimization framework or spec edit was added. Fix checkpoint: `135e37f`.
+
+**One fix-scoped re-review (2026-09-24):** the generic large-copy/fill and zero-size corrections passed inspection. Reviewers found three distinct major gaps in nested construction, so Phase 4 and Phase 5 remain blocked pending a user ruling. No specification test or frozen `spec/` file changed.
+
+| Finding | Impact | Narrow proposed correction |
+|---|---|---|
+| RV-001 / semantics 1 | A constructed borrowed value over 256 bytes can retain a pointer advanced by one or more pages; a following call reads the wrong bytes. | Restore the pointer before its next use; prove the expression-to-call path in VICE. |
+| Semantics 2 | A later field expression can mutate an earlier place-backed field before that earlier value is captured. | Preserve each evaluated member before a later effect can change it; prove source-order behavior in VICE. |
+| PE-001 / PE-002 | Large nested fields still expand to per-byte code; borrowed construction can reserve a full-size snapshot and copy twice without a cross-field hazard. | Use existing counted/directional copy forms for large safe members, and stage only real cross-member hazards; measure bytes, cycles and RAM. |
+
+These are bounded compiler corrections, not authority for a new runtime, heap, IR or general optimization framework. No second re-review is planned; the next checkpoint must verify the explicit ruling and report any remaining risk honestly.
 
 **Verify:** `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 
