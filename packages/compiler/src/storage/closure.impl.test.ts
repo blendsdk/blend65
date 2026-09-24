@@ -104,6 +104,60 @@ function profile(capacity = 16): StorageProfile {
 }
 
 describe("static storage closure implementation", () => {
+  it("closes a discovered aggregate snapshot and pointer before final emission", () => {
+    const main = fn(binding(110));
+    const array: SemanticType = Object.freeze({
+      kind: "array",
+      element: BYTE,
+      length: 300,
+      size: 300,
+    });
+    const snapshot: StorageRequest = Object.freeze({
+      ...request(main.id, "aggregate-snapshot", 300),
+      storageClass: "temporary",
+      type: array,
+    });
+    const pointer: StorageRequest = Object.freeze({
+      ...request(main.id, "aggregate-pointer", 2),
+      storageClass: "pointer",
+      region: "zero-page-required",
+    });
+    const storage: StorageProfile = Object.freeze({
+      ...profile(),
+      zeroPage: Object.freeze([Object.freeze({ start: 0x40, end: 0x41 })]),
+      ram: Object.freeze([Object.freeze({ start: 0x4000, end: 0x412b })]),
+    });
+    const rounds: number[] = [];
+    const result = closeStorage(inventory([main]), storage, {
+      candidateRequestIds: Object.freeze([snapshot.id, pointer.id]),
+      helperCalls: Object.freeze([]),
+      discover: (_placement, round) => {
+        rounds.push(round);
+        return Object.freeze([snapshot, pointer]);
+      },
+    });
+    expect(rounds).toEqual([0, 1]);
+    expect(result).toMatchObject({
+      kind: "complete",
+      certificate: {
+        closed: true,
+        staticBytes: { ram: 300, zeroPage: 2 },
+      },
+    });
+    if (result.kind !== "complete") throw new Error("Expected aggregate closure");
+    expect(result.certificate.homes.map(({ requestId }) => requestId)).toEqual(
+      expect.arrayContaining([snapshot.id, pointer.id]),
+    );
+
+    const undeclared = closeStorage(inventory([main]), storage, {
+      candidateRequestIds: Object.freeze([snapshot.id]),
+      helperCalls: Object.freeze([]),
+      discover: () => Object.freeze([snapshot, pointer]),
+    });
+    expect(undeclared).toEqual({ kind: "error", reason: "nonconvergent" });
+    expect(undeclared).not.toHaveProperty("certificate");
+  });
+
   it("adds one late request, stabilizes, and emits deterministic provisional evidence", () => {
     const main = fn(binding(1));
     const late = request(main.id, "late");

@@ -91,6 +91,50 @@ function inventory(owner: BindingId, requests: readonly StorageRequest[]): Stora
 }
 
 describe("static storage allocator implementation", () => {
+  it("keeps a live aggregate snapshot separate and reuses its bytes after its lifetime", () => {
+    const owner = binding(100);
+    const array: SemanticType = Object.freeze({
+      kind: "array",
+      element: BYTE,
+      length: 300,
+      size: 300,
+    });
+    const snapshot: StorageRequest = Object.freeze({
+      ...request(owner, "snapshot", 300, 1, "ram", [1]),
+      type: array,
+    });
+    const concurrent = request(owner, "concurrent", 2, 1, "ram", [1]);
+    const later: StorageRequest = Object.freeze({
+      ...request(owner, "later", 300, 1, "ram", [2]),
+      type: array,
+    });
+    const storage = inventory(owner, [snapshot, concurrent, later]);
+    const conflicts = buildInterference(storage);
+    expect(conflicts).toContainEqual({ left: "concurrent", right: "snapshot", reason: "lifetime" });
+    expect(conflicts.some(({ left, right }) => left === "later" && right === "snapshot")).toBe(
+      false,
+    );
+    const result = allocateStorage(
+      storage,
+      conflicts,
+      Object.freeze({
+        zeroPage: Object.freeze([]),
+        ram: Object.freeze([Object.freeze({ start: 0x6000, end: 0x612d })]),
+      }),
+    );
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected aggregate snapshot allocation");
+    const homes = new Map(result.placement.homes.map((home) => [home.requestId, home]));
+    const snapshotHome = homes.get(snapshot.id)!;
+    const concurrentHome = homes.get(concurrent.id)!;
+    const laterHome = homes.get(later.id)!;
+    expect(
+      snapshotHome.address + snapshotHome.bytes <= concurrentHome.address ||
+        concurrentHome.address + concurrentHome.bytes <= snapshotHome.address,
+    ).toBe(true);
+    expect(laterHome.address).toBe(snapshotHome.address);
+  });
+
   it("keeps placement deterministic across input order and aligns wider requests", () => {
     const owner = binding(1);
     const wide = request(owner, "wide", 2, 2, "ram", [1]);

@@ -61,6 +61,72 @@ function voidCall(
 }
 
 describe("call ABI and scalar retention", () => {
+  it("returns an overlap snapshot and its pointers through SFA closure before binding", () => {
+    const array: SemanticType = Object.freeze({
+      kind: "array",
+      element: BYTE,
+      length: 300,
+      size: 300,
+    });
+    const input = Object.freeze({ id: sourceBinding(1400), type: array });
+    const output = Object.freeze({ id: sourceBinding(1401), type: array });
+    const sourcePlace = Object.freeze({
+      root: input.id,
+      rootType: array,
+      path: Object.freeze([]),
+    });
+    const targetPlace = Object.freeze({
+      root: output.id,
+      rootType: array,
+      path: Object.freeze([]),
+    });
+    const copy = semanticFunction(1399, "copy", [input, output], VOID, [
+      semanticBlock(
+        "copy.entry",
+        [
+          Object.freeze({
+            kind: "place-address" as const,
+            result: "borrowed",
+            place: sourcePlace,
+            type: array,
+            integer: null,
+            span: sourceSpan(1402),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: targetPlace,
+            value: "borrowed",
+            type: array,
+            span: sourceSpan(1403),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const result = lowerCloseBind(wholeProgramFor([copy]));
+    const snapshot = result.closure.inventory.requests.find(({ id }) =>
+      id.includes("aggregate-snapshot:borrowed"),
+    );
+    expect(snapshot).toMatchObject({ storageClass: "temporary", bytes: 300, region: "ram" });
+    expect(result.inventory.requests.some(({ id }) => id === snapshot?.id)).toBe(false);
+    expect(result.lowered.binder.candidateRequestIds).toContain(snapshot?.id);
+    expect(
+      result.closure.certificate.homes.some(({ requestId }) => requestId === snapshot?.id),
+    ).toBe(true);
+    const sourcePointer = result.closure.inventory.requests.find(({ id }) =>
+      id.includes("aggregate-address:copy-source:borrowed"),
+    );
+    expect(sourcePointer).toMatchObject({ storageClass: "pointer", bytes: 2 });
+    expect(
+      result.closure.certificate.interference.some(
+        ({ left, right }) =>
+          (left === snapshot?.id && right === sourcePointer?.id) ||
+          (right === snapshot?.id && left === sourcePointer?.id),
+      ),
+    ).toBe(true);
+    expect(result.bound.kind).toBe("complete");
+  });
+
   it("omits inlined scalar constants from resident data", () => {
     const main = semanticFunction(900, "main", [], VOID, [
       semanticBlock("main.entry", [], Object.freeze({ kind: "return" as const, value: null })),
