@@ -25,7 +25,9 @@ import { lowerOperation } from "./lower-operation.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
 import { lowerBoundsGuards } from "./lower-bounds.js";
-import { lowerAggregateReturn } from "./lower-aggregate-return.js";
+import { lowerAggregateReturn, lowerAggregateReturnLoop } from "./lower-aggregate-return.js";
+import { lowerAggregatePlaceCopyLoop } from "./lower-aggregate-copy.js";
+import { lowerAggregateByteFillLoop } from "./lower-aggregate-fill.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
 import type { DivideHelper } from "./lower-division.js";
 import type {
@@ -493,6 +495,8 @@ function lowerFunction(
     let variableShiftIndex = 0;
     let checkedDivisionIndex = 0;
     let checkedBoundsIndex = 0;
+    let aggregateCopyIndex = 0;
+    let aggregateFillIndex = 0;
     for (const operation of block.operations) {
       if (
         input.boundsCheck === true &&
@@ -558,6 +562,53 @@ function lowerFunction(
         variableShiftIndex += 1;
         continue;
       }
+      if (
+        operation.kind === "aggregate" &&
+        operation.type.kind === "array" &&
+        typeBytes(operation.type.element) === 1 &&
+        operation.type.length >= 8 &&
+        operation.elements.length === 0 &&
+        operation.fill !== null
+      ) {
+        const filled = lowerAggregateByteFillLoop(
+          operation,
+          state,
+          currentLabel,
+          currentInstructions,
+          aggregateFillIndex,
+        );
+        loweredBlocks.push(...filled.blocks);
+        currentLabel = filled.continuation;
+        currentInstructions = [];
+        aggregateFillIndex += 1;
+        continue;
+      }
+      if (
+        operation.kind === "store" &&
+        (operation.type.kind === "array" || operation.type.kind === "struct") &&
+        operation.type.size >= 8
+      ) {
+        const source = state.aggregatePlaces.get(operation.value);
+        if (source !== undefined) {
+          state.divisionReuse = null;
+          state.aggregateAddressCache = null;
+          const copied = lowerAggregatePlaceCopyLoop(
+            operation,
+            source,
+            state,
+            currentLabel,
+            currentInstructions,
+            aggregateCopyIndex,
+          );
+          if (copied !== null) {
+            loweredBlocks.push(...copied.blocks);
+            currentLabel = copied.continuation;
+            currentInstructions = [];
+            aggregateCopyIndex += 1;
+            continue;
+          }
+        }
+      }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
         currentInstructions.push(...lowerOperation(operation, state));
         continue;
@@ -619,9 +670,27 @@ function lowerFunction(
     }
     if (block.terminator.kind === "return" && block.terminator.value !== null) {
       if (sourceResult?.kind === "array" || sourceResult?.kind === "struct") {
-        currentInstructions.push(
-          ...lowerAggregateReturn(block.terminator.value, sourceResult, state, owner.span),
-        );
+        const loop =
+          sourceResult.size >= 8
+            ? lowerAggregateReturnLoop(
+                block.terminator.value,
+                sourceResult,
+                state,
+                owner.span,
+                currentLabel,
+                currentInstructions,
+                aggregateCopyIndex,
+              )
+            : null;
+        if (loop === null) {
+          currentInstructions.push(
+            ...lowerAggregateReturn(block.terminator.value, sourceResult, state, owner.span),
+          );
+        } else {
+          loweredBlocks.push(...loop.blocks);
+          currentLabel = loop.continuation;
+          currentInstructions = [];
+        }
       } else {
         const returned = state.values.get(block.terminator.value);
         if (returned === undefined || returned.kind === "condition") {

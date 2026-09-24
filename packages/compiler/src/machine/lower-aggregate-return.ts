@@ -6,8 +6,9 @@ import {
 import type { SourceSpan } from "../project/types.js";
 import type { AggregateDestination, SemanticPlace } from "../semantic/operations.js";
 import { lowerAggregateAddress } from "./lower-aggregate.js";
+import { lowerPackedCopyLoops, type PackedHome } from "./lower-aggregate-copy.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
-import type { MachineInstruction } from "./machine-types.js";
+import type { MachineBlock, MachineInstruction } from "./machine-types.js";
 import {
   appendLoadA,
   loweredPlace,
@@ -255,4 +256,76 @@ export function lowerAggregateReturn(
     );
   }
   return Object.freeze(instructions);
+}
+
+/** Return a large packed object with page-safe loops and a snapshot only if it may overlap. */
+export function lowerAggregateReturnLoop(
+  valueId: string,
+  type: Extract<SemanticType, { readonly kind: "array" | "struct" }>,
+  state: FunctionLoweringState,
+  source: SourceSpan,
+  entryLabel: string,
+  prefix: readonly MachineInstruction[],
+  ordinal: number,
+): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } | null {
+  if (state.directCallerResults.has(valueId)) return null;
+  const destination = resultPointer(state.owner, state, source);
+  const place = state.aggregatePlaces.get(valueId);
+  const resolved =
+    place === undefined ? null : sourcePlace(place, type.size, state, source, valueId);
+  const value = resolved?.value ?? state.values.get(valueId);
+  if (value === undefined || value.kind === "condition") {
+    throw loweringFailure("Aggregate return value was not retained", source);
+  }
+  const read: PackedHome = Object.freeze({
+    instructions: resolved?.instructions ?? Object.freeze([]),
+    value,
+    indirect: resolved?.indirect ?? false,
+  });
+  const write: PackedHome = Object.freeze({
+    instructions: Object.freeze([]),
+    value: destination,
+    indirect: true,
+  });
+  // Callee-local storage cannot overlap the caller's object. A borrowed place or
+  // global can, so preserve it before writing through the hidden destination.
+  const mayOverlap = read.indirect || read.value.kind === "label";
+  const snapshot = mayOverlap
+    ? requestStorage(
+        state,
+        `aggregate-return-snapshot:${valueId}`,
+        "temporary",
+        type.size,
+        "ram",
+        source,
+        "Preserve an overlapping aggregate return source",
+        type,
+      )
+    : null;
+  const middle: PackedHome | null =
+    snapshot === null
+      ? null
+      : Object.freeze({
+          instructions: Object.freeze([]),
+          value: Object.freeze({
+            kind: "storage",
+            requestId: snapshot.id,
+            bytes: type.size,
+            signed: false,
+          }),
+          indirect: false,
+        });
+  const phases =
+    middle === null
+      ? [[read, write] as const]
+      : [[read, middle] as const, [middle, write] as const];
+  return lowerPackedCopyLoops(
+    phases,
+    type.size,
+    state,
+    entryLabel,
+    [...prefix, ...read.instructions],
+    ordinal,
+    source,
+  );
 }

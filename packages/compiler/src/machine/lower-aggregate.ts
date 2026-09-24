@@ -570,11 +570,15 @@ export function lowerAggregateStore(
   return Object.freeze(instructions);
 }
 
-/** Lower one fixed aggregate into a direct SFA-owned packed temporary. */
-export function lowerAggregate(
+/** Select the final packed object and preserve its address for all writes. */
+export function aggregateDestination(
   operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
   state: FunctionLoweringState,
-): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
+): {
+  readonly instructions: MachineInstruction[];
+  readonly result: LoweredValue;
+  readonly indirect: boolean;
+} {
   if (operation.type.kind === "scalar" || operation.type.kind === "enum") {
     throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
   }
@@ -642,6 +646,15 @@ export function lowerAggregate(
       signed: false,
     });
   }
+  return { instructions, result, indirect };
+}
+
+/** Lower one fixed aggregate directly into its final packed object. */
+export function lowerAggregate(
+  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
+  state: FunctionLoweringState,
+): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
+  const { instructions, result, indirect } = aggregateDestination(operation, state);
   const writeValue = (valueId: string, start: number, bytes: number): void => {
     const value = state.values.get(valueId);
     if (value === undefined || value.kind === "condition" || value.bytes < bytes) {
@@ -703,7 +716,7 @@ export function lowerAggregate(
       }
       writeValue(element, index * elementBytes, elementBytes);
     }
-  } else {
+  } else if (operation.type.kind === "struct") {
     const byField = new Map(
       operation.elements.flatMap(({ field, value }) =>
         field === null ? [] : [[field, value] as const],
@@ -719,6 +732,8 @@ export function lowerAggregate(
       }
       writeValue(value, field.offset, typeBytes(field.type));
     }
+  } else {
+    throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
   }
   return Object.freeze({ instructions: Object.freeze(instructions), result });
 }
