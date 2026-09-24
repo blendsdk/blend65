@@ -5,6 +5,20 @@ import { buildProject } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
 import { startVice, stopVice } from "../m1/vice-runtime.js";
 
+/** Narrow a published sidecar field before checking cross-file accounting. */
+function evidenceRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new TypeError("Expected an evidence record");
+  }
+  return value as Record<string, unknown>;
+}
+
+/** Read the exact published JSON, not an in-memory pre-publication draft. */
+async function sidecar(directory: string, name: string): Promise<Record<string, unknown>> {
+  const parsed: unknown = JSON.parse(await readFile(join(directory, name), "utf8"));
+  return evidenceRecord(parsed);
+}
+
 describe.sequential("aggregate copy machine implementation", () => {
   // The first and last bytes on both sides of a page boundary must survive an alias-safe copy.
   it("should copy a 300-byte borrowed array through a snapshot in VICE", async () => {
@@ -53,6 +67,59 @@ describe.sequential("aggregate copy machine implementation", () => {
         "success",
       );
       if (built.kind !== "success") throw new Error("Aggregate copy build did not succeed");
+      const memory = await sidecar(built.generation.directory, ".memory.json");
+      const costs = await sidecar(built.generation.directory, ".costs.json");
+      const debug = await sidecar(built.generation.directory, ".debug.json");
+      expect(memory).toMatchObject({ kind: "blend65.memory", acmeReconciled: true });
+      expect(costs).toMatchObject({ kind: "blend65.costs", mode: "none" });
+      expect(debug).toMatchObject({ kind: "blend65.debug", optimization: "none" });
+      const intervals = memory.intervals;
+      const resources = evidenceRecord(costs.totals).resources;
+      const functions = debug.functions;
+      const ranges = debug.ranges;
+      const symbols = debug.symbols;
+      if (
+        !Array.isArray(intervals) ||
+        !Array.isArray(resources) ||
+        !Array.isArray(functions) ||
+        !Array.isArray(ranges) ||
+        !Array.isArray(symbols)
+      ) {
+        throw new TypeError("Aggregate evidence is missing a required record array");
+      }
+      const physical = intervals.map(evidenceRecord);
+      const resourceRecords = resources.map(evidenceRecord);
+      expect(
+        physical.some(
+          ({ kind, size }) => kind === "sfa" && typeof size === "number" && size >= 300,
+        ),
+      ).toBe(true);
+      expect(resourceRecords.find(({ id }) => id === "residentRam")?.value).toBe(
+        physical.reduce((total, item) => total + Number(item.size), 0),
+      );
+      expect(resourceRecords.find(({ id }) => id === "zeroPage")?.value).toBe(
+        physical
+          .filter(({ resourceClass }) => resourceClass === "zeroPage")
+          .reduce((total, item) => total + Number(item.size), 0),
+      );
+      expect(functions.map((item) => evidenceRecord(item).qualifiedName)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining(".copy"),
+          expect.stringContaining(".clone"),
+          expect.stringContaining(".fill"),
+        ]),
+      );
+      const snapshotSymbols = symbols
+        .map(evidenceRecord)
+        .filter(
+          ({ qualifiedName }) =>
+            typeof qualifiedName === "string" && qualifiedName.includes("aggregate-snapshot"),
+        );
+      expect(snapshotSymbols.length).toBeGreaterThan(0);
+      expect(
+        snapshotSymbols.every(({ kind, byteWidth }) => kind === "temporary" && byteWidth === 300),
+      ).toBe(true);
+      expect(ranges.length).toBeGreaterThan(0);
       const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
       const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
       const returnMatch = labels.match(
