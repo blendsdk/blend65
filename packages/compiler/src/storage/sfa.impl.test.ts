@@ -277,4 +277,61 @@ describe("static storage allocator implementation", () => {
       { owner: global, value: "outer", storageClass: "argument-stage" },
     ]);
   });
+
+  it("does not allocate an unused aggregate copy for a borrowed call argument", () => {
+    const owner = binding(80);
+    const data = binding(81);
+    const callee = binding(82);
+    const array: SemanticType = Object.freeze({ kind: "array", element: BYTE, length: 2, size: 2 });
+    const callSpan = binding(83).span;
+    const block: SemanticBlock = Object.freeze({
+      id: "entry",
+      operations: Object.freeze([
+        Object.freeze({
+          kind: "load" as const,
+          result: "borrow",
+          place: Object.freeze({ root: data, rootType: array, path: Object.freeze([]) }),
+          type: array,
+          integer: null,
+          span: data.span,
+        }),
+        Object.freeze({
+          kind: "call" as const,
+          result: null,
+          callee,
+          arguments: Object.freeze(["borrow"]),
+          type: Object.freeze({ kind: "scalar" as const, name: "void" as const }),
+          span: callSpan,
+        }),
+      ]),
+      terminator: Object.freeze({ kind: "return" as const, value: null }),
+    });
+    const fn: SemanticFunction = Object.freeze({
+      id: owner,
+      parameters: Object.freeze([]),
+      result: Object.freeze({ kind: "scalar", name: "void" }),
+      entry: block.id,
+      blocks: Object.freeze([block]),
+      source: owner.span,
+    });
+    const base = program(owner);
+    const whole: WholeProgram = Object.freeze({
+      ...base,
+      semantic: Object.freeze({ ...base.semantic, functions: Object.freeze([fn]) }),
+      lifetimes: Object.freeze([
+        Object.freeze({
+          function: owner,
+          value: "borrow",
+          definition: Object.freeze({ block: "entry", operation: 0 }),
+          liveAt: Object.freeze([Object.freeze({ block: "entry", operation: 1 })]),
+          callsCrossed: Object.freeze([callSpan]),
+        }),
+      ]),
+    });
+
+    const requests = inventoryStorage(whole).requests;
+    expect(requests).toEqual([
+      expect.objectContaining({ storageClass: "local", binding: data, bytes: 2 }),
+    ]);
+  });
 });

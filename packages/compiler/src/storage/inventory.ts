@@ -166,6 +166,10 @@ function appendCallStaging(
     if (operation === null) continue;
     const type = resultType(operation);
     if (type === null || typeBytes(type) === 0) continue;
+    // Aggregate parameters borrow an address. Calls and literals that produce a new
+    // aggregate already request their caller-owned object from machine lowering.
+    // Staging the full bytes here would reserve a second object that nothing reads.
+    if (type.kind === "array" || type.kind === "struct") continue;
     const crossesCall = lifetime.callsCrossed.length > 0;
     const sourceLoad = operation.kind === "convert" ? convertedLoad(body, operation) : null;
     const crossesWrite =
