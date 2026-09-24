@@ -169,7 +169,7 @@ export function lowerVariableShift(
   const loopLabel = `${stem}.loop`;
   const saturationLabel = `${stem}.saturated`;
   const continuation = `${stem}.continue`;
-  if (width === 1 && right.bytes === 1) {
+  if (width === 1 && (right.bytes === 1 || right.kind !== "register")) {
     const result: LoweredValue = Object.freeze({
       kind: "register",
       registers: "a",
@@ -177,17 +177,52 @@ export function lowerVariableShift(
       signed: isSignedType(operation.type),
     });
     const entryInstructions = [...prefix];
-    entryInstructions.push(
+    const lowInstructions: MachineInstruction[] = [];
+    if (right.bytes === 2) {
+      entryInstructions.push(
+        machineInstruction(
+          cpu,
+          "ldy",
+          modeForValue(right, 1),
+          operandForValue(right, 1),
+          [],
+          source,
+        ),
+      );
+      lowInstructions.push(
+        machineInstruction(
+          cpu,
+          "ldx",
+          modeForValue(right, 0),
+          operandForValue(right, 0),
+          [],
+          source,
+        ),
+      );
+      appendLoadA(lowInstructions, left, 0, state, source);
+    } else {
+      entryInstructions.push(
+        machineInstruction(
+          cpu,
+          right.kind === "register" ? "tax" : "ldx",
+          right.kind === "register" ? "implied" : modeForValue(right, 0),
+          right.kind === "register" ? null : operandForValue(right, 0),
+          [],
+          source,
+        ),
+      );
+      appendLoadA(entryInstructions, left, 0, state, source);
+    }
+    lowInstructions.push(
       machineInstruction(
         cpu,
-        right.kind === "register" ? "tax" : "ldx",
-        right.kind === "register" ? "implied" : modeForValue(right, 0),
-        right.kind === "register" ? null : operandForValue(right, 0),
+        "cpx",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: 8 }),
         [],
         source,
       ),
     );
-    appendLoadA(entryInstructions, left, 0, state, source);
     const shifted =
       operation.operator === "<<"
         ? [machineInstruction(cpu, "asl", "accumulator", null, [], source)]
@@ -206,6 +241,7 @@ export function lowerVariableShift(
           : [machineInstruction(cpu, "lsr", "accumulator", null, [], source)];
     const saturated: MachineInstruction[] = [];
     if (operation.operator === ">>" && isSignedType(operation.type)) {
+      if (right.bytes === 2) appendLoadA(saturated, left, 0, state, source);
       saturated.push(
         machineInstruction(
           cpu,
@@ -266,20 +302,14 @@ export function lowerVariableShift(
         Object.freeze({
           label: entryLabel,
           instructions: Object.freeze(entryInstructions),
-          terminator: Object.freeze({ kind: "fallthrough", target: lowLabel }),
+          terminator:
+            right.bytes === 2
+              ? branch("bne", saturationLabel, lowLabel, state)
+              : Object.freeze({ kind: "fallthrough", target: lowLabel }),
         }),
         Object.freeze({
           label: lowLabel,
-          instructions: Object.freeze([
-            machineInstruction(
-              cpu,
-              "cpx",
-              "immediate",
-              Object.freeze({ kind: "immediate", value: 8 }),
-              [],
-              source,
-            ),
-          ]),
+          instructions: Object.freeze(lowInstructions),
           terminator: branch("bcs", saturationLabel, zeroLabel, state),
         }),
         Object.freeze({

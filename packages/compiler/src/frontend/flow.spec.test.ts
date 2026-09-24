@@ -288,6 +288,13 @@ describe("recursion and structured flow", () => {
     ]);
   });
 
+  it("does not warn when a do-while break follows the local's first assignment", () => {
+    const result = analyze(
+      "module Game; function f(): byte { let value: byte; do { value = 1; break; } while (false); return value; } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ code }) => code === "W10190")).toEqual([]);
+  });
+
   it("accepts a wrapping byte loop with an exit nested in a switch", () => {
     const result = analyze(
       "module Game; function f(): void { for (let i: byte = 0; i < 256; i += 1) { switch (i) { case 1: break; default: poke($0400, i); } } } function main(): void {}",

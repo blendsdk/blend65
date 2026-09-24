@@ -127,6 +127,10 @@ export interface FunctionLoweringState {
   readonly helperBlocks: MachineBlock[];
   readonly multiplyHelpers: Map<number, MultiplyHelper>;
   readonly divideHelpers: Map<string, DivideHelper>;
+  /** Direct source-place origins of values eligible for same-input divide reuse. */
+  readonly loadOrigins: Map<string, string>;
+  /** Divider outputs still valid after the last same-input call in this block. */
+  divisionReuse: { readonly left: string; readonly right: string; readonly helper: string } | null;
   readonly helperUses: { readonly id: string; readonly requestIds: readonly string[] }[];
   readonly warnings: ProjectDiagnostic[];
   currentSemanticBlockId: string;
@@ -427,6 +431,8 @@ function lowerFunction(
     helperBlocks: [],
     multiplyHelpers: new Map(),
     divideHelpers: new Map(),
+    loadOrigins: new Map(),
+    divisionReuse: null,
     helperUses: [],
     warnings: [],
     currentSemanticBlockId: blocks[0]?.id ?? "entry",
@@ -439,6 +445,7 @@ function lowerFunction(
   const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
   for (const block of blocks) {
     state.currentSemanticBlockId = block.id;
+    state.divisionReuse = null;
     const incoming = predecessors.get(block.id) ?? [];
     const blockIndex = blockIndexes.get(block.id)!;
     const incomingCaches =
@@ -475,6 +482,7 @@ function lowerFunction(
         (operation.operator === "/" || operation.operator === "%") &&
         (divisor?.kind !== "constant" || divisor.value === 0)
       ) {
+        state.divisionReuse = null;
         const lowered = lowerCheckedDivision(
           operation,
           state,
@@ -493,6 +501,7 @@ function lowerFunction(
         (operation.operator === "<<" || operation.operator === ">>") &&
         state.values.get(operation.right)?.kind !== "constant"
       ) {
+        state.divisionReuse = null;
         const lowered = lowerVariableShift(
           operation,
           state,

@@ -287,7 +287,7 @@ export function lowerConstantMultiply(
       result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
     });
   }
-  if (width === 1 && (factor === 3 || factor === 5 || factor === 10)) {
+  if (width === 1 && (factor === 3 || factor === 5 || factor === 7 || factor === 10)) {
     const originalRequest = requestStorage(
       state,
       `scale-original:${operation.result}`,
@@ -307,16 +307,23 @@ export function lowerConstantMultiply(
     const instructions: MachineInstruction[] = [];
     appendLoadA(instructions, value, 0, state, operation.span);
     instructions.push(storeA(original, 0, state, operation.span));
-    for (let shift = 0; shift < (factor === 3 ? 1 : 2); shift += 1) {
+    for (let shift = 0; shift < (factor === 3 ? 1 : factor === 7 ? 3 : 2); shift += 1) {
       instructions.push(
         machineInstruction(state.input.profile.cpu, "asl", "accumulator", null, [], operation.span),
       );
     }
     instructions.push(
-      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], operation.span),
       machineInstruction(
         state.input.profile.cpu,
-        "adc",
+        factor === 7 ? "sec" : "clc",
+        "implied",
+        null,
+        [],
+        operation.span,
+      ),
+      machineInstruction(
+        state.input.profile.cpu,
+        factor === 7 ? "sbc" : "adc",
         "storage",
         operandForValue(original, 0),
         [],

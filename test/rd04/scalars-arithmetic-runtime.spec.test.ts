@@ -143,6 +143,23 @@ describe.sequential("runtime arithmetic operations", () => {
     ]);
   }, 60_000);
 
+  it("shifts a byte by runtime word counts across zero and saturation boundaries", async () => {
+    const bytes = await observe(
+      [
+        "poke($0400, 129); pokew($0401, 0);",
+        "let value: byte = peek($0400); let count: word = peekw($0401);",
+        "poke($0420, value << count);",
+        "pokew($0401, 1); count = peekw($0401); poke($0421, value << count);",
+        "pokew($0401, 8); count = peekw($0401); poke($0422, value << count);",
+        "pokew($0401, 256); count = peekw($0401); poke($0423, value << count);",
+        "let negative: sbyte = sbyte(value);",
+        "poke($0424, byte(negative >> count));",
+      ],
+      0x0424,
+    );
+    expect(bytes).toEqual([129, 2, 0, 0, 0xff]);
+  }, 60_000);
+
   it("divides signed and unsigned variables with truncating quotient and dividend-signed remainder", async () => {
     const bytes = await observe(
       [

@@ -274,8 +274,10 @@ export function isCompileTimeConstantExpression(
   switch (expression.kind) {
     case "number":
     case "boolean":
+    case "literal":
     case "sizeof":
     case "offsetof":
+    case "length":
       return true;
     case "name":
       return host.resolveName(expression.name, context)?.binding.storage === "constant";
@@ -292,6 +294,33 @@ export function isCompileTimeConstantExpression(
         isCompileTimeConstantExpression(expression.condition, context, host) &&
         isCompileTimeConstantExpression(expression.whenTrue, context, host) &&
         isCompileTimeConstantExpression(expression.whenFalse, context, host)
+      );
+    case "member":
+      if (expression.object.kind !== "name") return false;
+      {
+        const qualified = host.resolveName(
+          `${expression.object.name}.${expression.member}`,
+          context,
+        );
+        if (qualified !== null) return qualified.binding.storage === "constant";
+        return (
+          host.resolveType(
+            {
+              kind: "named-type",
+              name: expression.object.name,
+              span: expression.object.span,
+            },
+            context,
+          )?.kind === "enum"
+        );
+      }
+    case "call":
+      return (
+        expression.callee.kind === "name" &&
+        host.resolveName(expression.callee.name, context) === null &&
+        expression.arguments.every((argument) =>
+          isCompileTimeConstantExpression(argument, context, host),
+        )
       );
     default:
       return false;

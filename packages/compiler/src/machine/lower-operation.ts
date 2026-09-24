@@ -167,6 +167,19 @@ export function lowerOperation(
   operation: SemanticOperation,
   state: FunctionLoweringState,
 ): readonly MachineInstruction[] {
+  if (
+    operation.kind === "call" ||
+    operation.kind === "memory-write" ||
+    operation.kind === "platform" ||
+    (operation.kind === "binary" && operation.operator !== "/" && operation.operator !== "%")
+  ) {
+    state.divisionReuse = null;
+  } else if (operation.kind === "store" && state.divisionReuse !== null) {
+    const written = bindingIdentityKey(operation.place.root);
+    if (written === state.divisionReuse.left || written === state.divisionReuse.right) {
+      state.divisionReuse = null;
+    }
+  }
   let advancesAggregateInduction = false;
   if (operation.kind === "call" || operation.kind === "memory-write") {
     state.aggregateAddressCache = null;
@@ -207,6 +220,9 @@ export function lowerOperation(
     return Object.freeze([]);
   }
   if (operation.kind === "load") {
+    if (operation.place.path.length === 0) {
+      state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
+    }
     const width = typeBytes(operation.type);
     let source: LoweredValue;
     let instructions: readonly MachineInstruction[] = Object.freeze([]);
@@ -382,8 +398,21 @@ export function lowerOperation(
                 state,
               );
       } else {
-        lowered = lowerRuntimeDivision(operation, left, right, state);
-        selectedHelper = "division";
+        const leftOrigin = state.loadOrigins.get(operation.left);
+        const rightOrigin = state.loadOrigins.get(operation.right);
+        const helper = `${typeBytes(operation.type)}:${isSignedType(operation.type)}`;
+        const reusable =
+          leftOrigin !== undefined &&
+          rightOrigin !== undefined &&
+          state.divisionReuse?.left === leftOrigin &&
+          state.divisionReuse.right === rightOrigin &&
+          state.divisionReuse.helper === helper;
+        lowered = lowerRuntimeDivision(operation, left, right, state, reusable);
+        selectedHelper = reusable ? null : "division";
+        state.divisionReuse =
+          leftOrigin === undefined || rightOrigin === undefined
+            ? null
+            : Object.freeze({ left: leftOrigin, right: rightOrigin, helper });
       }
     } else {
       throw loweringFailure(
@@ -426,19 +455,6 @@ export function lowerOperation(
           operation.span,
         ),
       );
-      if (right.kind !== "constant" && state.input.divisionZeroCheck !== true) {
-        const divisorName =
-          operation.rightSpan === undefined
-            ? "divisor"
-            : state.input.sourceText?.(operation.rightSpan).trim() || "divisor";
-        state.warnings.push(
-          scalarWarning(
-            "W10173",
-            `Runtime divisor '${divisorName}' is not proven nonzero — zero has an unspecified valid-width result; guard it or use '--division-zero-check'`,
-            operation.span,
-          ),
-        );
-      }
     } else if (selectedConstantMultiply !== null) {
       const hasShift = lowered.instructions.some(
         ({ opcode }) => opcode === "asl" || opcode === "rol",
@@ -455,6 +471,23 @@ export function lowerOperation(
           ),
         );
       }
+    }
+    if (
+      (operation.operator === "/" || operation.operator === "%") &&
+      right.kind !== "constant" &&
+      state.input.divisionZeroCheck !== true
+    ) {
+      const divisorName =
+        operation.rightSpan === undefined
+          ? "divisor"
+          : state.input.sourceText?.(operation.rightSpan).trim() || "divisor";
+      state.warnings.push(
+        scalarWarning(
+          "W10173",
+          `Runtime divisor '${divisorName}' is not proven nonzero — zero has an unspecified valid-width result; guard it or use '--division-zero-check'`,
+          operation.span,
+        ),
+      );
     }
     return retained.instructions;
   }

@@ -12,6 +12,7 @@ import {
 import type {
   BindingId,
   ScalarExpressionContext,
+  ScalarFactSnapshot,
   ScalarScope,
   ScalarValueState,
   SemanticType,
@@ -191,44 +192,6 @@ function statementHasExplicitExit(statement: Statement, nestedLoopDepth: number)
     );
   }
   return false;
-}
-
-/** Conservatively detect jumps that can bypass the end of a post-test loop body. */
-function bodyMayJumpCurrentLoop(block: Block, nestedLoopDepth = 0): boolean {
-  return block.statements.some((statement) => {
-    if (statement.kind === "break" || statement.kind === "continue") {
-      return nestedLoopDepth === 0;
-    }
-    if (statement.kind === "block") return bodyMayJumpCurrentLoop(statement, nestedLoopDepth);
-    if (statement.kind === "if") {
-      return (
-        bodyMayJumpCurrentLoop(statement.then, nestedLoopDepth) ||
-        (statement.otherwise !== null &&
-          bodyMayJumpCurrentLoop(
-            statement.otherwise.kind === "block"
-              ? statement.otherwise
-              : {
-                  kind: "block",
-                  span: statement.otherwise.span,
-                  statements: [statement.otherwise],
-                },
-            nestedLoopDepth,
-          ))
-      );
-    }
-    if (statement.kind === "switch") {
-      return statement.clauses.some((clause) =>
-        bodyMayJumpCurrentLoop(
-          { kind: "block", span: clause.span, statements: clause.statements },
-          nestedLoopDepth,
-        ),
-      );
-    }
-    if (statement.kind === "while" || statement.kind === "for" || statement.kind === "do-while") {
-      return bodyMayJumpCurrentLoop(statement.body, nestedLoopDepth + 1);
-    }
-    return false;
-  });
 }
 
 /**
@@ -506,6 +469,21 @@ interface StructuredFlowHost {
     returnType: SemanticType,
     loopDepth: number,
   ): TypedBlock;
+  /** Analyze a loop body and retain facts at its own early exits. */
+  analyzeLoopBlock(
+    block: Block,
+    scope: ScalarScope,
+    module: string,
+    caller: BindingId,
+    returnType: SemanticType,
+    loopDepth: number,
+  ): {
+    readonly body: TypedBlock;
+    readonly exits: readonly {
+      readonly kind: "break" | "continue";
+      readonly facts: ScalarFactSnapshot;
+    }[];
+  };
   /** Analyze one loop-header declaration. */
   analyzeLocal(
     declaration: VariableDeclaration,
@@ -598,7 +576,19 @@ export function analyzeStructuredDoWhile(
 ): TypedDoWhileStatement {
   clearMutableScalarFacts(scope);
   const entryFacts = snapshotScalarFacts(scope);
-  const body = host.analyzeBlock(statement.body, scope, module, caller, returnType, loopDepth + 1);
+  const { body, exits } = host.analyzeLoopBlock(
+    statement.body,
+    scope,
+    module,
+    caller,
+    returnType,
+    loopDepth + 1,
+  );
+  const continuationFacts = [
+    ...(summarizeTypedBlock(body).normal ? [captureBranchFacts(entryFacts)] : []),
+    ...exits.filter((exit) => exit.kind === "continue").map((exit) => exit.facts),
+  ];
+  if (continuationFacts.length > 0) mergeScalarFacts(entryFacts, continuationFacts);
   const condition = expressions.analyze(statement.condition, null, {
     scope,
     module,
@@ -610,9 +600,11 @@ export function analyzeStructuredDoWhile(
     const diagnostic = conditionDiagnostic(condition, statement.condition.span);
     if (diagnostic !== null) host.diagnose(diagnostic);
   }
-  if (bodyMayJumpCurrentLoop(statement.body)) {
-    mergeScalarFacts(entryFacts, [entryFacts, captureBranchFacts(entryFacts)]);
+  const exitFacts = exits.filter((exit) => exit.kind === "break").map((exit) => exit.facts);
+  if (condition?.constant !== true && continuationFacts.length > 0) {
+    exitFacts.push(captureBranchFacts(entryFacts));
   }
+  if (exitFacts.length > 0) mergeScalarFacts(entryFacts, exitFacts);
   if (condition?.constant !== false) clearMutableScalarFacts(scope);
   return Object.freeze({
     kind: "do-while",
@@ -672,7 +664,14 @@ export function analyzeStructuredFor(
     }
   }
   const loopEntry = snapshotScalarFacts(scope);
-  const body = host.analyzeBlock(statement.body, scope, module, caller, returnType, loopDepth + 1);
+  const { body } = host.analyzeLoopBlock(
+    statement.body,
+    scope,
+    module,
+    caller,
+    returnType,
+    loopDepth + 1,
+  );
   const update =
     statement.update === null
       ? null

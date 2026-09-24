@@ -44,6 +44,7 @@ import type {
   ModuleAnalysisResult,
   ModuleGraph,
   ScalarExpressionContext as ExpressionContext,
+  ScalarFactSnapshot,
   ScalarScope as Scope,
   ScalarValueState as ValueState,
   SemanticBinding,
@@ -66,6 +67,11 @@ import type { EmbeddedValue } from "../assets/asset-types.js";
 
 /** Direct scalar and structured-flow analyzer over an already resolved module graph. */
 class ModuleAnalyzer {
+  /** One active frame per nested loop so jumps credit only their own loop's facts. */
+  private readonly loopFactCollectors: {
+    readonly baseline: ScalarFactSnapshot;
+    readonly exits: { readonly kind: "break" | "continue"; readonly facts: ScalarFactSnapshot }[];
+  }[] = [];
   readonly diagnostics: ProjectDiagnostic[] = [];
   readonly obligations: AnalysisObligation[] = [];
   readonly bindings: SemanticBinding[];
@@ -431,6 +437,31 @@ class ModuleAnalyzer {
     });
   }
 
+  /** Analyze a loop body while sampling each break/continue before branch joins erase it. */
+  private analyzeLoopBlock(
+    block: Block,
+    scope: Scope,
+    module: string,
+    caller: BindingId,
+    returnType: SemanticType,
+    loopDepth: number,
+  ) {
+    const frame = {
+      baseline: snapshotScalarFacts(scope),
+      exits: [] as {
+        readonly kind: "break" | "continue";
+        readonly facts: ScalarFactSnapshot;
+      }[],
+    };
+    this.loopFactCollectors.push(frame);
+    try {
+      const body = this.analyzeBlock(block, scope, module, caller, returnType, loopDepth);
+      return Object.freeze({ body, exits: Object.freeze(frame.exits) });
+    } finally {
+      this.loopFactCollectors.pop();
+    }
+  }
+
   /** Analyze one structured statement while retaining source order. */
   private analyzeStatement(
     statement: Statement,
@@ -485,7 +516,7 @@ class ModuleAnalyzer {
         );
       }
       const loopEntry = snapshotScalarFacts(scope);
-      const body = this.analyzeBlock(
+      const { body } = this.analyzeLoopBlock(
         statement.body,
         scope,
         module,
@@ -580,6 +611,10 @@ class ModuleAnalyzer {
           ),
         );
       }
+      const frame = this.loopFactCollectors.at(-1);
+      if (frame !== undefined) {
+        frame.exits.push({ kind: statement.kind, facts: captureBranchFacts(frame.baseline) });
+      }
       return Object.freeze({ kind: statement.kind, span: freezeSourceSpan(statement.span) });
     }
     if (statement.kind === "unchecked" || statement.kind === "fallthrough") {
@@ -619,6 +654,14 @@ class ModuleAnalyzer {
         returnType: SemanticType,
         loopDepth: number,
       ) => this.analyzeBlock(block, scope, module, caller, returnType, loopDepth),
+      analyzeLoopBlock: (
+        block: Block,
+        scope: Scope,
+        module: string,
+        caller: BindingId,
+        returnType: SemanticType,
+        loopDepth: number,
+      ) => this.analyzeLoopBlock(block, scope, module, caller, returnType, loopDepth),
       analyzeLocal: (declaration: VariableDeclaration, scope: Scope, context: ExpressionContext) =>
         this.analyzeLocal(declaration, scope, context),
       diagnose: (diagnostic: ProjectDiagnostic) => this.diagnostics.push(diagnostic),

@@ -22,6 +22,14 @@
     "zeroPageScratchBytes": 1,
     "instructions": ["STA scratch", "ASL A", "CLC", "ADC scratch"]
   },
+  "constantTimesSeven": {
+    "input": "already in A",
+    "identity": "8*x - x modulo 256",
+    "bytes": 8,
+    "cycles": 14,
+    "zeroPageScratchBytes": 1,
+    "instructions": ["STA scratch", "ASL A", "ASL A", "ASL A", "SEC", "SBC scratch"]
+  },
   "unsignedByteDivideByTwo": {
     "input": "already in A",
     "bytes": 1,
@@ -43,6 +51,27 @@
     "zeroCount": "bypass all shifts",
     "loop": "ASL A; decrement count register; branch while nonzero",
     "resultCopyScratchBytesInLoop": 0
+  },
+  "runtimeWordCountByteLeftShift": {
+    "input": "byte value in A; unrestricted word count in an absolute home",
+    "highCountPreheader": ["LDY count+1", "BNE saturated", "LDX count"],
+    "preheaderBytes": 8,
+    "preheaderCycles": {
+      "saturatedSamePage": 7,
+      "lowBytePath": 10
+    },
+    "loop": ["ASL A", "DEX", "BNE loop"],
+    "wideCount": "any nonzero high byte yields zero"
+  },
+  "stableQuotientRemainderPair": {
+    "operands": "same nonvolatile byte homes, unchanged between operations",
+    "selectedDivisionCalls": 1,
+    "reason": "one helper pass provides both quotient and remainder"
+  },
+  "sequentialMainlineMultiply": {
+    "calls": "two compatible functions invoked sequentially from mainline",
+    "overlap": "none; no interrupt or recursion path",
+    "reachableHelperBodyCopies": 1
   },
   "variableTimesVariable": {
     "helperBodyBytesIncludingRts": 20,

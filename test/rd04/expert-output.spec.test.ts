@@ -31,7 +31,10 @@ async function put(root: string, name: string, content: string): Promise<void> {
   await writeFile(path, content);
 }
 
-async function build(body: readonly string[]): Promise<{ assembly: string }> {
+async function build(
+  body: readonly string[],
+  declarations: readonly string[] = [],
+): Promise<{ assembly: string }> {
   const root = await mkdtemp(join(tmpdir(), "blend65-expert-scalars-"));
   try {
     await put(
@@ -50,7 +53,7 @@ async function build(body: readonly string[]): Promise<{ assembly: string }> {
     await put(
       root,
       "src/game.blend",
-      ["module Game;", "function main(): void {", ...body, "}"].join("\n"),
+      ["module Game;", ...declarations, "function main(): void {", ...body, "}"].join("\n"),
     );
     const result = await buildProject({
       project: join(root, "blend65.json"),
@@ -198,6 +201,111 @@ describe("independent byte arithmetic output baselines", () => {
           mnemonic === "ASL" &&
           ["", "A"].includes(code[index]!.operand.toUpperCase()) &&
           ["DEX", "DEY"].includes(code[index + 1]?.mnemonic ?? "") &&
+          code[index + 2]?.mnemonic === "BNE",
+      ),
+    ).toBe(true);
+  });
+
+  it("reuses one selected division call for stable quotient and remainder operands", async () => {
+    const inputs = ["let left: byte = peek($0400); let right: byte = peek($0401);"];
+    const identity = await build([
+      ...inputs,
+      "let quotient: byte = left; let remainder: byte = left;",
+      "poke($0420, quotient); poke($0421, remainder);",
+    ]);
+    const quotientOnly = await build([
+      ...inputs,
+      "let quotient: byte = left / right; let remainder: byte = left;",
+      "poke($0420, quotient); poke($0421, remainder);",
+    ]);
+    const pair = await build([
+      ...inputs,
+      "let quotient: byte = left / right; let remainder: byte = left % right;",
+      "poke($0420, quotient); poke($0421, remainder);",
+    ]);
+    expect(jsrCount(quotientOnly.assembly) - jsrCount(identity.assembly)).toBe(1);
+    expect(jsrCount(pair.assembly)).toBe(jsrCount(quotientOnly.assembly));
+  });
+
+  it("shares one byte multiply helper body across sequential mainline functions", async () => {
+    const { assembly } = await build(
+      [
+        "poke($0420, first(peek($0400), peek($0401)));",
+        "poke($0421, second(peek($0402), peek($0403)));",
+      ],
+      [
+        "function first(left: byte, right: byte): byte { return left * right; }",
+        "function second(left: byte, right: byte): byte { return left * right; }",
+      ],
+    );
+    const code = instructions(assembly);
+    const pattern = [
+      "LDA",
+      "LDX",
+      "LSR",
+      "BCC",
+      "CLC",
+      "ADC",
+      "ROR",
+      "ROR",
+      "DEX",
+      "BNE",
+      "LDA",
+      "RTS",
+    ];
+    const bodies = code.filter(
+      (step, index) =>
+        step.mnemonic === pattern[0] &&
+        pattern.every((mnemonic, offset) => code[index + offset]?.mnemonic === mnemonic),
+    );
+    expect(bodies).toHaveLength(1);
+    const targets = code.filter(({ mnemonic }) => mnemonic === "JSR").map(({ operand }) => operand);
+    expect(targets.some((target) => targets.filter((other) => other === target).length >= 2)).toBe(
+      true,
+    );
+  });
+
+  it("uses the short subtractive chain for modular byte times seven", async () => {
+    const { assembly } = await build([
+      "let value: byte = peek($0400);",
+      "poke($0420, value * byte(7));",
+    ]);
+    const code = instructions(assembly);
+    const matches = code.filter(
+      (step, index) =>
+        step.mnemonic === "STA" &&
+        [1, 2, 3].every(
+          (offset) =>
+            code[index + offset]?.mnemonic === "ASL" &&
+            ["", "A"].includes(code[index + offset]!.operand.toUpperCase()),
+        ) &&
+        code[index + 4]?.mnemonic === "SEC" &&
+        code[index + 5]?.mnemonic === "SBC" &&
+        code[index + 5]?.operand === step.operand,
+    );
+    expect(matches).toHaveLength(1);
+  });
+
+  it("checks a word shift count's high byte before an accumulator X-loop", async () => {
+    const { assembly } = await build([
+      "let value: byte = peek($0400); let count: word = peekw($0401);",
+      "poke($0420, value << count);",
+    ]);
+    const code = instructions(assembly);
+    expect(
+      code.some(
+        (step, index) =>
+          step.mnemonic === "LDY" &&
+          code[index + 1]?.mnemonic === "BNE" &&
+          code[index + 2]?.mnemonic === "LDX",
+      ),
+    ).toBe(true);
+    expect(
+      code.some(
+        (step, index) =>
+          step.mnemonic === "ASL" &&
+          ["", "A"].includes(step.operand.toUpperCase()) &&
+          code[index + 1]?.mnemonic === "DEX" &&
           code[index + 2]?.mnemonic === "BNE",
       ),
     ).toBe(true);

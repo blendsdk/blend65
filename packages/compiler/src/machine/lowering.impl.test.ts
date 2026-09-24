@@ -239,6 +239,143 @@ describe("direct value lowering", () => {
     );
   });
 
+  it("does not reuse a quotient after an operand is written", () => {
+    const left = sourceParameter(500, BYTE);
+    const right = sourceParameter(510, BYTE);
+    const integer = Object.freeze({ width: 8 as const, signed: false, wrap: true });
+    const main = semanticFunction(490, "changed-dividend", [left, right], BYTE, [
+      semanticBlock(
+        "changed.entry",
+        [
+          loadOperation("first-left", left, 520),
+          loadOperation("first-right", right, 521),
+          Object.freeze({
+            kind: "binary" as const,
+            result: "quotient",
+            type: BYTE,
+            integer,
+            operator: "/",
+            left: "first-left",
+            right: "first-right",
+            span: sourceSpan(522),
+          }),
+          Object.freeze({
+            kind: "store" as const,
+            place: Object.freeze({ root: left.id, path: Object.freeze([]) }),
+            value: "quotient",
+            type: BYTE,
+            span: sourceSpan(523),
+          }),
+          loadOperation("second-left", left, 524),
+          loadOperation("second-right", right, 525),
+          Object.freeze({
+            kind: "binary" as const,
+            result: "remainder",
+            type: BYTE,
+            integer,
+            operator: "%",
+            left: "second-left",
+            right: "second-right",
+            span: sourceSpan(526),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: "remainder" }),
+      ),
+    ]);
+    const lowered = lowerFunctions([main]);
+    expect(lowered.kind).toBe("complete");
+    if (lowered.kind !== "complete") throw new Error("Expected divide lowering");
+    expect(
+      lowered.program.functions[0]!.blocks.flatMap(({ instructions }) => instructions).filter(
+        ({ opcode }) => opcode === "jsr",
+      ),
+    ).toHaveLength(2);
+    const stable = semanticFunction(490, "stable-dividend", [left, right], BYTE, [
+      semanticBlock(
+        "changed.entry",
+        main.blocks[0]!.operations.filter((operation) => operation.kind !== "store"),
+        Object.freeze({ kind: "return" as const, value: "remainder" }),
+      ),
+    ]);
+    const reused = lowerFunctions([stable]);
+    expect(reused.kind).toBe("complete");
+    if (reused.kind !== "complete") throw new Error("Expected reused divide lowering");
+    expect(
+      reused.program.functions[0]!.blocks.flatMap(({ instructions }) => instructions).filter(
+        ({ opcode }) => opcode === "jsr",
+      ),
+    ).toHaveLength(1);
+    expect(reused.diagnostics.filter(({ code }) => code === "W10173")).toHaveLength(2);
+  });
+
+  it("keeps separate byte multiply bodies when a caller can overlap its callee", () => {
+    const outerLeft = sourceParameter(550, BYTE);
+    const outerRight = sourceParameter(560, BYTE);
+    const innerLeft = sourceParameter(570, BYTE);
+    const innerRight = sourceParameter(580, BYTE);
+    const integer = Object.freeze({ width: 8 as const, signed: false, wrap: true });
+    const product = (left: string, right: string, result: string, at: number) =>
+      Object.freeze({
+        kind: "binary" as const,
+        result,
+        type: BYTE,
+        integer,
+        operator: "*",
+        left,
+        right,
+        span: sourceSpan(at),
+      });
+    const inner = semanticFunction(540, "inner-product", [innerLeft, innerRight], VOID, [
+      semanticBlock(
+        "inner.entry",
+        [
+          loadOperation("inner-left", innerLeft, 590),
+          loadOperation("inner-right", innerRight, 591),
+          product("inner-left", "inner-right", "inner-product", 592),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const outer = semanticFunction(530, "outer-product", [outerLeft, outerRight], VOID, [
+      semanticBlock(
+        "outer.entry",
+        [
+          loadOperation("outer-left", outerLeft, 600),
+          loadOperation("outer-right", outerRight, 601),
+          product("outer-left", "outer-right", "outer-product", 602),
+          Object.freeze({
+            kind: "call" as const,
+            result: null,
+            callee: inner.id,
+            arguments: Object.freeze(["outer-left", "outer-right"]),
+            type: VOID,
+            span: sourceSpan(603),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const semantic = wholeProgramFor([outer, inner]);
+    const lowered = lowerFunctions([outer, inner]);
+    expect(lowered.kind).toBe("complete");
+    if (lowered.kind !== "complete") throw new Error("Expected two multiply helpers");
+    const closure = closeStorage(
+      inventoryStorage(semantic),
+      selectedProfile().storage,
+      lowered.binder,
+    );
+    expect(closure.kind).toBe("complete");
+    if (closure.kind !== "complete") throw new Error("Expected closed nested-call scratch");
+    const bound = bindMachineProgram(lowered.program, closure.certificate);
+    expect(bound.kind).toBe("complete");
+    if (bound.kind !== "complete") throw new Error("Expected bound nested-call helpers");
+    expect(
+      bound.program.functions
+        .flatMap((fn) => fn.blocks)
+        .filter(({ label }) => label.endsWith(".multiply.1")),
+    ).toHaveLength(2);
+  });
+
   it("should saturate a word-count shift before entering its bounded loop", () => {
     const value = sourceParameter(270, WORD);
     const count = sourceParameter(280, WORD);

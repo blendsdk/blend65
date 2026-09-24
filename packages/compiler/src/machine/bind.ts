@@ -271,6 +271,74 @@ function bindFunction(
   });
 }
 
+/** Share byte-multiply bodies only when final physical scratch and instructions match exactly. */
+function shareBoundByteMultiplyHelpers(
+  functions: readonly MachineFunction[],
+): readonly MachineFunction[] {
+  const suffixes = ["", ".loop", ".add", ".skip", ".finish"];
+  const canonical = new Map<string, string>();
+  const redirects = new Map<string, string>();
+  const removed = new Set<string>();
+  for (const fn of functions) {
+    const byLabel = new Map(fn.blocks.map((block) => [block.label, block] as const));
+    for (const entry of fn.blocks) {
+      if (!entry.label.endsWith(".multiply.1")) continue;
+      const body = suffixes.map((suffix) => byLabel.get(`${entry.label}${suffix}`));
+      if (body.some((block) => block === undefined)) continue;
+      // Source spans and private labels differ, but physical operands and costs must agree.
+      const fingerprint = JSON.stringify(body, (key, value: unknown) => {
+        if (key === "source") return undefined;
+        if (
+          (key === "label" || key === "target" || key === "fallthrough") &&
+          typeof value === "string" &&
+          value.startsWith(entry.label)
+        ) {
+          return value.slice(entry.label.length);
+        }
+        return value;
+      });
+      const shared = canonical.get(fingerprint);
+      if (shared === undefined) {
+        canonical.set(fingerprint, entry.label);
+      } else {
+        redirects.set(entry.label, shared);
+        for (const suffix of suffixes) removed.add(`${entry.label}${suffix}`);
+      }
+    }
+  }
+  if (redirects.size === 0) return functions;
+  return Object.freeze(
+    functions.map((fn) =>
+      Object.freeze({
+        ...fn,
+        blocks: Object.freeze(
+          fn.blocks
+            .filter((block) => !removed.has(block.label))
+            .map((block) =>
+              Object.freeze({
+                ...block,
+                instructions: Object.freeze(
+                  block.instructions.map((instruction) => {
+                    if (instruction.opcode !== "jsr" || instruction.operand?.kind !== "label") {
+                      return instruction;
+                    }
+                    const target = redirects.get(instruction.operand.label);
+                    return target === undefined
+                      ? instruction
+                      : Object.freeze({
+                          ...instruction,
+                          operand: Object.freeze({ ...instruction.operand, label: target }),
+                        });
+                  }),
+                ),
+              }),
+            ),
+        ),
+      }),
+    ),
+  );
+}
+
 /**
  * Replace every symbolic storage operand using one final closure certificate.
  * @param program Structured machine program with finite storage operands.
@@ -304,7 +372,7 @@ export function bindMachineProgram(
   }
   const boundProgram = Object.freeze({
     ...program,
-    functions: Object.freeze(functions.filter((fn) => fn !== null)),
+    functions: shareBoundByteMultiplyHelpers(functions.filter((fn) => fn !== null)),
     startup,
   });
   if (!validateMachineProgram(boundProgram)) {

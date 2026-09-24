@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 20/99 tasks (20%)
+> **Progress**: 24/99 tasks (24%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -132,9 +132,9 @@ correctness and semantics re-review found no remaining issues. No Phase 2 task h
 - [x] 2.3.1 Add fixed-point, arithmetic-boundary, malformed-CFG and lowering implementation tests — `packages/compiler/src/frontend/scalars.impl.test.ts`, `packages/compiler/src/semantic/cfg.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts` — Loop back-edge facts, helper warning/scratch selection, word-count shift saturation and a malformed semantic successor are covered. The malformed-edge test failed first; the CFG builder now rejects it before publication. Directed frontend/CFG/machine implementation and CFG specification cases (45/45), compiler build, formatting and whitespace checks pass 2026-09-24. ✅ (completed: 2026-09-24 11:06)
 - [x] 2.3.2 Add independent scalar/control behavior and expert-sequence evidence — `test/rd04/scalars-runtime.spec.test.ts`, `test/rd04/expert/scalars.json`, `test/rd04/expert-output.spec.test.ts` — The existing VICE scalar/control oracle remains green. Independent qualified byte-multiply baselines now record `x * 3` as a 6-byte/10-cycle local core and general byte multiply as a 20-byte helper; public assembly tests verify their contiguous instruction forms, and bound-machine implementation checks verify the exact local cost, helper ROM bytes and two zero-page scratch homes. No operation-local public cost schema was invented. The `x * 3` assembly case was RED before its short addition-chain lowering and is GREEN afterward. Frozen install, build, typecheck and complete tests pass: 1,066 compiler and 95 root tests, plus 60 CLI, 12 language-server and 6 VS Code tests. ✅ (completed: 2026-09-24 11:19)
 
-### Phase 2 Quality Review — Open
+### Phase 2 Quality Review — Closed
 
-Independent correctness, semantic and performance reviews found missed constant-zero rejection, do-loop definite-initialization paths, switch/loop proof edges, enum case conversion, and three short arithmetic/shift idioms. Focused specification cases were RED first; these findings are fixed. The planned spec-author edits only strengthen `*.spec.test.ts` expectations; none were weakened. Frozen install, build, typecheck and complete tests pass after the fixes: 1,072 compiler, 98 root, 60 CLI, 12 language-server and 6 VS Code cases (2026-09-24). Review remains open for same-operand quotient/remainder reuse and safe cross-function helper sharing, which must be resolved before Phase 2 closes.
+Independent correctness, semantic and performance reviews found missed constant-zero rejection, do-loop definite-initialization paths, switch/loop proof edges, enum case conversion, short arithmetic/shift idioms, repeated quotient/remainder work and duplicate helper bodies. Focused specification cases were RED first; these findings are fixed and re-reviewed. The planned spec-author edits only strengthen `*.spec.test.ts` expectations; none were weakened. Same-operand division results are reused within one semantic block, and byte-multiply helper bodies are shared only when their bound instruction and scratch fingerprints match. No general sharing framework was added. Frozen install, build, typecheck and complete tests pass after the fixes: 1,075 compiler, 103 root (including VICE and expert-output cases), 60 CLI, 12 language-server and 6 VS Code cases (2026-09-24). Frozen `spec/` remains untouched.
 
 **Deliverables:** complete scalar/control semantics and legal direct NMOS output.
 

@@ -263,6 +263,7 @@ export function lowerRuntimeDivision(
   left: LoweredValue,
   right: LoweredValue,
   state: FunctionLoweringState,
+  reuseResult = false,
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
   if (left.kind === "condition" || right.kind === "condition") {
     throw loweringFailure("Division operands were not retained", operation.span);
@@ -274,6 +275,7 @@ export function lowerRuntimeDivision(
   const key = `${width}:${signed}`;
   let helper = state.divideHelpers.get(key);
   if (helper === undefined) {
+    if (reuseResult) throw loweringFailure("A reused divide has no prior helper", operation.span);
     helper = createHelper(operation, width, signed, state);
     state.divideHelpers.set(key, helper);
   }
@@ -284,23 +286,25 @@ export function lowerRuntimeDivision(
       instructions.push(storeA(destination, offset, state, operation.span));
     }
   };
-  if (left.kind === "register" && right.kind !== "register") {
-    stage(left, helper.quotient);
-    stage(right, helper.divisor);
-  } else {
-    stage(right, helper.divisor);
-    stage(left, helper.quotient);
+  if (!reuseResult) {
+    if (left.kind === "register" && right.kind !== "register") {
+      stage(left, helper.quotient);
+      stage(right, helper.divisor);
+    } else {
+      stage(right, helper.divisor);
+      stage(left, helper.quotient);
+    }
+    instructions.push(
+      machineInstruction(
+        state.input.profile.cpu,
+        "jsr",
+        "absolute",
+        Object.freeze({ kind: "label", label: helper.label }),
+        [],
+        operation.span,
+      ),
+    );
   }
-  instructions.push(
-    machineInstruction(
-      state.input.profile.cpu,
-      "jsr",
-      "absolute",
-      Object.freeze({ kind: "label", label: helper.label }),
-      [],
-      operation.span,
-    ),
-  );
   const selected = operation.operator === "/" ? helper.quotient : helper.remainder;
   if (width === 2) {
     appendLoadA(instructions, selected, 1, state, operation.span);
@@ -309,12 +313,14 @@ export function lowerRuntimeDivision(
     );
   }
   appendLoadA(instructions, selected, 0, state, operation.span);
-  state.helperUses.push(
-    Object.freeze({
-      id: `divide:${bindingIdentityKey(state.owner)}:${operation.result}`,
-      requestIds: helper.requestIds,
-    }),
-  );
+  if (!reuseResult) {
+    state.helperUses.push(
+      Object.freeze({
+        id: `divide:${bindingIdentityKey(state.owner)}:${operation.result}`,
+        requestIds: helper.requestIds,
+      }),
+    );
+  }
   return Object.freeze({
     instructions: Object.freeze(instructions),
     result: Object.freeze({
