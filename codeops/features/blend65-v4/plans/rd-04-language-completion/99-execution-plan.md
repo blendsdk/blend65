@@ -226,6 +226,17 @@ framework or language scope was added.
 
 **Deliverables:** ordinary aggregate values and one closed zero-runtime ABI.
 
+**Independent Phase 4 review (2026-09-24):** correctness, language-semantics and performance reviewers inspected the phase-baseline diff. The pre-review full verification was green, but four major findings block Phase 4 review closeout and Phase 5 start pending a user ruling. The Phase 4 specification cases were authored before implementation and not weakened; AR-P14 authorized the two changed older service expectations. Frozen `spec/` is unchanged.
+
+| Finding | Severity | Review result / narrow correction proposed |
+|---|---|---|
+| RV-001 / semantics 1 | Major | Nested aggregate fields sourced from existing values are lowered as pointer bytes, or fail lowering when wider than two bytes. Copy complete source values into their fields with the existing alias-safe, SFA-closed path. |
+| Semantics 2 | Major | A legal zero-length local array requests a zero-byte SFA home and fails allocation. Represent empty values without a positive-byte storage request. |
+| PE-001 | Major | An unknown-overlap 300-byte copy always reserves a 300-byte snapshot and performs two copy passes. Compare an overlap-safe directional copy against the snapshot on bytes, cycles and RAM; retain the snapshot where required. |
+| PE-002 | Major | Large copy/fill emits a loop body for every 256-byte page, growing code linearly with page count. Use a bounded-size outer page loop for larger objects while retaining the small-loop form where it is better. |
+
+No finding authorizes a new runtime, heap, general optimization framework or spec edit. Findings await a user ruling; no correction or waiver has been applied.
+
 **Verify:** `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 
 ## Phase 5: Ordinary Calls, Function Values and Recursion
