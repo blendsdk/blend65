@@ -271,16 +271,33 @@ export function lowerAggregateReturnLoop(
   if (state.directCallerResults.has(valueId)) return null;
   const destination = resultPointer(state.owner, state, source);
   const place = state.aggregatePlaces.get(valueId);
+  const retained = state.values.get(valueId);
+  const directSource =
+    place !== undefined && place.path.length === 0
+      ? loweredPlace(place, type.size, false, state)
+      : null;
+  const requiresPointer =
+    place !== undefined &&
+    (place.path.length > 0 ||
+      (directSource?.kind === "storage" && directSource.requestId.includes(":parameter:")));
+  const retainedPointer =
+    requiresPointer &&
+    retained?.kind === "storage" &&
+    retained.requestId.endsWith(`:aggregate-address:${valueId}`)
+      ? retained
+      : null;
   const resolved =
-    place === undefined ? null : sourcePlace(place, type.size, state, source, valueId);
-  const value = resolved?.value ?? state.values.get(valueId);
+    place === undefined || retainedPointer !== null
+      ? null
+      : sourcePlace(place, type.size, state, source, valueId);
+  const value = retainedPointer ?? resolved?.value ?? retained;
   if (value === undefined || value.kind === "condition") {
     throw loweringFailure("Aggregate return value was not retained", source);
   }
   const read: PackedHome = Object.freeze({
     instructions: resolved?.instructions ?? Object.freeze([]),
     value,
-    indirect: resolved?.indirect ?? false,
+    indirect: retainedPointer !== null || (resolved?.indirect ?? false),
   });
   const write: PackedHome = Object.freeze({
     instructions: Object.freeze([]),

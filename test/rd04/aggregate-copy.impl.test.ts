@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { buildProject } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
 import { startVice, stopVice } from "../m1/vice-runtime.js";
@@ -18,6 +19,11 @@ async function sidecar(directory: string, name: string): Promise<Record<string, 
   const parsed: unknown = JSON.parse(await readFile(join(directory, name), "utf8"));
   return evidenceRecord(parsed);
 }
+
+const parsedExpert: unknown = JSON.parse(
+  await readFile(fileURLToPath(new URL("./expert/aggregate-abi.json", import.meta.url)), "utf8"),
+);
+const expert = evidenceRecord(parsedExpert);
 
 describe.sequential("aggregate copy machine implementation", () => {
   // The first and last bytes on both sides of a page boundary must survive an alias-safe copy.
@@ -89,6 +95,35 @@ describe.sequential("aggregate copy machine implementation", () => {
       }
       const physical = intervals.map(evidenceRecord);
       const resourceRecords = resources.map(evidenceRecord);
+      const routineBudgets = evidenceRecord(expert.routines);
+      const symbolRecords = symbols.map(evidenceRecord);
+      for (const name of ["copy", "clone", "fill"]) {
+        const routine = physical.find(
+          ({ kind, owner }) =>
+            kind === "code" && evidenceRecord(owner).id === `src/game.blend::Game.${name}`,
+        );
+        const budget = evidenceRecord(routineBudgets[name]);
+        expect(typeof routine?.size).toBe("number");
+        expect(typeof budget.bytesIncludingRts).toBe("number");
+        expect(Array.isArray(budget.byteParts)).toBe(true);
+        if (!Array.isArray(budget.byteParts)) throw new TypeError("Missing expert byte parts");
+        expect(budget.byteParts.every((part) => typeof part === "number")).toBe(true);
+        expect(budget.byteParts.reduce((total: number, part: number) => total + part, 0)).toBe(
+          budget.bytesIncludingRts,
+        );
+        expect(Number(routine?.size)).toBeLessThanOrEqual(Number(budget.bytesIncludingRts));
+        const pointerBytes = symbolRecords
+          .filter(
+            ({ qualifiedName, name: symbolName }) =>
+              typeof qualifiedName === "string" &&
+              qualifiedName.startsWith(`src/game.blend::Game.${name}::`) &&
+              typeof symbolName === "string" &&
+              (symbolName.includes("aggregate-address") ||
+                symbolName.includes("aggregate-return-destination")),
+          )
+          .reduce((total, symbol) => total + Number(symbol.byteWidth), 0);
+        expect(pointerBytes).toBeLessThanOrEqual(Number(budget.zeroPagePointerBytes));
+      }
       expect(
         physical.some(
           ({ kind, size }) => kind === "sfa" && typeof size === "number" && size >= 300,
@@ -120,6 +155,7 @@ describe.sequential("aggregate copy machine implementation", () => {
         snapshotSymbols.every(({ kind, byteWidth }) => kind === "temporary" && byteWidth === 300),
       ).toBe(true);
       expect(ranges.length).toBeGreaterThan(0);
+      expect(physical.filter(({ kind, size }) => kind === "sfa" && size === 300)).toHaveLength(1);
       const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
       const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
       const returnMatch = labels.match(

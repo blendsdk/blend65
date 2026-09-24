@@ -603,7 +603,7 @@ function lowerFunction(
           if (copied !== null) {
             loweredBlocks.push(...copied.blocks);
             currentLabel = copied.continuation;
-            currentInstructions = [];
+            currentInstructions = [...copied.continuationInstructions];
             aggregateCopyIndex += 1;
             continue;
           }

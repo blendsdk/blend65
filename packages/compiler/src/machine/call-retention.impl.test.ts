@@ -99,6 +99,13 @@ describe("call ABI and scalar retention", () => {
             type: array,
             span: sourceSpan(1403),
           }),
+          Object.freeze({
+            kind: "store" as const,
+            place: targetPlace,
+            value: "borrowed",
+            type: array,
+            span: sourceSpan(1404),
+          }),
         ],
         Object.freeze({ kind: "return" as const, value: null }),
       ),
@@ -114,7 +121,7 @@ describe("call ABI and scalar retention", () => {
       result.closure.certificate.homes.some(({ requestId }) => requestId === snapshot?.id),
     ).toBe(true);
     const sourcePointer = result.closure.inventory.requests.find(({ id }) =>
-      id.includes("aggregate-address:copy-source:borrowed"),
+      id.includes("aggregate-address:borrowed"),
     );
     expect(sourcePointer).toMatchObject({ storageClass: "pointer", bytes: 2 });
     expect(
@@ -124,6 +131,11 @@ describe("call ABI and scalar retention", () => {
           (right === snapshot?.id && left === sourcePointer?.id),
       ),
     ).toBe(true);
+    expect(
+      result.lowered.program.functions[0]!.blocks.flatMap(
+        ({ instructions }) => instructions,
+      ).filter(({ opcode }) => opcode === "dec"),
+    ).toHaveLength(2);
     expect(result.bound.kind).toBe("complete");
   });
 

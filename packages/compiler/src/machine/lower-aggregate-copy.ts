@@ -35,6 +35,7 @@ interface PreparedCopy {
   readonly to: PackedHome;
   readonly middle: PackedHome | null;
   readonly setup: readonly MachineInstruction[];
+  readonly restoreSource: boolean;
 }
 
 /** Keep fixed roots direct; computed elements and parameters need a zero-page address pair. */
@@ -151,6 +152,7 @@ function prepareCopy(
   operation: Extract<SemanticOperation, { readonly kind: "store" }>,
   source: SemanticPlace,
   state: FunctionLoweringState,
+  reuseRetainedPointer = false,
 ): PreparedCopy | null {
   const target = operation.place;
   if (
@@ -167,7 +169,22 @@ function prepareCopy(
   }
   const bytes = type.size;
   if (bytes === 0) return null;
-  const from = packedHome(source, bytes, `copy-source:${operation.value}`, state, operation.span);
+  const retained = state.values.get(operation.value);
+  const directSource = source.path.length === 0 ? loweredPlace(source, bytes, false, state) : null;
+  const requiresPointer =
+    source.path.length > 0 ||
+    (directSource?.kind === "storage" && directSource.requestId.includes(":parameter:"));
+  // Restoring the borrowed pointer costs one DEC per extra page. Beyond three
+  // pages, reloading a separate pointer is cheaper in cycles.
+  const restoreSource =
+    reuseRetainedPointer &&
+    Math.ceil(bytes / 256) <= 3 &&
+    requiresPointer &&
+    retained?.kind === "storage" &&
+    retained.requestId.endsWith(`:aggregate-address:${operation.value}`);
+  const from: PackedHome = restoreSource
+    ? Object.freeze({ instructions: Object.freeze([]), value: retained, indirect: true })
+    : packedHome(source, bytes, `copy-source:${operation.value}`, state, operation.span);
   const to = packedHome(target, bytes, `copy-target:${operation.value}`, state, operation.span);
   const sourceKey = bindingIdentityKey(source.root);
   const targetKey = bindingIdentityKey(target.root);
@@ -200,6 +217,7 @@ function prepareCopy(
     to,
     middle,
     setup: Object.freeze([...from.instructions, ...to.instructions]),
+    restoreSource,
   });
 }
 
@@ -349,14 +367,18 @@ export function lowerAggregatePlaceCopyLoop(
   entryLabel: string,
   prefix: readonly MachineInstruction[],
   ordinal: number,
-): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } | null {
-  const prepared = prepareCopy(operation, source, state);
+): {
+  readonly blocks: readonly MachineBlock[];
+  readonly continuation: string;
+  readonly continuationInstructions: readonly MachineInstruction[];
+} | null {
+  const prepared = prepareCopy(operation, source, state, true);
   if (prepared === null) return null;
   const phases =
     prepared.middle === null
       ? [[prepared.from, prepared.to] as const]
       : [[prepared.from, prepared.middle] as const, [prepared.middle, prepared.to] as const];
-  return lowerPackedCopyLoops(
+  const lowered = lowerPackedCopyLoops(
     phases,
     prepared.bytes,
     state,
@@ -365,4 +387,28 @@ export function lowerAggregatePlaceCopyLoop(
     ordinal,
     operation.span,
   );
+  // The retained address may be used again as a value. Restore its page base
+  // after the copy instead of allocating and initializing a second pointer.
+  const continuationInstructions: MachineInstruction[] = [];
+  if (prepared.restoreSource) {
+    if (prepared.from.value.kind !== "storage") {
+      throw loweringFailure("Retained aggregate pointer has no home", operation.span);
+    }
+    for (let page = 1; page < Math.ceil(prepared.bytes / 256); page += 1) {
+      continuationInstructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "dec",
+          "storage",
+          Object.freeze({ kind: "storage", requestId: prepared.from.value.requestId, offset: 1 }),
+          [],
+          operation.span,
+        ),
+      );
+    }
+  }
+  return Object.freeze({
+    ...lowered,
+    continuationInstructions: Object.freeze(continuationInstructions),
+  });
 }

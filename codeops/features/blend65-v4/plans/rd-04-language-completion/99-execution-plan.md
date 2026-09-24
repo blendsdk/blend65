@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 45/99 tasks (45%)
+> **Progress**: 46/99 tasks (46%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -222,7 +222,7 @@ framework or language scope was added.
 ### Step 4.3: Implementation Tests and Qualification
 
 - [x] 4.3.1 Add snapshot-lifetime, interference and closure-feedback implementation tests — `packages/compiler/src/storage/sfa.impl.test.ts`, `packages/compiler/src/storage/closure.impl.test.ts`, `packages/compiler/src/machine/call-retention.impl.test.ts` — Three new cases prove live snapshot separation and later reuse, finite closure feedback with undeclared-demand rejection, and bound copy pointers/snapshot. Full install, build, typecheck and test pass: compiler 1,137; root 127; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 21:38)
-- [ ] 4.3.2 Run aggregate ABI/SFA ACME/VICE and equal-contract expert qualification — `test/rd04/aggregate-abi.spec.test.ts`, `test/rd04/expert/aggregate-abi.json`, `test/rd04/vice.spec.test.ts`
+- [x] 4.3.2 Run aggregate ABI/SFA ACME/VICE and equal-contract expert qualification — `test/rd04/aggregate-abi.spec.test.ts`, `test/rd04/expert/aggregate-abi.json`, `test/rd04/vice.spec.test.ts` — Existing aggregate ABI specification cases and the focused aggregate-copy VICE implementation case provide the sequential runtime oracle without a redundant new spec file. Measured 300-byte copy/clone/fill bodies are 71/59/31 bytes, meeting the independent equal-contract NMOS baseline with one overlaid 300-byte SFA snapshot; [issue #81](https://github.com/blendsdk/blend65/issues/81) records the whole-program beat path. Full install, build, typecheck and test pass: compiler 1,138; root 127; CLI 60; LSP 12; VS Code 6. Independent phase review follows. ✅ (completed: 2026-09-24 21:53)
 
 **Deliverables:** ordinary aggregate values and one closed zero-runtime ABI.
 
