@@ -199,9 +199,53 @@ describe("direct value lowering", () => {
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected runtime arithmetic lowering");
     expect(result.diagnostics.map(({ code }) => code)).toEqual(["W10170", "W10171", "W10173"]);
+    const byteScratch = result.program.requiredStorage.filter(({ id }) =>
+      id.includes("multiply:1:"),
+    );
+    expect(byteScratch.map(({ id }) => id.split("multiply:1:")[1])).toEqual(["left", "right"]);
+    expect(byteScratch.every(({ region }) => region === "zero-page-preferred")).toBe(true);
     expect(result.program.functions[0]!.blocks.flatMap(({ instructions }) => instructions)).toEqual(
       expect.arrayContaining([expect.objectContaining({ opcode: "jsr" })]),
     );
+  });
+
+  it("should saturate a word-count shift before entering its bounded loop", () => {
+    const value = sourceParameter(270, WORD);
+    const count = sourceParameter(280, WORD);
+    const main = semanticFunction(265, "variable-word-shift", [value, count], WORD, [
+      semanticBlock(
+        "shift.entry",
+        [
+          loadOperation("value", value, 290),
+          loadOperation("count", count, 291),
+          Object.freeze({
+            kind: "binary" as const,
+            result: "shifted",
+            type: WORD,
+            integer: Object.freeze({ width: 16 as const, signed: false, wrap: true }),
+            operator: ">>",
+            left: "value",
+            right: "count",
+            span: sourceSpan(292),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: "shifted" }),
+      ),
+    ]);
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected variable shift lowering");
+    const blocks = result.program.functions[0]!.blocks;
+    expect(blocks[0]!.terminator).toMatchObject({
+      kind: "branch",
+      opcode: "bne",
+      target: expect.stringContaining(".saturated"),
+    });
+    expect(blocks.find(({ label }) => label.includes(".shift.0.loop"))).toMatchObject({
+      instructions: expect.arrayContaining([expect.objectContaining({ opcode: "dex" })]),
+      terminator: { kind: "branch", opcode: "bne" },
+    });
   });
 
   it("should copy complete aggregate and merge values on their incoming edges", () => {

@@ -95,6 +95,20 @@ export class ControlFlowBuilder {
     for (const block of this.blocks) {
       if (block.terminator === null) block.terminator = Object.freeze({ kind: "unreachable" });
     }
+    // Catch a broken internal edge here, while its source block is still easy to identify.
+    const blockIds = new Set(this.blocks.map(({ id }) => id));
+    for (const block of this.blocks) {
+      const terminator = block.terminator;
+      const successors =
+        terminator?.kind === "jump"
+          ? [terminator.target]
+          : terminator?.kind === "branch"
+            ? [terminator.whenTrue, terminator.whenFalse]
+            : [];
+      for (const successor of successors) {
+        if (!blockIds.has(successor)) throw new Error(`Unknown semantic successor '${successor}'`);
+      }
+    }
     return Object.freeze(
       this.blocks.map((block) =>
         Object.freeze({

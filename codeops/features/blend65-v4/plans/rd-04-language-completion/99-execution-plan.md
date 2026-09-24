@@ -129,7 +129,7 @@ correctness and semantics re-review found no remaining issues. No Phase 2 task h
 
 ### Step 2.3: Implementation Tests and Qualification
 
-- [ ] 2.3.1 Add fixed-point, arithmetic-boundary, malformed-CFG and lowering implementation tests — `packages/compiler/src/frontend/scalars.impl.test.ts`, `packages/compiler/src/semantic/cfg.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts`
+- [x] 2.3.1 Add fixed-point, arithmetic-boundary, malformed-CFG and lowering implementation tests — `packages/compiler/src/frontend/scalars.impl.test.ts`, `packages/compiler/src/semantic/cfg.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts` — Loop back-edge facts, helper warning/scratch selection, word-count shift saturation and a malformed semantic successor are covered. The malformed-edge test failed first; the CFG builder now rejects it before publication. Directed frontend/CFG/machine implementation and CFG specification cases (45/45), compiler build, formatting and whitespace checks pass 2026-09-24. ✅ (completed: 2026-09-24 11:06)
 - [ ] 2.3.2 Add independent scalar/control behavior and expert-sequence evidence — `test/rd04/scalars-runtime.spec.test.ts`, `test/rd04/expert/scalars.json`, `test/rd04/expert-output.spec.test.ts`
 
 **Deliverables:** complete scalar/control semantics and legal direct NMOS output.

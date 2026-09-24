@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot, SourceRecord } from "../project/types.js";
 import { analyzeProject } from "../frontend/service.js";
 import { buildSemanticProgram } from "./lower.js";
+import { ControlFlowBuilder } from "./cfg.js";
 
 const PROFILE_ID = "c64-pal-prg-kernal-6581";
 
@@ -58,6 +59,15 @@ function lower(text: string) {
 }
 
 describe("semantic CFG implementation", () => {
+  it("rejects an internally malformed jump target before publishing the graph", () => {
+    const builder = new ControlFlowBuilder("malformed");
+    builder.terminate(Object.freeze({ kind: "jump", target: "malformed:missing" }));
+
+    expect(() => builder.finish({ kind: "scalar", name: "void" })).toThrow(
+      "Unknown semantic successor 'malformed:missing'",
+    );
+  });
+
   it("freezes every graph record and resolves every represented successor", () => {
     const program = lower(
       [

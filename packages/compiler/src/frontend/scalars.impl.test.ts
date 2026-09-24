@@ -105,6 +105,16 @@ describe("scalar analysis implementation", () => {
     });
   });
 
+  it("does not carry a stale constant through a loop back edge", () => {
+    const result = analyze(
+      "module Game; function f(flag: boolean): void { let value: byte = 1; while (flag) { value = 2; } let after: byte = value; } function main(): void {}",
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(typedDeclaration(result, "Game.f").body?.statements[2]).toMatchObject({
+      initializer: { constant: null },
+    });
+  });
+
   it("uses one unmodified reaching assignment to prove narrow wrap", () => {
     const result = analyze(
       "module Game; function f(): void { let a: byte = 1; a = 200; let b: byte = 100; let r: word = a + b; } function main(): void {}",
