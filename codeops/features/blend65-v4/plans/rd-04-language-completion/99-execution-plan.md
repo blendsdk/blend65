@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 36/99 tasks (36%)
+> **Progress**: 39/99 tasks (39%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -199,19 +199,20 @@ framework or language scope was added.
 
 ## Phase 4: Aggregate Values, ABI and SFA
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `e49325fdbd6b00d23c79a06373f2afc653f71afe`
+> **Expected modification set**: Phase 4 task paths in `packages/compiler/src/frontend/`, `packages/compiler/src/semantic/`, `packages/compiler/src/storage/`, `packages/compiler/src/machine/`, `packages/compiler/src/artifacts/`, and `test/rd04/`; this plan and the feature roadmap. Scope mode: strict; use the existing semantic operations and SFA closure, with no dynamic frame, heap, runtime registry, or new IR.
 > **Lenses**: ABI soundness, SFA closure, alias-safe copies, performance
 
 ### Step 4.1: Specification Tests
 
 **Reference**: [03-03 §ABI Family](03-03-calls-abi-and-sfa.md#abi-family) · ST-26, ST-27, ST-31, ST-39
 
-- [ ] 4.1.1 [spec-author] Write aggregate assignment/return/borrow and overlap specification cases — `packages/compiler/src/frontend/aggregates.spec.test.ts`, `packages/compiler/src/storage/sfa.spec.test.ts`, `test/rd04/aggregate-abi.spec.test.ts`
-- [ ] 4.1.2 Run only the new Phase 4 specification cases and record the expected red failures — Phase 4 test files
+- [x] 4.1.1 [spec-author] Write aggregate assignment/return/borrow and overlap specification cases — `packages/compiler/src/frontend/aggregates.spec.test.ts`, `packages/compiler/src/storage/sfa.spec.test.ts`, `test/rd04/aggregate-abi.spec.test.ts` — Seven focused cases authored from the frozen language rules without implementation changes. Typecheck, formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-24 15:08)
+- [x] 4.1.2 Run only the new Phase 4 specification cases and record the expected red failures — Phase 4 test files — RED confirmed: three frontend cases and two public runtime builds fail against the old compiler; 27 focused cases pass. Logs `/tmp/rd04-phase4-red-compiler.log` and `/tmp/rd04-phase4-red-public.log`. Unsized-return and undeclared late-storage cases already pass as non-vacuous regressions. ✅ (completed: 2026-09-24 15:08)
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Complete aggregate value assignment and caller-owned return destinations — `packages/compiler/src/frontend/scalar-assignments.ts`, `packages/compiler/src/frontend/direct-calls.ts`, `packages/compiler/src/semantic/operations.ts`
+- [x] 4.2.1 Complete aggregate value assignment and caller-owned return destinations — `packages/compiler/src/frontend/scalar-assignments.ts`, `packages/compiler/src/frontend/direct-calls.ts`, `packages/compiler/src/semantic/operations.ts` — Full install, build, typecheck and test pass: compiler 1,130; root 125; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 20:49)
 - [ ] 4.2.2 Complete exact and outer-unsized aggregate parameter ABI records — `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/storage/storage-types.ts`
 - [ ] 4.2.3 Inventory aggregate destinations, snapshots, caller staging and pointer pairs — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/interference.ts`, `packages/compiler/src/storage/closure.ts`
 - [ ] 4.2.4 Lower direct construction and overlap-safe copies with explicit scratch/costs — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/machine-types.ts`

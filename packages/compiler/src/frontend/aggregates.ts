@@ -51,6 +51,16 @@ export function applyExpectedAggregate(
 ): ScalarExpressionResult {
   const node = result.node;
   if (node === null) return result;
+  if (node.outerUnsized) {
+    host.diagnose(
+      projectDiagnostic(
+        "E10253",
+        "An unsized array parameter is a borrow, not a complete fixed-array value",
+        expression.span,
+      ),
+    );
+    return { node: null, exact: result.exact };
+  }
   if (semanticTypesEqual(node.type, expected)) {
     return {
       node: node.type === expected ? node : Object.freeze({ ...node, type: expected }),
@@ -190,6 +200,24 @@ export function analyzeAggregateExpression(
         ),
       );
       return { node: null, exact: null };
+    }
+    if (operand.node.outerUnsized) {
+      if (context.constantContext) {
+        host.diagnose(
+          projectDiagnostic(
+            "E10191",
+            "The length of an unsized array parameter is a runtime value",
+            expression.span,
+          ),
+        );
+        return { node: null, exact: null };
+      }
+      return {
+        node: createScalarTypedExpression(expression, SCALAR_TYPES.word, null, {
+          operand: operand.node,
+        }),
+        exact: null,
+      };
     }
     const constant = BigInt(operand.node.type.length);
     return {
@@ -435,6 +463,7 @@ function analyzeIndex(
   }
   if (
     typeof index.node.constant === "bigint" &&
+    !object.node.outerUnsized &&
     (index.node.constant < 0n || index.node.constant >= BigInt(object.node.type.length))
   ) {
     host.diagnose(

@@ -4,9 +4,10 @@ import type { SourceSpan } from "../project/types.js";
 import type { SemanticBlock, SemanticFunction, SemanticProgram } from "../semantic/operations.js";
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
 import { allocateStorage } from "./allocate.js";
+import { closeStorage } from "./closure.js";
 import { buildInterference } from "./interference.js";
 import { inventoryStorage } from "./inventory.js";
-import type { StorageProfile } from "./storage-types.js";
+import type { StorageBinder, StorageProfile, StorageRequest } from "./storage-types.js";
 
 const BYTE: SemanticType = Object.freeze({ kind: "scalar", name: "byte" });
 const SBYTE: SemanticType = Object.freeze({ kind: "scalar", name: "sbyte" });
@@ -119,6 +120,37 @@ function requestForValue(inventory: ReturnType<typeof inventoryStorage>, value: 
 }
 
 describe("static frame inventory", () => {
+  // Emission cannot claim a new execution byte that was absent from the finite closure candidates.
+  it("should refuse an undeclared late storage demand without issuing a closure certificate", () => {
+    const fnId = binding(90);
+    const entry = block("late:entry", []);
+    const program = wholeProgram([semanticFunction(fnId, [], VOID, [entry])], []);
+    const late: StorageRequest = Object.freeze({
+      id: "late-helper-byte",
+      storageClass: "helper-scratch",
+      owner: fnId,
+      binding: null,
+      value: "late-helper-byte",
+      type: BYTE,
+      bytes: 1,
+      alignment: 1,
+      region: "ram",
+      source: span(91),
+      reason: "A helper demands one execution byte",
+      lifetime: lifetime(fnId, "late-helper-byte", entry.id, 0, [1]),
+    });
+    const binder: StorageBinder = Object.freeze({
+      candidateRequestIds: Object.freeze([]),
+      helperCalls: Object.freeze([]),
+      discover: () => Object.freeze([late]),
+    });
+
+    const result = closeStorage(inventoryStorage(program), memoryProfile(0x2000, 0x200f), binder);
+
+    expect(result).toMatchObject({ kind: "error", reason: "nonconvergent" });
+    expect(result).not.toHaveProperty("certificate");
+  });
+
   // Parameters, locals and call-crossing staging values receive storage; transient values do not.
   it("should inventory only values that require function storage and do so deterministically", () => {
     const fn = binding(1);

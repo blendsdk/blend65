@@ -587,6 +587,58 @@ describe("fixed aggregates and places", () => {
     expect(diagnosticCodes(scalarConst)).toEqual(["E10246"]);
   });
 
+  // An unknown outer extent can be forwarded only as another borrowed, unknown-extent parameter.
+  it("should forward a const unsized array but reject exact-size conversion", () => {
+    const valid = analyze(
+      [
+        "module Game;",
+        "function count(data: const byte[]): word { return length(data); }",
+        "function forward(data: const byte[]): word { return count(data); }",
+        "function main(): void { let values: byte[300] = [; 0]; forward(values); }",
+      ].join("\n"),
+    );
+    expect(valid.diagnostics).toEqual([]);
+
+    const exact = analyze(
+      [
+        "module Game;",
+        "function exact(data: byte[2]): void {}",
+        "function bad(data: byte[]): void { exact(data); }",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(diagnosticCodes(exact)).toEqual(["E10253"]);
+  });
+
+  // Read-only aggregate borrowing remains read-only through direct writes and forwarding.
+  it("should reject a write through a const unsized parameter", () => {
+    const write = analyze(
+      "module Game; function bad(data: const byte[]): void { data[0] = 1; } function main(): void {}",
+    );
+    expect(diagnosticCodes(write)).toEqual(["E10123"]);
+  });
+
+  // A read-only borrow cannot become mutable through another parameter.
+  it("should reject forwarding a const unsized parameter to a mutable borrower", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "function change(data: byte[]): void { data[0] = 1; }",
+        "function bad(data: const byte[]): void { change(data); }",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(diagnosticCodes(result)).toEqual(["E10122"]);
+  });
+
+  // A borrowed unknown-extent array has no complete value to return.
+  it("should reject an unsized aggregate return type", () => {
+    const result = analyze(
+      "module Game; function bad(data: byte[]): byte[] { return data; } function main(): void {}",
+    );
+    expect(diagnosticCodes(result)).toContain("E10253");
+  });
+
   // Mutable uninitialized arrays warn at declaration, and local reads warn only for uncovered elements.
   it("should preserve partial initialization and distinguish declaration from read warnings", () => {
     const text = [

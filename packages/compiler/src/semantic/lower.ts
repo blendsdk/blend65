@@ -12,6 +12,8 @@ import { ControlFlowBuilder } from "./cfg.js";
 import { lowerConditional, lowerShortCircuit, typeBeforeConversion } from "./lower-control.js";
 import { initializerBytes } from "./lower-data.js";
 import type {
+  AggregateDestination,
+  ArrayCountSource,
   SemanticFunction,
   SemanticGlobal,
   SemanticPlace,
@@ -64,8 +66,8 @@ class ExpressionLowerer {
   }
 
   /** Lower one expression and then its retained conversion, if any. */
-  lower = (expression: TypedExpr): ValueId | null => {
-    const value = this.lowerValue(expression);
+  lower = (expression: TypedExpr, destination?: AggregateDestination): ValueId | null => {
+    const value = this.lowerValue(expression, destination);
     const conversion = expression.conversion;
     if (
       value === null ||
@@ -83,17 +85,48 @@ class ExpressionLowerer {
   };
 
   /** Lower the expression's own operation without applying an outer conversion. */
-  private lowerValue(expression: TypedExpr): ValueId | null {
+  private lowerValue(expression: TypedExpr, destination?: AggregateDestination): ValueId | null {
     const operationType = typeBeforeConversion(expression);
     switch (expression.kind) {
       case "number":
       case "boolean":
       case "sizeof":
-      case "offsetof":
-      case "length": {
+      case "offsetof": {
         const constant = expression.constant;
         if (constant === null) throw new Error("Completed constant expression has no value");
         return this.emitConstant(constant, expression.type, expression.span, expression.integer);
+      }
+      case "length": {
+        if (expression.constant !== null) {
+          return this.emitConstant(
+            expression.constant,
+            expression.type,
+            expression.span,
+            expression.integer,
+          );
+        }
+        const operand = expression.operand;
+        const parameter = operand !== undefined && "binding" in operand ? operand.binding : null;
+        if (
+          parameter === null ||
+          operand === undefined ||
+          !("outerUnsized" in operand) ||
+          !operand.outerUnsized
+        ) {
+          throw new Error("Runtime array length has no unsized parameter");
+        }
+        const result = this.builder.nextValue();
+        this.builder.emit(
+          Object.freeze({
+            kind: "array-count",
+            result,
+            parameter,
+            type: expression.type,
+            integer: expression.integer,
+            span: expression.span,
+          }),
+        );
+        return result;
       }
       case "literal":
         if (expression.encodedBytes !== undefined && typeof expression.constant === "bigint") {
@@ -161,10 +194,10 @@ class ExpressionLowerer {
             expression.integer,
           );
         }
-        return this.lowerCall(expression, operationType);
+        return this.lowerCall(expression, operationType, destination);
       case "array-literal":
       case "struct-literal":
-        return this.lowerAggregate(expression);
+        return this.lowerAggregate(expression, destination);
     }
   }
 
@@ -326,7 +359,12 @@ class ExpressionLowerer {
     const operator = required(expression.operator, "assignment operator");
     let value: ValueId;
     if (operator === "=") {
-      const lowered = this.lower(expressionValue(expression));
+      const lowered = this.lower(
+        expressionValue(expression),
+        expression.type.kind === "array" || expression.type.kind === "struct"
+          ? Object.freeze({ kind: "place", place })
+          : undefined,
+      );
       if (lowered === null) throw new Error("Completed assignment value has no result");
       value = lowered;
     } else {
@@ -366,7 +404,11 @@ class ExpressionLowerer {
   }
 
   /** Lower raw-memory, profile, or ordinary direct calls after source-ordered arguments. */
-  private lowerCall(expression: TypedExpr, type: SemanticType): ValueId | null {
+  private lowerCall(
+    expression: TypedExpr,
+    type: SemanticType,
+    destination?: AggregateDestination,
+  ): ValueId | null {
     if (expression.embedded !== undefined) {
       const result = this.builder.nextValue();
       this.builder.emit(
@@ -410,6 +452,21 @@ class ExpressionLowerer {
       throw new Error("Completed direct call has no resolved callee");
     }
     const binding = this.bindingsByKey.get(bindingIdentityKey(callee.binding));
+    const argumentArrayCounts: (ArrayCountSource | null)[] = (expression.arguments ?? []).map(
+      (argument, index) => {
+        const parameter = expression.signature?.parameters[index];
+        if (!parameter?.outerUnsized) return null;
+        if (argument.outerUnsized) {
+          if (argument.binding === null || argument.binding === undefined) {
+            throw new Error("Forwarded unsized array has no parameter binding");
+          }
+          return Object.freeze({ kind: "parameter" as const, binding: argument.binding });
+        }
+        if (argument.type.kind !== "array")
+          throw new Error("Unsized array argument has no array extent");
+        return Object.freeze({ kind: "fixed" as const, count: argument.type.length });
+      },
+    );
     const result = isVoid(type) ? null : this.builder.nextValue();
     if (binding?.operationEffect !== undefined) {
       this.builder.emit(
@@ -430,7 +487,11 @@ class ExpressionLowerer {
           result,
           callee: callee.binding,
           arguments: Object.freeze(arguments_),
+          ...(argumentArrayCounts.some((count) => count !== null)
+            ? { argumentArrayCounts: Object.freeze(argumentArrayCounts) }
+            : {}),
           type,
+          ...(destination === undefined ? {} : { aggregateDestination: destination }),
           span: expression.span,
         }),
       );
@@ -481,7 +542,7 @@ class ExpressionLowerer {
   }
 
   /** Lower a fixed array or struct literal as one direct aggregate construction. */
-  private lowerAggregate(expression: TypedExpr): ValueId {
+  private lowerAggregate(expression: TypedExpr, destination?: AggregateDestination): ValueId {
     const elements =
       expression.kind === "array-literal"
         ? (expression.elements ?? []).map((element) => ({ field: null, expression: element }))
@@ -503,6 +564,7 @@ class ExpressionLowerer {
         elements: Object.freeze(values),
         fill,
         type: expression.type,
+        ...(destination === undefined ? {} : { destination }),
         integer: null,
         span: expression.span,
       }),
@@ -529,7 +591,11 @@ function functionParameters(
       .sort((left, right) => left.declaration.start - right.declaration.start)
       .map((binding) => {
         if (binding.type === null) throw new Error("Completed parameter has no type");
-        return Object.freeze({ id: binding.id, type: binding.type });
+        return Object.freeze({
+          id: binding.id,
+          type: binding.type,
+          ...(binding.outerUnsized ? { outerUnsized: true as const } : {}),
+        });
       }),
   );
 }
@@ -630,7 +696,18 @@ function lowerGlobal(
   }
   const builder = new ControlFlowBuilder(`initializer:${bindingIdentityKey(declaration.binding)}`);
   const expressions = new ExpressionLowerer(builder, bindingsByKey, embeddedByBinding);
-  const value = expressions.lower(declaration.initializer);
+  const destination: AggregateDestination | undefined =
+    declaration.type.kind === "array" || declaration.type.kind === "struct"
+      ? Object.freeze({
+          kind: "place",
+          place: Object.freeze({
+            root: declaration.binding,
+            rootType: declaration.type,
+            path: Object.freeze([]),
+          }),
+        })
+      : undefined;
+  const value = expressions.lower(declaration.initializer, destination);
   if (value === null) throw new Error("Completed module initializer did not produce a value");
   builder.emit(
     Object.freeze({

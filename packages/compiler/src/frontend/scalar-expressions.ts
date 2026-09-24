@@ -284,6 +284,7 @@ export class ScalarExpressionAnalyzer {
         name: expression.name,
         binding: state.binding.id,
         place,
+        ...(state.binding.outerUnsized ? { outerUnsized: true } : {}),
         addressOrigins: state.addressOrigins,
         addressPlaces: state.addressPlaces,
         integer: integerFacts(state.binding.type, true),

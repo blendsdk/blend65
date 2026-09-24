@@ -253,8 +253,34 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
     const fn = functions.get(bindingIdentityKey(functionId));
     if (fn === undefined)
       throw new Error("Reachable function is absent from semantic storage input");
-    const location = resultLocation(fn.result);
-    if (location !== null) results.push(Object.freeze({ function: fn.id, location }));
+    if (fn.result.kind === "array" || fn.result.kind === "struct") {
+      const id = valueRequestId(fn.id, "pointer", "aggregate-return-destination");
+      requests.push(
+        Object.freeze({
+          id,
+          storageClass: "pointer",
+          owner: fn.id,
+          binding: null,
+          value: "aggregate-return-destination",
+          type: null,
+          bytes: 2,
+          alignment: 1,
+          region: "zero-page-required",
+          lifetime: declaredLifetime(fn, "aggregate-return-destination"),
+          source: fn.source,
+          reason: "Caller-owned fixed aggregate result address",
+        }),
+      );
+      results.push(
+        Object.freeze({
+          function: fn.id,
+          location: Object.freeze({ kind: "storage", requestId: id }),
+        }),
+      );
+    } else {
+      const location = resultLocation(fn.result);
+      if (location !== null) results.push(Object.freeze({ function: fn.id, location }));
+    }
 
     const parameterKeys = new Set<string>();
     for (const parameter of fn.parameters) {
@@ -268,7 +294,7 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
           binding: parameter.id,
           value: null,
           type: parameter.type,
-          bytes: typeBytes(parameter.type, true),
+          bytes: parameter.outerUnsized ? 4 : typeBytes(parameter.type, true),
           alignment: 1,
           region: "ram",
           lifetime: declaredLifetime(fn, `parameter:${key}`),

@@ -296,7 +296,6 @@ class ModuleAnalyzer {
       resolveType: (item, owner) => this.resolveType(item.type, owner, item.initializer),
       errorCount: () => this.errorCount(),
       obligationCount: () => this.obligations.length,
-      defer: (span, message) => this.addObligation(span, message),
     });
     this.declarations.push(
       declaration.placement !== null && placement === null
@@ -344,9 +343,10 @@ class ModuleAnalyzer {
       caller: null,
       constantContext: true,
     });
-    for (const parameter of declaration.parameters) {
-      const type = this.resolveType(parameter.type, module, null);
-      if (type === null) continue;
+    for (const [index, parameter] of declaration.parameters.entries()) {
+      const shape = signature.parameters[index];
+      if (shape === undefined) continue;
+      const type = shape.type;
       const duplicate = scope.values.get(parameter.name);
       if (duplicate !== undefined) {
         this.diagnostics.push(
@@ -359,7 +359,14 @@ class ModuleAnalyzer {
         );
         continue;
       }
-      const binding = this.createBodyBinding(parameter.name, parameter.span, "parameter", type);
+      const binding = this.createBodyBinding(
+        parameter.name,
+        parameter.span,
+        "parameter",
+        type,
+        false,
+        shape.outerUnsized,
+      );
       const valueState: ValueState = {
         binding,
         nameSpan: freezeSourceSpan(parameter.nameSpan),
@@ -637,7 +644,6 @@ class ModuleAnalyzer {
       stateByKey: this.stateByKey,
       resolveType: (item, active) =>
         this.resolveType(item.type, active.module, item.initializer, active.scope),
-      defer: (span, message) => this.addObligation(span, message),
       errorCount: () => this.errorCount(),
       createBinding: (name, span, storage, type, loadable) =>
         this.createBodyBinding(name, span, storage, type, loadable),
@@ -676,9 +682,17 @@ class ModuleAnalyzer {
     storage: "local" | "parameter" | "constant",
     type: SemanticType,
     loadable = false,
+    outerUnsized?: true,
   ): SemanticBinding {
     const ordinary = createSemanticBodyBinding(name, declaration, storage, type);
-    const binding = loadable ? Object.freeze({ ...ordinary, loadable: true }) : ordinary;
+    const binding =
+      loadable || outerUnsized
+        ? Object.freeze({
+            ...ordinary,
+            ...(loadable ? { loadable: true } : {}),
+            ...(outerUnsized ? { outerUnsized: true as const } : {}),
+          })
+        : ordinary;
     this.bindings.push(binding);
     this.bindingByKey.set(bindingIdentityKey(binding.id), binding);
     return binding;

@@ -25,6 +25,7 @@ import { lowerOperation } from "./lower-operation.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
 import { lowerBoundsGuards } from "./lower-bounds.js";
+import { lowerAggregateReturn } from "./lower-aggregate-return.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
 import type { DivideHelper } from "./lower-division.js";
 import type {
@@ -110,6 +111,10 @@ export function createAggregateAddressCache(
 export interface FunctionLoweringState {
   readonly owner: BindingId;
   readonly values: Map<string, LoweredValue>;
+  /** Source places whose aggregate values are represented by addresses, not packed bytes. */
+  readonly aggregatePlaces: Map<string, SemanticPlace>;
+  /** Results already constructed in the current function's caller-owned object. */
+  readonly directCallerResults: Set<string>;
   readonly requests: StorageRequest[];
   readonly input: MachineLoweringInput;
   readonly allPositions: readonly { readonly block: string; readonly operation: number }[];
@@ -415,6 +420,8 @@ function lowerFunction(
   const state: FunctionLoweringState = {
     owner,
     values: new Map(),
+    aggregatePlaces: new Map(),
+    directCallerResults: new Set(),
     requests,
     input,
     allPositions: positions,
@@ -445,6 +452,9 @@ function lowerFunction(
     aggregateAddressCache: null,
     aggregateInduction: null,
   };
+  const sourceResult = input.program.semantic.functions.find(
+    (candidate) => bindingIdentityKey(candidate.id) === bindingIdentityKey(owner),
+  )?.result;
   state.aggregateInduction = prepareAggregateInduction(blocks, state);
   const loweredBlocks: MachineBlock[] = [];
   const semanticExitLabels = new Map<string, string>();
@@ -608,25 +618,34 @@ function lowerFunction(
       state.aggregateAddressCache = state.aggregateInduction.cache;
     }
     if (block.terminator.kind === "return" && block.terminator.value !== null) {
-      const returned = state.values.get(block.terminator.value);
-      if (returned === undefined || returned.kind === "condition") {
-        throw loweringFailure("Return value was not retained", state.owner.span);
-      }
-      if (returned.kind === "register") {
-        if (
-          (returned.bytes === 1 && returned.registers !== "a") ||
-          (returned.bytes === 2 && returned.registers !== "ax")
-        ) {
-          throw loweringFailure("Return register shape does not match its width", state.owner.span);
-        }
-      } else if (returned.bytes === 2) {
-        appendLoadA(currentInstructions, returned, 1, state, state.owner.span);
+      if (sourceResult?.kind === "array" || sourceResult?.kind === "struct") {
         currentInstructions.push(
-          machineInstruction(input.profile.cpu, "tax", "implied", null, [], state.owner.span),
+          ...lowerAggregateReturn(block.terminator.value, sourceResult, state, owner.span),
         );
-        appendLoadA(currentInstructions, returned, 0, state, state.owner.span);
       } else {
-        appendLoadA(currentInstructions, returned, 0, state, state.owner.span);
+        const returned = state.values.get(block.terminator.value);
+        if (returned === undefined || returned.kind === "condition") {
+          throw loweringFailure("Return value was not retained", state.owner.span);
+        }
+        if (returned.kind === "register") {
+          if (
+            (returned.bytes === 1 && returned.registers !== "a") ||
+            (returned.bytes === 2 && returned.registers !== "ax")
+          ) {
+            throw loweringFailure(
+              "Return register shape does not match its width",
+              state.owner.span,
+            );
+          }
+        } else if (returned.bytes === 2) {
+          appendLoadA(currentInstructions, returned, 1, state, state.owner.span);
+          currentInstructions.push(
+            machineInstruction(input.profile.cpu, "tax", "implied", null, [], state.owner.span),
+          );
+          appendLoadA(currentInstructions, returned, 0, state, state.owner.span);
+        } else {
+          appendLoadA(currentInstructions, returned, 0, state, state.owner.span);
+        }
       }
     }
     if (block.terminator.kind === "branch") {

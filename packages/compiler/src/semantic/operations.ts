@@ -21,7 +21,14 @@ export interface StorageValue {
   readonly id: BindingId;
   /** Exact value type retained from frontend analysis. */
   readonly type: SemanticType;
+  /** The caller also supplies a word-sized outer element count. */
+  readonly outerUnsized?: true;
 }
+
+/** Runtime count carried beside one borrowed outer-unsized array. */
+export type ArrayCountSource =
+  | { readonly kind: "fixed"; readonly count: number }
+  | { readonly kind: "parameter"; readonly binding: BindingId };
 
 /** A field selected from an aggregate place. */
 export interface SemanticFieldPath {
@@ -51,6 +58,11 @@ export interface SemanticPlace {
   /** Ordered field/index selections from the root. */
   readonly path: readonly SemanticPlacePath[];
 }
+
+/** An already chosen home for a fixed aggregate result. */
+export type AggregateDestination =
+  | { readonly kind: "place"; readonly place: SemanticPlace }
+  | { readonly kind: "caller" };
 
 /** Fields shared by value-producing arithmetic operations. */
 interface ValueOperation {
@@ -146,8 +158,12 @@ export interface CallOperation {
   readonly callee: BindingId;
   /** Staged argument values in source order. */
   readonly arguments: readonly ValueId[];
+  /** Count source for each array argument, aligned with `arguments`. */
+  readonly argumentArrayCounts?: readonly (ArrayCountSource | null)[];
   /** Declared function result type. */
   readonly type: SemanticType;
+  /** Final object selected before the call, when a fixed result need not use a temporary. */
+  readonly aggregateDestination?: AggregateDestination;
   /** Complete call-expression span. */
   readonly span: SourceSpan;
 }
@@ -214,6 +230,8 @@ export interface EmbeddedAddressOperation extends ValueOperation {
 export interface AggregateOperation extends ValueOperation {
   /** Operation discriminator. */
   readonly kind: "aggregate";
+  /** Final object available for direct construction without an intermediate copy. */
+  readonly destination?: AggregateDestination;
   /** Explicit array elements or named struct fields in source order. */
   readonly elements: readonly {
     /** Struct field name, or null for an array element. */
@@ -223,6 +241,14 @@ export interface AggregateOperation extends ValueOperation {
   }[];
   /** Remaining-element fill value for an array, or null when absent. */
   readonly fill: ValueId | null;
+}
+
+/** Read the caller-supplied word count of an outer-unsized array parameter. */
+export interface ArrayCountOperation extends ValueOperation {
+  /** Operation discriminator. */
+  readonly kind: "array-count";
+  /** Borrowed parameter whose frame holds address then count. */
+  readonly parameter: BindingId;
 }
 
 /** A value selected from mutually exclusive predecessor blocks. */
@@ -253,6 +279,7 @@ export type SemanticOperation =
   | PlatformOperation
   | EmbeddedAddressOperation
   | AggregateOperation
+  | ArrayCountOperation
   | MergeOperation;
 
 /** Unconditional control transfer. */

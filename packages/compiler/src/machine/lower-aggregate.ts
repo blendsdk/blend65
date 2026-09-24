@@ -578,23 +578,70 @@ export function lowerAggregate(
   if (operation.type.kind === "scalar" || operation.type.kind === "enum") {
     throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
   }
-  const request = requestStorage(
-    state,
-    `aggregate:${operation.result}`,
-    "temporary",
-    operation.type.size,
-    "ram",
-    operation.span,
-    "Packed aggregate construction",
-    operation.type,
-  );
-  const result: LoweredValue = Object.freeze({
-    kind: "storage",
-    requestId: request.id,
-    bytes: operation.type.size,
-    signed: false,
-  });
   const instructions: MachineInstruction[] = [];
+  let indirect = false;
+  let result: LoweredValue;
+  if (operation.destination?.kind === "caller") {
+    const requestId = `${bindingIdentityKey(state.owner)}:pointer:aggregate-return-destination`;
+    if (!state.input.placement.homes.some((home) => home.requestId === requestId)) {
+      throw loweringFailure(
+        "Aggregate return destination has no certified pointer home",
+        operation.span,
+      );
+    }
+    result = Object.freeze({ kind: "storage", requestId, bytes: 2, signed: false });
+    indirect = true;
+    state.directCallerResults.add(operation.result);
+  } else if (
+    operation.destination?.kind === "place" &&
+    operation.destination.place.path.length === 0
+  ) {
+    const place = operation.destination.place;
+    const home = loweredPlace(place, operation.type.size, false, state);
+    if (home.kind === "storage" && home.requestId.includes(":parameter:")) {
+      const address = lowerAggregateAddress(
+        place,
+        state,
+        operation.span,
+        `construct:${operation.result}`,
+      );
+      instructions.push(...address.instructions);
+      result = address.pointer;
+      indirect = true;
+    } else {
+      result = home;
+    }
+    state.aggregatePlaces.set(operation.result, place);
+  } else if (operation.destination?.kind === "place") {
+    const place = operation.destination.place;
+    const address = lowerAggregateAddress(
+      place,
+      state,
+      operation.span,
+      `construct:${operation.result}`,
+    );
+    instructions.push(...address.instructions);
+    result = address.pointer;
+    indirect = true;
+    state.aggregatePlaces.set(operation.result, place);
+  } else {
+    const request = requestStorage(
+      state,
+      `aggregate:${operation.result}`,
+      "temporary",
+      operation.type.size,
+      "ram",
+      operation.span,
+      "Packed aggregate construction",
+      operation.type,
+    );
+    result = Object.freeze({
+      kind: "storage",
+      requestId: request.id,
+      bytes: operation.type.size,
+      signed: false,
+    });
+  }
   const writeValue = (valueId: string, start: number, bytes: number): void => {
     const value = state.values.get(valueId);
     if (value === undefined || value.kind === "condition" || value.bytes < bytes) {
@@ -602,7 +649,42 @@ export function lowerAggregate(
     }
     for (let offset = 0; offset < bytes; offset += 1) {
       appendLoadA(instructions, value, offset, state, operation.span);
-      instructions.push(storeA(result, start + offset, state, operation.span));
+      if (indirect) {
+        if (result.kind !== "storage")
+          throw loweringFailure("Aggregate destination has no pointer home", operation.span);
+        if (start + offset > 0 && ((start + offset) & 0xff) === 0) {
+          instructions.push(
+            machineInstruction(
+              state.input.profile.cpu,
+              "inc",
+              "storage",
+              Object.freeze({ kind: "storage", requestId: result.requestId, offset: 1 }),
+              [],
+              operation.span,
+            ),
+          );
+        }
+        instructions.push(
+          machineInstruction(
+            state.input.profile.cpu,
+            "ldy",
+            "immediate",
+            Object.freeze({ kind: "immediate", value: (start + offset) & 0xff }),
+            [],
+            operation.span,
+          ),
+          machineInstruction(
+            state.input.profile.cpu,
+            "sta",
+            "indirect-indexed-y",
+            Object.freeze({ kind: "indirect-y", requestId: result.requestId, offset: 0 }),
+            [],
+            operation.span,
+          ),
+        );
+      } else {
+        instructions.push(storeA(result, start + offset, state, operation.span));
+      }
     }
   };
 

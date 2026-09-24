@@ -208,6 +208,8 @@ export function semanticTypeKey(type: SemanticType): string {
 export interface SemanticBinding extends Binding {
   /** Resolved type, or null when the declaration cannot supply one. */
   readonly type: SemanticType | null;
+  /** A parameter carries its outer array extent separately from the element type. */
+  readonly outerUnsized?: true;
   /** Target-neutral operation behavior for a profile-supplied function. */
   readonly operationEffect?: ProfileEffect;
   /** This constant is packaged separately and has no resident storage address. */
@@ -265,6 +267,8 @@ export interface Place {
 export interface SignatureParameter {
   /** Value type expected by the callee. */
   readonly type: SemanticType;
+  /** The caller also supplies the complete outer element count as one word. */
+  readonly outerUnsized?: true;
   /** Whether aggregate writes through the parameter are forbidden. */
   readonly readonly: boolean;
 }
@@ -320,6 +324,8 @@ export interface TypedExpr {
   readonly binding: BindingId | null;
   /** Symbolic source place, when the expression denotes one. */
   readonly place: Place | null;
+  /** This borrowed parameter has a caller-supplied outer element count. */
+  readonly outerUnsized?: true;
   /** Local homes on which an address-valued result depends, even after integer conversion. */
   readonly addressOrigins?: readonly BindingId[] | undefined;
   /** Storage places contributing to an address value, including read-only provenance. */

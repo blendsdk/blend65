@@ -112,7 +112,7 @@ export function analyzeDirectCall(
   const arguments_: TypedExpr[] = [];
   expression.arguments.forEach((argument, index) => {
     const parameter = signature.parameters[index];
-    const result = analyze(argument, parameter?.type ?? null, {
+    const result = analyze(argument, parameter?.outerUnsized ? null : (parameter?.type ?? null), {
       ...context,
       ordinalContext: false,
     });
@@ -136,16 +136,22 @@ export function analyzeDirectCall(
       );
       valid = false;
     }
-    if (
-      parameter !== undefined &&
-      parameter.type.kind !== "scalar" &&
-      parameter.type.kind !== "enum" &&
-      result.node.place === null
-    ) {
-      host.defer(argument.span, "Aggregate temporary argument and copy ABI remain pending");
-      valid = false;
-    }
-    if (parameter !== undefined && !semanticTypesEqual(result.node.type, parameter.type)) {
+    if (parameter?.outerUnsized) {
+      if (
+        result.node.type.kind !== "array" ||
+        parameter.type.kind !== "array" ||
+        !semanticTypesEqual(result.node.type.element, parameter.type.element)
+      ) {
+        host.diagnose(
+          projectDiagnostic(
+            "E10080",
+            `Argument ${index + 1} of '${name}()' has an incompatible array element type`,
+            argument.span,
+          ),
+        );
+        valid = false;
+      }
+    } else if (parameter !== undefined && !semanticTypesEqual(result.node.type, parameter.type)) {
       valid = false;
     }
     arguments_.push(result.node);
@@ -163,10 +169,6 @@ export function analyzeDirectCall(
     valid = false;
   }
   if (!valid) return { node: null, exact: null };
-  if (signature.returnType.kind !== "scalar" && signature.returnType.kind !== "enum") {
-    host.defer(expression.span, "Aggregate return call ABI remains pending");
-    return { node: null, exact: null };
-  }
   if (context.caller !== null) {
     host.call(
       Object.freeze({ caller: context.caller, callee: calleeBinding, span: expression.span }),

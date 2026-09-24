@@ -263,7 +263,7 @@ describe("aggregate implementation edges", () => {
     expect(diagnosticCodes(result)).toEqual(["E10239"]);
   });
 
-  it("should retain deferred aggregate ABI forms as unchecked obligations", () => {
+  it("should analyze complete aggregate returns, borrows, and copies", () => {
     const result = analyze(
       [
         "module Game;",
@@ -278,9 +278,9 @@ describe("aggregate implementation edges", () => {
     );
 
     expect(result.diagnostics).toEqual([]);
-    expect(result.complete).toBe(false);
-    expect(result.obligations).toHaveLength(3);
-    expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toHaveLength(3);
+    expect(result.complete).toBe(true);
+    expect(result.obligations).toEqual([]);
+    expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toEqual([]);
 
     const invalid = analyze(
       "module Game; struct Pair { x: byte; } function main(): void { let value: Pair = missing; }",

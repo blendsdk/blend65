@@ -3,22 +3,7 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { scalarWarning } from "./constants.js";
 import { bindingIdentityKey } from "./semantic-types.js";
 import type { Place, ScalarValueState, SemanticType, TypedExpr } from "./semantic-types.js";
-import type { Expr, VariableDeclaration } from "./syntax.js";
-
-/** Return whether an aggregate uses the direct literal form handled by this slice. */
-export function isDirectAggregateLiteral(type: SemanticType, initializer: Expr): boolean {
-  return (
-    (type.kind === "array" && initializer.kind === "array-literal") ||
-    (type.kind === "array" &&
-      initializer.kind === "literal" &&
-      initializer.literalKind === "string") ||
-    (type.kind === "array" &&
-      initializer.kind === "call" &&
-      initializer.callee.kind === "name" &&
-      (initializer.callee.name === "screen_codes" || initializer.callee.name === "petscii")) ||
-    (type.kind === "struct" && initializer.kind === "struct-literal")
-  );
-}
+import type { VariableDeclaration } from "./syntax.js";
 
 /** Append declaration diagnostics which depend on fixed-array coverage. */
 export function diagnoseArrayInitialization(

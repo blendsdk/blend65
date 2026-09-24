@@ -6,6 +6,8 @@ import { lowerConversion } from "./lower-conversion.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
 import { advanceAggregateInductionAddress } from "./lower-induction.js";
+import { lowerAggregatePlaceCopy } from "./lower-aggregate-copy.js";
+import { prepareAggregateCallResult } from "./lower-aggregate-return.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
   lowerAggregate,
@@ -59,7 +61,11 @@ function marshalAggregateAddress(
   state: FunctionLoweringState,
   operation: Extract<SemanticOperation, { readonly kind: "call" }>,
 ): void {
-  if (argument.kind === "storage" && argument.requestId.includes(":parameter:")) {
+  if (
+    argument.kind === "storage" &&
+    (argument.requestId.includes(":parameter:") ||
+      argument.requestId.includes(":aggregate-address:"))
+  ) {
     for (let offset = 0; offset < 2; offset += 1) {
       appendLoadA(instructions, argument, offset, state, operation.span);
       instructions.push(storeA(destination, offset, state, operation.span));
@@ -219,6 +225,27 @@ export function lowerOperation(
     );
     return Object.freeze([]);
   }
+  if (operation.kind === "array-count") {
+    const parameter = state.input.program.semantic.functions
+      .find(({ id }) => bindingIdentityKey(id) === bindingIdentityKey(state.owner))
+      ?.parameters.find(
+        ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(operation.parameter),
+      );
+    if (!parameter?.outerUnsized) {
+      throw loweringFailure("Array count has no borrowed parameter home", operation.span);
+    }
+    state.values.set(
+      operation.result,
+      Object.freeze({
+        kind: "storage",
+        requestId: `${bindingIdentityKey(state.owner)}:parameter:${bindingIdentityKey(operation.parameter)}`,
+        offset: 2,
+        bytes: 2,
+        signed: false,
+      }),
+    );
+    return Object.freeze([]);
+  }
   if (operation.kind === "load") {
     if (operation.place.path.length === 0) {
       state.loadOrigins.set(operation.result, bindingIdentityKey(operation.place.root));
@@ -260,6 +287,10 @@ export function lowerOperation(
   if (operation.kind === "store") {
     const value = state.values.get(operation.value);
     if (value === undefined) throw loweringFailure("Stored value was not lowered", operation.span);
+    const aggregateSource = state.aggregatePlaces.get(operation.value);
+    if (aggregateSource !== undefined) {
+      return lowerAggregatePlaceCopy(operation, aggregateSource, state);
+    }
     if (operation.place.path.length > 0) {
       return lowerAggregateStore(operation, value, state);
     }
@@ -621,6 +652,28 @@ export function lowerOperation(
       }
       if (parameter.type.kind !== "scalar" && parameter.type.kind !== "enum") {
         marshalAggregateAddress(instructions, argument, destination, state, operation);
+        if (parameter.outerUnsized) {
+          const count = operation.argumentArrayCounts?.[index];
+          if (count === undefined || count === null) {
+            throw loweringFailure(
+              "Borrowed array argument has no outer element count",
+              operation.span,
+            );
+          }
+          const countValue: LoweredValue =
+            count.kind === "fixed"
+              ? Object.freeze({ kind: "constant", value: count.count, bytes: 2 })
+              : Object.freeze({
+                  kind: "storage",
+                  requestId: `${bindingIdentityKey(state.owner)}:parameter:${bindingIdentityKey(count.binding)}`,
+                  offset: 2,
+                  bytes: 2,
+                });
+          for (let offset = 0; offset < 2; offset += 1) {
+            appendLoadA(instructions, countValue, offset, state, operation.span);
+            instructions.push(storeA(destination, offset + 2, state, operation.span));
+          }
+        }
       } else {
         for (let offset = 0; offset < typeBytes(parameter.type); offset += 1) {
           appendLoadA(instructions, argument, offset, state, operation.span);
@@ -628,6 +681,19 @@ export function lowerOperation(
         }
       }
     }
+    const aggregateResult =
+      operation.result !== null &&
+      (operation.type.kind === "array" || operation.type.kind === "struct")
+        ? prepareAggregateCallResult(
+            operation.result,
+            operation.callee,
+            operation.type,
+            operation.aggregateDestination,
+            state,
+            operation.span,
+          )
+        : null;
+    if (aggregateResult !== null) instructions.push(...aggregateResult.instructions);
     const label = bindingLabel("fn", operation.callee);
     instructions.push(
       machineInstruction(
@@ -640,6 +706,10 @@ export function lowerOperation(
       ),
     );
     if (operation.result !== null) {
+      if (aggregateResult !== null) {
+        state.values.set(operation.result, aggregateResult.result);
+        return Object.freeze(instructions);
+      }
       const retained = retainMachineValue(
         operation.result,
         Object.freeze({
@@ -666,6 +736,9 @@ export function lowerOperation(
     return Object.freeze([]);
   }
   if (operation.kind === "place-address") {
+    if (operation.type.kind === "array" || operation.type.kind === "struct") {
+      state.aggregatePlaces.set(operation.result, operation.place);
+    }
     if (operation.place.rootType === undefined) {
       state.values.set(
         operation.result,

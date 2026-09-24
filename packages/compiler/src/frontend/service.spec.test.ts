@@ -118,12 +118,6 @@ describe("analysis service result states", () => {
 
   it.each([
     {
-      name: "aggregate return",
-      text: "module Game; struct Pair { x: byte; } function make(): Pair { return { x: 1 }; } function main(): void {}",
-      kind: "implementation",
-      fragment: "function make(): Pair { return { x: 1 }; }",
-    },
-    {
       name: "embedded asset",
       text: 'module Game; const DATA: byte[] = embed("table.bin"); function main(): void {}',
       kind: "asset",
@@ -161,8 +155,19 @@ describe("analysis service result states", () => {
     },
   );
 
-  // Pending support wins the result discriminator without hiding an independently proved name error.
-  it("keeps an independent undeclared-name diagnostic when unsupported work remains", () => {
+  // A complete fixed aggregate return is ordinary checked source, not pending work.
+  it("returns a complete result for a fixed aggregate return", () => {
+    const text =
+      "module Game; struct Pair { x: byte; } function make(): Pair { return { x: 1 }; } function main(): void {}";
+    const result = analyzeProject(snapshot([source("src/game.blend", text)]));
+
+    expect(result.kind).toBe("complete");
+    expect(result.diagnostics).toEqual([]);
+    expect(result).toHaveProperty("program");
+  });
+
+  // An invalid name remains an error even when a fixed aggregate return is otherwise valid.
+  it("keeps an independent undeclared-name diagnostic beside an aggregate return", () => {
     const text = [
       "module Game;",
       "struct Pair { x: byte; }",
@@ -171,16 +176,14 @@ describe("analysis service result states", () => {
     ].join("\n");
     const result = analyzeProject(snapshot([source("src/game.blend", text)]));
 
-    expect(result.kind).toBe("incomplete");
+    expect(result.kind).toBe("error");
     expect(result).not.toHaveProperty("program");
     expect(result.diagnostics.map(({ code }) => code)).toContain("E10239");
     expect(result.diagnostics.map(({ code }) => code)).not.toEqual(
       expect.arrayContaining(["E10093", "E10120"]),
     );
-    if (result.kind !== "incomplete") throw new Error(`Expected incomplete, got ${result.kind}`);
-    expect(result.obligations).toContainEqual(
-      expect.objectContaining({ kind: "implementation", span: expect.any(Object) }),
-    );
+    if (result.kind !== "error") throw new Error(`Expected error, got ${result.kind}`);
+    expect(result).not.toHaveProperty("obligations");
   });
 });
 

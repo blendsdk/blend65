@@ -107,12 +107,6 @@ export class AggregateRegistry {
   ): FunctionSignature | null {
     const returnType = this.resolveType(declaration.returnType, module, null, report);
     if (returnType === null) return null;
-    if (returnType.kind !== "scalar" && returnType.kind !== "enum" && report) {
-      this.host.defer(
-        declaration.returnType?.span ?? declaration.nameSpan,
-        "Aggregate return ABI remains pending",
-      );
-    }
     const parameters: FunctionSignature["parameters"][number][] = [];
     for (const parameter of declaration.parameters) {
       if (parameter.type?.kind === "named-type" && parameter.type.name === "void") {
@@ -141,13 +135,14 @@ export class AggregateRegistry {
         }
         return null;
       }
-      if (parameter.type?.kind === "array-type" && parameter.type.extent === null) {
-        if (report) {
-          this.host.defer(parameter.type.span, "Unsized aggregate parameter ABI remains pending");
-        }
-        return null;
+      const outerUnsized = parameter.type?.kind === "array-type" && parameter.type.extent === null;
+      let type: SemanticType | null;
+      if (parameter.type?.kind === "array-type" && outerUnsized) {
+        const element = this.resolveType(parameter.type.element, module, null, report);
+        type = element === null ? null : this.fixedArray(element, 0);
+      } else {
+        type = this.resolveType(parameter.type, module, null, report);
       }
-      const type = this.resolveType(parameter.type, module, null, report);
       if (type === null) return null;
       if (parameter.readonly && type.kind === "scalar") {
         if (report) {
@@ -161,7 +156,13 @@ export class AggregateRegistry {
         }
         return null;
       }
-      parameters.push(Object.freeze({ type, readonly: parameter.readonly }));
+      parameters.push(
+        Object.freeze({
+          type,
+          readonly: parameter.readonly,
+          ...(outerUnsized ? { outerUnsized: true as const } : {}),
+        }),
+      );
     }
     return Object.freeze({ parameters: Object.freeze(parameters), returnType });
   }

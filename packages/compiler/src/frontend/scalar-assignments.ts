@@ -113,12 +113,6 @@ export function analyzeScalarAssignment(
       ...context,
       ordinalContext: false,
     });
-    if (target.node.type.kind !== "scalar" && target.node.type.kind !== "enum") {
-      if (value.node !== null) {
-        host.defer(expression.span, "Whole aggregate assignment and copy lowering remain pending");
-      }
-      return { node: null, exact: null };
-    }
     resultConstant = value.node?.constant ?? null;
   } else {
     host.read(target.node.place, expression.target.span);

@@ -9,6 +9,7 @@ import type {
   TypedStatement,
 } from "../frontend/semantic-types.js";
 import type {
+  AggregateDestination,
   BlockId,
   SemanticBlock,
   SemanticOperation,
@@ -33,7 +34,10 @@ interface LoopTargets {
 }
 
 /** Focused callback which lowers one expression into the current CFG block. */
-export type LowerSemanticExpression = (expression: TypedExpr) => ValueId | null;
+export type LowerSemanticExpression = (
+  expression: TypedExpr,
+  destination?: AggregateDestination,
+) => ValueId | null;
 
 /** Narrow a for initializer without relying on mutable-array inference. */
 function isExpressionList(
@@ -173,7 +177,18 @@ export class ControlFlowBuilder {
     switch (statement.kind) {
       case "variable": {
         if (statement.initializer === null) return;
-        const value = lowerExpression(statement.initializer);
+        const destination: AggregateDestination | undefined =
+          statement.type.kind === "array" || statement.type.kind === "struct"
+            ? Object.freeze({
+                kind: "place",
+                place: Object.freeze({
+                  root: statement.binding,
+                  rootType: statement.type,
+                  path: Object.freeze([]),
+                }),
+              })
+            : undefined;
+        const value = lowerExpression(statement.initializer, destination);
         if (value === null) throw new Error("Completed local initializer did not produce a value");
         this.emit(
           Object.freeze({
@@ -216,7 +231,15 @@ export class ControlFlowBuilder {
         this.terminate(Object.freeze({ kind: "jump", target: loop.breakTarget }));
         return;
       case "return": {
-        const value = statement.value == null ? null : lowerExpression(statement.value);
+        const value =
+          statement.value == null
+            ? null
+            : lowerExpression(
+                statement.value,
+                statement.value.type.kind === "array" || statement.value.type.kind === "struct"
+                  ? Object.freeze({ kind: "caller" })
+                  : undefined,
+              );
         this.terminate(Object.freeze({ kind: "return", value }));
         return;
       }

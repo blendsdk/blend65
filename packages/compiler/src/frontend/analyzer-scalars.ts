@@ -1,10 +1,6 @@
 import { projectDiagnostic as errorDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceRecord, SourceSpan } from "../project/types.js";
-import {
-  diagnoseArrayInitialization,
-  isDirectAggregateLiteral,
-  updateInitializedState,
-} from "./aggregate-initialization.js";
+import { diagnoseArrayInitialization, updateInitializedState } from "./aggregate-initialization.js";
 import { RESERVED_BUILTIN_NAMES } from "./constants.js";
 import { duplicateDeclarationDiagnostic } from "./flow.js";
 import { bindingIdentityKey, freezeSourceSpan } from "./semantic-types.js";
@@ -35,8 +31,6 @@ export interface ScalarLocalHost {
     declaration: VariableDeclaration,
     context: ScalarExpressionContext,
   ) => SemanticType | null;
-  /** Retain one current implementation obligation. */
-  readonly defer: (span: SourceSpan, message: string) => void;
   /** Count errors without treating warnings as rejection. */
   readonly errorCount: () => number;
   /** Bind a checked local without inventing target storage. */
@@ -61,8 +55,6 @@ export interface ScalarModuleHost {
   readonly errorCount: () => number;
   /** Count obligations which keep a declaration unchecked. */
   readonly obligationCount: () => number;
-  /** Retain an unsupported aggregate-copy obligation. */
-  readonly defer: (span: SourceSpan, message: string) => void;
 }
 
 /** Check one module initializer while preserving exact const versus runtime context. */
@@ -78,9 +70,6 @@ export function analyzeScalarModuleVariable(
   const type = host.resolveType(declaration, module);
   let initializer = null;
   if (declaration.initializer !== null && type !== null) {
-    const aggregateCopy =
-      (type.kind === "struct" || type.kind === "array") &&
-      !isDirectAggregateLiteral(type, declaration.initializer);
     const result = host.expressions.analyze(declaration.initializer, type, {
       scope,
       module,
@@ -88,18 +77,9 @@ export function analyzeScalarModuleVariable(
       caller: null,
       constantContext: declaration.declarationKind === "const",
     });
-    if (aggregateCopy && result.node?.embedded === undefined) {
-      if (result.node !== null) {
-        host.defer(
-          declaration.initializer.span,
-          "Whole aggregate initialization and copy lowering remain pending",
-        );
-      }
-    } else {
-      initializer = result.node;
-      state.known = result.node?.constant ?? null;
-      updateInitializedState(state, result.node);
-    }
+    initializer = result.node;
+    state.known = result.node?.constant ?? null;
+    updateInitializedState(state, result.node);
     if (
       declaration.declarationKind === "const" &&
       (type.kind === "scalar" || type.kind === "enum") &&
@@ -158,23 +138,11 @@ export function analyzeScalarLocal(
   const type = host.resolveType(declaration, context);
   let initializer = null;
   if (declaration.initializer !== null && type !== null) {
-    const aggregateCopy =
-      (type.kind === "struct" || type.kind === "array") &&
-      !isDirectAggregateLiteral(type, declaration.initializer);
     const result = host.expressions.analyze(declaration.initializer, type, {
       ...context,
       constantContext: declaration.declarationKind === "const",
     });
-    if (aggregateCopy) {
-      if (result.node !== null) {
-        host.defer(
-          declaration.initializer.span,
-          "Whole aggregate initialization and copy lowering remain pending",
-        );
-      }
-    } else {
-      initializer = result.node;
-    }
+    initializer = result.node;
   }
   if (scope.values.has(declaration.name)) {
     const first = scope.values.get(declaration.name)!;

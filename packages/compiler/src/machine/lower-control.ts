@@ -24,6 +24,8 @@ export type LoweredValue =
       readonly requestId: string;
       readonly bytes: number;
       readonly signed?: boolean;
+      /** First byte inside a wider certified home. */
+      readonly offset?: number;
     }
   | {
       readonly kind: "label";
@@ -117,7 +119,11 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
     return Object.freeze({ kind: "immediate", value: (value.value >> (offset * 8)) & 0xff });
   }
   if (value.kind === "storage") {
-    return Object.freeze({ kind: "storage", requestId: value.requestId, offset });
+    return Object.freeze({
+      kind: "storage",
+      requestId: value.requestId,
+      offset: (value.offset ?? 0) + offset,
+    });
   }
   if (value.kind === "label") {
     return Object.freeze({
