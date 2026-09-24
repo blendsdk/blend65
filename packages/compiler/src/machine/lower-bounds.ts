@@ -1,6 +1,12 @@
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticPlace } from "../semantic/operations.js";
-import { machineCost, machineInstruction, machineState } from "./lower-control.js";
+import {
+  machineCost,
+  machineInstruction,
+  machineState,
+  type LoweredValue,
+} from "./lower-control.js";
 import type { MachineBlock, MachineInstruction, MachineTerminator } from "./machine-types.js";
 import { loadA, loweringFailure, type FunctionLoweringState } from "./lower.js";
 
@@ -8,6 +14,8 @@ import { loadA, loweringFailure, type FunctionLoweringState } from "./lower.js";
 interface BoundsIndex {
   readonly value: string;
   readonly extent: number;
+  /** Four-byte borrowed parameter home, whose final word is the runtime extent. */
+  readonly countHome?: string;
 }
 
 /** Walk the declared type so each nested subscript is checked against its own extent. */
@@ -21,6 +29,13 @@ function dynamicIndices(
   }
   let current = place.rootType;
   const indices: BoundsIndex[] = [];
+  const parameter = state.input.program.semantic.functions
+    .find(({ id }) => bindingIdentityKey(id) === bindingIdentityKey(state.owner))
+    ?.parameters.find(({ id }) => bindingIdentityKey(id) === bindingIdentityKey(place.root));
+  const countHome = parameter?.outerUnsized
+    ? `${bindingIdentityKey(state.owner)}:parameter:${bindingIdentityKey(place.root)}`
+    : null;
+  let outer = true;
   for (const component of place.path) {
     if (component.kind === "field") {
       if (current.kind !== "struct") throw loweringFailure("Field has no packed struct", source);
@@ -34,7 +49,12 @@ function dynamicIndices(
     if (value === undefined || value.kind === "condition" || value.kind === "register") {
       throw loweringFailure("Array ordinal was not retained before the bounds check", source);
     }
-    if (value.kind !== "constant") indices.push({ value: component.value, extent: current.length });
+    if (outer && countHome !== null) {
+      indices.push({ value: component.value, extent: current.length, countHome });
+    } else if (value.kind !== "constant") {
+      indices.push({ value: component.value, extent: current.length });
+    }
+    outer = false;
     current = current.element;
   }
   return indices;
@@ -90,6 +110,55 @@ export function lowerBoundsGuards(
     }
     const pass = nextLabel(index, "pass");
     const extent = selected.extent;
+    if (selected.countHome !== undefined) {
+      const count: LoweredValue = Object.freeze({
+        kind: "storage",
+        requestId: selected.countHome,
+        offset: 2,
+        bytes: 2,
+      });
+      if (value.signed) {
+        load(selected.value, value.bytes - 1);
+        const nonnegative = nextLabel(index, "nonnegative");
+        emit(branch("bmi", stopLabel, nonnegative), nonnegative);
+      }
+      if (value.bytes === 1) {
+        instructions.push(loadA(count, 1, state, source));
+        const compareLow = nextLabel(index, "low");
+        emit(branch("bne", pass, compareLow), compareLow);
+      } else if (value.bytes === 2) {
+        load(selected.value, 1);
+        instructions.push(
+          machineInstruction(
+            cpu,
+            "cmp",
+            "storage",
+            Object.freeze({ kind: "storage", requestId: selected.countHome, offset: 3 }),
+            [],
+            source,
+          ),
+        );
+        const compareHigh = nextLabel(index, "high");
+        emit(branch("bcc", pass, compareHigh), compareHigh);
+        const compareLow = nextLabel(index, "low");
+        emit(branch("bne", stopLabel, compareLow), compareLow);
+      } else {
+        throw loweringFailure("Array ordinal exceeds word width", source);
+      }
+      load(selected.value, 0);
+      instructions.push(
+        machineInstruction(
+          cpu,
+          "cmp",
+          "storage",
+          Object.freeze({ kind: "storage", requestId: selected.countHome, offset: 2 }),
+          [],
+          source,
+        ),
+      );
+      emit(branch("bcs", stopLabel, pass), pass);
+      continue;
+    }
     if (extent === 0) {
       emit(
         Object.freeze({

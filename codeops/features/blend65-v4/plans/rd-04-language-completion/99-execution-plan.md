@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 39/99 tasks (39%)
+> **Progress**: 40/99 tasks (40%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -213,7 +213,7 @@ framework or language scope was added.
 ### Step 4.2: Implementation
 
 - [x] 4.2.1 Complete aggregate value assignment and caller-owned return destinations — `packages/compiler/src/frontend/scalar-assignments.ts`, `packages/compiler/src/frontend/direct-calls.ts`, `packages/compiler/src/semantic/operations.ts` — Full install, build, typecheck and test pass: compiler 1,130; root 125; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 20:49)
-- [ ] 4.2.2 Complete exact and outer-unsized aggregate parameter ABI records — `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/storage/storage-types.ts`
+- [x] 4.2.2 Complete exact and outer-unsized aggregate parameter ABI records — `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/storage/storage-types.ts` — Checked indexing uses the full carried word count; a VICE test proves index 299 succeeds and 300 stops. Full install, build, typecheck and test pass: compiler 1,130; root 126; CLI 60; LSP 12; VS Code 6. ✅ (completed: 2026-09-24 20:58)
 - [ ] 4.2.3 Inventory aggregate destinations, snapshots, caller staging and pointer pairs — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/interference.ts`, `packages/compiler/src/storage/closure.ts`
 - [ ] 4.2.4 Lower direct construction and overlap-safe copies with explicit scratch/costs — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/machine-types.ts`
 - [ ] 4.2.5 Reconcile aggregate homes/copies in SFA, memory, cost and debug evidence — `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`, `packages/compiler/src/artifacts/debug-evidence-validator.ts`

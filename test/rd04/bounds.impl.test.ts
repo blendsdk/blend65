@@ -152,4 +152,79 @@ describe.sequential("checked aggregate ordinals", () => {
       await rm(root, { recursive: true });
     }
   }, 60_000);
+
+  it("checks a borrowed array against its full caller-supplied word count", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blend65-borrowed-bounds-"));
+    try {
+      await mkdir(join(root, "src"));
+      await writeFile(
+        join(root, "blend65.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          name: "borrowed-bounds",
+          sourceRoot: "src",
+          entry: "Game",
+          target: "c64-pal-prg-kernal-6581",
+          outDir: "out",
+          optimization: "none",
+          boundsCheck: true,
+        }),
+      );
+      await writeFile(
+        join(root, "src/game.blend"),
+        [
+          "module Game;",
+          "function read(data: const byte[], index: word): byte { return data[index]; }",
+          "function main(): void {",
+          "  let data: byte[300] = [; 0];",
+          "  data[299] = 55;",
+          "  let valid: word = 299;",
+          "  poke($0400, read(data, valid));",
+          "  poke($0401, 77);",
+          "  let invalid: word = 300;",
+          "  poke($0401, read(data, invalid));",
+          "}",
+        ].join("\n"),
+      );
+      const built = await buildProject({
+        project: join(root, "blend65.json"),
+        optimization: "none",
+      });
+      expect(built.kind, built.kind === "failure" ? JSON.stringify(built.diagnostics) : "").toBe(
+        "success",
+      );
+      if (built.kind !== "success") throw new Error("Borrowed array build did not succeed");
+      const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
+      const stopAddress = labels
+        .split("\n")
+        .map((line) => line.match(/^\s*(b65_([0-9a-f]+))\s*=\s*\$([0-9a-f]+)/iu))
+        .filter((match) => match !== null)
+        .map((match) => ({
+          id: Buffer.from(match[2]!, "hex").toString("utf8"),
+          address: Number.parseInt(match[3]!, 16),
+        }))
+        .find(({ id }) => id.endsWith(".bounds.stop"))?.address;
+      expect(stopAddress).toBeDefined();
+      if (stopAddress === undefined) throw new Error("Borrowed array has no safety stop");
+      const started = await startVice(
+        join(built.generation.directory, built.generation.primaryArtifact),
+      );
+      if ("kind" in started) throw new Error(`VICE qualification is Unknown: ${started.reason}`);
+      try {
+        const checkpoint = await started.monitor.setExecuteCheckpoint(stopAddress);
+        try {
+          const stopped = started.monitor.waitForStop(20_000);
+          await started.monitor.resume();
+          expect(await stopped).toBe(stopAddress);
+          expect([...(await started.monitor.readMemory(0x0400, 0x0401))]).toEqual([55, 77]);
+        } finally {
+          await started.monitor.deleteCheckpoint(checkpoint);
+        }
+      } finally {
+        await stopVice({ child: started.child, monitor: started.monitor });
+      }
+    } finally {
+      await rm(root, { recursive: true });
+    }
+  }, 60_000);
 });
