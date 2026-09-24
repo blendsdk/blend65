@@ -31,5 +31,11 @@ export function semanticTypeName(type: SemanticType): string {
   if (type.kind === "scalar") return type.name;
   if (type.kind === "enum") return type.name;
   if (type.kind === "struct") return "struct";
-  return `${semanticTypeName(type.element)}[${type.length}]`;
+  const dimensions: number[] = [];
+  let element: SemanticType = type;
+  while (element.kind === "array") {
+    dimensions.push(element.length);
+    element = element.element;
+  }
+  return `${semanticTypeName(element)}${dimensions.map((length) => `[${length}]`).join("")}`;
 }

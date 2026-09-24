@@ -1,4 +1,5 @@
 import type { SourceRecord, SourceSpan } from "../project/types.js";
+import { projectDiagnostic } from "../project/diagnostics.js";
 import { TokenKind } from "./tokens.js";
 import type { Token } from "./tokens.js";
 import type {
@@ -27,6 +28,8 @@ export interface StatementContext {
   check(kind: TokenKind): boolean;
   /** Consume the current token when it has the requested kind. */
   match(kind: TokenKind): Token | null;
+  /** Report a source-language error before recovering the rejected statement. */
+  addDiagnostic(diagnostic: ReturnType<typeof projectDiagnostic>): void;
   /** Consume a required token or report the supplied expectation. */
   expect(kind: TokenKind, expected: string, opener?: Token): Token | null;
   /** Record one expectation at the current token. */
@@ -304,6 +307,17 @@ function parseFor(context: StatementContext): ForStatement | PoisonStatement | U
 
 /** Parse one statement selected entirely by its leading token. */
 function parseStatement(context: StatementContext): Statement {
+  if (context.check(TokenKind.KW_PLACE)) {
+    const start = context.current;
+    context.addDiagnostic(
+      projectDiagnostic(
+        "E10272",
+        "A local declaration is not a placeable emitted object",
+        start.span,
+      ),
+    );
+    return context.recoverPoison(start);
+  }
   if (
     context.check(TokenKind.KW_LET) ||
     context.check(TokenKind.KW_CONST) ||

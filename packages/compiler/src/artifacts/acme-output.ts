@@ -397,32 +397,52 @@ export function verifyAcmeOutput(input: AcmeOutputVerificationInput): AcmeOutput
     input.serialization.expectedLabels.map(({ id, address }) => [id, address] as const),
   );
   const code = codeRecords(input.layout, labelAddresses);
-  const codeInterval = input.layout.intervals.find(({ kind }) => kind === "code");
-  if (codeInterval === undefined || code === null || code.length === 0) {
+  const codeIntervals = input.layout.intervals.filter(({ kind }) => kind === "code");
+  if (codeIntervals.length === 0 || code === null || code.length === 0) {
     return failure("The final layout has no machine-code evidence to reconcile");
   }
-  let nextAddress = codeInterval.start;
-  for (const record of code) {
-    if (
-      record.address !== nextAddress ||
-      record.address + record.bytes.byteLength - 1 > codeInterval.end
-    ) {
-      return failure("Structured machine-code ranges disagree with the final code segment");
+  let checkedRecords = 0;
+  for (const interval of codeIntervals) {
+    let nextAddress = interval.start;
+    while (checkedRecords < code.length && code[checkedRecords]!.address <= interval.end) {
+      const record = code[checkedRecords]!;
+      if (
+        record.address < nextAddress ||
+        record.address + record.bytes.byteLength - 1 > interval.end
+      ) {
+        return failure("Structured machine-code ranges disagree with the final code segment");
+      }
+      for (let address = nextAddress; address < record.address; address += 1) {
+        if (prg.body[address - prg.loadAddress] !== 0) {
+          return failure(
+            "Unoccupied code-placement bytes are not zero-filled in the assembled PRG",
+          );
+        }
+      }
+      const reported = listing.get(record.address);
+      if (reported === undefined || reported.byteLength !== record.bytes.byteLength) {
+        return failure("ACME's report disagrees with a selected instruction width");
+      }
+      const offset = record.address - prg.loadAddress;
+      for (let index = 0; index < reported.byteLength; index += 1) {
+        if (
+          prg.body[offset + index] !== reported[index] ||
+          reported[index] !== record.bytes[index]
+        ) {
+          return failure("ACME's report bytes disagree with the assembled PRG body");
+        }
+      }
+      nextAddress = record.address + record.bytes.byteLength;
+      checkedRecords += 1;
     }
-    const reported = listing.get(record.address);
-    if (reported === undefined || reported.byteLength !== record.bytes.byteLength) {
-      return failure("ACME's report disagrees with a selected instruction width");
-    }
-    const offset = record.address - prg.loadAddress;
-    for (let index = 0; index < reported.byteLength; index += 1) {
-      if (prg.body[offset + index] !== reported[index] || reported[index] !== record.bytes[index]) {
-        return failure("ACME's report bytes disagree with the assembled PRG body");
+    for (let address = nextAddress; address <= interval.end; address += 1) {
+      if (prg.body[address - prg.loadAddress] !== 0) {
+        return failure("Unoccupied code-placement bytes are not zero-filled in the assembled PRG");
       }
     }
-    nextAddress += record.bytes.byteLength;
   }
-  if (nextAddress !== codeInterval.end + 1) {
-    return failure("Structured machine-code evidence does not cover the complete code segment");
+  if (checkedRecords !== code.length) {
+    return failure("Structured machine-code ranges disagree with the final code segment");
   }
   return Object.freeze({ kind: "complete", report, labels: labelText });
 }

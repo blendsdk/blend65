@@ -164,7 +164,8 @@ function machineFunctionSegments(
         block.label.startsWith(`${id}.wait.`) ||
         block.label.startsWith(`${id}.shift.`) ||
         block.label.startsWith(`${id}.multiply.`) ||
-        block.label.startsWith(`${id}.divide.`),
+        block.label.startsWith(`${id}.divide.`) ||
+        block.label.startsWith(`${id}.bounds.`),
     );
     if (sourceBlock === undefined) throw new Error("Final machine block has no semantic CFG owner");
     let address = block.origin;

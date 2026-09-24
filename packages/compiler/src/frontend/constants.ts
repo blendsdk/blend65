@@ -36,6 +36,10 @@ export const RESERVED_BUILTIN_NAMES: ReadonlySet<string> = new Set([
   "offsetof",
   "length",
   "embed",
+  "petscii",
+  "screen_codes",
+  "atascii",
+  "internal_codes",
 ]);
 
 /** Freeze the semantic fields shared by every scalar typed-expression node. */

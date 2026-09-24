@@ -1,9 +1,13 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { SourceSpan } from "../project/types.js";
-import { scalarSyntaxType } from "./constants.js";
-import { bindingIdentityKey, freezeSourceSpan } from "./semantic-types.js";
+import { freezeSourceSpan } from "./semantic-types.js";
 import { semanticTypeSize } from "./semantic-type-relations.js";
-import type { AggregateRegistryHost, BindingId, StructType } from "./semantic-types.js";
+import type {
+  AggregateRegistryHost,
+  BindingId,
+  SemanticType,
+  StructType,
+} from "./semantic-types.js";
 import type { StructDeclaration, TypeSyntax } from "./syntax.js";
 
 /** Locate a forbidden `void` element inside a stored array type. */
@@ -12,14 +16,19 @@ export function voidTypeSpan(type: TypeSyntax): SourceSpan | null {
   return type.kind === "array-type" ? voidTypeSpan(type.element) : null;
 }
 
-/** Build the current packed scalar-field struct shape without adding padding. */
-export function buildScalarStruct(
+/** Build one packed struct after its field types and nested dependencies are resolved. */
+export function buildPackedStruct(
   declaration: StructDeclaration,
   binding: BindingId,
   host: AggregateRegistryHost,
-  deferredStructs: Set<string>,
+  resolveField: (type: TypeSyntax) => SemanticType | null,
 ): StructType | null {
-  if (declaration.fields.length === 0) return null;
+  if (declaration.fields.length === 0) {
+    host.diagnose(
+      projectDiagnostic("E10090", "Struct must have at least one field", declaration.span),
+    );
+    return null;
+  }
   let offset = 0;
   const fields: StructType["fields"][number][] = [];
   for (const field of declaration.fields) {
@@ -44,12 +53,9 @@ export function buildScalarStruct(
       );
       return null;
     }
-    const type = scalarSyntaxType(field.type);
-    if (type === null) {
-      deferredStructs.add(bindingIdentityKey(binding));
-      host.defer(field.span, "Non-scalar struct field layout remains pending");
-      return null;
-    }
+    if (field.type === null) return null;
+    const type = resolveField(field.type);
+    if (type === null) return null;
     fields.push(Object.freeze({ name: field.name, type, offset }));
     offset += semanticTypeSize(type);
   }

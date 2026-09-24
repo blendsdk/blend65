@@ -2,10 +2,11 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { serializeAcme } from "../artifacts/acme-serializer.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
 import { layoutC64Program } from "../layout/c64-layout.js";
 import { bindMachineProgram } from "../machine/bind.js";
-import { lowerMachineProgram } from "../machine/lower.js";
+import { lowerMachineProgram, typeBytes } from "../machine/lower.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { loadProjectWithControls } from "../project/snapshot.js";
 import type { ProjectDiagnostic, ProjectSnapshot } from "../project/types.js";
@@ -15,10 +16,12 @@ import { publishGeneration } from "../publication/publication.js";
 import type { GenerationPin, PublishedGeneration } from "../publication/publication.js";
 import { buildSemanticProgram } from "../semantic/lower.js";
 import { closeWholeProgram } from "../semantic/whole-program.js";
+import type { WholeProgram } from "../semantic/whole-program.js";
 import { allocateStorage } from "../storage/allocate.js";
 import { closeStorage } from "../storage/closure.js";
 import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
+import type { StorageProfile, StorageRange } from "../storage/storage-types.js";
 import { selectTargetProfile } from "../target/profile.js";
 import type { TargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
@@ -72,6 +75,82 @@ interface OwnedDirectoryIdentity {
 /** Return one safe service diagnostic without leaking native errors or absolute paths. */
 function serviceDiagnostic(code: string, message: string): ProjectDiagnostic {
   return projectDiagnostic(code, message, null);
+}
+
+/**
+ * Place source-owned zero-page bytes before function scratch can claim the same addresses.
+ * Fixed addresses take priority; remaining declarations take the first available source window.
+ * The reduced profile is used only by SFA, while final layout still sees the full C64 window.
+ */
+function reserveZeroPageGlobals(
+  program: WholeProgram,
+  profile: StorageProfile,
+): { readonly program: WholeProgram; readonly storage: StorageProfile } | null {
+  const globals = program.semantic.globals.filter(({ zeropage }) => zeropage);
+  const fixed = globals.filter(({ placement }) => placement?.at != null);
+  const automatic = globals.filter(({ placement }) => placement?.at == null);
+  const occupied: StorageRange[] = [];
+  const addresses = new Map<string, number>();
+  for (const global of [...fixed, ...automatic]) {
+    const bytes = typeBytes(global.type);
+    const placement = global.placement;
+    const valid = (start: number): boolean => {
+      const end = start + bytes - 1;
+      return (
+        bytes > 0 &&
+        start % (placement?.align ?? 1) === 0 &&
+        (placement?.noCross == null ||
+          Math.floor(start / placement.noCross) === Math.floor(end / placement.noCross)) &&
+        profile.zeroPage.some((range) => start >= range.start && end <= range.end) &&
+        !occupied.some((range) => start <= range.end && range.start <= end)
+      );
+    };
+    const start =
+      placement?.at != null
+        ? placement.at
+        : profile.zeroPage
+            .flatMap((range) =>
+              Array.from(
+                { length: range.end - range.start + 1 },
+                (_, index) => range.start + index,
+              ),
+            )
+            .find(valid);
+    if (start === undefined || !valid(start)) return null;
+    occupied.push(Object.freeze({ start, end: start + bytes - 1 }));
+    addresses.set(bindingIdentityKey(global.id), start);
+  }
+  const allocatedGlobals = program.semantic.globals.map((global) => {
+    if (!global.zeropage) return global;
+    const at = addresses.get(bindingIdentityKey(global.id))!;
+    return Object.freeze({
+      ...global,
+      placement: Object.freeze({
+        at,
+        align: global.placement?.align ?? 1,
+        noCross: global.placement?.noCross ?? null,
+        region: null,
+      }),
+    });
+  });
+  const zeroPage = profile.zeroPage.flatMap((range) => {
+    const available: StorageRange[] = [];
+    let start = range.start;
+    for (const used of [...occupied].sort((left, right) => left.start - right.start)) {
+      if (used.end < range.start || used.start > range.end) continue;
+      if (start < used.start) available.push(Object.freeze({ start, end: used.start - 1 }));
+      start = Math.max(start, used.end + 1);
+    }
+    if (start <= range.end) available.push(Object.freeze({ start, end: range.end }));
+    return available;
+  });
+  return Object.freeze({
+    program: Object.freeze({
+      ...program,
+      semantic: Object.freeze({ ...program.semantic, globals: Object.freeze(allocatedGlobals) }),
+    }),
+    storage: Object.freeze({ ...profile, zeroPage: Object.freeze(zeroPage) }),
+  });
 }
 
 /** Return one expected service failure as immutable data. */
@@ -181,19 +260,29 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (closed.kind === "error") {
     return { kind: "failure", failure: failure("compiler", closed.diagnostics) };
   }
-  const inventory = inventoryStorage(closed.program);
-  const provisional = allocateStorage(
-    inventory,
-    buildInterference(inventory),
-    selected.profile.storage,
-  );
+  const reserved = reserveZeroPageGlobals(closed.program, selected.profile.storage);
+  if (reserved === null) {
+    return {
+      kind: "failure",
+      failure: failure("source", [
+        serviceDiagnostic(
+          "E10273",
+          "Zero-page placement conflicts with the selected memory window",
+        ),
+      ]),
+    };
+  }
+  const allocationProfile = Object.freeze({ ...selected.profile, storage: reserved.storage });
+  const inventory = inventoryStorage(reserved.program);
+  const provisional = allocateStorage(inventory, buildInterference(inventory), reserved.storage);
   if (provisional.kind === "error") {
     return { kind: "failure", failure: incompleteStage("static storage allocation") };
   }
   const lowered = lowerMachineProgram({
-    program: closed.program,
+    program: reserved.program,
     placement: provisional.placement,
-    profile: selected.profile,
+    profile: allocationProfile,
+    boundsCheck: selectedSnapshot.manifest.boundsCheck,
     divisionZeroCheck: selectedSnapshot.manifest.divisionZeroCheck,
     sourceText: (span) => {
       const source = selectedSnapshot.sources.find(({ sourceId }) => sourceId === span.sourceId);
@@ -208,7 +297,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       failure: failure("compiler", [serviceDiagnostic("COMPILER_LOWERING", lowered.reason)]),
     };
   }
-  const certificate = closeStorage(inventory, selected.profile.storage, lowered.binder);
+  const certificate = closeStorage(inventory, reserved.storage, lowered.binder);
   if (certificate.kind === "error") {
     return { kind: "failure", failure: incompleteStage("static storage closure") };
   }
@@ -221,7 +310,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
     value: Object.freeze({
       snapshot: selectedSnapshot,
       profile: selected.profile,
-      program: closed.program,
+      program: reserved.program,
       certificate,
       machine,
       diagnostics: Object.freeze([
@@ -291,7 +380,10 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     return {
       kind: "failure",
       failure: failure("compiler", [
-        serviceDiagnostic("COMPILER_LAYOUT", `Platform layout failed: ${layout.reason}`),
+        serviceDiagnostic(
+          layout.reason === "source-placement" ? "E10273" : "COMPILER_LAYOUT",
+          `Platform layout failed: ${layout.reason}${layout.objectId === null ? "" : ` (${layout.objectId})`}`,
+        ),
       ]),
     };
   }

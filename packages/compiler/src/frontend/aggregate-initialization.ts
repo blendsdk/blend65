@@ -9,6 +9,13 @@ import type { Expr, VariableDeclaration } from "./syntax.js";
 export function isDirectAggregateLiteral(type: SemanticType, initializer: Expr): boolean {
   return (
     (type.kind === "array" && initializer.kind === "array-literal") ||
+    (type.kind === "array" &&
+      initializer.kind === "literal" &&
+      initializer.literalKind === "string") ||
+    (type.kind === "array" &&
+      initializer.kind === "call" &&
+      initializer.callee.kind === "name" &&
+      (initializer.callee.name === "screen_codes" || initializer.callee.name === "petscii")) ||
     (type.kind === "struct" && initializer.kind === "struct-literal")
   );
 }
@@ -67,7 +74,7 @@ export function updateInitializedState(state: ScalarValueState, value: TypedExpr
   }
   const arrayType = state.binding.type;
   const ranges =
-    value.kind === "array-literal"
+    value.initialized !== undefined
       ? (value.initialized ?? Object.freeze([]))
       : Object.freeze([{ start: 0, end: arrayType.length }]);
   state.initializedRanges = ranges;

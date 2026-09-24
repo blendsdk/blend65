@@ -228,8 +228,16 @@ export function lowerOperation(
     let instructions: readonly MachineInstruction[] = Object.freeze([]);
     if (operation.place.path.length > 0) {
       const lowered = lowerAggregateLoad(operation, state);
-      source = lowered.result;
-      instructions = lowered.instructions;
+      const retained = retainMachineValue(
+        operation.result,
+        lowered.result,
+        lowered.instructions,
+        operation.type,
+        operation.span,
+        state,
+      );
+      source = retained.value;
+      instructions = retained.instructions;
     } else {
       source = loweredPlace(operation.place, width, isSignedType(operation.type), state);
     }

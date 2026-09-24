@@ -24,6 +24,7 @@ import { prepareAggregateInduction, type AggregateInductionRuntime } from "./low
 import { lowerOperation } from "./lower-operation.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
+import { lowerBoundsGuards } from "./lower-bounds.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
 import type { DivideHelper } from "./lower-division.js";
 import type {
@@ -218,6 +219,11 @@ export function loweredPlace(
     label: bindingLabel("global", place.root),
     bytes,
     signed,
+    ...(state.input.program.semantic.globals.some(
+      (global) => bindingIdentityKey(global.id) === bindingKey && global.zeropage === true,
+    )
+      ? { zeroPage: true }
+      : {}),
   });
 }
 
@@ -443,6 +449,8 @@ function lowerFunction(
   const loweredBlocks: MachineBlock[] = [];
   const semanticExitLabels = new Map<string, string>();
   const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
+  const boundsStopLabel = `${blocks[0]?.id ?? id}.bounds.stop`;
+  let boundsStopSource: SourceSpan | null = null;
   for (const block of blocks) {
     state.currentSemanticBlockId = block.id;
     state.divisionReuse = null;
@@ -474,7 +482,32 @@ function lowerFunction(
     let waitIndex = 0;
     let variableShiftIndex = 0;
     let checkedDivisionIndex = 0;
+    let checkedBoundsIndex = 0;
     for (const operation of block.operations) {
+      if (
+        input.boundsCheck === true &&
+        (operation.kind === "load" ||
+          operation.kind === "store" ||
+          operation.kind === "place-address") &&
+        operation.place.path.some((component) => component.kind === "index")
+      ) {
+        const checked = lowerBoundsGuards(
+          operation.place,
+          state,
+          currentLabel,
+          currentInstructions,
+          checkedBoundsIndex,
+          boundsStopLabel,
+          operation.span,
+        );
+        if (checked !== null) {
+          loweredBlocks.push(...checked.blocks);
+          currentLabel = checked.continuation;
+          currentInstructions = [];
+          boundsStopSource ??= operation.span;
+          checkedBoundsIndex += 1;
+        }
+      }
       const divisor = operation.kind === "binary" ? state.values.get(operation.right) : undefined;
       if (
         input.divisionZeroCheck === true &&
@@ -641,6 +674,22 @@ function lowerFunction(
       instructions: Object.freeze(instructions),
     });
   }
+  if (boundsStopSource !== null) {
+    loweredBlocks.push(
+      Object.freeze({
+        label: boundsStopLabel,
+        instructions: Object.freeze([
+          machineInstruction(input.profile.cpu, "sei", "implied", null, [], boundsStopSource),
+        ]),
+        terminator: Object.freeze({
+          kind: "jump" as const,
+          opcode: "jmp" as const,
+          target: boundsStopLabel,
+          cost: machineCost(input.profile.cpu, "jmp", "absolute"),
+        }),
+      }),
+    );
+  }
   helperUses.push(...state.helperUses.map((use) => Object.freeze({ ...use, caller: owner })));
   warnings.push(...state.warnings);
   return Object.freeze({ id, blocks: Object.freeze([...loweredBlocks, ...state.helperBlocks]) });
@@ -652,7 +701,10 @@ function lowerData(
   generatedData: ReadonlyMap<string, MachineDataObject>,
 ): readonly MachineDataObject[] {
   const globals = program.semantic.globals
-    .filter((global) => !(global.storage === "constant" && global.type.kind === "scalar"))
+    .filter(
+      (global) =>
+        !(global.storage === "constant" && global.type.kind === "scalar" && !global.placement),
+    )
     .map((global) => {
       const bytes = typeBytes(global.type);
       const encoded = global.initialBytes;
@@ -669,6 +721,8 @@ function lowerData(
               : ("global" as const),
         alignment: 1,
         bytes: encoded ?? Object.freeze(new Array<number>(bytes).fill(0)),
+        ...(global.placement ? { placement: global.placement } : {}),
+        ...(global.zeropage ? { zeropage: true } : {}),
       });
     });
   const reachable = new Set(program.reachableAssets);
@@ -770,18 +824,19 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         throw loweringFailure("Reachable semantic function is absent", functionId.span);
       }
       const id = bindingLabel("fn", semantic.id);
+      const lowered = lowerFunction(
+        id,
+        semantic.id,
+        semantic.blocks,
+        input,
+        requests,
+        generatedData,
+        helperUses,
+        warnings,
+        bindingIdentityKey(semantic.id) === bindingIdentityKey(input.program.semantic.main),
+      );
       machineFunctions.push(
-        lowerFunction(
-          id,
-          semantic.id,
-          semantic.blocks,
-          input,
-          requests,
-          generatedData,
-          helperUses,
-          warnings,
-          bindingIdentityKey(semantic.id) === bindingIdentityKey(input.program.semantic.main),
-        ),
+        semantic.placement ? Object.freeze({ ...lowered, placement: semantic.placement }) : lowered,
       );
     }
 

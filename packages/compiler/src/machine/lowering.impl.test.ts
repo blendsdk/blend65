@@ -629,6 +629,64 @@ describe("direct value lowering", () => {
 });
 
 describe("packed aggregate addressing", () => {
+  it("emits a single four-byte safety stop only when bounds checking is selected", () => {
+    const array: SemanticType = Object.freeze({ kind: "array", element: BYTE, length: 4, size: 4 });
+    const root = sourceBinding(910);
+    const ordinal = sourceParameter(911, BYTE);
+    const block = "checked-array.entry";
+    const main = semanticFunction(909, "checked-array", [ordinal], VOID, [
+      semanticBlock(
+        block,
+        [
+          loadOperation("index", ordinal, 912),
+          Object.freeze({
+            kind: "load" as const,
+            result: "selected",
+            place: Object.freeze({
+              root,
+              rootType: array,
+              path: Object.freeze([Object.freeze({ kind: "index" as const, value: "index" })]),
+            }),
+            type: BYTE,
+            span: sourceSpan(913),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const lifetimes = Object.freeze([
+      Object.freeze({
+        function: main.id,
+        value: "index",
+        definition: Object.freeze({ block, operation: 0 }),
+        liveAt: Object.freeze([Object.freeze({ block, operation: 1 })]),
+        callsCrossed: Object.freeze([]),
+      }),
+    ]);
+    const checked = lowerFunctions([main], lifetimes, true);
+    const unchecked = lowerFunctions([main], lifetimes);
+    expect(checked.kind).toBe("complete");
+    expect(unchecked.kind).toBe("complete");
+    if (checked.kind !== "complete" || unchecked.kind !== "complete") {
+      throw new Error("Expected both machine lowerings");
+    }
+    const checkedBlocks = checked.program.functions[0]!.blocks;
+    const stop = checkedBlocks.find(({ label }) => label.endsWith(".bounds.stop"));
+    expect(stop?.instructions.map(({ opcode }) => opcode)).toEqual(["sei"]);
+    expect(stop?.terminator).toMatchObject({ kind: "jump", target: stop.label });
+    expect(
+      checkedBlocks.some(
+        ({ terminator }) =>
+          terminator.kind === "branch" &&
+          terminator.opcode === "bcs" &&
+          terminator.target === stop?.label,
+      ),
+    ).toBe(true);
+    expect(
+      unchecked.program.functions[0]!.blocks.some(({ label }) => label.endsWith(".bounds.stop")),
+    ).toBe(false);
+  });
+
   it("should fold a constant ordinal into the packed byte offset", () => {
     const words: SemanticType = Object.freeze({
       kind: "array",
@@ -675,18 +733,29 @@ describe("packed aggregate addressing", () => {
       instructions.some(
         ({ opcode, mode, operand }) =>
           opcode === "lda" &&
-          mode === "immediate" &&
+          mode === "storage" &&
           operand?.kind === "storage" &&
-          operand.addressByte === "low" &&
           operand.offset === 4,
       ),
     ).toBe(true);
+    expect(
+      instructions.some(
+        ({ opcode, mode, operand }) =>
+          opcode === "lda" &&
+          mode === "storage" &&
+          operand?.kind === "storage" &&
+          operand.offset === 5,
+      ),
+    ).toBe(true);
+    expect(result.program.requiredStorage.some(({ id }) => id.includes("aggregate-address"))).toBe(
+      false,
+    );
     expect(
       result.program.requiredStorage.some(({ id }) => id.includes("aggregate-index-candidate")),
     ).toBe(false);
   });
 
-  it("should allocate and scale byte[4] and word[4] locals by their declared root types", () => {
+  it("should index byte locals directly while scaling word locals by their element size", () => {
     const byteArray: SemanticType = Object.freeze({
       kind: "array",
       element: BYTE,
@@ -779,21 +848,26 @@ describe("packed aggregate addressing", () => {
     expect(result.kind).toBe("complete");
     if (result.kind !== "complete") throw new Error("Expected packed array lowering");
     const instructions = result.program.functions[0]!.blocks[0]!.instructions;
-    expect(instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(2);
-    expect(instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(2);
+    expect(instructions.filter(({ opcode }) => opcode === "asl")).toHaveLength(1);
+    expect(instructions.filter(({ opcode }) => opcode === "rol")).toHaveLength(1);
     const addressedRoots = instructions.flatMap(({ mode, operand }) =>
       mode === "immediate" && operand?.kind === "storage" && operand.addressByte === "low"
         ? [operand.requestId]
         : [],
     );
-    expect(addressedRoots.filter((id) => id.includes(`:${byteRoot.span.start}:`))).toHaveLength(2);
-    expect(addressedRoots.filter((id) => id.includes(`:${wordRoot.span.start}:`))).toHaveLength(2);
+    expect(addressedRoots.filter((id) => id.includes(`:${byteRoot.span.start}:`))).toHaveLength(0);
+    expect(addressedRoots.filter((id) => id.includes(`:${wordRoot.span.start}:`))).toHaveLength(1);
+    expect(
+      instructions.filter(
+        ({ opcode, mode }) => (opcode === "lda" || opcode === "sta") && mode === "absolute-y",
+      ),
+    ).toHaveLength(2);
     expect(
       instructions.filter(
         ({ opcode, mode }) =>
           (opcode === "lda" || opcode === "sta") && mode === "indirect-indexed-y",
       ),
-    ).toHaveLength(6);
+    ).toHaveLength(4);
   });
 
   it("should directly scale an unsigned byte index for a five-byte packed record", () => {

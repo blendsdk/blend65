@@ -122,6 +122,8 @@ export interface LiteralExpr {
   readonly kind: "literal";
   /** Complete expression bytes. */
   readonly span: SourceSpan;
+  /** Whether source wrote a single character or a byte-sequence string. */
+  readonly literalKind: "character" | "string";
   /** Ordered unencoded literal content. */
   readonly items: readonly LiteralItem[];
 }

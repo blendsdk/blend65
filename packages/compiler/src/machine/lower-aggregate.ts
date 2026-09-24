@@ -1,4 +1,4 @@
-import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { bindingIdentityKey, type SemanticType } from "../frontend/semantic-types.js";
 import type { SemanticOperation, SemanticPlace } from "../semantic/operations.js";
 import type { SourceSpan } from "../project/types.js";
 import {
@@ -7,7 +7,8 @@ import {
   operandForValue,
   type LoweredValue,
 } from "./lower-control.js";
-import type { MachineInstruction } from "./machine-types.js";
+import type { MachineInstruction, MachineOperand } from "./machine-types.js";
+import { lowerAggregateIndex, type AggregateIndexTerm } from "./lower-aggregate-index.js";
 import {
   loweringFailure,
   appendLoadA,
@@ -22,16 +23,128 @@ import {
   typeBytes,
 } from "./lower.js";
 
-/** One dynamic packed offset selected while walking an aggregate place. */
-interface AggregateIndexTerm {
-  readonly value: string;
-  readonly stride: number;
-}
-
 /** Packed offset facts recovered from a place's declared root type. */
 interface AggregateAddressPlan {
   readonly staticOffset: number;
   readonly indices: readonly AggregateIndexTerm[];
+}
+
+/** A compile-time byte offset or an unsigned byte ordinal that needs no pointer pair. */
+type DirectAggregateAccess =
+  | {
+      readonly kind: "fixed";
+      readonly root: Extract<LoweredValue, { readonly kind: "storage" | "label" }>;
+      readonly offset: number;
+    }
+  | {
+      readonly kind: "indexed";
+      readonly root: Extract<LoweredValue, { readonly kind: "storage" | "label" }>;
+      readonly index: LoweredValue;
+      readonly offset: number;
+      readonly stride: number;
+    };
+
+/** Retain a relocation or certified home while adding a compile-time packed offset. */
+function directOperand(access: DirectAggregateAccess, byteOffset = 0): MachineOperand {
+  const offset = access.offset + (access.kind === "fixed" ? byteOffset : 0);
+  return access.root.kind === "storage"
+    ? Object.freeze({ kind: "storage", requestId: access.root.requestId, offset })
+    : Object.freeze({ kind: "label", label: access.root.label, offset });
+}
+
+/** Keep the physical mode consistent for every byte of one direct access. */
+function directMode(
+  access: DirectAggregateAccess,
+): "storage" | "zero-page" | "absolute" | "absolute-y" {
+  return access.kind === "indexed"
+    ? "absolute-y"
+    : access.root.kind === "storage"
+      ? "storage"
+      : access.root.zeroPage
+        ? "zero-page"
+        : "absolute";
+}
+
+/** Keep simple static array accesses in the 6502's native absolute indexed mode. */
+function directAggregateAccess(
+  place: SemanticPlace,
+  type: SemanticType,
+  state: FunctionLoweringState,
+  source: SourceSpan,
+): DirectAggregateAccess | null {
+  if (
+    place.rootType === undefined ||
+    (type.kind !== "scalar" && type.kind !== "enum") ||
+    typeBytes(type) > 2
+  ) {
+    return null;
+  }
+  const root = loweredPlace(place, typeBytes(place.rootType), false, state);
+  if (root.kind !== "storage" && root.kind !== "label") return null;
+  if (root.kind === "storage" && root.requestId.includes(":parameter:")) return null;
+  const plan = aggregateAddressPlan(place, state, source);
+  if (plan.indices.length === 0) {
+    return Object.freeze({ kind: "fixed", root, offset: plan.staticOffset });
+  }
+  if (plan.indices.length !== 1) return null;
+  const term = plan.indices[0]!;
+  if (term.stride > 1 && (!state.input.boundsCheck || term.extent * term.stride > 256)) return null;
+  const index = state.values.get(plan.indices[0]!.value);
+  if (index?.kind !== "storage" || index.bytes !== 1 || index.signed === true) {
+    return null;
+  }
+  return Object.freeze({
+    kind: "indexed",
+    root,
+    index,
+    offset: plan.staticOffset,
+    stride: term.stride,
+  });
+}
+
+/**
+ * Scale a range-checked byte ordinal in A, then leave its packed byte offset in Y.
+ * Each binary digit doubles the current value and optionally adds the original ordinal.
+ * The caller admits this path only when the checked maximum offset fits one byte.
+ */
+function directIndexInstructions(
+  access: Extract<DirectAggregateAccess, { readonly kind: "indexed" }>,
+  state: FunctionLoweringState,
+  source: SourceSpan,
+): readonly MachineInstruction[] {
+  const cpu = state.input.profile.cpu;
+  if (access.stride === 1) {
+    return Object.freeze([
+      machineInstruction(
+        cpu,
+        "ldy",
+        modeForValue(access.index),
+        operandForValue(access.index),
+        [],
+        source,
+      ),
+    ]);
+  }
+  const instructions: MachineInstruction[] = [loadA(access.index, 0, state, source)];
+  const bits = access.stride.toString(2).slice(1);
+  for (const bit of bits) {
+    instructions.push(machineInstruction(cpu, "asl", "accumulator", null, [], source));
+    if (bit === "1") {
+      instructions.push(
+        machineInstruction(cpu, "clc", "implied", null, [], source),
+        machineInstruction(
+          cpu,
+          "adc",
+          modeForValue(access.index),
+          operandForValue(access.index),
+          [],
+          source,
+        ),
+      );
+    }
+  }
+  instructions.push(machineInstruction(cpu, "tay", "implied", null, [], source));
+  return Object.freeze(instructions);
 }
 
 /**
@@ -106,253 +219,11 @@ function aggregateAddressPlan(
       }
       staticOffset = (staticOffset + retained.value * stride) & 0xffff;
     } else {
-      indices.push(Object.freeze({ value: component.value, stride }));
+      indices.push(Object.freeze({ value: component.value, stride, extent: current.length }));
     }
     current = current.element;
   }
   return Object.freeze({ staticOffset, indices: Object.freeze(indices) });
-}
-
-/** Store one immediate byte without introducing a pseudo-instruction. */
-function appendImmediateStore(
-  instructions: MachineInstruction[],
-  value: number,
-  destination: LoweredValue,
-  offset: number,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): void {
-  instructions.push(
-    machineInstruction(
-      state.input.profile.cpu,
-      "lda",
-      "immediate",
-      Object.freeze({ kind: "immediate", value: value & 0xff }),
-      [],
-      source,
-    ),
-    storeA(destination, offset, state, source),
-  );
-}
-
-/** Widen and scale one ordinal into a reusable two-byte SFA temporary. */
-function lowerAggregateIndex(
-  term: AggregateIndexTerm,
-  state: FunctionLoweringState,
-  source: SourceSpan,
-): { readonly instructions: readonly MachineInstruction[]; readonly value: LoweredValue } {
-  const index = state.values.get(term.value);
-  if (index === undefined || index.kind === "condition" || index.bytes > 2) {
-    throw loweringFailure("Aggregate index has no retained byte/word value", source);
-  }
-  const candidateRequest = requestStorage(
-    state,
-    "aggregate-index-candidate",
-    "temporary",
-    2,
-    "ram",
-    source,
-    "Widened and shifted aggregate index",
-  );
-  const candidate: LoweredValue = Object.freeze({
-    kind: "storage",
-    requestId: candidateRequest.id,
-    bytes: 2,
-    signed: false,
-  });
-  const instructions: MachineInstruction[] = [];
-  appendLoadA(instructions, index, 0, state, source);
-  instructions.push(storeA(candidate, 0, state, source));
-  if (index.bytes === 2) {
-    appendLoadA(instructions, index, 1, state, source);
-    instructions.push(storeA(candidate, 1, state, source));
-  } else if (index.signed === true) {
-    appendLoadA(instructions, index, 0, state, source);
-    instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "cmp",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 0x80 }),
-        [],
-        source,
-      ),
-      machineInstruction(
-        state.input.profile.cpu,
-        "lda",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 0 }),
-        [],
-        source,
-      ),
-      machineInstruction(
-        state.input.profile.cpu,
-        "sbc",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 0 }),
-        [],
-        source,
-      ),
-      machineInstruction(
-        state.input.profile.cpu,
-        "eor",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 0xff }),
-        [],
-        source,
-      ),
-      storeA(candidate, 1, state, source),
-    );
-  } else {
-    appendImmediateStore(instructions, 0, candidate, 1, state, source);
-  }
-
-  if (term.stride === 1) {
-    return Object.freeze({ instructions: Object.freeze(instructions), value: candidate });
-  }
-  if ((term.stride & (term.stride - 1)) === 0) {
-    for (let shift = 0; shift < Math.log2(term.stride); shift += 1) {
-      instructions.push(
-        machineInstruction(
-          state.input.profile.cpu,
-          "asl",
-          "storage",
-          operandForValue(candidate, 0),
-          [],
-          source,
-        ),
-        machineInstruction(
-          state.input.profile.cpu,
-          "rol",
-          "storage",
-          operandForValue(candidate, 1),
-          [],
-          source,
-        ),
-      );
-    }
-    return Object.freeze({ instructions: Object.freeze(instructions), value: candidate });
-  }
-
-  if (
-    term.stride === 5 &&
-    index.bytes === 1 &&
-    index.signed !== true &&
-    index.kind !== "register"
-  ) {
-    for (let shift = 0; shift < 2; shift += 1) {
-      instructions.push(
-        machineInstruction(
-          state.input.profile.cpu,
-          "asl",
-          "storage",
-          operandForValue(candidate, 0),
-          [],
-          source,
-        ),
-        machineInstruction(
-          state.input.profile.cpu,
-          "rol",
-          "storage",
-          operandForValue(candidate, 1),
-          [],
-          source,
-        ),
-      );
-    }
-    instructions.push(
-      loadA(candidate, 0, state, source),
-      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        modeForValue(index),
-        operandForValue(index, 0),
-        [],
-        source,
-      ),
-      storeA(candidate, 0, state, source),
-      loadA(candidate, 1, state, source),
-      machineInstruction(
-        state.input.profile.cpu,
-        "adc",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 0 }),
-        [],
-        source,
-      ),
-      storeA(candidate, 1, state, source),
-    );
-    return Object.freeze({ instructions: Object.freeze(instructions), value: candidate });
-  }
-
-  const resultRequest = requestStorage(
-    state,
-    "aggregate-index-result",
-    "temporary",
-    2,
-    "ram",
-    source,
-    "Packed aggregate index scale accumulator",
-  );
-  const result: LoweredValue = Object.freeze({
-    kind: "storage",
-    requestId: resultRequest.id,
-    bytes: 2,
-    signed: false,
-  });
-  appendImmediateStore(instructions, 0, result, 0, state, source);
-  appendImmediateStore(instructions, 0, result, 1, state, source);
-  let factor = term.stride;
-  while (factor !== 0) {
-    if ((factor & 1) !== 0) {
-      instructions.push(
-        loadA(result, 0, state, source),
-        machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], source),
-        machineInstruction(
-          state.input.profile.cpu,
-          "adc",
-          "storage",
-          operandForValue(candidate, 0),
-          [],
-          source,
-        ),
-        storeA(result, 0, state, source),
-        loadA(result, 1, state, source),
-        machineInstruction(
-          state.input.profile.cpu,
-          "adc",
-          "storage",
-          operandForValue(candidate, 1),
-          [],
-          source,
-        ),
-        storeA(result, 1, state, source),
-      );
-    }
-    factor = Math.floor(factor / 2);
-    if (factor !== 0) {
-      instructions.push(
-        machineInstruction(
-          state.input.profile.cpu,
-          "asl",
-          "storage",
-          operandForValue(candidate, 0),
-          [],
-          source,
-        ),
-        machineInstruction(
-          state.input.profile.cpu,
-          "rol",
-          "storage",
-          operandForValue(candidate, 1),
-          [],
-          source,
-        ),
-      );
-    }
-  }
-  return Object.freeze({ instructions: Object.freeze(instructions), value: result });
 }
 
 /** Form one exact 16-bit packed aggregate address in an SFA-owned ZP pair. */
@@ -489,6 +360,67 @@ export function lowerAggregateLoad(
   state: FunctionLoweringState,
 ): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
   const bytes = typeBytes(operation.type);
+  const direct = directAggregateAccess(operation.place, operation.type, state, operation.span);
+  if (direct !== null) {
+    const instructions: MachineInstruction[] = [];
+    if (direct.kind === "indexed")
+      instructions.push(...directIndexInstructions(direct, state, operation.span));
+    const resultRequest =
+      bytes === 1
+        ? null
+        : requestStorage(
+            state,
+            `aggregate-load:${operation.result}`,
+            "temporary",
+            bytes,
+            "ram",
+            operation.span,
+            "Materialized packed aggregate selection",
+            operation.type,
+          );
+    for (let offset = 0; offset < bytes; offset += 1) {
+      if (offset > 0 && direct.kind === "indexed")
+        instructions.push(
+          machineInstruction(state.input.profile.cpu, "iny", "implied", null, [], operation.span),
+        );
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "lda",
+          directMode(direct),
+          directOperand(direct, offset),
+          [],
+          operation.span,
+        ),
+      );
+      if (resultRequest !== null)
+        instructions.push(
+          storeA(
+            { kind: "storage", requestId: resultRequest.id, bytes, signed: false },
+            offset,
+            state,
+            operation.span,
+          ),
+        );
+    }
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result:
+        resultRequest === null
+          ? Object.freeze({
+              kind: "register",
+              registers: "a",
+              bytes: 1,
+              signed: isSignedType(operation.type),
+            })
+          : Object.freeze({
+              kind: "storage",
+              requestId: resultRequest.id,
+              bytes,
+              signed: isSignedType(operation.type),
+            }),
+    });
+  }
   const address = lowerAggregateAddress(operation.place, state, operation.span, null, bytes);
   const resultRequest = requestStorage(
     state,
@@ -537,6 +469,59 @@ export function lowerAggregateStore(
   valueInput: LoweredValue,
   state: FunctionLoweringState,
 ): readonly MachineInstruction[] {
+  const direct = directAggregateAccess(operation.place, operation.type, state, operation.span);
+  if (direct !== null) {
+    if (valueInput.kind === "condition") {
+      throw loweringFailure("Packed aggregate store value was not materialized", operation.span);
+    }
+    const instructions: MachineInstruction[] = [];
+    let value = valueInput;
+    if (direct.kind === "indexed" && direct.stride > 1 && value.kind === "register") {
+      const staged = requestStorage(
+        state,
+        `aggregate-store:${operation.span.start}`,
+        "temporary",
+        value.bytes,
+        "ram",
+        operation.span,
+        "Value preserved while scaling an aggregate ordinal",
+        operation.type,
+      );
+      const home: LoweredValue = Object.freeze({
+        kind: "storage",
+        requestId: staged.id,
+        bytes: value.bytes,
+      });
+      instructions.push(storeA(home, 0, state, operation.span));
+      if (value.bytes === 2) {
+        instructions.push(
+          machineInstruction(state.input.profile.cpu, "txa", "implied", null, [], operation.span),
+          storeA(home, 1, state, operation.span),
+        );
+      }
+      value = home;
+    }
+    if (direct.kind === "indexed")
+      instructions.push(...directIndexInstructions(direct, state, operation.span));
+    for (let offset = 0; offset < typeBytes(operation.type); offset += 1) {
+      if (offset > 0 && direct.kind === "indexed")
+        instructions.push(
+          machineInstruction(state.input.profile.cpu, "iny", "implied", null, [], operation.span),
+        );
+      appendLoadA(instructions, value, offset, state, operation.span);
+      instructions.push(
+        machineInstruction(
+          state.input.profile.cpu,
+          "sta",
+          directMode(direct),
+          directOperand(direct, offset),
+          [],
+          operation.span,
+        ),
+      );
+    }
+    return Object.freeze(instructions);
+  }
   let value = valueInput;
   const instructions: MachineInstruction[] = [];
   if (value.kind === "register") {

@@ -210,6 +210,12 @@ export interface SemanticBinding extends Binding {
   readonly type: SemanticType | null;
   /** Target-neutral operation behavior for a profile-supplied function. */
   readonly operationEffect?: ProfileEffect;
+  /** This constant is packaged separately and has no resident storage address. */
+  readonly loadable?: boolean;
+  /** An explicit source placement materializes even a scalar constant. */
+  readonly materialized?: boolean;
+  /** Source declaration is a mutable zero-page member. */
+  readonly zeropage?: boolean;
 }
 
 /** Create an immutable local or parameter binding from source identity alone. */
@@ -251,6 +257,8 @@ export interface Place {
   readonly readonly: boolean;
   /** Source of read-only permission, when writes are forbidden. */
   readonly readonlyOrigin: "constant" | "parameter" | null;
+  /** Exact half-open byte interval relative to the root object, or null for dynamic selection. */
+  readonly byteRange?: InitializedRange | null;
 }
 
 /** One parameter in a resolved direct-call signature. */
@@ -312,6 +320,10 @@ export interface TypedExpr {
   readonly binding: BindingId | null;
   /** Symbolic source place, when the expression denotes one. */
   readonly place: Place | null;
+  /** Local homes on which an address-valued result depends, even after integer conversion. */
+  readonly addressOrigins?: readonly BindingId[] | undefined;
+  /** Storage places contributing to an address value, including read-only provenance. */
+  readonly addressPlaces?: readonly Place[] | undefined;
   /** Conversion applied at this expression boundary. */
   readonly conversion: ConversionKind | null;
   /** Fixed-width integer behavior, or null for non-integers. */
@@ -361,6 +373,8 @@ export interface TypedExpr {
   readonly elements?: readonly TypedExpr[];
   /** Remaining-element fill value, when written. */
   readonly fill?: TypedExpr | null;
+  /** Exact target bytes from a compile-time encoded string, with no terminator. */
+  readonly encodedBytes?: readonly number[];
   /** Half-open element ranges proved initialized by an array literal. */
   readonly initialized?: readonly InitializedRange[];
   /** Resolved type inspected by sizeof or offsetof. */
@@ -559,6 +573,24 @@ export interface TypedDeclaration {
   readonly initializer: TypedExpr | null;
   /** Typed function body, or null for a module variable. */
   readonly body: TypedBlock | null;
+  /** Validated source placement constraints for an emitted object. */
+  readonly placement?: PlacementConstraints | null;
+  /** Packaged constant excluded from the resident image. */
+  readonly loadable?: boolean;
+  /** Mutable source storage was declared inside a zero-page block. */
+  readonly zeropage?: boolean;
+}
+
+/** Closed, source-proved constraints passed unchanged toward final placement. */
+export interface PlacementConstraints {
+  /** Fixed first-byte address, when written. */
+  readonly at: number | null;
+  /** Required power-of-two first-byte alignment. */
+  readonly align: number;
+  /** Required single-window size, when written. */
+  readonly noCross: number | null;
+  /** Selected-profile region identity, when written. */
+  readonly region: string | null;
 }
 
 /** A declaration retained without a usable typed value. */
@@ -651,6 +683,10 @@ export interface ScalarValueState {
   readonly readonly: boolean;
   /** Conservatively proved reaching value. */
   known: bigint | boolean | null;
+  /** Local homes whose address contributes to this stored scalar value. */
+  addressOrigins?: readonly BindingId[] | undefined;
+  /** Addressed storage places retained by this scalar value. */
+  addressPlaces?: readonly Place[] | undefined;
   /** Whether a scalar or complete aggregate value is definitely initialized. */
   initialized: boolean;
   /** Definitely initialized array-element ranges, when the binding is an array. */
@@ -683,6 +719,10 @@ export interface ScalarScope {
 export interface ScalarValueFact {
   /** Conservatively proved scalar value. */
   readonly known: bigint | boolean | null;
+  /** Local address dependencies that survive this control-flow edge. */
+  readonly addressOrigins?: readonly BindingId[] | undefined;
+  /** Addressed storage places surviving this control-flow edge. */
+  readonly addressPlaces?: readonly Place[] | undefined;
   /** Whether the complete value is definitely initialized. */
   readonly initialized: boolean;
   /** Definitely initialized array ranges. */
@@ -712,6 +752,8 @@ export interface ScalarExpressionContext {
   readonly caseContext?: boolean;
   /** Whether the expression is being resolved as a place rather than read as a value. */
   readonly placeContext?: boolean;
+  /** A metadata-only query may inspect a packaged value without reading resident bytes. */
+  readonly compileTimeQuery?: boolean;
   /** Whether direct integer operators compute in the array-ordinal promotion domain. */
   readonly ordinalContext?: boolean;
 }
@@ -726,6 +768,8 @@ export interface ScalarExpressionResult {
 
 /** Narrow callbacks used by direct expression recursion during module analysis. */
 export interface ScalarExpressionHost {
+  /** Selected profile identity, or null while source remains profile-independent. */
+  readonly profileId?: string | null;
   /** Resolve a source name under the current scopes. */
   resolveName(name: string, context: ScalarExpressionContext): ScalarValueState | null;
   /** Resolve a source type and report an unknown type when needed. */

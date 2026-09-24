@@ -27,9 +27,11 @@ import {
   semanticTypesEqual,
 } from "./aggregates.js";
 import { analyzeScalarConditional } from "./conditional-expressions.js";
+import { localAddressOrigins, withDerivedAddressOrigins } from "./address-provenance.js";
 import { analyzeDirectCall, resolveDirectCallTarget } from "./direct-calls.js";
 import { applyExpectedEnum } from "./enum-types.js";
 import { analyzeScalarAssignment } from "./scalar-assignments.js";
+import { semanticTypeSize } from "./semantic-type-relations.js";
 import { analyzeEnumCastCall, analyzeEnumMember, analyzeScalarCast } from "./scalar-conversions.js";
 import {
   captureBranchFacts,
@@ -60,7 +62,11 @@ export class ScalarExpressionAnalyzer {
     expected: SemanticType | null,
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
-    const natural = this.analyzeNatural(expression, expected, context);
+    const checked = this.analyzeNatural(expression, expected, context);
+    const natural =
+      checked.node === null
+        ? checked
+        : { ...checked, node: withDerivedAddressOrigins(checked.node) };
     if (natural.node === null || expected === null) return natural;
     if (isScalarType(natural.node.type) && natural.node.type.name === "void") {
       this.host.diagnose(
@@ -128,6 +134,20 @@ export class ScalarExpressionAnalyzer {
           (child, childType, childContext) => this.analyze(child, childType, childContext),
         );
       case "call":
+        if (
+          expression.callee.kind === "name" &&
+          expression.callee.name === "c64.loader.load" &&
+          this.host.profileId === "c64-pal-prg-kernal-6581"
+        ) {
+          this.host.diagnose(
+            error(
+              "E10275",
+              "The selected resident C64 profile has no load operation",
+              expression.callee.span,
+            ),
+          );
+          return { node: null, exact: null };
+        }
         {
           const enumCast = analyzeEnumCastCall(
             expression,
@@ -216,6 +236,16 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
+    if (state.binding.loadable && !context.compileTimeQuery) {
+      this.host.diagnose(
+        error(
+          "E10274",
+          `Loadable constant '${expression.name}' has no resident value or address`,
+          expression.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
     if (context.constantContext && !callTarget && state.binding.storage !== "constant") {
       this.host.diagnose(
         context.caseContext
@@ -244,6 +274,7 @@ export class ScalarExpressionAnalyzer {
                 ? "parameter"
                 : "constant"
               : null,
+            byteRange: Object.freeze({ start: 0, end: semanticTypeSize(state.binding.type) }),
           });
     if (!callTarget && !context.placeContext && place !== null) {
       this.host.read(place, expression.span);
@@ -253,6 +284,8 @@ export class ScalarExpressionAnalyzer {
         name: expression.name,
         binding: state.binding.id,
         place,
+        addressOrigins: state.addressOrigins,
+        addressPlaces: state.addressPlaces,
         integer: integerFacts(state.binding.type, true),
       }),
       exact: state.known,
@@ -277,9 +310,14 @@ export class ScalarExpressionAnalyzer {
         placeContext: true,
       });
       if (operand.node === null) return { node: null, exact: null };
+      const named =
+        expression.operand.kind === "name"
+          ? this.host.resolveName(expression.operand.name, context)
+          : null;
       if (
-        operand.node.place?.readonlyOrigin === "constant" &&
-        operand.node.type.kind === "scalar"
+        named?.binding.storage === "constant" &&
+        operand.node.type.kind === "scalar" &&
+        !named.binding.materialized
       ) {
         this.host.diagnose(
           error(
@@ -304,6 +342,8 @@ export class ScalarExpressionAnalyzer {
         node: createScalarTypedExpression(expression, SCALAR_TYPES.word, null, {
           operator: expression.operator,
           operand: operand.node,
+          addressOrigins: localAddressOrigins(operand.node.place, context.scope),
+          addressPlaces: Object.freeze([operand.node.place]),
           integer: integerFacts(SCALAR_TYPES.word, true),
         }),
         exact: null,

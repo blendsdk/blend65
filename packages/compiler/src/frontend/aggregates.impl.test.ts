@@ -88,6 +88,30 @@ function typedDeclaration(result: ReturnType<typeof analyzeModules>, qualifiedNa
 }
 
 describe("aggregate implementation edges", () => {
+  it("rejects containment cycles that pass through a fixed array", () => {
+    const result = analyze(
+      "module Game; struct A { children: B[2]; } struct B { parent: A; } function main(): void {}",
+    );
+    expect(diagnosticCodes(result)).toContain("E10092");
+  });
+
+  it("retains exact nested-field element byte ranges for address analysis", () => {
+    const result = analyze(
+      "module Game; struct Item { bytes: byte[2]; value: byte; } function main(): void { let item: Item = { bytes: [1, 2], value: 3 }; let address: word = &item.bytes[1]; }",
+    );
+    expect(result.diagnostics).toEqual([]);
+    const body = typedDeclaration(result, "Game.main").body;
+    const address = body?.statements[1];
+    expect(address?.kind).toBe("variable");
+    if (address?.kind !== "variable") throw new Error("Missing address variable");
+    const addressed = address.initializer?.operand;
+    expect(
+      addressed !== undefined && "place" in addressed ? addressed.place?.byteRange : null,
+    ).toEqual({
+      start: 1,
+      end: 2,
+    });
+  });
   it("should reject a fixed-array argument with a different extent", () => {
     const result = analyze(
       [
@@ -397,7 +421,7 @@ describe("aggregate implementation edges", () => {
     expect(diagnosticCodes(permissions)).toEqual(["E10123", "E10094"]);
   });
 
-  it("should reject void storage and defer valid aggregate fields outside this slice", () => {
+  it("should reject void storage and accept nested struct fields", () => {
     const invalid = analyze(
       "module Game; struct Bad { value: void; } let values: void[1]; function bad(values: void[]): void {} function main(): void {}",
     );
@@ -417,11 +441,17 @@ describe("aggregate implementation edges", () => {
       "Type 'void' cannot be used as a parameter",
     ]);
 
-    const deferred = analyze(
+    const nested = analyze(
       "module Game; struct Inner { x: byte; } struct Outer { inner: Inner; } function main(): void {}",
     );
-    expect(deferred.diagnostics).toEqual([]);
-    expect(deferred.obligations).toHaveLength(1);
-    expect(deferred.declarations.some(({ kind }) => kind === "unchecked")).toBe(true);
+    expect(nested.diagnostics).toEqual([]);
+    expect(nested.obligations).toEqual([]);
+    expect(nested.complete).toBe(true);
+    expect(
+      nested.types.find((type) => type.kind === "struct" && type.fields[0]?.name === "inner"),
+    ).toMatchObject({
+      size: 1,
+      fields: [{ name: "inner", offset: 0 }],
+    });
   });
 });

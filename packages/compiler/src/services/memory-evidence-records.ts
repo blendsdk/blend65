@@ -161,6 +161,7 @@ export function deriveMemoryIntervals(
     const pieces: EvidenceRecord[] = [];
     for (const block of layout.program.startup.blocks) {
       const range = machineBlockRange(block);
+      if (range.start < interval.start || range.end - 1 > interval.end) continue;
       pieces.push(
         physicalInterval(
           Object.freeze({
@@ -179,6 +180,7 @@ export function deriveMemoryIntervals(
     }
     for (const machine of layout.program.functions) {
       const range = machineFunctionRange(machine);
+      if (range.start < interval.start || range.end - 1 > interval.end) continue;
       const ownerName = sourceOwners.get(machine.id);
       pieces.push(
         physicalInterval(
@@ -200,12 +202,31 @@ export function deriveMemoryIntervals(
     }
     pieces.sort((left, right) => (left.start as number) - (right.start as number));
     let cursor = interval.start;
+    const partition: EvidenceRecord[] = [];
     for (const piece of pieces) {
-      if (piece.start !== cursor) throw new Error("Final code ranges do not partition layout code");
+      const start = piece.start as number;
+      if (start < cursor) throw new Error("Final code ranges overlap in layout code");
+      if (start > cursor) {
+        partition.push(
+          physicalInterval(
+            Object.freeze({
+              id: `fill.code.${cursor.toString(16)}`,
+              kind: "fill",
+              start: cursor,
+              end: start - 1,
+              bytes: null,
+            }),
+            inventory,
+            certificate,
+            assetIds,
+          ),
+        );
+      }
+      partition.push(piece);
       cursor = piece.end as number;
     }
     if (cursor !== interval.end + 1) throw new Error("Final code ranges do not cover layout code");
-    return pieces;
+    return partition;
   });
   return Object.freeze(
     expanded.sort((left, right) => {

@@ -1,3 +1,4 @@
+import { mergeAddressOrigins, mergeAddressPlaces } from "./address-provenance.js";
 import type {
   InitializedRange,
   ScalarFactSnapshot,
@@ -16,6 +17,8 @@ export function snapshotScalarFacts(scope: ScalarScope): ScalarFactSnapshot {
           state,
           Object.freeze({
             known: state.known,
+            addressOrigins: state.addressOrigins,
+            addressPlaces: state.addressPlaces,
             initialized: state.initialized,
             initializedRanges: state.initializedRanges,
             initializedPaths: state.initializedPaths,
@@ -32,6 +35,8 @@ export function snapshotScalarFacts(scope: ScalarScope): ScalarFactSnapshot {
 export function restoreScalarFacts(snapshot: ScalarFactSnapshot): void {
   for (const [state, fact] of snapshot) {
     state.known = fact.known;
+    state.addressOrigins = fact.addressOrigins;
+    state.addressPlaces = fact.addressPlaces;
     state.initialized = fact.initialized;
     state.initializedRanges = fact.initializedRanges;
     state.initializedPaths = fact.initializedPaths;
@@ -46,6 +51,8 @@ export function captureBranchFacts(snapshot: ScalarFactSnapshot): ScalarFactSnap
       state,
       Object.freeze({
         known: state.known,
+        addressOrigins: state.addressOrigins,
+        addressPlaces: state.addressPlaces,
         initialized: state.initialized,
         initializedRanges: state.initializedRanges,
         initializedPaths: state.initializedPaths,
@@ -64,6 +71,8 @@ export function mergeScalarFacts(
     const first = alternatives[0]?.get(state) ?? fallback;
     const candidates = alternatives.map((facts) => facts.get(state) ?? fallback);
     state.known = candidates.every((fact) => fact.known === first.known) ? first.known : null;
+    state.addressOrigins = mergeAddressOrigins(...candidates.map((fact) => fact.addressOrigins));
+    state.addressPlaces = mergeAddressPlaces(...candidates.map((fact) => fact.addressPlaces));
     state.initialized = candidates.every((fact) => fact.initialized);
     state.initializedRanges = intersectInitializedRanges(
       candidates.map((fact) => fact.initializedRanges),

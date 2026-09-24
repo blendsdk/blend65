@@ -5,6 +5,12 @@ export function initializerBytes(
   expression: TypedExpr,
   type: SemanticType,
 ): readonly number[] | null {
+  if (expression.encodedBytes !== undefined) {
+    return expression.encodedBytes.length ===
+      (type.kind === "struct" || type.kind === "array" ? type.size : 0)
+      ? expression.encodedBytes
+      : null;
+  }
   if (type.kind === "scalar") {
     if (expression.constant === null || type.name === "void") return null;
     const bytes = type.name === "word" || type.name === "sword" ? 2 : 1;

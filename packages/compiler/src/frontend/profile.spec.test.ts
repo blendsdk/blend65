@@ -187,3 +187,76 @@ describe("selected frontend profile", () => {
     expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10279"]);
   });
 });
+
+describe("source placement and packaged values", () => {
+  // Placement is a closed source modifier, but every emitted owner may opt into it.
+  it.each([
+    ["module variable", "place(align: 2) let data: word;"],
+    ["materialized scalar constant", "place(align: 2) const DATA: word = $1234;"],
+    ["ordinary function", "place(align: 2) function placed(): void {}"],
+    ["interrupt function", "place(align: 2) interrupt function irq(): void {}"],
+    ["zero-page member", "zeropage { place(at: $20) data: byte; }"],
+  ])("should accept place on a $%s", (_owner, declaration) => {
+    const result = analyzeProject(snapshot(`module Game; ${declaration} function main(): void {}`));
+
+    expect(result.kind).toBe("complete");
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  // Invalid clauses cannot quietly change ownership or relax a hardware constraint.
+  it.each([
+    ["duplicate key", "place(align: 2, align: 4) let data: byte;"],
+    ["non-power-of-two alignment", "place(align: 3) let data: byte;"],
+    ["zero-sized crossing window", "place(noCross: 0) let data: byte;"],
+    ["string region", 'place(region: "ram") let data: byte;'],
+    ["local variable", "function local(): void { place(at: $2000) let data: byte; }"],
+    ["loadable constant", "place(at: $2000) loadable const DATA: byte = 1;"],
+    ["compile-time function", "place(at: $2000) comptime function make(): byte { return 1; }"],
+  ])("should reject place on or with a $%s", (_case, declaration) => {
+    const result = analyzeProject(snapshot(`module Game; ${declaration} function main(): void {}`));
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10272");
+  });
+
+  // Packaged data has a type and value, but no CPU-readable storage or address.
+  it.each([
+    [
+      "module scope with compile-time metadata",
+      "loadable const DATA: byte[2] = [1, 2]; const COUNT: word = length(DATA);",
+    ],
+    ["local scope", "function local(): void { loadable const DATA: byte[2] = [1, 2]; }"],
+  ])("should declare a loadable constant at $%s", (_scope, declaration) => {
+    const result = analyzeProject(snapshot(`module Game; ${declaration} function main(): void {}`));
+
+    expect(result.kind).toBe("complete");
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it.each([
+    ["ordinary read", "loadable const DATA: byte[2] = [1, 2];", "let value: byte = DATA[0];"],
+    ["address", "loadable const DATA: byte[2] = [1, 2];", "let address: word = &DATA;"],
+    ["ordinary argument", "loadable const DATA: byte = 1;", "consume(DATA);"],
+  ])("should reject a loadable constant as an $%s", (_use, declaration, statement) => {
+    const result = analyzeProject(
+      snapshot(
+        `module Game; ${declaration} function consume(value: byte): void {} function main(): void { ${statement} }`,
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10274");
+  });
+
+  // The resident PRG profile must not invent a transfer operation for packaged data.
+  it("should reject a load request when the resident profile has no loader", () => {
+    const result = analyzeProject(
+      snapshot(
+        "module Game; loadable const DATA: byte[2] = [1, 2]; let target: byte[2]; function main(): void { c64.loader.load(DATA, target); }",
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10275");
+  });
+});

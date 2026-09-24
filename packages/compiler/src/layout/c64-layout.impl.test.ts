@@ -53,6 +53,197 @@ function program(assetBytes: readonly number[]): MachineProgram {
 }
 
 describe("C64 layout hardening", () => {
+  it("should reserve a source zero-page member without placing it in the PRG", () => {
+    const base = program([]);
+    const result = layoutC64Program({
+      program: Object.freeze({
+        ...base,
+        data: Object.freeze([
+          Object.freeze({
+            id: "global.fast",
+            kind: "bss" as const,
+            alignment: 1,
+            bytes: Object.freeze([0]),
+            zeropage: true,
+            placement: Object.freeze({ at: 0x20, align: 1, noCross: null, region: null }),
+          }),
+        ]),
+      }),
+      certificate: certificate(),
+      profile: selectedProfile(),
+    });
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected zero-page layout");
+    expect(result.intervals.find(({ id }) => id === "global.fast")).toMatchObject({
+      start: 0x20,
+      end: 0x20,
+      bytes: null,
+    });
+    expect(result.loadRange.start).toBe(0x0801);
+  });
+
+  it("should retain the exact source origin of a non-entry function", () => {
+    const base = program([]);
+    const returned = (id: string, at?: number) =>
+      Object.freeze({
+        id,
+        ...(at === undefined
+          ? {}
+          : { placement: Object.freeze({ at, align: 256, noCross: null, region: null }) }),
+        blocks: Object.freeze([
+          Object.freeze({
+            label: `${id}.entry`,
+            instructions: Object.freeze([]),
+            terminator: Object.freeze({ kind: "return" as const }),
+          }),
+        ]),
+      });
+    const result = layoutC64Program({
+      program: Object.freeze({
+        ...base,
+        data: Object.freeze([]),
+        functions: Object.freeze([returned("main"), returned("helper", 0x2000)]),
+      }),
+      certificate: certificate(),
+      profile: selectedProfile(),
+    });
+    expect(result.kind, result.kind === "error" ? `${result.reason}:${result.objectId}` : "").toBe(
+      "complete",
+    );
+    if (result.kind !== "complete") throw new Error("Expected source function placement");
+    expect(result.program.functions.find(({ id }) => id === "helper")?.origin).toBe(0x2000);
+  });
+
+  it("should retain a placed entry function with an explicit startup jump", () => {
+    const base = program([]);
+    const result = layoutC64Program({
+      program: Object.freeze({
+        ...base,
+        data: Object.freeze([]),
+        functions: Object.freeze([
+          Object.freeze({
+            id: "main",
+            placement: Object.freeze({ at: 0x2000, align: 256, noCross: null, region: null }),
+            blocks: Object.freeze([
+              Object.freeze({
+                label: "main.entry",
+                instructions: Object.freeze([]),
+                terminator: Object.freeze({ kind: "return" as const }),
+              }),
+            ]),
+          }),
+        ]),
+      }),
+      certificate: certificate(),
+      profile: selectedProfile(),
+    });
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected placed entry function");
+    expect(result.program.functions[0]?.origin).toBe(0x2000);
+    expect(result.program.startup.blocks[0]?.terminator.kind).toBe("jump");
+  });
+
+  it("accepts disjoint fixed functions and data in reverse address order", () => {
+    const base = program([]);
+    const placedFunction = (id: string, at: number) =>
+      Object.freeze({
+        id,
+        placement: Object.freeze({ at, align: 256, noCross: null, region: null }),
+        blocks: Object.freeze([
+          Object.freeze({
+            label: `${id}.entry`,
+            instructions: Object.freeze([]),
+            terminator: Object.freeze({ kind: "return" as const }),
+          }),
+        ]),
+      });
+    const placedData = (id: string, at: number) =>
+      Object.freeze({
+        id,
+        kind: "immutable" as const,
+        alignment: 1,
+        bytes: Object.freeze([0xa5]),
+        placement: Object.freeze({ at, align: 1, noCross: null, region: null }),
+      });
+    const result = layoutC64Program({
+      program: Object.freeze({
+        ...base,
+        functions: Object.freeze([placedFunction("high", 0x3000), placedFunction("low", 0x2000)]),
+        data: Object.freeze([
+          placedData("data.high", 0x3100),
+          placedData("data.low", 0x2100),
+          Object.freeze({
+            id: "data.auto",
+            kind: "immutable" as const,
+            alignment: 1,
+            bytes: Object.freeze([0x5a]),
+          }),
+        ]),
+      }),
+      certificate: certificate(),
+      profile: selectedProfile(),
+    });
+    expect(result.kind, result.kind === "error" ? `${result.reason}:${result.objectId}` : "").toBe(
+      "complete",
+    );
+    if (result.kind !== "complete") throw new Error("Expected disjoint fixed placement");
+    expect(result.program.functions.find(({ id }) => id === "high")?.origin).toBe(0x3000);
+    expect(result.program.functions.find(({ id }) => id === "low")?.origin).toBe(0x2000);
+    expect(result.intervals.find(({ id }) => id === "data.high")?.start).toBe(0x3100);
+    expect(result.intervals.find(({ id }) => id === "data.low")?.start).toBe(0x2100);
+    expect(result.intervals.find(({ id }) => id === "data.auto")!.start).toBeLessThan(0x2000);
+  });
+
+  it.each([
+    ["misaligned fixed address", 0x2001, 256, null, 1],
+    ["crossed page", 0x1fff, 1, 256, 2],
+    ["reserved code range", 0x080d, 1, null, 1],
+  ])("rejects %s without weakening the source constraint", (_name, at, align, noCross, length) => {
+    const base = program([]);
+    const result = layoutC64Program({
+      program: Object.freeze({
+        ...base,
+        data: Object.freeze([
+          Object.freeze({
+            id: "placed.data",
+            kind: "immutable" as const,
+            alignment: 1,
+            bytes: Object.freeze(new Array<number>(length).fill(1)),
+            placement: Object.freeze({ at, align, noCross, region: null }),
+          }),
+        ]),
+      }),
+      certificate: certificate(),
+      profile: selectedProfile(),
+    });
+    expect(result).toMatchObject({ kind: "error", reason: "source-placement" });
+  });
+
+  it("keeps automatic BSS before a valid fixed high-RAM reservation", () => {
+    const base = program([]);
+    const result = layoutC64Program({
+      program: Object.freeze({
+        ...base,
+        data: Object.freeze([
+          Object.freeze({
+            id: "placed.tail",
+            kind: "bss" as const,
+            alignment: 1,
+            bytes: Object.freeze([0]),
+            placement: Object.freeze({ at: 0xbfff, align: 1, noCross: null, region: null }),
+          }),
+        ]),
+      }),
+      certificate: certificate(),
+      profile: selectedProfile(),
+    });
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected fixed BSS layout");
+    expect(result.intervals.find(({ id }) => id === "placed.tail")?.start).toBe(0xbfff);
+    expect(result.intervals.find(({ id }) => id === "platform.startup-state")?.end).toBeLessThan(
+      0xbfff,
+    );
+  });
   it("should reject an asset that cannot consist of complete 64-byte records", () => {
     const result = layoutC64Program({
       program: program(new Array<number>(65).fill(1)),

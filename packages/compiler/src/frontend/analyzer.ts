@@ -5,8 +5,9 @@ import type {
   SourceRecord,
   SourceSpan,
 } from "../project/types.js";
-import { isScalarType, RESERVED_BUILTIN_NAMES, scalarWarning, SCALAR_TYPES } from "./constants.js";
-import { AggregateRegistry, semanticTypeName } from "./aggregates.js";
+import { RESERVED_BUILTIN_NAMES, scalarWarning, SCALAR_TYPES } from "./constants.js";
+import { AggregateRegistry } from "./aggregates.js";
+import { analyzeReturnStatement } from "./analyzer-return.js";
 import { assembleModuleAnalysis } from "./analysis-result.js";
 import { uninitializedReadDiagnostic } from "./aggregate-initialization.js";
 import { recursionDiagnostics } from "./call-cycles.js";
@@ -27,6 +28,7 @@ import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import { analyzeStructuredSwitch } from "./switch-flow.js";
 import { analyzeScalarLocal, analyzeScalarModuleVariable } from "./analyzer-scalars.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
+import { resolvePlacement } from "./placement.js";
 import type { FunctionInfo } from "./module-bindings.js";
 import type { FrontendProfile } from "./profile.js";
 import { captureBranchFacts, mergeScalarFacts, snapshotScalarFacts } from "./flow-facts.js";
@@ -43,6 +45,7 @@ import type {
   CallEdge,
   ModuleAnalysisResult,
   ModuleGraph,
+  PlacementConstraints,
   ScalarExpressionContext as ExpressionContext,
   ScalarFactSnapshot,
   ScalarScope as Scope,
@@ -62,6 +65,7 @@ import type {
   Statement,
   TypeSyntax,
   VariableDeclaration,
+  PlacementClause,
 } from "./syntax.js";
 import type { EmbeddedValue } from "../assets/asset-types.js";
 
@@ -113,6 +117,7 @@ class ModuleAnalyzer {
     this.addProfileBindings();
     this.expressions = new ScalarExpressionAnalyzer(
       {
+        profileId: this.profile?.id ?? null,
         resolveName: (name, context) => resolveScalarName(name, context, this.qualified),
         resolveType: (type, context) => this.resolveType(type, context.module, null, context.scope),
         signature: (binding) =>
@@ -213,18 +218,11 @@ class ModuleAnalyzer {
       return;
     }
     if (declaration.kind === "zeropage") {
-      this.addObligation(declaration.span, "Declaration semantics remain pending");
+      for (const variable of declaration.variables) this.analyzeDeclaration(module, variable);
       return;
     }
-    if (declaration.kind === "function" && declaration.mode !== "ordinary") {
+    if (declaration.kind === "function" && declaration.mode === "comptime") {
       this.addObligation(declaration.span, "Function entry semantics remain pending");
-      return;
-    }
-    if (
-      declaration.kind === "variable" &&
-      (declaration.loadable || declaration.zeropage || declaration.placement !== null)
-    ) {
-      this.addObligation(declaration.span, "Declaration storage semantics remain pending");
       return;
     }
     const sourceBinding = this.graph.bindings.find(
@@ -285,15 +283,32 @@ class ModuleAnalyzer {
       this.moduleScopes.get(module),
       this.importsBySource.get(declaration.span.sourceId),
     );
+    const placement = this.checkedPlacement(declaration.placement, {
+      scope,
+      module,
+      sourceId: declaration.span.sourceId,
+      caller: null,
+      constantContext: true,
+    });
+    const analyzed = analyzeScalarModuleVariable(declaration, module, state, scope, {
+      expressions: this.expressions,
+      diagnostics: this.diagnostics,
+      resolveType: (item, owner) => this.resolveType(item.type, owner, item.initializer),
+      errorCount: () => this.errorCount(),
+      obligationCount: () => this.obligations.length,
+      defer: (span, message) => this.addObligation(span, message),
+    });
     this.declarations.push(
-      analyzeScalarModuleVariable(declaration, module, state, scope, {
-        expressions: this.expressions,
-        diagnostics: this.diagnostics,
-        resolveType: (item, owner) => this.resolveType(item.type, owner, item.initializer),
-        errorCount: () => this.errorCount(),
-        obligationCount: () => this.obligations.length,
-        defer: (span, message) => this.addObligation(span, message),
-      }),
+      declaration.placement !== null && placement === null
+        ? Object.freeze({ kind: "poison", binding: state.binding.id, span: declaration.span })
+        : analyzed.kind === "typed"
+          ? Object.freeze({
+              ...analyzed,
+              placement,
+              loadable: declaration.loadable,
+              zeropage: declaration.zeropage,
+            })
+          : analyzed,
     );
   }
 
@@ -322,6 +337,13 @@ class ModuleAnalyzer {
       ),
       values: new Map(),
     };
+    const placement = this.checkedPlacement(declaration.placement, {
+      scope,
+      module,
+      sourceId: declaration.span.sourceId,
+      caller: null,
+      constantContext: true,
+    });
     for (const parameter of declaration.parameters) {
       const type = this.resolveType(parameter.type, module, null);
       if (type === null) continue;
@@ -390,6 +412,7 @@ class ModuleAnalyzer {
         type: returnType,
         initializer: null,
         body,
+        placement,
       }),
     );
   }
@@ -570,36 +593,14 @@ class ModuleAnalyzer {
       );
     }
     if (statement.kind === "return") {
-      let value: TypedExpr | null = null;
-      if (statement.value !== null)
-        value = this.expressions.analyze(
-          statement.value,
-          isScalarType(returnType) && returnType.name === "void" ? null : returnType,
-          context,
-        ).node;
-      if (isScalarType(returnType) && returnType.name === "void" && statement.value !== null) {
-        const name = this.bindingByKey.get(bindingIdentityKey(caller))?.name ?? "<function>";
-        this.diagnostics.push(
-          errorDiagnostic(
-            "E10173",
-            `Cannot return a value from void function '${name}'`,
-            statement.span,
-          ),
-        );
-      } else if (
-        (!isScalarType(returnType) || returnType.name !== "void") &&
-        statement.value === null
-      ) {
-        const name = this.bindingByKey.get(bindingIdentityKey(caller))?.name ?? "<function>";
-        this.diagnostics.push(
-          errorDiagnostic(
-            "E10174",
-            `Missing return value — function '${name}' returns '${semanticTypeName(returnType)}' but this 'return' has no expression`,
-            statement.span,
-          ),
-        );
-      }
-      return Object.freeze({ kind: "return", span: freezeSourceSpan(statement.span), value });
+      return analyzeReturnStatement(
+        statement,
+        returnType,
+        this.bindingByKey.get(bindingIdentityKey(caller))?.name ?? "<function>",
+        context,
+        this.expressions,
+        this.diagnostics,
+      );
     }
     if (statement.kind === "break" || statement.kind === "continue") {
       if (loopDepth === 0) {
@@ -638,8 +639,8 @@ class ModuleAnalyzer {
         this.resolveType(item.type, active.module, item.initializer, active.scope),
       defer: (span, message) => this.addObligation(span, message),
       errorCount: () => this.errorCount(),
-      createBinding: (name, span, storage, type) =>
-        this.createBodyBinding(name, span, storage, type),
+      createBinding: (name, span, storage, type, loadable) =>
+        this.createBodyBinding(name, span, storage, type, loadable),
     });
   }
 
@@ -674,8 +675,10 @@ class ModuleAnalyzer {
     declaration: SourceSpan,
     storage: "local" | "parameter" | "constant",
     type: SemanticType,
+    loadable = false,
   ): SemanticBinding {
-    const binding = createSemanticBodyBinding(name, declaration, storage, type);
+    const ordinary = createSemanticBodyBinding(name, declaration, storage, type);
+    const binding = loadable ? Object.freeze({ ...ordinary, loadable: true }) : ordinary;
     this.bindings.push(binding);
     this.bindingByKey.set(bindingIdentityKey(binding.id), binding);
     return binding;
@@ -689,6 +692,21 @@ class ModuleAnalyzer {
     scope?: Scope,
   ): SemanticType | null {
     return this.aggregates.resolveType(type, module, initializer, true, scope);
+  }
+  /** Validate one source constraint while leaving physical assignment to layout. */
+  private checkedPlacement(
+    clause: PlacementClause | null,
+    context: ExpressionContext,
+  ): PlacementConstraints | null {
+    return clause === null
+      ? null
+      : resolvePlacement(
+          clause,
+          context,
+          (expression, active) =>
+            this.expressions.analyze(expression, null, active).node?.constant ?? null,
+          (diagnostic) => this.diagnostics.push(diagnostic),
+        );
   }
   /** Append a condition diagnostic only when the expression is not Boolean. */
   private addConditionDiagnostic(expression: TypedExpr, span: SourceSpan): void {

@@ -76,6 +76,48 @@ afterEach(async () => {
 });
 
 describe("address-of expressions", () => {
+  // A field element inside a live local remains addressable for an immediate memory operation.
+  it("should allow a local field element address while its owner is alive", () => {
+    const result = analyzeProject(
+      snapshot(
+        "/checkout",
+        [
+          "module Game;",
+          "struct Item { bytes: byte[2]; value: byte; }",
+          "function main(): void {",
+          "  let item: Item = { bytes: [1, 2], value: 3 };",
+          "  let address: word = &item.bytes[1];",
+          "  poke(address, 7);",
+          "}",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.kind).toBe("complete");
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  // Copying an address as an integer cannot erase the local owner's lifetime.
+  it("should reject the first global store of a derived local address", () => {
+    const result = analyzeProject(
+      snapshot(
+        "/checkout",
+        [
+          "module Game;",
+          "let leaked: word;",
+          "function main(): void {",
+          "  let value: byte = 1;",
+          "  let address: word = &value;",
+          "  leaked = address + 1;",
+          "}",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10260");
+  });
+
   // Resident embedded data keeps one identity from source analysis into its direct symbolic address.
   it("should lower a resident embedded base address directly into the platform call", async () => {
     const project = await residentSpriteProject(

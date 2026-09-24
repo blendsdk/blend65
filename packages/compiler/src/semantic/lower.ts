@@ -96,7 +96,15 @@ class ExpressionLowerer {
         return this.emitConstant(constant, expression.type, expression.span, expression.integer);
       }
       case "literal":
-        throw new Error("Unencoded literals cannot enter completed semantic lowering");
+        if (expression.encodedBytes !== undefined && typeof expression.constant === "bigint") {
+          return this.emitConstant(
+            expression.constant,
+            operationType,
+            expression.span,
+            expression.integer,
+          );
+        }
+        throw new Error("Encoded array literal requires aggregate lowering");
       case "name": {
         const binding =
           expression.binding === null
@@ -145,6 +153,14 @@ class ExpressionLowerer {
       case "assignment":
         return this.lowerAssignment(expression);
       case "call":
+        if (expression.encodedBytes !== undefined && typeof expression.constant === "bigint") {
+          return this.emitConstant(
+            expression.constant,
+            operationType,
+            expression.span,
+            expression.integer,
+          );
+        }
         return this.lowerCall(expression, operationType);
       case "array-literal":
       case "struct-literal":
@@ -566,6 +582,7 @@ function lowerFunction(
     entry: builder.entry,
     blocks,
     source: declaration.binding.span,
+    ...(declaration.placement ? { placement: declaration.placement } : {}),
   });
 }
 
@@ -589,6 +606,8 @@ function lowerGlobal(
       entry: null,
       blocks: Object.freeze([]),
       source: declaration.binding.span,
+      ...(declaration.placement ? { placement: declaration.placement } : {}),
+      ...(declaration.zeropage ? { zeropage: true } : {}),
     });
   }
   if (binding.storage === "constant") {
@@ -597,13 +616,16 @@ function lowerGlobal(
       storage: binding.storage,
       type: declaration.type,
       initialBytes:
-        declaration.type.kind === "scalar" || declaration.type.kind === "enum"
+        (declaration.type.kind === "scalar" || declaration.type.kind === "enum") &&
+        !declaration.placement
           ? null
           : initializerBytes(declaration.initializer, declaration.type),
       runtimeInitialBytes: null,
       entry: null,
       blocks: Object.freeze([]),
       source: declaration.binding.span,
+      ...(declaration.placement ? { placement: declaration.placement } : {}),
+      ...(declaration.zeropage ? { zeropage: true } : {}),
     });
   }
   const builder = new ControlFlowBuilder(`initializer:${bindingIdentityKey(declaration.binding)}`);
@@ -633,6 +655,8 @@ function lowerGlobal(
     entry: builder.entry,
     blocks,
     source: declaration.binding.span,
+    ...(declaration.placement ? { placement: declaration.placement } : {}),
+    ...(declaration.zeropage ? { zeropage: true } : {}),
   });
 }
 
@@ -669,6 +693,7 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       );
     } else if (
       (binding.storage === "module" || binding.storage === "constant") &&
+      !declaration.loadable &&
       !embeddedBindings.has(bindingIdentityKey(declaration.binding))
     ) {
       globals.push(lowerGlobal(declaration, binding, bindingsByKey, embeddedByBinding));

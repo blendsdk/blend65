@@ -1,5 +1,10 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import {
+  addressEscapesPlace,
+  mergeAddressOrigins,
+  mergeAddressPlaces,
+} from "./address-provenance.js";
+import {
   adaptableLiteralType,
   applyExpectedScalar,
   compoundOperationType,
@@ -187,13 +192,37 @@ export function analyzeScalarAssignment(
   }
 
   if (value.node === null) return { node: null, exact: null };
+  const compound = expression.operator !== "=";
+  const resultOrigins = compound
+    ? mergeAddressOrigins(target.node.addressOrigins, value.node.addressOrigins)
+    : value.node.addressOrigins;
+  const resultPlaces = compound
+    ? mergeAddressPlaces(target.node.addressPlaces, value.node.addressPlaces)
+    : value.node.addressPlaces;
   const state = stateForPlace(target.node.place, context.scope);
+  if (addressEscapesPlace(resultOrigins, state, context.scope)) {
+    host.diagnose(
+      projectDiagnostic(
+        "E10260",
+        "A local address or derived fragment cannot be stored where it may outlive its owner",
+        expression.span,
+        null,
+        (resultOrigins ?? []).map((origin) => ({
+          span: origin.span,
+          message: "Borrowed local address originates here",
+        })),
+      ),
+    );
+    return { node: null, exact: null };
+  }
   if (state !== null) {
     state.known = target.node.place.path.length === 0 ? resultConstant : null;
+    state.addressOrigins =
+      target.node.place.path.length === 0 ? resultOrigins : state.addressOrigins;
+    state.addressPlaces = target.node.place.path.length === 0 ? resultPlaces : state.addressPlaces;
     if (target.node.place.path.length === 0) state.conditionalEffect = null;
     markPlaceInitialized(state, target.node.place);
   }
-  const compound = expression.operator !== "=";
   return {
     node: createScalarTypedExpression(expression, target.node.type, resultConstant, {
       operator: expression.operator,
@@ -202,6 +231,8 @@ export function analyzeScalarAssignment(
       place: target.node.place,
       evaluation: compound ? COMPOUND_ASSIGNMENT_EVALUATION : SIMPLE_ASSIGNMENT_EVALUATION,
       integer: integerFacts(target.node.type, true),
+      addressOrigins: resultOrigins,
+      addressPlaces: resultPlaces,
     }),
     exact: resultConstant,
   };

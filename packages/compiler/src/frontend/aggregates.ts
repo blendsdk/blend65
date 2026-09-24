@@ -7,6 +7,11 @@ import {
 } from "./constants.js";
 import { clearCallVisibleScalarFacts } from "./flow-facts.js";
 import {
+  analyzeEncodedLiteral,
+  analyzeEncodingCall,
+  analyzeStringArrayLiteral,
+} from "./encoded-literals.js";
+import {
   AggregateRegistry,
   semanticTypeName,
   semanticTypesEqual,
@@ -74,6 +79,32 @@ export function analyzeAggregateExpression(
   registry: AggregateRegistry,
   analyze: AnalyzeExpression,
 ): ScalarExpressionResult | null {
+  if (expression.kind === "literal") {
+    return analyzeEncodedLiteral(
+      expression,
+      expected,
+      "screen_codes",
+      "upper_graphics",
+      host,
+      registry,
+    );
+  }
+  if (expression.kind === "call" && expression.callee.kind === "name") {
+    const name = expression.callee.name;
+    if (name === "screen_codes" || name === "petscii") {
+      return analyzeEncodingCall(expression, expected, name, host, registry);
+    }
+    if (name === "atascii" || name === "internal_codes") {
+      host.diagnose(
+        projectDiagnostic(
+          "E10125",
+          `Encoding '${name}' is unavailable for the selected C64 profile`,
+          expression.callee.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
+  }
   if (expression.kind === "array-literal") {
     return expected?.kind === "array"
       ? analyzeArrayLiteral(expression, expected, context, host, analyze)
@@ -147,6 +178,7 @@ export function analyzeAggregateExpression(
       ...context,
       constantContext: false,
       placeContext: true,
+      compileTimeQuery: true,
     });
     if (operand.node === null) return { node: null, exact: null };
     if (operand.node.type.kind !== "array") {
@@ -209,6 +241,8 @@ function analyzeArrayLiteral(
   host: ScalarExpressionHost,
   analyze: AnalyzeExpression,
 ): ScalarExpressionResult {
+  const string = analyzeStringArrayLiteral(expression, expected, context, host, analyze);
+  if (string !== null) return string;
   if (expression.elements.length > expected.length) {
     host.diagnose(
       projectDiagnostic(
@@ -348,6 +382,14 @@ function analyzeMember(
           path: Object.freeze([...object.node.place.path, expression.member]),
           readonly: object.node.place.readonly,
           readonlyOrigin: object.node.place.readonlyOrigin,
+          byteRange:
+            object.node.place.byteRange == null
+              ? null
+              : Object.freeze({
+                  start: object.node.place.byteRange.start + field.offset,
+                  end:
+                    object.node.place.byteRange.start + field.offset + semanticTypeSize(field.type),
+                }),
         });
   if (!context.placeContext && place !== null) host.read(place, expression.span);
   return {
@@ -411,6 +453,17 @@ function analyzeIndex(
           path: Object.freeze([...object.node.place.path, index.node]),
           readonly: object.node.place.readonly,
           readonlyOrigin: object.node.place.readonlyOrigin,
+          byteRange:
+            object.node.place.byteRange == null || typeof index.node.constant !== "bigint"
+              ? null
+              : Object.freeze({
+                  start:
+                    object.node.place.byteRange.start +
+                    Number(index.node.constant) * semanticTypeSize(object.node.type.element),
+                  end:
+                    object.node.place.byteRange.start +
+                    (Number(index.node.constant) + 1) * semanticTypeSize(object.node.type.element),
+                }),
         });
   if (!context.placeContext && place !== null) host.read(place, expression.span);
   return {
@@ -498,6 +551,19 @@ function analyzeBuiltinCall(
     else arguments_.push(result.node);
   });
   if (!valid) return { node: null, exact: null };
+  if (
+    (name === "poke" || name === "pokew") &&
+    arguments_[0]?.addressPlaces?.some((place) => place.readonly)
+  ) {
+    host.diagnose(
+      projectDiagnostic(
+        "E10123",
+        "Cannot write through an address derived from read-only storage",
+        expression.arguments[0]?.span ?? expression.span,
+      ),
+    );
+    return { node: null, exact: null };
+  }
   if (builtin.memory !== null) clearCallVisibleScalarFacts(context.scope);
   const signature: FunctionSignature = Object.freeze({
     parameters: Object.freeze(

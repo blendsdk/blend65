@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-24
-> **Progress**: 24/99 tasks (24%)
+> **Progress**: 36/99 tasks (36%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -142,38 +142,60 @@ Independent correctness, semantic and performance reviews found missed constant-
 
 ## Phase 3: Arrays, Strings, Structs, Addresses and Placement
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `a1f8067b12a7a80cadd0d534482a08238b8f9d88`
+> **Expected modification set**: Phase 3 task paths in `packages/compiler/src/frontend/`, `packages/compiler/src/semantic/`, `packages/compiler/src/machine/`, `packages/compiler/src/layout/`, and `test/rd04/`; this plan and the feature roadmap. Scope mode: strict; extend the existing compiler path without new packages, frameworks, runtime or alternate IR.
 > **Lenses**: aggregate semantics, alias/lifetime safety, target-neutrality, data placement
 
 ### Step 3.1: Specification Tests
 
 **Reference**: [03-02](03-02-values-and-memory.md) · ST-21–ST-25, ST-28–ST-29; ST-26/27 belong to Phase 4
 
-- [ ] 3.1.1 [spec-author] Write array, ordinal, bounds, string/map and struct layout specification cases, excluding aggregate value assignment and parameter ABI — `packages/compiler/src/frontend/aggregates.spec.test.ts`, `packages/compiler/src/frontend/address-of.spec.test.ts`, `test/rd04/aggregate-runtime.spec.test.ts`
-- [ ] 3.1.2 [spec-author] Write placement, loadable-value and address-provenance specification cases — `packages/compiler/src/frontend/profile.spec.test.ts`, `packages/compiler/src/layout/c64-layout.spec.test.ts`, `test/rd04/provenance.spec.test.ts`
-- [ ] 3.1.3 Run only the new Phase 3 specification cases and record the expected red failures — Phase 3 test files
+- [x] 3.1.1 [spec-author] Write array, ordinal, bounds, string/map and struct layout specification cases, excluding aggregate value assignment and parameter ABI — `packages/compiler/src/frontend/aggregates.spec.test.ts`, `packages/compiler/src/frontend/address-of.spec.test.ts`, `test/rd04/aggregate-runtime.spec.test.ts` — Focused nested shape/layout/cycle, local-address and bounded C64 runtime oracles authored without implementation changes. Verified RED: six new frontend cases fail while 12 prior cases pass; the bounded runtime case fails before VICE. Typecheck, formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-24 12:00)
+- [x] 3.1.2 [spec-author] Write placement, loadable-value and address-provenance specification cases — `packages/compiler/src/frontend/profile.spec.test.ts`, `test/rd04/provenance.spec.test.ts` — The current direct layout-test input has no source-constraint field, so public `buildProject` supplies the placement oracle without a new test-only interface. Verified RED: 15 new frontend and nine public-build cases fail; six and two prior cases respectively pass. Typecheck, formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-24 12:06)
+- [x] 3.1.3 Run only the new Phase 3 specification cases and record the expected red failures — Phase 3 test files — Verified RED 2026-09-24 12:07: 21 frontend cases fail and 18 pass; 10 public cases fail and two pass. Logs `/tmp/rd04-phase3-combined-red-compiler.log` and `/tmp/rd04-phase3-combined-red-public.log`; no implementation or frozen-spec change. ✅ (completed: 2026-09-24 12:07)
 
 ### Step 3.2: Implementation
 
 **Reference**: [03-02 §Aggregates and Places](03-02-values-and-memory.md#aggregates-and-places) · AR-P8
 
-- [ ] 3.2.1 Complete nested fixed-array shapes, inference, initializers, ordinals and `length` — `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/aggregate-initialization.ts`, `packages/compiler/src/frontend/aggregates.ts`
-- [ ] 3.2.2 Complete immutable character-map conversion and literal diagnostics — `packages/compiler/src/frontend/lexer.ts`, `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/frontend/constants.ts`
-- [ ] 3.2.3 Complete nominal structs, packed layout, nested fields and circular-containment rejection — `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/aggregates.ts`, `packages/compiler/src/frontend/analyzer.ts`
-- [ ] 3.2.4 Add address provenance, physical ranges, retaining summaries and alias classes — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/effects.ts`, `packages/compiler/src/frontend/flow-facts.ts`
-- [ ] 3.2.5 Complete `place(...)` and `loadable const` semantics with honest resident-profile diagnostics — `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/layout/c64-layout.ts`
-- [ ] 3.2.6 Lower nested array/struct places, dynamic addresses, bounds checks and modulo wrap — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-memory.ts`
-- [ ] 3.2.7 Run Phase 3 specification cases and make all immutable expectations green — Phase 3 test files
+- [x] 3.2.1 Complete nested fixed-array shapes, inference, initializers, ordinals and `length` — `packages/compiler/src/frontend/parser-types.ts`, `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/semantic-type-relations.ts`; existing initialization and ordinal paths reused. The first written dimension is now outermost; nested types resolve recursively and render in source order. Verified the new rectangular-array case and seven existing array/ordinal cases, build, typecheck, formatting, whitespace and frozen-spec checks. Struct, placement, string and provenance RED cases remain owned by later Phase 3 tasks. ✅ (completed: 2026-09-24 12:11)
+- [x] 3.2.2 Complete immutable character-map conversion and literal diagnostics — `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/frontend/encoded-literals.ts`, `packages/compiler/src/frontend/aggregates.ts`, `packages/compiler/src/frontend/constants.ts`, plus existing literal syntax/discovery and semantic constant lowering. Selected C64 mappings now produce exact bytes or diagnostics; encoded strings and string fills remain compile-time data. Verified eight focused string/map cases, 140 lexer/parser/service regressions, the bounded VICE runtime case, build, typecheck, formatting, whitespace and frozen-spec checks. An unselected profile retains the existing honest encoding obligation. ✅ (completed: 2026-09-24 12:29)
+- [x] 3.2.3 Complete nominal structs, packed layout, nested fields and circular-containment rejection — `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/struct-types.ts`, `packages/compiler/src/frontend/aggregate-names.ts`; existing semantic analyzer used unchanged. Struct fields resolve recursively in declaration order, preserve packed byte offsets and reject direct/indirect containment cycles. Updated the obsolete implementation-tier deferral expectation. Verified four new struct specification cases, 42 aggregate/parser implementation cases, build, typecheck, formatting, whitespace and frozen-spec checks. Remaining Phase 3 RED cases are owned by later tasks. ✅ (completed: 2026-09-24 12:30)
+- [x] 3.2.4 Add address provenance, physical ranges, retaining summaries and alias classes — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/address-provenance.ts`, `packages/compiler/src/frontend/borrow-calls.ts`, `packages/compiler/src/frontend/flow-facts.ts` and existing expression/analyzer paths. Local-address and read-only facts now survive copies, casts, choices, byte extraction and integer derivation; lexical stores and returns reject the first escape. Whole-function parameter summaries reject transitive retaining calls while allowing proved non-retaining calls. Places retain exact root-relative byte intervals where known and classify must/may/not-alias conservatively. Verified new provenance/range implementation tests, frontend address specification cases, public borrowed-address cases, 1064 unrelated compiler regression cases, build, typecheck, formatting, whitespace and frozen-spec checks. The separate placement cases remain RED for 3.2.5. ✅ (completed: 2026-09-24 12:49)
+- [x] 3.2.5 Complete `place(...)` and `loadable const` semantics with honest resident-profile diagnostics — `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/layout/c64-layout.ts`. Closed source placement is checked before layout and retained for code/data placement; placed scalar constants materialize, while loadable constants have no resident home and the resident profile reports missing transfer support. Verified public placement/provenance cases, placed helper and entry-function builds through ACME/PRG evidence, zero-page build, 1114 compiler tests, build, typecheck, formatting, whitespace and frozen-spec checks. ✅ (completed: 2026-09-24 13:21)
+- [x] 3.2.6 Lower nested array/struct places, dynamic addresses, bounds checks and modulo wrap — `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-memory.ts`. The existing packed-address path retains nested strides and 16-bit effective-address wrap; the selected bounds option now emits inline checks with one four-byte stop per function. A VICE case exercised valid byte/nested word indexes and a field inside an indexed struct, then confirmed an invalid index stops before the read. Full build, typecheck, repository tests, formatting and frozen-spec checks pass. ✅ (completed: 2026-09-24 13:35)
+- [x] 3.2.7 Run Phase 3 specification cases and make all immutable expectations green — Phase 3 test files. All authored Phase 3 frontend and public specification cases are green in the complete repository run; no frozen specification file was changed. ✅ (completed: 2026-09-24 13:35)
 
 ### Step 3.3: Implementation Tests and Qualification
 
-- [ ] 3.3.1 Add layout-cycle, ordinal-barrier, provenance and malformed-placement implementation tests — `packages/compiler/src/frontend/aggregates.impl.test.ts`, `packages/compiler/src/layout/c64-layout.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts`
-- [ ] 3.3.2 Run complete aggregate/memory ACME and VICE family qualification plus expert comparisons — `test/rd04/aggregate-runtime.spec.test.ts`, `test/rd04/expert/aggregates.json`, `test/rd04/vice.spec.test.ts`
+- [x] 3.3.1 Add layout-cycle, ordinal-barrier, provenance and malformed-placement implementation tests — `packages/compiler/src/frontend/aggregates.impl.test.ts`, `packages/compiler/src/layout/c64-layout.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts`. Existing implementation cases cover ordinal promotion/barriers and address provenance; new cases cover array-mediated struct cycles, malformed fixed placement, and the selected one-stop bounds shape. All 50 focused cases and typecheck pass. ✅ (completed: 2026-09-24 13:39)
+- [x] 3.3.2 Run complete aggregate/memory ACME and VICE family qualification plus expert comparisons — `test/rd04/aggregate-runtime.spec.test.ts`, `test/rd04/bounds.impl.test.ts`, `test/rd04/expert/aggregates.json`, `test/rd04/expert-aggregates.impl.test.ts`. Existing aggregate runtime, new checked-index/unchecked-wrap VICE cases, and an independent expert static byte-array core comparison passed through real ACME output. The proven byte-index path now uses native absolute indexed access without an aggregate pointer home; general word/signed paths retain page-safe pointer lowering. Clean checkpoint passed install, build, typecheck, 1121 compiler tests and 120 repository tests; formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-24 13:50)
 
 **Deliverables:** complete core aggregate/address semantics through executable machine output;
 ST-26/27 aggregate value and ABI expectations remain Phase 4 work.
 
 **Verify:** `yarn workspace @blend65/compiler test && yarn test`
+
+### Phase 3 Quality Review — Closed
+
+The independent correctness and performance reviews found seven implementation defects after the
+first green checkpoint. On 2026-09-24 the user approved narrow fixes for all seven and approved
+keeping the specification tests, which were recorded RED before implementation. The approved fixes
+are complete. The one fix-scoped correctness and performance re-review reported no new findings.
+The final checkpoint passed frozen-lockfile install, build, typecheck, 1,125 compiler tests and
+123 repository tests; targeted formatting, whitespace and frozen-`spec/` checks pass. No new
+framework or language scope was added.
+
+| Finding | Ruling | Required correction |
+|---|---|---|
+| RV-001 | Fix | Preserve prior-target provenance through compound assignment and its result. |
+| RV-002 | Fix | Iterate loop alias summaries until stable. |
+| RV-003 | Fix | Honor disjoint fixed code/data placements regardless of declaration order, then fit automatic objects. |
+| RV-004 | Fix | Reserve user zero-page storage before SFA chooses homes. |
+| RV-005 | Fix | Select native zero-page machine forms for user zero-page globals. |
+| PE-001 | Fix | Use native indexed forms for proved small static word/struct accesses; retain the general pointer path elsewhere. |
+| PE-002 | Fix | Propagate retaining-summary changes only to affected callers. |
+| RV-006 | Keep stronger tests | Planned spec-author edits were RED first; review found no weakened expectation. |
 
 ## Phase 4: Aggregate Values, ABI and SFA
 

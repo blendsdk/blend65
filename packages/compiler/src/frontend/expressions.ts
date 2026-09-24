@@ -217,7 +217,12 @@ function parsePrimary(context: ExpressionContext): Expr | null {
     token.payload?.kind === PAYLOAD_KIND.literal
   ) {
     context.advance();
-    return Object.freeze({ kind: "literal", span: token.span, items: token.payload.items });
+    return Object.freeze({
+      kind: "literal",
+      span: token.span,
+      literalKind: token.kind === TokenKind.CHAR ? "character" : "string",
+      items: token.payload.items,
+    });
   }
   if (token.kind === TokenKind.KW_TRUE || token.kind === TokenKind.KW_FALSE) {
     context.advance();

@@ -31,6 +31,8 @@ export type LoweredValue =
       readonly bytes: number;
       readonly signed?: boolean;
       readonly transform?: "vic-sprite-block";
+      /** Source-owned zero-page data has a proved one-byte physical address. */
+      readonly zeroPage?: boolean;
     }
   | {
       readonly kind: "register";
@@ -132,14 +134,18 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
 export function modeForValue(
   value: LoweredValue,
   offset = 0,
-): "immediate" | "storage" | "absolute" {
+): "immediate" | "storage" | "zero-page" | "absolute" {
   if (value.kind === "zero-extended") {
     return offset === 0 ? modeForValue(value.low, 0) : "immediate";
   }
   if (value.kind === "constant") return "immediate";
   if (value.kind === "storage") return "storage";
   if (value.kind === "label")
-    return value.transform === "vic-sprite-block" ? "immediate" : "absolute";
+    return value.transform === "vic-sprite-block"
+      ? "immediate"
+      : value.zeroPage
+        ? "zero-page"
+        : "absolute";
   throw new Error("Machine value has no addressable mode");
 }
 

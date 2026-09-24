@@ -1,5 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
-import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
+import type { ProjectDiagnostic } from "../project/types.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { ANALYSIS_OBLIGATION_KIND, freezeSourceSpan } from "./semantic-types.js";
 import type { AnalysisObligation, ModuleAnalysisResult, ModuleGraph } from "./semantic-types.js";
@@ -29,13 +29,6 @@ interface StatementWork {
 }
 
 type SourceWork = ExpressionWork | StatementWork;
-
-/** Read exact UTF-8 source bytes covered by one source span. */
-function sourceText(snapshot: ProjectSnapshot, span: SourceSpan): string {
-  const source = snapshot.sources.find((candidate) => candidate.sourceId === span.sourceId);
-  if (source === undefined) return "";
-  return Buffer.from(source.text, "utf8").subarray(span.start, span.end).toString("utf8");
-}
 
 /** Return expression children in source evaluation order. */
 function expressionChildren(expression: Expr): readonly Expr[] {
@@ -178,9 +171,9 @@ function embeddedLiteralPath(expression: Expr): string | null {
 
 /** Discover source forms whose meaning depends on a later profile or asset stage. */
 export function discoverPendingObligations(
-  snapshot: ProjectSnapshot,
   analysis: ModuleAnalysisResult,
   embeddedValueKeys: ReadonlySet<string>,
+  profileAvailable: boolean,
 ): readonly AnalysisObligation[] {
   const obligations: AnalysisObligation[] = [];
   visitGraphExpressions(analysis.modules, (expression) => {
@@ -201,15 +194,12 @@ export function discoverPendingObligations(
       }
       return false;
     }
-    if (
-      expression.kind === "literal" &&
-      sourceText(snapshot, expression.span).trimStart().startsWith("'")
-    ) {
+    if (expression.kind === "literal" && !profileAvailable) {
       obligations.push(
         Object.freeze({
           kind: ANALYSIS_OBLIGATION_KIND.profile,
           span: freezeSourceSpan(expression.span),
-          message: "Character encoding requires the selected target profile",
+          message: "Literal encoding requires a selected target profile",
         }),
       );
     }

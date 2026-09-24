@@ -1,7 +1,7 @@
 import type { DeclarationContext } from "./parser-declarations.js";
 import { PAYLOAD_KIND, TokenKind } from "./tokens.js";
 import type { Token } from "./tokens.js";
-import type { FunctionTypeParameter, FunctionTypeSyntax, TypeSyntax } from "./syntax.js";
+import type { Expr, FunctionTypeParameter, FunctionTypeSyntax, TypeSyntax } from "./syntax.js";
 
 /** Primitive and no-value type spellings keyed by their fixed tokens. */
 const TYPE_NAMES: Readonly<Partial<Record<TokenKind, string>>> = Object.freeze({
@@ -71,21 +71,29 @@ export class TypeParser {
       }
       type = Object.freeze({ kind: "named-type", span: this.context.spanFrom(start, end), name });
     }
+    const dimensions: { readonly extent: Expr | null; readonly end: number }[] = [];
     while (this.context.match(TokenKind.LBRACKET) !== null) {
       const opener = this.context.tokens[this.context.index - 1]!;
       const extent = this.context.check(TokenKind.RBRACKET) ? null : this.context.parseExpression();
       if (!this.context.check(TokenKind.RBRACKET) && extent === null) return null;
       const closer = this.context.expect(TokenKind.RBRACKET, "']'", opener);
       if (closer === null) return null;
+      dimensions.push({ extent, end: closer.span.end });
+    }
+    // The first written dimension is the outermost one: byte[2][3] is two rows of three bytes.
+    // Wrap from the last dimension so each array node's element denotes its inner row.
+    const completeEnd = dimensions.at(-1)?.end;
+    for (let index = dimensions.length - 1; index >= 0; index -= 1) {
+      const dimension = dimensions[index]!;
       type = Object.freeze({
         kind: "array-type",
         span: Object.freeze({
           sourceId: this.context.source.sourceId,
           start: type.span.start,
-          end: closer.span.end,
+          end: completeEnd ?? dimension.end,
         }),
         element: type,
-        extent,
+        extent: dimension.extent,
       });
     }
     return type;

@@ -236,8 +236,9 @@ function bindInstruction(
   if (memory.some((effect) => effect === null)) return null;
 
   let mode = instruction.mode;
-  if (instruction.operand?.kind === "storage") mode = bound.mode!;
-  else if (instruction.operand?.kind === "indirect-y") mode = "indirect-indexed-y";
+  if (instruction.operand?.kind === "storage") {
+    mode = instruction.mode === "absolute-y" ? "absolute-y" : bound.mode!;
+  } else if (instruction.operand?.kind === "indirect-y") mode = "indirect-indexed-y";
   const cost =
     mode === instruction.mode ? instruction.cost : machineCost(NMOS_6510, instruction.opcode, mode);
   return Object.freeze({

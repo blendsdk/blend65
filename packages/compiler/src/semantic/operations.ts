@@ -3,6 +3,7 @@ import type {
   BindingId,
   EffectSummary,
   IntegerFacts,
+  PlacementConstraints,
   ProfileEffect,
   SemanticType,
 } from "../frontend/semantic-types.js";
@@ -321,6 +322,8 @@ export interface SemanticFunction {
   readonly blocks: readonly SemanticBlock[];
   /** Complete source function span. */
   readonly source: SourceSpan;
+  /** Optional source constraint on this emitted routine. */
+  readonly placement?: PlacementConstraints | null;
 }
 
 /** One module or constant binding and its explicit initialization control flow. */
@@ -341,6 +344,10 @@ export interface SemanticGlobal {
   readonly blocks: readonly SemanticBlock[];
   /** Source declaration span. */
   readonly source: SourceSpan;
+  /** Optional source constraint on this resident object. */
+  readonly placement?: PlacementConstraints | null;
+  /** Mutable storage must occupy the selected zero-page window. */
+  readonly zeropage?: boolean;
 }
 
 /** Complete target-neutral semantic input for whole-program analysis. */

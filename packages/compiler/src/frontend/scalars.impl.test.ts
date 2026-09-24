@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot, SourceRecord } from "../project/types.js";
 import { analyzeModules } from "./analyzer.js";
+import { classifyPlaceAlias } from "./address-provenance.js";
+import { diagnoseBorrowedCalls, inferRetainingParameters } from "./borrow-calls.js";
 import { indexModules, resolveModules } from "./modules.js";
 
 /** Hash one in-memory fixture exactly as the project loader would. */
@@ -76,6 +78,93 @@ function typedDeclaration(result: ReturnType<typeof analyzeModules>, qualifiedNa
 }
 
 describe("scalar analysis implementation", () => {
+  it("classifies exact physical byte ranges without assuming distinct roots cannot alias", () => {
+    const binding = { sourceId: "game.blend", span: { sourceId: "game.blend", start: 1, end: 2 } };
+    const place = (start: number, end: number) => ({
+      binding,
+      path: [],
+      readonly: false,
+      readonlyOrigin: null,
+      byteRange: { start, end },
+    });
+    expect(classifyPlaceAlias(place(0, 2), place(0, 2))).toBe("must");
+    expect(classifyPlaceAlias(place(0, 2), place(2, 4))).toBe("not");
+    expect(classifyPlaceAlias(place(0, 2), place(1, 3))).toBe("may");
+    expect(
+      classifyPlaceAlias(place(0, 2), {
+        ...place(0, 2),
+        binding: { ...binding, span: { ...binding.span, start: 3 } },
+      }),
+    ).toBe("may");
+  });
+  it("proves non-retaining address calls and rejects transitive retaining calls", () => {
+    const safe = analyze(
+      "module Game; function read(address: word): byte { return peek(address); } function main(): void { let value: byte = 7; poke($0400, read(&value)); }",
+    );
+    expect(safe.diagnostics).toEqual([]);
+    expect(diagnoseBorrowedCalls(safe)).toEqual([]);
+
+    const retained = analyze(
+      "module Game; let saved: word; function store(address: word): void { saved = address; } function forward(address: word): void { store(address); } function main(): void { let value: byte = 7; forward(&value); }",
+    );
+    expect(retained.diagnostics).toEqual([]);
+    expect(diagnoseBorrowedCalls(retained).map(({ code }) => code)).toEqual(["E10260"]);
+    const forward = retained.bindings.find(({ qualifiedName }) => qualifiedName === "Game.forward");
+    expect(forward).toBeDefined();
+    if (forward === undefined) throw new Error("Missing forward function");
+    expect(
+      inferRetainingParameters(retained).get(
+        `${forward.id.sourceId}:${forward.id.span.start}:${forward.id.span.end}`,
+      )?.size,
+    ).toBe(1);
+  });
+
+  it("rejects a borrowed address copied into a longer-lived outer local", () => {
+    const result = analyze(
+      "module Game; function main(): void { let saved: word = 0; { let value: byte = 7; saved = &value; } poke($0400, 1); }",
+    );
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10260");
+  });
+
+  it("keeps a local address through compound assignment and its result", () => {
+    const stored = analyze(
+      "module Game; let saved: word; function main(): void { let value: byte = 7; let address: word = &value; address += 1; saved = address; }",
+    );
+    expect(stored.diagnostics.map(({ code }) => code)).toContain("E10260");
+
+    const returned = analyze(
+      "module Game; function leak(): word { let value: byte = 7; let address: word = &value; return address += 1; } function main(): void {}",
+    );
+    expect(returned.diagnostics.map(({ code }) => code)).toContain("E10260");
+  });
+
+  it("finds a parameter retained through a later loop iteration", () => {
+    const result = analyze(
+      "module Game; let saved: word; function store(address: word, again: boolean): void { let alias: word = 0; while (again) { saved = alias; alias = address; } } function main(): void { let value: byte = 7; store(&value, true); }",
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(diagnoseBorrowedCalls(result).map(({ code }) => code)).toContain("E10260");
+  });
+
+  it("propagates retaining summaries through reverse-ordered calls", () => {
+    const functions = Array.from({ length: 24 }, (_, index) => {
+      const callee = index === 23 ? "saved = address;" : `f${index + 1}(address);`;
+      return `function f${index}(address: word): void { ${callee} }`;
+    });
+    const result = analyze(
+      `module Game; let saved: word; ${functions.join(" ")} function main(): void { let value: byte = 7; f0(&value); }`,
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(diagnoseBorrowedCalls(result).map(({ code }) => code)).toContain("E10260");
+  });
+
+  it("keeps read-only provenance through an integer address copy", () => {
+    const result = analyze(
+      "module Game; const DATA: byte[2] = [1, 2]; function main(): void { let address: word = &DATA; poke(address + 1, 7); }",
+    );
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10123");
+  });
+
   it("retains exact values at every scalar integer boundary", () => {
     const result = analyze(
       [

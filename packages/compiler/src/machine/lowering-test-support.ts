@@ -104,16 +104,18 @@ export function wholeProgramFor(
   });
 }
 
+/** Lower a small semantic fixture with the selected inline array-safety option. */
 export function lowerFunctions(
   functions: readonly SemanticFunction[],
   lifetimes: readonly ValueLifetime[] = [],
+  boundsCheck = false,
 ) {
   const program = wholeProgramFor(functions, lifetimes);
   const profile = selectedProfile();
   const inventory = inventoryStorage(program);
   const allocation = allocateStorage(inventory, buildInterference(inventory), profile.storage);
   if (allocation.kind !== "complete") throw new Error("Expected provisional storage allocation");
-  return lowerMachineProgram({ program, placement: allocation.placement, profile });
+  return lowerMachineProgram({ program, placement: allocation.placement, profile, boundsCheck });
 }
 
 export function loadOperation(

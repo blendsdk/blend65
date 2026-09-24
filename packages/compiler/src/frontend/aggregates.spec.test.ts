@@ -18,7 +18,7 @@ function source(text: string): SourceRecord {
   };
 }
 
-function snapshot(text: string): ProjectSnapshot {
+function snapshot(text: string, target = "test.target"): ProjectSnapshot {
   const manifestText = "{}";
   return {
     manifest: {
@@ -26,7 +26,7 @@ function snapshot(text: string): ProjectSnapshot {
       name: "aggregate-spec",
       sourceRoot: "src",
       entry: "Game",
-      target: "test.target",
+      target,
       assetPaths: [],
       outDir: "out",
       optimization: "none",
@@ -47,13 +47,13 @@ function snapshot(text: string): ProjectSnapshot {
     assetPaths: [],
     outDir: "/checkout/out",
     overrides: { target: null, entry: null },
-    effectiveTarget: "test.target",
+    effectiveTarget: target,
     effectiveEntry: "Game",
   };
 }
 
-function analyze(text: string): ReturnType<typeof analyzeModules> {
-  const project = snapshot(text);
+function analyze(text: string, target?: string): ReturnType<typeof analyzeModules> {
+  const project = snapshot(text, target);
   const indexed = indexModules(project);
   const resolved = resolveModules(project, indexed.index);
   expect(indexed.diagnostics).toEqual([]);
@@ -98,6 +98,139 @@ function diagnosticCodes(result: AnalysisResult): string[] {
 }
 
 describe("fixed aggregates and places", () => {
+  // A literal supplies the omitted extent; a fill completes only an explicitly sized array.
+  it("should infer a string extent and complete an explicit string fill", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        'let inferred: byte[] = "HI";',
+        'const padded: byte[5] = ["HI"; 0];',
+        "function main(): void {}",
+      ].join("\n"),
+      "c64-pal-prg-kernal-6581",
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(typedDeclaration(result, "Game.inferred").type).toMatchObject({
+      kind: "array",
+      length: 2,
+      size: 2,
+    });
+    expect(typedDeclaration(result, "Game.padded").type).toMatchObject({
+      kind: "array",
+      length: 5,
+      size: 5,
+    });
+  });
+
+  // A string is one byte sequence, not a value that can be silently truncated or concatenated.
+  it.each([
+    ["oversize string", 'const VALUE: byte[1] = "HI";', "E10124"],
+    ["mixed string/value list", 'let VALUE: byte[] = ["HI", 3];', "E10116"],
+  ])("should reject %s with its specific error", (_name, declaration, code) => {
+    const result = analyze(
+      `module Game; ${declaration} function main(): void {}`,
+      "c64-pal-prg-kernal-6581",
+    );
+    expect(diagnosticCodes(result)).toContain(code);
+  });
+
+  // C64 screen codes and PETSCII intentionally give the same letter different byte values.
+  it("should encode a character literal with the selected C64 map", () => {
+    const result = analyze(
+      "module Game; const screen: byte = 'A'; const pet: byte = petscii('A'); function main(): void {}",
+      "c64-pal-prg-kernal-6581",
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(typedDeclaration(result, "Game.screen").initializer?.constant).toBe(1n);
+    expect(typedDeclaration(result, "Game.pet").initializer?.constant).toBe(65n);
+  });
+
+  // Missing Unicode mappings, encoding names, and map keys are errors rather than substitutions.
+  it.each([
+    ["unsupported scalar", "const VALUE: byte = 'é';", "E10249"],
+    ["unavailable encoding", "const VALUE: byte = atascii('H');", "E10125"],
+    ["unknown map", "const VALUE: byte = screen_codes('H', \"unknown\");", "E10125"],
+    [
+      "nonliteral map key",
+      "const MAP: byte = 1; const VALUE: byte = screen_codes('H', MAP);",
+      "E10251",
+    ],
+  ])("should reject %s without replacing the literal", (_name, declaration, code) => {
+    const result = analyze(
+      `module Game; ${declaration} function main(): void {}`,
+      "c64-pal-prg-kernal-6581",
+    );
+    expect(diagnosticCodes(result)).toContain(code);
+  });
+
+  // Each array dimension has its own extent, and the inner extent determines the row stride.
+  it("should retain rectangular array shape and word-typed length at each level", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "let grid: byte[2][3] = [[1, 2, 3], [4, 5, 6]];",
+        "const rows: word = length(grid);",
+        "const columns: word = length(grid[0]);",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(typedDeclaration(result, "Game.grid").type).toMatchObject({
+      kind: "array",
+      length: 2,
+      size: 6,
+      element: { kind: "array", length: 3, size: 3 },
+    });
+    expect(typedDeclaration(result, "Game.rows").initializer).toMatchObject({
+      type: { kind: "scalar", name: "word" },
+      constant: 2n,
+    });
+    expect(typedDeclaration(result, "Game.columns").initializer).toMatchObject({
+      type: { kind: "scalar", name: "word" },
+      constant: 3n,
+    });
+  });
+
+  // A nested struct is inlined; neither its fields nor a following array gain hidden padding.
+  it("should calculate packed nested struct and array field offsets", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "struct Position { x: word; y: word; }",
+        "struct Actor { active: boolean; pos: Position; colors: byte[3]; score: word; }",
+        "const size: word = sizeof(Actor);",
+        "const position: word = offsetof(Actor, pos);",
+        "const colors: word = offsetof(Actor, colors);",
+        "const score: word = offsetof(Actor, score);",
+        "let actors: Actor[2];",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+
+    expect(diagnosticCodes(result)).toEqual(["W10141"]);
+    expect(typedDeclaration(result, "Game.size").initializer?.constant).toBe(10n);
+    expect(typedDeclaration(result, "Game.position").initializer?.constant).toBe(1n);
+    expect(typedDeclaration(result, "Game.colors").initializer?.constant).toBe(5n);
+    expect(typedDeclaration(result, "Game.score").initializer?.constant).toBe(8n);
+    expect(typedDeclaration(result, "Game.actors").type).toMatchObject({
+      kind: "array",
+      length: 2,
+      size: 20,
+    });
+  });
+
+  // Direct and indirect self-containment cannot have a finite compile-time byte size.
+  it.each([
+    ["direct", "struct Node { value: byte; next: Node; }", "E10091"],
+    ["indirect", "struct A { b: B; } struct B { a: A; }", "E10092"],
+  ])("should reject %s recursive struct containment", (_name, declaration, code) => {
+    const result = analyze(`module Game; ${declaration} function main(): void {}`);
+    expect(diagnosticCodes(result)).toContain(code);
+  });
+
   // Struct fields keep their declared order and identity, and fixed arrays use the complete element size.
   it("should lay out a nominal struct and its fixed array without padding", () => {
     const text = [

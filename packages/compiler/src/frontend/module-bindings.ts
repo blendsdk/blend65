@@ -85,7 +85,13 @@ export function prepareModuleBindings(
         : binding.qualifiedName.slice(0, -(binding.name.length + 1));
     const type =
       declaration === undefined ? null : aggregates.declarationType(declaration, moduleName);
-    const semantic = Object.freeze({ ...binding, type });
+    const semantic = Object.freeze({
+      ...binding,
+      type,
+      loadable: declaration?.kind === "variable" && declaration.loadable,
+      materialized: declaration?.kind === "variable" && declaration.placement !== null,
+      zeropage: declaration?.kind === "variable" && declaration.zeropage,
+    });
     const state: ScalarValueState = {
       binding: semantic,
       nameSpan:

@@ -2,6 +2,8 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
 import { SCALAR_TYPES } from "./constants.js";
 import type { ProfileEffect, SemanticType } from "./semantic-types.js";
+import { LITERAL_ITEM_KIND } from "./tokens.js";
+import type { LiteralItem } from "./tokens.js";
 
 /** The only complete target profile admitted by the first end-to-end compiler slice. */
 export const SELECTED_PROFILE_ID = "c64-pal-prg-kernal-6581" as const;
@@ -24,6 +26,88 @@ export interface FrontendProfile {
   readonly id: typeof SELECTED_PROFILE_ID;
   /** Exact source operation set in deterministic name order. */
   readonly capabilities: readonly ProfileCapability[];
+}
+
+/** Named character encodings available to source literals in the selected C64 profile. */
+export type C64Encoding = "screen_codes" | "petscii";
+
+/** Immutable character-set interpretations offered by each C64 encoding. */
+export type C64CharacterMap = "upper_graphics" | "lower_upper";
+
+/** One exact encoded byte sequence, or the first unmapped source unit. */
+export type EncodedC64Literal =
+  | { readonly kind: "complete"; readonly bytes: readonly number[] }
+  | { readonly kind: "error"; readonly diagnostic: ProjectDiagnostic };
+
+/** Map one Unicode scalar according to the finite, selected C64 table. */
+function c64ScalarByte(scalar: string, encoding: C64Encoding, map: C64CharacterMap): number | null {
+  const code = scalar.codePointAt(0);
+  if (code === undefined) return null;
+  if (code >= 0x20 && code <= 0x3f) return code;
+  if (encoding === "screen_codes") {
+    if (code === 0x40) return 0;
+    if (code >= 0x41 && code <= 0x5a) {
+      return code - 0x40 + (map === "lower_upper" ? 0x40 : 0);
+    }
+    if (code >= 0x61 && code <= 0x7a && map === "lower_upper") return code - 0x60;
+    if (code === 0x5b) return 0x1b;
+    if (code === 0xa3) return 0x1c;
+    if (code === 0x5d) return 0x1d;
+    if (code === 0x2191) return 0x1e;
+    if (code === 0x2190) return 0x1f;
+    return null;
+  }
+  if (code === 0x40) return 0x40;
+  if (code >= 0x41 && code <= 0x5a) {
+    return code + (map === "lower_upper" ? 0x80 : 0);
+  }
+  if (code >= 0x61 && code <= 0x7a && map === "lower_upper") return code - 0x20;
+  if (code === 0x5b) return 0x5b;
+  if (code === 0xa3) return 0x5c;
+  if (code === 0x5d) return 0x5d;
+  if (code === 0x2191) return 0x5e;
+  if (code === 0x2190) return 0x5f;
+  return null;
+}
+
+/** Encode lexical literal units without changing the machine's active character set. */
+export function encodeC64Literal(
+  items: readonly LiteralItem[],
+  encoding: C64Encoding,
+  map: C64CharacterMap,
+): EncodedC64Literal {
+  const bytes: number[] = [];
+  for (const item of items) {
+    if (item.kind === LITERAL_ITEM_KIND.byte) {
+      bytes.push(item.value);
+      continue;
+    }
+    if (item.kind === LITERAL_ITEM_KIND.escape && item.value === "\\0") {
+      bytes.push(0);
+      continue;
+    }
+    let value: number | null;
+    if (item.kind === LITERAL_ITEM_KIND.escape && (item.value === "\\n" || item.value === "\\r")) {
+      value = encoding === "petscii" ? 0x0d : null;
+    } else if (item.kind === LITERAL_ITEM_KIND.escape && item.value === "\\t") {
+      value = null;
+    } else {
+      const scalar = item.kind === LITERAL_ITEM_KIND.scalar ? item.value : item.value.slice(1);
+      value = c64ScalarByte(scalar, encoding, map);
+    }
+    if (value === null) {
+      return Object.freeze({
+        kind: "error",
+        diagnostic: projectDiagnostic(
+          "E10249",
+          `Character '${item.value}' is unavailable in ${encoding}/${map} — choose an available encoding or use an exact \\xNN byte`,
+          item.span,
+        ),
+      });
+    }
+    bytes.push(value);
+  }
+  return Object.freeze({ kind: "complete", bytes: Object.freeze(bytes) });
 }
 
 /** Complete profile selection or a proving diagnostic with no fallback. */

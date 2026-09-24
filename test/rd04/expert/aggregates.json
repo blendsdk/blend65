@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "skillVersion": "2.0.0",
+    "skillContentCommit": "c9e70fab6039e9ced3108e88f0ea9730d4fd3007",
+    "casebook": "references/6502-lowering-casebook.md",
+    "sourceKey": "MOS-PGM-1976"
+  },
+  "unsignedByteIndexLoad": {
+    "preconditions": "fixed static byte array; unsigned byte ordinal already in an absolute RAM home",
+    "instructions": ["LDY ordinal", "LDA array,Y"],
+    "bytes": 6,
+    "minCycles": 8,
+    "maxCycles": 9,
+    "pointerScratchBytes": 0
+  },
+  "constantByteIndexLoad": {
+    "preconditions": "fixed static byte array; constant in-range ordinal",
+    "instructions": ["LDA array+offset"],
+    "bytes": 3,
+    "cycles": 4,
+    "pointerScratchBytes": 0
+  },
+  "checkedWordIndexLoad": {
+    "preconditions": "fixed static word array; range-checked unsigned byte ordinal in an absolute RAM home; result staged in RAM",
+    "instructions": [
+      "LDA ordinal",
+      "ASL",
+      "TAY",
+      "LDA array,Y",
+      "STA result",
+      "INY",
+      "LDA array,Y",
+      "STA result+1"
+    ],
+    "bytes": 18,
+    "maxCycles": 28,
+    "pointerScratchBytes": 0
+  }
+}

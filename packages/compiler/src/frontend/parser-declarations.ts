@@ -122,6 +122,16 @@ export class DeclarationParser {
       }
       if (this.context.expect(TokenKind.COLON, "':'") === null) return null;
       if (spelling === "region") {
+        if (this.context.check(TokenKind.STRING)) {
+          this.context.addDiagnostic(
+            projectDiagnostic(
+              "E10272",
+              "A placement region must be a selected-profile region symbol, not a string",
+              this.context.current.span,
+            ),
+          );
+          return null;
+        }
         const region = this.parseQualifiedName();
         if (region === null) return null;
         arguments_.push(

@@ -3,6 +3,7 @@ import type { StorageBinder, StorageProfile, StorageRequest } from "../storage/s
 import type { TargetProfile } from "../target/profile.js";
 import type { CpuFlag, CpuRegister } from "../target/nmos6510.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
+import type { PlacementConstraints } from "../frontend/semantic-types.js";
 import type { StoragePlacement } from "../storage/storage-types.js";
 
 /** Machine flags whose validity is tracked across structured instructions. */
@@ -192,6 +193,8 @@ export interface MachineFunction {
   readonly origin?: number;
   /** Blocks in selected layout order. */
   readonly blocks: readonly MachineBlock[];
+  /** Optional source placement retained until final layout. */
+  readonly placement?: PlacementConstraints;
 }
 
 /** Immutable, mutable or zero-initialized non-function object. */
@@ -206,6 +209,10 @@ export interface MachineDataObject {
   readonly alignment: number;
   /** Exact resident bytes; BSS bytes are explicit zeroes in this phase. */
   readonly bytes: readonly number[];
+  /** Optional source placement retained until final layout. */
+  readonly placement?: PlacementConstraints;
+  /** Mutable global storage is allocated from the selected zero-page window. */
+  readonly zeropage?: boolean;
 }
 
 /** Closed structured machine program before terminal serialization. */
@@ -238,6 +245,8 @@ export interface MachineLoweringInput {
   readonly profile: TargetProfile;
   /** Emit a pre-division zero test and non-returning target stop when selected. */
   readonly divisionZeroCheck?: boolean;
+  /** Check dynamic fixed-array ordinals before forming their machine addresses. */
+  readonly boundsCheck?: boolean;
   /** Read one already-loaded source span for a user-facing arithmetic diagnostic. */
   readonly sourceText?: (span: SourceSpan) => string;
 }

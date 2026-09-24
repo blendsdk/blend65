@@ -45,6 +45,7 @@ export interface ScalarLocalHost {
     span: SourceSpan,
     storage: "local" | "constant",
     type: SemanticType,
+    loadable?: boolean,
   ) => SemanticBinding;
 }
 
@@ -153,10 +154,6 @@ export function analyzeScalarLocal(
   context: ScalarExpressionContext,
   host: ScalarLocalHost,
 ): TypedVariableStatement | null {
-  if (declaration.loadable) {
-    host.defer(declaration.span, "Loadable local semantics remain pending");
-    return null;
-  }
   const before = host.errorCount();
   const type = host.resolveType(declaration, context);
   let initializer = null;
@@ -242,12 +239,15 @@ export function analyzeScalarLocal(
     declaration.span,
     declaration.declarationKind === "const" ? "constant" : "local",
     type,
+    declaration.loadable,
   );
   const state: ScalarValueState = {
     binding,
     nameSpan: freezeSourceSpan(declaration.nameSpan),
     readonly: declaration.declarationKind === "const",
     known: initializer?.constant ?? null,
+    addressOrigins: initializer?.addressOrigins,
+    addressPlaces: initializer?.addressPlaces,
     initialized: false,
     initializedRanges: Object.freeze([]),
     initializedPaths: Object.freeze([]),
@@ -255,6 +255,7 @@ export function analyzeScalarLocal(
   updateInitializedState(state, initializer);
   scope.values.set(declaration.name, state);
   host.stateByKey.set(bindingIdentityKey(binding.id), state);
+  if (declaration.loadable) return null;
   return Object.freeze({
     kind: "variable",
     span: freezeSourceSpan(declaration.span),

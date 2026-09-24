@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import { resolveAggregateDeclaration } from "./aggregate-names.js";
 import {
   commonIntegerType,
   convertInteger,
@@ -12,7 +13,7 @@ import {
 import { bindingIdentityKey, semanticTypeKey } from "./semantic-types.js";
 import { semanticTypeName, semanticTypeSize } from "./semantic-type-relations.js";
 import { EnumTable } from "./enum-types.js";
-import { buildScalarStruct, voidTypeSpan } from "./struct-types.js";
+import { buildPackedStruct, voidTypeSpan } from "./struct-types.js";
 export {
   semanticTypeName,
   semanticTypeSize,
@@ -29,7 +30,13 @@ import type {
   StructType,
   ScalarType,
 } from "./semantic-types.js";
-import type { Declaration, Expr, FunctionDeclaration, TypeSyntax } from "./syntax.js";
+import type {
+  Declaration,
+  Expr,
+  FunctionDeclaration,
+  StructDeclaration,
+  TypeSyntax,
+} from "./syntax.js";
 
 /** Resolve nominal structs and fixed arrays for one module-analysis run. */
 export class AggregateRegistry {
@@ -159,7 +166,7 @@ export class AggregateRegistry {
     return Object.freeze({ parameters: Object.freeze(parameters), returnType });
   }
 
-  /** Resolve an admitted scalar, nominal struct, or one-dimensional fixed array. */
+  /** Resolve a scalar, nominal struct, or fixed array with any complete rectangular shape. */
   resolveType(
     syntax: TypeSyntax | null,
     module: string,
@@ -213,11 +220,6 @@ export class AggregateRegistry {
       }
       return null;
     }
-    if (element.kind === "array") {
-      if (report)
-        this.host.defer(syntax.span, "Nested arrays remain outside the admitted frontend slice");
-      return null;
-    }
     const length = this.resolveExtent(syntax, module, initializer, report, scope);
     if (length === null) return null;
     const size = semanticTypeSize(element) * length;
@@ -233,10 +235,20 @@ export class AggregateRegistry {
       }
       return null;
     }
+    return this.fixedArray(element, length);
+  }
+
+  /** Intern a complete fixed array so literals and declarations share its shape identity. */
+  fixedArray(element: SemanticType, length: number): ArrayType {
     const key = `${semanticTypeKey(element)}[${length}]`;
     const existing = this.arraysByKey.get(key);
     if (existing !== undefined) return existing;
-    const array = Object.freeze({ kind: "array", element, length, size } as const);
+    const array = Object.freeze({
+      kind: "array",
+      element,
+      length,
+      size: semanticTypeSize(element) * length,
+    } as const);
     this.arraysByKey.set(key, array);
     return array;
   }
@@ -252,6 +264,18 @@ export class AggregateRegistry {
     if (syntax.extent === null) {
       if (initializer?.kind === "array-literal" && initializer.fill === null) {
         return initializer.elements.length;
+      }
+      if (initializer?.kind === "literal" && initializer.literalKind === "string") {
+        return initializer.items.length;
+      }
+      if (
+        initializer?.kind === "call" &&
+        initializer.callee.kind === "name" &&
+        (initializer.callee.name === "screen_codes" || initializer.callee.name === "petscii") &&
+        initializer.arguments[0]?.kind === "literal" &&
+        initializer.arguments[0].literalKind === "string"
+      ) {
+        return initializer.arguments[0].items.length;
       }
       if (initializer?.kind === "array-literal" && initializer.fill !== null) {
         if (report) {
@@ -529,7 +553,9 @@ export class AggregateRegistry {
           : null;
       }
     }
-    const resolved = this.resolveNamedDeclaration(
+    const resolved = resolveAggregateDeclaration(
+      this.graph,
+      this.declarations,
       expression.name,
       module,
       expression.span.sourceId,
@@ -575,7 +601,9 @@ export class AggregateRegistry {
         if (state !== undefined) return state.binding.type;
       }
     }
-    const resolved = this.resolveNamedDeclaration(
+    const resolved = resolveAggregateDeclaration(
+      this.graph,
+      this.declarations,
       expression.name,
       module,
       expression.span.sourceId,
@@ -590,46 +618,84 @@ export class AggregateRegistry {
       : null;
   }
 
-  /** Resolve a qualified, local-module, or source-imported declaration. */
-  private resolveNamedDeclaration(
-    name: string,
-    module: string,
-    sourceId: string,
-  ): {
-    readonly binding: BindingId;
-    readonly declaration: Declaration;
-    readonly module: string;
-  } | null {
-    const imported = this.graph.imports.find(
-      (candidate) => candidate.sourceSpan.sourceId === sourceId && candidate.alias === name,
-    );
-    const binding =
-      imported === undefined
-        ? this.graph.bindings.find(
-            ({ qualifiedName }) =>
-              qualifiedName === (name.includes(".") ? name : `${module}.${name}`),
-          )
-        : this.graph.bindings.find(
-            (candidate) =>
-              bindingIdentityKey(candidate.id) === bindingIdentityKey(imported.binding),
-          );
-    if (binding === undefined) return null;
-    const declaration = this.declarations.get(bindingIdentityKey(binding.id));
-    if (declaration === undefined) return null;
-    const owner = binding.qualifiedName?.slice(0, -(binding.name.length + 1)) ?? module;
-    return { binding: binding.id, declaration, module: owner };
-  }
-
-  /** Build scalar-field struct layouts before any body or declaration uses them. */
+  /** Resolve packed structs in dependency order and reject containment cycles at their first edge. */
   private prepareStructs(): void {
+    const status = new Map<string, "resolving" | "complete" | "invalid">();
+    const resolveStruct = (
+      binding: ModuleGraph["bindings"][number],
+      declaration: StructDeclaration,
+    ): StructType | null => {
+      const key = bindingIdentityKey(binding.id);
+      if (status.get(key) === "complete") return this.structsByBinding.get(key) ?? null;
+      if (status.get(key) === "invalid") return null;
+      status.set(key, "resolving");
+      const module = binding.qualifiedName?.slice(0, -(binding.name.length + 1)) ?? "";
+      const resolveField = (syntax: TypeSyntax): SemanticType | null => {
+        if (syntax.kind === "array-type") {
+          const element = resolveField(syntax.element);
+          if (element === null) return null;
+          const length = this.resolveExtent(syntax, module, null, true);
+          if (length === null) return null;
+          const size = semanticTypeSize(element) * length;
+          if (size > 65535) {
+            this.host.diagnose(
+              projectDiagnostic(
+                "E10265",
+                `Type '${this.host.sourceText(syntax.span)}' requires ${size} bytes — fixed array and struct types are limited to 65535 bytes`,
+                syntax.span,
+              ),
+            );
+            return null;
+          }
+          return this.fixedArray(element, length);
+        }
+        if (syntax.kind === "named-type") {
+          const target = resolveAggregateDeclaration(
+            this.graph,
+            this.declarations,
+            syntax.name,
+            module,
+            syntax.span.sourceId,
+          );
+          if (target?.declaration.kind === "struct") {
+            const targetKey = bindingIdentityKey(target.binding);
+            if (status.get(targetKey) === "resolving") {
+              this.host.diagnose(
+                projectDiagnostic(
+                  targetKey === key ? "E10091" : "E10092",
+                  targetKey === key
+                    ? `Struct '${declaration.name}' cannot contain itself`
+                    : `Circular struct dependency contains '${declaration.name}'`,
+                  syntax.span,
+                ),
+              );
+              return null;
+            }
+            const targetBinding = this.graph.bindings.find(
+              ({ id }) => bindingIdentityKey(id) === targetKey,
+            );
+            return targetBinding === undefined
+              ? null
+              : resolveStruct(targetBinding, target.declaration);
+          }
+        }
+        if (syntax.kind === "function-type" || syntax.kind === "unchecked") {
+          this.deferredStructs.add(key);
+        }
+        return this.resolveType(syntax, module, null, true);
+      };
+      const type = buildPackedStruct(declaration, binding.id, this.host, resolveField);
+      status.set(key, type === null ? "invalid" : "complete");
+      if (type !== null && binding.qualifiedName !== null) {
+        this.structsByQualifiedName.set(binding.qualifiedName, type);
+        this.structsByBinding.set(key, type);
+      }
+      return type;
+    };
     for (const binding of this.graph.bindings) {
       const declaration = this.declarations.get(bindingIdentityKey(binding.id));
       if (declaration?.kind !== "struct" || binding.qualifiedName === null) continue;
-      const type = buildScalarStruct(declaration, binding.id, this.host, this.deferredStructs);
-      if (type !== null) {
-        this.structsByQualifiedName.set(binding.qualifiedName, type);
-        this.structsByBinding.set(bindingIdentityKey(binding.id), type);
-      }
+      resolveStruct(binding, declaration);
     }
   }
 }

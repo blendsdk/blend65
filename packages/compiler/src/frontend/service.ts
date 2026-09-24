@@ -1,8 +1,10 @@
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
+import { projectDiagnostic } from "../project/diagnostics.js";
 import { PROFILES } from "../project/manifest.js";
 import { resolveRawAsset } from "../assets/raw-asset.js";
 import type { EmbeddedValue, SemanticAsset } from "../assets/asset-types.js";
 import { analyzeModules } from "./analyzer.js";
+import { diagnoseBorrowedCalls } from "./borrow-calls.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { analyzeEffects } from "./effects.js";
 import { indexModules, resolveModules } from "./modules.js";
@@ -419,12 +421,28 @@ function analyzeResolvedProject(
   const profile = selected?.kind === "complete" ? selected.profile : null;
   const indexed = indexModules(snapshot);
   const resolved = resolveModules(snapshot, indexed.index);
+  const missingResidentLoader =
+    profile?.id === "c64-pal-prg-kernal-6581"
+      ? resolved.obligations.filter(
+          (obligation) => obligation.message === "Required module 'c64.loader' is unavailable",
+        )
+      : [];
+  const resolvedObligations = resolved.obligations.filter(
+    (obligation) => !missingResidentLoader.includes(obligation),
+  );
   const earlyDiagnostics = sortAnalysisDiagnostics([
     ...indexed.diagnostics,
     ...resolved.diagnostics,
+    ...missingResidentLoader.map((obligation) =>
+      projectDiagnostic(
+        "E10275",
+        "The selected resident C64 profile has no load operation",
+        obligation.span,
+      ),
+    ),
   ]);
   if (resolved.graph === null) {
-    const obligations = Object.freeze([...indexed.obligations, ...resolved.obligations]);
+    const obligations = Object.freeze([...indexed.obligations, ...resolvedObligations]);
     return obligations.length > 0
       ? Object.freeze({
           kind: ANALYSIS_RESULT_KIND.incomplete,
@@ -456,13 +474,18 @@ function analyzeResolvedProject(
   const effects = analyzeEffects(analysis);
   const unresolvedImports = unresolvedImportNames(resolved.graph);
   const discoveredObligations = discoverPendingObligations(
-    snapshot,
     analysis,
     new Set(embeddedValues.keys()),
+    profile !== null,
   );
-  const dependencyObligations = Object.freeze([...indexed.obligations, ...resolved.obligations]);
+  const dependencyObligations = Object.freeze([...indexed.obligations, ...resolvedObligations]);
   let diagnostics: readonly ProjectDiagnostic[] = sortAnalysisDiagnostics(
-    [...earlyDiagnostics, ...analysis.diagnostics, ...effects.diagnostics]
+    [
+      ...earlyDiagnostics,
+      ...analysis.diagnostics,
+      ...effects.diagnostics,
+      ...diagnoseBorrowedCalls(analysis),
+    ]
       .filter(
         (diagnostic) =>
           !isDeferredObligationDiagnostic(
@@ -481,7 +504,7 @@ function analyzeResolvedProject(
   );
   const rawObligations = [
     ...indexed.obligations,
-    ...resolved.obligations,
+    ...resolvedObligations,
     ...analysis.obligations,
   ].filter((obligation) => !profileSatisfiesObligation(profile, obligation));
   for (const diagnostic of diagnostics) {
