@@ -194,6 +194,13 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
     program: closed.program,
     placement: provisional.placement,
     profile: selected.profile,
+    divisionZeroCheck: selectedSnapshot.manifest.divisionZeroCheck,
+    sourceText: (span) => {
+      const source = selectedSnapshot.sources.find(({ sourceId }) => sourceId === span.sourceId);
+      return source === undefined
+        ? ""
+        : Buffer.from(source.text, "utf8").subarray(span.start, span.end).toString("utf8");
+    },
   });
   if (lowered.kind === "error") {
     return {
@@ -217,7 +224,11 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       program: closed.program,
       certificate,
       machine,
-      diagnostics: Object.freeze([...loaded.observations, ...analyzed.diagnostics]),
+      diagnostics: Object.freeze([
+        ...loaded.observations,
+        ...analyzed.diagnostics,
+        ...lowered.diagnostics,
+      ]),
     }),
   });
 }

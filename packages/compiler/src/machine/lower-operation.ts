@@ -1,4 +1,5 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { scalarWarning } from "../frontend/constants.js";
 import type { SemanticOperation } from "../semantic/operations.js";
 import { lowerC64Operation } from "./lower-c64.js";
 import { lowerConversion } from "./lower-conversion.js";
@@ -20,6 +21,8 @@ import {
 } from "./lower-scalar.js";
 import { lowerArithmetic } from "./lower-arithmetic.js";
 import { lowerUnary } from "./lower-unary.js";
+import { lowerRuntimeMultiply } from "./lower-multiply.js";
+import { lowerRuntimeDivision } from "./lower-division.js";
 import {
   loweringFailure,
   appendLoadA,
@@ -322,6 +325,8 @@ export function lowerOperation(
       readonly instructions: readonly MachineInstruction[];
       readonly result: LoweredValue;
     };
+    let selectedHelper: "multiply" | "division" | null = null;
+    let selectedConstantMultiply: number | null = null;
     if (comparison) {
       lowered = lowerComparison(operation, left, right, state);
     } else if (operation.operator === "+" || operation.operator === "-") {
@@ -345,14 +350,17 @@ export function lowerOperation(
     } else if (operation.operator === "*") {
       if (right.kind === "constant") {
         lowered = lowerConstantMultiply(operation, left, right.value, state);
+        selectedConstantMultiply = right.value;
       } else if (left.kind === "constant") {
         lowered = lowerConstantMultiply(operation, right, left.value, state);
+        selectedConstantMultiply = left.value;
       } else {
-        throw loweringFailure(
-          "This lowering slice requires one constant scale operand",
-          operation.span,
-        );
+        lowered = lowerRuntimeMultiply(operation, left, right, state);
+        selectedHelper = "multiply";
       }
+    } else if (operation.operator === "/" || operation.operator === "%") {
+      lowered = lowerRuntimeDivision(operation, left, right, state);
+      selectedHelper = "division";
     } else {
       throw loweringFailure(
         `Binary operator '${operation.operator}' is not admitted by this lowering slice`,
@@ -368,6 +376,62 @@ export function lowerOperation(
       state,
     );
     state.values.set(operation.result, retained.value);
+    const callSiteCycles = retained.instructions.reduce(
+      (cycles, instruction) => cycles + instruction.cost.maxCycles,
+      0,
+    );
+    const width = typeBytes(operation.type) * 8;
+    if (selectedHelper === "multiply") {
+      // The bounded shift/add loop runs once per result bit; about half the bits take its add path.
+      const helperCycles = width === 8 ? 150 : 630;
+      state.warnings.push(
+        scalarWarning(
+          "W10170",
+          `Runtime multiply uses a software sequence of about ${helperCycles + callSiteCycles} cycles for ${width}-bit operands`,
+          operation.span,
+        ),
+      );
+    } else if (selectedHelper === "division") {
+      // The restoring loop runs once per bit, including its compare and usual subtract path.
+      const helperCycles =
+        (width === 8 ? 310 : 910) + (isSignedType(operation.type) ? (width === 8 ? 70 : 100) : 0);
+      state.warnings.push(
+        scalarWarning(
+          "W10171",
+          `Runtime division or remainder uses a software sequence of about ${helperCycles + callSiteCycles} cycles for ${width}-bit operands`,
+          operation.span,
+        ),
+      );
+      if (right.kind !== "constant" && state.input.divisionZeroCheck !== true) {
+        const divisorName =
+          operation.rightSpan === undefined
+            ? "divisor"
+            : state.input.sourceText?.(operation.rightSpan).trim() || "divisor";
+        state.warnings.push(
+          scalarWarning(
+            "W10173",
+            `Runtime divisor '${divisorName}' is not proven nonzero — zero has an unspecified valid-width result; guard it or use '--division-zero-check'`,
+            operation.span,
+          ),
+        );
+      }
+    } else if (selectedConstantMultiply !== null) {
+      const hasShift = lowered.instructions.some(
+        ({ opcode }) => opcode === "asl" || opcode === "rol",
+      );
+      const hasAdd = lowered.instructions.some(
+        ({ opcode }) => opcode === "adc" || opcode === "sbc",
+      );
+      if (hasShift && hasAdd) {
+        state.warnings.push(
+          scalarWarning(
+            "W10172",
+            `Multiply by ${selectedConstantMultiply} uses a shift-and-add sequence of about ${callSiteCycles} cycles — consider a power-of-two stride when practical`,
+            operation.span,
+          ),
+        );
+      }
+    }
     return retained.instructions;
   }
   if (operation.kind === "memory-read") {

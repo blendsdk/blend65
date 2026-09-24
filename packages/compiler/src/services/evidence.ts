@@ -309,6 +309,9 @@ export async function prepareEvidence(
   const zeroPage = intervals
     .filter(({ resourceClass }) => resourceClass === "zeroPage")
     .reduce((total, interval) => total + (interval.size as number), 0);
+  const scratch = intervals
+    .filter(({ kind }) => kind === "scratch")
+    .reduce((total, interval) => total + (interval.size as number), 0);
   const costsEvidence = Object.freeze({
     kind: "blend65.costs",
     schemaVersion: 1,
@@ -326,7 +329,7 @@ export async function prepareEvidence(
           id: "hardwareStack",
           value: qualifiedStackBytes,
         }),
-        Object.freeze({ kind: "standard", id: "scratch", value: 0 }),
+        Object.freeze({ kind: "standard", id: "scratch", value: scratch }),
       ]),
     }),
     entries: Object.freeze([...costEntries, cycleEntry]),

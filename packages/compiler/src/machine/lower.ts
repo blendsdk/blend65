@@ -1,9 +1,9 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
-import type { SourceSpan } from "../project/types.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { SemanticBlock, SemanticPlace, SemanticTerminator } from "../semantic/operations.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
-import type { StorageRequest } from "../storage/storage-types.js";
+import type { HelperCallDemand, StorageRequest } from "../storage/storage-types.js";
 import { storageInventoryHash } from "../storage/closure.js";
 import { inventoryStorage } from "../storage/inventory.js";
 import {
@@ -22,6 +22,10 @@ import {
 } from "./lower-control.js";
 import { prepareAggregateInduction, type AggregateInductionRuntime } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
+import { lowerVariableShift } from "./lower-variable-shift.js";
+import { lowerCheckedDivision } from "./lower-checked-division.js";
+import type { MultiplyHelper } from "./lower-multiply.js";
+import type { DivideHelper } from "./lower-division.js";
 import type {
   MachineBlock,
   MachineDataObject,
@@ -120,6 +124,12 @@ export interface FunctionLoweringState {
     readonly source: SourceSpan;
   }[];
   readonly generatedData: Map<string, MachineDataObject>;
+  readonly helperBlocks: MachineBlock[];
+  readonly multiplyHelpers: Map<number, MultiplyHelper>;
+  readonly divideHelpers: Map<string, DivideHelper>;
+  readonly helperUses: { readonly id: string; readonly requestIds: readonly string[] }[];
+  readonly warnings: ProjectDiagnostic[];
+  currentSemanticBlockId: string;
   /**
    * Identity of the indexed aggregate base currently held in the shared address pair.
    * This is compile-time knowledge only. Index writes and calls clear it. Forward control-flow
@@ -330,6 +340,12 @@ function lowerFunction(
   input: MachineLoweringInput,
   requests: StorageRequest[],
   generatedData: Map<string, MachineDataObject>,
+  helperUses: {
+    readonly id: string;
+    readonly caller: BindingId;
+    readonly requestIds: readonly string[];
+  }[],
+  warnings: ProjectDiagnostic[],
   returnsToStartup: boolean,
 ): MachineFunction {
   const blockIndexes = new Map(blocks.map((block, index) => [block.id, index] as const));
@@ -408,6 +424,12 @@ function lowerFunction(
     ),
     mergeCopies: [],
     generatedData,
+    helperBlocks: [],
+    multiplyHelpers: new Map(),
+    divideHelpers: new Map(),
+    helperUses: [],
+    warnings: [],
+    currentSemanticBlockId: blocks[0]?.id ?? "entry",
     aggregateAddressCache: null,
     aggregateInduction: null,
   };
@@ -416,6 +438,7 @@ function lowerFunction(
   const semanticExitLabels = new Map<string, string>();
   const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
   for (const block of blocks) {
+    state.currentSemanticBlockId = block.id;
     const incoming = predecessors.get(block.id) ?? [];
     const blockIndex = blockIndexes.get(block.id)!;
     const incomingCaches =
@@ -442,7 +465,47 @@ function lowerFunction(
     let currentLabel = block.id;
     let currentInstructions: MachineInstruction[] = [];
     let waitIndex = 0;
+    let variableShiftIndex = 0;
+    let checkedDivisionIndex = 0;
     for (const operation of block.operations) {
+      const divisor = operation.kind === "binary" ? state.values.get(operation.right) : undefined;
+      if (
+        input.divisionZeroCheck === true &&
+        operation.kind === "binary" &&
+        (operation.operator === "/" || operation.operator === "%") &&
+        (divisor?.kind !== "constant" || divisor.value === 0)
+      ) {
+        const lowered = lowerCheckedDivision(
+          operation,
+          state,
+          currentLabel,
+          currentInstructions,
+          checkedDivisionIndex,
+        );
+        loweredBlocks.push(...lowered.blocks);
+        currentLabel = lowered.continuation;
+        currentInstructions = [];
+        checkedDivisionIndex += 1;
+        continue;
+      }
+      if (
+        operation.kind === "binary" &&
+        (operation.operator === "<<" || operation.operator === ">>") &&
+        state.values.get(operation.right)?.kind !== "constant"
+      ) {
+        const lowered = lowerVariableShift(
+          operation,
+          state,
+          currentLabel,
+          currentInstructions,
+          variableShiftIndex,
+        );
+        loweredBlocks.push(...lowered.blocks);
+        currentLabel = lowered.continuation;
+        currentInstructions = [];
+        variableShiftIndex += 1;
+        continue;
+      }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
         currentInstructions.push(...lowerOperation(operation, state));
         continue;
@@ -569,7 +632,9 @@ function lowerFunction(
       instructions: Object.freeze(instructions),
     });
   }
-  return Object.freeze({ id, blocks: Object.freeze(loweredBlocks) });
+  helperUses.push(...state.helperUses.map((use) => Object.freeze({ ...use, caller: owner })));
+  warnings.push(...state.warnings);
+  return Object.freeze({ id, blocks: Object.freeze([...loweredBlocks, ...state.helperBlocks]) });
 }
 
 /** Return the machine data objects owned by globals and reachable assets. */
@@ -679,6 +744,12 @@ function lowerConstantInitializer(
 export function lowerMachineProgram(input: MachineLoweringInput): MachineLoweringResult {
   const requests: StorageRequest[] = [];
   const generatedData = new Map<string, MachineDataObject>();
+  const helperUses: {
+    readonly id: string;
+    readonly caller: BindingId;
+    readonly requestIds: readonly string[];
+  }[] = [];
+  const warnings: ProjectDiagnostic[] = [];
   try {
     const functionsByKey = new Map(
       input.program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
@@ -698,6 +769,8 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
           input,
           requests,
           generatedData,
+          helperUses,
+          warnings,
           bindingIdentityKey(semantic.id) === bindingIdentityKey(input.program.semantic.main),
         ),
       );
@@ -719,7 +792,17 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       if (global.runtimeInitialBytes === null) {
         startupInitializers.push(Object.freeze({ kind: "call", label }));
         machineFunctions.push(
-          lowerFunction(label, initializer, global.blocks, input, requests, generatedData, false),
+          lowerFunction(
+            label,
+            initializer,
+            global.blocks,
+            input,
+            requests,
+            generatedData,
+            helperUses,
+            warnings,
+            false,
+          ),
         );
         initializerAccumulator = null;
       } else {
@@ -760,9 +843,27 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         results: initialInventory.results,
       }),
     );
+    const helperCalls: HelperCallDemand[] = helperUses.map((use) => {
+      const helperIds = new Set(use.requestIds);
+      return Object.freeze({
+        id: use.id,
+        caller: use.caller,
+        helperRequestIds: use.requestIds,
+        liveRequestIds: Object.freeze(
+          certifiedStorage
+            .filter(
+              (request) =>
+                bindingIdentityKey(request.owner) === bindingIdentityKey(use.caller) &&
+                !helperIds.has(request.id),
+            )
+            .map((request) => request.id),
+        ),
+        stackBytes: 2,
+      });
+    });
     const binder = Object.freeze({
       candidateRequestIds: Object.freeze(requests.map(({ id }) => id)),
-      helperCalls: Object.freeze([]),
+      helperCalls: Object.freeze(helperCalls),
       discover: () => Object.freeze([...requests]),
     });
     return Object.freeze({
@@ -778,6 +879,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         storageProfile: input.profile.storage,
       }),
       binder,
+      diagnostics: Object.freeze(warnings),
     });
   } catch (error) {
     if (isLoweringFailure(error)) {

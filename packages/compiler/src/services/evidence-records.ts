@@ -159,7 +159,12 @@ function machineFunctionSegments(
   for (const block of machine.blocks) {
     if (block.origin === undefined) throw new Error("Final machine block has no origin");
     const sourceBlock = semantic.blocks.find(
-      ({ id }) => block.label === id || block.label.startsWith(`${id}.wait.`),
+      ({ id }) =>
+        block.label === id ||
+        block.label.startsWith(`${id}.wait.`) ||
+        block.label.startsWith(`${id}.shift.`) ||
+        block.label.startsWith(`${id}.multiply.`) ||
+        block.label.startsWith(`${id}.divide.`),
     );
     if (sourceBlock === undefined) throw new Error("Final machine block has no semantic CFG owner");
     let address = block.origin;
@@ -474,7 +479,12 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       }),
     });
   }
+  const helperScratchIds = new Set(
+    input.certificate.helperCalls.flatMap(({ helperRequestIds }) => helperRequestIds),
+  );
   for (const request of input.inventory.requests) {
+    // Helper scratch belongs to the memory ledger, not a source-level debug location.
+    if (helperScratchIds.has(request.id)) continue;
     const functionIndex = functionIndexes.get(bindingIdentityKey(request.owner));
     const home = homes.get(request.id);
     const functionRanges =

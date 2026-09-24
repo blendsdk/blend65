@@ -148,6 +148,7 @@ describe("direct value lowering", () => {
     expect(opcodes).toContain("rol");
     expect(opcodes).toContain("adc");
     expect(opcodes).not.toContain("jsr");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("W10172");
     expect(result.program.requiredStorage.map(({ id }) => id)).toEqual(
       expect.arrayContaining([
         expect.stringContaining("unary:complement"),
@@ -156,6 +157,50 @@ describe("direct value lowering", () => {
         expect.stringContaining("scale-candidate:scaled"),
         expect.stringContaining("scale-result:scaled"),
       ]),
+    );
+  });
+
+  it("should report helper selection and uncertain division without inventing a guard", () => {
+    const left = sourceParameter(240, BYTE);
+    const right = sourceParameter(250, BYTE);
+    const operations: readonly SemanticOperation[] = [
+      loadOperation("left", left, 260),
+      loadOperation("right", right, 261),
+      Object.freeze({
+        kind: "binary" as const,
+        result: "product",
+        type: BYTE,
+        integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+        operator: "*",
+        left: "left",
+        right: "right",
+        span: sourceSpan(262),
+      }),
+      Object.freeze({
+        kind: "binary" as const,
+        result: "quotient",
+        type: BYTE,
+        integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+        operator: "/",
+        left: "product",
+        right: "right",
+        span: sourceSpan(263),
+      }),
+    ];
+    const main = semanticFunction(230, "runtime-arithmetic", [left, right], BYTE, [
+      semanticBlock(
+        "arithmetic.entry",
+        operations,
+        Object.freeze({ kind: "return" as const, value: "quotient" }),
+      ),
+    ]);
+    const result = lowerFunctions([main]);
+
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected runtime arithmetic lowering");
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["W10170", "W10171", "W10173"]);
+    expect(result.program.functions[0]!.blocks.flatMap(({ instructions }) => instructions)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ opcode: "jsr" })]),
     );
   });
 

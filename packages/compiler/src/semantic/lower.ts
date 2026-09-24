@@ -283,7 +283,8 @@ class ExpressionLowerer {
   /** Lower an ordinary left-to-right binary expression. */
   private lowerBinary(expression: TypedExpr, type: SemanticType): ValueId {
     const left = this.lower(required(expression.left, "binary left operand"));
-    const right = this.lower(required(expression.right, "binary right operand"));
+    const rightExpression = required(expression.right, "binary right operand");
+    const right = this.lower(rightExpression);
     if (left === null || right === null) throw new Error("Completed binary operand has no value");
     const result = this.builder.nextValue();
     this.builder.emit(
@@ -293,6 +294,7 @@ class ExpressionLowerer {
         operator: required(expression.operator, "binary operator"),
         left,
         right,
+        rightSpan: rightExpression.span,
         type,
         integer: expression.integer,
         span: expression.span,
@@ -323,7 +325,8 @@ class ExpressionLowerer {
           span: target.span,
         }),
       );
-      const right = this.lower(expressionValue(expression));
+      const rightExpression = expressionValue(expression);
+      const right = this.lower(rightExpression);
       if (right === null) throw new Error("Completed compound assignment value has no result");
       value = this.builder.nextValue();
       this.builder.emit(
@@ -333,6 +336,7 @@ class ExpressionLowerer {
           operator: operator.slice(0, -1),
           left: old,
           right,
+          rightSpan: rightExpression.span,
           type: expression.type,
           integer: expression.integer,
           span: expression.span,

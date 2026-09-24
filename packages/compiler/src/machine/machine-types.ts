@@ -1,4 +1,4 @@
-import type { SourceSpan } from "../project/types.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { StorageBinder, StorageProfile, StorageRequest } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
 import type { CpuFlag, CpuRegister } from "../target/nmos6510.js";
@@ -236,6 +236,10 @@ export interface MachineLoweringInput {
   readonly placement: StoragePlacement;
   /** Exact selected target facts. */
   readonly profile: TargetProfile;
+  /** Emit a pre-division zero test and non-returning target stop when selected. */
+  readonly divisionZeroCheck?: boolean;
+  /** Read one already-loaded source span for a user-facing arithmetic diagnostic. */
+  readonly sourceText?: (span: SourceSpan) => string;
 }
 
 /** Complete lowering result, or a terminal unsupported/invalid input reason. */
@@ -244,6 +248,8 @@ export type MachineLoweringResult =
       readonly kind: "complete";
       readonly program: MachineProgram;
       readonly binder: StorageBinder;
+      /** Warnings that depend on the machine sequence actually selected. */
+      readonly diagnostics: readonly ProjectDiagnostic[];
     }
   | { readonly kind: "error"; readonly reason: string; readonly source: SourceSpan | null };
 

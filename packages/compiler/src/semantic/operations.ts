@@ -131,6 +131,8 @@ export interface BinaryOperation extends ValueOperation {
   readonly left: ValueId;
   /** Right operand evaluated after the left operand. */
   readonly right: ValueId;
+  /** Exact right-hand source expression, when available for user-facing diagnostics. */
+  readonly rightSpan?: SourceSpan;
 }
 
 /** One direct call after every argument has been staged. */
