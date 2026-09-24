@@ -19,6 +19,7 @@ export function lowerDirectionalCopyLoops(
   prefix: readonly MachineInstruction[],
   ordinal: number,
   source: SourceSpan,
+  knownForward = false,
 ): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } {
   if (
     !from.indirect ||
@@ -77,22 +78,26 @@ export function lowerDirectionalCopyLoops(
 
   // Comparing whole addresses is enough because complete fixed objects never wrap the
   // 16-bit address space. A higher destination copies backward; equality is a no-op.
-  add(
-    entryLabel,
-    [
-      ...prefix,
-      instruction("lda", "storage", toByte(1)),
-      instruction("cmp", "storage", fromByte(1)),
-    ],
-    branch("bcc", forward, label("high")),
-  );
-  add(label("high"), [], branch("bne", backward, label("low")));
-  add(
-    label("low"),
-    [instruction("lda", "storage", toByte(0)), instruction("cmp", "storage", fromByte(0))],
-    branch("beq", done, label("low-order")),
-  );
-  add(label("low-order"), [], branch("bcc", forward, backward));
+  if (knownForward) {
+    add(entryLabel, prefix, fallthrough(forward));
+  } else {
+    add(
+      entryLabel,
+      [
+        ...prefix,
+        instruction("lda", "storage", toByte(1)),
+        instruction("cmp", "storage", fromByte(1)),
+      ],
+      branch("bcc", forward, label("high")),
+    );
+    add(label("high"), [], branch("bne", backward, label("low")));
+    add(
+      label("low"),
+      [instruction("lda", "storage", toByte(0)), instruction("cmp", "storage", fromByte(0))],
+      branch("beq", done, label("low-order")),
+    );
+    add(label("low-order"), [], branch("bcc", forward, backward));
+  }
 
   const fullPages = Math.floor(bytes / 256);
   const partialBytes = bytes % 256;
@@ -147,6 +152,10 @@ export function lowerDirectionalCopyLoops(
       ],
       branch("bne", label("forward-partial-byte"), done),
     );
+  }
+
+  if (knownForward) {
+    return Object.freeze({ blocks: Object.freeze(blocks), continuation: done });
   }
 
   const lastPage = partialBytes > 0 ? fullPages : fullPages - 1;

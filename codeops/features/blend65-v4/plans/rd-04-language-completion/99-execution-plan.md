@@ -245,7 +245,9 @@ The user approved all four narrow corrections on 2026-09-24. Nested member reads
 | Semantics 2 | A later field expression can mutate an earlier place-backed field before that earlier value is captured. | Preserve each evaluated member before a later effect can change it; prove source-order behavior in VICE. |
 | PE-001 / PE-002 | Large nested fields still expand to per-byte code; borrowed construction can reserve a full-size snapshot and copy twice without a cross-field hazard. | Use existing counted/directional copy forms for large safe members, and stage only real cross-member hazards; measure bytes, cycles and RAM. |
 
-These are bounded compiler corrections, not authority for a new runtime, heap, IR or general optimization framework. No second re-review is planned; the next checkpoint must verify the explicit ruling and report any remaining risk honestly.
+The user approved all three bounded corrections on 2026-09-24. This does not authorize a new runtime, heap, IR or general optimization framework. No second re-review is planned; the next checkpoint must verify these fixes and report any remaining risk honestly.
+
+The three approved corrections are implemented and verified. Retained pointers, source-order capture, large nested members, cross-member swaps and a borrowed alias into direct storage have focused regressions. Full frozen install, build, typecheck and tests pass: compiler 1,143; root 129; CLI 60; LSP 12; VS Code 6. Touched-file formatting, whitespace and frozen-`spec/` checks pass. The reviewer findings are corrected without a new runtime, heap, IR or general optimization framework. One bounded nested 300-byte copy body still measures 119 bytes against the 104-byte expert reference; [issue #82](https://github.com/blendsdk/blend65/issues/82) records the exact gap and the path to parity. Phase 4 remains open for that output-quality defect; Phase 5 has not started.
 
 **Verify:** `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 

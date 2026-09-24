@@ -26,6 +26,11 @@ import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
 import { lowerBoundsGuards } from "./lower-bounds.js";
 import { lowerAggregateReturn, lowerAggregateReturnLoop } from "./lower-aggregate-return.js";
+import {
+  hasLargeAggregateMember,
+  lowerLargeAggregateBuild,
+  lowerLargeCapturedAggregatePlace,
+} from "./lower-aggregate-build.js";
 import { lowerAggregatePlaceCopyLoop } from "./lower-aggregate-copy.js";
 import { lowerAggregateByteFillLoop } from "./lower-aggregate-fill.js";
 import type { MultiplyHelper } from "./lower-multiply.js";
@@ -535,6 +540,8 @@ function lowerFunction(
     let checkedBoundsIndex = 0;
     let aggregateCopyIndex = 0;
     let aggregateFillIndex = 0;
+    let aggregateBuildIndex = 0;
+    let aggregateCaptureIndex = 0;
     for (const operation of block.operations) {
       if (
         input.boundsCheck === true &&
@@ -646,6 +653,38 @@ function lowerFunction(
             continue;
           }
         }
+      }
+      if (
+        operation.kind === "place-address" &&
+        operation.captureValue === true &&
+        typeBytes(operation.type) >= 8
+      ) {
+        const captured = lowerLargeCapturedAggregatePlace(
+          operation,
+          state,
+          currentLabel,
+          currentInstructions,
+          aggregateCaptureIndex,
+        );
+        loweredBlocks.push(...captured.blocks);
+        currentLabel = captured.continuation;
+        currentInstructions = [];
+        aggregateCaptureIndex += 1;
+        continue;
+      }
+      if (operation.kind === "aggregate" && hasLargeAggregateMember(operation)) {
+        const built = lowerLargeAggregateBuild(
+          operation,
+          state,
+          currentLabel,
+          currentInstructions,
+          aggregateBuildIndex,
+        );
+        loweredBlocks.push(...built.blocks);
+        currentLabel = built.continuation;
+        currentInstructions = [...built.continuationInstructions];
+        aggregateBuildIndex += 1;
+        continue;
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
         currentInstructions.push(...lowerOperation(operation, state));

@@ -31,11 +31,25 @@ describe.sequential("aggregate review regressions", () => {
       "module Game;",
       "struct Holder { inner: byte[3]; }",
       "struct Swap { a: byte[3]; b: byte[3]; }",
+      "struct LargeHolder { inner: byte[300]; tail: byte; }",
+      "struct EffectHolder { inner: byte[3]; tag: byte; }",
+      "struct LargeSwap { a: byte[300]; b: byte[300]; }",
       "let source: byte[3] = [1, 2, 3];",
+      "let effectSource: byte[3] = [1, 2, 3];",
+      "let assignedSource: byte[3] = [1, 2, 3];",
+      "let assignedTarget: byte[3] = [; 0];",
+      "let largeSource: byte[300] = [; 0];",
+      "let largeTarget: LargeHolder;",
+      "let largeSwap: LargeSwap = { a: [; 0], b: [; 0] };",
       "let swapped: Swap = { a: [1, 2, 3], b: [4, 5, 6] };",
       "let large: byte[1024] = [; 0];",
       "function first(input: const byte[1024]): byte { return input[0]; }",
       "function fillAndRead(output: byte[1024]): byte { return first(output = [; 7]); }",
+      "function firstLarge(input: const LargeHolder): byte { return input.inner[0]; }",
+      "function buildAndRead(output: LargeHolder): byte { return firstLarge(output = { inner: largeSource, tail: 1 }); }",
+      "function changeSource(): byte { effectSource[0] = 9; return 0; }",
+      "function changeLargeSource(): byte { largeSource[0] = 9; return 0; }",
+      "function changeAssignedTarget(): byte { assignedTarget[0] = 9; return 0; }",
       "function main(): void {",
       "  let value: Holder = { inner: source };",
       "  poke($0440, value.inner[0]);",
@@ -45,6 +59,20 @@ describe.sequential("aggregate review regressions", () => {
       "  poke($0443, swapped.a[0]); poke($0444, swapped.a[1]); poke($0445, swapped.a[2]);",
       "  poke($0446, swapped.b[0]); poke($0447, swapped.b[1]); poke($0448, swapped.b[2]);",
       "  poke($0449, fillAndRead(large));",
+      "  largeSource[0] = 1; largeSource[255] = 2; largeSource[256] = 3; largeSource[299] = 4;",
+      "  poke($044a, buildAndRead(largeTarget));",
+      "  let ordered: EffectHolder = { inner: effectSource, tag: changeSource() };",
+      "  poke($044b, ordered.inner[0]);",
+      "  poke($044c, effectSource[0]);",
+      "  largeSwap.a[0] = 11; largeSwap.a[299] = 12;",
+      "  largeSwap.b[0] = 21; largeSwap.b[299] = 22;",
+      "  largeSwap = { a: largeSwap.b, b: largeSwap.a };",
+      "  poke($044d, largeSwap.a[0]); poke($044e, largeSwap.a[299]);",
+      "  poke($044f, largeSwap.b[0]); poke($0450, largeSwap.b[299]);",
+      "  let orderedLarge: LargeHolder = { inner: largeSource, tail: changeLargeSource() };",
+      "  poke($0451, orderedLarge.inner[0]); poke($0452, largeSource[0]);",
+      "  let orderedAssignment: EffectHolder = { inner: assignedTarget = assignedSource, tag: changeAssignedTarget() };",
+      "  poke($0453, orderedAssignment.inner[0]); poke($0454, assignedTarget[0]);",
       "}",
     ]);
     try {
@@ -69,8 +97,8 @@ describe.sequential("aggregate review regressions", () => {
           const stopped = started.monitor.waitForStop(20_000);
           await started.monitor.resume();
           expect(await stopped).toBe(returnAddress);
-          expect([...(await started.monitor.readMemory(0x0440, 0x0449))]).toEqual([
-            1, 2, 3, 4, 5, 6, 1, 2, 3, 7,
+          expect([...(await started.monitor.readMemory(0x0440, 0x0454))]).toEqual([
+            1, 2, 3, 4, 5, 6, 1, 2, 3, 7, 1, 1, 9, 21, 22, 11, 12, 1, 9, 1, 9,
           ]);
         } finally {
           await started.monitor.deleteCheckpoint(checkpoint);

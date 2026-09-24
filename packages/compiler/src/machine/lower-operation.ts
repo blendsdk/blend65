@@ -7,7 +7,7 @@ import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
 import { advanceAggregateInductionAddress } from "./lower-induction.js";
 import { lowerAggregatePlaceCopy } from "./lower-aggregate-copy.js";
-import { lowerAggregate } from "./lower-aggregate-build.js";
+import { lowerAggregate, lowerCapturedAggregatePlace } from "./lower-aggregate-build.js";
 import { prepareAggregateCallResult } from "./lower-aggregate-return.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
@@ -736,6 +736,11 @@ export function lowerOperation(
     return Object.freeze([]);
   }
   if (operation.kind === "place-address") {
+    if (operation.captureValue === true) {
+      const captured = lowerCapturedAggregatePlace(operation, state);
+      state.values.set(operation.result, captured.result);
+      return captured.instructions;
+    }
     if (operation.type.kind === "array" || operation.type.kind === "struct") {
       state.aggregatePlaces.set(operation.result, operation.place);
     }

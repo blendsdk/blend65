@@ -100,6 +100,8 @@ export interface PlaceAddressOperation extends ValueOperation {
   readonly kind: "place-address";
   /** Addressed source place. */
   readonly place: SemanticPlace;
+  /** Materialize the object's bytes now when a later member expression may change them. */
+  readonly captureValue?: true;
 }
 
 /** One ordered read from a symbolic source place. */

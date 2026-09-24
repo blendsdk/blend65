@@ -48,6 +48,46 @@ function isVoid(type: SemanticType): boolean {
   return type.kind === "scalar" && type.name === "void";
 }
 
+/** Conservatively identify later expressions that can change an earlier place value. */
+function mayWriteDuringEvaluation(expression: TypedExpr): boolean {
+  if (expression.kind === "assignment" || expression.kind === "call") return true;
+  if (expression.kind === "array-literal") {
+    return (
+      (expression.elements ?? []).some(mayWriteDuringEvaluation) ||
+      (expression.fill !== null &&
+        expression.fill !== undefined &&
+        mayWriteDuringEvaluation(expression.fill))
+    );
+  }
+  if (expression.kind === "struct-literal") {
+    return (expression.fields ?? []).some(({ value }) => mayWriteDuringEvaluation(value));
+  }
+  if (expression.kind === "binary") {
+    return (
+      (expression.left !== undefined && mayWriteDuringEvaluation(expression.left)) ||
+      (expression.right !== undefined && mayWriteDuringEvaluation(expression.right))
+    );
+  }
+  if (expression.kind === "conditional") {
+    return (
+      (expression.condition !== undefined && mayWriteDuringEvaluation(expression.condition)) ||
+      (expression.whenTrue !== undefined && mayWriteDuringEvaluation(expression.whenTrue)) ||
+      (expression.whenFalse !== undefined && mayWriteDuringEvaluation(expression.whenFalse))
+    );
+  }
+  if (expression.kind === "index") {
+    return (
+      (expression.object !== undefined && mayWriteDuringEvaluation(expression.object)) ||
+      (expression.index !== undefined && mayWriteDuringEvaluation(expression.index))
+    );
+  }
+  if (expression.kind === "member") {
+    return expression.object !== undefined && mayWriteDuringEvaluation(expression.object);
+  }
+  const operand = expression.operand;
+  return operand !== undefined && "type" in operand && mayWriteDuringEvaluation(operand);
+}
+
 /** Direct expression-to-operation lowering for one owning CFG builder. */
 class ExpressionLowerer {
   private readonly builder: ControlFlowBuilder;
@@ -260,7 +300,11 @@ class ExpressionLowerer {
   }
 
   /** Read a scalar place or retain an aggregate place address. */
-  private lowerPlaceValue(expression: TypedExpr, type: SemanticType): ValueId {
+  private lowerPlaceValue(
+    expression: TypedExpr,
+    type: SemanticType,
+    captureValue = false,
+  ): ValueId {
     const place = this.lowerPlace(expression);
     const result = this.builder.nextValue();
     this.builder.emit(
@@ -268,6 +312,7 @@ class ExpressionLowerer {
         kind: type.kind === "scalar" || type.kind === "enum" ? "load" : "place-address",
         result,
         place,
+        ...(captureValue ? { captureValue: true as const } : {}),
         type,
         integer: expression.integer,
         span: expression.span,
@@ -353,7 +398,7 @@ class ExpressionLowerer {
   }
 
   /** Lower simple or compound assignment with one shared evaluated place. */
-  private lowerAssignment(expression: TypedExpr): ValueId {
+  private lowerAssignment(expression: TypedExpr, captureValue = false): ValueId {
     const target = required(expression.target, "assignment target");
     const place = this.lowerPlace(target);
     const operator = required(expression.operator, "assignment operator");
@@ -400,6 +445,21 @@ class ExpressionLowerer {
     this.builder.emit(
       Object.freeze({ kind: "store", place, value, type: expression.type, span: expression.span }),
     );
+    if (captureValue && (expression.type.kind === "array" || expression.type.kind === "struct")) {
+      const captured = this.builder.nextValue();
+      this.builder.emit(
+        Object.freeze({
+          kind: "place-address",
+          result: captured,
+          place,
+          captureValue: true,
+          type: expression.type,
+          integer: null,
+          span: expression.span,
+        }),
+      );
+      return captured;
+    }
     return value;
   }
 
@@ -547,8 +607,29 @@ class ExpressionLowerer {
       expression.kind === "array-literal"
         ? (expression.elements ?? []).map((element) => ({ field: null, expression: element }))
         : (expression.fields ?? []).map(({ name, value }) => ({ field: name, expression: value }));
-    const values = elements.map(({ field, expression: element }) => {
-      const value = this.lower(element);
+    // A place-backed member is a value, not a promise to read that place later.
+    // Capture it before a following expression can write through the same object.
+    const laterMayWrite: boolean[] = new Array(elements.length);
+    let followingMayWrite =
+      expression.fill === null || expression.fill === undefined
+        ? false
+        : mayWriteDuringEvaluation(expression.fill);
+    for (let index = elements.length - 1; index >= 0; index -= 1) {
+      laterMayWrite[index] = followingMayWrite;
+      followingMayWrite ||= mayWriteDuringEvaluation(elements[index]!.expression);
+    }
+    const values = elements.map(({ field, expression: element }, index) => {
+      const capture =
+        laterMayWrite[index] === true &&
+        (element.type.kind === "array" || element.type.kind === "struct") &&
+        (((element.kind === "name" || element.kind === "member" || element.kind === "index") &&
+          element.place !== null) ||
+          element.kind === "assignment");
+      const value = capture
+        ? element.kind === "assignment"
+          ? this.lowerAssignment(element, true)
+          : this.lowerPlaceValue(element, element.type, true)
+        : this.lower(element);
       if (value === null) throw new Error("Completed aggregate element has no value");
       return Object.freeze({ field, value });
     });

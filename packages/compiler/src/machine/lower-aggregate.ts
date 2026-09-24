@@ -648,3 +648,37 @@ export function aggregateDestination(
   }
   return { instructions, result, indirect };
 }
+
+/** Return a retained indirect result pointer to the first byte after page writes. */
+export function restoreAggregateDestinationPage(
+  result: LoweredValue,
+  indirect: boolean,
+  advancedPages: number,
+  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
+  state: FunctionLoweringState,
+): readonly MachineInstruction[] {
+  if (!indirect || !state.retainedAggregateResults.has(operation.result) || advancedPages === 0) {
+    return Object.freeze([]);
+  }
+  if (result.kind !== "storage") {
+    throw loweringFailure("Aggregate result pointer has no home", operation.span);
+  }
+  const high = Object.freeze({ kind: "storage" as const, requestId: result.requestId, offset: 1 });
+  const cpu = state.input.profile.cpu;
+  if (advancedPages === 1) {
+    return Object.freeze([machineInstruction(cpu, "dec", "storage", high, [], operation.span)]);
+  }
+  return Object.freeze([
+    machineInstruction(cpu, "lda", "storage", high, [], operation.span),
+    machineInstruction(cpu, "sec", "implied", null, [], operation.span),
+    machineInstruction(
+      cpu,
+      "sbc",
+      "immediate",
+      Object.freeze({ kind: "immediate", value: advancedPages }),
+      [],
+      operation.span,
+    ),
+    machineInstruction(cpu, "sta", "storage", high, [], operation.span),
+  ]);
+}

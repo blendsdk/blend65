@@ -1,42 +1,8 @@
 import type { SemanticOperation } from "../semantic/operations.js";
-import { aggregateDestination } from "./lower-aggregate.js";
+import { aggregateDestination, restoreAggregateDestinationPage } from "./lower-aggregate.js";
 import { machineCost, machineInstruction, machineState } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
 import { appendLoadA, loweringFailure, typeBytes, type FunctionLoweringState } from "./lower.js";
-
-/** Return a borrowed destination pointer to its original object after page writes. */
-function restoreDestinationPage(
-  result: ReturnType<typeof aggregateDestination>["result"],
-  indirect: boolean,
-  advancedPages: number,
-  operation: Extract<SemanticOperation, { readonly kind: "aggregate" }>,
-  state: FunctionLoweringState,
-): readonly MachineInstruction[] {
-  if (!indirect || !state.retainedAggregateResults.has(operation.result) || advancedPages === 0) {
-    return Object.freeze([]);
-  }
-  if (result.kind !== "storage") {
-    throw loweringFailure("Aggregate fill pointer has no home", operation.span);
-  }
-  const high = Object.freeze({ kind: "storage" as const, requestId: result.requestId, offset: 1 });
-  const cpu = state.input.profile.cpu;
-  if (advancedPages === 1) {
-    return Object.freeze([machineInstruction(cpu, "dec", "storage", high, [], operation.span)]);
-  }
-  return Object.freeze([
-    machineInstruction(cpu, "lda", "storage", high, [], operation.span),
-    machineInstruction(cpu, "sec", "implied", null, [], operation.span),
-    machineInstruction(
-      cpu,
-      "sbc",
-      "immediate",
-      Object.freeze({ kind: "immediate", value: advancedPages }),
-      [],
-      operation.span,
-    ),
-    machineInstruction(cpu, "sta", "storage", high, [], operation.span),
-  ]);
-}
 
 /** Fill a large byte array with one scalar load and page-safe counted stores. */
 export function lowerAggregateByteFillLoop(
@@ -164,7 +130,7 @@ export function lowerAggregateByteFillLoop(
       return Object.freeze({
         blocks: Object.freeze(blocks),
         continuation: partialLabel,
-        continuationInstructions: restoreDestinationPage(
+        continuationInstructions: restoreAggregateDestinationPage(
           result,
           indirect,
           fullPages,
@@ -225,7 +191,7 @@ export function lowerAggregateByteFillLoop(
     return Object.freeze({
       blocks: Object.freeze(blocks),
       continuation: complete,
-      continuationInstructions: restoreDestinationPage(
+      continuationInstructions: restoreAggregateDestinationPage(
         result,
         indirect,
         fullPages,
@@ -326,6 +292,12 @@ export function lowerAggregateByteFillLoop(
   return Object.freeze({
     blocks: Object.freeze(blocks),
     continuation: currentLabel,
-    continuationInstructions: restoreDestinationPage(result, indirect, pages - 1, operation, state),
+    continuationInstructions: restoreAggregateDestinationPage(
+      result,
+      indirect,
+      pages - 1,
+      operation,
+      state,
+    ),
   });
 }
