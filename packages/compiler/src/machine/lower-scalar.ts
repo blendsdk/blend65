@@ -260,6 +260,84 @@ export function lowerConstantMultiply(
   if ((factor & (factor - 1)) === 0) {
     return lowerFixedShift(operation, value, Math.log2(factor), "left", state);
   }
+  if (width === 1 && factor === 255) {
+    const instructions: MachineInstruction[] = [];
+    appendLoadA(instructions, value, 0, state, operation.span);
+    instructions.push(
+      machineInstruction(
+        state.input.profile.cpu,
+        "eor",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: 255 }),
+        [],
+        operation.span,
+      ),
+      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], operation.span),
+      machineInstruction(
+        state.input.profile.cpu,
+        "adc",
+        "immediate",
+        Object.freeze({ kind: "immediate", value: 1 }),
+        [],
+        operation.span,
+      ),
+    );
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+    });
+  }
+  if (width === 1 && (factor === 3 || factor === 5 || factor === 10)) {
+    const originalRequest = requestStorage(
+      state,
+      `scale-original:${operation.result}`,
+      "temporary",
+      1,
+      "zero-page-preferred",
+      operation.span,
+      "Original byte retained for a short constant multiplication chain",
+      operation.type,
+    );
+    const original: LoweredValue = Object.freeze({
+      kind: "storage",
+      requestId: originalRequest.id,
+      bytes: 1,
+      signed: isSignedType(operation.type),
+    });
+    const instructions: MachineInstruction[] = [];
+    appendLoadA(instructions, value, 0, state, operation.span);
+    instructions.push(storeA(original, 0, state, operation.span));
+    for (let shift = 0; shift < (factor === 3 ? 1 : 2); shift += 1) {
+      instructions.push(
+        machineInstruction(state.input.profile.cpu, "asl", "accumulator", null, [], operation.span),
+      );
+    }
+    instructions.push(
+      machineInstruction(state.input.profile.cpu, "clc", "implied", null, [], operation.span),
+      machineInstruction(
+        state.input.profile.cpu,
+        "adc",
+        "storage",
+        operandForValue(original, 0),
+        [],
+        operation.span,
+      ),
+    );
+    if (factor === 10) {
+      instructions.push(
+        machineInstruction(state.input.profile.cpu, "asl", "accumulator", null, [], operation.span),
+      );
+    }
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({
+        kind: "register",
+        registers: "a",
+        bytes: 1,
+        signed: isSignedType(operation.type),
+      }),
+    });
+  }
 
   const candidateRequest = requestStorage(
     state,

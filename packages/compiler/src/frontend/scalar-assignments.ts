@@ -6,6 +6,7 @@ import {
   createScalarTypedExpression,
   evaluateBinaryInteger,
   integerFacts,
+  isCompileTimeConstantExpression,
   scalarWarning,
   wrapInteger,
 } from "./constants.js";
@@ -135,6 +136,17 @@ export function analyzeScalarAssignment(
     if (!shift) {
       value = applyExpectedScalar(value, operationType, expression.value, context, host);
       if (value.node === null) return { node: null, exact: null };
+    }
+
+    if (
+      (operator === "/" || operator === "%") &&
+      value.node.constant === 0n &&
+      isCompileTimeConstantExpression(expression.value, context, host)
+    ) {
+      host.diagnose(
+        projectDiagnostic("E10160", "Division by zero in constant expression", expression.span),
+      );
+      return { node: null, exact: null };
     }
 
     const targetValue = target.node.constant;

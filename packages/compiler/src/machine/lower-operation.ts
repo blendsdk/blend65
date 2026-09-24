@@ -359,8 +359,32 @@ export function lowerOperation(
         selectedHelper = "multiply";
       }
     } else if (operation.operator === "/" || operation.operator === "%") {
-      lowered = lowerRuntimeDivision(operation, left, right, state);
-      selectedHelper = "division";
+      const divisor = right.kind === "constant" ? right.value : null;
+      if (
+        !isSignedType(operation.type) &&
+        divisor !== null &&
+        divisor > 0 &&
+        Number.isInteger(divisor) &&
+        (divisor & (divisor - 1)) === 0
+      ) {
+        lowered =
+          operation.operator === "/"
+            ? lowerFixedShift(operation, left, Math.log2(divisor), "right", state)
+            : lowerBitwise(
+                { ...operation, operator: "&" },
+                left,
+                Object.freeze({
+                  kind: "constant",
+                  value: divisor - 1,
+                  bytes: typeBytes(operation.type),
+                  signed: false,
+                }),
+                state,
+              );
+      } else {
+        lowered = lowerRuntimeDivision(operation, left, right, state);
+        selectedHelper = "division";
+      }
     } else {
       throw loweringFailure(
         `Binary operator '${operation.operator}' is not admitted by this lowering slice`,

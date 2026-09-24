@@ -106,7 +106,10 @@ function checkCaseValues(
       const compatible =
         selector.type.kind === "enum"
           ? semanticTypesEqual(node.type, selector.type)
-          : (isIntegerType(node.type) || node.type.kind === "enum") &&
+          : (isIntegerType(node.type) ||
+              (node.type.kind === "enum" &&
+                selector.type.kind === "scalar" &&
+                selector.type.name === "byte")) &&
             fitsInteger(selector.type, node.constant);
       if (!compatible) {
         host.diagnose(

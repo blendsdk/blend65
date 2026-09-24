@@ -12,6 +12,7 @@ import {
   appendLoadA,
   isSignedType,
   loweringFailure,
+  retainMachineValue,
   requestStorage,
   storeA,
   type FunctionLoweringState,
@@ -142,7 +143,11 @@ export function lowerVariableShift(
   entryLabel: string,
   prefix: readonly MachineInstruction[],
   ordinal: number,
-): { readonly blocks: readonly MachineBlock[]; readonly continuation: string } {
+): {
+  readonly blocks: readonly MachineBlock[];
+  readonly continuation: string;
+  readonly continuationInstructions: readonly MachineInstruction[];
+} {
   const left = state.values.get(operation.left);
   const right = state.values.get(operation.right);
   if (
@@ -164,6 +169,156 @@ export function lowerVariableShift(
   const loopLabel = `${stem}.loop`;
   const saturationLabel = `${stem}.saturated`;
   const continuation = `${stem}.continue`;
+  if (width === 1 && right.bytes === 1) {
+    const result: LoweredValue = Object.freeze({
+      kind: "register",
+      registers: "a",
+      bytes: 1,
+      signed: isSignedType(operation.type),
+    });
+    const entryInstructions = [...prefix];
+    entryInstructions.push(
+      machineInstruction(
+        cpu,
+        right.kind === "register" ? "tax" : "ldx",
+        right.kind === "register" ? "implied" : modeForValue(right, 0),
+        right.kind === "register" ? null : operandForValue(right, 0),
+        [],
+        source,
+      ),
+    );
+    appendLoadA(entryInstructions, left, 0, state, source);
+    const shifted =
+      operation.operator === "<<"
+        ? [machineInstruction(cpu, "asl", "accumulator", null, [], source)]
+        : isSignedType(operation.type)
+          ? [
+              machineInstruction(
+                cpu,
+                "cmp",
+                "immediate",
+                Object.freeze({ kind: "immediate", value: 0x80 }),
+                [],
+                source,
+              ),
+              machineInstruction(cpu, "ror", "accumulator", null, [], source),
+            ]
+          : [machineInstruction(cpu, "lsr", "accumulator", null, [], source)];
+    const saturated: MachineInstruction[] = [];
+    if (operation.operator === ">>" && isSignedType(operation.type)) {
+      saturated.push(
+        machineInstruction(
+          cpu,
+          "cmp",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: 0x80 }),
+          [],
+          source,
+        ),
+        machineInstruction(
+          cpu,
+          "lda",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: 0 }),
+          [],
+          source,
+        ),
+        machineInstruction(
+          cpu,
+          "sbc",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: 0 }),
+          [],
+          source,
+        ),
+        machineInstruction(
+          cpu,
+          "eor",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: 0xff }),
+          [],
+          source,
+        ),
+      );
+    } else {
+      saturated.push(
+        machineInstruction(
+          cpu,
+          "lda",
+          "immediate",
+          Object.freeze({ kind: "immediate", value: 0 }),
+          [],
+          source,
+        ),
+      );
+    }
+    const retained = retainMachineValue(
+      operation.result,
+      result,
+      [],
+      operation.type,
+      source,
+      state,
+    );
+    state.values.set(operation.result, retained.value);
+    return Object.freeze({
+      blocks: Object.freeze([
+        Object.freeze({
+          label: entryLabel,
+          instructions: Object.freeze(entryInstructions),
+          terminator: Object.freeze({ kind: "fallthrough", target: lowLabel }),
+        }),
+        Object.freeze({
+          label: lowLabel,
+          instructions: Object.freeze([
+            machineInstruction(
+              cpu,
+              "cpx",
+              "immediate",
+              Object.freeze({ kind: "immediate", value: 8 }),
+              [],
+              source,
+            ),
+          ]),
+          terminator: branch("bcs", saturationLabel, zeroLabel, state),
+        }),
+        Object.freeze({
+          label: zeroLabel,
+          instructions: Object.freeze([
+            machineInstruction(
+              cpu,
+              "cpx",
+              "immediate",
+              Object.freeze({ kind: "immediate", value: 0 }),
+              [],
+              source,
+            ),
+          ]),
+          terminator: branch("beq", continuation, loopLabel, state),
+        }),
+        Object.freeze({
+          label: loopLabel,
+          instructions: Object.freeze([
+            ...shifted,
+            machineInstruction(cpu, "dex", "implied", null, [], source),
+          ]),
+          terminator: branch("bne", loopLabel, continuation, state),
+        }),
+        Object.freeze({
+          label: saturationLabel,
+          instructions: Object.freeze(saturated),
+          terminator: Object.freeze({
+            kind: "jump",
+            opcode: "jmp",
+            target: continuation,
+            cost: machineCost(cpu, "jmp", "absolute"),
+          }),
+        }),
+      ]),
+      continuation,
+      continuationInstructions: retained.instructions,
+    });
+  }
   const request = requestStorage(
     state,
     `variable-shift:${operation.result}`,
@@ -283,5 +438,9 @@ export function lowerVariableShift(
       }),
     }),
   );
-  return Object.freeze({ blocks: Object.freeze(blocks), continuation });
+  return Object.freeze({
+    blocks: Object.freeze(blocks),
+    continuation,
+    continuationInstructions: Object.freeze([]),
+  });
 }

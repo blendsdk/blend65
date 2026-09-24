@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { SemanticType } from "../frontend/semantic-types.js";
 import type { SemanticOperation } from "../semantic/operations.js";
 import { inventoryStorage } from "../storage/inventory.js";
+import { closeStorage } from "../storage/closure.js";
+import { bindMachineProgram } from "./bind.js";
 import {
   BOOLEAN,
   BYTE,
@@ -15,6 +17,7 @@ import {
   sourceBinding,
   sourceParameter,
   sourceSpan,
+  selectedProfile,
   wholeProgramFor,
 } from "./lowering-test-support.js";
 
@@ -204,6 +207,33 @@ describe("direct value lowering", () => {
     );
     expect(byteScratch.map(({ id }) => id.split("multiply:1:")[1])).toEqual(["left", "right"]);
     expect(byteScratch.every(({ region }) => region === "zero-page-preferred")).toBe(true);
+    const semantic = wholeProgramFor([main]);
+    const closure = closeStorage(
+      inventoryStorage(semantic),
+      selectedProfile().storage,
+      result.binder,
+    );
+    expect(closure.kind).toBe("complete");
+    if (closure.kind !== "complete") throw new Error("Expected closed helper scratch");
+    expect(
+      closure.certificate.homes
+        .filter(({ requestId }) => requestId.includes("multiply:1:"))
+        .map(({ region }) => region),
+    ).toEqual(["zero-page", "zero-page"]);
+    const bound = bindMachineProgram(result.program, closure.certificate);
+    expect(bound.kind).toBe("complete");
+    if (bound.kind !== "complete") throw new Error("Expected bound arithmetic helpers");
+    const multiplyBlocks = bound.program.functions[0]!.blocks.filter(({ label }) =>
+      label.includes(".multiply.1"),
+    );
+    const helperBytes = multiplyBlocks.reduce(
+      (bytes, block) =>
+        bytes +
+        block.instructions.reduce((sum, instruction) => sum + instruction.cost.bytes, 0) +
+        ("cost" in block.terminator ? block.terminator.cost.bytes : 0),
+      0,
+    );
+    expect(helperBytes).toBe(20);
     expect(result.program.functions[0]!.blocks.flatMap(({ instructions }) => instructions)).toEqual(
       expect.arrayContaining([expect.objectContaining({ opcode: "jsr" })]),
     );
@@ -246,6 +276,66 @@ describe("direct value lowering", () => {
       instructions: expect.arrayContaining([expect.objectContaining({ opcode: "dex" })]),
       terminator: { kind: "branch", opcode: "bne" },
     });
+  });
+
+  it("should bind byte times three to the expert six-byte, ten-cycle local core", () => {
+    const value = sourceParameter(410, BYTE);
+    const main = semanticFunction(400, "times-three", [value], BYTE, [
+      semanticBlock(
+        "scale.entry",
+        [
+          loadOperation("value", value, 420),
+          Object.freeze({
+            kind: "constant" as const,
+            result: "three",
+            type: BYTE,
+            integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+            value: 3n,
+            span: sourceSpan(421),
+          }),
+          Object.freeze({
+            kind: "binary" as const,
+            result: "product",
+            type: BYTE,
+            integer: Object.freeze({ width: 8 as const, signed: false, wrap: true }),
+            operator: "*",
+            left: "value",
+            right: "three",
+            span: sourceSpan(422),
+          }),
+        ],
+        Object.freeze({ kind: "return" as const, value: "product" }),
+      ),
+    ]);
+    const semantic = wholeProgramFor([main]);
+    const lowered = lowerFunctions([main]);
+    expect(lowered.kind).toBe("complete");
+    if (lowered.kind !== "complete") throw new Error("Expected constant multiply lowering");
+    const closure = closeStorage(
+      inventoryStorage(semantic),
+      selectedProfile().storage,
+      lowered.binder,
+    );
+    expect(closure.kind).toBe("complete");
+    if (closure.kind !== "complete") throw new Error("Expected constant multiply scratch closure");
+    const bound = bindMachineProgram(lowered.program, closure.certificate);
+    expect(bound.kind).toBe("complete");
+    if (bound.kind !== "complete") throw new Error("Expected bound constant multiply");
+    const instructions = bound.program.functions[0]!.blocks.flatMap(
+      ({ instructions }) => instructions,
+    );
+    const first = instructions.findIndex(
+      (instruction, index) =>
+        instruction.opcode === "sta" &&
+        instructions[index + 1]?.opcode === "asl" &&
+        instructions[index + 2]?.opcode === "clc" &&
+        instructions[index + 3]?.opcode === "adc",
+    );
+    expect(first).toBeGreaterThanOrEqual(0);
+    const core = instructions.slice(first, first + 4);
+    expect(core.map(({ opcode }) => opcode)).toEqual(["sta", "asl", "clc", "adc"]);
+    expect(core.reduce((bytes, instruction) => bytes + instruction.cost.bytes, 0)).toBe(6);
+    expect(core.reduce((cycles, instruction) => cycles + instruction.cost.maxCycles, 0)).toBe(10);
   });
 
   it("should copy complete aggregate and merge values on their incoming edges", () => {

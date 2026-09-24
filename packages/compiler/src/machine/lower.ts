@@ -502,7 +502,7 @@ function lowerFunction(
         );
         loweredBlocks.push(...lowered.blocks);
         currentLabel = lowered.continuation;
-        currentInstructions = [];
+        currentInstructions = [...lowered.continuationInstructions];
         variableShiftIndex += 1;
         continue;
       }

@@ -257,6 +257,53 @@ describe("recursion and structured flow", () => {
     expect(result.complete).toBe(true);
   });
 
+  it("rejects a constant-zero divisor even when the numerator is runtime data", () => {
+    const result = analyze(
+      "module Game; function f(): void { let numerator: byte = peek($0400); let quotient: byte = numerator / byte(0); poke($0401, quotient); } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ code }) => code === "E10160")).toMatchObject([
+      { code: "E10160", message: "Division by zero in constant expression" },
+    ]);
+  });
+
+  it("rejects a constant-zero divisor in compound division", () => {
+    const result = analyze(
+      "module Game; function f(): void { let quotient: byte = peek($0400); quotient /= byte(0); poke($0401, quotient); } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ code }) => code === "E10160")).toMatchObject([
+      { code: "E10160", message: "Division by zero in constant expression" },
+    ]);
+  });
+
+  it("warns when a do-while break can bypass a local's first assignment", () => {
+    const result = analyze(
+      "module Game; function f(exitEarly: boolean): byte { let value: byte; do { if (exitEarly) { break; } value = 7; } while (false); return value; } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ code }) => code === "W10190")).toMatchObject([
+      {
+        code: "W10190",
+        severity: "warning",
+        message: "Variable 'value' may be read before initialization — its value is indeterminate",
+      },
+    ]);
+  });
+
+  it("accepts a wrapping byte loop with an exit nested in a switch", () => {
+    const result = analyze(
+      "module Game; function f(): void { for (let i: byte = 0; i < 256; i += 1) { switch (i) { case 1: break; default: poke($0400, i); } } } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ severity }) => severity === "error")).toEqual([]);
+    expect(result.complete).toBe(true);
+  });
+
+  it("accepts a wrapping byte loop whose do-while body writes its counter", () => {
+    const result = analyze(
+      "module Game; function touch(value: byte): void {} function f(): void { for (let i: byte = 0; i < 256; i += 1) { do { i = 250; touch(i); } while (false); } } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ severity }) => severity === "error")).toEqual([]);
+    expect(result.complete).toBe(true);
+  });
+
   // The header, body, and surrounding block each have their own declaration identity.
   it("should allow a for header and its body to shadow an outer name", () => {
     const result = analyze(
@@ -322,6 +369,19 @@ describe("recursion and structured flow", () => {
       },
     ]);
     expect(result.complete).toBe(false);
+  });
+
+  it("rejects an enum case in a word switch without an explicit conversion", () => {
+    const result = analyze(
+      "module Game; enum Mode { Ready } function f(mode: Mode): void { switch (word(mode)) { case Mode.Ready: return; } } function main(): void {}",
+    );
+    expect(result.diagnostics.filter(({ code }) => code === "E10072")).toMatchObject([
+      {
+        code: "E10072",
+        severity: "error",
+        message: "Case value type 'Mode' does not match switch expression type 'word'",
+      },
+    ]);
   });
 
   // Each invalid switch form has its own stable root diagnostic.

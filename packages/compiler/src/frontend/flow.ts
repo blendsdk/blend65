@@ -179,10 +179,56 @@ function statementHasExplicitExit(statement: Statement, nestedLoopDepth: number)
           : statementHasExplicitExit(statement.otherwise, nestedLoopDepth)))
     );
   }
-  if (statement.kind === "while" || statement.kind === "for") {
+  if (statement.kind === "while" || statement.kind === "for" || statement.kind === "do-while") {
     return blockHasExplicitExit(statement.body, nestedLoopDepth + 1);
   }
+  if (statement.kind === "switch") {
+    return statement.clauses.some((clause) =>
+      blockHasExplicitExit(
+        { kind: "block", span: clause.span, statements: clause.statements },
+        nestedLoopDepth,
+      ),
+    );
+  }
   return false;
+}
+
+/** Conservatively detect jumps that can bypass the end of a post-test loop body. */
+function bodyMayJumpCurrentLoop(block: Block, nestedLoopDepth = 0): boolean {
+  return block.statements.some((statement) => {
+    if (statement.kind === "break" || statement.kind === "continue") {
+      return nestedLoopDepth === 0;
+    }
+    if (statement.kind === "block") return bodyMayJumpCurrentLoop(statement, nestedLoopDepth);
+    if (statement.kind === "if") {
+      return (
+        bodyMayJumpCurrentLoop(statement.then, nestedLoopDepth) ||
+        (statement.otherwise !== null &&
+          bodyMayJumpCurrentLoop(
+            statement.otherwise.kind === "block"
+              ? statement.otherwise
+              : {
+                  kind: "block",
+                  span: statement.otherwise.span,
+                  statements: [statement.otherwise],
+                },
+            nestedLoopDepth,
+          ))
+      );
+    }
+    if (statement.kind === "switch") {
+      return statement.clauses.some((clause) =>
+        bodyMayJumpCurrentLoop(
+          { kind: "block", span: clause.span, statements: clause.statements },
+          nestedLoopDepth,
+        ),
+      );
+    }
+    if (statement.kind === "while" || statement.kind === "for" || statement.kind === "do-while") {
+      return bodyMayJumpCurrentLoop(statement.body, nestedLoopDepth + 1);
+    }
+    return false;
+  });
 }
 
 /**
@@ -273,6 +319,19 @@ function statementTouchesName(statement: Statement, name: string): boolean {
   if (statement.kind === "while") {
     return (
       expressionTouchesName(statement.condition, name) || blockTouchesName(statement.body, name)
+    );
+  }
+  if (statement.kind === "do-while") {
+    return (
+      blockTouchesName(statement.body, name) || expressionTouchesName(statement.condition, name)
+    );
+  }
+  if (statement.kind === "switch") {
+    return (
+      expressionTouchesName(statement.value, name) ||
+      statement.clauses.some((clause) =>
+        clause.statements.some((child) => statementTouchesName(child, name)),
+      )
     );
   }
   if (statement.kind === "for") return true;
@@ -538,6 +597,7 @@ export function analyzeStructuredDoWhile(
   host: StructuredFlowHost,
 ): TypedDoWhileStatement {
   clearMutableScalarFacts(scope);
+  const entryFacts = snapshotScalarFacts(scope);
   const body = host.analyzeBlock(statement.body, scope, module, caller, returnType, loopDepth + 1);
   const condition = expressions.analyze(statement.condition, null, {
     scope,
@@ -549,6 +609,9 @@ export function analyzeStructuredDoWhile(
   if (condition !== null) {
     const diagnostic = conditionDiagnostic(condition, statement.condition.span);
     if (diagnostic !== null) host.diagnose(diagnostic);
+  }
+  if (bodyMayJumpCurrentLoop(statement.body)) {
+    mergeScalarFacts(entryFacts, [entryFacts, captureBranchFacts(entryFacts)]);
   }
   if (condition?.constant !== false) clearMutableScalarFacts(scope);
   return Object.freeze({

@@ -265,6 +265,39 @@ export function adaptableLiteralType(
   return null;
 }
 
+/** Distinguish source constants from mutable values that merely have a known value here. */
+export function isCompileTimeConstantExpression(
+  expression: Expr,
+  context: ScalarExpressionContext,
+  host: ScalarExpressionHost,
+): boolean {
+  switch (expression.kind) {
+    case "number":
+    case "boolean":
+    case "sizeof":
+    case "offsetof":
+      return true;
+    case "name":
+      return host.resolveName(expression.name, context)?.binding.storage === "constant";
+    case "unary":
+    case "cast":
+      return isCompileTimeConstantExpression(expression.operand, context, host);
+    case "binary":
+      return (
+        isCompileTimeConstantExpression(expression.left, context, host) &&
+        isCompileTimeConstantExpression(expression.right, context, host)
+      );
+    case "conditional":
+      return (
+        isCompileTimeConstantExpression(expression.condition, context, host) &&
+        isCompileTimeConstantExpression(expression.whenTrue, context, host) &&
+        isCompileTimeConstantExpression(expression.whenFalse, context, host)
+      );
+    default:
+      return false;
+  }
+}
+
 /** Validate a compound integer operation and return its pre-store result type. */
 export function compoundOperationType(
   target: SemanticType,

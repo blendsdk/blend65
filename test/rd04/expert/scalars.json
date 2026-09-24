@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "skillVersion": "2.0.0",
+    "skillContentCommit": "c9e70fab6039e9ced3108e88f0ea9730d4fd3007",
+    "casebook": "references/6502-lowering-casebook.md",
+    "sourceKey": "MOS-PGM-1976"
+  },
+  "assumptions": {
+    "processor": "NMOS 6502/6510",
+    "decimalFlag": "clear",
+    "arithmetic": "modular byte",
+    "input": "already in A",
+    "output": "low byte in A",
+    "memory": "zero-page scratch, no operand aliasing or volatile access",
+    "branchPlacement": "all branches remain on the same page",
+    "excludedCosts": "input moves, output materialization, and caller register preservation"
+  },
+  "constantTimesThree": {
+    "bytes": 6,
+    "cycles": 10,
+    "zeroPageScratchBytes": 1,
+    "instructions": ["STA scratch", "ASL A", "CLC", "ADC scratch"]
+  },
+  "unsignedByteDivideByTwo": {
+    "input": "already in A",
+    "bytes": 1,
+    "cycles": 2,
+    "zeroPageScratchBytes": 0,
+    "instructions": ["LSR A"]
+  },
+  "modularByteTimes255": {
+    "input": "already in A",
+    "identity": "x * 255 modulo 256 equals -x modulo 256",
+    "bytes": 5,
+    "cycles": 6,
+    "zeroPageScratchBytes": 0,
+    "instructions": ["EOR #$ff", "CLC", "ADC #1"]
+  },
+  "runtimeByteLeftShift": {
+    "input": "value already in A; byte count in X or Y",
+    "wideCount": "counts 8 through 255 yield zero",
+    "zeroCount": "bypass all shifts",
+    "loop": "ASL A; decrement count register; branch while nonzero",
+    "resultCopyScratchBytesInLoop": 0
+  },
+  "variableTimesVariable": {
+    "helperBodyBytesIncludingRts": 20,
+    "zeroPageScratchBytes": 2,
+    "helperCyclesExcludingCall": "131 + 4 * popcount(multiplier)",
+    "callSiteBytes": 3,
+    "callOverheadCycles": 12,
+    "hardwareStackPeakBytes": 2,
+    "iterations": 8,
+    "instructions": [
+      "LDA #0",
+      "LDX #8",
+      "LSR multiplier",
+      "BCC skipAdd",
+      "CLC",
+      "ADC multiplicand",
+      "ROR A",
+      "ROR multiplier",
+      "DEX",
+      "BNE loop",
+      "LDA multiplier",
+      "RTS"
+    ]
+  }
+}

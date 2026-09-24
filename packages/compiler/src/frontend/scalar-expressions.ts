@@ -10,6 +10,7 @@ import {
   fitsInteger,
   integerFacts,
   integerRangeMessage,
+  isCompileTimeConstantExpression,
   isIntegerLiteralExpression,
   isIntegerType,
   isScalarType,
@@ -565,8 +566,8 @@ export class ScalarExpressionAnalyzer {
     }
     if (
       (expression.operator === "/" || expression.operator === "%") &&
-      context.constantContext &&
-      right.node.constant === 0n
+      right.node.constant === 0n &&
+      isCompileTimeConstantExpression(expression.right, context, this.host)
     ) {
       this.host.diagnose(
         error("E10160", "Division by zero in constant expression", expression.span),
