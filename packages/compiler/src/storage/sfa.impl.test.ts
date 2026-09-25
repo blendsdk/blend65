@@ -91,6 +91,114 @@ function inventory(owner: BindingId, requests: readonly StorageRequest[]): Stora
 }
 
 describe("static storage allocator implementation", () => {
+  it("never places a callable word at an NMOS indirect-jump page end", () => {
+    const owner = binding(1);
+    const callable: StorageRequest = Object.freeze({
+      ...request(owner, "callable", 2, 1, "ram", [0]),
+      type: Object.freeze({
+        kind: "function" as const,
+        parameters: Object.freeze([]),
+        returnType: Object.freeze({ kind: "scalar" as const, name: "void" as const }),
+      }),
+    });
+    const storage = inventory(owner, [callable]);
+    const result = allocateStorage(
+      storage,
+      buildInterference(storage),
+      Object.freeze({
+        zeroPage: Object.freeze([]),
+        ram: Object.freeze([Object.freeze({ start: 0x20ff, end: 0x2101 })]),
+      }),
+    );
+    expect(result).toMatchObject({ kind: "complete", placement: { homes: [{ address: 0x2100 }] } });
+    const trapped = allocateStorage(
+      storage,
+      buildInterference(storage),
+      Object.freeze({
+        zeroPage: Object.freeze([]),
+        ram: Object.freeze([Object.freeze({ start: 0x20ff, end: 0x2100 })]),
+      }),
+    );
+    expect(trapped).toMatchObject({ kind: "error", reason: "resource", requestId: "callable" });
+  });
+
+  it("separates a live caller home from every finite indirect callee home", () => {
+    const caller = binding(500);
+    const first = binding(510);
+    const second = binding(520);
+    const callSpan = Object.freeze({ sourceId: caller.sourceId, start: 505, end: 506 });
+    const signature = Object.freeze({
+      kind: "function" as const,
+      parameters: Object.freeze([]),
+      returnType: Object.freeze({ kind: "scalar" as const, name: "void" as const }),
+    });
+    const indirect = Object.freeze({
+      kind: "indirect-call" as const,
+      result: null,
+      target: "selected",
+      arguments: Object.freeze([]),
+      signature,
+      type: signature.returnType,
+      span: callSpan,
+    });
+    const base = program(caller);
+    const callerFunction: SemanticFunction = Object.freeze({
+      ...base.semantic.functions[0]!,
+      blocks: Object.freeze([
+        Object.freeze({
+          id: "entry",
+          operations: Object.freeze([indirect]),
+          terminator: Object.freeze({ kind: "return" as const, value: null }),
+        }),
+      ]),
+    });
+    const callee = (id: BindingId): SemanticFunction =>
+      Object.freeze({ ...base.semantic.functions[0]!, id, source: id.span });
+    const closed: WholeProgram = Object.freeze({
+      ...base,
+      semantic: Object.freeze({
+        ...base.semantic,
+        functions: Object.freeze([callerFunction, callee(first), callee(second)]),
+      }),
+      callGraph: Object.freeze([
+        Object.freeze({ function: caller, callees: Object.freeze([first, second]) }),
+        Object.freeze({ function: first, callees: Object.freeze([]) }),
+        Object.freeze({ function: second, callees: Object.freeze([]) }),
+      ]),
+      indirectTargets: new Map([[indirect, Object.freeze([first, second])]]),
+      reachableFunctions: Object.freeze([caller, first, second]),
+    });
+    const live: StorageRequest = Object.freeze({
+      ...request(caller, "caller-home", 1, 1, "ram", [0]),
+      lifetime: Object.freeze({
+        ...lifetime(caller, "caller-home", [0]),
+        callsCrossed: Object.freeze([callSpan]),
+      }),
+    });
+    const requests = Object.freeze([
+      live,
+      request(first, "first-home", 1, 1, "ram", [0]),
+      request(second, "second-home", 1, 1, "ram", [0]),
+    ]);
+    const conflicts = buildInterference(
+      Object.freeze({
+        program: closed,
+        requests,
+        results: Object.freeze([]),
+      }),
+    );
+    expect(conflicts).toContainEqual({
+      left: "caller-home",
+      right: "first-home",
+      reason: "call-overlap",
+    });
+    expect(conflicts).toContainEqual({
+      left: "caller-home",
+      right: "second-home",
+      reason: "call-overlap",
+    });
+  });
+
   it("keeps a live aggregate snapshot separate and reuses its bytes after its lifetime", () => {
     const owner = binding(100);
     const array: SemanticType = Object.freeze({

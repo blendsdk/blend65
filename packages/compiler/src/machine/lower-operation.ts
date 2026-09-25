@@ -175,6 +175,7 @@ export function lowerOperation(
 ): readonly MachineInstruction[] {
   if (
     operation.kind === "call" ||
+    operation.kind === "indirect-call" ||
     operation.kind === "memory-write" ||
     operation.kind === "platform" ||
     (operation.kind === "binary" && operation.operator !== "/" && operation.operator !== "%")
@@ -187,7 +188,11 @@ export function lowerOperation(
     }
   }
   let advancesAggregateInduction = false;
-  if (operation.kind === "call" || operation.kind === "memory-write") {
+  if (
+    operation.kind === "call" ||
+    operation.kind === "indirect-call" ||
+    operation.kind === "memory-write"
+  ) {
     state.aggregateAddressCache = null;
   } else if (operation.kind === "store" && state.aggregateAddressCache !== null) {
     const storedRoot = loweredPlace(
@@ -269,9 +274,9 @@ export function lowerOperation(
       source = loweredPlace(operation.place, width, isSignedType(operation.type), state);
     }
     const stage =
-      operation.type.kind === "scalar" || operation.type.kind === "enum"
-        ? loadedValueStage(operation, state)
-        : null;
+      operation.type.kind === "array" || operation.type.kind === "struct"
+        ? null
+        : loadedValueStage(operation, state);
     if (stage === null) {
       state.values.set(operation.result, source);
       return instructions;
@@ -641,16 +646,16 @@ export function lowerOperation(
       }
       const destination = loweredPlace(
         Object.freeze({ root: parameter.id, path: Object.freeze([]), rootType: parameter.type }),
-        parameter.type.kind === "scalar" || parameter.type.kind === "enum"
-          ? typeBytes(parameter.type)
-          : 2,
+        parameter.type.kind === "array" || parameter.type.kind === "struct"
+          ? 2
+          : typeBytes(parameter.type),
         isSignedType(parameter.type),
         state,
       );
       if (destination.kind !== "storage") {
         throw loweringFailure("Callee parameter has no certified static home", operation.span);
       }
-      if (parameter.type.kind !== "scalar" && parameter.type.kind !== "enum") {
+      if (parameter.type.kind === "array" || parameter.type.kind === "struct") {
         marshalAggregateAddress(instructions, argument, destination, state, operation);
         if (parameter.outerUnsized) {
           const count = operation.argumentArrayCounts?.[index];
@@ -732,6 +737,17 @@ export function lowerOperation(
     state.values.set(
       operation.result,
       Object.freeze({ kind: "label", label: `asset.${operation.asset}`, bytes: 2, signed: false }),
+    );
+    return Object.freeze([]);
+  }
+  if (operation.kind === "function-address") {
+    state.values.set(
+      operation.result,
+      Object.freeze({
+        kind: "symbol-address",
+        label: bindingLabel("fn", operation.function),
+        bytes: 2,
+      }),
     );
     return Object.freeze([]);
   }

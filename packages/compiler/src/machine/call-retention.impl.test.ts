@@ -61,6 +61,63 @@ function voidCall(
 }
 
 describe("call ABI and scalar retention", () => {
+  it("binds a no-argument two-target call to a page-safe local thunk", () => {
+    const callbackType = Object.freeze({
+      kind: "function" as const,
+      parameters: Object.freeze([]),
+      returnType: VOID,
+    });
+    const callback = Object.freeze({ id: sourceBinding(1601), type: callbackType });
+    const indirect = Object.freeze({
+      kind: "indirect-call" as const,
+      result: null,
+      target: "callback",
+      arguments: Object.freeze([]),
+      signature: callbackType,
+      type: VOID,
+      span: sourceSpan(1602),
+    });
+    const main = semanticFunction(1600, "main", [callback], VOID, [
+      semanticBlock(
+        "main.entry",
+        [loadOperation("callback", callback, 1603), indirect],
+        Object.freeze({ kind: "return" as const, value: null }),
+      ),
+    ]);
+    const first = semanticFunction(1610, "first", [], VOID, [
+      semanticBlock("first.entry", [], Object.freeze({ kind: "return" as const, value: null })),
+    ]);
+    const second = semanticFunction(1620, "second", [], VOID, [
+      semanticBlock("second.entry", [], Object.freeze({ kind: "return" as const, value: null })),
+    ]);
+    const base = wholeProgramFor([main, first, second]);
+    const program: WholeProgram = Object.freeze({
+      ...base,
+      callGraph: Object.freeze([
+        Object.freeze({ function: main.id, callees: Object.freeze([first.id, second.id]) }),
+        Object.freeze({ function: first.id, callees: Object.freeze([]) }),
+        Object.freeze({ function: second.id, callees: Object.freeze([]) }),
+      ]),
+      indirectTargets: new Map([[indirect, Object.freeze([first.id, second.id])]]),
+    });
+    const { bound } = lowerCloseBind(program);
+    const blocks = bound.program.functions[0]!.blocks;
+    const instructions = blocks.flatMap(({ instructions }) => instructions);
+    expect(instructions.filter(({ opcode }) => opcode === "cmp")).toEqual([]);
+    const thunkCall = instructions.find(({ opcode }) => opcode === "jsr");
+    expect(thunkCall?.operand).toMatchObject({ kind: "label" });
+    const thunk = blocks.find(
+      ({ label }) =>
+        label === (thunkCall?.operand?.kind === "label" ? thunkCall.operand.label : ""),
+    );
+    expect(thunk?.instructions).toMatchObject([{ opcode: "jmp", mode: "indirect" }]);
+    const pointer = thunk?.instructions[0]?.operand;
+    expect(pointer?.kind).toBe("absolute");
+    if (pointer?.kind !== "absolute") throw new Error("Expected bound indirect pointer");
+    expect(pointer.value & 0xff).not.toBe(0xff);
+    expect(instructions.some(({ operand }) => operand?.kind === "storage")).toBe(false);
+  });
+
   it("closes the one-byte retained-pointer scratch before directional copy binding", () => {
     const array: SemanticType = Object.freeze({
       kind: "array",

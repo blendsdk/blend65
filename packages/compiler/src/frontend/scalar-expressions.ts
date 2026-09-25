@@ -299,11 +299,35 @@ export class ScalarExpressionAnalyzer {
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
     if (expression.operator === "&") {
-      if (expression.operand.kind === "name") {
-        const target = this.host.resolveName(expression.operand.name, context);
-        if (target?.binding.storage === "function") {
-          this.host.defer(expression.span, "Function address remains for later semantic analysis");
-          return { node: null, exact: null };
+      const functionName =
+        expression.operand.kind === "name"
+          ? this.host.resolveName(expression.operand.name, context)?.binding.storage === "function"
+            ? this.name(expression.operand, context, true)
+            : null
+          : expression.operand.kind === "member"
+            ? resolveDirectCallTarget(expression.operand, context, this.host, (name, nameContext) =>
+                this.name(name, nameContext, true),
+              )
+            : null;
+      if (functionName?.node?.binding !== null && functionName?.node?.binding !== undefined) {
+        if (this.host.isFunction(functionName.node.binding)) {
+          const signature = this.host.signature(functionName.node.binding);
+          if (signature === null) {
+            this.host.defer(expression.span, "Function address requires a complete signature");
+            return { node: null, exact: null };
+          }
+          const functionType = Object.freeze({
+            kind: "function" as const,
+            parameters: signature.parameters,
+            returnType: signature.returnType,
+          });
+          return {
+            node: createScalarTypedExpression(expression, functionType, null, {
+              operator: expression.operator,
+              operand: functionName.node,
+            }),
+            exact: null,
+          };
         }
       }
       const operand = this.analyze(expression.operand, null, {

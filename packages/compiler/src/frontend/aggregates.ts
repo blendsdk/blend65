@@ -17,6 +17,7 @@ import {
   semanticTypesEqual,
   semanticTypeSize,
 } from "./aggregate-types.js";
+import { functionSignatureDifference } from "./semantic-type-relations.js";
 export {
   AggregateRegistry,
   semanticTypeName,
@@ -70,7 +71,9 @@ export function applyExpectedAggregate(
   host.diagnose(
     projectDiagnostic(
       "E10080",
-      `Cannot implicitly convert '${semanticTypeName(node.type)}' to '${semanticTypeName(expected)}'`,
+      node.type.kind === "function" && expected.kind === "function"
+        ? `Function signatures differ at ${functionSignatureDifference(node.type, expected)} — no cast can repair the signature`
+        : `Cannot implicitly convert '${semanticTypeName(node.type)}' to '${semanticTypeName(expected)}'`,
       expression.span,
     ),
   );

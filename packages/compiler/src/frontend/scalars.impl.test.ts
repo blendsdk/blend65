@@ -78,6 +78,20 @@ function typedDeclaration(result: ReturnType<typeof analyzeModules>, qualifiedNa
 }
 
 describe("scalar analysis implementation", () => {
+  it("passes a readonly callback field by value", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "struct Box { callback: fn(): void; }",
+        "function done(): void {}",
+        "function invoke(callback: fn(): void): void { callback(); }",
+        "function inspect(box: const Box): void { invoke(box.callback); }",
+        "function main(): void { let box: Box = {callback: &done}; inspect(box); }",
+      ].join("\n"),
+    );
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it("classifies exact physical byte ranges without assuming distinct roots cannot alias", () => {
     const binding = { sourceId: "game.blend", span: { sourceId: "game.blend", start: 1, end: 2 } };
     const place = (start: number, end: number) => ({
@@ -439,12 +453,20 @@ describe("scalar analysis implementation", () => {
     });
   });
 
-  it("retains function address-of while completing scalar-place address-of", () => {
+  it("types function addresses separately from scalar-place addresses", () => {
     const result = analyze(
       "module Game; function target(): void {} function functionAddress(): void { &target; } function scalarAddress(): void { let value: byte = 1; &value; } function main(): void {}",
     );
     expect(result.diagnostics).toEqual([]);
-    expect(result.obligations).toHaveLength(1);
-    expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toHaveLength(1);
+    expect(result.obligations).toEqual([]);
+    expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toEqual([]);
+    expect(typedDeclaration(result, "Game.functionAddress").body?.statements[0]).toMatchObject({
+      kind: "expression-statement",
+      expression: { type: { kind: "function" } },
+    });
+    expect(typedDeclaration(result, "Game.scalarAddress").body?.statements[1]).toMatchObject({
+      kind: "expression-statement",
+      expression: { type: { kind: "scalar", name: "word" } },
+    });
   });
 });

@@ -76,14 +76,19 @@ export function analyzeDirectCall(
 ): ScalarExpressionResult {
   const callee =
     resolveName(expression.callee, context) ?? analyze(expression.callee, null, context);
-  if (callee.node === null || callee.node.binding === null) {
+  if (callee.node === null) {
     for (const argument of expression.arguments) analyze(argument, null, context);
     return { node: null, exact: null };
   }
   const calleeBinding = callee.node.binding;
-  const signature = host.signature(calleeBinding);
+  const direct = calleeBinding !== null && host.isFunction(calleeBinding);
+  const signature = direct
+    ? host.signature(calleeBinding)
+    : callee.node.type.kind === "function"
+      ? callee.node.type
+      : null;
   if (signature === null) {
-    if (host.isFunction(calleeBinding)) {
+    if (direct) {
       for (const argument of expression.arguments) analyze(argument, null, context);
       host.defer(expression.span, "Direct call signature or aggregate ABI remains pending");
       return { node: null, exact: null };
@@ -122,8 +127,7 @@ export function analyzeDirectCall(
     }
     if (
       parameter !== undefined &&
-      parameter.type.kind !== "scalar" &&
-      parameter.type.kind !== "enum" &&
+      (parameter.type.kind === "struct" || parameter.type.kind === "array") &&
       !parameter.readonly &&
       result.node.place?.readonly
     ) {
@@ -169,7 +173,7 @@ export function analyzeDirectCall(
     valid = false;
   }
   if (!valid) return { node: null, exact: null };
-  if (context.caller !== null) {
+  if (context.caller !== null && direct && calleeBinding !== null) {
     host.call(
       Object.freeze({ caller: context.caller, callee: calleeBinding, span: expression.span }),
     );
@@ -178,6 +182,7 @@ export function analyzeDirectCall(
   return {
     node: createScalarTypedExpression(expression, signature.returnType, null, {
       callee: callee.node,
+      calleeDisplay: host.sourceText(expression.callee.span),
       arguments: Object.freeze(arguments_),
       signature,
       evaluation: "left-to-right",

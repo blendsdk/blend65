@@ -22,6 +22,7 @@ import {
 } from "./lower-control.js";
 import { prepareAggregateInduction, type AggregateInductionRuntime } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
+import { lowerIndirectCall } from "./lower-indirect.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
 import { lowerBoundsGuards } from "./lower-bounds.js";
@@ -64,6 +65,8 @@ function isLoweringFailure(error: unknown): error is LoweringFailure {
 /** Return the exact packed byte width of one semantic type. */
 export function typeBytes(type: SemanticType): number {
   if (type.kind === "array" || type.kind === "struct") return type.size;
+  if (type.kind === "function" || type.kind === "interrupt-handler") return 2;
+  if (type.kind === "enum") return 1;
   if (type.name === "void") return 0;
   return type.name === "word" || type.name === "sword" ? 2 : 1;
 }
@@ -450,6 +453,9 @@ function lowerFunction(
         recordUse(operation.right, operation);
       } else if (operation.kind === "call" || operation.kind === "platform") {
         for (const argument of operation.arguments) recordUse(argument, operation);
+      } else if (operation.kind === "indirect-call") {
+        recordUse(operation.target, operation);
+        for (const argument of operation.arguments) recordUse(argument, operation);
       } else if (operation.kind === "memory-read") recordUse(operation.address, operation);
       else if (operation.kind === "memory-write") {
         recordUse(operation.address, operation);
@@ -487,7 +493,7 @@ function lowerFunction(
     callSpans: Object.freeze(
       blocks.flatMap((block) =>
         block.operations.flatMap((operation) =>
-          operation.kind === "call" ? [operation.span] : [],
+          operation.kind === "call" || operation.kind === "indirect-call" ? [operation.span] : [],
         ),
       ),
     ),
@@ -513,6 +519,7 @@ function lowerFunction(
   const aggregateAddressCacheAtExit = new Map<string, AggregateAddressCache | null>();
   const boundsStopLabel = `${blocks[0]?.id ?? id}.bounds.stop`;
   let boundsStopSource: SourceSpan | null = null;
+  let indirectCallIndex = 0;
   for (const block of blocks) {
     state.currentSemanticBlockId = block.id;
     state.divisionReuse = null;
@@ -691,6 +698,22 @@ function lowerFunction(
         currentLabel = built.continuation;
         currentInstructions = [...built.continuationInstructions];
         aggregateBuildIndex += 1;
+        continue;
+      }
+      if (operation.kind === "indirect-call") {
+        const targets = input.program.indirectTargets?.get(operation) ?? [];
+        const dispatched = lowerIndirectCall(
+          operation,
+          targets,
+          state,
+          currentLabel,
+          currentInstructions,
+          indirectCallIndex,
+        );
+        loweredBlocks.push(...dispatched.blocks);
+        currentLabel = dispatched.continuation;
+        currentInstructions = [...dispatched.continuationInstructions];
+        indirectCallIndex += 1;
         continue;
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {

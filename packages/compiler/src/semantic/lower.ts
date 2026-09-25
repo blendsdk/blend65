@@ -309,7 +309,7 @@ class ExpressionLowerer {
     const result = this.builder.nextValue();
     this.builder.emit(
       Object.freeze({
-        kind: type.kind === "scalar" || type.kind === "enum" ? "load" : "place-address",
+        kind: type.kind === "array" || type.kind === "struct" ? "place-address" : "load",
         result,
         place,
         ...(captureValue ? { captureValue: true as const } : {}),
@@ -327,6 +327,20 @@ class ExpressionLowerer {
     if (!("type" in operandNode)) throw new Error("Unary operand is not a typed expression");
     const operator = required(expression.operator, "unary operator");
     if (operator === "&") {
+      if (type.kind === "function" && operandNode.binding !== null) {
+        const result = this.builder.nextValue();
+        this.builder.emit(
+          Object.freeze({
+            kind: "function-address",
+            result,
+            function: operandNode.binding,
+            type,
+            integer: null,
+            span: expression.span,
+          }),
+        );
+        return result;
+      }
       if (operandNode.place === null) {
         throw new Error("Completed address-of operand has no place metadata");
       }
@@ -483,6 +497,13 @@ class ExpressionLowerer {
       );
       return result;
     }
+    const callee = required(expression.callee, "call target");
+    const binding =
+      callee.binding === null ? null : this.bindingsByKey.get(bindingIdentityKey(callee.binding));
+    const target =
+      callee.type.kind === "function" && binding?.storage !== "function"
+        ? this.lower(callee)
+        : null;
     const arguments_ = (expression.arguments ?? []).map((argument) => {
       const value = this.lower(argument);
       if (value === null) throw new Error("Completed call argument has no value");
@@ -492,7 +513,37 @@ class ExpressionLowerer {
       return this.lowerMemory(expression, type, arguments_);
     }
 
-    const callee = required(expression.callee, "call target");
+    if (target !== null && callee.type.kind === "function") {
+      const argumentArrayCounts = (expression.arguments ?? []).map((argument, index) => {
+        const parameter = expression.signature?.parameters[index];
+        if (!parameter?.outerUnsized) return null;
+        if (argument.outerUnsized && argument.binding !== null)
+          return Object.freeze({ kind: "parameter" as const, binding: argument.binding });
+        if (argument.type.kind === "array")
+          return Object.freeze({ kind: "fixed" as const, count: argument.type.length });
+        throw new Error("Unsized array argument has no count source");
+      });
+      const result = isVoid(type) ? null : this.builder.nextValue();
+      this.builder.emit(
+        Object.freeze({
+          kind: "indirect-call",
+          result,
+          target,
+          ...(expression.calleeDisplay === undefined
+            ? {}
+            : { targetDisplay: expression.calleeDisplay }),
+          arguments: Object.freeze(arguments_),
+          ...(argumentArrayCounts.some((count) => count !== null)
+            ? { argumentArrayCounts: Object.freeze(argumentArrayCounts) }
+            : {}),
+          signature: callee.type,
+          type,
+          ...(destination === undefined ? {} : { aggregateDestination: destination }),
+          span: expression.span,
+        }),
+      );
+      return result;
+    }
     if (callee.binding === null) {
       if ((callee.name === "lo" || callee.name === "hi") && arguments_.length === 1) {
         const result = this.builder.nextValue();
@@ -511,7 +562,6 @@ class ExpressionLowerer {
       }
       throw new Error("Completed direct call has no resolved callee");
     }
-    const binding = this.bindingsByKey.get(bindingIdentityKey(callee.binding));
     const argumentArrayCounts: (ArrayCountSource | null)[] = (expression.arguments ?? []).map(
       (argument, index) => {
         const parameter = expression.signature?.parameters[index];
@@ -724,6 +774,7 @@ function lowerFunction(
   return Object.freeze({
     id: declaration.binding,
     name: binding.qualifiedName ?? binding.name,
+    exported: binding.exported,
     parameters: functionParameters(declaration, bindings),
     result: declaration.type,
     entry: builder.entry,

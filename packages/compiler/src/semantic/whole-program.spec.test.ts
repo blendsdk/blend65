@@ -55,6 +55,50 @@ function snapshot(text: string, target = PROFILE_ID): ProjectSnapshot {
   };
 }
 
+/** Build an immutable multi-module project without consulting host files. */
+function multiModuleSnapshot(
+  sources: readonly { readonly sourceId: string; readonly text: string }[],
+): ProjectSnapshot {
+  const manifestText = "{}";
+  const records = sources.map<SourceRecord>(({ sourceId, text }) => ({
+    sourceId,
+    text,
+    sha256: hash(text),
+    byteLength: Buffer.byteLength(text, "utf8"),
+    resolvedPath: `/checkout/${sourceId}`,
+  }));
+  return {
+    manifest: {
+      schemaVersion: 1,
+      name: "whole-program-modules-spec",
+      sourceRoot: "src",
+      entry: "Game",
+      target: PROFILE_ID,
+      assetPaths: [],
+      outDir: "out",
+      optimization: "none",
+      boundsCheck: true,
+      divisionZeroCheck: true,
+    },
+    manifestSource: {
+      sourceId: "blend65.json",
+      text: manifestText,
+      sha256: hash(manifestText),
+      byteLength: Buffer.byteLength(manifestText, "utf8"),
+      resolvedPath: "/checkout/blend65.json",
+    },
+    sources: records,
+    inputSha256: hash(JSON.stringify(records.map(({ sourceId, sha256 }) => [sourceId, sha256]))),
+    projectRoot: "/checkout",
+    sourceRoot: "/checkout/src",
+    assetPaths: [],
+    outDir: "/checkout/out",
+    overrides: { target: null, entry: null },
+    effectiveTarget: PROFILE_ID,
+    effectiveEntry: "Game",
+  };
+}
+
 function sameBinding(left: BindingId, right: BindingId): boolean {
   return (
     left.sourceId === right.sourceId &&
@@ -70,8 +114,8 @@ function binding(program: TypedProgram, qualifiedName: string): BindingId {
   return found.id;
 }
 
-function completeSemantic(text: string) {
-  const analysis = analyzeProject(snapshot(text));
+function completeSemanticProject(project: ProjectSnapshot) {
+  const analysis = analyzeProject(project);
   expect(analysis.kind).toBe("complete");
   expect(analysis.diagnostics).toEqual([]);
   if (analysis.kind !== "complete") throw new Error(`Expected complete, got ${analysis.kind}`);
@@ -79,6 +123,10 @@ function completeSemantic(text: string) {
   expect(lowered.kind).toBe("complete");
   if (lowered.kind !== "complete") throw new Error(`Expected complete, got ${lowered.kind}`);
   return { frontend: analysis.program, semantic: lowered.program };
+}
+
+function completeSemantic(text: string) {
+  return completeSemanticProject(snapshot(text));
 }
 
 function span(start: number): SourceSpan {
@@ -221,6 +269,120 @@ describe("whole-program closure", () => {
       sameBinding(candidate.function, ids.main),
     );
     expect(effect).toMatchObject({ operationEffects: ["ordered-wait"], opaque: true });
+  });
+
+  // Nested scalar and aggregate calls keep source order across modules and retain separate live results.
+  it("should preserve cross-module nested call order and disjoint aggregate results", () => {
+    const project = multiModuleSnapshot([
+      {
+        sourceId: "src/game.blend",
+        text: [
+          "module Game;",
+          "import { Pair, f, make, merge } from Math;",
+          "function main(): void {",
+          "  let scalar: byte = f(1, f(2, 3));",
+          "  let pair: Pair = merge(make(scalar), make(4));",
+          "}",
+        ].join("\n"),
+      },
+      {
+        sourceId: "src/math.blend",
+        text: [
+          "module Math;",
+          "export struct Pair { first: byte; second: byte; }",
+          "export function f(first: byte, second: byte): byte { return first + second; }",
+          "export function make(value: byte): Pair { return { first: value, second: value + 1 }; }",
+          "export function merge(first: Pair, second: Pair): Pair { return { first: first.first, second: second.first }; }",
+        ].join("\n"),
+      },
+    ]);
+    const { frontend, semantic } = completeSemanticProject(project);
+    const closed = closeWholeProgram(semantic);
+    expect(closed.kind).toBe("complete");
+
+    const mainId = binding(frontend, "Game.main");
+    const callees = {
+      f: binding(frontend, "Math.f"),
+      make: binding(frontend, "Math.make"),
+      merge: binding(frontend, "Math.merge"),
+    };
+    const main = semantic.functions.find((candidate) => sameBinding(candidate.id, mainId));
+    expect(main).toBeDefined();
+    if (main === undefined) throw new Error("Missing semantic main function");
+    const calls = main.blocks
+      .flatMap(({ operations }) => operations)
+      .filter((operation) => operation.kind === "call");
+
+    expect(calls.map(({ callee }) => callee)).toEqual([
+      callees.f,
+      callees.f,
+      callees.make,
+      callees.make,
+      callees.merge,
+    ]);
+    expect(calls[1]?.arguments[1]).toEqual(calls[0]?.result);
+    expect(calls[4]?.arguments).toEqual([calls[2]?.result, calls[3]?.result]);
+    expect(calls[2]?.result).not.toBeNull();
+    expect(calls[3]?.result).not.toBeNull();
+    expect(calls[2]?.result).not.toEqual(calls[3]?.result);
+  });
+
+  // Closed typed storage admits finite targets, while opaque targets and finite indirect cycles fail before allocation.
+  it("should close finite function targets and reject opaque or recursive target sets", () => {
+    const finite = completeSemantic(
+      [
+        "module Game;",
+        "function left(value: byte): byte { return value - 1; }",
+        "function right(value: byte): byte { return value + 1; }",
+        "let callbacks: (fn(byte): byte)[2] = [&left, &right];",
+        "function apply(callback: fn(byte): byte, value: byte): byte { return callback(value); }",
+        "function main(): void {",
+        "  let selected: word = word(peek($02)) & 1;",
+        "  let result: byte = apply(callbacks[selected], 3);",
+        "}",
+      ].join("\n"),
+    );
+    const finiteResult = closeWholeProgram(finite.semantic);
+    expect(finiteResult.kind).toBe("complete");
+    if (finiteResult.kind !== "complete") throw new Error("Expected finite function targets");
+    const finiteTargets = [
+      binding(finite.frontend, "Game.left"),
+      binding(finite.frontend, "Game.right"),
+    ];
+    expect(
+      finiteTargets.every((target) =>
+        finiteResult.program.reachableFunctions.some((candidate) => sameBinding(candidate, target)),
+      ),
+    ).toBe(true);
+
+    const opaqueAnalysis = analyzeProject(
+      snapshot("module Game; let callback: fn(byte): byte; function main(): void { callback(1); }"),
+    );
+    expect(opaqueAnalysis.kind).toBe("complete");
+    if (opaqueAnalysis.kind !== "complete") throw new Error("Expected an analyzable opaque target");
+    const opaqueSemantic = buildSemanticProgram(opaqueAnalysis);
+    expect(opaqueSemantic.kind).toBe("complete");
+    if (opaqueSemantic.kind !== "complete") throw new Error("Expected an opaque semantic target");
+    const opaqueResult = closeWholeProgram(opaqueSemantic.program);
+    expect(opaqueResult.kind).toBe("error");
+    expect(opaqueResult.diagnostics.map(({ code }) => code)).toEqual(["E10277"]);
+
+    const recursive = completeSemantic(
+      [
+        "module Game;",
+        "function first(): void { let next: fn(): void = &second; next(); }",
+        "function second(): void { first(); }",
+        "function main(): void { first(); }",
+      ].join("\n"),
+    );
+    const recursiveResult = closeWholeProgram(recursive.semantic);
+    expect(recursiveResult.kind).toBe("error");
+    expect(recursiveResult.diagnostics).toMatchObject([
+      {
+        code: "E10181",
+        message: "Indirect recursion detected — cycle: first → second → first",
+      },
+    ]);
   });
 
   // Direct and mutual recursive cycles are terminal before storage allocation can begin.

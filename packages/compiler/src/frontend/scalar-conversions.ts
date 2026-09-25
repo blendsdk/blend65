@@ -121,6 +121,26 @@ export function analyzeScalarCast(
       exact: operand.exact,
     };
   }
+  if (operand.node.type.kind === "function" || operand.node.type.kind === "interrupt-handler") {
+    if (destination.kind !== "scalar" || destination.name !== "word") {
+      host.diagnose(
+        error(
+          "E10153",
+          "Function and handler values may only be converted to 'word'",
+          expression.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
+    return {
+      node: createScalarTypedExpression(expression, destination, null, {
+        operand: operand.node,
+        targetType: expression.type,
+        conversion: "identity",
+      }),
+      exact: null,
+    };
+  }
   const operandType = operand.node.type.kind === "enum" ? SCALAR_TYPES.byte : operand.node.type;
   if (!isScalarType(destination) || !isScalarType(operandType)) {
     host.diagnose(

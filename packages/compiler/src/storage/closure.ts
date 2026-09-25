@@ -231,7 +231,7 @@ function hardwareCallRoute(
 
   let deepest: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze(["main"]) });
   for (const root of inventory.program.roots) {
-    if (root.kind === "main") {
+    if (root.kind === "main" || root.kind === "callable") {
       deepest = deeperStackRoute(deepest, depth(bindingIdentityKey(root.function)));
       continue;
     }

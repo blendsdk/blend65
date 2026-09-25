@@ -1,22 +1,24 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
+import { semanticTypeName } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
-import type { BindingId, EffectSummary } from "../frontend/semantic-types.js";
+import type { BindingId, EffectSummary, FunctionType } from "../frontend/semantic-types.js";
 import type {
   BlockId,
-  CallOperation,
   SemanticBlock,
   SemanticFunction,
   SemanticOperation,
   SemanticProgram,
   ValueId,
 } from "./operations.js";
+import { resolveFunctionTargets, type IndirectTargetSets } from "./function-targets.js";
 
 /** One whole-program entry source. */
 export type ProgramRoot =
   | { readonly kind: "startup" }
   | { readonly kind: "initializer"; readonly binding: BindingId }
-  | { readonly kind: "main"; readonly function: BindingId };
+  | { readonly kind: "main"; readonly function: BindingId }
+  | { readonly kind: "callable"; readonly function: BindingId };
 
 /** Closed direct-call edges for one reachable source function. */
 export interface CallGraphNode {
@@ -65,10 +67,12 @@ export interface ValueLifetime {
 export interface WholeProgram {
   /** Original semantic program. */
   readonly semantic: SemanticProgram;
-  /** Startup, ordered initializer, and main roots. */
+  /** Startup, ordered initializer, main, and independently callable roots. */
   readonly roots: readonly ProgramRoot[];
   /** Direct call graph for reachable functions. */
   readonly callGraph: readonly CallGraphNode[];
+  /** Closed source-function candidates for each typed indirect call. */
+  readonly indirectTargets?: IndirectTargetSets;
   /** Ordered executable initializer contexts, when retained by whole-program closure. */
   readonly initializers?: readonly InitializerExecution[];
   /** Transitive effects for reachable functions. */
@@ -117,11 +121,42 @@ function reachableBlocks(
   return Object.freeze(blocks.filter(({ id }) => reached.has(id)));
 }
 
+/** Only edge facts needed after direct and indirect calls are closed. */
+interface CallEdge {
+  readonly callee: BindingId;
+  readonly span: SourceSpan;
+  readonly targetDisplay?: string;
+  readonly signature?: FunctionType;
+}
+
+/** Explain the exact source expression and callable type that could not be proved. */
+function unresolvedCallDiagnostic(call: CallEdge): ProjectDiagnostic {
+  return projectDiagnostic(
+    "E10277",
+    `Cannot prove a finite source-function target set for call through '${call.targetDisplay ?? "<unknown>"}' of type '${call.signature === undefined ? "<unknown>" : semanticTypeName(call.signature)}' — keep the value within closed-program typed storage`,
+    call.span,
+  );
+}
+
 /** Return direct call operations from a block list in stable block/operation order. */
-function callsIn(blocks: readonly SemanticBlock[]): readonly CallOperation[] {
+function callsIn(
+  blocks: readonly SemanticBlock[],
+  indirectTargets: IndirectTargetSets,
+): readonly CallEdge[] {
   return Object.freeze(
     blocks.flatMap((block) =>
-      block.operations.filter((operation): operation is CallOperation => operation.kind === "call"),
+      block.operations.flatMap((operation): readonly CallEdge[] => {
+        if (operation.kind === "call") return [operation];
+        if (operation.kind !== "indirect-call") return [];
+        const targets = indirectTargets.get(operation) ?? [];
+        const candidates =
+          targets.length > 0
+            ? targets
+            : [Object.freeze({ sourceId: "unresolved-indirect", span: operation.span })];
+        return candidates.map((callee) =>
+          Object.freeze({ ...operation, kind: "call" as const, callee }),
+        );
+      }),
     ),
   );
 }
@@ -129,13 +164,37 @@ function callsIn(blocks: readonly SemanticBlock[]): readonly CallOperation[] {
 /** Build one finite direct-edge list for every semantic function. */
 function functionCalls(
   functions: readonly SemanticFunction[],
-): ReadonlyMap<string, readonly CallOperation[]> {
+  indirectTargets: IndirectTargetSets,
+): ReadonlyMap<string, readonly CallEdge[]> {
   return new Map(
     functions.map((fn) => [
       bindingIdentityKey(fn.id),
-      callsIn(reachableBlocks(fn.entry, fn.blocks)),
+      callsIn(reachableBlocks(fn.entry, fn.blocks), indirectTargets),
     ]),
   );
+}
+
+/** Keep externally visible and address-taken source functions as independent entries. */
+function callableRoots(
+  semantic: SemanticProgram,
+  functions: readonly SemanticFunction[],
+): readonly BindingId[] {
+  const known = new Map(functions.map((fn) => [bindingIdentityKey(fn.id), fn.id] as const));
+  const roots = new Map<string, BindingId>();
+  for (const fn of functions) {
+    if (fn.exported) roots.set(bindingIdentityKey(fn.id), fn.id);
+  }
+  for (const owner of [...functions, ...semantic.globals]) {
+    for (const block of owner.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind !== "function-address") continue;
+        const key = bindingIdentityKey(operation.function);
+        const target = known.get(key);
+        if (target !== undefined) roots.set(key, target);
+      }
+    }
+  }
+  return Object.freeze([...roots.values()].sort(compareBindings));
 }
 
 /** Reachable function identities plus unknown edges encountered from program roots. */
@@ -148,7 +207,9 @@ interface ReachabilityResult {
 function closeReachableFunctions(
   semantic: SemanticProgram,
   functions: readonly SemanticFunction[],
-  calls: ReadonlyMap<string, readonly CallOperation[]>,
+  calls: ReadonlyMap<string, readonly CallEdge[]>,
+  indirectTargets: IndirectTargetSets,
+  callable: readonly BindingId[],
 ): ReachabilityResult {
   const known = new Map(functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const));
   const diagnostics: ProjectDiagnostic[] = [];
@@ -158,21 +219,15 @@ function closeReachableFunctions(
   const globals = new Map(
     semantic.globals.map((global) => [bindingIdentityKey(global.id), global]),
   );
-  const pending: BindingId[] = [semantic.main];
+  const pending: BindingId[] = [semantic.main, ...callable];
   for (const initializer of semantic.initializerOrder) {
     const global = globals.get(bindingIdentityKey(initializer));
     if (global === undefined || global.entry === null) {
       throw new Error("Initializer root does not resolve to executable semantic control flow");
     }
-    for (const call of callsIn(reachableBlocks(global.entry, global.blocks))) {
+    for (const call of callsIn(reachableBlocks(global.entry, global.blocks), indirectTargets)) {
       if (!known.has(bindingIdentityKey(call.callee))) {
-        diagnostics.push(
-          projectDiagnostic(
-            "E10277",
-            "Cannot prove a finite source-function target set for call through '<unknown>' of type '<unknown>' — keep the value within closed-program typed storage",
-            call.span,
-          ),
-        );
+        diagnostics.push(unresolvedCallDiagnostic(call));
       } else {
         pending.push(call.callee);
       }
@@ -188,13 +243,7 @@ function closeReachableFunctions(
     reached.add(key);
     for (const call of calls.get(key) ?? []) {
       if (!known.has(bindingIdentityKey(call.callee))) {
-        diagnostics.push(
-          projectDiagnostic(
-            "E10277",
-            "Cannot prove a finite source-function target set for call through '<unknown>' of type '<unknown>' — keep the value within closed-program typed storage",
-            call.span,
-          ),
-        );
+        diagnostics.push(unresolvedCallDiagnostic(call));
       } else {
         pending.push(call.callee);
       }
@@ -206,7 +255,7 @@ function closeReachableFunctions(
 /** Find the first direct or indirect recursion cycle in stable semantic order. */
 function recursionDiagnostic(
   functions: readonly SemanticFunction[],
-  calls: ReadonlyMap<string, readonly CallOperation[]>,
+  calls: ReadonlyMap<string, readonly CallEdge[]>,
 ): ProjectDiagnostic | null {
   for (const fn of functions) {
     const self = (calls.get(bindingIdentityKey(fn.id)) ?? []).find(
@@ -229,7 +278,9 @@ function recursionDiagnostic(
     if (activeIndex >= 0) {
       const cycle = [...stack.slice(activeIndex), { key, via }];
       const spans = cycle.slice(1).flatMap((item) => (item.via === null ? [] : [item.via]));
-      const names = cycle.map(({ key: item }) => byKey.get(item)?.name ?? "<function>");
+      const names = cycle.map(
+        ({ key: item }) => byKey.get(item)?.name?.split(".").at(-1) ?? "<function>",
+      );
       return Object.freeze({
         ...projectDiagnostic(
           "E10181",
@@ -262,7 +313,7 @@ function recursionDiagnostic(
 /** Build the reachable direct graph in semantic identity order. */
 function closeCallGraph(
   functions: readonly SemanticFunction[],
-  calls: ReadonlyMap<string, readonly CallOperation[]>,
+  calls: ReadonlyMap<string, readonly CallEdge[]>,
   reachable: ReadonlySet<string>,
 ): readonly CallGraphNode[] {
   return Object.freeze(
@@ -342,6 +393,8 @@ function operationUses(operation: SemanticOperation): readonly ValueId[] {
     case "call":
     case "platform":
       return operation.arguments;
+    case "indirect-call":
+      return [operation.target, ...operation.arguments];
     case "memory-read":
       return [operation.address];
     case "memory-write":
@@ -474,7 +527,7 @@ function valueLifetimes(
       const result = operationResult(operation);
       if (result !== null) live.delete(result);
       for (const value of operationUses(operation)) live.add(value);
-      if (operation.kind === "call") {
+      if (operation.kind === "call" || operation.kind === "indirect-call") {
         for (const value of live) {
           if (!after.has(value)) continue;
           const crossed = calls.get(value) ?? [];
@@ -554,8 +607,16 @@ export function closeWholeProgram(semantic: SemanticProgram): WholeProgramResult
   const functions = [...semantic.functions].sort((left, right) =>
     compareBindings(left.id, right.id),
   );
-  const calls = functionCalls(functions);
-  const reachability = closeReachableFunctions(semantic, functions, calls);
+  const indirectTargets = resolveFunctionTargets(semantic);
+  const calls = functionCalls(functions, indirectTargets);
+  const callable = callableRoots(semantic, functions);
+  const reachability = closeReachableFunctions(
+    semantic,
+    functions,
+    calls,
+    indirectTargets,
+    callable,
+  );
   if (reachability.diagnostics.length > 0) {
     return Object.freeze({ kind: "error", diagnostics: reachability.diagnostics });
   }
@@ -580,7 +641,7 @@ export function closeWholeProgram(semantic: SemanticProgram): WholeProgramResult
       }
       const blocks = reachableBlocks(global.entry, global.blocks);
       const callees = new Map<string, BindingId>();
-      for (const call of callsIn(blocks)) {
+      for (const call of callsIn(blocks, indirectTargets)) {
         callees.set(bindingIdentityKey(call.callee), call.callee);
       }
       return Object.freeze({
@@ -596,6 +657,9 @@ export function closeWholeProgram(semantic: SemanticProgram): WholeProgramResult
       Object.freeze({ kind: "initializer" as const, binding }),
     ),
     Object.freeze({ kind: "main", function: semantic.main }),
+    ...callable
+      .filter((id) => bindingIdentityKey(id) !== bindingIdentityKey(semantic.main))
+      .map((id) => Object.freeze({ kind: "callable" as const, function: id })),
   );
   const reachableAssets = reachableAssetIds(semantic, functions, reachable);
 
@@ -605,6 +669,7 @@ export function closeWholeProgram(semantic: SemanticProgram): WholeProgramResult
       semantic,
       roots: Object.freeze(roots),
       callGraph: closeCallGraph(functions, calls, reachable),
+      indirectTargets,
       initializers,
       effects: closeEffects(functions, semantic.effects ?? [], reachable),
       lifetimes: Object.freeze(

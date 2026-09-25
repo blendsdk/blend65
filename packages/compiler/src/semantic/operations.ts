@@ -2,6 +2,7 @@ import type { SemanticAsset } from "../assets/asset-types.js";
 import type {
   BindingId,
   EffectSummary,
+  FunctionType,
   IntegerFacts,
   PlacementConstraints,
   ProfileEffect,
@@ -170,6 +171,38 @@ export interface CallOperation {
   readonly span: SourceSpan;
 }
 
+/** A source function's typed code address, kept symbolic until final layout. */
+export interface FunctionAddressOperation extends ValueOperation {
+  /** Operation discriminator. */
+  readonly kind: "function-address";
+  /** Source function with exactly the value's declared signature. */
+  readonly function: BindingId;
+}
+
+/** A call whose already-evaluated typed target needs whole-program target proof. */
+export interface IndirectCallOperation {
+  /** Operation discriminator. */
+  readonly kind: "indirect-call";
+  /** Result value, or null for a void call. */
+  readonly result: ValueId | null;
+  /** Target evaluated once before any arguments. */
+  readonly target: ValueId;
+  /** Exact call-target source spelling retained for a proving diagnostic. */
+  readonly targetDisplay?: string;
+  /** Argument values evaluated in source order. */
+  readonly arguments: readonly ValueId[];
+  /** Count source for each outer-unsized array argument. */
+  readonly argumentArrayCounts?: readonly (ArrayCountSource | null)[];
+  /** Exact ordinary function signature. */
+  readonly signature: FunctionType;
+  /** Declared result type. */
+  readonly type: SemanticType;
+  /** Caller-owned destination for a fixed aggregate result. */
+  readonly aggregateDestination?: AggregateDestination;
+  /** Source call span. */
+  readonly span: SourceSpan;
+}
+
 /** One volatile byte or word read from a computed 16-bit address. */
 export interface MemoryReadOperation extends ValueOperation {
   /** Operation discriminator. */
@@ -276,6 +309,8 @@ export type SemanticOperation =
   | UnaryOperation
   | BinaryOperation
   | CallOperation
+  | FunctionAddressOperation
+  | IndirectCallOperation
   | MemoryReadOperation
   | MemoryWriteOperation
   | PlatformOperation
@@ -341,6 +376,8 @@ export interface SemanticFunction {
   readonly id: BindingId;
   /** Source display name used when a later diagnostic must identify the function. */
   readonly name?: string;
+  /** Public source declaration retained as an independently callable entry. */
+  readonly exported?: boolean;
   /** Parameters in source order. */
   readonly parameters: readonly StorageValue[];
   /** Declared return type. */

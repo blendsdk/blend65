@@ -41,6 +41,7 @@ export function initializerBytes(
     }
     return Object.freeze(bytes);
   }
+  if (type.kind !== "array") return null;
   if (expression.kind !== "array-literal" || expression.elements === undefined) return null;
   const values = [...expression.elements];
   while (values.length < type.length) {

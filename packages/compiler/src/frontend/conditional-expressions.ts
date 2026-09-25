@@ -70,11 +70,12 @@ export function analyzeScalarConditional(
       ),
     );
   }
-  const sameEnum =
-    whenTrue.node.type.kind === "enum" &&
-    whenFalse.node.type.kind === "enum" &&
+  const sameValueType =
+    (whenTrue.node.type.kind === "enum" ||
+      whenTrue.node.type.kind === "function" ||
+      whenTrue.node.type.kind === "interrupt-handler") &&
     semanticTypesEqual(whenTrue.node.type, whenFalse.node.type);
-  if (!sameEnum && (!isScalarType(whenTrue.node.type) || !isScalarType(whenFalse.node.type))) {
+  if (!sameValueType && (!isScalarType(whenTrue.node.type) || !isScalarType(whenFalse.node.type))) {
     if (semanticTypesEqual(whenTrue.node.type, whenFalse.node.type)) {
       host.defer(expression.span, "Aggregate conditional copy lowering remains pending");
       return { node: null, exact: null };
@@ -88,7 +89,7 @@ export function analyzeScalarConditional(
     );
     return { node: null, exact: null };
   }
-  const resultType = sameEnum
+  const resultType = sameValueType
     ? whenTrue.node.type
     : commonScalarType(whenTrue.node.type, whenFalse.node.type);
   if (resultType === null) {
@@ -101,7 +102,7 @@ export function analyzeScalarConditional(
     );
     return { node: null, exact: null };
   }
-  if (!sameEnum) {
+  if (!sameValueType) {
     whenTrue = applyExpectedScalar(whenTrue, resultType, expression.whenTrue, context, host);
     whenFalse = applyExpectedScalar(whenFalse, resultType, expression.whenFalse, context, host);
   }

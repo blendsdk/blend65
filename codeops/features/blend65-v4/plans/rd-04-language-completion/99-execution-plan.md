@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-24
-> **Progress**: 46/99 tasks (46%)
+> **Last Updated**: 2026-09-25
+> **Progress**: 57/99 tasks (58%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -255,30 +255,59 @@ The three approved corrections are implemented and verified. Retained pointers, 
 
 ## Phase 5: Ordinary Calls, Function Values and Recursion
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `fb8a77e6e7ec7b2b7cf22379799f6f98a97120e3`
 > **Lenses**: call-graph soundness, ABI, whole-program closure, expert call output
+> **Expected modification set**: Phase 5 task paths in `packages/compiler/src/frontend/`, `packages/compiler/src/semantic/`, `packages/compiler/src/storage/`, `packages/compiler/src/machine/`, `packages/compiler/src/artifacts/`, and `test/rd04/`; this plan and the feature roadmap. Scope mode: strict; extend the current compiler path without a dispatcher registry, runtime, new IR or framework.
 
 ### Step 5.1: Specification Tests
 
 **Reference**: [03-03](03-03-calls-abi-and-sfa.md) · ST-30, ST-32–ST-34
 
-- [ ] 5.1.1 [spec-author] Write nested/direct/cross-module call and function-value specification cases — `packages/compiler/src/frontend/expressions.spec.test.ts`, `packages/compiler/src/semantic/whole-program.spec.test.ts`, `test/rd04/function-values.spec.test.ts`
-- [ ] 5.1.2 Run only the new Phase 5 specification cases and record the expected red failures — Phase 5 test files
+- [x] 5.1.1 [spec-author] Write nested/direct/cross-module call and function-value specification cases — `packages/compiler/src/frontend/expressions.spec.test.ts`, `packages/compiler/src/semantic/whole-program.spec.test.ts`, `test/rd04/function-values.spec.test.ts` — Five implementation-blind cases authored: four expected RED and one existing-behavior GREEN. Full typecheck, touched-file formatting, whitespace and frozen-`spec/` checks pass; no existing spec assertion was weakened. ✅ (completed: 2026-09-24 23:43)
+- [x] 5.1.2 Run only the new Phase 5 specification cases and record the expected red failures — Phase 5 test files — Compiler: three expected RED, 18 existing/new GREEN (`/tmp/blend65-phase5-red-compiler.log`); public build: one expected RED at unimplemented function-value source (`/tmp/blend65-phase5-red-runtime.log`). The cross-module nested-call case passes already. ✅ (completed: 2026-09-24 23:44)
 
 ### Step 5.2: Implementation
 
-- [ ] 5.2.1 Add ordinary/interrupt function types and exact signature compatibility — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/direct-calls.ts`
-- [ ] 5.2.2 Complete left-to-right nested-call staging and scalar/aggregate marshalling — `packages/compiler/src/frontend/direct-calls.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/storage/inventory.ts`
-- [ ] 5.2.3 Add finite callable target sets, deterministic joins and safe signature widening — `packages/compiler/src/frontend/effects.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/semantic/whole-program.ts`
-- [ ] 5.2.4 Complete roots, indirect edges, SCC paths and pre-allocation recursion rejection — `packages/compiler/src/frontend/call-cycles.ts`, `packages/compiler/src/semantic/whole-program.ts`, `packages/compiler/src/storage/interference.ts`
-- [ ] 5.2.5 Add singleton devirtualization and predefined finite indirect dispatch lowering — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/machine-types.ts`
-- [ ] 5.2.6 Complete call hardware-stack, clobber, helper and dispatch storage accounting — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/closure.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`
-- [ ] 5.2.7 Run Phase 5 specification cases and make all immutable expectations green — Phase 5 test files
+- [x] 5.2.1 Add ordinary/interrupt function types and exact signature compatibility — `packages/compiler/src/frontend/semantic-types.ts`, `packages/compiler/src/frontend/aggregate-types.ts`, `packages/compiler/src/frontend/direct-calls.ts` — Exact invariant signatures, typed `&function`, function-value call checks, and one-way `word` conversion verified 2026-09-24 23:54: 84 directed frontend cases, compiler typecheck, whitespace and frozen-spec checks pass. The obsolete implementation-tier address deferral expectation now checks both resolved address kinds. Indirect target proof and machine lowering remain later Phase 5 tasks. ✅ (completed: 2026-09-24 23:54)
+- [x] 5.2.2 Complete left-to-right nested-call staging and scalar/aggregate marshalling — `packages/compiler/src/frontend/direct-calls.ts`, `packages/compiler/src/semantic/lower.ts`, `packages/compiler/src/storage/inventory.ts` — Existing source-ordered direct-call staging and aggregate borrows retained; function values now use two-byte by-value loads, stages, parameter homes and AX returns. Cross-module nested-call proof and 16 machine-lowering cases pass, with compiler typecheck, formatting, whitespace and frozen-spec checks (2026-09-24 23:57). Function-address lowering is the next task. ✅ (completed: 2026-09-24 23:57)
+- [x] 5.2.3 Add finite callable target sets, deterministic joins and safe signature widening — `packages/compiler/src/frontend/effects.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/semantic/whole-program.ts` — One bounded target-neutral propagation pass tracks function addresses through typed storage, parameters, results, aggregates and joins; only an imprecise typed target widens to address-taken functions with the exact signature. The finite/opaque/recursive whole-program oracle and 21 focused cases pass with compiler typecheck, formatting, whitespace and frozen-spec checks (2026-09-25 00:01). Callable effect and machine binding are owned by the following tasks. ✅ (completed: 2026-09-25 00:01)
+- [x] 5.2.4 Complete roots, indirect edges, SCC paths and pre-allocation recursion rejection — `packages/compiler/src/frontend/call-cycles.ts`, `packages/compiler/src/semantic/whole-program.ts`, `packages/compiler/src/storage/interference.ts` — Existing deterministic cycle traversal now receives finite indirect edges before allocation; source roots, call graph, liveness and SFA overlap include those targets. The finite/opaque/recursive oracle and 27 directed whole-program/SFA cases pass with compiler typecheck, formatting, whitespace and frozen-spec checks (2026-09-25 00:02). ✅ (completed: 2026-09-25 00:02)
+- [x] 5.2.5 Add singleton devirtualization and predefined finite indirect dispatch lowering — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/machine-types.ts` — Singleton calls reuse the direct ABI; larger finite sets use a bounded local comparison chain and per-candidate parameter homes, with symbolic address bytes and no registry. Public ACME/VICE source-order and result-byte oracle passes; 26 directed compiler cases, typecheck, formatting, whitespace and frozen-spec checks pass (2026-09-25 00:12). Expert cost comparison remains in 5.3.2. ✅ (completed: 2026-09-25 00:12)
+- [x] 5.2.6 Complete call hardware-stack, clobber, helper and dispatch storage accounting — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/closure.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Indirect call sites enter lifetime and static-home interference, the closed graph drives the existing exact call-stack budget, and emitted dispatch blocks reconcile in validated debug and cost sidecars. Public ACME/VICE case and 35 directed SFA/closure/evidence cases pass with typecheck, formatting, whitespace and frozen-spec checks (2026-09-25 00:14). No evidence schema or runtime registry added. ✅ (completed: 2026-09-25 00:14)
+- [x] 5.2.7 Run Phase 5 specification cases and make all immutable expectations green — Phase 5 test files — All 21 focused frontend/whole-program cases and the public ACME/VICE function-value case pass. Targeted whitespace and frozen-spec checks pass (2026-09-25 00:15); the complete repository checkpoint follows implementation tests. ✅ (completed: 2026-09-25 00:15)
 
 ### Step 5.3: Implementation Tests and Qualification
 
-- [ ] 5.3.1 Add target-set lattice, malformed edge, SCC order and dispatch binding tests — `packages/compiler/src/semantic/whole-program.impl.test.ts`, `packages/compiler/src/storage/sfa.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts`
-- [ ] 5.3.2 Run complete call/function-value ACME/VICE and expert qualification — `test/rd04/function-values.spec.test.ts`, `test/rd04/expert/calls.json`, `test/rd04/vice.spec.test.ts`
+- [x] 5.3.1 Add target-set lattice, malformed edge, SCC order and dispatch binding tests — `packages/compiler/src/semantic/whole-program.impl.test.ts`, `packages/compiler/src/storage/sfa.impl.test.ts`, `packages/compiler/src/machine/lowering.impl.test.ts` — Precise joined targets, malformed absent functions, shuffled recursive paths, indirect-call home interference, and bound two-target dispatch are covered. The dispatch case uses the smaller existing `call-retention.impl.test.ts` rather than the oversized generic lowering test. All 27 directed cases, compiler typecheck, formatting, whitespace and frozen-spec checks pass (2026-09-25 00:18). ✅ (completed: 2026-09-25 00:18)
+- [x] 5.3.2 Run complete call/function-value ACME/VICE and expert qualification — `test/rd04/function-values.spec.test.ts`, `test/rd04/expert/calls.json`, `test/rd04/expert-calls.impl.test.ts` — The user-approved bounded corrections now cover borrowed aggregate mutation, field and direct-caller initialization, both allocator placement paths, and A/AX-return indirect thunks. The independent behavior oracle runs both void and scalar target choices plus borrowed-field mutation in VICE; the 6-byte/11-cycle dispatch expectation remains distinct. Frozen install, build, typecheck and complete tests pass: compiler 1,166; root 131; CLI 60; language server 12; VS Code 6. Formatting, whitespace, documentation and frozen-`spec/` checks pass. Separate optimization debt remains in issues #83 and #84. ✅ (completed: 2026-09-25 02:26)
+
+**Independent Phase 5 review (2026-09-25):** correctness, language-semantics and performance reviewers inspected the complete phase-baseline worktree snapshot. Planned specification tests were added before implementation, recorded RED, and not weakened; frozen `spec/` is unchanged. Full pre-review verification passed, but the findings below block phase closeout and commit pending a user ruling:
+
+| Finding | Severity | Narrow correction |
+|---|---|---|
+| RV-001 / S1 | Major | Keep exact function signatures and aggregate field/element provenance through borrowed parameters, so legal calls neither include incompatible targets nor gain false recursion edges. |
+| RV-002 | Major | Pass readonly function-value fields by value; reserve the const-aggregate restriction for array/struct parameters. |
+| S2 | Major | Track unknown or uninitialized provenance so a nonempty known-target set cannot hide a possible opaque call. |
+| PE-001 | Major | Replace the inferior expert dispatch oracle; use a page-safe, ABI-equivalent indirect-JMP thunk only when its pointer and interrupt conditions are proved, retaining the bounded comparison fallback. |
+| S3 | Minor | Render the actual indirect-call expression and function type in E10277 instead of literal placeholders. |
+
+No runtime registry, new IR, generic framework or source restriction is authorized by these findings. A single fix-scoped re-review is permitted after approved major corrections.
+
+The user approved the recommended bounded correction pass on 2026-09-25: correct the four major findings and the diagnostic text, rerun full verification and one focused independent re-review, then make a local green checkpoint commit without pushing. No general framework or extra product surface was approved.
+
+**One fix-scoped re-review (2026-09-25):** The approved corrections pass the complete install, build, typecheck and test commands (compiler 1,160; root 131; CLI 60; LSP 12; VS Code 6). A subsequent compiler-only repeat hit the pre-existing five-second timeout in one project-service test under review load; that test passed on directed retry. The new void-call thunk ran both targets correctly in VICE. Reviewers nevertheless found the following new or remaining major gaps, so 5.3.2 remains `[~]`, Phase 5 is not closed, and no checkpoint commit is permitted before a user ruling. This is the single permitted fix-scoped re-review; no third review is scheduled.
+
+| Finding | Severity | Verified impact / narrow proposed correction |
+|---|---|---|
+| S4 | Major | A borrowed struct parameter can write a callback field, but target proof keeps only the caller's old target and may devirtualize to the wrong function. Carry the alias mutation back to the caller or conservatively retain every compatible target. |
+| S5 / RV-001 | Major | A field-only callback assignment and a global callback assigned before entering its caller both falsely produce E10277. Track definite assignment at member paths and preserve proven caller-before-callee initialization without accepting an uninitialized route. |
+| RV-002 | Major | The exhaustive allocator fallback does not honor the callable-word NMOS page-end exclusion used by first-fit. Apply the same guard in both placement paths. |
+| PE-001 | Major | No-argument byte/word-return callbacks still use comparison dispatch where the same 6-byte/11-cycle thunk can preserve A/AX via existing result retention. Keep aggregate returns on the fallback path. |
+| PE-002 | Minor | Repeated sites using the same pointer home emit duplicate 3-byte thunks. Reuse one per home within a function when the safety proof matches; tracked in [issue #84](https://github.com/blendsdk/blend65/issues/84). |
+
+The first item is a wrong-program risk, not only a diagnostic or cost gap. The correction scope remains no registry, new IR, generic framework or source restriction. These findings required the subsequent user ruling before implementation resumed.
+
+The user approved the recommended bounded fix for the four major gaps on 2026-09-25. The minor duplicate-thunk observation is tracked separately in issue #84, not added to this correction scope. The corrected behavior, expert dispatch, complete repository verification and source checks pass, so Phase 5 is closed. No third independent review is scheduled.
 
 **Deliverables:** normal nested calls, typed finite callables and exact recursion rejection.
 

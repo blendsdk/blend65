@@ -579,7 +579,7 @@ export function aggregateDestination(
   readonly result: LoweredValue;
   readonly indirect: boolean;
 } {
-  if (operation.type.kind === "scalar" || operation.type.kind === "enum") {
+  if (operation.type.kind !== "array" && operation.type.kind !== "struct") {
     throw loweringFailure("Aggregate construction requires an aggregate type", operation.span);
   }
   const instructions: MachineInstruction[] = [];

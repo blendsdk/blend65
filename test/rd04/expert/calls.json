@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "skillVersion": "2.0.0",
+    "skillContentCommit": "c9e70fab6039e9ced3108e88f0ea9730d4fd3007",
+    "casebook": "references/6502-lowering-casebook.md",
+    "sourceKey": "MOS-PGM-1976"
+  },
+  "twoTargetVoidCall": {
+    "preconditions": "NMOS 6502; no-argument void targets; target word already in an absolute static home; exactly two proved targets; no IRQ overlap",
+    "measurement": "dispatch instructions only, excluding the target expression, function bodies, labels, and caller setup",
+    "instructions": ["JSR thunk", "thunk: JMP (target)"],
+    "bytes": 6,
+    "maxCycles": 11,
+    "dispatchScratchBytes": 0,
+    "hardwareStackBytes": 2
+  },
+  "twoTargetScalarCall": {
+    "preconditions": "NMOS 6502; no-argument byte/word return targets with A/AX ABI; target word already in an absolute page-safe static home; exactly two proved targets; no IRQ overlap",
+    "measurement": "dispatch instructions only, excluding result retention and target bodies",
+    "instructions": ["JSR thunk", "thunk: JMP (target)"],
+    "bytes": 6,
+    "maxCycles": 11,
+    "dispatchScratchBytes": 0,
+    "hardwareStackBytes": 2
+  },
+  "winPath": "Coalesce a conditional function-value result with its final local home when lifetimes and aliases permit; this removes a redundant two-byte copy before dispatch."
+}

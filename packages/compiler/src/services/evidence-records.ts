@@ -4,7 +4,8 @@ import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectSnapshot, SourceSpan } from "../project/types.js";
-import type { SemanticFunction, SemanticOperation } from "../semantic/operations.js";
+import type { SemanticFunction } from "../semantic/operations.js";
+import type { IndirectTargetSets } from "../semantic/function-targets.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type { StorageClosureCertificate, StorageInventory } from "../storage/storage-types.js";
 
@@ -14,7 +15,7 @@ export interface DerivedDebugRecords {
   readonly addressSpaces: readonly EvidenceRecord[];
   /** Reachable source functions. */
   readonly functions: readonly EvidenceRecord[];
-  /** Entry and direct-call contexts. */
+  /** Entry and finite source-call contexts. */
   readonly contexts: readonly EvidenceRecord[];
   /** Source and generated symbols with reverse location indexes. */
   readonly symbols: readonly EvidenceRecord[];
@@ -62,7 +63,19 @@ function indexedSpan(span: SourceSpan, sourceIndexes: ReadonlyMap<string, number
 /** Render the exact represented semantic type using a valid canonical spelling. */
 function typeText(type: SemanticType): string {
   if (type.kind === "scalar") return type.name;
-  if (type.kind === "array") return `${typeText(type.element)}[${type.length}]`;
+  if (type.kind === "array") {
+    const element = typeText(type.element);
+    return `${type.element.kind === "function" ? `(${element})` : element}[${type.length}]`;
+  }
+  if (type.kind === "enum") return type.name;
+  if (type.kind === "function")
+    return `fn(${type.parameters
+      .map(
+        ({ type: parameter, readonly, outerUnsized }) =>
+          `${readonly ? "const " : ""}${outerUnsized && parameter.kind === "array" ? `${typeText(parameter.element)}[]` : typeText(parameter)}`,
+      )
+      .join(", ")}): ${typeText(type.returnType)}`;
+  if (type.kind === "interrupt-handler") return "interrupt-handler";
   return `Struct_${Buffer.from(bindingIdentityKey(type.binding), "utf8").toString("hex")}`;
 }
 
@@ -76,6 +89,8 @@ function typeShape(type: SemanticType): readonly number[] {
 /** Return the exact in-memory width of one semantic value. */
 function typeBytes(type: SemanticType): number {
   if (type.kind === "array" || type.kind === "struct") return type.size;
+  if (type.kind === "function" || type.kind === "interrupt-handler") return 2;
+  if (type.kind === "enum") return 1;
   if (type.name === "void") return 0;
   return type.name === "word" || type.name === "sword" ? 2 : 1;
 }
@@ -168,6 +183,7 @@ function machineFunctionSegments(
         block.label.startsWith(`${id}.copy.`) ||
         block.label.startsWith(`${id}.move.`) ||
         block.label.startsWith(`${id}.fill.`) ||
+        block.label.startsWith(`${id}.indirect.`) ||
         block.label.startsWith(`${id}.bounds.`),
     );
     if (sourceBlock === undefined) throw new Error("Final machine block has no semantic CFG owner");
@@ -203,16 +219,21 @@ function machineFunctionSegments(
   return Object.freeze(segments);
 }
 
-/** Return every direct source call in stable block and operation order. */
+/** Return every source call edge, including each finite indirect candidate. */
 function callsIn(
   fn: Pick<SemanticFunction, "blocks">,
-): readonly Extract<SemanticOperation, { kind: "call" }>[] {
+  indirectTargets: IndirectTargetSets | undefined,
+): readonly { readonly callee: BindingId; readonly span: SourceSpan }[] {
   return Object.freeze(
     fn.blocks.flatMap((block) =>
-      block.operations.filter(
-        (operation): operation is Extract<SemanticOperation, { kind: "call" }> =>
-          operation.kind === "call",
-      ),
+      block.operations.flatMap((operation) => {
+        if (operation.kind === "call") return [{ callee: operation.callee, span: operation.span }];
+        if (operation.kind !== "indirect-call") return [];
+        return (indirectTargets?.get(operation) ?? []).map((callee) => ({
+          callee,
+          span: operation.span,
+        }));
+      }),
     ),
   );
 }
@@ -346,7 +367,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     Object.freeze({ kind: "entry", functionIndex, entryVariantIndex: 0 }),
   );
   const callContexts = executionFunctions.flatMap((fn, callerIndex) =>
-    callsIn(fn.body).flatMap((call) => {
+    callsIn(fn.body, input.program.indirectTargets).flatMap((call) => {
       const functionIndex = functionIndexes.get(bindingIdentityKey(call.callee));
       return functionIndex === undefined
         ? []

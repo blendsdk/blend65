@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { BindingId, EffectSummary, SemanticType } from "../frontend/semantic-types.js";
+import type {
+  BindingId,
+  EffectSummary,
+  FunctionType,
+  SemanticType,
+} from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction, SemanticProgram } from "./operations.js";
+import { resolveFunctionTargets } from "./function-targets.js";
 import { closeWholeProgram } from "./whole-program.js";
 
 const VOID_TYPE: SemanticType = Object.freeze({ kind: "scalar", name: "void" });
@@ -88,6 +94,175 @@ function effect(
 }
 
 describe("whole-program implementation", () => {
+  it("retains exported and address-taken functions as independent roots", () => {
+    const main = id(0);
+    const exported = id(10);
+    const addressed = id(20);
+    const dead = id(30);
+    const signature: FunctionType = Object.freeze({
+      kind: "function",
+      parameters: Object.freeze([]),
+      returnType: VOID_TYPE,
+    });
+    const owner: SemanticFunction = {
+      ...fn(main, []),
+      blocks: [
+        {
+          id: "block:0",
+          operations: [
+            {
+              kind: "function-address",
+              result: "target",
+              function: addressed,
+              type: signature,
+              integer: null,
+              span: span(1),
+            },
+          ],
+          terminator: { kind: "return", value: null },
+        },
+      ],
+    };
+    const result = closeWholeProgram(
+      program([owner, { ...fn(exported, []), exported: true }, fn(addressed, []), fn(dead, [])]),
+    );
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected complete closure");
+    expect(result.program.reachableFunctions).toEqual([main, exported, addressed]);
+    expect(result.program.roots).toEqual([
+      { kind: "startup" },
+      { kind: "main", function: main },
+      { kind: "callable", function: exported },
+      { kind: "callable", function: addressed },
+    ]);
+  });
+
+  it("keeps a precise merged target set separate from unrelated address-taken functions", () => {
+    const main = id(0);
+    const first = id(10);
+    const second = id(20);
+    const unrelated = id(30);
+    const signature: FunctionType = Object.freeze({
+      kind: "function",
+      parameters: Object.freeze([]),
+      returnType: VOID_TYPE,
+    });
+    const address = (target: BindingId, result: string) =>
+      Object.freeze({
+        kind: "function-address" as const,
+        result,
+        function: target,
+        type: signature,
+        integer: null,
+        span: target.span,
+      });
+    const indirect = Object.freeze({
+      kind: "indirect-call" as const,
+      result: null,
+      target: "selected",
+      arguments: Object.freeze([]),
+      signature,
+      type: VOID_TYPE,
+      span: span(4),
+    });
+    const owner: SemanticFunction = {
+      ...fn(main, []),
+      blocks: [
+        {
+          id: "block:0",
+          operations: [
+            address(second, "second"),
+            address(first, "first"),
+            address(unrelated, "unrelated"),
+            {
+              kind: "merge",
+              result: "selected",
+              incoming: [
+                { block: "right", value: "second" },
+                { block: "left", value: "first" },
+              ],
+              type: signature,
+              integer: null,
+              span: span(3),
+            },
+            indirect,
+          ],
+          terminator: { kind: "return", value: null },
+        },
+      ],
+    };
+    const targets = resolveFunctionTargets(
+      program([owner, fn(unrelated, []), fn(second, []), fn(first, [])]),
+    );
+    expect(targets.get(indirect)).toEqual([first, second]);
+  });
+
+  it("rejects a malformed indirect edge whose source function is absent", () => {
+    const main = id(0);
+    const missing = id(90);
+    const signature: FunctionType = Object.freeze({
+      kind: "function",
+      parameters: Object.freeze([]),
+      returnType: VOID_TYPE,
+    });
+    const callSpan = span(5);
+    const owner: SemanticFunction = {
+      ...fn(main, []),
+      blocks: [
+        {
+          id: "block:0",
+          operations: [
+            {
+              kind: "function-address",
+              result: "missing",
+              function: missing,
+              type: signature,
+              integer: null,
+              span: span(4),
+            },
+            {
+              kind: "indirect-call",
+              result: null,
+              target: "missing",
+              arguments: [],
+              signature,
+              type: VOID_TYPE,
+              span: callSpan,
+            },
+          ],
+          terminator: { kind: "return", value: null },
+        },
+      ],
+    };
+    const result = closeWholeProgram(program([owner]));
+    expect(result.kind).toBe("error");
+    if (result.kind !== "error") throw new Error("Expected malformed indirect edge to fail");
+    expect(result.diagnostics).toMatchObject([{ code: "E10277", primarySpan: callSpan }]);
+  });
+
+  it("reports the same recursive path after function records are shuffled", () => {
+    const main = id(0);
+    const first = id(10);
+    const second = id(20);
+    const third = id(30);
+    const functions = [
+      { ...fn(main, [first]), name: "Game.main" },
+      { ...fn(first, [second]), name: "Game.first" },
+      { ...fn(second, [third]), name: "Game.second" },
+      { ...fn(third, [first]), name: "Game.third" },
+    ];
+    for (const ordered of [functions, [...functions].reverse()]) {
+      const result = closeWholeProgram({ ...program(functions), functions: ordered });
+      expect(result.kind).toBe("error");
+      if (result.kind !== "error") throw new Error("Expected recursive closure to fail");
+      expect(result.diagnostics).toMatchObject([
+        {
+          code: "E10181",
+          message: "Indirect recursion detected — cycle: first → second → third → first",
+        },
+      ]);
+    }
+  });
   it("deduplicates and sorts direct edges while closing transitive effects", () => {
     const main = id(0);
     const first = id(10);

@@ -13,6 +13,8 @@ import type {
 /** Return the in-memory byte width of one source type. */
 function typeBytes(type: SemanticType, parameter = false): number {
   if (type.kind === "array" || type.kind === "struct") return parameter ? 2 : type.size;
+  if (type.kind === "function" || type.kind === "interrupt-handler") return 2;
+  if (type.kind === "enum") return 1;
   if (type.name === "void") return 0;
   return type.name === "word" || type.name === "sword" ? 2 : 1;
 }
@@ -32,7 +34,9 @@ function functionPositions(fn: Pick<SemanticFunction, "blocks">): readonly Seman
 function functionCalls(fn: Pick<SemanticFunction, "blocks">) {
   return Object.freeze(
     fn.blocks.flatMap((block) =>
-      block.operations.flatMap((operation) => (operation.kind === "call" ? [operation.span] : [])),
+      block.operations.flatMap((operation) =>
+        operation.kind === "call" || operation.kind === "indirect-call" ? [operation.span] : [],
+      ),
     ),
   );
 }
@@ -72,6 +76,7 @@ function definingOperation(
 
 /** Select the fixed scalar return ABI used by the current source type. */
 function resultLocation(type: SemanticType): ResultLocation | null {
+  if (type.kind === "function") return Object.freeze({ kind: "ax" });
   if (type.kind !== "scalar" || type.name === "void") return null;
   return Object.freeze({ kind: type.name === "word" || type.name === "sword" ? "ax" : "a" });
 }
@@ -173,9 +178,7 @@ function appendCallStaging(
     const crossesCall = lifetime.callsCrossed.length > 0;
     const sourceLoad = operation.kind === "convert" ? convertedLoad(body, operation) : null;
     const crossesWrite =
-      (operation.kind === "load" &&
-        (type.kind === "scalar" || type.kind === "enum") &&
-        loadCrossesInvalidatingWrite(body, lifetime, operation)) ||
+      (operation.kind === "load" && loadCrossesInvalidatingWrite(body, lifetime, operation)) ||
       (sourceLoad !== null && loadCrossesInvalidatingWrite(body, lifetime, sourceLoad));
     if (!crossesCall && !crossesWrite) continue;
     const storageClass: StorageClass =

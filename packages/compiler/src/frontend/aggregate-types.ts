@@ -144,12 +144,12 @@ export class AggregateRegistry {
         type = this.resolveType(parameter.type, module, null, report);
       }
       if (type === null) return null;
-      if (parameter.readonly && type.kind === "scalar") {
+      if (parameter.readonly && type.kind !== "array" && type.kind !== "struct") {
         if (report) {
           this.host.diagnose(
             projectDiagnostic(
               "E10246",
-              `Parameter '${parameter.name}' uses 'const' with non-aggregate type '${type.name}' — const parameters require an array or struct`,
+              `Parameter '${parameter.name}' uses 'const' with non-aggregate type '${semanticTypeName(type)}' — const parameters require an array or struct`,
               parameter.span,
             ),
           );
@@ -204,8 +204,57 @@ export class AggregateRegistry {
       return null;
     }
     if (syntax.kind === "function-type") {
-      if (report) this.host.defer(syntax.span, "Function value typing remains pending");
-      return null;
+      const parameters: FunctionSignature["parameters"][number][] = [];
+      for (const parameter of syntax.parameters) {
+        const outerUnsized = parameter.type.kind === "array-type" && parameter.type.extent === null;
+        const type =
+          outerUnsized && parameter.type.kind === "array-type"
+            ? (() => {
+                const element = this.resolveType(
+                  parameter.type.element,
+                  module,
+                  null,
+                  report,
+                  scope,
+                );
+                return element === null ? null : this.fixedArray(element, 0);
+              })()
+            : this.resolveType(parameter.type, module, null, report, scope);
+        if (type === null) return null;
+        if (type.kind === "scalar" && type.name === "void") {
+          if (report)
+            this.host.diagnose(
+              projectDiagnostic(
+                "SEMANTIC_ERROR",
+                "Type 'void' cannot be used as a parameter",
+                parameter.span,
+              ),
+            );
+          return null;
+        }
+        if (parameter.readonly && type.kind !== "array" && type.kind !== "struct") {
+          if (report)
+            this.host.diagnose(
+              projectDiagnostic(
+                "E10246",
+                "Const parameters require an array or struct type",
+                parameter.span,
+              ),
+            );
+          return null;
+        }
+        parameters.push(
+          Object.freeze({
+            type,
+            readonly: parameter.readonly,
+            ...(outerUnsized ? { outerUnsized: true as const } : {}),
+          }),
+        );
+      }
+      const returnType = this.resolveType(syntax.returnType, module, null, report, scope);
+      return returnType === null
+        ? null
+        : Object.freeze({ kind: "function", parameters: Object.freeze(parameters), returnType });
     }
     const element = this.resolveType(syntax.element, module, null, report, scope);
     if (element === null) return null;

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { SourceRecord, SourceSpan } from "../project/types.js";
+import type { ProjectSnapshot, SourceRecord, SourceSpan } from "../project/types.js";
+import { analyzeProject } from "./service.js";
 import { parseSource } from "./parser.js";
 
 /** Construct exact decoded input without loading or changing any host file. */
@@ -11,6 +12,41 @@ function source(text: string): SourceRecord {
     sha256: createHash("sha256").update(text, "utf8").digest("hex"),
     byteLength: Buffer.byteLength(text, "utf8"),
     resolvedPath: "/unused/game.blend",
+  };
+}
+
+/** Build the smallest immutable project used by semantic expression checks. */
+function project(text: string): ProjectSnapshot {
+  const manifestText = "{}";
+  return {
+    manifest: {
+      schemaVersion: 1,
+      name: "expression-spec",
+      sourceRoot: "src",
+      entry: "Game",
+      target: "c64-pal-prg-kernal-6581",
+      assetPaths: [],
+      outDir: "out",
+      optimization: "none",
+      boundsCheck: true,
+      divisionZeroCheck: true,
+    },
+    manifestSource: {
+      sourceId: "blend65.json",
+      text: manifestText,
+      sha256: createHash("sha256").update(manifestText, "utf8").digest("hex"),
+      byteLength: Buffer.byteLength(manifestText, "utf8"),
+      resolvedPath: "/checkout/blend65.json",
+    },
+    sources: [source(text)],
+    inputSha256: createHash("sha256").update(text, "utf8").digest("hex"),
+    projectRoot: "/checkout",
+    sourceRoot: "/checkout/src",
+    assetPaths: [],
+    outDir: "/checkout/out",
+    overrides: { target: null, entry: null },
+    effectiveTarget: "c64-pal-prg-kernal-6581",
+    effectiveEntry: "Game",
   };
 }
 
@@ -320,5 +356,66 @@ function main(): void {
         ],
       },
     });
+  });
+});
+
+describe("function value expressions", () => {
+  // Function parameters, aggregate qualifiers and extents, and result types are invariant as one signature.
+  it("should accept an exact function signature and reject every incompatible signature boundary", () => {
+    const accepted = analyzeProject(
+      project(
+        [
+          "module Game;",
+          "function inspect(values: const byte[2]): word { return word(values[0]); }",
+          "let callback: fn(const byte[2]): word = &inspect;",
+          "function main(): void {",
+          "  let values: byte[2] = [1, 2];",
+          "  callback(values);",
+          "}",
+        ].join("\n"),
+      ),
+    );
+    expect(accepted.kind).toBe("complete");
+    expect(accepted.diagnostics).toEqual([]);
+
+    const mismatches = [
+      [
+        "module Game; function actual(value: byte): byte { return value; } let callback: fn(word): byte = &actual; function main(): void {}",
+      ],
+      [
+        "module Game; function actual(values: const byte[2]): byte { return values[0]; } let callback: fn(byte[2]): byte = &actual; function main(): void {}",
+      ],
+      [
+        "module Game; function actual(values: byte[2]): byte { return values[0]; } let callback: fn(byte[3]): byte = &actual; function main(): void {}",
+      ],
+      [
+        "module Game; function actual(value: byte): byte { return value; } let callback: fn(byte): word = &actual; function main(): void {}",
+      ],
+    ] as const;
+
+    for (const [text] of mismatches) {
+      const result = analyzeProject(project(text));
+      expect(result.kind).toBe("error");
+      expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10080"]);
+    }
+  });
+
+  // Converting a function value to word permanently removes its callable type and target proof.
+  it("should reject a call through an address whose function proof was erased", () => {
+    const result = analyzeProject(
+      project(
+        [
+          "module Game;",
+          "function increment(value: byte): byte { return value + 1; }",
+          "function main(): void {",
+          "  let raw: word = word(&increment);",
+          "  raw(1);",
+          "}",
+        ].join("\n"),
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10175"]);
   });
 });

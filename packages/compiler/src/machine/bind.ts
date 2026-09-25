@@ -251,7 +251,17 @@ function bindInstruction(
 
   let mode = instruction.mode;
   if (instruction.operand?.kind === "storage") {
-    mode = instruction.mode === "absolute-y" ? "absolute-y" : bound.mode!;
+    mode =
+      instruction.mode === "indirect" || instruction.mode === "absolute-y"
+        ? instruction.mode
+        : bound.mode!;
+    if (
+      mode === "indirect" &&
+      bound.operand?.kind === "absolute" &&
+      (bound.operand.value & 0xff) === 0xff
+    ) {
+      return null;
+    }
   } else if (instruction.operand?.kind === "indirect-y") mode = "indirect-indexed-y";
   const cost =
     mode === instruction.mode ? instruction.cost : machineCost(NMOS_6510, instruction.opcode, mode);

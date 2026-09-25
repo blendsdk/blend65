@@ -37,6 +37,13 @@ export type LoweredValue =
       readonly zeroPage?: boolean;
     }
   | {
+      /** The two immediate bytes of a function's code address, not its code contents. */
+      readonly kind: "symbol-address";
+      readonly label: string;
+      readonly bytes: number;
+      readonly signed?: boolean;
+    }
+  | {
       readonly kind: "register";
       readonly registers: "a" | "ax";
       readonly bytes: 1 | 2;
@@ -133,6 +140,13 @@ export function operandForValue(value: LoweredValue, offset = 0): MachineOperand
       ...(value.transform === undefined ? {} : { transform: value.transform }),
     });
   }
+  if (value.kind === "symbol-address") {
+    return Object.freeze({
+      kind: "label",
+      label: value.label,
+      addressByte: offset === 0 ? "low" : "high",
+    });
+  }
   throw new Error("Machine value has no addressable operand");
 }
 
@@ -152,6 +166,7 @@ export function modeForValue(
       : value.zeroPage
         ? "zero-page"
         : "absolute";
+  if (value.kind === "symbol-address") return "immediate";
   throw new Error("Machine value has no addressable mode");
 }
 

@@ -37,6 +37,11 @@ function alignAddress(address: number, alignment: number): number {
   return Math.ceil(address / alignment) * alignment;
 }
 
+/** NMOS indirect jumps cannot read a callable word beginning at the last byte of a page. */
+function validCallableAddress(request: StorageRequest, address: number): boolean {
+  return request.type?.kind !== "function" || request.bytes !== 2 || (address & 0xff) !== 0xff;
+}
+
 /** Check whether two inclusive byte intervals overlap. */
 function rangesOverlap(
   leftStart: number,
@@ -103,6 +108,12 @@ function findAddress(
   for (const range of ranges) {
     let address = alignAddress(range.start, request.alignment);
     while (address <= range.end && address + request.bytes - 1 <= range.end) {
+      // NMOS JMP (addr) reads its high byte from the start of the same page when
+      // addr ends in $ff. A callable word must therefore never begin there.
+      if (!validCallableAddress(request, address)) {
+        address = alignAddress(address + 1, request.alignment);
+        continue;
+      }
       const blocked = placementBlocked(request, address, region, homes, edges);
       if (!blocked) return address;
       address = alignAddress(address + 1, request.alignment);
@@ -150,6 +161,7 @@ function placeExactly(
         const key = `${candidate.name}:${address}`;
         if (
           !visited.has(key) &&
+          validCallableAddress(request, address) &&
           !placementBlocked(request, address, candidate.name, homes, edges)
         ) {
           visited.add(key);

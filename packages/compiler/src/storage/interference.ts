@@ -2,6 +2,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticFunction } from "../semantic/operations.js";
+import type { IndirectTargetSets } from "../semantic/function-targets.js";
 import type {
   HelperCallDemand,
   InterferenceEdge,
@@ -31,14 +32,20 @@ function lifetimesOverlap(left: StorageRequest, right: StorageRequest): boolean 
   return right.lifetime.liveAt.some((position) => leftPositions.has(positionKey(position)));
 }
 
-/** Find the direct callee at one call span in a semantic function. */
-function calleeAtSpan(fn: Pick<SemanticFunction, "blocks">, span: SourceSpan): BindingId | null {
+/** Find every proved callee at one direct or indirect call site. */
+function calleesAtSpan(
+  fn: Pick<SemanticFunction, "blocks">,
+  span: SourceSpan,
+  indirectTargets: IndirectTargetSets | undefined,
+): readonly BindingId[] {
   for (const block of fn.blocks) {
     for (const operation of block.operations) {
-      if (operation.kind === "call" && sameSpan(operation.span, span)) return operation.callee;
+      if (!sameSpan(operation.span, span)) continue;
+      if (operation.kind === "call") return [operation.callee];
+      if (operation.kind === "indirect-call") return indirectTargets?.get(operation) ?? [];
     }
   }
-  return null;
+  return [];
 }
 
 /** Collect a callee and every function it may call. */
@@ -116,12 +123,12 @@ export function buildInterference(
     const owner = executions.get(bindingIdentityKey(callerRequest.owner));
     if (owner === undefined) continue;
     for (const callSpan of callerRequest.lifetime.callsCrossed) {
-      const callee = calleeAtSpan(owner, callSpan);
-      if (callee === null) continue;
-      const activeCallees = reachableCallees(callee, callGraph);
-      for (const calleeRequest of inventory.requests) {
-        if (activeCallees.has(bindingIdentityKey(calleeRequest.owner))) {
-          addEdge(edges, callerRequest.id, calleeRequest.id, "call-overlap");
+      for (const callee of calleesAtSpan(owner, callSpan, inventory.program.indirectTargets)) {
+        const activeCallees = reachableCallees(callee, callGraph);
+        for (const calleeRequest of inventory.requests) {
+          if (activeCallees.has(bindingIdentityKey(calleeRequest.owner))) {
+            addEdge(edges, callerRequest.id, calleeRequest.id, "call-overlap");
+          }
         }
       }
     }
