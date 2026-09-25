@@ -889,6 +889,7 @@ function lowerFunction(
     result: declaration.type,
     entry: builder.entry,
     blocks,
+    statusStackPeak: declaration.statusStackPeak ?? 0,
     source: declaration.binding.span,
     ...(declaration.placement ? { placement: declaration.placement } : {}),
   });

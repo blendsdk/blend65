@@ -411,6 +411,7 @@ class ModuleAnalyzer {
           type: returnType,
           initializer: null,
           body,
+          statusStackPeak: statusStack?.peak ?? 0,
           placement,
         }),
       );

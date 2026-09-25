@@ -204,6 +204,21 @@ describe("static storage closure implementation", () => {
     expect(exceeded).not.toHaveProperty("certificate");
   });
 
+  it("includes balanced processor-status saves on a nested call route", () => {
+    const main = Object.freeze({ ...fn(binding(23)), statusStackPeak: 2 });
+    const called = fn(binding(24));
+    const initial = inventory([main, called]);
+
+    const exact = closeStorage(initial, profile(9), () => Object.freeze([]));
+    expect(exact).toMatchObject({
+      kind: "complete",
+      certificate: { hardwareStackProgramPeak: 4, hardwareStackPeak: 7 },
+    });
+
+    const exceeded = closeStorage(initial, profile(8), () => Object.freeze([]));
+    expect(exceeded).toMatchObject({ kind: "error", reason: "stack", measured: 7, available: 6 });
+  });
+
   it("takes the deepest initializer call chain into the stack proof", () => {
     const main = fn(binding(30));
     const first = fn(binding(31));

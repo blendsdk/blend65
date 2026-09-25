@@ -499,6 +499,8 @@ export interface TypedDeclaration {
   readonly initializer: TypedExpr | null;
   /** Typed function body, or null for a module variable. */
   readonly body: TypedBlock | null;
+  /** Maximum balanced function-local processor-status saves. */
+  readonly statusStackPeak?: number;
   /** Validated source placement constraints for an emitted object. */
   readonly placement?: PlacementConstraints | null;
   /** Packaged constant excluded from the resident image. */

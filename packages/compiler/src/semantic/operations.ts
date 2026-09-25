@@ -418,6 +418,8 @@ export interface SemanticFunction {
   readonly entry: BlockId;
   /** Basic blocks in deterministic construction order. */
   readonly blocks: readonly SemanticBlock[];
+  /** Maximum proved function-local processor-status saves on reachable paths. */
+  readonly statusStackPeak?: number;
   /** Complete source function span. */
   readonly source: SourceSpan;
   /** Optional source constraint on this emitted routine. */

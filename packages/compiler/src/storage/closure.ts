@@ -234,16 +234,19 @@ function hardwareCallRoutes(
       });
     }
     active.add(functionKey);
+    const statusStackPeak =
+      inventory.program.semantic.functions.find(({ id }) => bindingIdentityKey(id) === functionKey)
+        ?.statusStackPeak ?? 0;
     const helper = helperByCaller.get(functionKey);
     let functionDepth: HardwareStackRoute = Object.freeze({
-      bytes: helperStackByCaller.get(functionKey) ?? 0,
+      bytes: statusStackPeak + (helperStackByCaller.get(functionKey) ?? 0),
       route: Object.freeze(
         helper === undefined ? [functionKey] : [functionKey, `helper:${helper.id}`],
       ),
     });
-    if (vectorUpdateBytes(functionKey) > functionDepth.bytes) {
+    if (statusStackPeak + vectorUpdateBytes(functionKey) > functionDepth.bytes) {
       functionDepth = Object.freeze({
-        bytes: 2,
+        bytes: statusStackPeak + 2,
         route: Object.freeze([functionKey, "interrupt-vector-update"]),
       });
     }
@@ -253,7 +256,7 @@ function hardwareCallRoutes(
         bytes:
           calleeDepth.bytes === Number.POSITIVE_INFINITY
             ? calleeDepth.bytes
-            : calleeDepth.bytes + 2,
+            : statusStackPeak + calleeDepth.bytes + 2,
         route: Object.freeze([functionKey, ...calleeDepth.route]),
       });
       functionDepth = deeperStackRoute(functionDepth, candidate);

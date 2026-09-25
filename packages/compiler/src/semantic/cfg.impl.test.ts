@@ -59,6 +59,30 @@ function lower(text: string) {
 }
 
 describe("semantic CFG implementation", () => {
+  it("retains the proved status-save peak for hardware-stack closure", () => {
+    const program = lower(
+      [
+        "module Game;",
+        "function leaf(): void {}",
+        "function main(): void {",
+        "  asm_php();",
+        "  asm_php();",
+        "  leaf();",
+        "  asm_plp();",
+        "  asm_plp();",
+        "}",
+      ].join("\n"),
+    );
+
+    const main = program.functions.find(({ name }) => name === "Game.main");
+    expect(main?.statusStackPeak).toBe(2);
+    expect(
+      main?.blocks
+        .flatMap(({ operations }) => operations)
+        .filter(({ kind }) => kind === "cpu-control"),
+    ).toHaveLength(4);
+  });
+
   it("rejects an internally malformed jump target before publishing the graph", () => {
     const builder = new ControlFlowBuilder("malformed");
     builder.terminate(Object.freeze({ kind: "jump", target: "malformed:missing" }));
