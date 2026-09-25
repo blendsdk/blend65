@@ -190,3 +190,69 @@ describe("symbolic memory operations and aggregate queries", () => {
     });
   });
 });
+
+describe("CPU controls and packed decimal values", () => {
+  // A function may save and restore its own processor status without changing stack depth.
+  it("should accept balanced status saves around ordered CPU controls", () => {
+    const result = analyze(
+      "module Game; function main(): void { asm_php(); asm_sei(); asm_nop(); asm_plp(); asm_cli(); }",
+    );
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  // A CPU-control statement has no value to assign or pass as an expression.
+  it("should reject a CPU control in value position", () => {
+    const result = analyze("module Game; function main(): void { let VALUE: byte = asm_nop(); }");
+    expect(result.complete).toBe(false);
+    expect(result.diagnostics).not.toEqual([]);
+    expect(result.diagnostics.map(({ code }) => code)).not.toContain("E10239");
+  });
+
+  // A source pull cannot consume the caller's return address or leave a save at a join or exit.
+  it.each([
+    ["underflow", "asm_plp();"],
+    ["nonempty exit", "asm_php();"],
+    ["unequal join", "if (peek($0400) != 0) { asm_php(); }"],
+    ["unequal loop backedge", "for (; peek($0400) != 0; ) { asm_php(); }"],
+  ])("should reject %s in function-local status-save depth", (_case, body) => {
+    const result = analyze(`module Game; function main(): void { ${body} }`);
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10248");
+  });
+
+  // Only the five named controls are built-ins; opcode-shaped names do not gain magic meaning.
+  it.each(["asm_lda", "asm_sta", "asm_adc", "asm_jmp"])(
+    "should treat %s as an ordinary unresolved name",
+    (name) => {
+      const result = analyze(`module Game; function main(): void { ${name}(); }`);
+      expect(result.diagnostics.some(({ message }) => message.includes(name))).toBe(true);
+      expect(result.complete).toBe(false);
+    },
+  );
+
+  // Valid packed decimal constants fold with independent carry and discarded final carry.
+  it("should fold byte and word packed decimal addition and subtraction", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "const BYTE_SUM: byte = bcd_add(byte($99), byte($01));",
+        "const BYTE_DIFF: byte = bcd_sub(byte($00), byte($01));",
+        "const WORD_SUM: word = bcd_add(word($9999), word($0001));",
+        "const WORD_DIFF: word = bcd_sub(word($0000), word($0001));",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(typedDeclaration(result, "Game.BYTE_SUM").initializer?.constant).toBe(0n);
+    expect(typedDeclaration(result, "Game.BYTE_DIFF").initializer?.constant).toBe(0x99n);
+    expect(typedDeclaration(result, "Game.WORD_SUM").initializer?.constant).toBe(0n);
+    expect(typedDeclaration(result, "Game.WORD_DIFF").initializer?.constant).toBe(0x9999n);
+  });
+
+  // A known hexadecimal nibble is never accepted as one decimal digit.
+  it("should reject a statically invalid packed decimal digit", () => {
+    const result = analyze(
+      "module Game; const BAD: byte = bcd_add(byte($1A), byte($01)); function main(): void {}",
+    );
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10254");
+  });
+});

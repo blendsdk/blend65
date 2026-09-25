@@ -11,6 +11,7 @@ import type {
   ScalarValueState,
   SemanticBinding,
   SemanticType,
+  TypedExpr,
   TypedVariableStatement,
 } from "./semantic-types.js";
 import type { VariableDeclaration } from "./syntax.js";
@@ -55,6 +56,8 @@ export interface ScalarModuleHost {
   readonly errorCount: () => number;
   /** Count obligations which keep a declaration unchecked. */
   readonly obligationCount: () => number;
+  /** Evaluate and meter one typed scalar constant before publishing it. */
+  readonly evaluateConstant?: (initializer: TypedExpr, type: SemanticType) => TypedExpr | null;
 }
 
 /** Check one module initializer while preserving exact const versus runtime context. */
@@ -78,7 +81,15 @@ export function analyzeScalarModuleVariable(
       constantContext: declaration.declarationKind === "const",
     });
     initializer = result.node;
-    state.known = result.node?.constant ?? null;
+    if (
+      declaration.declarationKind === "const" &&
+      initializer !== null &&
+      (type.kind === "scalar" || type.kind === "enum") &&
+      host.evaluateConstant !== undefined
+    ) {
+      initializer = host.evaluateConstant(initializer, type);
+    }
+    state.known = initializer?.constant ?? null;
     updateInitializedState(state, result.node);
     if (
       declaration.declarationKind === "const" &&

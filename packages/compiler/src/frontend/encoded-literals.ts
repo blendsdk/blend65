@@ -30,9 +30,13 @@ export function analyzeEncodedLiteral(
   }
   if (expression.literalKind === "character") {
     const value = BigInt(encoded.bytes[0]!);
+    const literal = createScalarTypedExpression(expression, SCALAR_TYPES.byte, value, {
+      encodedBytes: encoded.bytes,
+    });
     return {
       node: createScalarTypedExpression(resultExpression, SCALAR_TYPES.byte, value, {
         encodedBytes: encoded.bytes,
+        ...(resultExpression.kind === "call" ? { arguments: Object.freeze([literal]) } : {}),
       }),
       exact: value,
     };

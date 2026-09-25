@@ -88,6 +88,23 @@ export class ScalarExpressionAnalyzer {
     expected: SemanticType | null,
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
+    if (
+      context.caller !== null &&
+      this.host.functionMode?.(context.caller) === "comptime" &&
+      expression.kind === "call" &&
+      expression.callee.kind === "name" &&
+      (["peek", "peekw", "poke", "pokew", "embed"].includes(expression.callee.name) ||
+        expression.callee.name.startsWith("asm_"))
+    ) {
+      this.host.diagnose(
+        error(
+          "E10191",
+          "Compile-time function cannot access runtime or host state",
+          expression.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
     const enumMember = analyzeEnumMember(expression, context, this.host, this.aggregates.enums);
     if (enumMember !== null) return enumMember;
     const aggregate = analyzeAggregateExpression(
@@ -236,6 +253,17 @@ export class ScalarExpressionAnalyzer {
       );
       return { node: null, exact: null };
     }
+    if (
+      context.caller !== null &&
+      this.host.functionMode?.(context.caller) === "comptime" &&
+      !callTarget &&
+      state.binding.storage === "module"
+    ) {
+      this.host.diagnose(
+        error("E10191", "Compile-time function cannot read runtime storage", expression.span),
+      );
+      return { node: null, exact: null };
+    }
     if (state.binding.loadable && !context.compileTimeQuery) {
       this.host.diagnose(
         error(
@@ -311,6 +339,16 @@ export class ScalarExpressionAnalyzer {
             : null;
       if (functionName?.node?.binding !== null && functionName?.node?.binding !== undefined) {
         if (this.host.isFunction(functionName.node.binding)) {
+          if (this.host.functionMode?.(functionName.node.binding) === "comptime") {
+            this.host.diagnose(
+              error(
+                "E10043",
+                "Compile-time functions have no target address",
+                expression.operand.span,
+              ),
+            );
+            return { node: null, exact: null };
+          }
           const signature = this.host.signature(functionName.node.binding);
           if (signature === null) {
             this.host.defer(expression.span, "Function address requires a complete signature");

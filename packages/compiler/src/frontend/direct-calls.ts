@@ -82,7 +82,9 @@ export function analyzeDirectCall(
   }
   const calleeBinding = callee.node.binding;
   const direct = calleeBinding !== null && host.isFunction(calleeBinding);
-  if (direct && calleeBinding !== null && host.functionMode?.(calleeBinding) === "interrupt") {
+  const calleeMode = direct && calleeBinding !== null ? host.functionMode?.(calleeBinding) : null;
+  const callerMode = context.caller === null ? null : host.functionMode?.(context.caller);
+  if (calleeMode === "interrupt") {
     host.diagnose(
       projectDiagnostic(
         "E10051",
@@ -128,13 +130,17 @@ export function analyzeDirectCall(
   const arguments_: TypedExpr[] = [];
   expression.arguments.forEach((argument, index) => {
     const parameter = signature.parameters[index];
+    const argumentContext =
+      calleeMode === "comptime" && callerMode !== "comptime"
+        ? { ...context, constantContext: true }
+        : context;
     const result = analyze(
       argument,
       parameter?.outerUnsized || parameter?.type.kind === "interrupt-handler"
         ? null
         : (parameter?.type ?? null),
       {
-        ...context,
+        ...argumentContext,
         ordinalContext: false,
       },
     );
@@ -192,7 +198,10 @@ export function analyzeDirectCall(
     }
     arguments_.push(result.node);
   });
-  if (context.constantContext) {
+  if (
+    (context.constantContext && calleeMode !== "comptime") ||
+    (callerMode === "comptime" && calleeMode !== "comptime")
+  ) {
     host.diagnose(
       projectDiagnostic(
         context.caseContext ? "E10071" : "E10191",
@@ -210,16 +219,21 @@ export function analyzeDirectCall(
       Object.freeze({ caller: context.caller, callee: calleeBinding, span: expression.span }),
     );
   }
-  clearCallVisibleScalarFacts(context.scope);
+  if (calleeMode !== "comptime") clearCallVisibleScalarFacts(context.scope);
+  const typed = createScalarTypedExpression(expression, signature.returnType, null, {
+    callee: callee.node,
+    calleeDisplay: host.sourceText(expression.callee.span),
+    arguments: Object.freeze(arguments_),
+    signature,
+    evaluation: "left-to-right",
+    integer: integerFacts(signature.returnType, true),
+  });
+  const constant =
+    calleeMode === "comptime" && !context.constantContext && callerMode !== "comptime"
+      ? (host.comptimeCall?.(typed) ?? null)
+      : null;
   return {
-    node: createScalarTypedExpression(expression, signature.returnType, null, {
-      callee: callee.node,
-      calleeDisplay: host.sourceText(expression.callee.span),
-      arguments: Object.freeze(arguments_),
-      signature,
-      evaluation: "left-to-right",
-      integer: integerFacts(signature.returnType, true),
-    }),
-    exact: null,
+    node: constant === null ? typed : Object.freeze({ ...typed, constant }),
+    exact: constant,
   };
 }

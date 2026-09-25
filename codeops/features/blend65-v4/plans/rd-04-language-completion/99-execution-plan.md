@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-25
-> **Progress**: 67/99 tasks (68%)
+> **Progress**: 71/99 tasks (72%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -348,22 +348,23 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 
 ## Phase 7: Compile-Time Functions, Intrinsics and Core Embed
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `204870d0520a1ab6553ba9cf8a331c8dfa52795e`
+> **Expected modification set**: Phase 7 task paths in `packages/compiler/src/frontend/`, `packages/compiler/src/semantic/`, `packages/compiler/src/machine/`, `packages/compiler/src/assets/`, `packages/compiler/src/layout/`, `packages/compiler/src/storage/`, `packages/compiler/src/artifacts/`, and `test/rd04/`; this plan and the feature roadmap. Scope mode: strict; extend the existing compiler with no new package, runtime, framework, or speculative asset handler.
 > **Lenses**: deterministic evaluation, bounded resources, machine-state effects, input safety
 
 ### Step 7.1: Specification Tests
 
 **Reference**: [03-03 §Compile-Time Execution](03-03-calls-abi-and-sfa.md#compile-time-execution) · ST-40–ST-45
 
-- [ ] 7.1.1 [spec-author] Write compile-time evaluator, exact meter and trigonometric specification cases — `packages/compiler/src/frontend/comptime.spec.test.ts`, `test/rd04/comptime.spec.test.ts`
-- [ ] 7.1.2 [spec-author] Write memory/query/profile/CPU/BCD/embed specification cases — `packages/compiler/src/frontend/intrinsics.spec.test.ts`, `packages/compiler/src/assets/raw-asset.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`
-- [ ] 7.1.3 Run only the new Phase 7 specification cases and record the expected red failures — Phase 7 test files
+- [x] 7.1.1 [spec-author] Write compile-time evaluator, exact meter and trigonometric specification cases — `packages/compiler/src/frontend/comptime.spec.test.ts`, `test/rd04/comptime.spec.test.ts` — Verified RED 2026-09-25: 23 frontend and 2 build cases fail on missing Phase 7 behavior; typecheck, formatting, whitespace and frozen-spec checks pass. Full sin16 stream hash is owned by 7.3.1's internal-function test. ✅ (completed: 2026-09-25 16:01)
+- [x] 7.1.2 [spec-author] Write memory/query/CPU/BCD/embed specification cases — `packages/compiler/src/frontend/intrinsics.spec.test.ts`, `packages/compiler/src/assets/raw-asset.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts` — AR-P19 assigns source-visible profile facts to RD-05. Verified directed RED: 9 compiler and 7 root cases fail on missing behavior, while 21 compiler and 2 root cases pass; typecheck, targeted formatting, whitespace and frozen-spec checks pass. ✅ (completed: 2026-09-25 16:38)
+- [x] 7.1.3 Run only the new Phase 7 specification cases and record the expected red failures — Phase 7 test files — Combined directed RED: 32 failed/21 passed in three compiler files and 9 failed/2 passed in two root files. The passing cases cover already-working dynamic access, traversal refusal and unknown removed-opcode names; failures name missing evaluator, CPU, BCD, raw embed and source-lookup behavior. ✅ (completed: 2026-09-25 16:40)
 
 ### Step 7.2: Implementation
 
-- [ ] 7.2.1 Add the deterministic typed compile-time evaluator and exact production meters — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/comptime-budget.ts`, `packages/compiler/src/frontend/analyzer.ts`
+- [x] 7.2.1 Add the deterministic typed compile-time evaluator and exact production meters — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/comptime-budget.ts`, `packages/compiler/src/frontend/analyzer.ts`, with focused existing frontend support — Typed scalar calls, local mutation, selected flow, source-dependent constant ordering, no target function body, and fixed production/reduced internal step/live-byte/depth limits are implemented. Folded scalar built-ins retain ordered argument accounting; alias reads do not invent storage. Verified nine evaluator spec cases and 45 aggregate regressions, build, typecheck, formatting and frozen-spec checks. Full compiler suite: 1,198 passed; 23 RED failures belong to later Phase 7 trigonometry, CPU/BCD and embed tasks. ✅ (completed: 2026-09-25 17:06)
 - [ ] 7.2.2 Implement exact integer trigonometry, aggregate returns and all-or-nothing evaluator results — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/constants.ts`, `packages/compiler/src/semantic/lower.ts`
-- [ ] 7.2.3 Complete dynamic memory access, size/count and selected-profile queries — `packages/compiler/src/frontend/expressions.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/machine/lower-memory.ts`
+- [ ] 7.2.3 Complete dynamic memory access and size/count queries — `packages/compiler/src/frontend/expressions.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/machine/lower-memory.ts`
 - [ ] 7.2.4 Complete five CPU controls, status-stack proof and packed BCD semantics/lowering — `packages/compiler/src/frontend/flow.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/machine/lower-arithmetic.ts`
 - [ ] 7.2.5 Complete contained raw `embed()` dispatch, identity and registered-format refusal — `packages/compiler/src/assets/raw-asset.ts`, `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/layout/c64-layout.ts`
 - [ ] 7.2.6 Account for all intrinsic/evaluator effects, homes, helpers and costs — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/closure.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`
@@ -371,7 +372,7 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 
 ### Step 7.3: Implementation Tests and Qualification
 
-- [ ] 7.3.1 Add meter-charge/release, forbidden-host-input, status-join and embed-parser implementation tests — `packages/compiler/src/frontend/comptime.impl.test.ts`, `packages/compiler/src/frontend/flow.impl.test.ts`, `packages/compiler/src/assets/raw-asset.impl.test.ts`
+- [ ] 7.3.1 Add meter-charge/release, forbidden-host-input, status-join and embed-parser implementation tests, including the canonical full sin16 stream hash through the evaluator's internal trigonometry function — `packages/compiler/src/frontend/comptime.impl.test.ts`, `packages/compiler/src/frontend/flow.impl.test.ts`, `packages/compiler/src/assets/raw-asset.impl.test.ts`
 - [ ] 7.3.2 Run complete compile-time/intrinsic/embed ACME/VICE and expert qualification — `test/rd04/comptime.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`, `test/rd04/expert/intrinsics.json`
 
 **Deliverables:** deterministic target-free compile time and complete approved intrinsic surface.

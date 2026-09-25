@@ -66,6 +66,10 @@ function expressionNames(expression: Expr): readonly string[] {
         ...expressionNames(expression.callee),
         ...expression.arguments.flatMap((argument) => expressionNames(argument)),
       ];
+    case "member":
+      return expression.object.kind === "name"
+        ? [`${expression.object.name}.${expression.member}`]
+        : expressionNames(expression.object);
     default:
       return [];
   }
@@ -75,7 +79,10 @@ function expressionNames(expression: Expr): readonly string[] {
  * Analyze compile-time constants before their users while preserving source
  * order for runtime declarations and functions.
  */
-export function orderScalarDeclarations(graph: ModuleGraph): readonly ScalarDeclarationWork[] {
+export function orderScalarDeclarations(
+  graph: ModuleGraph,
+  functionDependencies: ReadonlyMap<string, readonly BindingId[]> = new Map(),
+): readonly ScalarDeclarationWork[] {
   const work: ScalarDeclarationWork[] = graph.modules.flatMap((module) =>
     module.units.flatMap((unit) =>
       unit.declarations.map((declaration) => ({ module: module.name, declaration })),
@@ -102,6 +109,13 @@ export function orderScalarDeclarations(graph: ModuleGraph): readonly ScalarDecl
       return binding === undefined ? [] : [[bindingIdentityKey(binding.id), item] as const];
     }),
   );
+  const functions = new Map(
+    graph.bindings.flatMap((binding) =>
+      binding.storage === "function" && binding.qualifiedName !== null
+        ? [[binding.qualifiedName, bindingIdentityKey(binding.id)] as const]
+        : [],
+    ),
+  );
   const ordered: ScalarDeclarationWork[] = [];
   const visited = new Set<ScalarDeclarationWork>();
   const active = new Set<ScalarDeclarationWork>();
@@ -115,8 +129,14 @@ export function orderScalarDeclarations(graph: ModuleGraph): readonly ScalarDecl
         const imported = imports.get(`${declaration.span.sourceId}\0${name}`);
         const dependency =
           (imported === undefined ? undefined : byBinding.get(imported)) ??
-          byQualifiedName.get(`${item.module}.${name}`);
+          byQualifiedName.get(name.includes(".") ? name : `${item.module}.${name}`);
         if (dependency !== undefined) visit(dependency);
+        const functionKey =
+          imported ?? functions.get(name.includes(".") ? name : `${item.module}.${name}`);
+        for (const constant of functionDependencies.get(functionKey ?? "") ?? []) {
+          const required = byBinding.get(bindingIdentityKey(constant));
+          if (required !== undefined) visit(required);
+        }
       }
     }
     active.delete(item);
@@ -124,7 +144,13 @@ export function orderScalarDeclarations(graph: ModuleGraph): readonly ScalarDecl
     ordered.push(item);
   };
 
-  for (const item of constants) visit(item);
+  for (const item of [...constants].sort((left, right) =>
+    Buffer.compare(
+      Buffer.from(`${left.module}.${left.declaration.name}`, "utf8"),
+      Buffer.from(`${right.module}.${right.declaration.name}`, "utf8"),
+    ),
+  ))
+    visit(item);
   return Object.freeze([
     ...ordered,
     ...work.filter(({ declaration }) => !isConstantDeclaration(declaration)),

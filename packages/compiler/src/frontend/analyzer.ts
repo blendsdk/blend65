@@ -11,6 +11,9 @@ import { analyzeReturnStatement } from "./analyzer-return.js";
 import { assembleModuleAnalysis } from "./analysis-result.js";
 import { uninitializedReadDiagnostic } from "./aggregate-initialization.js";
 import { recursionDiagnostics } from "./call-cycles.js";
+import { ComptimeBudget } from "./comptime-budget.js";
+import type { ComptimeBudgetLimits } from "./comptime-budget.js";
+import { ComptimeEvaluator } from "./comptime.js";
 import { orderScalarDeclarations } from "./effects.js";
 import {
   analyzeStructuredFor,
@@ -18,7 +21,6 @@ import {
   analyzeStructuredDoWhile,
   clearMutableFacts,
   conditionDiagnostic,
-  duplicateDeclarationDiagnostic,
   moduleValueScope,
   resolveScalarName,
   sourceText,
@@ -28,7 +30,9 @@ import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 import { analyzeStructuredSwitch } from "./switch-flow.js";
 import { analyzeScalarLocal, analyzeScalarModuleVariable } from "./analyzer-scalars.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
-import { resolvePlacement } from "./placement.js";
+import { checkedPlacement } from "./placement.js";
+import { addProfileBindings } from "./profile-bindings.js";
+import { prepareFunctionParameters } from "./function-parameters.js";
 import type { FunctionInfo } from "./module-bindings.js";
 import type { FrontendProfile } from "./profile.js";
 import { captureBranchFacts, mergeScalarFacts, snapshotScalarFacts } from "./flow-facts.js";
@@ -45,7 +49,6 @@ import type {
   CallEdge,
   ModuleAnalysisResult,
   ModuleGraph,
-  PlacementConstraints,
   ScalarExpressionContext as ExpressionContext,
   ScalarFactSnapshot,
   ScalarScope as Scope,
@@ -65,7 +68,6 @@ import type {
   Statement,
   TypeSyntax,
   VariableDeclaration,
-  PlacementClause,
 } from "./syntax.js";
 import type { EmbeddedValue } from "../assets/asset-types.js";
 
@@ -91,6 +93,7 @@ class ModuleAnalyzer {
   readonly importsBySource: Map<string, Map<string, ValueState>>;
   readonly aggregates: AggregateRegistry;
   readonly expressions: ScalarExpressionAnalyzer;
+  private readonly evaluator: ComptimeEvaluator;
   readonly profileSignatures = new Map<string, FunctionSignature>();
 
   constructor(
@@ -98,6 +101,7 @@ class ModuleAnalyzer {
     readonly graph: ModuleGraph,
     readonly profile: FrontendProfile | null,
     readonly embeddedValues: ReadonlyMap<string, EmbeddedValue>,
+    budgetLimits?: ComptimeBudgetLimits,
   ) {
     this.sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
     this.declarationByKey = collectDeclarationIndex(graph);
@@ -114,7 +118,12 @@ class ModuleAnalyzer {
     this.moduleScopes = prepared.moduleScopes;
     this.qualified = prepared.qualified;
     this.importsBySource = prepared.importsBySource;
-    this.addProfileBindings();
+    this.evaluator = new ComptimeEvaluator(
+      new ComptimeBudget(budgetLimits),
+      (binding) => this.stateByKey.get(bindingIdentityKey(binding))?.known ?? null,
+      (diagnostic) => this.diagnostics.push(diagnostic),
+    );
+    addProfileBindings(this.profile, this.graph, this);
     this.expressions = new ScalarExpressionAnalyzer(
       {
         profileId: this.profile?.id ?? null,
@@ -129,6 +138,7 @@ class ModuleAnalyzer {
           this.profileSignatures.has(bindingIdentityKey(binding)),
         functionMode: (binding) =>
           this.functionByKey.get(bindingIdentityKey(binding))?.declaration.mode ?? null,
+        comptimeCall: (expression) => this.evaluator.evaluateRoot(expression, expression.type),
         diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
         defer: (span, message) => this.addObligation(span, message),
         call: (edge) => this.calls.push(edge),
@@ -146,81 +156,17 @@ class ModuleAnalyzer {
     );
   }
 
-  /** Add the selected profile as typed source declarations, without target-machine facts. */
-  private addProfileBindings(): void {
-    if (this.profile === null) return;
-    const profileModules = new Set(
-      this.profile.capabilities.map(({ name }) => name.slice(0, name.lastIndexOf("."))),
-    );
-    this.profile.capabilities.forEach((capability, index) => {
-      const name = capability.name.slice(capability.name.lastIndexOf(".") + 1);
-      const span = Object.freeze({
-        sourceId: `profile:${this.profile!.id}`,
-        start: index,
-        end: index + 1,
-      });
-      const binding: SemanticBinding = Object.freeze({
-        id: Object.freeze({ sourceId: span.sourceId, span }),
-        name,
-        qualifiedName: capability.name,
-        declaration: span,
-        exported: true,
-        storage: "function",
-        type: capability.returnType,
-        operationEffect: capability.effect,
-      });
-      const state = {
-        binding,
-        nameSpan: span,
-        readonly: false,
-        known: null,
-        initialized: true,
-        initializedRanges: Object.freeze([]),
-        initializedPaths: Object.freeze([]),
-      };
-      const key = bindingIdentityKey(binding.id);
-      this.bindings.push(binding);
-      this.bindingByKey.set(key, binding);
-      this.stateByKey.set(key, state);
-      this.qualified.set(capability.name, state);
-      this.profileSignatures.set(
-        key,
-        Object.freeze({
-          parameters: Object.freeze(
-            capability.parameters.map((type) => Object.freeze({ type, readonly: false })),
-          ),
-          returnType: capability.returnType,
-        }),
-      );
-    });
-    for (const module of this.graph.modules) {
-      for (const unit of module.units) {
-        for (const imported of unit.imports) {
-          if (!profileModules.has(imported.module)) continue;
-          const aliases = this.importsBySource.get(unit.span.sourceId) ?? new Map();
-          for (const item of imported.items) {
-            const capability = this.qualified.get(`${imported.module}.${item.name}`);
-            if (capability === undefined) {
-              this.diagnostics.push(
-                errorDiagnostic(
-                  "E10012",
-                  `'${item.name}' is not exported from module '${imported.module}'`,
-                  item.nameSpan,
-                ),
-              );
-              continue;
-            }
-            aliases.set(item.alias ?? item.name, capability);
-          }
-          this.importsBySource.set(unit.span.sourceId, aliases);
-        }
-      }
-    }
-  }
-
   /** Analyze every reachable declaration and assemble a frozen phase result. */
   analyze(): ModuleAnalysisResult {
-    for (const { module, declaration } of orderScalarDeclarations(this.graph)) {
+    const work = orderScalarDeclarations(this.graph);
+    for (const { module, declaration } of work) {
+      if (declaration.kind === "function" && declaration.mode === "comptime") {
+        this.analyzeDeclaration(module, declaration);
+      }
+    }
+    const dependencies = this.evaluator.constantDependencies(this.bindingByKey);
+    for (const { module, declaration } of orderScalarDeclarations(this.graph, dependencies)) {
+      if (declaration.kind === "function" && declaration.mode === "comptime") continue;
       this.analyzeDeclaration(module, declaration);
     }
     this.diagnostics.push(...recursionDiagnostics(this.calls, this.bindings));
@@ -247,10 +193,6 @@ class ModuleAnalyzer {
     }
     if (declaration.kind === "zeropage") {
       for (const variable of declaration.variables) this.analyzeDeclaration(module, variable);
-      return;
-    }
-    if (declaration.kind === "function" && declaration.mode === "comptime") {
-      this.addObligation(declaration.span, "Function entry semantics remain pending");
       return;
     }
     const sourceBinding = this.graph.bindings.find(
@@ -311,19 +253,22 @@ class ModuleAnalyzer {
       this.moduleScopes.get(module),
       this.importsBySource.get(declaration.span.sourceId),
     );
-    const placement = this.checkedPlacement(declaration.placement, {
-      scope,
-      module,
-      sourceId: declaration.span.sourceId,
-      caller: null,
-      constantContext: true,
-    });
+    const placement = checkedPlacement(
+      declaration.placement,
+      { scope, module, sourceId: declaration.span.sourceId, caller: null, constantContext: true },
+      this.expressions,
+      this.diagnostics,
+    );
     const analyzed = analyzeScalarModuleVariable(declaration, module, state, scope, {
       expressions: this.expressions,
       diagnostics: this.diagnostics,
       resolveType: (item, owner) => this.resolveType(item.type, owner, item.initializer),
       errorCount: () => this.errorCount(),
       obligationCount: () => this.obligations.length,
+      evaluateConstant: (initializer, type) => {
+        const value = this.evaluator.evaluateRoot(initializer, type);
+        return value === null ? null : Object.freeze({ ...initializer, constant: value });
+      },
     });
     this.declarations.push(
       declaration.placement !== null && placement === null
@@ -364,52 +309,19 @@ class ModuleAnalyzer {
       ),
       values: new Map(),
     };
-    const placement = this.checkedPlacement(declaration.placement, {
-      scope,
-      module,
-      sourceId: declaration.span.sourceId,
-      caller: null,
-      constantContext: true,
+    const placement = checkedPlacement(
+      declaration.placement,
+      { scope, module, sourceId: declaration.span.sourceId, caller: null, constantContext: true },
+      this.expressions,
+      this.diagnostics,
+    );
+    const parameterBindings = prepareFunctionParameters(declaration, signature, scope, {
+      sources: this.sources,
+      diagnostics: this.diagnostics,
+      stateByKey: this.stateByKey,
+      createBinding: (name, span, storage, type, loadable, outerUnsized) =>
+        this.createBodyBinding(name, span, storage, type, loadable, outerUnsized),
     });
-    for (const [index, parameter] of declaration.parameters.entries()) {
-      const shape = signature.parameters[index];
-      if (shape === undefined) continue;
-      const type = shape.type;
-      const duplicate = scope.values.get(parameter.name);
-      if (duplicate !== undefined) {
-        this.diagnostics.push(
-          duplicateDeclarationDiagnostic(
-            parameter.name,
-            parameter.nameSpan,
-            duplicate,
-            this.sources.get(duplicate.nameSpan.sourceId),
-          ),
-        );
-        continue;
-      }
-      const binding = this.createBodyBinding(
-        parameter.name,
-        parameter.span,
-        "parameter",
-        type,
-        false,
-        shape.outerUnsized,
-      );
-      const valueState: ValueState = {
-        binding,
-        nameSpan: freezeSourceSpan(parameter.nameSpan),
-        readonly: parameter.readonly,
-        known: null,
-        initialized: true,
-        initializedRanges:
-          type.kind === "array"
-            ? Object.freeze([{ start: 0, end: type.length }])
-            : Object.freeze([]),
-        initializedPaths: Object.freeze([]),
-      };
-      scope.values.set(parameter.name, valueState);
-      this.stateByKey.set(bindingIdentityKey(binding.id), valueState);
-    }
     clearMutableFacts(scope);
     const body =
       returnType === null
@@ -440,16 +352,24 @@ class ModuleAnalyzer {
       this.retainUnusable("poison", state.binding.id, declaration.span);
       return;
     }
-    this.declarations.push(
-      Object.freeze({
-        kind: "typed",
+    if (declaration.mode === "comptime") {
+      this.evaluator.registerFunction({
         binding: state.binding.id,
-        type: returnType,
-        initializer: null,
+        parameters: Object.freeze(parameterBindings),
         body,
-        placement,
-      }),
-    );
+      });
+    } else {
+      this.declarations.push(
+        Object.freeze({
+          kind: "typed",
+          binding: state.binding.id,
+          type: returnType,
+          initializer: null,
+          body,
+          placement,
+        }),
+      );
+    }
   }
 
   /** Analyze a block, optionally sharing its scope with function parameters. */
@@ -735,21 +655,6 @@ class ModuleAnalyzer {
   ): SemanticType | null {
     return this.aggregates.resolveType(type, module, initializer, true, scope);
   }
-  /** Validate one source constraint while leaving physical assignment to layout. */
-  private checkedPlacement(
-    clause: PlacementClause | null,
-    context: ExpressionContext,
-  ): PlacementConstraints | null {
-    return clause === null
-      ? null
-      : resolvePlacement(
-          clause,
-          context,
-          (expression, active) =>
-            this.expressions.analyze(expression, null, active).node?.constant ?? null,
-          (diagnostic) => this.diagnostics.push(diagnostic),
-        );
-  }
   /** Append a condition diagnostic only when the expression is not Boolean. */
   private addConditionDiagnostic(expression: TypedExpr, span: SourceSpan): void {
     const diagnostic = conditionDiagnostic(expression, span);
@@ -785,6 +690,7 @@ export function analyzeModules(
   graph: ModuleGraph,
   profile: FrontendProfile | null = null,
   embeddedValues: ReadonlyMap<string, EmbeddedValue> = new Map(),
+  budgetLimits?: ComptimeBudgetLimits,
 ): ModuleAnalysisResult {
-  return new ModuleAnalyzer(snapshot, graph, profile, embeddedValues).analyze();
+  return new ModuleAnalyzer(snapshot, graph, profile, embeddedValues, budgetLimits).analyze();
 }

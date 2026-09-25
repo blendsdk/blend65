@@ -259,14 +259,13 @@ language semantics.
   peak live logical Blend65 value storage, and 512 active calls with the root at depth 1. Charge and
   release exactly as AR-019 defines; fail before the N+1 operation or mutation; and keep abstract
   accounting invariant under host representation, caching, Linux, and Windows. (AR-019)
-- [ ] **R4.34 — Complete memory, size, and profile queries.** Implement variable/expression-address
+- [ ] **R4.34 — Complete memory and size queries.** Implement variable/expression-address
   `PEEK`/`POKE` byte and word access, little-endian order, modulo-65536 continuation, exactly-once
   effects, volatility, `lo`, `hi`, stable-word `sizeof`, `offsetof`, and `length`, including runtime
-  word count for `T[]` parameters and errors for unsized standalone size. Resolve Specification 4's
-  immutable selected-profile facts at compile time so ordinary PAL/NTSC or other fact branches emit
-  only the selected arm even in `optimization: none`. Do not restrict addresses to literals, add
-  hidden MMIO caching, or introduce a preprocessor/conditional declaration system. (AR-002,
-  AR-015 through AR-017, AR-030)
+  word count for `T[]` parameters and errors for unsized standalone size. Do not restrict addresses
+  to literals or add hidden MMIO caching. Source-visible selected-profile facts and branch removal
+  belong to RD-05 R5.3, which owns the PAL/NTSC variants; no preprocessor or conditional
+  declaration system is introduced here. (AR-002, AR-015 through AR-017, AR-030)
 - [ ] **R4.35 — Complete the approved CPU-control and packed-BCD surface.** Implement exactly
   `asm_sei`, `asm_cli`, `asm_php`, `asm_plp`, and `asm_nop` with their flag, stack, ordering,
   profile-legality, and SFA/stack effects. Implement `bcd_add`/`bcd_sub` with owned carry/no-borrow,
@@ -727,10 +726,10 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
 27. [ ] **AC-27 — Placement and loadable semantics:** Every legal placement owner/constraint and
     conflict is proven; loadable values reject every invalid ordinary use and the resident profile
     reports transfer unavailability without a stub or emitted loader.
-28. [ ] **AC-28 — Intrinsics and profile facts:** Full-pipeline cases prove dynamic byte/word
-    memory access, query widths, encoding maps, compile-time selected-profile branches with zero
-    unselected runtime code, BCD, each of the five approved CPU controls, exact effects/costs, and
-    rejection of every removed opcode-shaped form and preprocessor substitute.
+28. [ ] **AC-28 — Intrinsics:** Full-pipeline cases prove dynamic byte/word memory access, query
+    widths, encoding maps, BCD, each of the five approved CPU controls, exact effects/costs, and
+    rejection of every removed opcode-shaped form and preprocessor substitute. RD-05 AC-03 owns
+    source-visible selected-profile facts and zero-cost branch removal across profile variants.
 29. [ ] **AC-29 — Embed core:** Raw M1 cases prove containment, identity, type/size validation,
     deduplication, provenance, failure suppression, symbolic placement, and no runtime parsing/copy.
     Registered native extensions cannot silently fall back to raw bytes; their parsers remain RD-06.

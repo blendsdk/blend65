@@ -2,6 +2,25 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic } from "../project/types.js";
 import type { PlacementConstraints, ScalarExpressionContext } from "./semantic-types.js";
 import type { Expr, PlacementClause } from "./syntax.js";
+import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
+
+/** Check an optional source placement using the already shared expression analyzer. */
+export function checkedPlacement(
+  clause: PlacementClause | null,
+  context: ScalarExpressionContext,
+  expressions: ScalarExpressionAnalyzer,
+  diagnostics: ProjectDiagnostic[],
+): PlacementConstraints | null {
+  return clause === null
+    ? null
+    : resolvePlacement(
+        clause,
+        context,
+        (expression, active) =>
+          expressions.analyze(expression, null, active).node?.constant ?? null,
+        (diagnostic) => diagnostics.push(diagnostic),
+      );
+}
 
 /** Resolve a closed source placement modifier without assigning a machine address. */
 export function resolvePlacement(

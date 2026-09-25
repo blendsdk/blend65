@@ -90,6 +90,11 @@ The evaluator owns:
 
 Production limits are constants, not configuration. Tests use an internal reduced-limit entry to
 prove N/N+1 behavior without executing millions of fixture operations.
+The entry is the existing internal `analyzeModules` call with an optional fifth
+`budgetLimits: { maxSteps: number; maxLiveBytes: number; maxActiveCalls: number }` argument. Its
+typed declarations and diagnostics expose results to specification tests. The public package API
+does not export this entry, and production service calls omit the argument, retaining the fixed
+frozen limits. No source, manifest, environment or CLI override is added.
 
 ### SFA Closure
 

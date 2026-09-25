@@ -94,6 +94,21 @@ afterEach(async () => {
 });
 
 describe("raw embedded assets", () => {
+  // The containing source directory wins before separately configured asset search roots.
+  it("uses the source directory before an asset path for the same relative name", async () => {
+    const root = await freshRoot();
+    const assetRoot = join(root, "assets");
+    const nearby = spriteBytes(7);
+    await put(join(root, "src/sprites.bin"), nearby);
+    await put(join(assetRoot, "sprites.bin"), spriteBytes(19));
+
+    const result = await resolveRawAsset(snapshot(root, [assetRoot]), "sprites.bin");
+    expect(result.kind).toBe("complete");
+    if (result.kind !== "complete") throw new Error("Expected the nearby source asset");
+    expect(result.asset.sourcePath).toBe("src/sprites.bin");
+    expect(result.asset.bytes).toEqual([...nearby]);
+  });
+
   // Asset roots are ordered, and a successful lookup exposes only immutable semantic bytes.
   it("selects the first canonical root and returns a stable typed value", async () => {
     const root = await freshRoot();

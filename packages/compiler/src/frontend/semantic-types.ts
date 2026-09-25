@@ -706,6 +706,8 @@ export interface ScalarExpressionHost {
   isFunction(binding: BindingId): boolean;
   /** Return the source entry kind for a declared function, when one exists. */
   functionMode?(binding: BindingId): "ordinary" | "comptime" | "interrupt" | null;
+  /** Evaluate a fully typed direct compile-time call outside a compile-time body. */
+  comptimeCall?(expression: TypedExpr): bigint | boolean | null;
   /** Append a proving diagnostic. */
   diagnose(diagnostic: ProjectDiagnostic): void;
   /** Retain a valid expression belonging to a later slice. */
