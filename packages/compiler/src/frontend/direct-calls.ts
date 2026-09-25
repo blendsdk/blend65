@@ -225,15 +225,18 @@ export function analyzeDirectCall(
     calleeDisplay: host.sourceText(expression.callee.span),
     arguments: Object.freeze(arguments_),
     signature,
+    ...(signature.returnType.kind === "array"
+      ? { initialized: Object.freeze([{ start: 0, end: signature.returnType.length }]) }
+      : {}),
     evaluation: "left-to-right",
     integer: integerFacts(signature.returnType, true),
   });
-  const constant =
+  const evaluated =
     calleeMode === "comptime" && !context.constantContext && callerMode !== "comptime"
       ? (host.comptimeCall?.(typed) ?? null)
       : null;
   return {
-    node: constant === null ? typed : Object.freeze({ ...typed, constant }),
-    exact: constant,
+    node: evaluated ?? typed,
+    exact: evaluated?.constant ?? null,
   };
 }

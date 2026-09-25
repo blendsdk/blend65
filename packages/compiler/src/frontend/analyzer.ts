@@ -14,6 +14,7 @@ import { recursionDiagnostics } from "./call-cycles.js";
 import { ComptimeBudget } from "./comptime-budget.js";
 import type { ComptimeBudgetLimits } from "./comptime-budget.js";
 import { ComptimeEvaluator } from "./comptime.js";
+import { initializerBytes } from "./constant-bytes.js";
 import { orderScalarDeclarations } from "./effects.js";
 import {
   analyzeStructuredFor,
@@ -122,6 +123,17 @@ class ModuleAnalyzer {
       new ComptimeBudget(budgetLimits),
       (binding) => this.stateByKey.get(bindingIdentityKey(binding))?.known ?? null,
       (diagnostic) => this.diagnostics.push(diagnostic),
+      (binding) => {
+        const declaration = this.declarations.find(
+          (candidate) =>
+            candidate.kind === "typed" &&
+            bindingIdentityKey(candidate.binding) === bindingIdentityKey(binding),
+        );
+        return declaration?.kind === "typed" && declaration.initializer !== null
+          ? (declaration.initializer.embedded?.bytes ??
+              initializerBytes(declaration.initializer, declaration.type))
+          : null;
+      },
     );
     addProfileBindings(this.profile, this.graph, this);
     this.expressions = new ScalarExpressionAnalyzer(
@@ -138,7 +150,7 @@ class ModuleAnalyzer {
           this.profileSignatures.has(bindingIdentityKey(binding)),
         functionMode: (binding) =>
           this.functionByKey.get(bindingIdentityKey(binding))?.declaration.mode ?? null,
-        comptimeCall: (expression) => this.evaluator.evaluateRoot(expression, expression.type),
+        comptimeCall: (expression) => this.evaluateComptimeExpression(expression, expression.type),
         diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
         defer: (span, message) => this.addObligation(span, message),
         call: (edge) => this.calls.push(edge),
@@ -243,6 +255,33 @@ class ModuleAnalyzer {
     else if (declaration.kind === "function") this.analyzeFunction(module, declaration, state);
   }
 
+  /** Replace a successful compile-time expression with its complete retained value. */
+  private evaluateComptimeExpression(initializer: TypedExpr, type: SemanticType): TypedExpr | null {
+    if (type.kind === "array" || type.kind === "struct") {
+      const callee = initializer.callee?.binding;
+      if (
+        initializer.kind !== "call" ||
+        callee === null ||
+        callee === undefined ||
+        this.functionByKey.get(bindingIdentityKey(callee))?.declaration.mode !== "comptime"
+      ) {
+        return initializer;
+      }
+    }
+    const value = this.evaluator.evaluateRoot(initializer, type);
+    if (value === null) return null;
+    if (typeof value === "object") {
+      return Object.freeze({
+        ...initializer,
+        encodedBytes: Object.freeze([...value]),
+        ...(type.kind === "array"
+          ? { initialized: Object.freeze([{ start: 0, end: type.length }]) }
+          : {}),
+      });
+    }
+    return Object.freeze({ ...initializer, constant: value });
+  }
+
   /** Check a module variable or constant initializer. */
   private analyzeModuleVariable(
     module: string,
@@ -266,8 +305,7 @@ class ModuleAnalyzer {
       errorCount: () => this.errorCount(),
       obligationCount: () => this.obligations.length,
       evaluateConstant: (initializer, type) => {
-        const value = this.evaluator.evaluateRoot(initializer, type);
-        return value === null ? null : Object.freeze({ ...initializer, constant: value });
+        return this.evaluateComptimeExpression(initializer, type);
       },
     });
     this.declarations.push(

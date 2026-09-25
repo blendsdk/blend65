@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-25
-> **Progress**: 71/99 tasks (72%)
+> **Progress**: 72/99 tasks (73%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -363,7 +363,7 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 ### Step 7.2: Implementation
 
 - [x] 7.2.1 Add the deterministic typed compile-time evaluator and exact production meters — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/comptime-budget.ts`, `packages/compiler/src/frontend/analyzer.ts`, with focused existing frontend support — Typed scalar calls, local mutation, selected flow, source-dependent constant ordering, no target function body, and fixed production/reduced internal step/live-byte/depth limits are implemented. Folded scalar built-ins retain ordered argument accounting; alias reads do not invent storage. Verified nine evaluator spec cases and 45 aggregate regressions, build, typecheck, formatting and frozen-spec checks. Full compiler suite: 1,198 passed; 23 RED failures belong to later Phase 7 trigonometry, CPU/BCD and embed tasks. ✅ (completed: 2026-09-25 17:06)
-- [ ] 7.2.2 Implement exact integer trigonometry, aggregate returns and all-or-nothing evaluator results — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/constants.ts`, `packages/compiler/src/semantic/lower.ts`
+- [x] 7.2.2 Implement exact integer trigonometry, aggregate returns and all-or-nothing evaluator results — `packages/compiler/src/frontend/comptime.ts`, `packages/compiler/src/frontend/constants.ts`, `packages/compiler/src/semantic/lower.ts` — Deterministic integer sine/cosine passes both canonical stream hashes. Fixed struct/array results, prior constant reads, nested aggregate writes, and failed-root discard have directed frontend and build evidence. The evaluator is split into focused modules; build, typecheck, 76 directed compiler cases, and both compile-time build cases pass. Full compiler suite has 1,214 passes and only the same 9 expected later-task CPU/BCD/embed failures. ✅ (completed: 2026-09-25 20:09)
 - [ ] 7.2.3 Complete dynamic memory access and size/count queries — `packages/compiler/src/frontend/expressions.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/machine/lower-memory.ts`
 - [ ] 7.2.4 Complete five CPU controls, status-stack proof and packed BCD semantics/lowering — `packages/compiler/src/frontend/flow.ts`, `packages/compiler/src/semantic/operations.ts`, `packages/compiler/src/machine/lower-arithmetic.ts`
 - [ ] 7.2.5 Complete contained raw `embed()` dispatch, identity and registered-format refusal — `packages/compiler/src/assets/raw-asset.ts`, `packages/compiler/src/frontend/analyzer.ts`, `packages/compiler/src/layout/c64-layout.ts`

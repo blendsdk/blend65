@@ -40,6 +40,10 @@ export const RESERVED_BUILTIN_NAMES: ReadonlySet<string> = new Set([
   "screen_codes",
   "atascii",
   "internal_codes",
+  "sin8",
+  "cos8",
+  "sin16",
+  "cos16",
 ]);
 
 /** Freeze the semantic fields shared by every scalar typed-expression node. */

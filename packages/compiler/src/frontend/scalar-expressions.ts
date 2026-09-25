@@ -32,6 +32,7 @@ import { analyzeDirectCall, resolveDirectCallTarget } from "./direct-calls.js";
 import { applyExpectedEnum } from "./enum-types.js";
 import { analyzeScalarAssignment } from "./scalar-assignments.js";
 import { semanticTypeSize } from "./semantic-type-relations.js";
+import { analyzeTrigonometryCall, isTrigonometryIntrinsic } from "./trigonometry.js";
 import { analyzeEnumCastCall, analyzeEnumMember, analyzeScalarCast } from "./scalar-conversions.js";
 import {
   captureBranchFacts,
@@ -151,6 +152,15 @@ export class ScalarExpressionAnalyzer {
           (child, childType, childContext) => this.analyze(child, childType, childContext),
         );
       case "call":
+        {
+          const trigonometry = analyzeTrigonometryCall(
+            expression,
+            context,
+            this.host,
+            (child, childType, childContext) => this.analyze(child, childType, childContext),
+          );
+          if (trigonometry !== null) return trigonometry;
+        }
         if (
           expression.callee.kind === "name" &&
           expression.callee.name === "c64.loader.load" &&
@@ -327,6 +337,16 @@ export class ScalarExpressionAnalyzer {
     context: ScalarExpressionContext,
   ): ScalarExpressionResult {
     if (expression.operator === "&") {
+      if (expression.operand.kind === "name" && isTrigonometryIntrinsic(expression.operand.name)) {
+        this.host.diagnose(
+          error(
+            "E10043",
+            "Compile-time trigonometry has no target address",
+            expression.operand.span,
+          ),
+        );
+        return { node: null, exact: null };
+      }
       const functionName =
         expression.operand.kind === "name"
           ? this.host.resolveName(expression.operand.name, context)?.binding.storage === "function"

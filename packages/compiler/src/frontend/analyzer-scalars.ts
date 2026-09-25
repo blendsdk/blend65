@@ -84,7 +84,6 @@ export function analyzeScalarModuleVariable(
     if (
       declaration.declarationKind === "const" &&
       initializer !== null &&
-      (type.kind === "scalar" || type.kind === "enum") &&
       host.evaluateConstant !== undefined
     ) {
       initializer = host.evaluateConstant(initializer, type);

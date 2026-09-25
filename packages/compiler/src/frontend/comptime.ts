@@ -16,6 +16,10 @@ import type {
 } from "./semantic-types.js";
 import type { TypeSyntax } from "./syntax.js";
 import { ComptimeBudget, ComptimeBudgetFailure } from "./comptime-budget.js";
+import { ComptimeAggregates, isAggregateValue } from "./comptime-aggregates.js";
+import type { AggregateValue, ComptimeFrame, ScalarValue } from "./comptime-aggregates.js";
+import { collectConstantDependencies, isExpressionList } from "./comptime-dependencies.js";
+import { evaluateIntegerTrigonometry, isTrigonometryIntrinsic } from "./trigonometry.js";
 
 /** A checked direct function body with its parameter bindings in source order. */
 export interface ComptimeFunction {
@@ -27,122 +31,20 @@ export interface ComptimeFunction {
   readonly body: TypedBlock;
 }
 
-/** One scalar value and the temporary bytes holding its evaluation result. */
-interface ScalarValue {
-  readonly value: bigint | boolean;
-  readonly bytes: number;
-}
+/** A selected value remains live until its enclosing expression releases it. */
+type EvaluatedValue = ScalarValue | AggregateValue;
 
 /** An exit from a selected statement or block. */
 type ExecutionExit =
   | { readonly kind: "normal" | "break" | "continue" }
-  | { readonly kind: "return"; readonly result: ScalarValue | null };
+  | { readonly kind: "return"; readonly result: EvaluatedValue | null };
+
+type Frame = ComptimeFrame;
 
 /** A source error discards the entire outermost compile-time result. */
 class ComptimeSemanticFailure extends Error {
   constructor(readonly diagnostic: ProjectDiagnostic) {
     super(diagnostic.message);
-  }
-}
-
-/** Mutable values are private to one compile-time invocation. */
-interface Frame {
-  readonly values: Map<string, bigint | boolean>;
-  allocatedBytes: number;
-}
-
-/** Narrow a for initializer without asserting away its readonly expression-list type. */
-function isExpressionList(
-  initializer: TypedVariableStatement | readonly TypedExpr[],
-): initializer is readonly TypedExpr[] {
-  return Array.isArray(initializer);
-}
-
-/** Visit source dependencies without charging execution of either branch. */
-function visitExpressionBindings(expression: TypedExpr, visit: (binding: BindingId) => void): void {
-  if (expression.binding !== null) visit(expression.binding);
-  const children: (TypedExpr | undefined)[] = [
-    expression.left,
-    expression.right,
-    expression.condition,
-    expression.whenTrue,
-    expression.whenFalse,
-    expression.target,
-    expression.callee,
-    expression.object,
-    expression.index,
-  ];
-  if (expression.operand !== undefined && isTypedOperand(expression.operand)) {
-    children.push(expression.operand);
-  }
-  if (typeof expression.value === "object" && expression.value !== null) {
-    children.push(expression.value);
-  }
-  if (expression.fill !== undefined && expression.fill !== null) children.push(expression.fill);
-  children.push(...(expression.arguments ?? []));
-  children.push(...(expression.elements ?? []));
-  children.push(...(expression.fields ?? []).map(({ value }) => value));
-  for (const child of children) {
-    if (child !== undefined) visitExpressionBindings(child, visit);
-  }
-}
-
-/** Visit the names in a typed body so declaration ordering can put constants first. */
-function visitBlockBindings(block: TypedBlock, visit: (binding: BindingId) => void): void {
-  for (const statement of block.statements) {
-    switch (statement.kind) {
-      case "variable":
-        if (statement.initializer !== null) visitExpressionBindings(statement.initializer, visit);
-        break;
-      case "expression-statement":
-        visitExpressionBindings(statement.expression, visit);
-        break;
-      case "return":
-        if (statement.value !== null && statement.value !== undefined) {
-          visitExpressionBindings(statement.value, visit);
-        }
-        break;
-      case "block":
-        visitBlockBindings(statement, visit);
-        break;
-      case "if": {
-        let branch: TypedIfStatement | null = statement;
-        while (branch !== null) {
-          visitExpressionBindings(branch.condition, visit);
-          visitBlockBindings(branch.then, visit);
-          if (branch.otherwise?.kind === "block") {
-            visitBlockBindings(branch.otherwise, visit);
-          }
-          branch = branch.otherwise?.kind === "if" ? branch.otherwise : null;
-        }
-        break;
-      }
-      case "while":
-      case "do-while":
-        visitExpressionBindings(statement.condition, visit);
-        visitBlockBindings(statement.body, visit);
-        break;
-      case "for":
-        if (statement.initializer !== null) {
-          if (isExpressionList(statement.initializer)) {
-            for (const expression of statement.initializer)
-              visitExpressionBindings(expression, visit);
-          } else if (statement.initializer.initializer !== null) {
-            visitExpressionBindings(statement.initializer.initializer, visit);
-          }
-        }
-        if (statement.condition !== null) visitExpressionBindings(statement.condition, visit);
-        for (const update of statement.update ?? []) visitExpressionBindings(update, visit);
-        visitBlockBindings(statement.body, visit);
-        break;
-      case "switch":
-        visitExpressionBindings(statement.value, visit);
-        for (const clause of statement.clauses) visitBlockBindings(clause.body, visit);
-        break;
-      case "break":
-      case "continue":
-        break;
-    }
   }
 }
 
@@ -158,12 +60,25 @@ function isTypedOperand(operand: TypedExpr | TypeSyntax): operand is TypedExpr {
 export class ComptimeEvaluator {
   private readonly functions = new Map<string, ComptimeFunction>();
   private readonly active = new Set<string>();
+  private readonly aggregates: ComptimeAggregates;
 
   constructor(
     readonly budget: ComptimeBudget,
     readonly constantValue: (binding: BindingId) => bigint | boolean | null,
     readonly diagnose: (diagnostic: ProjectDiagnostic) => void,
-  ) {}
+    readonly constantAggregate: (binding: BindingId) => readonly number[] | null = () => null,
+  ) {
+    this.aggregates = new ComptimeAggregates(
+      budget,
+      constantAggregate,
+      (expression, frame, root) => this.evaluate(expression, frame, root),
+      (expression, frame, root) => this.call(expression, frame, root),
+      (span, message) => {
+        throw this.invalid(span, message);
+      },
+      (value, type) => this.convert(value, type),
+    );
+  }
 
   /** Register a typed function body before any constant root is evaluated. */
   registerFunction(entry: ComptimeFunction): void {
@@ -174,44 +89,27 @@ export class ComptimeEvaluator {
   constantDependencies(
     bindings: ReadonlyMap<string, SemanticBinding>,
   ): ReadonlyMap<string, readonly BindingId[]> {
-    const result = new Map<string, readonly BindingId[]>();
-    for (const key of this.functions.keys()) {
-      const constants = new Map<string, BindingId>();
-      const seen = new Set<string>();
-      const visitFunction = (functionKey: string): void => {
-        if (seen.has(functionKey)) return;
-        seen.add(functionKey);
-        const entry = this.functions.get(functionKey);
-        if (entry === undefined) return;
-        visitBlockBindings(entry.body, (binding) => {
-          const bindingKey = bindingIdentityKey(binding);
-          if (bindings.get(bindingKey)?.storage === "constant") constants.set(bindingKey, binding);
-          if (this.functions.has(bindingKey)) visitFunction(bindingKey);
-        });
-      };
-      visitFunction(key);
-      result.set(
-        key,
-        Object.freeze(
-          [...constants]
-            .sort(([left], [right]) => Buffer.compare(Buffer.from(left), Buffer.from(right)))
-            .map(([, id]) => id),
-        ),
-      );
-    }
-    return result;
+    return collectConstantDependencies(this.functions, bindings);
   }
 
-  /** Evaluate one outermost scalar constant, retaining only its final value bytes. */
-  evaluateRoot(expression: TypedExpr, type: SemanticType): bigint | boolean | null {
+  /** Evaluate one outermost constant, retaining only its final logical value bytes. */
+  evaluateRoot(
+    expression: TypedExpr,
+    type: SemanticType,
+  ): bigint | boolean | readonly number[] | null {
     const checkpoint = this.budget.liveCheckpoint();
     const root = expression.span;
-    const frame: Frame = { values: new Map(), allocatedBytes: 0 };
+    const frame: Frame = { values: new Map(), aggregates: new Map(), allocatedBytes: 0 };
     try {
-      const result = this.evaluate(expression, frame, root);
+      const result = this.isAggregate(type)
+        ? this.evaluateAggregate(expression, frame, root)
+        : this.evaluate(expression, frame, root);
       this.budget.allocate(semanticTypeSize(type), root, root);
+      if (this.isAggregate(type)) this.chargeAggregateBytes(semanticTypeSize(type), root, root);
       this.budget.release(result.bytes);
-      return this.convert(result.value, type);
+      return isAggregateValue(result)
+        ? Object.freeze([...result.value])
+        : this.convert(result.value, type);
     } catch (failure) {
       this.budget.abandonRoot(checkpoint);
       if (failure instanceof ComptimeBudgetFailure || failure instanceof ComptimeSemanticFailure) {
@@ -222,9 +120,41 @@ export class ComptimeEvaluator {
     }
   }
 
+  /** Fixed aggregates use the same checked value representation throughout evaluation. */
+  private isAggregate(type: SemanticType): boolean {
+    return this.aggregates.isAggregate(type);
+  }
+
+  /** Charge logical byte work regardless of host copy strategy. */
+  private chargeAggregateBytes(count: number, span: SourceSpan, root: SourceSpan): void {
+    this.aggregates.chargeBytes(count, span, root);
+  }
+
+  /** Retain a complete aggregate temporary across the enclosing expression. */
+  private temporaryAggregate(
+    value: readonly number[],
+    type: SemanticType,
+    span: SourceSpan,
+    root: SourceSpan,
+  ): AggregateValue {
+    return this.aggregates.temporary(value, type, span, root);
+  }
+
+  /** Evaluate a checked fixed aggregate without generating target work. */
+  private evaluateAggregate(expression: TypedExpr, frame: Frame, root: SourceSpan): AggregateValue {
+    return this.aggregates.evaluate(expression, frame, root);
+  }
+
   /** Charge one expression before reading children or mutating evaluator-local state. */
   private evaluate(expression: TypedExpr, frame: Frame, root: SourceSpan): ScalarValue {
     this.budget.step(expression.span, root);
+    if (
+      (expression.kind === "member" || expression.kind === "index") &&
+      expression.object !== undefined &&
+      this.isAggregate(expression.object.type)
+    ) {
+      return this.aggregates.readScalar(expression, frame, root);
+    }
     switch (expression.kind) {
       case "number":
       case "boolean":
@@ -304,6 +234,14 @@ export class ComptimeEvaluator {
         return this.assignment(expression, frame, root);
       case "call":
         if (
+          expression.callee?.name !== undefined &&
+          isTrigonometryIntrinsic(expression.callee.name)
+        ) {
+          const result = this.call(expression, frame, root);
+          if (!isAggregateValue(result)) return result;
+          break;
+        }
+        if (
           (expression.callee === undefined || expression.callee.binding === null) &&
           expression.constant !== null
         ) {
@@ -322,7 +260,11 @@ export class ComptimeEvaluator {
           this.budget.release(argumentBytes);
           return result;
         }
-        return this.call(expression, frame, root);
+        {
+          const result = this.call(expression, frame, root);
+          if (!isAggregateValue(result)) return result;
+          break;
+        }
       default:
         break;
     }
@@ -376,15 +318,20 @@ export class ComptimeEvaluator {
     const target = expression.target;
     const valueNode = expression.value;
     if (
-      target?.binding === null ||
-      target?.binding === undefined ||
+      target === undefined ||
       typeof valueNode !== "object" ||
       valueNode === null ||
       !("kind" in valueNode)
     ) {
       throw this.invalid(expression.span, "Compile-time assignment needs a local scalar place");
     }
+    if (target.kind === "index" || target.kind === "member") {
+      return this.aggregates.assignScalar(expression, valueNode, frame, root);
+    }
     this.budget.step(target.span, root);
+    if (target.binding === null) {
+      throw this.invalid(target.span, "Compile-time assignment needs a local scalar place");
+    }
     const key = bindingIdentityKey(target.binding);
     const current = frame.values.get(key);
     if (current === undefined) {
@@ -412,8 +359,32 @@ export class ComptimeEvaluator {
   }
 
   /** Resolve only a registered direct compile-time function, never a runtime target. */
-  private call(expression: TypedExpr, caller: Frame, root: SourceSpan): ScalarValue {
+  private call(expression: TypedExpr, caller: Frame, root: SourceSpan): EvaluatedValue {
     const callee = expression.callee;
+    if (callee?.name !== undefined && isTrigonometryIntrinsic(callee.name)) {
+      this.budget.enterCall(expression.span, root);
+      let argumentBytes = 0;
+      try {
+        this.budget.step(callee.span, root);
+        const argument = expression.arguments?.[0];
+        if (argument === undefined)
+          throw this.invalid(expression.span, "Missing trigonometry phase");
+        const phase = this.evaluate(argument, caller, root);
+        argumentBytes = phase.bytes;
+        if (typeof phase.value !== "bigint") {
+          throw this.invalid(argument.span, "Trigonometry requires an integer phase");
+        }
+        return this.temporary(
+          evaluateIntegerTrigonometry(callee.name, phase.value),
+          expression.type,
+          expression.span,
+          root,
+        );
+      } finally {
+        this.budget.release(argumentBytes);
+        this.budget.leaveCall();
+      }
+    }
     if (callee?.name === "lo" || callee?.name === "hi") {
       this.budget.step(expression.span, root);
       const argument = expression.arguments?.[0];
@@ -464,7 +435,7 @@ export class ComptimeEvaluator {
     }
     this.budget.enterCall(expression.span, root);
     this.active.add(key);
-    const frame: Frame = { values: new Map(), allocatedBytes: 0 };
+    const frame: Frame = { values: new Map(), aggregates: new Map(), allocatedBytes: 0 };
     let argumentBytes = 0;
     try {
       this.budget.step(callee.span, root);
@@ -474,11 +445,18 @@ export class ComptimeEvaluator {
         if (parameter === undefined) {
           throw this.invalid(expression.span, "Compile-time call parameter count is incomplete");
         }
-        const value = this.evaluate(argument, caller, root);
+        const value = this.isAggregate(argument.type)
+          ? this.evaluateAggregate(argument, caller, root)
+          : this.evaluate(argument, caller, root);
         argumentBytes += value.bytes;
         this.budget.allocate(semanticTypeSize(argument.type), argument.span, root);
         frame.allocatedBytes += semanticTypeSize(argument.type);
-        frame.values.set(bindingIdentityKey(parameter), value.value);
+        if (isAggregateValue(value)) {
+          this.chargeAggregateBytes(value.value.length, argument.span, root);
+          frame.aggregates.set(bindingIdentityKey(parameter), [...value.value]);
+        } else {
+          frame.values.set(bindingIdentityKey(parameter), value.value);
+        }
       }
       this.budget.release(argumentBytes);
       argumentBytes = 0;
@@ -486,12 +464,14 @@ export class ComptimeEvaluator {
       if (exit.kind !== "return" || exit.result === null) {
         throw this.invalid(expression.span, "Compile-time function did not return a value");
       }
-      const result = this.temporary(
-        this.convert(exit.result.value, expression.type),
-        expression.type,
-        expression.span,
-        root,
-      );
+      const result = isAggregateValue(exit.result)
+        ? this.temporaryAggregate(exit.result.value, expression.type, expression.span, root)
+        : this.temporary(
+            this.convert(exit.result.value, expression.type),
+            expression.type,
+            expression.span,
+            root,
+          );
       this.budget.release(exit.result.bytes);
       return result;
     } finally {
@@ -519,6 +499,7 @@ export class ComptimeEvaluator {
     } finally {
       for (const key of added) {
         frame.values.delete(key);
+        frame.aggregates.delete(key);
       }
       frame.allocatedBytes -= bytes;
       this.budget.release(bytes);
@@ -536,7 +517,9 @@ export class ComptimeEvaluator {
       case "variable":
         return this.declareLocal(statement, frame, root);
       case "expression-statement": {
-        const result = this.evaluate(statement.expression, frame, root);
+        const result = this.isAggregate(statement.expression.type)
+          ? this.evaluateAggregate(statement.expression, frame, root)
+          : this.evaluate(statement.expression, frame, root);
         this.budget.release(result.bytes);
         return { kind: "normal" };
       }
@@ -570,8 +553,12 @@ export class ComptimeEvaluator {
         if (statement.value === undefined || statement.value === null) {
           return { kind: "return", result: null };
         }
-        const evaluated = this.evaluate(statement.value, frame, root);
-        const result = this.temporary(evaluated.value, statement.value.type, statement.span, root);
+        const evaluated = this.isAggregate(statement.value.type)
+          ? this.evaluateAggregate(statement.value, frame, root)
+          : this.evaluate(statement.value, frame, root);
+        const result = isAggregateValue(evaluated)
+          ? this.temporaryAggregate(evaluated.value, statement.value.type, statement.span, root)
+          : this.temporary(evaluated.value, statement.value.type, statement.span, root);
         this.budget.release(evaluated.bytes);
         return { kind: "return", result };
       }
@@ -613,9 +600,18 @@ export class ComptimeEvaluator {
     frame.allocatedBytes += bytes;
     const key = bindingIdentityKey(statement.binding);
     if (statement.initializer !== null) {
-      const value = this.evaluate(statement.initializer, frame, root);
-      frame.values.set(key, this.convert(value.value, statement.type));
+      const value = this.isAggregate(statement.type)
+        ? this.evaluateAggregate(statement.initializer, frame, root)
+        : this.evaluate(statement.initializer, frame, root);
+      if (isAggregateValue(value)) {
+        this.chargeAggregateBytes(value.value.length, statement.initializer.span, root);
+        frame.aggregates.set(key, [...value.value]);
+      } else {
+        frame.values.set(key, this.convert(value.value, statement.type));
+      }
       this.budget.release(value.bytes);
+    } else if (this.isAggregate(statement.type)) {
+      frame.aggregates.set(key, Array<number>(bytes).fill(-1));
     }
     return { kind: "normal" };
   }
@@ -639,7 +635,9 @@ export class ComptimeEvaluator {
       if (statement.initializer !== null) {
         if (isExpressionList(statement.initializer)) {
           for (const expression of statement.initializer) {
-            const result = this.evaluate(expression, frame, root);
+            const result = this.isAggregate(expression.type)
+              ? this.evaluateAggregate(expression, frame, root)
+              : this.evaluate(expression, frame, root);
             this.budget.release(result.bytes);
           }
         } else {
@@ -660,13 +658,16 @@ export class ComptimeEvaluator {
         if (exit.kind === "return") return exit;
         if (exit.kind === "break") return { kind: "normal" };
         for (const update of statement.update ?? []) {
-          const result = this.evaluate(update, frame, root);
+          const result = this.isAggregate(update.type)
+            ? this.evaluateAggregate(update, frame, root)
+            : this.evaluate(update, frame, root);
           this.budget.release(result.bytes);
         }
       }
     } finally {
       if (headerKey !== null) {
         frame.values.delete(headerKey);
+        frame.aggregates.delete(headerKey);
         frame.allocatedBytes -= headerBytes;
         this.budget.release(headerBytes);
       }
