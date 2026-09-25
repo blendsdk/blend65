@@ -106,10 +106,18 @@ function operandText(instruction: MachineInstruction): string | null {
   return value;
 }
 
-/** Force ACME to preserve the selected one- or two-byte address width. */
+/** Force selected widths only when ACME could otherwise choose a shorter form. */
 function mnemonic(instruction: MachineInstruction): string {
   // JMP has no zero-page encoding, so ACME cannot narrow its selected address form.
   if (instruction.opcode === "jmp") return instruction.opcode;
+  // A numeric address above zero page is unambiguous and needs no width suffix.
+  if (
+    instruction.mode === "absolute" &&
+    instruction.operand?.kind === "absolute" &&
+    instruction.operand.value > 0xff
+  ) {
+    return instruction.opcode;
+  }
   if (
     instruction.mode === "zero-page" ||
     instruction.mode === "zero-page-x" ||
