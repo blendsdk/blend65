@@ -28,6 +28,7 @@ import {
   summarizeTypedBlock,
 } from "./flow.js";
 import { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
+import { checkStatusStack } from "./status-stack.js";
 import { analyzeStructuredSwitch } from "./switch-flow.js";
 import { analyzeScalarLocal, analyzeScalarModuleVariable } from "./analyzer-scalars.js";
 import { collectDeclarationIndex, prepareModuleBindings } from "./module-bindings.js";
@@ -382,6 +383,8 @@ class ModuleAnalyzer {
         ),
       );
     }
+    const statusStack = body === null ? null : checkStatusStack(body);
+    if (statusStack !== null) this.diagnostics.push(...statusStack.diagnostics);
     if (this.obligations.length !== obligationsBefore) {
       this.retainUnusable("unchecked", state.binding.id, declaration.span);
       return;
@@ -496,7 +499,10 @@ class ModuleAnalyzer {
     };
     if (statement.kind === "variable") return this.analyzeLocal(statement, scope, context);
     if (statement.kind === "expression-statement") {
-      const expression = this.expressions.analyze(statement.expression, null, context).node;
+      const expression = this.expressions.analyze(statement.expression, null, {
+        ...context,
+        cpuStatementExpression: statement.expression,
+      }).node;
       return expression === null
         ? null
         : Object.freeze({

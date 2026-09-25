@@ -151,6 +151,34 @@ export interface BinaryOperation extends ValueOperation {
   readonly rightSpan?: SourceSpan;
 }
 
+/** One exact, ordered processor-control instruction with no source result. */
+export interface CpuControlOperation {
+  /** Operation discriminator. */
+  readonly kind: "cpu-control";
+  /** Closed source spelling, retained independently of surrounding calls. */
+  readonly control: "asm_sei" | "asm_cli" | "asm_php" | "asm_plp" | "asm_nop";
+  /** Exact source call. */
+  readonly span: SourceSpan;
+}
+
+/** Decimal arithmetic whose carry and D-flag lifetime are owned by lowering. */
+export interface BcdOperation extends ValueOperation {
+  /** Operation discriminator. */
+  readonly kind: "bcd";
+  /** Exact decimal operation. */
+  readonly operator: "add" | "sub";
+  /** Operands evaluated in source order. */
+  readonly left: ValueId;
+  readonly right: ValueId;
+  /** Number of packed bytes. */
+  readonly width: 1 | 2;
+  /** Whether each operand's decimal digits were proved valid at compile time. */
+  readonly validLeft: boolean;
+  readonly validRight: boolean;
+  /** SED, carry initialization, ADC/SBC and CLD are inseparable flag effects. */
+  readonly flagEffects: "owned-decimal-region";
+}
+
 /** One direct call after every argument has been staged. */
 export interface CallOperation {
   /** Operation discriminator. */
@@ -308,6 +336,8 @@ export type SemanticOperation =
   | StoreOperation
   | UnaryOperation
   | BinaryOperation
+  | CpuControlOperation
+  | BcdOperation
   | CallOperation
   | FunctionAddressOperation
   | IndirectCallOperation

@@ -85,3 +85,69 @@ export function lowerArithmetic(
   );
   return Object.freeze({ instructions: Object.freeze(instructions), result });
 }
+
+/** Emit one complete decimal region; ordinary address work is kept outside SED–CLD. */
+export function lowerBcdArithmetic(
+  operation: Extract<SemanticOperation, { readonly kind: "bcd" }>,
+  left: LoweredValue,
+  right: LoweredValue,
+  state: FunctionLoweringState,
+): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
+  const instructions: MachineInstruction[] = [];
+  const cpu = state.input.profile.cpu;
+  const opcode = operation.operator === "add" ? "adc" : "sbc";
+  const emit = (name: string): void => {
+    instructions.push(machineInstruction(cpu, name, "implied", null, [], operation.span));
+  };
+  appendLoadA(instructions, left, 0, state, operation.span);
+  emit("sed");
+  emit(operation.operator === "add" ? "clc" : "sec");
+  instructions.push(
+    machineInstruction(
+      cpu,
+      opcode,
+      modeForValue(right),
+      operandForValue(right, 0),
+      [],
+      operation.span,
+    ),
+  );
+  if (operation.width === 1) {
+    emit("cld");
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
+    });
+  }
+  const scratch = requestStorage(
+    state,
+    `bcd:${operation.result}`,
+    "temporary",
+    2,
+    "ram",
+    operation.span,
+    "Low decimal byte must survive high-byte arithmetic",
+    operation.type,
+  );
+  const result: LoweredValue = Object.freeze({
+    kind: "storage",
+    requestId: scratch.id,
+    bytes: 2,
+    signed: false,
+  });
+  instructions.push(storeA(result, 0, state, operation.span));
+  appendLoadA(instructions, left, 1, state, operation.span);
+  instructions.push(
+    machineInstruction(
+      cpu,
+      opcode,
+      modeForValue(right, 1),
+      operandForValue(right, 1),
+      [],
+      operation.span,
+    ),
+    storeA(result, 1, state, operation.span),
+  );
+  emit("cld");
+  return Object.freeze({ instructions: Object.freeze(instructions), result });
+}

@@ -542,6 +542,7 @@ function operationUses(operation: SemanticOperation): readonly ValueId[] {
     case "unary":
       return [operation.operand];
     case "binary":
+    case "bcd":
       return [operation.left, operation.right];
     case "store":
       return [

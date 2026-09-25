@@ -103,3 +103,30 @@ describe("compile-time aggregate implementation edges", () => {
     expect(scalar(result, "RESULT")).toBe(22n);
   });
 });
+
+describe("compile-time packed-BCD implementation", () => {
+  it("should evaluate typed decimal arithmetic inside a compile-time function", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "comptime function add(value: word): word { return bcd_add(value, word($0001)); }",
+        "const RESULT: word = add(word($0099));",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(result.diagnostics).toEqual([]);
+    expect(scalar(result, "RESULT")).toBe(0x0100n);
+  });
+
+  it("should reject an invalid digit that becomes known during compile-time evaluation", () => {
+    const result = analyze(
+      [
+        "module Game;",
+        "comptime function add(value: byte): byte { return bcd_add(value, byte(1)); }",
+        "const RESULT: byte = add(byte($1A));",
+        "function main(): void {}",
+      ].join("\n"),
+    );
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10254");
+  });
+});

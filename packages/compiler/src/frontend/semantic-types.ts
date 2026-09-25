@@ -682,6 +682,8 @@ export interface ScalarExpressionContext {
   readonly compileTimeQuery?: boolean;
   /** Whether direct integer operators compute in the array-ordinal promotion domain. */
   readonly ordinalContext?: boolean;
+  /** The exact expression admitted as a CPU-control statement, never a nested value. */
+  readonly cpuStatementExpression?: Expr;
 }
 
 /** Typed expression plus its pre-wrap mathematical value when known. */

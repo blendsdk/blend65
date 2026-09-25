@@ -23,7 +23,7 @@ import {
   lowerConstantMultiply,
   lowerFixedShift,
 } from "./lower-scalar.js";
-import { lowerArithmetic } from "./lower-arithmetic.js";
+import { lowerArithmetic, lowerBcdArithmetic } from "./lower-arithmetic.js";
 import { lowerUnary } from "./lower-unary.js";
 import { lowerRuntimeMultiply } from "./lower-multiply.js";
 import { lowerRuntimeDivision } from "./lower-division.js";
@@ -181,6 +181,8 @@ export function lowerOperation(
     operation.kind === "indirect-call" ||
     operation.kind === "memory-write" ||
     operation.kind === "platform" ||
+    operation.kind === "cpu-control" ||
+    operation.kind === "bcd" ||
     (operation.kind === "binary" && operation.operator !== "/" && operation.operator !== "%")
   ) {
     state.divisionReuse = null;
@@ -217,6 +219,30 @@ export function lowerOperation(
         state.aggregateAddressCache.key === induction.cache.key;
       if (!advancesAggregateInduction) state.aggregateAddressCache = null;
     }
+  }
+  if (operation.kind === "cpu-control") {
+    const opcode = operation.control.slice(4);
+    return Object.freeze([
+      machineInstruction(state.input.profile.cpu, opcode, "implied", null, [], operation.span),
+    ]);
+  }
+  if (operation.kind === "bcd") {
+    const left = state.values.get(operation.left);
+    const right = state.values.get(operation.right);
+    if (left === undefined || right === undefined) {
+      throw loweringFailure("BCD operand was not lowered", operation.span);
+    }
+    const lowered = lowerBcdArithmetic(operation, left, right, state);
+    const retained = retainMachineValue(
+      operation.result,
+      lowered.result,
+      lowered.instructions,
+      operation.type,
+      operation.span,
+      state,
+    );
+    state.values.set(operation.result, retained.value);
+    return retained.instructions;
   }
   if (operation.kind === "constant") {
     const width = typeBytes(operation.type) === 1 ? 1 : 2;

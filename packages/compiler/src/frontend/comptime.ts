@@ -20,6 +20,7 @@ import { ComptimeAggregates, isAggregateValue } from "./comptime-aggregates.js";
 import type { AggregateValue, ComptimeFrame, ScalarValue } from "./comptime-aggregates.js";
 import { collectConstantDependencies, isExpressionList } from "./comptime-dependencies.js";
 import { evaluateIntegerTrigonometry, isTrigonometryIntrinsic } from "./trigonometry.js";
+import { foldPackedBcd, invalidPackedBcdDigit } from "./machine-intrinsics.js";
 
 /** A checked direct function body with its parameter bindings in source order. */
 export interface ComptimeFunction {
@@ -361,6 +362,45 @@ export class ComptimeEvaluator {
   /** Resolve only a registered direct compile-time function, never a runtime target. */
   private call(expression: TypedExpr, caller: Frame, root: SourceSpan): EvaluatedValue {
     const callee = expression.callee;
+    if (callee?.name === "bcd_add" || callee?.name === "bcd_sub") {
+      this.budget.enterCall(expression.span, root);
+      let argumentBytes = 0;
+      try {
+        this.budget.step(callee.span, root);
+        const operands = expression.arguments ?? [];
+        if (operands.length !== 2)
+          throw this.invalid(expression.span, "Incomplete packed-BCD call");
+        const left = this.evaluate(operands[0]!, caller, root);
+        argumentBytes += left.bytes;
+        const right = this.evaluate(operands[1]!, caller, root);
+        argumentBytes += right.bytes;
+        if (typeof left.value !== "bigint" || typeof right.value !== "bigint") {
+          throw this.invalid(expression.span, "Packed-BCD operands must be unsigned integers");
+        }
+        const digits: 2 | 4 =
+          expression.type.kind === "scalar" && expression.type.name === "word" ? 4 : 2;
+        for (const [index, value] of [left.value, right.value].entries()) {
+          if (invalidPackedBcdDigit(value, digits)) {
+            throw new ComptimeSemanticFailure(
+              projectDiagnostic(
+                "E10254",
+                "Packed BCD operand contains a non-decimal digit",
+                operands[index]!.span,
+              ),
+            );
+          }
+        }
+        return this.temporary(
+          foldPackedBcd(callee.name, left.value, right.value, digits),
+          expression.type,
+          expression.span,
+          root,
+        );
+      } finally {
+        this.budget.release(argumentBytes);
+        this.budget.leaveCall();
+      }
+    }
     if (callee?.name !== undefined && isTrigonometryIntrinsic(callee.name)) {
       this.budget.enterCall(expression.span, root);
       let argumentBytes = 0;

@@ -226,7 +226,12 @@ class ExpressionLowerer {
       case "assignment":
         return this.lowerAssignment(expression);
       case "call":
-        if (expression.encodedBytes !== undefined && typeof expression.constant === "bigint") {
+        if (
+          typeof expression.constant === "bigint" &&
+          (expression.encodedBytes !== undefined ||
+            expression.callee?.name === "bcd_add" ||
+            expression.callee?.name === "bcd_sub")
+        ) {
           return this.emitConstant(
             expression.constant,
             operationType,
@@ -560,6 +565,39 @@ class ExpressionLowerer {
       return result;
     }
     if (callee.binding === null) {
+      if (
+        callee.name === "asm_sei" ||
+        callee.name === "asm_cli" ||
+        callee.name === "asm_php" ||
+        callee.name === "asm_plp" ||
+        callee.name === "asm_nop"
+      ) {
+        this.builder.emit(
+          Object.freeze({ kind: "cpu-control", control: callee.name, span: expression.span }),
+        );
+        return null;
+      }
+      if ((callee.name === "bcd_add" || callee.name === "bcd_sub") && arguments_.length === 2) {
+        const result = this.builder.nextValue();
+        const width = type.kind === "scalar" && type.name === "word" ? 2 : 1;
+        this.builder.emit(
+          Object.freeze({
+            kind: "bcd",
+            result,
+            operator: callee.name === "bcd_add" ? "add" : "sub",
+            left: arguments_[0]!,
+            right: arguments_[1]!,
+            width,
+            validLeft: typeof expression.arguments?.[0]?.constant === "bigint",
+            validRight: typeof expression.arguments?.[1]?.constant === "bigint",
+            flagEffects: "owned-decimal-region",
+            type,
+            integer: expression.integer,
+            span: expression.span,
+          }),
+        );
+        return result;
+      }
       if ((callee.name === "lo" || callee.name === "hi") && arguments_.length === 1) {
         const result = this.builder.nextValue();
         this.builder.emit(

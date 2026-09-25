@@ -6,6 +6,7 @@ import {
   SCALAR_TYPES,
 } from "./constants.js";
 import { clearCallVisibleScalarFacts } from "./flow-facts.js";
+import { analyzeMachineIntrinsic } from "./machine-intrinsics.js";
 import {
   analyzeEncodedLiteral,
   analyzeEncodingCall,
@@ -528,6 +529,8 @@ function analyzeBuiltinCall(
   analyze: AnalyzeExpression,
 ): ScalarExpressionResult | null {
   const name = expression.callee.kind === "name" ? expression.callee.name : "";
+  const machineIntrinsic = analyzeMachineIntrinsic(expression, name, context, host, analyze);
+  if (machineIntrinsic !== null) return machineIntrinsic;
   if (name === "embed") {
     const embedded = host.embeddedValue(expression);
     if (embedded === null) return null;

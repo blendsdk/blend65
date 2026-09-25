@@ -462,7 +462,7 @@ function lowerFunction(
       if (operation.kind === "store") recordUse(operation.value, operation);
       else if (operation.kind === "convert") recordUse(operation.operand, operation);
       else if (operation.kind === "unary") recordUse(operation.operand, operation);
-      else if (operation.kind === "binary") {
+      else if (operation.kind === "binary" || operation.kind === "bcd") {
         recordUse(operation.left, operation);
         recordUse(operation.right, operation);
       } else if (operation.kind === "call" || operation.kind === "platform") {

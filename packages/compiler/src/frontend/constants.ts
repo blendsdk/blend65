@@ -44,6 +44,13 @@ export const RESERVED_BUILTIN_NAMES: ReadonlySet<string> = new Set([
   "cos8",
   "sin16",
   "cos16",
+  "asm_sei",
+  "asm_cli",
+  "asm_php",
+  "asm_plp",
+  "asm_nop",
+  "bcd_add",
+  "bcd_sub",
 ]);
 
 /** Freeze the semantic fields shared by every scalar typed-expression node. */
