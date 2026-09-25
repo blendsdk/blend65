@@ -929,7 +929,21 @@ function lowerFunction(
 function lowerData(
   program: WholeProgram,
   generatedData: ReadonlyMap<string, MachineDataObject>,
+  functions: readonly MachineFunction[],
+  startup: MachineFunction,
 ): readonly MachineDataObject[] {
+  const spriteAssets = new Set(
+    [...functions, startup].flatMap((fn) =>
+      fn.blocks.flatMap((block) =>
+        block.instructions.flatMap((instruction) =>
+          instruction.operand?.kind === "label" &&
+          instruction.operand.transform === "vic-sprite-block"
+            ? [instruction.operand.label]
+            : [],
+        ),
+      ),
+    ),
+  );
   const globals = program.semantic.globals
     .filter(
       (global) =>
@@ -958,15 +972,17 @@ function lowerData(
   const reachable = new Set(program.reachableAssets);
   const assets = program.semantic.assets
     .filter(({ id }) => reachable.has(id))
-    .map((asset) =>
-      Object.freeze({
+    .map((asset) => {
+      const vicSpriteBlocks = spriteAssets.has(`asset.${asset.id}`);
+      return Object.freeze({
         id: `asset.${asset.id}`,
         kind: "asset" as const,
         assetId: asset.id,
-        alignment: 64,
+        vicSpriteBlocks,
+        alignment: vicSpriteBlocks ? 64 : 1,
         bytes: asset.bytes,
-      }),
-    );
+      });
+    });
   const generated = [...generatedData.values()].sort((left, right) =>
     Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)),
   );
@@ -1272,7 +1288,7 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       kind: "complete",
       program: Object.freeze({
         functions: Object.freeze(machineFunctions),
-        data: lowerData(input.program, generatedData),
+        data: lowerData(input.program, generatedData, machineFunctions, startup.startup),
         startup: startup.startup,
         requiredStorage: Object.freeze([...requests]),
         certifiedStorage,

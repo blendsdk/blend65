@@ -1026,6 +1026,15 @@ export function buildSemanticProgram(analysis: AnalysisResult): SemanticBuildRes
       functions: Object.freeze(functions),
       effects: frontend.effects,
       assets: frontend.assets,
+      residentAssetRoots: Object.freeze([
+        ...new Set(
+          frontend.declarations.flatMap((declaration) =>
+            !declaration.loadable && declaration.initializer?.embedded !== undefined
+              ? [declaration.initializer.embedded.assetId]
+              : [],
+          ),
+        ),
+      ]),
       initializerOrder: Object.freeze(
         frontend.initializerOrder.filter(
           (binding) => !embeddedBindings.has(bindingIdentityKey(binding)),

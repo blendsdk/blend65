@@ -329,6 +329,14 @@ export class AggregateRegistry {
     scope?: ScalarScope,
   ): number | null {
     if (syntax.extent === null) {
+      if (
+        initializer?.kind === "call" &&
+        initializer.callee.kind === "name" &&
+        initializer.callee.name === "embed"
+      ) {
+        const embeddedLength = this.host.embeddedExtent?.(initializer);
+        if (embeddedLength !== null && embeddedLength !== undefined) return embeddedLength;
+      }
       if (initializer?.kind === "array-literal" && initializer.fill === null) {
         return initializer.elements.length;
       }

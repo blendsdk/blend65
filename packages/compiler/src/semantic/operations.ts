@@ -460,6 +460,8 @@ export interface SemanticProgram {
   readonly effects?: readonly EffectSummary[];
   /** Immutable resident assets, still without physical placement. */
   readonly assets: readonly SemanticAsset[];
+  /** Asset identities owned by source resident constants, even if their reads fold away. */
+  readonly residentAssetRoots?: readonly string[];
   /** Runtime global initializer roots in proved execution order. */
   readonly initializerOrder: readonly BindingId[];
 }

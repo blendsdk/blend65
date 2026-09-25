@@ -151,8 +151,8 @@ describe("raw embedded assets", () => {
     expect(repeated).toEqual(first);
   });
 
-  // Missing and invalid extents are distinguished and never expose a partial value.
-  it("rejects missing empty short and long files with one proving diagnostic", async () => {
+  // Missing and empty files fail; every nonempty raw extent is inferred from its file.
+  it("rejects missing and empty files but infers short and long extents", async () => {
     const root = await freshRoot();
     const assets = join(root, "assets");
     await put(join(assets, "empty.bin"), new Uint8Array());
@@ -162,8 +162,16 @@ describe("raw embedded assets", () => {
 
     await expectError(project, "missing.bin", "E10130");
     await expectError(project, "empty.bin", "E10131");
-    await expectError(project, "short.bin", "E10140");
-    await expectError(project, "long.bin", "E10140");
+    for (const [path, length] of [
+      ["short.bin", 511],
+      ["long.bin", 513],
+    ] as const) {
+      const result = await resolveRawAsset(project, path);
+      expect(result.kind).toBe("complete");
+      if (result.kind !== "complete") throw new Error(`Expected inferred extent for ${path}`);
+      expect(result.value.type).toMatchObject({ kind: "array", length, size: length });
+      expect(result.asset.bytes).toHaveLength(length);
+    }
   });
 
   // A snapshot cannot silently resolve the same literal to bytes changed after its first proof.

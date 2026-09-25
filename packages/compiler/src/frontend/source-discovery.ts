@@ -1,5 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
-import type { ProjectDiagnostic } from "../project/types.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { ANALYSIS_OBLIGATION_KIND, freezeSourceSpan } from "./semantic-types.js";
 import type { AnalysisObligation, ModuleAnalysisResult, ModuleGraph } from "./semantic-types.js";
@@ -9,8 +9,14 @@ import type { Expr, Statement, VariableDeclaration } from "./syntax.js";
 export interface EmbeddedRequest {
   /** Stable expression key shared with typed analysis. */
   readonly key: string;
+  /** Call location for a duplicate-input warning. */
+  readonly span: SourceSpan;
   /** Decoded literal path supplied by source. */
   readonly literalPath: string;
+  /** Source containing the call, used for source-relative lookup. */
+  readonly sourceId: string;
+  /** Optional literal selector for a registered native format. */
+  readonly selector: string | null;
 }
 
 /** Result of validating every raw embed call in a source graph. */
@@ -146,7 +152,7 @@ function visitGraphExpressions(
 
 /** Decode the already validated literal items used by one raw asset path. */
 function embeddedLiteralPath(expression: Expr): string | null {
-  if (expression.kind !== "literal") return null;
+  if (expression.kind !== "literal" || expression.literalKind !== "string") return null;
   let value = "";
   for (const item of expression.items) {
     if (item.kind === "scalar") value += item.value;
@@ -208,7 +214,7 @@ export function discoverPendingObligations(
   return Object.freeze(obligations);
 }
 
-/** Find exact one-literal raw embed requests without reading any asset. */
+/** Find literal embed requests without reading any asset. */
 export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestResult {
   const requests: EmbeddedRequest[] = [];
   const diagnostics: ProjectDiagnostic[] = [];
@@ -221,16 +227,37 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
       return true;
     }
     const literalPath =
-      expression.arguments.length === 1 ? embeddedLiteralPath(expression.arguments[0]!) : null;
+      expression.arguments[0] === undefined ? null : embeddedLiteralPath(expression.arguments[0]);
     if (literalPath === null) {
       diagnostics.push(
         projectDiagnostic("E10136", "'embed()' path must be a string literal", expression.span),
+      );
+    } else if (
+      expression.arguments.length === 2 &&
+      embeddedLiteralPath(expression.arguments[1]!) === null
+    ) {
+      diagnostics.push(
+        projectDiagnostic("E10250", "'embed()' selector must be a string literal", expression.span),
+      );
+    } else if (expression.arguments.length > 2) {
+      diagnostics.push(
+        projectDiagnostic(
+          "E10136",
+          "'embed()' accepts a path and optional selector",
+          expression.span,
+        ),
       );
     } else {
       requests.push(
         Object.freeze({
           key: `${expression.span.sourceId}:${expression.span.start}:${expression.span.end}`,
+          span: freezeSourceSpan(expression.span),
           literalPath,
+          sourceId: expression.span.sourceId,
+          selector:
+            expression.arguments.length === 2
+              ? embeddedLiteralPath(expression.arguments[1]!)
+              : null,
         }),
       );
     }

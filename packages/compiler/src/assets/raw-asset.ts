@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { createHash } from "node:crypto";
 import { lstat, open, realpath } from "node:fs/promises";
 import type { BigIntStats } from "node:fs";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { escapeDiagnosticText, projectDiagnostic, PROJECT_CODES } from "../project/diagnostics.js";
 import { isContained, sameIdentity, sameMetadata } from "../project/paths.js";
 import { firstUnpairedSurrogate } from "../project/positions.js";
@@ -11,7 +11,7 @@ import { SCALAR_TYPES } from "../frontend/constants.js";
 import type { ArrayType } from "../frontend/semantic-types.js";
 import type { RawAssetResult, SemanticAsset } from "./asset-types.js";
 
-const RAW_ASSET_BYTES = 512;
+const MAX_ARRAY_BYTES = 0xffff;
 
 interface CachedAsset {
   readonly literalPath: string;
@@ -24,7 +24,7 @@ interface CachedAsset {
 
 interface SnapshotAssetCache {
   readonly byLiteral: Map<string, CachedAsset>;
-  readonly byIdentity: Map<string, string>;
+  readonly byIdentity: Map<string, CachedAsset>;
 }
 
 const snapshotCaches = new WeakMap<ProjectSnapshot, SnapshotAssetCache>();
@@ -39,7 +39,7 @@ function cacheFor(snapshot: ProjectSnapshot): SnapshotAssetCache {
   if (prior !== undefined) return prior;
   const created = {
     byLiteral: new Map<string, CachedAsset>(),
-    byIdentity: new Map<string, string>(),
+    byIdentity: new Map<string, CachedAsset>(),
   };
   snapshotCaches.set(snapshot, created);
   return created;
@@ -103,12 +103,12 @@ function hostFailure(literalPath: string, caught: unknown): RawAssetResult {
   );
 }
 
-function extentFailure(literalPath: string, size: number): RawAssetResult {
+function extentFailure(literalPath: string, size: bigint): RawAssetResult {
   const displayedPath = escapeDiagnosticText(literalPath);
-  if (size === 0) return error("E10131", `Embedded file '${displayedPath}' is empty`);
+  if (size === 0n) return error("E10131", `Embedded file '${displayedPath}' is empty`);
   return error(
-    "E10140",
-    `Embedded data size mismatch for '${displayedPath}' — expected ${RAW_ASSET_BYTES} elements, got ${size}`,
+    "E10265",
+    `Embedded file '${displayedPath}' exceeds the maximum array byte size of ${MAX_ARRAY_BYTES}`,
   );
 }
 
@@ -116,6 +116,7 @@ async function readCandidate(
   snapshot: ProjectSnapshot,
   root: string,
   literalPath: string,
+  cacheKey: string,
   cache: SnapshotAssetCache,
 ): Promise<RawAssetResult | null> {
   const logicalPath = join(root, ...literalPath.split("/"));
@@ -151,15 +152,25 @@ async function readCandidate(
   }
 
   const key = identity(before);
-  const priorLiteral = cache.byIdentity.get(key);
-  if (priorLiteral !== undefined && priorLiteral !== literalPath) {
+  const priorAsset = cache.byIdentity.get(key);
+  if (priorAsset !== undefined && priorAsset.resolvedPath !== resolvedPath) {
     return error(
       PROJECT_CODES.alias,
-      `Raw asset '${escapeDiagnosticText(literalPath)}' aliases the already admitted '${escapeDiagnosticText(priorLiteral)}'`,
+      `Raw asset '${escapeDiagnosticText(literalPath)}' aliases the already admitted '${escapeDiagnosticText(priorAsset.literalPath)}'`,
     );
   }
-  if (Number(before.size) !== RAW_ASSET_BYTES) {
-    return extentFailure(literalPath, Number(before.size));
+  if (priorAsset !== undefined) {
+    if (await changed(priorAsset)) {
+      return error(
+        PROJECT_CODES.changed,
+        `Raw asset '${escapeDiagnosticText(literalPath)}' changed after validation`,
+      );
+    }
+    cache.byLiteral.set(cacheKey, priorAsset);
+    return priorAsset.result;
+  }
+  if (before.size === 0n || before.size > BigInt(MAX_ARRAY_BYTES)) {
+    return extentFailure(literalPath, before.size);
   }
 
   let handle;
@@ -175,14 +186,20 @@ async function readCandidate(
         `Raw asset '${escapeDiagnosticText(literalPath)}' changed while being read`,
       );
     }
-    const buffer = Buffer.alloc(RAW_ASSET_BYTES + 1);
+    const size = Number(before.size);
+    const buffer = Buffer.alloc(size + 1);
     let length = 0;
     for (;;) {
       const { bytesRead } = await handle.read(buffer, length, buffer.length - length, null);
       if (bytesRead === 0 || length === buffer.length) break;
       length += bytesRead;
     }
-    if (length !== RAW_ASSET_BYTES) return extentFailure(literalPath, length);
+    if (length !== size) {
+      return error(
+        PROJECT_CODES.changed,
+        `Raw asset '${escapeDiagnosticText(literalPath)}' changed while being read`,
+      );
+    }
     const after = await handle.stat({ bigint: true });
     if (!sameMetadata(before, opened) || !sameMetadata(opened, after)) {
       return error(
@@ -202,9 +219,9 @@ async function readCandidate(
       );
     }
 
-    const raw = buffer.subarray(0, RAW_ASSET_BYTES);
+    const raw = buffer.subarray(0, size);
     const sha256 = createHash("sha256").update(raw).digest("hex");
-    const sourcePath = portablePath(snapshot.projectRoot, logicalPath);
+    const sourcePath = portablePath(snapshot.projectRoot, resolvedPath);
     const assetId = createHash("sha256")
       .update(`blend65-raw-v1\0${sourcePath}\0${sha256}`, "utf8")
       .digest("hex");
@@ -212,8 +229,8 @@ async function readCandidate(
     const type: ArrayType = Object.freeze({
       kind: "array",
       element: SCALAR_TYPES.byte,
-      length: RAW_ASSET_BYTES,
-      size: RAW_ASSET_BYTES,
+      length: size,
+      size,
     });
     const asset: SemanticAsset = Object.freeze({ id: assetId, sourcePath, sha256, bytes });
     const result: Extract<RawAssetResult, { readonly kind: "complete" }> = Object.freeze({
@@ -221,7 +238,7 @@ async function readCandidate(
       asset,
       value: Object.freeze({ kind: "embedded", assetId, type, constant: true, bytes }),
     });
-    const concurrentlyAdmitted = cache.byLiteral.get(literalPath);
+    const concurrentlyAdmitted = cache.byLiteral.get(cacheKey);
     if (concurrentlyAdmitted !== undefined) {
       return concurrentlyAdmitted.identity === key
         ? concurrentlyAdmitted.result
@@ -231,24 +248,22 @@ async function readCandidate(
           );
     }
     const concurrentAlias = cache.byIdentity.get(key);
-    if (concurrentAlias !== undefined && concurrentAlias !== literalPath) {
+    if (concurrentAlias !== undefined && concurrentAlias.resolvedPath !== resolvedPath) {
       return error(
         PROJECT_CODES.alias,
-        `Raw asset '${escapeDiagnosticText(literalPath)}' aliases the already admitted '${escapeDiagnosticText(concurrentAlias)}'`,
+        `Raw asset '${escapeDiagnosticText(literalPath)}' aliases the already admitted '${escapeDiagnosticText(concurrentAlias.literalPath)}'`,
       );
     }
-    cache.byLiteral.set(
+    const admitted = Object.freeze({
       literalPath,
-      Object.freeze({
-        literalPath,
-        logicalPath,
-        resolvedPath,
-        metadata: after,
-        identity: key,
-        result,
-      }),
-    );
-    cache.byIdentity.set(key, literalPath);
+      logicalPath,
+      resolvedPath,
+      metadata: after,
+      identity: key,
+      result,
+    });
+    cache.byLiteral.set(cacheKey, admitted);
+    cache.byIdentity.set(key, admitted);
     return result;
   } catch (caught) {
     return hostFailure(literalPath, caught);
@@ -258,12 +273,13 @@ async function readCandidate(
 }
 
 /**
- * Resolve the bounded raw M1 asset from canonical project asset roots.
- * The function reads exactly 512 bytes and never exposes partial data on failure.
+ * Resolve a nonempty raw asset from the containing source directory, then asset search roots.
+ * The bounded read never exposes partial data on failure.
  */
 export async function resolveRawAsset(
   snapshot: ProjectSnapshot,
   literalPath: string,
+  sourceId: string = snapshot.sources[0]?.sourceId ?? "",
 ): Promise<RawAssetResult> {
   if (!validLiteralPath(literalPath)) {
     return error(
@@ -271,8 +287,16 @@ export async function resolveRawAsset(
       `Invalid raw asset path '${escapeDiagnosticText(literalPath)}'`,
     );
   }
+  const source = snapshot.sources.find((candidate) => candidate.sourceId === sourceId);
+  if (source === undefined) {
+    return error(
+      PROJECT_CODES.path,
+      `Unknown source for raw asset '${escapeDiagnosticText(literalPath)}'`,
+    );
+  }
+  const cacheKey = `${sourceId}\0${literalPath}`;
   const cache = cacheFor(snapshot);
-  const prior = cache.byLiteral.get(literalPath);
+  const prior = cache.byLiteral.get(cacheKey);
   if (prior !== undefined) {
     return (await changed(prior))
       ? error(
@@ -281,8 +305,8 @@ export async function resolveRawAsset(
         )
       : prior.result;
   }
-  for (const root of snapshot.assetPaths) {
-    const result = await readCandidate(snapshot, root, literalPath, cache);
+  for (const root of [dirname(source.resolvedPath), ...snapshot.assetPaths]) {
+    const result = await readCandidate(snapshot, root, literalPath, cacheKey, cache);
     if (result !== null) return result;
   }
   return error("E10130", `File not found: '${escapeDiagnosticText(literalPath)}'`);

@@ -162,6 +162,9 @@ export async function prepareEvidence(
         .map((asset) => {
           const placement = input.layout.intervals.find(({ id }) => id === `asset.${asset.id}`);
           if (placement === undefined) throw new Error("Reachable asset has no final placement");
+          const vicSpriteBlocks =
+            input.layout.program.data.find(({ id }) => id === placement.id)?.vicSpriteBlocks !==
+            false;
           const evidenceId = assetIds.get(asset.id)!;
           return Object.freeze({
             id: evidenceId,
@@ -181,25 +184,29 @@ export async function prepareEvidence(
             payloadBytes: asset.bytes.length,
             emittedBytes: asset.bytes.length,
             aliases: Object.freeze([assetSymbolName(asset.id)]),
-            constraints: Object.freeze([
-              Object.freeze({ kind: "align", origin: "profile", bytes: 64 }),
-              Object.freeze({
-                kind: "visibility",
-                origin: "profile",
-                consumer: "vic",
-                conditionId: "vic",
-              }),
-            ]),
+            constraints: Object.freeze(
+              vicSpriteBlocks
+                ? [
+                    Object.freeze({ kind: "align", origin: "profile", bytes: 64 }),
+                    Object.freeze({
+                      kind: "visibility",
+                      origin: "profile",
+                      consumer: "vic",
+                      conditionId: "vic",
+                    }),
+                  ]
+                : [],
+            ),
             placement: Object.freeze({
               kind: "single",
               range: Object.freeze({
                 addressSpaceId: "cpu16",
                 start: placement.start,
                 end: placement.end + 1,
-                alignmentBytes: 64,
+                alignmentBytes: vicSpriteBlocks ? 64 : 1,
                 paddingBeforeBytes: 0,
                 residencyId: "resident",
-                visibility: Object.freeze(["vic"]),
+                visibility: Object.freeze(vicSpriteBlocks ? ["vic"] : []),
                 writableRanges: Object.freeze([]),
               }),
             }),

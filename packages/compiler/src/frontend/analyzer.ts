@@ -111,6 +111,10 @@ class ModuleAnalyzer {
       diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
       defer: (span, message) => this.addObligation(span, message),
       sourceText: (span) => sourceText(this.sources, span),
+      embeddedExtent: (initializer) =>
+        this.embeddedValues.get(
+          `${initializer.span.sourceId}:${initializer.span.start}:${initializer.span.end}`,
+        )?.type.length ?? null,
     });
     const prepared = prepareModuleBindings(graph, this.declarationByKey, this.aggregates);
     this.bindings = prepared.bindings;

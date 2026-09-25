@@ -119,13 +119,13 @@ describe("expert static byte-array output", () => {
       expect(memory).not.toContain("aggregate-address");
       expect(memory).not.toContain("aggregate-index-candidate");
       const core = assembly.match(
-        /^\s*lda\+2\s+[^\n]+\n\s*asl\s*\n\s*tay\s*\n\s*lda\+2\s+[^\n]+,y\s*\n\s*sta\+2\s+[^\n]+\n\s*iny\s*\n\s*lda\+2\s+[^\n]+,y\s*\n\s*sta\+2\s+[^\n]+/imu,
+        /^\s*lda\s+\$[0-9a-f]{4}\s*\n\s*asl\s*\n\s*tay\s*\n\s*lda\+2\s+[^\n]+,y\s*\n\s*sta\s+[^\n]+\n\s*iny\s*\n\s*lda\+2\s+[^\n]+,y\s*\n\s*sta\s+[^\n]+/imu,
       );
       expect(core).not.toBeNull();
       const widths = core![0]
         .trim()
         .split(/\n/u)
-        .map((line) => (line.includes("+2") ? 3 : 1));
+        .map((line) => (/^\s*(?:lda|sta)\b/u.test(line) ? 3 : 1));
       expect(widths.reduce((sum, width) => sum + width, 0)).toBeLessThanOrEqual(
         expert.checkedWordIndexLoad.bytes,
       );

@@ -732,7 +732,8 @@ function reachableAssetIds(
   functions: readonly SemanticFunction[],
   reachable: ReadonlySet<string>,
 ): ReadonlySet<string> {
-  const assets = new Set<string>();
+  // A source resident constant owns its bytes even when every observed element folds away.
+  const assets = new Set(semantic.residentAssetRoots ?? []);
   const globals = new Map(
     semantic.globals.map((global) => [bindingIdentityKey(global.id), global] as const),
   );

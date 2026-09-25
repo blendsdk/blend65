@@ -120,7 +120,7 @@ describe("equal-contract C64 interrupt output", () => {
       expert.chainEntry.bytes,
     );
     const chain = assembly.match(
-      /^\s*php\s*\n\s*cld\s*\n\s*lda\s+#\$01\s*\n\s*sta\+2\s+\$d019\s*\n\s*plp\s*\n\s*jmp\s+\(\$[0-9a-f]{4}\)/imu,
+      /^\s*php\s*\n\s*cld\s*\n\s*lda\s+#\$01\s*\n\s*sta\s+\$d019\s*\n\s*plp\s*\n\s*jmp\s+\(\$[0-9a-f]{4}\)/imu,
     );
     expect(chain).not.toBeNull();
     expect(measuredCost(chain![0])).toEqual({
@@ -128,7 +128,7 @@ describe("equal-contract C64 interrupt output", () => {
       cycles: expert.chainEntry.cycles,
     });
     const install = assembly.match(
-      /^\s*php\s*\n\s*pha\s*\n\s*sei\s*\n\s*lda\+2\s+\$0314\s*\n\s*sta\+2\s+\$[0-9a-f]{4}\s*\n\s*lda\+2\s+\$0315\s*\n\s*sta\+2\s+\$[0-9a-f]{4}\s*\n\s*lda\s+#<\(.+\)\s*\n\s*sta\+2\s+\$0314\s*\n\s*lda\s+#>\(.+\)\s*\n\s*sta\+2\s+\$0315\s*\n\s*pla\s*\n\s*plp/imu,
+      /^\s*php\s*\n\s*pha\s*\n\s*sei\s*\n\s*lda\s+\$0314\s*\n\s*sta\s+\$[0-9a-f]{4}\s*\n\s*lda\s+\$0315\s*\n\s*sta\s+\$[0-9a-f]{4}\s*\n\s*lda\s+#<\(.+\)\s*\n\s*sta\s+\$0314\s*\n\s*lda\s+#>\(.+\)\s*\n\s*sta\s+\$0315\s*\n\s*pla\s*\n\s*plp/imu,
     );
     expect(install).not.toBeNull();
     expect(measuredCost(install![0])).toEqual({
@@ -136,7 +136,7 @@ describe("equal-contract C64 interrupt output", () => {
       cycles: expert.install.cycles,
     });
     const restore = assembly.match(
-      /^\s*php\s*\n\s*pha\s*\n\s*sei\s*\n\s*lda\+2\s+\$[0-9a-f]{4}\s*\n\s*sta\+2\s+\$0314\s*\n\s*lda\+2\s+\$[0-9a-f]{4}\s*\n\s*sta\+2\s+\$0315\s*\n\s*pla\s*\n\s*plp/imu,
+      /^\s*php\s*\n\s*pha\s*\n\s*sei\s*\n\s*lda\s+\$[0-9a-f]{4}\s*\n\s*sta\s+\$0314\s*\n\s*lda\s+\$[0-9a-f]{4}\s*\n\s*sta\s+\$0315\s*\n\s*pla\s*\n\s*plp/imu,
     );
     expect(restore).not.toBeNull();
     expect(measuredCost(restore![0])).toEqual({
@@ -158,7 +158,7 @@ describe("equal-contract C64 interrupt output", () => {
       expert.exclusiveEntry.bytes,
     );
     const exclusive = assembly.match(
-      /^\s*cld\s*\n\s*lda\s+#\$01\s*\n\s*sta\+2\s+\$d019\s*\n\s*jmp\s+\$ea81/imu,
+      /^\s*cld\s*\n\s*lda\s+#\$01\s*\n\s*sta\s+\$d019\s*\n\s*jmp\s+\$ea81/imu,
     );
     expect(exclusive).not.toBeNull();
     expect(measuredCost(exclusive![0])).toEqual({

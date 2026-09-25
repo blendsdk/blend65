@@ -732,4 +732,6 @@ export interface AggregateRegistryHost {
   defer(span: SourceSpan, message: string): void;
   /** Read exact source bytes for a diagnostic. */
   sourceText(span: SourceSpan): string;
+  /** Infer an unsized declaration from an already validated embedded value. */
+  embeddedExtent?(initializer: Expr): number | null;
 }

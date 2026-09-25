@@ -17,12 +17,14 @@ function physicalInterval(
   inventory: StorageInventory,
   certificate: StorageClosureCertificate,
   assetIds: ReadonlyMap<string, string>,
+  spriteAssetIds: ReadonlySet<string>,
   ownerOverride?: EvidenceRecord,
 ): EvidenceRecord {
   const size = interval.end - interval.start + 1;
   const semanticAssetId = interval.id.startsWith("asset.") ? interval.id.slice(6) : null;
   const evidenceAssetId = semanticAssetId === null ? undefined : assetIds.get(semanticAssetId);
   const isAsset = interval.kind === "asset" && evidenceAssetId !== undefined;
+  const isVicAsset = isAsset && spriteAssetIds.has(interval.id);
   const isStorage = interval.kind === "sfa";
   const isPadding = interval.kind === "fill";
   const requestsById = new Map(inventory.requests.map((request) => [request.id, request] as const));
@@ -85,7 +87,7 @@ function physicalInterval(
           home.address === interval.start ? [selectedRequests[index]!.alignment] : [],
         ),
       )
-    : interval.kind === "asset"
+    : isVicAsset
       ? 64
       : 1;
   return Object.freeze({
@@ -115,7 +117,7 @@ function physicalInterval(
     payloadBytes: isPadding || isStorage ? 0 : size,
     paddingBytes: isPadding ? size : 0,
     reservedBytes: isStorage ? size : 0,
-    ...(isAsset
+    ...(isVicAsset
       ? { vic: Object.freeze({ bankId: "vic-bank-0", visibility: Object.freeze(["vic"]) }) }
       : {}),
   });
@@ -128,6 +130,11 @@ export function deriveMemoryIntervals(
   certificate: StorageClosureCertificate,
   assetIds: ReadonlyMap<string, string>,
 ): readonly EvidenceRecord[] {
+  const spriteAssetIds = new Set(
+    layout.program.data
+      .filter(({ kind, vicSpriteBlocks }) => kind === "asset" && vicSpriteBlocks !== false)
+      .map(({ id }) => id),
+  );
   const expanded = layout.intervals.flatMap((interval) => {
     if (interval.id.startsWith("global.")) {
       const global = inventory.program.semantic.globals.find(
@@ -140,12 +147,13 @@ export function deriveMemoryIntervals(
           inventory,
           certificate,
           assetIds,
+          spriteAssetIds,
           Object.freeze({ kind: "symbol", id: globalName(global.id) }),
         ),
       ];
     }
     if (interval.kind !== "code") {
-      return [physicalInterval(interval, inventory, certificate, assetIds)];
+      return [physicalInterval(interval, inventory, certificate, assetIds, spriteAssetIds)];
     }
     const sourceOwners = new Map<string, string>(
       inventory.program.semantic.functions.map(
@@ -187,6 +195,7 @@ export function deriveMemoryIntervals(
           inventory,
           certificate,
           assetIds,
+          spriteAssetIds,
           Object.freeze({ kind: "platform", id: "startup" }),
         ),
       );
@@ -207,6 +216,7 @@ export function deriveMemoryIntervals(
           inventory,
           certificate,
           assetIds,
+          spriteAssetIds,
           ownerName === undefined
             ? Object.freeze({ kind: "platform", id: machine.id })
             : Object.freeze({ kind: "function", id: ownerName }),
@@ -232,6 +242,7 @@ export function deriveMemoryIntervals(
             inventory,
             certificate,
             assetIds,
+            spriteAssetIds,
           ),
         );
       }

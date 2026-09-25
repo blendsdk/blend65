@@ -3,6 +3,7 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import { PROFILES } from "../project/manifest.js";
 import { resolveRawAsset } from "../assets/raw-asset.js";
 import type { EmbeddedValue, SemanticAsset } from "../assets/asset-types.js";
+import { scalarWarning } from "./constants.js";
 import { analyzeModules } from "./analyzer.js";
 import { diagnoseBorrowedCalls } from "./borrow-calls.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
@@ -620,13 +621,69 @@ export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promi
   }
   const values = new Map<string, EmbeddedValue>();
   const assets = new Map<string, SemanticAsset>();
+  const repeatedAssets: ProjectDiagnostic[] = [];
   for (const request of discovered.requests) {
-    const result = await resolveRawAsset(snapshot, request.literalPath);
+    const nativeFormat = /\.(?:spd|ctm|sid|kla|koa)$/iu.test(request.literalPath);
+    if (request.selector !== null && !nativeFormat) {
+      return Object.freeze({
+        kind: ANALYSIS_RESULT_KIND.error,
+        diagnostics: Object.freeze([
+          projectDiagnostic("E10137", "Raw embedded data has no selectors", request.span),
+        ]),
+      });
+    }
+    const result = await resolveRawAsset(snapshot, request.literalPath, request.sourceId);
     if (result.kind === "error") {
+      if (
+        nativeFormat &&
+        result.diagnostics.some(({ code }) => code === "E10131" || code === "E10265")
+      ) {
+        return Object.freeze({
+          kind: ANALYSIS_RESULT_KIND.error,
+          diagnostics: Object.freeze([
+            projectDiagnostic(
+              "E10204",
+              "Registered native asset format is not yet supported",
+              request.span,
+            ),
+          ]),
+        });
+      }
       return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: result.diagnostics });
     }
+    if (nativeFormat) {
+      return Object.freeze({
+        kind: ANALYSIS_RESULT_KIND.error,
+        diagnostics: Object.freeze([
+          /\.ctm$/iu.test(request.literalPath) && request.selector === null
+            ? projectDiagnostic(
+                "E10132",
+                "This registered format requires a selector",
+                request.span,
+              )
+            : projectDiagnostic(
+                "E10204",
+                "Registered native asset format is not yet supported",
+                request.span,
+              ),
+        ]),
+      });
+    }
     values.set(request.key, result.value);
+    if (assets.has(result.asset.id)) {
+      repeatedAssets.push(
+        scalarWarning(
+          "W10151",
+          `Embedded input '${request.literalPath}' shares one immutable resident asset`,
+          request.span,
+        ),
+      );
+    }
     assets.set(result.asset.id, result.asset);
   }
-  return analyzeResolvedProject(snapshot, values, Object.freeze([...assets.values()]));
+  const analysis = analyzeResolvedProject(snapshot, values, Object.freeze([...assets.values()]));
+  return Object.freeze({
+    ...analysis,
+    diagnostics: sortAnalysisDiagnostics([...analysis.diagnostics, ...repeatedAssets]),
+  });
 }

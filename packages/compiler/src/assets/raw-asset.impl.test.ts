@@ -88,6 +88,22 @@ describe("raw asset implementation boundaries", () => {
     expect(new Set(complete.map(({ asset }) => asset.sha256)).size).toBe(1);
   });
 
+  it("uses the canonical file identity across contained directory aliases", async () => {
+    const project = await fixture();
+    await symlink(project.assetPaths[0]!, join(project.assetPaths[0]!, "linked"), "dir");
+
+    const alias = await resolveRawAsset(project, "linked/sprites.bin");
+    const direct = await resolveRawAsset(project, "sprites.bin");
+
+    expect(alias.kind).toBe("complete");
+    expect(direct.kind).toBe("complete");
+    if (alias.kind !== "complete" || direct.kind !== "complete") {
+      throw new Error("Expected both contained spellings to resolve");
+    }
+    expect(alias.asset.id).toBe(direct.asset.id);
+    expect(alias.asset.sourcePath).toBe("assets/sprites.bin");
+  });
+
   it("admits only one literal when hard-link aliases race", async () => {
     const project = await fixture();
     await link(
@@ -148,6 +164,16 @@ describe("raw asset implementation boundaries", () => {
     )?.initializer?.embedded;
     expect(embedded?.assetId).toBe(result.program.assets[0]?.id);
     expect(embedded?.type).toMatchObject({ kind: "array", length: 512, size: 512 });
+  });
+
+  it("reports an explicit embedded array-size mismatch", async () => {
+    const project = await fixture(
+      'module Game; const SPRITES: byte[511] = embed("sprites.bin"); function main(): void {}',
+    );
+    const result = await analyzeProjectWithAssets(project);
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10140");
   });
 
   it("bounds hostile expression depth before completing async asset analysis", async () => {

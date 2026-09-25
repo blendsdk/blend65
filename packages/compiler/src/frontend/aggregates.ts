@@ -69,6 +69,16 @@ export function applyExpectedAggregate(
       exact: result.exact,
     };
   }
+  if (node.embedded !== undefined && expected.kind === "array" && node.type.kind === "array") {
+    host.diagnose(
+      projectDiagnostic(
+        "E10140",
+        `Embedded data size mismatch — expected ${expected.length} elements, got ${node.type.length}`,
+        expression.span,
+      ),
+    );
+    return { node: null, exact: result.exact };
+  }
   host.diagnose(
     projectDiagnostic(
       "E10080",

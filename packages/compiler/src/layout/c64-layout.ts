@@ -487,7 +487,10 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   }
 
   const nonAssets = laidOutProgram.data
-    .filter(({ kind, zeropage }) => kind !== "asset" && kind !== "bss" && !zeropage)
+    .filter(
+      ({ kind, zeropage, vicSpriteBlocks }) =>
+        (kind !== "asset" || vicSpriteBlocks === false) && kind !== "bss" && !zeropage,
+    )
     .sort((left, right) => {
       const leftFixed = left.placement?.at != null;
       const rightFixed = right.placement?.at != null;
@@ -537,7 +540,9 @@ export function layoutC64Program(input: C64LayoutInput): C64LayoutResult {
   }
 
   const spriteBlocks: number[] = [];
-  const assets = laidOutProgram.data.filter(({ kind }) => kind === "asset").sort(compareIds);
+  const assets = laidOutProgram.data
+    .filter(({ kind, vicSpriteBlocks }) => kind === "asset" && vicSpriteBlocks !== false)
+    .sort(compareIds);
   for (const asset of assets) {
     const bytes = dataBytes(asset);
     if (bytes === null || bytes.length === 0 || bytes.length % 64 !== 0) {

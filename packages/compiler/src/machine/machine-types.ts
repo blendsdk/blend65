@@ -205,6 +205,8 @@ export interface MachineDataObject {
   readonly kind: "immutable" | "global" | "bss" | "asset";
   /** Semantic asset identity for an asset object. */
   readonly assetId?: string;
+  /** False for ordinary raw data that does not feed a VIC sprite-block operand. */
+  readonly vicSpriteBlocks?: boolean;
   /** Required byte alignment. */
   readonly alignment: number;
   /** Exact resident bytes; BSS bytes are explicit zeroes in this phase. */
