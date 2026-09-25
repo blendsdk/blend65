@@ -1,7 +1,7 @@
 # Ambiguity Register: RD-04 Language Completion
 
-> **Status**: ✅ All decisions resolved
-> **Last Updated**: 2026-09-25
+> **Status**: ⛔ One runtime decision open
+> **Last Updated**: 2026-09-26
 > **CodeOps Artifact Schema**: 1
 
 ## Planning Scope Contract
@@ -35,6 +35,7 @@
 | AR-P17 | Technical (runtime) — handler-side IRQ vector updates | Defer IRQ vector installs/restores from interrupt-domain execution to RD-05 R5.16 with E10245 and tracked expressiveness debt. Mainline IRQ installs remain in scope. RD-05 must give handler-owned predecessors separate live storage and prove chain-safe contexts before accepting this valid source form. | User approved the recommended narrow deferral on 2026-09-25 after Phase 6 review found live-link aliasing and self-mask context growth. Frozen Specification 4 permits finite balanced nesting generally; this is a temporary compiler limitation, not a language rule. | ✅ Resolved |
 | AR-P18 | Technical (runtime) — compile-time evaluator test entry | Use one internal-only evaluation entry with optional reduced step/byte/depth limits and observable typed results for specification tests. Production `check`/`build` always use the fixed `comptime-budget-v1` constants; source, manifest, environment and CLI gain no override. This one entry permits exact N/N+1 budget cases and the full canonical `sin16` stream without a second harness or public setting. | User explicitly approved the recommended private test entry on 2026-09-25. The plan required reduced-limit cases but named no interface; the implementation-blind author had stopped before inventing one. | ✅ Resolved |
 | AR-P19 | Scope (runtime) — selected-profile source facts | Remove only the duplicate source-level profile-fact branch obligation from RD-04 R4.34/AC-28 and ST-42. RD-05 R5.3/AC-03 already own compile-time profile facts across PAL/NTSC; frozen Specification 4 Ch 15 and Appendix C64 define the facts without a source-visible binding or spelling. Complete RD-04's memory, size, CPU, BCD and embed surface without inventing an API. | User approved the recommended narrow deferral on 2026-09-25. Frozen `spec/` remains untouched under D3; RD-05 retains the source-fact obligation. | ✅ Resolved |
+| AR-P20 | Test authority (runtime) — obsolete fixed raw-asset size | Recommended: replace only the old `raw-asset.spec.test.ts` expectation that rejects 511- and 513-byte files with acceptance of nonempty inferred lengths. Keep empty-file rejection, explicit-size E10140, all containment/alias/change checks, the new Phase 7 raw-embed tests, and M1's sprite consumer/layout checks. Extend the existing resolver and layout path; add no second raw-asset mode. Frozen Ch 13 §§2.1, 3 EMB-4, 5 make raw extent file-derived, whereas the old M1 test requires exactly 512 bytes for every raw file. | Awaiting user decision, 2026-09-26. | ⛔ Open |
 
 ## Resolution Notes
 
