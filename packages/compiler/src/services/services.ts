@@ -256,7 +256,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (semantic.kind === "incomplete") {
     return { kind: "failure", failure: incompleteStage("semantic lowering") };
   }
-  const closed = closeWholeProgram(semantic.program);
+  const closed = closeWholeProgram(semantic.program, selected.profile.interrupts);
   if (closed.kind === "error") {
     return { kind: "failure", failure: failure("compiler", closed.diagnostics) };
   }
@@ -299,6 +299,17 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   }
   const certificate = closeStorage(inventory, reserved.storage, lowered.binder);
   if (certificate.kind === "error") {
+    if (certificate.reason === "stack" && certificate.measured !== undefined) {
+      return {
+        kind: "failure",
+        failure: failure("source", [
+          serviceDiagnostic(
+            "E10238",
+            `Hardware stack needs ${certificate.measured} bytes on ${certificate.route?.join(" → ") ?? "the selected route"}, but only ${certificate.available} bytes are available after the platform reserve`,
+          ),
+        ]),
+      };
+    }
     return { kind: "failure", failure: incompleteStage("static storage closure") };
   }
   const machine = bindMachineProgram(lowered.program, certificate.certificate);
@@ -316,6 +327,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       diagnostics: Object.freeze([
         ...loaded.observations,
         ...analyzed.diagnostics,
+        ...(reserved.program.diagnostics ?? []),
         ...lowered.diagnostics,
       ]),
     }),

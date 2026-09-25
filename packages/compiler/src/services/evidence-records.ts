@@ -176,6 +176,11 @@ function machineFunctionSegments(
     const sourceBlock = semantic.blocks.find(
       ({ id }) =>
         block.label === id ||
+        block.label.startsWith(`${id}.main.depth`) ||
+        block.label.startsWith(`${id}.irq`) ||
+        block.label.startsWith(`${id}.nmi`) ||
+        block.label.startsWith(`${id}.interrupt.`) ||
+        block.label.startsWith(`${id}.fn.`) ||
         block.label.startsWith(`${id}.wait.`) ||
         block.label.startsWith(`${id}.shift.`) ||
         block.label.startsWith(`${id}.multiply.`) ||
@@ -252,13 +257,29 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       (global) => [bindingIdentityKey(global.id), global] as const,
     ),
   );
+  const machineFunctions = new Map(
+    input.layout.program.functions.map((fn) => [fn.id, fn] as const),
+  );
   const executionFunctions = [
     ...semanticFunctions.map((fn) =>
       Object.freeze({
         binding: fn.id,
         qualifiedName: functionName(fn),
         source: fn.source,
-        machineId: `fn.${bindingIdentityKey(fn.id)}`,
+        machineIds: Object.freeze(
+          [...machineFunctions.keys()]
+            .filter((id) =>
+              fn.entryKind === "interrupt"
+                ? id.startsWith(`interrupt.${bindingIdentityKey(fn.id)}.`) ||
+                  id === `fn.${bindingIdentityKey(fn.id)}`
+                : id === `fn.${bindingIdentityKey(fn.id)}` ||
+                  id.startsWith(`fn.${bindingIdentityKey(fn.id)}.main.depth`) ||
+                  id.startsWith(`fn.${bindingIdentityKey(fn.id)}.irq`) ||
+                  id.startsWith(`fn.${bindingIdentityKey(fn.id)}.nmi`),
+            )
+            .sort(compareText),
+        ),
+        kind: fn.entryKind === "interrupt" ? "interrupt" : "ordinary",
         body: fn,
       }),
     ),
@@ -271,7 +292,8 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
           binding: initializer.binding,
           qualifiedName: `initializer::${bindingIdentityKey(initializer.binding)}`,
           source: global.source,
-          machineId: `init.${bindingIdentityKey(initializer.binding)}`,
+          machineIds: Object.freeze([`init.${bindingIdentityKey(initializer.binding)}`]),
+          kind: "ordinary",
           body: global,
         }),
       ];
@@ -280,8 +302,8 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
   const functionIndexes = new Map(
     executionFunctions.map((fn, index) => [bindingIdentityKey(fn.binding), index] as const),
   );
-  const machineFunctions = new Map(
-    input.layout.program.functions.map((fn) => [fn.id, fn] as const),
+  const contextOffsets = executionFunctions.map((_, index) =>
+    executionFunctions.slice(0, index).reduce((count, fn) => count + fn.machineIds.length, 0),
   );
 
   const rangeDrafts: {
@@ -302,22 +324,27 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     });
   }
   for (const [functionIndex, fn] of executionFunctions.entries()) {
-    const machine = machineFunctions.get(fn.machineId);
-    if (machine === undefined) throw new Error("Reachable function has no final machine function");
-    for (const segment of machineFunctionSegments(machine, fn.body)) {
-      rangeDrafts.push({
-        start: segment.start,
-        end: segment.end,
-        functionIndex,
-        semanticBlock: segment.block,
-        semanticOperation: segment.operation,
-        contextIndex: functionIndex,
-        origin: Object.freeze({
-          kind: "source",
-          span: indexedSpan(segment.source, sourceIndexes),
-        }),
-        owner: Object.freeze({ kind: "function", functionIndex }),
-      });
+    if (fn.machineIds.length === 0)
+      throw new Error("Reachable function has no final machine entry");
+    for (const [variantIndex, machineId] of fn.machineIds.entries()) {
+      const machine = machineFunctions.get(machineId);
+      if (machine === undefined)
+        throw new Error("Reachable function has no final machine function");
+      for (const segment of machineFunctionSegments(machine, fn.body)) {
+        rangeDrafts.push({
+          start: segment.start,
+          end: segment.end,
+          functionIndex,
+          semanticBlock: segment.block,
+          semanticOperation: segment.operation,
+          contextIndex: contextOffsets[functionIndex]! + variantIndex,
+          origin: Object.freeze({
+            kind: "source",
+            span: indexedSpan(segment.source, sourceIndexes),
+          }),
+          owner: Object.freeze({ kind: "function", functionIndex }),
+        });
+      }
     }
   }
   rangeDrafts.sort((left, right) => left.start - right.start || left.end - right.end);
@@ -348,23 +375,33 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       }
       return Object.freeze({
         qualifiedName: fn.qualifiedName,
-        kind: "ordinary",
+        kind: fn.kind,
         declaration: indexedSpan(fn.source, sourceIndexes),
-        entryVariants: Object.freeze([
-          Object.freeze({
-            id: "default",
-            kind: "ordinary",
-            label: acmeLabelName(fn.machineId),
-            rangeIndexes: Object.freeze([...rangeIndexes]),
-          }),
-        ]),
+        entryVariants: Object.freeze(
+          fn.machineIds.map((machineId, variantIndex) =>
+            Object.freeze({
+              id: fn.machineIds.length === 1 && fn.kind === "ordinary" ? "default" : machineId,
+              kind: fn.kind,
+              label: acmeLabelName(machineId),
+              rangeIndexes: Object.freeze(
+                rangeIndexes.filter(
+                  (rangeIndex) =>
+                    rangeDrafts[rangeIndex]!.contextIndex ===
+                    contextOffsets[functionIndex]! + variantIndex,
+                ),
+              ),
+            }),
+          ),
+        ),
         rangeIndexes: Object.freeze([...rangeIndexes]),
       });
     }),
   );
 
-  const entryContexts = executionFunctions.map((_, functionIndex) =>
-    Object.freeze({ kind: "entry", functionIndex, entryVariantIndex: 0 }),
+  const entryContexts = executionFunctions.flatMap((fn, functionIndex) =>
+    fn.machineIds.map((_, entryVariantIndex) =>
+      Object.freeze({ kind: "entry", functionIndex, entryVariantIndex }),
+    ),
   );
   const callContexts = executionFunctions.flatMap((fn, callerIndex) =>
     callsIn(fn.body, input.program.indirectTargets).flatMap((call) => {
@@ -375,7 +412,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
             Object.freeze({
               kind: "call",
               functionIndex,
-              parentContextIndex: callerIndex,
+              parentContextIndex: contextOffsets[callerIndex]!,
               callSite: indexedSpan(call.span, sourceIndexes),
             }),
           ];
@@ -413,7 +450,8 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
   for (const fn of semanticFunctions) {
     const functionIndex = functionIndexes.get(bindingIdentityKey(fn.id));
     if (functionIndex === undefined) throw new Error("Source function has no debug context");
-    const machine = machineFunctions.get(`fn.${bindingIdentityKey(fn.id)}`)!;
+    const sourceFunction = executionFunctions[functionIndex]!;
+    const machine = machineFunctions.get(sourceFunction.machineIds[0]!)!;
     const address = machine.origin!;
     const qualifiedName = String(functions[functionIndex]!.qualifiedName);
     symbolDrafts.push({
@@ -426,14 +464,17 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       scope: fn.id.sourceId,
       origin: Object.freeze({ kind: "source", span: indexedSpan(fn.source, sourceIndexes) }),
       linkage: "internal",
-      labels: Object.freeze([acmeLabelName(machine.id)]),
+      labels: Object.freeze(sourceFunction.machineIds.map(acmeLabelName)),
       liveRangeIndexes: Object.freeze([]),
-      availability: Object.freeze({
-        kind: "constant",
-        bytesHex: `${(address & 0xff).toString(16).padStart(2, "0")}${(address >>> 8)
-          .toString(16)
-          .padStart(2, "0")}`,
-      }),
+      availability:
+        sourceFunction.machineIds.length === 1
+          ? Object.freeze({
+              kind: "constant",
+              bytesHex: `${(address & 0xff).toString(16).padStart(2, "0")}${(address >>> 8)
+                .toString(16)
+                .padStart(2, "0")}`,
+            })
+          : Object.freeze({ kind: "unavailable", reason: "notRepresentable" }),
     });
   }
   for (const global of input.program.semantic.globals) {
@@ -512,20 +553,27 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
     if (helperScratchIds.has(request.id)) continue;
     const functionIndex = functionIndexes.get(bindingIdentityKey(request.owner));
     const home = homes.get(request.id);
-    const functionRanges =
-      functionIndex === undefined ? undefined : functionRangeIndexes.get(functionIndex);
-    if (functionIndex === undefined || home === undefined || functionRanges === undefined) continue;
+    const sourceFunction =
+      functionIndex === undefined ? undefined : executionFunctions[functionIndex];
+    if (functionIndex === undefined || home === undefined || sourceFunction === undefined) continue;
+    const variantIndexes = sourceFunction.machineIds.flatMap((machineId, index) =>
+      request.domain === "irq"
+        ? machineId.includes(".irq") || machineId.includes("_cinv_")
+          ? [index]
+          : []
+        : request.domain === "nmi"
+          ? machineId.includes(".nmi") || machineId.includes("_nminv_")
+            ? [index]
+            : []
+          : machineId === `fn.${bindingIdentityKey(request.owner)}` ||
+              machineId.includes(".main.depth") ||
+              machineId.startsWith("init.")
+            ? [index]
+            : [],
+    );
     const livePositions = new Set(
       request.lifetime.liveAt.map(({ block, operation }) => `${block}\0${operation}`),
     );
-    const liveRangeIndexes = functionRanges.filter((rangeIndex) => {
-      const range = rangeDrafts[rangeIndex]!;
-      if (range.semanticBlock === undefined || range.semanticOperation === null) return false;
-      return livePositions.has(`${range.semanticBlock}\0${range.semanticOperation}`);
-    });
-    if (liveRangeIndexes.length === 0) {
-      throw new Error("Storage request lifetime has no final machine range");
-    }
     const kind =
       request.storageClass === "parameter"
         ? "parameter"
@@ -538,41 +586,56 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
               : "temporary";
     const type = request.type ?? ({ kind: "scalar", name: "byte" } as const);
     const ownerName = String(functions[functionIndex]!.qualifiedName);
-    symbolDrafts.push({
-      name: request.binding === null ? request.id : bindingIdentityKey(request.binding),
-      qualifiedName: `${ownerName}::${request.id}`,
-      kind,
-      type: typeText(type),
-      byteWidth: request.bytes,
-      shape: request.type === null ? Object.freeze([]) : typeShape(request.type),
-      scope: ownerName,
-      origin:
-        request.source === null
-          ? Object.freeze({ kind: "generated", cause: "helper" })
-          : Object.freeze({ kind: "source", span: indexedSpan(request.source, sourceIndexes) }),
-      linkage: "internal",
-      labels: Object.freeze([]),
-      contextIndex: functionIndex,
-      liveRangeIndexes: Object.freeze(liveRangeIndexes),
-      availability:
-        home.bytes === 0
-          ? Object.freeze({ kind: "optimizedAway", rule: "zero-byte position marker" })
-          : Object.freeze({
-              kind: "available",
-              pieces: Object.freeze([
-                Object.freeze({
-                  kind: "memory",
-                  machine: Object.freeze({
-                    addressSpaceIndex: 0,
-                    start: home.address,
-                    end: home.address + home.bytes,
+    for (const variantIndex of variantIndexes) {
+      const contextIndex = contextOffsets[functionIndex]! + variantIndex;
+      const functionRanges = functionRangeIndexes
+        .get(functionIndex)
+        ?.filter((rangeIndex) => rangeDrafts[rangeIndex]!.contextIndex === contextIndex);
+      if (functionRanges === undefined) continue;
+      const liveRangeIndexes = functionRanges.filter((rangeIndex) => {
+        const range = rangeDrafts[rangeIndex]!;
+        if (range.semanticBlock === undefined || range.semanticOperation === null) return false;
+        return livePositions.has(`${range.semanticBlock}\0${range.semanticOperation}`);
+      });
+      if (liveRangeIndexes.length === 0) {
+        throw new Error("Storage request lifetime has no final machine range");
+      }
+      symbolDrafts.push({
+        name: request.binding === null ? request.id : bindingIdentityKey(request.binding),
+        qualifiedName: `${ownerName}::${request.id}`,
+        kind,
+        type: typeText(type),
+        byteWidth: request.bytes,
+        shape: request.type === null ? Object.freeze([]) : typeShape(request.type),
+        scope: ownerName,
+        origin:
+          request.source === null
+            ? Object.freeze({ kind: "generated", cause: "helper" })
+            : Object.freeze({ kind: "source", span: indexedSpan(request.source, sourceIndexes) }),
+        linkage: "internal",
+        labels: Object.freeze([]),
+        contextIndex,
+        liveRangeIndexes: Object.freeze(liveRangeIndexes),
+        availability:
+          home.bytes === 0
+            ? Object.freeze({ kind: "optimizedAway", rule: "zero-byte position marker" })
+            : Object.freeze({
+                kind: "available",
+                pieces: Object.freeze([
+                  Object.freeze({
+                    kind: "memory",
+                    machine: Object.freeze({
+                      addressSpaceIndex: 0,
+                      start: home.address,
+                      end: home.address + home.bytes,
+                    }),
+                    valueOffset: 0,
+                    byteLength: home.bytes,
                   }),
-                  valueOffset: 0,
-                  byteLength: home.bytes,
-                }),
-              ]),
-            }),
-    });
+                ]),
+              }),
+      });
+    }
   }
   symbolDrafts.sort((left, right) =>
     compareText(
@@ -580,8 +643,14 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       `${right.qualifiedName}\0${right.kind}\0${JSON.stringify(right.origin)}`,
     ),
   );
+  const symbolKey = (symbol: (typeof symbolDrafts)[number]): string =>
+    `${symbol.qualifiedName}\0${symbol.kind}\0${JSON.stringify(symbol.origin)}`;
+  const uniqueSymbols = [
+    ...new Map(symbolDrafts.map((symbol) => [symbolKey(symbol), symbol])).values(),
+  ];
+  const symbolIndexes = new Map(uniqueSymbols.map((symbol, index) => [symbolKey(symbol), index]));
   const symbols = Object.freeze(
-    symbolDrafts.map((symbol, symbolIndex) =>
+    uniqueSymbols.map((symbol) =>
       Object.freeze({
         name: symbol.name,
         qualifiedName: symbol.qualifiedName,
@@ -593,14 +662,18 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
         origin: symbol.origin,
         linkage: symbol.linkage,
         labels: symbol.labels,
-        locationIndexes: Object.freeze([symbolIndex]),
+        locationIndexes: Object.freeze(
+          symbolDrafts.flatMap((draft, index) =>
+            symbolKey(draft) === symbolKey(symbol) ? [index] : [],
+          ),
+        ),
       }),
     ),
   );
   const locations = Object.freeze(
-    symbolDrafts.map((symbol, symbolIndex) =>
+    symbolDrafts.map((symbol) =>
       Object.freeze({
-        symbolIndex,
+        symbolIndex: symbolIndexes.get(symbolKey(symbol))!,
         liveRangeIndexes: symbol.liveRangeIndexes,
         availability: symbol.availability,
         ...(symbol.contextIndex === undefined ? {} : { contextIndex: symbol.contextIndex }),

@@ -1,6 +1,7 @@
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { ValueLifetime, WholeProgram } from "../semantic/whole-program.js";
+import type { ExecutionDomain } from "../semantic/interrupt-domains.js";
 
 /** Function-execution storage categories owned by static frame allocation. */
 export type StorageClass =
@@ -24,6 +25,8 @@ export interface StorageRequest {
   readonly storageClass: StorageClass;
   /** Source function which owns the value. */
   readonly owner: BindingId;
+  /** Invocation domain for a private home; absent on older single-domain inputs. */
+  readonly domain?: ExecutionDomain;
   /** Source binding when the request represents declared storage. */
   readonly binding: BindingId | null;
   /** Semantic value identity when the request represents a computed value. */
@@ -36,6 +39,10 @@ export interface StorageRequest {
   readonly alignment: number;
   /** Required or preferred memory region. */
   readonly region: StorageRegionRequirement;
+  /** Two-byte address used by NMOS JMP (indirect), whose low byte cannot be $FF. */
+  readonly pageSafeIndirect?: boolean;
+  /** Value remains live across all source execution and interrupt domains. */
+  readonly persistent?: boolean;
   /** Exact or conservative lifetime used for interference. */
   readonly lifetime: ValueLifetime;
   /** Source location which explains the request, when one exists. */
@@ -54,6 +61,8 @@ export type ResultLocation =
 export interface FunctionResultLocation {
   /** Source function. */
   readonly function: BindingId;
+  /** Entry domain when the same source function has distinct private homes. */
+  readonly domain?: ExecutionDomain;
   /** Selected result location. */
   readonly location: ResultLocation;
 }
@@ -88,7 +97,7 @@ export interface StorageProfile {
   readonly hardwareStackCapacity?: number;
   /** Stack bytes reserved by the selected platform contract. */
   readonly hardwareStackReserve?: number;
-  /** Simultaneous interrupt entry/save bytes owned by the platform contract. */
+  /** Legacy explicit interrupt stack demand for direct storage probes. */
   readonly interruptStackBytes?: number;
   /** Bytes retained on the hardware stack while startup-owned code executes. */
   readonly startupStackBytes?: number;
@@ -187,7 +196,7 @@ export interface StorageClosureCertificate {
   readonly hardwareStackPeak: number;
   /** Largest program-owned startup or call route before interrupt entry. */
   readonly hardwareStackProgramPeak: number;
-  /** Simultaneous platform-owned interrupt entry and save bytes. */
+  /** Selected interrupt entry plus nested handler-call peak. */
   readonly hardwareStackSystemPeak: number;
   /** Exact program-owned route which determines the program peak. */
   readonly hardwareStackRoute: readonly string[];
@@ -207,4 +216,10 @@ export type StorageClosureResult =
       readonly kind: "error";
       readonly reason: "resource" | "nonconvergent" | "stack";
       readonly requestId?: string;
+      /** Measured path depth for an overflowing hardware stack. */
+      readonly measured?: number;
+      /** Capacity after the platform reserve is removed. */
+      readonly available?: number;
+      /** Exact overflowing program and interrupt route. */
+      readonly route?: readonly string[];
     };

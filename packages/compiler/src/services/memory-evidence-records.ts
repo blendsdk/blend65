@@ -152,6 +152,19 @@ export function deriveMemoryIntervals(
         (fn) => [`fn.${bindingIdentityKey(fn.id)}`, functionName(fn)] as const,
       ),
     );
+    for (const fn of inventory.program.semantic.functions) {
+      const key = bindingIdentityKey(fn.id);
+      for (const machine of layout.program.functions) {
+        if (
+          (fn.entryKind === "interrupt" && machine.id.startsWith(`interrupt.${key}.`)) ||
+          machine.id.startsWith(`fn.${key}.main.depth`) ||
+          machine.id.startsWith(`fn.${key}.irq`) ||
+          machine.id.startsWith(`fn.${key}.nmi`)
+        ) {
+          sourceOwners.set(machine.id, functionName(fn));
+        }
+      }
+    }
     for (const initializer of inventory.program.initializers ?? []) {
       sourceOwners.set(
         `init.${bindingIdentityKey(initializer.binding)}`,

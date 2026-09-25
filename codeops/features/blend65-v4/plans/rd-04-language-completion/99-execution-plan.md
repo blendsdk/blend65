@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-25
-> **Progress**: 57/99 tasks (58%)
+> **Progress**: 67/99 tasks (68%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -315,31 +315,34 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 
 ## Phase 6: Interrupt Functions and Execution Domains
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `36e3864f4077702d087e572299657086387d76a8`
+> **Expected modification set**: Phase 6 task paths in `packages/compiler/src/target/`, `frontend/`, `semantic/`, `storage/`, `machine/`, `layout/`, and `artifacts/`; `test/rd04/` interrupt evidence; this plan and the feature roadmap. Scope mode: strict; complete finite interrupt domains through existing compiler stages, with no runtime, scheduler, or framework.
 > **Lenses**: interrupt semantics, stack/flag correctness, concurrency, SFA domains
 
 ### Step 6.1: Specification Tests
 
 **Reference**: [03-03 §Interrupt Domains](03-03-calls-abi-and-sfa.md#interrupt-domains) · ST-35–ST-38
 
-- [ ] 6.1.1 [spec-author] Write sink, entry-variant, ownership, stack and shared-state specification cases — `packages/compiler/src/frontend/profile.spec.test.ts`, `packages/compiler/src/storage/sfa.spec.test.ts`, `test/rd04/interrupts.spec.test.ts`
-- [ ] 6.1.2 Run only the new Phase 6 specification cases and record the expected red failures — Phase 6 test files
+- [x] 6.1.1 [spec-author] Write sink, entry-variant, ownership, stack and shared-state specification cases — `packages/compiler/src/frontend/profile.spec.test.ts`, `packages/compiler/src/storage/sfa.spec.test.ts`, `test/rd04/interrupts.spec.test.ts` — Verified 2026-09-25 02:35: 14 new specification cases are RED as required; targeted typecheck and formatting pass.
+- [x] 6.1.2 Run only the new Phase 6 specification cases and record the expected red failures — Phase 6 test files — Verified 2026-09-25 02:35: compiler 8/8 new cases RED, root 6/6 RED; other 26 directed cases pass. Existing frontend accepts invalid handler forms or returns incomplete; build returns COMPILER_INCOMPLETE for sink/entry/domain paths.
 
 ### Step 6.2: Implementation
 
-- [ ] 6.2.1 Complete profile interrupt sinks, source-kind provenance and entry selection — `packages/compiler/src/target/profile.ts`, `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/semantic/operations.ts`
-- [ ] 6.2.2 Add execution domains, install/restore ownership and shared-state hazard analysis — `packages/compiler/src/frontend/effects.ts`, `packages/compiler/src/semantic/whole-program.ts`, `packages/compiler/src/frontend/flow.ts`
-- [ ] 6.2.3 Allocate domain-specific homes/variants and exact stack peaks — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/interference.ts`, `packages/compiler/src/storage/closure.ts`
-- [ ] 6.2.4 Lower raw, firmware-chain, firmware-exclusive and ordinary callback entries — `packages/compiler/src/machine/lower-c64.ts`, `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/layout/startup.ts`
-- [ ] 6.2.5 Publish variant, vector, predecessor-link, stack, ROM-tail and shared-state evidence — `packages/compiler/src/artifacts/debug-evidence-validator.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`
-- [ ] 6.2.6 Run Phase 6 specification cases and make all immutable expectations green — Phase 6 test files
+- [x] 6.2.1 Complete profile interrupt sinks, source-kind provenance and entry selection — `packages/compiler/src/target/profile.ts`, `packages/compiler/src/frontend/profile.ts`, `packages/compiler/src/semantic/operations.ts` — Verified 2026-09-25 09:03: 51 directed frontend, target and semantic cases pass; compiler typecheck, formatting, whitespace and frozen-spec checks pass. AR-P15's old exact list was updated narrowly; later tasks consume the selected profile route and lower the machine entry.
+- [x] 6.2.2 Add execution domains, install/restore ownership and shared-state hazard analysis — `packages/compiler/src/frontend/effects.ts`, `packages/compiler/src/semantic/whole-program.ts`, `packages/compiler/src/frontend/flow.ts` — Verified 2026-09-25 10:11: profile-selected handler domains propagate through the closed call graph; ordered per-sink ownership effects detect unmatched restores, unequal joins, and raw-vector invalidation across helpers; source effects yield shared-state warnings. Compiler typecheck, 51 directed tests, targeted formatting, raw-helper and hazard probes, whitespace and frozen-spec checks pass. Four end-to-end interrupt cases remain expected-RED at machine lowering. ✅ (completed: 2026-09-25 10:11)
+- [x] 6.2.3 Allocate domain-specific homes/variants and exact stack peaks — `packages/compiler/src/storage/inventory.ts`, `packages/compiler/src/storage/interference.ts`, `packages/compiler/src/storage/closure.ts` — Verified 2026-09-25: independent mainline/IRQ homes and finite stack-capacity rejection pass directed and full checks. RV-010 notes a safe but sometimes conservative pairing of independent stack maxima; the precise-route correction is tracked for RD-04 Phase 9 in the expressiveness ledger.
+- [x] 6.2.4 Lower raw, firmware-chain, firmware-exclusive and ordinary callback entries — `packages/compiler/src/machine/lower-c64.ts`, `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/layout/startup.ts` — Verified 2026-09-25: selected entries, explicit raw addresses, initializer depth, direct conditional IRQ selection and AR-P17 E10245 rejection pass directed and full checks. Sink-only conditional selection emits no duplicate raw RTI body.
+- [x] 6.2.5 Publish variant, vector, predecessor-link, stack, ROM-tail and shared-state evidence — `packages/compiler/src/artifacts/debug-evidence-validator.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Verified 2026-09-25: multi-location machine variants, links and complete evidence pass directed and full checks. RV-009's source-call context on later variants remains a minor RD-04 qualification item.
+- [x] 6.2.6 Run Phase 6 specification cases and make all immutable expectations green — Phase 6 test files — Verified 2026-09-25: all 14 Phase 6 specification cases pass unchanged after their red baseline; full suite passes (1,180 compiler and 140 root tests).
 
 ### Step 6.3: Implementation Tests and Qualification
 
-- [ ] 6.3.1 Add domain-overlap, unsafe-nesting, join-state and page-wrap implementation tests — `packages/compiler/src/semantic/whole-program.impl.test.ts`, `packages/compiler/src/storage/closure.impl.test.ts`, `packages/compiler/src/machine/lowering-c64.impl.test.ts`
-- [ ] 6.3.2 Run complete interrupt ACME/VICE state and equal-contract expert qualification — `test/rd04/interrupts.spec.test.ts`, `test/rd04/expert/interrupts.json`, `test/rd04/vice.spec.test.ts`
+- [x] 6.3.1 Add domain-overlap, unsafe-nesting, join-state and page-wrap implementation tests — `packages/compiler/src/semantic/whole-program.impl.test.ts`, `packages/compiler/src/storage/closure.impl.test.ts`, `packages/compiler/src/machine/lowering-c64.impl.test.ts` — Verified 2026-09-25: directed coverage includes transitive handler-side rejection, balanced ownership, separate homes, nested links, finite conditional selection, initializer depth, raw address use and evidence variants.
+- [x] 6.3.2 Run complete interrupt ACME/VICE state and equal-contract expert qualification — `test/rd04/interrupts.spec.test.ts`, `test/rd04/expert/interrupts.json`, `test/rd04/vice.spec.test.ts` — Verified 2026-09-25: install/restore, conditional choices, entry costs and stack balance pass ACME and sequential VICE; final install/build/typecheck/full tests pass (1,185 compiler and 141 root tests). Status: VICE-verified / hardware-unverified. Meet-only whole-program win path is tracked in issue #85.
 
 **Deliverables:** finite zero-runtime interrupt domains with exact selected C64 entries.
+
+**Review status (2026-09-25):** RV-002–RV-006 are fixed and the one allowed re-review confirms their functional paths. RV-001 spec tests were authored and shown RED before implementation, then left unchanged. RV-008's raw RTI duplication is corrected by lowering a direct conditional sink choice as two exclusive control-flow arms; directed machine and VICE cases pass and assert only the two selected CINV entries. This compiler-owned correction adds no runtime state. RV-009 (source-call context on only the first machine variant) and RV-010 (conservative rather than exact mainline/IRQ stack pairing) are minor, recorded for RD-04 qualification. AR-P17's approved handler-side IRQ update deferral is enforced with E10245 and owned by RD-05. No third independent review is dispatched under the one-re-review limit.
 
 **Verify:** `yarn install --frozen-lockfile && yarn build && yarn typecheck && yarn test`
 

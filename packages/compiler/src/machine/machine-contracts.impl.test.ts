@@ -227,15 +227,11 @@ describe("machine contract corrections", () => {
     const stackBoundary = Object.freeze({
       ...profile.storage,
       hardwareStackCapacity:
-        profile.storage.hardwareStackReserve! +
-        profile.storage.interruptStackBytes! +
-        profile.storage.startupStackBytes!,
+        profile.storage.hardwareStackReserve! + profile.storage.startupStackBytes!,
     });
     const closure = closeStorage(inventory, stackBoundary, result.binder);
     if (closure.kind !== "complete") throw new Error("Expected word-read closure");
-    expect(closure.certificate.hardwareStackPeak).toBe(
-      profile.storage.interruptStackBytes! + profile.storage.startupStackBytes!,
-    );
+    expect(closure.certificate.hardwareStackPeak).toBe(profile.storage.startupStackBytes!);
     const bound = bindMachineProgram(result.program, closure.certificate);
     if (bound.kind !== "complete") throw new Error("Expected word-read binding");
     const effects = bound.program.functions[0]!.blocks[0]!.instructions.flatMap(

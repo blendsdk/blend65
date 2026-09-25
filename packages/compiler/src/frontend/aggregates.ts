@@ -511,6 +511,15 @@ function analyzeIndex(
   };
 }
 
+/** Keep a visible handler address through an explicit word conversion. */
+function retainsHandlerAddress(expression: TypedExpr): boolean {
+  if (expression.type.kind === "interrupt-handler") return true;
+  const operand = expression.operand;
+  return expression.kind === "cast" && operand !== undefined && "type" in operand
+    ? retainsHandlerAddress(operand)
+    : false;
+}
+
 /** Type raw-memory and byte-extraction built-ins without fabricating declarations. */
 function analyzeBuiltinCall(
   expression: Extract<Expr, { readonly kind: "call" }>,
@@ -583,6 +592,23 @@ function analyzeBuiltinCall(
     else arguments_.push(result.node);
   });
   if (!valid) return { node: null, exact: null };
+  if (
+    name === "pokew" &&
+    (arguments_[0]?.constant === 0x0314n || arguments_[0]?.constant === 0x0318n) &&
+    arguments_[1] !== undefined &&
+    retainsHandlerAddress(arguments_[1])
+  ) {
+    const vector = arguments_[0].constant === 0x0314n ? "$0314" : "$0318";
+    const sink = vector === "$0314" ? "c64.system.setIRQ" : "c64.system.setNMI";
+    host.diagnose(
+      projectDiagnostic(
+        "E10252",
+        `Raw interrupt-entry address '${host.sourceText(expression.arguments[1]!.span)}' cannot be written directly to firmware vector '${vector}' — use '${sink}' so the compiler selects the required entry variant`,
+        expression.span,
+      ),
+    );
+    return { node: null, exact: null };
+  }
   if (
     (name === "poke" || name === "pokew") &&
     arguments_[0]?.addressPlaces?.some((place) => place.readonly)

@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "limitations": [
+    {
+      "id": "v4-nmi-installation",
+      "status": "deferred",
+      "sourceForm": "setNMI or setNMIExclusive in the selected C64 profile",
+      "diagnostic": "E10245",
+      "reason": "NMI self-reentry and a two-byte vector update do not yet have a finite safety proof",
+      "owner": "RD-05 R5.15–R5.17",
+      "decision": "AR-P16"
+    },
+    {
+      "id": "v4-handler-irq-update",
+      "status": "deferred",
+      "sourceForm": "setIRQ, setIRQExclusive, or restoreIRQ reached during IRQ-handler execution",
+      "diagnostic": "E10245",
+      "reason": "A handler-side install can overwrite a predecessor link still live in an interrupted handler",
+      "owner": "RD-05 R5.16",
+      "decision": "AR-P17"
+    },
+    {
+      "id": "v4-stack-route-overestimate",
+      "status": "open",
+      "sourceForm": "a deep mainline call path that cannot overlap an installed IRQ handler",
+      "diagnostic": "E10238",
+      "reason": "The current stack bound adds independent program and IRQ maxima, so it may reject a feasible program near capacity",
+      "owner": "RD-04 Phase 9 qualification",
+      "decision": "Phase 6 minor review finding RV-007"
+    }
+  ]
+}

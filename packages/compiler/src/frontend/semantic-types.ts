@@ -124,6 +124,8 @@ export function semanticTypeKey(type: SemanticType): string {
 export interface SemanticBinding extends Binding {
   /** Resolved type, or null when the declaration cannot supply one. */
   readonly type: SemanticType | null;
+  /** A source function's entry kind; profile operations have no source body. */
+  readonly functionMode?: "ordinary" | "comptime" | "interrupt";
   /** A parameter carries its outer array extent separately from the element type. */
   readonly outerUnsized?: true;
   /** Target-neutral operation behavior for a profile-supplied function. */
@@ -702,6 +704,8 @@ export interface ScalarExpressionHost {
   signature(binding: BindingId): FunctionSignature | null;
   /** Return whether a binding denotes a function whose signature may still be pending. */
   isFunction(binding: BindingId): boolean;
+  /** Return the source entry kind for a declared function, when one exists. */
+  functionMode?(binding: BindingId): "ordinary" | "comptime" | "interrupt" | null;
   /** Append a proving diagnostic. */
   diagnose(diagnostic: ProjectDiagnostic): void;
   /** Retain a valid expression belonging to a later slice. */

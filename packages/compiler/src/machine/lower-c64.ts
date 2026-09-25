@@ -2,6 +2,9 @@ import type { SourceSpan } from "../project/types.js";
 import type { PlatformOperation } from "../semantic/operations.js";
 import type { StorageRequest } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
+import type { InterruptVariantFacts } from "../target/profile.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import type { BindingId } from "../frontend/semantic-types.js";
 import {
   machineInstruction,
   modeForValue,
@@ -12,7 +15,12 @@ import type {
   MachineDataObject,
   MachineInstruction,
   MachineMemoryEffect,
+  MachineFunction,
+  MachineBlock,
 } from "./machine-types.js";
+
+/** Machine entry facts also cover an address-only raw callback outside profile sinks. */
+type MachineEntryFacts = Omit<InterruptVariantFacts, "id"> & { readonly id: string };
 
 /** Direct storage callback for a dynamic shared-register update. */
 export interface C64LoweringSupport {
@@ -23,6 +31,11 @@ export interface C64LoweringSupport {
     source: SourceSpan,
     reason: string,
   ) => StorageRequest;
+  /** Bind a recognized vector operation to its compile-time predecessor word. */
+  readonly interruptBinding?: (operation: PlatformOperation) => {
+    readonly linkRequestId: string;
+    readonly entryLabel: string | null;
+  };
 }
 
 /** Successful direct platform lowering and its directly consumed immutable tables. */
@@ -54,6 +67,131 @@ const SELECTION_TABLE: MachineDataObject = Object.freeze({
   alignment: 1,
   bytes: Object.freeze([...new Array<number>(8).fill(0), ...BIT_MASKS]),
 });
+
+/** Stable label for a handler body bound to one entry ABI and predecessor depth. */
+export function c64InterruptEntryLabel(
+  handler: BindingId,
+  variant: InterruptVariantFacts,
+  depth: number,
+): string {
+  return `interrupt.${bindingIdentityKey(handler)}.${variant.id}.depth${depth}`;
+}
+
+/** A raw handler value has the CPU-entry ABI even when no raw installer is exposed. */
+export const RAW_HANDLER_ENTRY: MachineEntryFacts = Object.freeze({
+  id: "raw_handler_address",
+  registerSaveOwner: "compiler",
+  handlerEntryStackBytes: 6,
+  decimalModeOnBodyEntry: "binary",
+  entryStatusPolicy: "restore-by-rti",
+  terminal: "rti",
+  staticLinkBytes: 0,
+});
+
+/** Build one fixed, page-safe firmware entry around a callback-only source body. */
+export function createC64InterruptEntry(
+  body: MachineFunction,
+  id: string,
+  variant: MachineEntryFacts,
+  linkRequestId: string | null,
+  profile: TargetProfile,
+): MachineFunction {
+  const cpu = profile.cpu;
+  const instruction = (
+    opcode: string,
+    mode: "implied" | "absolute" | "indirect",
+    operand: MachineInstruction["operand"] = null,
+  ) => machineInstruction(cpu, opcode, mode, operand, []);
+  const saveRegisters = [
+    instruction("pha", "implied"),
+    instruction("txa", "implied"),
+    instruction("pha", "implied"),
+    instruction("tya", "implied"),
+    instruction("pha", "implied"),
+  ];
+  const restoreRegisters = [
+    instruction("pla", "implied"),
+    instruction("tay", "implied"),
+    instruction("pla", "implied"),
+    instruction("tax", "implied"),
+    instruction("pla", "implied"),
+  ];
+  const chain = variant.terminal === "jump-saved-vector";
+  const saves = variant.registerSaveOwner === "compiler";
+  const prologue = [
+    ...(chain ? [instruction("php", "implied")] : []),
+    ...(saves ? saveRegisters : []),
+    instruction("cld", "implied"),
+  ];
+  const epilogue = [
+    ...(saves ? restoreRegisters : []),
+    ...(chain ? [instruction("plp", "implied")] : []),
+  ];
+  if (chain) {
+    if (linkRequestId === null) throw new Error("Chained interrupt entry has no saved vector");
+    epilogue.push(
+      instruction(
+        "jmp",
+        "indirect",
+        Object.freeze({ kind: "storage", requestId: linkRequestId, offset: 0 }),
+      ),
+    );
+  } else if (variant.terminal === "jump-firmware-tail") {
+    if (variant.terminalAddress === undefined) throw new Error("Firmware tail has no address");
+    epilogue.push(
+      instruction(
+        "jmp",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: variant.terminalAddress }),
+      ),
+    );
+  } else {
+    epilogue.push(instruction("rti", "implied"));
+  }
+  const labels = new Map(
+    body.blocks.map((block) => [block.label, `${block.label}.${id}`] as const),
+  );
+  const renamed = (label: string) => labels.get(label) ?? label;
+  const blocks: MachineBlock[] = body.blocks.map((block, index) => {
+    const terminator = block.terminator;
+    const nextTerminator =
+      terminator.kind === "return"
+        ? Object.freeze({ kind: "unreachable" as const })
+        : terminator.kind === "jump"
+          ? Object.freeze({ ...terminator, target: renamed(terminator.target) })
+          : terminator.kind === "branch"
+            ? Object.freeze({
+                ...terminator,
+                target: renamed(terminator.target),
+                fallthrough: renamed(terminator.fallthrough),
+              })
+            : terminator.kind === "fallthrough"
+              ? Object.freeze({ ...terminator, target: renamed(terminator.target) })
+              : terminator;
+    return Object.freeze({
+      ...block,
+      label: renamed(block.label),
+      instructions: Object.freeze([
+        ...(index === 0 ? prologue : []),
+        ...block.instructions.map((op) =>
+          op.operand?.kind === "label" && labels.has(op.operand.label)
+            ? Object.freeze({
+                ...op,
+                operand: Object.freeze({ ...op.operand, label: renamed(op.operand.label) }),
+              })
+            : op,
+        ),
+        ...(terminator.kind === "return" ? epilogue : []),
+      ]),
+      terminator: nextTerminator,
+    });
+  });
+  return Object.freeze({
+    id,
+    blocks: Object.freeze(blocks),
+    ...(body.placement === undefined ? {} : { placement: body.placement }),
+  });
+}
 
 /** Return one already evaluated argument. */
 function argument(
@@ -320,6 +458,115 @@ export function lowerC64Operation(
   const cpu = profile.cpu;
   const machine = profile.machine;
   const source = operation.span;
+
+  const sink = profile.interrupts.sinks.find(
+    ({ capability }) => capability === operation.capability,
+  );
+  const restoreVector =
+    operation.capability === "c64.system.restoreIRQ"
+      ? 0x0314
+      : operation.capability === "c64.system.restoreNMI"
+        ? 0x0318
+        : null;
+  if (sink !== undefined || restoreVector !== null) {
+    const binding = support.interruptBinding?.(operation);
+    if (binding === undefined || (sink !== undefined && binding.entryLabel === null)) {
+      throw new Error("Interrupt vector operation has no static ownership binding");
+    }
+    const vector = sink?.vector ?? restoreVector!;
+    const instructions: MachineInstruction[] = [
+      machineInstruction(cpu, "php", "implied", null, [], source),
+      machineInstruction(cpu, "pha", "implied", null, [], source),
+      machineInstruction(cpu, "sei", "implied", null, [], source),
+    ];
+    for (let offset = 0; offset < 2; offset += 1) {
+      instructions.push(
+        machineInstruction(
+          cpu,
+          "lda",
+          sink === undefined ? "storage" : "absolute",
+          sink === undefined
+            ? Object.freeze({ kind: "storage", requestId: binding.linkRequestId, offset })
+            : Object.freeze({ kind: "absolute", value: vector + offset }),
+          sink === undefined
+            ? [
+                Object.freeze({
+                  kind: "read",
+                  address: Object.freeze({
+                    kind: "storage",
+                    requestId: binding.linkRequestId,
+                    offset,
+                  }),
+                  width: 1,
+                  volatile: false,
+                  order: offset,
+                }),
+              ]
+            : [fixedEffect("read", vector + offset, offset)],
+          source,
+        ),
+        machineInstruction(
+          cpu,
+          "sta",
+          sink === undefined ? "absolute" : "storage",
+          sink === undefined
+            ? Object.freeze({ kind: "absolute", value: vector + offset })
+            : Object.freeze({ kind: "storage", requestId: binding.linkRequestId, offset }),
+          sink === undefined
+            ? [fixedEffect("write", vector + offset, offset + 2)]
+            : [
+                Object.freeze({
+                  kind: "write",
+                  address: Object.freeze({
+                    kind: "storage",
+                    requestId: binding.linkRequestId,
+                    offset,
+                  }),
+                  width: 1,
+                  volatile: false,
+                  order: offset + 2,
+                }),
+              ],
+          source,
+        ),
+      );
+    }
+    if (sink !== undefined) {
+      for (let offset = 0; offset < 2; offset += 1) {
+        instructions.push(
+          machineInstruction(
+            cpu,
+            "lda",
+            "immediate",
+            Object.freeze({
+              kind: "label",
+              label: binding.entryLabel!,
+              addressByte: offset === 0 ? "low" : "high",
+            }),
+            [],
+            source,
+          ),
+          machineInstruction(
+            cpu,
+            "sta",
+            "absolute",
+            Object.freeze({ kind: "absolute", value: vector + offset }),
+            [fixedEffect("write", vector + offset, offset + 4)],
+            source,
+          ),
+        );
+      }
+    }
+    instructions.push(
+      machineInstruction(cpu, "pla", "implied", null, [], source),
+      machineInstruction(cpu, "plp", "implied", null, [], source),
+    );
+    return Object.freeze({
+      instructions: Object.freeze(instructions),
+      result: null,
+      data: Object.freeze([]),
+    });
+  }
 
   if (operation.capability === "c64.video.waitNextFrame") {
     const instructions = [0, 1].flatMap((order) => [

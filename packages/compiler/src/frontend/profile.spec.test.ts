@@ -102,6 +102,42 @@ describe("selected frontend profile", () => {
         effect: "volatile-read",
       },
       {
+        name: "c64.system.restoreIRQ",
+        parameters: [],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.system.restoreNMI",
+        parameters: [],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.system.setIRQ",
+        parameters: ["interrupt-handler"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.system.setIRQExclusive",
+        parameters: ["interrupt-handler"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.system.setNMI",
+        parameters: ["interrupt-handler"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
+        name: "c64.system.setNMIExclusive",
+        parameters: ["interrupt-handler"],
+        returnType: "void",
+        effect: "volatile-write",
+      },
+      {
         name: "c64.vic.setBorderColor",
         parameters: ["byte"],
         returnType: "void",
@@ -185,6 +221,72 @@ describe("selected frontend profile", () => {
     expect(result).not.toHaveProperty("profile");
     if (result.kind !== "error") throw new Error("Expected an unknown-profile error");
     expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10279"]);
+  });
+});
+
+describe("interrupt source and sink types", () => {
+  it.each([
+    ["parameter", "interrupt function handler(value: byte): void {}"],
+    ["return value", "interrupt function handler(): byte { return 1; }"],
+  ])("rejects an interrupt handler with a %s", (_case, declaration) => {
+    const result = analyzeProject(snapshot(`module Game; ${declaration} function main(): void {}`));
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10050");
+  });
+
+  it("rejects a source call to an interrupt handler", () => {
+    const result = analyzeProject(
+      snapshot(
+        "module Game; interrupt function handler(): void {} function main(): void { handler(); }",
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10051");
+  });
+
+  it("accepts a handler address at a compatible interrupt sink", () => {
+    const result = analyzeProject(
+      snapshot(
+        "module Game; import { setIRQ, restoreIRQ } from c64.system; interrupt function handler(): void {} function main(): void { setIRQ(&handler); restoreIRQ(); }",
+      ),
+    );
+
+    expect(result.kind).toBe("complete");
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("rejects an ordinary function at an interrupt sink", () => {
+    const result = analyzeProject(
+      snapshot(
+        "module Game; import { setIRQ } from c64.system; function ordinary(): void {} function main(): void { setIRQ(&ordinary); }",
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10244");
+  });
+
+  it("does not offer the raw IRQ sink in a KERNAL-owned profile", () => {
+    const result = analyzeProject(
+      snapshot(
+        "module Game; import { setRawIRQ } from c64.system; interrupt function handler(): void {} function main(): void { setRawIRQ(&handler); }",
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+  });
+
+  it("rejects a visible raw handler address written to the post-save CINV vector", () => {
+    const result = analyzeProject(
+      snapshot(
+        "module Game; interrupt function handler(): void {} function main(): void { pokew($0314, word(&handler)); }",
+      ),
+    );
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10252");
   });
 });
 

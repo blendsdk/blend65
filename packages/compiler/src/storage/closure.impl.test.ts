@@ -200,7 +200,7 @@ describe("static storage closure implementation", () => {
     expect(exact).toMatchObject({ kind: "complete", certificate: { hardwareStackPeak: 7 } });
 
     const exceeded = closeStorage(initial, profile(8), () => Object.freeze([]));
-    expect(exceeded).toEqual({ kind: "error", reason: "stack" });
+    expect(exceeded).toMatchObject({ kind: "error", reason: "stack", measured: 7, available: 6 });
     expect(exceeded).not.toHaveProperty("certificate");
   });
 

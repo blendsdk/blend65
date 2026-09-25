@@ -82,6 +82,17 @@ export function analyzeDirectCall(
   }
   const calleeBinding = callee.node.binding;
   const direct = calleeBinding !== null && host.isFunction(calleeBinding);
+  if (direct && calleeBinding !== null && host.functionMode?.(calleeBinding) === "interrupt") {
+    host.diagnose(
+      projectDiagnostic(
+        "E10051",
+        `Interrupt function '${callee.node.name ?? callee.node.member ?? "handler"}' is callback-only and cannot be called directly`,
+        expression.callee.span,
+      ),
+    );
+    for (const argument of expression.arguments) analyze(argument, null, context);
+    return { node: null, exact: null };
+  }
   const signature = direct
     ? host.signature(calleeBinding)
     : callee.node.type.kind === "function"
@@ -117,10 +128,16 @@ export function analyzeDirectCall(
   const arguments_: TypedExpr[] = [];
   expression.arguments.forEach((argument, index) => {
     const parameter = signature.parameters[index];
-    const result = analyze(argument, parameter?.outerUnsized ? null : (parameter?.type ?? null), {
-      ...context,
-      ordinalContext: false,
-    });
+    const result = analyze(
+      argument,
+      parameter?.outerUnsized || parameter?.type.kind === "interrupt-handler"
+        ? null
+        : (parameter?.type ?? null),
+      {
+        ...context,
+        ordinalContext: false,
+      },
+    );
     if (result.node === null) {
       valid = false;
       return;
@@ -135,6 +152,21 @@ export function analyzeDirectCall(
         projectDiagnostic(
           parameter.type.kind === "struct" ? "E10094" : "E10122",
           `Cannot pass const aggregate to mutable parameter ${index + 1} of '${name}()'`,
+          argument.span,
+        ),
+      );
+      valid = false;
+    }
+    if (
+      parameter?.type.kind === "interrupt-handler" &&
+      result.node.type.kind !== "interrupt-handler"
+    ) {
+      host.diagnose(
+        projectDiagnostic(
+          result.node.type.kind === "function" ? "E10244" : "E10247",
+          result.node.type.kind === "function"
+            ? `Ordinary function value '${host.sourceText(argument.span)}' cannot be installed in interrupt-handler sink '${name}' — use an interrupt function`
+            : `Cannot prove the entry ABI of the value passed to function-address sink '${name}' — pass a provenance-preserving handler address`,
           argument.span,
         ),
       );

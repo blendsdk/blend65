@@ -29,12 +29,15 @@ function requestFingerprint(request: StorageRequest): string {
     request.id,
     request.storageClass,
     bindingIdentityKey(request.owner),
+    request.domain ?? null,
     request.binding === null ? null : bindingIdentityKey(request.binding),
     request.value,
     request.type,
     request.bytes,
     request.alignment,
     request.region,
+    request.pageSafeIndirect ?? false,
+    request.persistent ?? false,
     [
       bindingIdentityKey(request.lifetime.function),
       request.lifetime.value,
@@ -51,7 +54,11 @@ function requestFingerprint(request: StorageRequest): string {
 
 /** Render one ABI result decision for deterministic certificate identity. */
 function resultFingerprint(result: FunctionResultLocation): string {
-  return JSON.stringify([bindingIdentityKey(result.function), result.location]);
+  return JSON.stringify([
+    bindingIdentityKey(result.function),
+    result.domain ?? null,
+    result.location,
+  ]);
 }
 
 /** Render one selected helper call for deterministic ordering and validation. */
@@ -164,10 +171,10 @@ function deeperStackRoute(left: HardwareStackRoute, right: HardwareStackRoute): 
 }
 
 /** Compute the deepest reachable direct-call chain and retain the exact winning route. */
-function hardwareCallRoute(
+function hardwareCallRoutes(
   inventory: StorageInventory,
   helperCalls: readonly HelperCallDemand[],
-): HardwareStackRoute {
+): { readonly program: HardwareStackRoute; readonly interrupt: HardwareStackRoute } {
   const graph = new Map(
     inventory.program.callGraph.map(
       (entry) =>
@@ -196,6 +203,27 @@ function hardwareCallRoute(
   }
   const memo = new Map<string, HardwareStackRoute>();
   const active = new Set<string>();
+  const vectorUpdateBytes = (functionKey: string): number => {
+    const fn = inventory.program.semantic.functions.find(
+      ({ id }) => bindingIdentityKey(id) === functionKey,
+    );
+    return fn?.blocks.some((block) =>
+      block.operations.some(
+        (operation) =>
+          operation.kind === "platform" &&
+          new Set([
+            "c64.system.setIRQ",
+            "c64.system.setIRQExclusive",
+            "c64.system.restoreIRQ",
+            "c64.system.setNMI",
+            "c64.system.setNMIExclusive",
+            "c64.system.restoreNMI",
+          ]).has(operation.capability),
+      ),
+    )
+      ? 2
+      : 0;
+  };
   const depth = (functionKey: string): HardwareStackRoute => {
     const known = memo.get(functionKey);
     if (known !== undefined) return known;
@@ -213,6 +241,12 @@ function hardwareCallRoute(
         helper === undefined ? [functionKey] : [functionKey, `helper:${helper.id}`],
       ),
     });
+    if (vectorUpdateBytes(functionKey) > functionDepth.bytes) {
+      functionDepth = Object.freeze({
+        bytes: 2,
+        route: Object.freeze([functionKey, "interrupt-vector-update"]),
+      });
+    }
     for (const callee of graph.get(functionKey) ?? []) {
       const calleeDepth = depth(callee);
       const candidate = Object.freeze({
@@ -265,7 +299,18 @@ function hardwareCallRoute(
       deepest = deeperStackRoute(deepest, initializerDepth);
     }
   }
-  return deepest;
+  let interrupt: HardwareStackRoute = Object.freeze({ bytes: 0, route: Object.freeze([]) });
+  for (const route of inventory.program.interruptRoutes ?? []) {
+    const body = depth(bindingIdentityKey(route.handler));
+    interrupt = deeperStackRoute(
+      interrupt,
+      Object.freeze({
+        bytes: route.variant.handlerEntryStackBytes + body.bytes,
+        route: Object.freeze([`interrupt:${route.variant.id}`, ...body.route]),
+      }),
+    );
+  }
+  return Object.freeze({ program: deepest, interrupt });
 }
 
 /** Return the proved hardware-stack split, or null when it exceeds the selected capacity. */
@@ -279,8 +324,9 @@ function hardwareStackPeak(
   readonly system: number;
   readonly route: readonly string[];
 } | null {
-  const call = hardwareCallRoute(inventory, helperCalls);
-  if (!Number.isFinite(call.bytes)) return null;
+  const routes = hardwareCallRoutes(inventory, helperCalls);
+  if (!Number.isFinite(routes.program.bytes) || !Number.isFinite(routes.interrupt.bytes))
+    return null;
   if (
     (profile.hardwareStackCapacity !== undefined &&
       (!Number.isInteger(profile.hardwareStackCapacity) || profile.hardwareStackCapacity < 0)) ||
@@ -295,15 +341,18 @@ function hardwareStackPeak(
   }
   const startup = profile.startupStackBytes ?? 0;
   const program = deeperStackRoute(
-    call,
+    routes.program,
     Object.freeze({ bytes: startup, route: Object.freeze(["startup"]) }),
   );
-  const system = profile.interruptStackBytes ?? 0;
+  const system = Math.max(routes.interrupt.bytes, profile.interruptStackBytes ?? 0);
   const total = program.bytes + system;
-  const result = Object.freeze({ total, program: program.bytes, system, route: program.route });
-  if (profile.hardwareStackCapacity === undefined) return result;
-  const available = profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0);
-  return total <= available ? result : null;
+  const result = Object.freeze({
+    total,
+    program: program.bytes,
+    system,
+    route: Object.freeze([...program.route, ...routes.interrupt.route]),
+  });
+  return result;
 }
 
 /** Build the provisional closure proof for one stable inventory and placement. */
@@ -454,6 +503,18 @@ export function closeStorage(
     }
     const stackPeak = hardwareStackPeak(inventory, profile, helperCalls);
     if (stackPeak === null) return Object.freeze({ kind: "error", reason: "stack" });
+    if (
+      profile.hardwareStackCapacity !== undefined &&
+      stackPeak.total > profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0)
+    ) {
+      return Object.freeze({
+        kind: "error",
+        reason: "stack",
+        measured: stackPeak.total,
+        available: profile.hardwareStackCapacity - (profile.hardwareStackReserve ?? 0),
+        route: stackPeak.route,
+      });
+    }
     return Object.freeze({
       kind: "complete",
       inventory,

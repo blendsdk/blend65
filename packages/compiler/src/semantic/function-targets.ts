@@ -3,6 +3,7 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, FunctionType, SemanticType } from "../frontend/semantic-types.js";
 import type {
   IndirectCallOperation,
+  PlatformOperation,
   SemanticBlock,
   SemanticFunction,
   SemanticOperation,
@@ -13,6 +14,17 @@ import type {
 
 /** Finite source targets proved for every indirect call in a closed semantic program. */
 export type IndirectTargetSets = ReadonlyMap<IndirectCallOperation, readonly BindingId[]>;
+
+/** Finite source handlers proved for each recognized platform sink operation. */
+export type HandlerTargetSets = ReadonlyMap<PlatformOperation, readonly BindingId[]>;
+
+/** Ordinary indirect-call and interrupt-sink targets from one fixed-point proof. */
+export interface ResolvedTargetSets {
+  /** Exact candidates for ordinary indirect calls. */
+  readonly indirect: IndirectTargetSets;
+  /** Exact candidates for recognized handler sinks. */
+  readonly handlers: HandlerTargetSets;
+}
 
 /** Marks a callable value that may still contain uninitialized bytes. */
 const UNKNOWN_TARGET = "\0unknown";
@@ -88,7 +100,7 @@ function selectPathTargets(source: PathTargets | undefined, path: string): PathT
 
 /** Enumerate only callable leaves, without allocating a path for every array element. */
 function callablePaths(type: SemanticType): readonly string[] {
-  if (type.kind === "function") return [""];
+  if (type.kind === "function" || type.kind === "interrupt-handler") return [""];
   if (type.kind === "struct") {
     return type.fields.flatMap((field) =>
       callablePaths(field.type).map((path) => joinPath(`field:${field.name}`, path)),
@@ -210,12 +222,16 @@ function assignmentFacts(
   return { unknown, beforeCalls };
 }
 
-/** Infer callable provenance through values, typed storage, parameters and returns. */
-export function resolveFunctionTargets(program: SemanticProgram): IndirectTargetSets {
+/** Infer callable and handler provenance through values, typed storage and calls. */
+export function resolveTargetSets(
+  program: SemanticProgram,
+  handlerSinkCapabilities: ReadonlySet<string>,
+): ResolvedTargetSets {
   const functions = new Map(
     program.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
   );
   const addressTaken = new Map<string, FunctionType>();
+  const handlerAddresses = new Set<string>();
   const bindingTargets = new Map<string, Set<string>>();
   const valueTargets = new Map<string, Set<string>>();
   const returnTargets = new Map<string, Set<string>>();
@@ -225,6 +241,7 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
   /** Places still borrowed by aggregate values, used to return callee writes to their callers. */
   const valueAliases = new Map<string, SemanticPlace[]>();
   const indirectTargets = new Map<IndirectCallOperation, Set<string>>();
+  const handlerTargets = new Map<PlatformOperation, Set<string>>();
   const initializedGlobals = new Set(
     program.globals
       .filter((global) => global.initialBytes !== null || global.entry !== null)
@@ -259,8 +276,12 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
   for (const context of contexts) {
     for (const block of context.blocks) {
       for (const operation of block.operations) {
-        if (operation.kind === "function-address" && operation.type.kind === "function") {
-          addressTaken.set(bindingIdentityKey(operation.function), operation.type);
+        if (operation.kind === "function-address") {
+          if (operation.type.kind === "function") {
+            addressTaken.set(bindingIdentityKey(operation.function), operation.type);
+          } else if (operation.type.kind === "interrupt-handler") {
+            handlerAddresses.add(bindingIdentityKey(operation.function));
+          }
         }
       }
     }
@@ -284,6 +305,7 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
     bindingIdentityKey(program.main),
     ...program.functions.filter((fn) => fn.exported).map((fn) => bindingIdentityKey(fn.id)),
     ...addressTaken.keys(),
+    ...handlerAddresses,
   ]);
   const entryAssigned = new Map(
     program.functions.map(
@@ -428,7 +450,11 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
       return addTargets(valueTargets, output, candidates) || changed || aliasesChanged;
     }
     if (operation.kind === "convert" || operation.kind === "unary") {
-      if (output === null || operation.type.kind !== "function") return false;
+      if (
+        output === null ||
+        (operation.type.kind !== "function" && operation.type.kind !== "interrupt-handler")
+      )
+        return false;
       const changed = addPathTargets(
         valuePaths,
         output,
@@ -540,6 +566,12 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
       }
       return changed;
     }
+    if (operation.kind === "platform" && handlerSinkCapabilities.has(operation.capability)) {
+      const target = operation.arguments[0];
+      return target === undefined
+        ? false
+        : addTargets(handlerTargets, operation, targetsOf(owner, target));
+    }
     return false;
   };
 
@@ -585,7 +617,19 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
     }
   }
   settle();
-  return new Map(
+  for (const context of contexts) {
+    for (const block of context.blocks) {
+      for (const operation of block.operations) {
+        if (operation.kind !== "platform" || !handlerSinkCapabilities.has(operation.capability))
+          continue;
+        if (handlerTargets.get(operation)?.has(UNKNOWN_TARGET)) continue;
+        if ((handlerTargets.get(operation)?.size ?? 0) > 0) continue;
+        addTargets(handlerTargets, operation, handlerAddresses);
+      }
+    }
+  }
+  settle();
+  const indirect: IndirectTargetSets = new Map(
     [...indirectTargets].map(([call, targets]) => [
       call,
       Object.freeze(
@@ -596,4 +640,24 @@ export function resolveFunctionTargets(program: SemanticProgram): IndirectTarget
       ),
     ]),
   );
+  const handlers: HandlerTargetSets = new Map(
+    [...handlerTargets].map(([sink, targets]) => [
+      sink,
+      Object.freeze(
+        [...(targets.has(UNKNOWN_TARGET) ? [] : targets)]
+          .filter((key) => handlerAddresses.has(key))
+          .sort()
+          .flatMap((key) => {
+            const handler = functions.get(key)?.id;
+            return handler === undefined ? [] : [handler];
+          }),
+      ),
+    ]),
+  );
+  return Object.freeze({ indirect, handlers });
+}
+
+/** Preserve the ordinary-call API for direct provenance tests. */
+export function resolveFunctionTargets(program: SemanticProgram): IndirectTargetSets {
+  return resolveTargetSets(program, new Set()).indirect;
 }

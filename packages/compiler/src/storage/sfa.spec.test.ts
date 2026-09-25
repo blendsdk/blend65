@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { buildProject } from "@blend65/compiler";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { SourceSpan } from "../project/types.js";
 import type { SemanticBlock, SemanticFunction, SemanticProgram } from "../semantic/operations.js";
@@ -118,6 +122,100 @@ function requestForValue(inventory: ReturnType<typeof inventoryStorage>, value: 
   if (request === undefined) throw new Error(`Missing storage request for ${value}`);
   return request;
 }
+
+describe("interrupt execution storage and stack evidence", () => {
+  it("keeps a shared helper's mainline and IRQ executions finite and reports the IRQ stack", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blend65-interrupt-sfa-"));
+    try {
+      await mkdir(join(root, "src"));
+      await writeFile(
+        join(root, "blend65.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          name: "interrupt-sfa",
+          sourceRoot: "src",
+          entry: "Game",
+          target: "c64-pal-prg-kernal-6581",
+          outDir: "out",
+          optimization: "none",
+        }),
+      );
+      await writeFile(
+        join(root, "src/game.blend"),
+        [
+          "module Game;",
+          "import { setIRQ, restoreIRQ } from c64.system;",
+          "let shared: byte = 0;",
+          "function helper(value: byte): byte { let temporary: byte = value + 1; return temporary; }",
+          "interrupt function handler(): void { shared = helper(shared); }",
+          "function main(): void { setIRQ(&handler); shared = helper(shared); restoreIRQ(); }",
+        ].join("\n"),
+      );
+      const result = await buildProject({
+        project: join(root, "blend65.json"),
+        optimization: "none",
+      });
+
+      expect(result.kind, result.kind === "failure" ? JSON.stringify(result.diagnostics) : "").toBe(
+        "success",
+      );
+      if (result.kind !== "success") throw new Error("Expected a finite interrupt build");
+      const memory: unknown = JSON.parse(
+        await readFile(join(result.generation.directory, ".memory.json"), "utf8"),
+      );
+      expect(memory).toHaveProperty("stackDomains");
+      if (
+        typeof memory !== "object" ||
+        memory === null ||
+        !("stackDomains" in memory) ||
+        !Array.isArray(memory.stackDomains)
+      ) {
+        throw new Error("Expected stack-domain evidence");
+      }
+      expect(memory.stackDomains.length).toBeGreaterThan(0);
+      const costs: unknown = JSON.parse(
+        await readFile(join(result.generation.directory, ".costs.json"), "utf8"),
+      );
+      expect(costs).toHaveProperty("totals.resources");
+      if (
+        typeof costs !== "object" ||
+        costs === null ||
+        !("totals" in costs) ||
+        typeof costs.totals !== "object" ||
+        costs.totals === null ||
+        !("resources" in costs.totals) ||
+        !Array.isArray(costs.totals.resources)
+      ) {
+        throw new Error("Expected resource evidence");
+      }
+      expect(costs.totals.resources).toContainEqual(
+        expect.objectContaining({
+          kind: "standard",
+          id: "hardwareStack",
+          value: expect.any(Number),
+        }),
+      );
+      const stack = costs.totals.resources.find(
+        (resource: unknown) =>
+          typeof resource === "object" &&
+          resource !== null &&
+          "id" in resource &&
+          resource.id === "hardwareStack",
+      );
+      if (
+        typeof stack !== "object" ||
+        stack === null ||
+        !("value" in stack) ||
+        typeof stack.value !== "number"
+      ) {
+        throw new Error("Expected hardware-stack peak");
+      }
+      expect(stack.value).toBeGreaterThanOrEqual(9);
+    } finally {
+      await rm(root, { recursive: true });
+    }
+  });
+});
 
 describe("static frame inventory", () => {
   // Emission cannot claim a new execution byte that was absent from the finite closure candidates.

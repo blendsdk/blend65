@@ -88,6 +88,7 @@ export function prepareModuleBindings(
     const semantic = Object.freeze({
       ...binding,
       type,
+      ...(declaration?.kind === "function" ? { functionMode: declaration.mode } : {}),
       loadable: declaration?.kind === "variable" && declaration.loadable,
       materialized: declaration?.kind === "variable" && declaration.placement !== null,
       zeropage: declaration?.kind === "variable" && declaration.zeropage,

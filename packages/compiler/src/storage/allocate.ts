@@ -39,7 +39,11 @@ function alignAddress(address: number, alignment: number): number {
 
 /** NMOS indirect jumps cannot read a callable word beginning at the last byte of a page. */
 function validCallableAddress(request: StorageRequest, address: number): boolean {
-  return request.type?.kind !== "function" || request.bytes !== 2 || (address & 0xff) !== 0xff;
+  return (
+    (request.type?.kind !== "function" && request.pageSafeIndirect !== true) ||
+    request.bytes !== 2 ||
+    (address & 0xff) !== 0xff
+  );
 }
 
 /** Check whether two inclusive byte intervals overlap. */

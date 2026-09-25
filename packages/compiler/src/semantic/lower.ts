@@ -327,7 +327,10 @@ class ExpressionLowerer {
     if (!("type" in operandNode)) throw new Error("Unary operand is not a typed expression");
     const operator = required(expression.operator, "unary operator");
     if (operator === "&") {
-      if (type.kind === "function" && operandNode.binding !== null) {
+      if (
+        (type.kind === "function" || type.kind === "interrupt-handler") &&
+        operandNode.binding !== null
+      ) {
         const result = this.builder.nextValue();
         this.builder.emit(
           Object.freeze({
@@ -504,6 +507,18 @@ class ExpressionLowerer {
       callee.type.kind === "function" && binding?.storage !== "function"
         ? this.lower(callee)
         : null;
+    const capability = binding?.qualifiedName ?? binding?.name;
+    const sinkArgument = expression.arguments?.[0];
+    if (
+      binding?.operationEffect !== undefined &&
+      (capability === "c64.system.setIRQ" || capability === "c64.system.setIRQExclusive") &&
+      expression.arguments?.length === 1 &&
+      sinkArgument?.kind === "conditional" &&
+      isVoid(type)
+    ) {
+      this.lowerInterruptSinkChoice(expression, sinkArgument, binding);
+      return null;
+    }
     const arguments_ = (expression.arguments ?? []).map((argument) => {
       const value = this.lower(argument);
       if (value === null) throw new Error("Completed call argument has no value");
@@ -607,6 +622,62 @@ class ExpressionLowerer {
       );
     }
     return result;
+  }
+
+  /** Keep a conditional handler choice in control flow instead of constructing raw handler addresses. */
+  private lowerInterruptSinkChoice(
+    call: TypedExpr,
+    choice: TypedExpr,
+    binding: SemanticBinding,
+  ): void {
+    if (choice.kind !== "conditional") {
+      const argument = this.lower(choice);
+      if (argument === null) throw new Error("Completed interrupt sink argument has no value");
+      this.builder.emit(
+        Object.freeze({
+          kind: "platform",
+          result: null,
+          capability: binding.qualifiedName ?? binding.name,
+          arguments: Object.freeze([argument]),
+          type: call.type,
+          effect: binding.operationEffect!,
+          span: call.span,
+        }),
+      );
+      return;
+    }
+    const conditionNode = required(choice.condition, "interrupt handler condition");
+    const whenTrueNode = required(choice.whenTrue, "true interrupt handler");
+    const whenFalseNode = required(choice.whenFalse, "false interrupt handler");
+    const condition = this.lower(conditionNode);
+    if (condition === null) throw new Error("Completed interrupt handler condition has no value");
+    if (typeof conditionNode.constant === "boolean") {
+      this.lowerInterruptSinkChoice(
+        call,
+        conditionNode.constant ? whenTrueNode : whenFalseNode,
+        binding,
+      );
+      return;
+    }
+    const conditionBlock = this.builder.currentBlock!;
+    const whenTrue = this.builder.createBlock("interrupt-choice-true");
+    const whenFalse = this.builder.createBlock("interrupt-choice-false");
+    conditionBlock.terminator = Object.freeze({
+      kind: "branch",
+      condition,
+      whenTrue: whenTrue.id,
+      whenFalse: whenFalse.id,
+    });
+    this.builder.select(whenTrue);
+    this.lowerInterruptSinkChoice(call, whenTrueNode, binding);
+    const trueExit = this.builder.currentBlock!;
+    this.builder.select(whenFalse);
+    this.lowerInterruptSinkChoice(call, whenFalseNode, binding);
+    const falseExit = this.builder.currentBlock!;
+    const merge = this.builder.createBlock("interrupt-choice-end");
+    this.builder.jumpFrom(trueExit, merge.id);
+    this.builder.jumpFrom(falseExit, merge.id);
+    this.builder.select(merge);
   }
 
   /** Emit one volatile raw-memory access from already evaluated operands. */
@@ -775,6 +846,7 @@ function lowerFunction(
     id: declaration.binding,
     name: binding.qualifiedName ?? binding.name,
     exported: binding.exported,
+    entryKind: binding.functionMode === "interrupt" ? "interrupt" : "ordinary",
     parameters: functionParameters(declaration, bindings),
     result: declaration.type,
     entry: builder.entry,

@@ -132,6 +132,32 @@ const SELECTED_PROFILE: FrontendProfile = Object.freeze({
     capability("c64.input.joystickLeft", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickRight", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.readJoystick2", [], SCALAR_TYPES.byte, "volatile-read"),
+    capability("c64.system.restoreIRQ", [], SCALAR_TYPES.void, "volatile-write"),
+    capability("c64.system.restoreNMI", [], SCALAR_TYPES.void, "volatile-write"),
+    capability(
+      "c64.system.setIRQ",
+      [Object.freeze({ kind: "interrupt-handler" })],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.system.setIRQExclusive",
+      [Object.freeze({ kind: "interrupt-handler" })],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.system.setNMI",
+      [Object.freeze({ kind: "interrupt-handler" })],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
+    capability(
+      "c64.system.setNMIExclusive",
+      [Object.freeze({ kind: "interrupt-handler" })],
+      SCALAR_TYPES.void,
+      "volatile-write",
+    ),
     capability("c64.vic.setBorderColor", [SCALAR_TYPES.byte], SCALAR_TYPES.void, "volatile-write"),
     capability(
       "c64.vic.setSpriteColor",

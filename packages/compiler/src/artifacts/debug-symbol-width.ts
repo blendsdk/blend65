@@ -117,6 +117,12 @@ function parseValueType(source: string, start: number): ParsedType | null {
     if (end === null) return null;
     index = end;
     bareFunction = true;
+  } else if (
+    source.startsWith("interrupt-handler", index) &&
+    !IDENTIFIER_PART.test(source[index + "interrupt-handler".length] ?? "")
+  ) {
+    // Handler values are a distinct internal two-byte kind, not ordinary fn values.
+    index += "interrupt-handler".length;
   } else {
     const primitive = PRIMITIVES.find(
       (name) =>

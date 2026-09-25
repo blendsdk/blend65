@@ -162,7 +162,9 @@ programs and qualification evidence. They do not create supported game APIs. (AR
   for that sink on every reachable path. Pre-write high-level frames can no longer be restored, and
   later high-level install/restore operations remain unavailable until a separately specified
   profile reset boundary begins a new ownership proof. No runtime flag, token, registry, or hidden
-  manager is emitted. (AR-013, AR-018)
+  manager is emitted. Handler-side vector installs/restores must also work when a predecessor
+  handler remains live: use distinct handler-owned predecessor storage and prove every possible
+  re-entry and chain context before emission. (AR-013, AR-018)
 - [ ] **R5.17 — Close every interrupt route before emission.** For each enabled source, enumerate
   source and entry kind, vector/link storage, acknowledgement owner, terminal owner, enabled peer
   sources, nesting/re-entry, bank visibility, SFA interference, shared state, handler/wrapper bytes,
@@ -688,6 +690,8 @@ version, qualification, dependent-audit, and atomic-activation protocol. (AR-014
 13. [ ] **AC-13 — Reversible installation:** Per-sink LIFO install/restore cases preserve every exact
     predecessor, admit proved nested and balanced conditional lifecycles, keep every indirect saved
     link off an NMOS-invalid `$xxFF` start, and never expose a torn vector to a reachable IRQ/NMI.
+    A balanced handler-side install preserves the still-live predecessor chain and cannot overwrite
+    a link owned by an interrupted handler.
     Duplicate, stale, out-of-order, branch-uncertain, cross-sink, and raw-write-invalidated ownership
     each fail at compile time without emitting a runtime ownership flag or manager.
 14. [ ] **AC-14 — Complete route ledger:** For every installed route, the report includes every

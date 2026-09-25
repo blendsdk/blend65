@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "authority": {
+    "skillVersion": "2.0.0",
+    "skillContentCommit": "c9e70fab6039e9ced3108e88f0ea9730d4fd3007",
+    "casebook": "references/6502-lowering-casebook.md",
+    "sourceKey": "CBM-C64-KERNAL-03"
+  },
+  "selectedContract": "PAL C64 NMOS 6510, KERNAL 901227-03 CINV post-save hook, caller-owned two-byte page-safe predecessor, original A and P preserved by vector updates, IRQ handler enters with firmware-saved A/X/Y and D cleared before user code, previous handler sees its entry P before chain",
+  "chainEntry": {
+    "measurement": "Wrapper and one constant byte store, excluding predecessor execution and firmware-owned register saves",
+    "instructions": ["PHP", "CLD", "LDA #$01", "STA $D019", "PLP", "JMP (saved_previous_cinv)"],
+    "bytes": 11,
+    "cycles": 20,
+    "stackBytes": 1
+  },
+  "exclusiveEntry": {
+    "measurement": "Wrapper and one constant byte store, excluding firmware restore tail",
+    "instructions": ["CLD", "LDA #$01", "STA $D019", "JMP $EA81"],
+    "bytes": 9,
+    "cycles": 11,
+    "stackBytes": 0
+  },
+  "install": {
+    "measurement": "One CINV save and update with P/A preservation and IRQ masking, excluding the caller's JSR and handler body",
+    "instructions": [
+      "PHP",
+      "PHA",
+      "SEI",
+      "LDA $0314",
+      "STA saved_previous_cinv",
+      "LDA $0315",
+      "STA saved_previous_cinv+1",
+      "LDA #<handler",
+      "STA $0314",
+      "LDA #>handler",
+      "STA $0315",
+      "PLA",
+      "PLP"
+    ],
+    "bytes": 27,
+    "cycles": 44,
+    "stackBytes": 2,
+    "savedPredecessorBytes": 2
+  },
+  "restore": {
+    "measurement": "One CINV restore with P/A preservation and IRQ masking, excluding the caller's JSR",
+    "instructions": [
+      "PHP",
+      "PHA",
+      "SEI",
+      "LDA saved_previous_cinv",
+      "STA $0314",
+      "LDA saved_previous_cinv+1",
+      "STA $0315",
+      "PLA",
+      "PLP"
+    ],
+    "bytes": 17,
+    "cycles": 32,
+    "stackBytes": 2
+  },
+  "winPath": "At whole-program scale, prove and reuse a storage-free helper across mainline and IRQ instead of duplicating identical code; keep fixed private homes only where overlap requires them."
+}

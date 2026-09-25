@@ -171,11 +171,11 @@ export interface CallOperation {
   readonly span: SourceSpan;
 }
 
-/** A source function's typed code address, kept symbolic until final layout. */
+/** A source function or callback-only handler address, kept symbolic until final layout. */
 export interface FunctionAddressOperation extends ValueOperation {
   /** Operation discriminator. */
   readonly kind: "function-address";
-  /** Source function with exactly the value's declared signature. */
+  /** Source identity whose entry kind agrees with the value type. */
   readonly function: BindingId;
 }
 
@@ -378,6 +378,8 @@ export interface SemanticFunction {
   readonly name?: string;
   /** Public source declaration retained as an independently callable entry. */
   readonly exported?: boolean;
+  /** Ordinary call body or callback-only interrupt handler body. */
+  readonly entryKind?: "ordinary" | "interrupt";
   /** Parameters in source order. */
   readonly parameters: readonly StorageValue[];
   /** Declared return type. */

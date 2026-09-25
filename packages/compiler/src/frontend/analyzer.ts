@@ -127,6 +127,8 @@ class ModuleAnalyzer {
         isFunction: (binding) =>
           this.functionByKey.has(bindingIdentityKey(binding)) ||
           this.profileSignatures.has(bindingIdentityKey(binding)),
+        functionMode: (binding) =>
+          this.functionByKey.get(bindingIdentityKey(binding))?.declaration.mode ?? null,
         diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
         defer: (span, message) => this.addObligation(span, message),
         call: (edge) => this.calls.push(edge),
@@ -147,6 +149,9 @@ class ModuleAnalyzer {
   /** Add the selected profile as typed source declarations, without target-machine facts. */
   private addProfileBindings(): void {
     if (this.profile === null) return;
+    const profileModules = new Set(
+      this.profile.capabilities.map(({ name }) => name.slice(0, name.lastIndexOf("."))),
+    );
     this.profile.capabilities.forEach((capability, index) => {
       const name = capability.name.slice(capability.name.lastIndexOf(".") + 1);
       const span = Object.freeze({
@@ -188,6 +193,29 @@ class ModuleAnalyzer {
         }),
       );
     });
+    for (const module of this.graph.modules) {
+      for (const unit of module.units) {
+        for (const imported of unit.imports) {
+          if (!profileModules.has(imported.module)) continue;
+          const aliases = this.importsBySource.get(unit.span.sourceId) ?? new Map();
+          for (const item of imported.items) {
+            const capability = this.qualified.get(`${imported.module}.${item.name}`);
+            if (capability === undefined) {
+              this.diagnostics.push(
+                errorDiagnostic(
+                  "E10012",
+                  `'${item.name}' is not exported from module '${imported.module}'`,
+                  item.nameSpan,
+                ),
+              );
+              continue;
+            }
+            aliases.set(item.alias ?? item.name, capability);
+          }
+          this.importsBySource.set(unit.span.sourceId, aliases);
+        }
+      }
+    }
   }
 
   /** Analyze every reachable declaration and assemble a frozen phase result. */

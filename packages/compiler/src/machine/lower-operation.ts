@@ -1,7 +1,9 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { scalarWarning } from "../frontend/constants.js";
 import type { SemanticOperation } from "../semantic/operations.js";
+import type { InterruptRoute } from "../semantic/whole-program.js";
 import { lowerC64Operation } from "./lower-c64.js";
+import { c64InterruptEntryLabel } from "./lower-c64.js";
 import { lowerConversion } from "./lower-conversion.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
@@ -172,6 +174,7 @@ function materializeCondition(
 export function lowerOperation(
   operation: SemanticOperation,
   state: FunctionLoweringState,
+  selectedInterruptRoute?: InterruptRoute,
 ): readonly MachineInstruction[] {
   if (
     operation.kind === "call" ||
@@ -596,6 +599,33 @@ export function lowerOperation(
       const lowered = lowerC64Operation(operation, state.values, state.input.profile, {
         requestScratch: (suffix, bytes, source, reason) =>
           requestStorage(state, suffix, "temporary", bytes, "ram", source, reason),
+        interruptBinding: (sourceOperation) => {
+          const sink = state.input.profile.interrupts.sinks.find(
+            ({ capability }) => capability === sourceOperation.capability,
+          );
+          const domain =
+            sink?.domain ??
+            (sourceOperation.capability === "c64.system.restoreIRQ" ? "irq" : "nmi");
+          const relative =
+            state.input.program.interruptOwnership?.relativeDepths.get(sourceOperation);
+          const before = state.interruptDepth[domain] + (relative?.[domain] ?? 0);
+          const depth = sink === undefined ? before - 1 : before;
+          if (depth < 0) throw new Error("Interrupt restore has no active static link");
+          const routes = (state.input.program.interruptRoutes ?? []).filter(
+            ({ installation }) => installation === sourceOperation,
+          );
+          if (sink !== undefined && selectedInterruptRoute === undefined && routes.length !== 1) {
+            throw new Error("Interrupt sink needs one statically selected handler entry");
+          }
+          const route = selectedInterruptRoute ?? routes[0];
+          return Object.freeze({
+            linkRequestId: `interrupt-link:${domain}:${depth}`,
+            entryLabel:
+              sink === undefined
+                ? null
+                : c64InterruptEntryLabel(route!.handler, route!.variant, depth),
+          });
+        },
       });
       for (const data of lowered.data) {
         const existing = state.generatedData.get(data.id);

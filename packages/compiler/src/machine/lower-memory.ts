@@ -39,6 +39,21 @@ function indirectEffect(
   });
 }
 
+/** Keep each fixed volatile byte at its actual machine address, including $FFFF wrap. */
+function absoluteEffect(
+  kind: "read" | "write",
+  address: number,
+  order: number,
+): MachineMemoryEffect {
+  return Object.freeze({
+    kind,
+    address: Object.freeze({ kind: "absolute", value: address }),
+    width: 1,
+    volatile: true,
+    order,
+  });
+}
+
 /** Load a semantic byte into A from its retained value. */
 function loadA(
   value: LoweredValue,
@@ -93,6 +108,33 @@ export function lowerMemoryRead(
   const address = context.values.get(operation.address);
   if (address === undefined || address.kind === "register" || address.kind === "condition") {
     throw new Error("Raw-memory address has no stable lowered value");
+  }
+  if (address.kind === "constant") {
+    const low = address.value & 0xffff;
+    const instructions: MachineInstruction[] = [
+      machineInstruction(
+        context.cpu,
+        "lda",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: low }),
+        [absoluteEffect("read", low, 0)],
+        operation.span,
+      ),
+    ];
+    if (operation.width === 2) {
+      const high = (low + 1) & 0xffff;
+      instructions.push(
+        machineInstruction(
+          context.cpu,
+          "ldx",
+          "absolute",
+          Object.freeze({ kind: "absolute", value: high }),
+          [absoluteEffect("read", high, 1)],
+          operation.span,
+        ),
+      );
+    }
+    return Object.freeze(instructions);
   }
   const pointer = context.pointerRequest(operation);
   const instructions = [...setPointer(address, pointer.id, context.cpu, operation.span)];
@@ -167,6 +209,24 @@ export function lowerMemoryWrite(
     value.kind === "condition"
   ) {
     throw new Error("Raw-memory write has no stable lowered address/value");
+  }
+  if (address.kind === "constant") {
+    const instructions: MachineInstruction[] = [];
+    for (let offset = 0; offset < operation.width; offset += 1) {
+      const target = (address.value + offset) & 0xffff;
+      instructions.push(
+        loadA(value, offset, context.cpu, operation.span),
+        machineInstruction(
+          context.cpu,
+          "sta",
+          "absolute",
+          Object.freeze({ kind: "absolute", value: target }),
+          [absoluteEffect("write", target, offset)],
+          operation.span,
+        ),
+      );
+    }
+    return Object.freeze(instructions);
   }
   const pointer = context.pointerRequest(operation);
   const instructions = [...setPointer(address, pointer.id, context.cpu, operation.span)];

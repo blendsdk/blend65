@@ -82,13 +82,13 @@ describe("expert finite-call output", () => {
       const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
       const thunkCalls = [...assembly.matchAll(/^\s*jsr\+2\s+(b65_[a-f0-9]+)\s*$/gimu)];
       const thunks = thunkCalls.filter(([, label]) =>
-        new RegExp(`^${label}:\\s*\\n\\s*jmp\\+2\\s+\\(\\$[0-9a-f]{4}\\)`, "imu").test(assembly),
+        new RegExp(`^${label}:\\s*\\n\\s*jmp\\s+\\(\\$[0-9a-f]{4}\\)`, "imu").test(assembly),
       );
       const thunk = thunks[0];
       expect(thunk).toBeDefined();
       expect(thunks.length).toBeGreaterThanOrEqual(3);
       const body = assembly.match(
-        new RegExp(`^${thunk?.[1]}:\\s*\\n\\s*jmp\\+2\\s+\\(\\$([0-9a-f]{4})\\)`, "imu"),
+        new RegExp(`^${thunk?.[1]}:\\s*\\n\\s*jmp\\s+\\(\\$([0-9a-f]{4})\\)`, "imu"),
       );
       expect(body).not.toBeNull();
       const pointer = Number.parseInt(body?.[1] ?? "", 16);

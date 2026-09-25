@@ -1,5 +1,9 @@
 import type { BindingId } from "../frontend/semantic-types.js";
+import { bindingIdentityKey } from "../frontend/semantic-types.js";
+import { interruptExecutionContexts } from "../semantic/interrupt-contexts.js";
 import type { IndirectCallOperation } from "../semantic/operations.js";
+import type { PlatformOperation } from "../semantic/operations.js";
+import type { InterruptRoute } from "../semantic/whole-program.js";
 import { lowerOperation } from "./lower-operation.js";
 import { machineCost, machineInstruction, machineState, operandForValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
@@ -64,7 +68,12 @@ export function lowerIndirectCall(
       : undefined;
   const pointer =
     home === undefined ? -1 : home.address + (target.kind === "storage" ? (target.offset ?? 0) : 0);
+  const contexts = interruptExecutionContexts(state.input.program);
+  const hasContextVariant = targets.some(
+    (candidate) => (contexts.get(bindingIdentityKey(candidate))?.length ?? 0) > 1,
+  );
   if (
+    !hasContextVariant &&
     operation.arguments.length === 0 &&
     (operation.type.kind === "scalar" ||
       operation.type.kind === "enum" ||
@@ -205,4 +214,113 @@ export function lowerIndirectCall(
     continuation,
     continuationInstructions: Object.freeze([]),
   });
+}
+
+/** Select one of a finite set of typed handlers without a runtime registry. */
+export function lowerInterruptSink(
+  operation: PlatformOperation,
+  routes: readonly InterruptRoute[],
+  state: FunctionLoweringState,
+  currentLabel: string,
+  currentInstructions: readonly MachineInstruction[],
+  index: number,
+): {
+  readonly blocks: readonly MachineBlock[];
+  readonly continuation: string;
+} {
+  const target = state.values.get(operation.arguments[0]!);
+  if (target === undefined || target.kind === "condition" || target.kind === "register") {
+    throw loweringFailure("Interrupt handler value was not staged", operation.span);
+  }
+  const cpu = state.input.profile.cpu;
+  const prefix = `${state.currentSemanticBlockId}.interrupt.${index}`;
+  const continuation = `${prefix}.continue`;
+  const blocks: MachineBlock[] = [];
+  let label = currentLabel;
+  let instructions = [...currentInstructions];
+  for (let candidate = 0; candidate < routes.length - 1; candidate += 1) {
+    const route = routes[candidate]!;
+    const next = `${prefix}.candidate.${candidate + 1}`;
+    const high = `${prefix}.high.${candidate}`;
+    const arm = `${prefix}.install.${candidate}`;
+    appendLoadA(instructions, target, 0, state, operation.span);
+    instructions.push(
+      machineInstruction(
+        cpu,
+        "cmp",
+        "immediate",
+        Object.freeze({
+          kind: "label",
+          label: bindingLabel("fn", route.handler),
+          addressByte: "low",
+        }),
+        [],
+        operation.span,
+      ),
+    );
+    blocks.push(
+      Object.freeze({
+        label,
+        instructions: Object.freeze(instructions),
+        terminator: Object.freeze({
+          kind: "branch",
+          opcode: "bne",
+          target: next,
+          fallthrough: high,
+          uses: machineState([], ["z"]),
+          cost: machineCost(cpu, "bne", "relative"),
+        }),
+      }),
+    );
+    const highInstructions: MachineInstruction[] = [];
+    appendLoadA(highInstructions, target, 1, state, operation.span);
+    highInstructions.push(
+      machineInstruction(
+        cpu,
+        "cmp",
+        "immediate",
+        Object.freeze({
+          kind: "label",
+          label: bindingLabel("fn", route.handler),
+          addressByte: "high",
+        }),
+        [],
+        operation.span,
+      ),
+    );
+    blocks.push(
+      Object.freeze({
+        label: high,
+        instructions: Object.freeze(highInstructions),
+        terminator: Object.freeze({
+          kind: "branch",
+          opcode: "bne",
+          target: next,
+          fallthrough: arm,
+          uses: machineState([], ["z"]),
+          cost: machineCost(cpu, "bne", "relative"),
+        }),
+      }),
+      Object.freeze({
+        label: arm,
+        instructions: lowerOperation(operation, state, route),
+        terminator: Object.freeze({
+          kind: "jump",
+          opcode: "jmp",
+          target: continuation,
+          cost: machineCost(cpu, "jmp", "absolute"),
+        }),
+      }),
+    );
+    label = next;
+    instructions = [];
+  }
+  blocks.push(
+    Object.freeze({
+      label,
+      instructions: lowerOperation(operation, state, routes[routes.length - 1]!),
+      terminator: Object.freeze({ kind: "fallthrough", target: continuation }),
+    }),
+  );
+  return Object.freeze({ blocks: Object.freeze(blocks), continuation });
 }

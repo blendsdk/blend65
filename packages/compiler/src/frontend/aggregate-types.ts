@@ -107,6 +107,23 @@ export class AggregateRegistry {
   ): FunctionSignature | null {
     const returnType = this.resolveType(declaration.returnType, module, null, report);
     if (returnType === null) return null;
+    if (
+      declaration.mode === "interrupt" &&
+      (declaration.parameters.length !== 0 ||
+        returnType.kind !== "scalar" ||
+        returnType.name !== "void")
+    ) {
+      if (report) {
+        this.host.diagnose(
+          projectDiagnostic(
+            "E10050",
+            `Interrupt function '${declaration.name}' must have the signature '(): void'`,
+            declaration.nameSpan,
+          ),
+        );
+      }
+      return null;
+    }
     const parameters: FunctionSignature["parameters"][number][] = [];
     for (const parameter of declaration.parameters) {
       if (parameter.type?.kind === "named-type" && parameter.type.name === "void") {

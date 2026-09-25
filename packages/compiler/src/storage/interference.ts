@@ -28,6 +28,7 @@ function sameSpan(left: SourceSpan, right: SourceSpan): boolean {
 /** Check whether two requests can be live together inside one function. */
 function lifetimesOverlap(left: StorageRequest, right: StorageRequest): boolean {
   if (bindingIdentityKey(left.owner) !== bindingIdentityKey(right.owner)) return false;
+  if (left.domain !== right.domain) return false;
   const leftPositions = new Set(left.lifetime.liveAt.map(positionKey));
   return right.lifetime.liveAt.some((position) => leftPositions.has(positionKey(position)));
 }
@@ -116,6 +117,22 @@ export function buildInterference(
     for (let rightIndex = leftIndex + 1; rightIndex < inventory.requests.length; rightIndex += 1) {
       const right = inventory.requests[rightIndex]!;
       if (lifetimesOverlap(left, right)) addEdge(edges, left.id, right.id, "lifetime");
+      if (left.persistent === true || right.persistent === true) {
+        addEdge(edges, left.id, right.id, "lifetime");
+      }
+      // IRQ can interrupt any mainline instruction. Private homes from those two
+      // invocations must not overlay, even when they belong to the same source helper.
+      if (
+        left.domain !== undefined &&
+        right.domain !== undefined &&
+        left.domain !== right.domain &&
+        (left.domain === "main" ||
+          right.domain === "main" ||
+          left.domain === "nmi" ||
+          right.domain === "nmi")
+      ) {
+        addEdge(edges, left.id, right.id, "call-overlap");
+      }
     }
   }
 
@@ -126,7 +143,10 @@ export function buildInterference(
       for (const callee of calleesAtSpan(owner, callSpan, inventory.program.indirectTargets)) {
         const activeCallees = reachableCallees(callee, callGraph);
         for (const calleeRequest of inventory.requests) {
-          if (activeCallees.has(bindingIdentityKey(calleeRequest.owner))) {
+          if (
+            activeCallees.has(bindingIdentityKey(calleeRequest.owner)) &&
+            callerRequest.domain === calleeRequest.domain
+          ) {
             addEdge(edges, callerRequest.id, calleeRequest.id, "call-overlap");
           }
         }

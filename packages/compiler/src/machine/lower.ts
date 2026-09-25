@@ -2,6 +2,10 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { SemanticBlock, SemanticPlace, SemanticTerminator } from "../semantic/operations.js";
+import {
+  interruptExecutionContexts,
+  interruptRouteDepths,
+} from "../semantic/interrupt-contexts.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
 import type { HelperCallDemand, StorageRequest } from "../storage/storage-types.js";
 import { storageInventoryHash } from "../storage/closure.js";
@@ -22,7 +26,14 @@ import {
 } from "./lower-control.js";
 import { prepareAggregateInduction, type AggregateInductionRuntime } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
-import { lowerIndirectCall } from "./lower-indirect.js";
+import { c64InterruptEntryLabel, createC64InterruptEntry, RAW_HANDLER_ENTRY } from "./lower-c64.js";
+import {
+  domainMachineFunction,
+  domainRequestId,
+  domainStorageRequest,
+  provisionalDomainAliases,
+} from "./interrupt-specialize.js";
+import { lowerIndirectCall, lowerInterruptSink } from "./lower-indirect.js";
 import { lowerVariableShift } from "./lower-variable-shift.js";
 import { lowerCheckedDivision } from "./lower-checked-division.js";
 import { lowerBoundsGuards } from "./lower-bounds.js";
@@ -120,6 +131,8 @@ export function createAggregateAddressCache(
 /** State used only while one semantic execution context is lowered. */
 export interface FunctionLoweringState {
   readonly owner: BindingId;
+  /** Proven vector nesting at this machine variant's entry. */
+  readonly interruptDepth: Readonly<{ irq: number; nmi: number }>;
   readonly values: Map<string, LoweredValue>;
   /** Source places whose aggregate values are represented by addresses, not packed bytes. */
   readonly aggregatePlaces: Map<string, SemanticPlace>;
@@ -376,6 +389,7 @@ function lowerFunction(
   }[],
   warnings: ProjectDiagnostic[],
   returnsToStartup: boolean,
+  interruptDepth: Readonly<{ irq: number; nmi: number }> = { irq: 0, nmi: 0 },
 ): MachineFunction {
   const blockIndexes = new Map(blocks.map((block, index) => [block.id, index] as const));
   const predecessors = new Map(blocks.map((block) => [block.id, [] as string[]] as const));
@@ -473,6 +487,7 @@ function lowerFunction(
   }
   const state: FunctionLoweringState = {
     owner,
+    interruptDepth,
     values: new Map(),
     aggregatePlaces: new Map(),
     directCallerResults: new Set(),
@@ -715,6 +730,26 @@ function lowerFunction(
         currentInstructions = [...dispatched.continuationInstructions];
         indirectCallIndex += 1;
         continue;
+      }
+      if (operation.kind === "platform") {
+        const routes = (input.program.interruptRoutes ?? []).filter(
+          ({ installation }) => installation === operation,
+        );
+        if (routes.length > 1) {
+          const dispatched = lowerInterruptSink(
+            operation,
+            routes,
+            state,
+            currentLabel,
+            currentInstructions,
+            indirectCallIndex,
+          );
+          loweredBlocks.push(...dispatched.blocks);
+          currentLabel = dispatched.continuation;
+          currentInstructions = [];
+          indirectCallIndex += 1;
+          continue;
+        }
       }
       if (operation.kind !== "platform" || operation.capability !== "c64.video.waitNextFrame") {
         currentInstructions.push(...lowerOperation(operation, state));
@@ -1009,30 +1044,95 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
   }[] = [];
   const warnings: ProjectDiagnostic[] = [];
   try {
+    const loweringInput = Object.freeze({
+      ...input,
+      placement: provisionalDomainAliases(input.placement, input.program),
+    });
     const functionsByKey = new Map(
       input.program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
     );
+    const contexts = interruptExecutionContexts(input.program);
+    const routeDepths = interruptRouteDepths(input.program, contexts);
     const machineFunctions: MachineFunction[] = [];
+    const rawHandlerBodies = new Map<string, MachineFunction>();
     for (const functionId of input.program.reachableFunctions) {
       const semantic = functionsByKey.get(bindingIdentityKey(functionId));
       if (semantic === undefined) {
         throw loweringFailure("Reachable semantic function is absent", functionId.span);
       }
       const id = bindingLabel("fn", semantic.id);
-      const lowered = lowerFunction(
-        id,
-        semantic.id,
-        semantic.blocks,
-        input,
-        requests,
-        generatedData,
-        helperUses,
-        warnings,
-        bindingIdentityKey(semantic.id) === bindingIdentityKey(input.program.semantic.main),
-      );
-      machineFunctions.push(
-        semantic.placement ? Object.freeze({ ...lowered, placement: semantic.placement }) : lowered,
-      );
+      const variants = contexts.get(bindingIdentityKey(semantic.id)) ?? [
+        Object.freeze({ domain: "main" as const, irq: 0, nmi: 0 }),
+      ];
+      for (const context of variants) {
+        const discovered: StorageRequest[] = [];
+        const selectedHelpers: typeof helperUses = [];
+        const lowered = lowerFunction(
+          id,
+          semantic.id,
+          semantic.blocks,
+          loweringInput,
+          discovered,
+          generatedData,
+          selectedHelpers,
+          warnings,
+          bindingIdentityKey(semantic.id) === bindingIdentityKey(input.program.semantic.main),
+          context,
+        );
+        requests.push(
+          ...discovered.map((request) =>
+            domainStorageRequest(request, context.domain, input.program),
+          ),
+        );
+        helperUses.push(
+          ...selectedHelpers.map((use) =>
+            Object.freeze({
+              ...use,
+              id: `${use.id}.${context.domain}.depth${context.irq}.${context.nmi}`,
+              requestIds: Object.freeze(
+                use.requestIds.map((requestId) =>
+                  domainRequestId(requestId, context.domain, input.program),
+                ),
+              ),
+            }),
+          ),
+        );
+        if (semantic.entryKind === "interrupt") {
+          const rawId = bindingLabel("fn", semantic.id);
+          if (!rawHandlerBodies.has(rawId)) {
+            rawHandlerBodies.set(
+              rawId,
+              domainMachineFunction(lowered, context, contexts, input.program),
+            );
+          }
+          for (const route of input.program.interruptRoutes ?? []) {
+            if (bindingIdentityKey(route.handler) !== bindingIdentityKey(semantic.id)) continue;
+            if (route.sink.domain !== context.domain) continue;
+            const depth = context[route.sink.domain] - 1;
+            if (depth < 0 || !routeDepths.get(route.installation)?.includes(depth)) continue;
+            const entryId = c64InterruptEntryLabel(semantic.id, route.variant, depth);
+            if (machineFunctions.some(({ id }) => id === entryId)) continue;
+            machineFunctions.push(
+              createC64InterruptEntry(
+                domainMachineFunction(lowered, context, contexts, input.program),
+                entryId,
+                route.variant,
+                route.variant.staticLinkBytes === 0
+                  ? null
+                  : `interrupt-link:${route.sink.domain}:${depth}`,
+                input.profile,
+              ),
+            );
+          }
+        } else {
+          const selected = domainMachineFunction(lowered, context, contexts, input.program);
+          machineFunctions.push(
+            semantic.placement
+              ? Object.freeze({ ...selected, placement: semantic.placement })
+              : selected,
+          );
+        }
+      }
     }
 
     const globalsByKey = new Map(
@@ -1049,18 +1149,32 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       }
       const label = bindingLabel("init", initializer);
       if (global.runtimeInitialBytes === null) {
+        const entry = input.program.interruptOwnership?.initializerEntryDepths.get(
+          bindingIdentityKey(initializer),
+        );
+        const context = Object.freeze({
+          domain: "main" as const,
+          irq: entry?.irq ?? 0,
+          nmi: entry?.nmi ?? 0,
+        });
         startupInitializers.push(Object.freeze({ kind: "call", label }));
         machineFunctions.push(
-          lowerFunction(
-            label,
-            initializer,
-            global.blocks,
-            input,
-            requests,
-            generatedData,
-            helperUses,
-            warnings,
-            false,
+          domainMachineFunction(
+            lowerFunction(
+              label,
+              initializer,
+              global.blocks,
+              loweringInput,
+              requests,
+              generatedData,
+              helperUses,
+              warnings,
+              false,
+              context,
+            ),
+            context,
+            contexts,
+            input.program,
           ),
         );
         initializerAccumulator = null;
@@ -1071,6 +1185,22 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
         );
         initializerAccumulator = lowered.accumulator;
       }
+    }
+
+    const materializedHandlerLabels = new Set(
+      machineFunctions.flatMap((fn) =>
+        fn.blocks.flatMap((block) =>
+          block.instructions.flatMap((instruction) =>
+            instruction.operand?.kind === "label" ? [instruction.operand.label] : [],
+          ),
+        ),
+      ),
+    );
+    for (const [id, body] of rawHandlerBodies) {
+      if (!materializedHandlerLabels.has(id)) continue;
+      machineFunctions.push(
+        createC64InterruptEntry(body, id, RAW_HANDLER_ENTRY, null, input.profile),
+      );
     }
 
     const mainFunction = functionsByKey.get(bindingIdentityKey(input.program.semantic.main));
@@ -1088,6 +1218,19 @@ export function lowerMachineProgram(input: MachineLoweringInput): MachineLowerin
       throw loweringFailure(startup.reason, null);
     }
 
+    const uniqueRequests = new Map<string, StorageRequest>();
+    for (const request of requests) {
+      const existing = uniqueRequests.get(request.id);
+      if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(request)) {
+        throw loweringFailure(
+          `Storage request '${request.id}' differs between fixed code variants`,
+          request.source,
+        );
+      }
+      uniqueRequests.set(request.id, request);
+    }
+    requests.length = 0;
+    requests.push(...uniqueRequests.values());
     requests.sort((left, right) => Buffer.compare(Buffer.from(left.id), Buffer.from(right.id)));
     const initialInventory = inventoryStorage(input.program);
     const certifiedStorage = Object.freeze(

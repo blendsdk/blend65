@@ -316,11 +316,14 @@ export class ScalarExpressionAnalyzer {
             this.host.defer(expression.span, "Function address requires a complete signature");
             return { node: null, exact: null };
           }
-          const functionType = Object.freeze({
-            kind: "function" as const,
-            parameters: signature.parameters,
-            returnType: signature.returnType,
-          });
+          const functionType =
+            this.host.functionMode?.(functionName.node.binding) === "interrupt"
+              ? Object.freeze({ kind: "interrupt-handler" as const })
+              : Object.freeze({
+                  kind: "function" as const,
+                  parameters: signature.parameters,
+                  returnType: signature.returnType,
+                });
           return {
             node: createScalarTypedExpression(expression, functionType, null, {
               operator: expression.operator,
