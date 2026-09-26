@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 92/99 tasks (93%)
+> **Progress**: 93/99 tasks (94%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -999,12 +999,23 @@ tests are untouched. RV-009 and RV-010 are closed; the stack ledger entry is ret
 Task 9.1.1 is verified. The seven remaining qualification/closeout tasks are not promoted
 by this successful run; their additional assertions and reconciliation still need completion.
 
+**Oracle integrity (2026-09-26 22:33):** task 9.1.2 adds one independently authored
+test file, not a separate helper directory. The same private assertions validate both actual
+VICE observations and deliberate evidence corruptions. All 29 cases pass twice: 26 mutation
+controls, two valid controls and one real checked program covering values, call/effect order,
+aggregate aliases, decimal state, checked-stop behavior and interrupt-return registers/flags.
+No compiler counterexample or implementation change was needed. The author read no forbidden
+implementation and changed no existing oracle. Directed verification, formatting and source
+inspection pass; the preceding 2,031-test full baseline remains unchanged. Final combined
+verification is still due. Logs: `/tmp/phase9-oracle-first.log`,
+`/tmp/phase9-oracle-final.log`. Status: `VICE-verified / hardware-unverified`.
+
 ### Step 9.1: Evidence Reconciliation
 
 **Reference**: [03-05](03-05-qualification.md) · ST-49–ST-54 · AR-P3–AR-P7
 
 - [x] 9.1.1 Complete every crosswalk owner/proof reference and prove exact normative set equality — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage.spec.test.ts`, `test/rd04/normative-coverage-closeout.spec.test.ts` — Reconciled 397 keys (379 implemented, 18 explicitly later-owned); 12 coverage checks, 35 independent stack/call-evidence cases, correction re-review and all 2,031 repository tests pass. No generated instructions or existing specification tests changed. ✅ (completed: 2026-09-26 22:22)
-- [ ] 9.1.2 Validate all independent behavior-oracle mutation probes — `test/rd04/oracle-integrity.spec.test.ts`, `test/rd04/oracles/`
+- [x] 9.1.2 Validate all independent behavior-oracle mutation probes — `test/rd04/oracle-integrity.spec.test.ts` — 29/29 cases pass twice: 26 corruption controls, two good controls and one real VICE fixture using the same assertions. No new helper directory, compiler changes or changed existing oracle. Formatting/source review passes. ✅ (completed: 2026-09-26 22:33)
 - [ ] 9.1.3 Reconcile every expert comparison; fix worse results and file measured meet-only debt — `test/rd04/expert/`, `test/rd04/expert-output.spec.test.ts`
 - [ ] 9.1.4 Run the complete bounded sequential RD-04 VICE corpus and record `VICE-verified / hardware-unverified` — `test/rd04/vice.spec.test.ts`, `test/rd04/vice-driver.ts`
 
