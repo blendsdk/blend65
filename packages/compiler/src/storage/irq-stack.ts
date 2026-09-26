@@ -16,7 +16,7 @@ export interface SimultaneousStackPeak {
 
 /** Compile-time state only; source ownership and status-depth checks already prove balance. */
 interface StackState {
-  /** Installation identities, oldest first; each may select several proved handlers. */
+  /** Selected handler/entry sets, oldest first; repeated installations retain separate slots. */
   irq: string[];
   /** Architectural interrupt-enable state (the inverse of the status I bit). */
   enabled: boolean;
@@ -94,14 +94,37 @@ export function simultaneousIRQStackPeak(
   const functions = new Map(
     program.semantic.functions.map((fn) => [bindingIdentityKey(fn.id), fn]),
   );
-  const installations = new Map<string, InterruptRoute[]>();
+  const routesBySite = new Map<string, InterruptRoute[]>();
   for (const route of program.interruptRoutes ?? []) {
     // A conditional handler argument may lower to two arms of the same
     // source installation. Ownership agrees by source site, not object identity.
     const site = sourceKey(route.installation.span);
-    const selected = installations.get(site) ?? [];
+    const selected = routesBySite.get(site) ?? [];
     selected.push(route);
-    installations.set(site, selected);
+    routesBySite.set(site, selected);
+  }
+  const installationTokens = new Map<string, string>();
+  const installations = new Map<string, readonly InterruptRoute[]>();
+  for (const [site, routes] of routesBySite) {
+    const choices = new Map(
+      routes.map((route) => [
+        JSON.stringify([bindingIdentityKey(route.handler), route.variant.id]),
+        route,
+      ]),
+    );
+    const keys = [...choices.keys()].sort();
+    const token = JSON.stringify(keys);
+    // Source ownership and link storage were already proved upstream. Stack demand
+    // depends on the selected handlers and entry contracts, not the spelling of the
+    // install site. Equivalent branches therefore share summaries without collapsing
+    // distinct handlers, entry variants, stack order or repeated live installations.
+    installationTokens.set(site, token);
+    if (!installations.has(token)) {
+      installations.set(
+        token,
+        keys.map((key) => choices.get(key)!),
+      );
+    }
   }
   const helpersByOwner = new Map<string, Map<string, HelperCallDemand[]>>();
   for (const helper of helpers) {
@@ -211,14 +234,14 @@ export function simultaneousIRQStackPeak(
           else if (operation.control === "asm_cli") state.enabled = true;
         } else if (operation.kind === "platform") {
           const site = sourceKey(operation.span);
-          const installs = installations.has(site);
+          const installation = installationTokens.get(site);
           const restores = operation.capability === "c64.system.restoreIRQ";
-          if (installs || restores) {
+          if (installation !== undefined || restores) {
             // PHP/PHA precede SEI in the existing vector update. The previous
             // handler can therefore overlap those two saves; the new handler
             // becomes eligible only after both saves have been pulled.
             observe({ ...state, eligible: state.enabled }, 2, ["interrupt-vector-update"]);
-            if (installs) state.irq.push(site);
+            if (installation !== undefined) state.irq.push(installation);
             else state.irq.pop();
             // The final PLP restores the caller's I bit. That instruction still
             // samples the masked state established inside the vector update.

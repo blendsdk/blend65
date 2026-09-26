@@ -40,7 +40,7 @@ TypeScript oracle and hand-written expert program.
 | Completion crosswalk | `test/rd04/normative-coverage.json` and direct spec test | Exact normative ownership/proof set |
 | Expressiveness debt | `test/rd04/expressiveness-ledger.json` and direct spec test | Detect a restriction that has become obsolete and route it to the conformance owner (AR-P9) |
 | Runtime family fixtures | `test/rd04/fixtures/` | Minimal projects for cross-stage execution |
-| Independent oracles | `test/rd04/oracles/` | Values, memory, MMIO, flags, domains and stop boundaries |
+| Independent oracles | Private assertions in the family tests and `test/rd04/oracle-integrity.spec.test.ts` | Values, memory, MMIO, flags, domains and stop boundaries; no separate helper directory is needed |
 | Expert references | `test/rd04/expert/` | Equal-contract assembly/cost expectations |
 | ACME/VICE drivers | `test/rd04/` reusing `test/m1/` protocol pieces | Real assembled bytes and C64 runtime state |
 

@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-04 Language Completion
 
-> **Status**: AR-P1–AR-P27 resolved; Phase 8 verified complete
+> **Status**: AR-P1–AR-P27 resolved; final PE-001 performance correction in qualification
 > **Last Updated**: 2026-09-26
 > **CodeOps Artifact Schema**: 1
 
@@ -93,7 +93,8 @@ Confidence: High for the missing identities and proposed scope; no architecture 
 
 Affected tasks 8.1.2, 8.2.6 and 8.2.7 resumed with this ruling and now pass final qualification.
 All Phase 8 corrections are verified in the 1,989-test gate recorded in the execution plan.
-Phase 8 is complete; Phase 9 has not started.
+Phase 8 is complete. Phase 9 passed all 2,093 tests; final review's PE-001 correction is in
+qualification, as recorded in the [closeout](08-closeout.md). No product ambiguity is open.
 
 ### AR-P25 — Replace literal diagnostic placeholders, not language behavior (runtime)
 

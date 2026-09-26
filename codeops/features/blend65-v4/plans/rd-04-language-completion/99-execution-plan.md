@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 99/99 tasks (100%)
+> **Progress**: 98/99 tasks (99%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -1029,6 +1029,16 @@ future-target fields or backend import into the frontend were added. Seven struc
 existing exact diagnostic/import-boundary checks and 50 focused profile/ownership cases pass.
 Full repository closeout verification passes all 2,093 tests; the final phase review remains pending.
 
+**Final review correction (2026-09-26 23:12):** correctness review has no findings. Performance
+review PE-001 demonstrates duplicate IRQ-context work: equivalent balanced branch choices produce
+4,094 uncached summaries at ten levels. The accepted necessary correction canonicalizes only the
+existing stack proof's abstract installation tokens by selected handler/entry set; source ownership,
+runtime instructions, stack order and multiplicity are unchanged. Three independent public peak
+controls pass before the correction; deterministic implementation counts fail at 62/1,022/4,094
+analyses for 4/8/10 levels, then pass the unchanged linear bounds after it. No wall-time gate,
+public instrumentation, cache layer or framework was added. Task 9.2.4 is reopened for directed
+qualification, fix-scoped review and the final full gate.
+
 **Reference**: [03-05](03-05-qualification.md) · ST-49–ST-54 · AR-P3–AR-P7
 
 - [x] 9.1.1 Complete every crosswalk owner/proof reference and prove exact normative set equality — `test/rd04/normative-coverage.json`, `test/rd04/normative-coverage.spec.test.ts`, `test/rd04/normative-coverage-closeout.spec.test.ts` — Reconciled 397 keys (379 implemented, 18 explicitly later-owned); 12 coverage checks, 35 independent stack/call-evidence cases, correction re-review and all 2,031 repository tests pass. No generated instructions or existing specification tests changed. ✅ (completed: 2026-09-26 22:22)
@@ -1041,7 +1051,7 @@ Full repository closeout verification passes all 2,093 tests; the final phase re
 - [x] 9.2.1 Run complete compiler/CLI/LSP boundary and unavailable-capability qualification — `test/rd04/backend.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts` — Canonical service records, unavailable capabilities, exact artifacts and non-vacuous import boundaries pass in the full suite: 1,393 compiler, 62 CLI, 14 LSP, six editor and 618 root tests. ✅ (verified: 2026-09-26 23:00)
 - [x] 9.2.2 Run portability, frozen-spec and no-runtime/no-framework structural inspections — `test/rd04/portability.spec.test.ts`, `test/rd04/backend.spec.test.ts` — Seven structural checks and selected-profile/vector overlap regressions pass. Concrete platform facts stay with existing owners. Frozen spec/expert, old specification tests, package manifests and dependencies are unchanged; no new runtime/framework/target payload. ✅ (verified: 2026-09-26 23:00)
 - [x] 9.2.3 Record non-gating host responsiveness observations and the AR-P5 native Windows deferral — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md` — Real M1 and combined-language check/build/ACME/LSP observations and process RSS recorded under current host contention, without a performance threshold or host request. Windows stays with RD-10. Documentation formatting and 46 local links pass. ✅ (verified: 2026-09-26 23:00)
-- [x] 9.2.4 Complete the mandatory deferral-expiry/expressiveness scan and final full verification — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md`, `test/rd04/expressiveness-ledger.json`, `test/rd04/expressiveness-ledger.spec.test.ts` (AR-P9). Stack precision debt is retired; nine independent ledger checks pass. All other deferrals retain justified later owners; no active item points back to RD-04. Install/build/typecheck and all 2,093 tests pass. The feature stays Executing pending post-phase review; portfolio sync remains deferred to integration. ✅ (verified: 2026-09-26 23:00)
+- [~] 9.2.4 Complete the mandatory deferral-expiry/expressiveness scan and final full verification — `codeops/features/blend65-v4/plans/rd-04-language-completion/08-closeout.md`, `test/rd04/expressiveness-ledger.json`, `test/rd04/expressiveness-ledger.spec.test.ts` (AR-P9). Expiry scan and all 2,093 tests pass. Reopened after final review: PE-001 requires canonical abstract IRQ contexts to remove demonstrated exponential compile-time work. Correctness review has no findings; the bounded performance correction and re-verification remain pending. The feature stays Executing; portfolio sync waits for integration.
 
 **Deliverables:** complete Linux RD-04 evidence, explicit Windows deferral, owned expired deferrals.
 

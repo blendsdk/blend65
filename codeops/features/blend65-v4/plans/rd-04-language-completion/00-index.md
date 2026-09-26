@@ -1,7 +1,7 @@
 # RD-04 Language Completion Implementation Plan
 
 > **Feature**: Complete Specification 4 and the correct `optimization: none` compiler
-> **Status**: Planning Complete
+> **Status**: 98/99 tasks verified; final performance correction in qualification
 > **Created**: 2026-09-23
 > **Implements**: blend65-v4/RD-04
 > **CodeOps Artifact Schema**: 1
@@ -45,6 +45,8 @@ future-target implementations.
 | 03-04 | [Machine and Artifacts](03-04-machine-and-artifacts.md) | `none` lowering, layout, ACME and evidence |
 | 03-05 | [Qualification](03-05-qualification.md) | Independent behavior and expert-output proof |
 | 07 | [Testing Strategy](07-testing-strategy.md) | Specification cases and verification |
+| 08 | [Linux Closeout](08-closeout.md) | Qualification, expert costs, host observations and deferral expiry |
+| 09 | [Stack Correction Review](09-phase-9-stack-review.md) | Simultaneous IRQ stack and debug-context correction evidence |
 | 99 | [Execution Plan](99-execution-plan.md) | Nine ordered implementation phases |
 
 ## Quick Reference

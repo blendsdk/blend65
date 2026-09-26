@@ -1,6 +1,6 @@
 # RD-04 Linux closeout
 
-> **Status**: Full qualification passed; post-phase review pending
+> **Status**: Full qualification passed; PE-001 correction and verification pending
 > **Date**: 2026-09-26
 > **Scope**: Specification 4 core language, direct `none` compiler, qualified first C64 profile
 > **Authority**: expert `2.0.0`, content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`
@@ -23,7 +23,7 @@ the cooperative KERNAL/6581 profile and ACME 0.97.
 | Values, expressions and control | Scalar/type/flow specification cases, `scalars-runtime.spec.test.ts`, scalar arithmetic and switch diagnostic cases. Constant versus runtime width, effects and checked stops are distinct oracles. |
 | Aggregates, calls and storage | Aggregate/runtime/borrow/provenance cases; finite call/recursion cases; caller-owned aggregate returns and exact storage closure. No source destination-parameter workaround or runtime was added. |
 | Interrupt precision and debug contexts | 35 independent stack/call-context cases and [semantic review](09-phase-9-stack-review.md). Only simultaneous live routes contribute to stack demand; every emitted caller variant has call evidence. |
-| Complete diagnostics | Phase 8 canonical-record suites and exact active diagnostic crosswalk. The two approved new identities are recorded outside frozen `spec/`. |
+| Complete diagnostics | Phase 8 canonical-record suites and exact active diagnostic crosswalk. E10280/E10281 are the user-approved AR-P27 diagnostic-only freeze exception; Phase 9 changes no specification bytes. |
 | Oracle sensitivity | `oracle-integrity.spec.test.ts`: 26 corruptions, two valid controls and one real VICE run use the same assertions. Wrong values, order/count, aliases, decimal/check state and IRQ return cannot silently pass. |
 | Publication and services | `backend.spec.test.ts`, frontend-boundary and direct import-boundary suites; exact artifacts, failed publication, deterministic output, canonical CLI/LSP diagnostics and honest unavailable capabilities. |
 | Expiry gate | `expressiveness-ledger.spec.test.ts`: seven public builds plus status/owner mutation controls; all nine checks pass. A supported deferred restriction or a broken retired correction fails the gate. |
@@ -122,4 +122,17 @@ sequential, including the M1 journey and all three padded images. Formatting, fr
 46 local documentation links and whitespace checks pass. The approved command-local
 30-second workspace test scheduler allowance is used under host contention; root VICE/process
 deadlines and every assertion remain unchanged. Logs: `/tmp/phase9-final-{install,build,typecheck,workspaces,root}.log`
-and `/tmp/phase9-final-format.log`. Post-phase independent review follows this successful run.
+and `/tmp/phase9-final-format.log`.
+
+Independent correctness review reports **no findings**: scope, existing-oracle integrity,
+coverage, actual verification and deferral ownership are consistent. The performance review
+found one necessary correction; no other performance finding was reported.
+
+| Finding | Severity | Evidence | Ruling |
+|---|---|---|---|
+| PE-001 | Major | `storage/irq-stack.ts:151` keys summaries by the full source-installation stack. A linear call graph with two balanced, equivalent IRQ-install arms per level requires 4,094 / 16,382 / 65,534 uncached summaries at 10 / 12 / 14 levels. The 14-level source is 2,235 bytes, emits 30 machine functions and needs only 37 stack bytes. | Necessary compiler-owned correction under workflow directive 4: canonicalize only the abstract installation token by its selected handler/entry-variant set. Preserve stack order/multiplicity, masks, exact upstream ownership and all generated code. No new cache layer, runtime or framework. Independent behavior controls precede the change; a deterministic implementation counter must prove the growth correction. |
+
+Observed stack-analysis times were 579 / 2,765 / 13,761 ms under current load, not acceptance
+thresholds. The exponential summary counts establish the defect independently of host timing.
+This ruling changes neither scope nor an approved deferral and waives no finding. The correction
+and its final verification remain pending; RD-04 is not closed.
