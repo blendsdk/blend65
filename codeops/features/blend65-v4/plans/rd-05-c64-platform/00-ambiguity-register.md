@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-05 C64 Platform
 
-> **Status**: ❌ GATE BLOCKED — AR-P2 resolved; AR-P3 awaits a staged-planning decision
+> **Status**: ✅ GATE PASSED — all 8 items resolved or explicitly deferred for Stage A only
 > **Last Updated**: 2026-09-27
 > **CodeOps Artifact Schema**: 1
 
@@ -8,7 +8,7 @@
 
 | Boundary | Authorized scope |
 |---|---|
-| Planning target | Blend65 v4 RD-05: the eight resident C64 PRG profiles, narrow hardware/platform operations, exact player adapters, and user-authored workload qualification already required by R5.1–R5.56. |
+| Planning target | Staged Blend65 v4 RD-05 planning under AR-P3. Plan independently settled work from R5.1–R5.56 first; keep NMI-dependent work outside executable scope until its proof is resolved. The complete RD remains the eight resident C64 PRG profiles, narrow hardware/platform operations, exact player adapters, and user-authored workload qualification. |
 | Context artifacts | Frozen Specification 4 and expert 2.0.0; RD-05 and the requirements register/preflight; RD-03's current pipeline and API decisions; RD-04 closeout and carried deferrals; the current compiler, test facilities, manifests and project guidance. Reading these does not authorize changing them. |
 | Modification set | This new plan folder, the active feature roadmap, and only the four RD-05 authority-wording locations approved in AR-P2. No compiler, test, frozen specification, expert-baseline, sibling-RD, or portfolio changes. |
 
@@ -18,7 +18,12 @@
 |---|---|---|---|---|
 | AR-P1 | Scope / effort | Start RD-05 planning at XHigh using its existing scope. Keep application algorithms in self-contained qualification programs, not shipped gameplay modules. Keep native assets with RD-06, loading with RD-07, optional optimization with RD-08, tooling with RD-09, and Windows/physical qualification with RD-10. | User: “xhigh is confirmed, proceed to the next RD”; existing requirements AR-038 and Windows deferrals remain binding. | ✅ Resolved |
 | AR-P2 | Scope / public API authority (sensitive) | Correct only the four named RD-05 authority-wording locations. Its plan owns missing library bindings/signatures for already-required behavior using existing language forms. Preserve frozen contracts, approved M1 APIs, safety and parity; add no new behavior or support framework. | User: “I approve. proceed” on 2026-09-27, accepting the single AR-P2 recommendation after independent challenge. | ✅ Resolved |
-| AR-P3 | Behavioral / NMI safety and planning scope (sensitive) | Approve planning the independently settled RD-05 work first, while retaining the missing finite NMI-source/reentry and safe vector-update proof as unfinished RD-05 work. No complete RD-05 executable plan or closeout may be claimed before this proof is resolved. | Recommended after evidence review and independent challenge; awaiting user decision. AR-P2 does not authorize this staging, a frozen-spec change, new source assumption, runtime guard, or renewed deferral. | ❌ Open |
+| AR-P3 | Behavioral / NMI safety and planning scope (sensitive) | Plan independently settled RD-05 work first. Defer the positive finite NMI-source/reentry and safe install/restore contract within RD-05. Owner: RD-05 planning, with the user deciding any product/frozen-spec change. Revisit before admitting NMI-dependent executable work or declaring the complete RD-05 plan ready, whichever comes first. | User: “I approve” on 2026-09-27, accepting the single staged-planning recommendation. No frozen-spec change, source assumption, runtime guard, implementation, or RD closeout is authorized. | ⏸ Deferred — named NMI decision; staging approved |
+| AR-P4 | Delivery order / profile composition (complex) | Stage A covers the four cooperative KERNAL PRG profiles and their immutable source facts. Retain current interrupt behavior and memory/startup ownership; no takeover, scoped banking or new interrupt route enters this stage. Other required platform work remains owned by later RD-05 planning, not dropped or transferred. | AR-P3 staging approval plus project workflow directive 4 for dependency-derived plan order. Frozen appendix §§1, 5.1, 9.1 and 10 define the cooperative deltas. | ✅ Resolved — plan-owned selection |
+| AR-P5 | API names / scalar representation | Use one `c64.profile` constant namespace, existing scalar types and ordinary import/const rules. Represent exact frame rate as an integer part plus a reduced proper fraction; represent clock frequency as whole kilohertz plus remaining hertz. No wide integer, float, aggregate descriptor or arithmetic helper is added. Exact bindings belong to the component specification. | AR-P2 explicitly delegates missing names/signatures; R5.3 requires exact facts; Chapters 02/03 retain 16-bit limits and zero-storage scalar constants. Project workflow directive 4. | ✅ Resolved — plan-owned selection |
+| AR-P6 | Implementation boundary / simplicity | One closed, pure four-row fact module serves frontend declarations and backend selection. Extend the current constant bindings, evaluator, CFG, selected-target, startup/layout and VICE paths directly. Preserve M1 signatures and immutable spec tests. Update the obsolete 8580 rejection only in `profile.impl.test.ts`. | Existing consumers: `frontend/profile.ts`, `profile-bindings.ts`, `target/profile.ts`, `layout/startup.ts`, `services/vice.ts`; AR-P2 and project workflow directive 4. No new general subsystem. | ✅ Resolved — plan-owned selection |
+| AR-P7 | Compatibility / failure behavior | Keep manifest and evidence version 1 shapes unchanged. Preserve the nine-ID manifest inventory, admitting only the four staged IDs for execution. Carry the exact selected identity through diagnostics and evidence, with no fallback. Preserve E10245 for NMI and the existing handler-side IRQ gap. | Frozen diagnostics and existing versioned contracts; AR-P3; project workflow directive 4. | ✅ Resolved — plan-owned selection |
+| AR-P8 | Verification / qualification boundary | Use existing install/build/typecheck/test commands, targeted Prettier, immutable specification-first tests and sequential VICE 3.10. Add only a profile argument and a bounded integer-resource read to the existing monitor helper; retain old PAL defaults. Verify four fresh PRGs and unchanged M1 behavior. Windows and physical QA remain RD-10. | User-provided AGENTS.md command/QA rules; AR-P1/AR-P3; project workflow directive 4. Required direct test controls reuse the existing harness, not a new runner or qualification service. | ✅ Resolved — plan-owned selection |
 
 ## AR-P2 — Missing Library Bindings, Not Missing Language Syntax
 
@@ -53,7 +58,8 @@ operation” attribution, R5.11's exact-signature ownership, the “Profile comp
 ownership paragraph, and the “Scope Decisions” traceability paragraph. Every behavioral
 requirement, acceptance criterion, profile fact and sibling RD remains unchanged. These four
 wording corrections were applied after the user's approval on 2026-09-27. Downstream API
-specifications and execution tasks remain unwritten until discovery and the complete gate close.
+specifications and execution tasks were withheld until the bounded Stage A gate closed; they
+are now linked from the [Stage A index](00-index.md).
 
 **Recommended: candidate 1.** It corrects the authority mismatch while retaining the already
 approved behavior and the frozen language. Choosing names cannot override a hardware obligation,
@@ -95,12 +101,13 @@ correctness depends on the missing NMI proof stays outside executable work. No c
 runtime guard, dispatcher, new dependency, specification change, or arbitrary source bound is
 authorized by this recommendation.
 
-If approved, the named deferred decision is **the positive finite NMI-source/reentry and safe
+The user approved this staging on 2026-09-27. The named deferred decision is **the positive finite
+NMI-source/reentry and safe
 install/restore contract**. Owner: RD-05 planning, with user approval for any changed product or
 frozen-spec contract. Revisit: before admitting NMI-dependent executable work or declaring the
 complete RD-05 plan ready, whichever comes first. RD-05 cannot close while this obligation remains
-open. Approval would permit bounded planning only after the remaining discovery/gate checks for
-that bounded scope; it would not itself authorize implementation.
+open. Approval permits bounded planning only after the remaining discovery/gate checks for
+that bounded scope; it does not itself authorize implementation.
 
 Confidence: Medium. Hardening: the independent challenger recommended staging and rejected an
 immediate spec erratum as unnecessary on the evidence available. Its review used the supplied
@@ -142,9 +149,46 @@ workspace/root tests and targeted formatting. Directed tests run during implemen
 owned checks run at coherent phase checkpoints. This discovery checkpoint is Markdown-only and
 requires formatting, local-link and source-reference validation, not a compiler-suite rerun.
 
-Discovery still owes the twelve-category gate scan, selected domain lenses, exact component/API
-contracts, specification-first cases and execution ordering. No executable plan, readiness claim,
-new runtime qualification or RD completion claim is made.
+## Stage A Gate Review
+
+The user approved the only changed scope decision (AR-P3). AR-P4–AR-P8 apply the explicit
+project directive that the plan makes its own technical choices; they do not claim auto-design
+authority or a new user ruling. This gate permits authoring the bounded Stage A documents only.
+Full RD-05 planning and all NMI-dependent executable work remain incomplete.
+
+| Gate category | Closure for Stage A |
+|---|---|
+| Feature gaps | R5.1–R5.7 are addressed only for the cooperative family and inherited operations; the requirements delta retains every other R5 key under RD-05. |
+| Behavior | Exact constants, ordinary imports/const rules, branch removal, startup/return and selected identity are owned by the two component specifications. |
+| Scope | AR-P3/AR-P4 exclude new interrupt and banking behavior; no game API or sibling-RD deliverable is added. |
+| Technical unknowns | Four closed facts reuse existing representations. Assembly and emulator outcomes are future tests, not assumed results. |
+| Edge cases | Wrong/partial IDs, scalar range, duplicate names, read-only/address use, inactive effects, stale profile selection and mismatched execution configuration are specified. |
+| Integration | Frontend stays independent of backend imports; compiler, CLI, pinned generation and existing VICE helper carry the same identity. |
+| Data/state | No wire-schema change or migration. Profile constants have no storage; initialized user data and private SFA retain normal ownership. |
+| Security | Closed profile allowlist, fixed argv with shell disabled, untrusted monitor-length checks and existing process cleanup. No network product, auth, secrets or new infrastructure. |
+| Non-functional | Zero profile-dispatch cost; direct literal and independent semantic oracles; complete startup/resource delta checks. No optional optimizer or benchmark framework. |
+| UX | Source facts use ordinary scalar names; diagnostics name the selected profile. No runtime target string or hardware-shaped user workaround. |
+| Stakeholders | Modern source ergonomics, expert output and the frozen spec all remain binding. Scope/authority decisions stay user-owned. |
+| Naming | New source bindings, internal file owners, spec/impl test locations and public compatibility boundaries are fixed in the component documents. |
+
+Domain lenses: compiler/language (constant and branch semantics), data/migration (unchanged
+version-1 artifacts and selected-profile identity), concurrency (snapshot isolation, unchanged
+interrupt proof, sequential emulator ownership). Financial/web lenses are inapplicable.
+
+**Simplicity check:** no custom profile language, configurable registry, new optimization pass,
+runtime rational object, new evidence schema, new runner or dispatcher. A single pure fact module
+has two immediate consumers. The existing monitor gains one direct read needed to distinguish
+selected settings from actual emulator settings. These are ordinary feature data/controls, not
+a material support subsystem.
+
+Hardening for AR-P4–AR-P8: consider facts-only on the original PAL profile (smaller but leaves the
+required PAL/NTSC comparison untested) and all eight profiles at once (blocked by AR-P3). The four
+cooperative profiles are the smallest useful complete comparison without raw ownership. A larger
+budget would qualify later RD-05 slices, not justify a new framework. The strongest counterargument
+is accidental dependence on PAL-only startup assumptions; explicit target guards, encoding/loader
+diagnostics, exact emulator settings, four fresh smokes and the unchanged M1 journey cover that
+boundary. Confidence: Medium pending preflight and execution. Challenger: budget exhausted (the
+two allowed reviews covered AR-P2 and AR-P3); no independent Stage A review is claimed.
 
 Knowledge lineage: expert `2.0.0`, qualified content commit
 `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`,
