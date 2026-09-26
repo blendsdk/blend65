@@ -37,6 +37,9 @@
 
 ## Acceptance Criteria
 
-1. [ ] Every RD-04 acceptance criterion has decisive proof referenced by the checked crosswalk.
-2. [ ] Every phase closes with its focused family qualification and no unresolved major finding.
-3. [ ] Linux closeout records native Windows execution as the only host deferral, owned by RD-10.
+1. [x] Every RD-04 acceptance criterion has decisive proof referenced by the checked crosswalk.
+2. [x] Every phase closes with its focused family qualification and no unresolved major finding.
+3. [x] Linux closeout records native Windows execution as the only host deferral, owned by RD-10.
+
+Verified 2026-09-26: [closeout evidence](08-closeout.md), 2,099 passing tests and resolved
+independent review. Explicit approved later-RD scope remains outside the completed Linux claim.

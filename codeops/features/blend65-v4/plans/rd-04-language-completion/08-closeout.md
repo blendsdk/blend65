@@ -1,6 +1,6 @@
 # RD-04 Linux closeout
 
-> **Status**: Full qualification passed; PE-001 correction and verification pending
+> **Status**: Complete on Linux; independent reviews and final verification passed
 > **Date**: 2026-09-26
 > **Scope**: Specification 4 core language, direct `none` compiler, qualified first C64 profile
 > **Authority**: expert `2.0.0`, content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`
@@ -116,7 +116,7 @@ re-reviewed and its ledger row is retired. No active ledger item points back at 
 
 ## Final verification and review
 
-Final install, build and typecheck pass, followed by all **2,093 tests**: 1,393 compiler,
+Before final review, install, build and typecheck passed, followed by all **2,093 tests**: 1,393 compiler,
 62 CLI, 14 language-server, six editor and 618 root tests. The complete root/VICE run is
 sequential, including the M1 journey and all three padded images. Formatting, frozen-authority,
 46 local documentation links and whitespace checks pass. The approved command-local
@@ -134,5 +134,29 @@ found one necessary correction; no other performance finding was reported.
 
 Observed stack-analysis times were 579 / 2,765 / 13,761 ms under current load, not acceptance
 thresholds. The exponential summary counts establish the defect independently of host timing.
-This ruling changes neither scope nor an approved deferral and waives no finding. The correction
-and its final verification remain pending; RD-04 is not closed.
+This ruling changes neither scope nor an approved deferral and waives no finding.
+
+**PE-001 resolved in `0ff64758`.** The independent fix-only re-review reports **no findings**.
+Canonical tokens preserve ordered/repeated live installations, distinct handlers, entry variants
+and masks; exact source ownership remains upstream. Three deterministic counter tests went from
+62/1,022/4,094 body analyses to their unchanged linear bounds at 4/8/10 levels. All 38 independent
+public stack/context cases pass, including unchanged 207/206/227-byte preservation controls.
+Build, typecheck, formatting and frozen-authority checks pass. No generated instruction, storage
+request, public interface or runtime changed. Logs: `/tmp/phase9-context-count-{red,green}.log`
+and `/tmp/phase9-context-public-green.log`.
+
+**Final post-correction gate, 2026-09-26 23:22:** install, build and typecheck pass, followed by
+all **2,099 tests**: 1,396 compiler, 62 CLI, 14 language-server, six editor and 621 root tests.
+All 80 root files pass in one sequential run, including the complete M1 journey and all three
+padded images. The same command-local workspace allowance was used; assertions and explicit
+subprocess deadlines are unchanged. Logs: `/tmp/phase9-reviewed-{install,build,typecheck,workspaces,root}.log`.
+Touched-file formatting, local documentation links, whitespace, old-oracle integrity and
+frozen-authority checks pass. The phase's general correctness review, focused semantic correction
+review and final performance fix review have no unresolved findings. No risk waiver is used.
+
+All 99 plan tasks and the mandatory expiry gate are complete. RD-04 is **Done** within its
+approved Linux/profile boundary. Feature progress is 2/10 RDs formally closed; RD-02 and RD-03
+still retain their separately owned Windows closeout gates. Portfolio synchronization waits for
+integration on `v3`. No existing architecture-doc set or techdocs opt-in exists, so no new
+documentation product was created. Later RD-05–RD-09 scope and RD-10 native Windows evidence
+remain explicit; no later delivery is claimed. All checkpoints are local commits, not Git pushes.

@@ -4,7 +4,7 @@
 > **Status**: In Progress
 > **Created**: 2026-09-10
 > **Last Updated**: 2026-09-26
-> **Progress**: 1 / 10 (10%)
+> **Progress**: 2 / 10 (20%)
 > **Execution Prerequisite**: Phase 0 complete; see
 > [bootstrap and session handoff](00-phase-0-handoff.md)
 > **CodeOps Artifact Schema**: 1
@@ -23,7 +23,7 @@
 | RD-03 | Playable M1 Complete Pipeline | [RD-03](requirements/RD-03-playable-m1-complete-pipeline.md) | [Frontend](plans/rd-03-frontend-first/00-index.md) · [Pipeline completion](plans/rd-03-pipeline-completion/00-index.md) | ⛔ Blocked (Linux execution complete) | ⛔ | 2026-09-23 | Frontend (64/64) and pipeline completion (79/79) are complete. ACME 0.97 and VICE 3.10 pass the exact 441-input generated-versus-expert rendered journey. Formal Done waits only on DEF-3 native Windows qualification during RD-10 and does not block RD-04–RD-09. SpritePad stays in RD-06. |
 | ↳ DEF-2 | Parser syntax diagnostic authority decision | — | [Decision](plans/rd-03-frontend-first/00-ambiguity-register.md) | Done | ✅ | 2026-09-18 | User approved `PARSE_SYNTAX_ERROR`; narrow R3.10 exception recorded. |
 | ↳ DEF-3 | Native Node 22 Windows x64 RD-03 qualification | — | [Decision](plans/rd-03-pipeline-completion/00-ambiguity-register.md) | Deferred | ⏸️ | 2026-09-23 | Run publication, pin/cleanup, tool/process and editor smoke during RD-10 when the user supplies Windows access; Linux implementation is complete and RD-04–RD-09 remain unblocked. |
-| RD-04 | Complete Language and Correct Unoptimized Compiler | [RD-04](requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | [Plan](plans/rd-04-language-completion/00-index.md) | Executing | 🔄 | 2026-09-26 | 98/99 verified after final review. All 2,093 tests pass; correctness review has no findings. PE-001's bounded IRQ-context analysis correction and re-verification are pending. Windows stays at RD-10. |
+| RD-04 | Complete Language and Correct Unoptimized Compiler | [RD-04](requirements/RD-04-complete-language-correct-unoptimized-compiler.md) | [Plan](plans/rd-04-language-completion/00-index.md) | Done | ✅ | 2026-09-26 | 99/99 verified; independent reviews clear. Final install/build/typecheck and all 2,099 tests pass, including sequential VICE. Expert output and deferral expiry reconciled; [Linux closeout](plans/rd-04-language-completion/08-closeout.md). Approved NMI/handler-side IRQ work stays with RD-05; Windows stays at RD-10. |
 | ↳ DEF-13 | Missing logical-operand and encoding-input diagnostic identities | — | [Decision](plans/rd-04-language-completion/00-ambiguity-register.md) | Done | ✅ | 2026-09-26 | AR-P27 approved: E10280/E10281 diagnostic-only erratum implemented with 57 independent passing cases. Language acceptance and optimization contracts are unchanged. |
 | ↳ DEF-12 | Canonical artifact-error record interface | — | [Decision](plans/rd-04-language-completion/00-ambiguity-register.md) | Done | ✅ | 2026-09-26 | AR-P24 approved: the minimal additive diagnostic record in the existing validators; no new command, public schema or framework. |
 | ↳ DEF-11 | Obsolete fixed-size raw-asset test authority | — | [Decision](plans/rd-04-language-completion/00-ambiguity-register.md) | Done | ✅ | 2026-09-26 | AR-P20 approved: amend only the obsolete 511/513-byte rejection, preserve safety and sprite-placement cases. |

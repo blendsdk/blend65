@@ -1,7 +1,7 @@
 # RD-04 Language Completion Implementation Plan
 
 > **Feature**: Complete Specification 4 and the correct `optimization: none` compiler
-> **Status**: 98/99 tasks verified; final performance correction in qualification
+> **Status**: Implementation Complete — Linux; native Windows evidence remains at RD-10
 > **Created**: 2026-09-23
 > **Implements**: blend65-v4/RD-04
 > **CodeOps Artifact Schema**: 1

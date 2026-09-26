@@ -1,7 +1,7 @@
 # Phase 9 stack-correction review
 
 Status: focused corrections, the one re-review and repository verification pass.
-Phase 9 is not complete.
+This was an intermediate checkpoint; final Phase 9 completion is in the [closeout](08-closeout.md).
 
 Baseline: `4ccb28d01c36d8afc2634ddb72ee83022afad655`. Scope is the Phase 6
 RV-010 stack precision correction already assigned to RD-04 qualification.
@@ -63,4 +63,5 @@ Logs: `/tmp/phase9-install.log`, `/tmp/phase9-build-final.log`,
 `/tmp/phase9-typecheck.log`, `/tmp/phase9-workspaces-load-allowance.log`,
 `/tmp/phase9-root.log`, `/tmp/phase9-prettier-check.log`.
 RV-010's ledger entry is retired; its old RV-007 attribution is corrected. RV-009's
-variant call-context omission is also closed. General Phase 9 tasks remain open.
+variant call-context omission is also closed. General Phase 9 tasks were still open at this
+checkpoint; their subsequent completion is recorded in the closeout.
