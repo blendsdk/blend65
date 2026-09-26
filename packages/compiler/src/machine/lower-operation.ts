@@ -23,7 +23,11 @@ import {
   lowerConstantMultiply,
   lowerFixedShift,
 } from "./lower-scalar.js";
-import { lowerArithmetic, lowerBcdArithmetic } from "./lower-arithmetic.js";
+import {
+  lowerArithmetic,
+  lowerBcdArithmetic,
+  lowerBcdWordToConstantMemory,
+} from "./lower-arithmetic.js";
 import { lowerUnary } from "./lower-unary.js";
 import { lowerRuntimeMultiply } from "./lower-multiply.js";
 import { lowerRuntimeDivision } from "./lower-division.js";
@@ -231,6 +235,21 @@ export function lowerOperation(
     const right = state.values.get(operation.right);
     if (left === undefined || right === undefined) {
       throw loweringFailure("BCD operand was not lowered", operation.span);
+    }
+    const directWrite = state.directBcdWrites.get(operation.result);
+    if (directWrite !== undefined) {
+      const address = state.values.get(directWrite.address);
+      if (address?.kind !== "constant") {
+        throw loweringFailure("Direct word BCD write has no fixed address", directWrite.span);
+      }
+      return lowerBcdWordToConstantMemory(
+        operation,
+        directWrite,
+        left,
+        right,
+        address.value,
+        state,
+      );
     }
     const lowered = lowerBcdArithmetic(operation, left, right, state);
     const retained = retainMachineValue(
@@ -604,8 +623,9 @@ export function lowerOperation(
     return retained.instructions;
   }
   if (operation.kind === "memory-write") {
+    if (state.directBcdWrites.get(operation.value) === operation) return Object.freeze([]);
     const value = state.values.get(operation.value);
-    if (value?.kind === "register" && !state.forwardedAccumulatorValues.has(operation.value)) {
+    if (value?.kind === "register" && !state.forwardedRegisterValues.has(operation.value)) {
       throw loweringFailure("Raw-memory register value was not proved current", operation.span);
     }
     return lowerMemoryWrite(operation, {

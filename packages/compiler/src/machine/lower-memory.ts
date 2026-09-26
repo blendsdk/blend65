@@ -40,7 +40,7 @@ function indirectEffect(
 }
 
 /** Keep each fixed volatile byte at its actual machine address, including $FFFF wrap. */
-function absoluteEffect(
+export function absoluteEffect(
   kind: "read" | "write",
   address: number,
   order: number,

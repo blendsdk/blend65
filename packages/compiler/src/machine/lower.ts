@@ -1,7 +1,12 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
-import type { SemanticBlock, SemanticPlace, SemanticTerminator } from "../semantic/operations.js";
+import type {
+  MemoryWriteOperation,
+  SemanticBlock,
+  SemanticPlace,
+  SemanticTerminator,
+} from "../semantic/operations.js";
 import {
   interruptExecutionContexts,
   interruptRouteDepths,
@@ -26,6 +31,7 @@ import {
 } from "./lower-control.js";
 import { prepareAggregateInduction, type AggregateInductionRuntime } from "./lower-induction.js";
 import { lowerOperation } from "./lower-operation.js";
+import { selectBcdForwarding } from "./lower-bcd-forwarding.js";
 import { c64InterruptEntryLabel, createC64InterruptEntry, RAW_HANDLER_ENTRY } from "./lower-c64.js";
 import {
   domainMachineFunction,
@@ -143,8 +149,10 @@ export interface FunctionLoweringState {
   readonly allPositions: readonly { readonly block: string; readonly operation: number }[];
   readonly branchConditions: ReadonlySet<string>;
   readonly materializedValues: ReadonlySet<string>;
-  /** One-use A results consumed by the next instruction-producing operation. */
-  readonly forwardedAccumulatorValues: ReadonlySet<string>;
+  /** One-use A/AX results consumed by the next instruction-producing operation. */
+  readonly forwardedRegisterValues: ReadonlySet<string>;
+  /** Word BCD results written directly to one fixed volatile destination. */
+  readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
   /** Values consumed once may donate their address pair to a terminal aggregate copy. */
   readonly singleUseValues: ReadonlySet<string>;
   /** Aggregate results whose pointer is consumed beyond a redundant same-place store. */
@@ -277,7 +285,7 @@ export function retainMachineValue(
   );
   if (
     !state.materializedValues.has(resultId) ||
-    state.forwardedAccumulatorValues.has(resultId) ||
+    state.forwardedRegisterValues.has(resultId) ||
     value.kind !== "register" ||
     !hasSemanticLifetime
   ) {
@@ -448,13 +456,6 @@ function lowerFunction(
     retainedAggregateResults.add(value);
   };
   const addressValues = new Set<string>();
-  const constantValues = new Set(
-    blocks.flatMap((block) =>
-      block.operations.flatMap((operation) =>
-        operation.kind === "constant" ? [operation.result] : [],
-      ),
-    ),
-  );
   for (const block of blocks) {
     for (const operation of block.operations) {
       if (
@@ -498,51 +499,7 @@ function lowerFunction(
   const singleUseValues = new Set(
     [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
   );
-  // Constants emit no machine instruction. Only these adjacent consumers can use A directly
-  // without a lifetime home or a second load, and only when the value has no other use.
-  const forwardedAccumulatorValues = new Set<string>();
-  for (const block of blocks) {
-    for (let index = 0; index < block.operations.length; index += 1) {
-      const producer = block.operations[index]!;
-      if (
-        (producer.kind !== "memory-read" && producer.kind !== "bcd") ||
-        producer.width !== 1 ||
-        !singleUseValues.has(producer.result)
-      ) {
-        continue;
-      }
-      let consumerIndex = index + 1;
-      while (block.operations[consumerIndex]?.kind === "constant") consumerIndex += 1;
-      const consumer = block.operations[consumerIndex];
-      let precedingIndex = index - 1;
-      while (block.operations[precedingIndex]?.kind === "constant") precedingIndex -= 1;
-      const preceding = block.operations[precedingIndex];
-      if (
-        producer.kind === "memory-read" &&
-        consumer?.kind === "bcd" &&
-        consumer.left === producer.result &&
-        constantValues.has(consumer.right)
-      ) {
-        forwardedAccumulatorValues.add(producer.result);
-      } else if (
-        producer.kind === "memory-read" &&
-        consumer?.kind === "bcd" &&
-        consumer.operator === "add" &&
-        consumer.right === producer.result &&
-        (constantValues.has(consumer.left) ||
-          (preceding?.kind === "memory-read" && preceding.result === consumer.left))
-      ) {
-        forwardedAccumulatorValues.add(producer.result);
-      } else if (
-        producer.kind === "bcd" &&
-        consumer?.kind === "memory-write" &&
-        consumer.value === producer.result &&
-        constantValues.has(consumer.address)
-      ) {
-        forwardedAccumulatorValues.add(producer.result);
-      }
-    }
-  }
+  const { forwardedRegisterValues, directBcdWrites } = selectBcdForwarding(blocks, singleUseValues);
   const state: FunctionLoweringState = {
     owner,
     interruptDepth,
@@ -558,7 +515,8 @@ function lowerFunction(
       ),
     ),
     materializedValues,
-    forwardedAccumulatorValues,
+    forwardedRegisterValues,
+    directBcdWrites,
     singleUseValues,
     retainedAggregateResults,
     addressValues,

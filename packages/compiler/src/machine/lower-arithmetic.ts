@@ -1,4 +1,5 @@
 import type { SemanticOperation } from "../semantic/operations.js";
+import type { MemoryWriteOperation } from "../semantic/operations.js";
 import {
   machineInstruction,
   modeForValue,
@@ -6,6 +7,7 @@ import {
   type LoweredValue,
 } from "./lower-control.js";
 import type { MachineInstruction } from "./machine-types.js";
+import { absoluteEffect } from "./lower-memory.js";
 import {
   appendLoadA,
   requestStorage,
@@ -174,4 +176,63 @@ export function lowerBcdArithmetic(
   );
   emit("cld");
   return Object.freeze({ instructions: Object.freeze(instructions), result });
+}
+
+/** Write a directly consumed word result while decimal carry still connects its two bytes. */
+export function lowerBcdWordToConstantMemory(
+  operation: Extract<SemanticOperation, { readonly kind: "bcd" }>,
+  write: MemoryWriteOperation,
+  left: LoweredValue,
+  right: LoweredValue,
+  address: number,
+  state: FunctionLoweringState,
+): readonly MachineInstruction[] {
+  if (
+    operation.width !== 2 ||
+    left.kind !== "register" ||
+    left.registers !== "ax" ||
+    right.kind !== "constant" ||
+    write.width !== 2
+  ) {
+    throw new Error("Direct word BCD write needs AX, a constant operand and word destination");
+  }
+  const cpu = state.input.profile.cpu;
+  const opcode = operation.operator === "add" ? "adc" : "sbc";
+  const instructions: MachineInstruction[] = [
+    machineInstruction(cpu, "sed", "implied", null, [], operation.span),
+    machineInstruction(
+      cpu,
+      operation.operator === "add" ? "clc" : "sec",
+      "implied",
+      null,
+      [],
+      operation.span,
+    ),
+  ];
+  for (let offset = 0; offset < 2; offset += 1) {
+    if (offset === 1) {
+      // TXA updates N/Z, not carry; the low-byte decimal carry reaches the high byte.
+      instructions.push(machineInstruction(cpu, "txa", "implied", null, [], operation.span));
+    }
+    instructions.push(
+      machineInstruction(
+        cpu,
+        opcode,
+        modeForValue(right, offset),
+        operandForValue(right, offset),
+        [],
+        operation.span,
+      ),
+      machineInstruction(
+        cpu,
+        "sta",
+        "absolute",
+        Object.freeze({ kind: "absolute", value: (address + offset) & 0xffff }),
+        [absoluteEffect("write", (address + offset) & 0xffff, offset)],
+        write.span,
+      ),
+    );
+  }
+  instructions.push(machineInstruction(cpu, "cld", "implied", null, [], operation.span));
+  return Object.freeze(instructions);
 }

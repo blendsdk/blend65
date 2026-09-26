@@ -28,5 +28,41 @@
     "bytes": 18,
     "cycles": 26,
     "scratchBytes": 1
+  },
+  "wordBcdIncrement": {
+    "contract": "PAL C64 NMOS 6510; read $0400 low then $0401 high before either write, add packed-decimal word one with carry into high byte, write $0420 low then $0421 high, leave D clear; exclude common startup return",
+    "instructions": [
+      "LDA $0400",
+      "LDX $0401",
+      "SED",
+      "CLC",
+      "ADC #$01",
+      "STA $0420",
+      "TXA",
+      "ADC #$00",
+      "STA $0421",
+      "CLD"
+    ],
+    "bytes": 20,
+    "cycles": 28,
+    "scratchBytes": 0
+  },
+  "wordBcdDecrement": {
+    "contract": "Same ordered word read/write and D-state contract as wordBcdIncrement, subtracting packed-decimal word one with borrow into high byte",
+    "instructions": [
+      "LDA $0400",
+      "LDX $0401",
+      "SED",
+      "SEC",
+      "SBC #$01",
+      "STA $0420",
+      "TXA",
+      "SBC #$00",
+      "STA $0421",
+      "CLD"
+    ],
+    "bytes": 20,
+    "cycles": 28,
+    "scratchBytes": 0
   }
 }

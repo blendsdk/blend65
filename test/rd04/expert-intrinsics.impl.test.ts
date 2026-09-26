@@ -22,6 +22,8 @@ const expert = JSON.parse(
     cycles: number;
     scratchBytes: number;
   };
+  wordBcdIncrement: { instructions: string[]; bytes: number; cycles: number; scratchBytes: number };
+  wordBcdDecrement: { instructions: string[]; bytes: number; cycles: number; scratchBytes: number };
 };
 
 /** Assemble one complete user routine through the public build path. */
@@ -64,13 +66,20 @@ function cost(instructions: readonly string[]): { bytes: number; cycles: number 
   const forms = new Map<string, readonly [number, number]>([
     ["LDA $0400", [3, 4]],
     ["LDA $0401", [3, 4]],
+    ["LDX $0401", [3, 4]],
+    ["TXA", [1, 2]],
     ["STA SCRATCH", [3, 4]],
     ["ADC SCRATCH", [3, 4]],
     ["SED", [1, 2]],
     ["CLC", [1, 2]],
+    ["SEC", [1, 2]],
     ["ADC #$01", [2, 2]],
+    ["ADC #$00", [2, 2]],
+    ["SBC #$01", [2, 2]],
+    ["SBC #$00", [2, 2]],
     ["CLD", [1, 2]],
     ["STA $0420", [3, 4]],
+    ["STA $0421", [3, 4]],
   ]);
   return instructions.reduce(
     (sum, instruction) => {
@@ -131,5 +140,22 @@ describe("equal-contract intrinsic output", () => {
     expect(normalized).toEqual(expert.byteBcdTwoReads.instructions);
     expect(cost(normalized)).toEqual({ bytes: 18, cycles: 26 });
     expect(expert.byteBcdTwoReads.scratchBytes).toBe(1);
+  });
+
+  it.each([
+    ["add", "wordBcdIncrement"],
+    ["sub", "wordBcdDecrement"],
+  ] as const)("writes a %s word directly in the owned decimal region", async (operator, key) => {
+    const reference = expert[key];
+    expect(cost(reference.instructions)).toEqual({
+      bytes: reference.bytes,
+      cycles: reference.cycles,
+    });
+    const actual = routineInstructions(
+      await bcdAssembly(`pokew($0420, bcd_${operator}(peekw($0400), word(1)));`),
+    );
+    expect(actual).toEqual(reference.instructions);
+    expect(cost(actual)).toEqual({ bytes: 20, cycles: 28 });
+    expect(reference.scratchBytes).toBe(0);
   });
 });
