@@ -57,14 +57,14 @@ function lowerFill(length: number, prefix: number | null = 7, borrowed = false) 
 
 describe("direct byte-fill selection", () => {
   it.each([null, 7])(
-    "uses the same 74-byte kernel for a 5000-byte fill with prefix %s",
+    "uses the same 72-byte kernel for a 5000-byte fill with prefix %s",
     (prefix) => {
       const { blocks, storage } = lowerFill(5000, prefix);
       const loops = blocks.filter(({ terminator }) => terminator.kind === "branch");
       expect(loops).toHaveLength(2);
       expect(loops.map(({ instructions }) => instructions.map(({ opcode }) => opcode))).toEqual([
         [...Array.from({ length: 19 }, () => "sta"), "iny"],
-        ["sta", "iny", "cpy"],
+        ["dey", "sta"],
       ]);
       const instructions = blocks.flatMap((block) => block.instructions);
       expect(instructions.map(({ opcode }) => opcode)).toEqual([
@@ -73,20 +73,19 @@ describe("direct byte-fill selection", () => {
         ...Array.from({ length: 19 }, () => "sta"),
         "iny",
         "ldy",
+        "dey",
         "sta",
-        "iny",
-        "cpy",
       ]);
       expect(
         instructions.reduce((bytes, instruction) => bytes + instruction.cost.bytes, 0) + 4,
-      ).toBe(74);
+      ).toBe(72);
       expect(storage.filter(({ bytes }) => bytes === 5000)).toHaveLength(1);
       expect(storage.filter(({ region }) => region === "zero-page-required")).toHaveLength(0);
-      // Independent NMOS costs: STA abs,Y=5, INY=2, CPY #=2; BNE=3 taken/2 final.
+      // Independent NMOS costs: STA abs,Y=5, INY/DEY=2; BNE=3 taken/2 final.
       // This excludes branch-page penalties and C64 DMA stalls, not hidden execution overhead.
       const fullPageCycles = 2 + 2 + 256 * (19 * 5 + 2) + 255 * 3 + 2;
-      const tailCycles = 2 + 136 * (5 + 2 + 2) + 135 * 3 + 2;
-      expect(fullPageCycles + tailCycles).toBe(27_236);
+      const tailCycles = 2 + 136 * (2 + 5) + 135 * 3 + 2;
+      expect(fullPageCycles + tailCycles).toBe(26_964);
     },
   );
 
@@ -97,7 +96,17 @@ describe("direct byte-fill selection", () => {
       const writes: number[] = [];
       for (const block of blocks.filter(({ terminator }) => terminator.kind === "branch")) {
         const compare = block.instructions.find(({ opcode }) => opcode === "cpy");
-        const count = compare?.operand?.kind === "immediate" ? compare.operand.value : 256;
+        const predecessor = blocks.find(
+          ({ terminator }) =>
+            terminator.kind === "fallthrough" && terminator.target === block.label,
+        );
+        const seed = predecessor?.instructions.find(({ opcode }) => opcode === "ldy");
+        const count =
+          block.instructions[0]?.opcode === "dey" && seed?.operand?.kind === "immediate"
+            ? seed.operand.value
+            : compare?.operand?.kind === "immediate"
+              ? compare.operand.value
+              : 256;
         expect(
           block.instructions.reduce((size, instruction) => size + instruction.cost.bytes, 2),
         ).toBeLessThanOrEqual(128);

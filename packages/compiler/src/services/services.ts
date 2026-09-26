@@ -45,6 +45,7 @@ import {
   layoutResourceWarnings,
   resourceSourceSpans,
   sourceZeroPageOverflow,
+  sourcePlacementFailure,
   storageResourceWarnings,
 } from "./resource-diagnostics.js";
 
@@ -199,13 +200,17 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (zeroPageOverflow !== null)
     return { kind: "failure", failure: failure("source", [zeroPageOverflow]) };
   const reserved = reserveZeroPageGlobals(closed.program, selected.profile.storage);
-  if (reserved === null) {
+  if (reserved.kind === "error") {
+    const owner = reserved.conflict;
     return {
       kind: "failure",
       failure: failure("source", [
-        serviceDiagnostic(
+        projectDiagnostic(
           "E10273",
-          "Zero-page placement conflicts with the selected memory window",
+          `Cannot place '${owner.name?.split(".").at(-1) ?? "zero-page object"}' — explicit placement constraints conflict with occupied storage or the selected zero-page window; change or remove the explicit constraint`,
+          resourceSpans.get(`placement:${bindingIdentityKey(owner.id)}`) ??
+            resourceSpans.get(bindingIdentityKey(owner.id)) ??
+            owner.source,
         ),
       ]),
     };
@@ -358,10 +363,12 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
     return {
       kind: "failure",
       failure: failure("compiler", [
-        serviceDiagnostic(
-          shared.reason === "source-placement" ? "E10273" : "COMPILER_LAYOUT",
-          `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,
-        ),
+        shared.reason === "source-placement"
+          ? sourcePlacementFailure(lowered.program, resourceSpans, shared.objectId)
+          : serviceDiagnostic(
+              "COMPILER_LAYOUT",
+              `Platform layout failed: ${shared.reason}${shared.objectId === null ? "" : ` (${shared.objectId})`}`,
+            ),
       ]),
     };
   }

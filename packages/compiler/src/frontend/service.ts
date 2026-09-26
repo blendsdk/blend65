@@ -442,7 +442,7 @@ function analyzeResolvedProject(
       (declaration): declaration is TypedDeclaration => declaration.kind === "typed",
     ),
   );
-  const placedAssets = placeSemanticAssets(assets, declarations);
+  const placedAssets = placeSemanticAssets(assets, declarations, analysis.modules);
   if (placedAssets.diagnostics.length > 0) {
     return Object.freeze({
       kind: ANALYSIS_RESULT_KIND.error,

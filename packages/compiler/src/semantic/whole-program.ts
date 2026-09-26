@@ -349,7 +349,7 @@ function reachableInterruptRoutes(
           diagnostics.push(
             projectDiagnostic(
               "E10245",
-              `Interrupt source '${sink.source}' can re-enter without a finite stack bound on the selected profile`,
+              `Execution path '${sink.source}' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design`,
               operation.span,
             ),
           );

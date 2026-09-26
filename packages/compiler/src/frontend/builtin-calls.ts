@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import { scopedBorrowOrigin } from "./address-provenance.js";
 import {
   createScalarTypedExpression,
   integerFacts,
@@ -148,11 +149,16 @@ export function analyzeBuiltinCall(
     (name === "poke" || name === "pokew") &&
     arguments_[0]?.addressPlaces?.some((place) => place.readonly)
   ) {
+    const origins = arguments_[0].addressPlaces
+      .filter((place) => place.readonly)
+      .map((place) => scopedBorrowOrigin(place.binding, context.scope));
     host.diagnose(
       projectDiagnostic(
         "E10123",
-        "Cannot write through an address derived from read-only storage",
+        `Cannot modify through read-only origin '${origins.map((origin) => origin.name).join(", ")}'`,
         expression.arguments[0]?.span ?? expression.span,
+        null,
+        origins.map((origin) => ({ span: origin.span, message: "Read-only origin declared here" })),
       ),
     );
     return { node: null, exact: null };
@@ -205,11 +211,14 @@ function analyzeByteExtraction(
     else arguments_.push(result.node);
   }
   const argument = arguments_[0];
+  const boolean = argument?.type.kind === "scalar" && argument.type.name === "boolean";
   if (argument !== undefined && !isIntegerType(argument.type)) {
     host.diagnose(
       projectDiagnostic(
-        "E10080",
-        `Cannot implicitly convert '${semanticTypeName(argument.type)}' to an integer accepted by '${name}()'`,
+        boolean ? "E10086" : "E10080",
+        boolean
+          ? "Cannot cast 'boolean' to 'word' — boolean is not convertible to or from an integer"
+          : `Cannot implicitly convert '${semanticTypeName(argument.type)}' to 'word' — '${name}()' requires an integer value`,
         expression.arguments[0]!.span,
       ),
     );

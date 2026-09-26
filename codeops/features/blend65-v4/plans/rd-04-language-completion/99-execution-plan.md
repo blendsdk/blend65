@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 79/99 tasks (80%)
+> **Progress**: 91/99 tasks (92%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -399,11 +399,13 @@ The exact-meter probe confirmed a missing statement charge for selected `else if
 > **Expected modification set**: The task paths below and existing frontend/assets/services/layout helpers needed to carry source placement, source names and canonical diagnostics through those paths; focused same-directory splits under AR-P8; this plan's execution/review records and feature roadmap; the RD-04 requirement wording explicitly approved in AR-P22. Import-only retargeting in other machine helpers is mechanical, not a reason to refactor unrelated bodies. No frozen spec, package topology, evidence schema, optional optimizer or runtime changes.
 > **Lenses**: machine legality, artifact integrity, output parity, package boundaries
 
-**Current gate (2026-09-26):** AR-P25 and AR-P26 are approved. The two old enum-message
-expectations now require useful, valid source-specific suggestions; E10204 native parsing
-proof is retained in RD-06 before removal from RD-04. Ownership is 171 RD-04 / ten RD-06 /
-one RD-07 diagnostics. The High-effort correction batch resumes with the other specification
-expectations frozen. Selected numerical accounting and Phase 8 review remain open.
+**Current gate (2026-09-26):** AR-P25, AR-P26 and AR-P27 are approved. The two old enum-message
+expectations require valid source-specific suggestions; E10204 native parsing proof remains in
+RD-06. AR-P27 narrowly adds E10280/E10281 identities for already-invalid source operands and
+their four-file specification/hash bookkeeping exception; all other frozen authority remains
+unchanged. Ownership is 173 RD-04 / ten RD-06 / one RD-07 diagnostics. The independent review
+and one fix-scoped round have completed; all correction qualification now passes. Phase 8 is
+complete; Phase 9 remains unstarted.
 
 **Final Phase 8 continuation (2026-09-26):** the user confirmed High effort for the whole
 remaining phase, including all constituent tests, corrections and independent review. Resume
@@ -746,28 +748,178 @@ The new tests were authored without reading implementation. Domain lineage: expe
 Chapter 14 plus each diagnostic's owning chapter. No generated-code or optimization change was
 made in this continuation.
 
+### Full-phase review and pause (2026-09-26)
+
+The user's confirmation authorizes High effort for the whole remaining Phase 8; no further effort
+confirmation is needed on resumption. It does not authorize changing frozen diagnostic authority.
+The source-responsibility/resource checkpoint is committed as `c42ef598`, after install, build,
+typecheck and all 1,823 tests passed. No push was made.
+
+The subsequent independent alternate-producer sweep adds 63 specification cases: 32 producer,
+16 value, 13 placement and two residual cases. Recorded initial RED counts are respectively
+22, 11, 12 and two; already-green cases independently confirm existing behavior. All 63 now pass,
+as do three new poison/recovery implementation cases and 176 directed frontend compatibility cases.
+Changes retain canonical messages and exact source/related spans, preserve the original compile-time
+error when a dependent evaluation is poisoned, and split unary analysis without a new compiler pass.
+The final BCD operand-name and extra-embed-argument fixes pass their two independent cases.
+
+Latest build passes. The attempted full suite does **not** pass: three existing five-second service
+timeouts occurred, and the unchanged directed retry passed 13/14 with one timeout remaining. Heavy
+unrelated host load was observed, but causation is not proved. No test timeout, fixture or expectation
+was weakened, and no unrelated process was stopped. The root runtime suite did not run after that
+workspace failure. Logs: `/tmp/phase8-alt-final-test.log`, `/tmp/phase8-service-timeout-retry.log`,
+`/tmp/phase8-placement-green.log`, `/tmp/phase8-residual-green.log`,
+`/tmp/phase8-recovery-test.log` and `/tmp/phase8-alternate-compat.log`.
+
+Independent review covers the entire Phase 8 diff from `862488eccc79234d6a6e2ddb8aec438f5b31a2b7`,
+including committed and uncommitted work, not merely this continuation. Domain authority remains
+expert 2.0.0, content `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`.
+
+| Finding | Ruling / remaining work |
+|---|---|
+| RV-001, mechanical critical spec-edit flag | Reconciled against existing explicit AR-P23/AR-P25 authority. Reviewer confirmed no examined edit exceeds those allowances or weakens behavior/cost observations. No new waiver or test change is authorized. |
+| RV-002, major artifact error localization | Fix required under the existing AR-P24 contract. Existing payload validators must report the actual failing field/invariant; currently most failures use an empty pointer and whole-document span. Preserve legacy strings, version precedence and schemas; no second validator framework. |
+| RV-003, minor asset-alias related location | Fix required: retain the earlier conflicting placement site, with the later constraint primary. No placement semantics change. |
+| SEM-001, major restored-flag provenance | Fix required: `PLP` must restore saved facts rather than manufacture producers for all flags. Cover unknown and known saved status, stack operations, CFG joins and calls. Validation only; no new target storage or emitted instructions. |
+| SEM-002, missing diagnostic identities | AR-P27 open. Frozen sources require rejection but assign no matching codes for non-Boolean logical operands and non-literal first encoding arguments. User authority is needed before changing public identities or frozen definitions. |
+| PE-001, minor private-fill tail selection | Fix required by the expert-output directive: the same proved private destination admits a descending 136-byte tail, reducing the 5,000-byte kernel from 74 to 72 bytes and 27,236 to 26,964 nominal cycles. The earlier parity claim and issue #88's weaker reference need correction. Keep global/borrowed write order and independent behavior/cost expectations. No optional optimizer is needed. |
+| PE-002, minor stack-accounting host cost | Replace repeated operation-depth scans per helper/callee with maximum-depth lookups accumulated in the existing traversal. At 500 helper sites and 4,000 operations the current helper path visits two million entries and allocates roughly four million temporary arrays per closure. Local bookkeeping only; no cache framework. |
+
+These are necessary corrections within the existing phase, not optional product additions.
+Technical fixes are selected under AGENTS workflow directive 4. The frozen-authority fork is
+user-owned, so execution pauses before further correction work. Attempts to resume/spawn an
+independent regression author reached the agent thread limit; no substitute test oracle was
+invented. On resume, retain specification-first regression evidence and one fix-scoped re-review.
+Do not claim Phase 8 complete, start Phase 9, or commit the unverified continuation. The last
+green commit remains `c42ef598`; current edits and tests are preserved in the working tree.
+
+**Approved correction checkpoint (2026-09-26 20:33):** AR-P27 is resolved by the user's
+explicit diagnostic-only freeze exception. E10280 names each non-Boolean logical operand;
+E10281 names a non-literal first encoding argument. Only `spec/02`, `spec/08`, `spec/14`
+definitions and `spec/00` identity bookkeeping change. The resulting normative digest is
+`ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8`. The qualified expert
+2.0.0 content and release hashes remain unchanged; their original specification binding is
+historical, supplemented by this explicit erratum, not silently requalified. Diagnostic ownership
+is now 173 RD-04 / ten RD-06 / one RD-07. Foundation/coverage oracle edits are restricted to the
+approved identity, count and exact four-file exception; mutation controls remain intact.
+
+Independent regression authors froze 57 diagnostic, 11 saved-status, 26 artifact-field and one
+alias-location cases. Their initial runs recorded 46, six, 19 and one RED cases respectively,
+with the remaining cases serving as GREEN controls. All now pass directed checks. The existing
+five artifact validators carry failure paths through their own predicates; record-level arithmetic
+relationships retain the smallest record containing the operands. Existing primitive predicates
+and array traversal accept optional failure reporting, not a new schema/validator framework.
+Debug record predicates are a same-directory responsibility split under AR-P8.
+
+The one fix-scoped independent review closed alias spans, diagnostic authority/producers,
+private-fill selection and closure-depth indexing. It caught two correction edges before
+qualification: startup's legal opaque `PHA`/`PLP` restore must clear known facts rather than
+reject the program, and valid artifact records with one malformed scalar need that leaf's path.
+Both are corrected; the latter's five extra independent cases are included in the 26 above.
+Status checks now distinguish underflow from a legal opaque byte and preserve known snapshots
+through joins and balanced calls. Fifteen implementation cases plus 11 independent cases pass.
+The review's mandatory old-spec-test flag is reconciled against AR-P23/25/27; it found no
+unauthorized weakening. No third review round is opened; remaining correction acceptance uses
+these frozen regressions, direct diff inspection and full qualification.
+
+The private 5,000-byte fill now costs 72 bytes / 26,964 nominal cycles, correcting the weaker
+74 / 27,236 reference recorded earlier and in issue #88. Only proved private direct storage
+uses the descending partial-page tail; global/borrowed write order is unchanged. Maximum stack
+depths are indexed in the existing traversal, eliminating repeated per-helper/callee scans.
+No new pass, runtime, dependency, package, schema or future-target representation was added.
+Full install/build/typecheck/test qualification is running. Phase 8 tasks remain partial until
+that gate passes; Phase 9 is not started. No push is authorized.
+
+**Qualification continuation (2026-09-26 20:49):** install, build and typecheck pass. Full
+verification exposed one obsolete implementation-test arity expectation (updated to E10171,
+with its fixture and all other assertions retained) and a real related-location overreach:
+E10275 must relate a resident argument's declaration, but a valid loadable argument rejected
+only because the profile has no loader needs no declaration site. Both unchanged independent
+cases now pass; the directed artifact/execution/placement run passes 50/50.
+
+The last combined run passed all 1,462 workspace tests and 526/527 root cases; its sole root
+failure was that now-corrected E10275 relation. The fresh complete rerun on final sources
+encountered two existing five-second service timeouts (and a timeout-induced cleanup race),
+while the other 1,378 compiler cases, 62 CLI, 14 language-server and six editor cases passed.
+An isolated unchanged retry reproduced the timeout. A detached temporary checkout of the last
+green commit `c42ef598` reproduced the same fresh-generation test timeout at 5,056 ms under
+the current host load (observed load average 17–24). This supports an environmental timing
+limitation rather than attributing it to the new corrections; it is not a waived verification
+gate. No timeout, test oracle or unrelated process was changed. The temporary baseline checkout
+was removed after diagnosis; its commit and timing log remain available. Current root acceptance
+tests are running separately. Logs: `/tmp/phase8-verified-{install,build,typecheck,test}.log`,
+`/tmp/phase8-timeout-isolated.log`, `/tmp/phase8-baseline-timing.log`,
+`/tmp/phase8-loader-green.log`, `/tmp/phase8-final-root-test.log`.
+
+**Loaded-host verification ruling (2026-09-26):** the user requested continued work under the
+current load. R4.57 and RD-04's Host responsiveness section explicitly make host elapsed times
+observations, not acceptance thresholds, and exclude wall-clock acceptance gates. The failing
+5,000 ms limit is Vitest's implicit default watchdog, not a specified compiler performance
+contract. Recommended and selected under workflow directive 4: run the same complete workspace
+test set with `node_modules/.bin/turbo run test --only -- --testTimeout=30000`, plus the complete
+root set with `yarn vitest run`. Direct Turbo invocation preserves its pass-through delimiter
+(Yarn classic consumes that delimiter when invoking a binary). `--only` applies the allowance
+only to the four test tasks, after the normal fresh build/typecheck gate; it does not pass a
+test-runner option into their already-verified build dependencies.
+This is a command-local scheduler allowance, not a test/spec/configuration edit or a waiver of
+failed behavior. Explicit per-test timeouts, ACME/VICE subprocess bounds, cancellation checks,
+CPU-cycle expectations, resource budgets and every assertion stay unchanged. Installation,
+build and typecheck remain the normal commands. No infrastructure or compiler performance
+workaround is introduced. The baseline timing reproduction justifies the diagnostic distinction;
+all test behavior must still pass before the phase closes or commits.
+
+The separately run root corpus passed 525/527 cases; two large padded-image cases hit their
+unchanged 50-second monitor deadline. Diagnosis found a real `x64sc` left by the earlier
+timed-out service test after its temporary fake-tool environment had been cleaned up. Its exact
+temporary generation path matched the timeout log. That test-owned process alone was terminated;
+no user job was stopped. The subsequent padded-image case passed after cleanup. This run is not
+reported as clean sequential qualification. The final combined gate reruns every workspace and
+root case with no stray emulator; root monitor deadlines and all explicit limits stay unchanged.
+
+**Phase 8 completion (2026-09-26 21:02):** final install, build and typecheck pass, followed by
+all 1,989 tests: 1,380 compiler, 62 CLI, 14 language-server, six editor and 527 root. Workspace
+tests used the command-local 30-second default watchdog described above; the two earlier service
+failures now complete in 2,316 and 2,338 ms. The root suite used its unchanged invocation and
+limits. The final run has no stray emulator and executes VICE sequentially; all three padded
+images reach their checkpoints in approximately 19 seconds. No failing behavior is waived.
+Logs are `/tmp/phase8-closeout-{install,build,typecheck,workspace-test,root-test}.log`.
+
+The seven original review findings are resolved by the recorded approvals, bounded corrections,
+independent regression evidence and final verification. The single fix-scoped review's remaining
+field-location correction is accepted under workflow directive 4 using its frozen RED-to-GREEN
+leaf cases and direct inspection; no third review or risk waiver is claimed. Existing specification
+tests change only within AR-P23/25/27 authority. The only specification-byte changes are AR-P27's
+exact four-file exception, and expert 2.0.0 content/release are unchanged. Targeted formatting,
+local links, normative source keys and whitespace checks pass. No new pass, runtime, package,
+dependency, schema, generic validator framework or speculative target representation was added.
+
+All twelve Phase 8 tasks are verified, bringing the plan to 91/99. Phase 9's eight evidence and
+closeout tasks are not started, including final comparison/debt reconciliation and deferral expiry.
+The feature roadmap is synchronized; portfolio cascade waits for integration on `v3`. Commit this
+green local checkpoint; do not push. Qualified runtime evidence is VICE-verified / hardware-unverified.
+
 ### Step 8.1: Specification Tests
 
 **Reference**: [03-04](03-04-machine-and-artifacts.md) · full ST-08 and ST-10 sweeps, ST-46–ST-52
 
-- [~] 8.1.1 [spec-author] Write complete machine-legality, direct-`none`, layout, artifact and pipeline-wide terminal-publication specification cases — `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/artifacts/evidence.spec.test.ts`, `test/rd04/backend.spec.test.ts` — 29 cases authored in focused `machine/terminal-legality.spec.test.ts`, `artifacts/direct-none-evidence.spec.test.ts`, `publication/terminal-failure.spec.test.ts`, and `test/rd04/backend.spec.test.ts`; the existing publication lookup proves stale-input rejection without a new public API. Real-build external ACME failure is covered. Directed tests expose missing flag-producer validation, an admitted zero-page pointer at 255, and lost raw-asset placement. AR-P22 is approved. Two additional asset-alias placement cases and exact partition/SFA-hash/cost-sum assertions now pass; ST-52 audit reconciliation remains. ⏳ (implemented: 2026-09-26 12:40)
-- [~] 8.1.2 [spec-author] Write the full ST-08 diagnostic sweep, complete CLI/LSP identity, modern diagnostic wording, readable-assembly evidence and unavailable-capability specification cases — `packages/compiler/src/frontend/diagnostics.spec.test.ts`, `packages/cli/src/commands.spec.test.ts`, `packages/language-server/src/server.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`, `test/rd04/backend.spec.test.ts` — AR-P26 approved: native-parser fixture retained in RD-06; only E10204 ownership and its active case change. Root diagnostic cases pass 180/180; full verification passes. Branch-complete producer reconciliation remains. Other expectations remain frozen. ⏳ (implemented: 2026-09-26 17:45)
-- [~] 8.1.3 Run only the new Phase 8 specification cases and record the expected red failures — Phase 8 test files — Authored-case RED evidence is recorded in the checkpoints above; additional selected-output and producer-completeness cases remain with 8.1.1/8.1.2. ⏳ (implemented: 2026-09-26 17:50)
+- [x] 8.1.1 [spec-author] Write complete machine-legality, direct-`none`, layout, artifact and pipeline-wide terminal-publication specification cases — `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/artifacts/evidence.spec.test.ts`, `test/rd04/backend.spec.test.ts` — Independent terminal, backend, alias, resource-accounting, status-provenance and artifact-field cases are frozen and pass. ST-52's current-representation audit is recorded above; no speculative target fields were added. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.1.2 [spec-author] Write the full ST-08 diagnostic sweep, complete CLI/LSP identity, modern diagnostic wording, readable-assembly evidence and unavailable-capability specification cases — `packages/compiler/src/frontend/diagnostics.spec.test.ts`, `packages/cli/src/commands.spec.test.ts`, `packages/language-server/src/server.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`, `test/rd04/backend.spec.test.ts` — All 173 RD-04 diagnostic identities have owned proof, including 63 alternate-producer and 57 erratum cases. Native parser identities remain in RD-06; CLI/LSP records and readable assembly qualify. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.1.3 Run only the new Phase 8 specification cases and record the expected red failures — Phase 8 test files — Initial RED/GREEN controls are retained in the dated checkpoints and author logs, including the nested-field follow-up. Immutable expectations were not weakened. ✅ (verified: 2026-09-26 21:02)
 
 ### Step 8.2: Implementation
 
-- [~] 8.2.1 Split the oversized machine coordinator and complete remaining scalar/helper selections — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-operation.ts`, `packages/compiler/src/machine/lower-helpers.ts` — current function/state responsibilities moved unchanged to focused `lower-function.ts` and `lower-state.ts`; helper consumers import the state owner directly. Operation call/platform responsibilities are also split; build and directed compatibility checks pass. Full qualification remains. ⏳ (implemented: 2026-09-26 13:10)
-- [~] 8.2.2 Complete aggregate/control/call lowering and generic fallback paths — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/lower-operation.ts` — Uniform byte initializers reuse existing fill selection with compact private-frame page loops. Four independent cases, ten new machine cases, full 1,816-test verification and scoped independent review pass; other aggregate/control/call fallback completeness remains open. ⏳ (implemented: 2026-09-26 18:43)
-- [~] 8.2.3 Complete NMOS legality, state/clobber validation and deterministic branch repair — `packages/compiler/src/machine/validate.ts`, `packages/compiler/src/machine/block-layout.ts`, `packages/compiler/src/target/nmos6510.ts` — ordinary indirect-Y pointer at 255 now rejects; focused CFG/call return-flag validation added in `validate-flags.ts`. Machine legality/lowering/ACME directed checks pass; additional implementation cases and full qualification remain. ⏳ (implemented: 2026-09-26 13:03)
-- [~] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts` — Raw assets retain and reconcile declaration placement; generated assembly and debug evidence share readable, collision-free labels. Directed final-byte and alias-conflict tests pass. ⏳ (implemented: 2026-09-26 13:20)
-- [~] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Approved additive artifact records pass all 30 new cases and existing artifact tests. Precise selected numerical reconciliation and full qualification remain. ⏳ (implemented: 2026-09-26 16:58)
-- [~] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts` — AR-P25 approved: exactly two old enum-message expectations updated. Warning, execution and resource cases pass in their existing owners; focused resource-diagnostic and zero-page-reservation modules keep the service coordinator below its size boundary. Full verification passes; alternate-producer reconciliation remains. ⏳ (implemented: 2026-09-26 17:45)
-- [~] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — All authored cases pass in the complete 1,816-test checkpoint, including nine resource/lifetime cases and four new fill cases. Final promotion waits for the remaining 8.1 specification coverage, not just the currently authored set. ⏳ (implemented: 2026-09-26 18:27)
+- [x] 8.2.1 Split the oversized machine coordinator and complete remaining scalar/helper selections — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-operation.ts`, `packages/compiler/src/machine/lower-helpers.ts` — Machine/state/operation and frontend responsibility splits build and pass all compatibility checks. Scalar and helper selections qualify. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.2.2 Complete aggregate/control/call lowering and generic fallback paths — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/lower-operation.ts` — Aggregate, control and call paths pass independent runtime and assembly oracles. The private 5,000-byte fill matches 72 bytes / 26,964 nominal cycles; global/borrowed write order is unchanged. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.2.3 Complete NMOS legality, state/clobber validation and deterministic branch repair — `packages/compiler/src/machine/validate.ts`, `packages/compiler/src/machine/block-layout.ts`, `packages/compiler/src/target/nmos6510.ts` — NMOS legality, pointer bounds, CFG/call flag producers, saved-status provenance and deterministic branch repair pass. Opaque startup status restores remain legal without invented facts. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts` — Readable labels/comments, asset placement and alias constraints, ACME bytes, PRG packaging and shared-storage rebinding pass, including all three padded-image VICE cases. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — The existing five schemas pass exact accounting/hash reconciliation and field/record invariant diagnostics. Independent artifact cases pass 26/26 with unsupported-version precedence preserved. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts` — Compiler/CLI/LSP canonical failures, alternate producers, source/related spans, poison recovery, resource diagnostics and both resident/loadable loader failures pass without oracle changes. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — Final qualification passes all 1,989 tests: 1,380 compiler, 62 CLI, 14 language-server, six editor and 527 root. The documented command-local watchdog changes no assertion or explicit limit. ✅ (verified: 2026-09-26 21:02)
 
 ### Step 8.3: Implementation Tests and Qualification
 
-- [~] 8.3.1 Add malformed-machine, branch-range, ACME mismatch and evidence/publication implementation tests — `packages/compiler/src/machine/lowering.impl.test.ts`, `packages/compiler/src/artifacts/evidence.impl.test.ts`, `packages/compiler/src/publication/publication.impl.test.ts` — Twelve focused flag-dataflow and label-identity implementation cases pass. Remaining qualification coverage stays open. ⏳ (implemented: 2026-09-26 13:20)
-- [~] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons using one normal-form complete-language example; assert its source-related routine/data labels and comments directly in the generated assembly — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts` — `backend-assembly.impl.test.ts` directly checks routine/data names and boundary comments in the combined aggregate-return, helper, loop, long-branch and placed-asset image; the directed real-ACME case passes. Full verification and phase review are running. ⏳ (implemented: 2026-09-26 19:12)
+- [x] 8.3.1 Add malformed-machine, branch-range, ACME mismatch and evidence/publication implementation tests — `packages/compiler/src/machine/lowering.impl.test.ts`, `packages/compiler/src/artifacts/evidence.impl.test.ts`, `packages/compiler/src/publication/publication.impl.test.ts` — Malformed-machine, flag-flow, aggregate-fill, ACME, artifact and publication implementation cases pass. The implementation-only embed arity expectation matches the independent E10171 oracle. ✅ (verified: 2026-09-26 21:02)
+- [x] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons using one normal-form complete-language example; assert its source-related routine/data labels and comments directly in the generated assembly — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts` — The combined aggregate-return/helper/loop/long-branch/placed-asset program passes real ACME and readable-boundary assertions. Expert-output and sequential VICE checks pass: VICE-verified / hardware-unverified. ✅ (verified: 2026-09-26 21:02)
 
 **Deliverables:** complete legal `none` backend, coherent artifacts and identical public services.
 

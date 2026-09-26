@@ -50,15 +50,21 @@ export function applyExpectedAggregate(
   expected: SemanticType,
   expression: Expr,
   host: ScalarExpressionHost,
+  context: ScalarExpressionContext,
 ): ScalarExpressionResult {
   const node = result.node;
   if (node === null) return result;
   if (node.outerUnsized) {
+    const declaration = host.resolveName(host.sourceText(expression.span), context);
     host.diagnose(
       projectDiagnostic(
         "E10253",
-        "An unsized array parameter is a borrow, not a complete fixed-array value",
+        `Array use at '${host.sourceText(expression.span)}' has no compile-time-known extent — add '[N]', use an extent-inferencing initializer, or keep 'T[]' as an outermost parameter form`,
         expression.span,
+        null,
+        declaration === null
+          ? []
+          : [{ span: declaration.nameSpan, message: "Unsized parameter is declared here" }],
       ),
     );
     return { node: null, exact: result.exact };

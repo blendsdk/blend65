@@ -149,7 +149,7 @@ export class DeclarationParser {
           this.context.addDiagnostic(
             projectDiagnostic(
               "E10272",
-              "A placement region must be a selected-profile region symbol, not a string",
+              `Invalid place constraint on '${this.placementOwner()}' — a placement region must be a selected-profile region symbol, not a string; allowed keys are at, align, noCross, and region on module-level stored data or emitted functions`,
               this.context.current.span,
             ),
           );

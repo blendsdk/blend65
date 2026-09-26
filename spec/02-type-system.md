@@ -610,6 +610,7 @@ severities, message templates, spans, suppression, and history.
 | E10264 | An array extent is not a compile-time integer in `0..65535`. | The array type is rejected. |
 | E10265 | A complete fixed array or struct type occupies more than 65535 bytes. | The type is rejected. |
 | E10266 | `sizeof` names an unsized array type. | The query is rejected because no standalone fixed extent exists. |
+| E10280 | An operand of `&&`, `\|\|`, or `!` is not Boolean. | The logical expression is rejected; no implicit truthiness conversion is performed. |
 
 ### Warning Conditions
 

@@ -121,6 +121,7 @@ class ModuleAnalyzer {
       (binding) => this.stateByKey.get(bindingIdentityKey(binding))?.known ?? null,
       (diagnostic) => this.diagnostics.push(diagnostic),
       (binding) => this.constantAggregates.get(bindingIdentityKey(binding)) ?? null,
+      (span) => sourceText(this.sources, span),
     );
     addProfileBindings(this.profile, this.graph, this);
     this.expressions = new ScalarExpressionAnalyzer(

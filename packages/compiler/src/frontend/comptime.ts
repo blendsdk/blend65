@@ -41,6 +41,9 @@ class ComptimeSemanticFailure extends Error {
   }
 }
 
+/** A rejected body or recursive call already belongs to declaration/call-graph diagnostics. */
+class ComptimeDependencyFailure extends Error {}
+
 /** Distinguish a checked value operand from a retained type spelling. */
 function isTypedOperand(operand: TypedExpr | TypeSyntax): operand is TypedExpr {
   return "constant" in operand;
@@ -61,6 +64,8 @@ export class ComptimeEvaluator {
     readonly constantValue: (binding: BindingId) => bigint | boolean | null,
     readonly diagnose: (diagnostic: ProjectDiagnostic) => void,
     readonly constantAggregate: (binding: BindingId) => readonly number[] | null = () => null,
+    /** Exact source spelling for diagnostics discovered only during selected evaluation. */
+    readonly sourceText: (span: SourceSpan) => string = () => "<value>",
   ) {
     this.aggregates = new ComptimeAggregates(
       budget,
@@ -120,6 +125,7 @@ export class ComptimeEvaluator {
         : this.convert(result.value, type);
     } catch (failure) {
       this.budget.abandonRoot(checkpoint);
+      if (failure instanceof ComptimeDependencyFailure) return null;
       if (failure instanceof ComptimeBudgetFailure || failure instanceof ComptimeSemanticFailure) {
         this.diagnose(
           failure instanceof ComptimeBudgetFailure
@@ -378,7 +384,7 @@ export class ComptimeEvaluator {
             throw new ComptimeSemanticFailure(
               projectDiagnostic(
                 "E10254",
-                "Packed BCD operand contains a non-decimal digit",
+                `Packed-BCD operand '${this.sourceText(operands[index]!.span)}' contains a non-decimal digit — every nibble must be 0 through 9`,
                 operands[index]!.span,
               ),
             );
@@ -453,19 +459,13 @@ export class ComptimeEvaluator {
     const key = bindingIdentityKey(callee.binding);
     const target = this.functions.get(key);
     if (target === undefined) {
-      throw this.invalid(
-        expression.span,
-        "Ordinary or unavailable function cannot run at compile time",
-      );
+      // All checked compile-time bodies are registered before roots run. A missing
+      // body was poisoned by its own source error; do not add a dependent root error.
+      throw new ComptimeDependencyFailure();
     }
     if (this.active.has(key)) {
-      throw new ComptimeSemanticFailure(
-        projectDiagnostic(
-          "E10180",
-          "Recursive compile-time function call is not allowed",
-          expression.span,
-        ),
-      );
+      // Static call-graph analysis owns the complete ordered cycle and its locations.
+      throw new ComptimeDependencyFailure();
     }
     this.budget.enterCall(expression.span, root, callee.name);
     this.active.add(key);
@@ -534,6 +534,8 @@ export class ComptimeEvaluator {
   }
 
   private invalid(span: SourceSpan, message: string): ComptimeSemanticFailure {
-    return new ComptimeSemanticFailure(projectDiagnostic("E10191", message, span));
+    return new ComptimeSemanticFailure(
+      projectDiagnostic("E10191", `Expression must be compile-time evaluable — ${message}`, span),
+    );
   }
 }

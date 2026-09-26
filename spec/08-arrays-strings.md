@@ -832,6 +832,7 @@ message templates, spans, suppression, and history.
 | E10263 | An array index has a non-integer type. | The access is rejected; no implicit truthiness, pointer, enum, or aggregate conversion is inserted. |
 | E10264 | A compile-time array extent does not produce an integer in `0..65535`. | The array type is rejected before allocation or lowering. |
 | E10265 | An array type's complete byte size exceeds 65535. | The array type is rejected before allocation or lowering. |
+| E10281 | The first argument of a named encoding intrinsic is not a character or string literal. | The encoding operation is rejected; encoding consumes literal source characters rather than runtime values. |
 
 ### Warning Conditions
 

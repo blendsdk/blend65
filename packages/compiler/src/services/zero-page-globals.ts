@@ -1,6 +1,7 @@
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { typeBytes } from "../machine/lower.js";
 import type { WholeProgram } from "../semantic/whole-program.js";
+import type { SemanticGlobal } from "../semantic/operations.js";
 import type { StorageProfile, StorageRange } from "../storage/storage-types.js";
 
 /**
@@ -11,7 +12,9 @@ import type { StorageProfile, StorageRange } from "../storage/storage-types.js";
 export function reserveZeroPageGlobals(
   program: WholeProgram,
   profile: StorageProfile,
-): { readonly program: WholeProgram; readonly storage: StorageProfile } | null {
+):
+  | { readonly kind: "complete"; readonly program: WholeProgram; readonly storage: StorageProfile }
+  | { readonly kind: "error"; readonly conflict: SemanticGlobal } {
   const globals = program.semantic.globals.filter(({ zeropage }) => zeropage);
   const fixed = globals.filter(({ placement }) => placement?.at != null);
   const automatic = globals.filter(({ placement }) => placement?.at == null);
@@ -42,7 +45,7 @@ export function reserveZeroPageGlobals(
               ),
             )
             .find(valid);
-    if (start === undefined || !valid(start)) return null;
+    if (start === undefined || !valid(start)) return { kind: "error", conflict: global };
     occupied.push(Object.freeze({ start, end: start + bytes - 1 }));
     addresses.set(bindingIdentityKey(global.id), start);
   }
@@ -71,6 +74,7 @@ export function reserveZeroPageGlobals(
     return available;
   });
   return Object.freeze({
+    kind: "complete",
     program: Object.freeze({
       ...program,
       semantic: Object.freeze({ ...program.semantic, globals: Object.freeze(allocatedGlobals) }),

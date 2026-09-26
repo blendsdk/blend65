@@ -234,6 +234,8 @@ export function lowerAggregateByteFillLoop(
     });
   }
   for (let page = 0; page < pages; ) {
+    const count = Math.min(256, operation.type.length - page * 256);
+    const descending = !indirect && result.kind === "storage" && count < 256;
     if (page > 0 && indirect) {
       if (result.kind !== "storage")
         throw loweringFailure("Aggregate fill pointer has no home", operation.span);
@@ -253,7 +255,7 @@ export function lowerAggregateByteFillLoop(
         cpu,
         "ldy",
         "immediate",
-        Object.freeze({ kind: "immediate", value: 0 }),
+        Object.freeze({ kind: "immediate", value: descending ? count : 0 }),
         [],
         operation.span,
       ),
@@ -267,7 +269,6 @@ export function lowerAggregateByteFillLoop(
         terminator: Object.freeze({ kind: "fallthrough" as const, target: loopLabel }),
       }),
     );
-    const count = Math.min(256, operation.type.length - page * 256);
     // Only a direct function-private home permits interleaving writes across pages.
     // Globals and borrowed destinations keep ascending source byte order. Forty-one
     // three-byte stores plus INY/BNE make a 126-byte loop: its back edge stays legal.
@@ -276,6 +277,9 @@ export function lowerAggregateByteFillLoop(
         ? Math.min(41, Math.floor(operation.type.length / 256) - page)
         : 1;
     const body: MachineInstruction[] = [];
+    // A private tail may count down before storing, reusing DEY's zero flag without CPY.
+    // Borrowed and global writes remain ascending because their order can be observed.
+    if (descending) body.push(machineInstruction(cpu, "dey", "implied", null, [], operation.span));
     for (let grouped = 0; grouped < groupedPages; grouped += 1) {
       const offset = (page + grouped) * 256;
       const operand = indirect
@@ -304,8 +308,8 @@ export function lowerAggregateByteFillLoop(
         ),
       );
     }
-    body.push(machineInstruction(cpu, "iny", "implied", null, [], operation.span));
-    if (count < 256)
+    if (!descending) body.push(machineInstruction(cpu, "iny", "implied", null, [], operation.span));
+    if (count < 256 && !descending)
       body.push(
         machineInstruction(
           cpu,

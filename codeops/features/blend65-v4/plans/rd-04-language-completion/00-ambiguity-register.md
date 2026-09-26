@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-04 Language Completion
 
-> **Status**: AR-P1–AR-P26 resolved; implementation qualification remains open
+> **Status**: AR-P1–AR-P27 resolved; Phase 8 verified complete
 > **Last Updated**: 2026-09-26
 > **CodeOps Artifact Schema**: 1
 
@@ -47,7 +47,53 @@
 | AR-P25 | Test authority (runtime) | Replace two literal E10235 placeholders with valid source-specific suggestions; preserve fixtures and semantics. | User approved both recommended corrections by instructing “proceed” on 2026-09-26. | ✅ Resolved |
 | AR-P26 | Scope / test authority (runtime) | Keep E10204 native-format parsing proof with RD-06; retain RD-04 honest-unavailability checks. | User approved both recommended corrections by instructing “proceed” on 2026-09-26. | ✅ Resolved |
 
+| AR-P27 | Diagnostic authority (runtime) | Add only E10280/E10281 definitions and their hash/coverage bookkeeping; retain language acceptance, runtime behavior and the frozen expert baseline. | User explicitly approved the narrow diagnostic-only freeze exception on 2026-09-26. | ✅ Resolved |
+
 ## Resolution Notes
+
+### AR-P27 — Missing diagnostic identities, not missing language rules (runtime)
+
+**Approved, 2026-09-26.** The user explicitly approved the recommended diagnostic-only exception
+to the freeze. Independent Phase 8 semantic review (SEM-002) found two rejected
+forms with no matching public diagnostic in the frozen registry:
+
+| Existing rejection | Incorrect current identity | Governing authority |
+|---|---|---|
+| Non-Boolean operands of `&&`, `||` or `!` | E10151, which owns Boolean arithmetic/bitwise misuse | Chapter 02 §§5–6 and diagnostic conditions; Chapter 14 E10151 |
+| A named encoding intrinsic's first argument is not a character/string literal | E10125, which owns an unavailable encoding or map | Chapter 08 §5 and diagnostic conditions; Chapter 14 E10125/E10251 |
+
+The independent specification author also identified this gap and did not invent expected codes.
+Read-only probes reproduce it with `1 && 2`, `!1`, and `petscii(1)`. Rejection itself is
+determined; changing accepted source or adding runtime behavior is neither needed nor proposed.
+
+**Authorized decision:** apply a narrow diagnostic erratum
+assigning the next unused codes E10280 (non-Boolean logical operand) and E10281 (non-literal first
+encoding argument), with canonical messages and smallest offending-operand spans. This requires
+an explicit exception to the frozen-spec rule for only the corresponding diagnostic definitions
+in Chapters 02, 08 and 14, plus consistent authority/coverage bookkeeping. No other language rule,
+grammar, backend, runtime, optimization contract or expert-skill content may change. Proposed
+messages: `Logical operator '<operator>' requires Boolean operands — found '<type>'` and
+`Encoding '<encoding>' requires a character or string literal as its first argument — found '<expr>'`.
+Existing E10151/E10125 predicates remain unchanged. The exact identity bookkeeping paths are
+`spec/00-normative-inventory.md`, `packages/compiler/src/build-info.ts`,
+`test/foundation.spec.test.ts`, `test/rd04/normative-coverage.{json,spec.test.ts,impl.test.ts}`,
+and this plan's records. The two old specification tests change only their exact digest/count
+and freeze-exception assertions: retain mutation controls, all other checks, and the exact
+unchanged expert hashes. The freeze proof continues to reject every change outside the four
+approved spec paths and pins the revised normative digest. The expert skill remains byte-identical
+at 2.0.0; its original corpus binding is historical authority, supplemented only by this explicit
+diagnostic erratum. This does not claim a newly qualified expert release. Original RD-01 evidence
+remains historical and is not rewritten.
+
+Reusing E10086 would still misclassify non-integer operands and would imply a conversion where the
+language requires an operand category. Broadening E10151/E10125 changes existing public meanings.
+Deferring the error identities would leave Phase 8's promised diagnostic reconciliation incomplete.
+Two dedicated definitions preserve current semantics with the smallest accurate public correction.
+Confidence: High for the missing identities and proposed scope; no architecture expansion is needed.
+
+Affected tasks 8.1.2, 8.2.6 and 8.2.7 resumed with this ruling and now pass final qualification.
+All Phase 8 corrections are verified in the 1,989-test gate recorded in the execution plan.
+Phase 8 is complete; Phase 9 has not started.
 
 ### AR-P25 — Replace literal diagnostic placeholders, not language behavior (runtime)
 

@@ -12,7 +12,7 @@ const repository = fileURLToPath(new URL("../", import.meta.url));
 const baseline = "3c993529f55cfe880426a35c09c8f9b456487ff5";
 const finalV3 = "4c2f27f54273a713c0bbf398bf6c56be45f4aae3";
 const authorityCommit = "5deb2a5341bea00cf6050a0aba4668315198d91a";
-const frozenDigest = "5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa";
+const frozenDigest = "ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8";
 const temporaryRoots: string[] = [];
 
 /** Each negative structural input is an ordinary real directory, not a mock filesystem. */
@@ -139,8 +139,26 @@ describe("frozen execution authority and salvage ownership", () => {
       ).toEqual([key]);
     }
     expect(
-      await git("diff", authorityCommit, "--", "spec", ".agents/skills/blend65-domain-expert"),
+      await git(
+        "diff",
+        authorityCommit,
+        "--",
+        "spec",
+        ".agents/skills/blend65-domain-expert",
+        ":(exclude)spec/00-normative-inventory.md",
+        ":(exclude)spec/02-type-system.md",
+        ":(exclude)spec/08-arrays-strings.md",
+        ":(exclude)spec/14-diagnostics.md",
+      ),
     ).toBe("");
+    // Only the approved diagnostic definitions and their central identity may differ.
+    expect((await git("diff", "--name-only", authorityCommit, "--", "spec")).split("\n")).toEqual([
+      "spec/00-normative-inventory.md",
+      "spec/02-type-system.md",
+      "spec/08-arrays-strings.md",
+      "spec/14-diagnostics.md",
+    ]);
+    expect(inventory).toContain(frozenDigest);
   });
 
   // Every baseline path belongs to one reviewed unit, including non-production fixture families.

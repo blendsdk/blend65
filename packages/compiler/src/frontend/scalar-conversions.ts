@@ -126,7 +126,7 @@ export function analyzeScalarCast(
       host.diagnose(
         error(
           "E10153",
-          "Function and handler values may only be converted to 'word'",
+          `Cannot cast '${semanticTypeName(operand.node.type)}' to '${semanticTypeName(destination)}' — casts support integer/enum conversions and one-way function/handler conversion to word only`,
           expression.span,
         ),
       );

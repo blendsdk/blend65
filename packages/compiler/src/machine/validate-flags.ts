@@ -34,6 +34,25 @@ interface FlagSummary {
   readonly valid: boolean;
 }
 
+/** Facts about a status value, including bits still equal to this callable's incoming status. */
+interface StatusFacts {
+  /** Flags with an established producer on every incoming path. */
+  readonly flags: number;
+  /** Flags whose values still equal this callable's corresponding entry bits. */
+  readonly preserved: number;
+}
+
+/** Local hardware-stack bytes; null denotes an accumulator save, not a status snapshot. */
+interface FlagState extends StatusFacts {
+  /** Snapshots or ordinary data bytes pushed within this callable. */
+  readonly stack: readonly (StatusFacts | null)[];
+}
+
+/** Intersect a status snapshot at a control-flow join without inventing incoming producers. */
+function meetStatus(left: StatusFacts, right: StatusFacts): StatusFacts {
+  return { flags: left.flags & right.flags, preserved: left.preserved & right.preserved };
+}
+
 /**
  * Check flag producers across branches, joins, loops and the closed direct-call graph.
  *
@@ -82,42 +101,54 @@ export function validateMachineFlags(program: MachineProgram): boolean {
       pending.push(...successors(block.terminator).map(resolve));
     }
     let valid = true;
-    let preserves = ALL_FLAGS;
     const calls = new Map<string, FlagSummary>();
     for (const block of reachable.values()) {
       for (const instruction of block.instructions) {
-        if (instruction.opcode !== "jsr") {
-          preserves &= ~flagMask(instruction.defines.flags);
-          continue;
-        }
+        if (instruction.opcode !== "jsr") continue;
         if (instruction.operand?.kind !== "label") {
-          preserves = 0;
           continue;
         }
         const target = resolve(instruction.operand.label);
         const summary = analyze(target);
         calls.set(target, summary);
-        preserves &= summary.preserves;
         valid &&= summary.valid;
       }
     }
     /** Transfer facts without trusting a call instruction's CPU-only clobber metadata. */
-    const transfer = (block: MachineBlock, incoming: number, check: boolean): number => {
-      let available = incoming;
+    const transfer = (block: MachineBlock, incoming: FlagState, check: boolean): FlagState => {
+      let available = incoming.flags;
+      let preserved = incoming.preserved;
+      const stack = [...incoming.stack];
       for (const instruction of block.instructions) {
         // PHP snapshots opaque entry state; it does not branch or calculate with those bits.
         if (check && instruction.opcode !== "php") {
           const required = flagMask(instruction.uses.flags);
           valid &&= (available & required) === required;
         }
-        if (instruction.opcode === "jsr") {
+        if (instruction.opcode === "php") {
+          stack.push({ flags: available, preserved });
+        } else if (instruction.opcode === "plp") {
+          // Restoring an opaque snapshot cannot turn its unknown flags into producers.
+          const saved = stack.pop();
+          // PHA may push a previously saved status byte. That restore is legal but opaque;
+          // only PHP snapshots carry producer facts. A missing stack byte is malformed.
+          if (check && saved === undefined) valid = false;
+          available = saved?.flags ?? 0;
+          preserved = saved?.preserved ?? 0;
+        } else if (instruction.opcode === "jsr") {
           const callee =
             instruction.operand?.kind === "label"
               ? calls.get(resolve(instruction.operand.label))
               : undefined;
           available = (available & (callee?.preserves ?? 0)) | (callee?.returns ?? 0);
+          preserved &= callee?.preserves ?? 0;
         } else {
-          available |= flagMask(instruction.defines.flags);
+          if (instruction.opcode === "pha") stack.push(null);
+          else if (instruction.opcode === "pla") stack.pop();
+          else if (instruction.opcode === "txs") stack.length = 0;
+          const defined = flagMask(instruction.defines.flags);
+          available |= defined;
+          preserved &= ~defined;
         }
       }
       if (
@@ -127,39 +158,82 @@ export function validateMachineFlags(program: MachineProgram): boolean {
         const required = flagMask(block.terminator.uses.flags);
         valid &&= (available & required) === required;
       }
-      return available;
+      return { flags: available, preserved, stack };
     };
-    // Start at the greatest set, then remove facts until every loop and join agrees.
-    // The real entry seed prevents a loop back-edge from inventing its first producer.
-    const incoming = new Map([...reachable.keys()].map((id) => [id, ALL_FLAGS]));
-    incoming.set(entry, entry === startup ? 0 : ABI_FLAGS);
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const [id, block] of reachable) {
-        const outgoing = transfer(block, incoming.get(id)!, false);
-        for (const successor of successors(block.terminator)) {
-          const target = resolve(successor);
-          const previous = incoming.get(target)!;
-          const merged = previous & outgoing;
-          if (merged !== previous) {
-            incoming.set(target, merged);
-            changed = true;
-          }
+    // An unseen edge contributes no facts. Once reached, joins can only remove facts;
+    // snapshots travel with the corresponding stack byte across blocks and balanced calls.
+    const incoming = new Map<string, FlagState>([
+      [
+        entry,
+        {
+          flags: entry === startup ? 0 : ABI_FLAGS,
+          preserved: ALL_FLAGS,
+          stack: [],
+        },
+      ],
+    ]);
+    const work = [entry];
+    while (work.length > 0) {
+      const id = work.pop()!;
+      const block = reachable.get(id)!;
+      const outgoing = transfer(block, incoming.get(id)!, false);
+      for (const successor of successors(block.terminator)) {
+        const target = resolve(successor);
+        const previous = incoming.get(target);
+        if (previous === undefined) {
+          incoming.set(target, outgoing);
+          work.push(target);
+          continue;
+        }
+        // Unequal stack shapes cannot describe one safe status restore. Reject now rather
+        // than letting a growing loop allocate an unbounded validation work list.
+        if (
+          previous.stack.length !== outgoing.stack.length ||
+          previous.stack.some(
+            (saved, index) => (saved === null) !== (outgoing.stack[index] === null),
+          )
+        ) {
+          active.delete(entry);
+          return { returns: 0, preserves: 0, valid: false };
+        }
+        const merged: FlagState = {
+          ...meetStatus(previous, outgoing),
+          stack: previous.stack.map((saved, index) =>
+            saved === null ? null : meetStatus(saved, outgoing.stack[index]!),
+          ),
+        };
+        if (
+          merged.flags !== previous.flags ||
+          merged.preserved !== previous.preserved ||
+          merged.stack.some(
+            (saved, index) =>
+              saved?.flags !== previous.stack[index]?.flags ||
+              saved?.preserved !== previous.stack[index]?.preserved,
+          )
+        ) {
+          incoming.set(target, merged);
+          work.push(target);
         }
       }
     }
     let returns = ALL_FLAGS;
+    let preserves = ALL_FLAGS;
     let hasReturn = false;
     for (const [id, block] of reachable) {
       const outgoing = transfer(block, incoming.get(id)!, true);
       if (block.terminator.kind === "return" || block.instructions.at(-1)?.opcode === "rts") {
-        returns &= outgoing;
+        valid &&= outgoing.stack.length === 0;
+        returns &= outgoing.flags;
+        preserves &= outgoing.preserved;
         hasReturn = true;
       }
     }
     active.delete(entry);
-    const summary = { returns: hasReturn ? returns : 0, preserves, valid };
+    const summary = {
+      returns: hasReturn ? returns : 0,
+      preserves: hasReturn ? preserves : 0,
+      valid,
+    };
     cache.set(entry, summary);
     return summary;
   };

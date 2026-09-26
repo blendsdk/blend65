@@ -1,6 +1,8 @@
 import type { MemoryEvidence } from "./evidence-types.js";
+import type { EvidenceFieldFailure } from "./evidence-diagnostics.js";
 import {
   areEvidenceStringsOrdered,
+  evidenceItems,
   canonicalEvidenceHash,
   canonicalEvidenceJson,
   hasExactEvidenceKeys,
@@ -46,79 +48,88 @@ const MUTABILITY = new Set(["immutable", "mutable", "reserved"]);
 const RESOURCE_CLASSES = new Set(["general", "zeroPage", "hardwareStack", "device"]);
 
 /** Validate one exact source site. */
-function sourceSite(value: unknown): boolean {
+function sourceSite(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["path", "startByte", "endByte"]) &&
-    isEvidencePath(value.path) &&
-    isEvidenceCount(value.startByte) &&
-    isEvidenceCount(value.endByte) &&
+    isEvidencePath(value.path, invalid, ["path"]) &&
+    isEvidenceCount(value.startByte, invalid, ["startByte"]) &&
+    isEvidenceCount(value.endByte, invalid, ["endByte"]) &&
     value.startByte <= value.endByte
   );
 }
 
 /** Validate one interval owner. */
-function owner(value: unknown): boolean {
+function owner(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["kind", "id"]) &&
     OWNER_KINDS.has(String(value.kind)) &&
-    isEvidenceText(value.id)
+    isEvidenceText(value.id, invalid, ["id"])
   );
 }
 
 /** Validate one closed memory origin. */
-function origin(value: unknown): boolean {
+function origin(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (!isEvidenceRecord(value)) return false;
   switch (value.kind) {
     case "source":
-      return hasExactEvidenceKeys(value, ["kind", "site"]) && sourceSite(value.site);
+      return (
+        hasExactEvidenceKeys(value, ["kind", "site"]) &&
+        sourceSite(value.site, (path, detail) => invalid?.(["site", ...path], detail))
+      );
     case "asset":
-      return hasExactEvidenceKeys(value, ["kind", "assetId"]) && isEvidenceText(value.assetId);
+      return (
+        hasExactEvidenceKeys(value, ["kind", "assetId"]) &&
+        isEvidenceText(value.assetId, invalid, ["assetId"])
+      );
     case "import":
       return (
         hasExactEvidenceKeys(value, ["kind", "path", "sha256"]) &&
-        isEvidencePath(value.path) &&
-        isEvidenceHash(value.sha256)
+        isEvidencePath(value.path, invalid, ["path"]) &&
+        isEvidenceHash(value.sha256, invalid, ["sha256"])
       );
     case "generated":
-      return hasExactEvidenceKeys(value, ["kind", "identity"]) && isEvidenceText(value.identity);
+      return (
+        hasExactEvidenceKeys(value, ["kind", "identity"]) &&
+        isEvidenceText(value.identity, invalid, ["identity"])
+      );
     default:
       return false;
   }
 }
 
 /** Validate one closed contiguity record. */
-function contiguity(value: unknown): boolean {
+function contiguity(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (!isEvidenceRecord(value)) return false;
   if (value.kind === "single") return hasExactEvidenceKeys(value, ["kind"]);
   return (
     value.kind === "group" &&
     hasExactEvidenceKeys(value, ["kind", "id", "index", "count"]) &&
-    isEvidenceText(value.id) &&
-    isEvidenceCount(value.index) &&
-    isEvidenceCount(value.count) &&
+    isEvidenceText(value.id, invalid, ["id"]) &&
+    isEvidenceCount(value.index, invalid, ["index"]) &&
+    isEvidenceCount(value.count, invalid, ["count"]) &&
     value.count > 0 &&
     value.index < value.count
   );
 }
 
 /** Validate one exact residency declaration. */
-function residency(value: unknown): boolean {
+function residency(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (!isEvidenceRecord(value)) return false;
   if (value.kind === "always") {
-    return hasExactEvidenceKeys(value, ["kind", "id"]) && isEvidenceText(value.id);
+    return hasExactEvidenceKeys(value, ["kind", "id"]) && isEvidenceText(value.id, invalid, ["id"]);
   }
   return (
     value.kind === "exclusive" &&
     hasExactEvidenceKeys(value, ["kind", "id", "group"]) &&
-    isEvidenceText(value.id) &&
-    isEvidenceText(value.group)
+    isEvidenceText(value.id, invalid, ["id"]) &&
+    isEvidenceText(value.group, invalid, ["group"])
   );
 }
 
 /** Validate one exact occupied or reserved memory interval. */
-function interval(value: unknown): boolean {
+function interval(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (
     !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(
@@ -144,37 +155,37 @@ function interval(value: unknown): boolean {
       ],
       ["bankId", "noCrossBytes", "vic", "loadUnitId"],
     ) ||
-    !isEvidenceText(value.id) ||
-    !isEvidenceText(value.addressSpaceId) ||
-    !isEvidenceCount(value.start) ||
-    !isEvidenceCount(value.end) ||
+    !isEvidenceText(value.id, invalid, ["id"]) ||
+    !isEvidenceText(value.addressSpaceId, invalid, ["addressSpaceId"]) ||
+    !isEvidenceCount(value.start, invalid, ["start"]) ||
+    !isEvidenceCount(value.end, invalid, ["end"]) ||
     value.start >= value.end ||
     value.end > 0x10000 ||
-    !isEvidenceCount(value.size) ||
+    !isEvidenceCount(value.size, invalid, ["size"]) ||
     value.size !== value.end - value.start ||
-    !owner(value.owner) ||
+    !owner(value.owner, (path, detail) => invalid?.(["owner", ...path], detail)) ||
     !MEMORY_KINDS.has(String(value.kind)) ||
-    !origin(value.origin) ||
+    !origin(value.origin, (path, detail) => invalid?.(["origin", ...path], detail)) ||
     !MUTABILITY.has(String(value.mutability)) ||
-    !isEvidencePowerOfTwo(value.alignmentBytes) ||
+    !isEvidencePowerOfTwo(value.alignmentBytes, invalid, ["alignmentBytes"]) ||
     value.start % value.alignmentBytes !== 0 ||
-    !contiguity(value.contiguity) ||
+    !contiguity(value.contiguity, (path, detail) => invalid?.(["contiguity", ...path], detail)) ||
     !areEvidenceStringsOrdered(value.residencyIds) ||
     value.residencyIds.length === 0 ||
     !areEvidenceStringsOrdered(value.cpuMappings) ||
     !RESOURCE_CLASSES.has(String(value.resourceClass)) ||
-    !isEvidenceCount(value.payloadBytes) ||
-    !isEvidenceCount(value.paddingBytes) ||
-    !isEvidenceCount(value.reservedBytes) ||
+    !isEvidenceCount(value.payloadBytes, invalid, ["payloadBytes"]) ||
+    !isEvidenceCount(value.paddingBytes, invalid, ["paddingBytes"]) ||
+    !isEvidenceCount(value.reservedBytes, invalid, ["reservedBytes"]) ||
     value.payloadBytes + value.paddingBytes + value.reservedBytes !== value.size ||
-    (value.bankId !== undefined && !isEvidenceText(value.bankId)) ||
-    (value.loadUnitId !== undefined && !isEvidenceText(value.loadUnitId))
+    (value.bankId !== undefined && !isEvidenceText(value.bankId, invalid, ["bankId"])) ||
+    (value.loadUnitId !== undefined && !isEvidenceText(value.loadUnitId, invalid, ["loadUnitId"]))
   ) {
     return false;
   }
   if (value.noCrossBytes !== undefined) {
     if (
-      !isEvidenceCount(value.noCrossBytes) ||
+      !isEvidenceCount(value.noCrossBytes, invalid, ["noCrossBytes"]) ||
       value.noCrossBytes === 0 ||
       Math.floor(value.start / value.noCrossBytes) !==
         Math.floor((value.end - 1) / value.noCrossBytes)
@@ -186,7 +197,7 @@ function interval(value: unknown): boolean {
     if (
       !isEvidenceRecord(value.vic) ||
       !hasExactEvidenceKeys(value.vic, ["bankId", "visibility"]) ||
-      !isEvidenceText(value.vic.bankId) ||
+      !isEvidenceText(value.vic.bankId, invalid, ["vic", "bankId"]) ||
       !areEvidenceStringsOrdered(value.vic.visibility) ||
       (value.bankId !== undefined && value.vic.bankId !== value.bankId)
     ) {
@@ -197,38 +208,43 @@ function interval(value: unknown): boolean {
 }
 
 /** Validate one honest low-level unbounded effect. */
-function unboundedEffect(value: unknown): boolean {
-  if (!isEvidenceRecord(value) || !sourceSite(value.site)) return false;
+function unboundedEffect(value: unknown, invalid?: EvidenceFieldFailure): boolean {
+  if (
+    !isEvidenceRecord(value) ||
+    !sourceSite(value.site, (path, detail) => invalid?.(["site", ...path], detail))
+  )
+    return false;
   if (value.kind === "dynamicRead" || value.kind === "dynamicWrite") {
     return (
       hasExactEvidenceKeys(value, ["kind", "site", "addressSpaceId", "accessBytes"]) &&
-      isEvidenceText(value.addressSpaceId) &&
-      (isEvidenceCount(value.accessBytes) || value.accessBytes === "Unknown")
+      isEvidenceText(value.addressSpaceId, invalid, ["addressSpaceId"]) &&
+      (isEvidenceCount(value.accessBytes, invalid, ["accessBytes"]) ||
+        value.accessBytes === "Unknown")
     );
   }
   return (
     (value.kind === "machineState" || value.kind === "importedCode") &&
     hasExactEvidenceKeys(value, ["kind", "site", "effectClass"]) &&
-    isEvidenceText(value.effectClass)
+    isEvidenceText(value.effectClass, invalid, ["effectClass"])
   );
 }
 
 /** Validate one free half-open interval. */
-function freeInterval(value: unknown): boolean {
+function freeInterval(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["start", "end", "size"]) &&
-    isEvidenceCount(value.start) &&
-    isEvidenceCount(value.end) &&
+    isEvidenceCount(value.start, invalid, ["start"]) &&
+    isEvidenceCount(value.end, invalid, ["end"]) &&
     value.start < value.end &&
     value.end <= 0x10000 &&
-    isEvidenceCount(value.size) &&
+    isEvidenceCount(value.size, invalid, ["size"]) &&
     value.size === value.end - value.start
   );
 }
 
 /** Validate one reconciled consumer view's direct arithmetic. */
-function view(value: unknown): boolean {
+function view(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (
     !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(
@@ -253,33 +269,35 @@ function view(value: unknown): boolean {
       ],
       ["bankId"],
     ) ||
-    !isEvidenceText(value.id) ||
+    !isEvidenceText(value.id, invalid, ["id"]) ||
     (value.consumer !== "cpu" && value.consumer !== "vic") ||
-    !isEvidenceText(value.addressSpaceId) ||
-    !isEvidenceCount(value.start) ||
-    !isEvidenceCount(value.end) ||
+    !isEvidenceText(value.addressSpaceId, invalid, ["addressSpaceId"]) ||
+    !isEvidenceCount(value.start, invalid, ["start"]) ||
+    !isEvidenceCount(value.end, invalid, ["end"]) ||
     value.start >= value.end ||
     value.end > 0x10000 ||
     !areEvidenceStringsOrdered(value.activeResidencyIds) ||
     !areEvidenceStringsOrdered(value.visibility) ||
-    !isEvidenceCount(value.capacityBytes) ||
+    !isEvidenceCount(value.capacityBytes, invalid, ["capacityBytes"]) ||
     value.capacityBytes !== value.end - value.start ||
-    !isEvidenceCount(value.occupiedBytes) ||
-    !isEvidenceCount(value.payloadBytes) ||
-    !isEvidenceCount(value.paddingBytes) ||
-    !isEvidenceCount(value.reservedBytes) ||
+    !isEvidenceCount(value.occupiedBytes, invalid, ["occupiedBytes"]) ||
+    !isEvidenceCount(value.payloadBytes, invalid, ["payloadBytes"]) ||
+    !isEvidenceCount(value.paddingBytes, invalid, ["paddingBytes"]) ||
+    !isEvidenceCount(value.reservedBytes, invalid, ["reservedBytes"]) ||
     value.payloadBytes + value.paddingBytes + value.reservedBytes !== value.occupiedBytes ||
-    !isEvidenceCount(value.zeroPageBytes) ||
-    !isEvidenceCount(value.freeBytes) ||
+    !isEvidenceCount(value.zeroPageBytes, invalid, ["zeroPageBytes"]) ||
+    !isEvidenceCount(value.freeBytes, invalid, ["freeBytes"]) ||
     value.occupiedBytes + value.freeBytes !== value.capacityBytes ||
     !Array.isArray(value.freeIntervals) ||
-    !value.freeIntervals.every(freeInterval) ||
+    !value.freeIntervals.every((item, index) =>
+      freeInterval(item, (path, detail) => invalid?.(["freeIntervals", index, ...path], detail)),
+    ) ||
     !isEvidenceOrdered(
       value.freeIntervals as Record<string, unknown>[],
       (item) => `${String(item.start).padStart(5, "0")}\0${String(item.end).padStart(5, "0")}`,
     ) ||
-    !isEvidenceCount(value.largestFreeBytes) ||
-    (value.bankId !== undefined && !isEvidenceText(value.bankId))
+    !isEvidenceCount(value.largestFreeBytes, invalid, ["largestFreeBytes"]) ||
+    (value.bankId !== undefined && !isEvidenceText(value.bankId, invalid, ["bankId"]))
   ) {
     return false;
   }
@@ -297,17 +315,17 @@ function view(value: unknown): boolean {
 }
 
 /** Validate one bounded stack route. */
-function stackDomain(value: unknown): boolean {
+function stackDomain(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["id", "route", "capacityBytes", "peakBytes", "headroomBytes"]) &&
-    isEvidenceText(value.id) &&
+    isEvidenceText(value.id, invalid, ["id"]) &&
     Array.isArray(value.route) &&
     value.route.length > 0 &&
-    value.route.every(isEvidenceText) &&
-    isEvidenceCount(value.capacityBytes) &&
-    isEvidenceCount(value.peakBytes) &&
-    isEvidenceCount(value.headroomBytes) &&
+    value.route.every((item, index) => isEvidenceText(item, invalid, ["route", index])) &&
+    isEvidenceCount(value.capacityBytes, invalid, ["capacityBytes"]) &&
+    isEvidenceCount(value.peakBytes, invalid, ["peakBytes"]) &&
+    isEvidenceCount(value.headroomBytes, invalid, ["headroomBytes"]) &&
     value.peakBytes + value.headroomBytes === value.capacityBytes
   );
 }
@@ -402,9 +420,15 @@ function reconcileView(
 }
 
 /** Validate the complete closed memory-evidence version-1 value. */
-export function memoryEvidenceValue(value: unknown): value is MemoryEvidence {
+export function memoryEvidenceValue(
+  value: unknown,
+  invalid?: EvidenceFieldFailure,
+): value is MemoryEvidence {
+  if (!isEvidenceRecord(value)) {
+    invalid?.([], "record must be an object record");
+    return false;
+  }
   if (
-    !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(value, [
       "kind",
       "schemaVersion",
@@ -417,33 +441,127 @@ export function memoryEvidenceValue(value: unknown): value is MemoryEvidence {
       "intervals",
       "views",
       "stackDomains",
-    ]) ||
-    value.kind !== "blend65.memory" ||
-    value.schemaVersion !== 1 ||
-    !isEvidenceText(value.profileId) ||
-    !isEvidenceHash(value.sfaClosureSha256) ||
-    value.acmeReconciled !== true ||
-    (value.runtimeMemorySafety !== "proved" && value.runtimeMemorySafety !== "unproven") ||
-    !Array.isArray(value.residencies) ||
-    !value.residencies.every(residency) ||
-    !isEvidenceOrdered(value.residencies as Record<string, unknown>[], (item) => String(item.id)) ||
-    !Array.isArray(value.unboundedEffects) ||
-    !value.unboundedEffects.every(unboundedEffect) ||
+    ])
+  ) {
+    invalid?.([], "record must contain exactly its required and optional fields");
+    return false;
+  }
+  if (value.kind !== "blend65.memory") {
+    invalid?.(["kind"], "kind must identify this artifact family");
+    return false;
+  }
+  if (value.schemaVersion !== 1) {
+    invalid?.(["schemaVersion"], "schemaVersion must equal 1");
+    return false;
+  }
+  if (!isEvidenceText(value.profileId, invalid, ["profileId"])) {
+    invalid?.(["profileId"], "profileId must contain nonempty text");
+    return false;
+  }
+  if (!isEvidenceHash(value.sfaClosureSha256, invalid, ["sfaClosureSha256"])) {
+    invalid?.(["sfaClosureSha256"], "sfaClosureSha256 must be a lowercase SHA-256 digest");
+    return false;
+  }
+  if (value.acmeReconciled !== true) {
+    invalid?.(["acmeReconciled"], "acmeReconciled must be true");
+    return false;
+  }
+  if (value.runtimeMemorySafety !== "proved" && value.runtimeMemorySafety !== "unproven") {
+    invalid?.(
+      ["runtimeMemorySafety"],
+      "runtimeMemorySafety must be proved or unproven and agree with unbounded effects",
+    );
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.residencies,
+      (item, _index, report) => residency(item, report),
+      invalid,
+      ["residencies"],
+      "expected an always/exclusive residency record",
+    )
+  ) {
+    return false;
+  }
+  if (
+    !isEvidenceOrdered(value.residencies as Record<string, unknown>[], (item) => String(item.id))
+  ) {
+    invalid?.(["residencies"], "residencies must be unique and in canonical order");
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.unboundedEffects,
+      (item, _index, report) => unboundedEffect(item, report),
+      invalid,
+      ["unboundedEffects"],
+      "expected a source-located unbounded-effect record",
+    )
+  ) {
+    return false;
+  }
+  if (
     !isEvidenceOrdered(
       value.unboundedEffects as Record<string, unknown>[],
       (item) => `${canonicalEvidenceJson(item.site)}\0${String(item.kind)}`,
-    ) ||
-    (value.runtimeMemorySafety === "unproven") !== value.unboundedEffects.length > 0 ||
-    !Array.isArray(value.intervals) ||
-    !value.intervals.every(interval) ||
-    !isEvidenceOrdered(value.intervals as Record<string, unknown>[], intervalKey) ||
-    !Array.isArray(value.views) ||
-    !value.views.every(view) ||
-    !isEvidenceOrdered(value.views as Record<string, unknown>[], (item) => String(item.id)) ||
-    !Array.isArray(value.stackDomains) ||
-    !value.stackDomains.every(stackDomain) ||
+    )
+  ) {
+    invalid?.(["unboundedEffects"], "unboundedEffects must be unique and in canonical order");
+    return false;
+  }
+  if ((value.runtimeMemorySafety === "unproven") !== value.unboundedEffects.length > 0) {
+    invalid?.(
+      ["runtimeMemorySafety"],
+      "runtimeMemorySafety must be proved or unproven and agree with unbounded effects",
+    );
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.intervals,
+      (item, _index, report) => interval(item, report),
+      invalid,
+      ["intervals"],
+      "expected an interval record with valid owner, range, size, alignment and payload/padding/reservation sum",
+    )
+  ) {
+    return false;
+  }
+  if (!isEvidenceOrdered(value.intervals as Record<string, unknown>[], intervalKey)) {
+    invalid?.(["intervals"], "intervals must be unique and in canonical order");
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.views,
+      (item, _index, report) => view(item, report),
+      invalid,
+      ["views"],
+      "expected a view record with valid range and capacity/occupied/free byte equations",
+    )
+  ) {
+    return false;
+  }
+  if (!isEvidenceOrdered(value.views as Record<string, unknown>[], (item) => String(item.id))) {
+    invalid?.(["views"], "views must be unique and in canonical order");
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.stackDomains,
+      (item, _index, report) => stackDomain(item, report),
+      invalid,
+      ["stackDomains"],
+      "expected a stack-domain record with peakBytes + headroomBytes = capacityBytes",
+    )
+  ) {
+    return false;
+  }
+  if (
     !isEvidenceOrdered(value.stackDomains as Record<string, unknown>[], (item) => String(item.id))
   ) {
+    invalid?.(["stackDomains"], "stackDomains must be unique and in canonical order");
     return false;
   }
   const residencies = value.residencies as Record<string, unknown>[];
@@ -455,17 +573,36 @@ export function memoryEvidenceValue(value: unknown): value is MemoryEvidence {
       .map(({ id, group }) => [String(id), String(group)]),
   );
   const intervals = value.intervals as Record<string, unknown>[];
+  if (new Set(intervals.map(({ id }) => id)).size !== intervals.length) {
+    invalid?.(["intervals"], "interval IDs must be unique and residency references must exist");
+    return false;
+  }
   if (
-    new Set(intervals.map(({ id }) => id)).size !== intervals.length ||
-    intervals.some((item) => (item.residencyIds as string[]).some((id) => !residencyIds.has(id))) ||
-    !contiguityGroups(intervals)
+    intervals.some((item) => (item.residencyIds as string[]).some((id) => !residencyIds.has(id)))
   ) {
+    invalid?.(["intervals"], "interval IDs must be unique and residency references must exist");
+    return false;
+  }
+  if (!contiguityGroups(intervals)) {
+    invalid?.(
+      ["intervals"],
+      "interval contiguity groups must have complete unique indexes and adjacent ranges",
+    );
     return false;
   }
   const views = value.views as Record<string, unknown>[];
+  if (new Set(views.map(({ id }) => id)).size !== views.length) {
+    invalid?.(
+      ["views"],
+      "views must reconcile occupied/free intervals, valid residencies and exclusive groups",
+    );
+    return false;
+  }
+  if (intervals.length > 0 && views.length === 0) {
+    invalid?.(["views"], "nonempty intervals require at least one memory view");
+    return false;
+  }
   if (
-    new Set(views.map(({ id }) => id)).size !== views.length ||
-    (intervals.length > 0 && views.length === 0) ||
     views.some((item) => {
       const active = item.activeResidencyIds as string[];
       if (always.some((id) => !active.includes(id)) || active.some((id) => !residencyIds.has(id))) {
@@ -475,7 +612,15 @@ export function memoryEvidenceValue(value: unknown): value is MemoryEvidence {
         .map((id) => exclusiveGroup.get(id))
         .filter((group): group is string => group !== undefined);
       return new Set(groups).size !== groups.length || !reconcileView(item, intervals);
-    }) ||
+    })
+  ) {
+    invalid?.(
+      ["views"],
+      "views must reconcile occupied/free intervals, valid residencies and exclusive groups",
+    );
+    return false;
+  }
+  if (
     intervals.some(
       (item) =>
         !views.some(
@@ -490,6 +635,10 @@ export function memoryEvidenceValue(value: unknown): value is MemoryEvidence {
         ),
     )
   ) {
+    invalid?.(
+      ["intervals"],
+      "each interval must fit a view with a matching address space, bank and active residency",
+    );
     return false;
   }
   const projection = intervals
@@ -512,5 +661,12 @@ export function memoryEvidenceValue(value: unknown): value is MemoryEvidence {
       if (item.bankId !== undefined) projected.bankId = item.bankId;
       return projected;
     });
-  return canonicalEvidenceHash(projection) === value.sfaClosureSha256;
+  if (canonicalEvidenceHash(projection) !== value.sfaClosureSha256) {
+    invalid?.(
+      ["sfaClosureSha256"],
+      "SFA closure digest must match the canonical function/helper storage projection",
+    );
+    return false;
+  }
+  return true;
 }

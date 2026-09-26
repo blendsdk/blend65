@@ -1,5 +1,5 @@
 {
-  "specificationIdentity": "BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa",
+  "specificationIdentity": "BLEND65-SPEC-4-ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8",
   "entries": [
     {
       "key": "conformance:15-platform-profile.md#5.1",
@@ -181,7 +181,11 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-scalar-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -269,7 +273,11 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-scalar-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -309,7 +317,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-scalar-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -439,7 +450,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-values.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -477,7 +491,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -496,7 +513,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -637,7 +657,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-values.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-values.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -696,7 +719,9 @@
       "owner": "Phase 8",
       "proof": [
         "test/rd04/diagnostics-record-completeness.spec.test.ts",
-        "packages/compiler/src/frontend/diagnostic-completion.spec.test.ts"
+        "packages/compiler/src/frontend/diagnostic-completion.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts",
+        "test/rd04/diagnostics-alternate-residual.spec.test.ts"
       ],
       "disposition": "planned"
     },
@@ -705,7 +730,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-calls.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-calls.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -745,7 +773,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-function-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-function-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -772,7 +803,11 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-scalar-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-scalar-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-producers.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1040,7 +1075,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
+        "test/rd04/selected-resource-evidence.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1108,7 +1146,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1126,7 +1167,8 @@
       "owner": "Phase 8",
       "proof": [
         "test/rd04/diagnostics-calls.spec.test.ts",
-        "test/rd04/diagnostics-record-completeness.spec.test.ts"
+        "test/rd04/diagnostics-record-completeness.spec.test.ts",
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts"
       ],
       "disposition": "planned"
     },
@@ -1175,7 +1217,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-aggregate-permissions.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-aggregate-permissions.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1183,7 +1228,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-type-boundaries.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-type-boundaries.spec.test.ts",
+        "test/rd04/diagnostics-alternate-residual.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1266,7 +1314,11 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-type-boundaries.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-type-boundaries.spec.test.ts",
+        "test/rd04/diagnostics-alternate-values.spec.test.ts",
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1282,7 +1334,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["packages/compiler/src/artifacts/canonical-diagnostics.spec.test.ts"],
+      "proof": [
+        "packages/compiler/src/artifacts/canonical-diagnostics.spec.test.ts",
+        "test/rd04/artifact-field-diagnostics.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1322,7 +1377,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-execution-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1330,7 +1388,11 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-execution-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts",
+        "test/rd04/asset-alias-diagnostics.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1346,7 +1408,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-execution-records.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-execution-records.spec.test.ts",
+        "test/rd04/diagnostics-alternate-placement.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1384,6 +1449,22 @@
       "disposition": "planned"
     },
     {
+      "key": "diagnostic:E10280",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["test/rd04/diagnostics-erratum.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
+      "key": "diagnostic:E10281",
+      "kind": "diagnostic",
+      "source": "14-diagnostics.md",
+      "owner": "Phase 8",
+      "proof": ["test/rd04/diagnostics-erratum.spec.test.ts"],
+      "disposition": "planned"
+    },
+    {
       "key": "diagnostic:W10030",
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
@@ -1396,7 +1477,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
+        "test/rd04/selected-resource-evidence.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {
@@ -1585,7 +1669,10 @@
       "kind": "diagnostic",
       "source": "14-diagnostics.md",
       "owner": "Phase 8",
-      "proof": ["test/rd04/diagnostics-resource-boundaries.spec.test.ts"],
+      "proof": [
+        "test/rd04/diagnostics-resource-boundaries.spec.test.ts",
+        "test/rd04/selected-resource-evidence.spec.test.ts"
+      ],
       "disposition": "planned"
     },
     {

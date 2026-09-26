@@ -271,6 +271,8 @@ export function analyzeDirectCall(
           ? `Case value must be a compile-time constant — '${host.sourceText(expression.span)}' cannot be evaluated at compile time`
           : "Expression must be compile-time evaluable — ordinary function call is not constant",
         expression.span,
+        null,
+        related,
       ),
     );
     valid = false;

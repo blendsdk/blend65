@@ -10,6 +10,7 @@ import type {
   FunctionDeclaration,
   IfStatement,
   PoisonStatement,
+  PlacementClause,
   Statement,
   SwitchClause,
   SwitchStatement,
@@ -45,6 +46,8 @@ export interface StatementContext {
   reportExpected(expected: string, opener?: Token): void;
   /** Parse an expression with the shared Pratt parser. */
   parseExpression(minBindingPower?: number): Expr | null;
+  /** Parse a placement clause for an exact local-declaration rejection. */
+  parsePlaceClause(): PlacementClause | null;
   /** Parse a local variable, optionally leaving its terminator to the caller. */
   parseVariable(
     exported: boolean,
@@ -346,14 +349,25 @@ function parseStatement(context: StatementContext): Statement {
   }
   if (context.check(TokenKind.KW_PLACE)) {
     const start = context.current;
+    const clause = context.parsePlaceClause();
+    if (clause === null) return context.recoverPoison(start);
+    const declaration =
+      context.check(TokenKind.KW_LET) || context.check(TokenKind.KW_CONST)
+        ? context.parseVariable(false, true)
+        : null;
     context.addDiagnostic(
       projectDiagnostic(
         "E10272",
-        "A local declaration is not a placeable emitted object",
-        start.span,
+        `Invalid place constraint on '${declaration?.kind === "variable" ? declaration.name : "local declaration"}' — local storage is not a placeable emitted object; allowed keys are at, align, noCross, and region on module-level stored data or emitted functions`,
+        clause.span,
       ),
     );
-    return context.recoverPoison(start);
+    return declaration === null
+      ? context.recoverPoison(start)
+      : Object.freeze({
+          kind: "poison",
+          span: Object.freeze({ ...start.span, end: declaration.span.end }),
+        });
   }
   if (
     context.check(TokenKind.KW_LET) ||

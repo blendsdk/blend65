@@ -123,6 +123,11 @@ This is a responsibility split inside the existing frontend, not a parser framew
   only if required to keep the touched implementation below the file-size limit (AR-P8).
 - Public fields are copied exactly from Specification 4 Chapter 14. Implementation-only service
   failures remain internal and cannot masquerade as language diagnostics.
+- AR-P27's approved diagnostic-only erratum names non-Boolean logical operands as E10280 and
+  non-literal first encoding arguments as E10281. Each offending operand/argument is primary;
+  accepted source forms, evaluation, conversions and optimization contracts do not change.
+  The specification inventory and coverage record carry the new digest; the expert 2.0.0
+  content/release remain frozen at their original qualification identity.
 - Phase 1 proves registry completeness and diagnostics owned by its frontend forms. Later phases
   prove their own diagnostic producers; the full Chapter-14 sweep runs in Phase 8.
 

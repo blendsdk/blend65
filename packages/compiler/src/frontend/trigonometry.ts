@@ -1,5 +1,6 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { createScalarTypedExpression, SCALAR_TYPES } from "./constants.js";
+import { semanticTypeName } from "./semantic-type-relations.js";
 import type {
   ScalarExpressionContext,
   ScalarExpressionHost,
@@ -73,7 +74,11 @@ export function analyzeTrigonometryCall(
   const returnType = name.endsWith("8") ? SCALAR_TYPES.sbyte : SCALAR_TYPES.sword;
   if (expression.arguments.length !== 1) {
     host.diagnose(
-      projectDiagnostic("E10171", `'${name}()' expects one phase argument`, expression.span),
+      projectDiagnostic(
+        "E10171",
+        `Wrong argument count — '${name}()' expects 1 parameters, got ${expression.arguments.length}`,
+        expression.span,
+      ),
     );
     return { node: null, exact: null };
   }
@@ -86,7 +91,7 @@ export function analyzeTrigonometryCall(
     host.diagnose(
       projectDiagnostic(
         "E10080",
-        `'${name}()' requires a ${parameterType.name} phase`,
+        `Cannot implicitly convert '${semanticTypeName(argument.node.type)}' to '${parameterType.name}' — '${name}()' requires a phase of that type`,
         expression.arguments[0]!.span,
       ),
     );
@@ -96,7 +101,11 @@ export function analyzeTrigonometryCall(
     context.caller !== null && host.functionMode?.(context.caller) === "comptime";
   if (!insideComptime && typeof argument.exact !== "bigint") {
     host.diagnose(
-      projectDiagnostic("E10191", `'${name}()' requires a compile-time phase`, expression.span),
+      projectDiagnostic(
+        "E10191",
+        `Expression must be compile-time evaluable — '${name}()' requires a compile-time phase`,
+        expression.span,
+      ),
     );
     return { node: null, exact: null };
   }

@@ -11,7 +11,7 @@ import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import { C64_RESOURCE_BUDGETS } from "../target/c64-pal-kernal.js";
 import type { TargetProfile } from "../target/profile.js";
 
-/** Keep declaration-name locations available when later resource owners explain a failure. */
+/** Keep declaration-name and explicit-placement locations available to later resource diagnostics. */
 export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, SourceSpan> {
   const spans = new Map<string, SourceSpan>();
   for (const module of program.modules) {
@@ -23,6 +23,12 @@ export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, 
             bindingIdentityKey({ sourceId: declaration.span.sourceId, span: declaration.span }),
             declaration.nameSpan,
           );
+          if ("placement" in declaration && declaration.placement !== null) {
+            spans.set(
+              `placement:${bindingIdentityKey({ sourceId: declaration.span.sourceId, span: declaration.span })}`,
+              declaration.placement.span,
+            );
+          }
         }
       }
     }
@@ -32,9 +38,27 @@ export function resourceSourceSpans(program: TypedProgram): ReadonlyMap<string, 
     const span = spans.get(bindingIdentityKey(declaration.binding));
     if (asset !== undefined && span !== undefined && !spans.has(`asset.${asset.assetId}`)) {
       spans.set(`asset.${asset.assetId}`, span);
+      const placement = spans.get(`placement:${bindingIdentityKey(declaration.binding)}`);
+      if (placement !== undefined) spans.set(`placement:asset.${asset.assetId}`, placement);
     }
   }
   return spans;
+}
+
+/** Attribute a failed final constraint to the source object rather than an internal layout ID. */
+export function sourcePlacementFailure(
+  machine: MachineProgram,
+  spans: ReadonlyMap<string, SourceSpan>,
+  objectId: string | null,
+): ProjectDiagnostic {
+  const object = [...machine.data, ...machine.functions].find(({ id }) => id === objectId);
+  const key = objectId?.replace(/^(?:global|fn)\./u, "") ?? "";
+  const name = object?.sourceName?.split(".").at(-1) ?? objectId ?? "object";
+  return projectDiagnostic(
+    "E10273",
+    `Cannot place '${name}' — explicit placement constraints conflict with occupied storage or the selected profile window; change or remove the explicit constraint`,
+    spans.get(`placement:${key}`) ?? spans.get(key) ?? null,
+  );
 }
 
 /** Explain an impossible source-owned zero-page demand before SFA reserves the remaining window. */

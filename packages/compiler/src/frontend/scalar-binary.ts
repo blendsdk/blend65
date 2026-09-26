@@ -54,6 +54,19 @@ export function analyzeScalarBinary(
     if (logicalBaseline !== null) restoreScalarFacts(logicalBaseline);
     return { node: null, exact: null };
   }
+  // Logical operands are checked before enum coercion or aggregate operator diagnostics.
+  // Each rejected operand keeps its original source type and its own proving span.
+  if (logical) {
+    const result = logicalBinary(analyzer, expression, left, right);
+    if (logicalBaseline !== null && logicalRightFacts !== null) {
+      const rightExecutes = left.node.constant === (expression.operator === "&&");
+      const rightSkipped = left.node.constant === (expression.operator === "||");
+      if (rightExecutes) restoreScalarFacts(logicalRightFacts);
+      else if (rightSkipped) restoreScalarFacts(logicalBaseline);
+      else mergeScalarFacts(logicalBaseline, [logicalBaseline, logicalRightFacts]);
+    }
+    return result;
+  }
   if (
     (isScalarType(left.node.type) && left.node.type.name === "void") ||
     (isScalarType(right.node.type) && right.node.type.name === "void")
@@ -91,17 +104,6 @@ export function analyzeScalarBinary(
   }
   if (!isScalarType(left.node.type) || !isScalarType(right.node.type)) {
     return { node: null, exact: null };
-  }
-  if (logical) {
-    const result = logicalBinary(analyzer, expression, left, right);
-    if (logicalBaseline !== null && logicalRightFacts !== null) {
-      const rightExecutes = left.node.constant === (expression.operator === "&&");
-      const rightSkipped = left.node.constant === (expression.operator === "||");
-      if (rightExecutes) restoreScalarFacts(logicalRightFacts);
-      else if (rightSkipped) restoreScalarFacts(logicalBaseline);
-      else mergeScalarFacts(logicalBaseline, [logicalBaseline, logicalRightFacts]);
-    }
-    return result;
   }
   if (left.node.type.name === "boolean" || right.node.type.name === "boolean") {
     if (ordered && left.node.type.name === "boolean" && right.node.type.name === "boolean") {
@@ -274,19 +276,20 @@ function logicalBinary(
   left: ScalarExpressionResult,
   right: ScalarExpressionResult,
 ): ScalarExpressionResult {
-  if (
-    left.node === null ||
-    right.node === null ||
-    !isScalarType(left.node.type) ||
-    !isScalarType(right.node.type) ||
-    left.node.type.name !== "boolean" ||
-    right.node.type.name !== "boolean"
-  ) {
+  if (left.node === null || right.node === null) return { node: null, exact: null };
+  let valid = true;
+  for (const operand of [left.node, right.node]) {
+    if (isScalarType(operand.type) && operand.type.name === "boolean") continue;
+    valid = false;
     analyzer.host.diagnose(
-      error("E10151", "Cannot use an integer as a logical operand", expression.span),
+      error(
+        "E10280",
+        `Logical operator '${expression.operator}' requires Boolean operands — found '${semanticTypeName(operand.type)}'`,
+        operand.span,
+      ),
     );
-    return { node: null, exact: null };
   }
+  if (!valid) return { node: null, exact: null };
   const constant =
     typeof left.exact === "boolean" && typeof right.exact === "boolean"
       ? expression.operator === "&&"

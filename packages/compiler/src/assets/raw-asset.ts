@@ -106,7 +106,7 @@ function extentFailure(literalPath: string, size: bigint): RawAssetResult {
   if (size === 0n) return error("E10131", `Embedded file '${displayedPath}' is empty`);
   return error(
     "E10265",
-    `Embedded file '${displayedPath}' exceeds the maximum array byte size of ${MAX_ARRAY_BYTES}`,
+    `Type 'byte[${size}]' requires ${size} bytes — fixed array and struct types are limited to 65535 bytes`,
   );
 }
 

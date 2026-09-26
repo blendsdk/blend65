@@ -248,6 +248,12 @@ The **Owner** column names the feature whose normative chapter defines the trigg
 | E10277 | F018 / Ch 06 | `Cannot prove a finite source-function target set for call through '<expression>' of type '<type>' — keep the value within closed-program typed storage` |
 | E10278 | F007 / F018 / Ch 06 | `Interrupt ownership for sink '<sink>' is invalid at '<operation>' — <detail>` |
 | E10279 | Ch 15 | `Target profile '<profile>' is not a complete qualified profile ID — choose one of: <qualified_profiles>` |
+| E10280 | Ch 02 | `Logical operator '<operator>' requires Boolean operands — found '<type>'` |
+| E10281 | F014 / Ch 08 | `Encoding '<encoding>' requires a character or string literal as its first argument — found '<expr>'` |
+
+For E10280, each non-Boolean operand is an independent error with that operand as its primary span.
+For E10281, the primary span covers the first argument. These diagnostics add no accepted source
+form or runtime conversion; they identify already-invalid operands precisely.
 
 E10267 owns invalid JSON, duplicate keys, non-object roots, wrong or missing artifact kinds,
 nonpositive or noninteger schema versions, and every malformed supported-version value. Its

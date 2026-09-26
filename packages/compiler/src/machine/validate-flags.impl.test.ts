@@ -40,6 +40,91 @@ function branch(
 const exit: MachineBlock = { label: "exit", instructions: [], terminator: { kind: "return" } };
 
 describe("machine flag data flow", () => {
+  it.each([false, true])(
+    "accepts an opaque status restore only without a later flag consumer: %s",
+    (consume) => {
+      expect(
+        validateMachineProgram(
+          program([
+            {
+              label: "entry",
+              instructions: [implied("clv"), implied("pha"), implied("plp")],
+              terminator: consume
+                ? branch("exit", "exit")
+                : { kind: "fallthrough", target: "exit" },
+            },
+            exit,
+          ]),
+        ),
+      ).toBe(!consume);
+    },
+  );
+
+  it.each([false, true])(
+    "retains incoming flag identity through a callee status save: %s",
+    (known) => {
+      const helper: MachineFunction = {
+        id: "helper",
+        blocks: [
+          {
+            label: "helper.entry",
+            instructions: [implied("php"), implied("clv"), implied("plp")],
+            terminator: { kind: "return" },
+          },
+        ],
+      };
+      expect(
+        validateMachineProgram(
+          program(
+            [
+              {
+                label: "entry",
+                instructions: [
+                  ...(known ? [implied("clv")] : []),
+                  machineInstruction(NMOS_6510, "jsr", "absolute", {
+                    kind: "label",
+                    label: "helper",
+                  }),
+                ],
+                terminator: branch("exit", "exit"),
+              },
+              exit,
+            ],
+            [helper],
+          ),
+        ),
+      ).toBe(known);
+    },
+  );
+
+  it("rejects a callee that leaks a status snapshot into its return address", () => {
+    const helper: MachineFunction = {
+      id: "helper",
+      blocks: [
+        { label: "helper.entry", instructions: [implied("php")], terminator: { kind: "return" } },
+      ],
+    };
+    expect(
+      validateMachineProgram(
+        program(
+          [
+            {
+              label: "entry",
+              instructions: [
+                machineInstruction(NMOS_6510, "jsr", "absolute", {
+                  kind: "label",
+                  label: "helper",
+                }),
+              ],
+              terminator: { kind: "return" },
+            },
+          ],
+          [helper],
+        ),
+      ),
+    ).toBe(false);
+  });
+
   it.each([false, true])("requires a producer through every side of a join: %s", (both) => {
     const blocks: MachineBlock[] = [
       {

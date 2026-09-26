@@ -266,21 +266,40 @@ function hardwareCallRoutes(
     const statusStackPeak = fn?.statusStackPeak ?? 0;
     const depths =
       fn === undefined ? new Map<SemanticOperation, number>() : operationStackDepths(fn);
+    // Index each operation once. A helper source may match several lowered operations;
+    // retain their maximum live depth without rescanning the function for every call.
+    const sourceDepths = new Map<string, number>();
+    const callDepths = new Map<string, number>();
+    for (const [operation, live] of depths) {
+      const key = JSON.stringify([
+        operation.span.sourceId,
+        operation.span.start,
+        operation.span.end,
+      ]);
+      sourceDepths.set(key, Math.max(sourceDepths.get(key) ?? 0, live));
+      const targets =
+        operation.kind === "call"
+          ? [operation.callee]
+          : operation.kind === "indirect-call"
+            ? (inventory.program.indirectTargets?.get(operation) ?? [])
+            : [];
+      for (const target of targets) {
+        const callee = bindingIdentityKey(target);
+        callDepths.set(callee, Math.max(callDepths.get(callee) ?? 0, live));
+      }
+    }
     let functionDepth: HardwareStackRoute = Object.freeze({
       bytes: statusStackPeak,
       route: Object.freeze([functionKey]),
     });
     for (const helper of helperCalls) {
       if (bindingIdentityKey(helper.caller) !== functionKey) continue;
-      const matching = [...depths].flatMap(([operation, live]) =>
-        helper.source !== undefined &&
-        operation.span.sourceId === helper.source.sourceId &&
-        operation.span.start === helper.source.start &&
-        operation.span.end === helper.source.end
-          ? [live]
-          : [],
-      );
-      const live = matching.length === 0 ? statusStackPeak : Math.max(...matching);
+      const sourceKey =
+        helper.source === undefined
+          ? null
+          : JSON.stringify([helper.source.sourceId, helper.source.start, helper.source.end]);
+      const live =
+        (sourceKey === null ? undefined : sourceDepths.get(sourceKey)) ?? statusStackPeak;
       functionDepth = deeperStackRoute(functionDepth, {
         bytes: live + helper.stackBytes,
         route: Object.freeze([functionKey, `helper:${helper.id}`]),
@@ -296,18 +315,9 @@ function hardwareCallRoutes(
     }
     for (const callee of graph.get(functionKey) ?? []) {
       const calleeDepth = depth(callee);
-      const callDepths = [...depths].flatMap(([operation, live]) => {
-        const targets =
-          operation.kind === "call"
-            ? [operation.callee]
-            : operation.kind === "indirect-call"
-              ? (inventory.program.indirectTargets?.get(operation) ?? [])
-              : [];
-        return targets.some((target) => bindingIdentityKey(target) === callee) ? [live] : [];
-      });
       // Graph-only storage clients have no operation positions. Keep their
       // conservative summary; real calls use the status depth at the call site.
-      const liveSaves = callDepths.length === 0 ? statusStackPeak : Math.max(...callDepths);
+      const liveSaves = callDepths.get(callee) ?? statusStackPeak;
       const candidate = Object.freeze({
         bytes:
           calleeDepth.bytes === Number.POSITIVE_INFINITY

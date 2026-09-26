@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const repository = fileURLToPath(new URL("../../", import.meta.url));
 const specRoot = join(repository, "spec");
 const coveragePath = join(import.meta.dirname, "normative-coverage.json");
-const identity = "BLEND65-SPEC-4-5c6bac04a56b91d7d55ff570fbbf0dde5f521e2edce8901279dfa39a32c7acfa";
+const identity = "BLEND65-SPEC-4-ee2be7c2139ff82f22d1d8f169251bae1d2244e5e4a74bddbdfc4903af39fff8";
 
 /** Keep fixture edits separate from the checked-in completion record. */
 async function coverageDocument(): Promise<Record<string, unknown>> {
@@ -40,7 +40,7 @@ describe("frozen language coverage", () => {
     expect(new Set(names).size).toBe(names.length);
     expect(keys.filter(({ kind }) => kind === "grammar")).toHaveLength(106);
     expect(keys.filter(({ kind }) => kind === "semantic-rule")).toHaveLength(102);
-    expect(keys.filter(({ kind }) => kind === "diagnostic")).toHaveLength(182);
+    expect(keys.filter(({ kind }) => kind === "diagnostic")).toHaveLength(184);
     expect(keys.filter(({ kind }) => kind === "conformance")).toHaveLength(5);
     expect(keys).toContainEqual(
       expect.objectContaining({

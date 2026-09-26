@@ -110,11 +110,19 @@ export function analyzeMachineIntrinsic(
       right.type.kind !== "scalar" ||
       right.type.name !== left.type.name
     ) {
+      const leftUnsigned =
+        left.type.kind === "scalar" && (left.type.name === "byte" || left.type.name === "word");
+      const rejected = leftUnsigned ? right : left;
+      const expected = leftUnsigned
+        ? left.type
+        : right.type.kind === "scalar" && (right.type.name === "byte" || right.type.name === "word")
+          ? right.type
+          : SCALAR_TYPES.byte;
       host.diagnose(
         projectDiagnostic(
           "E10172",
-          `Arguments of '${name}()' must have the same unsigned byte or word type; found '${semanticTypeName(left.type)}' and '${semanticTypeName(right.type)}'`,
-          expression.span,
+          `Argument type mismatch — parameter '${leftUnsigned ? "right" : "left"}' of '${name}()' expects '${semanticTypeName(expected)}', found '${semanticTypeName(rejected.type)}'`,
+          rejected.span,
         ),
       );
       valid = false;

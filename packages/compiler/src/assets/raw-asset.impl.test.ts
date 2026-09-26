@@ -234,7 +234,7 @@ describe("raw asset implementation boundaries", () => {
       'const KEY: byte[5] = "frame"; const DATA: byte[] = embed("missing.bin", KEY);',
       "E10250",
     ],
-    ["extra argument", 'const DATA: byte[] = embed("missing.bin", "frame", "extra");', "E10136"],
+    ["extra argument", 'const DATA: byte[] = embed("missing.bin", "frame", "extra");', "E10171"],
   ])("rejects a %s before trying to open an asset", async (_case, declaration, code) => {
     const project = await fixture(`module Game; ${declaration} function main(): void {}`);
 

@@ -1,6 +1,8 @@
 import type { CostsEvidence } from "./evidence-types.js";
+import type { EvidenceFieldFailure } from "./evidence-diagnostics.js";
 import {
   areEvidenceStringsOrdered,
+  evidenceItems,
   canonicalEvidenceJson,
   hasExactEvidenceKeys,
   isEvidenceCount,
@@ -106,22 +108,24 @@ const CLOSURE_POINTS = new Set([
 const STANDARD_RESOURCES = ["zeroPage", "residentRam", "hardwareStack", "scratch"] as const;
 
 /** Validate one source site used by cost attribution. */
-function sourceSite(value: unknown): boolean {
+function sourceSite(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["path", "startByte", "endByte"]) &&
-    isEvidencePath(value.path) &&
-    isEvidenceCount(value.startByte) &&
-    isEvidenceCount(value.endByte) &&
+    isEvidencePath(value.path, invalid, ["path"]) &&
+    isEvidenceCount(value.startByte, invalid, ["startByte"]) &&
+    isEvidenceCount(value.endByte, invalid, ["endByte"]) &&
     value.startByte <= value.endByte
   );
 }
 
 /** Validate a canonical source-site array. */
-function sourceSites(value: unknown): boolean {
+function sourceSites(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     Array.isArray(value) &&
-    value.every(sourceSite) &&
+    value.every((item, index) =>
+      sourceSite(item, (path, detail) => invalid?.([index, ...path], detail)),
+    ) &&
     isEvidenceOrdered(
       value as Record<string, unknown>[],
       (site) =>
@@ -131,32 +135,36 @@ function sourceSites(value: unknown): boolean {
 }
 
 /** Validate one closed measured-value union. */
-function measuredValue(value: unknown): boolean {
+function measuredValue(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (!isEvidenceRecord(value)) return false;
   if (value.kind === "unknown") return hasExactEvidenceKeys(value, ["kind"]);
   if (value.kind === "exact") {
-    return hasExactEvidenceKeys(value, ["kind", "value"]) && isEvidenceCount(value.value);
+    return (
+      hasExactEvidenceKeys(value, ["kind", "value"]) &&
+      isEvidenceCount(value.value, invalid, ["value"])
+    );
   }
   if (value.kind === "range") {
-    return (
+    const valid =
       hasExactEvidenceKeys(value, ["kind", "minimum", "maximum"]) &&
-      isEvidenceCount(value.minimum) &&
-      isEvidenceCount(value.maximum) &&
-      value.minimum <= value.maximum
-    );
+      isEvidenceCount(value.minimum, invalid, ["minimum"]) &&
+      isEvidenceCount(value.maximum, invalid, ["maximum"]) &&
+      value.minimum <= value.maximum;
+    if (!valid) invalid?.([], "expected nonnegative cycle range bounds with minimum <= maximum");
+    return valid;
   }
   return (
     value.kind === "symbolic" &&
     hasExactEvidenceKeys(value, ["kind", "expression", "variables"]) &&
-    isEvidenceText(value.expression) &&
+    isEvidenceText(value.expression, invalid, ["expression"]) &&
     Array.isArray(value.variables) &&
     value.variables.every(
-      (variable) =>
+      (variable, itemIndex) =>
         isEvidenceRecord(variable) &&
         hasExactEvidenceKeys(variable, ["name", "minimum", "maximum"]) &&
-        isEvidenceText(variable.name) &&
-        isEvidenceCount(variable.minimum) &&
-        isEvidenceCount(variable.maximum) &&
+        isEvidenceText(variable.name, invalid, ["variables", itemIndex, "name"]) &&
+        isEvidenceCount(variable.minimum, invalid, ["variables", itemIndex, "minimum"]) &&
+        isEvidenceCount(variable.maximum, invalid, ["variables", itemIndex, "maximum"]) &&
         variable.minimum <= variable.maximum,
     ) &&
     isEvidenceOrdered(value.variables as Record<string, unknown>[], (variable) =>
@@ -166,12 +174,12 @@ function measuredValue(value: unknown): boolean {
 }
 
 /** Validate one exact cost owner. */
-function owner(value: unknown): boolean {
+function owner(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["kind", "id"]) &&
     OWNER_KINDS.has(String(value.kind)) &&
-    isEvidenceText(value.id)
+    isEvidenceText(value.id, invalid, ["id"])
   );
 }
 
@@ -202,19 +210,24 @@ function admittedPair(accounting: unknown, component: unknown): boolean {
 }
 
 /** Validate one exact machine-traffic entry. */
-function traffic(value: unknown): boolean {
+function traffic(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["kind", "target", "count"]) &&
     new Set(["read", "write", "rmw", "bankSwitch", "loaderTransfer"]).has(String(value.kind)) &&
-    isEvidenceText(value.target) &&
-    measuredValue(value.count)
+    isEvidenceText(value.target, invalid, ["target"]) &&
+    measuredValue(value.count, (path, detail) => invalid?.(["count", ...path], detail))
   );
 }
 
 /** Validate one closed cost-entry union. */
-function entry(value: unknown): boolean {
-  if (!isEvidenceRecord(value) || !isEvidenceText(value.id) || !owner(value.owner)) return false;
+function entry(value: unknown, invalid?: EvidenceFieldFailure): boolean {
+  if (
+    !isEvidenceRecord(value) ||
+    !isEvidenceText(value.id, invalid, ["id"]) ||
+    !owner(value.owner, (path, detail) => invalid?.(["owner", ...path], detail))
+  )
+    return false;
   if (value.kind === "bytes") {
     return (
       hasExactEvidenceKeys(value, [
@@ -228,8 +241,10 @@ function entry(value: unknown): boolean {
         "dependencyIds",
       ]) &&
       admittedPair(value.accounting, value.component) &&
-      isEvidenceCount(value.bytes) &&
-      sourceSites(value.sourceSites) &&
+      isEvidenceCount(value.bytes, invalid, ["bytes"]) &&
+      sourceSites(value.sourceSites, (path, detail) =>
+        invalid?.(["sourceSites", ...path], detail),
+      ) &&
       areEvidenceStringsOrdered(value.dependencyIds)
     );
   }
@@ -245,8 +260,10 @@ function entry(value: unknown): boolean {
         "dependencyIds",
       ]) &&
       new Set(["diskFile", "diskMetadata", "sectorOverhead"]).has(String(value.component)) &&
-      isEvidenceCount(value.blocks) &&
-      sourceSites(value.sourceSites) &&
+      isEvidenceCount(value.blocks, invalid, ["blocks"]) &&
+      sourceSites(value.sourceSites, (path, detail) =>
+        invalid?.(["sourceSites", ...path], detail),
+      ) &&
       areEvidenceStringsOrdered(value.dependencyIds)
     );
   }
@@ -262,15 +279,17 @@ function entry(value: unknown): boolean {
       "sourceSites",
       "dependencyIds",
     ]) &&
-    isEvidenceText(value.pathId) &&
-    measuredValue(value.cycles) &&
+    isEvidenceText(value.pathId, invalid, ["pathId"]) &&
+    measuredValue(value.cycles, (path, detail) => invalid?.(["cycles", ...path], detail)) &&
     Array.isArray(value.traffic) &&
-    value.traffic.every(traffic) &&
+    value.traffic.every((item, index) =>
+      traffic(item, (path, detail) => invalid?.(["traffic", index, ...path], detail)),
+    ) &&
     isEvidenceOrdered(
       value.traffic as Record<string, unknown>[],
       (item) => `${String(item.kind)}\0${String(item.target)}`,
     ) &&
-    sourceSites(value.sourceSites) &&
+    sourceSites(value.sourceSites, (path, detail) => invalid?.(["sourceSites", ...path], detail)) &&
     areEvidenceStringsOrdered(value.dependencyIds)
   );
 }
@@ -288,18 +307,20 @@ function entryKey(value: Record<string, unknown>): string {
 }
 
 /** Validate one optimizer cost vector. */
-function costVector(value: unknown): boolean {
+function costVector(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (
     !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(value, ["programBytes", "pathCycles", "resources"]) ||
-    !isEvidenceCount(value.programBytes) ||
+    !isEvidenceCount(value.programBytes, invalid, ["programBytes"]) ||
     !Array.isArray(value.pathCycles) ||
     !value.pathCycles.every(
-      (path) =>
+      (path, index) =>
         isEvidenceRecord(path) &&
         hasExactEvidenceKeys(path, ["pathId", "cycles"]) &&
-        isEvidenceText(path.pathId) &&
-        measuredValue(path.cycles),
+        isEvidenceText(path.pathId, invalid, ["pathCycles", index, "pathId"]) &&
+        measuredValue(path.cycles, (path, detail) =>
+          invalid?.(["pathCycles", index, "cycles", ...path], detail),
+        ),
     ) ||
     new Set(value.pathCycles.map((path) => (path as Record<string, unknown>).pathId)).size !==
       value.pathCycles.length ||
@@ -315,7 +336,7 @@ function costVector(value: unknown): boolean {
       !hasExactEvidenceKeys(resource, ["kind", "id", "value"]) ||
       resource.kind !== "standard" ||
       resource.id !== STANDARD_RESOURCES[index] ||
-      !isEvidenceCount(resource.value)
+      !isEvidenceCount(resource.value, invalid, ["resources", index, "value"])
     ) {
       return false;
     }
@@ -350,22 +371,22 @@ function costVector(value: unknown): boolean {
 }
 
 /** Validate one hard candidate rejection. */
-function hardRejection(value: unknown): boolean {
+function hardRejection(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["kind", "detail", "sourceSites"]) &&
     REJECTION_KINDS.has(String(value.kind)) &&
-    isEvidenceText(value.detail) &&
-    sourceSites(value.sourceSites)
+    isEvidenceText(value.detail, invalid, ["detail"]) &&
+    sourceSites(value.sourceSites, (path, detail) => invalid?.(["sourceSites", ...path], detail))
   );
 }
 
 /** Validate one exact optimization candidate. */
-function candidate(value: unknown): boolean {
+function candidate(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (
     !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(value, ["id", "feasibility"]) ||
-    !isEvidenceText(value.id) ||
+    !isEvidenceText(value.id, invalid, ["id"]) ||
     !isEvidenceRecord(value.feasibility)
   ) {
     return false;
@@ -373,7 +394,9 @@ function candidate(value: unknown): boolean {
   if (value.feasibility.kind === "feasible") {
     return (
       hasExactEvidenceKeys(value.feasibility, ["kind", "vector"]) &&
-      costVector(value.feasibility.vector)
+      costVector(value.feasibility.vector, (path, detail) =>
+        invalid?.(["feasibility", "vector", ...path], detail),
+      )
     );
   }
   return (
@@ -381,12 +404,16 @@ function candidate(value: unknown): boolean {
     hasExactEvidenceKeys(value.feasibility, ["kind", "reasons"]) &&
     Array.isArray(value.feasibility.reasons) &&
     value.feasibility.reasons.length > 0 &&
-    value.feasibility.reasons.every(hardRejection)
+    value.feasibility.reasons.every((item, index) =>
+      hardRejection(item, (path, detail) =>
+        invalid?.(["feasibility", "reasons", index, ...path], detail),
+      ),
+    )
   );
 }
 
 /** Validate one exact optimizer decision and all local references. */
-function decision(value: unknown): boolean {
+function decision(value: unknown, invalid?: EvidenceFieldFailure): boolean {
   if (
     !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(value, [
@@ -401,20 +428,25 @@ function decision(value: unknown): boolean {
       "incomparableComponents",
       "tieBreak",
     ]) ||
-    !isEvidenceText(value.id) ||
-    !isEvidenceText(value.scope) ||
+    !isEvidenceText(value.id, invalid, ["id"]) ||
+    !isEvidenceText(value.scope, invalid, ["scope"]) ||
     !new Set(["balanced", "speed", "size"]).has(String(value.mode)) ||
-    !sourceSites(value.sourceSites) ||
+    !sourceSites(value.sourceSites, (path, detail) =>
+      invalid?.(["sourceSites", ...path], detail),
+    ) ||
     !CLOSURE_POINTS.has(String(value.closurePoint)) ||
-    !isEvidenceText(value.baselineCandidateId) ||
-    !isEvidenceText(value.selectedCandidateId) ||
+    !isEvidenceText(value.baselineCandidateId, invalid, ["baselineCandidateId"]) ||
+    !isEvidenceText(value.selectedCandidateId, invalid, ["selectedCandidateId"]) ||
     !Array.isArray(value.candidates) ||
     value.candidates.length === 0 ||
-    !value.candidates.every(candidate) ||
+    !value.candidates.every((item, index) =>
+      candidate(item, (path, detail) => invalid?.(["candidates", index, ...path], detail)),
+    ) ||
     !isEvidenceOrdered(value.candidates as Record<string, unknown>[], (item) => String(item.id)) ||
     !areEvidenceStringsOrdered(value.incomparableComponents) ||
     !(value.incomparableComponents as string[]).every(
-      (component) => component === "B" || component.startsWith("T:") || component.startsWith("R:"),
+      (component, _itemIndex) =>
+        component === "B" || component.startsWith("T:") || component.startsWith("R:"),
     ) ||
     !isEvidenceRecord(value.tieBreak)
   ) {
@@ -453,7 +485,7 @@ function decision(value: unknown): boolean {
     !areEvidenceStringsOrdered(value.tieBreak.candidateIds) ||
     value.tieBreak.candidateIds.length < 2 ||
     !(value.tieBreak.candidateIds as string[]).includes(String(value.selectedCandidateId)) ||
-    !(value.tieBreak.candidateIds as string[]).every((id) => feasible.has(id))
+    !(value.tieBreak.candidateIds as string[]).every((id, _itemIndex) => feasible.has(id))
   ) {
     return false;
   }
@@ -513,9 +545,15 @@ function composedCycles(
 }
 
 /** Validate the complete closed costs-evidence version-1 value. */
-export function costsEvidenceValue(value: unknown): value is CostsEvidence {
+export function costsEvidenceValue(
+  value: unknown,
+  invalid?: EvidenceFieldFailure,
+): value is CostsEvidence {
+  if (!isEvidenceRecord(value)) {
+    invalid?.([], "record must be an object record");
+    return false;
+  }
   if (
-    !isEvidenceRecord(value) ||
     !hasExactEvidenceKeys(value, [
       "kind",
       "schemaVersion",
@@ -523,21 +561,79 @@ export function costsEvidenceValue(value: unknown): value is CostsEvidence {
       "totals",
       "entries",
       "decisions",
-    ]) ||
-    value.kind !== "blend65.costs" ||
-    value.schemaVersion !== 1 ||
-    !OPTIMIZATION.has(String(value.mode)) ||
-    !costVector(value.totals) ||
-    !Array.isArray(value.entries) ||
-    !value.entries.every(entry) ||
-    !isEvidenceOrdered(value.entries as Record<string, unknown>[], entryKey) ||
-    !dependenciesAreClosed(value.entries as Record<string, unknown>[]) ||
-    !Array.isArray(value.decisions) ||
-    !value.decisions.every(decision) ||
-    !isEvidenceOrdered(value.decisions as Record<string, unknown>[], (item) => String(item.id)) ||
-    (value.mode === "none" && value.decisions.length !== 0) ||
-    (value.decisions as Record<string, unknown>[]).some(({ mode }) => mode !== value.mode)
+    ])
   ) {
+    invalid?.([], "record must contain exactly its required and optional fields");
+    return false;
+  }
+  if (value.kind !== "blend65.costs") {
+    invalid?.(["kind"], "kind must identify this artifact family");
+    return false;
+  }
+  if (value.schemaVersion !== 1) {
+    invalid?.(["schemaVersion"], "schemaVersion must equal 1");
+    return false;
+  }
+  if (!OPTIMIZATION.has(String(value.mode))) {
+    invalid?.(
+      ["mode"],
+      "optimization mode must be supported and agree with decision records; none has no decisions",
+    );
+    return false;
+  }
+  if (!costVector(value.totals, (path, detail) => invalid?.(["totals", ...path], detail))) {
+    invalid?.(
+      ["totals"],
+      "totals must contain valid nonnegative costs, ordered cycle bounds and standard resources",
+    );
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.entries,
+      (item, _index, report) => entry(item, report),
+      invalid,
+      ["entries"],
+      "expected a bytes/cycles/resource entry record with valid ownership, attribution and nonnegative costs",
+    )
+  ) {
+    return false;
+  }
+  if (!isEvidenceOrdered(value.entries as Record<string, unknown>[], entryKey)) {
+    invalid?.(["entries"], "entries must be unique and in canonical order");
+    return false;
+  }
+  if (!dependenciesAreClosed(value.entries as Record<string, unknown>[])) {
+    invalid?.(["entries"], "entry dependency IDs must be closed and acyclic");
+    return false;
+  }
+  if (
+    !evidenceItems(
+      value.decisions,
+      (item, _index, report) => decision(item, report),
+      invalid,
+      ["decisions"],
+      "expected a decision record with valid candidates, costs and selected outcome",
+    )
+  ) {
+    return false;
+  }
+  if (!isEvidenceOrdered(value.decisions as Record<string, unknown>[], (item) => String(item.id))) {
+    invalid?.(["decisions"], "decisions must be unique and in canonical order");
+    return false;
+  }
+  if (value.mode === "none" && value.decisions.length !== 0) {
+    invalid?.(
+      ["decisions"],
+      "optimization mode must be supported and agree with decision records; none has no decisions",
+    );
+    return false;
+  }
+  if ((value.decisions as Record<string, unknown>[]).some(({ mode }) => mode !== value.mode)) {
+    invalid?.(
+      ["decisions"],
+      "optimization mode must be supported and agree with decision records; none has no decisions",
+    );
     return false;
   }
   const totals = value.totals as Record<string, unknown>;
@@ -545,7 +641,13 @@ export function costsEvidenceValue(value: unknown): value is CostsEvidence {
   const programBytes = entries
     .filter((item) => item.kind === "bytes" && item.accounting === "program")
     .reduce((sum, item) => sum + (item.bytes as number), 0);
-  if (programBytes !== totals.programBytes) return false;
+  if (programBytes !== totals.programBytes) {
+    invalid?.(
+      ["totals", "programBytes"],
+      "programBytes must equal the sum of program-accounted byte entries",
+    );
+    return false;
+  }
   const pathCycles = totals.pathCycles as Record<string, unknown>[];
   if (
     pathCycles.some((path) => {
@@ -556,18 +658,33 @@ export function costsEvidenceValue(value: unknown): value is CostsEvidence {
       return (
         composed === null || canonicalEvidenceJson(composed) !== canonicalEvidenceJson(path.cycles)
       );
-    }) ||
+    })
+  ) {
+    invalid?.(
+      ["totals", "pathCycles"],
+      "path cycle totals must match the composition of their cycle entries",
+    );
+    return false;
+  }
+  if (
     entries.some(
       (item) => item.kind === "cycles" && !pathCycles.some(({ pathId }) => pathId === item.pathId),
     )
   ) {
+    invalid?.(["entries"], "path cycle totals must match the composition of their cycle entries");
     return false;
   }
   const dimensions = new Set<string>();
   for (const item of entries.filter(({ kind }) => kind === "bytes")) {
     const itemOwner = item.owner as Record<string, unknown>;
     const identity = `${String(itemOwner.kind)}\0${String(itemOwner.id)}\0${String(item.component)}\0${String(item.accounting)}`;
-    if (dimensions.has(identity)) return false;
+    if (dimensions.has(identity)) {
+      invalid?.(
+        ["entries"],
+        "byte entries must not repeat an owner/component/accounting dimension",
+      );
+      return false;
+    }
     dimensions.add(identity);
   }
   return true;

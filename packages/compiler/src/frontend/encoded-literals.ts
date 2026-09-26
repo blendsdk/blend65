@@ -1,5 +1,6 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { createScalarTypedExpression, SCALAR_TYPES } from "./constants.js";
+import { semanticTypeName } from "./semantic-type-relations.js";
 import { encodeC64Literal } from "./profile.js";
 import type { C64CharacterMap, C64Encoding } from "./profile.js";
 import type { AggregateRegistry } from "./aggregate-types.js";
@@ -86,7 +87,7 @@ export function analyzeEncodingCall(
     host.diagnose(
       projectDiagnostic(
         "E10171",
-        `Wrong argument count — '${encoding}()' expects one literal and an optional map key`,
+        `Wrong argument count — '${encoding}()' expects 1 or 2 parameters, got ${expression.arguments.length}`,
         expression.span,
       ),
     );
@@ -96,8 +97,8 @@ export function analyzeEncodingCall(
   if (literal?.kind !== "literal") {
     host.diagnose(
       projectDiagnostic(
-        "E10125",
-        `Encoding '${encoding}' requires a string or character literal`,
+        "E10281",
+        `Encoding '${encoding}' requires a character or string literal as its first argument — found '${host.sourceText(literal?.span ?? expression.span)}'`,
         literal?.span ?? expression.span,
       ),
     );
@@ -123,7 +124,7 @@ export function analyzeEncodingCall(
       host.diagnose(
         projectDiagnostic(
           "E10125",
-          `Character map '${key}' is unavailable for '${encoding}' on the selected C64 profile`,
+          `Encoding or character map '${key}' is unavailable for platform '${host.profileId}' — available: upper_graphics, lower_upper`,
           mapArg.span,
         ),
       );
@@ -175,7 +176,11 @@ export function analyzeStringArrayLiteral(
       expected.element.name !== "byte"
     ) {
       host.diagnose(
-        projectDiagnostic("E10080", "String fill requires a byte array", expression.span),
+        projectDiagnostic(
+          "E10080",
+          `Cannot implicitly convert '${semanticTypeName(string.type)}' to '${semanticTypeName(expected)}' — string fill requires a byte array`,
+          stringElement.span,
+        ),
       );
       return { node: null, exact: null };
     }
@@ -211,10 +216,12 @@ export function analyzeStringArrayLiteral(
     };
   }
   if (expression.fill !== null && isEncodedStringSyntax(expression.fill)) {
+    const fill = analyze(expression.fill, null, context).node;
+    if (fill === null) return { node: null, exact: null };
     host.diagnose(
       projectDiagnostic(
         "E10115",
-        "Array fill must be one element, not a string",
+        `Fill value has type '${semanticTypeName(fill.type)}' but array element type is '${semanticTypeName(expected.element)}'`,
         expression.fill.span,
       ),
     );

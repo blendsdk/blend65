@@ -306,8 +306,8 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
     } else if (expression.arguments.length > 2) {
       diagnostics.push(
         projectDiagnostic(
-          "E10136",
-          "'embed()' accepts a path and optional selector",
+          "E10171",
+          `Wrong argument count — 'embed()' expects 1 or 2 parameters, got ${expression.arguments.length}`,
           expression.span,
         ),
       );

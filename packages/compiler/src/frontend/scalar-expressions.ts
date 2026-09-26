@@ -3,28 +3,25 @@ import {
   applyExpectedScalar,
   createScalarTypedExpression,
   defaultIntegerType,
-  evaluateUnaryInteger,
   fitsInteger,
   integerFacts,
   integerRangeMessage,
   isIntegerType,
   isScalarType,
   SCALAR_TYPES,
-  wrapInteger,
 } from "./constants.js";
 import {
   AggregateRegistry,
   analyzeAggregateExpression,
   applyExpectedAggregate,
-  semanticTypeName,
 } from "./aggregates.js";
 import { analyzeScalarConditional } from "./conditional-expressions.js";
-import { localAddressOrigins, withDerivedAddressOrigins } from "./address-provenance.js";
+import { withDerivedAddressOrigins } from "./address-provenance.js";
 import { analyzeDirectCall, qualifiedCallName, resolveDirectCallTarget } from "./direct-calls.js";
 import { applyExpectedEnum } from "./enum-types.js";
 import { analyzeScalarAssignment } from "./scalar-assignments.js";
 import { semanticTypeSize } from "./semantic-type-relations.js";
-import { analyzeTrigonometryCall, isTrigonometryIntrinsic } from "./trigonometry.js";
+import { analyzeTrigonometryCall } from "./trigonometry.js";
 import { analyzeEnumCastCall, analyzeEnumMember, analyzeScalarCast } from "./scalar-conversions.js";
 import type {
   Place,
@@ -35,6 +32,7 @@ import type {
 } from "./semantic-types.js";
 import type { Expr } from "./syntax.js";
 
+import { analyzeScalarUnary } from "./scalar-unary.js";
 import { analyzeScalarBinary } from "./scalar-binary.js";
 
 /** Direct recursive scalar expression checker. */
@@ -86,7 +84,7 @@ export class ScalarExpressionAnalyzer {
         ? applyExpectedScalar(natural, expected, expression, context, host)
         : expected.kind === "enum"
           ? applyExpectedEnum(natural, expected, expression, host)
-          : applyExpectedAggregate(natural, expected, expression, host);
+          : applyExpectedAggregate(natural, expected, expression, host, context);
     if (converted.node === null && !specificError) reportMismatch?.(natural.node.type);
     return converted;
   }
@@ -107,7 +105,7 @@ export class ScalarExpressionAnalyzer {
       this.host.diagnose(
         error(
           "E10191",
-          "Compile-time function cannot access runtime or host state",
+          "Expression must be compile-time evaluable — compile-time functions cannot access runtime or host state",
           expression.span,
         ),
       );
@@ -138,7 +136,14 @@ export class ScalarExpressionAnalyzer {
       case "name":
         return this.name(expression, context, false);
       case "unary":
-        return this.unary(expression, expected, context);
+        return analyzeScalarUnary(
+          this,
+          expression,
+          expected,
+          context,
+          (name, active, target) => this.name(name, active, target),
+          (number) => this.number(number, null),
+        );
       case "binary":
         return analyzeScalarBinary(this, expression, expected, context);
       case "cast":
@@ -173,11 +178,19 @@ export class ScalarExpressionAnalyzer {
           qualifiedCallName(expression.callee) === "c64.loader.load" &&
           this.host.profileId === "c64-pal-prg-kernal-6581"
         ) {
+          const argument = expression.arguments[0];
+          const declaration =
+            argument?.kind === "name" ? this.host.resolveName(argument.name, context) : null;
+          const residentUnit = declaration !== null && !declaration.binding.loadable;
           this.host.diagnose(
             error(
               "E10275",
-              `Cannot load '${expression.arguments[0] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[0].span)}' into '${expression.arguments[1] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[1].span)}' — the selected resident C64 profile has no load operation`,
+              `Cannot load '${expression.arguments[0] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[0].span)}' into '${expression.arguments[1] === undefined ? "<missing>" : this.host.sourceText(expression.arguments[1].span)}' — ${residentUnit ? "the supplied unit is resident data, not a loadable constant" : "the selected resident C64 profile has no load operation"}`,
               expression.span,
+              null,
+              residentUnit
+                ? [{ span: declaration.nameSpan, message: "Resident data is declared here" }]
+                : [],
             ),
           );
           return { node: null, exact: null };
@@ -281,7 +294,13 @@ export class ScalarExpressionAnalyzer {
       state.binding.storage === "module"
     ) {
       this.host.diagnose(
-        error("E10191", "Compile-time function cannot read runtime storage", expression.span),
+        error(
+          "E10191",
+          "Expression must be compile-time evaluable — compile-time functions cannot read runtime storage",
+          expression.span,
+          null,
+          [{ span: state.nameSpan, message: "Runtime storage is declared here" }],
+        ),
       );
       return { node: null, exact: null };
     }
@@ -341,216 +360,6 @@ export class ScalarExpressionAnalyzer {
         integer: integerFacts(state.binding.type, true),
       }),
       exact: state.known,
-    };
-  }
-  /** Check prefix operations, including contextual negative literal adaptation. */
-  private unary(
-    expression: Extract<Expr, { readonly kind: "unary" }>,
-    expected: SemanticType | null,
-    context: ScalarExpressionContext,
-  ): ScalarExpressionResult {
-    if (expression.operator === "&") {
-      if (expression.operand.kind === "name" && isTrigonometryIntrinsic(expression.operand.name)) {
-        this.host.diagnose(
-          error(
-            "E10043",
-            "Compile-time trigonometry has no target address",
-            expression.operand.span,
-          ),
-        );
-        return { node: null, exact: null };
-      }
-      const functionName =
-        expression.operand.kind === "name"
-          ? this.host.resolveName(expression.operand.name, context)?.binding.storage === "function"
-            ? this.name(expression.operand, context, true)
-            : null
-          : expression.operand.kind === "member"
-            ? resolveDirectCallTarget(expression.operand, context, this.host, (name, nameContext) =>
-                this.name(name, nameContext, true),
-              )
-            : null;
-      if (functionName?.node?.binding !== null && functionName?.node?.binding !== undefined) {
-        if (this.host.isFunction(functionName.node.binding)) {
-          if (this.host.functionMode?.(functionName.node.binding) === "comptime") {
-            this.host.diagnose(
-              error(
-                "E10043",
-                "Compile-time functions have no target address",
-                expression.operand.span,
-              ),
-            );
-            return { node: null, exact: null };
-          }
-          const signature = this.host.signature(functionName.node.binding);
-          if (signature === null) {
-            this.host.defer(expression.span, "Function address requires a complete signature");
-            return { node: null, exact: null };
-          }
-          const functionType =
-            this.host.functionMode?.(functionName.node.binding) === "interrupt"
-              ? Object.freeze({ kind: "interrupt-handler" as const })
-              : Object.freeze({
-                  kind: "function" as const,
-                  parameters: signature.parameters,
-                  returnType: signature.returnType,
-                });
-          return {
-            node: createScalarTypedExpression(expression, functionType, null, {
-              operator: expression.operator,
-              operand: functionName.node,
-            }),
-            exact: null,
-          };
-        }
-      }
-      const operand = this.analyze(expression.operand, null, {
-        ...context,
-        placeContext: true,
-      });
-      if (operand.node === null) return { node: null, exact: null };
-      const named =
-        expression.operand.kind === "name"
-          ? this.host.resolveName(expression.operand.name, context)
-          : null;
-      if (
-        named?.binding.storage === "constant" &&
-        operand.node.type.kind === "scalar" &&
-        !named.binding.materialized
-      ) {
-        this.host.diagnose(
-          error(
-            "E10040",
-            `Cannot take address of constant '${this.host.sourceText(expression.operand.span)}' — an inlined scalar constant has no storage address`,
-            expression.span,
-            null,
-            [{ span: named.nameSpan, message: "Constant declared here" }],
-          ),
-        );
-        return { node: null, exact: null };
-      }
-      if (operand.node.place === null) {
-        this.host.diagnose(
-          error(
-            "E10043",
-            `Address-of requires an addressable storage place or target function — '${this.host.sourceText(expression.operand.span)}' has no target address`,
-            expression.span,
-          ),
-        );
-        return { node: null, exact: null };
-      }
-      return {
-        node: createScalarTypedExpression(expression, SCALAR_TYPES.word, null, {
-          operator: expression.operator,
-          operand: operand.node,
-          addressOrigins: localAddressOrigins(operand.node.place, context.scope),
-          addressPlaces: Object.freeze([operand.node.place]),
-          integer: integerFacts(SCALAR_TYPES.word, true),
-        }),
-        exact: null,
-      };
-    }
-    if (expression.operator === "!") {
-      const operand = this.analyze(expression.operand, null, context);
-      if (operand.node === null) return { node: null, exact: null };
-      if (!isScalarType(operand.node.type) || operand.node.type.name !== "boolean") {
-        this.host.diagnose(
-          error("E10151", "Cannot use an integer as a logical operand", expression.span),
-        );
-        return { node: null, exact: null };
-      }
-      const constant = typeof operand.node.constant === "boolean" ? !operand.node.constant : null;
-      return {
-        node: createScalarTypedExpression(expression, SCALAR_TYPES.boolean, constant, {
-          operator: expression.operator,
-          operand: operand.node,
-        }),
-        exact: constant,
-      };
-    }
-    if (expression.operator === "-" && expression.operand.kind === "number") {
-      const exact = -expression.operand.value;
-      if (expected !== null && isIntegerType(expected) && !fitsInteger(expected, exact)) {
-        this.host.diagnose(error("E10084", integerRangeMessage(expected, exact), expression.span));
-        return { node: null, exact };
-      }
-      const target =
-        expected !== null && isIntegerType(expected) && fitsInteger(expected, exact)
-          ? expected
-          : context.ordinalContext
-            ? SCALAR_TYPES.sword
-            : defaultIntegerType(exact);
-      if (target !== null && integerFacts(target, false)?.signed) {
-        const operand = this.number(expression.operand, null).node;
-        return {
-          node: createScalarTypedExpression(expression, target, exact, {
-            operator: expression.operator,
-            ...(operand === null ? {} : { operand }),
-            integer: integerFacts(target, !context.constantContext),
-          }),
-          exact,
-        };
-      }
-    }
-    let operand = this.analyze(expression.operand, null, context);
-    if (operand.node === null) return { node: null, exact: null };
-    if (isScalarType(operand.node.type) && operand.node.type.name === "void") {
-      this.host.diagnose(
-        error("SEMANTIC_ERROR", "Void expression cannot be used as a value", expression.span),
-      );
-      return { node: null, exact: null };
-    }
-    if (operand.node.type.kind === "enum") {
-      operand = applyExpectedScalar(
-        operand,
-        SCALAR_TYPES.byte,
-        expression.operand,
-        context,
-        this.host,
-      );
-      if (operand.node === null) return { node: null, exact: null };
-    }
-    if (!isIntegerType(operand.node.type)) {
-      this.host.diagnose(
-        error(
-          "E10151",
-          "Cannot use 'boolean' in an arithmetic or bitwise expression",
-          expression.span,
-        ),
-      );
-      return { node: null, exact: null };
-    }
-    const operandFacts = integerFacts(operand.node.type, false)!;
-    if (context.ordinalContext && operandFacts.width === 8) {
-      const promoted = operandFacts.signed ? SCALAR_TYPES.sword : SCALAR_TYPES.word;
-      operand = applyExpectedScalar(operand, promoted, expression.operand, context, this.host);
-      if (operand.node === null) return { node: null, exact: null };
-    }
-    const facts = integerFacts(operand.node.type, !context.constantContext)!;
-    if (expression.operator === "-" && !facts.signed) {
-      this.host.diagnose(
-        error(
-          "E10083",
-          `Cannot negate unsigned type '${semanticTypeName(operand.node.type)}' — use 'sbyte' or 'sword' for signed arithmetic`,
-          expression.span,
-        ),
-      );
-      return { node: null, exact: null };
-    }
-    const operandValue = context.constantContext ? operand.exact : operand.node.constant;
-    const exact =
-      typeof operandValue === "bigint"
-        ? evaluateUnaryInteger(expression.operator, operandValue)
-        : null;
-    const constant =
-      exact === null || context.constantContext ? exact : wrapInteger(exact, operand.node.type);
-    return {
-      node: createScalarTypedExpression(expression, operand.node.type, constant, {
-        operator: expression.operator,
-        operand: operand.node,
-        integer: facts,
-      }),
-      exact,
     };
   }
 }
