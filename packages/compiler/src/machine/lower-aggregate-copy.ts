@@ -17,7 +17,7 @@ import {
   requestStorage,
   storeA,
   type FunctionLoweringState,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Direct packed object or a retained zero-page pointer to its first byte. */
 export interface PackedHome {

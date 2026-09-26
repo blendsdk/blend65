@@ -163,6 +163,7 @@ interface CallEdge {
   readonly callee: BindingId;
   readonly span: SourceSpan;
   readonly targetDisplay?: string;
+  readonly calleeDeclaration?: SourceSpan;
   readonly signature?: FunctionType;
 }
 
@@ -172,6 +173,10 @@ function unresolvedCallDiagnostic(call: CallEdge): ProjectDiagnostic {
     "E10277",
     `Cannot prove a finite source-function target set for call through '${call.targetDisplay ?? "<unknown>"}' of type '${call.signature === undefined ? "<unknown>" : semanticTypeName(call.signature)}' — keep the value within closed-program typed storage`,
     call.span,
+    null,
+    call.calleeDeclaration === undefined
+      ? []
+      : [{ span: call.calleeDeclaration, message: "Function-valued storage is declared here" }],
   );
 }
 
@@ -821,7 +826,7 @@ export function closeWholeProgram(
   const ownership =
     interrupts === undefined
       ? undefined
-      : checkInterruptOwnership(semantic, reachable, indirectTargets);
+      : checkInterruptOwnership(semantic, reachable, indirectTargets, selected.routes);
   if (ownership !== undefined && ownership.diagnostics.length > 0) {
     return Object.freeze({ kind: "error", diagnostics: ownership.diagnostics });
   }

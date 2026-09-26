@@ -17,7 +17,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Make one branch with its actual flag use and selected NMOS cost. */
 function branch(

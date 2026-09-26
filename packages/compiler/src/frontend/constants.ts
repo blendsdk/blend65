@@ -74,8 +74,16 @@ export function createScalarTypedExpression(
 }
 
 /** Build an immutable scalar warning with the shared diagnostic fields. */
-export function scalarWarning(code: string, message: string, span: SourceSpan): ProjectDiagnostic {
-  return Object.freeze({ ...projectDiagnostic(code, message, span), severity: "warning" });
+export function scalarWarning(
+  code: string,
+  message: string,
+  span: SourceSpan,
+  related: ProjectDiagnostic["related"] = [],
+): ProjectDiagnostic {
+  return Object.freeze({
+    ...projectDiagnostic(code, message, span, null, related),
+    severity: "warning",
+  });
 }
 
 /** Resolve an exact primitive spelling without a type assertion. */
@@ -495,7 +503,7 @@ export function applyExpectedScalar(
     host.diagnose(
       conversionError(
         "E10082",
-        `Cannot implicitly narrow '${node.type.name}' to '${expected.name}' — use '${expected.name}(<expr>)'`,
+        `Cannot implicitly narrow '${node.type.name}' to '${expected.name}' — use '${expected.name}(${host.sourceText(expression.span)})'`,
         expression,
       ),
     );

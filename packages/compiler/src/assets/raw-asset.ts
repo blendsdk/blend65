@@ -65,9 +65,7 @@ function validLiteralPath(literalPath: string): boolean {
     return false;
   }
   const components = literalPath.split("/");
-  return components.every(
-    (component) => component.length > 0 && component !== "." && component !== "..",
-  );
+  return components.every((component) => component.length > 0 && component !== "..");
 }
 
 async function observedMetadata(path: string): Promise<BigIntStats | null> {
@@ -313,9 +311,13 @@ export async function resolveRawAsset(
         )
       : prior.result;
   }
-  for (const root of [dirname(source.resolvedPath), ...snapshot.assetPaths]) {
+  const roots = [dirname(source.resolvedPath), ...snapshot.assetPaths];
+  for (const root of roots) {
     const result = await readCandidate(snapshot, root, literalPath, cacheKey, cache);
     if (result !== null) return result;
   }
-  return error("E10130", `File not found: '${escapeDiagnosticText(literalPath)}'`);
+  return error(
+    "E10130",
+    `File not found: '${escapeDiagnosticText(literalPath)}' — searched ${roots.map((root) => `'${escapeDiagnosticText(root)}'`).join(", ")}`,
+  );
 }

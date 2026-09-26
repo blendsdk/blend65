@@ -17,7 +17,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** One member of a packed aggregate in its final byte position. */
 interface MemberWrite {

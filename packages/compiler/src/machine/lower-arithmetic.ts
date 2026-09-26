@@ -14,7 +14,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Lower wrapping add/subtract with explicit carry ownership and low-to-high order. */
 export function lowerArithmetic(

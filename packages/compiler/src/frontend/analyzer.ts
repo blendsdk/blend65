@@ -36,6 +36,7 @@ import { collectDeclarationIndex, prepareModuleBindings } from "./module-binding
 import { checkedPlacement } from "./placement.js";
 import { addProfileBindings } from "./profile-bindings.js";
 import { prepareFunctionParameters } from "./function-parameters.js";
+import { diagnoseUnusedDeclarations, diagnoseDeclarationResources } from "./source-advisories.js";
 import type { FunctionInfo } from "./module-bindings.js";
 import type { FrontendProfile } from "./profile.js";
 import { captureBranchFacts, mergeScalarFacts, snapshotScalarFacts } from "./flow-facts.js";
@@ -76,6 +77,8 @@ import type { EmbeddedValue } from "../assets/asset-types.js";
 
 /** Direct scalar and structured-flow analyzer over an already resolved module graph. */
 class ModuleAnalyzer {
+  /** Source binding references by owning function; the empty owner denotes module/type roots. */
+  private readonly references = new Map<string, Set<string>>();
   /** One active frame per nested loop so jumps credit only their own loop's facts. */
   private readonly loopFactCollectors: {
     readonly baseline: ScalarFactSnapshot;
@@ -111,6 +114,7 @@ class ModuleAnalyzer {
     this.sources = new Map(snapshot.sources.map((source) => [source.sourceId, source]));
     this.declarationByKey = collectDeclarationIndex(graph);
     this.aggregates = new AggregateRegistry(graph, this.declarationByKey, {
+      reference: (binding) => this.recordReference(null, binding),
       diagnose: (diagnostic) => this.diagnostics.push(diagnostic),
       defer: (span, message) => this.addObligation(span, message),
       sourceText: (span) => sourceText(this.sources, span),
@@ -137,7 +141,11 @@ class ModuleAnalyzer {
     this.expressions = new ScalarExpressionAnalyzer(
       {
         profileId: this.profile?.id ?? null,
-        resolveName: (name, context) => resolveScalarName(name, context, this.qualified),
+        resolveName: (name, context) => {
+          const state = resolveScalarName(name, context, this.qualified);
+          if (state !== null) this.recordReference(context.caller, state.binding.id);
+          return state;
+        },
         resolveType: (type, context) => this.resolveType(type, context.module, null, context.scope),
         signature: (binding) =>
           this.functionByKey.get(bindingIdentityKey(binding))?.signature ??
@@ -180,6 +188,12 @@ class ModuleAnalyzer {
       this.analyzeDeclaration(module, declaration);
     }
     this.diagnostics.push(...recursionDiagnostics(this.calls, this.bindings));
+    if (this.errorCount() === 0 && this.obligations.length === 0) {
+      this.diagnostics.push(
+        ...diagnoseUnusedDeclarations(this.stateByKey, this.functionByKey, this.references),
+      );
+      this.diagnostics.push(...diagnoseDeclarationResources(this.stateByKey, this.profile));
+    }
     return assembleModuleAnalysis(
       this.graph,
       this.aggregates,
@@ -254,7 +268,11 @@ class ModuleAnalyzer {
   }
 
   /** Replace a successful compile-time expression with its complete retained value. */
-  private evaluateComptimeExpression(initializer: TypedExpr, type: SemanticType): TypedExpr | null {
+  private evaluateComptimeExpression(
+    initializer: TypedExpr,
+    type: SemanticType,
+    rootName = `${initializer.span.sourceId}:${initializer.span.start}`,
+  ): TypedExpr | null {
     if (type.kind === "array" || type.kind === "struct") {
       let invokesComptime = false;
       visitExpressionBindings(initializer, (binding) => {
@@ -263,7 +281,7 @@ class ModuleAnalyzer {
       });
       if (!invokesComptime) return initializer;
     }
-    const value = this.evaluator.evaluateRoot(initializer, type);
+    const value = this.evaluator.evaluateRoot(initializer, type, rootName);
     if (value === null) return null;
     if (typeof value === "object") {
       return Object.freeze({
@@ -292,6 +310,7 @@ class ModuleAnalyzer {
       { scope, module, sourceId: declaration.span.sourceId, caller: null, constantContext: true },
       this.expressions,
       this.diagnostics,
+      declaration.name,
     );
     const analyzed = analyzeScalarModuleVariable(declaration, module, state, scope, {
       expressions: this.expressions,
@@ -300,7 +319,7 @@ class ModuleAnalyzer {
       errorCount: () => this.errorCount(),
       obligationCount: () => this.obligations.length,
       evaluateConstant: (initializer, type) => {
-        return this.evaluateComptimeExpression(initializer, type);
+        return this.evaluateComptimeExpression(initializer, type, `${module}.${declaration.name}`);
       },
     });
     if (
@@ -355,6 +374,7 @@ class ModuleAnalyzer {
       { scope, module, sourceId: declaration.span.sourceId, caller: null, constantContext: true },
       this.expressions,
       this.diagnostics,
+      declaration.name,
     );
     const parameterBindings = prepareFunctionParameters(declaration, signature, scope, {
       sources: this.sources,
@@ -381,11 +401,11 @@ class ModuleAnalyzer {
         errorDiagnostic(
           "E10102",
           `Not all code paths return a value in function '${declaration.name}'`,
-          declaration.nameSpan,
+          declaration.span,
         ),
       );
     }
-    const statusStack = body === null ? null : checkStatusStack(body);
+    const statusStack = body === null ? null : checkStatusStack(body, declaration.name);
     if (statusStack !== null) this.diagnostics.push(...statusStack.diagnostics);
     if (this.obligations.length !== obligationsBefore) {
       this.retainUnusable("unchecked", state.binding.id, declaration.span);
@@ -602,16 +622,16 @@ class ModuleAnalyzer {
         context,
         this.expressions,
         this.diagnostics,
+        this.functionByKey.get(bindingIdentityKey(caller))!.declaration.nameSpan,
       );
     }
     if (statement.kind === "break" || statement.kind === "continue") {
       if (loopDepth === 0) {
         this.diagnostics.push(
-          errorDiagnostic(
-            "E10063",
-            `'${statement.kind}' can only be used inside a loop body`,
-            statement.span,
-          ),
+          errorDiagnostic("E10063", `'${statement.kind}' can only be used inside a loop body`, {
+            ...statement.span,
+            end: statement.span.start + statement.kind.length,
+          }),
         );
       }
       const frame = this.loopFactCollectors.at(-1);
@@ -637,7 +657,13 @@ class ModuleAnalyzer {
       this.functionByKey.get(bindingIdentityKey(context.caller))?.declaration.mode === "comptime";
     const analyzed = analyzeScalarLocal(declaration, scope, context, {
       evaluateConstant: (initializer, type) =>
-        inComptime ? initializer : this.evaluateComptimeExpression(initializer, type),
+        inComptime
+          ? initializer
+          : this.evaluateComptimeExpression(
+              initializer,
+              type,
+              `${context.module}.${declaration.name}`,
+            ),
       expressions: this.expressions,
       diagnostics: this.diagnostics,
       sources: this.sources,
@@ -750,6 +776,13 @@ class ModuleAnalyzer {
   /** Count current errors so warnings do not poison an otherwise checked declaration. */
   private errorCount(): number {
     return this.diagnostics.filter(({ severity }) => severity === "error").length;
+  }
+  /** Retain a source dependency independently of target execution and storage. */
+  private recordReference(caller: BindingId | null, binding: BindingId): void {
+    const owner = caller === null ? "" : bindingIdentityKey(caller);
+    const targets = this.references.get(owner) ?? new Set<string>();
+    targets.add(bindingIdentityKey(binding));
+    this.references.set(owner, targets);
   }
 }
 

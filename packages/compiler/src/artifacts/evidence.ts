@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { ProjectDiagnostic } from "../project/types.js";
 import { assetsEvidenceValue } from "./assets-evidence-validator.js";
 import { buildEvidenceValue } from "./build-evidence-validator.js";
 import { costsEvidenceValue } from "./costs-evidence-validator.js";
@@ -8,10 +9,10 @@ import type {
   BuildEvidence,
   CostsEvidence,
   DebugEvidence,
-  EvidenceValue,
   MemoryEvidence,
 } from "./evidence-types.js";
-import { canonicalEvidenceJson, isEvidenceRecord } from "./evidence-validation.js";
+import { parseEvidence as parse } from "./evidence-diagnostics.js";
+import { canonicalEvidenceJson } from "./evidence-validation.js";
 import { memoryEvidenceValue } from "./memory-evidence-validator.js";
 
 /** Canonical encoding success or one closed evidence failure category. */
@@ -30,6 +31,8 @@ export type EvidenceValidationResult<T> =
       readonly kind: "error";
       readonly reason: "malformed" | "unsupported-version" | "inconsistent";
       readonly diagnostic: string;
+      /** Canonical source-located failure, preserved by diagnostic-bearing consumers. */
+      readonly record: ProjectDiagnostic;
     };
 
 type EvidenceReason = Extract<EvidenceEncodingResult, { readonly kind: "error" }>["reason"];
@@ -37,22 +40,6 @@ type EvidenceReason = Extract<EvidenceEncodingResult, { readonly kind: "error" }
 /** Return an immutable encoding failure. */
 function encodingFailure(reason: EvidenceReason, diagnostic: string): EvidenceEncodingResult {
   return Object.freeze({ kind: "error", reason, diagnostic });
-}
-
-/** Return an immutable typed validation failure. */
-function validationFailure<T>(
-  reason: EvidenceReason,
-  diagnostic: string,
-): EvidenceValidationResult<T> {
-  return Object.freeze({ kind: "error", reason, diagnostic });
-}
-
-/** Return whether a value is finite JSON with no null, undefined, or fractional number. */
-function jsonValue(value: unknown): value is EvidenceValue {
-  if (typeof value === "string" || typeof value === "boolean") return true;
-  if (typeof value === "number") return Number.isSafeInteger(value);
-  if (Array.isArray(value)) return value.every(jsonValue);
-  return isEvidenceRecord(value) && Object.values(value).every(jsonValue);
 }
 
 /** Encode one already type-guarded evidence record and self-check its canonical bytes. */
@@ -70,43 +57,6 @@ function encode<T>(
     bytes,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   });
-}
-
-/** Parse one canonical sidecar with fixed envelope-error precedence. */
-function parse<T>(
-  name: string,
-  bytes: Uint8Array,
-  validate: (candidate: unknown) => candidate is T,
-): EvidenceValidationResult<T> {
-  let value: unknown;
-  let source: string;
-  try {
-    source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    value = JSON.parse(source);
-  } catch {
-    return validationFailure("malformed", `${name} evidence has an invalid JSON envelope`);
-  }
-  if (
-    !isEvidenceRecord(value) ||
-    value.kind !== `blend65.${name}` ||
-    !Number.isInteger(value.schemaVersion) ||
-    Number(value.schemaVersion) <= 0
-  ) {
-    return validationFailure("malformed", `${name} evidence has an invalid JSON envelope`);
-  }
-  if (value.schemaVersion !== 1) {
-    return validationFailure(
-      "unsupported-version",
-      `${name} evidence uses an unsupported schema version`,
-    );
-  }
-  if (!validate(value) || !jsonValue(value)) {
-    return validationFailure("malformed", `${name} evidence has an invalid version-1 payload`);
-  }
-  if (source !== `${canonicalEvidenceJson(value)}\n`) {
-    return validationFailure("malformed", `${name} evidence is not in canonical byte form`);
-  }
-  return Object.freeze({ kind: "complete", value });
 }
 
 /** Encode canonical build evidence. */

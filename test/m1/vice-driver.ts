@@ -168,7 +168,7 @@ async function requireRegularFile(path: string): Promise<void> {
 function decodedLabels(text: string): ReadonlyMap<string, number> {
   const labels = new Map<string, number>();
   for (const line of text.split("\n")) {
-    const match = /^\s*b65_([0-9a-f]+)\s*=\s*\$([0-9a-f]+)/iu.exec(line);
+    const match = /^\s*b65_[A-Za-z0-9_]+_([0-9a-f]+)\s*=\s*\$([0-9a-f]+)/iu.exec(line);
     if (match === null) continue;
     const decoded = Buffer.from(match[1]!, "hex").toString("utf8");
     const address = Number.parseInt(match[2]!, 16);

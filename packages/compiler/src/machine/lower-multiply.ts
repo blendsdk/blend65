@@ -16,7 +16,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** One width-specific shift/add helper shared by all multiply sites in one function. */
 export interface MultiplyHelper {

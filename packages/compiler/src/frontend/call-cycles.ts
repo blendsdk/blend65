@@ -110,6 +110,8 @@ function emitCycle(
         "E10180",
         `Direct recursion — function '${displayName(first)}' calls itself; use iteration or an explicit fixed-capacity work structure`,
         edges[0].span,
+        null,
+        [{ span: edges[0].span, message: "Recursive call is here" }],
       ),
     );
     return;

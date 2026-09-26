@@ -10,13 +10,22 @@ interface StatusFlow {
 }
 
 /** Prove that source PHP/PLP only consume saves made in the current function. */
-export function checkStatusStack(body: TypedBlock): {
+export function checkStatusStack(
+  body: TypedBlock,
+  functionName: string,
+): {
   readonly diagnostics: readonly ProjectDiagnostic[];
   readonly peak: number;
 } {
   const diagnostics: ProjectDiagnostic[] = [];
   const report = (span: SourceSpan, message: string): void => {
-    diagnostics.push(projectDiagnostic("E10248", message, span));
+    diagnostics.push(
+      projectDiagnostic(
+        "E10248",
+        `Status-save operations in '${functionName}' do not preserve the function-entry stack state on every path — ${message}`,
+        span,
+      ),
+    );
   };
   const join = (left: number | null, right: number | null, span: SourceSpan): number | null => {
     if (left !== null && right !== null && left !== right) {
@@ -137,7 +146,10 @@ export function checkStatusStack(body: TypedBlock): {
         if (name === "asm_php") normal = current + 1;
         if (name === "asm_plp") {
           if (current === 0)
-            report(statement.span, "asm_plp() has no function-local status save to restore");
+            report(
+              statement.expression.span,
+              "asm_plp() has no function-local status save to restore",
+            );
           else normal = current - 1;
         }
       } else if (statement.kind === "return") {

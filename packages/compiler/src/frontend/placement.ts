@@ -10,16 +10,29 @@ export function checkedPlacement(
   context: ScalarExpressionContext,
   expressions: ScalarExpressionAnalyzer,
   diagnostics: ProjectDiagnostic[],
+  owner: string,
 ): PlacementConstraints | null {
-  return clause === null
-    ? null
-    : resolvePlacement(
-        clause,
-        context,
-        (expression, active) =>
-          expressions.analyze(expression, null, active).node?.constant ?? null,
-        (diagnostic) => diagnostics.push(diagnostic),
-      );
+  const placement =
+    clause === null
+      ? null
+      : resolvePlacement(
+          clause,
+          context,
+          (expression, active) =>
+            expressions.analyze(expression, null, active).node?.constant ?? null,
+          (diagnostic) => diagnostics.push(diagnostic),
+        );
+  if (placement?.at != null && placement.at % placement.align !== 0 && clause !== null) {
+    diagnostics.push(
+      projectDiagnostic(
+        "E10273",
+        `Cannot place '${owner}' — fixed-address constraints conflict with alignment ${placement.align}; change or remove the explicit constraint`,
+        clause.span,
+      ),
+    );
+    return null;
+  }
+  return placement;
 }
 
 /** Resolve a closed source placement modifier without assigning a machine address. */

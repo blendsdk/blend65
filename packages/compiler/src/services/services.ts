@@ -6,22 +6,20 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { analyzeProjectWithAssets } from "../frontend/service.js";
 import { layoutC64Program } from "../layout/c64-layout.js";
 import { bindMachineProgram } from "../machine/bind.js";
-import { lowerMachineProgram, typeBytes } from "../machine/lower.js";
+import { lowerMachineProgram } from "../machine/lower.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
 import { loadProjectWithControls } from "../project/snapshot.js";
-import type { ProjectDiagnostic, ProjectSnapshot } from "../project/types.js";
+import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
 import { identifyPublicationRoot, publicationRootMatches } from "../publication/lock.js";
 import { releaseGenerationPin } from "../publication/pins.js";
 import { publishGeneration } from "../publication/publication.js";
 import type { GenerationPin, PublishedGeneration } from "../publication/publication.js";
 import { buildSemanticProgram } from "../semantic/lower.js";
 import { closeWholeProgram } from "../semantic/whole-program.js";
-import type { WholeProgram } from "../semantic/whole-program.js";
 import { allocateStorage } from "../storage/allocate.js";
 import { closeStorage } from "../storage/closure.js";
 import { buildInterference } from "../storage/interference.js";
 import { inventoryStorage } from "../storage/inventory.js";
-import type { StorageProfile, StorageRange } from "../storage/storage-types.js";
 import { selectTargetProfile } from "../target/profile.js";
 import type { TargetProfile } from "../target/profile.js";
 import { runAcme } from "../tools/acme.js";
@@ -39,8 +37,17 @@ import type {
   ServiceMeasurements,
 } from "./types.js";
 import { findVice, launchVice, probeVice } from "./vice.js";
+import { reserveZeroPageGlobals } from "./zero-page-globals.js";
+import {
+  embeddedPayloadOverflow,
+  layoutResourceWarnings,
+  resourceSourceSpans,
+  sourceZeroPageOverflow,
+  storageResourceWarnings,
+} from "./resource-diagnostics.js";
 
 interface CheckedPipeline {
+  readonly resourceSpans: ReadonlyMap<string, SourceSpan>;
   readonly snapshot: ProjectSnapshot;
   readonly profile: TargetProfile;
   readonly program: ReturnType<typeof closeWholeProgram> extends infer Result
@@ -75,82 +82,6 @@ interface OwnedDirectoryIdentity {
 /** Return one safe service diagnostic without leaking native errors or absolute paths. */
 function serviceDiagnostic(code: string, message: string): ProjectDiagnostic {
   return projectDiagnostic(code, message, null);
-}
-
-/**
- * Place source-owned zero-page bytes before function scratch can claim the same addresses.
- * Fixed addresses take priority; remaining declarations take the first available source window.
- * The reduced profile is used only by SFA, while final layout still sees the full C64 window.
- */
-function reserveZeroPageGlobals(
-  program: WholeProgram,
-  profile: StorageProfile,
-): { readonly program: WholeProgram; readonly storage: StorageProfile } | null {
-  const globals = program.semantic.globals.filter(({ zeropage }) => zeropage);
-  const fixed = globals.filter(({ placement }) => placement?.at != null);
-  const automatic = globals.filter(({ placement }) => placement?.at == null);
-  const occupied: StorageRange[] = [];
-  const addresses = new Map<string, number>();
-  for (const global of [...fixed, ...automatic]) {
-    const bytes = typeBytes(global.type);
-    const placement = global.placement;
-    const valid = (start: number): boolean => {
-      const end = start + bytes - 1;
-      return (
-        bytes > 0 &&
-        start % (placement?.align ?? 1) === 0 &&
-        (placement?.noCross == null ||
-          Math.floor(start / placement.noCross) === Math.floor(end / placement.noCross)) &&
-        profile.zeroPage.some((range) => start >= range.start && end <= range.end) &&
-        !occupied.some((range) => start <= range.end && range.start <= end)
-      );
-    };
-    const start =
-      placement?.at != null
-        ? placement.at
-        : profile.zeroPage
-            .flatMap((range) =>
-              Array.from(
-                { length: range.end - range.start + 1 },
-                (_, index) => range.start + index,
-              ),
-            )
-            .find(valid);
-    if (start === undefined || !valid(start)) return null;
-    occupied.push(Object.freeze({ start, end: start + bytes - 1 }));
-    addresses.set(bindingIdentityKey(global.id), start);
-  }
-  const allocatedGlobals = program.semantic.globals.map((global) => {
-    if (!global.zeropage) return global;
-    const at = addresses.get(bindingIdentityKey(global.id))!;
-    return Object.freeze({
-      ...global,
-      placement: Object.freeze({
-        at,
-        align: global.placement?.align ?? 1,
-        noCross: global.placement?.noCross ?? null,
-        region: null,
-      }),
-    });
-  });
-  const zeroPage = profile.zeroPage.flatMap((range) => {
-    const available: StorageRange[] = [];
-    let start = range.start;
-    for (const used of [...occupied].sort((left, right) => left.start - right.start)) {
-      if (used.end < range.start || used.start > range.end) continue;
-      if (start < used.start) available.push(Object.freeze({ start, end: used.start - 1 }));
-      start = Math.max(start, used.end + 1);
-    }
-    if (start <= range.end) available.push(Object.freeze({ start, end: range.end }));
-    return available;
-  });
-  return Object.freeze({
-    program: Object.freeze({
-      ...program,
-      semantic: Object.freeze({ ...program.semantic, globals: Object.freeze(allocatedGlobals) }),
-    }),
-    storage: Object.freeze({ ...profile, zeroPage: Object.freeze(zeroPage) }),
-  });
 }
 
 /** Return one expected service failure as immutable data. */
@@ -260,6 +191,10 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
   if (closed.kind === "error") {
     return { kind: "failure", failure: failure("compiler", closed.diagnostics) };
   }
+  const resourceSpans = resourceSourceSpans(analyzed.program);
+  const zeroPageOverflow = sourceZeroPageOverflow(closed.program, selected.profile, resourceSpans);
+  if (zeroPageOverflow !== null)
+    return { kind: "failure", failure: failure("source", [zeroPageOverflow]) };
   const reserved = reserveZeroPageGlobals(closed.program, selected.profile.storage);
   if (reserved === null) {
     return {
@@ -279,6 +214,12 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
     return { kind: "failure", failure: incompleteStage("static storage allocation") };
   }
   const lowered = lowerMachineProgram({
+    bindingNames: new Map(
+      analyzed.program.bindings.map((binding) => [
+        bindingIdentityKey(binding.id),
+        binding.qualifiedName ?? binding.name,
+      ]),
+    ),
     program: reserved.program,
     placement: provisional.placement,
     profile: allocationProfile,
@@ -303,9 +244,11 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
       return {
         kind: "failure",
         failure: failure("source", [
-          serviceDiagnostic(
+          projectDiagnostic(
             "E10238",
-            `Hardware stack needs ${certificate.measured} bytes on ${certificate.route?.join(" → ") ?? "the selected route"}, but only ${certificate.available} bytes are available after the platform reserve`,
+            `Target resource budget exceeded for 'hardware stack' — used ${certificate.measured}, available ${certificate.available} on '${selected.profile.id}'`,
+            resourceSpans.get(bindingIdentityKey(closed.program.semantic.main)) ??
+              closed.program.semantic.main.span,
           ),
         ]),
       };
@@ -320,6 +263,7 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
     kind: "complete",
     value: Object.freeze({
       snapshot: selectedSnapshot,
+      resourceSpans,
       profile: selected.profile,
       program: reserved.program,
       certificate,
@@ -329,6 +273,12 @@ async function checkPipeline(options: BuildOptions): Promise<PipelineResult> {
         ...analyzed.diagnostics,
         ...(reserved.program.diagnostics ?? []),
         ...lowered.diagnostics,
+        ...storageResourceWarnings(
+          reserved.program,
+          selected.profile,
+          certificate.certificate,
+          resourceSpans,
+        ),
       ]),
     }),
   });
@@ -381,8 +331,11 @@ async function removeOwnedDirectory(
 async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<PreparedBuildResult> {
   const checked = await checkPipeline(options);
   if (checked.kind === "failure") return checked;
-  const { snapshot, profile, program, certificate, machine, diagnostics } = checked.value;
+  const { snapshot, profile, program, certificate, machine, resourceSpans } = checked.value;
   if (isCancelled(options.signal)) return { kind: "failure", failure: cancelled() };
+  const payloadOverflow = embeddedPayloadOverflow(machine.program, profile, resourceSpans);
+  if (payloadOverflow !== null)
+    return { kind: "failure", failure: failure("source", [payloadOverflow]) };
   const layout = layoutC64Program({
     program: machine.program,
     certificate: certificate.certificate,
@@ -399,6 +352,10 @@ async function buildFresh(options: BuildOptions, pinForRun: boolean): Promise<Pr
       ]),
     };
   }
+  const diagnostics = [
+    ...checked.value.diagnostics,
+    ...layoutResourceWarnings(layout, program, profile, resourceSpans),
+  ];
   const serialization = serializeAcme({
     layout,
     certificate: certificate.certificate,

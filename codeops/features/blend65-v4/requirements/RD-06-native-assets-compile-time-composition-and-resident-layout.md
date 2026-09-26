@@ -792,3 +792,21 @@ and Q-P15 proof. (AR-014, AR-034, AR-038)
 37. [ ] **AC-37 — Deferral-expiry closeout:** The closeout answers whether RD-06 invalidated any
     deferral rationale, reassigns every due item, and leaves no deferred item naming closed RD-06
     work as its future owner.
+
+### Retained native-parser diagnostic fixture
+
+RD-04 AR-P26 (approved 2026-09-26) assigns this pending E10204 producer proof to RD-06's
+existing native-parser qualification, not to raw embedding or an interim header checker.
+Preserve it when authoring the native handler's specification tests:
+
+- Asset `assets/bad.spd` contains exactly three bytes: `01 02 03`.
+- Source `src/game.blend` is exactly
+  `module Game; const DATA: byte[] = embed("bad.spd"); function main(): void {}`.
+- The project selects `c64-pal-prg-kernal-6581`, with `assetPaths: ["assets"]`.
+- Public overlay/project analysis rejects the input with exactly one error, E10204. Its message
+  matches `^Cannot parse 'bad\.spd' as '[^']+' — .*(?:signature|header|magic|version|truncated|short).*$`
+  (case-insensitive). The detail must describe the parser's actual structural failure.
+- `primarySpan` is the exact UTF-8 byte span of `embed("bad.spd")` in `src/game.blend`;
+  `severity` is `error`, `pointer` is null, and `related` is empty. No selected asset is emitted.
+- This synthetic negative input is not authentic SpritePad producer qualification. RD-04 retains
+  its honest unavailable-handler/no-raw-fallback checks until the real native handler is ready.

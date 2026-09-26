@@ -45,7 +45,9 @@ describe("IRQ handler vector updates", () => {
         expect.arrayContaining([
           expect.objectContaining({
             code: "E10245",
-            message: expect.stringContaining("during interrupt execution"),
+            message: expect.stringContaining(
+              "can overlap or consume hardware stack without a static bound",
+            ),
           }),
         ]),
       );

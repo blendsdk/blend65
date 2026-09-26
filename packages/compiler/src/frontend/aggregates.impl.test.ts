@@ -99,7 +99,13 @@ describe("aggregate implementation edges", () => {
     const result = analyze(
       "module Game; struct Item { bytes: byte[2]; value: byte; } function main(): void { let item: Item = { bytes: [1, 2], value: 3 }; let address: word = &item.bytes[1]; }",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'address' is declared but never used",
+      },
+    ]);
     const body = typedDeclaration(result, "Game.main").body;
     const address = body?.statements[1];
     expect(address?.kind).toBe("variable");
@@ -124,7 +130,7 @@ describe("aggregate implementation edges", () => {
       ].join("\n"),
     );
 
-    expect(diagnosticCodes(result)).toEqual(["E10080"]);
+    expect(diagnosticCodes(result)).toEqual(["E10172"]);
     expect(result.calls).toEqual([]);
   });
 
@@ -155,7 +161,13 @@ describe("aggregate implementation edges", () => {
     );
     const body = typedDeclaration(result, "Game.f").body;
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(body).toMatchObject({
       statements: [
         {},
@@ -192,7 +204,8 @@ describe("aggregate implementation edges", () => {
 
     expect(codes.filter((code) => code === "W10141")).toHaveLength(2);
     expect(codes.filter((code) => code === "W10190")).toHaveLength(1);
-    expect(codes).toHaveLength(3);
+    expect(codes.filter((code) => code === "W10181")).toHaveLength(1);
+    expect(codes).toHaveLength(4);
   });
 
   it("should preserve only initialization facts that hold before a loop can execute", () => {
@@ -241,7 +254,13 @@ describe("aggregate implementation edges", () => {
       ].join("\n"),
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'second' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.first").type).toMatchObject({ length: 3 });
     expect(typedDeclaration(result, "Game.second").type).toMatchObject({ length: 5 });
   });
@@ -277,7 +296,28 @@ describe("aggregate implementation edges", () => {
       ].join("\n"),
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'make' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'consume' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'values' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'second' is declared but never used",
+      },
+    ]);
     expect(result.complete).toBe(true);
     expect(result.obligations).toEqual([]);
     expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toEqual([]);
@@ -338,7 +378,18 @@ describe("aggregate implementation edges", () => {
     const local = analyze(
       "module Game; function f(): void { const N: word = 4; let values: byte[N] = [0; 0]; } function main(): void {}",
     );
-    expect(local.diagnostics).toEqual([]);
+    expect(local.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'values' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(local, "Game.f").body).toMatchObject({
       statements: [{}, { type: { kind: "array", length: 4 } }],
     });
@@ -397,7 +448,11 @@ describe("aggregate implementation edges", () => {
       ].join("\n"),
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      { code: "W10191", severity: "warning", message: "Variable 'a' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'c' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'd' is declared but never used" },
+    ]);
     expect(
       ["a", "c", "d"].map((name) => typedDeclaration(result, `Game.${name}`).initializer?.constant),
     ).toEqual([0n, 255n, 254n]);

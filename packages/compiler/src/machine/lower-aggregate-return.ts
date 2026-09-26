@@ -17,7 +17,7 @@ import {
   requestStorage,
   storeA,
   type FunctionLoweringState,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Find the closed two-byte destination home of a fixed-aggregate result. */
 function resultPointer(

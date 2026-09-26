@@ -357,6 +357,7 @@ export function inventoryStorage(program: WholeProgram): StorageInventory {
             continue;
           }
           const root = operation.place.root;
+          if (operation.place.asset !== undefined) continue;
           const key = bindingIdentityKey(root);
           if (globalKeys.has(key) || parameterKeys.has(key)) continue;
           locals.set(key, { id: root, type: operation.place.rootType ?? operation.type });

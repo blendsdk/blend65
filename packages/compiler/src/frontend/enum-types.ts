@@ -1,4 +1,5 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
+import type { SourceSpan } from "../project/types.js";
 import { bindingIdentityKey } from "./semantic-types.js";
 import type {
   AggregateRegistryHost,
@@ -144,7 +145,7 @@ export class EnumTable {
   private checkMembers(module: string, declaration: EnumDeclaration): void {
     const type = this.byName.get(`${module}.${declaration.name}`);
     if (type === undefined) return;
-    const seen = new Set<string>();
+    const seen = new Map<string, SourceSpan>();
     for (const [index, member] of declaration.members.entries()) {
       if (seen.has(member.name)) {
         this.host.diagnose(
@@ -152,11 +153,13 @@ export class EnumTable {
             "E10232",
             `Duplicate enum member '${member.name}' in enum '${declaration.name}'`,
             member.nameSpan,
+            null,
+            [{ span: seen.get(member.name)!, message: "First member declaration" }],
           ),
         );
         continue;
       }
-      seen.add(member.name);
+      seen.set(member.name, member.nameSpan);
       this.evaluateMember(type, index);
     }
   }
@@ -234,10 +237,13 @@ export function applyExpectedEnum(
   const node = result.node;
   if (node === null) return result;
   if (semanticTypesEqual(node.type, expected)) return result;
+  const source = host.sourceText(expression.span);
+  const operand =
+    node.type.kind === "scalar" && node.type.name === "byte" ? source : `byte(${source})`;
   host.diagnose(
     projectDiagnostic(
       "E10235",
-      `Cannot assign '${semanticTypeName(node.type)}' to enum '${expected.name}' — use '${expected.name}(<expr>)'`,
+      `Cannot assign '${semanticTypeName(node.type)}' to enum '${expected.name}' — use '${expected.name}(${operand})'`,
       expression.span,
     ),
   );

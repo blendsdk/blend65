@@ -81,7 +81,7 @@ describe.sequential("aggregate review regressions", () => {
       );
       if (result.kind !== "success") throw new Error("Nested aggregate build failed");
       const labels = await readFile(join(result.generation.directory, ".labels"), "utf8");
-      const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+      const returnLabel = `b65_[A-Za-z0-9_]+_${Buffer.from("startup.restore").toString("hex")}`;
       const returnMatch = labels.match(
         new RegExp(`^\\s*${returnLabel}\\s*=\\s*\\$([0-9a-f]+)`, "imu"),
       );

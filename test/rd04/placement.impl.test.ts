@@ -137,8 +137,8 @@ describe("source function placement", () => {
       if (result.kind !== "success") throw new Error("Expected a zero-page build");
       const assembly = await readFile(join(result.generation.directory, ".asm"), "utf8");
       const memory = await readFile(join(result.generation.directory, ".memory.json"), "utf8");
-      expect(assembly).toMatch(/sta\+1\s+b65_[0-9a-f]+/iu);
-      expect(assembly).toMatch(/lda\+1\s+b65_[0-9a-f]+/iu);
+      expect(assembly).toMatch(/sta\+1\s+b65_[A-Za-z0-9_]+_[0-9a-f]+/iu);
+      expect(assembly).toMatch(/lda\+1\s+b65_[A-Za-z0-9_]+_[0-9a-f]+/iu);
       expect(memory).toContain('"start":2');
       expect(memory).not.toContain('"start":2,"end":3,"kind":"sfa"');
     } finally {

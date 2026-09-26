@@ -87,6 +87,26 @@ Existing schema versions remain fixed. RD-04 populates their currently missing r
 
 No dashboard or new evidence product is added (AR-P6).
 
+### Canonical Artifact Failures (AR-P24)
+
+Keep the five existing `validate*Evidence(bytes: Uint8Array)` functions and their success values.
+Their error union retains `kind: "error"`, its existing closed `reason`, and the safe legacy
+`diagnostic: string`; add the already-owned `record: ProjectDiagnostic`. No package export,
+command, sidecar schema, validator framework or second parsing API is added.
+
+The record uses the known sidecar filename (`.build.json`, `.assets.json`, `.memory.json`,
+`.costs.json` or `.debug.json`) as its input identity. E10267 owns malformed JSON/duplicate keys,
+non-object roots, wrong/missing kind, invalid version fields and invalid supported-version
+payloads. Its message names the input for envelope failures or the JSON pointer for field
+failures, with the failed invariant. E10268 applies only after the envelope has the correct
+kind and a positive integer version other than 1; do not inspect that unknown payload.
+
+Primary byte spans identify the offending input/field when trustworthy. `pointer` is the JSON
+pointer for a field failure and null for an envelope failure; related locations are required
+when another site proves the error, such as a duplicate key. Help stays optional and must name
+a concrete action. Existing service consumers preserve this record instead of replacing its
+canonical code/message with an implementation-only diagnostic. File formats remain frozen.
+
 ## Integration Points
 
 | Producer | Consumer | Contract | AR Ref |

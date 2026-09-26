@@ -293,16 +293,41 @@ describe("interrupt source and sink types", () => {
 describe("source placement and packaged values", () => {
   // Placement is a closed source modifier, but every emitted owner may opt into it.
   it.each([
-    ["module variable", "place(align: 2) let data: word;"],
-    ["materialized scalar constant", "place(align: 2) const DATA: word = $1234;"],
-    ["ordinary function", "place(align: 2) function placed(): void {}"],
-    ["interrupt function", "place(align: 2) interrupt function irq(): void {}"],
-    ["zero-page member", "zeropage { place(at: $20) data: byte; }"],
-  ])("should accept place on a $%s", (_owner, declaration) => {
+    [
+      "module variable",
+      "place(align: 2) let data: word;",
+      "W10191",
+      "Variable 'data' is declared but never used",
+    ],
+    [
+      "materialized scalar constant",
+      "place(align: 2) const DATA: word = $1234;",
+      "W10191",
+      "Variable 'DATA' is declared but never used",
+    ],
+    [
+      "ordinary function",
+      "place(align: 2) function placed(): void {}",
+      "W10181",
+      "Function 'placed' is never called and not exported",
+    ],
+    [
+      "interrupt function",
+      "place(align: 2) interrupt function irq(): void {}",
+      "W10181",
+      "Function 'irq' is never called and not exported",
+    ],
+    [
+      "zero-page member",
+      "zeropage { place(at: $20) data: byte; }",
+      "W10191",
+      "Variable 'data' is declared but never used",
+    ],
+  ])("should accept place on a $%s", (_owner, declaration, code, message) => {
     const result = analyzeProject(snapshot(`module Game; ${declaration} function main(): void {}`));
 
     expect(result.kind).toBe("complete");
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([{ code, severity: "warning", message }]);
   });
 
   // Invalid clauses cannot quietly change ownership or relax a hardware constraint.
@@ -326,13 +351,35 @@ describe("source placement and packaged values", () => {
     [
       "module scope with compile-time metadata",
       "loadable const DATA: byte[2] = [1, 2]; const COUNT: word = length(DATA);",
+      [
+        {
+          code: "W10191",
+          severity: "warning",
+          message: "Variable 'COUNT' is declared but never used",
+        },
+      ],
     ],
-    ["local scope", "function local(): void { loadable const DATA: byte[2] = [1, 2]; }"],
-  ])("should declare a loadable constant at $%s", (_scope, declaration) => {
+    [
+      "local scope",
+      "function local(): void { loadable const DATA: byte[2] = [1, 2]; }",
+      [
+        {
+          code: "W10181",
+          severity: "warning",
+          message: "Function 'local' is never called and not exported",
+        },
+        {
+          code: "W10191",
+          severity: "warning",
+          message: "Variable 'DATA' is declared but never used",
+        },
+      ],
+    ],
+  ])("should declare a loadable constant at $%s", (_scope, declaration, warnings) => {
     const result = analyzeProject(snapshot(`module Game; ${declaration} function main(): void {}`));
 
     expect(result.kind).toBe("complete");
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject(warnings);
   });
 
   it.each([

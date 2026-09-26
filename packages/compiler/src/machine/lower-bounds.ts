@@ -8,7 +8,7 @@ import {
   type LoweredValue,
 } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction, MachineTerminator } from "./machine-types.js";
-import { loadA, loweringFailure, type FunctionLoweringState } from "./lower.js";
+import { loadA, loweringFailure, type FunctionLoweringState } from "./lower-state.js";
 
 /** One dynamic ordinal and the extent of the array selected at that path step. */
 interface BoundsIndex {

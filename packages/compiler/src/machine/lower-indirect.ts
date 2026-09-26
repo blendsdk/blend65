@@ -14,7 +14,7 @@ import {
   retainMachineValue,
   typeBytes,
   type FunctionLoweringState,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Lower one proved candidate with its own certified static parameter homes. */
 function directArm(

@@ -1,4 +1,4 @@
-import type { ArrayType } from "../frontend/semantic-types.js";
+import type { ArrayType, PlacementConstraints } from "../frontend/semantic-types.js";
 
 /** One immutable compiler-owned identity for a validated resident asset. */
 export interface SemanticAsset {
@@ -10,6 +10,8 @@ export interface SemanticAsset {
   readonly sha256: string;
   /** Immutable raw bytes in source order. */
   readonly bytes: readonly number[];
+  /** Combined source constraints on the single resident object, not a function-storage request. */
+  readonly placement?: PlacementConstraints;
 }
 
 /** Typed compile-time value produced by the bounded raw-asset resolver. */

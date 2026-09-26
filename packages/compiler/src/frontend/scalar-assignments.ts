@@ -90,17 +90,34 @@ export function analyzeScalarAssignment(
     return { node: null, exact: null };
   }
   if (target.node.place.readonly) {
+    const origin = stateForPlace(target.node.place, context.scope);
     const parameterRoot =
       target.node.place.path.length === 0 && target.node.place.readonlyOrigin === "parameter";
     host.diagnose(
       projectDiagnostic(
         parameterRoot || target.node.place.path.length > 0 ? "E10123" : "E10192",
         parameterRoot || target.node.place.path.length > 0
-          ? "Cannot mutate through a const aggregate parameter or binding"
+          ? `Cannot modify through read-only origin '${origin?.binding.name ?? target.node.name ?? "value"}'`
           : target.node.place.path.length === 0
             ? `Cannot assign to const '${target.node.name ?? "value"}'`
             : "Cannot mutate through a const aggregate parameter or binding",
         expression.target.span,
+        null,
+        parameterRoot || target.node.place.path.length > 0
+          ? [
+              {
+                span: origin?.nameSpan ?? target.node.place.binding.span,
+                message: "Read-only origin declared here",
+              },
+            ]
+          : [
+              {
+                span:
+                  stateForPlace(target.node.place, context.scope)?.nameSpan ??
+                  target.node.place.binding.span,
+                message: "Const declared here",
+              },
+            ],
       ),
     );
     return { node: null, exact: null };
@@ -165,7 +182,7 @@ export function analyzeScalarAssignment(
         scalarWarning(
           "W10174",
           `Shift amount ${value.node.constant} is at least the ${targetFacts.width}-bit width — '<<' yields 0; signed negative '>>' yields -1, otherwise '>>' yields 0`,
-          expression.span,
+          expression.value.span,
         ),
       );
     }

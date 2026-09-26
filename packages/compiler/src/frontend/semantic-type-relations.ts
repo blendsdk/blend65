@@ -65,7 +65,7 @@ export function functionSignatureDifference(actual: FunctionType, expected: Func
 export function semanticTypeName(type: SemanticType): string {
   if (type.kind === "scalar") return type.name;
   if (type.kind === "enum") return type.name;
-  if (type.kind === "struct") return "struct";
+  if (type.kind === "struct") return type.name ?? "struct";
   if (type.kind === "function") {
     const params = type.parameters.map(
       ({ type: parameter, readonly, outerUnsized }) =>

@@ -13,7 +13,7 @@ import {
   requestStorage,
   storeA,
   type FunctionLoweringState,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** One dynamic packed offset selected while walking an aggregate place. */
 export interface AggregateIndexTerm {

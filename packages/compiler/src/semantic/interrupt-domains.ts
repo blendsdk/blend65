@@ -2,7 +2,7 @@ import { semanticTypeSize } from "../frontend/semantic-type-relations.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, EffectSummary } from "../frontend/semantic-types.js";
 import { projectDiagnostic } from "../project/diagnostics.js";
-import type { ProjectDiagnostic } from "../project/types.js";
+import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { SemanticProgram } from "./operations.js";
 import type { CallGraphNode, ProgramRoot } from "./whole-program.js";
 
@@ -38,6 +38,31 @@ function accessFor(summary: EffectSummary, binding: BindingId): Access {
     read: summary.reads.some((place) => bindingIdentityKey(place.binding) === key),
     write: summary.writes.some((place) => bindingIdentityKey(place.binding) === key),
   };
+}
+
+/** Prefer the complete write operation over its component read when showing an update. */
+function accessSite(
+  program: SemanticProgram,
+  domains: ReadonlyMap<string, ReadonlySet<ExecutionDomain>>,
+  binding: BindingId,
+  domain: ExecutionDomain,
+): SourceSpan | null {
+  let read: SourceSpan | null = null;
+  for (const fn of program.functions) {
+    if (!domains.get(bindingIdentityKey(fn.id))?.has(domain)) continue;
+    for (const block of fn.blocks) {
+      for (const operation of block.operations) {
+        if (
+          (operation.kind !== "load" && operation.kind !== "store") ||
+          bindingIdentityKey(operation.place.root) !== bindingIdentityKey(binding)
+        )
+          continue;
+        if (operation.kind === "store") return operation.span;
+        read ??= operation.span;
+      }
+    }
+  }
+  return read;
 }
 
 /** Propagate entry domains through the already closed call graph. */
@@ -96,13 +121,18 @@ export function analyzeInterruptDomains(
     for (const interrupt of ["irq", "nmi"] as const) {
       const other = byDomain.get(interrupt);
       if (other === undefined) continue;
+      const primary = accessSite(program, domains, global.id, "main") ?? global.source;
+      const conflicting = accessSite(program, domains, global.id, interrupt) ?? global.source;
+      const related = [{ span: conflicting, message: `Conflicting ${interrupt} access` }];
       if ((main.read && main.write && other.write) || (other.read && other.write && main.write)) {
         diagnostics.push(
           Object.freeze({
             ...projectDiagnostic(
               "W10211",
-              `Shared global can lose a read-modify-write update across mainline and ${interrupt.toUpperCase()}`,
-              global.source,
+              `Shared '${global.name ?? "<unknown>"}' has an unprotected cross-domain read-modify-write that can lose an update`,
+              primary,
+              null,
+              related,
             ),
             severity: "warning" as const,
           }),
@@ -118,8 +148,10 @@ export function analyzeInterruptDomains(
           Object.freeze({
             ...projectDiagnostic(
               "W10212",
-              `Multi-byte shared global can tear across mainline and ${interrupt.toUpperCase()}`,
-              global.source,
+              `Shared multi-byte '${global.name ?? "<unknown>"}' can tear across 'mainline' and '${interrupt}' access`,
+              primary,
+              null,
+              related,
             ),
             severity: "warning" as const,
           }),

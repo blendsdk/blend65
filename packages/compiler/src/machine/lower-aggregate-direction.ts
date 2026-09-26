@@ -7,7 +7,7 @@ import type {
   MachineOperand,
   MachineTerminator,
 } from "./machine-types.js";
-import { loweringFailure, type FunctionLoweringState } from "./lower.js";
+import { loweringFailure, type FunctionLoweringState } from "./lower-state.js";
 
 /** Copy potentially overlapping borrowed objects in the safe address direction. */
 export function lowerDirectionalCopyLoops(

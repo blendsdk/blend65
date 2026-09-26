@@ -133,7 +133,13 @@ describe("address-of expressions", () => {
     const analysis = await analyzeProjectWithAssets(project);
 
     expect(analysis.kind).toBe("complete");
-    expect(analysis.diagnostics).toEqual([]);
+    expect(analysis.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'block' is declared but never used",
+      },
+    ]);
     if (analysis.kind !== "complete") throw new Error(`Expected complete, got ${analysis.kind}`);
     expect(analysis.program.assets).toHaveLength(1);
     const asset = analysis.program.assets[0];

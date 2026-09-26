@@ -110,7 +110,18 @@ describe("fixed aggregates and places", () => {
       "c64-pal-prg-kernal-6581",
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'inferred' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'padded' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.inferred").type).toMatchObject({
       kind: "array",
       length: 2,
@@ -142,7 +153,14 @@ describe("fixed aggregates and places", () => {
       "c64-pal-prg-kernal-6581",
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'screen' is declared but never used",
+      },
+      { code: "W10191", severity: "warning", message: "Variable 'pet' is declared but never used" },
+    ]);
     expect(typedDeclaration(result, "Game.screen").initializer?.constant).toBe(1n);
     expect(typedDeclaration(result, "Game.pet").initializer?.constant).toBe(65n);
   });
@@ -177,7 +195,18 @@ describe("fixed aggregates and places", () => {
       ].join("\n"),
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'rows' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'columns' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.grid").type).toMatchObject({
       kind: "array",
       length: 2,
@@ -210,7 +239,14 @@ describe("fixed aggregates and places", () => {
       ].join("\n"),
     );
 
-    expect(diagnosticCodes(result)).toEqual(["W10141"]);
+    expect(diagnosticCodes(result)).toEqual([
+      "W10191",
+      "W10191",
+      "W10191",
+      "W10191",
+      "W10141",
+      "W10191",
+    ]);
     expect(typedDeclaration(result, "Game.size").initializer?.constant).toBe(10n);
     expect(typedDeclaration(result, "Game.position").initializer?.constant).toBe(1n);
     expect(typedDeclaration(result, "Game.colors").initializer?.constant).toBe(5n);
@@ -242,7 +278,13 @@ describe("fixed aggregates and places", () => {
     const result = analyze(text);
     const enemy = binding(result, "Game.Enemy");
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'enemies' is declared but never used",
+      },
+    ]);
     expect(result.types).toContainEqual(
       expect.objectContaining({
         kind: "struct",
@@ -328,7 +370,9 @@ describe("fixed aggregates and places", () => {
   // A zero-length array is a valid zero-size object, but every index is outside its range.
   it("should accept zero extent and reject index zero against it", () => {
     const declaration = analyze("module Game; let a: byte[0] = []; function main(): void {}");
-    expect(declaration.diagnostics).toEqual([]);
+    expect(declaration.diagnostics).toMatchObject([
+      { code: "W10191", severity: "warning", message: "Variable 'a' is declared but never used" },
+    ]);
     expect(typedDeclaration(declaration, "Game.a").type).toMatchObject({
       kind: "array",
       length: 0,
@@ -376,7 +420,13 @@ describe("fixed aggregates and places", () => {
     ].join("\n");
     const valid = analyze(validText);
 
-    expect(valid.diagnostics).toEqual([]);
+    expect(valid.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(typedDeclaration(valid, "Game.f").body).toMatchObject({
       statements: [
         {},
@@ -510,7 +560,13 @@ describe("fixed aggregates and places", () => {
     const valid = analyze(validText);
     const enemy = binding(valid, "Game.Enemy");
 
-    expect(valid.diagnostics).toEqual([]);
+    expect(valid.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'values' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(valid, "Game.inspect").body).toMatchObject({
       statements: [
         {
@@ -663,7 +719,9 @@ describe("fixed aggregates and places", () => {
     expect(codes.filter((code) => code === "W10141")).toHaveLength(2);
     expect(codes.filter((code) => code === "W10140")).toHaveLength(1);
     expect(codes.filter((code) => code === "W10190")).toHaveLength(3);
-    expect(codes).toHaveLength(6);
+    expect(codes.filter((code) => code === "W10181")).toHaveLength(1);
+    expect(codes.filter((code) => code === "W10191")).toHaveLength(1);
+    expect(codes).toHaveLength(8);
     expect(typedDeclaration(result, "Game.f").body).toMatchObject({
       statements: [
         {},

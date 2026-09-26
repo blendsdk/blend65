@@ -2,7 +2,19 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import type { EmbeddedValue } from "../assets/asset-types.js";
 import type { Block, Expr, Statement, TypeSyntax } from "./syntax.js";
 import { bindingIdentityKey } from "./module-graph-types.js";
-import type { AnalysisObligation, Binding, BindingId, ModuleGraph } from "./module-graph-types.js";
+import type { Binding, BindingId } from "./module-graph-types.js";
+import type { CallEdge } from "./semantic-analysis-types.js";
+export type {
+  TypedDeclaration,
+  PlacementConstraints,
+  UnusableDeclaration,
+  AnalyzedDeclaration,
+  CallEdge,
+  ModuleAnalysisResult,
+  EffectPlace,
+  EffectSummary,
+  EffectAnalysisResult,
+} from "./semantic-analysis-types.js";
 export {
   ANALYSIS_OBLIGATION_KIND,
   bindingIdentityKey,
@@ -46,6 +58,8 @@ export interface EnumType {
 export interface StructFieldType {
   /** Exact declared field name. */
   readonly name: string;
+  /** Source declaration name when this field comes from user code. */
+  readonly nameSpan?: SourceSpan;
   /** Resolved field value type. */
   readonly type: SemanticType;
   /** Zero-based byte offset with no inserted padding. */
@@ -56,6 +70,10 @@ export interface StructFieldType {
 export interface StructType {
   /** Type discriminator. */
   readonly kind: "struct";
+  /** Source spelling for diagnostics; synthetic internal types may omit it. */
+  readonly name?: string;
+  /** Source declaration name when this type comes from user code. */
+  readonly nameSpan?: SourceSpan;
   /** Declaration identity which makes this type nominal. */
   readonly binding: BindingId;
   /** Complete packed byte size. */
@@ -183,6 +201,10 @@ export interface Place {
 
 /** One parameter in a resolved direct-call signature. */
 export interface SignatureParameter {
+  /** Declared parameter spelling, when the signature comes from source. */
+  readonly name?: string;
+  /** Proving declaration location for argument mismatch diagnostics. */
+  readonly nameSpan?: SourceSpan;
   /** Value type expected by the callee. */
   readonly type: SemanticType;
   /** The caller also supplies the complete outer element count as one word. */
@@ -283,6 +305,8 @@ export interface TypedExpr {
   readonly callee?: TypedExpr;
   /** Exact source spelling of a call target for later proving diagnostics. */
   readonly calleeDisplay?: string;
+  /** Source declaration token for a call through named storage. */
+  readonly calleeDeclaration?: SourceSpan;
   /** Call arguments in source order. */
   readonly arguments?: readonly TypedExpr[];
   /** Resolved direct-call signature. */
@@ -487,117 +511,6 @@ export interface TypedBlock {
   readonly statements: readonly TypedStatement[];
 }
 
-/** A declaration whose admitted scalar body was checked. */
-export interface TypedDeclaration {
-  /** Accepted declaration discriminator. */
-  readonly kind: "typed";
-  /** Stable declaration identity. */
-  readonly binding: BindingId;
-  /** Resolved declared or return type. */
-  readonly type: SemanticType;
-  /** Converted module initializer, or null. */
-  readonly initializer: TypedExpr | null;
-  /** Typed function body, or null for a module variable. */
-  readonly body: TypedBlock | null;
-  /** Maximum balanced function-local processor-status saves. */
-  readonly statusStackPeak?: number;
-  /** Validated source placement constraints for an emitted object. */
-  readonly placement?: PlacementConstraints | null;
-  /** Packaged constant excluded from the resident image. */
-  readonly loadable?: boolean;
-  /** Mutable source storage was declared inside a zero-page block. */
-  readonly zeropage?: boolean;
-}
-
-/** Closed, source-proved constraints passed unchanged toward final placement. */
-export interface PlacementConstraints {
-  /** Fixed first-byte address, when written. */
-  readonly at: number | null;
-  /** Required power-of-two first-byte alignment. */
-  readonly align: number;
-  /** Required single-window size, when written. */
-  readonly noCross: number | null;
-  /** Selected-profile region identity, when written. */
-  readonly region: string | null;
-}
-
-/** A declaration retained without a usable typed value. */
-export interface UnusableDeclaration {
-  /** Whether source was rejected or awaits a later admitted implementation. */
-  readonly kind: "poison" | "unchecked";
-  /** Stable declaration identity. */
-  readonly binding: BindingId;
-  /** Complete source bytes. */
-  readonly span: SourceSpan;
-}
-
-/** One checked or retained module declaration. */
-export type AnalyzedDeclaration = TypedDeclaration | UnusableDeclaration;
-
-/** One direct ordinary-function call edge. */
-export interface CallEdge {
-  /** Function containing the call. */
-  readonly caller: BindingId;
-  /** Resolved called function. */
-  readonly callee: BindingId;
-  /** Complete call-expression bytes. */
-  readonly span: SourceSpan;
-}
-
-/** Result of scalar body and structured-flow analysis over a resolved module graph. */
-export interface ModuleAnalysisResult {
-  /** Reachable modules inherited from the resolved graph. */
-  readonly modules: ModuleGraph["modules"];
-  /** Module, parameter, and local bindings in deterministic source order. */
-  readonly bindings: readonly SemanticBinding[];
-  /** Scalar type records used by checked declarations. */
-  readonly types: readonly SemanticType[];
-  /** Checked and retained declarations in deterministic source order. */
-  readonly declarations: readonly AnalyzedDeclaration[];
-  /** Actual direct call edges in source order. */
-  readonly calls: readonly CallEdge[];
-  /** Proving diagnostics in stable source/span/code order. */
-  readonly diagnostics: readonly ProjectDiagnostic[];
-  /** Remaining valid-language implementation work. */
-  readonly obligations: readonly AnalysisObligation[];
-  /** Whether body/type/flow checking completed without an error or obligation. */
-  readonly complete: boolean;
-}
-
-/** A symbolic place published by effect analysis without checker-only permission provenance. */
-export interface EffectPlace {
-  /** Root declaration identity. */
-  readonly binding: BindingId;
-  /** Ordered field and index path from the root. */
-  readonly path: readonly (string | TypedExpr)[];
-  /** Whether writes through this place are forbidden. */
-  readonly readonly: boolean;
-}
-
-/** Finite externally visible effects of one ordinary function. */
-export interface EffectSummary {
-  /** Function whose transitive behavior is summarized. */
-  readonly function: BindingId;
-  /** Module or aggregate-parameter places which may be read. */
-  readonly reads: readonly EffectPlace[];
-  /** Module or aggregate-parameter places which may be written. */
-  readonly writes: readonly EffectPlace[];
-  /** Ordered profile-operation behaviors reached directly or through callees. */
-  readonly operationEffects: readonly Exclude<ProfileEffect, "pure">[];
-  /** Whether volatile raw memory or an ordered profile operation may occur. */
-  readonly opaque: boolean;
-}
-
-/** Completed effect and startup-schedule facts for one module analysis. */
-export interface EffectAnalysisResult {
-  /** One transitive summary per checked ordinary function. */
-  readonly effects: readonly EffectSummary[];
-  /** Runtime module initializers in proved execution order. */
-  readonly initializerOrder: readonly BindingId[];
-  /** Proving failures discovered while ordering initializers. */
-  readonly diagnostics: readonly ProjectDiagnostic[];
-}
-
 /** Source syntax accepted by the scalar flow checker. */
 export type ScalarStatementSyntax = Statement;
 
@@ -728,6 +641,8 @@ export interface ScalarExpressionHost {
 
 /** Direct callbacks required while aggregate types are resolved. */
 export interface AggregateRegistryHost {
+  /** Record a constant or value used by a type query before evaluation erases its name. */
+  reference?(binding: BindingId): void;
   /** Append a proving diagnostic. */
   diagnose(diagnostic: ProjectDiagnostic): void;
   /** Retain a valid source form outside the admitted aggregate slice. */

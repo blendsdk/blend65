@@ -92,6 +92,18 @@ function declarationName(declaration: Declaration): {
   };
 }
 
+/** Recover the declaration token without changing the whole-declaration binding identity. */
+function bindingNameSpan(binding: Binding, units: readonly SyntaxUnit[]): SourceSpan {
+  for (const unit of units) {
+    for (const declaration of moduleDeclarations(unit)) {
+      if (compareSpans(declaration.span, binding.declaration) === 0) {
+        return declarationName(declaration)?.nameSpan ?? binding.declaration;
+      }
+    }
+  }
+  return binding.declaration;
+}
+
 /** Render a one-based raw-byte position without converting it to an editor column. */
 function rawByteLocation(source: SourceRecord, offset: number): string {
   const bytes = Buffer.from(source.text, "utf8");
@@ -537,6 +549,15 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
                 "E10012",
                 `'${item.name}' is not exported from module '${imported.module}'`,
                 item.nameSpan,
+                null,
+                target === undefined
+                  ? []
+                  : [
+                      {
+                        span: bindingNameSpan(target, targetModule.units),
+                        message: "Private declaration is here",
+                      },
+                    ],
               ),
             );
             continue;
@@ -591,7 +612,8 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
       if (reference.localRoot || module.valueRoots.has(root)) continue;
       const qualified = referencedModule(reference, moduleNames);
       if (qualified === null) continue;
-      const target = reachable.get(qualified.module)?.bindings.get(qualified.declaration);
+      const targetModule = reachable.get(qualified.module);
+      const target = targetModule?.bindings.get(qualified.declaration);
       if (reference.directCall && target?.name === "main") continue;
       if (target === undefined || !target.exported) {
         diagnostics.push(
@@ -599,6 +621,15 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
             "E10012",
             `'${qualified.declaration}' is not exported from module '${qualified.module}'`,
             reference.span,
+            null,
+            target === undefined || targetModule === undefined
+              ? []
+              : [
+                  {
+                    span: bindingNameSpan(target, targetModule.units),
+                    message: "Private declaration is here",
+                  },
+                ],
           ),
         );
       }
@@ -612,6 +643,7 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
       projectDiagnostic(
         "E10020",
         "No entry point found — define 'function main(): void' in any module",
+        reachable.get(snapshot.effectiveEntry)?.units[0]?.header?.span ?? null,
       ),
     );
   } else if (candidates.length > 1) {
@@ -633,13 +665,12 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
     );
   } else {
     const candidate = candidates[0]!;
-    const nameSpan = declarationName(candidate.declaration)?.nameSpan ?? candidate.declaration.span;
     if (!hasEntrySignature(candidate)) {
       diagnostics.push(
         projectDiagnostic(
           "E10022",
           `Entry point 'main' must have signature 'function main(): void' — found '${entrySpelling(candidate)}'`,
-          nameSpan,
+          candidate.declaration.span,
         ),
       );
     } else {
@@ -666,7 +697,17 @@ export function resolveModules(snapshot: ProjectSnapshot, index: ModuleIndex): M
         projectDiagnostic(
           "E10023",
           "Cannot call 'main()' — it is the program entry point, not a callable function",
-          reference.span,
+          reference.callSpan ?? reference.span,
+          null,
+          [
+            {
+              span: declarationName(
+                candidates.find((candidate) => sameBinding(candidate.binding.id, called.id))!
+                  .declaration,
+              )!.nameSpan,
+              message: "Entry point declared here",
+            },
+          ],
         ),
       );
     }

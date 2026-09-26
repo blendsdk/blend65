@@ -54,6 +54,8 @@ export type SemanticPlacePath = SemanticFieldPath | SemanticIndexPath;
 export interface SemanticPlace {
   /** Source declaration at the root of the place. */
   readonly root: BindingId;
+  /** Resident asset identity when the root aliases immutable imported bytes, not function storage. */
+  readonly asset?: string;
   /** Declared packed root type, retained for field offsets and element scaling. */
   readonly rootType?: SemanticType;
   /** Ordered field/index selections from the root. */
@@ -217,6 +219,8 @@ export interface IndirectCallOperation {
   readonly target: ValueId;
   /** Exact call-target source spelling retained for a proving diagnostic. */
   readonly targetDisplay?: string;
+  /** Named target declaration retained for a failed finite-target proof. */
+  readonly calleeDeclaration?: SourceSpan;
   /** Argument values evaluated in source order. */
   readonly arguments: readonly ValueId[];
   /** Count source for each outer-unsized array argument. */
@@ -430,6 +434,8 @@ export interface SemanticFunction {
 export interface SemanticGlobal {
   /** Stable source declaration identity. */
   readonly id: BindingId;
+  /** Source display name retained for diagnostics after frontend binding. */
+  readonly name?: string;
   /** Whether the source binding is mutable module storage or an immutable constant. */
   readonly storage: "module" | "constant";
   /** Declared global type. */

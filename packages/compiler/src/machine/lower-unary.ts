@@ -14,7 +14,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Lower one admitted scalar unary operation without a runtime helper. */
 export function lowerUnary(

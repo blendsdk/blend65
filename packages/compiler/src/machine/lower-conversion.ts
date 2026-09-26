@@ -10,7 +10,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Freeze a converted value only when its planned lifetime crosses a call or source write. */
 function retainConvertedValue(

@@ -1,4 +1,5 @@
 import type { AssetsEvidence } from "./evidence-types.js";
+import type { EvidenceFieldFailure } from "./evidence-diagnostics.js";
 import {
   areEvidenceStringsOrdered,
   canonicalEvidenceHash,
@@ -351,7 +352,14 @@ function asset(value: unknown): boolean {
 }
 
 /** Validate the complete closed assets-evidence version-1 value. */
-export function assetsEvidenceValue(value: unknown): value is AssetsEvidence {
+export function assetsEvidenceValue(
+  value: unknown,
+  invalid?: EvidenceFieldFailure,
+): value is AssetsEvidence {
+  if (isEvidenceRecord(value) && !Array.isArray(value.assets)) {
+    invalid?.(["assets"], "assets must be an array");
+    return false;
+  }
   return (
     isEvidenceRecord(value) &&
     hasExactEvidenceKeys(value, ["kind", "schemaVersion", "assets"]) &&

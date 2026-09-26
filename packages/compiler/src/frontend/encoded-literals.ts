@@ -25,7 +25,7 @@ export function analyzeEncodedLiteral(
 ): ScalarExpressionResult {
   const encoded = encodeC64Literal(expression.items, encoding, map);
   if (encoded.kind === "error") {
-    host.diagnose(encoded.diagnostic);
+    host.diagnose(Object.freeze({ ...encoded.diagnostic, primarySpan: resultExpression.span }));
     return { node: null, exact: null };
   }
   if (expression.literalKind === "character") {
@@ -50,7 +50,7 @@ export function analyzeEncodedLiteral(
     host.diagnose(
       projectDiagnostic(
         "E10124",
-        `Encoded string has ${encoded.bytes.length} bytes but the destination has extent ${expected.length}`,
+        `String literal (${encoded.bytes.length} bytes) exceeds array size (${expected.length})`,
         resultExpression.span,
       ),
     );
@@ -108,7 +108,11 @@ export function analyzeEncodingCall(
   if (mapArg !== undefined) {
     if (mapArg.kind !== "literal" || mapArg.literalKind !== "string") {
       host.diagnose(
-        projectDiagnostic("E10251", "Character-map key must be a string literal", mapArg.span),
+        projectDiagnostic(
+          "E10251",
+          `Character-map argument must be a string literal — available maps for '${encoding}' on '${host.profileId}': upper_graphics, lower_upper`,
+          mapArg.span,
+        ),
       );
       return { node: null, exact: null };
     }
@@ -156,7 +160,7 @@ export function analyzeStringArrayLiteral(
       host.diagnose(
         projectDiagnostic(
           "E10116",
-          "A string cannot be mixed with value elements or concatenated inside an array literal",
+          "Cannot mix string literals with value elements in an array initializer",
           expression.span,
         ),
       );
@@ -179,7 +183,7 @@ export function analyzeStringArrayLiteral(
       host.diagnose(
         projectDiagnostic(
           "E10124",
-          `Encoded string has ${bytes.length} bytes but the destination has extent ${expected.length}`,
+          `String literal (${bytes.length} bytes) exceeds array size (${expected.length})`,
           stringElement.span,
         ),
       );

@@ -97,6 +97,7 @@ export class ComptimeEvaluator {
   evaluateRoot(
     expression: TypedExpr,
     type: SemanticType,
+    rootName: string,
   ): bigint | boolean | readonly number[] | null {
     const checkpoint = this.budget.liveCheckpoint();
     const root = expression.span;
@@ -114,7 +115,14 @@ export class ComptimeEvaluator {
     } catch (failure) {
       this.budget.abandonRoot(checkpoint);
       if (failure instanceof ComptimeBudgetFailure || failure instanceof ComptimeSemanticFailure) {
-        this.diagnose(failure.diagnostic);
+        this.diagnose(
+          failure instanceof ComptimeBudgetFailure
+            ? Object.freeze({
+                ...failure.diagnostic,
+                message: `${failure.diagnostic.message} while evaluating root '${rootName}'`,
+              })
+            : failure.diagnostic,
+        );
         return null;
       }
       throw failure;
@@ -368,7 +376,7 @@ export class ComptimeEvaluator {
   private call(expression: TypedExpr, caller: Frame, root: SourceSpan): EvaluatedValue {
     const callee = expression.callee;
     if (callee?.name === "bcd_add" || callee?.name === "bcd_sub") {
-      this.budget.enterCall(expression.span, root);
+      this.budget.enterCall(expression.span, root, callee.name);
       let argumentBytes = 0;
       try {
         this.budget.step(callee.span, root);
@@ -407,7 +415,7 @@ export class ComptimeEvaluator {
       }
     }
     if (callee?.name !== undefined && isTrigonometryIntrinsic(callee.name)) {
-      this.budget.enterCall(expression.span, root);
+      this.budget.enterCall(expression.span, root, callee.name);
       let argumentBytes = 0;
       try {
         this.budget.step(callee.span, root);
@@ -478,7 +486,7 @@ export class ComptimeEvaluator {
         ),
       );
     }
-    this.budget.enterCall(expression.span, root);
+    this.budget.enterCall(expression.span, root, callee.name);
     this.active.add(key);
     const frame: Frame = { values: new Map(), aggregates: new Map(), allocatedBytes: 0 };
     let argumentBytes = 0;

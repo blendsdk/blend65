@@ -162,7 +162,13 @@ describe("analysis service result states", () => {
     const result = analyzeProject(snapshot([source("src/game.blend", text)]));
 
     expect(result.kind).toBe("complete");
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'make' is never called and not exported",
+      },
+    ]);
     expect(result).toHaveProperty("program");
   });
 
@@ -319,7 +325,18 @@ describe("snapshot-only integration and typed output boundary", () => {
     const result = analyzeProject(snapshot([source("src/game.blend", text)]));
 
     expect(result.kind).toBe("complete");
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'helper' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'operate' is never called and not exported",
+      },
+    ]);
     if (result.kind !== "complete") throw new Error(`Expected complete, got ${result.kind}`);
     expect(result.program.bindings.length).toBeGreaterThan(0);
     expect(result.program.declarations.length).toBeGreaterThan(0);

@@ -29,6 +29,8 @@ interface ExpressionWork {
   readonly value: Expr;
   /** Initializer ownership follows all children, but never crosses into a function body. */
   readonly owner?: "resident" | "loadable" | "mutable" | "local" | undefined;
+  /** Complete declaration span when an ownership error names the declaration. */
+  readonly ownerSpan?: SourceSpan | undefined;
 }
 
 interface StatementWork {
@@ -82,6 +84,7 @@ function pushStatementChildren(pending: SourceWork[], statement: Statement): voi
       pending.push({
         kind: "expression",
         value: statement.initializer,
+        ownerSpan: statement.span,
         owner:
           statement.declarationKind === "let"
             ? "mutable"
@@ -144,7 +147,7 @@ function pushStatementChildren(pending: SourceWork[], statement: Statement): voi
  */
 function visitGraphExpressions(
   modules: ModuleGraph["modules"],
-  visit: (expression: Expr, owner: ExpressionWork["owner"]) => boolean,
+  visit: (expression: Expr, owner: ExpressionWork["owner"], ownerSpan?: SourceSpan) => boolean,
 ): void {
   const pending: SourceWork[] = [];
   const declarations = modules.flatMap((module) =>
@@ -160,6 +163,7 @@ function visitGraphExpressions(
       pending.push({
         kind: "expression",
         value: declaration.initializer,
+        ownerSpan: declaration.span,
         owner:
           declaration.declarationKind === "let"
             ? "mutable"
@@ -177,10 +181,15 @@ function visitGraphExpressions(
       pushStatementChildren(pending, current.value);
       continue;
     }
-    if (!visit(current.value, current.owner)) continue;
+    if (!visit(current.value, current.owner, current.ownerSpan)) continue;
     const children = expressionChildren(current.value);
     for (let index = children.length - 1; index >= 0; index--) {
-      pending.push({ kind: "expression", value: children[index]!, owner: current.owner });
+      pending.push({
+        kind: "expression",
+        value: children[index]!,
+        owner: current.owner,
+        ownerSpan: current.ownerSpan,
+      });
     }
   }
 }
@@ -253,7 +262,7 @@ export function discoverPendingObligations(
 export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestResult {
   const requests: EmbeddedRequest[] = [];
   const diagnostics: ProjectDiagnostic[] = [];
-  visitGraphExpressions(graph.modules, (expression, owner) => {
+  visitGraphExpressions(graph.modules, (expression, owner, ownerSpan) => {
     if (
       expression.kind !== "call" ||
       expression.callee.kind !== "name" ||
@@ -268,7 +277,7 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
           owner === "mutable"
             ? "'embed()' can only initialize an ordinary or loadable const declaration — found 'let'"
             : "'embed()' can only appear in a module-level ordinary const or a loadable const initializer",
-          expression.span,
+          owner === "mutable" ? (ownerSpan ?? expression.span) : expression.span,
         ),
       );
       return false;
@@ -277,14 +286,22 @@ export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestRes
       expression.arguments[0] === undefined ? null : embeddedLiteralPath(expression.arguments[0]);
     if (literalPath === null) {
       diagnostics.push(
-        projectDiagnostic("E10136", "'embed()' path must be a string literal", expression.span),
+        projectDiagnostic(
+          "E10136",
+          "'embed()' path must be a string literal",
+          expression.arguments[0]?.span ?? expression.span,
+        ),
       );
     } else if (
       expression.arguments.length === 2 &&
       embeddedLiteralPath(expression.arguments[1]!) === null
     ) {
       diagnostics.push(
-        projectDiagnostic("E10250", "'embed()' selector must be a string literal", expression.span),
+        projectDiagnostic(
+          "E10250",
+          `'embed()' selector must be a string literal — found '${expression.arguments[1]!.kind === "name" ? expression.arguments[1]!.name : "<expression>"}'`,
+          expression.arguments[1]!.span,
+        ),
       );
     } else if (expression.arguments.length > 2) {
       diagnostics.push(

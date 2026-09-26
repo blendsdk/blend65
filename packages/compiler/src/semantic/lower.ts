@@ -297,8 +297,10 @@ class ExpressionLowerer {
         path.push(Object.freeze({ kind: "index", value }));
       }
     }
+    const embedded = this.embeddedByBinding.get(bindingIdentityKey(source.binding));
     return Object.freeze({
       root: source.binding,
+      ...(embedded === undefined ? {} : { asset: embedded.assetId }),
       rootType: root.type,
       path: Object.freeze(path),
     });
@@ -552,6 +554,9 @@ class ExpressionLowerer {
           ...(expression.calleeDisplay === undefined
             ? {}
             : { targetDisplay: expression.calleeDisplay }),
+          ...(expression.calleeDeclaration === undefined
+            ? {}
+            : { calleeDeclaration: expression.calleeDeclaration }),
           arguments: Object.freeze(arguments_),
           ...(argumentArrayCounts.some((count) => count !== null)
             ? { argumentArrayCounts: Object.freeze(argumentArrayCounts) }
@@ -909,6 +914,7 @@ function lowerGlobal(
     return Object.freeze({
       id: declaration.binding,
       storage: binding.storage,
+      name: binding.name,
       type: declaration.type,
       initialBytes: null,
       runtimeInitialBytes: null,
@@ -923,6 +929,7 @@ function lowerGlobal(
     return Object.freeze({
       id: declaration.binding,
       storage: binding.storage,
+      name: binding.name,
       type: declaration.type,
       initialBytes:
         (declaration.type.kind === "scalar" || declaration.type.kind === "enum") &&
@@ -969,6 +976,7 @@ function lowerGlobal(
   return Object.freeze({
     id: declaration.binding,
     storage: binding.storage,
+    name: binding.name,
     type: declaration.type,
     initialBytes: null,
     runtimeInitialBytes: initializerBytes(declaration.initializer, declaration.type),

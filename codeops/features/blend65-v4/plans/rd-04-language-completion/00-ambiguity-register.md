@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-04 Language Completion
 
-> **Status**: ✅ All runtime decisions resolved
+> **Status**: AR-P1–AR-P26 resolved; implementation qualification remains open
 > **Last Updated**: 2026-09-26
 > **CodeOps Artifact Schema**: 1
 
@@ -38,7 +38,120 @@
 | AR-P20 | Test authority (runtime) — obsolete fixed raw-asset size | Replace only the old `raw-asset.spec.test.ts` expectation that rejects 511- and 513-byte files with acceptance of nonempty inferred lengths. Keep empty-file rejection, explicit-size E10140, all containment/alias/change checks, the new Phase 7 raw-embed tests, and M1's sprite consumer/layout checks. Extend the existing resolver and layout path; add no second raw-asset mode. Frozen Ch 13 §§2.1, 3 EMB-4, 5 make raw extent file-derived, whereas the old M1 test requires exactly 512 bytes for every raw file. | User explicitly approved the narrow test-authority correction on 2026-09-26. | ✅ Resolved |
 | AR-P21 | Runtime / Phase 7 whole-routine parity | Seven byte/word BCD routines now match complete equal-contract expert references. The final two-volatile-operand cases are byte subtraction at 18 bytes / 26 cycles / one scratch byte, word addition at 34 / 48 / one, and word subtraction at 34 / 48 / one; VICE confirms behavior. [#86](https://github.com/blendsdk/blend65/issues/86) records the repair history. This was direct lowering work, not a reason to introduce an optimizer or change the frozen spec. | The user-approved AR-P4 required fixing worse-than-expert output before Phase 7 closed. The apparent new scope fork was false; an independent challenge confirmed bounded direct BCD lowering and rejected pulling a generic optimizer into RD-04. The narrow repair is complete and verified. | ✅ Resolved |
 
+| AR-P22 | Scope (runtime) — future-target representation tests | Keep RD-04's audit that shared semantics are target-independent and preserve current symbolic identities, effects and placement. Do not invent and exercise unused bank/address-space/transfer/DMA/clock fields before their contracts exist. Add concrete representation facts with their first real consumers: RD-05 for C64 banking/clock ownership, RD-07 for transfers, and the separate C64U target feature for its DMA/address spaces. This narrowly changes R4.54/AC-41/ST-52 wording, not frozen Specification 4, current behavior or optimization obligations. | User approved on 2026-09-26. The independent Phase 8 author found no declared future-field API; the accepted correction keeps current target-independence proof without speculative structure. | ✅ Resolved |
+
+| AR-P23 | Test authority (runtime) — completed warnings and readable-label observers | Update only old diagnostic expectations to include the warnings required by frozen Specification 4, and update test-only label lookup/format matching for the approved source-readable assembly. Preserve source fixtures, error expectations, exact runtime values, memory/MMIO order, ABI/flags, expert costs, uniqueness checks and all new Phase 8 specification expectations. Do not suppress warnings globally, add compatibility aliases solely for tests, relax cost limits, or change the frozen specification. Exact affected files and evidence are listed below. | User explicitly approved the narrow test-only modification set on 2026-09-26, then confirmed the High-effort handoff. Updates are verified: install, build, typecheck and all 1,615 tests pass. Phase 8 coverage and review remain open. | ✅ Resolved |
+
+| AR-P24 | Interface (runtime) — canonical artifact diagnostics | Keep the five existing evidence-validator signatures and their `kind`, `reason`, and safe `diagnostic` string; add `record: ProjectDiagnostic` to their error results so E10267/E10268 carry code, severity, message, input/field location, related spans and optional help. Use the known sidecar name as the input identity; preserve envelope/version precedence and report the failed supported-version invariant. Propagate that record through existing service consumers where applicable. No new public command/export, schema version, generic validator or framework. Existing tests remain immutable. | User explicitly approved the recommended additive record on 2026-09-26. Task 8.1.2 resumes at the already-confirmed High effort; the implementation and qualification remain pending. | ✅ Resolved |
+
+| AR-P25 | Test authority (runtime) | Replace two literal E10235 placeholders with valid source-specific suggestions; preserve fixtures and semantics. | User approved both recommended corrections by instructing “proceed” on 2026-09-26. | ✅ Resolved |
+| AR-P26 | Scope / test authority (runtime) | Keep E10204 native-format parsing proof with RD-06; retain RD-04 honest-unavailability checks. | User approved both recommended corrections by instructing “proceed” on 2026-09-26. | ✅ Resolved |
+
 ## Resolution Notes
+
+### AR-P25 — Replace literal diagnostic placeholders, not language behavior (runtime)
+
+**Approved, 2026-09-26:** authorize only the two E10235 message expectations in
+`packages/compiler/src/frontend/scalars.spec.test.ts` (the existing nominal-enum test).
+Replace `Direction(<expr>)` with useful source-specific conversion suggestions:
+`Direction(raw)` and `Direction(byte(State.Up))`. The latter must retain the explicit
+enum-to-byte conversion required by frozen Chapter 9 before converting to another enum.
+Preserve the source fixture, error codes, severity, third E10236 expectation and all new tests.
+
+Evidence: the frozen Chapter-14 E10235 template substitutes `<expr>`, and the new independent
+`diagnostics-scalar-records.spec.test.ts` expects `Mode(peek($0400))`. The old two assertions
+literally expect `<expr>`. Keeping both would require fixture-dependent messages rather than
+one honest producer. The frontend regression exposes exactly this specification-test conflict.
+The separate implementation test that used spanless E10020 as a sorting fixture was corrected
+to test sorting directly; an additional integration case preserves the now-required module
+header location. No existing specification test was changed during this correction batch.
+
+This is a narrow test-authority ruling, not permission to alter enum conversion semantics,
+freeze code generation, weaken diagnostics, or change the frozen specification.
+
+### AR-P26 — Keep native-format parsing proof with its existing owner (runtime)
+
+**Approved, 2026-09-26:** move only the decisive E10204 native-format parsing proof from
+RD-04 to RD-06. Preserve the three-byte malformed SpritePad fixture and its expected diagnostic
+contract in RD-06's pending qualification requirements before removing that one active case
+from `test/rd04/diagnostics-project-records.spec.test.ts`. Reassign only the E10204 crosswalk row;
+all 182 keys remain accounted for (171 RD-04, ten RD-06, one RD-07). Existing RD-04 native-format
+unavailability/no-raw-fallback tests remain required. Do not invent a partial native parser or
+report an unexamined file as malformed merely to satisfy this case.
+
+Evidence: RD-04 ST-45/ST-51 explicitly require honest unavailability for later native handlers;
+RD-06 R6.2/R6.3 and its native format requirements already own structural E10204 parsing and
+truncation proofs (`RD-06-native-assets-compile-time-composition-and-resident-layout.md`, lines
+74, 103, 128, 201, 695 and 712). Frozen Chapter 14 defines E10204 as a genuine parse failure.
+The new RD-04 case expects a signature/header/version/truncation reason for `bad.spd`, but the
+current frontend correctly has no native parser. The diagnostic inventory included this code
+without reconciling the existing ownership boundary. This is an ownership correction requiring
+approval, not a new deferral of compiler functionality or a reason to expand RD-04.
+
+Both decisions were surfaced and approved on 2026-09-26. Apply the exact two old message
+expectations, preserve the E10204 fixture under RD-06 before removing its RD-04 case, update
+only that coverage row, and resume the already-confirmed High-effort correction batch.
+
+### AR-P24 — Structured errors from the existing report-file validators
+
+Frozen Chapter 14 requires E10267 for malformed public artifacts and E10268 for a valid envelope
+with an unsupported positive schema version. The existing RD-03 design deliberately gives
+`validateBuildEvidence`, `validateAssetsEvidence`, `validateMemoryEvidence`,
+`validateCostsEvidence` and `validateDebugEvidence` an error union with only `reason` and a
+plain `diagnostic` string. No E10267/E10268 producer exists. Task 8.1.2 cannot independently assert
+the required canonical fields through that approved interface.
+
+The user-approved additive record uses the already-owned `ProjectDiagnostic` shape; it does not
+replace existing callers' text or require another reader API. The modification set is this plan's
+artifact/interface specification, focused new artifact specification tests, the existing evidence
+validators and their service adapters when the implementation task begins. Frozen `spec/`, public
+sidecar formats, package exports and CLI commands remain unchanged. This is an interface decision,
+not permission to build a generalized diagnostic or schema subsystem.
+
+### AR-P23 — Two outdated test assumptions, no new product scope
+
+All 49 new diagnostic cases pass, as do build and typecheck. The broader checks expose two
+incompatible old assumptions:
+
+1. Old legal-source tests require an empty diagnostic list even for unused declarations,
+   always-false conditions, or costly struct indexing. Frozen Chapter 14 requires these warnings.
+   The warning is advisory: legal source still compiles and no runtime storage or code is added.
+2. Runtime observers decode only `b65_<hex>` labels. The approved readable output uses
+   `b65_<source-hint>_<hex-identity>`. These tests fail while finding their checkpoint, before
+   observing behavior. Keep the complete stable identity and unique-address checks; change only
+   how the test locates that same checkpoint.
+
+**Authorized modification set (user approval, 2026-09-26):**
+
+| Concern | Exact paths (brace groups enumerate filenames, not a broad directory grant) |
+|---|---|
+| Warning expectations, specification tier | `packages/compiler/src/frontend/{address-of,aggregates,comptime,effects,flow,intrinsics,profile,scalars,service}.spec.test.ts`; `packages/compiler/src/semantic/{cfg,operations,whole-program}.spec.test.ts`; `packages/compiler/src/services/services.spec.test.ts`; `packages/language-server/src/server.spec.test.ts` |
+| Warning expectations, implementation tier | `packages/compiler/src/frontend/{aggregates,comptime,scalars}.impl.test.ts` |
+| Label lookup inside specification fixtures | `test/rd04/{aggregate-abi,aggregate-runtime,function-values,intrinsics-runtime,scalars-arithmetic-runtime,scalars-runtime,vice}.spec.test.ts` |
+| Label lookup/format assertions in implementation fixtures | `test/rd04/{aggregate-copy,aggregate-review,bounds,expert-calls,expert-intrinsics,interrupt-selection,placement}.impl.test.ts` |
+| Shared M1 observer | `test/m1/vice-driver.ts`; leave `test/m1/vice.spec.test.ts` and its behavioral oracle unchanged |
+
+Each warning must be justified by its fixture. Do not replace diagnostic assertions with
+unconditional acceptance or blanket warning filtering. Any false warning is an implementation
+bug, not authorization to adjust its test. The implementation-only different-array-extent case
+was already corrected from generic E10080 to canonical call mismatch E10172; its fixture and
+no-call-edge assertion remain intact. The fixed-versus-unsized E10253 specification expectation
+remains unchanged and passes after retaining the more specific error.
+
+**Pre-approval evidence, 2026-09-26:** focused diagnostics 49/49 pass; compiler suite 1,192 pass / 120 fail,
+all reported failures are added-warning expectations; root suite 195 pass / 26 fail, all failures
+are old label lookup/format assumptions; CLI 62/62 pass; language server 13 pass / 1 fail from
+the extra unused-variable warning in its exact diagnostic array; editor 6/6 pass. Existing
+specification files are untouched. No commit or push was made. These results are not complete
+runtime qualification: failing checkpoint lookup prevents those VICE observations.
+
+**Post-approval evidence, 2026-09-26 14:12:** install, build, typecheck and all owned tests pass:
+compiler 1,312/1,312; root 221/221; CLI 62/62; language server 14/14; editor 6/6. The root
+VICE cases ran sequentially and now reach their unchanged runtime assertions. Status is
+VICE-verified / hardware-unverified. Targeted formatting, whitespace and frozen-spec checks
+pass. Only the authorized old test expectations/observers changed; no source fixture or cost
+limit was relaxed, and warnings remain explicit assertions. These changes depend on the
+unfinished Phase 8 implementation and remain uncommitted with it; no push was made.
 
 ### AR-P2 — Why one plan is simpler
 

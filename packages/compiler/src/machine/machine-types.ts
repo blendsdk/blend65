@@ -189,6 +189,8 @@ export interface MachineBlock {
 export interface MachineFunction {
   /** Stable link identity. */
   readonly id: string;
+  /** Source display name retained only for readable assembly and evidence. */
+  readonly sourceName?: string;
   /** Fixed origin when platform startup owns it. */
   readonly origin?: number;
   /** Blocks in selected layout order. */
@@ -201,6 +203,8 @@ export interface MachineFunction {
 export interface MachineDataObject {
   /** Stable object identity. */
   readonly id: string;
+  /** Source display name retained only for readable assembly and evidence. */
+  readonly sourceName?: string;
   /** Platform-layout ownership class. */
   readonly kind: "immutable" | "global" | "bss" | "asset";
   /** Semantic asset identity for an asset object. */
@@ -239,6 +243,8 @@ export interface MachineProgram {
 
 /** Inputs required by direct machine lowering. */
 export interface MachineLoweringInput {
+  /** Source binding identities mapped to display names; never used for semantic lookup. */
+  readonly bindingNames?: ReadonlyMap<string, string>;
   /** Closed reachable semantic program. */
   readonly program: WholeProgram;
   /** Current provisional static homes. */

@@ -93,7 +93,23 @@ describe("compiler project services", () => {
     if (result.kind !== "success") throw new Error(`Check failed as ${result.category}`);
     expect(result.snapshotSha256).toMatch(/^[0-9a-f]{64}$/u);
     expect(result.profileId).toBe("c64-pal-prg-kernal-6581");
-    expect(result.diagnostics).toEqual([]);
+    // Enemy records occupy five bytes; every dynamic index carries the stride-cost advisory.
+    const source = await readFile(join(root, "src/game.blend"), "utf8");
+    const indexes = [...source.matchAll(/\benemies\[index\]/gu)];
+    expect(indexes).toHaveLength(27);
+    expect(result.diagnostics).toMatchObject(
+      indexes.map((match) => ({
+        code: "W10111",
+        severity: "warning",
+        message:
+          "Variable indexing of struct array 'enemies' requires multiplication by non-power-of-two size 5",
+        primarySpan: {
+          sourceId: "src/game.blend",
+          start: Buffer.byteLength(source.slice(0, match.index), "utf8"),
+          end: Buffer.byteLength(source.slice(0, match.index + match[0].length), "utf8"),
+        },
+      })),
+    );
     expectMeasurements(result.measurements);
     await expect(access(join(root, "out"))).rejects.toMatchObject({ code: "ENOENT" });
   });

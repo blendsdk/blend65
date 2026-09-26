@@ -129,7 +129,7 @@ export function analyzeMachineIntrinsic(
           host.diagnose(
             projectDiagnostic(
               "E10254",
-              "Packed BCD operand contains a non-decimal digit",
+              `Packed-BCD operand '${host.sourceText(operand.span)}' contains a non-decimal digit — every nibble must be 0 through 9`,
               operand.span,
             ),
           );

@@ -74,7 +74,13 @@ describe("compile-time aggregate implementation edges", () => {
     const result = analyze(`module Game;
       comptime function value(): byte { return 5; }
       function main(): void { const DATA: byte[1] = [value()]; }`);
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'DATA' is declared but never used",
+      },
+    ]);
     const body = result.declarations.find(
       (item) =>
         item.kind === "typed" &&
@@ -99,7 +105,9 @@ describe("compile-time aggregate implementation edges", () => {
       const Z: byte = 7;
       comptime function make(): ${returnType} { return ${returned}; }
       function main(): void {}`);
-      expect(result.diagnostics).toEqual([]);
+      expect(result.diagnostics).toMatchObject([
+        { code: "W10191", severity: "warning", message: "Variable 'A' is declared but never used" },
+      ]);
       const declaration = result.declarations.find(
         (item) =>
           item.kind === "typed" &&
@@ -132,7 +140,18 @@ describe("compile-time aggregate implementation edges", () => {
           ${place} ${operator} ${rhs}; return ${place};
         }
         const RESULT: ${type} = make(); function main(): void {}`);
-        expect(result.diagnostics).toEqual([]);
+        expect(result.diagnostics).toMatchObject([
+          {
+            code: "W10191",
+            severity: "warning",
+            message: `Variable '${place === "a[0]" ? "b" : "a"}' is declared but never used`,
+          },
+          {
+            code: "W10191",
+            severity: "warning",
+            message: "Variable 'RESULT' is declared but never used",
+          },
+        ]);
         expect(scalar(result, "RESULT")).toBe(expected);
       }
     },
@@ -145,7 +164,13 @@ describe("compile-time aggregate implementation edges", () => {
         a[i] += (a[i = 1] = 3); return a[0] + a[1];
       }
       const RESULT: byte = make(); function main(): void {}`);
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'RESULT' is declared but never used",
+      },
+    ]);
     expect(scalar(result, "RESULT")).toBe(8n);
   });
 
@@ -160,7 +185,9 @@ describe("compile-time aggregate implementation edges", () => {
           return total;
         }
         const A: word = sum(); function main(): void {}`);
-      expect(result.diagnostics).toEqual([]);
+      expect(result.diagnostics).toMatchObject([
+        { code: "W10191", severity: "warning", message: "Variable 'A' is declared but never used" },
+      ]);
       expect(scalar(result, "A")).toBe(700n);
       expect(encode.mock.calls.filter(([, type]) => type.kind === "array")).toHaveLength(1);
     } finally {
@@ -173,7 +200,13 @@ describe("compile-time aggregate implementation edges", () => {
       const TABLE: sbyte[2] = [-2, 7];
       comptime function read(): sword { return TABLE[0]; }
       const RESULT: sword = read(); function main(): void {}`);
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'RESULT' is declared but never used",
+      },
+    ]);
     expect(scalar(result, "RESULT")).toBe(-2n);
   });
 
@@ -199,7 +232,13 @@ describe("compile-time aggregate implementation edges", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'RESULT' is declared but never used",
+      },
+    ]);
     expect(scalar(result, "RESULT")).toBe(16n);
   });
 
@@ -217,7 +256,13 @@ describe("compile-time aggregate implementation edges", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'RESULT' is declared but never used",
+      },
+    ]);
     expect(scalar(result, "RESULT")).toBe(22n);
   });
 });
@@ -232,7 +277,13 @@ describe("compile-time packed-BCD implementation", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'RESULT' is declared but never used",
+      },
+    ]);
     expect(scalar(result, "RESULT")).toBe(0x0100n);
   });
 

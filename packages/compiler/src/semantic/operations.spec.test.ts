@@ -53,10 +53,14 @@ function snapshot(text: string): ProjectSnapshot {
   };
 }
 
-function completeFrontend(text: string): TypedProgram {
+/** Check the full warning list before handing a legal fixture to semantic lowering. */
+function completeFrontend(
+  text: string,
+  expectedWarnings: readonly { code: string; severity: string; message: string }[] = [],
+): TypedProgram {
   const result = analyzeProject(snapshot(text));
   expect(result.kind).toBe("complete");
-  expect(result.diagnostics).toEqual([]);
+  expect(result.diagnostics).toMatchObject(expectedWarnings);
   if (result.kind !== "complete") throw new Error(`Expected complete, got ${result.kind}`);
   return result.program;
 }
@@ -85,8 +89,12 @@ function sameBinding(
   );
 }
 
-function lower(text: string) {
-  const frontend = completeFrontend(text);
+/** Lower a source fixture without discarding unexpected diagnostics. */
+function lower(
+  text: string,
+  expectedWarnings: readonly { code: string; severity: string; message: string }[] = [],
+) {
+  const frontend = completeFrontend(text, expectedWarnings);
   const result = buildSemanticProgram({ kind: "complete", diagnostics: [], program: frontend });
   expect(result.kind).toBe("complete");
   expect(result).not.toHaveProperty("diagnostics");
@@ -181,7 +189,10 @@ describe("ordered semantic operations", () => {
       "  pokew(address(), wordValue());",
       "}",
     ].join("\n");
-    const { frontend, semantic } = lower(text);
+    const { frontend, semantic } = lower(text, [
+      { code: "W10191", severity: "warning", message: "Variable 'b' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'w' is declared but never used" },
+    ]);
     const mainId = binding(frontend, "Game.main");
     const addressId = binding(frontend, "Game.address");
     const byteValueId = binding(frontend, "Game.byteValue");

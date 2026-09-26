@@ -134,27 +134,6 @@ function parseStructLiteral(context: ExpressionContext, opener: Token): Expr | n
   });
 }
 
-/** Parse one qualified name without consulting declarations. */
-function parseQualifiedName(
-  context: ExpressionContext,
-): { readonly name: string; readonly span: SourceSpan } | null {
-  const first = context.expect(TokenKind.IDENTIFIER, "an identifier");
-  if (first === null) return null;
-  const firstText = identifierText(first);
-  if (firstText === null) return null;
-  let name = firstText;
-  let end = first;
-  while (context.match(TokenKind.DOT) !== null) {
-    const part = context.expect(TokenKind.IDENTIFIER, "an identifier");
-    if (part === null) return null;
-    const text = identifierText(part);
-    if (text === null) return null;
-    name += "." + text;
-    end = part;
-  }
-  return Object.freeze({ name, span: spanBetween(context.source, first, end) });
-}
-
 /** Parse the three query forms whose operands are not uniform call arguments. */
 function parseQuery(context: ExpressionContext, nameToken: Token, name: string): Expr | null {
   const opener = context.expect(TokenKind.LPAREN, "'('");
@@ -172,19 +151,15 @@ function parseQuery(context: ExpressionContext, nameToken: Token, name: string):
         });
   }
   if (name === "offsetof") {
-    const qualified = parseQualifiedName(context);
-    if (qualified === null || context.expect(TokenKind.COMMA, "','") === null) return null;
+    const operand = context.parseType();
+    if (operand?.kind !== "named-type" || context.expect(TokenKind.COMMA, "','") === null)
+      return null;
     const fieldToken = context.expect(TokenKind.IDENTIFIER, "an identifier");
     if (fieldToken === null) return null;
     const field = identifierText(fieldToken);
     if (field === null) return null;
     const closer = context.expect(TokenKind.RPAREN, "')'", opener);
     if (closer === null) return null;
-    const operand: NamedTypeSyntax = Object.freeze({
-      kind: "named-type",
-      name: qualified.name,
-      span: qualified.span,
-    });
     return Object.freeze({
       kind: "offsetof",
       span: spanBetween(context.source, nameToken, closer),
@@ -236,7 +211,8 @@ function parsePrimary(context: ExpressionContext): Expr | null {
     token.kind === TokenKind.KW_BYTE ||
     token.kind === TokenKind.KW_SBYTE ||
     token.kind === TokenKind.KW_WORD ||
-    token.kind === TokenKind.KW_SWORD
+    token.kind === TokenKind.KW_SWORD ||
+    token.kind === TokenKind.KW_VOID
   ) {
     context.advance();
     const names: Readonly<Record<string, string>> = {
@@ -244,6 +220,7 @@ function parsePrimary(context: ExpressionContext): Expr | null {
       [TokenKind.KW_SBYTE]: "sbyte",
       [TokenKind.KW_WORD]: "word",
       [TokenKind.KW_SWORD]: "sword",
+      [TokenKind.KW_VOID]: "void",
     };
     const type: NamedTypeSyntax = Object.freeze({
       kind: "named-type",

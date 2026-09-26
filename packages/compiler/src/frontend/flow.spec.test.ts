@@ -155,7 +155,13 @@ describe("recursion and structured flow", () => {
     const valid = analyze(
       "module Game; function f(): void { if (true) {} } function main(): void {}",
     );
-    expect(valid.diagnostics).toEqual([]);
+    expect(valid.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
   });
 
   // Every path of a value-returning function must return, while an if-else can complete that proof.
@@ -170,7 +176,13 @@ describe("recursion and structured flow", () => {
     const complete = analyze(
       "module Game; function f(flag: boolean): byte { if (flag) { return 1; } else { return 2; } } function main(): void {}",
     );
-    expect(complete.diagnostics).toEqual([]);
+    expect(complete.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(typedDeclaration(complete, "Game.f").body).toMatchObject({
       statements: [
         {
@@ -222,12 +234,24 @@ describe("recursion and structured flow", () => {
     const word = analyze(
       "module Game; function f(): void { for (let i: word = 0; i < 256; i += 1) {} } function main(): void {}",
     );
-    expect(word.diagnostics).toEqual([]);
+    expect(word.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
 
     const breakable = analyze(
       "module Game; function f(): void { for (let i: byte = 0; i < 256; i += 1) { if (i == 2) { break; } continue; } } function main(): void {}",
     );
-    expect(breakable.diagnostics).toEqual([]);
+    expect(breakable.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(typedDeclaration(breakable, "Game.f").body).toMatchObject({
       statements: [
         {
@@ -242,7 +266,13 @@ describe("recursion and structured flow", () => {
     const endless = analyze(
       "module Game; function f(): void { for (;;) {} } function main(): void {}",
     );
-    expect(endless.diagnostics).toEqual([]);
+    expect(endless.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(typedDeclaration(endless, "Game.f").body).toMatchObject({
       statements: [{ kind: "for", condition: null, continueTarget: "update", breakTarget: "exit" }],
     });
@@ -253,7 +283,13 @@ describe("recursion and structured flow", () => {
     const result = analyze(
       "module Game; function f(): void { for (let cursor: byte = 254; ; cursor += 1) { if (cursor == 1) { break; } } } function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(result.complete).toBe(true);
   });
 
@@ -316,7 +352,13 @@ describe("recursion and structured flow", () => {
     const result = analyze(
       "module Game; function f(): word { let i: word = 2; for (let i: word = i; i < 4; i += 1) { let i: word = i + 100; i; } return i; } function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(result.complete).toBe(true);
   });
 
@@ -328,6 +370,11 @@ describe("recursion and structured flow", () => {
     expect(
       result.diagnostics.map(({ code, severity, message }) => ({ code, severity, message })),
     ).toEqual([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
       {
         code: "W10141",
         severity: "warning",
@@ -359,7 +406,13 @@ describe("recursion and structured flow", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(result.complete).toBe(true);
   });
 

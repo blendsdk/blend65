@@ -7,6 +7,7 @@ import type {
   DoWhileStatement,
   Expr,
   ForStatement,
+  FunctionDeclaration,
   IfStatement,
   PoisonStatement,
   Statement,
@@ -22,6 +23,14 @@ export interface StatementContext {
   readonly source: SourceRecord;
   /** Token currently being considered. */
   readonly current: Token;
+  /** Name of the source function whose body is being parsed, for nested-declaration errors. */
+  functionName: string | null;
+  /** Parse a function only to recover a complete forbidden nested declaration. */
+  parseFunction(
+    exported: boolean,
+    start: Token,
+    mode?: FunctionDeclaration["mode"],
+  ): FunctionDeclaration | null;
   /** Consume and return the current token. */
   advance(): Token;
   /** Test the current token without consuming it. */
@@ -307,6 +316,34 @@ function parseFor(context: StatementContext): ForStatement | PoisonStatement | U
 
 /** Parse one statement selected entirely by its leading token. */
 function parseStatement(context: StatementContext): Statement {
+  if (
+    context.check(TokenKind.KW_FUNCTION) ||
+    context.check(TokenKind.KW_COMPTIME) ||
+    context.check(TokenKind.KW_INTERRUPT)
+  ) {
+    const start = context.current;
+    const outer = context.functionName ?? "<function>";
+    const mode = context.check(TokenKind.KW_COMPTIME)
+      ? "comptime"
+      : context.check(TokenKind.KW_INTERRUPT)
+        ? "interrupt"
+        : "ordinary";
+    if (mode !== "ordinary") context.advance();
+    if (!context.check(TokenKind.KW_FUNCTION)) {
+      context.reportExpected("'function'");
+      return context.recoverPoison(start);
+    }
+    const nested = context.parseFunction(false, start, mode);
+    if (nested === null) return context.recoverPoison(start);
+    context.addDiagnostic(
+      projectDiagnostic(
+        "E10176",
+        `Cannot define function '${nested.name}' inside function '${outer}' — move it to module level`,
+        nested.span,
+      ),
+    );
+    return Object.freeze({ kind: "poison", span: nested.span });
+  }
   if (context.check(TokenKind.KW_PLACE)) {
     const start = context.current;
     context.addDiagnostic(
@@ -339,11 +376,6 @@ function parseStatement(context: StatementContext): Statement {
   }
   if (context.check(TokenKind.KW_RETURN)) return parseReturn(context);
   if (context.check(TokenKind.LBRACE)) return parseBlock(context);
-  if (context.check(TokenKind.KW_COMPTIME)) {
-    const start = context.current;
-    context.reportExpected("a statement");
-    return context.recoverPoison(start);
-  }
   return parseExpressionStatement(context);
 }
 

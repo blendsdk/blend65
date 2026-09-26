@@ -2,15 +2,12 @@ import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import { scalarWarning } from "../frontend/constants.js";
 import type { SemanticOperation } from "../semantic/operations.js";
 import type { InterruptRoute } from "../semantic/whole-program.js";
-import { lowerC64Operation } from "./lower-c64.js";
-import { c64InterruptEntryLabel } from "./lower-c64.js";
 import { lowerConversion } from "./lower-conversion.js";
 import { machineInstruction, type LoweredValue } from "./lower-control.js";
 import { lowerMemoryRead, lowerMemoryWrite } from "./lower-memory.js";
 import { advanceAggregateInductionAddress } from "./lower-induction.js";
 import { lowerAggregatePlaceCopy } from "./lower-aggregate-copy.js";
 import { lowerAggregate, lowerCapturedAggregatePlace } from "./lower-aggregate-build.js";
-import { prepareAggregateCallResult } from "./lower-aggregate-return.js";
 import type { MachineInstruction } from "./machine-types.js";
 import {
   lowerAggregateAddress,
@@ -43,7 +40,10 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
+
+import { lowerDirectCall } from "./lower-call.js";
+import { lowerPlatformOperation } from "./lower-platform.js";
 
 /** Return the preplanned home used to preserve one loaded scalar, when required. */
 function loadedValueStage(
@@ -60,122 +60,7 @@ function loadedValueStage(
   });
 }
 
-/** Copy an aggregate argument's address into its two-byte by-reference parameter home. */
-function marshalAggregateAddress(
-  instructions: MachineInstruction[],
-  argument: LoweredValue,
-  destination: LoweredValue,
-  state: FunctionLoweringState,
-  operation: Extract<SemanticOperation, { readonly kind: "call" }>,
-): void {
-  if (
-    argument.kind === "storage" &&
-    (argument.requestId.includes(":parameter:") ||
-      argument.requestId.includes(":aggregate-address:"))
-  ) {
-    for (let offset = 0; offset < 2; offset += 1) {
-      appendLoadA(instructions, argument, offset, state, operation.span);
-      instructions.push(storeA(destination, offset, state, operation.span));
-    }
-    return;
-  }
-  if (argument.kind !== "storage" && argument.kind !== "label") {
-    throw loweringFailure("Aggregate call argument has no materialized address", operation.span);
-  }
-  for (const addressByte of ["low", "high"] as const) {
-    instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "lda",
-        "immediate",
-        argument.kind === "storage"
-          ? Object.freeze({
-              kind: "storage" as const,
-              requestId: argument.requestId,
-              offset: 0,
-              addressByte,
-            })
-          : Object.freeze({
-              kind: "label" as const,
-              label: argument.label,
-              offset: 0,
-              addressByte,
-            }),
-        [],
-        operation.span,
-      ),
-    );
-    instructions.push(storeA(destination, addressByte === "low" ? 0 : 1, state, operation.span));
-  }
-}
-
-/**
- * Convert one retained zero-flag condition into the language's canonical boolean byte.
- * Direct branches keep using the flag. A value that is stored or passed must instead become
- * `0` or `1` without adding a helper call or control-flow block.
- */
-function materializeCondition(
-  result: LoweredValue,
-  instructionsInput: readonly MachineInstruction[],
-  operation: Extract<SemanticOperation, { readonly kind: "platform" }>,
-  state: FunctionLoweringState,
-): { readonly instructions: readonly MachineInstruction[]; readonly result: LoweredValue } {
-  if (
-    result.kind !== "condition" ||
-    operation.result === null ||
-    !state.materializedValues.has(operation.result)
-  ) {
-    return Object.freeze({ instructions: instructionsInput, result });
-  }
-  if (result.usesFlag !== "z" || (result.whenTrue !== "beq" && result.whenTrue !== "bne")) {
-    throw loweringFailure("Platform condition cannot be materialized as a boolean", operation.span);
-  }
-
-  const instructions = [
-    ...instructionsInput,
-    machineInstruction(
-      state.input.profile.cpu,
-      "cmp",
-      "immediate",
-      Object.freeze({ kind: "immediate", value: 1 }),
-      [],
-      operation.span,
-    ),
-    machineInstruction(
-      state.input.profile.cpu,
-      "lda",
-      "immediate",
-      Object.freeze({ kind: "immediate", value: 0 }),
-      [],
-      operation.span,
-    ),
-    machineInstruction(
-      state.input.profile.cpu,
-      "adc",
-      "immediate",
-      Object.freeze({ kind: "immediate", value: 0 }),
-      [],
-      operation.span,
-    ),
-  ];
-  if (result.whenTrue === "beq") {
-    instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "eor",
-        "immediate",
-        Object.freeze({ kind: "immediate", value: 1 }),
-        [],
-        operation.span,
-      ),
-    );
-  }
-  return Object.freeze({
-    instructions: Object.freeze(instructions),
-    result: Object.freeze({ kind: "register", registers: "a", bytes: 1, signed: false }),
-  });
-}
-
+/** Select the direct machine form of one typed operation, preserving source order. */
 export function lowerOperation(
   operation: SemanticOperation,
   state: FunctionLoweringState,
@@ -578,7 +463,7 @@ export function lowerOperation(
         scalarWarning(
           "W10173",
           `Runtime divisor '${divisorName}' is not proven nonzero — zero has an unspecified valid-width result; guard it or use '--division-zero-check'`,
-          operation.span,
+          operation.rightSpan ?? operation.span,
         ),
       );
     }
@@ -664,175 +549,9 @@ export function lowerOperation(
         ),
     });
   }
-  if (operation.kind === "platform") {
-    try {
-      const lowered = lowerC64Operation(operation, state.values, state.input.profile, {
-        requestScratch: (suffix, bytes, source, reason) =>
-          requestStorage(state, suffix, "temporary", bytes, "ram", source, reason),
-        interruptBinding: (sourceOperation) => {
-          const sink = state.input.profile.interrupts.sinks.find(
-            ({ capability }) => capability === sourceOperation.capability,
-          );
-          const domain =
-            sink?.domain ??
-            (sourceOperation.capability === "c64.system.restoreIRQ" ? "irq" : "nmi");
-          const relative =
-            state.input.program.interruptOwnership?.relativeDepths.get(sourceOperation);
-          const before = state.interruptDepth[domain] + (relative?.[domain] ?? 0);
-          const depth = sink === undefined ? before - 1 : before;
-          if (depth < 0) throw new Error("Interrupt restore has no active static link");
-          const routes = (state.input.program.interruptRoutes ?? []).filter(
-            ({ installation }) => installation === sourceOperation,
-          );
-          if (sink !== undefined && selectedInterruptRoute === undefined && routes.length !== 1) {
-            throw new Error("Interrupt sink needs one statically selected handler entry");
-          }
-          const route = selectedInterruptRoute ?? routes[0];
-          return Object.freeze({
-            linkRequestId: `interrupt-link:${domain}:${depth}`,
-            entryLabel:
-              sink === undefined
-                ? null
-                : c64InterruptEntryLabel(route!.handler, route!.variant, depth),
-          });
-        },
-      });
-      for (const data of lowered.data) {
-        const existing = state.generatedData.get(data.id);
-        if (existing !== undefined && JSON.stringify(existing) !== JSON.stringify(data)) {
-          throw new Error(`Generated data identity '${data.id}' changed contents`);
-        }
-        state.generatedData.set(data.id, data);
-      }
-      if (operation.result !== null && lowered.result !== null) {
-        const materialized = materializeCondition(
-          lowered.result,
-          lowered.instructions,
-          operation,
-          state,
-        );
-        const retained = retainMachineValue(
-          operation.result,
-          materialized.result,
-          materialized.instructions,
-          operation.type,
-          operation.span,
-          state,
-        );
-        state.values.set(operation.result, retained.value);
-        return retained.instructions;
-      }
-      return lowered.instructions;
-    } catch (error) {
-      throw loweringFailure(
-        error instanceof Error ? error.message : "Cannot lower platform operation",
-        operation.span,
-      );
-    }
-  }
-  if (operation.kind === "call") {
-    const callee = state.input.program.semantic.functions.find(
-      ({ id }) => bindingIdentityKey(id) === bindingIdentityKey(operation.callee),
-    );
-    if (callee === undefined || callee.parameters.length !== operation.arguments.length) {
-      throw loweringFailure("Direct call has no matching semantic parameter list", operation.span);
-    }
-    const instructions: MachineInstruction[] = [];
-    for (let index = 0; index < operation.arguments.length; index += 1) {
-      const argument = state.values.get(operation.arguments[index]!);
-      const parameter = callee.parameters[index]!;
-      if (argument === undefined || argument.kind === "condition") {
-        throw loweringFailure("Direct-call argument was not retained", operation.span);
-      }
-      const destination = loweredPlace(
-        Object.freeze({ root: parameter.id, path: Object.freeze([]), rootType: parameter.type }),
-        parameter.type.kind === "array" || parameter.type.kind === "struct"
-          ? 2
-          : typeBytes(parameter.type),
-        isSignedType(parameter.type),
-        state,
-      );
-      if (destination.kind !== "storage") {
-        throw loweringFailure("Callee parameter has no certified static home", operation.span);
-      }
-      if (parameter.type.kind === "array" || parameter.type.kind === "struct") {
-        marshalAggregateAddress(instructions, argument, destination, state, operation);
-        if (parameter.outerUnsized) {
-          const count = operation.argumentArrayCounts?.[index];
-          if (count === undefined || count === null) {
-            throw loweringFailure(
-              "Borrowed array argument has no outer element count",
-              operation.span,
-            );
-          }
-          const countValue: LoweredValue =
-            count.kind === "fixed"
-              ? Object.freeze({ kind: "constant", value: count.count, bytes: 2 })
-              : Object.freeze({
-                  kind: "storage",
-                  requestId: `${bindingIdentityKey(state.owner)}:parameter:${bindingIdentityKey(count.binding)}`,
-                  offset: 2,
-                  bytes: 2,
-                });
-          for (let offset = 0; offset < 2; offset += 1) {
-            appendLoadA(instructions, countValue, offset, state, operation.span);
-            instructions.push(storeA(destination, offset + 2, state, operation.span));
-          }
-        }
-      } else {
-        for (let offset = 0; offset < typeBytes(parameter.type); offset += 1) {
-          appendLoadA(instructions, argument, offset, state, operation.span);
-          instructions.push(storeA(destination, offset, state, operation.span));
-        }
-      }
-    }
-    const aggregateResult =
-      operation.result !== null &&
-      (operation.type.kind === "array" || operation.type.kind === "struct")
-        ? prepareAggregateCallResult(
-            operation.result,
-            operation.callee,
-            operation.type,
-            operation.aggregateDestination,
-            state,
-            operation.span,
-          )
-        : null;
-    if (aggregateResult !== null) instructions.push(...aggregateResult.instructions);
-    const label = bindingLabel("fn", operation.callee);
-    instructions.push(
-      machineInstruction(
-        state.input.profile.cpu,
-        "jsr",
-        "absolute",
-        Object.freeze({ kind: "label", label }),
-        [],
-        operation.span,
-      ),
-    );
-    if (operation.result !== null) {
-      if (aggregateResult !== null) {
-        state.values.set(operation.result, aggregateResult.result);
-        return Object.freeze(instructions);
-      }
-      const retained = retainMachineValue(
-        operation.result,
-        Object.freeze({
-          kind: "register",
-          registers: typeBytes(operation.type) === 1 ? "a" : "ax",
-          bytes: typeBytes(operation.type) === 1 ? 1 : 2,
-          signed: isSignedType(operation.type),
-        }),
-        instructions,
-        operation.type,
-        operation.span,
-        state,
-      );
-      state.values.set(operation.result, retained.value);
-      return retained.instructions;
-    }
-    return Object.freeze(instructions);
-  }
+  if (operation.kind === "platform")
+    return lowerPlatformOperation(operation, state, selectedInterruptRoute);
+  if (operation.kind === "call") return lowerDirectCall(operation, state);
   if (operation.kind === "embedded-address") {
     state.values.set(
       operation.result,

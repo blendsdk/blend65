@@ -2,6 +2,7 @@ import { projectDiagnostic } from "../project/diagnostics.js";
 import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { IndirectTargetSets } from "./function-targets.js";
+import type { InterruptRoute } from "./whole-program.js";
 import type {
   SemanticBlock,
   SemanticFunction,
@@ -17,7 +18,7 @@ type InterruptSink = "irq" | "nmi";
 /** A caller-visible stack action retained after locally balanced installs cancel. */
 type OwnershipEvent =
   | { readonly kind: "push"; readonly site: string }
-  | { readonly kind: "pop" }
+  | { readonly kind: "pop"; readonly span: SourceSpan }
   | { readonly kind: "raw" };
 
 /** Each sink has an independent symbolic effect, with no runtime ownership bytes. */
@@ -167,7 +168,7 @@ function invalidOwnership(
 ): ProjectDiagnostic {
   return projectDiagnostic(
     "E10278",
-    `Interrupt ownership for sink '${sink}' is invalid at '${operation}' — installs and restores must agree on every path`,
+    `Interrupt ownership for sink 'c64.system.${sink === "irq" ? "setIRQ" : "setNMI"}' is invalid at '${operation}' — installs and restores must agree on every path`,
     span,
   );
 }
@@ -213,6 +214,7 @@ export function checkInterruptOwnership(
   program: SemanticProgram,
   reachable: ReadonlySet<string>,
   indirectTargets: IndirectTargetSets,
+  routes: readonly InterruptRoute[] = [],
 ): InterruptOwnershipAnalysis {
   const functions = new Map(
     program.functions.map((fn) => [bindingIdentityKey(fn.id), fn] as const),
@@ -228,7 +230,7 @@ export function checkInterruptOwnership(
   // still live. Reusing the mainline link for an install in that context would
   // overwrite the earlier predecessor, even if both installs are balanced.
   const visitedIRQFunctions = new Set<string>();
-  const checkIRQHandlerCalls = (fn: SemanticFunction): void => {
+  const checkIRQHandlerCalls = (fn: SemanticFunction, handler: SemanticFunction): void => {
     const key = bindingIdentityKey(fn.id);
     if (visitedIRQFunctions.has(key)) return;
     visitedIRQFunctions.add(key);
@@ -241,8 +243,19 @@ export function checkInterruptOwnership(
           diagnostics.push(
             projectDiagnostic(
               "E10245",
-              "IRQ vector installation or restoration is not supported during interrupt execution",
+              `Execution path '${handler.name ?? "<handler>"}' can overlap or consume hardware stack without a static bound — use a bounded interrupt/callback design`,
               operation.span,
+              null,
+              routes
+                .filter(
+                  (route) =>
+                    bindingIdentityKey(route.handler) === bindingIdentityKey(handler.id) &&
+                    route.installation !== operation,
+                )
+                .map((route) => ({
+                  span: route.installation.span,
+                  message: "Handler is installed here",
+                })),
             ),
           );
         }
@@ -251,14 +264,14 @@ export function checkInterruptOwnership(
           operation.kind === "call" ? [operation.callee] : (indirectTargets.get(operation) ?? []);
         for (const target of targets) {
           const callee = functions.get(bindingIdentityKey(target));
-          if (callee !== undefined) checkIRQHandlerCalls(callee);
+          if (callee !== undefined) checkIRQHandlerCalls(callee, handler);
         }
       }
     }
   };
   for (const fn of program.functions) {
     if (fn.entryKind === "interrupt" && reachable.has(bindingIdentityKey(fn.id))) {
-      checkIRQHandlerCalls(fn);
+      checkIRQHandlerCalls(fn, fn);
     }
   }
   if (diagnostics.length > 0) {
@@ -327,7 +340,7 @@ export function checkInterruptOwnership(
               const diagnostic = applyEvent(
                 state,
                 sink,
-                { kind: "pop" },
+                { kind: "pop", span: operation.span },
                 operation.span,
                 callerMayOwn,
               );
@@ -516,7 +529,18 @@ export function checkInterruptOwnership(
     });
   for (const sink of ["irq", "nmi"] as const) {
     if (state[sink].some((event) => event.kind !== "raw")) {
-      diagnostics.push(invalidOwnership(sink, "program return", main.source));
+      const unmatched = state[sink].find((event) => event.kind === "pop");
+      diagnostics.push(
+        invalidOwnership(
+          sink,
+          unmatched === undefined
+            ? "program return"
+            : sink === "irq"
+              ? "restoreIRQ()"
+              : "restoreNMI()",
+          unmatched?.span ?? main.source,
+        ),
+      );
     }
   }
   for (const fn of program.functions) {

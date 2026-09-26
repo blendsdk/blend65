@@ -110,7 +110,7 @@ async function bcdResults(sourceLine: string): Promise<number[]> {
     );
     if (result.kind !== "success") throw new Error("BCD runtime fixture did not build");
     const labels = await readFile(join(result.generation.directory, ".labels"), "utf8");
-    const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+    const returnLabel = `b65_[A-Za-z0-9_]+_${Buffer.from("startup.restore").toString("hex")}`;
     const match = labels.match(new RegExp(`^\\s*${returnLabel}\\s*=\\s*\\$([0-9a-f]+)`, "imu"));
     expect(match).not.toBeNull();
     const returnAddress = Number.parseInt(match?.[1] ?? "", 16);

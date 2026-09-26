@@ -155,7 +155,7 @@ describe.sequential("aggregate copy machine implementation", () => {
       expect(ranges.length).toBeGreaterThan(0);
       expect(physical.filter(({ kind, size }) => kind === "sfa" && size === 300)).toHaveLength(0);
       const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
-      const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+      const returnLabel = `b65_[A-Za-z0-9_]+_${Buffer.from("startup.restore").toString("hex")}`;
       const returnMatch = labels.match(
         new RegExp(`^\\s*${returnLabel}\\s*=\\s*\\$([0-9a-f]+)`, "imu"),
       );

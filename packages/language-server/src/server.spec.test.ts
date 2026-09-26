@@ -420,6 +420,12 @@ describe("diagnostics-only stdio language server", () => {
       params: {
         diagnostics: [
           expect.objectContaining({
+            code: "W10191",
+            severity: 2,
+            message: "Variable 'value' is declared but never used",
+            range: { start: { line: 1, character: 4 }, end: { line: 1, character: 9 } },
+          }),
+          expect.objectContaining({
             code: "E10003",
             range: { start: { line: 2, character: 4 }, end: { line: 2, character: 9 } },
             relatedInformation: [

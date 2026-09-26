@@ -640,15 +640,26 @@ function initializerCycleDiagnostic(
         dependencies
           .get(bindingIdentityKey(declaration.binding))
           ?.get(bindingIdentityKey(dependency.binding)) ?? [];
-      return [
-        Object.freeze({
-          span: declaration.initializer?.span ?? declaration.binding.span,
-          message: `${names[index]} initializer participates in this dependency cycle`,
-        }),
-        ...origins.map((span) =>
-          Object.freeze({ span, message: "Read or call proving this initializer dependency" }),
-        ),
-      ];
+      const sites =
+        origins.length > 0 ? origins : [declaration.initializer?.span ?? declaration.binding.span];
+      return sites
+        .filter(
+          (span, siteIndex) =>
+            !sites
+              .slice(0, siteIndex)
+              .some(
+                (previous) =>
+                  previous.sourceId === span.sourceId &&
+                  previous.start === span.start &&
+                  previous.end === span.end,
+              ),
+        )
+        .map((span) =>
+          Object.freeze({
+            span,
+            message: `${names[index]} reads or calls ${names[(index + 1) % names.length]} in this dependency cycle`,
+          }),
+        );
     }),
   );
 }

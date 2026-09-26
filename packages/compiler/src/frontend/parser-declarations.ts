@@ -95,6 +95,29 @@ export class DeclarationParser {
     return parseQualifiedName(this.context);
   }
 
+  /** Look past the current placement clause for its owner without changing recovery state. */
+  private placementOwner(): string {
+    let depth = 1;
+    for (let index = this.context.index; index < this.context.tokens.length; index++) {
+      const token = this.context.tokens[index]!;
+      if (token.kind === TokenKind.LPAREN) depth++;
+      if (token.kind === TokenKind.RPAREN) depth--;
+      if (token.kind === TokenKind.EOF || token.kind === TokenKind.SEMICOLON) break;
+      if (depth !== 0) continue;
+      let owner = index + 1;
+      if (this.context.tokens[owner]?.kind === TokenKind.KW_INTERRUPT) owner++;
+      const keyword = this.context.tokens[owner]?.kind;
+      const name = this.context.tokens[owner + 1];
+      return (keyword === TokenKind.KW_LET ||
+        keyword === TokenKind.KW_CONST ||
+        keyword === TokenKind.KW_FUNCTION) &&
+        name !== undefined
+        ? (this.identifier(name) ?? "declaration")
+        : "declaration";
+    }
+    return "declaration";
+  }
+
   /** Parse the closed module-level placement vocabulary. */
   parsePlaceClause(): PlacementClause | null {
     const start = this.context.advance();
@@ -114,7 +137,7 @@ export class DeclarationParser {
         this.context.addDiagnostic(
           projectDiagnostic(
             "E10272",
-            `Invalid place constraint on 'declaration' — key '${spelling}' is not allowed; allowed keys are at, align, noCross, and region on module-level stored data or emitted functions`,
+            `Invalid place constraint on '${this.placementOwner()}' — key '${spelling}' is not allowed; allowed keys are at, align, noCross, and region on module-level stored data or emitted functions`,
             keyToken.span,
           ),
         );
@@ -358,7 +381,14 @@ export class DeclarationParser {
     let returnType: TypeSyntax | null = null;
     const missingReturnType = this.context.match(TokenKind.COLON) === null;
     if (!missingReturnType) returnType = this.parseType();
-    const body = parseBlock(this.context);
+    const outerFunction = this.context.functionName;
+    this.context.functionName = name;
+    let body;
+    try {
+      body = parseBlock(this.context);
+    } finally {
+      this.context.functionName = outerFunction;
+    }
     const span = this.context.spanFrom(start, body);
     if (missingReturnType) {
       this.context.addDiagnostic(

@@ -51,7 +51,7 @@ export function analyzeEnumMember(
     error(
       "E10231",
       `Enum member '${expression.member}' references unknown enum '${enumName}' — did you mean '${suggestion}'?`,
-      expression.object.span,
+      expression.span,
     ),
   );
   return { node: null, exact: null };
@@ -145,8 +145,8 @@ export function analyzeScalarCast(
   if (!isScalarType(destination) || !isScalarType(operandType)) {
     host.diagnose(
       error(
-        "E10086",
-        `Cannot cast '${semanticTypeName(operand.node.type)}' to '${semanticTypeName(destination)}'`,
+        "E10153",
+        `Cannot cast '${semanticTypeName(operand.node.type)}' to '${semanticTypeName(destination)}' — casts support integer/enum conversions and one-way function/handler conversion to word only`,
         expression.span,
       ),
     );

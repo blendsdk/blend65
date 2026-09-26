@@ -1,10 +1,12 @@
 import type { ProjectDiagnostic, ProjectSnapshot, SourceSpan } from "../project/types.js";
-import { projectDiagnostic } from "../project/diagnostics.js";
+import { escapeDiagnosticText, projectDiagnostic } from "../project/diagnostics.js";
 import { PROFILES } from "../project/manifest.js";
 import { resolveRawAsset } from "../assets/raw-asset.js";
 import type { EmbeddedValue, SemanticAsset } from "../assets/asset-types.js";
+import { placeSemanticAssets } from "./asset-placement.js";
 import { scalarWarning } from "./constants.js";
 import { analyzeModules } from "./analyzer.js";
+import { excessiveGraphExpressionDepth, MAX_ANALYSIS_EXPRESSION_DEPTH } from "./analysis-depth.js";
 import { diagnoseBorrowedCalls } from "./borrow-calls.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { analyzeEffects } from "./effects.js";
@@ -12,6 +14,7 @@ import { indexModules, resolveModules } from "./modules.js";
 import { selectFrontendProfile } from "./profile.js";
 import type { FrontendProfile } from "./profile.js";
 import { discoverEmbeddedRequests, discoverPendingObligations } from "./source-discovery.js";
+import type { EmbeddedRequest } from "./source-discovery.js";
 import { ANALYSIS_OBLIGATION_KIND, freezeSourceSpan } from "./semantic-types.js";
 import type {
   AnalysisObligation,
@@ -23,15 +26,11 @@ import type {
   SemanticType,
   TypedDeclaration,
 } from "./semantic-types.js";
-import type { Expr, Statement, TypeSyntax, VariableDeclaration } from "./syntax.js";
 import { applySourceOverlays } from "./overlay.js";
 import type { SourceOverlay } from "./overlay.js";
 
 /** Maximum number of proving errors returned by one whole-project analysis. */
 const MAX_ANALYSIS_ERRORS = 20;
-
-/** Maximum typed-expression nesting admitted before analysis must remain incomplete. */
-const MAX_ANALYSIS_EXPRESSION_DEPTH = 256;
 
 /** Stable whole-analysis result discriminators. */
 export const ANALYSIS_RESULT_KIND = Object.freeze({
@@ -89,148 +88,6 @@ function sourceText(snapshot: ProjectSnapshot, span: SourceSpan): string {
   return Buffer.from(source.text, "utf8").subarray(span.start, span.end).toString("utf8");
 }
 
-/** Return expression children without recursively visiting a hostile tree. */
-function expressionChildren(expression: Expr): readonly Expr[] {
-  switch (expression.kind) {
-    case "unary":
-    case "cast":
-    case "length":
-      return [expression.operand];
-    case "binary":
-      return [expression.left, expression.right];
-    case "conditional":
-      return [expression.condition, expression.whenTrue, expression.whenFalse];
-    case "assignment":
-      return [expression.target, expression.value];
-    case "call":
-      return [expression.callee, ...expression.arguments];
-    case "index":
-      return [expression.object, expression.index];
-    case "member":
-      return [expression.object];
-    case "array-literal":
-      return expression.fill === null
-        ? expression.elements
-        : [...expression.elements, expression.fill];
-    case "struct-literal":
-      return expression.fields.map(({ value }) => value);
-    default:
-      return [];
-  }
-}
-
-/** Return the first expression span which exceeds the bounded analysis depth. */
-function excessiveExpressionDepth(expression: Expr): SourceSpan | null {
-  const pending: { readonly expression: Expr; readonly depth: number }[] = [
-    { expression, depth: 1 },
-  ];
-  while (pending.length > 0) {
-    const current = pending.pop()!;
-    if (current.depth > MAX_ANALYSIS_EXPRESSION_DEPTH) return current.expression.span;
-    for (const child of expressionChildren(current.expression)) {
-      pending.push({ expression: child, depth: current.depth + 1 });
-    }
-  }
-  return null;
-}
-
-/** Inspect nested array extents without resolving their types. */
-function excessiveTypeDepth(type: TypeSyntax | null): SourceSpan | null {
-  let current = type;
-  while (current !== null && current.kind === "array-type") {
-    if (current.extent !== null) {
-      const excessive = excessiveExpressionDepth(current.extent);
-      if (excessive !== null) return excessive;
-    }
-    current = current.element;
-  }
-  return null;
-}
-
-/** Find a syntax expression too deep for the recursive semantic checker. */
-function excessiveGraphExpressionDepth(graph: ModuleGraph): SourceSpan | null {
-  const statements: Statement[] = [];
-  const checkExpression = (expression: Expr | null): SourceSpan | null =>
-    expression === null ? null : excessiveExpressionDepth(expression);
-  for (const module of graph.modules) {
-    for (const unit of module.units) {
-      for (const declaration of unit.declarations) {
-        if (declaration.kind === "variable") {
-          const excessive =
-            excessiveTypeDepth(declaration.type) ?? checkExpression(declaration.initializer);
-          if (excessive !== null) return excessive;
-        } else if (declaration.kind === "function") {
-          for (const parameter of declaration.parameters) {
-            const excessive = excessiveTypeDepth(parameter.type);
-            if (excessive !== null) return excessive;
-          }
-          const excessive = excessiveTypeDepth(declaration.returnType);
-          if (excessive !== null) return excessive;
-          statements.push(...declaration.body.statements);
-        } else if (declaration.kind === "struct") {
-          for (const field of declaration.fields) {
-            const excessive = excessiveTypeDepth(field.type);
-            if (excessive !== null) return excessive;
-          }
-        }
-      }
-    }
-  }
-  while (statements.length > 0) {
-    const statement = statements.pop()!;
-    if (statement.kind === "variable") {
-      const excessive =
-        excessiveTypeDepth(statement.type) ?? checkExpression(statement.initializer);
-      if (excessive !== null) return excessive;
-    } else if (statement.kind === "expression-statement") {
-      const excessive = excessiveExpressionDepth(statement.expression);
-      if (excessive !== null) return excessive;
-    } else if (statement.kind === "block") {
-      statements.push(...statement.statements);
-    } else if (statement.kind === "if") {
-      const excessive = excessiveExpressionDepth(statement.condition);
-      if (excessive !== null) return excessive;
-      statements.push(...statement.then.statements);
-      if (statement.otherwise !== null) statements.push(statement.otherwise);
-    } else if (statement.kind === "while") {
-      const excessive = excessiveExpressionDepth(statement.condition);
-      if (excessive !== null) return excessive;
-      statements.push(...statement.body.statements);
-    } else if (statement.kind === "for") {
-      if (statement.initializer !== null) {
-        if (isExpressionList(statement.initializer)) {
-          for (const expression of statement.initializer) {
-            const excessive = excessiveExpressionDepth(expression);
-            if (excessive !== null) return excessive;
-          }
-        } else {
-          statements.push(statement.initializer);
-        }
-      }
-      if (statement.condition !== null) {
-        const excessive = excessiveExpressionDepth(statement.condition);
-        if (excessive !== null) return excessive;
-      }
-      for (const expression of statement.update ?? []) {
-        const excessive = excessiveExpressionDepth(expression);
-        if (excessive !== null) return excessive;
-      }
-      statements.push(...statement.body.statements);
-    } else if (statement.kind === "return" && statement.value !== null) {
-      const excessive = excessiveExpressionDepth(statement.value);
-      if (excessive !== null) return excessive;
-    }
-  }
-  return null;
-}
-
-/** Narrow a source for initializer without relying on mutable-array inference. */
-function isExpressionList(
-  initializer: VariableDeclaration | readonly Expr[],
-): initializer is readonly Expr[] {
-  return Array.isArray(initializer);
-}
-
 /** Find the complete declaration containing a narrower obligation span. */
 function containingDeclaration(
   analysis: ModuleAnalysisResult,
@@ -265,6 +122,19 @@ function normalizeObligations(
   const normalized = [...input, ...discovered]
     .filter((obligation) => {
       const obligationSpan = obligation.span;
+      // An enum-specific root error supersedes the provisional dotted-module lookup.
+      if (
+        obligation.kind === ANALYSIS_OBLIGATION_KIND.dependency &&
+        obligationSpan !== null &&
+        diagnostics.some(
+          ({ code, primarySpan }) =>
+            code === "E10231" &&
+            primarySpan?.sourceId === obligationSpan.sourceId &&
+            primarySpan.start <= obligationSpan.start &&
+            primarySpan.end >= obligationSpan.end,
+        )
+      )
+        return false;
       if (obligationSpan === null || obligation.kind !== ANALYSIS_OBLIGATION_KIND.implementation) {
         return true;
       }
@@ -432,9 +302,20 @@ function analyzeResolvedProject(
     (obligation) => !missingResidentLoader.includes(obligation),
   );
   const earlyDiagnostics = sortAnalysisDiagnostics([
-    ...indexed.diagnostics,
+    // Header discovery and full parsing can prove the same late-header error.
+    ...indexed.diagnostics.filter(
+      (diagnostic) =>
+        diagnostic.code !== "E10237" ||
+        !resolved.diagnostics.some(
+          (other) =>
+            other.code === diagnostic.code &&
+            other.primarySpan?.sourceId === diagnostic.primarySpan?.sourceId &&
+            other.primarySpan?.start === diagnostic.primarySpan?.start &&
+            other.primarySpan?.end === diagnostic.primarySpan?.end,
+        ),
+    ),
     ...resolved.diagnostics,
-    ...missingResidentLoader.map((obligation) =>
+    ...(resolved.graph === null ? missingResidentLoader : []).map((obligation) =>
       projectDiagnostic(
         "E10275",
         "The selected resident C64 profile has no load operation",
@@ -561,9 +442,16 @@ function analyzeResolvedProject(
       (declaration): declaration is TypedDeclaration => declaration.kind === "typed",
     ),
   );
+  const placedAssets = placeSemanticAssets(assets, declarations);
+  if (placedAssets.diagnostics.length > 0) {
+    return Object.freeze({
+      kind: ANALYSIS_RESULT_KIND.error,
+      diagnostics: sortAnalysisDiagnostics([...diagnostics, ...placedAssets.diagnostics]),
+    });
+  }
   const program: TypedProgram = Object.freeze({
     profile,
-    assets: Object.freeze([...assets]),
+    assets: placedAssets.assets,
     modules: analysis.modules,
     bindings: analysis.bindings,
     types: analysis.types,
@@ -621,14 +509,18 @@ export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promi
   }
   const values = new Map<string, EmbeddedValue>();
   const assets = new Map<string, SemanticAsset>();
-  const repeatedAssets: ProjectDiagnostic[] = [];
+  const assetRequests = new Map<string, EmbeddedRequest[]>();
   for (const request of discovered.requests) {
     const nativeFormat = /\.(?:spd|ctm|sid|kla|koa)$/iu.test(request.literalPath);
     if (request.selector !== null && !nativeFormat) {
       return Object.freeze({
         kind: ANALYSIS_RESULT_KIND.error,
         diagnostics: Object.freeze([
-          projectDiagnostic("E10137", "Raw embedded data has no selectors", request.span),
+          projectDiagnostic(
+            "E10137",
+            `No format handler is registered for extension '${escapeDiagnosticText(request.literalPath.match(/\.[^./]+$/u)?.[0] ?? "")}' with selector '${escapeDiagnosticText(request.selector)}'`,
+            request.span,
+          ),
         ]),
       });
     }
@@ -649,7 +541,14 @@ export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promi
           ]),
         });
       }
-      return Object.freeze({ kind: ANALYSIS_RESULT_KIND.error, diagnostics: result.diagnostics });
+      return Object.freeze({
+        kind: ANALYSIS_RESULT_KIND.error,
+        diagnostics: Object.freeze(
+          result.diagnostics.map((diagnostic) =>
+            Object.freeze({ ...diagnostic, primarySpan: diagnostic.primarySpan ?? request.span }),
+          ),
+        ),
+      });
     }
     if (nativeFormat) {
       return Object.freeze({
@@ -670,16 +569,42 @@ export async function analyzeProjectWithAssets(snapshot: ProjectSnapshot): Promi
       });
     }
     values.set(request.key, result.value);
-    if (assets.has(result.asset.id)) {
-      repeatedAssets.push(
-        scalarWarning(
-          "W10151",
-          `Embedded input '${request.literalPath}' shares one immutable resident asset`,
-          request.span,
-        ),
-      );
-    }
+    const aliases = assetRequests.get(result.asset.id) ?? [];
+    aliases.push(request);
+    assetRequests.set(result.asset.id, aliases);
     assets.set(result.asset.id, result.asset);
+  }
+  const repeatedAssets: ProjectDiagnostic[] = [];
+  for (const requests of assetRequests.values()) {
+    const declarations = resolved.graph.modules.flatMap(({ units }) =>
+      units.flatMap((unit) =>
+        unit.declarations.filter(
+          (declaration) =>
+            declaration.kind === "variable" &&
+            requests.some(
+              ({ span }) =>
+                span.sourceId === declaration.span.sourceId &&
+                span.start >= declaration.span.start &&
+                span.end <= declaration.span.end,
+            ),
+        ),
+      ),
+    );
+    const sites = declarations.flatMap((declaration) =>
+      declaration.kind === "variable" ? [declaration.nameSpan] : [],
+    );
+    if (sites.length < 2) continue;
+    const request = requests[0]!;
+    repeatedAssets.push(
+      scalarWarning(
+        "W10151",
+        `${sites.length} declarations share embedded output '${escapeDiagnosticText(request.literalPath)}' selector '${escapeDiagnosticText(request.selector ?? "")}' at one address`,
+        sites[sites.length - 1]!,
+        sites
+          .slice(0, -1)
+          .map((span) => ({ span, message: "Declaration shares this embedded output" })),
+      ),
+    );
   }
   const analysis = analyzeResolvedProject(snapshot, values, Object.freeze([...assets.values()]));
   return Object.freeze({

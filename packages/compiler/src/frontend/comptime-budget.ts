@@ -59,7 +59,7 @@ export class ComptimeBudget {
     if (attempted > this.limits.maxSteps) {
       throw this.failure(
         "E10269",
-        `comptime-budget-v1 allows ${this.limits.maxSteps} abstract steps; root would attempt ${attempted}`,
+        `Compile-time evaluation step budget exceeded — 'comptime-budget-v1' allows ${this.limits.maxSteps} steps; attempted step ${attempted}`,
         span,
         root,
       );
@@ -73,7 +73,7 @@ export class ComptimeBudget {
     if (attempted > this.limits.maxLiveBytes) {
       throw this.failure(
         "E10270",
-        `comptime-budget-v1 allows ${this.limits.maxLiveBytes} live logical bytes; root would require ${attempted}`,
+        `Compile-time evaluation memory budget exceeded — 'comptime-budget-v1' allows ${this.limits.maxLiveBytes} live logical bytes; allocating ${bytes} bytes would require ${attempted}`,
         span,
         root,
       );
@@ -88,12 +88,12 @@ export class ComptimeBudget {
   }
 
   /** Enter a direct call before its arguments or body can have effects. */
-  enterCall(span: SourceSpan, root: SourceSpan): void {
+  enterCall(span: SourceSpan, root: SourceSpan, callee = "<call>"): void {
     const attempted = this.activeCalls + 1;
     if (attempted > this.limits.maxActiveCalls) {
       throw this.failure(
         "E10271",
-        `comptime-budget-v1 allows ${this.limits.maxActiveCalls} active calls; root would enter depth ${attempted}`,
+        `Compile-time call-depth budget exceeded — 'comptime-budget-v1' allows ${this.limits.maxActiveCalls} active calls; call to '${callee}' would enter depth ${attempted}`,
         span,
         root,
       );

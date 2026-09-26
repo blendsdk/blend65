@@ -190,7 +190,16 @@ describe("scalar analysis implementation", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      { code: "W10191", severity: "warning", message: "Variable 'b0' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'b1' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 's0' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 's1' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'w0' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'w1' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'sw0' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'sw1' is declared but never used" },
+    ]);
     expect(
       ["b0", "b1", "s0", "s1", "w0", "w1", "sw0", "sw1"].map(
         (name) => typedDeclaration(result, `Game.${name}`).initializer?.constant,
@@ -202,7 +211,7 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function f(flag: boolean): void { let a: byte = 200; let b: byte = 100; if (flag) { a = 1; } let r: word = a + b; } function main(): void {}",
     );
-    expect(result.diagnostics.map(({ code }) => code)).toEqual(["W10160"]);
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["W10181", "W10191", "W10160"]);
     expect(typedDeclaration(result, "Game.f").body).toMatchObject({
       statements: [{}, {}, {}, { initializer: { constant: null, conversion: "zero-extend" } }],
     });
@@ -212,7 +221,18 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function f(flag: boolean): void { let value: byte = 1; while (flag) { value = 2; } let after: byte = value; } function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'after' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.f").body?.statements[2]).toMatchObject({
       initializer: { constant: null },
     });
@@ -222,7 +242,7 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function f(): void { let a: byte = 1; a = 200; let b: byte = 100; let r: word = a + b; } function main(): void {}",
     );
-    expect(result.diagnostics.map(({ code }) => code)).toEqual(["W10161"]);
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["W10181", "W10191", "W10161"]);
     expect(typedDeclaration(result, "Game.f").body).toMatchObject({
       statements: [{}, {}, {}, { initializer: { constant: 44n, conversion: "zero-extend" } }],
     });
@@ -233,6 +253,12 @@ describe("scalar analysis implementation", () => {
       "module Game; function f(): void { let a: sbyte = 100; let b: sbyte = 50; let r: sbyte = a + b; } function main(): void {}",
     );
     expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      { code: "W10191", severity: "warning", message: "Variable 'r' is declared but never used" },
       {
         code: "W10100",
         severity: "warning",
@@ -254,7 +280,13 @@ describe("scalar analysis implementation", () => {
     const shifted = analyze(
       "module Game; function f(): void { let value: sbyte = -128; value >>= 1; } function main(): void {}",
     );
-    expect(shifted.diagnostics).toEqual([]);
+    expect(shifted.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
   });
 
   it("keeps poisoned declarations separate from immutable checked siblings", () => {
@@ -273,7 +305,18 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function touch(): void {} function f(): void { for (let i: byte = 0; i < 256; i += 1) { touch(); } } function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'touch' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
   });
 
   it("rejects invalid value forms without crashing or publishing typed functions", () => {
@@ -296,7 +339,13 @@ describe("scalar analysis implementation", () => {
     const ordered = analyze(
       "module Game; const later: word = earlier + 1; const earlier: word = 2; function main(): void {}",
     );
-    expect(ordered.diagnostics).toEqual([]);
+    expect(ordered.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'later' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(ordered, "Game.later").initializer?.constant).toBe(3n);
 
     const local = analyze(
@@ -323,7 +372,48 @@ describe("scalar analysis implementation", () => {
         "function inspect(): void { let observed: byte = global; } function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'touch' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'seen' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterShort' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterSelected' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterCall' is declared but never used",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'inspect' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'observed' is declared but never used",
+      },
+    ]);
     const body = typedDeclaration(result, "Game.f").body;
     expect(body?.statements[1]).toMatchObject({
       otherwise: { statements: [{ initializer: { constant: 101n } }] },
@@ -371,7 +461,13 @@ describe("scalar analysis implementation", () => {
     const returns = analyze(
       "module Game; function value(): byte { while (true) { return 1; } } function main(): void {}",
     );
-    expect(returns.diagnostics).toEqual([]);
+    expect(returns.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'value' is never called and not exported",
+      },
+    ]);
 
     const stride = analyze(
       "module Game; function f(): void { for (let i: byte = 0; i < 255; i += 2) {} } function main(): void {}",
@@ -388,7 +484,15 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function f(): void { let signed: sbyte = 100; signed += 50; let shifted: byte = 1; shifted <<= 8; } function main(): void {}",
     );
-    expect(result.diagnostics).toMatchObject([{ code: "W10100" }, { code: "W10174" }]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      { code: "W10100" },
+      { code: "W10174" },
+    ]);
   });
 
   it("keeps short-circuit facts only when the right side executes", () => {
@@ -402,7 +506,33 @@ describe("scalar analysis implementation", () => {
         "} function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterTrue' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterSkippedOr' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterRunOr' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'afterMaybe' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.f").body).toMatchObject({
       statements: [
         {},
@@ -432,7 +562,18 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function f(flag: boolean): void { let narrow: byte = 1; let wide: word = 2; let chosen: word = flag ? narrow : wide; } function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'chosen' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.f").body?.statements[2]).toMatchObject({
       initializer: {
         type: { name: "word" },
@@ -446,7 +587,13 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; const reduced: byte = 300 - 256; function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'reduced' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.reduced").initializer).toMatchObject({
       type: { name: "byte" },
       constant: 44n,
@@ -457,7 +604,23 @@ describe("scalar analysis implementation", () => {
     const result = analyze(
       "module Game; function target(): void {} function functionAddress(): void { &target; } function scalarAddress(): void { let value: byte = 1; &value; } function main(): void {}",
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'target' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'functionAddress' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'scalarAddress' is never called and not exported",
+      },
+    ]);
     expect(result.obligations).toEqual([]);
     expect(result.declarations.filter(({ kind }) => kind === "unchecked")).toEqual([]);
     expect(typedDeclaration(result, "Game.functionAddress").body?.statements[0]).toMatchObject({

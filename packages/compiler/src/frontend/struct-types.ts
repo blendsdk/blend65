@@ -24,9 +24,7 @@ export function buildPackedStruct(
   resolveField: (type: TypeSyntax) => SemanticType | null,
 ): StructType | null {
   if (declaration.fields.length === 0) {
-    host.diagnose(
-      projectDiagnostic("E10090", "Struct must have at least one field", declaration.span),
-    );
+    // The parser already reports this rejected declaration. Do not repeat its root error.
     return null;
   }
   let offset = 0;
@@ -56,7 +54,9 @@ export function buildPackedStruct(
     if (field.type === null) return null;
     const type = resolveField(field.type);
     if (type === null) return null;
-    fields.push(Object.freeze({ name: field.name, type, offset }));
+    fields.push(
+      Object.freeze({ name: field.name, nameSpan: freezeSourceSpan(field.nameSpan), type, offset }),
+    );
     offset += semanticTypeSize(type);
   }
   if (offset > 65535) {
@@ -71,6 +71,8 @@ export function buildPackedStruct(
   }
   return Object.freeze({
     kind: "struct",
+    name: declaration.name,
+    nameSpan: freezeSourceSpan(declaration.nameSpan),
     binding: Object.freeze({ sourceId: binding.sourceId, span: freezeSourceSpan(binding.span) }),
     size: offset,
     fields: Object.freeze(fields),

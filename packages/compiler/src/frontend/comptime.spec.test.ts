@@ -104,7 +104,13 @@ describe("compile-time functions", () => {
       ].join("\n"),
     );
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'ANSWER' is declared but never used",
+      },
+    ]);
     expect(constant(result, "Game.ANSWER")).toBe(17n);
   });
 
@@ -121,7 +127,18 @@ describe("compile-time functions", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10130",
+        severity: "warning",
+        message: "Condition is always false — this block cannot execute",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'ANSWER' is declared but never used",
+      },
+    ]);
     expect(constant(result, "Game.ANSWER")).toBe(7n);
   });
 
@@ -169,7 +186,10 @@ describe("compile-time resource budget", () => {
     const text = "module Game; const B: byte = 2; const A: byte = 1; function main(): void {}";
     const budget = { maxLiveBytes: 16_777_216, maxActiveCalls: 512 };
     const exact = analyze(text, { ...budget, maxSteps: 2 });
-    expect(exact.diagnostics).toEqual([]);
+    expect(exact.diagnostics).toMatchObject([
+      { code: "W10191", severity: "warning", message: "Variable 'B' is declared but never used" },
+      { code: "W10191", severity: "warning", message: "Variable 'A' is declared but never used" },
+    ]);
     expect(constant(exact, "Game.A")).toBe(1n);
     expect(constant(exact, "Game.B")).toBe(2n);
 
@@ -188,7 +208,13 @@ describe("compile-time resource budget", () => {
     const text = "module Game; const VALUE: byte = 1; function main(): void {}";
     const budget = { maxSteps: 16_777_216, maxActiveCalls: 512 };
     const exact = analyze(text, { ...budget, maxLiveBytes: 2 });
-    expect(exact.diagnostics).toEqual([]);
+    expect(exact.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'VALUE' is declared but never used",
+      },
+    ]);
     expect(constant(exact, "Game.VALUE")).toBe(1n);
 
     const over = analyze(text, { ...budget, maxLiveBytes: 1 });
@@ -211,7 +237,13 @@ describe("compile-time resource budget", () => {
     ].join("\n");
     const budget = { maxSteps: 16_777_216, maxLiveBytes: 16_777_216 };
     const exact = analyze(text, { ...budget, maxActiveCalls: 2 });
-    expect(exact.diagnostics).toEqual([]);
+    expect(exact.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'VALUE' is declared but never used",
+      },
+    ]);
     expect(constant(exact, "Game.VALUE")).toBe(7n);
 
     const over = analyze(text, { ...budget, maxActiveCalls: 1 });
@@ -249,7 +281,13 @@ describe("compile-time integer trigonometry", () => {
     const result = analyze(
       `module Game; const VALUE: ${type} = ${expression}; function main(): void {}`,
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'VALUE' is declared but never used",
+      },
+    ]);
     expect(constant(result, "Game.VALUE")).toBe(expected);
   });
 
@@ -262,7 +300,13 @@ describe("compile-time integer trigonometry", () => {
     const result = analyze(
       ["module Game;", ...declarations, "function main(): void {}"].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject(
+      Array.from({ length: 256 }, (_, phase) => ({
+        code: "W10191",
+        severity: "warning",
+        message: `Variable 'VALUE_${phase}' is declared but never used`,
+      })),
+    );
     const values = Array.from({ length: 256 }, (_, phase) => {
       const value = constant(result, `Game.VALUE_${phase}`);
       expect(value).toBeDefined();

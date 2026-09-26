@@ -114,10 +114,14 @@ function binding(program: TypedProgram, qualifiedName: string): BindingId {
   return found.id;
 }
 
-function completeSemanticProject(project: ProjectSnapshot) {
+/** Require exact fixture warnings before closing the complete semantic program. */
+function completeSemanticProject(
+  project: ProjectSnapshot,
+  expectedWarnings: readonly { code: string; severity: string; message: string }[] = [],
+) {
   const analysis = analyzeProject(project);
   expect(analysis.kind).toBe("complete");
-  expect(analysis.diagnostics).toEqual([]);
+  expect(analysis.diagnostics).toMatchObject(expectedWarnings);
   if (analysis.kind !== "complete") throw new Error(`Expected complete, got ${analysis.kind}`);
   const lowered = buildSemanticProgram(analysis);
   expect(lowered.kind).toBe("complete");
@@ -125,8 +129,12 @@ function completeSemanticProject(project: ProjectSnapshot) {
   return { frontend: analysis.program, semantic: lowered.program };
 }
 
-function completeSemantic(text: string) {
-  return completeSemanticProject(snapshot(text));
+/** Analyze a single-module fixture with its source-derived warnings. */
+function completeSemantic(
+  text: string,
+  expectedWarnings: readonly { code: string; severity: string; message: string }[] = [],
+) {
+  return completeSemanticProject(snapshot(text), expectedWarnings);
 }
 
 function span(start: number): SourceSpan {
@@ -228,7 +236,23 @@ describe("whole-program closure", () => {
       "function dead(): void { c64.vic.setBorderColor(1); }",
       "function main(): void { helper(); }",
     ].join("\n");
-    const { frontend, semantic } = completeSemantic(text);
+    const { frontend, semantic } = completeSemantic(text, [
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'first' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'second' is declared but never used",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'dead' is never called and not exported",
+      },
+    ]);
     const result = closeWholeProgram(semantic);
 
     expect(result.kind).toBe("complete");
@@ -296,7 +320,13 @@ describe("whole-program closure", () => {
         ].join("\n"),
       },
     ]);
-    const { frontend, semantic } = completeSemanticProject(project);
+    const { frontend, semantic } = completeSemanticProject(project, [
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'pair' is declared but never used",
+      },
+    ]);
     const closed = closeWholeProgram(semantic);
     expect(closed.kind).toBe("complete");
 
@@ -341,6 +371,13 @@ describe("whole-program closure", () => {
         "  let result: byte = apply(callbacks[selected], 3);",
         "}",
       ].join("\n"),
+      [
+        {
+          code: "W10191",
+          severity: "warning",
+          message: "Variable 'result' is declared but never used",
+        },
+      ],
     );
     const finiteResult = closeWholeProgram(finite.semantic);
     expect(finiteResult.kind).toBe("complete");

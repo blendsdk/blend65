@@ -20,6 +20,17 @@ immutable oracle. Implementation tests cover internal algorithms and malformed s
 Cross-stage tests use the public compiler service; no private AST-to-backend bypass is allowed
 (AR-P7).
 
+### Diagnostic ownership boundary
+
+The 182 active Chapter-14 keys remain in the single static crosswalk. Of those, ten native
+parser/selector/player-contract diagnostics (E10204, E10132, E10133, E10142, E10143, E10144, E10256, E10257,
+E10258 and E10261) belong to RD-06's already-approved handler, layout and player-contract work;
+E10276 belongs to RD-07's load-success/read proof. Their crosswalk references point to those
+requirements, not to nonexistent RD-04 test files. RD-04 still proves honest unavailable-capability
+rejection and all 171 remaining diagnostic keys. AR-P26 preserves the malformed SpritePad
+fixture in RD-06's pending qualification requirements. A code literal or registry entry alone never
+counts as a tested producer. This reconciles R4.2's existing scope, without adding a deferral.
+
 ## 🚨 Specification Test Cases
 
 > These cases derive from the frozen Specification 4 identity, RD-04 and resolved AR-P1–AR-P9.
@@ -107,7 +118,7 @@ Cross-stage tests use the public compiler service; no private AST-to-backend byp
 | ST-49 | Mutate value, effect order, alias result, flag, check boundary and interrupt return in isolated oracle controls. | Each independent behavior oracle fails its corresponding mutation even when assembly shape or another compiler path agrees. | R4.50, AC-36 |
 | ST-50 | Compare each family fixture with its equal-contract hand-written assembly/frontier. | Generated result is better or equal in every local cost dimension; equal files actionable parity debt; worse blocks qualification. | R4.51, AC-37, AR-P4 |
 | ST-51 | Select an RD-05 API, RD-06 native format, RD-07 transfer and unknown future target. | Each reports its exact unavailable/unknown capability and emits no stub, package or support score. | R4.48, AC-38, AR-P1 |
-| ST-52 | Scan shared representations for C64 addresses/device assumptions and exercise symbolic bank/space/transfer/clock fields. | Core semantics stay target-neutral while later target facts remain representable; no speculative target package exists. | R4.54, AC-41 |
+| ST-52 | Audit shared representations for C64 addresses/device assumptions and verify current symbolic identities, effects and placement keep their proper owners. | Core semantics stay target-neutral. Add no unused future-target fields: concrete banking/clock facts belong to RD-05, transfers to RD-07, and DMA/address spaces to the separate C64U feature when consumed. | R4.54, AC-41, AR-P22 |
 | ST-53 | Complete all family tests, ACME cases and the bounded sequential VICE corpus on Linux. | One closeout run is green and recorded as `VICE-verified / hardware-unverified`; missing native Windows evidence remains assigned to RD-10. | R4.52, AC-40, AR-P3, AR-P5 |
 | ST-54 | Re-scan the ambiguity register, RD Won't Have, `future-considerations.md` and v4 expressiveness ledger after implementation. | Every expired rationale has a named owner/backlog row; the ledger gate fails if a recorded restriction disappears without retirement; no rollout deferral points at closed RD-04. | R4.54, AC-42, AR-P9 |
 

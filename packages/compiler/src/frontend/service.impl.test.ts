@@ -227,14 +227,27 @@ describe("analysis service implementation boundaries", () => {
   });
 
   it("should sort located diagnostics before reports without a source span", () => {
+    const diagnostics = sortAnalysisDiagnostics([
+      projectDiagnostic("UNLOCATED", "No source location"),
+      projectDiagnostic("LOCATED", "Located failure", { sourceId: "game.blend", start: 4, end: 8 }),
+    ]);
+    expect(diagnostics.map(({ code }) => code)).toEqual(["LOCATED", "UNLOCATED"]);
+    expect(diagnostics[0]?.primarySpan).not.toBeNull();
+    expect(diagnostics[1]?.primarySpan).toBeNull();
+  });
+
+  it("should locate a missing entry point at its module header before later source errors", () => {
     const result = analyzeProject(
       snapshot([source("src/game.blend", "module Game; function helper(): void { missing; }")]),
     );
-
     expect(result.kind).toBe("error");
-    expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10239", "E10020"]);
-    expect(result.diagnostics[0]?.primarySpan).not.toBeNull();
-    expect(result.diagnostics[1]?.primarySpan).toBeNull();
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["E10020", "E10239"]);
+    expect(result.diagnostics[0]?.primarySpan).toEqual({
+      sourceId: "src/game.blend",
+      start: 0,
+      end: 12,
+    });
+    expect(result.diagnostics[1]?.primarySpan).not.toBeNull();
   });
 
   it("should widen a callee-indexed aggregate effect to the caller aggregate", () => {

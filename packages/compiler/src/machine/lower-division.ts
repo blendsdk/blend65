@@ -16,7 +16,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** One source-owned divider shared by quotient and remainder sites of the same width/sign. */
 export interface DivideHelper {

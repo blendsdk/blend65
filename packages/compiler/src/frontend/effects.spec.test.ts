@@ -57,10 +57,14 @@ type CompleteResult = Extract<ReturnType<typeof analyzeProject>, { kind: "comple
 type Program = CompleteResult["program"];
 type Binding = Program["bindings"][number];
 
-function complete(project: ProjectSnapshot): CompleteResult {
+/** Analyze a fixture and require exactly its source-derived warning list. */
+function complete(
+  project: ProjectSnapshot,
+  expectedWarnings: readonly { code: string; severity: string; message: string }[] = [],
+): CompleteResult {
   const result = analyzeProject(project);
   expect(result.kind).toBe("complete");
-  expect(result.diagnostics).toEqual([]);
+  expect(result.diagnostics).toMatchObject(expectedWarnings);
   if (result.kind !== "complete") throw new Error(`Expected complete analysis, got ${result.kind}`);
   return result;
 }
@@ -119,6 +123,7 @@ describe("runtime initializer scheduling", () => {
         source("src/y-a.blend", aText),
         source("src/x-b.blend", bText),
       ]),
+      [{ code: "W10191", severity: "warning", message: "Variable 'a' is declared but never used" }],
     ).program;
     const second = complete(
       snapshot(
@@ -129,6 +134,7 @@ describe("runtime initializer scheduling", () => {
         ],
         "/elsewhere",
       ),
+      [{ code: "W10191", severity: "warning", message: "Variable 'a' is declared but never used" }],
     ).program;
 
     expect(orderNames(first)).toEqual(["A.x", "B.x", "Game.z", "Game.a"]);
@@ -144,7 +150,9 @@ describe("runtime initializer scheduling", () => {
       "function f(): word { return b; }",
       "function main(): void {}",
     ].join("\n");
-    const callProgram = complete(snapshot([source("src/game.blend", callText)])).program;
+    const callProgram = complete(snapshot([source("src/game.blend", callText)]), [
+      { code: "W10191", severity: "warning", message: "Variable 'a' is declared but never used" },
+    ]).program;
     const b = binding(callProgram, "Game.b");
 
     expect(orderNames(callProgram)).toEqual(["Game.b", "Game.a"]);
@@ -204,6 +212,13 @@ describe("runtime initializer scheduling", () => {
     ].join("\n");
     const first = complete(
       snapshot([source("src/not-math.blend", gameText), source("src/not-game.blend", mathText)]),
+      [
+        {
+          code: "W10191",
+          severity: "warning",
+          message: "Variable 'result' is declared but never used",
+        },
+      ],
     ).program;
     const second = complete(
       snapshot(
@@ -213,6 +228,13 @@ describe("runtime initializer scheduling", () => {
         ],
         "/moved",
       ),
+      [
+        {
+          code: "W10191",
+          severity: "warning",
+          message: "Variable 'result' is declared but never used",
+        },
+      ],
     ).program;
 
     expect(orderNames(first)).toEqual(["Math.value", "Game.result"]);
@@ -235,7 +257,23 @@ describe("finite function effects", () => {
       "function caller(address: word): byte { mutate(items); return io(address); }",
       "function main(): void {}",
     ].join("\n");
-    const program = complete(snapshot([source("src/game.blend", text)])).program;
+    const program = complete(snapshot([source("src/game.blend", text)]), [
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'mutate' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'io' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'caller' is never called and not exported",
+      },
+    ]).program;
     const state = binding(program, "Game.state");
     const items = binding(program, "Game.items");
     const values = program.bindings.find(

@@ -2,6 +2,8 @@ import type { MachineBlock, MachineInstruction, MachineOperand } from "../machin
 import type { StorageClosureCertificate } from "../storage/storage-types.js";
 import type { TargetProfile } from "../target/profile.js";
 import { validateAcmeInput, type CompleteC64Layout } from "./acme-validate.js";
+import { acmeLabelName, acmeLabelNames } from "./acme-labels.js";
+export { acmeLabelName } from "./acme-labels.js";
 
 /** Inputs to terminal deterministic ACME source serialization. */
 export interface AcmeSerializationInput {
@@ -47,19 +49,17 @@ export type AcmeSerializationResult =
       readonly diagnostic: string;
     };
 
-/** Convert one compiler identity to a collision-free ASCII-only ACME label. */
-export function acmeLabelName(id: string): string {
-  return `b65_${Buffer.from(id, "utf8").toString("hex")}`;
-}
-
 /** Format an unsigned integer with an explicit ACME hexadecimal width. */
 function hex(value: number, digits: number): string {
   return `$${value.toString(16).padStart(digits, "0")}`;
 }
 
 /** Format a symbolic expression with explicit parentheses and offset arithmetic. */
-function labelExpression(operand: Extract<MachineOperand, { readonly kind: "label" }>): string {
-  const label = acmeLabelName(operand.label);
+function labelExpression(
+  operand: Extract<MachineOperand, { readonly kind: "label" }>,
+  labelName: (id: string) => string,
+): string {
+  const label = labelName(operand.label);
   const offset = operand.offset ?? 0;
   if (offset === 0) return label;
   const magnitude = hex(Math.abs(offset), 4);
@@ -67,7 +67,10 @@ function labelExpression(operand: Extract<MachineOperand, { readonly kind: "labe
 }
 
 /** Format one already-bound operand according to its selected physical addressing mode. */
-function operandText(instruction: MachineInstruction): string | null {
+function operandText(
+  instruction: MachineInstruction,
+  labelName: (id: string) => string,
+): string | null {
   const operand = instruction.operand;
   if (instruction.mode === "implied" || instruction.mode === "accumulator") {
     return operand === null ? "" : null;
@@ -85,7 +88,7 @@ function operandText(instruction: MachineInstruction): string | null {
         : 4,
     );
   } else if (operand.kind === "label") {
-    const expression = labelExpression(operand);
+    const expression = labelExpression(operand, labelName);
     if (operand.addressByte === "low") value = `<(${expression})`;
     else if (operand.addressByte === "high") value = `>(${expression})`;
     else value = expression;
@@ -139,8 +142,11 @@ function mnemonic(instruction: MachineInstruction): string {
 }
 
 /** Serialize one physical instruction without changing its selected form. */
-function instructionLine(instruction: MachineInstruction): string | null {
-  const operand = operandText(instruction);
+function instructionLine(
+  instruction: MachineInstruction,
+  labelName: (id: string) => string,
+): string | null {
+  const operand = operandText(instruction, labelName);
   if (operand === null) return null;
   return operand.length === 0
     ? `  ${mnemonic(instruction)}`
@@ -148,17 +154,20 @@ function instructionLine(instruction: MachineInstruction): string | null {
 }
 
 /** Serialize the structured transfer at the end of one block. */
-function terminatorLines(block: MachineBlock): readonly string[] {
+function terminatorLines(
+  block: MachineBlock,
+  labelName: (id: string) => string,
+): readonly string[] {
   const terminator = block.terminator;
   if (terminator.kind === "fallthrough" || terminator.kind === "unreachable") return [];
   if (terminator.kind === "return") return ["  rts"];
-  if (terminator.kind === "jump") return [`  jmp+2 ${acmeLabelName(terminator.target)}`];
+  if (terminator.kind === "jump") return [`  jmp+2 ${labelName(terminator.target)}`];
   if (terminator.kind === "branch") {
-    return [`  ${terminator.opcode} ${acmeLabelName(terminator.target)}`];
+    return [`  ${terminator.opcode} ${labelName(terminator.target)}`];
   }
   return [
-    `  ${terminator.opcode} ${acmeLabelName(terminator.fallthrough)}`,
-    `  jmp+2 ${acmeLabelName(terminator.jump.target)}`,
+    `  ${terminator.opcode} ${labelName(terminator.fallthrough)}`,
+    `  jmp+2 ${labelName(terminator.jump.target)}`,
   ];
 }
 
@@ -192,10 +201,12 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
   if (validation.kind === "error") return validation;
 
   const lines: string[] = ["!cpu 6502"];
+  const labels = acmeLabelNames(input.layout.program);
+  const labelName = (id: string) => labels.get(id) ?? acmeLabelName(id);
   const expectedLabels: AcmeExpectedLabel[] = [];
   const addLabel = (id: string, address: number) => {
-    expectedLabels.push(Object.freeze({ id, name: acmeLabelName(id), address }));
-    lines.push(`${acmeLabelName(id)}:`);
+    expectedLabels.push(Object.freeze({ id, name: labelName(id), address }));
+    lines.push(`${labelName(id)}:`);
   };
 
   const basic = input.layout.intervals.find(({ id }) => id === "basic.stub");
@@ -219,12 +230,15 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
   for (const { fn, block } of blocks) {
     lines.push(`* = ${hex(block.origin!, 4)}`);
     if (!emittedFunctions.has(fn.id)) {
+      lines.push(
+        `; routine ${JSON.stringify(fn.sourceName ?? fn.id.replace(/[^A-Za-z0-9_]/g, "_"))}`,
+      );
       addLabel(fn.id, functionLabels.get(fn.id)!);
       emittedFunctions.add(fn.id);
     }
     addLabel(block.label, block.origin!);
     for (const instruction of block.instructions) {
-      const line = instructionLine(instruction);
+      const line = instructionLine(instruction, labelName);
       if (line === null) {
         return Object.freeze({
           kind: "error",
@@ -234,7 +248,7 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
       }
       lines.push(line);
     }
-    lines.push(...terminatorLines(block));
+    lines.push(...terminatorLines(block, labelName));
   }
 
   const codeInterval = input.layout.intervals.find(({ id }) => id === "program.code");
@@ -243,6 +257,10 @@ export function serializeAcme(input: AcmeSerializationInput): AcmeSerializationR
   );
   for (const interval of dataIntervals) {
     lines.push(`* = ${hex(interval.start, 4)}`);
+    const data = input.layout.program.data.find(({ id }) => id === interval.id);
+    lines.push(
+      `; ${interval.kind} ${JSON.stringify(data?.sourceName ?? interval.id.replace(/[^A-Za-z0-9_]/g, "_"))} (${interval.end - interval.start + 1} bytes)`,
+    );
     addLabel(interval.id, interval.start);
     if (interval.bytes === null) continue;
     if (interval.kind === "fill") {

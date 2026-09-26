@@ -1,5 +1,5 @@
 import type { CompleteC64Layout } from "../artifacts/acme-validate.js";
-import { acmeLabelName } from "../artifacts/acme-serializer.js";
+import { acmeLabelName, acmeLabelNames } from "../artifacts/acme-labels.js";
 import type { EvidenceRecord } from "../artifacts/evidence-types.js";
 import { bindingIdentityKey } from "../frontend/semantic-types.js";
 import type { BindingId, SemanticType } from "../frontend/semantic-types.js";
@@ -245,6 +245,8 @@ function callsIn(
 
 /** Build the first-producer debug graph from final semantic, storage, layout, and label facts. */
 export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRecords {
+  const labels = acmeLabelNames(input.layout.program);
+  const labelName = (id: string) => labels.get(id) ?? acmeLabelName(id);
   const sourceIndexes = new Map(
     input.snapshot.sources.map((source, index) => [source.sourceId, index] as const),
   );
@@ -382,7 +384,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
             Object.freeze({
               id: fn.machineIds.length === 1 && fn.kind === "ordinary" ? "default" : machineId,
               kind: fn.kind,
-              label: acmeLabelName(machineId),
+              label: labelName(machineId),
               rangeIndexes: Object.freeze(
                 rangeIndexes.filter(
                   (rangeIndex) =>
@@ -464,7 +466,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       scope: fn.id.sourceId,
       origin: Object.freeze({ kind: "source", span: indexedSpan(fn.source, sourceIndexes) }),
       linkage: "internal",
-      labels: Object.freeze(sourceFunction.machineIds.map(acmeLabelName)),
+      labels: Object.freeze(sourceFunction.machineIds.map(labelName)),
       liveRangeIndexes: Object.freeze([]),
       availability:
         sourceFunction.machineIds.length === 1
@@ -492,7 +494,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       scope: global.id.sourceId,
       origin: Object.freeze({ kind: "source", span: indexedSpan(global.source, sourceIndexes) }),
       linkage: "internal",
-      labels: Object.freeze([acmeLabelName(interval.id)]),
+      labels: Object.freeze([labelName(interval.id)]),
       liveRangeIndexes: Object.freeze([]),
       availability: Object.freeze({
         kind: "available",
@@ -526,7 +528,7 @@ export function deriveDebugRecords(input: DebugDerivationInput): DerivedDebugRec
       scope: "asset",
       origin: Object.freeze({ kind: "generated", cause: "asset" }),
       linkage: "internal",
-      labels: Object.freeze([acmeLabelName(interval.id)]),
+      labels: Object.freeze([labelName(interval.id)]),
       liveRangeIndexes: Object.freeze([]),
       availability: Object.freeze({
         kind: "available",

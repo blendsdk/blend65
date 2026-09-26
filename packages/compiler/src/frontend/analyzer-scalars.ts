@@ -106,14 +106,6 @@ export function analyzeScalarModuleVariable(
         ),
       );
     }
-  } else if (declaration.declarationKind === "const") {
-    host.diagnostics.push(
-      errorDiagnostic(
-        "E10190",
-        `Const declaration '${declaration.name}' requires an initializer`,
-        declaration.nameSpan,
-      ),
-    );
   }
   if (type !== null) {
     diagnoseArrayInitialization(declaration, type, initializer, (diagnostic) =>
@@ -125,6 +117,7 @@ export function analyzeScalarModuleVariable(
   }
   if (
     type === null ||
+    (declaration.declarationKind === "const" && declaration.initializer === null) ||
     host.errorCount() !== before ||
     (declaration.initializer !== null && initializer === null)
   ) {
@@ -186,15 +179,6 @@ export function analyzeScalarLocal(
     );
     return null;
   }
-  if (declaration.declarationKind === "const" && declaration.initializer === null) {
-    host.diagnostics.push(
-      errorDiagnostic(
-        "E10190",
-        `Const declaration '${declaration.name}' requires an initializer`,
-        declaration.nameSpan,
-      ),
-    );
-  }
   if (
     declaration.declarationKind === "const" &&
     (type?.kind === "scalar" || type?.kind === "enum") &&
@@ -217,9 +201,33 @@ export function analyzeScalarLocal(
   }
   if (
     type === null ||
+    (declaration.declarationKind === "const" && declaration.initializer === null) ||
     host.errorCount() !== before ||
     (declaration.initializer !== null && initializer === null)
   ) {
+    // A rejected initializer does not remove its declaration from lexical scope.
+    // Keep a poisoned binding so later uses recover without a false unknown-name error.
+    const span = freezeSourceSpan(declaration.span);
+    const binding: SemanticBinding = Object.freeze({
+      id: Object.freeze({ sourceId: span.sourceId, span }),
+      name: declaration.name,
+      qualifiedName: null,
+      declaration: span,
+      exported: false,
+      storage: declaration.declarationKind === "const" ? "constant" : "local",
+      type: null,
+    });
+    const state: ScalarValueState = {
+      binding,
+      nameSpan: freezeSourceSpan(declaration.nameSpan),
+      readonly: declaration.declarationKind === "const",
+      known: null,
+      initialized: false,
+      initializedRanges: Object.freeze([]),
+      initializedPaths: Object.freeze([]),
+    };
+    scope.values.set(declaration.name, state);
+    host.stateByKey.set(bindingIdentityKey(binding.id), state);
     return null;
   }
   const binding = host.createBinding(

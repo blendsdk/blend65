@@ -13,7 +13,7 @@ import {
   type AggregateAddressCache,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Compile-time description of one narrowly proved fixed-stride loop. */
 interface AggregateInductionPlan {

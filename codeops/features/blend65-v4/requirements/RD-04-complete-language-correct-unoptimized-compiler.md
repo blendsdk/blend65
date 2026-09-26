@@ -398,8 +398,10 @@ language semantics.
   successful analysis; the minimum VS Code client from RD-03 receives the expanded diagnostics but
   does not grow into RD-09's production feature set here. (AR-021, AR-022)
 - [ ] **R4.54 — Recheck portability, deferrals, and expressiveness.** Verify that complete shared
-  semantics/IR contain no C64 addresses or device assumptions and that C64U/banked/transfer-only
-  storage remains representable by later owners. Re-scan the ambiguity register, Specification 4
+  semantics/IR contain no C64 addresses or device assumptions and preserve current symbolic
+  identities, effects and placement for later owners. Do not invent unused future-target fields:
+  RD-05 supplies concrete banking/clock facts, RD-07 transfer facts, and the separate C64U target
+  feature its DMA/address spaces when those consumers exist (approved AR-P22). Re-scan the ambiguity register, Specification 4
   future considerations, RD Won't Have sections, and expressiveness ledger; assign every expired
   deferral or reachable unidiomatic restriction before closeout. (AR-002, AR-024, AR-033)
 
@@ -768,9 +770,11 @@ without reimplementing parsing, name resolution, type analysis, target facts, or
     codegen, packaging, or emulator control.
 40. [ ] **AC-40 — Impact-based closeout:** Evidence records focused family checks and one complete
     RD-04 boundary run; no repeated unrelated v3 readiness, broad game corpus, or wall-clock gate ran.
-41. [ ] **AC-41 — C64U/portability seam:** Shared representations contain no C64 address/device
-    assumptions and retain symbolic address-space, bank, transfer, DMA-effect, and clock ownership
-    required by later target work without speculative packages.
+41. [ ] **AC-41 — C64U/portability seam:** Audit shared representations for C64 address/device
+    assumptions and verify current symbolic identities, effects and placement retain their proper
+    owners. Add no unused future-target fields or speculative packages. RD-05 owns concrete
+    banking/clock facts, RD-07 transfer facts, and the separate C64U feature DMA/address spaces
+    when their first consumers exist (approved AR-P22).
 42. [ ] **AC-42 — Deferral-expiry closeout:** The closeout answers whether RD-04 invalidated any
     deferral rationale in the ambiguity register, RD Won't Have sections, Specification 4 future
     considerations, expert records, or expressiveness ledger, and assigns every expired item before

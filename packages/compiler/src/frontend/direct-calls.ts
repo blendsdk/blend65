@@ -1,5 +1,6 @@
 import { projectDiagnostic } from "../project/diagnostics.js";
-import { integerFacts } from "./constants.js";
+import { integerFacts, scalarWarning } from "./constants.js";
+import { bindingIdentityKey } from "./semantic-types.js";
 import { semanticTypeName, semanticTypesEqual } from "./aggregate-types.js";
 import { clearCallVisibleScalarFacts } from "./flow-facts.js";
 import type {
@@ -17,6 +18,7 @@ export type AnalyzeCallExpression = (
   expression: Expr,
   expected: SemanticType | null,
   context: ScalarExpressionContext,
+  reportMismatch?: (actual: SemanticType) => void,
 ) => ScalarExpressionResult;
 
 /** Name resolver which distinguishes a call target from an ordinary value read. */
@@ -26,7 +28,7 @@ export type ResolveCallName = (
 ) => ScalarExpressionResult | null;
 
 /** Flatten a member-only callee into its module-qualified spelling. */
-function qualifiedCallName(expression: Expr): string | null {
+export function qualifiedCallName(expression: Expr): string | null {
   if (expression.kind === "name") return expression.name;
   if (expression.kind !== "member") return null;
   const object = qualifiedCallName(expression.object);
@@ -84,12 +86,23 @@ export function analyzeDirectCall(
   const direct = calleeBinding !== null && host.isFunction(calleeBinding);
   const calleeMode = direct && calleeBinding !== null ? host.functionMode?.(calleeBinding) : null;
   const callerMode = context.caller === null ? null : host.functionMode?.(context.caller);
+  const declaration = host.resolveName(host.sourceText(expression.callee.span), context);
+  const related =
+    declaration === null ? [] : [{ span: declaration.nameSpan, message: "Declared here" }];
+  // Module resolution already reports calls to the entry point. Do not turn
+  // that rejected call into a second, dependent recursion failure.
+  if (direct && declaration?.binding.name === "main") {
+    for (const argument of expression.arguments) analyze(argument, null, context);
+    return { node: null, exact: null };
+  }
   if (calleeMode === "interrupt") {
     host.diagnose(
       projectDiagnostic(
         "E10051",
-        `Interrupt function '${callee.node.name ?? callee.node.member ?? "handler"}' is callback-only and cannot be called directly`,
-        expression.callee.span,
+        `Cannot call interrupt function '${callee.node.name ?? callee.node.member ?? "handler"}' directly — use '&${callee.node.name ?? callee.node.member ?? "handler"}' for installation in an interrupt-entry sink`,
+        expression.span,
+        null,
+        related,
       ),
     );
     for (const argument of expression.arguments) analyze(argument, null, context);
@@ -110,13 +123,20 @@ export function analyzeDirectCall(
       projectDiagnostic(
         "E10175",
         `'${callee.node.name ?? callee.node.member ?? "value"}' is not a function — cannot call a '${semanticTypeName(callee.node.type)}' value`,
-        expression.callee.span,
+        expression.span,
+        null,
+        related,
       ),
     );
     for (const argument of expression.arguments) analyze(argument, null, context);
     return { node: null, exact: null };
   }
   const name = callee.node.name ?? callee.node.member ?? "<function>";
+  const qualifiedName =
+    callee.node.qualifiedModule === undefined
+      ? (host.resolveName(host.sourceText(expression.callee.span), context)?.binding
+          .qualifiedName ?? name)
+      : `${callee.node.qualifiedModule.name}.${name}`;
   let valid = expression.arguments.length === signature.parameters.length;
   if (!valid) {
     host.diagnose(
@@ -143,6 +163,20 @@ export function analyzeDirectCall(
         ...argumentContext,
         ordinalContext: false,
       },
+      parameter === undefined
+        ? undefined
+        : (actual) =>
+            host.diagnose(
+              projectDiagnostic(
+                "E10172",
+                `Argument type mismatch — parameter '${parameter.name ?? String(index + 1)}' of '${name}()' expects '${semanticTypeName(parameter.type)}', found '${semanticTypeName(actual)}'`,
+                argument.span,
+                null,
+                parameter.nameSpan === undefined
+                  ? []
+                  : [{ span: parameter.nameSpan, message: "Parameter declared here" }],
+              ),
+            ),
     );
     if (result.node === null) {
       valid = false;
@@ -157,8 +191,26 @@ export function analyzeDirectCall(
       host.diagnose(
         projectDiagnostic(
           parameter.type.kind === "struct" ? "E10094" : "E10122",
-          `Cannot pass const aggregate to mutable parameter ${index + 1} of '${name}()'`,
+          parameter.type.kind === "struct"
+            ? `Cannot pass const struct '${host.sourceText(argument.span)}' to a mutable parameter — declare the parameter as 'name: const ${semanticTypeName(parameter.type)}' or copy the value`
+            : `Cannot pass const '${host.sourceText(argument.span)}' to mutable parameter '${parameter.name ?? String(index + 1)}' — make the parameter const or copy the value`,
           argument.span,
+          null,
+          [
+            ...(parameter.type.kind !== "struct"
+              ? []
+              : [
+                  {
+                    span:
+                      host.resolveName(host.sourceText(argument.span), context)?.nameSpan ??
+                      result.node.place.binding.span,
+                    message: "Const struct declared here",
+                  },
+                ]),
+            ...(parameter.nameSpan === undefined
+              ? []
+              : [{ span: parameter.nameSpan, message: "Mutable parameter is here" }]),
+          ],
         ),
       );
       valid = false;
@@ -167,13 +219,23 @@ export function analyzeDirectCall(
       parameter?.type.kind === "interrupt-handler" &&
       result.node.type.kind !== "interrupt-handler"
     ) {
+      const operand = result.node.operand;
+      const functionName =
+        operand !== undefined && "type" in operand
+          ? host.sourceText(operand.span)
+          : host.sourceText(argument.span);
+      const declaration = host.resolveName(functionName, context);
       host.diagnose(
         projectDiagnostic(
           result.node.type.kind === "function" ? "E10244" : "E10247",
           result.node.type.kind === "function"
-            ? `Ordinary function value '${host.sourceText(argument.span)}' cannot be installed in interrupt-handler sink '${name}' — use an interrupt function`
-            : `Cannot prove the entry ABI of the value passed to function-address sink '${name}' — pass a provenance-preserving handler address`,
+            ? `Ordinary function value '${functionName}' cannot be installed in interrupt-handler sink '${qualifiedName}' — use an interrupt function`
+            : `Cannot prove the entry ABI of the value passed to function-address sink '${qualifiedName}' — pass a provenance-preserving function address or use an explicit raw hardware boundary`,
           argument.span,
+          null,
+          declaration === null || result.node.type.kind !== "function"
+            ? []
+            : [{ span: declaration.nameSpan, message: "Ordinary function is declared here" }],
         ),
       );
       valid = false;
@@ -214,6 +276,33 @@ export function analyzeDirectCall(
     valid = false;
   }
   if (!valid) return { node: null, exact: null };
+  // Only equal, statically known byte ranges prove aliasing. A shared array root
+  // with two unknown indices is not enough to diagnose this advisory.
+  const mutableStructs = new Map<string, number>();
+  arguments_.forEach((argument, index) => {
+    const parameter = signature.parameters[index];
+    const place = argument.place;
+    if (parameter?.type.kind !== "struct" || parameter.readonly || place?.byteRange == null) return;
+    const key = `${bindingIdentityKey(place.binding)}:${place.byteRange.start}:${place.byteRange.end}`;
+    const name = parameter.name ?? String(index + 1);
+    const first = mutableStructs.get(key);
+    if (first !== undefined)
+      host.diagnose(
+        Object.freeze({
+          ...scalarWarning(
+            "W10112",
+            `Parameters '${signature.parameters[first]?.name ?? String(first + 1)}' and '${name}' may alias the same struct`,
+            expression.span,
+          ),
+          related: Object.freeze(
+            [signature.parameters[first]?.nameSpan, parameter.nameSpan].flatMap((span) =>
+              span === undefined ? [] : [{ span, message: "Mutable parameter declared here" }],
+            ),
+          ),
+        }),
+      );
+    else mutableStructs.set(key, index);
+  });
   if (context.caller !== null && direct && calleeBinding !== null) {
     host.call(
       Object.freeze({ caller: context.caller, callee: calleeBinding, span: expression.span }),
@@ -223,6 +312,7 @@ export function analyzeDirectCall(
   const typed = createScalarTypedExpression(expression, signature.returnType, null, {
     callee: callee.node,
     calleeDisplay: host.sourceText(expression.callee.span),
+    ...(declaration === null ? {} : { calleeDeclaration: declaration.nameSpan }),
     arguments: Object.freeze(arguments_),
     signature,
     ...(signature.returnType.kind === "array"

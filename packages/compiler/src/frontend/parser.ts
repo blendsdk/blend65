@@ -59,6 +59,8 @@ class Parser implements ExpressionContext, StatementContext {
   expressionDepth = 0;
   /** Nested block count used to keep hostile input inside the host stack limit. */
   blockDepth = 0;
+  /** Source function containing the current block, never a runtime scope. */
+  functionName: string | null = null;
 
   /** Preserve the immutable source while sharing lexer output. */
   constructor(readonly source: SourceRecord) {
@@ -371,22 +373,22 @@ class Parser implements ExpressionContext, StatementContext {
     return this.spanFrom(start, end);
   }
 
-  /** Detect a later module declaration only when it appears outside braces. */
-  hasLaterTopLevelModule(): boolean {
+  /** Locate a later module declaration without parsing any declaration body. */
+  laterTopLevelModule(): number | null {
     let braceDepth = 0;
     for (let index = this.index + 1; index < this.tokens.length; index += 1) {
       const kind = this.tokens[index]!.kind;
       if (kind === TokenKind.LBRACE) braceDepth += 1;
       else if (kind === TokenKind.RBRACE) braceDepth = Math.max(0, braceDepth - 1);
-      else if (braceDepth === 0 && kind === TokenKind.KW_MODULE) return true;
+      else if (braceDepth === 0 && kind === TokenKind.KW_MODULE) return index;
     }
-    return false;
+    return null;
   }
 
   /** Parse the complete source root and all admitted module items. */
   parse(): ParseResult {
     let header: ModuleHeader | null = null;
-    const hasLateModule = !this.check(TokenKind.KW_MODULE) && this.hasLaterTopLevelModule();
+    const hasLateModule = !this.check(TokenKind.KW_MODULE) && this.laterTopLevelModule() !== null;
     if (this.check(TokenKind.KW_MODULE)) header = this.parseModuleHeader();
     else if (!hasLateModule) {
       this.addDiagnostic(
@@ -418,6 +420,10 @@ class Parser implements ExpressionContext, StatementContext {
               "E10002",
               "Only one module declaration is allowed per source file",
               candidate?.span ?? this.current.span,
+              null,
+              header === null
+                ? []
+                : [{ span: header.span, message: "First module declaration is here" }],
             ),
           );
         }
@@ -563,6 +569,22 @@ export function parseSource(source: SourceRecord): ParseResult {
 export function readModuleHeader(source: SourceRecord): HeaderResult {
   const parser = new Parser(source);
   if (!parser.check(TokenKind.KW_MODULE)) {
+    const later = parser.laterTopLevelModule();
+    if (later !== null) {
+      while (parser.index < later) parser.advance();
+      const header = parser.parseModuleHeader();
+      return Object.freeze({
+        header,
+        diagnostics: Object.freeze([
+          projectDiagnostic(
+            "E10237",
+            "Module declaration must be the first source item after leading comments",
+            header?.span ?? parser.current.span,
+          ),
+        ]),
+        complete: false,
+      });
+    }
     const boundary = parser.current.span.start;
     const diagnostics = sortFrontendDiagnostics([
       ...parser.diagnostics.filter(

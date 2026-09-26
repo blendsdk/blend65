@@ -30,7 +30,7 @@ async function runProgram(source: readonly string[]): Promise<number[]> {
     if (built.kind !== "success") throw new Error("Function-value build did not succeed");
 
     const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
-    const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+    const returnLabel = `b65_[A-Za-z0-9_]+_${Buffer.from("startup.restore").toString("hex")}`;
     const returnMatch = labels.match(
       new RegExp(`^\\s*${returnLabel}\\s*=\\s*\\$([0-9a-f]+)`, "imu"),
     );

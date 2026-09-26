@@ -21,7 +21,7 @@ import {
   type AggregateAddressCache,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Packed offset facts recovered from a place's declared root type. */
 interface AggregateAddressPlan {

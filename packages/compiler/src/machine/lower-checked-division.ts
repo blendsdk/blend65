@@ -1,7 +1,12 @@
 import type { BinaryOperation } from "../semantic/operations.js";
 import { machineCost, machineInstruction, machineState, operandForValue } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
-import { isSignedType, loweringFailure, type FunctionLoweringState, typeBytes } from "./lower.js";
+import {
+  isSignedType,
+  loweringFailure,
+  type FunctionLoweringState,
+  typeBytes,
+} from "./lower-state.js";
 import { lowerOperation } from "./lower-operation.js";
 
 /** Split a selected divider call after its operand staging, before any division executes. */

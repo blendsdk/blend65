@@ -192,20 +192,23 @@ export function analyzeStructuredSwitch(
   const baseline = snapshotScalarFacts(scope);
   const exits: ScalarFactSnapshot[] = [];
   const clauses: TypedSwitchClause[] = [];
-  let defaultSeen = false;
+  let firstDefault: SourceSpan | null = null;
   let priorFallthrough: ScalarFactSnapshot | null = null;
   for (const [index, clause] of statement.clauses.entries()) {
     if (clause.values === null) {
-      if (defaultSeen) {
+      const defaultSpan = { ...clause.span, end: clause.span.start + "default".length };
+      if (firstDefault !== null) {
         host.diagnose(
           projectDiagnostic(
             "E10076",
             "Only one 'default' clause is allowed per switch statement",
-            clause.span,
+            defaultSpan,
+            null,
+            [{ span: firstDefault, message: "First default clause is here" }],
           ),
         );
       }
-      defaultSeen = true;
+      firstDefault ??= defaultSpan;
     }
     restoreScalarFacts(baseline);
     if (priorFallthrough !== null) mergeScalarFacts(baseline, [baseline, priorFallthrough]);
@@ -223,7 +226,7 @@ export function analyzeStructuredSwitch(
           projectDiagnostic(
             "E10074",
             "'fallthrough' must be the last statement in a case body and cannot be nested in another control-flow block",
-            misplaced,
+            { ...misplaced, end: misplaced.start + "fallthrough".length },
           ),
         );
         break;
@@ -231,11 +234,10 @@ export function analyzeStructuredSwitch(
     }
     if (falls && index === statement.clauses.length - 1) {
       host.diagnose(
-        projectDiagnostic(
-          "E10073",
-          "'fallthrough' has no effect in the last case of a switch",
-          last.span,
-        ),
+        projectDiagnostic("E10073", "'fallthrough' has no effect in the last case of a switch", {
+          ...last.span,
+          end: last.span.start + "fallthrough".length,
+        }),
       );
     }
     const bodySource: Block = {
@@ -256,7 +258,7 @@ export function analyzeStructuredSwitch(
       }),
     );
   }
-  if (!defaultSeen) exits.push(baseline);
+  if (firstDefault === null) exits.push(baseline);
   mergeScalarFacts(baseline, exits);
   return Object.freeze({
     kind: "switch",

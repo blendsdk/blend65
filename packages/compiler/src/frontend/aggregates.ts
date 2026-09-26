@@ -3,10 +3,10 @@ import {
   createScalarTypedExpression,
   integerFacts,
   isIntegerType,
+  scalarWarning,
   SCALAR_TYPES,
 } from "./constants.js";
-import { clearCallVisibleScalarFacts } from "./flow-facts.js";
-import { analyzeMachineIntrinsic } from "./machine-intrinsics.js";
+import { analyzeBuiltinCall } from "./builtin-calls.js";
 import {
   analyzeEncodedLiteral,
   analyzeEncodingCall,
@@ -27,7 +27,6 @@ export {
 } from "./aggregate-types.js";
 import type {
   ArrayType,
-  FunctionSignature,
   ScalarExpressionContext,
   ScalarExpressionHost,
   ScalarExpressionResult,
@@ -42,6 +41,7 @@ export type AnalyzeExpression = (
   expression: Expr,
   expected: SemanticType | null,
   context: ScalarExpressionContext,
+  reportMismatch?: (actual: SemanticType) => void,
 ) => ScalarExpressionResult;
 
 /** Apply an aggregate declaration, argument, or return context. */
@@ -122,8 +122,8 @@ export function analyzeAggregateExpression(
       host.diagnose(
         projectDiagnostic(
           "E10125",
-          `Encoding '${name}' is unavailable for the selected C64 profile`,
-          expression.callee.span,
+          `Encoding or character map '${name}' is unavailable for platform '${host.profileId}' — available: petscii, screen_codes`,
+          expression.span,
         ),
       );
       return { node: null, exact: null };
@@ -142,6 +142,20 @@ export function analyzeAggregateExpression(
   if (expression.kind === "member") return analyzeMember(expression, context, host, analyze);
   if (expression.kind === "index") return analyzeIndex(expression, context, host, analyze);
   if (expression.kind === "sizeof") {
+    const value =
+      expression.operand.kind === "named-type"
+        ? host.resolveName(expression.operand.name, context)
+        : null;
+    if (value !== null && value.binding.storage !== "type") {
+      host.diagnose(
+        projectDiagnostic(
+          "E10200",
+          `'sizeof' requires a type name — found '${host.sourceText(expression.operand.span)}'`,
+          expression.operand.span,
+        ),
+      );
+      return { node: null, exact: null };
+    }
     if (expression.operand.kind === "array-type" && expression.operand.extent === null) {
       host.diagnose(
         projectDiagnostic(
@@ -303,10 +317,22 @@ function analyzeArrayLiteral(
   }
   let fill: TypedExpr | null = null;
   if (expression.fill !== null) {
-    const result = analyze(expression.fill, expected.element, {
-      ...context,
-      constantContext: true,
-    });
+    const result = analyze(
+      expression.fill,
+      expected.element,
+      {
+        ...context,
+        constantContext: true,
+      },
+      (actual) =>
+        host.diagnose(
+          projectDiagnostic(
+            "E10115",
+            `Fill value has type '${semanticTypeName(actual)}' but array element type is '${semanticTypeName(expected.element)}'`,
+            expression.fill!.span,
+          ),
+        ),
+    );
     fill = result.node;
     // Constant aggregate roots evaluate nested calls together after dependency ordering.
     // Runtime initializers still need their fill evaluated before publication.
@@ -351,8 +377,12 @@ function analyzeStructLiteral(
       host.diagnose(
         projectDiagnostic(
           "E10243",
-          `Struct initializer for 'struct' contains unknown field '${sourceField.name}'`,
+          `Struct initializer for '${semanticTypeName(expected)}' contains unknown field '${sourceField.name}'`,
           sourceField.nameSpan,
+          null,
+          expected.nameSpan === undefined
+            ? []
+            : [{ span: expected.nameSpan, message: "Struct declared here" }],
         ),
       );
       valid = false;
@@ -365,6 +395,10 @@ function analyzeStructLiteral(
             "E10097",
             `Struct literal fields must follow declaration order — expected '${declared?.name ?? expected.fields[0]?.name ?? "<field>"}', found '${sourceField.name}'`,
             sourceField.nameSpan,
+            null,
+            declared?.nameSpan === undefined
+              ? []
+              : [{ span: declared.nameSpan, message: "Expected field declared here" }],
           ),
         );
         orderDiagnosticReported = true;
@@ -383,6 +417,10 @@ function analyzeStructLiteral(
         "E10096",
         `Struct literal must initialize all fields — missing '${missing.name}'`,
         expression.span,
+        null,
+        missing.nameSpan === undefined
+          ? []
+          : [{ span: missing.nameSpan, message: "Missing field declared here" }],
       ),
     );
     valid = false;
@@ -420,8 +458,12 @@ function analyzeMember(
     host.diagnose(
       projectDiagnostic(
         "E10242",
-        `Struct 'struct' has no field '${expression.member}'`,
-        expression.memberSpan,
+        `Struct '${semanticTypeName(object.node.type)}' has no field '${expression.member}'`,
+        expression.span,
+        null,
+        object.node.type.nameSpan === undefined
+          ? []
+          : [{ span: object.node.type.nameSpan, message: "Struct declared here" }],
       ),
     );
     return { node: null, exact: null };
@@ -495,6 +537,31 @@ function analyzeIndex(
         "E10240",
         `Index ${index.node.constant} is provably outside array '${host.sourceText(expression.object.span)}' with extent ${object.node.type.length}`,
         expression.index.span,
+        null,
+        object.node.place === null
+          ? []
+          : [
+              {
+                span:
+                  host.resolveName(host.sourceText(expression.object.span), context)?.nameSpan ??
+                  object.node.place.binding.span,
+                message: "Array declared here",
+              },
+            ],
+      ),
+    );
+  }
+  const stride = semanticTypeSize(object.node.type.element);
+  if (
+    index.node.constant === null &&
+    object.node.type.element.kind === "struct" &&
+    (stride & (stride - 1)) !== 0
+  ) {
+    host.diagnose(
+      scalarWarning(
+        "W10111",
+        `Variable indexing of struct array '${host.sourceText(expression.object.span)}' requires multiplication by non-power-of-two size ${stride}`,
+        expression.span,
       ),
     );
   }
@@ -530,211 +597,6 @@ function analyzeIndex(
     }),
     exact: null,
   };
-}
-
-/** Keep a visible handler address through an explicit word conversion. */
-function retainsHandlerAddress(expression: TypedExpr): boolean {
-  if (expression.type.kind === "interrupt-handler") return true;
-  const operand = expression.operand;
-  return expression.kind === "cast" && operand !== undefined && "type" in operand
-    ? retainsHandlerAddress(operand)
-    : false;
-}
-
-/** Type raw-memory and byte-extraction built-ins without fabricating declarations. */
-function analyzeBuiltinCall(
-  expression: Extract<Expr, { readonly kind: "call" }>,
-  context: ScalarExpressionContext,
-  host: ScalarExpressionHost,
-  analyze: AnalyzeExpression,
-): ScalarExpressionResult | null {
-  const name = expression.callee.kind === "name" ? expression.callee.name : "";
-  const machineIntrinsic = analyzeMachineIntrinsic(expression, name, context, host, analyze);
-  if (machineIntrinsic !== null) return machineIntrinsic;
-  if (name === "embed") {
-    const embedded = host.embeddedValue(expression);
-    if (embedded === null) return null;
-    return {
-      node: createScalarTypedExpression(expression, embedded.type, null, {
-        embedded,
-        initialized: Object.freeze([{ start: 0, end: embedded.type.length }]),
-        evaluation: "left-to-right",
-      }),
-      exact: null,
-    };
-  }
-  if (name === "lo" || name === "hi") {
-    return analyzeByteExtraction(expression, name, context, host, analyze);
-  }
-  const signatures: Readonly<
-    Record<
-      string,
-      {
-        readonly parameters: readonly SemanticType[];
-        readonly result: SemanticType;
-        readonly memory: NonNullable<TypedExpr["memory"]> | null;
-      }
-    >
-  > = {
-    peek: { parameters: [SCALAR_TYPES.word], result: SCALAR_TYPES.byte, memory: memory("read", 1) },
-    poke: {
-      parameters: [SCALAR_TYPES.word, SCALAR_TYPES.byte],
-      result: SCALAR_TYPES.void,
-      memory: memory("write", 1),
-    },
-    peekw: {
-      parameters: [SCALAR_TYPES.word],
-      result: SCALAR_TYPES.word,
-      memory: memory("read", 2),
-    },
-    pokew: {
-      parameters: [SCALAR_TYPES.word, SCALAR_TYPES.word],
-      result: SCALAR_TYPES.void,
-      memory: memory("write", 2),
-    },
-  };
-  const builtin = signatures[name];
-  if (builtin === undefined) return null;
-  let valid = expression.arguments.length === builtin.parameters.length;
-  if (!valid) {
-    host.diagnose(
-      projectDiagnostic(
-        "E10171",
-        `Wrong argument count — '${name}()' expects ${builtin.parameters.length} parameters, got ${expression.arguments.length}`,
-        expression.span,
-      ),
-    );
-  }
-  const arguments_: TypedExpr[] = [];
-  expression.arguments.forEach((argument, index) => {
-    const result = analyze(argument, builtin.parameters[index] ?? null, {
-      ...context,
-      ordinalContext: false,
-    });
-    if (result.node === null) valid = false;
-    else arguments_.push(result.node);
-  });
-  if (!valid) return { node: null, exact: null };
-  if (
-    name === "pokew" &&
-    (arguments_[0]?.constant === 0x0314n || arguments_[0]?.constant === 0x0318n) &&
-    arguments_[1] !== undefined &&
-    retainsHandlerAddress(arguments_[1])
-  ) {
-    const vector = arguments_[0].constant === 0x0314n ? "$0314" : "$0318";
-    const sink = vector === "$0314" ? "c64.system.setIRQ" : "c64.system.setNMI";
-    host.diagnose(
-      projectDiagnostic(
-        "E10252",
-        `Raw interrupt-entry address '${host.sourceText(expression.arguments[1]!.span)}' cannot be written directly to firmware vector '${vector}' — use '${sink}' so the compiler selects the required entry variant`,
-        expression.span,
-      ),
-    );
-    return { node: null, exact: null };
-  }
-  if (
-    (name === "poke" || name === "pokew") &&
-    arguments_[0]?.addressPlaces?.some((place) => place.readonly)
-  ) {
-    host.diagnose(
-      projectDiagnostic(
-        "E10123",
-        "Cannot write through an address derived from read-only storage",
-        expression.arguments[0]?.span ?? expression.span,
-      ),
-    );
-    return { node: null, exact: null };
-  }
-  if (builtin.memory !== null) clearCallVisibleScalarFacts(context.scope);
-  const signature: FunctionSignature = Object.freeze({
-    parameters: Object.freeze(
-      builtin.parameters.map((type) => Object.freeze({ type, readonly: false })),
-    ),
-    returnType: builtin.result,
-  });
-  const callee = createScalarTypedExpression(expression.callee, builtin.result, null, {
-    name,
-  });
-  return {
-    node: createScalarTypedExpression(expression, builtin.result, null, {
-      callee,
-      arguments: Object.freeze(arguments_),
-      signature,
-      evaluation: "left-to-right",
-      memory: builtin.memory,
-      integer: integerFacts(builtin.result, true),
-    }),
-    exact: null,
-  };
-}
-
-/** Type low/high-byte extraction for every fixed-width integer input. */
-function analyzeByteExtraction(
-  expression: Extract<Expr, { readonly kind: "call" }>,
-  name: "lo" | "hi",
-  context: ScalarExpressionContext,
-  host: ScalarExpressionHost,
-  analyze: AnalyzeExpression,
-): ScalarExpressionResult {
-  let valid = expression.arguments.length === 1;
-  if (!valid) {
-    host.diagnose(
-      projectDiagnostic(
-        "E10171",
-        `Wrong argument count — '${name}()' expects 1 parameters, got ${expression.arguments.length}`,
-        expression.span,
-      ),
-    );
-  }
-  const arguments_: TypedExpr[] = [];
-  for (const argument of expression.arguments) {
-    const result = analyze(argument, null, { ...context, ordinalContext: false });
-    if (result.node === null) valid = false;
-    else arguments_.push(result.node);
-  }
-  const argument = arguments_[0];
-  if (argument !== undefined && !isIntegerType(argument.type)) {
-    host.diagnose(
-      projectDiagnostic(
-        "E10080",
-        `Cannot implicitly convert '${semanticTypeName(argument.type)}' to an integer accepted by '${name}()'`,
-        expression.arguments[0]!.span,
-      ),
-    );
-    valid = false;
-  }
-  if (!valid || argument === undefined || !isIntegerType(argument.type)) {
-    return { node: null, exact: null };
-  }
-  const facts = integerFacts(argument.type, false)!;
-  let bits =
-    typeof argument.constant === "bigint"
-      ? argument.constant & ((1n << BigInt(facts.width)) - 1n)
-      : null;
-  if (name === "hi" && bits !== null && facts.width === 8 && facts.signed && bits >= 0x80n) {
-    bits |= 0xff00n;
-  }
-  const constant = bits === null ? null : name === "lo" ? bits & 0xffn : (bits >> 8n) & 0xffn;
-  const signature: FunctionSignature = Object.freeze({
-    parameters: Object.freeze([Object.freeze({ type: argument.type, readonly: false })]),
-    returnType: SCALAR_TYPES.byte,
-  });
-  const callee = createScalarTypedExpression(expression.callee, SCALAR_TYPES.byte, null, { name });
-  return {
-    node: createScalarTypedExpression(expression, SCALAR_TYPES.byte, constant, {
-      callee,
-      arguments: Object.freeze(arguments_),
-      signature,
-      evaluation: "left-to-right",
-      integer: integerFacts(SCALAR_TYPES.byte, true),
-    }),
-    exact: constant,
-  };
-}
-
-/** Create immutable raw-memory metadata. */
-function memory(access: "read" | "write", width: 1 | 2): NonNullable<TypedExpr["memory"]> {
-  return Object.freeze({ volatile: true, access, width, byteOrder: "low-first" });
 }
 
 /** Retain a valid but context-free aggregate literal as an implementation obligation. */

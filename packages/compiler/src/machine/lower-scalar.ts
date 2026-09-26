@@ -15,7 +15,7 @@ import {
   storeA,
   type FunctionLoweringState,
   typeBytes,
-} from "./lower.js";
+} from "./lower-state.js";
 
 /** Lower byte/word bit operations directly over their little-endian bytes. */
 export function lowerBitwise(

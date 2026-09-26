@@ -394,30 +394,252 @@ The exact-meter probe confirmed a missing statement charge for selected `else if
 
 ## Phase 8: Complete NMOS Backend, Artifacts and Service Identity
 
-> **Phase baseline tree**: _(recorded by exec-plan at phase start)_
+> **Phase baseline tree**: `862488eccc79234d6a6e2ddb8aec438f5b31a2b7`
+> **Scope mode**: strict
+> **Expected modification set**: The task paths below and existing frontend/assets/services/layout helpers needed to carry source placement, source names and canonical diagnostics through those paths; focused same-directory splits under AR-P8; this plan's execution/review records and feature roadmap; the RD-04 requirement wording explicitly approved in AR-P22. Import-only retargeting in other machine helpers is mechanical, not a reason to refactor unrelated bodies. No frozen spec, package topology, evidence schema, optional optimizer or runtime changes.
 > **Lenses**: machine legality, artifact integrity, output parity, package boundaries
+
+**Current gate (2026-09-26):** AR-P25 and AR-P26 are approved. The two old enum-message
+expectations now require useful, valid source-specific suggestions; E10204 native parsing
+proof is retained in RD-06 before removal from RD-04. Ownership is 171 RD-04 / ten RD-06 /
+one RD-07 diagnostics. The High-effort correction batch resumes with the other specification
+expectations frozen. Selected numerical accounting and Phase 8 review remain open.
+
+**Approved correction checkpoint (2026-09-26 17:45):** AR-P25 changed exactly the two
+enum-message expectations. AR-P26 retains the malformed SpritePad bytes and source fixture
+under RD-06 and changes only E10204's crosswalk ownership and active RD-04 case. The crosswalk
+still contains all 395 named keys (182 diagnostics). Enum compatibility: 37/37 PASS; crosswalk:
+12/12 PASS. The complete root diagnostic run is now 180/180 PASS, including the 131 remaining
+new root cases and 49 older cases (`/tmp/phase8-diagnostic-green.log`). Artifact and compile-time
+cases remain independently exercised; exact branch-complete producer and numerical qualification
+are not inferred from named-code coverage alone.
+
+The resource cases exposed an ordinary embedded-array read being mistaken for function-local
+storage. The existing semantic place now retains its immutable asset identity through SFA and
+machine selection. No new operation, runtime, copy, evidence schema or dependency was added.
+The new `embedded-reads.impl.test.ts` has a RED assembly baseline and a passing independent
+VICE value oracle for fixed indices 0/255/256/511, runtime word index 300, aliased declarations
+and address-of an element. Final evidence shows one 512-byte resident asset and less than
+64 bytes of SFA, not an asset-sized copy. Status: **VICE-verified / hardware-unverified**.
+Direct reads preserve symbol/offset forms for later peephole optimization. An existing
+redundant scalar store/reload remains a measured parity defect: per access, +6 bytes, +8 cycles,
+and one logical SFA byte; tracked in [#87](https://github.com/blendsdk/blend65/issues/87), not
+claimed as expert parity. Knowledge lineage remains expert 2.0.0, content
+`c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, compiler-architecture responsibility map,
+SFA final-storage closure, lowering-casebook static-symbol access, and MOS-PGM-1976 costs.
+
+Resource warnings use existing closure and final-layout records. The oversized embedded-payload
+error explicitly identifies its byte count as a proved lower bound in `help`; final output-size
+reconciliation remains ST-52 work. Source status saves beyond finite capacity now report E10238,
+not an unbounded-path claim. Mainline installs from global initializers still satisfy later
+restores; an intermediate diagnostic regression was caught by the full compiler run and fixed
+without changing that fixture. The old handler-update **implementation** test now expects the
+canonical E10245 wording. Strict artifact decoding preserves a leading BOM for rejection and
+raw UTF-8 coordinates; three additional implementation checks pass. No frozen specification
+test was edited beyond the approved expectation changes.
+
+**Green checkpoint (2026-09-26 17:50):** install, build, typecheck and the complete owned
+suite pass: 1,350 compiler, 62 CLI, 14 language-server, six editor and 353 root tests
+(1,785 total), including sequential ACME/VICE runs. Logs:
+`/tmp/phase8-checkpoint-{install,build,typecheck,test}.log`. Targeted formatting,
+whitespace and frozen-spec checks pass. This is a local implementation checkpoint, not
+Phase 8 closeout: exact numerical reconciliation, alternate diagnostic producers, remaining
+backend qualification and independent review are still open. Progress remains 79/99 because
+the full specification sweep and qualification tasks have not yet been completed. No push.
+
+**Correction checkpoint (2026-09-26 16:58):** all 30 artifact-record and four compile-time-budget
+cases pass. Existing sidecar names, formats, success results and legacy safe error strings stay
+unchanged. JSON token locations use the existing parser dependency; diagnostics retain structured
+records without a new public API. Scalar, switch, call-kind, function-exit, aggregate-permission,
+encoding and related-declaration records were corrected in existing owners. Poisoned missing
+constant initializers and rejected entry-point calls no longer cause dependent duplicate errors.
+Generated instructions, allocation policy and optimization interfaces were not changed.
+
+Directed artifact/evaluator suite: 107/107 PASS (`/tmp/phase8-budget-fixes.log`). All root diagnostic
+families: 153 PASS / 28 RED (`/tmp/phase8-diagnostic-progress.log`), including 49 older passing
+diagnostic tests. The old spanless-E10020 implementation fixture now separately proves sorting
+and module-header location: 15/15 PASS (`/tmp/phase8-service-order.log`). Build and typecheck pass.
+Complete compiler run: 1,343 PASS / four failures (`/tmp/phase8-diagnostic-compiler.log`): the old
+enum specification conflict and three service timeouts, with two associated cleanup errors.
+An isolated sequential retry of both service files passes all 14 cases
+(`/tmp/phase8-service-regression-retry.log`); no timeout or expectation was relaxed. This is not
+a green full-suite claim. Root runtime qualification was not rerun during the approval pause.
+Touched-file formatting, local Markdown links, whitespace and frozen-spec checks pass. No task
+is promoted and no commit or push is made while checks are red.
+
+**Prior compatibility gate:** AR-P23 was explicitly approved on 2026-09-26 for its exact warning-expectation
+and test-only label-decoder changes. The user confirmed continuation after the High-effort
+recommendation. Those observer/expectation edits are verified (2026-09-26 14:12): install,
+build, typecheck and all 1,615 tests pass. No source fixture, behavioral oracle or cost limit
+is relaxed. The test updates depend on the unfinished Phase 8 implementation; retain them
+together uncommitted until the owning task checkpoints qualify. AR-P22 is approved: audit current target-independent facts without inventing
+future-target fields. The independent author has finished a bounded supplement; full diagnostic coverage remains open.
+The five independently authored red probes may now enter their scoped implementation loops while
+the author completes unrelated diagnostic families. Every new behavior still requires its own
+immutable test and red proof first; no partial task or phase is promoted as complete. This bounded
+execution ordering uses the standing project authority for technical plan decisions and does not
+reduce any coverage or review obligation. All probes authored before the latest diagnostic sweep pass;
+that does not prove the missing coverage or qualify unfinished tasks. Full ST-08 diagnostic-producer coverage also
+remains to be reconciled; registry membership alone is not that proof.
+
+**Directed evidence (2026-09-26):** baseline machine/artifact checks passed (18 cases), and
+`yarn build` passed before new probes. The independent author verified 44 new cases across seven
+files: 39 pass and five are expected red. Failures are unknown entry overflow-flag use, an
+ordinary indirect pointer beginning at 255, raw bytes absent from explicit address `$3000`,
+missing readable source routine labels, and an extra undeclared-variable diagnostic after a
+poisoned initializer. This was the pre-implementation RED baseline; no test weakening was applied. During authorship,
+E10203's expected primary span was corrected to its offending argument under Chapter 14's
+smallest-proving-expression rule; repeat-build comparison now captures first-generation bytes
+before permitted reclamation. Full ST-08 and ST-52 coverage are not claimed. Targeted formatting,
+documentation-reference checks, whitespace checks and the frozen-`spec/` check pass.
+
+**Supplement handoff (2026-09-26):** 49 diagnostic cases in six focused root files produce 29 RED and 20 PASS; the two asset-placement supplement cases pass after their independent RED baseline. Initial five failures are corrected. Directed results: 31 compiler specification cases, 11 root backend/placement cases and 12 new implementation cases pass. The full compiler run had 1,297 passes and three compatibility regressions; all three are corrected and their nine directed cases pass. Full verification has not yet been repeated. Diagnostic inventory: 54 focused producers, 61 older code-only proofs, 47 older message-bearing candidates, 20 codes without producer literals (including later-owner native/loader cases and two artifact-interface gaps). This inventory is not full ST-08 certification.
+
+**Pre-approval verification (2026-09-26 13:43):** all 49 diagnostic supplement cases pass, together
+with build, typecheck, targeted formatting, whitespace and frozen-spec checks. Full compatibility
+is RED: compiler 1,192 pass / 120 old-warning expectation failures; root 195 pass / 26 old-label
+observer failures; language server 13 pass / 1 old-warning expectation failure. CLI 62/62 and
+editor 6/6 pass. See AR-P23's exact authorized test-only modification set. No existing specification
+file has changed, no task is promoted, and no green checkpoint commit is claimed. Remaining
+implementation follow-up includes AR-P8 cleanup of the touched analyzer coordinator, completing
+ST-08's remaining producer inventory, checking VIC-specific asset placement propagation, full
+qualification and independent phase review. These are current-phase obligations, not new features.
+
+**AR-P23 verification (2026-09-26 14:12):** the authorized warning expectations and readable-label
+observers are complete. `yarn install --frozen-lockfile`, `yarn build`, `yarn typecheck` and
+`yarn test` all pass: compiler 1,312, CLI 62, language server 14, editor 6 and root 221 tests
+(1,615 total). Root VICE cases ran sequentially: VICE-verified / hardware-unverified. Targeted
+test formatting, `git diff --check` and the frozen-`spec/` check pass. Fixtures, prior error and
+behavior assertions, identity uniqueness checks and expert byte/cycle limits remain intact;
+warnings are asserted explicitly rather than discarded. This closes the compatibility failures,
+not the remaining coverage, implementation and review obligations. Progress stays 79/99.
+No standalone test commit is made because these expectations require the uncommitted Phase 8
+implementation; no push is made. Next task: finish the diagnostic-producer coverage in 8.1.2,
+after the required effort handoff.
+
+**Diagnostic sweep continuation (2026-09-26 14:47):** the user confirmed the High-effort handoff.
+The independent author added `diagnostics-switch-records.spec.test.ts`,
+`diagnostics-type-boundaries.spec.test.ts`, `diagnostics-call-kinds.spec.test.ts` and
+`diagnostics-full-zeropage.spec.test.ts` under `test/rd04/`. Their 16 cases produce nine PASS and
+seven RED: E10073/E10074/E10076 source spans, E10051 message/call span, E10175 call span,
+E10254 message, and missing W10030 at exactly 142/142 zero-page bytes. Existing tests are
+unchanged. `/tmp/blend65-diagnostic-sweep-red.log` records the directed run. Build and typecheck
+pass. The existing crosswalk's 12 tests pass after assigning nine native-selector/audio codes
+to their already-approved RD-06 owner and E10276 to RD-07; this is ownership reconciliation,
+not a new deferral or an implementation claim. Full-suite verification completed at 14:50:
+compiler 1,312/1,312, CLI 62/62, language server 14/14 and editor 6/6 pass; root has 230 PASS
+and exactly the seven new expected RED cases (1,624 PASS / seven RED overall). All previously
+passing tests remain green, including sequential VICE cases. Log: `/tmp/phase8-sweep-full.log`.
+Targeted formatting, local Markdown links/proof paths, whitespace and frozen-`spec/` checks pass.
+No task is promoted or committed while this expected RED baseline remains.
+
+**AR-P24 authorship checkpoint (2026-09-26 15:00):** the independent author added 27
+artifact-record cases in `packages/compiler/src/artifacts/canonical-diagnostics.spec.test.ts`.
+All 27 are expected RED because the approved additive records are not implemented. Cases cover
+the five validators, unsupported-version versus malformed-envelope precedence, primitive roots,
+invalid numeric versions, field pointers/tokens and duplicate-key related-site ordering.
+Directed log: `/tmp/blend65-artifact-records-red.log`. Remaining source-record authorship and
+the complete 172-key RD-04 proof map are still in progress. No implementation or existing-test
+change is part of this checkpoint; task 8.1.2 remains partial.
+
+**Source-record authorship checkpoint (2026-09-26 15:02):** 34 new cases in
+`diagnostics-scalar-records.spec.test.ts`, `diagnostics-function-records.spec.test.ts` and
+`diagnostics-aggregate-permissions.spec.test.ts` have an initial 22 RED / 12 PASS result
+(`/tmp/blend65-source-records-red.log`). One authoring-only overlay result discriminator was
+corrected to the documented `complete`; the rerun is pending. Artifact cases now also include
+truncated JSON and missing kind/version (30 authored cases; rerun pending). Full coverage is not
+yet claimed. The crosswalk and import-boundary checks pass, 36/36
+(`/tmp/phase8-approval-boundaries.log`). Existing specification tests remain untouched in this
+continuation.
+
+**Project/resource authorship checkpoint (2026-09-26 15:10):** 16 further cases in
+`diagnostics-project-records.spec.test.ts` and `diagnostics-resource-boundaries.spec.test.ts`
+produce 15 RED / one PASS (`/tmp/blend65-project-resource-red.log`). They expose canonical
+record gaps and absent W10033/W10150/W10180 producers. A finite stack excess also fails its
+specified classification. The growing status-save loop case is under authoring review because
+it overlaps the existing E10248 loop-backedge rule; its RED result is not a confirmed compiler
+defect. Resource expectations retain the
+profile's fixed limits while allowing legal selected-code/layout variation; detailed physical
+accounting remains part of ST-52 qualification. Compile-time budget records will use the
+already-approved reduced-limit seam in a new colocated frontend specification file, without
+changing production limits or creating a test framework. Full 172-key reconciliation continues.
+
+**Coverage reconciliation checkpoint (2026-09-26 15:17):** the artifact/budget set now has
+34 expected RED cases (`/tmp/blend65-budget-artifact-red.log`), including the production
+513th compile-time call. The execution/warning set has 17 RED / six PASS from 23 cases
+(`/tmp/blend65-execution-warning-red.log`). All 172 RD-04 codes now have candidate test paths:
+164 in canonical-record families and eight reused earlier cases. This is not yet certification;
+the author is checking complete fields, fixture correctness and the final code-to-proof map.
+Build and typecheck pass (`/tmp/phase8-records-build.log`,
+`/tmp/phase8-records-typecheck.log`). No production changes or green checkpoint are claimed.
+
+**Complete-field audit checkpoint (2026-09-26 15:21):** the current 124-case directed set has
+95 RED / 29 PASS (root: 61 RED / 29 PASS; artifact/budget: 34 RED), captured in
+`/tmp/blend65-all-source-diagnostics-red.log` and
+`/tmp/blend65-all-internal-diagnostics-red.log`. The audit found earlier canonical-message tests
+that still omit pointer/related-field expectations. Focused supplements are being authored before
+certifying those rows. New shared-state warning fixtures are being adjusted to runtime-varying values so valid
+atomic-instruction or storage-narrowing optimizations are not blocked by artificial hazards.
+Installation also passes (`/tmp/phase8-records-install.log`).
+
+**Full regression checkpoint (2026-09-26 15:31):** compiler 1,312 PASS / 34 expected RED;
+CLI 62/62, language server 14/14 and editor 6/6 PASS; root 284 PASS / 69 expected RED.
+Total: 1,678 PASS / 103 RED. Every failing file belongs to the independent author's 14-file
+set; all 1,615 tests predating this sweep remain green. Full logs:
+`/tmp/phase8-records-workspaces.log` and `/tmp/phase8-records-root.log`. VICE ran sequentially:
+VICE-verified / hardware-unverified. The updated crosswalk passes 12/12 checks; all 182 diagnostic
+rows retain their owners and all 172 RD-04 proof arrays exactly match the audited map. Targeted
+formatting, Markdown links, whitespace and frozen-spec checks pass. No task is promoted and no
+commit or push is made while implementation remains RED. Progress stays 79/99.
+
+**Final producer handoff (2026-09-26 15:27):** all 172 rows have real proof paths, with 135
+newly covered and 37 existing decisive producers. Supplementary tests compose missing public
+fields with existing exact message/primary tests; existing test files were not edited. The map
+and every authored case's result are captured in `/tmp/blend65-diagnostic-producer-map.json`
+and `/tmp/blend65-authored-diagnostic-test-results.json`; the durable proof links are the existing
+`test/rd04/normative-coverage.json`. No producer or interface blocker remains. The final auxiliary
+field/warning run is `/tmp/blend65-record-completeness-red.log`.
+
+Numerical accounting is still an explicit ST-52/8.1.1 and 8.3.2 qualification obligation, not
+silently discharged by a matching message frame:
+
+| Diagnostic records | Remaining selected-output qualification |
+|---|---|
+| E10034, E10238, W10033, W10180 | Reconcile exact selected binary, RAM and simultaneous stack demand; authored cases independently prove source lower bounds, profile limits and canonical fields. |
+| W10170–W10172 | Reconcile reported estimates with selected arithmetic and equal-contract expert evidence in `expert-output.spec.test.ts` / `expert/scalars.json`; do not freeze a lowering algorithm. |
+
+The growing source status-save loop was replaced by the already-approved handler-side IRQ
+installation rejection (AR-P17) for E10245, avoiding overlap with E10248's loop-backedge rule. Variable MMIO inputs keep
+the two shared-state warning fixtures genuinely hazardous even after legal atomic-instruction or
+storage-narrowing optimizations. Non-cycle related-site tests do not invent an ordering rule;
+optional suggestion context and free-form detail/help wording remain unprescribed.
+
+The new tests were authored without reading implementation. Domain lineage: expert 2.0.0, content commit
+`c9e70fab6039e9ced3108e88f0ea9730d4fd3007`, `references/blend65-semantics.md`, frozen
+Chapter 14 plus each diagnostic's owning chapter. No generated-code or optimization change was
+made in this continuation.
 
 ### Step 8.1: Specification Tests
 
 **Reference**: [03-04](03-04-machine-and-artifacts.md) · full ST-08 and ST-10 sweeps, ST-46–ST-52
 
-- [ ] 8.1.1 [spec-author] Write complete machine-legality, direct-`none`, layout, artifact and pipeline-wide terminal-publication specification cases — `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/artifacts/evidence.spec.test.ts`, `test/rd04/backend.spec.test.ts`
-- [ ] 8.1.2 [spec-author] Write the full ST-08 diagnostic sweep, complete CLI/LSP identity, modern diagnostic wording, readable-assembly evidence and unavailable-capability specification cases — `packages/compiler/src/frontend/diagnostics.spec.test.ts`, `packages/cli/src/commands.spec.test.ts`, `packages/language-server/src/server.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`, `test/rd04/backend.spec.test.ts`
-- [ ] 8.1.3 Run only the new Phase 8 specification cases and record the expected red failures — Phase 8 test files
+- [~] 8.1.1 [spec-author] Write complete machine-legality, direct-`none`, layout, artifact and pipeline-wide terminal-publication specification cases — `packages/compiler/src/machine/lowering.spec.test.ts`, `packages/compiler/src/artifacts/evidence.spec.test.ts`, `test/rd04/backend.spec.test.ts` — 29 cases authored in focused `machine/terminal-legality.spec.test.ts`, `artifacts/direct-none-evidence.spec.test.ts`, `publication/terminal-failure.spec.test.ts`, and `test/rd04/backend.spec.test.ts`; the existing publication lookup proves stale-input rejection without a new public API. Real-build external ACME failure is covered. Directed tests expose missing flag-producer validation, an admitted zero-page pointer at 255, and lost raw-asset placement. AR-P22 is approved. Two additional asset-alias placement cases and exact partition/SFA-hash/cost-sum assertions now pass; ST-52 audit reconciliation remains. ⏳ (implemented: 2026-09-26 12:40)
+- [~] 8.1.2 [spec-author] Write the full ST-08 diagnostic sweep, complete CLI/LSP identity, modern diagnostic wording, readable-assembly evidence and unavailable-capability specification cases — `packages/compiler/src/frontend/diagnostics.spec.test.ts`, `packages/cli/src/commands.spec.test.ts`, `packages/language-server/src/server.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`, `test/rd04/backend.spec.test.ts` — AR-P26 approved: native-parser fixture retained in RD-06; only E10204 ownership and its active case change. Root diagnostic cases pass 180/180; full verification passes. Branch-complete producer reconciliation remains. Other expectations remain frozen. ⏳ (implemented: 2026-09-26 17:45)
+- [~] 8.1.3 Run only the new Phase 8 specification cases and record the expected red failures — Phase 8 test files — Authored-case RED evidence is recorded in the checkpoints above; additional selected-output and producer-completeness cases remain with 8.1.1/8.1.2. ⏳ (implemented: 2026-09-26 17:50)
 
 ### Step 8.2: Implementation
 
-- [ ] 8.2.1 Split the oversized machine coordinator and complete remaining scalar/helper selections — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-operation.ts`, `packages/compiler/src/machine/lower-helpers.ts`
+- [~] 8.2.1 Split the oversized machine coordinator and complete remaining scalar/helper selections — `packages/compiler/src/machine/lower.ts`, `packages/compiler/src/machine/lower-operation.ts`, `packages/compiler/src/machine/lower-helpers.ts` — current function/state responsibilities moved unchanged to focused `lower-function.ts` and `lower-state.ts`; helper consumers import the state owner directly. Operation call/platform responsibilities are also split; build and directed compatibility checks pass. Full qualification remains. ⏳ (implemented: 2026-09-26 13:10)
 - [ ] 8.2.2 Complete aggregate/control/call lowering and generic fallback paths — `packages/compiler/src/machine/lower-aggregate.ts`, `packages/compiler/src/machine/lower-control.ts`, `packages/compiler/src/machine/lower-operation.ts`
-- [ ] 8.2.3 Complete NMOS legality, state/clobber validation and deterministic branch repair — `packages/compiler/src/machine/validate.ts`, `packages/compiler/src/machine/block-layout.ts`, `packages/compiler/src/target/nmos6510.ts`
-- [ ] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts`
-- [ ] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts`
-- [ ] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts`
-- [ ] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files
+- [~] 8.2.3 Complete NMOS legality, state/clobber validation and deterministic branch repair — `packages/compiler/src/machine/validate.ts`, `packages/compiler/src/machine/block-layout.ts`, `packages/compiler/src/target/nmos6510.ts` — ordinary indirect-Y pointer at 255 now rejects; focused CFG/call return-flag validation added in `validate-flags.ts`. Machine legality/lowering/ACME directed checks pass; additional implementation cases and full qualification remain. ⏳ (implemented: 2026-09-26 13:03)
+- [~] 8.2.4 Complete layout, ACME serialization with stable source-related labels and meaningful routine/data boundary comments, report reconciliation and final PRG packaging — `packages/compiler/src/layout/c64-layout.ts`, `packages/compiler/src/artifacts/acme-serializer.ts`, `packages/compiler/src/artifacts/acme-validate.ts` — Raw assets retain and reconcile declaration placement; generated assembly and debug evidence share readable, collision-free labels. Directed final-byte and alias-conflict tests pass. ⏳ (implemented: 2026-09-26 13:20)
+- [~] 8.2.5 Complete build/memory/cost/debug evidence without schema changes — `packages/compiler/src/artifacts/evidence.ts`, `packages/compiler/src/artifacts/memory-evidence-validator.ts`, `packages/compiler/src/artifacts/costs-evidence-validator.ts` — Approved additive artifact records pass all 30 new cases and existing artifact tests. Precise selected numerical reconciliation and full qualification remain. ⏳ (implemented: 2026-09-26 16:58)
+- [~] 8.2.6 Keep compiler/CLI/LSP failure and canonical diagnostic identity through public services; correct source-facing diagnostic wording where the cases require it — `packages/compiler/src/services/services.ts`, `packages/cli/src/run.ts`, `packages/language-server/src/server.ts` — AR-P25 approved: exactly two old enum-message expectations updated. Warning, execution and resource cases pass in their existing owners; focused resource-diagnostic and zero-page-reservation modules keep the service coordinator below its size boundary. Full verification passes; alternate-producer reconciliation remains. ⏳ (implemented: 2026-09-26 17:45)
+- [~] 8.2.7 Run Phase 8 specification cases and make all immutable expectations green — Phase 8 test files — All authored cases pass in the complete 1,785-test checkpoint. Final promotion waits for the remaining 8.1 specification coverage, not just the currently authored set. ⏳ (implemented: 2026-09-26 17:50)
 
 ### Step 8.3: Implementation Tests and Qualification
 
-- [ ] 8.3.1 Add malformed-machine, branch-range, ACME mismatch and evidence/publication implementation tests — `packages/compiler/src/machine/lowering.impl.test.ts`, `packages/compiler/src/artifacts/evidence.impl.test.ts`, `packages/compiler/src/publication/publication.impl.test.ts`
+- [~] 8.3.1 Add malformed-machine, branch-range, ACME mismatch and evidence/publication implementation tests — `packages/compiler/src/machine/lowering.impl.test.ts`, `packages/compiler/src/artifacts/evidence.impl.test.ts`, `packages/compiler/src/publication/publication.impl.test.ts` — Twelve focused flag-dataflow and label-identity implementation cases pass. Remaining qualification coverage stays open. ⏳ (implemented: 2026-09-26 13:20)
 - [ ] 8.3.2 Run complete backend/artifact/service ACME qualification and expert comparisons using one normal-form complete-language example; assert its source-related routine/data labels and comments directly in the generated assembly — `test/rd04/backend.spec.test.ts`, `test/rd04/expert-output.spec.test.ts`, `test/rd04/frontend-boundary.spec.test.ts`
 
 **Deliverables:** complete legal `none` backend, coherent artifacts and identical public services.

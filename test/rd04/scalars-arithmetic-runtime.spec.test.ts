@@ -47,7 +47,7 @@ async function withProgram<T>(
     );
     if (built.kind !== "success") throw new Error("Arithmetic runtime build did not succeed");
     const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
-    const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+    const returnLabel = `b65_[A-Za-z0-9_]+_${Buffer.from("startup.restore").toString("hex")}`;
     const returnMatches = [
       ...labels.matchAll(new RegExp(`^\\s*${returnLabel}\\s*=\\s*\\$([0-9a-f]+)`, "gimu")),
     ];
@@ -214,7 +214,7 @@ describe.sequential("runtime arithmetic operations", () => {
 
   it("checks a zero divisor before division and enters the four-byte non-returning stop", async () => {
     await withProgram(checkedSource(0), true, async (monitor, labels, returnAddress) => {
-      const startupLabel = `b65_${Buffer.from("startup").toString("hex")}`;
+      const startupLabel = `b65_[A-Za-z0-9_]+_${Buffer.from("startup").toString("hex")}`;
       const startupMatches = [
         ...labels.matchAll(new RegExp(`^\\s*${startupLabel}\\s*=\\s*\\$([0-9a-f]+)`, "gimu")),
       ];

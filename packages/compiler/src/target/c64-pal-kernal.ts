@@ -74,6 +74,20 @@ export interface PackagerFacts {
   readonly residentEnd: 0xbfff;
 }
 
+/** Frozen cooperative C64 resource budgets; emitted bytes and BSS share the same resident range. */
+export const C64_RESOURCE_BUDGETS = Object.freeze({
+  /** Maximum resident payload bytes in the selected program range. */
+  binary: 51_199,
+  /** Total bytes available to resident payload and uninitialized storage together. */
+  ram: 51_199,
+  /** Zero-page bytes owned by the program under the cooperative KERNAL profile. */
+  zeroPage: 142,
+  /** Percentage of a resource budget at which its advisory warning starts. */
+  warningPercent: 75,
+  /** Simultaneously live hardware-stack bytes at which its advisory warning starts. */
+  stackWarning: 188,
+});
+
 /** Exact selected C64 PAL machine facts. */
 export const C64_PAL_KERNAL_6581: C64MachineFacts = Object.freeze({
   id: "c64-pal-kernal-901227-03-6581",

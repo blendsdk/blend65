@@ -7,7 +7,7 @@ import { startVice, stopVice } from "../m1/vice-runtime.js";
 
 /** Read a compiler label from the published ACME map. */
 function labelAddress(labels: string, name: string): number {
-  const encoded = `b65_${Buffer.from(name).toString("hex")}`;
+  const encoded = `b65_[A-Za-z0-9_]+_${Buffer.from(name).toString("hex")}`;
   const matches = [
     ...labels.matchAll(new RegExp(`^\\s*${encoded}\\s*=\\s*\\$([0-9a-f]+)`, "gimu")),
   ];

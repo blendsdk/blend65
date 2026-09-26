@@ -8,7 +8,7 @@ import type { ViceMonitor } from "../m1/vice-monitor.js";
 
 /** Find one public assembly label by its emitted name. */
 function labelAddress(labels: string, name: string): number {
-  const encoded = `b65_${Buffer.from(name).toString("hex")}`;
+  const encoded = `b65_[A-Za-z0-9_]+_${Buffer.from(name).toString("hex")}`;
   const matches = [
     ...labels.matchAll(new RegExp(`^\\s*${encoded}\\s*=\\s*\\$([0-9a-f]+)`, "gimu")),
   ];

@@ -19,12 +19,14 @@ function validOperand(instruction: MachineInstruction): boolean {
   }
   if (mode === "relative") return operand.kind === "label";
   if (mode === "indirect-indexed-y") {
+    // An ordinary two-byte pointer must stay inside zero page; $FF would fetch its
+    // high byte from $00 (the CPU port on a 6510), not from the next storage byte.
     return (
       operand.kind === "indirect-y" ||
       (operand.kind === "absolute" &&
         Number.isInteger(operand.value) &&
         operand.value >= 0 &&
-        operand.value <= 0xff)
+        operand.value <= 0xfe)
     );
   }
   if (mode === "indexed-indirect-x") {

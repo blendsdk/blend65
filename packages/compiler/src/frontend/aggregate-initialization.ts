@@ -32,13 +32,13 @@ export function diagnoseArrayInitialization(
     declaration.declarationKind === "const"
       ? projectDiagnostic(
           "E10113",
-          `Const array '${declaration.name}' must initialize every element`,
-          declaration.span,
+          `Const array must be fully initialized — ${ranges.reduce((total, { start, end }) => total + end - start, 0)} elements provided for size ${type.length}; use '[values; fill]'`,
+          initializer.span,
         )
       : scalarWarning(
           "W10140",
-          `Mutable array '${declaration.name}' is only partially initialized`,
-          declaration.span,
+          `Array '${declaration.name}' is partially initialized — ${ranges.reduce((total, { start, end }) => total + end - start, 0)}/${type.length} elements have defined values`,
+          declaration.nameSpan,
         ),
   );
 }
@@ -106,5 +106,6 @@ export function uninitializedReadDiagnostic(
     "W10190",
     `Variable '${state.binding.name}' may be read before initialization — its value is indeterminate`,
     span,
+    [{ span: state.nameSpan, message: "Variable is declared here" }],
   );
 }

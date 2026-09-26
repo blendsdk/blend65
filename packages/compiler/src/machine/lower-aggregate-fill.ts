@@ -2,7 +2,12 @@ import type { SemanticOperation } from "../semantic/operations.js";
 import { aggregateDestination, restoreAggregateDestinationPage } from "./lower-aggregate.js";
 import { machineCost, machineInstruction, machineState } from "./lower-control.js";
 import type { MachineBlock, MachineInstruction } from "./machine-types.js";
-import { appendLoadA, loweringFailure, typeBytes, type FunctionLoweringState } from "./lower.js";
+import {
+  appendLoadA,
+  loweringFailure,
+  typeBytes,
+  type FunctionLoweringState,
+} from "./lower-state.js";
 
 /** Fill a large byte array with one scalar load and page-safe counted stores. */
 export function lowerAggregateByteFillLoop(

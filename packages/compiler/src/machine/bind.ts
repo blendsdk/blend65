@@ -2,6 +2,7 @@ import type { StorageClosureCertificate, StorageHome } from "../storage/storage-
 import { NMOS_6510, nmosInstructionState } from "../target/nmos6510.js";
 import { machineCost } from "./lower-control.js";
 import { validateMachineInstruction } from "./validate.js";
+import { validateMachineFlags } from "./validate-flags.js";
 import type {
   MachineBindingResult,
   MachineFunction,
@@ -217,22 +218,24 @@ export function validateMachineProgram(program: MachineProgram): boolean {
       exactCost(terminator.cost, { bytes: 5, minCycles: 3, maxCycles: 5 })
     );
   };
-  return functions.every((fn) =>
-    fn.blocks.every(
-      (block) =>
-        block.instructions.every((instruction) => {
-          if (validateMachineInstruction(instruction, NMOS_6510, allFlags).kind !== "complete") {
-            return false;
-          }
-          if (
-            (instruction.opcode === "jsr" || instruction.opcode === "jmp") &&
-            instruction.operand?.kind === "label"
-          ) {
-            return labels.has(instruction.operand.label);
-          }
-          return true;
-        }) && validTerminator(block.terminator),
-    ),
+  return (
+    functions.every((fn) =>
+      fn.blocks.every(
+        (block) =>
+          block.instructions.every((instruction) => {
+            if (validateMachineInstruction(instruction, NMOS_6510, allFlags).kind !== "complete") {
+              return false;
+            }
+            if (
+              (instruction.opcode === "jsr" || instruction.opcode === "jmp") &&
+              instruction.operand?.kind === "label"
+            ) {
+              return labels.has(instruction.operand.label);
+            }
+            return true;
+          }) && validTerminator(block.terminator),
+      ),
+    ) && validateMachineFlags(program)
   );
 }
 

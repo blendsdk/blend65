@@ -80,7 +80,9 @@ describe("expert finite-call output", () => {
       );
       if (built.kind !== "success") throw new Error("Expert call fixture did not build");
       const assembly = await readFile(join(built.generation.directory, ".asm"), "utf8");
-      const thunkCalls = [...assembly.matchAll(/^\s*jsr\+2\s+(b65_[a-f0-9]+)\s*$/gimu)];
+      const thunkCalls = [
+        ...assembly.matchAll(/^\s*jsr\+2\s+(b65_[A-Za-z0-9_]+_[a-f0-9]+)\s*$/gimu),
+      ];
       const thunks = thunkCalls.filter(([, label]) =>
         new RegExp(`^${label}:\\s*\\n\\s*jmp\\s+\\(\\$[0-9a-f]{4}\\)`, "imu").test(assembly),
       );
@@ -102,7 +104,7 @@ describe("expert finite-call output", () => {
       expect(expert.twoTargetScalarCall.dispatchScratchBytes).toBe(0);
       expect(expert.twoTargetScalarCall.hardwareStackBytes).toBe(2);
       const labels = await readFile(join(built.generation.directory, ".labels"), "utf8");
-      const restore = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+      const restore = `b65_[A-Za-z0-9_]+_${Buffer.from("startup.restore").toString("hex")}`;
       const restoreMatch = labels.match(
         new RegExp(`^\\s*${restore}\\s*=\\s*\\$([0-9a-f]+)`, "imu"),
       );

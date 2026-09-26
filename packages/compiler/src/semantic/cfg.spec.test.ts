@@ -75,10 +75,14 @@ function binding(program: TypedProgram, qualifiedName: string) {
   return found.id;
 }
 
-function lower(text: string) {
+/** Lower a fixture after requiring its complete, explicitly expected warning list. */
+function lower(
+  text: string,
+  expectedWarnings: readonly { code: string; severity: string; message: string }[] = [],
+) {
   const analysis = analyzeProject(snapshot(text));
   expect(analysis.kind).toBe("complete");
-  expect(analysis.diagnostics).toEqual([]);
+  expect(analysis.diagnostics).toMatchObject(expectedWarnings);
   if (analysis.kind !== "complete") throw new Error(`Expected complete, got ${analysis.kind}`);
   const result = buildSemanticProgram(analysis);
   expect(result.kind).toBe("complete");
@@ -100,7 +104,18 @@ describe("explicit control-flow graph", () => {
       "  let choice: byte = first() ? yes() : no();",
       "}",
     ].join("\n");
-    const { frontend, semantic } = lower(text);
+    const { frontend, semantic } = lower(text, [
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'both' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'choice' is declared but never used",
+      },
+    ]);
     const main = semantic.functions.find((candidate) =>
       sameBinding(candidate.id, binding(frontend, "Game.main")),
     );
@@ -153,7 +168,13 @@ describe("explicit control-flow graph", () => {
       "  live();",
       "}",
     ].join("\n");
-    const { frontend, semantic } = lower(text);
+    const { frontend, semantic } = lower(text, [
+      {
+        code: "W10130",
+        severity: "warning",
+        message: "Condition is always false — this block cannot execute",
+      },
+    ]);
     const main = semantic.functions.find((candidate) =>
       sameBinding(candidate.id, binding(frontend, "Game.main")),
     );
@@ -189,7 +210,43 @@ describe("explicit control-flow graph", () => {
       "function returnLoop(): void { for (init(); condition(); update()) { body(); return; } }",
       "function main(): void {}",
     ].join("\n");
-    const { frontend, semantic } = lower(text);
+    const { frontend, semantic } = lower(text, [
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'init' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'condition' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'body' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'update' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'continueLoop' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'breakLoop' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'returnLoop' is never called and not exported",
+      },
+    ]);
     const ids = {
       init: binding(frontend, "Game.init"),
       condition: binding(frontend, "Game.condition"),
@@ -265,7 +322,28 @@ describe("explicit control-flow graph", () => {
       "  let second: byte = false ? yes() : no();",
       "}",
     ].join("\n");
-    const { frontend, semantic } = lower(text);
+    const { frontend, semantic } = lower(text, [
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'both' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'either' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'first' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'second' is declared but never used",
+      },
+    ]);
     const main = semantic.functions.find((candidate) =>
       sameBinding(candidate.id, binding(frontend, "Game.main")),
     );
@@ -289,7 +367,7 @@ describe("explicit control-flow graph", () => {
       "function delta(): byte { return 2; }",
       "function main(): void { let copy: byte = 0; copy = values[index()] += delta(); }",
     ].join("\n");
-    const { frontend, semantic } = lower(text);
+    const { frontend, semantic } = lower(text, []);
     const main = semantic.functions.find((candidate) =>
       sameBinding(candidate.id, binding(frontend, "Game.main")),
     );

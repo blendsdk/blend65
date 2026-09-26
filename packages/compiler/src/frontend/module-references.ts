@@ -9,6 +9,8 @@ export interface ModuleReference {
   readonly span: SourceSpan;
   /** Whether the spelling is the callee of an ordinary direct call. */
   readonly directCall: boolean;
+  /** Entire invocation when this reference is a direct call. */
+  readonly callSpan?: SourceSpan;
   /** Whether the first name is declared as a value in the current lexical context. */
   readonly localRoot: boolean;
   /** Whether the spelling came from a nominal type position. */
@@ -99,6 +101,7 @@ function visitExpression(
             name: called,
             span: current.callee.span,
             directCall: true,
+            callSpan: current.span,
             localRoot: valueRoots.has(called.split(".")[0] ?? ""),
             typeReference: false,
           });
@@ -244,6 +247,9 @@ export function collectModuleReferences(unit: SyntaxUnit): readonly ModuleRefere
         name: reference.name,
         span: Object.freeze({ ...reference.span }),
         directCall: reference.directCall,
+        ...(reference.callSpan === undefined
+          ? {}
+          : { callSpan: Object.freeze({ ...reference.callSpan }) }),
         localRoot: reference.localRoot,
         typeReference: reference.typeReference,
       }),

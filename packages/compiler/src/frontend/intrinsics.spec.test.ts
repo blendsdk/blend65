@@ -97,7 +97,28 @@ describe("symbolic memory operations and aggregate queries", () => {
     ].join("\n");
     const result = analyze(text);
 
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'addr' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'value' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'wide' is never called and not exported",
+      },
+      {
+        code: "W10181",
+        severity: "warning",
+        message: "Function 'f' is never called and not exported",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.f").body).toMatchObject({
       statements: [
         {
@@ -241,7 +262,28 @@ describe("CPU controls and packed decimal values", () => {
         "function main(): void {}",
       ].join("\n"),
     );
-    expect(result.diagnostics).toEqual([]);
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'BYTE_SUM' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'BYTE_DIFF' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'WORD_SUM' is declared but never used",
+      },
+      {
+        code: "W10191",
+        severity: "warning",
+        message: "Variable 'WORD_DIFF' is declared but never used",
+      },
+    ]);
     expect(typedDeclaration(result, "Game.BYTE_SUM").initializer?.constant).toBe(0n);
     expect(typedDeclaration(result, "Game.BYTE_DIFF").initializer?.constant).toBe(0x99n);
     expect(typedDeclaration(result, "Game.WORD_SUM").initializer?.constant).toBe(0n);

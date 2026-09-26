@@ -26,6 +26,10 @@ export interface FrontendProfile {
   readonly id: typeof SELECTED_PROFILE_ID;
   /** Exact source operation set in deterministic name order. */
   readonly capabilities: readonly ProfileCapability[];
+  /** Per-mutable-array RAM advisory threshold; null disables this warning. */
+  readonly warnArraySize: number | null;
+  /** Resolved per-struct zero-page advisory threshold. */
+  readonly warnStructZpSize: number;
 }
 
 /** Named character encodings available to source literals in the selected C64 profile. */
@@ -100,7 +104,7 @@ export function encodeC64Literal(
         kind: "error",
         diagnostic: projectDiagnostic(
           "E10249",
-          `Character '${item.value}' is unavailable in ${encoding}/${map} — choose an available encoding or use an exact \\xNN byte`,
+          `Encoding '${encoding}' cannot represent literal character or escape '${item.value}' as the required byte on platform '${SELECTED_PROFILE_ID}' — select an available named encoding or use '\\xNN' for an exact byte`,
           item.span,
         ),
       });
@@ -127,6 +131,8 @@ function capability(
 
 const SELECTED_PROFILE: FrontendProfile = Object.freeze({
   id: SELECTED_PROFILE_ID,
+  warnArraySize: 256,
+  warnStructZpSize: 35,
   capabilities: Object.freeze([
     capability("c64.input.joystickFire", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
     capability("c64.input.joystickLeft", [SCALAR_TYPES.byte], SCALAR_TYPES.boolean, "pure"),
