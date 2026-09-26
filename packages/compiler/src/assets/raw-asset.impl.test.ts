@@ -176,6 +176,24 @@ describe("raw asset implementation boundaries", () => {
     expect(result.diagnostics.map(({ code }) => code)).toContain("E10140");
   });
 
+  it.each([
+    ["raw selector", 'const DATA: byte[] = embed("missing.bin", "frame");', "E10137"],
+    [
+      "computed selector",
+      'const KEY: byte[5] = "frame"; const DATA: byte[] = embed("missing.bin", KEY);',
+      "E10250",
+    ],
+    ["extra argument", 'const DATA: byte[] = embed("missing.bin", "frame", "extra");', "E10136"],
+  ])("rejects a %s before trying to open an asset", async (_case, declaration, code) => {
+    const project = await fixture(`module Game; ${declaration} function main(): void {}`);
+
+    const result = await analyzeProjectWithAssets(project);
+
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(code);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain("E10130");
+  });
+
   it("bounds hostile expression depth before completing async asset analysis", async () => {
     const nested = Array.from({ length: 5_000 }, () => "1").join("+");
     const project = await fixture(

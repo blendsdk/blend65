@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 77/99 tasks (78%)
+> **Progress**: 78/99 tasks (79%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -372,7 +372,7 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 
 ### Step 7.3: Implementation Tests and Qualification
 
-- [ ] 7.3.1 Add meter-charge/release, forbidden-host-input, status-join and embed-parser implementation tests, including the canonical full sin16 stream hash through the evaluator's internal trigonometry function — `packages/compiler/src/frontend/comptime.impl.test.ts`, `packages/compiler/src/frontend/flow.impl.test.ts`, `packages/compiler/src/assets/raw-asset.impl.test.ts`
+- [x] 7.3.1 Add meter-charge/release, forbidden-host-input, status-join and embed-parser implementation tests, including the canonical full sin16 stream hash through the evaluator's internal trigonometry function — `packages/compiler/src/frontend/comptime.impl.test.ts`, `packages/compiler/src/frontend/flow.impl.test.ts`, `packages/compiler/src/assets/raw-asset.impl.test.ts` — Verified 2026-09-26 02:13: 24 directed implementation cases pass, including the full 65,536-phase `sin16` hash. Install, build, typecheck, formatting, frozen-spec and complete tests pass (1,241 compiler; 152 root including VICE). ✅ (completed: 2026-09-26 02:13)
 - [ ] 7.3.2 Run complete compile-time/intrinsic/embed ACME/VICE and expert qualification — `test/rd04/comptime.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`, `test/rd04/expert/intrinsics.json`
 
 **Deliverables:** deterministic target-free compile time and complete approved intrinsic surface.

@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot, SourceRecord } from "../project/types.js";
 import { analyzeModules } from "./analyzer.js";
+import { ComptimeBudget, ComptimeBudgetFailure } from "./comptime-budget.js";
 import { indexModules, resolveModules } from "./modules.js";
+import { evaluateIntegerTrigonometry } from "./trigonometry.js";
 
 /** Run one in-memory program through the real module and semantic frontends. */
 function analyze(text: string): ReturnType<typeof analyzeModules> {
@@ -128,5 +130,60 @@ describe("compile-time packed-BCD implementation", () => {
       ].join("\n"),
     );
     expect(result.diagnostics.map(({ code }) => code)).toContain("E10254");
+  });
+});
+
+describe("compile-time budget implementation", () => {
+  const span = Object.freeze({ sourceId: "game.blend", start: 0, end: 1 });
+
+  it("should leave a failed byte charge unapplied and release a completed value once", () => {
+    const budget = new ComptimeBudget({ maxSteps: 4, maxLiveBytes: 2, maxActiveCalls: 2 });
+    const checkpoint = budget.liveCheckpoint();
+    budget.allocate(1, span, span);
+
+    expect(() => budget.allocate(2, span, span)).toThrow(ComptimeBudgetFailure);
+    expect(budget.liveCheckpoint()).toBe(1);
+    budget.release(1);
+    budget.allocate(2, span, span);
+    expect(budget.liveCheckpoint()).toBe(2);
+    budget.abandonRoot(checkpoint);
+    expect(budget.liveCheckpoint()).toBe(0);
+    expect(() => budget.release(1)).toThrow("released twice");
+  });
+
+  it("should preserve active-call and step counters after a rejected entry", () => {
+    const budget = new ComptimeBudget({ maxSteps: 2, maxLiveBytes: 4, maxActiveCalls: 1 });
+    budget.enterCall(span, span);
+    expect(() => budget.enterCall(span, span)).toThrow(ComptimeBudgetFailure);
+    budget.leaveCall();
+    budget.enterCall(span, span);
+    budget.leaveCall();
+    expect(() => budget.step(span, span)).toThrow(ComptimeBudgetFailure);
+  });
+});
+
+describe("compile-time host boundary implementation", () => {
+  it.each([
+    ["runtime storage", "let live: byte = 3;", "live"],
+    ["volatile memory", "", "peek($D020)"],
+    ["CPU control", "", "asm_nop()"],
+  ])("should reject %s inside a compile-time function", (_name, declaration, expression) => {
+    const result = analyze(
+      `module Game; ${declaration} comptime function value(): byte { return ${expression}; } const VALUE: byte = value(); function main(): void {}`,
+    );
+    expect(result.diagnostics.map(({ code }) => code)).toContain("E10191");
+    expect(scalar(result, "VALUE")).toBeNull();
+  });
+});
+
+describe("compile-time trigonometry implementation", () => {
+  it("should match the full canonical little-endian sine word stream", () => {
+    const stream = Buffer.alloc(65_536 * 2);
+    for (let phase = 0; phase < 65_536; phase += 1) {
+      stream.writeInt16LE(Number(evaluateIntegerTrigonometry("sin16", BigInt(phase))), phase * 2);
+    }
+    expect(createHash("sha256").update(stream).digest("hex")).toBe(
+      "e0313f89310605acaa740fa67cf9fb157e363c9bd4af10fea66d8846735c5a50",
+    );
   });
 });
