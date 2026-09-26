@@ -77,7 +77,7 @@ export class ComptimeEvaluator {
       (span, message) => {
         throw this.invalid(span, message);
       },
-      (value, type) => this.convert(value, type),
+      (expression, current, rhs) => this.assignmentValue(expression, current, rhs),
     );
   }
 
@@ -339,24 +339,29 @@ export class ComptimeEvaluator {
       throw this.invalid(target.span, "Compile-time assignment cannot write runtime storage");
     }
     const rhs = this.evaluate(valueNode, frame, root);
-    let value: bigint | boolean | null = rhs.value;
-    if (expression.operator !== "=") {
-      if (typeof current !== "bigint" || typeof rhs.value !== "bigint") {
-        throw this.invalid(expression.span, "Compound assignment requires integer operands");
-      }
-      value = evaluateBinaryInteger(
-        expression.operator?.slice(0, -1) ?? "",
-        current,
-        rhs.value,
-        target.type,
-      );
-    }
-    if (value === null) throw this.invalid(expression.span, "Compile-time arithmetic is undefined");
-    const converted = this.convert(value, target.type);
+    const converted = this.assignmentValue(expression, current, rhs.value);
     const result = this.temporary(converted, expression.type, expression.span, root);
     frame.values.set(key, converted);
     this.budget.release(rhs.bytes);
     return result;
+  }
+
+  /** Use identical fixed-width compound arithmetic for scalar and aggregate places. */
+  private assignmentValue(
+    expression: TypedExpr,
+    current: bigint | boolean,
+    rhs: bigint | boolean,
+  ): bigint | boolean {
+    const type = expression.target?.type ?? expression.type;
+    let value: bigint | boolean | null = rhs;
+    if (expression.operator !== "=") {
+      if (typeof current !== "bigint" || typeof rhs !== "bigint") {
+        throw this.invalid(expression.span, "Compound assignment requires integer operands");
+      }
+      value = evaluateBinaryInteger(expression.operator?.slice(0, -1) ?? "", current, rhs, type);
+    }
+    if (value === null) throw this.invalid(expression.span, "Compile-time arithmetic is undefined");
+    return this.convert(value, type);
   }
 
   /** Resolve only a registered direct compile-time function, never a runtime target. */
@@ -664,7 +669,7 @@ export class ComptimeEvaluator {
     if (statement.otherwise === null) return { kind: "normal" };
     return statement.otherwise.kind === "block"
       ? this.executeBlock(statement.otherwise, frame, root)
-      : this.executeIf(statement.otherwise, frame, root);
+      : this.executeStatement(statement.otherwise, frame, root);
   }
 
   /** The for-header local survives iterations and is released after the loop. */
@@ -682,7 +687,7 @@ export class ComptimeEvaluator {
           }
         } else {
           const initial = statement.initializer;
-          this.declareLocal(initial, frame, root);
+          this.executeStatement(initial, frame, root);
           headerBytes = semanticTypeSize(initial.type);
           headerKey = bindingIdentityKey(initial.binding);
         }

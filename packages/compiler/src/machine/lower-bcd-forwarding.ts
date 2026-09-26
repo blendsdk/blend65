@@ -1,7 +1,7 @@
 import type { MemoryWriteOperation, SemanticBlock } from "../semantic/operations.js";
 
 /**
- * Select adjacent BCD values that can stay in A/AX until their only consumer.
+ * Select adjacent BCD values that can stay in registers until their only consumer.
  *
  * Constants and conversions of constants emit no machine instructions, so they do not
  * interrupt register ownership. Every other operation ends the forwarding window.
@@ -12,6 +12,10 @@ export function selectBcdForwarding(
 ): {
   readonly forwardedRegisterValues: ReadonlySet<string>;
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
+  readonly subtractRightInX: ReadonlySet<string>;
+  readonly wordAddLeftHighInY: ReadonlySet<string>;
+  readonly wordSubtractLeftHighInY: ReadonlySet<string>;
+  readonly wordSubtractRightLowStaged: ReadonlySet<string>;
 } {
   const constantValues = new Set<string>();
   for (const block of blocks) {
@@ -25,8 +29,26 @@ export function selectBcdForwarding(
   const hasNoMachineInstruction = (operation: SemanticBlock["operations"][number]): boolean =>
     operation.kind === "constant" ||
     (operation.kind === "convert" && constantValues.has(operation.result));
+  // Constant expressions carry identities but emit nothing, so they do not break adjacency.
+  const nextMachineOperation = (
+    block: SemanticBlock,
+    index: number,
+  ): SemanticBlock["operations"][number] | undefined => {
+    let next = index + 1;
+    while (
+      block.operations[next] !== undefined &&
+      hasNoMachineInstruction(block.operations[next]!)
+    ) {
+      next += 1;
+    }
+    return block.operations[next];
+  };
   const forwardedRegisterValues = new Set<string>();
   const directBcdWrites = new Map<string, MemoryWriteOperation>();
+  const subtractRightInX = new Set<string>();
+  const wordAddLeftHighInY = new Set<string>();
+  const wordSubtractLeftHighInY = new Set<string>();
+  const wordSubtractRightLowStaged = new Set<string>();
   for (const block of blocks) {
     for (let index = 0; index < block.operations.length; index += 1) {
       const producer = block.operations[index]!;
@@ -44,6 +66,7 @@ export function selectBcdForwarding(
         consumerIndex += 1;
       }
       const consumer = block.operations[consumerIndex];
+      const following = nextMachineOperation(block, consumerIndex);
       let precedingIndex = index - 1;
       while (
         block.operations[precedingIndex] !== undefined &&
@@ -53,20 +76,115 @@ export function selectBcdForwarding(
       }
       const preceding = block.operations[precedingIndex];
       if (
+        producer.kind === "memory-read" &&
+        producer.width === 1 &&
+        singleUseValues.has(producer.result) &&
+        constantValues.has(producer.address) &&
+        consumer?.kind === "memory-read" &&
+        consumer.width === 1 &&
+        singleUseValues.has(consumer.result) &&
+        constantValues.has(consumer.address)
+      ) {
+        let arithmeticIndex = consumerIndex + 1;
+        while (
+          block.operations[arithmeticIndex] !== undefined &&
+          hasNoMachineInstruction(block.operations[arithmeticIndex]!)
+        ) {
+          arithmeticIndex += 1;
+        }
+        const arithmetic = block.operations[arithmeticIndex];
+        if (
+          arithmetic?.kind === "bcd" &&
+          arithmetic.width === 1 &&
+          arithmetic.operator === "sub" &&
+          arithmetic.left === producer.result &&
+          arithmetic.right === consumer.result
+        ) {
+          // The first volatile byte stays in A while the later byte is staged from X.
+          // Neither source may be read again after its ordered bus access.
+          subtractRightInX.add(consumer.result);
+          forwardedRegisterValues.add(producer.result);
+          forwardedRegisterValues.add(consumer.result);
+        }
+      }
+      if (
+        producer.kind === "memory-read" &&
+        producer.width === 2 &&
+        singleUseValues.has(producer.result) &&
+        constantValues.has(producer.address) &&
+        consumer?.kind === "memory-read" &&
+        consumer.width === 2 &&
+        singleUseValues.has(consumer.result) &&
+        constantValues.has(consumer.address)
+      ) {
+        let arithmeticIndex = consumerIndex + 1;
+        while (
+          block.operations[arithmeticIndex] !== undefined &&
+          hasNoMachineInstruction(block.operations[arithmeticIndex]!)
+        ) {
+          arithmeticIndex += 1;
+        }
+        const arithmetic = block.operations[arithmeticIndex];
+        const write = nextMachineOperation(block, arithmeticIndex);
+        if (
+          arithmetic?.kind === "bcd" &&
+          arithmetic.width === 2 &&
+          arithmetic.left === producer.result &&
+          arithmetic.right === consumer.result &&
+          singleUseValues.has(arithmetic.result) &&
+          write?.kind === "memory-write" &&
+          write.width === 2 &&
+          write.value === arithmetic.result &&
+          constantValues.has(write.address)
+        ) {
+          if (arithmetic.operator === "add") {
+            // Stage the first low byte; Y retains its high byte across the next read.
+            wordAddLeftHighInY.add(producer.result);
+          } else {
+            // A/Y retain the first word; the later low byte uses one reusable home.
+            wordSubtractLeftHighInY.add(producer.result);
+            wordSubtractRightLowStaged.add(consumer.result);
+          }
+        }
+      }
+      if (
         producer.kind === "bcd" &&
         producer.width === 2 &&
-        singleUseValues.has(producer.left) &&
-        constantValues.has(producer.right) &&
+        singleUseValues.has(producer.result) &&
+        ((singleUseValues.has(producer.left) && constantValues.has(producer.right)) ||
+          (producer.operator === "add" &&
+            singleUseValues.has(producer.right) &&
+            forwardedRegisterValues.has(producer.right)) ||
+          (producer.operator === "sub" &&
+            wordSubtractLeftHighInY.has(producer.left) &&
+            wordSubtractRightLowStaged.has(producer.right))) &&
         preceding?.kind === "memory-read" &&
         preceding.width === 2 &&
-        preceding.result === producer.left &&
+        (preceding.result === producer.left || preceding.result === producer.right) &&
         consumer?.kind === "memory-write" &&
         consumer.width === 2 &&
         consumer.value === producer.result &&
         constantValues.has(consumer.address)
       ) {
         directBcdWrites.set(producer.result, consumer);
-        forwardedRegisterValues.add(producer.left);
+        if (preceding.result === producer.left) forwardedRegisterValues.add(producer.left);
+      } else if (
+        producer.kind === "memory-read" &&
+        producer.width === 2 &&
+        consumer?.kind === "bcd" &&
+        consumer.width === 2 &&
+        consumer.operator === "add" &&
+        consumer.right === producer.result &&
+        preceding?.kind === "memory-read" &&
+        preceding.width === 2 &&
+        preceding.result === consumer.left &&
+        singleUseValues.has(consumer.result) &&
+        following?.kind === "memory-write" &&
+        following.width === 2 &&
+        following.value === consumer.result &&
+        constantValues.has(following.address)
+      ) {
+        forwardedRegisterValues.add(producer.result);
       } else if (
         producer.kind === "memory-read" &&
         producer.width === 1 &&
@@ -96,5 +214,12 @@ export function selectBcdForwarding(
       }
     }
   }
-  return { forwardedRegisterValues, directBcdWrites };
+  return {
+    forwardedRegisterValues,
+    directBcdWrites,
+    subtractRightInX,
+    wordAddLeftHighInY,
+    wordSubtractLeftHighInY,
+    wordSubtractRightLowStaged,
+  };
 }

@@ -123,6 +123,46 @@ describe("raw asset implementation boundaries", () => {
     expect(failure.diagnostics.map(({ code }) => code)).toEqual(["PROJECT_SOURCE_ALIAS"]);
   });
 
+  it.each(["removed", "retargeted"])("rejects a %s cached directory alias", async (change) => {
+    const project = await fixture();
+    const aliasPath = join(project.assetPaths[0]!, "linked");
+    await symlink(project.assetPaths[0]!, aliasPath, "dir");
+    const direct = await resolveRawAsset(project, "sprites.bin");
+    expect(await resolveRawAsset(project, "linked/sprites.bin")).toBe(direct);
+    expect(await resolveRawAsset(project, "linked/sprites.bin")).toBe(direct);
+    await rm(aliasPath);
+    if (change === "retargeted") {
+      const replacement = join(project.assetPaths[0]!, "replacement");
+      await mkdir(replacement);
+      await writeFile(join(replacement, "sprites.bin"), new Uint8Array(512));
+      await symlink(replacement, aliasPath, "dir");
+    }
+    const result = await resolveRawAsset(project, "linked/sprites.bin");
+    expect(result.kind).toBe("error");
+    if (result.kind !== "error") throw new Error("Expected changed alias rejection");
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(["PROJECT_CHANGED"]);
+    expect(await resolveRawAsset(project, "sprites.bin")).toBe(direct);
+  });
+
+  it.each([
+    ['let DATA: byte[] = embed("sprites.bin"); function main(): void {}', "E10134"],
+    ['function main(): void { let DATA: byte[512] = embed("sprites.bin"); }', "E10134"],
+    ['function main(): void { const DATA: byte[512] = embed("sprites.bin"); }', "E10135"],
+    ['function main(): void { embed("sprites.bin"); }', "E10135"],
+    [
+      'function main(): void { do { const DATA: byte[512] = embed("sprites.bin"); } while (false); }',
+      "E10135",
+    ],
+    [
+      'function main(): void { switch (byte(0)) { case 0: { const DATA: byte[512] = embed("sprites.bin"); } } }',
+      "E10135",
+    ],
+  ])("rejects an invalid embed owner: %s", async (source, code) => {
+    const result = await analyzeProjectWithAssets(await fixture(`module Game; ${source}`));
+    expect(result.kind).toBe("error");
+    expect(result.diagnostics.map(({ code }) => code)).toContain(code);
+  });
+
   it("rejects an intermediate symlink whose canonical file escapes the asset root", async () => {
     const project = await fixture();
     const outside = await mkdtemp(join(tmpdir(), "blend65-raw-asset-outside-"));
@@ -135,6 +175,17 @@ describe("raw asset implementation boundaries", () => {
     expect(result.kind).toBe("error");
     if (result.kind !== "error") throw new Error("Expected containment failure");
     expect(result.diagnostics.map(({ code }) => code)).toEqual(["PROJECT_PATH_INVALID"]);
+  });
+
+  it.each([
+    'const DATA: byte[] = embed("sprites.bin"); function main(): void {}',
+    'loadable const DATA: byte[] = embed("sprites.bin"); function main(): void {}',
+    'function main(): void { loadable const DATA: byte[512] = embed("sprites.bin"); }',
+    'function main(): void { for (loadable const DATA: byte[512] = embed("sprites.bin"); false;) {} }',
+  ])("preserves a legal embed owner: %s", async (source) => {
+    const result = await analyzeProjectWithAssets(await fixture(`module Game; ${source}`));
+    expect(result.diagnostics.filter(({ severity }) => severity === "error")).toEqual([]);
+    expect(result.kind).toBe("complete");
   });
 
   it("escapes control characters before displaying an asset path", async () => {

@@ -166,7 +166,15 @@ async function readCandidate(
         `Raw asset '${escapeDiagnosticText(literalPath)}' changed after validation`,
       );
     }
-    cache.byLiteral.set(cacheKey, priorAsset);
+    // Bytes are canonical, but every spelling must retain its own path checks.
+    const alias = Object.freeze({ ...priorAsset, literalPath, logicalPath, resolvedPath });
+    if (await changed(alias)) {
+      return error(
+        PROJECT_CODES.changed,
+        `Raw asset '${escapeDiagnosticText(literalPath)}' changed after validation`,
+      );
+    }
+    cache.byLiteral.set(cacheKey, alias);
     return priorAsset.result;
   }
   if (before.size === 0n || before.size > BigInt(MAX_ARRAY_BYTES)) {

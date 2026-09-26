@@ -3,7 +3,7 @@ import type { ProjectDiagnostic, SourceSpan } from "../project/types.js";
 import { sortAnalysisDiagnostics } from "./diagnostics.js";
 import { ANALYSIS_OBLIGATION_KIND, freezeSourceSpan } from "./semantic-types.js";
 import type { AnalysisObligation, ModuleAnalysisResult, ModuleGraph } from "./semantic-types.js";
-import type { Expr, Statement, VariableDeclaration } from "./syntax.js";
+import type { Declaration, Expr, Statement, VariableDeclaration } from "./syntax.js";
 
 /** One literal asset request located by its complete call-expression span. */
 export interface EmbeddedRequest {
@@ -27,6 +27,8 @@ export type EmbeddedRequestResult =
 interface ExpressionWork {
   readonly kind: "expression";
   readonly value: Expr;
+  /** Initializer ownership follows all children, but never crosses into a function body. */
+  readonly owner?: "resident" | "loadable" | "mutable" | "local" | undefined;
 }
 
 interface StatementWork {
@@ -77,7 +79,16 @@ function isExpressionList(
 function pushStatementChildren(pending: SourceWork[], statement: Statement): void {
   if (statement.kind === "variable") {
     if (statement.initializer !== null) {
-      pending.push({ kind: "expression", value: statement.initializer });
+      pending.push({
+        kind: "expression",
+        value: statement.initializer,
+        owner:
+          statement.declarationKind === "let"
+            ? "mutable"
+            : statement.loadable
+              ? "loadable"
+              : "local",
+      });
     }
   } else if (statement.kind === "expression-statement") {
     pending.push({ kind: "expression", value: statement.expression });
@@ -94,6 +105,17 @@ function pushStatementChildren(pending: SourceWork[], statement: Statement): voi
   } else if (statement.kind === "while") {
     pending.push({ kind: "statement", value: statement.body });
     pending.push({ kind: "expression", value: statement.condition });
+  } else if (statement.kind === "do-while") {
+    pending.push({ kind: "expression", value: statement.condition });
+    pending.push({ kind: "statement", value: statement.body });
+  } else if (statement.kind === "switch") {
+    for (const clause of [...statement.clauses].reverse()) {
+      for (const child of [...clause.statements].reverse())
+        pending.push({ kind: "statement", value: child });
+      for (const value of [...(clause.values ?? [])].reverse())
+        pending.push({ kind: "expression", value });
+    }
+    pending.push({ kind: "expression", value: statement.value });
   } else if (statement.kind === "for") {
     pending.push({ kind: "statement", value: statement.body });
     for (let index = (statement.update?.length ?? 0) - 1; index >= 0; index--) {
@@ -122,16 +144,29 @@ function pushStatementChildren(pending: SourceWork[], statement: Statement): voi
  */
 function visitGraphExpressions(
   modules: ModuleGraph["modules"],
-  visit: (expression: Expr) => boolean,
+  visit: (expression: Expr, owner: ExpressionWork["owner"]) => boolean,
 ): void {
   const pending: SourceWork[] = [];
   const declarations = modules.flatMap((module) =>
-    module.units.flatMap((unit) => unit.declarations),
+    module.units.flatMap((unit) =>
+      unit.declarations.flatMap<Declaration>((declaration) =>
+        declaration.kind === "zeropage" ? declaration.variables : [declaration],
+      ),
+    ),
   );
   for (let index = declarations.length - 1; index >= 0; index--) {
     const declaration = declarations[index]!;
     if (declaration.kind === "variable" && declaration.initializer !== null) {
-      pending.push({ kind: "expression", value: declaration.initializer });
+      pending.push({
+        kind: "expression",
+        value: declaration.initializer,
+        owner:
+          declaration.declarationKind === "let"
+            ? "mutable"
+            : declaration.loadable
+              ? "loadable"
+              : "resident",
+      });
     } else if (declaration.kind === "function") {
       pending.push({ kind: "statement", value: declaration.body });
     }
@@ -142,10 +177,10 @@ function visitGraphExpressions(
       pushStatementChildren(pending, current.value);
       continue;
     }
-    if (!visit(current.value)) continue;
+    if (!visit(current.value, current.owner)) continue;
     const children = expressionChildren(current.value);
     for (let index = children.length - 1; index >= 0; index--) {
-      pending.push({ kind: "expression", value: children[index]! });
+      pending.push({ kind: "expression", value: children[index]!, owner: current.owner });
     }
   }
 }
@@ -218,13 +253,25 @@ export function discoverPendingObligations(
 export function discoverEmbeddedRequests(graph: ModuleGraph): EmbeddedRequestResult {
   const requests: EmbeddedRequest[] = [];
   const diagnostics: ProjectDiagnostic[] = [];
-  visitGraphExpressions(graph.modules, (expression) => {
+  visitGraphExpressions(graph.modules, (expression, owner) => {
     if (
       expression.kind !== "call" ||
       expression.callee.kind !== "name" ||
       expression.callee.name !== "embed"
     ) {
       return true;
+    }
+    if (owner !== "resident" && owner !== "loadable") {
+      diagnostics.push(
+        projectDiagnostic(
+          owner === "mutable" ? "E10134" : "E10135",
+          owner === "mutable"
+            ? "'embed()' can only initialize an ordinary or loadable const declaration — found 'let'"
+            : "'embed()' can only appear in a module-level ordinary const or a loadable const initializer",
+          expression.span,
+        ),
+      );
+      return false;
     }
     const literalPath =
       expression.arguments[0] === undefined ? null : embeddedLiteralPath(expression.arguments[0]);

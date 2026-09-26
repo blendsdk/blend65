@@ -45,9 +45,10 @@ export class ComptimeAggregates {
       root: SourceSpan,
     ) => ScalarValue | AggregateValue,
     private readonly fail: (span: SourceSpan, message: string) => never,
-    private readonly convertScalar: (
-      value: bigint | boolean,
-      type: SemanticType,
+    private readonly assignmentValue: (
+      expression: TypedExpr,
+      current: bigint | boolean,
+      rhs: bigint | boolean,
     ) => bigint | boolean,
   ) {}
 
@@ -247,10 +248,12 @@ export class ComptimeAggregates {
     let indexBytes = 0;
     try {
       let offset: number;
+      let storedType: SemanticType;
       if (expression.kind === "member" && object.type.kind === "struct") {
         const field = object.type.fields.find(({ name }) => name === expression.member);
         if (field === undefined) return this.fail(expression.span, "Unknown compile-time field");
         offset = field.offset;
+        storedType = field.type;
       } else if (expression.kind === "index" && object.type.kind === "array") {
         if (expression.index === undefined)
           return this.fail(expression.span, "Missing array index");
@@ -264,17 +267,19 @@ export class ComptimeAggregates {
           return this.fail(expression.index.span, "Compile-time array index is out of bounds");
         }
         offset = Number(index.value) * semanticTypeSize(object.type.element);
+        storedType = object.type.element;
       } else {
         return this.fail(expression.span, "Unsupported compile-time aggregate selection");
       }
-      const size = semanticTypeSize(expression.type);
+      // A widened expression still reads the original field/element width.
+      const size = semanticTypeSize(storedType);
       if (aggregate.value.slice(offset, offset + size).some((byte) => byte < 0 || byte > 255)) {
         return this.fail(
           expression.span,
           "Compile-time read of an uninitialized aggregate element",
         );
       }
-      const value = decodeComptimeScalar(aggregate.value, offset, expression.type);
+      const value = decodeComptimeScalar(aggregate.value, offset, storedType);
       const bytes = semanticTypeSize(expression.type);
       this.budget.allocate(bytes, expression.span, root);
       return { value, bytes };
@@ -294,9 +299,21 @@ export class ComptimeAggregates {
     if (target === undefined) return this.fail(expression.span, "Missing aggregate target");
     const place = this.localPlace(target, frame, root);
     try {
+      // Capture the old value before the RHS, which may mutate this same object.
+      const width = semanticTypeSize(target.type);
+      if (
+        expression.operator !== "=" &&
+        place.data.slice(place.offset, place.offset + width).some((byte) => byte < 0 || byte > 255)
+      ) {
+        return this.fail(target.span, "Compile-time read of an uninitialized aggregate element");
+      }
+      const current =
+        expression.operator === "="
+          ? 0n
+          : decodeComptimeScalar(place.data, place.offset, target.type);
       const rhs = this.evaluateScalar(valueNode, frame, root);
       try {
-        const converted = this.convertScalar(rhs.value, target.type);
+        const converted = this.assignmentValue(expression, current, rhs.value);
         const encoded = encodeComptimeScalar(converted, target.type);
         const bytes = semanticTypeSize(expression.type);
         this.budget.allocate(bytes, expression.span, root);

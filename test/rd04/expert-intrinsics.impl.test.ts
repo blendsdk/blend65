@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildProject } from "@blend65/compiler";
 import { describe, expect, it } from "vitest";
+import { startVice, stopVice } from "../m1/vice-runtime.js";
 
 const expert = JSON.parse(
   await readFile(fileURLToPath(new URL("./expert/intrinsics.json", import.meta.url)), "utf8"),
@@ -22,7 +23,25 @@ const expert = JSON.parse(
     cycles: number;
     scratchBytes: number;
   };
+  byteBcdTwoReadsSubtract: {
+    instructions: string[];
+    bytes: number;
+    cycles: number;
+    scratchBytes: number;
+  };
   wordBcdIncrement: { instructions: string[]; bytes: number; cycles: number; scratchBytes: number };
+  wordBcdTwoReadsAdd: {
+    instructions: string[];
+    bytes: number;
+    cycles: number;
+    scratchBytes: number;
+  };
+  wordBcdTwoReadsSubtract: {
+    instructions: string[];
+    bytes: number;
+    cycles: number;
+    scratchBytes: number;
+  };
   wordBcdDecrement: { instructions: string[]; bytes: number; cycles: number; scratchBytes: number };
 };
 
@@ -61,15 +80,79 @@ async function bcdAssembly(sourceLine: string): Promise<string> {
   }
 }
 
+/** Observe decimal results on the target CPU, independently of the assembly shape oracle. */
+async function bcdResults(sourceLine: string): Promise<number[]> {
+  const root = await mkdtemp(join(tmpdir(), "blend65-bcd-results-"));
+  try {
+    await mkdir(join(root, "src"));
+    await writeFile(
+      join(root, "blend65.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        name: "bcd-results",
+        sourceRoot: "src",
+        entry: "Game",
+        target: "c64-pal-prg-kernal-6581",
+        outDir: "out",
+        optimization: "none",
+      }),
+    );
+    await writeFile(
+      join(root, "src/game.blend"),
+      `module Game; function main(): void { ${sourceLine} }`,
+    );
+    const result = await buildProject({
+      project: join(root, "blend65.json"),
+      optimization: "none",
+    });
+    expect(result.kind, result.kind === "failure" ? JSON.stringify(result.diagnostics) : "").toBe(
+      "success",
+    );
+    if (result.kind !== "success") throw new Error("BCD runtime fixture did not build");
+    const labels = await readFile(join(result.generation.directory, ".labels"), "utf8");
+    const returnLabel = `b65_${Buffer.from("startup.restore").toString("hex")}`;
+    const match = labels.match(new RegExp(`^\\s*${returnLabel}\\s*=\\s*\\$([0-9a-f]+)`, "imu"));
+    expect(match).not.toBeNull();
+    const returnAddress = Number.parseInt(match?.[1] ?? "", 16);
+    const started = await startVice(
+      join(result.generation.directory, result.generation.primaryArtifact),
+    );
+    if ("kind" in started) throw new Error(`VICE qualification is Unknown: ${started.reason}`);
+    try {
+      const checkpoint = await started.monitor.setExecuteCheckpoint(returnAddress);
+      try {
+        const stopped = started.monitor.waitForStop(20_000);
+        await started.monitor.resume();
+        expect(await stopped).toBe(returnAddress);
+        return [...(await started.monitor.readMemory(0x0420, 0x0425))];
+      } finally {
+        await started.monitor.deleteCheckpoint(checkpoint);
+      }
+    } finally {
+      await stopVice({ child: started.child, monitor: started.monitor });
+    }
+  } finally {
+    await rm(root, { recursive: true });
+  }
+}
+
 /** Cost the deliberately small hand reference without a second assembler model. */
 function cost(instructions: readonly string[]): { bytes: number; cycles: number } {
   const forms = new Map<string, readonly [number, number]>([
     ["LDA $0400", [3, 4]],
     ["LDA $0401", [3, 4]],
     ["LDX $0401", [3, 4]],
+    ["LDY $0401", [3, 4]],
+    ["LDA $0402", [3, 4]],
+    ["LDX $0402", [3, 4]],
+    ["LDX $0403", [3, 4]],
     ["TXA", [1, 2]],
+    ["TYA", [1, 2]],
     ["STA SCRATCH", [3, 4]],
+    ["STX SCRATCH", [3, 4]],
+    ["STY SCRATCH", [3, 4]],
     ["ADC SCRATCH", [3, 4]],
+    ["SBC SCRATCH", [3, 4]],
     ["SED", [1, 2]],
     ["CLC", [1, 2]],
     ["SEC", [1, 2]],
@@ -142,6 +225,23 @@ describe("equal-contract intrinsic output", () => {
     expect(expert.byteBcdTwoReads.scratchBytes).toBe(1);
   });
 
+  it("subtracts two ordered volatile BCD bytes with one staged operand", async () => {
+    const reference = expert.byteBcdTwoReadsSubtract;
+    expect(cost(reference.instructions)).toEqual({
+      bytes: reference.bytes,
+      cycles: reference.cycles,
+    });
+    const actual = routineInstructions(
+      await bcdAssembly("poke($0420, bcd_sub(peek($0400), peek($0401)));"),
+    );
+    const scratch = actual.find((line) => /^STX \$[0-9A-F]{4}$/u.test(line))?.slice(4);
+    expect(scratch).toBeDefined();
+    const normalized = actual.map((line) => line.replace(scratch ?? "", "SCRATCH"));
+    expect(normalized).toEqual(reference.instructions);
+    expect(cost(normalized)).toEqual({ bytes: 18, cycles: 26 });
+    expect(reference.scratchBytes).toBe(1);
+  });
+
   it.each([
     ["add", "wordBcdIncrement"],
     ["sub", "wordBcdDecrement"],
@@ -158,4 +258,64 @@ describe("equal-contract intrinsic output", () => {
     expect(cost(actual)).toEqual({ bytes: 20, cycles: 28 });
     expect(reference.scratchBytes).toBe(0);
   });
+
+  it("adds two ordered volatile BCD words with one reused staged byte", async () => {
+    const reference = expert.wordBcdTwoReadsAdd;
+    expect(cost(reference.instructions)).toEqual({
+      bytes: reference.bytes,
+      cycles: reference.cycles,
+    });
+    const actual = routineInstructions(
+      await bcdAssembly("pokew($0420, bcd_add(peekw($0400), peekw($0402)));"),
+    );
+    const scratch = actual
+      .find(
+        (line) => /^STA \$[0-9A-F]{4}$/u.test(line) && line !== "STA $0420" && line !== "STA $0421",
+      )
+      ?.slice(4);
+    expect(scratch).toBeDefined();
+    const normalized = actual.map((line) => line.replace(scratch ?? "", "SCRATCH"));
+    expect(normalized).toEqual(reference.instructions);
+    expect(cost(normalized)).toEqual({ bytes: 34, cycles: 48 });
+    expect(reference.scratchBytes).toBe(1);
+  });
+
+  it("subtracts two ordered volatile BCD words with one reused staged byte", async () => {
+    const reference = expert.wordBcdTwoReadsSubtract;
+    expect(cost(reference.instructions)).toEqual({
+      bytes: reference.bytes,
+      cycles: reference.cycles,
+    });
+    const actual = routineInstructions(
+      await bcdAssembly("pokew($0420, bcd_sub(peekw($0400), peekw($0402)));"),
+    );
+    const scratch = actual.find((line) => /^STX \$[0-9A-F]{4}$/u.test(line))?.slice(4);
+    expect(scratch).toBeDefined();
+    const normalized = actual.map((line) => line.replace(scratch ?? "", "SCRATCH"));
+    expect(normalized).toEqual(reference.instructions);
+    expect(cost(normalized)).toEqual({ bytes: 34, cycles: 48 });
+    expect(reference.scratchBytes).toBe(1);
+  });
+
+  it("executes two-read byte and word arithmetic with decimal carry and borrow", async () => {
+    const bytes = await bcdResults(
+      "poke($0421, 0); poke($0400, $25); poke($0401, $07); " +
+        "poke($0420, bcd_sub(peek($0400), peek($0401))); " +
+        "pokew($0400, $1299); pokew($0402, $0001); " +
+        "pokew($0422, bcd_add(peekw($0400), peekw($0402))); " +
+        "pokew($0404, $1300); pokew($0406, $0001); " +
+        "pokew($0424, bcd_sub(peekw($0404), peekw($0406)));",
+    );
+    expect(bytes).toEqual([0x18, 0, 0x00, 0x13, 0x99, 0x12]);
+  }, 60_000);
+
+  it("keeps reusable word results in stable storage", async () => {
+    const bytes = await bcdResults(
+      "pokew($0400, $1250); pokew($0402, $0001); " +
+        "let difference: word = bcd_sub(peekw($0400), peekw($0402)); " +
+        "pokew($0420, difference); pokew($0422, difference); " +
+        "let sum: word = bcd_add(peekw($0400), peekw($0402)); pokew($0424, sum);",
+    );
+    expect(bytes).toEqual([0x49, 0x12, 0x49, 0x12, 0x51, 0x12]);
+  }, 60_000);
 });

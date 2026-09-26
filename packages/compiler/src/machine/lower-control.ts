@@ -45,7 +45,7 @@ export type LoweredValue =
     }
   | {
       readonly kind: "register";
-      readonly registers: "a" | "ax";
+      readonly registers: "a" | "x" | "ax" | "ay";
       readonly bytes: 1 | 2;
       readonly signed?: boolean;
     }

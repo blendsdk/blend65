@@ -153,6 +153,14 @@ export interface FunctionLoweringState {
   readonly forwardedRegisterValues: ReadonlySet<string>;
   /** Word BCD results written directly to one fixed volatile destination. */
   readonly directBcdWrites: ReadonlyMap<string, MemoryWriteOperation>;
+  /** Later fixed-address volatile byte of a subtraction, staged from X. */
+  readonly subtractRightInX: ReadonlySet<string>;
+  /** First addend has its low byte staged and high byte in Y. */
+  readonly wordAddLeftHighInY: ReadonlySet<string>;
+  /** First minuend remains in A/Y while the later word is read. */
+  readonly wordSubtractLeftHighInY: ReadonlySet<string>;
+  /** Later word's low byte is staged while its high byte stays in X. */
+  readonly wordSubtractRightLowStaged: ReadonlySet<string>;
   /** Values consumed once may donate their address pair to a terminal aggregate copy. */
   readonly singleUseValues: ReadonlySet<string>;
   /** Aggregate results whose pointer is consumed beyond a redundant same-place store. */
@@ -310,8 +318,14 @@ export function retainMachineValue(
   const instructions = [...instructionsInput, storeA(retained, 0, state, source)];
   if (value.registers === "ax") {
     instructions.push(
-      machineInstruction(state.input.profile.cpu, "txa", "implied", null, [], source),
-      storeA(retained, 1, state, source),
+      machineInstruction(
+        state.input.profile.cpu,
+        "stx",
+        "storage",
+        Object.freeze({ kind: "storage", requestId: request.id, offset: 1 }),
+        [],
+        source,
+      ),
     );
   }
   return Object.freeze({
@@ -499,7 +513,14 @@ function lowerFunction(
   const singleUseValues = new Set(
     [...valueUseCounts].filter(([, uses]) => uses === 1).map(([value]) => value),
   );
-  const { forwardedRegisterValues, directBcdWrites } = selectBcdForwarding(blocks, singleUseValues);
+  const {
+    forwardedRegisterValues,
+    directBcdWrites,
+    subtractRightInX,
+    wordAddLeftHighInY,
+    wordSubtractLeftHighInY,
+    wordSubtractRightLowStaged,
+  } = selectBcdForwarding(blocks, singleUseValues);
   const state: FunctionLoweringState = {
     owner,
     interruptDepth,
@@ -517,6 +538,10 @@ function lowerFunction(
     materializedValues,
     forwardedRegisterValues,
     directBcdWrites,
+    subtractRightInX,
+    wordAddLeftHighInY,
+    wordSubtractLeftHighInY,
+    wordSubtractRightLowStaged,
     singleUseValues,
     retainedAggregateResults,
     addressValues,

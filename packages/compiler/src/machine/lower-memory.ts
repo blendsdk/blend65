@@ -22,6 +22,8 @@ export interface RawMemoryLoweringContext {
   readonly pointerRequest: (source: MemoryReadOperation | MemoryWriteOperation) => StorageRequest;
   /** Return the preplanned one-byte home used only while a word read loads its high byte. */
   readonly lowByteRequest?: (source: MemoryReadOperation) => string;
+  /** Keep one fixed-address byte in X while a later volatile byte is evaluated. */
+  readonly byteRegister?: "a" | "x";
 }
 
 /** Create one ordered volatile effect through the selected zero-page pointer. */
@@ -114,7 +116,7 @@ export function lowerMemoryRead(
     const instructions: MachineInstruction[] = [
       machineInstruction(
         context.cpu,
-        "lda",
+        operation.width === 1 && context.byteRegister === "x" ? "ldx" : "lda",
         "absolute",
         Object.freeze({ kind: "absolute", value: low }),
         [absoluteEffect("read", low, 0)],

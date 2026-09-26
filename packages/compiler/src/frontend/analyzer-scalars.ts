@@ -19,6 +19,8 @@ import type { ScalarExpressionAnalyzer } from "./scalar-expressions.js";
 
 /** The existing analyzer services needed to check one local declaration. */
 export interface ScalarLocalHost {
+  /** Evaluate an ordinary function's constant root; interpreter-local values stay deferred. */
+  readonly evaluateConstant?: (initializer: TypedExpr, type: SemanticType) => TypedExpr | null;
   /** Recursive expression checker shared with other declarations. */
   readonly expressions: ScalarExpressionAnalyzer;
   /** Proving diagnostics in source order. */
@@ -153,6 +155,14 @@ export function analyzeScalarLocal(
       constantContext: declaration.declarationKind === "const",
     });
     initializer = result.node;
+  }
+  if (
+    declaration.declarationKind === "const" &&
+    initializer !== null &&
+    type !== null &&
+    host.evaluateConstant !== undefined
+  ) {
+    initializer = host.evaluateConstant(initializer, type);
   }
   if (scope.values.has(declaration.name)) {
     const first = scope.values.get(declaration.name)!;

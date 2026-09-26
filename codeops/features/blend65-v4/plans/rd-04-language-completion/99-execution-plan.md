@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-09-26
-> **Progress**: 78/99 tasks (79%)
+> **Progress**: 79/99 tasks (80%)
 > **CodeOps Artifact Schema**: 1
 
 ## Overview
@@ -373,7 +373,20 @@ The user approved the recommended bounded fix for the four major gaps on 2026-09
 ### Step 7.3: Implementation Tests and Qualification
 
 - [x] 7.3.1 Add meter-charge/release, forbidden-host-input, status-join and embed-parser implementation tests, including the canonical full sin16 stream hash through the evaluator's internal trigonometry function — `packages/compiler/src/frontend/comptime.impl.test.ts`, `packages/compiler/src/frontend/flow.impl.test.ts`, `packages/compiler/src/assets/raw-asset.impl.test.ts` — Verified 2026-09-26 02:13: 24 directed implementation cases pass, including the full 65,536-phase `sin16` hash. Install, build, typecheck, formatting, frozen-spec and complete tests pass (1,241 compiler; 152 root including VICE). ✅ (completed: 2026-09-26 02:13)
-- [~] 7.3.2 Run complete compile-time/intrinsic/embed ACME/VICE and expert qualification — `test/rd04/comptime.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`, `test/rd04/expert/intrinsics.json` — Directed ACME/VICE cases and four complete BCD expert routines pass: byte add at 11 bytes / 16 cycles / no scratch and 18 bytes / 26 cycles / one scratch byte; word add/sub at 20 bytes / 28 cycles / no static scratch. Install, build, typecheck and complete tests pass (1,241 compiler; 156 root including sequential VICE); formatting and frozen-spec checks pass. AR-P21 confirms AR-P4 already requires bounded direct repair of the remaining two-volatile-operand subtraction/word gap in [#86](https://github.com/blendsdk/blend65/issues/86); no new user decision or optimizer framework.
+- [x] 7.3.2 Run complete compile-time/intrinsic/embed ACME/VICE and expert qualification — `test/rd04/comptime.spec.test.ts`, `test/rd04/intrinsics-runtime.spec.test.ts`, `test/rd04/expert/intrinsics.json` — Seven complete BCD routines match equal-contract expert byte/cycle/scratch references, including two-volatile-read byte subtraction (18/26/1), word addition (34/48/1), and word subtraction (34/48/1). Direct VICE execution verifies decimal carry/borrow and stable fallback for reused results. Install, build, typecheck, full tests (1,241 compiler; 161 root, sequential VICE), targeted formatting, whitespace and frozen-spec checks pass. No optimizer framework was added. ✅ (completed: 2026-09-26 03:12)
+
+**Phase 7 independent review (2026-09-26, complete):** The user approved all six corrections below with “do the fixes.” All are verified in existing modules; 72 directed tests pass (49 implementation, 23 unchanged specification tests). The repeated-table probe also exposed and repaired widening that decoded two bytes for a one-byte element. The single fix-scoped correctness, performance and semantics re-review reports no surviving findings, including local aggregate roots and all seven best-known direct BCD references. Final install, build, typecheck and full tests pass: 1,269 compiler, 60 CLI, 12 language-server, 6 editor and 161 root tests, with sequential ACME/VICE execution. Targeted formatting and whitespace checks pass; `spec/` and immutable specification tests are unchanged. No framework, dependency or runtime was added. Phase 7 is complete; Phase 8 has not started.
+
+| Finding | Original gap | Verified correction |
+|---|---|---|
+| RV-001 | A repeated raw-asset alias can reuse stale bytes after its contained directory symlink is retargeted. | Validate each literal's own logical path on repeat while sharing canonical bytes. |
+| RV-002 | Dependency ordering misses calls nested in indexing or aggregate expressions; a legal forward constant can fail. | Traverse all admitted expression children and test the forward dependency. |
+| SV-001 | A compile-time call inside a constant aggregate is accepted but not evaluated. | Evaluate nested calls before constant aggregate encoding. |
+| SV-002 | Mutable module and ordinary local owners of `embed()` are accepted instead of receiving E10134/E10135. | Enforce the frozen owner restriction at the frontend boundary. |
+| SV-003 | Indexed compound assignment during compile time stores only the RHS, producing a wrong result. | Apply the typed binary operation to the old element and RHS. |
+| PE-001 | Every compile-time global-array read re-encodes the full initializer outside the step meter. | Cache immutable packed bytes per binding for the analysis run. |
+
+The exact-meter probe confirmed a missing statement charge for selected `else if` and `for` variable initializers. **Recommended technical correction, applied under the project's workflow directive 4:** route both through the existing statement evaluator. Reduced-limit tests prove nine steps accepted and eight rejected with E10269 for each form. Production limits and language semantics are unchanged; no new user-owned scope decision is involved. This correction passed the same semantic re-review, not a third review pass. Domain authority remains expert 2.0.0, content commit `c9e70fab6039e9ced3108e88f0ea9730d4fd3007`; C64 runtime evidence is `VICE-verified / hardware-unverified`.
 
 **Deliverables:** deterministic target-free compile time and complete approved intrinsic surface.
 

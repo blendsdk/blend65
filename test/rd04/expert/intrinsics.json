@@ -29,6 +29,22 @@
     "cycles": 26,
     "scratchBytes": 1
   },
+  "byteBcdTwoReadsSubtract": {
+    "contract": "PAL C64 NMOS 6510; read $0400 then $0401 exactly once each before decimal-mode and carry setup, subtract their packed-decimal bytes, restore clear D, write $0420 exactly once; exclude the same startup return jump",
+    "instructions": [
+      "LDA $0400",
+      "LDX $0401",
+      "STX SCRATCH",
+      "SED",
+      "SEC",
+      "SBC SCRATCH",
+      "CLD",
+      "STA $0420"
+    ],
+    "bytes": 18,
+    "cycles": 26,
+    "scratchBytes": 1
+  },
   "wordBcdIncrement": {
     "contract": "PAL C64 NMOS 6510; read $0400 low then $0401 high before either write, add packed-decimal word one with carry into high byte, write $0420 low then $0421 high, leave D clear; exclude common startup return",
     "instructions": [
@@ -46,6 +62,50 @@
     "bytes": 20,
     "cycles": 28,
     "scratchBytes": 0
+  },
+  "wordBcdTwoReadsAdd": {
+    "contract": "PAL C64 NMOS 6510; read $0400/$0401 then $0402/$0403 exactly once each in low-high order before decimal-mode and carry setup, add their packed-decimal words, restore clear D, write $0420/$0421 in low-high order; exclude common startup return",
+    "instructions": [
+      "LDA $0400",
+      "STA SCRATCH",
+      "LDY $0401",
+      "LDA $0402",
+      "LDX $0403",
+      "SED",
+      "CLC",
+      "ADC SCRATCH",
+      "STA $0420",
+      "STY SCRATCH",
+      "TXA",
+      "ADC SCRATCH",
+      "STA $0421",
+      "CLD"
+    ],
+    "bytes": 34,
+    "cycles": 48,
+    "scratchBytes": 1
+  },
+  "wordBcdTwoReadsSubtract": {
+    "contract": "PAL C64 NMOS 6510; read $0400/$0401 then $0402/$0403 exactly once each in low-high order before decimal-mode and carry setup, subtract their packed-decimal words, restore clear D, write $0420/$0421 in low-high order; exclude common startup return",
+    "instructions": [
+      "LDA $0400",
+      "LDY $0401",
+      "LDX $0402",
+      "STX SCRATCH",
+      "LDX $0403",
+      "SED",
+      "SEC",
+      "SBC SCRATCH",
+      "STA $0420",
+      "STX SCRATCH",
+      "TYA",
+      "SBC SCRATCH",
+      "STA $0421",
+      "CLD"
+    ],
+    "bytes": 34,
+    "cycles": 48,
+    "scratchBytes": 1
   },
   "wordBcdDecrement": {
     "contract": "Same ordered word read/write and D-state contract as wordBcdIncrement, subtracting packed-decimal word one with borrow into high byte",

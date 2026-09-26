@@ -43,13 +43,14 @@ function isConstantWork(item: ScalarDeclarationWork): item is ScalarConstantWork
   return isConstantDeclaration(item.declaration);
 }
 
-/** Collect value names read by the admitted scalar expression forms. */
+/** Collect names from every value-bearing child, including aggregate construction. */
 function expressionNames(expression: Expr): readonly string[] {
   switch (expression.kind) {
     case "name":
       return [expression.name];
     case "unary":
     case "cast":
+    case "length":
       return expressionNames(expression.operand);
     case "binary":
       return [...expressionNames(expression.left), ...expressionNames(expression.right)];
@@ -68,8 +69,17 @@ function expressionNames(expression: Expr): readonly string[] {
       ];
     case "member":
       return expression.object.kind === "name"
-        ? [`${expression.object.name}.${expression.member}`]
+        ? [`${expression.object.name}.${expression.member}`, expression.object.name]
         : expressionNames(expression.object);
+    case "index":
+      return [...expressionNames(expression.object), ...expressionNames(expression.index)];
+    case "array-literal":
+      return [
+        ...expression.elements,
+        ...(expression.fill === null ? [] : [expression.fill]),
+      ].flatMap(expressionNames);
+    case "struct-literal":
+      return expression.fields.flatMap(({ value }) => expressionNames(value));
     default:
       return [];
   }

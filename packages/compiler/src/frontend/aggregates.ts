@@ -308,7 +308,17 @@ function analyzeArrayLiteral(
       constantContext: true,
     });
     fill = result.node;
-    if (fill === null || (fill.constant === null && fill.type.kind === "scalar")) valid = false;
+    // Constant aggregate roots evaluate nested calls together after dependency ordering.
+    // Runtime initializers still need their fill evaluated before publication.
+    if (
+      fill !== null &&
+      fill.constant === null &&
+      fill.type.kind === "scalar" &&
+      !context.constantContext
+    ) {
+      fill = host.comptimeCall?.(fill) ?? null;
+    }
+    if (fill === null) valid = false;
   }
   if (!valid) return { node: null, exact: null };
   const end = fill === null ? Math.min(elements.length, expected.length) : expected.length;

@@ -22,7 +22,10 @@ function isTypedOperand(operand: TypedExpr | TypeSyntax): operand is TypedExpr {
 }
 
 /** Visit source dependencies without charging execution of either branch. */
-function visitExpressionBindings(expression: TypedExpr, visit: (binding: BindingId) => void): void {
+export function visitExpressionBindings(
+  expression: TypedExpr,
+  visit: (binding: BindingId) => void,
+): void {
   if (expression.binding !== null) visit(expression.binding);
   const children: (TypedExpr | undefined)[] = [
     expression.left,

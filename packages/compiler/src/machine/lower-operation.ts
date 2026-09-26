@@ -26,6 +26,7 @@ import {
 import {
   lowerArithmetic,
   lowerBcdArithmetic,
+  lowerBcdTwoReadWord,
   lowerBcdWordToConstantMemory,
 } from "./lower-arithmetic.js";
 import { lowerUnary } from "./lower-unary.js";
@@ -584,10 +585,28 @@ export function lowerOperation(
     return retained.instructions;
   }
   if (operation.kind === "memory-read") {
+    if (
+      state.wordAddLeftHighInY.has(operation.result) ||
+      state.wordSubtractLeftHighInY.has(operation.result) ||
+      state.wordSubtractRightLowStaged.has(operation.result)
+    ) {
+      const lowered = lowerBcdTwoReadWord(
+        operation,
+        state,
+        state.wordAddLeftHighInY.has(operation.result)
+          ? "add-first"
+          : state.wordSubtractLeftHighInY.has(operation.result)
+            ? "sub-first"
+            : "sub-second",
+      );
+      state.values.set(operation.result, lowered.result);
+      return lowered.instructions;
+    }
     const instructions = lowerMemoryRead(operation, {
       cpu: state.input.profile.cpu,
       owner: state.owner,
       values: state.values,
+      byteRegister: state.subtractRightInX.has(operation.result) ? "x" : "a",
       pointerRequest: (source) =>
         requestStorage(
           state,
@@ -610,7 +629,8 @@ export function lowerOperation(
       operation.result,
       Object.freeze({
         kind: "register",
-        registers: operation.width === 1 ? "a" : "ax",
+        registers:
+          operation.width === 1 ? (state.subtractRightInX.has(operation.result) ? "x" : "a") : "ax",
         bytes: operation.width,
         signed: operation.integer?.signed ?? false,
       }),

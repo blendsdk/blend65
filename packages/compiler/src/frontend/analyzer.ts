@@ -14,6 +14,7 @@ import { recursionDiagnostics } from "./call-cycles.js";
 import { ComptimeBudget } from "./comptime-budget.js";
 import type { ComptimeBudgetLimits } from "./comptime-budget.js";
 import { ComptimeEvaluator } from "./comptime.js";
+import { visitExpressionBindings } from "./comptime-dependencies.js";
 import { initializerBytes } from "./constant-bytes.js";
 import { orderScalarDeclarations } from "./effects.js";
 import {
@@ -96,6 +97,8 @@ class ModuleAnalyzer {
   readonly aggregates: AggregateRegistry;
   readonly expressions: ScalarExpressionAnalyzer;
   private readonly evaluator: ComptimeEvaluator;
+  /** Immutable packed constants, encoded once when their declaration is published. */
+  private readonly constantAggregates = new Map<string, readonly number[]>();
   readonly profileSignatures = new Map<string, FunctionSignature>();
 
   constructor(
@@ -128,17 +131,7 @@ class ModuleAnalyzer {
       new ComptimeBudget(budgetLimits),
       (binding) => this.stateByKey.get(bindingIdentityKey(binding))?.known ?? null,
       (diagnostic) => this.diagnostics.push(diagnostic),
-      (binding) => {
-        const declaration = this.declarations.find(
-          (candidate) =>
-            candidate.kind === "typed" &&
-            bindingIdentityKey(candidate.binding) === bindingIdentityKey(binding),
-        );
-        return declaration?.kind === "typed" && declaration.initializer !== null
-          ? (declaration.initializer.embedded?.bytes ??
-              initializerBytes(declaration.initializer, declaration.type))
-          : null;
-      },
+      (binding) => this.constantAggregates.get(bindingIdentityKey(binding)) ?? null,
     );
     addProfileBindings(this.profile, this.graph, this);
     this.expressions = new ScalarExpressionAnalyzer(
@@ -263,15 +256,12 @@ class ModuleAnalyzer {
   /** Replace a successful compile-time expression with its complete retained value. */
   private evaluateComptimeExpression(initializer: TypedExpr, type: SemanticType): TypedExpr | null {
     if (type.kind === "array" || type.kind === "struct") {
-      const callee = initializer.callee?.binding;
-      if (
-        initializer.kind !== "call" ||
-        callee === null ||
-        callee === undefined ||
-        this.functionByKey.get(bindingIdentityKey(callee))?.declaration.mode !== "comptime"
-      ) {
-        return initializer;
-      }
+      let invokesComptime = false;
+      visitExpressionBindings(initializer, (binding) => {
+        invokesComptime ||=
+          this.functionByKey.get(bindingIdentityKey(binding))?.declaration.mode === "comptime";
+      });
+      if (!invokesComptime) return initializer;
     }
     const value = this.evaluator.evaluateRoot(initializer, type);
     if (value === null) return null;
@@ -313,6 +303,14 @@ class ModuleAnalyzer {
         return this.evaluateComptimeExpression(initializer, type);
       },
     });
+    if (
+      declaration.declarationKind === "const" &&
+      analyzed.kind === "typed" &&
+      analyzed.initializer !== null &&
+      (analyzed.type.kind === "array" || analyzed.type.kind === "struct")
+    ) {
+      this.retainConstantAggregate(analyzed.binding, analyzed.initializer, analyzed.type);
+    }
     this.declarations.push(
       declaration.placement !== null && placement === null
         ? Object.freeze({ kind: "poison", binding: state.binding.id, span: declaration.span })
@@ -634,7 +632,12 @@ class ModuleAnalyzer {
     scope: Scope,
     context: ExpressionContext,
   ): TypedVariableStatement | null {
-    return analyzeScalarLocal(declaration, scope, context, {
+    const inComptime =
+      context.caller !== null &&
+      this.functionByKey.get(bindingIdentityKey(context.caller))?.declaration.mode === "comptime";
+    const analyzed = analyzeScalarLocal(declaration, scope, context, {
+      evaluateConstant: (initializer, type) =>
+        inComptime ? initializer : this.evaluateComptimeExpression(initializer, type),
       expressions: this.expressions,
       diagnostics: this.diagnostics,
       sources: this.sources,
@@ -645,6 +648,26 @@ class ModuleAnalyzer {
       createBinding: (name, span, storage, type, loadable) =>
         this.createBodyBinding(name, span, storage, type, loadable),
     });
+    if (
+      !inComptime &&
+      declaration.declarationKind === "const" &&
+      analyzed?.initializer !== null &&
+      analyzed !== null
+    ) {
+      this.retainConstantAggregate(analyzed.binding, analyzed.initializer, analyzed.type);
+    }
+    return analyzed;
+  }
+
+  /** Pack a published immutable aggregate once; unavailable roots are never cached. */
+  private retainConstantAggregate(
+    binding: BindingId,
+    initializer: TypedExpr,
+    type: SemanticType,
+  ): void {
+    if (type.kind !== "array" && type.kind !== "struct") return;
+    const bytes = initializer.embedded?.bytes ?? initializerBytes(initializer, type);
+    if (bytes !== null) this.constantAggregates.set(bindingIdentityKey(binding), bytes);
   }
 
   /** Bind structured-flow callbacks directly to this analysis instance. */
